@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 
-// Matches parent-portal-prd.md §2 nav drawer mockup.
+// Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal', label: 'Dashboard', end: true },
   { to: '/portal/family', label: 'My Family' },
@@ -19,28 +19,26 @@ export function PortalNavDrawer() {
   const logout = useLogout();
 
   return (
-    <nav className="hidden w-64 shrink-0 border-r border-slate-200 bg-white p-4 md:flex md:flex-col">
-      <div className="mb-6">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Airbotix
+    <nav className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 md:flex md:flex-col">
+      <div className="mb-8 flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-coral shadow-brand-coral">
+          <span className="text-[18px] font-extrabold text-white">A</span>
         </div>
-        <div className="text-sm font-semibold text-slate-900">Parent Portal</div>
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.10em] text-slate2">
+            Airbotix
+          </div>
+          <div className="text-[15px] font-bold text-ink leading-tight">Parent Portal</div>
+        </div>
       </div>
 
-      <ul className="space-y-0.5">
+      <ul className="space-y-1">
         {ITEMS.map((item) => (
           <li key={item.to}>
             <NavLink
               to={item.to}
               end={item.end}
-              className={({ isActive }) =>
-                clsx(
-                  'block rounded px-3 py-1.5 text-sm',
-                  isActive
-                    ? 'bg-brand-50 font-medium text-brand-700'
-                    : 'text-slate-700 hover:bg-slate-100',
-                )
-              }
+              className={({ isActive }) => clsx('nav-link', isActive && 'nav-link-active')}
             >
               {item.label}
             </NavLink>
@@ -48,19 +46,18 @@ export function PortalNavDrawer() {
         ))}
       </ul>
 
-      <div className="mt-auto border-t border-slate-200 pt-4">
+      <div className="mt-auto pt-6 border-t border-hairline">
         {me.data?.kind === 'user' && (
-          <div className="mb-2 text-xs text-slate-600">
-            <div className="font-medium text-slate-900">
+          <div className="mb-3">
+            <div className="text-[14px] font-semibold text-ink truncate">
               {me.data.display_name ?? me.data.email}
             </div>
-            <div className="font-mono">{me.data.role}</div>
+            <div className="text-[11px] uppercase tracking-[0.10em] text-slate2 mt-0.5">
+              {me.data.role}
+            </div>
           </div>
         )}
-        <button
-          onClick={() => logout(false)}
-          className="w-full rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
-        >
+        <button onClick={() => logout(false)} className="btn-pill-ghost w-full justify-start">
           Sign out
         </button>
       </div>

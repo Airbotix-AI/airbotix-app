@@ -1,38 +1,45 @@
+import clsx from 'clsx';
 import { NavLink } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 
-// V0: simple top bar. Kid-friendly visual identity (big buttons, mascot, color
-// palette) is deferred to a later round — see airbotix-app-learn-prd.md §UI/UX.
 export function LearnTopBar() {
   const me = useMe();
   const logout = useLogout();
+  const nickname = me.data?.kind === 'kid' ? me.data.nickname : null;
 
   return (
-    <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
-      <div className="flex items-center gap-6">
-        <NavLink to="/learn" className="text-lg font-semibold text-charcoal">
-          Airbotix Learn
-        </NavLink>
-        <nav className="hidden gap-4 md:flex">
-          <TopLink to="/learn" end>Home</TopLink>
-          <TopLink to="/learn/projects">Projects</TopLink>
-          <TopLink to="/learn/missions">Missions</TopLink>
-          <TopLink to="/learn/wall">Class Wall</TopLink>
-        </nav>
-      </div>
-      <div className="flex items-center gap-3">
-        {me.data?.kind === 'kid' && (
-          <div className="text-sm text-charcoal">
-            I'm <span className="font-semibold">{me.data.nickname}</span>
-          </div>
-        )}
-        <button
-          onClick={() => logout(false)}
-          className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50"
-        >
-          Sign out
-        </button>
+    <header className="sticky top-0 z-10 border-b border-hairline bg-canvas-pure/95 backdrop-blur px-6 py-4 md:px-10">
+      <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="flex items-center gap-8">
+          <NavLink to="/learn" className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-bubblegum shadow-brand-bubblegum">
+              <span className="text-[18px] font-extrabold text-white">A</span>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.10em] text-slate2 leading-none">
+                Airbotix
+              </div>
+              <div className="text-[15px] font-bold text-ink leading-tight">Learn</div>
+            </div>
+          </NavLink>
+          <nav className="hidden gap-2 md:flex">
+            <TopLink to="/learn" end>Home</TopLink>
+            <TopLink to="/learn/projects">Projects</TopLink>
+            <TopLink to="/learn/missions">Missions</TopLink>
+            <TopLink to="/learn/wall">Class wall</TopLink>
+          </nav>
+        </div>
+        <div className="flex items-center gap-4">
+          {nickname && (
+            <div className="hidden sm:block text-[14px] text-ink-soft">
+              I'm <span className="font-bold text-ink">{nickname}</span>
+            </div>
+          )}
+          <button onClick={() => logout(false)} className="btn-pill-ghost">
+            Sign out
+          </button>
+        </div>
       </div>
     </header>
   );
@@ -52,9 +59,12 @@ function TopLink({
       to={to}
       end={end}
       className={({ isActive }) =>
-        isActive
-          ? 'text-sm font-semibold text-brand-700'
-          : 'text-sm text-charcoal hover:text-brand-600'
+        clsx(
+          'rounded-full px-4 py-1.5 text-[14px] font-semibold transition-colors',
+          isActive
+            ? 'bg-wash-bubblegum text-ink'
+            : 'text-ink-soft hover:text-ink hover:bg-surface',
+        )
       }
     >
       {children}

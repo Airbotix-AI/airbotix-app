@@ -1,47 +1,203 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
+
 import { useLogout, useMe } from '@/auth/useAuth';
+import { api, ApiError } from '@/lib/api';
+
+interface FamilyData {
+  id: string;
+  name: string;
+  code: string;
+  region: string;
+  primary_email: string;
+}
+
+const schema = z.object({
+  name: z.string().min(1).max(120),
+  region: z.string().length(2),
+});
+type FormValues = z.infer<typeof schema>;
 
 export function SettingsPage() {
   const me = useMe();
+  const nav = useNavigate();
+  const qc = useQueryClient();
   const logout = useLogout();
-  const principal = me.data?.kind === 'user' ? me.data : null;
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [exportData, setExportData] = useState<string | null>(null);
+
+  const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
+
+  const family = useQuery<FamilyData>({
+    queryKey: ['family', familyId],
+    queryFn: () => api<FamilyData>(`/families/${familyId}`),
+    enabled: !!familyId,
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    values: family.data ? { name: family.data.name, region: family.data.region } : undefined,
+  });
+
+  const saveMut = useMutation({
+    mutationFn: (v: FormValues) => api(`/families/${familyId}`, { method: 'PATCH', body: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['family', familyId] }),
+    onError: (e: unknown) =>
+      setSaveError(e instanceof ApiError ? e.message : 'Could not save.'),
+  });
+
+  const exportMut = useMutation({
+    mutationFn: () => api<unknown>(`/families/${familyId}/export`),
+    onSuccess: (data) => setExportData(JSON.stringify(data, null, 2)),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => api(`/families/${familyId}`, { method: 'DELETE' }),
+    onSuccess: async () => {
+      await logout(true);
+      nav('/portal/login', { replace: true });
+    },
+  });
+
+  if (!me.data) return <p className="lead-text">Loading…</p>;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900">Settings</h1>
-      <p className="mb-6 text-sm text-slate-600">
-        Full settings UI per parent-portal-prd.md §4.7 — notifications, data export, account delete
-        — coming next.
-      </p>
-      <dl className="space-y-2 rounded-lg border border-slate-200 bg-white p-6 text-sm">
-        <Row label="Email" value={principal?.email ?? '—'} />
-        <Row label="Display name" value={principal?.display_name ?? '—'} />
-        <Row label="Family ID" value={principal?.family_id ?? '—'} mono />
-        <Row label="Role" value={principal?.role ?? '—'} />
-      </dl>
+    <div>
+      <div className="mb-8">
+        <div className="eyebrow eyebrow-sky">Settings</div>
+        <h1 className="section-heading">Account & family</h1>
+      </div>
 
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={() => logout(false)}
-          className="rounded border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-        >
-          Sign out
-        </button>
-        <button
-          onClick={() => logout(true)}
-          className="rounded border border-danger-500 bg-white px-4 py-2 text-sm text-danger-600 hover:bg-danger-500/5"
-        >
+      <section className="card-base mb-8" style={{ maxWidth: '560px' }}>
+        <div className="eyebrow eyebrow-mint">You</div>
+        <div className="mt-4 space-y-3 text-[14px]">
+          {me.data.kind === 'user' && (
+            <>
+              <Row label="Email" value={me.data.email} />
+              <Row label="Display name" value={me.data.display_name ?? '—'} />
+              <Row label="Role" value={me.data.role} />
+            </>
+          )}
+        </div>
+        <button onClick={() => logout(true)} className="btn-pill-secondary mt-6">
           Sign out everywhere
         </button>
-      </div>
+      </section>
+
+      {familyId && (
+        <>
+          <form
+            onSubmit={form.handleSubmit((v) => saveMut.mutate(v))}
+            className="card-base mb-8 space-y-5"
+            style={{ maxWidth: '560px' }}
+          >
+            <div className="eyebrow">Family</div>
+
+            {family.data && (
+              <div className="mb-2 flex items-center justify-between gap-4 rounded-2xl bg-wash-mint p-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.10em] text-slate2 font-bold">
+                    Family code
+                  </div>
+                  <div className="font-mono font-extrabold tabular-nums text-ink" style={{ fontSize: '28px', letterSpacing: '0.2em' }}>
+                    {family.data.code}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard?.writeText(family.data!.code)}
+                  className="btn-pill-secondary"
+                >
+                  Copy
+                </button>
+              </div>
+            )}
+
+            <label className="block">
+              <span className="label-k12">Family name</span>
+              <input className="input-k12" {...form.register('name')} />
+              {form.formState.errors.name && (
+                <span className="field-error">{form.formState.errors.name.message}</span>
+              )}
+            </label>
+            <label className="block">
+              <span className="label-k12">Region (2-letter)</span>
+              <input className="input-k12 font-mono uppercase" maxLength={2} {...form.register('region')} />
+            </label>
+
+            {saveError && (
+              <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+                {saveError}
+              </div>
+            )}
+            {saveMut.isSuccess && (
+              <div className="rounded-2xl bg-wash-mint border border-brand-mint/30 px-4 py-3 text-[13px] font-medium text-ink">
+                Saved ✓
+              </div>
+            )}
+
+            <button type="submit" disabled={saveMut.isPending} className="btn-pill-primary">
+              {saveMut.isPending ? 'Saving…' : 'Save changes'}
+            </button>
+          </form>
+
+          <section className="card-base mb-8" style={{ maxWidth: '560px' }}>
+            <div className="eyebrow eyebrow-sky">Data export</div>
+            <h3 className="text-[18px] font-bold text-ink mt-1">Download everything</h3>
+            <p className="text-[13px] text-slate2 mt-2">
+              All family data: parents, kids, wallet, transactions, projects, audit events.
+            </p>
+            <button
+              onClick={() => exportMut.mutate()}
+              disabled={exportMut.isPending}
+              className="btn-pill-primary mt-4"
+            >
+              {exportMut.isPending ? 'Preparing…' : 'Export JSON'}
+            </button>
+            {exportData && (
+              <details className="mt-4">
+                <summary className="text-[13px] font-semibold text-brand-coral cursor-pointer">
+                  Show JSON ({Math.round(exportData.length / 1024)} KB)
+                </summary>
+                <pre className="text-[11px] text-ink-soft mt-3 bg-surface-soft p-4 rounded-xl overflow-auto max-h-96 font-mono">
+                  {exportData}
+                </pre>
+              </details>
+            )}
+          </section>
+
+          <section className="card-base" style={{ maxWidth: '560px' }}>
+            <div className="eyebrow">Danger zone</div>
+            <h3 className="text-[18px] font-bold text-ink mt-1">Delete this family</h3>
+            <p className="text-[13px] text-slate2 mt-2">
+              Soft-deletes everything. 30-day grace period before hard delete. Sign out everywhere immediately.
+            </p>
+            <button
+              onClick={() => {
+                if (confirm(`Delete ${family.data?.name ?? 'this family'}? Cannot be undone after 30 days.`))
+                  deleteMut.mutate();
+              }}
+              disabled={deleteMut.isPending}
+              className="mt-4 inline-flex items-center justify-center rounded-full border-2 border-danger-600 px-6 py-2.5 text-[13px] font-semibold text-danger-600 hover:bg-danger-600 hover:text-white transition-colors disabled:opacity-50"
+            >
+              {deleteMut.isPending ? 'Deleting…' : 'Delete family'}
+            </button>
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-slate-100 py-2 last:border-0">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className={mono ? 'font-mono text-slate-900' : 'text-slate-900'}>{value}</dd>
+    <div className="flex justify-between gap-4">
+      <span className="text-slate2 font-medium">{label}</span>
+      <span className="font-semibold text-ink">{value}</span>
     </div>
   );
 }

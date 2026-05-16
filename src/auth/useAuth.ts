@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
-import { closeSocket } from '@/lib/ws';
+import { closeSocket, getSocket } from '@/lib/ws';
 import { useAuthStore } from './authStore';
 import type {
   AuthPrincipal,
@@ -62,6 +62,8 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  // Trigger WS connect with new token
+  setTimeout(() => getSocket(), 0);
   return res;
 }
 
@@ -78,6 +80,8 @@ export async function kidLogin(
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  // Trigger WS connect with new token
+  setTimeout(() => getSocket(), 0);
   return res;
 }
 
@@ -93,6 +97,8 @@ export async function classCodeLogin(
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  // Trigger WS connect with new token
+  setTimeout(() => getSocket(), 0);
   return res;
 }
 

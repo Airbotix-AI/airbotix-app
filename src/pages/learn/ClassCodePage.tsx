@@ -33,60 +33,62 @@ export function ClassCodePage() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-cream p-6">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div>
-          <h1 className="text-xl font-semibold text-charcoal">Join a class</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Your teacher gave you a code. Type it in below.
-          </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="mb-2">
+          <span className="sticker-sunshine alt">Workshop</span>
         </div>
+        <h1 className="hero-display mt-6">Join your class.</h1>
+        <p className="lead-text mt-4">
+          Your teacher gave you a code. Type it below — no account needed for today.
+        </p>
 
-        <label className="block text-sm">
-          <span className="text-charcoal">Class code</span>
-          <input
-            type="text"
-            autoComplete="off"
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-center font-mono text-lg uppercase tracking-widest focus:border-brand-500 focus:outline-none"
-            placeholder="WANG-T1"
-            {...register('class_code')}
-          />
-          {errors.class_code && (
-            <span className="mt-1 block text-xs text-danger-600">{errors.class_code.message}</span>
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <label className="block">
+            <span className="label-k12">Class code</span>
+            <input
+              type="text"
+              autoComplete="off"
+              autoCapitalize="characters"
+              maxLength={12}
+              className="input-k12 font-mono text-center tracking-[0.3em] text-[28px] uppercase"
+              placeholder="ABC-D1"
+              {...register('class_code')}
+            />
+            {errors.class_code && (
+              <span className="field-error">{errors.class_code.message}</span>
+            )}
+          </label>
+
+          <label className="block">
+            <span className="label-k12">What do you want to be called? (optional)</span>
+            <input
+              type="text"
+              autoComplete="off"
+              className="input-k12"
+              placeholder="Mia"
+              {...register('display_nickname')}
+            />
+          </label>
+
+          {error && (
+            <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+              {error}
+            </div>
           )}
-        </label>
 
-        <label className="block text-sm">
-          <span className="text-charcoal">What do you want to be called? (optional)</span>
-          <input
-            type="text"
-            autoComplete="off"
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-            placeholder="Mia"
-            {...register('display_nickname')}
-          />
-        </label>
+          <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
+            {isSubmitting ? 'Joining…' : 'Join →'}
+          </button>
+        </form>
 
-        {error && <div className="text-xs text-danger-600">{error}</div>}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Joining…' : 'Join'}
-        </button>
-
-        <p className="text-center text-xs text-slate-500">
-          Already have your own account?{' '}
-          <Link to="/learn/login" className="text-brand-600 hover:underline">
-            Sign in here →
+        <p className="mt-8 text-center text-[13px] text-slate2">
+          Got a family code instead?{' '}
+          <Link to="/learn/login" className="font-semibold text-brand-bubblegum hover:underline">
+            Sign in →
           </Link>
         </p>
-      </form>
+      </div>
     </div>
   );
 }

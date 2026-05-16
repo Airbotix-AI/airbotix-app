@@ -8,10 +8,7 @@ import { verifyOtp } from '@/auth/useAuth';
 import { ApiError } from '@/lib/api';
 
 const schema = z.object({
-  code: z
-    .string()
-    .length(6, '6 digits')
-    .regex(/^\d{6}$/, '6 digits'),
+  code: z.string().length(6, '6 digits').regex(/^\d{6}$/, '6 digits'),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -44,40 +41,56 @@ export function VerifyOtpPage() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-slate-50 p-6">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">Check your email</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            We sent a 6-digit code to <span className="font-mono">{email}</span>.
-          </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="mb-2">
+          <span className="sticker-sky alt">Check your inbox</span>
         </div>
-        <label className="block text-sm">
-          <span className="text-slate-700">Code</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-center font-mono text-lg tracking-widest focus:border-brand-500 focus:outline-none"
-            {...register('code')}
-          />
-          {errors.code && (
-            <span className="mt-1 block text-xs text-danger-600">{errors.code.message}</span>
+        <h1 className="hero-display mt-6">Enter your code</h1>
+        <p className="lead-text mt-4">
+          We sent a 6-digit code to{' '}
+          <span className="font-semibold text-ink">{email}</span>.
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <div>
+            <label htmlFor="code" className="label-k12">6-digit code</label>
+            <input
+              id="code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              autoFocus
+              placeholder="••••••"
+              className="input-k12-otp"
+              {...register('code')}
+            />
+            {errors.code && <span className="field-error">{errors.code.message}</span>}
+          </div>
+
+          {error && (
+            <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+              {error}
+            </div>
           )}
-        </label>
-        {error && <div className="text-xs text-danger-600">{error}</div>}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Verifying…' : 'Verify'}
-        </button>
-      </form>
+
+          <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
+            {isSubmitting ? 'Verifying…' : 'Verify'}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-[13px] text-slate2">
+          Didn't get the code?{' '}
+          <button
+            type="button"
+            onClick={() => nav('/portal/login')}
+            className="font-semibold text-brand-coral hover:underline"
+          >
+            Try again →
+          </button>
+        </p>
+      </div>
     </div>
   );
 }

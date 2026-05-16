@@ -1,34 +1,88 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+
 import { useLogout, useMe } from '@/auth/useAuth';
+import { api } from '@/lib/api';
+
+interface Project {
+  id: string;
+  status: string;
+  star_cost_total: number;
+}
 
 export function ProfilePage() {
   const me = useMe();
   const logout = useLogout();
-  const principal = me.data?.kind === 'kid' ? me.data : null;
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const nickname = me.data?.kind === 'kid' ? me.data.nickname : '—';
+
+  const projects = useQuery<Project[]>({
+    queryKey: ['projects', 'kid', kidId, 'profile'],
+    queryFn: () => api<Project[]>(`/kids/${kidId}/projects`),
+    enabled: !!kidId,
+  });
+
+  const total = projects.data?.length ?? 0;
+  const completed = projects.data?.filter((p) => p.status === 'accepted').length ?? 0;
+  const starsSpent = projects.data?.reduce((s, p) => s + (p.star_cost_total ?? 0), 0) ?? 0;
 
   return (
-    <div className="mx-auto max-w-md">
-      <h1 className="mb-4 text-2xl font-semibold text-charcoal">Me</h1>
-      <dl className="space-y-2 rounded-lg border border-slate-200 bg-white p-6 text-sm">
-        <Row label="Nickname" value={principal?.nickname ?? '—'} />
-        <Row label="Age" value={String(principal?.age ?? '—')} />
-        <Row label="Profile ID" value={principal?.sub ?? '—'} mono />
-        {principal?.class_id && <Row label="Class" value={principal.class_id} mono />}
-      </dl>
-      <button
-        onClick={() => logout(false)}
-        className="mt-6 w-full rounded border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-      >
-        Sign out
-      </button>
+    <div>
+      <div className="mb-10">
+        <div className="eyebrow eyebrow-bubblegum">Profile</div>
+        <h1 className="hero-display">
+          I'm <span className="squiggle-word">{nickname}</span>.
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
+        <div className="stat-tile coral">
+          <div className="stat-num text-brand-coral">{total}</div>
+          <div className="stat-label">Projects</div>
+        </div>
+        <div className="stat-tile mint">
+          <div className="stat-num text-brand-mint">{completed}</div>
+          <div className="stat-label">Finished</div>
+        </div>
+        <div className="stat-tile sunshine">
+          <div className="stat-num" style={{ color: '#C99A00' }}>{starsSpent}</div>
+          <div className="stat-label">Stars used</div>
+        </div>
+      </div>
+
+      <div className="card-base" style={{ maxWidth: '520px' }}>
+        <div className="eyebrow">Account</div>
+        <div className="mt-4 space-y-3 text-[14px]">
+          {me.data?.kind === 'kid' && (
+            <>
+              <Row label="Nickname" value={me.data.nickname} />
+              <Row label="Family" value={me.data.family_id ?? 'Workshop session'} />
+              {me.data.age !== undefined && me.data.age > 0 && (
+                <Row label="Age" value={String(me.data.age)} />
+              )}
+            </>
+          )}
+        </div>
+        <button onClick={() => logout(false)} className="btn-pill-secondary mt-6">
+          Sign out
+        </button>
+      </div>
+
+      <p className="mt-8 text-[13px] text-slate2">
+        Want to change your nickname or PIN?{' '}
+        <Link to="/learn" className="text-brand-coral font-semibold hover:underline">
+          Ask a parent →
+        </Link>
+      </p>
     </div>
   );
 }
 
-function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-slate-100 py-2 last:border-0">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className={mono ? 'font-mono text-charcoal' : 'text-charcoal'}>{value}</dd>
+    <div className="flex justify-between gap-4">
+      <span className="text-slate2 font-medium">{label}</span>
+      <span className="font-semibold text-ink truncate">{value}</span>
     </div>
   );
 }

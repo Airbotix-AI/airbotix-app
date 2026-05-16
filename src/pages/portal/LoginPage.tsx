@@ -30,42 +30,50 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-slate-50 p-6">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">Parent Portal</h1>
-          <p className="mt-1 text-sm text-slate-600">Sign in with your email.</p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="mb-2">
+          <span className="sticker-coral">Parent Portal</span>
         </div>
-        <label className="block text-sm">
-          <span className="text-slate-700">Email</span>
-          <input
-            type="email"
-            autoComplete="email"
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
-            {...register('email')}
-          />
-          {errors.email && (
-            <span className="mt-1 block text-xs text-danger-600">{errors.email.message}</span>
+        <h1 className="hero-display mt-6">
+          Welcome <span className="squiggle-word">back</span>.
+        </h1>
+        <p className="lead-text mt-4">
+          Sign in with your email — we'll send you a one-time code.
+        </p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+          <div>
+            <label htmlFor="email" className="label-k12">Email</label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              className="input-k12"
+              {...register('email')}
+            />
+            {errors.email && <span className="field-error">{errors.email.message}</span>}
+          </div>
+
+          {error && (
+            <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+              {error}
+            </div>
           )}
-        </label>
-        {error && <div className="text-xs text-danger-600">{error}</div>}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {isSubmitting ? 'Sending…' : 'Send code'}
-        </button>
-        <p className="text-center text-xs text-slate-500">
+
+          <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
+            {isSubmitting ? 'Sending…' : 'Send code'}
+          </button>
+        </form>
+
+        <p className="mt-8 text-center text-[13px] text-slate2">
           Kid?{' '}
-          <a href="/learn/login" className="text-brand-600 hover:underline">
+          <a href="/learn/login" className="font-semibold text-brand-coral hover:underline">
             Sign in here →
           </a>
         </p>
-      </form>
+      </div>
     </div>
   );
 }
