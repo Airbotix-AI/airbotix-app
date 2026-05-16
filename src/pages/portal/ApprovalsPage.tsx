@@ -36,6 +36,7 @@ export function ApprovalsPage() {
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   const qc = useQueryClient();
   useWsEvent('approval.new', () => { qc.invalidateQueries({ queryKey: ['approvals', familyId] }); }, [familyId]);
+  useWsEvent('approval.resolved', () => { qc.invalidateQueries({ queryKey: ['approvals', familyId] }); qc.invalidateQueries({ queryKey: ['wallet', familyId] }); }, [familyId]);
 
   const approvals = useQuery<Approval[]>({
     queryKey: ['approvals', familyId],

@@ -1,8 +1,20 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+
+import { sendWsEvent } from '@/lib/ws';
 
 import { LearnTopBar } from './LearnTopBar';
 
+const HEARTBEAT_INTERVAL_MS = 10_000;
+
 export function LearnLayout() {
+  useEffect(() => {
+    const tick = () => sendWsEvent('class.heartbeat', { ts: Date.now() });
+    tick();
+    const id = window.setInterval(tick, HEARTBEAT_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-canvas">
       <LearnTopBar />

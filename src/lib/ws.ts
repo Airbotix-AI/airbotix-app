@@ -47,3 +47,9 @@ export function onWsEvent<T = unknown>(event: string, handler: (payload: T) => v
     sock.off(event, handler);
   };
 }
+
+export function sendWsEvent(event: string, payload?: unknown): void {
+  const sock = getSocket();
+  if (!sock) return;
+  sock.emit(event, payload);
+}
