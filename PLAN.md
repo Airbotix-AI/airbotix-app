@@ -1,254 +1,147 @@
-# creative-web — Development Plan (V0 → Workshop dogfood)
+# airbotix-app — Development Plan
 
-> **Status**: v0.1 living plan · 12-week sprint · Updated 2026-05-12
-> **Owner**: 1 React engineer + Lightman (UX direction)
-> **Goal**: Production-ready low-age (6-11) AI creation platform. Image / music / story creation in a safe, parent-monitored UI. Talks only to `platform-backend`.
-> **Cross-PRD links**:
-> - Product PRD: `~/Documents/sites/airbotix/docs/product/prd/kids-ai-platform-prd.md`
-> - Backend we depend on: `~/Documents/sites/kidsinai/platform-backend/PLAN.md`
-> - Master cross-product plan: `~/Documents/sites/kidsinai/planning/PROJECT.md`
+> **Status**: v0.2 · 2026-05-16
+> **Stack reset**: replaces v0.1 creative-web + Supabase plan after 2026-05-14 hard-rule lock-in. Old plan archived in git history (commit `0509057 feat(auth): Phase 1 — Supabase Auth`).
+> **Owner**: Airbotix engineering
+> **Goal**: Unified Portal (`/portal/*`, parents) + Learn (`/learn/*`, kids) SPA running on AWS S3 + CloudFront Sydney, talking to platform-backend NestJS API.
 
 ---
 
-## Phase 0 — Foundation ✅ DONE (2026-05-12)
+## What's already in place (after 2026-05-16 scaffold)
 
-- [x] Vite + React 18 + TypeScript + Tailwind scaffold
-- [x] Cream/charcoal Lovable-inspired palette (matches design system)
-- [x] `.env.example` (`VITE_API_BASE_URL`)
-- [x] README.md + CLAUDE.md
-
-**Output**: `pnpm dev` brings up "hello world" SPA at :5173.
-
----
-
-## Phase 1 — Auth + family bootstrap (Week 3-4)
-
-**Goal**: A parent can sign up via Supabase Auth → family is created → land on a kid-picker page.
-
-### Tasks
-- [ ] Install `@supabase/supabase-js`
-- [ ] `src/lib/supabase.ts` — Supabase client (anon key only; never service role on client)
-- [ ] Auth pages
-  - `/login` (email + password OR magic link)
-  - `/signup` (email + password + accept terms)
-  - `/forgot-password`
-- [ ] On signup completion → POST to backend `/api/families/me` to confirm family bootstrap
-- [ ] `/setup` page — first-time parent flow
-  - Step 1: parent profile (display name)
-  - Step 2: add first kid profile (nickname + age band)
-  - Step 3: family timezone confirm
-- [ ] Routing
-  - React Router v6
-  - Protected routes wrapper that redirects to `/login` if no session
-- [ ] `/picker` — landing after auth: list kid profiles, pick one to enter
-
-### Acceptance
-- [ ] Signup → setup → picker flow works end-to-end against local platform-backend
-- [ ] Refresh preserves auth state
-- [ ] Sign out clears session
+- ✅ Vite + React 18 + TypeScript strict bootstrap
+- ✅ Tailwind + ESLint flat config + Prettier
+- ✅ TanStack Query + Zustand + react-hook-form + zod stack
+- ✅ Unified router with all 25 routes and two layouts (Portal + Learn)
+- ✅ AuthStore (in-memory access token) + auth principal discriminated union
+- ✅ API client with single-flight silent refresh on 401
+- ✅ ProtectedRoute with cross-surface bounce (kid ↔ parent)
+- ✅ 5 REAL auth pages end-to-end:
+  - `/portal/login` (email → OTP request)
+  - `/portal/verify-otp` (6-digit code → JWT)
+  - `/portal/register` (first-time family setup)
+  - `/learn/login` (family code + nickname + PIN)
+  - `/learn/class-code` (one-shot workshop login)
+- ✅ Profile + sign-out + sign-out-everywhere
+- ✅ 19 business page placeholders (each tagged with PRD §)
 
 ---
 
-## Phase 2 — Kid shell + Course Pack runner (Week 5-6)
+## Phase 1 — Wire family + dashboard (Week 1)
 
-**Goal**: Kid enters their profile → sees available course packs → enters a mission → can navigate.
+**Goal**: Logged-in parent sees a real dashboard with their family + kids + wallet.
 
-### Tasks
-- [ ] Kid layout shell
-  - Big touch-friendly UI; minimal text density (target reading age 7)
-  - Cream background, large rounded buttons, friendly icons
-  - Persistent "back to picker" + "ask parent" pause button
-- [ ] `/kid/:kidId/home` — kid landing
-  - Three big cards: "My creations" / "My classes" / "Try something new"
-- [ ] `/kid/:kidId/courses` — available course packs grid
-  - Filter by `age_band` matching kid
-  - Card shows title, mission count, Stars budget
-- [ ] `/kid/:kidId/course/:slug/:mission` — mission runtime
-  - Mission objective (1-2 sentences, kid-readable)
-  - Inline tutorial (image / step list)
-  - "Start creating" button → launches creation flow
-- [ ] Progress persistence via `platform-backend/api/enrollments/me`
-- [ ] Stars meter visible at top — current balance + "today used X⭐"
+- [ ] `/portal` Dashboard
+  - Hit `GET /auth/me` (already wired), display kid cards
+  - `GET /families/:id/wallet` → balance + caps
+  - `GET /families/:id/approvals?status=pending` → red badge count
+  - Recent activity from `GET /families/:id/audit?limit=10`
+- [ ] `/portal/family` Multi-kid manager
+  - Empty / single / multi-kid card layouts (parent-portal-prd.md §4.2)
+  - Family-wide controls: caps, pause family
+- [ ] `/portal/family/new` Add-kid wizard
+  - Reuses the `RegisterPage` field set, scoped to kid only
+- [ ] `/portal/family/:kidId` Single-kid detail
+  - Login info, Stars/limits per-kid override, topic limits, danger zone
+- [ ] WS hook `useFamilyAuditStream` — subscribe to `family:<family_id>` room
 
-### Acceptance
-- [ ] Kid enrols in a course pack → enters Mission 1 → sees objective + tutorial
-- [ ] Progress saved on backend (verified by querying `/api/enrollments/me`)
-- [ ] UI works on iPad / school Chromebook (test breakpoints)
+## Phase 2 — Wallet + Airwallex topup (Week 2)
 
-### Risks
-- **Course Pack content not ready** — work with curriculum team in parallel; have at least 1 placeholder pack to test against
+- [ ] `/portal/wallet` — balance + transactions feed + filters
+- [ ] `/portal/wallet/topup` — Stars Pack picker → Airwallex hosted checkout → callback
+- [ ] Cap update form, pause/resume controls
+- [ ] Live wallet update via WS `wallet.update` event
 
----
+## Phase 3 — Approvals + Audit (Week 3)
 
-## Phase 3 — AI image creation flow (Week 7-8) 🔴 P0 — first real LLM feature
+- [ ] `/portal/approvals` — pending queue + recently resolved
+- [ ] `approval.new` WS event → toast + badge bump
+- [ ] `/portal/audit` — cursor-paginated feed
+- [ ] `/portal/audit/project/:id` — single-project replay
 
-⚠️ **Dependency**: platform-backend Phase 3 (LLM proxy) must be live.
+## Phase 4 — Kid surface foundation (Week 4)
 
-**Goal**: Kid types prompt or picks template → backend calls DeepRouter → image rendered → saved to portfolio.
+- [ ] `/learn` Home — mission carousel + current projects + class wall preview
+- [ ] `/learn/projects` list + `/learn/projects/new` create
+- [ ] `/learn/projects/:id` editor surface:
+  - Prompt / chat pane (calls `POST /llm/text-completion` on backend)
+  - Artifact gallery (signed S3 URLs)
+  - Stars meter
+  - "Ask parent for more Stars" trigger
+- [ ] Kid-friendly visual treatment (airbotix-app-learn-prd.md §UI/UX) — bigger buttons, mascot, warm palette
 
-### Tasks
-- [ ] Creation flow UI
-  - Step 1: pick a template ("AI 表情包", "我的奇幻动物", etc.) or free prompt
-  - Step 2: prompt builder with kid-friendly UI (drag-drop nouns + adjectives, OR text input with suggestions)
-  - Step 3: cost preview ("This will use 1⭐") + "Make it!" button
-  - Step 4: loading state with friendly animation (NOT a spinner — something educational)
-  - Step 5: result display with "Save" + "Try again" + "Show parent" actions
-- [ ] API call to `/api/llm/proxy` with `model: gpt-image-1` (or whatever DeepRouter routes)
-- [ ] Streaming progress (if applicable) → fun UI updates
-- [ ] Error handling
-  - 422 (content blocked) → friendly "Let's try something different!" — never show the raw content filter reason
-  - 402 (insufficient Stars) → "Ask your parent for more stars" flow
-  - Network error → retry with backoff
-- [ ] Save to portfolio
-  - POST result to `/api/portfolio` (backend stores ref in Supabase Storage)
-  - Show in `/kid/:kidId/portfolio` gallery
+## Phase 5 — Missions + Class Wall + Polish (Week 5)
 
-### Acceptance
-- [ ] Kid completes full creation flow end-to-end (3+ creations in 5 min)
-- [ ] Content block returns gentle redirect, not error message
-- [ ] Stars deducted exactly once per generation (cross-check ledger)
+- [ ] `/learn/missions` + `/learn/missions/:id` — course pack runner
+- [ ] `/learn/wall` — class wall (approved class-share projects)
+- [ ] `/learn/profile` — picture / nickname change, sign-out
+- [ ] Settings (`/portal/settings`) — notification prefs, data export, account delete
+- [ ] Billing (`/portal/billing`) — receipts + refund history
 
-### Risks
-- **Image latency > 10s frustrates kids** — show progress; consider switching to faster model in DeepRouter
-- **Content filter false positives on innocent prompts** — calibrate the LLM classifier in DeepRouter; have a tester on hand during P3
+## Phase 6 — Production deploy + observability (Week 6)
 
----
-
-## Phase 4 — Portfolio + Class Wall (Week 9-10)
-
-**Goal**: Kid can see all their creations + classmates' work; teacher/parent can curate.
-
-### Tasks
-- [ ] `/kid/:kidId/portfolio` — kid's own gallery
-  - Grid view of all creations
-  - Per-item: download, share to class wall, delete
-- [ ] `/kid/:kidId/class/:classId/wall` — class wall
-  - Grid of classmates' shared work (filtered by class enrolment)
-  - Like / comment (V1 — defer if tight)
-  - "Remix" button (uses same template; spends own Stars)
-- [ ] Sharing flow
-  - Default privacy: private to kid + parent
-  - Share to class wall: requires class enrolment; opt-in
-  - Share publicly: requires parent + teacher dual approval (V1 — defer; V0 has private + class only)
-- [ ] Parent visibility
-  - All actions visible in parent dashboard audit feed (backend handles)
-
-### Acceptance
-- [ ] Kid creates 5 images → portfolio shows all 5
-- [ ] Share 2 to class wall → classmates see them
-- [ ] Delete one → removed from both views immediately
-
----
-
-## Phase 5 — Workshop mode + offline resilience (Week 11)
-
-**Goal**: When launched from a class URL, switch to Workshop Mode; handle classroom WiFi flakiness.
-
-### Tasks
-- [ ] Workshop Mode detection
-  - URL param `?class=abc123` → enter Workshop Mode
-  - Banner: "🎓 Workshop with [class name] · using class credits"
-  - Class-specific Course Pack auto-loaded
-- [ ] Offline / flaky network
-  - Service worker for static assets (images, fonts, JS bundle)
-  - Local queue for save-to-portfolio while offline → sync on reconnect
-  - Friendly "trying to reach AI..." UI on slow / intermittent network
-- [ ] Multi-kid same device support
-  - Quick switch between sibling kids on same login (e.g. tablet shared by 2 kids in class)
-- [ ] Pre-warm
-  - On class start: preload Course Pack assets to cache
-
-### Acceptance
-- [ ] Class URL → enters Workshop Mode automatically
-- [ ] Offline: kid can still see portfolio + queued saves; resume when online
-- [ ] Switch kid quickly without re-login
-
----
-
-## Phase 6 — Workshop dogfood (Week 12)
-
-**Goal**: 2 real workshops (low-age 6-11 cohort) with ≥18/20 kids completing.
-
-### Tasks
-- [ ] Pre-flight
-  - Deploy to Cloudflare Pages staging
-  - Test on real iPad / Chromebook / Android tablet (the devices schools actually have)
-  - Bandwidth test in a realistic school WiFi environment
-- [ ] Workshop #1 (W12 mid)
-  - 20 kids 6-11, 2-hour session, "AI 表情包" course pack
-  - Notes on friction; iterate same day
-- [ ] Workshop #2 (W12 end)
-  - 20 kids, "我的奇幻故事书" pack (multi-mission)
-  - Validate iterations from Workshop #1 hold
-
-### Acceptance
-- [ ] Workshop #1: ≥18/20 complete Mission 1 in 90 min
-- [ ] Workshop #2: ≥18/20 complete all 3 missions in 2h
-- [ ] Parent NPS post-workshop ≥ 60
+- [ ] Copy `infra/github-actions/deploy-airbotix-app.yml.example` into `.github/workflows/deploy.yml`
+- [ ] Provision S3 + CloudFront via infra walkthrough
+- [ ] First deploy to `app.airbotix.ai`
+- [ ] Sentry wiring
+- [ ] Lighthouse pass on /portal/login + /learn/login (FCP <1.5s target)
+- [ ] Bundle audit (target <1MB gz)
 
 ---
 
 ## Critical-path dependency
 
 ```
-platform-backend P3 (LLM proxy, W7-8) ──┐
-                                         ▼
-                          creative-web P3 (image flow)
-                                         │
-                                         ▼
-                          P4 (portfolio/class wall)
-                                         │
-                                         ▼
-                          P5 (workshop mode)
-                                         │
-                                         ▼
-                          P6 (workshop dogfood)
+P0 scaffold ✅
+   │
+   ▼
+P1 family + dashboard ── depends on platform-backend Phase 1 (auth + family bootstrap)
+   │
+   ▼
+P2 wallet + Airwallex ── depends on platform-backend Phase 3 (wallet) + Airwallex PRD
+   │
+   ▼
+P3 approvals + audit ── depends on platform-backend Phase 7
+   │
+   ▼
+P4 kid surface ────── depends on platform-backend Phase 4 (LLM proxy) + Phase 6 (projects)
+   │
+   ▼
+P5 polish
+   │
+   ▼
+P6 ship
 ```
 
-P1+P2 can proceed without backend P3, working against mock data.
+Phases P1-P3 (parent portal) can start as soon as platform-backend Phase 1-2 is up. Phase P4 blocks on Phase 4 of backend.
 
 ---
 
-## Open decisions
+## Open questions
 
-| ID | Decision needed | Phase | Owner |
+| ID | Decision | Phase | Notes |
 |---|---|---|---|
-| CW-1 | i18n: Chinese-first or English-first? Bilingual toggle? | P1 (W3) | Lightman (markets) |
-| CW-2 | Service worker library: Workbox vs custom | P5 (W11) | Engineer |
-| CW-3 | Animation library for kid UI: Framer Motion vs CSS-only | P2 (W5) | Engineer (perf budget) |
+| APP-1 | Should `/portal/register` keep V0 collapsed form or split into the 5-step wizard from parent-portal-prd.md §3.1? | P1 | Probably split once UX feedback says it's overwhelming |
+| APP-2 | Kid editor (`/learn/projects/:id`) — embed chat-like UI vs canvas vs hybrid? | P4 | Defer to airbotix-app-learn-prd.md UX session |
+| APP-3 | WS reconnect strategy — exponential backoff cap? | P1 | start with 1-5s, evolve |
+| APP-4 | Should "ask for more Stars" land in approvals queue with custom UI, or reuse generic approval renderer? | P4 | Probably reuse — approvals are polymorphic |
 
 ---
 
 ## Risk register
 
-| Risk | Severity | Mitigation |
+| Risk | Sev | Mitigation |
 |---|---|---|
-| **Backend P3 late** | High | Build P1-P2 against mock; have ~1 week buffer |
-| Course Pack content delays | Medium | Engineering ships schema; curriculum can ship later |
-| iPad / Chromebook compatibility issues | Medium | Test on real devices weekly from Phase 2 |
-| Kid frustration with prompt content filter false-positives | Medium | Friendly redirects, not error toasts; calibrate filter |
+| platform-backend Phase 1 slips → no real /auth/me for dashboard | High | Mock fixture in dev; Vite proxy → mock server |
+| Kid-friendly visual design takes a full design sprint | Medium | Ship Phase 4 with neutral palette; iterate on visuals async |
+| Bundle bloat from TanStack Query + Recharts | Low | Code-split by route; lazy-load Recharts in admin-style pages |
+| Cross-surface session bug (kid token used at `/portal`) | High | Both client guard + server family-scope guard; e2e test in Phase 5 |
 
 ---
 
-## Definition of "creative-web V0 Done"
-
-1. ✅ Deployed to Cloudflare Pages (`creative.kidsinai.org` or similar)
-2. ✅ Signup → kid creates first AI image → saves to portfolio in ≤5 min
-3. ✅ Workshop dogfood: 2 sessions × ≥18/20 completion
-4. ✅ Works on iPad + Chromebook + Android tablet (3 actual devices)
-5. ✅ Zero unsafe content reaching kid screens
-6. ✅ Parent dashboard reflects kid activity in real time
-
----
-
-## Weekly cadence
-
-Mon plan-check, Fri 30 min sync with backend + DeepRouter teams, end-of-phase retro.
-
----
-
-## Revision History
+## Revision history
 
 | Version | Date | Note |
 |---|---|---|
-| v0.1 | 2026-05-12 | Initial plan. Scaffold done. Phases 1-6 with acceptance + dependency on backend P3. |
+| v0.2 | 2026-05-16 | Full stack reset: NestJS-compatible. Two surfaces in one SPA. 5 REAL auth pages + 19 placeholders. Phases 1-6 rewritten. |
+| v0.1 | 2026-05-12 | (DISCARDED) Supabase + creative-web single-product-line plan. |

@@ -1,38 +1,103 @@
-import { supabase } from './supabase'
+// Typed fetch with auto-refresh on 401. See auth-system-prd.md §3 + §4.3.
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8787'
+import { useAuthStore } from '@/auth/authStore';
 
-type RequestInit2 = RequestInit & { json?: unknown }
-
-/** Authenticated API client. Attaches Supabase JWT, parses JSON, throws on !ok. */
-export async function api<T = unknown>(path: string, init: RequestInit2 = {}): Promise<T> {
-  const { data: { session } } = await supabase.auth.getSession()
-  const headers = new Headers(init.headers ?? {})
-  if (session?.access_token) headers.set('Authorization', `Bearer ${session.access_token}`)
-
-  let body: BodyInit | undefined
-  if (init.json !== undefined) {
-    headers.set('Content-Type', 'application/json')
-    body = JSON.stringify(init.json)
-  } else if (init.body) {
-    body = init.body as BodyInit
-  }
-
-  const res = await fetch(`${BASE}${path}`, { ...init, headers, body })
-  const ct = res.headers.get('content-type') ?? ''
-  const data = ct.includes('application/json') ? await res.json() : await res.text()
-  if (!res.ok) {
-    const message = typeof data === 'object' && data && 'error' in data
-      ? String((data as { error: unknown }).error)
-      : `HTTP ${res.status}`
-    throw new ApiError(message, res.status, data)
-  }
-  return data as T
-}
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
-  constructor(msg: string, public status: number, public body: unknown) {
-    super(msg)
-    this.name = 'ApiError'
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+    public readonly details?: unknown,
+    public readonly requestId?: string,
+  ) {
+    super(message);
   }
+}
+
+interface ApiOpts {
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  body?: unknown;
+  signal?: AbortSignal;
+  skipAuthRefresh?: boolean;
+}
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const body = (await res.json()) as { access_token: string };
+      useAuthStore.getState().setAccessToken(body.access_token);
+      return body.access_token;
+    } catch {
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
+  const { method = 'GET', body, signal, skipAuthRefresh } = opts;
+
+  const exec = async (token: string | null): Promise<Response> => {
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+    };
+    if (token) headers.authorization = `Bearer ${token}`;
+    return fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      credentials: 'include',
+      signal,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  };
+
+  let token = useAuthStore.getState().accessToken;
+  let res = await exec(token);
+
+  if (res.status === 401 && !skipAuthRefresh) {
+    const next = await refreshAccessToken();
+    if (next) {
+      token = next;
+      res = await exec(token);
+    }
+  }
+
+  if (!res.ok) {
+    let code = `HTTP_${res.status}`;
+    let message = res.statusText;
+    let details: unknown;
+    let requestId: string | undefined;
+    try {
+      const errBody = (await res.json()) as {
+        error?: { code: string; message: string; details?: unknown; request_id?: string };
+      };
+      if (errBody.error) {
+        code = errBody.error.code;
+        message = errBody.error.message;
+        details = errBody.error.details;
+        requestId = errBody.error.request_id;
+      }
+    } catch {
+      // ignore
+    }
+    if (res.status === 401) {
+      useAuthStore.getState().clear();
+    }
+    throw new ApiError(res.status, code, message, details, requestId);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
 }

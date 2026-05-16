@@ -1,47 +1,82 @@
-# CLAUDE.md — kidsinai/creative-web
+# CLAUDE.md — Airbotix-AI/airbotix-app
+
+> Project context for AI coding tools. Read alongside the airbotix repo's `CLAUDE.md` for cross-product rules.
 
 ## What this repo is
 
-Frontend web app for the **low-age (6-11) creative AI platform** — one of two product lines under Kids in AI. Lets kids create AI images / music / stories in a parent-monitored, kid-safe environment.
+The **unified SPA** for `app.airbotix.ai` — serves both parent surface (`/portal/*`) and kid surface (`/learn/*`) in one bundle with route-level RBAC.
 
-## Where to find project context
+| Surface | Routes | Principal | Layout |
+|---|---|---|---|
+| Parent Portal | `/portal/*` | `User`, role=parent | nav drawer + content (ops style) |
+| Learn | `/learn/*` | `KidProfile` | top bar + content |
+
+## Stack (locked 2026-05-15)
+
+Vite 5 + React 18 + TypeScript strict / Tailwind / TanStack Query + Zustand / react-hook-form + zod / React Router v6 / socket.io-client / date-fns.
+
+Hosted on AWS S3 + CloudFront ap-southeast-2.
+
+## Where to find product context
 
 | Doc | Location |
 |---|---|
-| Master plan (all decisions) | `kidsinai/planning/PROJECT.md` (private repo) |
-| Product PRD (full) | `~/Documents/sites/airbotix/docs/product/prd/kids-ai-platform-prd.md` |
+| Parent Portal PRD | `~/Documents/sites/airbotix/docs/product/prd/parent-portal-prd.md` |
+| Learn PRD | `~/Documents/sites/airbotix/docs/product/prd/airbotix-app-learn-prd.md` |
+| Auth spec | `~/Documents/sites/airbotix/docs/product/prd/auth-system-prd.md` |
+| API contract | `~/Documents/sites/airbotix/docs/product/prd/platform-backend-api-spec.md` |
+| Master product PRD | `~/Documents/sites/airbotix/docs/product/prd/kids-ai-platform-prd.md` |
 | Compliance | `~/Documents/sites/airbotix/docs/product/compliance/minors-compliance.md` |
-| LLM gateway (we depend on) | `~/Documents/sites/deeprouter-ai/deeprouter/` + `jr-academy-ai/deeprouter-brand/DeepRouter-PRD.md` |
 
-## Local dev
+## Critical contracts
 
-```bash
-pnpm install
-cp .env.example .env
-pnpm dev
-```
+### 1. One auth store, two principal kinds
+The same Zustand store holds the access token regardless of who's signed in. `AuthPrincipal` is a discriminated union: `{ kind: 'user' } | { kind: 'kid' }`. Components / hooks branch on `kind`, never on `role` directly. `<ProtectedRoute kind="user">` and `<ProtectedRoute kind="kid">` enforce the boundary.
 
-Dev server: http://localhost:5173. Expects `platform-backend` running at http://localhost:8787 (configurable via `VITE_API_BASE_URL`).
+### 2. Access token is in memory only
+Stored in Zustand (`useAuthStore`). Never `localStorage` / `sessionStorage`. XSS-resilient. Refresh happens via HttpOnly cookie set by `platform-backend` at `/auth/refresh`.
 
-## Key conventions
+### 3. Cross-surface bounce
+- Kid signed in tries to visit `/portal/*` → bounced to `/learn`
+- Parent signed in tries to visit `/learn/*` → bounced to `/portal`
+- Same browser, one session at a time (cookies are domain-scoped to `.airbotix.ai`)
 
-- **No direct LLM provider calls from frontend.** All AI requests go through `platform-backend` → DeepRouter. Safety + Stars + audit happen there.
-- TypeScript strict mode; no `any` without a comment justifying it.
-- Tailwind utility-first; Lovable-inspired cream/charcoal palette. No CSS files except `index.css` (global) + Tailwind.
-- Component files: `src/components/{ComponentName}.tsx`; one component per file.
-- Path alias `@/*` resolves to `src/*`.
+### 4. Server is the source of truth for authz
+Client gates exist for UX only. The backend enforces every check. If a query/mutation returns data, the backend already approved it. Do not "trust me" gate anything client-side that the API hasn't already filtered.
+
+### 5. No direct LLM calls
+Kid surface NEVER calls Anthropic / OpenAI / DeepRouter directly. All AI traffic goes through `platform-backend /llm/*`. The backend injects kid-safe context, meters Stars, and emits audit events.
+
+### 6. Privacy per principal
+- Parent sees: their own family + kids + wallet + audit. Backend redacts other families.
+- Kid sees: only their own projects + own audit + own class wall. Backend redacts everything else.
+- Neither sees: teacher data, admin actions, other families.
+
+## Conventions
+
+- Path alias `@/*` (configured in `tsconfig.json` + `vite.config.ts`)
+- Page components live in `src/pages/{portal,learn}/`
+- Reusable UI in `src/components/`
+- Hooks co-located with feature or in `src/hooks/`
+- API client = `src/lib/api.ts`. Don't `fetch()` directly from components.
+- Never log PII (email, kid nickname, prompts, project content)
+- Forms use `react-hook-form` + zod — no plain `useState` for multi-field forms
+- Conditional Tailwind via `clsx`
+
+## Adding a new page
+
+1. Find the PRD section in `parent-portal-prd.md §4.X` or `airbotix-app-learn-prd.md §X`
+2. Pick a path under `/portal/*` or `/learn/*`
+3. Add the route in `src/app/router.tsx` under the right `<ProtectedRoute kind="...">` outlet
+4. If portal, add NavDrawer entry; if learn, add to LearnTopBar if it's a top-level
+5. Implement the page (drop the `<PagePlaceholder>` placeholder)
+6. Wire data with TanStack Query against `platform-backend`
 
 ## Sibling repos
 
-- `kidsinai/opencode` — agentic coding tool for 12+ (separate frontend)
-- `kidsinai/platform-backend` — shared backend (Family Account, Stars, Course Pack)
-- `kidsinai/planning` — master plan (private)
-
-## Roadmap (V0)
-
-1. **Course Pack runner** — render `kidsinai/planning` course pack JSON as guided missions
-2. **AI image creation flow** — kid picks template → enters prompt → backend forwards to DeepRouter → display result + save to portfolio
-3. **Class wall** — view classmates' work (audit + remix)
-4. **Parent visibility** — every action audit-logged via backend
-
-Out of scope V0: AI music / video / coding. (Coding → `kidsinai/opencode`.)
+```
+~/Documents/sites/airbotix/                marketing site + all PRDs
+~/Documents/sites/kidsinai/airbotix-app/   THIS REPO
+~/Documents/sites/kidsinai/teacher-console/ teacher + admin console
+~/Documents/sites/kidsinai/platform-backend/ NestJS+Prisma backend
+```
