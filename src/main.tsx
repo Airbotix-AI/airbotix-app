@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 
 import { router } from '@/app/router';
+import { useBootstrap } from '@/auth/useBootstrap';
 import './styles/index.css';
 
 const queryClient = new QueryClient({
@@ -16,10 +17,15 @@ const queryClient = new QueryClient({
   },
 });
 
+function AppRoot() {
+  useBootstrap();
+  return <RouterProvider router={router} />;
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <AppRoot />
     </QueryClientProvider>
   </React.StrictMode>,
 );

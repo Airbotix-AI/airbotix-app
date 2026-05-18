@@ -48,30 +48,6 @@ interface LlmTextResponse {
   model: string;
 }
 
-interface LlmMediaResponse {
-  id: string;
-  url: string;
-  mime_type: string;
-  stars_charged: number;
-  balance_after: number;
-  artifact_id: string | null;
-}
-
-type MediaKind = 'image' | 'tts' | 'music' | 'video';
-
-const MEDIA_BUTTONS: Array<{
-  kind: MediaKind;
-  label: string;
-  emoji: string;
-  color: 'bubblegum' | 'sky' | 'mint' | 'sunshine';
-  cost: number;
-}> = [
-  { kind: 'image', label: 'Make image', emoji: '🎨', color: 'bubblegum', cost: 4 },
-  { kind: 'tts',   label: 'Speak it',   emoji: '🔊', color: 'sky',       cost: 1 },
-  { kind: 'music', label: 'Make music', emoji: '🎵', color: 'mint',      cost: 3 },
-  { kind: 'video', label: 'Make video', emoji: '🎬', color: 'sunshine',  cost: 5 },
-];
-
 const KIND_STICKER: Record<string, string> = {
   image: 'bubblegum',
   audio: 'sky',
@@ -90,8 +66,6 @@ export function ProjectDetailPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [chatError, setChatError] = useState<string | null>(null);
-  const [mediaError, setMediaError] = useState<string | null>(null);
-  const [busyMedia, setBusyMedia] = useState<MediaKind | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const project = useQuery<Project>({
@@ -150,41 +124,6 @@ export function ProjectDetailPage() {
     askAi.mutate(text);
   };
 
-  const generateMedia = async (kind: MediaKind) => {
-    const text = input.trim();
-    if (!text) {
-      setMediaError(`Type a prompt first (e.g. "a friendly robot" for ${kind}).`);
-      return;
-    }
-    setMediaError(null);
-    setBusyMedia(kind);
-    try {
-      const res = await api<LlmMediaResponse>(`/llm/${kind}`, {
-        method: 'POST',
-        body: { prompt: text, project_id: id },
-      });
-      setInput('');
-      setMessages((prev) => [
-        ...prev,
-        { role: 'user', content: `[${kind}] ${text}` },
-        {
-          role: 'assistant',
-          content: `Made you a ${kind}! See it in your gallery below.`,
-          stars: res.stars_charged,
-        },
-      ]);
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ['wallet', familyId] }),
-        qc.invalidateQueries({ queryKey: ['project', id, 'artifacts'] }),
-        qc.invalidateQueries({ queryKey: ['project', id] }),
-      ]);
-    } catch (e) {
-      setMediaError(formatLlmError(e));
-    } finally {
-      setBusyMedia(null);
-    }
-  };
-
   if (project.isLoading) return <p className="lead-text">Loading…</p>;
   if (!project.data)
     return (
@@ -234,7 +173,7 @@ export function ProjectDetailPage() {
           <div className="flex items-center gap-3">
             <span className="sticker-bubblegum">AI helper</span>
             <span className="text-[13px] font-semibold text-ink">
-              Type a prompt, then chat or pick a media tool below.
+              Ask the AI for help, explanations, ideas. For images / music / video — use the dedicated studios.
             </span>
           </div>
           {wallet.data && (
@@ -277,9 +216,9 @@ export function ProjectDetailPage() {
           )}
         </div>
 
-        {(chatError || mediaError) && (
+        {(chatError) && (
           <div className="mx-6 mb-4 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
-            {chatError ?? mediaError}
+            {chatError}
           </div>
         )}
 
@@ -307,22 +246,8 @@ export function ProjectDetailPage() {
               {askAi.isPending ? '…' : 'Send'}
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {MEDIA_BUTTONS.map((btn) => (
-              <button
-                key={btn.kind}
-                onClick={() => generateMedia(btn.kind)}
-                disabled={busyMedia !== null || askAi.isPending}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold text-ink transition-all bg-wash-${btn.color} hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0`}
-              >
-                <span>{btn.emoji}</span>
-                <span>{busyMedia === btn.kind ? 'Making…' : btn.label}</span>
-                <span className="opacity-60">−{btn.cost}★</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[12px] text-slate2">
-            Enter to chat (1★) · Buttons cost what they say · Media goes to your gallery below
+<p className="text-[12px] text-slate2">
+            Enter to send · 1★ per reply. For media → <Link to="/learn/create" className="font-bold text-brand-coral hover:underline">open a studio</Link>.
           </p>
         </div>
       </div>
@@ -341,7 +266,7 @@ export function ProjectDetailPage() {
         <div className="card-base text-center">
           <span className="sticker-sunshine">Empty canvas</span>
           <p className="lead-text mt-4">
-            No media yet. Type a prompt above and tap a button!
+            No media yet. Go to a <Link to="/learn/create" className="font-bold text-brand-coral hover:underline">studio</Link> to make some.
           </p>
         </div>
       )}

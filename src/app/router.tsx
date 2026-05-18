@@ -34,6 +34,12 @@ import { ProfilePage as LearnProfilePage } from '@/pages/learn/ProfilePage';
 import { ProjectDetailPage } from '@/pages/learn/ProjectDetailPage';
 import { ProjectNewPage } from '@/pages/learn/ProjectNewPage';
 import { ProjectsListPage } from '@/pages/learn/ProjectsListPage';
+import { CreateHubPage } from '@/pages/learn/create/CreateHubPage';
+import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
+import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
+import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
+import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
+import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 
 export const router = createBrowserRouter([
   // Root redirect based on principal kind
@@ -85,6 +91,12 @@ export const router = createBrowserRouter([
       { path: 'missions/:id', element: <MissionDetailPage /> },
       { path: 'wall', element: <ClassWallPage /> },
       { path: 'profile', element: <LearnProfilePage /> },
+      { path: 'create', element: <CreateHubPage /> },
+      { path: 'create/image', element: <ImageMakerPage /> },
+      { path: 'create/music', element: <MusicMakerPage /> },
+      { path: 'create/voice', element: <VoiceBoothPage /> },
+      { path: 'create/video', element: <VideoStudioPage /> },
+      { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

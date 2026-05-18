@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { sendWsEvent } from '@/lib/ws';
 
@@ -7,7 +7,14 @@ import { LearnTopBar } from './LearnTopBar';
 
 const HEARTBEAT_INTERVAL_MS = 10_000;
 
+// Routes that need to render full-bleed (no centered max-width container).
+// Workspace is the IDE-style 3-pane surface and must use 100% width.
+const FLUID_ROUTES = ['/learn/workspace'];
+
 export function LearnLayout() {
+  const { pathname } = useLocation();
+  const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
   useEffect(() => {
     const tick = () => sendWsEvent('class.heartbeat', { ts: Date.now() });
     tick();
@@ -19,9 +26,13 @@ export function LearnLayout() {
     <div className="flex h-full flex-col bg-canvas">
       <LearnTopBar />
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 py-8 md:px-10 md:py-12">
+        {fluid ? (
           <Outlet />
-        </div>
+        ) : (
+          <div className="mx-auto max-w-5xl px-6 py-8 md:px-10 md:py-12">
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );

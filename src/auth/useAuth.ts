@@ -62,6 +62,7 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
   // Trigger WS connect with new token
   setTimeout(() => getSocket(), 0);
   return res;
@@ -80,6 +81,7 @@ export async function kidLogin(
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
   // Trigger WS connect with new token
   setTimeout(() => getSocket(), 0);
   return res;
@@ -97,6 +99,7 @@ export async function classCodeLogin(
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
   // Trigger WS connect with new token
   setTimeout(() => getSocket(), 0);
   return res;

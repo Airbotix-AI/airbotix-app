@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
+import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 
 interface Mission {
@@ -26,13 +28,32 @@ interface CoursePack {
 }
 
 export function MissionsListPage() {
+  const me = useMe();
+  const myAge = me.data?.kind === 'kid' && typeof me.data.age === 'number' ? me.data.age : 10;
+
   const packs = useQuery<CoursePack[]>({
     queryKey: ['course-packs'],
     queryFn: () => api<CoursePack[]>('/course-packs'),
   });
 
-  const creative = packs.data?.filter((p) => p.product_line === 'line_a_creative') ?? [];
-  const coding = packs.data?.filter((p) => p.product_line === 'line_b_coding') ?? [];
+  const groups = useMemo(() => {
+    const all = packs.data ?? [];
+    const mine: CoursePack[] = [];
+    const younger: CoursePack[] = [];
+    const older: CoursePack[] = [];
+    for (const p of all) {
+      if (myAge >= p.target_age_min && myAge <= p.target_age_max) mine.push(p);
+      else if (p.target_age_max < myAge) younger.push(p);
+      else older.push(p);
+    }
+    // sort each by product_line then title
+    const sortKey = (p: CoursePack) => `${p.product_line}-${p.title}`;
+    return {
+      mine: mine.sort((a, b) => sortKey(a).localeCompare(sortKey(b))),
+      younger: younger.sort((a, b) => sortKey(a).localeCompare(sortKey(b))),
+      older: older.sort((a, b) => sortKey(a).localeCompare(sortKey(b))),
+    };
+  }, [packs.data, myAge]);
 
   return (
     <div>
@@ -42,72 +63,106 @@ export function MissionsListPage() {
           Pick an <span className="squiggle-word">adventure</span>.
         </h1>
         <p className="lead-text mt-4">
-          Step-by-step missions. Earn Stars by finishing.
+          Step-by-step missions, sorted by your age. Earn Stars by finishing.
         </p>
       </div>
 
       {packs.isLoading && <p className="lead-text">Loading…</p>}
 
-      {!packs.isLoading && (!packs.data || packs.data.length === 0) && (
+      {!packs.isLoading && (packs.data?.length ?? 0) === 0 && (
         <div className="card-base text-center">
           <span className="sticker-sunshine">Coming soon</span>
           <p className="lead-text mt-4">
-            New missions are being added right now. Check back soon!
+            New missions are being added. Check back soon!
           </p>
           <Link to="/learn" className="btn-pill-primary mt-6">← Back home</Link>
         </div>
       )}
 
-      {creative.length > 0 && (
-        <section className="mb-12">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="section-heading" style={{ fontSize: '28px' }}>Creative</h2>
-            <span className="sticker-coral alt">{creative.length} packs</span>
-          </div>
-          <PackGrid packs={creative} color="coral" />
-        </section>
+      {groups.mine.length > 0 && (
+        <Section
+          title={`Just right for age ${myAge}`}
+          subtitle={`Pick from these — perfect for what you can do now.`}
+          color="coral"
+          packs={groups.mine}
+          highlight
+        />
       )}
 
-      {coding.length > 0 && (
-        <section className="mb-12">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="section-heading" style={{ fontSize: '28px' }}>Coding</h2>
-            <span className="sticker-sky">{coding.length} packs</span>
-          </div>
-          <PackGrid packs={coding} color="sky" />
-        </section>
+      {groups.older.length > 0 && (
+        <Section
+          title="A little harder"
+          subtitle="Try these when you want a challenge."
+          color="sky"
+          packs={groups.older}
+        />
+      )}
+
+      {groups.younger.length > 0 && (
+        <Section
+          title="Easier warm-ups"
+          subtitle="Quick ones for when you want a break."
+          color="mint"
+          packs={groups.younger}
+        />
       )}
     </div>
   );
 }
 
-function PackGrid({ packs, color }: { packs: CoursePack[]; color: 'coral' | 'sky' }) {
+function Section({
+  title,
+  subtitle,
+  color,
+  packs,
+  highlight = false,
+}: {
+  title: string;
+  subtitle: string;
+  color: 'coral' | 'sky' | 'mint';
+  packs: CoursePack[];
+  highlight?: boolean;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {packs.map((pack) => (
-        <Link
-          key={pack.id}
-          to={`/learn/missions/${pack.slug}`}
-          className={`pack-card ${color} block`}
-        >
-          <span className="pack-blob" />
-          <div className="relative">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
-              Ages {pack.target_age_min}-{pack.target_age_max}
-            </div>
-            <div className="mt-3 text-[24px] font-bold leading-tight">{pack.title}</div>
-            <div className="mt-2 text-[14px] opacity-90 line-clamp-3">{pack.description}</div>
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-[13px] font-semibold opacity-90">
-                {pack.mission_count} missions · {pack.estimated_stars}★
+    <section className="mb-10">
+      <div className="mb-4 flex items-end justify-between">
+        <div>
+          <h2 className="section-heading" style={{ fontSize: '24px' }}>{title}</h2>
+          <p className="text-[13px] text-slate2 mt-1">{subtitle}</p>
+        </div>
+        {highlight && <span className={`sticker-${color}`}>Best fit</span>}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {packs.map((p) => {
+          const cardColor: 'coral' | 'sky' | 'mint' | 'bubblegum' =
+            p.product_line === 'line_a_creative' ? 'coral' : 'sky';
+          return (
+            <Link
+              key={p.id}
+              to={`/learn/missions/${p.slug}`}
+              className={`pack-card ${cardColor} block`}
+            >
+              <span className="pack-blob" />
+              <div className="relative">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+                  Ages {p.target_age_min}-{p.target_age_max} ·{' '}
+                  {p.product_line === 'line_a_creative' ? 'Creative' : 'Coding'}
+                </div>
+                <div className="mt-3 text-[24px] font-bold leading-tight">{p.title}</div>
+                <div className="mt-2 text-[13px] opacity-90 line-clamp-3">{p.description}</div>
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="text-[13px] font-semibold opacity-90">
+                    {p.mission_count} missions · {p.estimated_stars}★
+                  </div>
+                  <div className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
+                    Open →
+                  </div>
+                </div>
               </div>
-              <div className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
-                Open →
-              </div>
-            </div>
-          </div>
-        </Link>
-      ))}
-    </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
