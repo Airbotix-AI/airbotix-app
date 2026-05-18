@@ -52,7 +52,20 @@ export function SettingsPage() {
 
   const exportMut = useMutation({
     mutationFn: () => api<unknown>(`/families/${familyId}/export`),
-    onSuccess: (data) => setExportData(JSON.stringify(data, null, 2)),
+    onSuccess: (data) => {
+      const pretty = JSON.stringify(data, null, 2);
+      setExportData(pretty);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const blob = new Blob([pretty], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `airbotix-family-export-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
   });
 
   const deleteMut = useMutation({
@@ -150,23 +163,29 @@ export function SettingsPage() {
             <h3 className="text-[18px] font-bold text-ink mt-1">Download everything</h3>
             <p className="text-[13px] text-slate2 mt-2">
               All family data: parents, kids, wallet, transactions, projects, audit events.
+              Downloads as JSON to your device.
             </p>
             <button
               onClick={() => exportMut.mutate()}
               disabled={exportMut.isPending}
               className="btn-pill-primary mt-4"
             >
-              {exportMut.isPending ? 'Preparing…' : 'Export JSON'}
+              {exportMut.isPending ? 'Preparing…' : 'Download my family data'}
             </button>
             {exportData && (
-              <details className="mt-4">
-                <summary className="text-[13px] font-semibold text-brand-coral cursor-pointer">
-                  Show JSON ({Math.round(exportData.length / 1024)} KB)
-                </summary>
-                <pre className="text-[11px] text-ink-soft mt-3 bg-surface-soft p-4 rounded-xl overflow-auto max-h-96 font-mono">
-                  {exportData}
-                </pre>
-              </details>
+              <>
+                <p className="text-[12px] text-slate2 mt-3">
+                  Downloaded {Math.round(exportData.length / 1024)} KB. Check your downloads folder.
+                </p>
+                <details className="mt-3">
+                  <summary className="text-[13px] font-semibold text-brand-coral cursor-pointer">
+                    Preview here
+                  </summary>
+                  <pre className="text-[11px] text-ink-soft mt-3 bg-surface-soft p-4 rounded-xl overflow-auto max-h-96 font-mono">
+                    {exportData}
+                  </pre>
+                </details>
+              </>
             )}
           </section>
 

@@ -167,6 +167,8 @@ export function ProjectDetailPage() {
         </div>
       </div>
 
+      <ShareApprovalPanel projectId={p.id} currentVisibility={p.visibility} />
+
       {/* Chat panel */}
       <div className="card-base p-0 overflow-hidden mb-6">
         <div className="px-6 py-4 border-b border-hairline bg-wash-bubblegum flex items-center justify-between">
@@ -367,4 +369,131 @@ function formatLlmError(e: unknown): string {
     return e.message;
   }
   return 'Could not reach AI.';
+}
+
+/**
+ * Kid-side ask for parent approval to widen project visibility. Backend
+ * approval `type=public_share` → parent grants/denies from /portal/approvals
+ * and the backend (not this component) actually flips Project.visibility.
+ *
+ * No GET-by-kid endpoint exists yet, so we use local state to remember a
+ * just-submitted request. A page reload loses that; backend dedup is the
+ * safety net there.
+ */
+function ShareApprovalPanel({
+  projectId,
+  currentVisibility,
+}: {
+  projectId: string;
+  currentVisibility: 'private' | 'class' | 'public';
+}) {
+  const [target, setTarget] = useState<'class' | 'public'>('class');
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const ask = useMutation({
+    mutationFn: () =>
+      api<unknown>('/approvals', {
+        method: 'POST',
+        body: {
+          type: 'public_share',
+          payload: { project_id: projectId, target_visibility: target },
+        },
+      }),
+    onSuccess: () => {
+      setSubmitted(true);
+      setError(null);
+    },
+    onError: (e: unknown) => {
+      setError(e instanceof ApiError ? e.message : 'Could not send request.');
+    },
+  });
+
+  if (currentVisibility !== 'private') {
+    return (
+      <div className="card-base mb-6 flex items-center justify-between gap-4">
+        <div>
+          <span className="sticker-mint">Shared</span>
+          <p className="text-[13px] text-ink-soft mt-2">
+            This project is visible to{' '}
+            <span className="font-semibold text-ink">
+              {currentVisibility === 'public' ? 'everyone' : 'your class'}
+            </span>
+            . Ask a parent if you want to change it.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="card-base mb-6">
+        <span className="sticker-mint">Sent ✓</span>
+        <p className="text-[13px] text-ink mt-3 font-medium">
+          Waiting for a parent to approve. You'll see this project go public
+          once they say yes.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-base mb-6">
+      <div className="eyebrow eyebrow-sunshine">Share</div>
+      <h3 className="text-[18px] font-bold text-ink mt-1">Ask a parent to share this</h3>
+      <p className="text-[13px] text-slate2 mt-2">
+        Parents decide what goes public. Pick where, then send the request.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <label
+          className={`cursor-pointer rounded-full px-4 py-2 text-[13px] font-semibold border-2 transition-colors ${
+            target === 'class'
+              ? 'bg-brand-sky text-white border-brand-sky'
+              : 'bg-canvas-pure text-ink-soft border-hairline hover:border-brand-sky'
+          }`}
+        >
+          <input
+            type="radio"
+            value="class"
+            checked={target === 'class'}
+            onChange={() => setTarget('class')}
+            className="sr-only"
+          />
+          With my class
+        </label>
+        <label
+          className={`cursor-pointer rounded-full px-4 py-2 text-[13px] font-semibold border-2 transition-colors ${
+            target === 'public'
+              ? 'bg-brand-coral text-white border-brand-coral'
+              : 'bg-canvas-pure text-ink-soft border-hairline hover:border-brand-coral'
+          }`}
+        >
+          <input
+            type="radio"
+            value="public"
+            checked={target === 'public'}
+            onChange={() => setTarget('public')}
+            className="sr-only"
+          />
+          Public to everyone
+        </label>
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+          {error}
+        </div>
+      )}
+
+      <button
+        onClick={() => ask.mutate()}
+        disabled={ask.isPending}
+        className="btn-pill-primary mt-4"
+      >
+        {ask.isPending ? 'Sending…' : 'Send request'}
+      </button>
+    </div>
+  );
 }

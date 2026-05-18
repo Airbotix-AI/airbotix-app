@@ -1,12 +1,60 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { api } from '@/lib/api';
+import { useWsEvent } from '@/lib/useWsEvent';
+
+interface Wallet {
+  stars_balance: number;
+  daily_used: number;
+  daily_cap: number;
+}
+
+interface Approval {
+  id: string;
+  status: 'pending' | 'granted' | 'denied' | 'expired';
+}
 
 export function DashboardPage() {
   const me = useMe();
   const user = me.data?.kind === 'user' ? me.data : null;
   const displayName = user?.display_name ?? null;
-  const hasFamily = user?.family_id !== null && user?.family_id !== undefined;
+  const familyId = user?.family_id ?? null;
+  const hasFamily = familyId !== null && familyId !== undefined;
+  const qc = useQueryClient();
+
+  useWsEvent(
+    'wallet.update',
+    () => qc.invalidateQueries({ queryKey: ['wallet', familyId] }),
+    [familyId],
+  );
+  useWsEvent(
+    'approval.new',
+    () => qc.invalidateQueries({ queryKey: ['approvals', familyId] }),
+    [familyId],
+  );
+  useWsEvent(
+    'approval.resolved',
+    () => qc.invalidateQueries({ queryKey: ['approvals', familyId] }),
+    [familyId],
+  );
+
+  const wallet = useQuery<Wallet>({
+    queryKey: ['wallet', familyId],
+    queryFn: () => api<Wallet>(`/families/${familyId}/wallet`),
+    enabled: hasFamily,
+  });
+  const approvals = useQuery<Approval[]>({
+    queryKey: ['approvals', familyId],
+    queryFn: () => api<Approval[]>(`/families/${familyId}/approvals`),
+    enabled: hasFamily,
+  });
+
+  const starsToday = wallet.data?.daily_used ?? 0;
+  const dailyCap = wallet.data?.daily_cap ?? 0;
+  const starsBalance = wallet.data?.stars_balance;
+  const pendingCount = approvals.data?.filter((a) => a.status === 'pending').length ?? 0;
 
   return (
     <div>
@@ -39,17 +87,21 @@ export function DashboardPage() {
         <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
             <div className="stat-tile coral">
-              <div className="stat-num text-brand-coral">0</div>
-              <div className="stat-label">Sessions today</div>
+              <div className="stat-num text-brand-coral tabular-nums">{starsToday}</div>
+              <div className="stat-label">
+                Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}
+              </div>
             </div>
             <div className="stat-tile mint">
-              <div className="stat-num text-brand-mint">—</div>
+              <div className="stat-num text-brand-mint tabular-nums">
+                {starsBalance ?? '—'}
+              </div>
               <div className="stat-label">Stars balance</div>
             </div>
-            <div className="stat-tile sky">
-              <div className="stat-num text-brand-sky">0</div>
+            <Link to="/portal/approvals" className="stat-tile sky">
+              <div className="stat-num text-brand-sky tabular-nums">{pendingCount}</div>
               <div className="stat-label">Approvals waiting</div>
-            </div>
+            </Link>
           </div>
 
           <div className="card-base">
