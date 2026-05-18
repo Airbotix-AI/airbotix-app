@@ -372,13 +372,14 @@ function formatLlmError(e: unknown): string {
 }
 
 /**
- * Kid-side ask for parent approval to widen project visibility. Backend
- * approval `type=public_share` → parent grants/denies from /portal/approvals
- * and the backend (not this component) actually flips Project.visibility.
+ * Kid-side request to widen project visibility. Creates a ShareRequest on the
+ * project — `class` needs teacher review; `public` needs both teacher AND
+ * parent (see projects.service.ts). On grant the backend flips
+ * Project.visibility, so this UI only needs to fire the request and trust the
+ * project query to pick up the new state.
  *
- * No GET-by-kid endpoint exists yet, so we use local state to remember a
- * just-submitted request. A page reload loses that; backend dedup is the
- * safety net there.
+ * Backend rejects a second pending request for the same project with CONFLICT;
+ * we surface that as "already waiting" rather than an error.
  */
 function ShareApprovalPanel({
   projectId,
@@ -393,18 +394,21 @@ function ShareApprovalPanel({
 
   const ask = useMutation({
     mutationFn: () =>
-      api<unknown>('/approvals', {
+      api<unknown>(`/projects/${projectId}/share-request`, {
         method: 'POST',
-        body: {
-          type: 'public_share',
-          payload: { project_id: projectId, target_visibility: target },
-        },
+        body: { target_visibility: target },
       }),
     onSuccess: () => {
       setSubmitted(true);
       setError(null);
     },
     onError: (e: unknown) => {
+      if (e instanceof ApiError && e.code === 'CONFLICT') {
+        // Already pending — treat as success state so the kid sees waiting.
+        setSubmitted(true);
+        setError(null);
+        return;
+      }
       setError(e instanceof ApiError ? e.message : 'Could not send request.');
     },
   });
@@ -431,8 +435,8 @@ function ShareApprovalPanel({
       <div className="card-base mb-6">
         <span className="sticker-mint">Sent ✓</span>
         <p className="text-[13px] text-ink mt-3 font-medium">
-          Waiting for a parent to approve. You'll see this project go public
-          once they say yes.
+          Waiting on review. Class shares need your teacher; public shares
+          need teacher + parent. The project unlocks the moment they say yes.
         </p>
       </div>
     );
