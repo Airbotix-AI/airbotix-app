@@ -7,6 +7,7 @@ import { SessionsPane, type SessionRow } from './SessionsPane';
 import { ChatPane } from './ChatPane';
 import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
+import { MusicScorePlayer, type MusicScore } from './MusicScorePlayer';
 import { MusicTrackList } from './MusicTrackList';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
@@ -26,6 +27,7 @@ export interface Message {
     mime_type: string;
     s3_key: string;
     project_id: string;
+    metadata?: { score?: MusicScore } | null;
   } | null;
 }
 
@@ -132,6 +134,14 @@ export function WorkspacePage() {
         return api('/llm/text-completion', {
           method: 'POST',
           body: { messages: [{ role: 'user', content: fullPrompt }] },
+        });
+      }
+      // Music studio uses the structured MIDI-score endpoint instead of raw audio,
+      // so the frontend Tone.js player can render per-instrument layered playback.
+      if (studio === 'music') {
+        return api('/llm/music-score', {
+          method: 'POST',
+          body: { prompt: fullPrompt, project_id: 'cmp810wr00007119oiy5jukd2' },
         });
       }
       const endpoint = studio === 'voice' ? 'tts' : studio;
@@ -283,19 +293,35 @@ export function WorkspacePage() {
       </div>
 
       {studio === 'music' ? (
-        <MusicTrackList
-          messages={messages.data ?? []}
-          onGenerateTrack={() => {
-            // Re-open setup for music in the SAME song — but our current model
-            // says each session = one song. So actually "Generate" should focus
-            // the chat input, not start a new session. Just scroll the input.
-            inputRef.current?.focus();
-          }}
-          onImportTrack={() => setShowImport(true)}
-          onUploadTrack={() =>
-            setError('Upload your own coming next — for now Generate or Import a track.')
+        (() => {
+          // Find the most recent music score (text artifact with metadata.score)
+          const list = messages.data ?? [];
+          let latestScore: MusicScore | null = null;
+          for (let i = list.length - 1; i >= 0; i--) {
+            const m = list[i];
+            const s = m.artifact?.metadata?.score;
+            if (s && s.tracks) {
+              latestScore = s;
+              break;
+            }
           }
-        />
+          return latestScore ? (
+            <MusicScorePlayer
+              score={latestScore}
+              onAddTrack={() => inputRef.current?.focus()}
+              onImportTrack={() => setShowImport(true)}
+            />
+          ) : (
+            <MusicTrackList
+              messages={list}
+              onGenerateTrack={() => inputRef.current?.focus()}
+              onImportTrack={() => setShowImport(true)}
+              onUploadTrack={() =>
+                setError('Upload your own coming next — for now Generate or Import a track.')
+              }
+            />
+          );
+        })()
       ) : (
         <PreviewPane artifact={latestArtifact} tool={studio ?? 'chat'} />
       )}
