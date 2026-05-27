@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWsEvent } from '@/lib/useWsEvent';
 
 import { useMe } from '@/auth/useAuth';
+import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
 
 interface Wallet {
@@ -48,6 +49,10 @@ const TYPE_COLOR: Record<string, string> = {
 export function WalletPage() {
   const me = useMe();
   const qc = useQueryClient();
+  const [params] = useSearchParams();
+  // Forward CLI-context query params so the Top-up page shows the same
+  // "from kids-opencode" banner and Airwallex return URL stays correlated.
+  const topupQuery = params.get('from') === 'cli' ? `?${params.toString()}` : '';
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   useWsEvent('wallet.update', () => { qc.invalidateQueries({ queryKey: ['wallet', familyId] }); qc.invalidateQueries({ queryKey: ['wallet', familyId, 'tx'] }); }, [familyId]);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +94,7 @@ export function WalletPage() {
 
   return (
     <div>
+      <CliReturnBanner />
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-mint">Wallet</div>
@@ -98,7 +104,7 @@ export function WalletPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/portal/wallet/topup" className="btn-pill-primary">+ Top up</Link>
+          <Link to={`/portal/wallet/topup${topupQuery}`} className="btn-pill-primary">+ Top up</Link>
           {w && (w.paused ? (
             <button onClick={() => resumeMut.mutate()} disabled={resumeMut.isPending} className="btn-pill-secondary">
               Resume

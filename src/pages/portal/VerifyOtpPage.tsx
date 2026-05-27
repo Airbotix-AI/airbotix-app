@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { z } from 'zod';
 
 import { verifyOtp } from '@/auth/useAuth';
@@ -14,12 +14,18 @@ type FormValues = z.infer<typeof schema>;
 
 interface LocationState {
   email?: string;
+  // Original URL the parent was trying to reach when ProtectedRoute bounced
+  // them through login. Carried forward by LoginPage so we can land them
+  // there post-verify (preserves query params like ?from=cli).
+  from?: Location;
 }
 
 export function VerifyOtpPage() {
   const location = useLocation();
   const nav = useNavigate();
-  const email = (location.state as LocationState | undefined)?.email;
+  const state = location.state as LocationState | undefined;
+  const email = state?.email;
+  const from = state?.from;
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -34,7 +40,16 @@ export function VerifyOtpPage() {
     setError(null);
     try {
       const res = await verifyOtp(email, code);
-      nav(res.user.is_new_user ? '/portal/register' : '/portal', { replace: true });
+      // New users always go through register first — they can't land on
+      // wallet without a family anyway. Returning users go to wherever
+      // ProtectedRoute caught them (preserving query string), defaulting
+      // to /portal if no return URL was stashed.
+      const dest = res.user.is_new_user
+        ? '/portal/register'
+        : from
+          ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+          : '/portal';
+      nav(dest, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Verification failed.');
     }

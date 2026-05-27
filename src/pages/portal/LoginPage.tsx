@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { z } from 'zod';
 
 import { requestOtp } from '@/auth/useAuth';
@@ -10,8 +10,17 @@ import { ApiError } from '@/lib/api';
 const schema = z.object({ email: z.string().email() });
 type FormValues = z.infer<typeof schema>;
 
+interface LoginLocationState {
+  // Where the parent was trying to go before ProtectedRoute bounced them
+  // here. Forwarded through OTP verify so we can land them on the original
+  // URL (preserving query params like ?from=cli&device=…).
+  from?: Location;
+}
+
 export function LoginPage() {
   const nav = useNavigate();
+  const location = useLocation();
+  const from = (location.state as LoginLocationState | null)?.from;
   const [error, setError] = useState<string | null>(null);
   const {
     register,
@@ -23,7 +32,7 @@ export function LoginPage() {
     setError(null);
     try {
       await requestOtp(email);
-      nav('/portal/verify-otp', { state: { email } });
+      nav('/portal/verify-otp', { state: { email, from } });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not send code. Try again.');
     }

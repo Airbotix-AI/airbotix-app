@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
 
 type PackSku = 'starter_10' | 'family_30' | 'mega_50' | 'school_100';
@@ -76,6 +77,7 @@ export function WalletTopupPage() {
 
   return (
     <div>
+      <CliReturnBanner />
       <div className="mb-8">
         <div className="eyebrow">Wallet</div>
         <h1 className="section-heading">Top up Stars</h1>
