@@ -75,6 +75,8 @@ export function MusicTrackList({
       const ws = wsRefs.current[t.id];
       if (ws) ws.setMuted(effectiveMuted(t.id));
     }
+    // effectiveMuted is a render-local closure over soloId/mutedIds (already deps).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks, soloId, mutedIds]);
 
   // Push master volume.

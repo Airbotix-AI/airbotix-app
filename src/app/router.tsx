@@ -22,6 +22,9 @@ import { SettingsPage } from '@/pages/portal/SettingsPage';
 import { VerifyOtpPage } from '@/pages/portal/VerifyOtpPage';
 import { WalletPage } from '@/pages/portal/WalletPage';
 import { WalletTopupPage } from '@/pages/portal/WalletTopupPage';
+import { WalletAutoTopupPage } from '@/pages/portal/WalletAutoTopupPage';
+import { UsagePage } from '@/pages/portal/UsagePage';
+import { KidUsagePage } from '@/pages/portal/KidUsagePage';
 
 // Learn pages (kid surface — airbotix-app-learn-prd.md)
 import { ClassCodePage } from '@/pages/learn/ClassCodePage';
@@ -35,6 +38,12 @@ import { ProjectDetailPage } from '@/pages/learn/ProjectDetailPage';
 import { ProjectNewPage } from '@/pages/learn/ProjectNewPage';
 import { ProjectsListPage } from '@/pages/learn/ProjectsListPage';
 import { CreateHubPage } from '@/pages/learn/create/CreateHubPage';
+import { CodeHubPage } from '@/pages/learn/code/CodeHubPage';
+import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
+import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
+import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
+import { ClassWallViewPage } from '@/pages/learn/classroom/ClassWallViewPage';
+import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
@@ -63,6 +72,9 @@ export const router = createBrowserRouter([
       { path: 'family/:kidId', element: <FamilyDetailPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'wallet/topup', element: <WalletTopupPage /> },
+      { path: 'wallet/auto-topup', element: <WalletAutoTopupPage /> },
+      { path: 'usage', element: <UsagePage /> },
+      { path: 'usage/:kidId', element: <KidUsagePage /> },
       { path: 'approvals', element: <ApprovalsPage /> },
       { path: 'audit', element: <AuditPage /> },
       { path: 'audit/project/:id', element: <AuditProjectPage /> },
@@ -90,12 +102,18 @@ export const router = createBrowserRouter([
       { path: 'missions', element: <MissionsListPage /> },
       { path: 'missions/:id', element: <MissionDetailPage /> },
       { path: 'wall', element: <ClassWallPage /> },
+      { path: 'classroom', element: <ClassroomListPage /> },
+      { path: 'classroom/:classId', element: <ClassWallViewPage /> },
+      { path: 'classroom/:classId/post/:projectId', element: <ClassPostPage /> },
       { path: 'profile', element: <LearnProfilePage /> },
       { path: 'create', element: <CreateHubPage /> },
       { path: 'create/image', element: <ImageMakerPage /> },
       { path: 'create/music', element: <MusicMakerPage /> },
       { path: 'create/voice', element: <VoiceBoothPage /> },
       { path: 'create/video', element: <VideoStudioPage /> },
+      { path: 'create/code', element: <CodeHubPage /> },
+      { path: 'code/:projectId', element: <CodeStudioPage /> },
+      { path: 'code/:projectId/run', element: <CodeRunPage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

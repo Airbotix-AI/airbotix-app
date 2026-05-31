@@ -14,6 +14,7 @@ const STUDIOS: Array<{
   { to: '/learn/create/music', emoji: '🎵', title: 'Music Maker', desc: 'Compose a tune. Pick mood, tempo, vibe.', color: 'mint', cost: 3 },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', cost: 1 },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', cost: 5 },
+  { to: '/learn/create/code', emoji: '💻', title: 'Code Studio', desc: 'Make a website, game, or tool. AI writes the code.', color: 'sky', cost: 1 },
 ];
 
 export function CreateHubPage() {

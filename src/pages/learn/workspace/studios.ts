@@ -1,7 +1,7 @@
 // Per-studio metadata. Each chat in the Workspace is bound to ONE studio.
 // Adding pedagogy per studio (tutorials, examples, prompt hints) goes here.
 
-export type Studio = 'chat' | 'image' | 'music' | 'voice' | 'video';
+export type Studio = 'chat' | 'image' | 'music' | 'voice' | 'video' | 'code';
 
 // Quick-setup field shown before any chat starts. We force the kid to make
 // a few decisions instead of staring at an empty prompt — measurably higher
@@ -117,6 +117,24 @@ export const STUDIOS: StudioMeta[] = [
       { kind: 'pick', key: 'style', label: 'Style', options: ['Cartoon', 'Realistic', 'Pixar-like', '3D animation', 'Stop-motion'], defaultIndex: 0 },
       { kind: 'pick', key: 'length', label: 'Length', options: ['5s', '10s', '15s'], defaultIndex: 0 },
       { kind: 'pick', key: 'camera', label: 'Camera', options: ['Wide shot', 'Close-up', 'Drone view', 'Tracking shot'], defaultIndex: 0 },
+    ],
+  },
+  {
+    id: 'code',
+    emoji: '💻',
+    label: 'Code',
+    cost: 2,
+    tagline: 'Describe a web page or animation, and AI codes it.',
+    placeholder: 'Describe what to build…',
+    wash: 'wash-sky',
+    examples: [
+      'A bouncing rainbow ball that follows my cursor',
+      'A birthday card with confetti when you click it',
+      'A simple drawing canvas that lets me paint with my mouse',
+    ],
+    setup: [
+      { kind: 'pick', key: 'kind', label: 'What kind?', options: ['Animation', 'Game', 'Card', 'Drawing', 'Quiz'], defaultIndex: 0 },
+      { kind: 'pick', key: 'vibe', label: 'Vibe', options: ['Bright & playful', 'Spooky', 'Calm', 'Retro pixel', 'Neon'], defaultIndex: 0 },
     ],
   },
 ];

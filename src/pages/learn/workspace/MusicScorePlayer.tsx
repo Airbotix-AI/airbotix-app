@@ -517,11 +517,11 @@ function triggerDrum(synth: unknown, drum: string, time: number) {
     // @ts-expect-error triggerAttackRelease on MembraneSynth
     synth.triggerAttackRelease('C1', '8n', time);
   } else if (drum === 'snare') {
-    // @ts-expect-error
+    // @ts-expect-error triggerAttackRelease on NoiseSynth/MembraneSynth
     synth.triggerAttackRelease('A1', '16n', time);
   } else {
     // hat
-    // @ts-expect-error
+    // @ts-expect-error triggerAttackRelease on MetalSynth
     synth.triggerAttackRelease('A4', '32n', time, 0.3);
   }
 }

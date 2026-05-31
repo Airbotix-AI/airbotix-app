@@ -1,4 +1,4 @@
-export type ToolKind = 'chat' | 'image' | 'music' | 'voice' | 'video';
+export type ToolKind = 'chat' | 'image' | 'music' | 'voice' | 'video' | 'code';
 
 const TOOLS: Array<{ id: ToolKind; emoji: string; label: string; cost: number; color: string }> = [
   { id: 'chat',  emoji: '💬', label: 'Chat',  cost: 1, color: 'wash-coral' },
@@ -6,6 +6,7 @@ const TOOLS: Array<{ id: ToolKind; emoji: string; label: string; cost: number; c
   { id: 'music', emoji: '🎵', label: 'Music', cost: 3, color: 'wash-mint' },
   { id: 'voice', emoji: '🔊', label: 'Voice', cost: 1, color: 'wash-sky' },
   { id: 'video', emoji: '🎬', label: 'Video', cost: 5, color: 'wash-sunshine' },
+  { id: 'code',  emoji: '💻', label: 'Code',  cost: 2, color: 'wash-sky' },
 ];
 
 export function ToolPicker({

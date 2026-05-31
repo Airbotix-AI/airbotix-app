@@ -51,7 +51,6 @@ export function WalletTopupPage() {
         body: { pack: pack.sku },
       });
       // Dev: log the mock checkout url so we can verify it round-tripped.
-      // eslint-disable-next-line no-console
       console.info('[topup]', res);
       window.location.href = res.checkout_url;
     } catch (e) {

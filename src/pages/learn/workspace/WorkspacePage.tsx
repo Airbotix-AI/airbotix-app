@@ -5,6 +5,7 @@ import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { SessionsPane, type SessionRow } from './SessionsPane';
 import { ChatPane } from './ChatPane';
+import { CodePane } from './CodePane';
 import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
 import { MusicScorePlayer, type MusicScore } from './MusicScorePlayer';
@@ -134,6 +135,25 @@ export function WorkspacePage() {
         return api('/llm/text-completion', {
           method: 'POST',
           body: { messages: [{ role: 'user', content: fullPrompt }] },
+        });
+      }
+      if (studio === 'code') {
+        // Code studio reuses text-completion with a kid-coding system prompt.
+        // The assistant must reply with one ```html, one ```css, and one ```js
+        // fence so CodePane can lift them into LiveCodes deterministically.
+        const sys =
+          'You are a friendly coding tutor for kids age 8-11. ' +
+          'Build a single-page web project using ONLY vanilla HTML, CSS, and JavaScript — no frameworks, no external links, no remote fetches. ' +
+          'Reply with EXACTLY three markdown code fences, in this order: ```html (the body content, no <html>/<head>), then ```css, then ```js. ' +
+          'Keep it short, safe, kid-friendly, and visually playful. After the code fences, add ONE sentence that says what you built.';
+        return api('/llm/text-completion', {
+          method: 'POST',
+          body: {
+            messages: [
+              { role: 'system', content: sys },
+              { role: 'user', content: fullPrompt },
+            ],
+          },
         });
       }
       // Music studio uses the structured MIDI-score endpoint instead of raw audio,
@@ -292,7 +312,9 @@ export function WorkspacePage() {
         )}
       </div>
 
-      {studio === 'music' ? (
+      {studio === 'code' ? (
+        <CodePane messages={messages.data ?? []} />
+      ) : studio === 'music' ? (
         (() => {
           // Find the most recent music score (text artifact with metadata.score)
           const list = messages.data ?? [];

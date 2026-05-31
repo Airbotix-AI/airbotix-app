@@ -71,7 +71,6 @@ export function useStudioSession(studio: LearningSession['studio']) {
         }).catch(() => undefined);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studio]);
 
   return { sessionId };

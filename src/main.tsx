@@ -17,6 +17,8 @@ const queryClient = new QueryClient({
   },
 });
 
+// Entry-point module — not a Fast Refresh target.
+// eslint-disable-next-line react-refresh/only-export-components
 function AppRoot() {
   useBootstrap();
   return <RouterProvider router={router} />;

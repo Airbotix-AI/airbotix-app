@@ -105,6 +105,7 @@ export function WalletPage() {
         </div>
         <div className="flex gap-2">
           <Link to={`/portal/wallet/topup${topupQuery}`} className="btn-pill-primary">+ Top up</Link>
+          <Link to="/portal/wallet/auto-topup" className="btn-pill-secondary">Auto-topup</Link>
           {w && (w.paused ? (
             <button onClick={() => resumeMut.mutate()} disabled={resumeMut.isPending} className="btn-pill-secondary">
               Resume

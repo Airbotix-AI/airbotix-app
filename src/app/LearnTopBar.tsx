@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 
-const FLUID_ROUTES = ['/learn/workspace'];
+const FLUID_ROUTES = ['/learn/workspace', '/learn/code'];
 
 export function LearnTopBar() {
   const me = useMe();
@@ -33,7 +33,7 @@ export function LearnTopBar() {
             <TopLink to="/learn/projects">Projects</TopLink>
             <TopLink to="/learn/create">Create</TopLink>
             <TopLink to="/learn/missions">Missions</TopLink>
-            <TopLink to="/learn/wall">Class wall</TopLink>
+            <TopLink to="/learn/classroom">Class wall</TopLink>
           </nav>
         </div>
         <div className="flex items-center gap-4">
