@@ -13,12 +13,14 @@ interface FamilyData {
   name: string;
   code: string;
   region: string;
+  city: string | null;
   primary_email: string;
 }
 
 const schema = z.object({
   name: z.string().min(1).max(120),
   region: z.string().length(2),
+  city: z.string().max(80),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -40,11 +42,19 @@ export function SettingsPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    values: family.data ? { name: family.data.name, region: family.data.region } : undefined,
+    values: family.data
+      ? { name: family.data.name, region: family.data.region, city: family.data.city ?? '' }
+      : undefined,
   });
 
   const saveMut = useMutation({
-    mutationFn: (v: FormValues) => api(`/families/${familyId}`, { method: 'PATCH', body: v }),
+    mutationFn: (v: FormValues) => {
+      const city = v.city.trim();
+      return api(`/families/${familyId}`, {
+        method: 'PATCH',
+        body: { name: v.name, region: v.region, city: city === '' ? null : city },
+      });
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['family', familyId] }),
     onError: (e: unknown) =>
       setSaveError(e instanceof ApiError ? e.message : 'Could not save.'),
@@ -140,6 +150,13 @@ export function SettingsPage() {
             <label className="block">
               <span className="label-k12">Region (2-letter)</span>
               <input className="input-k12 font-mono uppercase" maxLength={2} {...form.register('region')} />
+            </label>
+            <label className="block">
+              <span className="label-k12">City (optional)</span>
+              <input className="input-k12" placeholder="Sydney" {...form.register('city')} />
+              {form.formState.errors.city && (
+                <span className="field-error">{form.formState.errors.city.message}</span>
+              )}
             </label>
 
             {saveError && (

@@ -13,6 +13,7 @@ import { api, ApiError } from '@/lib/api';
 const schema = z.object({
   family_name: z.string().min(1).max(80),
   region: z.string().min(2).max(8),
+  city: z.string().max(80).optional(),
   kid_nickname: z.string().min(1).max(40),
   kid_age: z.coerce.number().int().min(4).max(17),
   kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
@@ -52,9 +53,14 @@ export function RegisterPage() {
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
+      const city = values.city?.trim();
       const family = await api<CreatedFamily>('/families', {
         method: 'POST',
-        body: { name: values.family_name, region: values.region },
+        body: {
+          name: values.family_name,
+          region: values.region,
+          ...(city ? { city } : {}),
+        },
       });
       await api<unknown>(`/families/${family.id}/kids`, {
         method: 'POST',
@@ -137,6 +143,14 @@ export function RegisterPage() {
             </Field>
             <Field label="Region" error={errors.region?.message}>
               <input className="input-k12" {...register('region')} />
+            </Field>
+            <Field label="Which city are you in? (optional)" error={errors.city?.message}>
+              <input
+                className="input-k12"
+                placeholder="Sydney"
+                autoComplete="address-level2"
+                {...register('city')}
+              />
             </Field>
           </section>
 
