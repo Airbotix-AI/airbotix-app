@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import { api, ApiError } from '@/lib/api';
-import { getWall, toggleLike, type WallPost } from './classroomApi';
+import { api } from '@/lib/api';
+import { getWall, type WallPost } from './classroomApi';
+import { ReactionBar } from './ReactionBar';
 import { ReportModal } from './ReportModal';
 
 interface Project {
@@ -18,12 +19,9 @@ interface Artifact {
   mime_type: string;
 }
 
-const LIKE_DISPLAY_FLOOR = 3;
-
 /** Single shared post — `/learn/classroom/:classId/post/:projectId` (§4.3). */
 export function ClassPostPage() {
   const { classId, projectId } = useParams<{ classId: string; projectId: string }>();
-  const qc = useQueryClient();
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
 
@@ -39,21 +37,13 @@ export function ClassPostPage() {
     enabled: !!projectId,
   });
 
-  // Pull this post's wall metadata (nickname, likes, owner flag) from the class wall.
+  // Pull this post's wall metadata (nickname, reactions, owner flag) from the wall.
   const wall = useQuery<WallPost[]>({
     queryKey: ['class', classId, 'wall'],
     queryFn: () => getWall(classId!),
     enabled: !!classId,
   });
   const post = wall.data?.find((p) => p.project_id === projectId) ?? null;
-
-  const like = useMutation({
-    mutationFn: () => toggleLike(projectId!),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['class', classId, 'wall'] }),
-    onError: (e: unknown) => {
-      if (!(e instanceof ApiError)) return;
-    },
-  });
 
   if (project.isLoading) return <p className="lead-text">Loading…</p>;
   if (!project.data) {
@@ -69,7 +59,6 @@ export function ClassPostPage() {
   }
 
   const p = project.data;
-  const showCount = (post?.like_count ?? 0) >= LIKE_DISPLAY_FLOOR;
 
   return (
     <div>
@@ -93,9 +82,9 @@ export function ClassPostPage() {
       {post?.is_owner && (
         <div className="card-base mb-6 flex items-center justify-between gap-3 flex-wrap">
           <span className="text-[13px] text-ink-soft">
-            Shared {new Date(post.shared_at).toLocaleDateString()} ·{' '}
-            {showCount ? `${post.like_count} likes from classmates` : 'likes from classmates'}
+            Shared {new Date(post.shared_at).toLocaleDateString()}
           </span>
+          <ReactionBar post={post} classId={classId!} />
         </div>
       )}
 
@@ -114,32 +103,23 @@ export function ClassPostPage() {
         </div>
       )}
 
-      {/* Like + Report */}
+      {/* React + Tell teacher */}
       {post && !post.is_owner && (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => like.mutate()}
-            disabled={like.isPending}
-            className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-bold transition-colors ${
-              post.liked_by_me ? 'bg-brand-coral text-white' : 'bg-surface text-ink-soft hover:bg-wash-coral hover:text-ink'
-            }`}
-          >
-            {post.liked_by_me ? '🌟 Liked' : '♡ Like'}
-            {showCount ? ` · ${post.like_count}` : ''}
-          </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <ReactionBar post={post} classId={classId!} />
           <button
             onClick={() => setReporting(true)}
             disabled={reported}
             className="rounded-full px-3 py-2 text-[12px] font-semibold text-slate2 hover:text-ink hover:bg-surface transition-colors"
           >
-            {reported ? 'Reported' : '⚠ This makes me uncomfortable'}
+            {reported ? 'Told your teacher ✓' : '⚠ Tell teacher'}
           </button>
         </div>
       )}
 
-      {reporting && (
+      {reporting && post && (
         <ReportModal
-          projectId={projectId!}
+          postId={post.id}
           classId={classId!}
           onClose={() => setReporting(false)}
           onReported={() => setReported(true)}

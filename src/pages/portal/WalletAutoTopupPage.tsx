@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { AddCardModal } from './AddCardModal';
 import {
   AUTO_TOPUP_SKUS,
   DAILY_CAP_OPTIONS_CENTS,
@@ -14,7 +15,6 @@ import {
   type AutoTopupConfig,
   type AutoTopupSku,
   type PaymentMethod,
-  type SetupIntentResponse,
 } from './walletTypes';
 
 /** Auto-topup config — `/portal/wallet/auto-topup` (parent-portal-prd §4.4.1). */
@@ -308,12 +308,10 @@ function SelectField({
 }
 
 /**
- * Saved cards + add-a-card via Airwallex SetupIntent (§5.4 / MIT note §5.10).
- * The PAN never hits our servers: we fetch a SetupIntent client_secret and the
- * Airwallex browser SDK tokenizes the card. The Airwallex JS SDK is NOT bundled
- * in this repo yet, so the tokenization handoff is stubbed — clicking "Add card"
- * fetches a real SetupIntent and surfaces the client_secret the SDK would
- * consume. PARTIAL: drop-in the @airwallex/components-sdk Drop-in element here.
+ * Saved cards + add-a-card via the Airwallex Components drop-in (§5.4 / MIT note
+ * §5.10). The PAN never hits our servers: AddCardModal fetches a SetupIntent
+ * client_secret, the Airwallex SDK mounts a hosted card iframe, tokenizes the
+ * card, and the tokenized `payment_method_id` is persisted backend-side.
  */
 function PaymentMethodsCard({
   familyId,
@@ -327,17 +325,7 @@ function PaymentMethodsCard({
   onNotice: (s: string) => void;
 }) {
   const qc = useQueryClient();
-
-  const setupIntent = useMutation({
-    mutationFn: () =>
-      api<SetupIntentResponse>(`/families/${familyId}/payment-methods/setup-intent`, { method: 'POST' }),
-    onSuccess: (res) => {
-      // The Airwallex Drop-in element would consume res.client_secret here.
-      onNotice('Card setup started. (Airwallex tokenization SDK handoff is pending integration.)');
-      console.info('[airwallex setup-intent]', res.setup_intent_id);
-    },
-    onError: (e: unknown) => onError(e instanceof ApiError ? e.message : 'Could not start card setup.'),
-  });
+  const [adding, setAdding] = useState(false);
 
   const setDefault = useMutation({
     mutationFn: (pmId: string) =>
@@ -383,13 +371,20 @@ function PaymentMethodsCard({
           ))}
         </ul>
       )}
-      <button
-        onClick={() => setupIntent.mutate()}
-        disabled={setupIntent.isPending}
-        className="btn-pill-secondary mt-4"
-      >
-        {setupIntent.isPending ? 'Starting…' : '+ Add a card'}
+      <button onClick={() => setAdding(true)} className="btn-pill-secondary mt-4">
+        + Add a card
       </button>
+
+      {adding && (
+        <AddCardModal
+          familyId={familyId}
+          onClose={() => setAdding(false)}
+          onAdded={() => {
+            qc.invalidateQueries({ queryKey: ['family', familyId, 'payment-methods'] });
+            onNotice('Card saved securely.');
+          }}
+        />
+      )}
     </div>
   );
 }

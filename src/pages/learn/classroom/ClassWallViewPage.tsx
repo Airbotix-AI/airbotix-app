@@ -22,12 +22,14 @@ export function ClassWallViewPage() {
     enabled: !!classId,
   });
 
-  // Live wall updates (learn-classroom-prd §9): share granted/revoked + like toggles.
+  // Live wall updates: post published / hidden / reacted (class-wall-moderation
+  // prd §11 notifications + share grant/revoke from the moderation pipeline).
   const invalidate = () => qc.invalidateQueries({ queryKey: ['class', classId, 'wall'] });
+  useWsEvent('wall.post.published', invalidate, [classId]);
+  useWsEvent('wall.post.hidden', invalidate, [classId]);
+  useWsEvent('wall.reaction', invalidate, [classId]);
   useWsEvent('share.granted', invalidate, [classId]);
   useWsEvent('share.revoked', invalidate, [classId]);
-  useWsEvent('share.removed_by_report', invalidate, [classId]);
-  useWsEvent('like.toggled', invalidate, [classId]);
 
   const posts = wall.data ?? [];
 
@@ -60,7 +62,7 @@ export function ClassWallViewPage() {
       ) : posts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {posts.map((p) => (
-            <WallCard key={p.project_id} post={p} classId={classId!} />
+            <WallCard key={p.id} post={p} classId={classId!} />
           ))}
         </div>
       ) : (

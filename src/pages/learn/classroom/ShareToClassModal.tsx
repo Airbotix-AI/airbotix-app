@@ -14,8 +14,9 @@ interface ShareToClassModalProps {
 }
 
 /**
- * "Share with class" flow (learn-classroom-prd §3.1): pick a class + optional
- * caption → POST share-request. On success shows the friendly waiting state.
+ * "Share with class" flow (class-wall-moderation-prd §5.1 + §6.1): pick a class
+ * + optional caption → POST a wall post (`/classes/:id/wall/posts`). The post
+ * enters server-side moderation; this shows the friendly waiting state.
  */
 export function ShareToClassModal({ projectId, onClose, onShared }: ShareToClassModalProps) {
   const me = useMe();

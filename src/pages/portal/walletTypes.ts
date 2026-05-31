@@ -46,6 +46,17 @@ export interface SetupIntentResponse {
   customer_id?: string;
 }
 
+/**
+ * Body for confirming a tokenized card with the backend after the Airwallex
+ * Components SDK creates the payment consent (§5.4 / MIT §5.10). The PAN never
+ * reaches us — only the tokenized ids + consent reference.
+ */
+export interface ConfirmCardBody {
+  setup_intent_id: string;
+  payment_consent_id?: string;
+  airwallex_pm_id?: string;
+}
+
 // ── Usage analytics (§5.13) ────────────────────────────────────────────────
 
 export interface UsageSummary {

@@ -98,6 +98,8 @@ export async function createCodeProject(args: {
   familyId: string | null;
   title: string;
   template: CodeTemplateId;
+  /** Set when the project backs a Mission `widget: code` step (PRD §7). */
+  missionId?: string;
 }): Promise<{ id: string }> {
   return api<{ id: string }>(`/projects`, {
     method: 'POST',
@@ -106,9 +108,34 @@ export async function createCodeProject(args: {
       product_line: 'line_b_coding',
       kind: CODE_PROJECT_KIND,
       template: args.template,
+      ...(args.missionId ? { mission_id: args.missionId } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),
     },
+  });
+}
+
+/**
+ * Submit a Mission-linked project for the acceptance gate (learn-missions-prd
+ * §3.4). The backend re-reads `Mission.acceptance` and the project's final VFS
+ * (code-studio-prd §7) — client cannot lie about completion. On pass the
+ * Project flips to `accepted` and completion ⭐ are credited.
+ */
+export interface MissionSubmitResult {
+  status: 'accepted' | 'incomplete';
+  /** Acceptance criteria not yet met (e.g. ['index.html', 'a <button>']). */
+  missing?: string[];
+  reason?: string;
+  stars_awarded?: number;
+}
+
+export async function submitMission(args: {
+  projectId: string;
+  missionId: string;
+}): Promise<MissionSubmitResult> {
+  return api<MissionSubmitResult>(`/projects/${args.projectId}/submit`, {
+    method: 'POST',
+    body: { mission_id: args.missionId },
   });
 }
 

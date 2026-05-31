@@ -3,16 +3,20 @@ import { useState } from 'react';
 import { ApiError } from '@/lib/api';
 import { REPORT_REASONS, reportPost, type ReportReason } from './classroomApi';
 
+const REASON_TEXT_MAX = 200; // class-wall-moderation-prd §5.3 (optional text box)
+
 interface ReportModalProps {
-  projectId: string;
+  /** WallPost id (not project id) — reports attach to the wall post (§10). */
+  postId: string;
   classId: string;
   onClose: () => void;
   onReported?: () => void;
 }
 
-/** "This makes me uncomfortable" report flow (learn-classroom-prd.md §6.1). */
-export function ReportModal({ projectId, classId, onClose, onReported }: ReportModalProps) {
+/** "Tell teacher" report flow (class-wall-moderation-prd.md §5.3 / §6.4). */
+export function ReportModal({ postId, classId, onClose, onReported }: ReportModalProps) {
   const [reason, setReason] = useState<ReportReason | null>(null);
+  const [reasonText, setReasonText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -22,10 +26,11 @@ export function ReportModal({ projectId, classId, onClose, onReported }: ReportM
     setBusy(true);
     setError(null);
     try {
-      await reportPost({ projectId, classId, reason });
+      await reportPost({ postId, classId, reason, reasonText: reasonText.trim() || undefined });
       setDone(true);
       onReported?.();
     } catch (e) {
+      // Already reported (one report per kid per post — §4.4) → treat as success.
       if (e instanceof ApiError && (e.status === 409 || e.code === 'CONFLICT')) {
         setDone(true);
         onReported?.();
@@ -60,7 +65,7 @@ export function ReportModal({ projectId, classId, onClose, onReported }: ReportM
               Tell us what’s wrong
             </h2>
             <p className="lead-text mt-1" style={{ fontSize: '14px' }}>
-              Your teacher will check it. No one will know it was you.
+              We’ll keep this private from the person who posted.
             </p>
 
             <div className="mt-5 space-y-2">
@@ -81,6 +86,21 @@ export function ReportModal({ projectId, classId, onClose, onReported }: ReportM
                   <span className="text-[14px] font-semibold text-ink">{r.label}</span>
                 </label>
               ))}
+            </div>
+
+            <div className="mt-4">
+              <span className="label-k12">Want to say more? (optional)</span>
+              <textarea
+                className="input-k12 mt-1"
+                rows={2}
+                maxLength={REASON_TEXT_MAX}
+                placeholder="You don’t have to."
+                value={reasonText}
+                onChange={(e) => setReasonText(e.target.value)}
+              />
+              <div className="mt-1 text-right text-[11px] text-slate2">
+                {reasonText.length}/{REASON_TEXT_MAX}
+              </div>
             </div>
 
             {error && (

@@ -28,14 +28,23 @@ interface Wallet {
   stars_balance: number;
 }
 
+export interface CodeStudioOptions {
+  /**
+   * Force Pro layout regardless of age. Mission `widget: code` steps always run
+   * in Pro mode — Mission authoring decided the right scaffold (code-studio-prd §7).
+   */
+  forcePro?: boolean;
+}
+
 /** Shared controller for both Pro and Lite Code Studio layouts. */
-export function useCodeStudio(projectId: string) {
+export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
   const me = useMe();
   const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
 
-  // Mode: 8-11 → Lite, 12-17 → Pro. Default to Lite when age is unknown (safest UX).
-  const mode: 'lite' | 'pro' = age != null && age >= 12 ? 'pro' : 'lite';
+  // Mode: 8-11 → Lite, 12-17 → Pro. Default to Lite when age is unknown (safest
+  // UX). Mission code steps force Pro (code-studio-prd §7).
+  const mode: 'lite' | 'pro' = opts.forcePro || (age != null && age >= 12) ? 'pro' : 'lite';
 
   const project = useQuery<CodeProject>({
     queryKey: ['code-project', projectId],

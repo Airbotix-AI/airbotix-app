@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { CodeChat } from './CodeChat';
 import { FileTree } from './FileTree';
 import { PreviewFrame } from './PreviewFrame';
 import { useCodeStudio } from './useCodeStudio';
+import type { VfsFile } from './codeApi';
 
 export function CodeStudioPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -28,6 +29,47 @@ export function CodeStudioPage() {
   );
 }
 
+/**
+ * Code Studio embedded inside Mission chrome (code-studio-prd §7). Always Pro
+ * layout, no page-level navigation (the kid can't leave to `/learn/code/:id`
+ * mid-Mission). The Mission step runner mounts this and reads `studio.files`
+ * (the final VFS) for the acceptance gate.
+ */
+export function EmbeddedCodeStudio({
+  projectId,
+  onFilesChange,
+}: {
+  projectId: string;
+  onFilesChange?: (files: VfsFile[]) => void;
+}) {
+  const studio = useCodeStudio(projectId, { forcePro: true });
+
+  // Surface the live VFS to the mission step so its acceptance gate can run
+  // against the final files without a second round-trip.
+  useEffect(() => {
+    onFilesChange?.(studio.files);
+  }, [studio.files, onFilesChange]);
+
+  if (studio.loading) {
+    return (
+      <div className="flex h-72 items-center justify-center bg-canvas rounded-2xl">
+        <span className="lead-text">Opening your code…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[70vh] min-h-[480px] overflow-hidden rounded-2xl border border-hairline">
+      <ProLayout
+        projectId={projectId}
+        studio={studio}
+        awaitingApproval={studio.pendingPlan !== null}
+        embedded
+      />
+    </div>
+  );
+}
+
 type Studio = ReturnType<typeof useCodeStudio>;
 
 function StudioHeader({
@@ -36,19 +78,24 @@ function StudioHeader({
   balance,
   visibility,
   onRunAnew,
+  embedded,
 }: {
   projectId: string;
   title: string;
   balance: number;
   visibility: string;
   onRunAnew: () => void;
+  /** Embedded in Mission chrome — hide nav away from the Studio (§7). */
+  embedded?: boolean;
 }) {
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-canvas-pure px-4 py-2.5">
       <div className="flex items-center gap-3 min-w-0">
-        <Link to="/learn/create/code" className="btn-pill-ghost -ml-2 text-[13px]">
-          ← My code
-        </Link>
+        {!embedded && (
+          <Link to="/learn/create/code" className="btn-pill-ghost -ml-2 text-[13px]">
+            ← My code
+          </Link>
+        )}
         <span className="text-[15px] font-bold text-ink truncate">{title}</span>
         <span className="hidden sm:inline rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
           💾 Auto-saved
@@ -62,9 +109,11 @@ function StudioHeader({
         <button onClick={onRunAnew} className="btn-pill-secondary text-[12px]">
           ▶ Run anew
         </button>
-        <Link to={`/learn/code/${projectId}/run`} target="_blank" className="btn-pill-ghost text-[12px]">
-          ⤢ Full screen
-        </Link>
+        {!embedded && (
+          <Link to={`/learn/code/${projectId}/run`} target="_blank" className="btn-pill-ghost text-[12px]">
+            ⤢ Full screen
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -76,10 +125,12 @@ function ProLayout({
   projectId,
   studio,
   awaitingApproval,
+  embedded,
 }: {
   projectId: string;
   studio: Studio;
   awaitingApproval: boolean;
+  embedded?: boolean;
 }) {
   const [activePath, setActivePath] = useState<string | null>(studio.files[0]?.path ?? null);
 
@@ -91,6 +142,7 @@ function ProLayout({
         balance={studio.balance}
         visibility={studio.visibility}
         onRunAnew={studio.runAnew}
+        embedded={embedded}
       />
       <div className="flex flex-1 min-h-0">
         {/* Files */}

@@ -1,17 +1,19 @@
 // Class Wall + Classroom data layer.
-// Typed against learn-classroom-prd.md §4/§5/§6/§9 + class-wall-moderation-prd.md.
+// Typed against the CANONICAL backend contract:
+//   - class-wall-moderation-prd.md §4 (WallPost / WallReaction / WallReport),
+//     §6 (kid UX), §10 (endpoint table)
+//   - platform-backend-api-spec.md §5 (projects / share-request)
 //
-// New endpoints flagged in learn-classroom-prd §9 (backend session to add):
-//   GET    /kids/:id/classes                  (list a kid's active classes)*
-//   GET    /classes/:id/wall                  (wall posts)
-//   POST   /projects/:id/like                 (toggle like)
-//   GET    /projects/:id/likes                (like count + own state)
-//   POST   /projects/:id/report               (UGC report → Incident)
-//   POST   /projects/:id/share-request        (already shipped; caption + class_id added)
+// Canonical wall endpoints (class-wall-moderation-prd §10):
+//   GET    /classes/:id/wall                              wall posts (kid / parent / teacher)
+//   POST   /classes/:id/wall/posts                        share a project to the wall (kid)
+//   POST   /classes/:id/wall/posts/:postId/reactions      add/replace a reaction (kid)
+//   DELETE /classes/:id/wall/posts/:postId/reactions      remove own reaction (kid)
+//   POST   /classes/:id/wall/posts/:postId/reports        report a post (kid)
 //
-// * `/kids/:id/classes` mirrors the `/kids/:id/projects` shape already in
-//   §5.7; until it lands, listClasses() degrades to an empty list so the page
-//   renders its friendly empty state instead of erroring.
+// `/kids/:id/classes` (a kid's active classes) is flagged in learn-classroom-prd
+// §9; until it lands, listClasses() degrades to an empty list so the page renders
+// its friendly empty state instead of erroring.
 
 import { api, ApiError } from '@/lib/api';
 
@@ -24,24 +26,47 @@ export interface ClassSummary {
   is_live?: boolean;
 }
 
+// ── Reactions (class-wall-moderation-prd §2 — fixed 6-emoji set) ────────────
+
+export const WALL_REACTIONS = ['🌟', '🎉', '💡', '🥰', '🦄', '🎨'] as const;
+export type WallReactionEmoji = (typeof WALL_REACTIONS)[number];
+
+export function isWallReaction(emoji: string): emoji is WallReactionEmoji {
+  return (WALL_REACTIONS as readonly string[]).includes(emoji);
+}
+
+// ── Wall post (mirrors the WallPost model in §4.2) ─────────────────────────
+
 export interface WallPost {
+  /** WallPost id — the moderation/reaction/report subject (NOT the project id). */
+  id: string;
   project_id: string;
+  caption: string | null;
   title: string;
   kid_nickname: string;
   kid_age?: number | null;
   thumbnail_url: string | null;
-  like_count: number;
-  liked_by_me: boolean;
+  /** Cached `{ '🌟': 3, ... }` counts (§4.2 `reaction_counts`). */
+  reaction_counts: Partial<Record<WallReactionEmoji, number>>;
+  /** This kid's own reaction, if any (one reaction per kid per post). */
+  my_reaction: WallReactionEmoji | null;
   is_owner: boolean;
   shared_at: string;
 }
 
-export type ReportReason = 'feel_bad' | 'is_mean' | 'shouldnt_show';
+// ── Reports (class-wall-moderation-prd §4.4 — fixed kid-friendly reasons) ───
+
+export type ReportReason =
+  | 'mean_or_unkind'
+  | 'scary_or_upsetting'
+  | 'not_school_appropriate'
+  | 'someone_else_should_see_this';
 
 export const REPORT_REASONS: Array<{ id: ReportReason; emoji: string; label: string }> = [
-  { id: 'feel_bad', emoji: '😟', label: 'This makes me feel bad' },
-  { id: 'is_mean', emoji: '😠', label: 'This is mean' },
-  { id: 'shouldnt_show', emoji: '🚫', label: 'This shows something it shouldn’t' },
+  { id: 'mean_or_unkind', emoji: '😠', label: 'This is mean or unkind' },
+  { id: 'scary_or_upsetting', emoji: '😟', label: 'This is scary or upsetting' },
+  { id: 'not_school_appropriate', emoji: '🚫', label: "This shouldn't be at school" },
+  { id: 'someone_else_should_see_this', emoji: '🆘', label: 'A grown-up should see this' },
 ];
 
 export async function listClasses(kidId: string): Promise<ClassSummary[]> {
@@ -57,42 +82,71 @@ export async function getClass(classId: string): Promise<ClassSummary> {
   return api<ClassSummary>(`/classes/${classId}`);
 }
 
+/** GET /classes/:id/wall — degrades to empty so the page shows its empty state. */
 export async function getWall(classId: string): Promise<WallPost[]> {
   try {
-    return await api<WallPost[]>(`/classes/${classId}/wall`);
+    const res = await api<WallPost[] | { posts: WallPost[] }>(`/classes/${classId}/wall`);
+    return Array.isArray(res) ? res : (res.posts ?? []);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
     throw e;
   }
 }
 
-export async function toggleLike(projectId: string): Promise<{ liked: boolean; like_count: number }> {
-  return api<{ liked: boolean; like_count: number }>(`/projects/${projectId}/like`, { method: 'POST' });
+/**
+ * Add or replace this kid's reaction on a post (one reaction per kid per post,
+ * changeable — §4.3 unique constraint). `POST …/reactions { emoji }`.
+ */
+export async function addReaction(args: {
+  classId: string;
+  postId: string;
+  emoji: WallReactionEmoji;
+}): Promise<void> {
+  await api<void>(`/classes/${args.classId}/wall/posts/${args.postId}/reactions`, {
+    method: 'POST',
+    body: { emoji: args.emoji },
+  });
 }
 
-export async function reportPost(args: {
-  projectId: string;
-  classId: string;
-  reason: ReportReason;
-}): Promise<void> {
-  await api<void>(`/projects/${args.projectId}/report`, {
-    method: 'POST',
-    body: { reason: args.reason, class_id: args.classId },
+/** Remove this kid's reaction. `DELETE …/reactions`. */
+export async function removeReaction(args: { classId: string; postId: string }): Promise<void> {
+  await api<void>(`/classes/${args.classId}/wall/posts/${args.postId}/reactions`, {
+    method: 'DELETE',
   });
 }
 
 /**
- * Submit a share-to-class request (learn-classroom-prd §3.1). Reuses the
- * already-shipped `POST /projects/:id/share-request`, extended with class_id +
- * caption per §3.1 step 4.
+ * Report a peer's post. `POST …/reports { reason, reason_text? }`
+ * (class-wall-moderation-prd §4.4 + §5.3).
+ */
+export async function reportPost(args: {
+  classId: string;
+  postId: string;
+  reason: ReportReason;
+  reasonText?: string;
+}): Promise<void> {
+  await api<void>(`/classes/${args.classId}/wall/posts/${args.postId}/reports`, {
+    method: 'POST',
+    body: {
+      reason: args.reason,
+      ...(args.reasonText ? { reason_text: args.reasonText } : {}),
+    },
+  });
+}
+
+/**
+ * Share a project to a class wall. Per the canonical contract
+ * (class-wall-moderation-prd §5.1) this creates a WallPost directly via
+ * `POST /classes/:id/wall/posts { project_id, caption }` — the post enters the
+ * moderation pipeline server-side (pending_auto → published / pending_teacher).
  */
 export async function shareToClass(args: {
   projectId: string;
   classId: string;
   caption?: string;
 }): Promise<void> {
-  await api<void>(`/projects/${args.projectId}/share-request`, {
+  await api<void>(`/classes/${args.classId}/wall/posts`, {
     method: 'POST',
-    body: { target_visibility: 'class', class_id: args.classId, caption: args.caption ?? '' },
+    body: { project_id: args.projectId, caption: args.caption ?? '' },
   });
 }
