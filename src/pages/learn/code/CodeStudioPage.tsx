@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
-import type { CodeTemplateId } from './codeApi';
 import { CodeChat } from './CodeChat';
 import { FileTree } from './FileTree';
 import { PreviewFrame } from './PreviewFrame';
@@ -9,9 +8,7 @@ import { useCodeStudio } from './useCodeStudio';
 
 export function CodeStudioPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const [params] = useSearchParams();
-  const template = (params.get('template') as CodeTemplateId | null) ?? 'blank';
-  const studio = useCodeStudio(projectId ?? '', template);
+  const studio = useCodeStudio(projectId ?? '');
 
   if (!projectId) return <NotFound />;
   if (studio.loading) {
