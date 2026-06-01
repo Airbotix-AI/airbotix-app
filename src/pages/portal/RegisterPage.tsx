@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, refreshAccessToken } from '@/lib/api';
 
 import {
   ACQUISITION_SOURCES,
@@ -83,6 +83,10 @@ export function RegisterPage() {
           ...(values.marketing_opt_in ? { marketing_opt_in: true } : {}),
         },
       });
+      // The OTP-login token was minted before the family existed, so it carries
+      // family_id=null. Refresh it now so the kid-creation call passes the
+      // family-scope guard (otherwise POST /families/:id/kids → 403).
+      await refreshAccessToken();
       await api<unknown>(`/families/${family.id}/kids`, {
         method: 'POST',
         body: {

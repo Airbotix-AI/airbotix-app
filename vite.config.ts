@@ -10,7 +10,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // Fixed Airbotix-app dev port (5173/5174 collide with other local apps like
+    // JR Academy). Pairs with platform-backend on :3030.
+    port: 4321,
+    strictPort: true,
     host: true,
     proxy: {
       '/api': {
