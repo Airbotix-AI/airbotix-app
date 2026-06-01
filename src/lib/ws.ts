@@ -5,7 +5,11 @@ import { io, type Socket } from 'socket.io-client';
 
 import { useAuthStore } from '@/auth/authStore';
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030/ws';
+// Origin only — the gateway path ('/ws') must be the socket.io `path` option,
+// not a URL suffix (a suffix is parsed as a namespace and leaves path at the
+// default '/socket.io', breaking the handshake).
+const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030';
+const WS_PATH = '/ws';
 
 let socket: Socket | null = null;
 
@@ -21,6 +25,7 @@ export function getSocket(): Socket | null {
   }
 
   socket = io(WS_URL, {
+    path: WS_PATH,
     autoConnect: true,
     transports: ['websocket'],
     auth: { token },
