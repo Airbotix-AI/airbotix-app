@@ -8,12 +8,28 @@ import { z } from 'zod';
 import { useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 
+import {
+  AU_STATES,
+  PREFERRED_LANGUAGES,
+  PREFERRED_LANGUAGE_LABELS,
+  type AuState,
+  type PreferredLanguage,
+} from './familyProfile';
+
 interface FamilyData {
   id: string;
   name: string;
   code: string;
   region: string;
   city: string | null;
+  state: AuState | null;
+  postcode: string | null;
+  school_name: string | null;
+  preferred_language: PreferredLanguage | null;
+  marketing_opt_in: boolean | null;
+  phone: string | null;
+  parent_occupation: string | null;
+  parent_industry: string | null;
   primary_email: string;
 }
 
@@ -21,8 +37,22 @@ const schema = z.object({
   name: z.string().min(1).max(120),
   region: z.string().length(2),
   city: z.string().max(80),
+  state: z.enum(AU_STATES).or(z.literal('')),
+  postcode: z.string().max(8),
+  school_name: z.string().max(120),
+  preferred_language: z.enum(PREFERRED_LANGUAGES),
+  marketing_opt_in: z.boolean(),
+  phone: z.string().max(40),
+  parent_occupation: z.string().max(120),
+  parent_industry: z.string().max(120),
 });
 type FormValues = z.infer<typeof schema>;
+
+/** Trim a free-text field; empty string becomes null for the PATCH body. */
+function nullable(v: string): string | null {
+  const t = v.trim();
+  return t === '' ? null : t;
+}
 
 export function SettingsPage() {
   const me = useMe();
@@ -43,18 +73,40 @@ export function SettingsPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     values: family.data
-      ? { name: family.data.name, region: family.data.region, city: family.data.city ?? '' }
+      ? {
+          name: family.data.name,
+          region: family.data.region,
+          city: family.data.city ?? '',
+          state: family.data.state ?? '',
+          postcode: family.data.postcode ?? '',
+          school_name: family.data.school_name ?? '',
+          preferred_language: family.data.preferred_language ?? 'en',
+          marketing_opt_in: family.data.marketing_opt_in ?? false,
+          phone: family.data.phone ?? '',
+          parent_occupation: family.data.parent_occupation ?? '',
+          parent_industry: family.data.parent_industry ?? '',
+        }
       : undefined,
   });
 
   const saveMut = useMutation({
-    mutationFn: (v: FormValues) => {
-      const city = v.city.trim();
-      return api(`/families/${familyId}`, {
+    mutationFn: (v: FormValues) =>
+      api(`/families/${familyId}`, {
         method: 'PATCH',
-        body: { name: v.name, region: v.region, city: city === '' ? null : city },
-      });
-    },
+        body: {
+          name: v.name,
+          region: v.region,
+          city: nullable(v.city),
+          state: v.state === '' ? null : v.state,
+          postcode: nullable(v.postcode),
+          school_name: nullable(v.school_name),
+          preferred_language: v.preferred_language,
+          marketing_opt_in: v.marketing_opt_in,
+          phone: nullable(v.phone),
+          parent_occupation: nullable(v.parent_occupation),
+          parent_industry: nullable(v.parent_industry),
+        },
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['family', familyId] }),
     onError: (e: unknown) =>
       setSaveError(e instanceof ApiError ? e.message : 'Could not save.'),
@@ -158,6 +210,78 @@ export function SettingsPage() {
                 <span className="field-error">{form.formState.errors.city.message}</span>
               )}
             </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="block">
+                <span className="label-k12">State (optional)</span>
+                <select className="input-k12" {...form.register('state')}>
+                  <option value="">Choose…</option>
+                  {AU_STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label-k12">Postcode (optional)</span>
+                <input
+                  className="input-k12"
+                  inputMode="numeric"
+                  placeholder="2000"
+                  {...form.register('postcode')}
+                />
+              </label>
+            </div>
+            <label className="block">
+              <span className="label-k12">School name (optional)</span>
+              <input className="input-k12" placeholder="Sunnydale Public School" {...form.register('school_name')} />
+            </label>
+            <label className="block">
+              <span className="label-k12">Preferred language</span>
+              <select className="input-k12" {...form.register('preferred_language')}>
+                {PREFERRED_LANGUAGES.map((lng) => (
+                  <option key={lng} value={lng}>
+                    {PREFERRED_LANGUAGE_LABELS[lng]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 accent-brand-coral"
+                {...form.register('marketing_opt_in')}
+              />
+              <span className="text-[13px] text-ink-soft">
+                Send me tips &amp; updates about Airbotix. No spam — promise.
+              </span>
+            </label>
+
+            <details className="rounded-2xl bg-wash-sky px-4 py-3">
+              <summary className="label-k12 cursor-pointer select-none">
+                About your family (optional)
+              </summary>
+              <div className="mt-4 space-y-5">
+                <label className="block">
+                  <span className="label-k12">Phone (optional)</span>
+                  <input
+                    className="input-k12"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="0400 000 000"
+                    {...form.register('phone')}
+                  />
+                </label>
+                <label className="block">
+                  <span className="label-k12">Your occupation (optional)</span>
+                  <input className="input-k12" placeholder="Teacher" {...form.register('parent_occupation')} />
+                </label>
+                <label className="block">
+                  <span className="label-k12">Your industry (optional)</span>
+                  <input className="input-k12" placeholder="Education" {...form.register('parent_industry')} />
+                </label>
+              </div>
+            </details>
 
             {saveError && (
               <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">

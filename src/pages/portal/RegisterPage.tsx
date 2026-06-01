@@ -8,12 +8,27 @@ import { z } from 'zod';
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 
+import {
+  ACQUISITION_SOURCES,
+  ACQUISITION_SOURCE_LABELS,
+  AU_STATES,
+  detectPreferredLanguage,
+  PREFERRED_LANGUAGES,
+  PREFERRED_LANGUAGE_LABELS,
+} from './familyProfile';
+
 // Family setup. Backend auto-generates the family code (kid-memorable 4 chars).
 // Multi-step "90s wizard" comes once underlying endpoints settle.
 const schema = z.object({
   family_name: z.string().min(1).max(80),
   region: z.string().min(2).max(8),
   city: z.string().max(80).optional(),
+  // Optional analytics-relevant family profile (kept light at signup).
+  state: z.enum(AU_STATES).or(z.literal('')).optional(),
+  postcode: z.string().max(8).optional(),
+  acquisition_source: z.enum(ACQUISITION_SOURCES).or(z.literal('')).optional(),
+  preferred_language: z.enum(PREFERRED_LANGUAGES),
+  marketing_opt_in: z.boolean().optional(),
   kid_nickname: z.string().min(1).max(40),
   kid_age: z.coerce.number().int().min(4).max(17),
   kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
@@ -47,19 +62,25 @@ export function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { region: 'AU' },
+    defaultValues: { region: 'AU', preferred_language: detectPreferredLanguage() },
   });
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
       const city = values.city?.trim();
+      const postcode = values.postcode?.trim();
       const family = await api<CreatedFamily>('/families', {
         method: 'POST',
         body: {
           name: values.family_name,
           region: values.region,
           ...(city ? { city } : {}),
+          ...(values.state ? { state: values.state } : {}),
+          ...(postcode ? { postcode } : {}),
+          ...(values.acquisition_source ? { acquisition_source: values.acquisition_source } : {}),
+          preferred_language: values.preferred_language,
+          ...(values.marketing_opt_in ? { marketing_opt_in: true } : {}),
         },
       });
       await api<unknown>(`/families/${family.id}/kids`, {
@@ -152,6 +173,60 @@ export function RegisterPage() {
                 {...register('city')}
               />
             </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Which state? (optional)" error={errors.state?.message}>
+                <select className="input-k12" defaultValue="" {...register('state')}>
+                  <option value="">Choose…</option>
+                  {AU_STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Postcode (optional)" error={errors.postcode?.message}>
+                <input
+                  className="input-k12"
+                  inputMode="numeric"
+                  placeholder="2000"
+                  autoComplete="postal-code"
+                  {...register('postcode')}
+                />
+              </Field>
+            </div>
+            <Field label="Preferred language" error={errors.preferred_language?.message}>
+              <select className="input-k12" {...register('preferred_language')}>
+                {PREFERRED_LANGUAGES.map((lng) => (
+                  <option key={lng} value={lng}>
+                    {PREFERRED_LANGUAGE_LABELS[lng]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </section>
+
+          <section className="space-y-4">
+            <div className="eyebrow eyebrow-sunshine">How did you find us? (optional)</div>
+            <Field label="How did you hear about us?" error={errors.acquisition_source?.message}>
+              <select className="input-k12" defaultValue="" {...register('acquisition_source')}>
+                <option value="">Choose one…</option>
+                {ACQUISITION_SOURCES.map((src) => (
+                  <option key={src} value={src}>
+                    {ACQUISITION_SOURCE_LABELS[src]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 accent-brand-coral"
+                {...register('marketing_opt_in')}
+              />
+              <span className="text-[13px] text-ink-soft">
+                Send me tips &amp; updates about Airbotix. No spam — promise.
+              </span>
+            </label>
           </section>
 
           <section className="space-y-4">
