@@ -1,0 +1,62 @@
+# Deploy airbotix-app SPA → S3 + CloudFront invalidation (account 026559016816, Sydney).
+# OIDC role: arn:aws:iam::026559016816:role/gh-actions-deploy-airbotix-app
+# No static AWS keys — OIDC only.
+
+name: Deploy airbotix-app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  S3_BUCKET: airbotix-app-prod
+  CF_DISTRIBUTION_ID: E1CN0CC163N595
+  VITE_API_BASE_URL: https://api.airbotix.ai
+  VITE_WS_URL: wss://api.airbotix.ai/ws
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}
+          VITE_WS_URL: ${{ env.VITE_WS_URL }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::026559016816:role/gh-actions-deploy-airbotix-app
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync hashed assets (immutable, long cache)
+        run: |
+          aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html"
+
+      - name: Upload index.html (no-cache)
+        run: |
+          aws s3 cp dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
+            --cache-control "no-cache,must-revalidate" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CF_DISTRIBUTION_ID }} \
+            --paths "/index.html" "/"
