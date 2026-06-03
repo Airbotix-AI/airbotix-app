@@ -526,7 +526,10 @@ function ArtifactTile({
   const isAudio = artifact.kind === 'audio';
   const isVideo = artifact.kind === 'video';
   const isText = artifact.kind === 'text';
-  const meta = artifact.metadata as { prompt?: string; reply?: string; content?: string };
+  const meta = artifact.metadata as { prompt?: string; reply?: string; content?: string; stars_charged?: number };
+
+  const COST_FALLBACK: Record<string, number> = { image: 4, audio: 1, video: 5, text: 1, project_export: 2 };
+  const costBadge = meta.stars_charged ?? COST_FALLBACK[artifact.kind];
 
   const signed = useQuery<SignedDownloadResponse>({
     queryKey: ['artifact', artifact.id, 'download'],
@@ -638,8 +641,9 @@ function ArtifactTile({
           >
             {textExpanded ? 'Show less' : 'Show more'}
           </button>
-          <div className="text-[11px] text-slate2">
-            {new Date(artifact.created_at).toLocaleString()}
+          <div className="flex items-center gap-2 text-[11px] text-slate2">
+            <span className="font-bold text-brand-mint">−{costBadge}★</span>
+            <span>{new Date(artifact.created_at).toLocaleString()}</span>
           </div>
         </div>
 
@@ -673,8 +677,13 @@ function ArtifactTile({
         {ThreeDotMenu}
       </div>
 
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-[11px] font-bold text-brand-mint">−{costBadge}★</span>
+        <span className="text-[11px] text-slate2">{new Date(artifact.created_at).toLocaleDateString()}</span>
+      </div>
+
       {meta.prompt && (
-        <div className="text-[11px] text-ink-soft mt-2 line-clamp-2 italic">"{meta.prompt}"</div>
+        <div className="text-[11px] text-ink-soft mt-1 line-clamp-2 italic">"{meta.prompt}"</div>
       )}
     </div>
   );
