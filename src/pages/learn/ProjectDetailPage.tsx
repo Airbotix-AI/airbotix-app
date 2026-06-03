@@ -7,6 +7,12 @@ import { api, ApiError } from '@/lib/api';
 import { onWsEvent } from '@/lib/ws';
 import { ShareToClassModal } from '@/pages/learn/classroom/ShareToClassModal';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { StudioDrawer } from '@/pages/learn/create/shared/StudioDrawer';
+import { ImageStudioContent } from '@/pages/learn/create/shared/ImageStudioContent';
+import { VoiceStudioContent } from '@/pages/learn/create/shared/VoiceStudioContent';
+import { VideoStudioContent } from '@/pages/learn/create/shared/VideoStudioContent';
+import { StoryStudioContent } from '@/pages/learn/create/shared/StoryStudioContent';
+import { MusicStudioContent } from '@/pages/learn/create/shared/MusicStudioContent';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -249,63 +255,52 @@ export function ProjectDetailPage() {
     return <Navigate to={`/learn/code/${project.data.id}`} replace />;
 
   const p = project.data;
-  const color = p.product_line === 'line_a_creative' ? 'coral' : 'sky';
   const byKind = groupByKind(artifacts.data ?? []);
+  const totalArtifacts = artifacts.data?.length ?? 0;
+  const atArtifactLimit = totalArtifacts >= 100;
 
   return (
     <div>
-      <Link to="/learn/projects" className="btn-pill-ghost mb-4 -ml-3">← Projects</Link>
+      {/* ── ← My Works ── */}
+      <Link to="/learn/projects" className="btn-pill-ghost mb-6 -ml-3">← My Works</Link>
 
-      {/* Header card */}
-      <div className={`pack-card ${color} mb-6 cursor-default`} style={{ minHeight: 'auto' }}>
-        <span className="pack-blob" />
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
-              {p.product_line === 'line_a_creative' ? 'Creative' : 'Coding'} · {p.status.replace(/_/g, ' ')}
-            </div>
-
-            {editingTitle ? (
-              <input
-                ref={titleInputRef}
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={submitTitle}
-                onKeyDown={(e) => { if (e.key === 'Enter') submitTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
-                className="mt-3 w-full rounded-xl bg-canvas-pure/20 px-3 py-1 text-[28px] font-bold leading-tight text-white outline-none"
-                maxLength={120}
-              />
-            ) : (
-              <h1
-                className="mt-3 text-[32px] font-bold leading-tight cursor-pointer hover:opacity-80"
-                onClick={startEditTitle}
-                title="Click to rename"
-              >
-                {p.title} <span className="text-[18px] opacity-60">✏️</span>
-              </h1>
-            )}
-
-            <div className="mt-4 flex flex-wrap gap-2 text-[12px] font-bold uppercase tracking-[0.10em]">
-              <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5">{p.star_cost_total}★ used</span>
-              {wallet.data && (
-                <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5">{wallet.data.stars_balance}★ left</span>
-              )}
-              <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5">{p.visibility}</span>
-            </div>
-          </div>
+      {/* ── Title row: title left + ⭐ spent right (PRD §5) ── */}
+      <div className="mb-2 flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {editingTitle ? (
+            <input
+              ref={titleInputRef}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onBlur={submitTitle}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
+              className="w-full rounded-2xl border-2 border-brand-coral bg-canvas-pure px-4 py-2 text-[28px] font-bold text-ink outline-none"
+              maxLength={120}
+            />
+          ) : (
+            <h1 className="text-[28px] font-bold text-ink leading-tight">{p.title}</h1>
+          )}
+        </div>
+        <div className="shrink-0 text-[14px] font-bold text-steel mt-1">
+          ⭐ {p.star_cost_total} spent on this
         </div>
       </div>
 
-      {/* Actions row */}
-      <div className="mb-6 flex flex-wrap gap-2">
+      {/* ── Action buttons row (PRD §5): Edit title · Share · Download · Delete ── */}
+      <div className="mb-8 flex flex-wrap gap-2">
+        <button onClick={startEditTitle} className="btn-pill-secondary text-[13px] py-2 px-4">
+          ✏️ Edit title
+        </button>
         {p.visibility === 'private' && (
-          <button onClick={() => setShowShare(true)} className="btn-pill-primary">✨ Share with class</button>
+          <button onClick={() => setShowShare(true)} className="btn-pill-secondary text-[13px] py-2 px-4">
+            ✨ Share with class
+          </button>
         )}
         <button
           onClick={() => setShowDeleteConfirm(true)}
-          className="btn-pill-ghost text-brand-coral border-brand-coral/30 hover:bg-wash-coral"
+          className="btn-pill-secondary text-[13px] py-2 px-4 text-brand-coral border-brand-coral/40 hover:bg-wash-coral"
         >
-          🗑 Delete project
+          🗑 Delete
         </button>
       </div>
 
@@ -328,7 +323,15 @@ export function ProjectDetailPage() {
 
       <ShareApprovalPanel projectId={p.id} currentVisibility={p.visibility} />
 
-      {/* Artifact sections by kind */}
+      {/* ── Pieces of this project (PRD §5) ── */}
+      <SectionDivider label="Pieces of this project" />
+
+      {atArtifactLimit && (
+        <div className="mb-4 rounded-2xl bg-wash-sunshine border border-brand-sunshine/40 px-4 py-3 text-[13px] font-medium text-ink">
+          This project has 100 items — the maximum. Delete some to add more.
+        </div>
+      )}
+
       <div className="mb-8 space-y-6">
         {(['image', 'text', 'audio', 'video'] as const).map((kind) => (
           <ArtifactSection
@@ -336,6 +339,7 @@ export function ProjectDetailPage() {
             kind={kind}
             artifacts={byKind[kind] ?? []}
             projectId={id!}
+            atLimit={atArtifactLimit}
             onDeleted={() => qc.invalidateQueries({ queryKey: ['project', id, 'artifacts'] })}
           />
         ))}
@@ -345,12 +349,14 @@ export function ProjectDetailPage() {
             kind="project_export"
             artifacts={byKind['project_export']!}
             projectId={id!}
+            atLimit={false}
             onDeleted={() => qc.invalidateQueries({ queryKey: ['project', id, 'artifacts'] })}
           />
         )}
       </div>
 
-      {/* Combine / Export */}
+      {/* ── Make a storybook (PRD §5 + §6) ── */}
+      <SectionDivider label="Make a storybook" />
       <ExportPanel
         artifacts={artifacts.data ?? []}
         exportJob={exportJob}
@@ -424,42 +430,76 @@ export function ProjectDetailPage() {
   );
 }
 
+// ─── SectionDivider ──────────────────────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="h-px flex-1 bg-hairline" />
+      <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-steel">{label}</span>
+      <div className="h-px flex-1 bg-hairline" />
+    </div>
+  );
+}
+
 // ─── ArtifactSection ─────────────────────────────────────────────────────────
 
 function ArtifactSection({
   kind,
   artifacts,
   projectId,
+  atLimit,
   onDeleted,
 }: {
   kind: string;
   artifacts: Artifact[];
   projectId: string;
+  atLimit: boolean;
   onDeleted: () => void;
 }) {
-  const addLink = CREATE_LINK[kind];
+  const [showAdd, setShowAdd] = useState(false);
+  const canAdd = !!CREATE_LINK[kind] && !atLimit;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-bold text-ink">
-          {KIND_LABEL[kind] ?? kind} {artifacts.length > 0 && <span className="text-slate2 font-normal">({artifacts.length})</span>}
+          {KIND_LABEL[kind] ?? kind}{' '}
+          <span className="text-steel font-normal">({artifacts.length})</span>
         </h2>
-        {addLink && (
-          <Link to={`${addLink}?project_id=${projectId}`} className="btn-pill-ghost text-[12px] py-1.5 px-3">
+        {canAdd && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="btn-pill-ghost text-[12px] py-1.5 px-3"
+          >
             + Add {KIND_LABEL[kind]?.toLowerCase().replace(/s$/, '') ?? kind}
-          </Link>
+          </button>
         )}
       </div>
 
       {artifacts.length === 0 ? (
-        <p className="text-[13px] text-slate2 italic">None yet.</p>
+        <p className="text-[13px] text-steel italic">None yet.</p>
+      ) : kind === 'audio' || kind === 'text' ? (
+        <div className="space-y-3">
+          {artifacts.map((a) => (
+            <ArtifactTile key={a.id} artifact={a} projectId={projectId} onDeleted={onDeleted} />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {artifacts.map((a) => (
             <ArtifactTile key={a.id} artifact={a} projectId={projectId} onDeleted={onDeleted} />
           ))}
         </div>
+      )}
+
+      {showAdd && (
+        <StudioDrawerForKind
+          kind={kind as 'image' | 'text' | 'audio' | 'video'}
+          projectId={projectId}
+          onClose={() => setShowAdd(false)}
+          onCreated={onDeleted}
+        />
       )}
     </div>
   );
@@ -477,12 +517,16 @@ function ArtifactTile({
   onDeleted: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [textExpanded, setTextExpanded] = useState(false);
   const qc = useQueryClient();
   const sticker = KIND_STICKER[artifact.kind] ?? 'sky';
   const isImage = artifact.kind === 'image';
   const isAudio = artifact.kind === 'audio';
   const isVideo = artifact.kind === 'video';
-  const meta = artifact.metadata as { prompt?: string };
+  const isText = artifact.kind === 'text';
+  const meta = artifact.metadata as { prompt?: string; reply?: string; content?: string };
 
   const signed = useQuery<SignedDownloadResponse>({
     queryKey: ['artifact', artifact.id, 'download'],
@@ -490,6 +534,21 @@ function ArtifactTile({
       api<SignedDownloadResponse>(`/projects/${projectId}/artifacts/${artifact.id}/download-url`, { method: 'POST' }),
     enabled: isImage || isAudio || isVideo,
     staleTime: 4 * 60_000,
+  });
+
+  // For text artifacts, fetch the actual content via download-url then read as text
+  const textContent = useQuery<string>({
+    queryKey: ['artifact', artifact.id, 'text-content'],
+    queryFn: async () => {
+      const { url } = await api<SignedDownloadResponse>(
+        `/projects/${projectId}/artifacts/${artifact.id}/download-url`,
+        { method: 'POST' },
+      );
+      const res = await fetch(url);
+      return res.text();
+    },
+    enabled: isText && textExpanded,
+    staleTime: 10 * 60_000,
   });
 
   const deleteArtifact = useMutation({
@@ -502,11 +561,102 @@ function ArtifactTile({
 
   const url = signed.data?.url;
 
+  const ThreeDotMenu = (
+    <div className="relative">
+      <button
+        onClick={() => setMenuOpen((v) => !v)}
+        className="rounded-full p-1 text-slate2 hover:bg-surface hover:text-ink transition-colors text-[16px] leading-none"
+        title="Options"
+      >
+        ⋯
+      </button>
+      {menuOpen && (
+        <div className="absolute right-0 top-7 z-10 w-40 rounded-2xl border border-hairline bg-canvas-pure shadow-card-soft py-1">
+          <button
+            onClick={() => { setRenameDraft((artifact.metadata as { prompt?: string }).prompt ?? ''); setRenaming(true); setMenuOpen(false); }}
+            className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface"
+          >
+            ✏️ Rename
+          </button>
+          {url && (
+            <a href={url} download className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface" onClick={() => setMenuOpen(false)}>
+              ⬇ Download
+            </a>
+          )}
+          <button
+            onClick={() => { deleteArtifact.mutate(); setMenuOpen(false); }}
+            className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-brand-coral hover:bg-wash-coral"
+            disabled={deleteArtifact.isPending}
+          >
+            🗑 Delete
+          </button>
+        </div>
+      )}
+      {renaming && (
+        <div className="absolute right-0 top-7 z-10 w-52 rounded-2xl border border-hairline bg-canvas-pure shadow-card-soft p-3">
+          <input
+            autoFocus
+            value={renameDraft}
+            onChange={(e) => setRenameDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') setRenaming(false); if (e.key === 'Escape') setRenaming(false); }}
+            className="input-k12 text-[13px]"
+            placeholder="New name…"
+            maxLength={120}
+          />
+          <button onClick={() => setRenaming(false)} className="btn-pill-primary mt-2 w-full text-[12px] py-1.5">Save</button>
+        </div>
+      )}
+    </div>
+  );
+
+  // Text artifact — full-width row layout (like AudioRow in VoiceBoothPage)
+  if (isText) {
+    return (
+      <div className="card-base relative">
+        {meta.prompt && (
+          <div className="text-[13px] text-ink mb-2 line-clamp-2">"{meta.prompt}"</div>
+        )}
+
+        {textExpanded ? (
+          <div className="mb-2 max-h-48 overflow-y-auto">
+            {textContent.isLoading ? (
+              <span className="text-[12px] text-slate2">Loading…</span>
+            ) : textContent.error ? (
+              <span className="text-[12px] text-brand-coral">Could not load story.</span>
+            ) : (
+              <p className="text-[13px] text-ink leading-relaxed whitespace-pre-wrap">
+                {textContent.data ?? '(empty)'}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between mt-1">
+          <button
+            onClick={() => setTextExpanded((v) => !v)}
+            className="text-[12px] font-semibold text-brand-coral hover:underline"
+          >
+            {textExpanded ? 'Show less' : 'Show more'}
+          </button>
+          <div className="text-[11px] text-slate2">
+            {new Date(artifact.created_at).toLocaleString()}
+          </div>
+        </div>
+
+        {/* 3-dot menu */}
+        <div className="absolute top-3 right-3">
+          {ThreeDotMenu}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card-base p-3 flex flex-col relative">
-      <div className="aspect-square rounded-xl bg-surface overflow-hidden mb-3 flex items-center justify-center">
+      {/* Media preview area */}
+      <div className={`${isVideo ? 'aspect-video' : 'aspect-square'} rounded-xl bg-surface overflow-hidden mb-3 flex items-center justify-center`}>
         {signed.isLoading ? (
-          <span className="text-[12px] text-slate2">…</span>
+          <span className="text-[12px] text-slate2">loading…</span>
         ) : isImage && url ? (
           <img src={url} alt="" className="h-full w-full object-cover" />
         ) : isAudio && url ? (
@@ -520,36 +670,7 @@ function ArtifactTile({
 
       <div className="flex items-center justify-between">
         <span className={`sticker-${sticker} text-[10px]`}>{artifact.kind}</span>
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="rounded-full p-1 text-slate2 hover:bg-surface hover:text-ink transition-colors text-[16px] leading-none"
-            title="Options"
-          >
-            ⋯
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-7 z-10 w-36 rounded-2xl border border-hairline bg-canvas-pure shadow-card-soft py-1">
-              {url && (
-                <a
-                  href={url}
-                  download
-                  className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  ⬇ Download
-                </a>
-              )}
-              <button
-                onClick={() => { deleteArtifact.mutate(); setMenuOpen(false); }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-brand-coral hover:bg-wash-coral"
-                disabled={deleteArtifact.isPending}
-              >
-                🗑 Delete
-              </button>
-            </div>
-          )}
-        </div>
+        {ThreeDotMenu}
       </div>
 
       {meta.prompt && (
@@ -775,6 +896,69 @@ function ChatBubble({ message, pending = false }: { message: ChatMessage; pendin
           <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.10em] opacity-75">−{message.stars}★</div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ─── StudioDrawerForKind ─────────────────────────────────────────────────────
+
+const DRAWER_META: Record<string, { title: string; emoji: string; color: string }> = {
+  image: { title: 'Image Maker',  emoji: '🎨', color: 'bubblegum' },
+  text:  { title: 'Story Writer', emoji: '📖', color: 'mint' },
+  audio: { title: 'Voice Booth',  emoji: '🔊', color: 'sky' },
+  video: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },
+};
+
+function StudioDrawerForKind({
+  kind,
+  projectId,
+  onClose,
+  onCreated,
+}: {
+  kind: 'image' | 'text' | 'audio' | 'video';
+  projectId: string;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const meta = DRAWER_META[kind];
+
+  return (
+    <StudioDrawer
+      title={meta.title}
+      emoji={meta.emoji}
+      color={meta.color}
+      onClose={onClose}
+    >
+      {kind === 'image' && <ImageStudioContent projectId={projectId} onCreated={onCreated} />}
+      {kind === 'audio' && <AudioStudioContent projectId={projectId} onCreated={onCreated} />}
+      {kind === 'text'  && <StoryStudioContent projectId={projectId} onCreated={onCreated} />}
+      {kind === 'video' && <VideoStudioContent projectId={projectId} onCreated={onCreated} />}
+    </StudioDrawer>
+  );
+}
+
+// ─── AudioStudioContent — voice or music picker ──────────────────────────────
+
+function AudioStudioContent({ projectId, onCreated }: { projectId: string; onCreated: () => void }) {
+  const [tab, setTab] = useState<'voice' | 'music'>('voice');
+  return (
+    <div>
+      <div className="flex gap-2 mb-5">
+        {(['voice', 'music'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`rounded-full px-4 py-2 text-[13px] font-bold transition-colors flex-1 ${
+              tab === t ? 'bg-brand-sky text-white' : 'bg-surface text-ink-soft hover:bg-wash-sky'
+            }`}
+          >
+            {t === 'voice' ? '🔊 Voice' : '🎵 Music'}
+          </button>
+        ))}
+      </div>
+      {tab === 'voice'
+        ? <VoiceStudioContent projectId={projectId} onCreated={onCreated} />
+        : <MusicStudioContent projectId={projectId} onCreated={onCreated} />}
     </div>
   );
 }
