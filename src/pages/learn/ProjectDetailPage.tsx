@@ -1,15 +1,13 @@
 import { useRef, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
-import { ShareToClassModal } from '@/pages/learn/classroom/ShareToClassModal';
 
 interface Project {
   id: string;
   title: string;
-  kind?: 'creative' | 'code';
   product_line: 'line_a_creative' | 'line_b_coding';
   visibility: 'private' | 'class' | 'public';
   thumbnail_s3_key: string | null;
@@ -68,7 +66,6 @@ export function ProjectDetailPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [chatError, setChatError] = useState<string | null>(null);
-  const [showShare, setShowShare] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const project = useQuery<Project>({
@@ -137,11 +134,6 @@ export function ProjectDetailPage() {
       </div>
     );
 
-  // Code Studio projects open the dedicated 3-pane Studio (PRD §2 IA #4).
-  if (project.data.kind === 'code') {
-    return <Navigate to={`/learn/code/${project.data.id}`} replace />;
-  }
-
   const p = project.data;
   const color = p.product_line === 'line_a_creative' ? 'coral' : 'sky';
 
@@ -174,22 +166,6 @@ export function ProjectDetailPage() {
           </div>
         </div>
       </div>
-
-      {p.visibility === 'private' && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          <button onClick={() => setShowShare(true)} className="btn-pill-primary">
-            ✨ Share with class
-          </button>
-        </div>
-      )}
-
-      {showShare && (
-        <ShareToClassModal
-          projectId={p.id}
-          onClose={() => setShowShare(false)}
-          onShared={() => qc.invalidateQueries({ queryKey: ['project', id] })}
-        />
-      )}
 
       <ShareApprovalPanel projectId={p.id} currentVisibility={p.visibility} />
 
