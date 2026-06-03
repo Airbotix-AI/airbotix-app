@@ -296,6 +296,12 @@ export function ProjectDetailPage() {
             ✨ Share with class
           </button>
         )}
+        <a
+          href="#export-section"
+          className="btn-pill-secondary text-[13px] py-2 px-4"
+        >
+          ⬇ Download
+        </a>
         <button
           onClick={() => setShowDeleteConfirm(true)}
           className="btn-pill-secondary text-[13px] py-2 px-4 text-brand-coral border-brand-coral/40 hover:bg-wash-coral"
@@ -356,6 +362,7 @@ export function ProjectDetailPage() {
       </div>
 
       {/* ── Make a storybook (PRD §5 + §6) ── */}
+      <div id="export-section">
       <SectionDivider label="Make a storybook" />
       <ExportPanel
         artifacts={artifacts.data ?? []}
@@ -363,6 +370,7 @@ export function ProjectDetailPage() {
         onExport={(target) => startExport.mutate(target)}
         isPending={startExport.isPending}
       />
+      </div>
 
       {/* AI chat */}
       <div className="card-base p-0 overflow-hidden mt-6">
@@ -520,6 +528,14 @@ function ArtifactTile({
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
   const [textExpanded, setTextExpanded] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+
+  // Map artifact kind to replaceable studio kind
+  const replaceKind: 'image' | 'text' | 'audio' | 'video' | null =
+    artifact.kind === 'image' ? 'image' :
+    artifact.kind === 'audio' ? 'audio' :
+    artifact.kind === 'text'  ? 'text' :
+    artifact.kind === 'video' ? 'video' : null;
   const qc = useQueryClient();
   const sticker = KIND_STICKER[artifact.kind] ?? 'sky';
   const isImage = artifact.kind === 'image';
@@ -581,6 +597,14 @@ function ArtifactTile({
           >
             ✏️ Rename
           </button>
+          {replaceKind && (
+            <button
+              onClick={() => { setReplacing(true); setMenuOpen(false); }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface"
+            >
+              🔄 Replace
+            </button>
+          )}
           {url && (
             <a href={url} download className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface" onClick={() => setMenuOpen(false)}>
               ⬇ Download
@@ -611,6 +635,15 @@ function ArtifactTile({
       )}
     </div>
   );
+
+  const replaceDrawer = replacing && replaceKind ? (
+    <StudioDrawerForKind
+      kind={replaceKind}
+      projectId={projectId}
+      onClose={() => setReplacing(false)}
+      onCreated={() => { setReplacing(false); onDeleted(); }}
+    />
+  ) : null;
 
   // Text artifact — full-width row layout (like AudioRow in VoiceBoothPage)
   if (isText) {
@@ -651,6 +684,7 @@ function ArtifactTile({
         <div className="absolute top-3 right-3">
           {ThreeDotMenu}
         </div>
+        {replaceDrawer}
       </div>
     );
   }
@@ -682,9 +716,20 @@ function ArtifactTile({
         <span className="text-[11px] text-slate2">{new Date(artifact.created_at).toLocaleDateString()}</span>
       </div>
 
+      {artifact.kind === 'project_export' && url && (
+        <a
+          href={url}
+          download
+          className="btn-pill-primary w-full text-center text-[12px] py-2 mt-2"
+        >
+          ⬇ Download
+        </a>
+      )}
+
       {meta.prompt && (
         <div className="text-[11px] text-ink-soft mt-1 line-clamp-2 italic">"{meta.prompt}"</div>
       )}
+      {replaceDrawer}
     </div>
   );
 }

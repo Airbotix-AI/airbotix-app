@@ -76,6 +76,7 @@ export function ProjectsListPage() {
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const [tab, setTab] = useState<FilterTab>('all');
   const [showNewModal, setShowNewModal] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24);
 
   const projects = useQuery<Project[]>({
     queryKey: ['projects', 'kid', kidId],
@@ -113,7 +114,7 @@ export function ProjectsListPage() {
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); setVisibleCount(24); }}
             className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
               tab === t.key
                 ? 'bg-brand-coral text-white'
@@ -142,11 +143,23 @@ export function ProjectsListPage() {
 
       {/* ── Grid — 24/page per PRD §4 ── */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.slice(0, 24).map((p) => (
-            <ProjectCard key={p.id} project={p} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {filtered.slice(0, visibleCount).map((p) => (
+              <ProjectCard key={p.id} project={p} />
+            ))}
+          </div>
+          {filtered.length > visibleCount && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setVisibleCount((n) => n + 24)}
+                className="btn-pill-secondary"
+              >
+                Load more ({filtered.length - visibleCount} remaining)
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {showNewModal && kidId && (
