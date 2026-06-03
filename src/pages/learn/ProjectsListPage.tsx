@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
@@ -15,6 +16,8 @@ interface Project {
   updated_at: string;
 }
 
+type FilterTab = 'all' | 'in_progress' | 'finished' | 'shared';
+
 const STATUS_STICKER: Record<string, string> = {
   in_progress: 'sunshine',
   submitted:   'sky',
@@ -22,9 +25,24 @@ const STATUS_STICKER: Record<string, string> = {
   archived:    'coral',
 };
 
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: 'all',         label: 'All' },
+  { key: 'in_progress', label: 'In progress' },
+  { key: 'finished',    label: 'Finished' },
+  { key: 'shared',      label: 'Shared with class' },
+];
+
+function applyFilter(projects: Project[], tab: FilterTab): Project[] {
+  if (tab === 'in_progress') return projects.filter((p) => p.status === 'in_progress');
+  if (tab === 'finished')    return projects.filter((p) => ['submitted', 'accepted', 'archived'].includes(p.status));
+  if (tab === 'shared')      return projects.filter((p) => p.visibility === 'class' || p.visibility === 'public');
+  return projects;
+}
+
 export function ProjectsListPage() {
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const [tab, setTab] = useState<FilterTab>('all');
 
   const projects = useQuery<Project[]>({
     queryKey: ['projects', 'kid', kidId],
@@ -32,9 +50,11 @@ export function ProjectsListPage() {
     enabled: !!kidId,
   });
 
+  const filtered = applyFilter(projects.data ?? [], tab);
+
   return (
     <div>
-      <div className="mb-10 flex items-start justify-between gap-4">
+      <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-sky">My projects</div>
           <h1 className="hero-display">Your stuff.</h1>
@@ -47,27 +67,53 @@ export function ProjectsListPage() {
         </Link>
       </div>
 
+      {/* Filter tabs */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`rounded-full px-4 py-2 text-[13px] font-semibold border-2 transition-colors ${
+              tab === t.key
+                ? 'bg-brand-coral text-white border-brand-coral'
+                : 'bg-canvas-pure text-ink-soft border-hairline hover:border-brand-coral'
+            }`}
+          >
+            {t.label}
+            {t.key !== 'all' && projects.data && (
+              <span className="ml-1.5 opacity-70">
+                ({applyFilter(projects.data, t.key).length})
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {projects.isLoading && <p className="lead-text">Loading…</p>}
 
-      {!projects.isLoading && (!projects.data || projects.data.length === 0) && (
+      {!projects.isLoading && filtered.length === 0 && (
         <div className="card-base text-center">
           <span className="sticker-mint">Empty</span>
           <h2 className="section-heading mt-4" style={{ fontSize: '24px' }}>
-            No projects yet
+            {tab === 'all' ? 'No projects yet' : 'Nothing here'}
           </h2>
           <p className="lead-text mt-2">
-            Make something! Start a mission or play around freely.
+            {tab === 'all'
+              ? 'Make something! Start a mission or play around freely.'
+              : 'Try a different filter, or start something new.'}
           </p>
-          <div className="mt-6 flex gap-3 justify-center">
-            <Link to="/learn/missions" className="btn-pill-primary">Browse missions →</Link>
-            <Link to="/learn/projects/new" className="btn-pill-secondary">Free play</Link>
-          </div>
+          {tab === 'all' && (
+            <div className="mt-6 flex gap-3 justify-center">
+              <Link to="/learn/missions" className="btn-pill-primary">Browse missions →</Link>
+              <Link to="/learn/projects/new" className="btn-pill-secondary">Free play</Link>
+            </div>
+          )}
         </div>
       )}
 
-      {projects.data && projects.data.length > 0 && (
+      {filtered.length > 0 && (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.data.map((p) => (
+          {filtered.map((p) => (
             <Link
               key={p.id}
               to={`/learn/projects/${p.id}`}
