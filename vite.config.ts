@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { defineConfig } from 'vite';
@@ -29,5 +30,12 @@ export default defineConfig({
   build: {
     sourcemap: true,
     target: 'es2022',
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    css: false,
+    restoreMocks: true,
   },
 });
