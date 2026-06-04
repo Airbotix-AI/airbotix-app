@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { expectNoA11yViolations } from '@/test/axe';
 import { ApprovalsPage } from './ApprovalsPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -111,5 +112,12 @@ describe('ApprovalsPage', () => {
         expect.objectContaining({ method: 'POST' }),
       ),
     );
+  });
+
+  it('has no a11y violations with pending approvals', async () => {
+    setApi(() => [pendingExtraStars, grantedShare]);
+    const { container } = renderPage(<ApprovalsPage />);
+    await screen.findByText('Extra Stars');
+    await expectNoA11yViolations(container);
   });
 });

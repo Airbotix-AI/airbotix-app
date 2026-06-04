@@ -469,7 +469,9 @@ function ShareApprovalPanel({
   return (
     <div className="card-base mb-6">
       <div className="eyebrow eyebrow-sunshine">Share</div>
-      <h3 className="text-[18px] font-bold text-ink mt-1">Ask a parent to share this</h3>
+      {/* h2 (not h3): this is a top-level section under the project h1; an h3 here
+          skips a level and trips axe heading-order (accessibility-prd §3). */}
+      <h2 className="text-[18px] font-bold text-ink mt-1">Ask a parent to share this</h2>
       <p className="text-[13px] text-slate2 mt-2">
         Parents decide what goes public. Pick where, then send the request.
       </p>

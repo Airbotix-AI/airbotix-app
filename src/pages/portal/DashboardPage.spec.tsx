@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { expectNoA11yViolations } from '@/test/axe';
 import { DashboardPage } from './DashboardPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -82,5 +83,16 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Set up your family')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Start setup/i })).toHaveAttribute('href', '/portal/register');
     expect(mockedApi).not.toHaveBeenCalled(); // both queries are disabled without a family
+  });
+
+  it('has no a11y violations when populated', async () => {
+    setApi((p) =>
+      p.includes('/approvals')
+        ? [{ id: 'a1', status: 'pending' }]
+        : { stars_balance: 120, daily_used: 8, daily_cap: 30 },
+    );
+    const { container } = renderPage(<DashboardPage />);
+    await screen.findByText('120');
+    await expectNoA11yViolations(container);
   });
 });

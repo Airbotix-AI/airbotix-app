@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { expectNoA11yViolations } from '@/test/axe';
 import { WalletPage } from './WalletPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -137,5 +138,12 @@ describe('WalletPage', () => {
     mockWallet(wallet(), []);
     renderPage(<WalletPage />);
     expect(await screen.findByText(/No activity yet/)).toBeInTheDocument();
+  });
+
+  it('has no a11y violations when loaded', async () => {
+    mockWallet(wallet(), [aTx]);
+    const { container } = renderPage(<WalletPage />);
+    await screen.findByText('120');
+    await expectNoA11yViolations(container);
   });
 });

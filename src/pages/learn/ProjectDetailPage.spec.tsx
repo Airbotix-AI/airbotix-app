@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { useMe } from '@/auth/useAuth';
 import { ApiError, api } from '@/lib/api';
+import { expectNoA11yViolations } from '@/test/axe';
 import { ProjectDetailPage } from './ProjectDetailPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -148,5 +149,27 @@ describe('ProjectDetailPage', () => {
       '/projects/p1/share-request',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('has no a11y violations (creative project)', async () => {
+    setApi((p) => {
+      if (p.includes('/artifacts'))
+        return [
+          {
+            id: 'art1',
+            kind: 'text',
+            s3_key: 'k',
+            mime_type: 'text/plain',
+            size_bytes: 4,
+            created_at: '2026-06-01T10:00:00Z',
+            metadata: { prompt: 'a cat' },
+          },
+        ];
+      if (p.includes('/wallet')) return walletObj;
+      return project();
+    });
+    const { container } = renderProject();
+    await screen.findByRole('heading', { name: 'My Drawing' });
+    await expectNoA11yViolations(container);
   });
 });
