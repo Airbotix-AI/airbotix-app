@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 import { closeSocket, getSocket } from '@/lib/ws';
+import { mockApiResolved } from '@/test/mocks';
 import { useAuthStore } from './authStore';
 import { classCodeLogin, kidLogin, requestOtp, useLogout, useMe, verifyOtp } from './useAuth';
 
@@ -13,9 +14,7 @@ vi.mock('@/lib/ws', () => ({ getSocket: vi.fn(), closeSocket: vi.fn() }));
 
 const mockedApi = vi.mocked(api);
 
-function resolveApi(value: unknown) {
-  mockedApi.mockResolvedValue(value as never);
-}
+const resolveApi = mockApiResolved;
 
 function qcWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

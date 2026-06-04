@@ -5,9 +5,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthPrincipal } from '@/auth/types';
-import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { expectNoA11yViolations } from '@/test/axe';
+import { mockApiByPath, mockUseMe } from '@/test/mocks';
 import { DashboardPage } from './DashboardPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -17,8 +17,9 @@ vi.mock('@/lib/api', async (orig) => ({
   api: vi.fn(),
 }));
 
-const mockedUseMe = vi.mocked(useMe);
 const mockedApi = vi.mocked(api);
+const setMe = mockUseMe;
+const setApi = mockApiByPath;
 
 function parent(family_id: string | null = 'f1'): AuthPrincipal {
   return {
@@ -29,14 +30,6 @@ function parent(family_id: string | null = 'f1'): AuthPrincipal {
     role: 'parent',
     family_id,
   } as AuthPrincipal;
-}
-
-function setMe(data: AuthPrincipal) {
-  mockedUseMe.mockReturnValue({ data } as ReturnType<typeof useMe>);
-}
-
-function setApi(impl: (path: string) => unknown) {
-  mockedApi.mockImplementation(((p: string) => Promise.resolve(impl(p))) as unknown as typeof api);
 }
 
 function renderPage(node: ReactNode) {

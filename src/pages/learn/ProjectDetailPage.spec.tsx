@@ -5,9 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthPrincipal } from '@/auth/types';
-import { useMe } from '@/auth/useAuth';
 import { ApiError, api } from '@/lib/api';
 import { expectNoA11yViolations } from '@/test/axe';
+import { mockApiByPath, mockUseMe } from '@/test/mocks';
 import { ProjectDetailPage } from './ProjectDetailPage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -17,15 +17,11 @@ vi.mock('@/lib/api', async (orig) => ({
   api: vi.fn(),
 }));
 
-const mockedUseMe = vi.mocked(useMe);
 const mockedApi = vi.mocked(api);
+const setApi = mockApiByPath;
 
 const kid = { kind: 'kid', sub: 'k1', nickname: 'Robo', family_id: 'f1' } as AuthPrincipal;
 const walletObj = { stars_balance: 50, daily_used: 5, daily_cap: 30 };
-
-function setApi(impl: (path: string) => unknown) {
-  mockedApi.mockImplementation(((p: string) => Promise.resolve(impl(p))) as unknown as typeof api);
-}
 
 function project(overrides: Record<string, unknown> = {}) {
   return {
@@ -63,7 +59,7 @@ function renderProject(id = 'p1') {
 describe('ProjectDetailPage', () => {
   beforeEach(() => {
     mockedApi.mockReset();
-    mockedUseMe.mockReturnValue({ data: kid } as ReturnType<typeof useMe>);
+    mockUseMe(kid);
   });
 
   it('shows a not-found state when the project fails to load', async () => {

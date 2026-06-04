@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthPrincipal } from '@/auth/types';
-import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { mockApiByPath, mockUseMe } from '@/test/mocks';
 import { WorkspacePage } from './WorkspacePage';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
@@ -15,24 +15,23 @@ vi.mock('@/lib/api', async (orig) => ({
 }));
 // Stub the heavy 3-pane children — this spec exercises WorkspacePage's
 // orchestration (session → studio derivation → send), not their internals.
-vi.mock('./SessionsPane', () => ({ SessionsPane: () => <div>SESSIONS</div> }));
-vi.mock('./ChatPane', () => ({ ChatPane: () => <div>CHAT PANE</div> }));
-vi.mock('./CodePane', () => ({ CodePane: () => null }));
-vi.mock('./PreviewPane', () => ({ PreviewPane: () => null }));
-vi.mock('./ImportTrackPicker', () => ({ ImportTrackPicker: () => null }));
-vi.mock('./MusicScorePlayer', () => ({ MusicScorePlayer: () => null }));
-vi.mock('./MusicTrackList', () => ({ MusicTrackList: () => null }));
-vi.mock('./StudioPicker', () => ({ StudioPicker: () => <div>STUDIO PICKER</div> }));
-vi.mock('./StudioSetup', () => ({ StudioSetup: () => <div>STUDIO SETUP</div> }));
+// The `: typeof import('./X')` return annotation makes each stub match the real
+// module's exports, so renamed/removed exports break the build. Prop-level drift
+// is caught by tsc on WorkspacePage.tsx; child behaviour by ChatPane.spec etc.
+vi.mock('./SessionsPane', (): typeof import('./SessionsPane') => ({ SessionsPane: () => <div>SESSIONS</div> }));
+vi.mock('./ChatPane', (): typeof import('./ChatPane') => ({ ChatPane: () => <div>CHAT PANE</div> }));
+vi.mock('./CodePane', (): typeof import('./CodePane') => ({ CodePane: () => <></> }));
+vi.mock('./PreviewPane', (): typeof import('./PreviewPane') => ({ PreviewPane: () => <></> }));
+vi.mock('./ImportTrackPicker', (): typeof import('./ImportTrackPicker') => ({ ImportTrackPicker: () => <></> }));
+vi.mock('./MusicScorePlayer', (): typeof import('./MusicScorePlayer') => ({ MusicScorePlayer: () => <></> }));
+vi.mock('./MusicTrackList', (): typeof import('./MusicTrackList') => ({ MusicTrackList: () => <></> }));
+vi.mock('./StudioPicker', (): typeof import('./StudioPicker') => ({ StudioPicker: () => <div>STUDIO PICKER</div> }));
+vi.mock('./StudioSetup', (): typeof import('./StudioSetup') => ({ StudioSetup: () => <div>STUDIO SETUP</div> }));
 
-const mockedUseMe = vi.mocked(useMe);
 const mockedApi = vi.mocked(api);
+const setApi = mockApiByPath;
 
 const kid = { kind: 'kid', sub: 'k1', nickname: 'Robo', family_id: 'f1' } as AuthPrincipal;
-
-function setApi(impl: (path: string) => unknown) {
-  mockedApi.mockImplementation(((p: string) => Promise.resolve(impl(p))) as unknown as typeof api);
-}
 
 function renderWorkspace() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -46,7 +45,7 @@ function renderWorkspace() {
 describe('WorkspacePage', () => {
   beforeEach(() => {
     mockedApi.mockReset();
-    mockedUseMe.mockReturnValue({ data: kid } as ReturnType<typeof useMe>);
+    mockUseMe(kid);
   });
 
   it('shows the studio picker when the kid has no sessions', async () => {

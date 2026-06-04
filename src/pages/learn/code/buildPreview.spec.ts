@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { buildSrcDoc, isConsoleMessage } from './buildPreview';
 import type { VfsFile } from './codeApi';
 
-function vfs(path: string, content: string, kind = 'doc'): VfsFile {
-  return { path, content, kind } as unknown as VfsFile;
+function vfs(path: string, content: string, kind: VfsFile['kind'] = 'text'): VfsFile {
+  return { path, content, kind, size: content.length };
 }
 
 describe('buildSrcDoc', () => {

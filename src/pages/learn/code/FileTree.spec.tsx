@@ -5,11 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { VfsFile } from './codeApi';
 import { FileTree } from './FileTree';
 
-const files = [
-  { path: 'index.html', content: '', kind: 'doc' },
-  { path: 'style.css', content: '', kind: 'doc' },
-  { path: 'script.js', content: '', kind: 'doc' },
-] as unknown as VfsFile[];
+const files: VfsFile[] = [
+  { path: 'index.html', content: '', kind: 'text', size: 0 },
+  { path: 'style.css', content: '', kind: 'text', size: 0 },
+  { path: 'script.js', content: '', kind: 'text', size: 0 },
+];
 
 describe('FileTree', () => {
   it('renders one button per file', () => {
