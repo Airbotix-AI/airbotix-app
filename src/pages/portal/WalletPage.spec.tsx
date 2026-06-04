@@ -143,7 +143,9 @@ describe('WalletPage', () => {
   it('has no a11y violations when loaded', async () => {
     mockWallet(wallet(), [aTx]);
     const { container } = renderPage(<WalletPage />);
-    await screen.findByTestId('wallet-balance');
+    // Wait for the data-driven update to settle (not just element presence) so
+    // the late query resolution doesn't fire a state update outside act().
+    await waitFor(() => expect(screen.getByTestId('wallet-balance')).toHaveTextContent('120'));
     await expectNoA11yViolations(container);
   });
 });

@@ -92,7 +92,9 @@ describe('DashboardPage', () => {
         : { stars_balance: 120, daily_used: 8, daily_cap: 30 },
     );
     const { container } = renderPage(<DashboardPage />);
-    await screen.findByTestId('dash-balance');
+    // Wait for the data-driven update to settle (not just element presence) so
+    // the late query resolution doesn't fire a state update outside act().
+    await waitFor(() => expect(screen.getByTestId('dash-balance')).toHaveTextContent('120'));
     await expectNoA11yViolations(container);
   });
 });
