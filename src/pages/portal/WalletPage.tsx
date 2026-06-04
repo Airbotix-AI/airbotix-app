@@ -133,15 +133,15 @@ export function WalletPage() {
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
         <div className="stat-tile mint">
-          <div className="stat-num text-brand-mint">{w?.stars_balance ?? '—'}</div>
+          <div className="stat-num text-brand-mint" data-testid="wallet-balance">{w?.stars_balance ?? '—'}</div>
           <div className="stat-label">Balance</div>
         </div>
         <div className="stat-tile coral">
-          <div className="stat-num text-brand-coral">{w ? `${w.daily_used}/${w.daily_cap}` : '—'}</div>
+          <div className="stat-num text-brand-coral" data-testid="wallet-today">{w ? `${w.daily_used}/${w.daily_cap}` : '—'}</div>
           <div className="stat-label">Today</div>
         </div>
         <div className="stat-tile sky">
-          <div className="stat-num text-brand-sky">{w ? `${w.weekly_used}/${w.weekly_cap}` : '—'}</div>
+          <div className="stat-num text-brand-sky" data-testid="wallet-week">{w ? `${w.weekly_used}/${w.weekly_cap}` : '—'}</div>
           <div className="stat-label">This week</div>
         </div>
       </div>

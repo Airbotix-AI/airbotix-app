@@ -87,13 +87,13 @@ export function DashboardPage() {
         <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
             <div className="stat-tile coral">
-              <div className="stat-num text-brand-coral tabular-nums">{starsToday}</div>
+              <div className="stat-num text-brand-coral tabular-nums" data-testid="dash-stars-today">{starsToday}</div>
               <div className="stat-label">
                 Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}
               </div>
             </div>
             <div className="stat-tile mint">
-              <div className="stat-num text-brand-mint tabular-nums">
+              <div className="stat-num text-brand-mint tabular-nums" data-testid="dash-balance">
                 {starsBalance ?? '—'}
               </div>
               <div className="stat-label">Stars balance</div>

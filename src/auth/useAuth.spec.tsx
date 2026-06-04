@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -94,7 +94,9 @@ describe('auth flows', () => {
     resolveApi(undefined);
 
     const { result } = renderHook(() => useLogout(), { wrapper: qcWrapper() });
-    await result.current();
+    await act(async () => {
+      await result.current();
+    });
 
     expect(mockedApi).toHaveBeenCalledWith('/auth/logout', expect.objectContaining({ method: 'POST' }));
     expect(useAuthStore.getState().accessToken).toBeNull();
@@ -106,7 +108,9 @@ describe('auth flows', () => {
     resolveApi(undefined);
 
     const { result } = renderHook(() => useLogout(), { wrapper: qcWrapper() });
-    await result.current(true);
+    await act(async () => {
+      await result.current(true);
+    });
 
     expect(mockedApi).toHaveBeenCalledWith('/auth/logout-everywhere', expect.objectContaining({ method: 'POST' }));
   });

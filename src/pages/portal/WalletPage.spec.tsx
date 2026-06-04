@@ -102,9 +102,9 @@ describe('WalletPage', () => {
     mockWallet(wallet(), [aTx]);
     renderPage(<WalletPage />);
 
-    expect(await screen.findByText('120')).toBeInTheDocument(); // balance
-    expect(screen.getByText('8/30')).toBeInTheDocument(); // today used/cap
-    expect(screen.getByText('20/150')).toBeInTheDocument(); // week used/cap
+    await waitFor(() => expect(screen.getByTestId('wallet-balance')).toHaveTextContent('120'));
+    expect(screen.getByTestId('wallet-today')).toHaveTextContent('8/30'); // daily used/cap
+    expect(screen.getByTestId('wallet-week')).toHaveTextContent('20/150'); // weekly used/cap
     expect(screen.getByText('Top up')).toBeInTheDocument(); // tx reason
     expect(screen.getByText('+50')).toBeInTheDocument(); // positive delta
     expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
@@ -143,7 +143,7 @@ describe('WalletPage', () => {
   it('has no a11y violations when loaded', async () => {
     mockWallet(wallet(), [aTx]);
     const { container } = renderPage(<WalletPage />);
-    await screen.findByText('120');
+    await screen.findByTestId('wallet-balance');
     await expectNoA11yViolations(container);
   });
 });

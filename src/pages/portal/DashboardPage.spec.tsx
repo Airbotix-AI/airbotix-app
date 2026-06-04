@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -65,8 +65,8 @@ describe('DashboardPage', () => {
 
     renderPage(<DashboardPage />);
 
-    expect(await screen.findByText('120')).toBeInTheDocument(); // balance
-    expect(screen.getByText('8')).toBeInTheDocument(); // stars used today
+    await waitFor(() => expect(screen.getByTestId('dash-balance')).toHaveTextContent('120'));
+    expect(screen.getByTestId('dash-stars-today')).toHaveTextContent('8');
     const approvalsLink = screen.getByRole('link', { name: /Approvals waiting/i });
     expect(approvalsLink).toHaveTextContent('1'); // only the one pending approval counts
   });
@@ -92,7 +92,7 @@ describe('DashboardPage', () => {
         : { stars_balance: 120, daily_used: 8, daily_cap: 30 },
     );
     const { container } = renderPage(<DashboardPage />);
-    await screen.findByText('120');
+    await screen.findByTestId('dash-balance');
     await expectNoA11yViolations(container);
   });
 });
