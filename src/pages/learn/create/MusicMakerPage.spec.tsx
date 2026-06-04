@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { queryOk } from '@/test/mocks';
 import { MusicMakerPage } from './MusicMakerPage';
-import { useGenerate, useRecentArtifacts } from './shared/useStudio';
+import { useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 vi.mock('./shared/StudioChrome', (): typeof import('./shared/StudioChrome') => ({
   StudioChrome: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -28,7 +29,7 @@ const mutate = vi.fn();
 beforeEach(() => {
   mutate.mockReset();
   vi.mocked(useGenerate).mockReturnValue({ mutate, isPending: false } as unknown as ReturnType<typeof useGenerate>);
-  vi.mocked(useRecentArtifacts).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useRecentArtifacts>);
+  vi.mocked(useRecentArtifacts).mockReturnValue(queryOk<Artifact[]>([]));
 });
 
 describe('MusicMakerPage', () => {

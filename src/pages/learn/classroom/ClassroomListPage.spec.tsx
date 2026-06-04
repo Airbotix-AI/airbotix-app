@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { mockUseMe } from '@/test/mocks';
 import { ClassroomListPage } from './ClassroomListPage';
-import { listClasses } from './classroomApi';
+import { listClasses, type ClassSummary } from './classroomApi';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
 vi.mock('./classroomApi', async (orig) => ({
@@ -18,7 +18,7 @@ vi.mock('./classroomApi', async (orig) => ({
 const mockedListClasses = vi.mocked(listClasses);
 const kid: AuthPrincipal = { kind: 'kid', sub: 'k1', nickname: 'Robo', family_id: 'f1' } as AuthPrincipal;
 
-const classSummary = {
+const classSummary: ClassSummary = {
   id: 'c1',
   name: 'Room 5',
   term: 'T1',
@@ -43,14 +43,14 @@ beforeEach(() => {
 
 describe('ClassroomListPage', () => {
   it('lists the kid’s classes', async () => {
-    mockedListClasses.mockResolvedValue([classSummary] as never);
+    mockedListClasses.mockResolvedValue([classSummary]);
     renderPage(<ClassroomListPage />);
     expect(await screen.findByText(/Room 5/)).toBeInTheDocument();
     expect(screen.getByText(/Ms\. Lee/)).toBeInTheDocument();
   });
 
   it('shows the no-class state when the kid is in no class', async () => {
-    mockedListClasses.mockResolvedValue([] as never);
+    mockedListClasses.mockResolvedValue([]);
     renderPage(<ClassroomListPage />);
     expect(await screen.findByText('No class yet')).toBeInTheDocument();
   });

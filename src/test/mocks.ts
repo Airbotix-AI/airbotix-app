@@ -1,3 +1,4 @@
+import type { UseQueryResult } from '@tanstack/react-query';
 import { vi } from 'vitest';
 
 import type { AuthPrincipal } from '@/auth/types';
@@ -35,4 +36,13 @@ export function mockUseMe(data: AuthPrincipal | undefined): void {
     isLoading: false,
     isError: false,
   } as ReturnType<typeof useMe>);
+}
+
+/**
+ * A settled, successful useQuery result for mocking data hooks (useKidWallet,
+ * useRecentArtifacts, …). `data` stays fully typed so a shape change still
+ * fails typecheck; only the fat UseQueryResult wrapper is cast — once, here.
+ */
+export function queryOk<T>(data: T): UseQueryResult<T> {
+  return { data, isLoading: false, isError: false, isSuccess: true, status: 'success' } as unknown as UseQueryResult<T>;
 }

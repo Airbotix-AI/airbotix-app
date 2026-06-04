@@ -4,7 +4,16 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CodeRunPage } from './CodeRunPage';
-import { getProject, readVfs } from './codeApi';
+import { CODE_PROJECT_KIND, getProject, readVfs, type CodeProject } from './codeApi';
+
+const project: CodeProject = {
+  id: 'cp1',
+  title: 'My Site',
+  kind: CODE_PROJECT_KIND,
+  visibility: 'private',
+  updated_at: '2026-06-01T10:00:00Z',
+  created_at: '2026-06-01T09:00:00Z',
+};
 
 vi.mock('./codeApi', async (orig) => ({
   ...(await orig<typeof import('./codeApi')>()),
@@ -38,8 +47,8 @@ beforeEach(() => {
 
 describe('CodeRunPage', () => {
   it('renders the project title and the standalone preview', async () => {
-    mockedGetProject.mockResolvedValue({ id: 'cp1', title: 'My Site' } as never);
-    mockedReadVfs.mockResolvedValue([{ path: 'index.html', content: '<h1>Hi</h1>', kind: 'text', size: 11 }] as never);
+    mockedGetProject.mockResolvedValue(project);
+    mockedReadVfs.mockResolvedValue([{ path: 'index.html', content: '<h1>Hi</h1>', kind: 'text', size: 11 }]);
     renderAt();
     expect(await screen.findByText('My Site')).toBeInTheDocument();
     expect(await screen.findByText('PREVIEW')).toBeInTheDocument();

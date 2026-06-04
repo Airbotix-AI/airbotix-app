@@ -16,7 +16,7 @@ beforeEach(() => mockedReportPost.mockReset());
 
 describe('ReportModal', () => {
   it('sends a report once a reason is picked and shows the thank-you state', async () => {
-    mockedReportPost.mockResolvedValue(undefined as never);
+    mockedReportPost.mockResolvedValue(undefined);
     const onReported = vi.fn();
     render(<ReportModal postId="wp1" classId="c1" onClose={() => {}} onReported={onReported} />);
 

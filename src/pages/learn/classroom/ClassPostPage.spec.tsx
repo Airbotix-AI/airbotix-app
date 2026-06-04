@@ -36,7 +36,7 @@ function renderAt() {
 beforeEach(() => {
   mockedApi.mockReset();
   mockedGetWall.mockReset();
-  mockedGetWall.mockResolvedValue([] as never);
+  mockedGetWall.mockResolvedValue([]);
 });
 
 describe('ClassPostPage', () => {

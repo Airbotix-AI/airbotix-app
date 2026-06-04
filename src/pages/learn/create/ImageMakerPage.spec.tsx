@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { queryOk } from '@/test/mocks';
 import { ImageMakerPage } from './ImageMakerPage';
-import { useGenerate, useRecentArtifacts } from './shared/useStudio';
+import { useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 // Heavy studio chrome + session hooks are stubbed; this spec exercises the
 // ImageMaker form orchestration (prompt → generate). The 4 create studios share
@@ -35,7 +36,7 @@ const mutate = vi.fn();
 beforeEach(() => {
   mutate.mockReset();
   mockedGenerate.mockReturnValue({ mutate, isPending: false } as unknown as ReturnType<typeof useGenerate>);
-  mockedRecent.mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useRecentArtifacts>);
+  mockedRecent.mockReturnValue(queryOk<Artifact[]>([]));
 });
 
 describe('ImageMakerPage', () => {

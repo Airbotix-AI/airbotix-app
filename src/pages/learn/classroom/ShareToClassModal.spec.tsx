@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthPrincipal } from '@/auth/types';
 import { mockUseMe } from '@/test/mocks';
 import { ShareToClassModal } from './ShareToClassModal';
-import { listClasses, shareToClass } from './classroomApi';
+import { listClasses, shareToClass, type ClassSummary } from './classroomApi';
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
 vi.mock('./classroomApi', async (orig) => ({
@@ -19,7 +19,7 @@ vi.mock('./classroomApi', async (orig) => ({
 const mockedList = vi.mocked(listClasses);
 const mockedShare = vi.mocked(shareToClass);
 const kid: AuthPrincipal = { kind: 'kid', sub: 'k1', nickname: 'Robo', family_id: 'f1' } as AuthPrincipal;
-const aClass = { id: 'c1', name: 'Room 5', is_live: false };
+const aClass: ClassSummary = { id: 'c1', name: 'Room 5', is_live: false };
 
 function renderModal(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -34,8 +34,8 @@ beforeEach(() => {
 
 describe('ShareToClassModal', () => {
   it('shares the project to the class and shows the sent state', async () => {
-    mockedList.mockResolvedValue([aClass] as never);
-    mockedShare.mockResolvedValue(undefined as never);
+    mockedList.mockResolvedValue([aClass]);
+    mockedShare.mockResolvedValue(undefined);
     const onShared = vi.fn();
     renderModal(<ShareToClassModal projectId="p1" onClose={() => {}} onShared={onShared} />);
 
@@ -49,13 +49,13 @@ describe('ShareToClassModal', () => {
   });
 
   it('tells the kid when they are not in any class', async () => {
-    mockedList.mockResolvedValue([] as never);
+    mockedList.mockResolvedValue([]);
     renderModal(<ShareToClassModal projectId="p1" onClose={() => {}} />);
     expect(await screen.findByText(/not in a class yet/)).toBeInTheDocument();
   });
 
   it('closes on Cancel without sharing', async () => {
-    mockedList.mockResolvedValue([aClass] as never);
+    mockedList.mockResolvedValue([aClass]);
     const onClose = vi.fn();
     renderModal(<ShareToClassModal projectId="p1" onClose={onClose} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Cancel' }));

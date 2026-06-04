@@ -7,7 +7,37 @@ import type { AuthPrincipal } from '@/auth/types';
 import { api } from '@/lib/api';
 import { mockApiResolved, mockUseMe } from '@/test/mocks';
 import { useCodeStudio } from './useCodeStudio';
-import { getProject, readVfs, runAgentTurn } from './codeApi';
+import {
+  CODE_PROJECT_KIND,
+  getProject,
+  readVfs,
+  runAgentTurn,
+  type AgentTurnResult,
+  type CodeProject,
+} from './codeApi';
+
+const project: CodeProject = {
+  id: 'cp1',
+  title: 'My Site',
+  kind: CODE_PROJECT_KIND,
+  visibility: 'private',
+  updated_at: '2026-06-01T10:00:00Z',
+  created_at: '2026-06-01T09:00:00Z',
+};
+
+function turn(over: Partial<AgentTurnResult>): AgentTurnResult {
+  return {
+    turn_id: 't0',
+    requires_approval: false,
+    plan: null,
+    changes: [],
+    files: [],
+    summary: '',
+    stars_charged: 0,
+    tools_fired: [],
+    ...over,
+  };
+}
 
 vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
 vi.mock('@/lib/api', async (orig) => ({
@@ -42,8 +72,8 @@ beforeEach(() => {
   mockedReadVfs.mockReset();
   mockedRun.mockReset();
   mockUseMe(kid(14));
-  mockedGetProject.mockResolvedValue({ id: 'cp1', title: 'My Site', visibility: 'private' } as never);
-  mockedReadVfs.mockResolvedValue([] as never);
+  mockedGetProject.mockResolvedValue(project);
+  mockedReadVfs.mockResolvedValue([]);
   mockApiResolved({ stars_balance: 10 });
 });
 
@@ -62,14 +92,13 @@ describe('useCodeStudio', () => {
   });
 
   it('applies a non-approval turn directly to chat + files', async () => {
-    mockedRun.mockResolvedValue({
-      requires_approval: false,
-      files: [{ path: 'index.html', content: '<h1>Hi</h1>', kind: 'text', size: 11 }],
-      summary: 'Built it',
-      changes: [],
-      stars_charged: 2,
-      tools_fired: [],
-    } as never);
+    mockedRun.mockResolvedValue(
+      turn({
+        files: [{ path: 'index.html', content: '<h1>Hi</h1>', kind: 'text', size: 11 }],
+        summary: 'Built it',
+        stars_charged: 2,
+      }),
+    );
 
     const { result } = renderHook(() => useCodeStudio('cp1'), { wrapper: makeWrapper() });
     await act(async () => {
@@ -83,15 +112,14 @@ describe('useCodeStudio', () => {
   });
 
   it('stages a plan when the backend requires approval', async () => {
-    mockedRun.mockResolvedValue({
-      requires_approval: true,
-      turn_id: 't1',
-      files: [],
-      summary: '',
-      changes: [{ path: 'index.html' }],
-      tools_fired: [],
-      plan: { plan_text: 'I will edit index.html. OK?' },
-    } as never);
+    mockedRun.mockResolvedValue(
+      turn({
+        requires_approval: true,
+        turn_id: 't1',
+        changes: [{ path: 'index.html', before: '', after: '<h1>Hi</h1>', lines_added: 1, lines_removed: 0 }],
+        plan: { plan_text: 'I will edit index.html. OK?', planned_tools: [] },
+      }),
+    );
 
     const { result } = renderHook(() => useCodeStudio('cp1'), { wrapper: makeWrapper() });
     await act(async () => {

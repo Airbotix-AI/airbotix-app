@@ -2,13 +2,15 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { queryOk } from '@/test/mocks';
 import { StudioChrome } from './StudioChrome';
-import { useKidWallet } from './useStudio';
+import { useKidWallet, type Wallet } from './useStudio';
 
 vi.mock('./useStudio', () => ({ useKidWallet: vi.fn() }));
 
 function mockBalance(stars_balance: number) {
-  vi.mocked(useKidWallet).mockReturnValue({ data: { stars_balance } } as unknown as ReturnType<typeof useKidWallet>);
+  const wallet: Wallet = { stars_balance, daily_used: 0, daily_cap: 100, paused: false };
+  vi.mocked(useKidWallet).mockReturnValue(queryOk(wallet));
 }
 
 function renderChrome(cost: number) {

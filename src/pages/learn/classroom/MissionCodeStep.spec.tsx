@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe('MissionCodeStep', () => {
   it('starts a mission code project when the kid taps Start coding', async () => {
-    mockedCreate.mockResolvedValue({ id: 'cp1' } as never);
+    mockedCreate.mockResolvedValue({ id: 'cp1' });
     renderStep(<MissionCodeStep missionId="m1" missionTitle="Pet Site" onComplete={() => {}} />);
 
     expect(screen.getByText('Build it with code')).toBeInTheDocument();

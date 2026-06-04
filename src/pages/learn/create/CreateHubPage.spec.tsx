@@ -2,16 +2,16 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { queryOk } from '@/test/mocks';
 import { CreateHubPage } from './CreateHubPage';
-import { useKidWallet } from './shared/useStudio';
+import { useKidWallet, type Wallet } from './shared/useStudio';
 
 vi.mock('./shared/useStudio', () => ({ useKidWallet: vi.fn() }));
 const mockedUseKidWallet = vi.mocked(useKidWallet);
+const wallet: Wallet = { stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false };
 
 beforeEach(() => {
-  mockedUseKidWallet.mockReturnValue({
-    data: { stars_balance: 42 },
-  } as unknown as ReturnType<typeof useKidWallet>);
+  mockedUseKidWallet.mockReturnValue(queryOk(wallet));
 });
 
 describe('CreateHubPage', () => {

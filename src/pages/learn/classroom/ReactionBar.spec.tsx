@@ -33,7 +33,7 @@ describe('ReactionBar', () => {
   });
 
   it('lets a classmate open the picker and react', async () => {
-    mockedAddReaction.mockResolvedValue(undefined as never);
+    mockedAddReaction.mockResolvedValue(undefined);
     renderBar(<ReactionBar post={post()} classId="c1" />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Add a reaction' }));
