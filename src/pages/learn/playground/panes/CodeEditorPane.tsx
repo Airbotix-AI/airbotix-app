@@ -1,20 +1,18 @@
-// The Code Editor pane: a 3-column layout of FileTree sidebar, center editor
-// (tab row + ▶ Play + lazy Monaco), and a collapsible docked AI chat panel.
-// Fills the left side of the Playground split.
+// The Code Editor pane: a 2-column layout of FileTree sidebar + center editor
+// (multi-tab strip + ▶ Play + lazy Monaco). The AI chat now lives in the
+// separate `ChatPane`, so this pane no longer docks a chat panel.
 //
 // State model: PlaygroundPage owns the VFS (single source of truth). This pane
-// keeps a LOCAL DRAFT of the active file's text so typing in Monaco is snappy
-// without round-tripping through the page on every keystroke. ▶ Play (and the AI
-// turn) are the commit points that lift the draft back into the VFS.
+// keeps a LOCAL DRAFT per open tab so typing in Monaco is snappy without
+// round-tripping through the page on every keystroke. ▶ Play is the commit
+// point that lifts the dirty drafts back into the VFS.
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
 import type { VfsFile } from '../../code/codeApi';
-import { AIChatPanel } from './AIChatPanel';
 import { FileTree } from './FileTree';
 import { ResizeHandle } from './ResizeHandle';
-import { useGameAgent } from './useGameAgent';
 
 // Monaco (~3–5 MB incl. workers) is code-split into its own chunk and fetched
 // only when this pane mounts (design §6). MUST stay a `React.lazy` import.
@@ -29,9 +27,11 @@ interface CodeEditorPaneProps {
   onRun: () => void;
 }
 
-/** First text file is the default active tab (e.g. 'game.js'). */
-function firstTextPath(files: VfsFile[]): string {
-  return (files.find((f) => f.kind === 'text') ?? files[0])?.path ?? '';
+/** The entry file to open first: `main.js` if present, else first text file. */
+function entryPath(files: VfsFile[]): string {
+  const main = files.find((f) => f.path === 'main.js');
+  if (main) return main.path;
+  return files.find((f) => f.kind === 'text')?.path ?? '';
 }
 
 /** Crude language hint for Monaco from a file extension. */
@@ -44,56 +44,173 @@ function languageFor(path: string): string {
 }
 
 export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPaneProps) {
-  const [activePath, setActivePath] = useState(() => firstTextPath(files));
-  // Local editable copy of the active file's content (the editor `value`).
-  const [draft, setDraft] = useState(
-    () => files.find((f) => f.path === activePath)?.content ?? '',
-  );
+  // The set of paths shown as tabs, the active one, and the editable draft text
+  // per open tab. `drafts` only holds content for open tabs (lazily seeded).
+  const [openTabs, setOpenTabs] = useState<string[]>(() => {
+    const entry = entryPath(files);
+    return entry ? [entry] : [];
+  });
+  const [activeTab, setActiveTab] = useState<string>(() => entryPath(files));
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
+    const entry = entryPath(files);
+    const content = files.find((f) => f.path === entry)?.content ?? '';
+    return entry ? { [entry]: content } : {};
+  });
+  // The committed VFS content each open draft was last reconciled against. This
+  // is the baseline that makes "dirty" unambiguous: a tab is dirty iff its draft
+  // diverges from `synced[path]` (the kid typed). When `files` changes, a tab
+  // whose draft still equals its baseline is CLEAN and gets refreshed to the new
+  // commit; a dirty tab keeps the kid's text.
+  const [synced, setSynced] = useState<Record<string, string>>(() => {
+    const entry = entryPath(files);
+    const content = files.find((f) => f.path === entry)?.content ?? '';
+    return entry ? { [entry]: content } : {};
+  });
 
-  const activeFile = files.find((f) => f.path === activePath);
+  /** The committed VFS content for a path (empty string if it's gone). */
+  const fileContent = (path: string): string =>
+    files.find((f) => f.path === path)?.content ?? '';
 
-  // Re-sync the draft from the VFS whenever the files prop or active tab change
-  // — e.g. the AI applied an edit, or the kid switched files. This makes AI
-  // edits show up in the editor immediately. (Typing only mutates `draft`, so
-  // it never round-trips and never clobbers itself; ▶ Play / AI are the commit
-  // points that change `files`.)
+  /** A tab is dirty when its draft diverges from its reconciled baseline. */
+  const isDirty = (path: string): boolean =>
+    path in drafts && drafts[path] !== (synced[path] ?? fileContent(path));
+
+  // When `files` changes externally (e.g. the AI applied an edit), refresh every
+  // open tab that is NOT dirty so the new content appears in the editor; dirty
+  // tabs keep the kid's in-progress text. Comparing the draft to its baseline
+  // (`synced`) — not to the live commit — is what distinguishes the two cases.
+  // (Typing only mutates `drafts`, never `files`, so this can't self-trigger.)
   useEffect(() => {
-    setDraft(activeFile?.content ?? '');
-  }, [activeFile]);
-
-  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles, onRun });
-
-  // ▶ Play: write the current draft into the active file and run.
-  const handlePlay = () => {
-    if (!activeFile) {
-      onRun();
-      return;
+    let changed = false;
+    const nextDrafts: Record<string, string> = { ...drafts };
+    const nextSynced: Record<string, string> = { ...synced };
+    for (const path of openTabs) {
+      const committed = fileContent(path);
+      const baseline = synced[path];
+      const dirty = path in drafts && drafts[path] !== (baseline ?? committed);
+      if (!dirty && (drafts[path] ?? '') !== committed) {
+        nextDrafts[path] = committed;
+        nextSynced[path] = committed;
+        changed = true;
+      }
     }
+    if (changed) {
+      setDrafts(nextDrafts);
+      setSynced(nextSynced);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files]);
+
+  const openTab = (path: string) => {
+    setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+    setActiveTab(path);
+    const content = fileContent(path);
+    setDrafts((prev) => (path in prev ? prev : { ...prev, [path]: content }));
+    setSynced((prev) => (path in prev ? prev : { ...prev, [path]: content }));
+  };
+
+  const closeTab = (path: string) => {
+    setOpenTabs((prev) => {
+      const idx = prev.indexOf(path);
+      if (idx === -1) return prev;
+      const next = prev.filter((p) => p !== path);
+      // If we closed the active tab, pick a neighbour (prefer the one to the
+      // left, else the new tail); if none remain, clear the editor.
+      if (path === activeTab) {
+        const neighbour = next[idx - 1] ?? next[idx] ?? '';
+        setActiveTab(neighbour);
+      }
+      return next;
+    });
+    setDrafts((prev) => {
+      if (!(path in prev)) return prev;
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+    setSynced((prev) => {
+      if (!(path in prev)) return prev;
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+  };
+
+  // ▶ Play: write ALL dirty drafts back into the VFS, then run. The committed
+  // drafts are no longer dirty, so advance their baseline to match.
+  const handlePlay = () => {
     const next = files.map((f) =>
-      f.path === activePath ? { ...f, content: draft, size: draft.length } : f,
+      isDirty(f.path) ? { ...f, content: drafts[f.path], size: drafts[f.path].length } : f,
     );
+    setSynced((prev) => {
+      const advanced = { ...prev };
+      for (const path of openTabs) {
+        if (isDirty(path)) advanced[path] = drafts[path];
+      }
+      return advanced;
+    });
     onApplyFiles(next);
     onRun();
   };
 
+  const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
+
   return (
     <PanelGroup direction="horizontal" className="h-full min-h-0 bg-ink text-canvas-pure" autoSaveId="pg-editor">
       {/* Files list */}
-      <Panel defaultSize={20} minSize={10} className="min-w-0">
+      <Panel defaultSize={28} minSize={12} className="min-w-0">
         <aside className="h-full overflow-y-auto bg-canvas-pure/5">
-          <FileTree files={files} activePath={activePath} onSelect={setActivePath} />
+          <FileTree files={files} activePath={activeTab} onSelect={openTab} />
         </aside>
       </Panel>
 
       <ResizeHandle />
 
-      {/* Code editor — tab row + ▶ Play + Monaco */}
-      <Panel defaultSize={50} minSize={25} className="min-w-0">
+      {/* Code editor — tab strip + ▶ Play + Monaco */}
+      <Panel defaultSize={72} minSize={30} className="min-w-0">
         <section className="flex h-full min-w-0 flex-col">
-          <div className="flex shrink-0 items-center gap-2 border-b border-canvas-pure/10 px-3 py-2">
-            <div className="flex min-w-0 items-center gap-1.5 rounded-xl bg-canvas-pure/10 px-3 py-1.5 text-[13px] font-bold text-canvas-pure">
-              <span aria-hidden>⚙️</span>
-              <span className="truncate">{activePath || 'No file'}</span>
+          <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 px-2 py-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+              {openTabs.length === 0 ? (
+                <span className="px-2 text-[13px] font-semibold text-steel">No file open</span>
+              ) : (
+                openTabs.map((path) => {
+                  const isActive = path === activeTab;
+                  const name = path.split('/').pop() ?? path;
+                  return (
+                    <div
+                      key={path}
+                      className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-bold transition-colors ${
+                        isActive
+                          ? 'bg-ink text-canvas-pure ring-1 ring-canvas-pure/15'
+                          : 'bg-canvas-pure/5 text-stone2 hover:bg-canvas-pure/10 hover:text-canvas-pure'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab(path)}
+                        className="flex min-w-0 items-center gap-1.5"
+                      >
+                        <span aria-hidden>⚙️</span>
+                        <span className="truncate">{name}</span>
+                        {isDirty(path) && (
+                          <span aria-label="Unsaved changes" className="text-brand-mint">
+                            ●
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Close ${name}`}
+                        onClick={() => closeTab(path)}
+                        className="ml-0.5 rounded text-steel transition-colors hover:text-canvas-pure"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             <button
@@ -107,26 +224,27 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
           </div>
 
           <div className="min-h-0 flex-1">
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center text-[13px] font-semibold text-stone2">
-                  Loading editor…
-                </div>
-              }
-            >
-              <MonacoEditor value={draft} onChange={setDraft} language={languageFor(activePath)} />
-            </Suspense>
+            {activeTab ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-[13px] font-semibold text-stone2">
+                    Loading editor…
+                  </div>
+                }
+              >
+                <MonacoEditor
+                  value={editorValue}
+                  onChange={(v) => setDrafts((prev) => ({ ...prev, [activeTab]: v }))}
+                  language={languageFor(activeTab)}
+                />
+              </Suspense>
+            ) : (
+              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-steel">
+                Pick a file to start editing.
+              </div>
+            )}
           </div>
         </section>
-      </Panel>
-
-      <ResizeHandle />
-
-      {/* AI helper */}
-      <Panel defaultSize={30} minSize={15} className="min-w-0">
-        <aside className="flex h-full flex-col bg-canvas-pure/5">
-          <AIChatPanel chat={chat} busy={busy} error={error} onSend={send} />
-        </aside>
       </Panel>
     </PanelGroup>
   );
