@@ -1,76 +1,69 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
-// E2E for the Playground (design §9.3). Runs against the dev-only, no-auth
-// /playground-sandbox route. The UI is a permanent two-pane split (Code Editor
-// left, Game Runner right) — no windows/desktop/taskbar. Covers both panes, the
-// game control channel (__airbotixStat fps + pause/resume), screen presets, and
-// the stubbed AI chat turn→reply.
+// E2E for the redesigned Playground (DEV-only /playground-sandbox, no auth):
+// Landing (glow prompt + chips) → Generating (blocking) → Workspace with two
+// layout modes (Window default / Split). Stubbed generation + AI turn.
 
-test.beforeEach(async ({ page }) => {
+const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
+
+/** Drive landing → generating → workspace; resolves once the workspace is shown. */
+async function reachWorkspace(page: Page) {
   await page.goto('/playground-sandbox');
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+  // Workspace marker (Window mode shows the Game Runner window title).
+  await expect(page.getByText('Game Runner')).toBeVisible({ timeout: 10_000 });
+}
+
+test('landing shows the prompt + starter chips, and Enter generates → workspace', async ({ page }) => {
+  await page.goto('/playground-sandbox');
+  await expect(page.getByPlaceholder(LANDING_PLACEHOLDER)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Pong/ })).toBeVisible();
+
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+
+  // Blocking generating screen, then the workspace (Window mode default).
+  await expect(page.getByText('Building your game…')).toBeVisible({ timeout: 4_000 });
+  await expect(page.getByText('Game Runner')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Code Editor')).toBeVisible();
 });
 
-test('both panes render: editor (game.js + AI Helper) and runner (Running)', async ({ page }) => {
-  await expect(page.getByText('game.js').first()).toBeVisible();
-  await expect(page.getByText('AI Helper')).toBeVisible();
-  await expect(page.getByText('Running')).toBeVisible();
+test('generated project is multi-file (nested src/scenes in the Code editor)', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.getByText('main.js').first()).toBeVisible();
+  await expect(page.getByText('scenes').first()).toBeVisible();
 });
 
-test('game control channel: fps ticks (>0) and pause/resume flips status', async ({ page }) => {
-  // The status-bar fps comes from the sandboxed game via __airbotixStat. A value
-  // > 0 proves the full control/stat channel is live end-to-end.
-  await expect
-    .poll(
-      async () => {
-        const text = await page.getByText(/\d+ fps/).first().innerText();
-        const m = text.match(/(\d+)\s*fps/);
-        return m ? Number(m[1]) : 0;
-      },
-      { timeout: 10_000, message: 'fps should become > 0' },
-    )
-    .toBeGreaterThan(0);
+test('layout toggle switches Window ⇄ Split', async ({ page }) => {
+  await reachWorkspace(page);
+  // default = Window mode (window titlebars present)
+  await expect(page.getByText('Chat').first()).toBeVisible();
 
-  // 'Pause'/'Play' (exact) match only the runner toolbar; the editor's run
-  // button is labelled "Run game".
-  await page.getByRole('button', { name: 'Pause', exact: true }).click();
-  await expect(page.getByText('Paused')).toBeVisible();
+  await page.getByRole('button', { name: /Split/ }).click();
+  // Split mode: a Chat/Code tab strip (role=tab) + the runner placeholder
+  await expect(page.getByRole('tab', { name: /Code/ })).toBeVisible();
+  await expect(page.getByText('Press ▶ to play')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Play', exact: true }).click();
-  await expect(page.getByText('Running')).toBeVisible();
-});
-
-test('columns are resizable by dragging a divider', async ({ page }) => {
-  // The file-list column (the aside containing game.js).
-  const fileList = page.locator('aside').filter({ hasText: 'game.js' }).first();
-  const before = await fileList.boundingBox();
-  if (!before) throw new Error('file list not found');
-
-  // First resize handle = file-list ↔ editor. Drag it right to widen the list.
-  const handle = page.locator('[data-panel-resize-handle-id]').first();
-  const hb = await handle.boundingBox();
-  if (!hb) throw new Error('resize handle not found');
-  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(hb.x + 120, hb.y + hb.height / 2, { steps: 10 });
-  await page.mouse.up();
-
-  const after = await fileList.boundingBox();
-  if (!after) throw new Error('file list missing after resize');
-  expect(after.width - before.width).toBeGreaterThan(50);
-});
-
-test('screen-size preset changes the stage dimensions', async ({ page }) => {
-  await page.getByLabel('Screen size').selectOption('iphone');
-  // Scope to the status-bar readout (the <option> label also contains these dims).
-  await expect(page.getByText('390 × 844', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Windows/ }).click();
+  await expect(page.getByText('Code Editor')).toBeVisible();
 });
 
 test('AI chat (stub): sending a prompt shows the kid message and a reply', async ({ page }) => {
-  const input = page.getByPlaceholder('What should we build?');
-  await input.fill('make the ball faster');
-  await input.press('Enter');
-
+  await reachWorkspace(page);
+  const chat = page.getByPlaceholder('What should we build?');
+  await chat.fill('make the ball faster');
+  await chat.press('Enter');
   await expect(page.getByText('make the ball faster')).toBeVisible();
-  // Stubbed assistant reply (clearly-placeholder text from runTurnStub).
   await expect(page.getByText(/AI demo|sample tweak|isn.t connected/i)).toBeVisible({ timeout: 6_000 });
+});
+
+test('game runner: placeholder until Play, then it starts', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.getByText('Press ▶ to play')).toBeVisible();
+  // The placeholder's Play button launches the game (placeholder disappears).
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
