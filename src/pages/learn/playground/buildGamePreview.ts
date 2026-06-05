@@ -38,6 +38,56 @@ if (!window.Phaser) {
 }
 </script>`;
 
+/**
+ * Bidirectional control channel shim (see virtual-desktop-design.md §3).
+ *
+ * `Phaser.GAMES` is ABSENT in our vendored build, so we cannot read a global
+ * game registry. Instead we wrap the `Phaser.Game` constructor to capture the
+ * kid's game instance into a module-scope `var __game`, preserving `.prototype`
+ * (and statics) so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
+ *
+ * Parent → frame:  { __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute' }
+ * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean }   // every ~500ms
+ *
+ * All control access is wrapped in try/catch (the game may not exist yet, or
+ * Phaser internals may differ); communication stays on `postMessage` only, so
+ * the strict opaque-origin sandbox is unchanged.
+ */
+const GAME_CONTROL = `
+<script>
+(function () {
+  if (!window.Phaser || !window.Phaser.Game) return;
+  var __OrigGame = window.Phaser.Game;
+  var __game = null;
+  function __WrappedGame(cfg) { __game = new __OrigGame(cfg); return __game; }
+  __WrappedGame.prototype = __OrigGame.prototype;
+  for (var k in __OrigGame) { try { __WrappedGame[k] = __OrigGame[k]; } catch (e) {} }
+  window.Phaser.Game = __WrappedGame;
+
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixControl !== true || !__game) return;
+    try {
+      if (m.action === 'pause')  __game.loop.sleep();
+      if (m.action === 'resume') __game.loop.wake();
+      if (m.action === 'mute')   __game.sound.mute = true;
+      if (m.action === 'unmute') __game.sound.mute = false;
+    } catch (e) {}
+  });
+
+  setInterval(function () {
+    if (!__game) return;
+    try {
+      parent.postMessage({
+        __airbotixStat: true,
+        fps: Math.round(__game.loop.actualFps || 0),
+        paused: !__game.loop.running
+      }, '*');
+    } catch (e) {}
+  }, 500);
+})();
+</script>`;
+
 function file(files: VfsFile[], path: string): string {
   return files.find((f) => f.path === path)?.content ?? '';
 }
@@ -85,7 +135,22 @@ export function buildGameSrcDoc(files: VfsFile[]): string {
     CONSOLE_CAPTURE,
     `<script src="${PHASER_SRC}"></script>`,
     PHASER_GUARD,
+    GAME_CONTROL,
     `<script>${gameJs}${'<'}/script>`,
     '</body></html>',
   ].join('\n');
+}
+
+export interface StatMessage {
+  fps: number;
+  paused: boolean;
+}
+
+export function isStatMessage(data: unknown): data is { __airbotixStat: true } & StatMessage {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    '__airbotixStat' in data &&
+    (data as { __airbotixStat: unknown }).__airbotixStat === true
+  );
 }
