@@ -7,8 +7,9 @@ import { PortalLayout } from './PortalLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
-// DEV-ONLY: sandboxed Phaser runtime proof harness (no auth). See GameSandboxDevPage.
-import { GameSandboxDevPage } from '@/pages/learn/playground/GameSandboxDevPage';
+// DEV-ONLY: the playground virtual desktop (no auth). Seeded with a local starter
+// game; the real /learn/playground/:projectId route (auth + backend) comes later.
+import { PlaygroundPage } from '@/pages/learn/playground/PlaygroundPage';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
 import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
@@ -57,8 +58,8 @@ export const router = createBrowserRouter([
   // Root redirect based on principal kind
   { path: '/', element: <RootPage /> },
 
-  // DEV-ONLY: view the Phaser sandbox without auth. Stripped from prod builds.
-  ...(import.meta.env.DEV ? [{ path: '/playground-sandbox', element: <GameSandboxDevPage /> }] : []),
+  // DEV-ONLY: view the playground desktop without auth. Stripped from prod builds.
+  ...(import.meta.env.DEV ? [{ path: '/playground-sandbox', element: <PlaygroundPage /> }] : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },
