@@ -7,6 +7,7 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
+import { FileCode2, Play, X } from 'lucide-react';
 import React, { Suspense, useEffect, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
@@ -191,12 +192,13 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                         onClick={() => setActiveTab(path)}
                         className="flex min-w-0 items-center gap-1.5"
                       >
-                        <span aria-hidden>⚙️</span>
+                        <FileCode2 size={14} aria-hidden />
                         <span className="truncate">{name}</span>
                         {isDirty(path) && (
-                          <span aria-label="Unsaved changes" className="text-brand-mint">
-                            ●
-                          </span>
+                          <span
+                            aria-label="Unsaved changes"
+                            className="h-1.5 w-1.5 rounded-full bg-brand-mint"
+                          />
                         )}
                       </button>
                       <button
@@ -205,7 +207,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                         onClick={() => closeTab(path)}
                         className="ml-0.5 rounded text-steel transition-colors hover:text-canvas-pure"
                       >
-                        ×
+                        <X size={14} />
                       </button>
                     </div>
                   );
@@ -219,7 +221,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
               onClick={handlePlay}
               className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-grad-mint px-4 py-1.5 text-[13px] font-extrabold text-white shadow-brand-mint transition-transform hover:-translate-y-0.5"
             >
-              <span aria-hidden>▶</span> Play
+              <Play size={14} aria-hidden /> Play
             </button>
           </div>
 

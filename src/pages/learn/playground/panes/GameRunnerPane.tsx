@@ -1,3 +1,4 @@
+import { Gamepad2, Pause, Play, RotateCcw, Smartphone, Terminal, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -119,7 +120,7 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
             setPaused((p) => !p);
           }}
         >
-          {!started || paused ? '▶' : '⏸'}
+          {!started || paused ? <Play size={18} /> : <Pause size={18} />}
         </ToolButton>
 
         <ToolButton
@@ -127,13 +128,11 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
           active={!muted}
           onClick={() => setMuted((m) => !m)}
         >
-          {muted ? '🔇' : '🔊'}
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </ToolButton>
 
         <label className="flex items-center gap-1.5">
-          <span aria-hidden className="text-base">
-            📱
-          </span>
+          <Smartphone aria-hidden size={18} className="text-stone2" />
           <select
             aria-label="Screen size"
             value={presetId}
@@ -152,11 +151,11 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
           label={started ? 'Restart' : 'Play'}
           onClick={() => (started ? onRestart() : setStarted(true))}
         >
-          ↻
+          <RotateCcw size={18} />
         </ToolButton>
 
         <ToolButton label="Toggle console" active={showConsole} onClick={() => setShowConsole((s) => !s)}>
-          ⌨
+          <Terminal size={18} />
         </ToolButton>
       </div>
 
@@ -185,9 +184,7 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
             className="flex shrink-0 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-canvas-pure/15 bg-ink p-6 text-center"
             style={{ width: stage.w, height: stage.h }}
           >
-            <span aria-hidden className="text-4xl">
-              🎮
-            </span>
+            <Gamepad2 size={44} className="text-steel" />
             <div className="space-y-0.5">
               <p className="text-sm font-bold text-stone2">Press ▶ to play</p>
               <p className="text-xs text-steel">your game shows up here</p>
@@ -197,7 +194,7 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
               onClick={() => setStarted(true)}
               className="flex items-center gap-1.5 rounded-lg bg-canvas-pure/10 px-3 py-1.5 text-sm font-bold text-canvas-pure transition-colors hover:bg-canvas-pure/20 focus:outline-none focus:ring-2 focus:ring-brand-sky"
             >
-              <span aria-hidden>▶</span> Play
+              <Play size={16} /> Play
             </button>
           </div>
         )}

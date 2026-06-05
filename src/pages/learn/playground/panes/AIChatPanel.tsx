@@ -4,6 +4,7 @@
 // (CodeEditorPane) and its state is passed in via props — this component never
 // calls the hook itself.
 
+import { Loader2, Send, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ChatItem } from './useGameAgent';
@@ -28,7 +29,10 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b border-canvas-pure/10 px-4 py-3">
-        <span className="text-[14px] font-extrabold text-canvas-pure">✨ AI Helper</span>
+        <span className="flex items-center gap-1.5 text-[14px] font-extrabold text-canvas-pure">
+          <Sparkles size={16} className="text-brand-sunshine" />
+          AI Helper
+        </span>
         <span className="rounded-full bg-wash-sunshine px-2.5 py-0.5 text-[10.5px] font-extrabold text-ink">
           stub demo
         </span>
@@ -70,9 +74,9 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             onClick={submit}
             disabled={busy || !input.trim()}
             aria-label="Send"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-[15px] text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
           >
-            {busy ? '…' : '➤'}
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
         <div className="mt-1.5 text-[11px] text-steel">Enter to send · Shift+Enter for a new line</div>

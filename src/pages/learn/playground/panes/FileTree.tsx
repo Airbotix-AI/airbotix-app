@@ -1,4 +1,18 @@
 import { useMemo, useState } from 'react';
+import {
+  Boxes,
+  ChevronDown,
+  ChevronRight,
+  File,
+  FileAudio,
+  FileCode2,
+  FileImage,
+  FileJson,
+  FileText,
+  FileType,
+  Folder,
+  type LucideIcon,
+} from 'lucide-react';
 import type { VfsFile } from '../../code/codeApi';
 
 interface FileTreeProps {
@@ -9,36 +23,35 @@ interface FileTreeProps {
 
 type TabId = 'text' | 'asset';
 
-const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
-  { id: 'text', label: '📄 Files' },
-  { id: 'asset', label: '🧊 Assets' },
+const TABS: ReadonlyArray<{ id: TabId; label: string; Icon: LucideIcon }> = [
+  { id: 'text', label: 'Files', Icon: FileText },
+  { id: 'asset', label: 'Assets', Icon: Boxes },
 ];
 
-const FILE_EMOJI: Record<string, string> = {
-  html: '📄',
-  htm: '📄',
-  css: '🎨',
-  js: '⚙️',
-  json: '🗂',
-  md: '📝',
-  txt: '📃',
+const FILE_ICON: Record<string, LucideIcon> = {
+  js: FileCode2,
+  ts: FileCode2,
+  css: FileType,
+  json: FileJson,
+  txt: FileText,
+  md: FileText,
   // images
-  png: '🖼',
-  jpg: '🖼',
-  jpeg: '🖼',
-  gif: '🖼',
-  svg: '🖼',
-  webp: '🖼',
+  png: FileImage,
+  jpg: FileImage,
+  jpeg: FileImage,
+  gif: FileImage,
+  svg: FileImage,
+  webp: FileImage,
   // audio
-  mp3: '🔊',
-  wav: '🔊',
-  ogg: '🔊',
-  m4a: '🔊',
+  mp3: FileAudio,
+  wav: FileAudio,
+  ogg: FileAudio,
+  m4a: FileAudio,
 };
 
-function emojiFor(path: string): string {
+function iconFor(path: string): LucideIcon {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  return FILE_EMOJI[ext] ?? '📄';
+  return FILE_ICON[ext] ?? File;
 }
 
 // ── Tree model ──────────────────────────────────────────────────────────────
@@ -112,6 +125,7 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
 
   if (node.isFolder) {
     const isOpen = expanded.has(node.path);
+    const Chevron = isOpen ? ChevronDown : ChevronRight;
     return (
       <li>
         <button
@@ -120,8 +134,8 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
           style={indent}
           className="flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-semibold text-stone2 transition-colors hover:bg-canvas-pure/5 hover:text-canvas-pure"
         >
-          <span className="w-3 text-[10px] text-steel">{isOpen ? '▾' : '▸'}</span>
-          <span>📁</span>
+          <Chevron size={14} className="shrink-0 text-steel" aria-hidden />
+          <Folder size={14} className="shrink-0 text-steel" aria-hidden />
           <span className="truncate">{node.name}</span>
         </button>
         {isOpen && node.children.length > 0 && (
@@ -144,6 +158,7 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
   }
 
   const isActive = node.path === activePath;
+  const Icon = iconFor(node.path);
   return (
     <li>
       <button
@@ -156,8 +171,8 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
             : 'text-stone2 hover:bg-canvas-pure/5 hover:text-canvas-pure'
         }`}
       >
-        <span className="w-3" aria-hidden />
-        <span>{emojiFor(node.path)}</span>
+        <span className="w-3.5 shrink-0" aria-hidden />
+        <Icon size={14} className="shrink-0" aria-hidden />
         <span className="truncate">{node.name}</span>
       </button>
     </li>
@@ -206,21 +221,23 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`rounded-t-lg px-3 py-1.5 text-[12px] font-bold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-t-lg px-3 py-1.5 text-[12px] font-bold transition-colors ${
                 isActive
                   ? 'bg-canvas-pure/15 text-canvas-pure'
                   : 'text-stone2 hover:bg-canvas-pure/5 hover:text-canvas-pure'
               }`}
             >
-              {t.label}
+              <t.Icon size={14} aria-hidden />
+              <span>{t.label}</span>
             </button>
           );
         })}
       </div>
 
       {/* Project root label */}
-      <div className="px-3 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">
-        📁 Project
+      <div className="flex items-center gap-1.5 px-3 pt-3 pb-1 text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">
+        <Folder size={14} aria-hidden />
+        <span>Project</span>
       </div>
 
       {/* Nested tree */}

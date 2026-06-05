@@ -3,17 +3,19 @@
 // active segment is filled in brand-sky (see docs/mockup-workspace.png).
 
 import clsx from 'clsx';
+import { Columns2, LayoutGrid, type LucideIcon } from 'lucide-react';
 
 import { usePlaygroundStore, type LayoutMode } from './playgroundStore';
 
 interface Segment {
   mode: LayoutMode;
   label: string;
+  Icon: LucideIcon;
 }
 
 const SEGMENTS: readonly Segment[] = [
-  { mode: 'window', label: '⊞ Windows' },
-  { mode: 'split', label: '◫ Split' },
+  { mode: 'window', label: 'Windows', Icon: LayoutGrid },
+  { mode: 'split', label: 'Split', Icon: Columns2 },
 ];
 
 export function LayoutToggle() {
@@ -22,7 +24,7 @@ export function LayoutToggle() {
 
   return (
     <div className="inline-flex h-7 items-center gap-0.5 rounded-full border border-canvas-pure/10 bg-canvas-pure/5 p-0.5">
-      {SEGMENTS.map(({ mode, label }) => {
+      {SEGMENTS.map(({ mode, label, Icon }) => {
         const active = layoutMode === mode;
         return (
           <button
@@ -31,12 +33,13 @@ export function LayoutToggle() {
             aria-pressed={active}
             onClick={() => setLayoutMode(mode)}
             className={clsx(
-              'h-6 rounded-full px-2.5 text-[11px] leading-none transition-colors',
+              'inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[11px] leading-none transition-colors',
               active
                 ? 'bg-brand-sky font-extrabold text-ink'
                 : 'font-semibold text-stone2 hover:text-canvas-pure',
             )}
           >
+            <Icon size={15} />
             {label}
           </button>
         );
