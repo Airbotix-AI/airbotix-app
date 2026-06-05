@@ -44,9 +44,11 @@ interface WorkspaceProps {
 
 type SplitTab = 'chat' | 'code';
 
+// Tab id → short label; the icon comes from WINDOW_META so it matches the rest
+// of the UI (lucide MessageSquare / Code2), not an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
-  { id: 'chat', label: '💬 Chat' },
-  { id: 'code', label: '</> Code' },
+  { id: 'chat', label: 'Chat' },
+  { id: 'code', label: 'Code' },
 ];
 
 export function Workspace({ files, runKey, running, onApplyFiles, onRun }: WorkspaceProps) {
@@ -55,6 +57,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
   // Default window placement (Code lower-left & wide, Chat center-top & front,
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
+
+  // The editor's ▶ Play runs AND brings the Game Runner window to the front (in
+  // window mode). Chat turns and the runner's own Play use plain `onRun`, so a
+  // chat message never steals focus to the Game Runner.
+  const runFromEditor = () => {
+    onRun();
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('game');
+  };
 
   if (layoutMode === 'window') {
     return (
@@ -75,7 +85,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             title={WINDOW_META.code.title}
             icon={<WINDOW_META.code.Icon size={16} />}
           >
-            <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={onRun} />
+            <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
           </Window>
           <Window
             id="chat"
@@ -118,6 +128,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               >
                 {SPLIT_TABS.map(({ id, label }) => {
                   const active = splitTab === id;
+                  const Icon = WINDOW_META[id].Icon;
                   return (
                     <button
                       key={id}
@@ -126,12 +137,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
                       aria-selected={active}
                       onClick={() => setSplitTab(id)}
                       className={clsx(
-                        'rounded-lg px-3 py-1 text-[13px] leading-none transition-colors',
+                        'inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[13px] leading-none transition-colors',
                         active
                           ? 'bg-canvas-pure/15 font-extrabold text-canvas-pure'
                           : 'font-semibold text-stone2 hover:text-canvas-pure',
                       )}
                     >
+                      <Icon size={14} />
                       {label}
                     </button>
                   );
@@ -141,7 +153,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
                 {splitTab === 'chat' ? (
                   <ChatPane files={files} onApplyFiles={onApplyFiles} onRun={onRun} />
                 ) : (
-                  <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={onRun} />
+                  <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
                 )}
               </div>
             </section>

@@ -62,22 +62,6 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             className="w-full resize-none bg-transparent text-lg text-canvas-pure placeholder:text-steel focus:outline-none"
           />
 
-          {/* Bottom-left decorative affordances */}
-          <div className="absolute bottom-5 left-5 flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#3A3548] text-sm text-steel"
-            >
-              🎤
-            </span>
-            <span
-              aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#3A3548] text-lg leading-none text-steel"
-            >
-              +
-            </span>
-          </div>
-
           {/* Send button */}
           <button
             type="button"

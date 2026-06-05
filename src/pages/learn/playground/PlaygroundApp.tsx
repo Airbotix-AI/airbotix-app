@@ -5,7 +5,6 @@ import type { VfsFile } from '@/pages/learn/code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
 import { LandingScreen } from './LandingScreen';
 import { Workspace } from './Workspace';
-import { usePlaygroundStore } from './playgroundStore';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
@@ -14,14 +13,14 @@ export function PlaygroundApp() {
   const [prompt, setPrompt] = useState('');
   const [files, setFiles] = useState<VfsFile[]>([]);
   const [runKey, setRunKey] = useState(0);
-  // Whether the game has been launched. ▶ Play (editor or runner) sets this so
-  // the Game Runner mounts; it also brings the Game Runner window to the front.
+  // Whether the game has been launched. ▶ Play (editor or runner) and AI turns
+  // set this so the Game Runner mounts. Bringing the runner window to the FRONT
+  // is done only for the editor's ▶ Play (in Workspace) — NOT for chat turns.
   const [running, setRunning] = useState(false);
 
   const run = useCallback(() => {
     setRunning(true);
     setRunKey((k) => k + 1);
-    usePlaygroundStore.getState().openOrFocus('game');
   }, []);
 
   return (
