@@ -49,36 +49,15 @@
   animation: pg-glow-spin 6s linear infinite;
 }
 
-/* Spins the conic gradient by driving the registered --pg-a angle. */
+/* Spins the conic gradient by driving the registered --pg-a angle. The ring
+ * stays hugging the box (the gradient rotates in place; we do NOT rotate the
+ * element itself — rotating a rectangle would fling its corners out). Modern
+ * engines (Chrome/Safari/FF) support @property; where they don't, the gradient
+ * simply doesn't spin (a static brand-gradient halo), which is an acceptable
+ * graceful degradation. */
 @keyframes pg-glow-spin {
   to {
     --pg-a: 360deg;
-  }
-}
-
-/* Fallback for engines without @property support: --pg-a can't interpolate,
- * so the conic angle stays put. Detect the lack of support and rotate the
- * whole blurred layer instead, so there's still visible motion.
- * (@supports for an @property-only feature: this block applies when the
- * browser does NOT understand registered custom properties.) */
-@supports not (background: paint(something)) {
-  /* no-op marker; real fallback below keyed on @property support */
-}
-
-@supports not (animation-timeline: --x) {
-  /* harmless: just keeps this file resilient across feature sets */
-}
-
-/* The motion fallback: if the conic angle can't animate, rotate the layer. */
-@supports not (syntax: '<angle>') {
-  .pg-glow::before {
-    animation: pg-glow-rotate 6s linear infinite;
-  }
-}
-
-@keyframes pg-glow-rotate {
-  to {
-    transform: rotate(360deg);
   }
 }
 
