@@ -1,0 +1,146 @@
+import { useState } from 'react';
+
+import type { VfsFile } from '../../code/codeApi';
+import { GameFrame } from '../GameFrame';
+import { SCREEN_PRESETS } from '../screenPresets';
+
+interface GameRunnerWindowProps {
+  /** The lifted VFS — owned by PlaygroundPage. */
+  files: VfsFile[];
+  /** Bump (via onRestart) forces GameFrame to re-run. Owned by PlaygroundPage. */
+  runKey: number;
+  /** Restart the game — PlaygroundPage bumps runKey. */
+  onRestart: () => void;
+}
+
+const DEFAULT_PRESET_ID = 'original';
+
+/** A small dark-chrome toolbar button (icon-only). */
+function ToolButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+      onClick={onClick}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg text-base transition-colors ${
+        active ? 'bg-canvas-pure/20 text-canvas-pure' : 'text-stone2 hover:bg-canvas-pure/10 hover:text-canvas-pure'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Body of the Game Runner window (spec §5). The window chrome (titlebar,
+ * min/max/close, dragging) is provided by Window.tsx — this is just the inner
+ * content: a toolbar, the FIT-scaled game stage, and a status bar.
+ *
+ * The stage uses a dark background (`bg-ink`) to match the game's black canvas;
+ * the surrounding chrome uses K-12 tokens.
+ */
+export function GameRunnerWindow({ files, runKey, onRestart }: GameRunnerWindowProps) {
+  const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
+  const [showConsole, setShowConsole] = useState(false);
+  const [fps, setFps] = useState(0);
+  const [logCount, setLogCount] = useState(0);
+
+  const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-ink text-canvas-pure">
+      {/* Toolbar */}
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 px-3 py-2">
+        <ToolButton
+          label={paused ? 'Play' : 'Pause'}
+          active={!paused}
+          onClick={() => setPaused((p) => !p)}
+        >
+          {paused ? '▶' : '⏸'}
+        </ToolButton>
+
+        <ToolButton
+          label={muted ? 'Unmute' : 'Mute'}
+          active={!muted}
+          onClick={() => setMuted((m) => !m)}
+        >
+          {muted ? '🔇' : '🔊'}
+        </ToolButton>
+
+        <label className="flex items-center gap-1.5">
+          <span aria-hidden className="text-base">
+            📱
+          </span>
+          <select
+            aria-label="Screen size"
+            value={presetId}
+            onChange={(e) => setPresetId(e.target.value)}
+            className="rounded-lg border border-canvas-pure/20 bg-canvas-pure/10 px-2 py-1 text-xs font-medium text-canvas-pure focus:outline-none focus:ring-2 focus:ring-brand-sky"
+          >
+            {SCREEN_PRESETS.map((p) => (
+              <option key={p.id} value={p.id} className="text-ink">
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <ToolButton label="Restart" onClick={onRestart}>
+          ↻
+        </ToolButton>
+
+        <ToolButton label="Toggle console" active={showConsole} onClick={() => setShowConsole((s) => !s)}>
+          ⌨
+        </ToolButton>
+      </div>
+
+      {/* Stage — centered, scrollable for presets larger than the window. */}
+      <div className="flex flex-1 min-h-0 items-center justify-center overflow-auto bg-ink p-4">
+        <div
+          className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft"
+          style={{ width: preset.w, height: preset.h }}
+        >
+          <GameFrame
+            files={files}
+            runKey={runKey}
+            paused={paused}
+            muted={muted}
+            showConsole={showConsole}
+            onFps={setFps}
+            onConsoleCount={setLogCount}
+          />
+        </div>
+      </div>
+
+      {/* Status bar */}
+      <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 px-3 py-1.5 text-xs">
+        <span
+          aria-hidden
+          className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
+        />
+        <span className="font-bold text-canvas-pure">{paused ? 'Paused' : 'Running'}</span>
+        <span className="text-steel">·</span>
+        <span className="text-stone2">{fps + ' fps'}</span>
+        <span className="text-steel">·</span>
+        <span className="text-stone2">{logCount + ' logs'}</span>
+        <span className="ml-auto text-stone2">
+          {preset.w} × {preset.h}
+        </span>
+      </div>
+    </div>
+  );
+}
