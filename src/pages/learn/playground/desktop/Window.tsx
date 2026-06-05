@@ -3,7 +3,6 @@
 // (minimize / maximize / close) and a per-window drag overlay so dragging across
 // an iframe child (the game) doesn't stall. See virtual-desktop-design.md §4 + §10 #2.
 
-import { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { useWindowStore, type WindowId } from './windowStore';
 
@@ -24,10 +23,10 @@ export function Window({ id, title, icon, children }: WindowProps) {
   const minimize = useWindowStore((s) => s.minimize);
   const toggleMaximize = useWindowStore((s) => s.toggleMaximize);
   const setRect = useWindowStore((s) => s.setRect);
-
-  // While dragging/resizing, an overlay covers the body so pointer events don't
-  // get swallowed by an iframe child (§10 #2).
-  const [interacting, setInteracting] = useState(false);
+  // Shared flag: true while ANY window is being dragged/resized, so every window
+  // covers its body — dragging one window across another's iframe works (§10 #2).
+  const anyInteracting = useWindowStore((s) => s.interacting);
+  const setAnyInteracting = useWindowStore((s) => s.setInteracting);
 
   if (!state.open || state.minimized) return null;
 
@@ -51,14 +50,14 @@ export function Window({ id, title, icon, children }: WindowProps) {
       enableResizing={!maximized}
       style={{ zIndex }}
       onMouseDown={() => focus(id)}
-      onDragStart={() => setInteracting(true)}
-      onResizeStart={() => setInteracting(true)}
+      onDragStart={() => setAnyInteracting(true)}
+      onResizeStart={() => setAnyInteracting(true)}
       onDragStop={(_e, d) => {
-        setInteracting(false);
+        setAnyInteracting(false);
         setRect(id, { ...rect, x: d.x, y: d.y });
       }}
       onResizeStop={(_e, _dir, ref, _delta, pos) => {
-        setInteracting(false);
+        setAnyInteracting(false);
         setRect(id, { x: pos.x, y: pos.y, w: ref.offsetWidth, h: ref.offsetHeight });
       }}
     >
@@ -102,9 +101,9 @@ export function Window({ id, title, icon, children }: WindowProps) {
         {/* Body — fills remaining height; holds the window content. */}
         <div className="relative min-h-0 flex-1 overflow-hidden bg-canvas-pure">
           {children}
-          {/* Per-window drag overlay: swallows pointer events away from iframe
-              children while the window is being dragged/resized (§10 #2). */}
-          {interacting && <div className="absolute inset-0 z-50" />}
+          {/* Drag overlay: while ANY window is being dragged/resized, cover this
+              body so iframe children don't swallow pointer events (§10 #2). */}
+          {anyInteracting && <div className="absolute inset-0 z-50" />}
         </div>
       </div>
     </Rnd>

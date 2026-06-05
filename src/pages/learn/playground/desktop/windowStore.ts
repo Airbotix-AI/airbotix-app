@@ -29,6 +29,15 @@ export interface WindowState {
 interface WindowStore {
   windows: Record<WindowId, WindowState>;
   topZ: number;
+  /**
+   * True while ANY window is being dragged or resized. Every window renders a
+   * transparent overlay over its body when this is set, so dragging one window
+   * across another's <iframe> (the game) doesn't stall — iframes otherwise
+   * swallow mousemove and break react-rnd's document-level drag tracking
+   * (virtual-desktop-design.md §10 #2).
+   */
+  interacting: boolean;
+  setInteracting: (v: boolean) => void;
   openOrFocus: (id: WindowId) => void;
   focus: (id: WindowId) => void;
   close: (id: WindowId) => void;
@@ -40,12 +49,12 @@ interface WindowStore {
 // Base z-index for the initial (unfocused) stack. `focus` bumps from `topZ`.
 const BASE_Z_INDEX = 1;
 
-// Placeholder default geometry per window — canonical values come from
-// windowConfig (C2.1). Seeded so the store stands alone before that lands.
+// Default opening geometry per window — kept in lockstep with windowConfig
+// (C2.1) WINDOW_CONFIG.defaultRect so windows open where the mockup shows them.
 const DEFAULT_RECT: Record<WindowId, WindowRect> = {
-  code: { x: 80, y: 80, w: 760, h: 560 },
-  game: { x: 880, y: 80, w: 800, h: 600 },
-  share: { x: 480, y: 240, w: 480, h: 360 },
+  code: { x: 160, y: 40, w: 860, h: 620 },
+  game: { x: 900, y: 120, w: 660, h: 600 },
+  share: { x: 520, y: 240, w: 460, h: 360 },
 };
 
 const WINDOW_ORDER: WindowId[] = ['code', 'game', 'share'];
@@ -70,6 +79,9 @@ const INITIAL_TOP_Z = BASE_Z_INDEX + WINDOW_ORDER.length - 1;
 export const useWindowStore = create<WindowStore>((set) => ({
   windows: seedWindows(),
   topZ: INITIAL_TOP_Z,
+  interacting: false,
+
+  setInteracting: (v) => set({ interacting: v }),
 
   openOrFocus: (id) =>
     set((state) => {
