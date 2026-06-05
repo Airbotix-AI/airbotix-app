@@ -27,8 +27,8 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-hairline px-4 py-3">
-        <span className="text-[14px] font-extrabold text-ink">✨ AI Helper</span>
+      <div className="flex shrink-0 items-center gap-2 border-b border-canvas-pure/10 px-4 py-3">
+        <span className="text-[14px] font-extrabold text-canvas-pure">✨ AI Helper</span>
         <span className="rounded-full bg-wash-sunshine px-2.5 py-0.5 text-[10.5px] font-extrabold text-ink">
           stub demo
         </span>
@@ -36,10 +36,8 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
         {chat.length === 0 && (
-          <div className="text-center py-8">
-            <p className="lead-text" style={{ fontSize: '14px' }}>
-              Tell me what to make and I'll code it 🤖
-            </p>
+          <div className="py-8 text-center text-[14px] font-semibold text-stone2">
+            Tell me what to make and I'll code it 🤖
           </div>
         )}
         {chat.map((item) => (
@@ -48,13 +46,13 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
       </div>
 
       {error && (
-        <div className="mx-4 mb-2 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-2 text-[12px] font-medium text-ink">
+        <div className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-canvas-pure">
           {error}
         </div>
       )}
 
-      <div className="shrink-0 border-t border-hairline bg-canvas-pure p-3">
-        <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-canvas-pure pr-1.5 focus-within:border-brand-sky">
+      <div className="shrink-0 border-t border-canvas-pure/10 p-3">
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-canvas-pure/15 bg-canvas-pure/5 pr-1.5 focus-within:border-brand-sky">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -66,7 +64,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             }}
             placeholder="What should we build?"
             rows={2}
-            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-ink placeholder:text-steel focus:outline-none"
+            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-canvas-pure placeholder:text-steel focus:outline-none"
           />
           <button
             onClick={submit}
@@ -77,7 +75,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             {busy ? '…' : '➤'}
           </button>
         </div>
-        <div className="mt-1.5 text-[11px] text-slate2">Enter to send · Shift+Enter for a new line</div>
+        <div className="mt-1.5 text-[11px] text-steel">Enter to send · Shift+Enter for a new line</div>
       </div>
     </div>
   );
@@ -96,10 +94,8 @@ function ChatRow({ item }: { item: ChatItem }) {
   return (
     <div className="flex justify-start">
       <div
-        className={`max-w-[90%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed ${
-          item.pending
-            ? 'bg-surface text-ink-soft border border-hairline italic opacity-70'
-            : 'bg-surface text-ink border border-hairline'
+        className={`max-w-[90%] rounded-2xl border border-canvas-pure/10 bg-canvas-pure/10 px-4 py-2.5 text-[14px] leading-relaxed text-canvas-pure ${
+          item.pending ? 'italic opacity-60' : ''
         }`}
       >
         <div className="whitespace-pre-wrap">{item.text}</div>

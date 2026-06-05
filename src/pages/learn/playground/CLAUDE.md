@@ -29,6 +29,10 @@ pause/mute/screen-size/restart/console controls and a status bar; its stage
 **scales to fit the pane, preserving aspect ratio** (whole game always visible,
 no scroll) via a `ResizeObserver`.
 
+The whole playground is **dark-themed**: `bg-ink` base, `canvas-pure/<opacity>`
+for raised surfaces + borders, `text-canvas-pure`/`text-stone2`/`text-steel`
+text, with `brand-sky`/`brand-mint` accents (Monaco runs the `vs-dark` theme).
+
 > **The whole windowing layer was REMOVED** in favor of this fixed split.
 > Deleted: the `desktop/` folder (`Desktop`, `Window`, `Taskbar`, `DesktopIcon`,
 > `windowStore`, `windowConfig`) and `ShareWindow`. No more virtual desktop,

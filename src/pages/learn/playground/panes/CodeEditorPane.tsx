@@ -77,10 +77,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
   };
 
   return (
-    <PanelGroup direction="horizontal" className="h-full min-h-0 bg-canvas-pure text-ink" autoSaveId="pg-editor">
+    <PanelGroup direction="horizontal" className="h-full min-h-0 bg-ink text-canvas-pure" autoSaveId="pg-editor">
       {/* Files list */}
       <Panel defaultSize={20} minSize={10} className="min-w-0">
-        <aside className="h-full overflow-y-auto bg-surface">
+        <aside className="h-full overflow-y-auto bg-canvas-pure/5">
           <FileTree files={files} activePath={activePath} onSelect={setActivePath} />
         </aside>
       </Panel>
@@ -90,8 +90,8 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
       {/* Code editor — tab row + ▶ Play + Monaco */}
       <Panel defaultSize={50} minSize={25} className="min-w-0">
         <section className="flex h-full min-w-0 flex-col">
-          <div className="flex shrink-0 items-center gap-2 border-b border-hairline px-3 py-2">
-            <div className="flex min-w-0 items-center gap-1.5 rounded-xl bg-wash-sky px-3 py-1.5 text-[13px] font-bold text-ink">
+          <div className="flex shrink-0 items-center gap-2 border-b border-canvas-pure/10 px-3 py-2">
+            <div className="flex min-w-0 items-center gap-1.5 rounded-xl bg-canvas-pure/10 px-3 py-1.5 text-[13px] font-bold text-canvas-pure">
               <span aria-hidden>⚙️</span>
               <span className="truncate">{activePath || 'No file'}</span>
             </div>
@@ -109,7 +109,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
           <div className="min-h-0 flex-1">
             <Suspense
               fallback={
-                <div className="flex h-full items-center justify-center text-[13px] font-semibold text-ink-soft">
+                <div className="flex h-full items-center justify-center text-[13px] font-semibold text-stone2">
                   Loading editor…
                 </div>
               }
@@ -124,7 +124,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
 
       {/* AI helper */}
       <Panel defaultSize={30} minSize={15} className="min-w-0">
-        <aside className="flex h-full flex-col bg-canvas-pure">
+        <aside className="flex h-full flex-col bg-canvas-pure/5">
           <AIChatPanel chat={chat} busy={busy} error={error} onSend={send} />
         </aside>
       </Panel>
