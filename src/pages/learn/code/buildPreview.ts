@@ -19,7 +19,7 @@
 
 import type { VfsFile } from './codeApi';
 
-const CONSOLE_CAPTURE = `
+export const CONSOLE_CAPTURE = `
 <script>
 (function () {
   var send = function (level, args) {
@@ -43,7 +43,7 @@ const CONSOLE_CAPTURE = `
 })();
 </script>`;
 
-const ASSET_MIME: Record<string, string> = {
+export const ASSET_MIME: Record<string, string> = {
   png: 'image/png',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
