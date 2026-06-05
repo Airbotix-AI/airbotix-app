@@ -9,17 +9,20 @@
 // and is decoupled from when the scaffold actually resolves (the stub delays
 // ~1.8s; the steps cap at the last so the list never overruns the resolve).
 
+import { Check, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import type { VfsFile } from '../code/codeApi';
 import { generateScaffold, SCAFFOLD_DELAY_MS } from './panes/starterProject';
 
-// The build stages the kid sees tick through. Cosmetic — see file header.
+// The build stages the kid sees tick through — intentionally GENERIC (work for
+// any creation, not just games) and purely cosmetic (see file header).
 const STEPS = [
-  'Planning the game',
-  'Creating scenes & files',
-  'Writing game.js',
-  'Wiring up the stage',
+  'Understanding your idea',
+  'Designing the build',
+  'Generating the code',
+  'Wiring everything up',
+  'Adding the finishing touches',
 ] as const;
 
 // Spread the status ticks evenly across the (stubbed) build duration so they
@@ -119,32 +122,31 @@ function rowState(index: number, step: number): RowState {
 }
 
 function StatusRow({ label, state }: { label: string; state: RowState }) {
-  const isGameJs = label === 'Writing game.js';
   return (
-    <li className="flex items-center gap-3">
-      <span className="w-4 text-center font-extrabold">
-        {state === 'done' && <span className="text-brand-mint">✓</span>}
-        {state === 'active' && (
-          <span className="pg-orb-spin inline-block text-brand-sky">⟳</span>
+    <li
+      className={`flex items-center gap-3 transition-all duration-300 ${
+        state === 'pending' ? 'opacity-50' : 'opacity-100'
+      } ${state === 'active' ? 'scale-[1.03]' : ''}`}
+    >
+      <span className="grid h-6 w-6 place-items-center">
+        {state === 'done' && (
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-mint/15 text-brand-mint">
+            <Check size={14} strokeWidth={3} />
+          </span>
         )}
-        {state === 'pending' && <span className="text-steel">•</span>}
+        {state === 'active' && <Loader2 size={20} className="animate-spin text-brand-sky" />}
+        {state === 'pending' && <span className="h-2 w-2 rounded-full bg-steel" />}
       </span>
       <span
         className={
-          state === 'pending'
-            ? 'text-steel'
-            : state === 'active'
-              ? 'font-bold text-canvas-pure'
-              : 'text-stone2'
+          state === 'active'
+            ? 'bg-gradient-to-r from-brand-sky via-brand-bubblegum to-brand-mint bg-clip-text font-bold text-transparent'
+            : state === 'done'
+              ? 'text-stone2'
+              : 'text-steel'
         }
       >
-        {isGameJs ? (
-          <>
-            Writing <span className="font-mono">game.js</span>…
-          </>
-        ) : (
-          label
-        )}
+        {label}
       </span>
     </li>
   );

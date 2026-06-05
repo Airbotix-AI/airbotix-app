@@ -159,7 +159,7 @@ export const STARTER_PROJECT: VfsFile[] = [
 // How long the stub pretends to "generate" before returning the scaffold —
 // long enough to watch the Generating screen progress clearly. Exported so the
 // Generating screen can sync its progress bar / status ticks to the same span.
-export const SCAFFOLD_DELAY_MS = 3000;
+export const SCAFFOLD_DELAY_MS = 5000;
 
 /**
  * STUB scaffold generator. Stands in for the server-side agent build (decision
