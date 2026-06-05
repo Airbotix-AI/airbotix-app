@@ -1,8 +1,8 @@
-// Presentational AI chat panel for the game studio (design §7 / mockup #6).
-// Mirrors `code/CodeChat.tsx` look + K-12 tokens, minus Stars/balance/approval
-// (the stub turn has none). PURELY PRESENTATIONAL: the `useGameAgent` hook is
-// owned by the consumer (CodeEditorWindow) and its state is passed in via props
-// — this component never calls the hook itself.
+// Presentational AI chat panel for the game studio. Mirrors `code/CodeChat.tsx`
+// look + K-12 tokens, minus Stars/balance/approval (the stub turn has none).
+// PURELY PRESENTATIONAL: the `useGameAgent` hook is owned by the consumer
+// (CodeEditorPane) and its state is passed in via props — this component never
+// calls the hook itself.
 
 import { useState } from 'react';
 
@@ -54,7 +54,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
       )}
 
       <div className="shrink-0 border-t border-hairline bg-canvas-pure p-3">
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-hairline bg-canvas-pure pr-1.5 focus-within:border-brand-sky">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -66,14 +66,15 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             }}
             placeholder="What should we build?"
             rows={2}
-            className="flex-1 rounded-2xl border-2 border-hairline bg-canvas-pure px-4 py-3 text-[14px] text-ink placeholder:text-steel focus:border-brand-sky focus:outline-none resize-none disabled:opacity-60"
+            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-ink placeholder:text-steel focus:outline-none"
           />
           <button
             onClick={submit}
             disabled={busy || !input.trim()}
-            className="btn-pill-primary shrink-0 self-stretch"
+            aria-label="Send"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-[15px] text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
           >
-            {busy ? '…' : '✨'}
+            {busy ? '…' : '➤'}
           </button>
         </div>
         <div className="mt-1.5 text-[11px] text-slate2">Enter to send · Shift+Enter for a new line</div>

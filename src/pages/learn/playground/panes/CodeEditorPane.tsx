@@ -1,9 +1,8 @@
-// Body of the Code Editor window (design §2/§6/§7 / mockup #3–6). The window
-// chrome (titlebar, min/max/close, dragging) comes from Window.tsx — this is
-// only the inner content: a 3-column layout of FileTree sidebar, center editor
+// The Code Editor pane: a 3-column layout of FileTree sidebar, center editor
 // (tab row + ▶ Play + lazy Monaco), and a collapsible docked AI chat panel.
+// Fills the left side of the Playground split.
 //
-// State model: PlaygroundPage owns the VFS (single source of truth). This window
+// State model: PlaygroundPage owns the VFS (single source of truth). This pane
 // keeps a LOCAL DRAFT of the active file's text so typing in Monaco is snappy
 // without round-tripping through the page on every keystroke. ▶ Play (and the AI
 // turn) are the commit points that lift the draft back into the VFS.
@@ -19,7 +18,7 @@ import { useGameAgent } from './useGameAgent';
 // only when this window mounts (design §6). MUST stay a `React.lazy` import.
 const MonacoEditor = React.lazy(() => import('./MonacoEditor'));
 
-interface CodeEditorWindowProps {
+interface CodeEditorPaneProps {
   /** The lifted VFS — owned by PlaygroundPage. */
   files: VfsFile[];
   /** Commit edits back to the page-level source of truth. */
@@ -42,7 +41,7 @@ function languageFor(path: string): string {
   return 'javascript';
 }
 
-export function CodeEditorWindow({ files, onApplyFiles, onRun }: CodeEditorWindowProps) {
+export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPaneProps) {
   const [activePath, setActivePath] = useState(() => firstTextPath(files));
   // Local editable copy of the active file's content (the editor `value`).
   const [draft, setDraft] = useState(

@@ -12,18 +12,19 @@ but the preview hosts Phaser + a game canvas instead of a generic web page.
 
 ## How it works (1-minute version)
 
-The UI is a **virtual desktop**: a backdrop with draggable/resizable floating
-windows (Code Editor / Game Runner / Share), three shortcut icons, and a taskbar.
+The UI is a **permanent fixed two-pane split** — the **Code Editor** fills the
+left 2/3 and the **Game Runner** fills the right 1/3, both full screen height.
+No windows, taskbar, or desktop shortcuts.
 
 1. A kid's game is just a `game.js` file (a Phaser scene). The studio owns the
    surrounding HTML.
-2. The **Code Editor** window has a file tree, a Monaco editor, and a docked AI
-   chat panel. Editing + ▶ Play (or an AI turn) update the in-memory project
-   files and re-run the game.
+2. The **Code Editor** pane has a file tree, a Monaco editor, and a collapsible
+   docked AI chat panel. Editing + ▶ Play (or an AI turn) update the in-memory
+   project files and re-run the game.
 3. `buildGamePreview.ts` assembles a single self-contained HTML document
    (`srcdoc`): a `#game` mount point, the vendored Phaser `<script>`, a console
    shim, a control shim, then the kid's `game.js`.
-4. The **Game Runner** window renders that document via `GameFrame.tsx` in a
+4. The **Game Runner** pane renders that document via `GameFrame.tsx` in a
    locked-down `<iframe>` (`sandbox="allow-scripts …"`, **no**
    `allow-same-origin`) — the game runs JS and nothing else, can't reach the app,
    cookies, or the auth token. The runner adds pause/mute, screen-size presets, a
@@ -44,33 +45,28 @@ windows (Code Editor / Game Runner / Share), three shortcut icons, and a taskbar
 playground/
 ├── CLAUDE.md             # AI-assistant context + self-update mandate
 ├── README.md             # this file
-├── PlaygroundPage.tsx    # top-level page: owns the local VFS + run state
+├── PlaygroundPage.tsx    # top-level page: fixed two-pane split + owns the local VFS + run state
 ├── buildGamePreview.ts   # builds the sandboxed Phaser srcdoc + control shim
 ├── GameFrame.tsx         # renders the sandbox iframe + console + control channel
 ├── starterGame.ts        # the Pong seed game (one game.js)
 ├── screenPresets.ts      # screen-size presets for the Game Runner
-├── desktop/              # the window shell
-│   ├── windowStore.ts    #   Zustand store for window state (+ drag overlay flag)
-│   ├── windowConfig.ts   #   per-window title/icon/default geometry
-│   ├── Window.tsx        #   draggable/resizable window chrome (react-rnd)
-│   ├── DesktopIcon.tsx   #   shortcut tile
-│   ├── Taskbar.tsx       #   bottom taskbar
-│   └── Desktop.tsx       #   composes backdrop + icons + windows + taskbar
-└── windows/              # the window bodies
-    ├── CodeEditorWindow.tsx  # file tree + Monaco + docked AI chat + ▶ Play
+└── panes/                # the two panes + their parts
+    ├── CodeEditorPane.tsx    # left pane: file tree + Monaco + docked AI chat + ▶ Play
+    ├── GameRunnerPane.tsx    # right pane: toolbar + game stage + status bar
     ├── FileTree.tsx          # file list sidebar
     ├── MonacoEditor.tsx      # lazy, self-hosted Monaco
     ├── AIChatPanel.tsx       # chat UI (presentational)
     ├── useGameAgent.ts       # chat controller (runTurn swap seam)
-    ├── gameAgentStub.ts      # the local stub AI turn (no network)
-    ├── GameRunnerWindow.tsx  # toolbar + game stage + status bar
-    └── ShareWindow.tsx       # placeholder ("coming soon")
+    └── gameAgentStub.ts      # the local stub AI turn (no network)
 ```
 
 Phaser itself is vendored (self-hosted, not a CDN) at
 `public/vendor/phaser-3.80.1.min.js`. Monaco is an npm dep but lazy-loaded with
-self-hosted workers (also no CDN). The dev-only `GameSandboxDevPage.tsx` was
-deleted — its Pong now lives in `starterGame.ts`.
+self-hosted workers (also no CDN).
+
+> The old windowing layer (a `desktop/` folder + `Window`/`Taskbar`/`DesktopIcon`
+> + a `ShareWindow`, all on `react-rnd`) was **removed** in favor of this fixed
+> split; the `windows/` folder was renamed `panes/`.
 
 ## Run it in dev (no auth, no backend)
 
@@ -91,12 +87,12 @@ http://localhost:4321/playground-sandbox
 
 > Port is **4321** (set in `vite.config.ts`), not Vite's default 5173.
 
-You'll get the **full virtual desktop**: the Code Editor (Monaco + file tree +
-AI chat) and the Game Runner open by default, running a playable Pong (move the
-green paddle with the **mouse** or **↑/↓**). Drag/resize/minimize the windows,
-edit `game.js` and hit ▶ Play, use pause/mute/screen-size/restart/console in the
-runner, and send the AI a prompt (the reply is a clearly-labelled **stub**). The
-project files are in-memory only — no save.
+You'll get the **fixed two-pane split**: the Code Editor (Monaco + file tree +
+AI chat) on the left and the Game Runner on the right, running a playable Pong
+(move the green paddle with the **mouse** or **↑/↓**). Edit `game.js` and hit ▶
+Play, use pause/mute/screen-size/restart/console in the runner, and send the AI a
+prompt (the reply is a clearly-labelled **stub**). The project files are
+in-memory only — no save.
 
 ### Run the e2e tests
 
@@ -107,14 +103,14 @@ npm run test:e2e
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
 `playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Covers the desktop shell, the fps + pause/resume control
-channel, screen presets, minimize/restore, and the stub chat turn.
+the dev server itself. Four specs: both panes render, the fps + pause/resume
+control channel, a screen preset, and the stub chat turn.
 
 ### Why this is safe to ship
 
 The `/playground-sandbox` route is wrapped in `import.meta.env.DEV` in
 `src/app/router.tsx`, so it is **compiled out of production builds**. It's the
-no-auth way to view the desktop locally until the authed
+no-auth way to view the playground locally until the authed
 `/learn/playground/:projectId` route (backend + kid auth) lands.
 
 ## Not built yet
@@ -128,5 +124,5 @@ no-auth way to view the desktop locally until the authed
   the authed studio (`/learn/playground/:projectId`), and the fullscreen
   `.../play` route.
 - Backend `game` project kind + Phaser-aware agent prompt.
-- The **Share** window (placeholder today).
+- A **Share** feature (the old placeholder Share window was removed).
 - `docs/product/prd/learn-game-studio-prd.md`.

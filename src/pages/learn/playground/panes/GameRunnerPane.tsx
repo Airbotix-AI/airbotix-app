@@ -4,7 +4,7 @@ import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
 import { SCREEN_PRESETS } from '../screenPresets';
 
-interface GameRunnerWindowProps {
+interface GameRunnerPaneProps {
   /** The lifted VFS — owned by PlaygroundPage. */
   files: VfsFile[];
   /** Bump (via onRestart) forces GameFrame to re-run. Owned by PlaygroundPage. */
@@ -44,14 +44,14 @@ function ToolButton({
 }
 
 /**
- * Body of the Game Runner window (spec §5). The window chrome (titlebar,
- * min/max/close, dragging) is provided by Window.tsx — this is just the inner
- * content: a toolbar, the FIT-scaled game stage, and a status bar.
+ * The Game Runner pane (spec §5): a toolbar, the FIT-scaled game stage, and a
+ * status bar, filling its column.
  *
- * The stage uses a dark background (`bg-ink`) to match the game's black canvas;
- * the surrounding chrome uses K-12 tokens.
+ * Dark chrome to match the game canvas. The toolbar/status bars are tinted a
+ * touch lighter than the stage "desk", and the screen itself gets a light ring,
+ * so the running game reads as distinct from the surrounding chrome.
  */
-export function GameRunnerWindow({ files, runKey, onRestart }: GameRunnerWindowProps) {
+export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
@@ -64,7 +64,7 @@ export function GameRunnerWindow({ files, runKey, onRestart }: GameRunnerWindowP
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink text-canvas-pure">
       {/* Toolbar */}
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 px-3 py-2">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 bg-canvas-pure/5 px-3 py-2">
         <ToolButton
           label={paused ? 'Play' : 'Pause'}
           active={!paused}
@@ -108,10 +108,10 @@ export function GameRunnerWindow({ files, runKey, onRestart }: GameRunnerWindowP
         </ToolButton>
       </div>
 
-      {/* Stage — centered, scrollable for presets larger than the window. */}
+      {/* Stage — centered, scrollable for presets larger than the pane. */}
       <div className="flex flex-1 min-h-0 items-center justify-center overflow-auto bg-ink p-4">
         <div
-          className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft"
+          className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft ring-1 ring-canvas-pure/20"
           style={{ width: preset.w, height: preset.h }}
         >
           <GameFrame
@@ -127,7 +127,7 @@ export function GameRunnerWindow({ files, runKey, onRestart }: GameRunnerWindowP
       </div>
 
       {/* Status bar */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 px-3 py-1.5 text-xs">
+      <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 bg-canvas-pure/5 px-3 py-1.5 text-xs">
         <span
           aria-hidden
           className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
