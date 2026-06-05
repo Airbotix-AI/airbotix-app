@@ -93,6 +93,7 @@ export function CodeEditorWindow({ files, onApplyFiles, onRun }: CodeEditorWindo
 
           <button
             type="button"
+            aria-label="Run game"
             onClick={handlePlay}
             className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-grad-mint px-4 py-1.5 text-[13px] font-extrabold text-white shadow-brand-mint transition-transform hover:-translate-y-0.5"
           >
