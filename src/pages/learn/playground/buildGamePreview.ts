@@ -88,10 +88,6 @@ const GAME_CONTROL = `
 })();
 </script>`;
 
-function file(files: VfsFile[], path: string): string {
-  return files.find((f) => f.path === path)?.content ?? '';
-}
-
 function toDataUrl(asset: VfsFile): string {
   if (asset.content.startsWith('data:')) return asset.content;
   const ext = asset.path.split('.').pop()?.toLowerCase() ?? '';
@@ -116,18 +112,50 @@ function inlineAssetRefs(text: string, assets: VfsFile[]): string {
 }
 
 /**
+ * Pick the entry js file from a project: prefer one ending `main.js`, else one
+ * ending `game.js`, else the last js file. Returns its index in `jsFiles`, or
+ * `-1` if there are no js files.
+ */
+function entryIndex(jsFiles: VfsFile[]): number {
+  if (jsFiles.length === 0) return -1;
+  const main = jsFiles.findIndex((f) => f.path.endsWith('main.js'));
+  if (main !== -1) return main;
+  const game = jsFiles.findIndex((f) => f.path.endsWith('game.js'));
+  if (game !== -1) return game;
+  return jsFiles.length - 1;
+}
+
+/**
  * Build the full sandboxed srcdoc for a Phaser game from the VFS.
- * Expected VFS: `game.js` (required), optional `style.css`, optional assets.
+ *
+ * Supports a hierarchical multi-file project: every text `.js` file is injected
+ * as its own classic `<script>` (so each defines its globals in document order),
+ * with the ENTRY file LAST — so global classes are defined before the entry's
+ * `new Phaser.Game(...)` runs. Entry = path ending `main.js`, else `game.js`,
+ * else the last js file (so a single-`game.js` project still runs unchanged).
+ * All text `.css` files are concatenated into the stage `<style>`.
  */
 export function buildGameSrcDoc(files: VfsFile[]): string {
   const assets = files.filter((f) => f.kind === 'asset');
-  const gameJs = inlineAssetRefs(file(files, 'game.js'), assets);
-  const css = file(files, 'style.css');
+
+  const jsFiles = files.filter((f) => f.kind === 'text' && f.path.endsWith('.js'));
+  const entry = entryIndex(jsFiles);
+  // Non-entry js files keep their array order; the entry goes last.
+  const ordered = [...jsFiles.filter((_, i) => i !== entry), ...(entry === -1 ? [] : [jsFiles[entry]])];
+  const scriptTags = ordered.map(
+    (f) => `<script>${inlineAssetRefs(f.content, assets)}${'<'}/script>`,
+  );
+
+  const css = files
+    .filter((f) => f.kind === 'text' && f.path.endsWith('.css'))
+    .map((f) => f.content)
+    .join('\n');
+
   return [
     '<!doctype html>',
     '<html><head><meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    // Full-bleed black stage; the kid's optional style.css can override.
+    // Full-bleed black stage; the kid's optional .css files can override.
     `<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}` +
       `#game{width:100%;height:100%}#game canvas{display:block}${css}</style>`,
     '</head><body>',
@@ -136,7 +164,7 @@ export function buildGameSrcDoc(files: VfsFile[]): string {
     `<script src="${PHASER_SRC}"></script>`,
     PHASER_GUARD,
     GAME_CONTROL,
-    `<script>${gameJs}${'<'}/script>`,
+    ...scriptTags,
     '</body></html>',
   ].join('\n');
 }
