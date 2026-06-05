@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
-import { buildGameSrcDoc, isConsoleMessage, type ConsoleLine } from './buildGamePreview';
+import { buildGameSrcDoc, isConsoleMessage, isStatMessage, type ConsoleLine } from './buildGamePreview';
 
 interface GameFrameProps {
   files: VfsFile[];
@@ -11,6 +11,14 @@ interface GameFrameProps {
   showConsole?: boolean;
   /** Called when the kid clicks "Fix this error" on a console error line. */
   onFixError?: (message: string) => void;
+  /** Pause/resume the running game via the control channel. */
+  paused?: boolean;
+  /** Mute/unmute the running game via the control channel. */
+  muted?: boolean;
+  /** Reports the game's frame rate (~every 500ms while running). */
+  onFps?: (fps: number) => void;
+  /** Reports the captured console line count whenever it changes. */
+  onConsoleCount?: (n: number) => void;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -26,23 +34,72 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
  * NO allow-same-origin. The only channel back to the app is postMessage (the
  * console shim injected by buildGameSrcDoc).
  */
-export function GameFrame({ files, runKey, showConsole = false, onFixError }: GameFrameProps) {
+export function GameFrame({
+  files,
+  runKey,
+  showConsole = false,
+  onFixError,
+  paused = false,
+  muted = false,
+  onFps,
+  onConsoleCount,
+}: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const srcDoc = useMemo(() => buildGameSrcDoc(files), [files]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  /** Post a control message to the sandboxed frame (opaque origin → targetOrigin '*'). */
+  const postControl = (action: 'pause' | 'resume' | 'mute' | 'unmute') => {
+    iframeRef.current?.contentWindow?.postMessage({ __airbotixControl: true, action }, '*');
+  };
 
   // Reset console each run.
   useEffect(() => {
     setLines([]);
   }, [runKey, srcDoc]);
 
+  // Assert paused state on change and after a remount (runKey in deps).
+  useEffect(() => {
+    postControl(paused ? 'pause' : 'resume');
+  }, [paused, runKey]);
+
+  // Assert muted state on change and after a remount (runKey in deps).
+  useEffect(() => {
+    postControl(muted ? 'mute' : 'unmute');
+  }, [muted, runKey]);
+
+  // Latest control state, read inside the (stable) message listener without
+  // re-subscribing — so the remount re-assert below always posts current values.
+  const controlRef = useRef({ paused, muted });
+  controlRef.current = { paused, muted };
+  // Last runKey for which we've re-asserted control after seeing a fresh stat.
+  const reassertedRunKey = useRef<number | null>(null);
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (!isConsoleMessage(e.data)) return;
-      setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text }]);
+      if (isConsoleMessage(e.data)) {
+        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text }]);
+        return;
+      }
+      if (isStatMessage(e.data)) {
+        onFps?.(e.data.fps);
+        // Remount race: the control effects fire before the new game instance
+        // exists, so the first stat of a fresh run re-asserts current state.
+        if (reassertedRunKey.current !== runKey) {
+          reassertedRunKey.current = runKey;
+          postControl(controlRef.current.paused ? 'pause' : 'resume');
+          postControl(controlRef.current.muted ? 'mute' : 'unmute');
+        }
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [onFps, runKey]);
+
+  // Report the captured console line count to the parent.
+  useEffect(() => {
+    onConsoleCount?.(lines.length);
+  }, [lines, onConsoleCount]);
 
   const lastError = [...lines].reverse().find((l) => l.level === 'error' && l.text !== 'ready');
 
@@ -50,6 +107,7 @@ export function GameFrame({ files, runKey, showConsole = false, onFixError }: Ga
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex-1 min-h-0 bg-black">
         <iframe
+          ref={iframeRef}
           key={runKey}
           title="Game"
           // Deliberately NO allow-same-origin / allow-top-navigation / allow-forms.
