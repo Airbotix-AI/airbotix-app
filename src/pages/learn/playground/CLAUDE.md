@@ -146,7 +146,7 @@ Panes (`panes/`):
 | File | Role | Keeper? |
 |---|---|---|
 | `CodeEditorPane.tsx` | Left region: an inner resizable group of FileTree / center editor (tab row + ▶ Play + lazy Monaco) / docked AI chat. Holds a local draft; ▶ Play / AI turn are the commit points back to the VFS. | ✅ |
-| `GameRunnerPane.tsx` | Right pane: toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver) hosting `GameFrame`, status bar (Running/Paused · fps · logs · WxH). | ✅ |
+| `GameRunnerPane.tsx` | Right pane: toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props unchanged (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between columns/panes. | ✅ |
 | `FileTree.tsx` | File list sidebar (emoji per extension, active-file highlight). | ✅ |
 | `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. | ✅ |

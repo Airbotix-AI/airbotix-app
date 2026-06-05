@@ -86,6 +86,9 @@ function ToolButton({
  * so the running game reads as distinct from the surrounding chrome.
  */
 export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps) {
+  // Gate: the game doesn't auto-run. The stage shows a placeholder until the kid
+  // presses ▶ (toolbar Play or the placeholder's button), which mounts GameFrame.
+  const [started, setStarted] = useState(false);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
@@ -106,11 +109,17 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
       {/* Toolbar */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 bg-canvas-pure/5 px-3 py-2">
         <ToolButton
-          label={paused ? 'Play' : 'Pause'}
-          active={!paused}
-          onClick={() => setPaused((p) => !p)}
+          label={!started ? 'Play' : paused ? 'Play' : 'Pause'}
+          active={started && !paused}
+          onClick={() => {
+            if (!started) {
+              setStarted(true);
+              return;
+            }
+            setPaused((p) => !p);
+          }}
         >
-          {paused ? '▶' : '⏸'}
+          {!started || paused ? '▶' : '⏸'}
         </ToolButton>
 
         <ToolButton
@@ -139,7 +148,10 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
           </select>
         </label>
 
-        <ToolButton label="Restart" onClick={onRestart}>
+        <ToolButton
+          label={started ? 'Restart' : 'Play'}
+          onClick={() => (started ? onRestart() : setStarted(true))}
+        >
           ↻
         </ToolButton>
 
@@ -153,33 +165,64 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
         ref={stageRef}
         className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-ink p-4"
       >
-        <div
-          className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft ring-1 ring-canvas-pure/20"
-          style={{ width: stage.w, height: stage.h }}
-        >
-          <GameFrame
-            files={files}
-            runKey={runKey}
-            paused={paused}
-            muted={muted}
-            showConsole={showConsole}
-            onFps={setFps}
-            onConsoleCount={setLogCount}
-          />
-        </div>
+        {started ? (
+          <div
+            className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft ring-1 ring-canvas-pure/20"
+            style={{ width: stage.w, height: stage.h }}
+          >
+            <GameFrame
+              files={files}
+              runKey={runKey}
+              paused={paused}
+              muted={muted}
+              showConsole={showConsole}
+              onFps={setFps}
+              onConsoleCount={setLogCount}
+            />
+          </div>
+        ) : (
+          <div
+            className="flex shrink-0 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-canvas-pure/15 bg-ink p-6 text-center"
+            style={{ width: stage.w, height: stage.h }}
+          >
+            <span aria-hidden className="text-4xl">
+              🎮
+            </span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-stone2">Press ▶ to play</p>
+              <p className="text-xs text-steel">your game shows up here</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStarted(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-canvas-pure/10 px-3 py-1.5 text-sm font-bold text-canvas-pure transition-colors hover:bg-canvas-pure/20 focus:outline-none focus:ring-2 focus:ring-brand-sky"
+            >
+              <span aria-hidden>▶</span> Play
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Status bar */}
       <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 bg-canvas-pure/5 px-3 py-1.5 text-xs">
-        <span
-          aria-hidden
-          className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
-        />
-        <span className="font-bold text-canvas-pure">{paused ? 'Paused' : 'Running'}</span>
-        <span className="text-steel">·</span>
-        <span className="text-stone2">{fps + ' fps'}</span>
-        <span className="text-steel">·</span>
-        <span className="text-stone2">{logCount + ' logs'}</span>
+        {!started ? (
+          <>
+            <span aria-hidden className="h-2 w-2 rounded-full bg-steel" />
+            <span className="font-bold text-canvas-pure">Idle</span>
+          </>
+        ) : (
+          <>
+            <span
+              aria-hidden
+              className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
+            />
+            <span className="font-bold text-canvas-pure">{paused ? 'Paused' : 'Running'}</span>
+            <span className="text-steel">·</span>
+            <span className="text-stone2">{fps + ' fps'}</span>
+            <span className="text-steel">·</span>
+            <span className="text-stone2">{logCount + ' logs'}</span>
+          </>
+        )}
         <span className="ml-auto text-stone2">
           {preset.w} × {preset.h}
         </span>
