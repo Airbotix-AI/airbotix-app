@@ -41,6 +41,10 @@ function languageFor(path: string): string {
   if (ext === 'css') return 'css';
   if (ext === 'html' || ext === 'htm') return 'html';
   if (ext === 'json') return 'json';
+  if (ext === 'md' || ext === 'markdown') return 'markdown';
+  // Non-code files (txt, READMEs, etc.) → plaintext so Monaco doesn't flag them
+  // as broken JavaScript.
+  if (ext === 'txt' || ext === '') return 'plaintext';
   return 'javascript';
 }
 
@@ -170,10 +174,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
       {/* Code editor — tab strip + ▶ Play + Monaco */}
       <Panel defaultSize={72} minSize={30} className="min-w-0">
         <section className="flex h-full min-w-0 flex-col">
-          <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 px-2 py-1.5">
-            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          <div className="flex shrink-0 items-center bg-canvas-pure/5 border-b border-canvas-pure/10">
+            <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto">
               {openTabs.length === 0 ? (
-                <span className="px-2 text-[13px] font-semibold text-steel">No file open</span>
+                <span className="px-3 py-2 text-[13px] font-semibold text-steel">No file open</span>
               ) : (
                 openTabs.map((path) => {
                   const isActive = path === activeTab;
@@ -181,10 +185,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                   return (
                     <div
                       key={path}
-                      className={`flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[13px] font-bold transition-colors ${
+                      className={`group flex shrink-0 items-center gap-2 border-r border-canvas-pure/10 border-b-2 px-3 py-2 text-[13px] transition-colors ${
                         isActive
-                          ? 'bg-ink text-canvas-pure ring-1 ring-canvas-pure/15'
-                          : 'bg-canvas-pure/5 text-stone2 hover:bg-canvas-pure/10 hover:text-canvas-pure'
+                          ? 'bg-ink text-canvas-pure border-b-brand-sky'
+                          : 'text-stone2 border-b-transparent hover:bg-canvas-pure/5 hover:text-canvas-pure'
                       }`}
                     >
                       <button
@@ -205,7 +209,9 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                         type="button"
                         aria-label={`Close ${name}`}
                         onClick={() => closeTab(path)}
-                        className="ml-0.5 rounded text-steel transition-colors hover:text-canvas-pure"
+                        className={`ml-0.5 rounded text-steel transition-colors hover:text-canvas-pure ${
+                          isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        }`}
                       >
                         <X size={14} />
                       </button>
@@ -219,7 +225,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
               type="button"
               aria-label="Run game"
               onClick={handlePlay}
-              className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-grad-mint px-4 py-1.5 text-[13px] font-extrabold text-white shadow-brand-mint transition-transform hover:-translate-y-0.5"
+              className="ml-auto mr-2 flex shrink-0 items-center gap-1.5 rounded-full bg-grad-mint px-4 py-1.5 text-[13px] font-extrabold text-white shadow-brand-mint transition-transform hover:-translate-y-0.5"
             >
               <Play size={14} aria-hidden /> Play
             </button>

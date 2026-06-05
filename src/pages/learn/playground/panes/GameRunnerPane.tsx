@@ -1,54 +1,31 @@
 import { Gamepad2, Pause, Play, RotateCcw, Smartphone, Terminal, Volume2, VolumeX } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
+import type { ConsoleLine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
 
 interface GameRunnerPaneProps {
-  /** The lifted VFS — owned by PlaygroundPage. */
+  /** The lifted VFS — owned by PlaygroundApp. */
   files: VfsFile[];
-  /** Bump (via onRestart) forces GameFrame to re-run. Owned by PlaygroundPage. */
+  /** Bump (via onRun) forces GameFrame to re-run. Owned by PlaygroundApp. */
   runKey: number;
-  /** Restart the game — PlaygroundPage bumps runKey. */
-  onRestart: () => void;
+  /** Whether the game is currently running. Owned by PlaygroundApp; ▶ → onRun(). */
+  running: boolean;
+  /** Launch / re-run the game (PlaygroundApp flips `running` + bumps runKey). */
+  onRun: () => void;
 }
 
 const DEFAULT_PRESET_ID = 'original';
-const STAGE_PADDING_PX = 16; // matches the stage area's p-4
 
-/** Track an element's content-box size via ResizeObserver. */
-function useElementSize<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const r = entries[0].contentRect;
-      setSize({ w: r.width, h: r.height });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, size] as const;
-}
-
-/**
- * Largest box with the given aspect ratio that fits inside avail (w×h),
- * minus padding — so the whole game is always visible, letterboxed, never scrolled.
- */
-function fitBox(availW: number, availH: number, aspect: number) {
-  const w0 = Math.max(0, availW - STAGE_PADDING_PX * 2);
-  const h0 = Math.max(0, availH - STAGE_PADDING_PX * 2);
-  let w = w0;
-  let h = w0 / aspect;
-  if (h > h0) {
-    h = h0;
-    w = h0 * aspect;
-  }
-  return { w: Math.round(w), h: Math.round(h) };
-}
+/** Console line level → text color (VSCode-terminal flavor). */
+const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
+  log: 'text-stone2',
+  info: 'text-stone2',
+  warn: 'text-brand-sunshine',
+  error: 'text-brand-coral',
+};
 
 /** A small dark-chrome toolbar button (icon-only). */
 function ToolButton({
@@ -79,48 +56,42 @@ function ToolButton({
 }
 
 /**
- * The Game Runner pane (spec §5): a toolbar, the FIT-scaled game stage, and a
- * status bar, filling its column.
+ * The Game Runner pane (spec §5): a toolbar, the edge-to-edge game stage, an
+ * optional console panel, and a status bar, filling its column.
  *
- * Dark chrome to match the game canvas. The toolbar/status bars are tinted a
- * touch lighter than the stage "desk", and the screen itself gets a light ring,
- * so the running game reads as distinct from the surrounding chrome.
+ * Dark chrome to match the game canvas. The stage fills the whole area
+ * edge-to-edge against black — Phaser's Scale.FIT centers/letterboxes the game
+ * seamlessly. The console (when toggled) is its own bottom section above the
+ * status bar, NOT overlaid on the stage. `running` is owned by PlaygroundApp;
+ * pressing ▶ anywhere calls `onRun()`.
  */
-export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps) {
-  // Gate: the game doesn't auto-run. The stage shows a placeholder until the kid
-  // presses ▶ (toolbar Play or the placeholder's button), which mounts GameFrame.
-  const [started, setStarted] = useState(false);
+export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
   const [showConsole, setShowConsole] = useState(false);
   const [fps, setFps] = useState(0);
-  const [logCount, setLogCount] = useState(0);
+  const [lines, setLines] = useState<ConsoleLine[]>([]);
 
   const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
-
-  // Scale the stage to fit the available area, preserving the preset's aspect
-  // ratio, so the whole game is always visible (no scrolling). Recomputes as the
-  // pane is resized (ResizeObserver) and Phaser's Scale.FIT rescales the canvas.
-  const [stageRef, stageSize] = useElementSize<HTMLDivElement>();
-  const stage = fitBox(stageSize.w, stageSize.h, preset.w / preset.h);
+  const logCount = lines.length;
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink text-canvas-pure">
       {/* Toolbar */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 bg-canvas-pure/5 px-3 py-2">
         <ToolButton
-          label={!started ? 'Play' : paused ? 'Play' : 'Pause'}
-          active={started && !paused}
+          label={!running ? 'Play' : paused ? 'Play' : 'Pause'}
+          active={running && !paused}
           onClick={() => {
-            if (!started) {
-              setStarted(true);
+            if (!running) {
+              onRun();
               return;
             }
             setPaused((p) => !p);
           }}
         >
-          {!started || paused ? <Play size={18} /> : <Pause size={18} />}
+          {!running || paused ? <Play size={18} /> : <Pause size={18} />}
         </ToolButton>
 
         <ToolButton
@@ -147,10 +118,7 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
           </select>
         </label>
 
-        <ToolButton
-          label={started ? 'Restart' : 'Play'}
-          onClick={() => (started ? onRestart() : setStarted(true))}
-        >
+        <ToolButton label="Restart" onClick={onRun}>
           <RotateCcw size={18} />
         </ToolButton>
 
@@ -159,31 +127,21 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
         </ToolButton>
       </div>
 
-      {/* Stage — the game scales to fit this area, keeping aspect ratio. */}
-      <div
-        ref={stageRef}
-        className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-ink p-4"
-      >
-        {started ? (
-          <div
-            className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft ring-1 ring-canvas-pure/20"
-            style={{ width: stage.w, height: stage.h }}
-          >
+      {/* Stage — edge-to-edge; the game letterboxes against black via Scale.FIT. */}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+        {running ? (
+          <div className="h-full w-full bg-black">
             <GameFrame
               files={files}
               runKey={runKey}
               paused={paused}
               muted={muted}
-              showConsole={showConsole}
               onFps={setFps}
-              onConsoleCount={setLogCount}
+              onConsole={setLines}
             />
           </div>
         ) : (
-          <div
-            className="flex shrink-0 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-canvas-pure/15 bg-ink p-6 text-center"
-            style={{ width: stage.w, height: stage.h }}
-          >
+          <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-center">
             <Gamepad2 size={44} className="text-steel" />
             <div className="space-y-0.5">
               <p className="text-sm font-bold text-stone2">Press ▶ to play</p>
@@ -191,7 +149,7 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
             </div>
             <button
               type="button"
-              onClick={() => setStarted(true)}
+              onClick={onRun}
               className="flex items-center gap-1.5 rounded-lg bg-canvas-pure/10 px-3 py-1.5 text-sm font-bold text-canvas-pure transition-colors hover:bg-canvas-pure/20 focus:outline-none focus:ring-2 focus:ring-brand-sky"
             >
               <Play size={16} /> Play
@@ -200,9 +158,43 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
         )}
       </div>
 
+      {/* Console panel — separate bottom section, above the status bar. */}
+      {showConsole && (
+        <div className="flex h-48 shrink-0 flex-col border-t border-canvas-pure/10 bg-[#0E0B16] font-mono">
+          <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-steel">Console</span>
+            <span className="text-[11px] text-stone2">{logCount}</span>
+            <button
+              type="button"
+              onClick={() => setLines([])}
+              className="ml-auto rounded-md px-2 py-0.5 text-[11px] font-semibold text-stone2 transition-colors hover:bg-canvas-pure/10 hover:text-canvas-pure"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
+            {lines.length === 0 ? (
+              <div className="text-[12px] text-steel">—</div>
+            ) : (
+              <ul>
+                {lines.map((l, i) => (
+                  <li
+                    key={i}
+                    className={`flex gap-1.5 border-b border-canvas-pure/[0.04] py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
+                  >
+                    <span aria-hidden className="select-none text-steel">›</span>
+                    <span className="min-w-0 whitespace-pre-wrap break-words">{l.text}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Status bar */}
       <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 bg-canvas-pure/5 px-3 py-1.5 text-xs">
-        {!started ? (
+        {!running ? (
           <>
             <span aria-hidden className="h-2 w-2 rounded-full bg-steel" />
             <span className="font-bold text-canvas-pure">Idle</span>

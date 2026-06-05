@@ -19,6 +19,9 @@ interface GameFrameProps {
   onFps?: (fps: number) => void;
   /** Reports the captured console line count whenever it changes. */
   onConsoleCount?: (n: number) => void;
+  /** Reports the full captured console lines (so a parent can render its own
+   *  console panel instead of the built-in one). */
+  onConsole?: (lines: ConsoleLine[]) => void;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -43,6 +46,7 @@ export function GameFrame({
   muted = false,
   onFps,
   onConsoleCount,
+  onConsole,
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const srcDoc = useMemo(() => buildGameSrcDoc(files), [files]);
@@ -96,10 +100,11 @@ export function GameFrame({
     return () => window.removeEventListener('message', onMessage);
   }, [onFps, runKey]);
 
-  // Report the captured console line count to the parent.
+  // Report the captured console (count + full lines) to the parent.
   useEffect(() => {
     onConsoleCount?.(lines.length);
-  }, [lines, onConsoleCount]);
+    onConsole?.(lines);
+  }, [lines, onConsoleCount, onConsole]);
 
   const lastError = [...lines].reverse().find((l) => l.level === 'error' && l.text !== 'ready');
 

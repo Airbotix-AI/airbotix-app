@@ -65,12 +65,13 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
 
-test('taskbar can restore a closed window', async ({ page }) => {
+test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {
   await reachWorkspace(page);
   // Close the Game Runner window via its titlebar close button.
   await page.getByRole('button', { name: 'Close Game Runner' }).click();
   await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeHidden();
-  // Re-open it from the taskbar button (named for its action).
-  await page.getByRole('button', { name: /Game Runner/ }).last().click();
+  // Closed windows are removed from the taskbar; reopen from the desktop icon
+  // (the first 'Game Runner' button = the desktop shortcut).
+  await page.getByRole('button', { name: 'Game Runner' }).first().click();
   await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeVisible();
 });

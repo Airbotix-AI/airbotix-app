@@ -50,6 +50,9 @@ interface PlaygroundState {
 // mount (a post-mount setRect would be ignored by the uncontrolled drag).
 // zIndex: code(1) < game(2) < chat(3) so Chat starts on top.
 const TASKBAR_H = 56;
+// Left margin that keeps the desktop shortcut icon column clear, so a closed
+// window can always be reopened from its icon (windows don't cover it by default).
+const ICON_COL_PX = 124;
 
 function r(x: number, y: number, w: number, h: number): WinRect {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
@@ -67,7 +70,7 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     rect,
   });
   return {
-    code: base('code', 1, r(W * 0.02, H * 0.3, W * 0.42, H * 0.62)),
+    code: base('code', 1, r(ICON_COL_PX, H * 0.3, W * 0.4, H * 0.62)),
     game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
   };

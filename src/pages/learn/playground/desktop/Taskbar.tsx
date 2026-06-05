@@ -21,6 +21,7 @@ import { WINDOW_META, WINDOW_ORDER } from './windowMeta';
 
 export function Taskbar() {
   const windows = usePlaygroundStore((s) => s.windows);
+  const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const openOrFocus = usePlaygroundStore((s) => s.openOrFocus);
   const minimize = usePlaygroundStore((s) => s.minimize);
 
@@ -55,41 +56,43 @@ export function Taskbar() {
 
       <LayoutToggle />
 
-      <div className="flex items-center gap-2 pl-2">
-        {WINDOW_ORDER.map((id) => {
-          const w = windows[id];
-          const { title, Icon } = WINDOW_META[id];
-          const isActive = id === activeId;
-          const isVisible = w.open && !w.minimized;
+      {layoutMode === 'window' && (
+        <div className="flex items-center gap-2 pl-2">
+          {WINDOW_ORDER.filter((id) => windows[id].open).map((id) => {
+            const w = windows[id];
+            const { title, Icon } = WINDOW_META[id];
+            const isActive = id === activeId;
+            const isVisible = w.open && !w.minimized;
 
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-label={
-                isActive
-                  ? `Minimize ${title}`
-                  : isVisible
-                    ? `Focus ${title}`
-                    : `Open ${title}`
-              }
-              aria-pressed={isActive}
-              onClick={() => handleClick(id)}
-              className={clsx(
-                'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold leading-none transition-colors',
-                isActive
-                  ? 'border-brand-sky/50 bg-brand-sky/16 text-canvas-pure'
-                  : isVisible
-                    ? 'border-[#46415C] bg-[#221E30] text-stone2 hover:text-canvas-pure'
-                    : 'border-transparent bg-transparent text-steel hover:text-stone2',
-              )}
-            >
-              <Icon size={18} />
-              {title}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-label={
+                  isActive
+                    ? `Minimize ${title}`
+                    : isVisible
+                      ? `Focus ${title}`
+                      : `Open ${title}`
+                }
+                aria-pressed={isActive}
+                onClick={() => handleClick(id)}
+                className={clsx(
+                  'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold leading-none transition-colors',
+                  isActive
+                    ? 'border-brand-sky/50 bg-brand-sky/16 text-canvas-pure'
+                    : isVisible
+                      ? 'border-[#46415C] bg-[#221E30] text-stone2 hover:text-canvas-pure'
+                      : 'border-transparent bg-transparent text-steel hover:text-stone2',
+                )}
+              >
+                <Icon size={18} />
+                {title}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

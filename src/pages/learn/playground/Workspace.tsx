@@ -5,9 +5,10 @@
 //     left-edge <DesktopIcon> column + three draggable <Window>s (Code / Chat /
 //     Game), with a <Taskbar> docked below it. The maximized window fills the
 //     surface only (above the taskbar), so the surface is its own flex child.
-//   - 'split': a thin top bar (label + LayoutToggle) over a horizontal
-//     PanelGroup — a left region with a Chat/Code tab strip, a ResizeHandle, and
-//     the Game Runner on the right.
+//   - 'split': a horizontal PanelGroup — a left region with a Chat/Code tab
+//     strip, a ResizeHandle, and the Game Runner on the right — over the same
+//     <Taskbar> docked below (the Taskbar hides the per-window buttons in split
+//     mode and just holds the brand + LayoutToggle).
 //
 // Dark-themed throughout (design-system tokens only; no raw hex / Tailwind
 // defaults beyond the desktop bg). Matches docs/mockup-workspace-v2.png.
@@ -18,7 +19,6 @@ import { Panel, PanelGroup } from 'react-resizable-panels';
 import clsx from 'clsx';
 
 import type { VfsFile } from '../code/codeApi';
-import { LayoutToggle } from './LayoutToggle';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
@@ -34,6 +34,8 @@ interface WorkspaceProps {
   files: VfsFile[];
   /** Bump (via onRun) forces the Game Runner to re-run. Owned by PlaygroundApp. */
   runKey: number;
+  /** Whether the game is currently running. Owned by PlaygroundApp. */
+  running: boolean;
   /** Commit edits back to the page-level source of truth. */
   onApplyFiles: (f: VfsFile[]) => void;
   /** Re-run the game (PlaygroundApp bumps runKey). */
@@ -47,7 +49,7 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'code', label: '</> Code' },
 ];
 
-export function Workspace({ files, runKey, onApplyFiles, onRun }: WorkspaceProps) {
+export function Workspace({ files, runKey, running, onApplyFiles, onRun }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>('chat');
   // Default window placement (Code lower-left & wide, Chat center-top & front,
@@ -87,7 +89,7 @@ export function Workspace({ files, runKey, onApplyFiles, onRun }: WorkspaceProps
             title={WINDOW_META.game.title}
             icon={<WINDOW_META.game.Icon size={16} />}
           >
-            <GameRunnerPane files={files} runKey={runKey} onRestart={onRun} />
+            <GameRunnerPane files={files} runKey={runKey} running={running} onRun={onRun} />
           </Window>
         </div>
 
@@ -99,13 +101,7 @@ export function Workspace({ files, runKey, onApplyFiles, onRun }: WorkspaceProps
 
   return (
     <div className="flex h-full w-full flex-col bg-ink text-canvas-pure">
-      {/* Top bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-canvas-pure/10 bg-canvas-pure/5 px-3 py-1.5">
-        <span className="text-xs font-semibold text-stone2">playground</span>
-        <LayoutToggle />
-      </div>
-
-      {/* Split: horizontal PanelGroup */}
+      {/* Split: horizontal PanelGroup, above the docked taskbar */}
       <div className="relative min-h-0 flex-1">
         <PanelGroup
           direction="horizontal"
@@ -155,10 +151,13 @@ export function Workspace({ files, runKey, onApplyFiles, onRun }: WorkspaceProps
 
           {/* Right: Game Runner */}
           <Panel defaultSize={33} minSize={20} className="min-w-0">
-            <GameRunnerPane files={files} runKey={runKey} onRestart={onRun} />
+            <GameRunnerPane files={files} runKey={runKey} running={running} onRun={onRun} />
           </Panel>
         </PanelGroup>
       </div>
+
+      {/* Docked taskbar (brand + LayoutToggle); per-window buttons hidden in split mode */}
+      <Taskbar />
     </div>
   );
 }
