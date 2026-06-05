@@ -43,38 +43,38 @@ interface PlaygroundState {
   setRect: (id: PgWindowId, rect: WinRect) => void;
 }
 
-// Cascaded defaults roughly matching the mockup: chat front-left, code center,
-// game right, with ascending zIndex so game starts on top.
-const BASE_Z = 1;
+// Default window layout (v2 mockup): Code Editor lower-left & wide, Chat
+// center & top (front-most/focused), Game Runner right. Computed from the
+// viewport at module load so windows mount with the right geometry — `Window`
+// uses react-rnd UNCONTROLLED `default`, so the rects must be correct BEFORE
+// mount (a post-mount setRect would be ignored by the uncontrolled drag).
+// zIndex: code(1) < game(2) < chat(3) so Chat starts on top.
+const TASKBAR_H = 56;
 
-const DEFAULT_WINDOWS: Record<PgWindowId, WinState> = {
-  chat: {
-    id: 'chat',
-    open: true,
-    minimized: false,
-    maximized: false,
-    zIndex: BASE_Z,
-    rect: { x: 24, y: 24, w: 380, h: 560 },
-  },
-  code: {
-    id: 'code',
-    open: true,
-    minimized: false,
-    maximized: false,
-    zIndex: BASE_Z + 1,
-    rect: { x: 432, y: 56, w: 520, h: 560 },
-  },
-  game: {
-    id: 'game',
-    open: true,
-    minimized: false,
-    maximized: false,
-    zIndex: BASE_Z + 2,
-    rect: { x: 980, y: 88, w: 420, h: 480 },
-  },
-};
+function r(x: number, y: number, w: number, h: number): WinRect {
+  return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+}
 
-const INITIAL_TOP_Z = BASE_Z + 2;
+function defaultWindows(): Record<PgWindowId, WinState> {
+  const W = typeof window !== 'undefined' ? window.innerWidth : 1440;
+  const H = (typeof window !== 'undefined' ? window.innerHeight : 900) - TASKBAR_H;
+  const base = (id: PgWindowId, zIndex: number, rect: WinRect): WinState => ({
+    id,
+    open: true,
+    minimized: false,
+    maximized: false,
+    zIndex,
+    rect,
+  });
+  return {
+    code: base('code', 1, r(W * 0.02, H * 0.3, W * 0.42, H * 0.62)),
+    game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
+    chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
+  };
+}
+
+const DEFAULT_WINDOWS = defaultWindows();
+const INITIAL_TOP_Z = 3;
 
 export const usePlaygroundStore = create<PlaygroundState>((set) => ({
   layoutMode: 'window',

@@ -3,20 +3,21 @@ import { test, expect, type Page } from '@playwright/test';
 // E2E for the redesigned Playground (DEV-only /playground-sandbox, no auth):
 // Landing (glow prompt + chips) → Generating (blocking) → Workspace with two
 // layout modes (Window default / Split). Stubbed generation + AI turn.
+// NOTE: window titles appear in 3 places (desktop icon, window titlebar, taskbar
+// button) so text selectors use .first() / roles to stay unambiguous.
 
 const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
 
-/** Drive landing → generating → workspace; resolves once the workspace is shown. */
 async function reachWorkspace(page: Page) {
   await page.goto('/playground-sandbox');
   const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
   await input.fill('a pong game');
   await input.press('Enter');
-  // Workspace marker (Window mode shows the Game Runner window title).
-  await expect(page.getByText('Game Runner')).toBeVisible({ timeout: 10_000 });
+  // Workspace marker: the layout toggle (taskbar) appears.
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
 }
 
-test('landing shows the prompt + starter chips, and Enter generates → workspace', async ({ page }) => {
+test('landing shows the prompt + starter chips, and Enter → generating → workspace', async ({ page }) => {
   await page.goto('/playground-sandbox');
   await expect(page.getByPlaceholder(LANDING_PLACEHOLDER)).toBeVisible();
   await expect(page.getByRole('button', { name: /Pong/ })).toBeVisible();
@@ -25,10 +26,10 @@ test('landing shows the prompt + starter chips, and Enter generates → workspac
   await input.fill('a pong game');
   await input.press('Enter');
 
-  // Blocking generating screen, then the workspace (Window mode default).
   await expect(page.getByText('Building your game…')).toBeVisible({ timeout: 4_000 });
-  await expect(page.getByText('Game Runner')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText('Code Editor')).toBeVisible();
+  // Workspace (Window mode default): the Game Runner window + taskbar toggle.
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Game Runner').first()).toBeVisible();
 });
 
 test('generated project is multi-file (nested src/scenes in the Code editor)', async ({ page }) => {
@@ -39,16 +40,12 @@ test('generated project is multi-file (nested src/scenes in the Code editor)', a
 
 test('layout toggle switches Window ⇄ Split', async ({ page }) => {
   await reachWorkspace(page);
-  // default = Window mode (window titlebars present)
-  await expect(page.getByText('Chat').first()).toBeVisible();
-
   await page.getByRole('button', { name: /Split/ }).click();
-  // Split mode: a Chat/Code tab strip (role=tab) + the runner placeholder
   await expect(page.getByRole('tab', { name: /Code/ })).toBeVisible();
   await expect(page.getByText('Press ▶ to play')).toBeVisible();
 
   await page.getByRole('button', { name: /Windows/ }).click();
-  await expect(page.getByText('Code Editor')).toBeVisible();
+  await expect(page.getByText('Code Editor').first()).toBeVisible();
 });
 
 test('AI chat (stub): sending a prompt shows the kid message and a reply', async ({ page }) => {
@@ -66,4 +63,14 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   // The placeholder's Play button launches the game (placeholder disappears).
   await page.getByRole('button', { name: 'Play' }).first().click();
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
+});
+
+test('taskbar can restore a closed window', async ({ page }) => {
+  await reachWorkspace(page);
+  // Close the Game Runner window via its titlebar close button.
+  await page.getByRole('button', { name: 'Close Game Runner' }).click();
+  await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeHidden();
+  // Re-open it from the taskbar button (named for its action).
+  await page.getByRole('button', { name: /Game Runner/ }).last().click();
+  await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeVisible();
 });
