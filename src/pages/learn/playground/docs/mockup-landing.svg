@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <radialGradient id="vign" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#17121F"/>
+      <stop offset="1" stop-color="#0F0B18"/>
+    </radialGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FF7A66"/>
+      <stop offset="0.33" stop-color="#FF6BA9"/>
+      <stop offset="0.66" stop-color="#5DAEFF"/>
+      <stop offset="1" stop-color="#3DD9A9"/>
+    </linearGradient>
+    <linearGradient id="send" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5DAEFF"/><stop offset="1" stop-color="#3D8BE0"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <filter id="badge" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- screen -->
+  <rect x="0" y="0" width="1600" height="720" fill="url(#vign)"/>
+
+  <!-- wordmark -->
+  <text x="800" y="120" text-anchor="middle" font-size="20" font-weight="800" fill="#C7C0D5">
+    <tspan fill="#5DAEFF">✦</tspan> Airbotix Playground
+  </text>
+
+  <!-- glow halo behind prompt box -->
+  <rect x="346" y="296" width="908" height="228" rx="30" fill="url(#glow)" opacity="0.55" filter="url(#soft)"/>
+  <!-- gradient border ring -->
+  <rect x="350" y="300" width="900" height="220" rx="26" fill="none" stroke="url(#glow)" stroke-width="3"/>
+  <!-- prompt box -->
+  <rect x="354" y="304" width="892" height="212" rx="23" fill="#221E30"/>
+  <text x="386" y="360" font-size="19" fill="#9C95AB">Describe a game and we'll build it…</text>
+  <!-- bottom-left mic/+ -->
+  <circle cx="396" cy="476" r="17" fill="none" stroke="#3A3548" stroke-width="2"/>
+  <text x="396" y="482" text-anchor="middle" font-size="15" fill="#9C95AB">🎤</text>
+  <circle cx="440" cy="476" r="17" fill="none" stroke="#3A3548" stroke-width="2"/>
+  <text x="440" y="483" text-anchor="middle" font-size="18" fill="#9C95AB">+</text>
+  <!-- send -->
+  <circle cx="1206" cy="476" r="22" fill="url(#send)"/>
+  <text x="1206" y="483" text-anchor="middle" font-size="18" fill="#FFFFFF">→</text>
+
+  <!-- starter chips -->
+  <g font-size="15" font-weight="700" fill="#FFFFFF">
+    <g><rect x="470" y="572" width="118" height="44" rx="22" fill="#221E30" stroke="#3A3548"/><text x="529" y="600" text-anchor="middle">🏓 Pong</text></g>
+    <g><rect x="600" y="572" width="160" height="44" rx="22" fill="#221E30" stroke="#3A3548"/><text x="680" y="600" text-anchor="middle">🟩 Platformer</text></g>
+    <g><rect x="772" y="572" width="130" height="44" rx="22" fill="#221E30" stroke="#3A3548"/><text x="837" y="600" text-anchor="middle">🐦 Flappy</text></g>
+    <g><rect x="914" y="572" width="128" height="44" rx="22" fill="#221E30" stroke="#3A3548"/><text x="978" y="600" text-anchor="middle">🐍 Snake</text></g>
+    <g><rect x="1054" y="572" width="118" height="44" rx="22" fill="#221E30" stroke="#3A3548"/><text x="1113" y="600" text-anchor="middle">🌀 Maze</text></g>
+  </g>
+
+  <!-- annotation badges -->
+  <g font-weight="800" font-size="15" text-anchor="middle" filter="url(#badge)">
+    <g><circle cx="350" cy="300" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="350" y="306" fill="#fff">1</text></g>
+    <g><circle cx="800" cy="304" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="800" y="310" fill="#fff">2</text></g>
+    <g><circle cx="529" cy="572" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="529" y="578" fill="#fff">3</text></g>
+    <g><circle cx="1206" cy="446" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="1206" y="452" fill="#fff">4</text></g>
+  </g>
+
+  <!-- legend -->
+  <rect x="0" y="720" width="1600" height="200" fill="#17141F"/>
+  <line x1="0" y1="720" x2="1600" y2="720" stroke="#3A3548"/>
+  <text x="48" y="762" font-size="19" font-weight="800" fill="#FFFFFF">Annotations</text>
+  <text x="210" y="762" font-size="14" fill="#9C95AB">— Landing screen (Gemini-style entry, dark)</text>
+  <g font-size="14">
+    <g transform="translate(48,792)">
+      <g><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">1</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Animated glowing border</text>
+        <text x="36" y="26" fill="#C7C0D5">Rotating brand gradient (coral→sky→mint→bubblegum) around the box.</text></g>
+      <g transform="translate(0,52)"><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">2</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Prompt box</text>
+        <text x="36" y="26" fill="#C7C0D5">"Describe a game…" — Enter or → to build.</text></g>
+    </g>
+    <g transform="translate(820,792)">
+      <g><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">3</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Starter chips</text>
+        <text x="36" y="26" fill="#C7C0D5">Tap a game idea to prefill the prompt.</text></g>
+      <g transform="translate(0,52)"><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">4</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Subtle send</text>
+        <text x="36" y="26" fill="#C7C0D5">→ / Enter submits; no big headline or Build button.</text></g>
+    </g>
+  </g>
+</svg>
