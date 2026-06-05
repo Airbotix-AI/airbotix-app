@@ -1,0 +1,133 @@
+/**
+ * playground.css — plain CSS animations the Tailwind utilities can't express.
+ * Imported by the Learn Playground Landing / Generating screens (dark theme).
+ *
+ * Brand colors: coral #FF7A66 · bubblegum #FF6BA9 · sky #5DAEFF · mint #3DD9A9
+ *
+ * Everything here is namespaced with the `pg-` prefix so it won't collide
+ * with Tailwind utilities or other component styles.
+ */
+
+/* Animatable custom angle. Without @property the browser treats `--pg-a` as a
+ * plain string and can't interpolate it — registering it as an <angle> makes
+ * the conic-gradient rotation animate smoothly. */
+@property --pg-a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* =========================================================================
+ * 1. Rotating gradient glow — landing prompt box halo
+ * =========================================================================
+ * Usage: wrap the prompt box in `.pg-glow` and give that wrapper (or its
+ * inner content) a solid background so the glow reads as a halo behind it.
+ * The `::before` is the blurred conic ring sitting one layer back (z-index -1).
+ */
+.pg-glow {
+  position: relative;
+  /* establishes a stacking context so the -1 glow stays behind inner content */
+  isolation: isolate;
+}
+
+.pg-glow::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.8;
+  filter: blur(10px);
+  background: conic-gradient(
+    from var(--pg-a, 0deg),
+    #FF7A66,
+    #FF6BA9,
+    #5DAEFF,
+    #3DD9A9,
+    #FF7A66
+  );
+  animation: pg-glow-spin 6s linear infinite;
+}
+
+/* Spins the conic gradient by driving the registered --pg-a angle. */
+@keyframes pg-glow-spin {
+  to {
+    --pg-a: 360deg;
+  }
+}
+
+/* Fallback for engines without @property support: --pg-a can't interpolate,
+ * so the conic angle stays put. Detect the lack of support and rotate the
+ * whole blurred layer instead, so there's still visible motion.
+ * (@supports for an @property-only feature: this block applies when the
+ * browser does NOT understand registered custom properties.) */
+@supports not (background: paint(something)) {
+  /* no-op marker; real fallback below keyed on @property support */
+}
+
+@supports not (animation-timeline: --x) {
+  /* harmless: just keeps this file resilient across feature sets */
+}
+
+/* The motion fallback: if the conic angle can't animate, rotate the layer. */
+@supports not (syntax: '<angle>') {
+  .pg-glow::before {
+    animation: pg-glow-rotate 6s linear infinite;
+  }
+}
+
+@keyframes pg-glow-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================================
+ * 2. Orb / arc spin — generating screen
+ * =========================================================================
+ */
+@keyframes pg-orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pg-orb-spin {
+  animation: pg-orb-spin 1.4s linear infinite;
+}
+
+/* =========================================================================
+ * 3. Progress bar shimmer (optional) — generating screen
+ * =========================================================================
+ * Apply `.pg-shimmer` to a progress fill; the moving highlight sweeps across.
+ * Pair with a background-size wider than the element for the sweep effect.
+ */
+@keyframes pg-shimmer {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+
+.pg-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: pg-shimmer 1.8s linear infinite;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .pg-glow::before,
+  .pg-orb-spin,
+  .pg-shimmer {
+    animation: none;
+  }
+}
