@@ -30,16 +30,27 @@ interface DesktopProps {
   onRun: () => void;
 }
 
+// Bottom taskbar height (kept in lockstep with Taskbar / Window's maximize).
+const TASKBAR_H = 48;
+
 export function Desktop({ files, runKey, onApplyFiles, onRun }: DesktopProps) {
   const openOrFocus = useWindowStore((s) => s.openOrFocus);
+  const setRect = useWindowStore((s) => s.setRect);
 
-  // On first load the desktop would otherwise be empty (all windows start
-  // closed). Open the game window first, then the code window, so the Code
-  // Editor ends up focused/on top — the kid's primary surface.
+  // Initial layout: tile the two work windows to fill the screen above the
+  // taskbar — Code Editor on the left 2/3, Game Runner on the right 1/3. Sizes
+  // are derived from the viewport so they fill the height on any screen. Set the
+  // rects BEFORE opening so each window mounts with its tiled geometry.
   useEffect(() => {
+    const w = window.innerWidth;
+    const h = window.innerHeight - TASKBAR_H;
+    const editorW = Math.round((w * 2) / 3);
+    setRect('code', { x: 0, y: 0, w: editorW, h });
+    setRect('game', { x: editorW, y: 0, w: w - editorW, h });
+    // Open game first, then code, so the Code Editor ends up focused/on top.
     openOrFocus('game');
     openOrFocus('code');
-  }, [openOrFocus]);
+  }, [openOrFocus, setRect]);
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-wash-mint to-wash-sky">
