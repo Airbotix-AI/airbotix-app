@@ -55,6 +55,8 @@ test('AI chat (stub): sending a prompt shows the kid message and a reply', async
   await chat.press('Enter');
   await expect(page.getByText('make the ball faster')).toBeVisible();
   await expect(page.getByText(/AI demo|sample tweak|isn.t connected/i)).toBeVisible({ timeout: 6_000 });
+  // Chatting must NOT auto-run the game — the runner stays on its placeholder.
+  await expect(page.getByText('Press ▶ to play')).toBeVisible();
 });
 
 test('game runner: placeholder until Play, then it starts', async ({ page }) => {

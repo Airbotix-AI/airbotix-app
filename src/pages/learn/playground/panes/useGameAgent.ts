@@ -28,8 +28,6 @@ export interface UseGameAgentOptions {
   files: VfsFile[];
   /** Commit the turn's resulting VFS back to the page-level source of truth. */
   onApplyFiles: (files: VfsFile[]) => void;
-  /** Re-run the game after files are applied (bumps the run key). */
-  onRun: () => void;
   /** The swap seam. Defaults to the offline stub. */
   runTurn?: RunTurn;
 }
@@ -42,11 +40,12 @@ const ERROR_TEXT = 'Could not reach the AI. Try again.';
 /**
  * Chat controller for the playground AI panel. `send(text)` pushes the kid's
  * message plus a pending agent bubble, awaits `runTurn`, then either replaces
- * the pending bubble with the result (and applies + runs the new VFS) or marks
- * it as failed. Empty input and sends while busy are ignored.
+ * the pending bubble with the result and APPLIES the new VFS, or marks it as
+ * failed. It does NOT run the game — the kid presses ▶ Play to see changes, so
+ * chatting never auto-plays. Empty input and sends while busy are ignored.
  */
 export function useGameAgent(opts: UseGameAgentOptions) {
-  const { files, onApplyFiles, onRun, runTurn = runTurnStub } = opts;
+  const { files, onApplyFiles, runTurn = runTurnStub } = opts;
 
   const [chat, setChat] = useState<ChatItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -92,7 +91,6 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           ),
         );
         onApplyFiles(result.files);
-        onRun();
       } catch {
         setError(ERROR_TEXT);
         setChat((prev) =>
@@ -106,7 +104,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [busy, files, nextId, onApplyFiles, onRun, runTurn],
+    [busy, files, nextId, onApplyFiles, runTurn],
   );
 
   return { chat, busy, error, send };

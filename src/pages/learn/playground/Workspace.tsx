@@ -92,7 +92,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             title={WINDOW_META.chat.title}
             icon={<WINDOW_META.chat.Icon size={16} />}
           >
-            <ChatPane files={files} onApplyFiles={onApplyFiles} onRun={onRun} />
+            <ChatPane files={files} onApplyFiles={onApplyFiles} />
           </Window>
           <Window
             id="game"
@@ -151,7 +151,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               </div>
               <div className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
-                  <ChatPane files={files} onApplyFiles={onApplyFiles} onRun={onRun} />
+                  <ChatPane files={files} onApplyFiles={onApplyFiles} />
                 ) : (
                   <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
                 )}
