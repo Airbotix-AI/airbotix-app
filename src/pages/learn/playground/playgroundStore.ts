@@ -31,6 +31,10 @@ interface PlaygroundState {
   setLayoutMode: (m: LayoutMode) => void;
   windows: Record<PgWindowId, WinState>;
   topZ: number;
+  /** True while any window is being dragged/resized — drives a drag overlay so
+   *  dragging across the game iframe doesn't stall. */
+  interacting: boolean;
+  setInteracting: (v: boolean) => void;
   focus: (id: PgWindowId) => void;
   close: (id: PgWindowId) => void;
   openOrFocus: (id: PgWindowId) => void;
@@ -77,6 +81,8 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
   setLayoutMode: (m) => set({ layoutMode: m }),
   windows: DEFAULT_WINDOWS,
   topZ: INITIAL_TOP_Z,
+  interacting: false,
+  setInteracting: (v) => set({ interacting: v }),
   focus: (id) =>
     set((state) => {
       const nextZ = state.topZ + 1;
