@@ -12,7 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import type { VfsFile } from '../code/codeApi';
-import { generateScaffold } from './panes/starterProject';
+import { generateScaffold, SCAFFOLD_DELAY_MS } from './panes/starterProject';
 
 // The build stages the kid sees tick through. Cosmetic — see file header.
 const STEPS = [
@@ -22,8 +22,9 @@ const STEPS = [
   'Wiring up the stage',
 ] as const;
 
-// How often the cosmetic status list advances one step.
-const STEP_INTERVAL_MS = 450;
+// Spread the status ticks evenly across the (stubbed) build duration so they
+// finish right as the scaffold resolves.
+const STEP_INTERVAL_MS = SCAFFOLD_DELAY_MS / STEPS.length;
 
 // Near-black canvas vignette from the mockup (#17121F → #0F0B18). Raw hex is
 // allowed here per the task: there are no design tokens for these dark stops.
@@ -37,6 +38,9 @@ export function GeneratingScreen({
   onDone: (files: VfsFile[]) => void;
 }) {
   const [step, setStep] = useState(0);
+  // Drives the progress bar: starts false, flips true on mount so the bar's
+  // width transitions 0 → 100% smoothly (and monotonically) over the build span.
+  const [filling, setFilling] = useState(false);
   // Keep the latest onDone without re-running the mount effect.
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -49,6 +53,9 @@ export function GeneratingScreen({
       setStep((s) => Math.min(s + 1, STEPS.length - 1));
     }, STEP_INTERVAL_MS);
 
+    // Kick off the progress-bar fill on the next frame (so the transition runs).
+    const raf = requestAnimationFrame(() => setFilling(true));
+
     // The real (stubbed) work. When it resolves, stop ticking and hand off.
     generateScaffold(prompt).then((files) => {
       if (cancelled) return;
@@ -59,10 +66,9 @@ export function GeneratingScreen({
     return () => {
       cancelled = true;
       window.clearInterval(ticker);
+      cancelAnimationFrame(raf);
     };
   }, [prompt]);
-
-  const progressPct = ((step + 1) / STEPS.length) * 100;
 
   return (
     <div
@@ -83,12 +89,14 @@ export function GeneratingScreen({
           <StatusRow key={label} label={label} state={rowState(i, step)} />
         ))}
 
-        {/* Progress bar — fills with the current step. */}
+        {/* Progress bar — fills smoothly 0 → 100% over the build span (linear,
+            monotonic; no shimmer sweep). */}
         <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-[#221E30]">
           <div
-            className="pg-shimmer h-full rounded-full transition-[width] duration-300 ease-out"
+            className="h-full rounded-full"
             style={{
-              width: `${progressPct}%`,
+              width: filling ? '100%' : '0%',
+              transition: `width ${SCAFFOLD_DELAY_MS}ms linear`,
               backgroundImage:
                 'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
             }}
