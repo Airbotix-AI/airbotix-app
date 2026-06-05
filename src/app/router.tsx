@@ -7,9 +7,9 @@ import { PortalLayout } from './PortalLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
-// DEV-ONLY: the playground virtual desktop (no auth). Seeded with a local starter
-// game; the real /learn/playground/:projectId route (auth + backend) comes later.
-import { PlaygroundPage } from '@/pages/learn/playground/PlaygroundPage';
+// DEV-ONLY: the playground (no auth). Landing → generating → workspace (two layout
+// modes). The real /learn/playground/:projectId route (auth + backend) comes later.
+import { PlaygroundApp } from '@/pages/learn/playground/PlaygroundApp';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
 import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
@@ -59,7 +59,7 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootPage /> },
 
   // DEV-ONLY: view the playground desktop without auth. Stripped from prod builds.
-  ...(import.meta.env.DEV ? [{ path: '/playground-sandbox', element: <PlaygroundPage /> }] : []),
+  ...(import.meta.env.DEV ? [{ path: '/playground-sandbox', element: <PlaygroundApp /> }] : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },
