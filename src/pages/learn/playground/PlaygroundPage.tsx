@@ -1,13 +1,16 @@
-// Top-level Playground page. A permanent two-pane split — Code Editor on the
-// left 2/3, Game Runner on the right 1/3, filling the screen. No windows /
-// desktop / taskbar: the panes are fixed. This page is the single source of
+// Top-level Playground page. A resizable two-region split — Code Editor on the
+// left (~2/3), Game Runner on the right (~1/3); drag the boundary to resize.
+// The Code Editor itself is a 3-column resizable group (file list / editor / AI
+// helper). No windows / desktop / taskbar. This page is the single source of
 // truth for the in-memory VFS + run state (no backend/auth this iteration).
 
 import { useCallback, useState } from 'react';
+import { Panel, PanelGroup } from 'react-resizable-panels';
 
 import type { VfsFile } from '../code/codeApi';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
+import { ResizeHandle } from './panes/ResizeHandle';
 import { STARTER_GAME } from './starterGame';
 
 export function PlaygroundPage() {
@@ -19,15 +22,14 @@ export function PlaygroundPage() {
   const run = useCallback(() => setRunKey((k) => k + 1), []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-ink">
-      {/* Left 2/3 — Code Editor */}
-      <div className="min-w-0 flex-[2]">
+    <PanelGroup direction="horizontal" className="h-screen w-full bg-ink" autoSaveId="pg-outer">
+      <Panel defaultSize={67} minSize={30} className="min-w-0">
         <CodeEditorPane files={files} onApplyFiles={setFiles} onRun={run} />
-      </div>
-      {/* Right 1/3 — Game Runner */}
-      <div className="min-w-0 flex-1">
+      </Panel>
+      <ResizeHandle />
+      <Panel defaultSize={33} minSize={20} className="min-w-0">
         <GameRunnerPane files={files} runKey={runKey} onRestart={run} />
-      </div>
-    </div>
+      </Panel>
+    </PanelGroup>
   );
 }

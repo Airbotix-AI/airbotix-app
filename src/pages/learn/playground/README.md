@@ -12,9 +12,12 @@ but the preview hosts Phaser + a game canvas instead of a generic web page.
 
 ## How it works (1-minute version)
 
-The UI is a **permanent fixed two-pane split** — the **Code Editor** fills the
-left 2/3 and the **Game Runner** fills the right 1/3, both full screen height.
-No windows, taskbar, or desktop shortcuts.
+The UI is a **permanent, resizable split** — the **Code Editor** fills the left
+~2/3 and the **Game Runner** the right ~1/3, full screen height. The Code Editor
+is itself three resizable columns (**file list / editor / AI helper**), so all
+four boundaries are drag-resizable (`react-resizable-panels`). No windows,
+taskbar, or desktop shortcuts. The Game Runner scales the game to fit its pane,
+preserving aspect ratio (the whole game stays visible, never scrolled).
 
 1. A kid's game is just a `game.js` file (a Phaser scene). The studio owns the
    surrounding HTML.
@@ -50,9 +53,10 @@ playground/
 ├── GameFrame.tsx         # renders the sandbox iframe + console + control channel
 ├── starterGame.ts        # the Pong seed game (one game.js)
 ├── screenPresets.ts      # screen-size presets for the Game Runner
-└── panes/                # the two panes + their parts
-    ├── CodeEditorPane.tsx    # left pane: file tree + Monaco + docked AI chat + ▶ Play
-    ├── GameRunnerPane.tsx    # right pane: toolbar + game stage + status bar
+└── panes/                # the panes + their parts
+    ├── CodeEditorPane.tsx    # left region: resizable file tree / Monaco / AI chat + ▶ Play
+    ├── GameRunnerPane.tsx    # right pane: toolbar + scale-to-fit game stage + status bar
+    ├── ResizeHandle.tsx      # draggable divider between columns/panes
     ├── FileTree.tsx          # file list sidebar
     ├── MonacoEditor.tsx      # lazy, self-hosted Monaco
     ├── AIChatPanel.tsx       # chat UI (presentational)

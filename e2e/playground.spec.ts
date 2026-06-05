@@ -39,6 +39,26 @@ test('game control channel: fps ticks (>0) and pause/resume flips status', async
   await expect(page.getByText('Running')).toBeVisible();
 });
 
+test('columns are resizable by dragging a divider', async ({ page }) => {
+  // The file-list column (the aside containing game.js).
+  const fileList = page.locator('aside').filter({ hasText: 'game.js' }).first();
+  const before = await fileList.boundingBox();
+  if (!before) throw new Error('file list not found');
+
+  // First resize handle = file-list ↔ editor. Drag it right to widen the list.
+  const handle = page.locator('[data-panel-resize-handle-id]').first();
+  const hb = await handle.boundingBox();
+  if (!hb) throw new Error('resize handle not found');
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + 120, hb.y + hb.height / 2, { steps: 10 });
+  await page.mouse.up();
+
+  const after = await fileList.boundingBox();
+  if (!after) throw new Error('file list missing after resize');
+  expect(after.width - before.width).toBeGreaterThan(50);
+});
+
 test('screen-size preset changes the stage dimensions', async ({ page }) => {
   await page.getByLabel('Screen size').selectOption('iphone');
   // Scope to the status-bar readout (the <option> label also contains these dims).

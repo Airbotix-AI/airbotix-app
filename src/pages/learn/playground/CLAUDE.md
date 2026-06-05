@@ -19,13 +19,15 @@ specialization of the code studio (`src/pages/learn/code/`) — same AI-assisted
 loop, same iframe security model, but the runtime hosts Phaser and a game
 canvas instead of a generic HTML page.
 
-The UI is a **permanent fixed two-pane split** (no windowing): the **Code Editor
-pane on the LEFT 2/3** and the **Game Runner pane on the RIGHT 1/3**, filling the
-screen height. `PlaygroundPage` renders the two panes directly via flex
-(`flex-[2]` / `flex-1`) — there is no window chrome. The Code Editor pane hosts a
-(lazy, self-hosted) Monaco editor + a file tree + a collapsible docked AI chat
-panel; the Game Runner pane hosts the sandboxed `GameFrame` with
-pause/mute/screen-size/restart/console controls and a status bar.
+The UI is a **permanent, resizable split** (no windowing). Built with
+**`react-resizable-panels`**: an outer horizontal group splits the **Code Editor
+region (~2/3)** from the **Game Runner pane (~1/3)**; the Code Editor region is
+itself a horizontal group of **three resizable columns — file list / Monaco
+editor / AI helper**. Every boundary is drag-resizable (`ResizeHandle`); there is
+no window chrome. The Game Runner pane hosts the sandboxed `GameFrame` with
+pause/mute/screen-size/restart/console controls and a status bar; its stage
+**scales to fit the pane, preserving aspect ratio** (whole game always visible,
+no scroll) via a `ResizeObserver`.
 
 > **The whole windowing layer was REMOVED** in favor of this fixed split.
 > Deleted: the `desktop/` folder (`Desktop`, `Window`, `Taskbar`, `DesktopIcon`,
@@ -79,6 +81,8 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 
 ## Dependencies
 
+- `react-resizable-panels` (**v2** — the v4 API differs; pin to `^2`) — the
+  resizable column/pane layout (`PanelGroup`/`Panel`/`PanelResizeHandle`).
 - `@monaco-editor/react` + `monaco-editor` — the code editor. **Lazy-loaded**
   (own chunk) and **self-hosted workers** via Vite `?worker` imports
   (`MonacoEditor.tsx`) — no CDN, per platform rule.
@@ -137,8 +141,9 @@ Panes (`panes/`):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `CodeEditorPane.tsx` | Left pane: FileTree sidebar + center editor (tab row + ▶ Play + lazy Monaco) + collapsible docked AI chat. Holds a local draft; ▶ Play / AI turn are the commit points back to the VFS. | ✅ |
-| `GameRunnerPane.tsx` | Right pane: toolbar (pause/mute/screen-size/restart/console), preset-sized stage hosting `GameFrame`, status bar (Running/Paused · fps · logs · WxH). | ✅ |
+| `CodeEditorPane.tsx` | Left region: an inner resizable group of FileTree / center editor (tab row + ▶ Play + lazy Monaco) / docked AI chat. Holds a local draft; ▶ Play / AI turn are the commit points back to the VFS. | ✅ |
+| `GameRunnerPane.tsx` | Right pane: toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver) hosting `GameFrame`, status bar (Running/Paused · fps · logs · WxH). | ✅ |
+| `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between columns/panes. | ✅ |
 | `FileTree.tsx` | File list sidebar (emoji per extension, active-file highlight). | ✅ |
 | `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. | ✅ |
 | `AIChatPanel.tsx` | Purely-presentational chat UI (kid/agent bubbles, tool chips). Takes `useGameAgent` state via props; never calls the hook itself. Badged "stub demo". | ✅ |

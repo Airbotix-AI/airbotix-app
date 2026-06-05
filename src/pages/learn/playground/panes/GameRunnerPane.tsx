@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
@@ -14,6 +14,40 @@ interface GameRunnerPaneProps {
 }
 
 const DEFAULT_PRESET_ID = 'original';
+const STAGE_PADDING_PX = 16; // matches the stage area's p-4
+
+/** Track an element's content-box size via ResizeObserver. */
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      setSize({ w: r.width, h: r.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, size] as const;
+}
+
+/**
+ * Largest box with the given aspect ratio that fits inside avail (w×h),
+ * minus padding — so the whole game is always visible, letterboxed, never scrolled.
+ */
+function fitBox(availW: number, availH: number, aspect: number) {
+  const w0 = Math.max(0, availW - STAGE_PADDING_PX * 2);
+  const h0 = Math.max(0, availH - STAGE_PADDING_PX * 2);
+  let w = w0;
+  let h = w0 / aspect;
+  if (h > h0) {
+    h = h0;
+    w = h0 * aspect;
+  }
+  return { w: Math.round(w), h: Math.round(h) };
+}
 
 /** A small dark-chrome toolbar button (icon-only). */
 function ToolButton({
@@ -60,6 +94,12 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
   const [logCount, setLogCount] = useState(0);
 
   const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
+
+  // Scale the stage to fit the available area, preserving the preset's aspect
+  // ratio, so the whole game is always visible (no scrolling). Recomputes as the
+  // pane is resized (ResizeObserver) and Phaser's Scale.FIT rescales the canvas.
+  const [stageRef, stageSize] = useElementSize<HTMLDivElement>();
+  const stage = fitBox(stageSize.w, stageSize.h, preset.w / preset.h);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink text-canvas-pure">
@@ -108,11 +148,14 @@ export function GameRunnerPane({ files, runKey, onRestart }: GameRunnerPaneProps
         </ToolButton>
       </div>
 
-      {/* Stage — centered, scrollable for presets larger than the pane. */}
-      <div className="flex flex-1 min-h-0 items-center justify-center overflow-auto bg-ink p-4">
+      {/* Stage — the game scales to fit this area, keeping aspect ratio. */}
+      <div
+        ref={stageRef}
+        className="flex flex-1 min-h-0 items-center justify-center overflow-hidden bg-ink p-4"
+      >
         <div
           className="flex shrink-0 flex-col overflow-hidden rounded-lg bg-ink shadow-card-soft ring-1 ring-canvas-pure/20"
-          style={{ width: preset.w, height: preset.h }}
+          style={{ width: stage.w, height: stage.h }}
         >
           <GameFrame
             files={files}
