@@ -49,6 +49,24 @@ test('game control channel: fps ticks (>0) and pause/resume flips status', async
   await expect(page.getByText('Running')).toBeVisible();
 });
 
+test('windows are draggable by their titlebar', async ({ page }) => {
+  const bar = page.locator('.pg-titlebar', { hasText: 'Code Editor' });
+  const before = await bar.boundingBox();
+  if (!before) throw new Error('Code Editor titlebar not found');
+
+  // Drag the titlebar right + down a modest amount (the tall window has limited
+  // vertical room before bounds="parent" clamps it).
+  await page.mouse.move(before.x + 80, before.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(before.x + 80 + 130, before.y + 12 + 45, { steps: 12 });
+  await page.mouse.up();
+
+  const after = await bar.boundingBox();
+  if (!after) throw new Error('Code Editor titlebar missing after drag');
+  expect(after.x - before.x).toBeGreaterThan(80);
+  expect(after.y - before.y).toBeGreaterThan(25);
+});
+
 test('screen-size preset changes the stage dimensions', async ({ page }) => {
   await page.getByLabel('Screen size').selectOption('iphone');
   // Scope to the status-bar readout (the <option> label also contains these dims).

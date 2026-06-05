@@ -32,16 +32,18 @@ export function Window({ id, title, icon, children }: WindowProps) {
 
   const { maximized, zIndex, rect } = state;
 
-  // Maximized: fill the parent desktop minus a taskbar strip; drag/resize off.
-  const size = maximized
-    ? { width: '100%', height: `calc(100% - ${TASKBAR_ALLOWANCE_PX}px)` }
-    : { width: rect.w, height: rect.h };
-  const position = maximized ? { x: 0, y: 0 } : { x: rect.x, y: rect.y };
+  // Floating: react-rnd is UNCONTROLLED (seeded from `default`) so it tracks the
+  // drag/resize natively — controlling position/size and only writing back on
+  // stop leaves the node stuck. We persist the final rect to the store on stop
+  // (so reopening restores it). Maximized: pass controlled size/position to fill
+  // the desktop (minus the taskbar) and turn dragging/resizing off.
+  const maxSize = { width: '100%', height: `calc(100% - ${TASKBAR_ALLOWANCE_PX}px)` };
 
   return (
     <Rnd
-      size={size}
-      position={position}
+      default={{ x: rect.x, y: rect.y, width: rect.w, height: rect.h }}
+      size={maximized ? maxSize : undefined}
+      position={maximized ? { x: 0, y: 0 } : undefined}
       dragHandleClassName="pg-titlebar"
       bounds="parent"
       minWidth={320}
