@@ -67,6 +67,20 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
 
+test('chat history persists across a layout-mode switch', async ({ page }) => {
+  await reachWorkspace(page);
+  const chat = page.getByPlaceholder('What should we build?');
+  await chat.fill('persist me please');
+  await chat.press('Enter');
+  await expect(page.getByText('persist me please')).toBeVisible();
+
+  // Toggle Window → Split → Window; the message must survive both.
+  await page.getByRole('button', { name: /Split/ }).click();
+  await expect(page.getByText('persist me please')).toBeVisible();
+  await page.getByRole('button', { name: /Windows/ }).click();
+  await expect(page.getByText('persist me please')).toBeVisible();
+});
+
 test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {
   await reachWorkspace(page);
   // Close the Game Runner window via its titlebar close button.

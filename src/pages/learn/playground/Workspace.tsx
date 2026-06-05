@@ -27,6 +27,7 @@ import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
+import { useGameAgent } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
 
 interface WorkspaceProps {
@@ -66,6 +67,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('game');
   };
 
+  // Own the chat state HERE (not in ChatPane) so the history survives toggling
+  // between Window and Split layouts — the panes remount across modes, this
+  // component does not. Chat applies edits to the VFS but never runs the game.
+  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles });
+  const chatProps = { chat, busy, error, onSend: send };
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-ink text-canvas-pure">
@@ -92,7 +99,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             title={WINDOW_META.chat.title}
             icon={<WINDOW_META.chat.Icon size={16} />}
           >
-            <ChatPane files={files} onApplyFiles={onApplyFiles} />
+            <ChatPane {...chatProps} />
           </Window>
           <Window
             id="game"
@@ -151,7 +158,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               </div>
               <div className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
-                  <ChatPane files={files} onApplyFiles={onApplyFiles} />
+                  <ChatPane {...chatProps} />
                 ) : (
                   <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
                 )}

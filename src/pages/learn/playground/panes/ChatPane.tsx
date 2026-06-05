@@ -1,20 +1,20 @@
-import type { VfsFile } from '../../code/codeApi';
 import { AIChatPanel } from './AIChatPanel';
-import { useGameAgent } from './useGameAgent';
+import type { ChatItem } from './useGameAgent';
 
 interface ChatPaneProps {
-  files: VfsFile[];
-  onApplyFiles: (f: VfsFile[]) => void;
+  chat: ChatItem[];
+  busy: boolean;
+  error: string | null;
+  onSend: (text: string) => void;
 }
 
-// Chat applies the AI's edits to the VFS but does NOT run the game — the kid
-// presses ▶ Play to see changes, so chatting never auto-plays.
-export function ChatPane({ files, onApplyFiles }: ChatPaneProps) {
-  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles });
-
+// Presentational. The chat state (`useGameAgent`) is owned by `Workspace` so it
+// PERSISTS when toggling between Window and Split layouts (this pane remounts
+// across modes; lifting the state keeps the history).
+export function ChatPane({ chat, busy, error, onSend }: ChatPaneProps) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-ink">
-      <AIChatPanel chat={chat} busy={busy} error={error} onSend={send} />
+      <AIChatPanel chat={chat} busy={busy} error={error} onSend={onSend} />
     </div>
   );
 }
