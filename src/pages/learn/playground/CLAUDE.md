@@ -19,36 +19,55 @@ specialization of the code studio (`src/pages/learn/code/`) — same AI-assisted
 loop, same iframe security model, but the runtime hosts Phaser and a game
 canvas instead of a generic HTML page.
 
-The UI is a **permanent, resizable split** (no windowing). Built with
-**`react-resizable-panels`**: an outer horizontal group splits the **Code Editor
-region (~2/3)** from the **Game Runner pane (~1/3)**; the Code Editor region is
-itself a horizontal group of **three resizable columns — file list / Monaco
-editor / AI helper**. Every boundary is drag-resizable (`ResizeHandle`); there is
-no window chrome. The Game Runner pane hosts the sandboxed `GameFrame` with
+The UI is a **3-phase flow**, driven by a small state machine in
+`PlaygroundApp.tsx` (`landing → generating → workspace`):
+
+1. **`LandingScreen`** — a Gemini-style entry: one prompt box wrapped in an
+   animated rotating brand-gradient glow border (`.pg-glow` in `playground.css`,
+   driven by a registered `@property --pg-a` conic rotation) plus starter game
+   chips. Enter (no Shift) or the send button submits the prompt.
+2. **`GeneratingScreen`** — a blocking "building your game" animation (a spinning
+   brand-gradient orb `.pg-orb-spin` + a staged status list + progress bar). It
+   runs the **stubbed** `generateScaffold(prompt)` once, then advances to the
+   workspace with the resulting VFS.
+3. **`Workspace`** — the actual studio, in one of **two layout modes** chosen by a
+   toggle (`LayoutToggle`, state in `playgroundStore.layoutMode`, **default =
+   Window**):
+   - **Window mode (default):** three draggable/stackable floating windows
+     (`desktop/Window.tsx`, on **`react-rnd`**) over the dark surface, wrapping
+     `ChatPane` / `CodeEditorPane` / `GameRunnerPane`. Per-window geometry + z are
+     in `playgroundStore`. Dark windows only — **no taskbar / desktop icons**.
+   - **Split mode:** a `react-resizable-panels` horizontal group — a left region
+     with a `💬 Chat` / `</> Code` tab strip + a `ResizeHandle` + the
+     `GameRunnerPane` on the right.
+
+The Game Runner pane hosts the sandboxed `GameFrame` with
 pause/mute/screen-size/restart/console controls and a status bar; its stage
 **scales to fit the pane, preserving aspect ratio** (whole game always visible,
-no scroll) via a `ResizeObserver`.
+no scroll) via a `ResizeObserver`. **Chat is now standalone** (`panes/ChatPane`)
+— it is no longer docked inside the code editor.
 
 The whole playground is **dark-themed**: `bg-ink` base, `canvas-pure/<opacity>`
 for raised surfaces + borders, `text-canvas-pure`/`text-stone2`/`text-steel`
 text, with `brand-sky`/`brand-mint` accents (Monaco runs the `vs-dark` theme).
 
-> **The whole windowing layer was REMOVED** in favor of this fixed split.
-> Deleted: the `desktop/` folder (`Desktop`, `Window`, `Taskbar`, `DesktopIcon`,
-> `windowStore`, `windowConfig`) and `ShareWindow`. No more virtual desktop,
-> draggable/resizable windows, taskbar, shortcut icons, window store, or
-> cross-window drag overlay. The `windows/` folder was renamed to `panes/` and
-> `CodeEditorWindow`/`GameRunnerWindow` became `CodeEditorPane`/`GameRunnerPane`
-> (plain panes, not window bodies).
+> **Windowing is BACK — but only as one of two layout modes.** An earlier
+> iteration had fully removed the window layer in favor of a fixed split; the
+> redesign re-introduces floating windows (`desktop/Window.tsx`, `react-rnd`) as
+> the default mode, with the resizable split kept as the alternate mode. There is
+> still **no taskbar, no desktop icons, and no `Desktop`/`ShareWindow`** — just
+> three windows + the `LayoutToggle`.
 
 Lives under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="kid">`).
-The design + plan docs in `docs/` are **historical** (they describe the removed
-virtual-desktop iteration) — do not treat them as current scope.
+Authoritative design: `docs/workflow-redesign-design.md` (+ the `mockup-*.png`
+landing/generating/workspace mockups). The older `docs/virtual-desktop-design.md`
++ `docs/plans/` are **historical**.
 
-> **Scope shipped: UI shell only.** The two panes, Monaco editor, Game Runner
-> control channel, and the chat UX are all real. The AI turn is a **local stub**
-> (no network), the VFS is **local** (seeded with Pong, no save/load), and
-> there's **no auth/backend**. See "Status & what's next".
+> **Scope shipped: UI shell only.** The 3-phase flow, both layout modes, Monaco
+> editor, Game Runner control channel, and the chat UX are all real. Scaffold
+> generation is a **local stub** (`generateScaffold`, no network), the VFS is
+> **local** (no save/load), and there's **no auth/backend**. See "Status & what's
+> next".
 
 ## The security model (do NOT weaken)
 
@@ -85,17 +104,19 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 
 ## Dependencies
 
+- `react-rnd` (**`^10`**, with a `react-draggable` `4.5.0` `overrides` pin in
+  `package.json`) — the floating draggable/resizable windows of **Window mode**
+  (`desktop/Window.tsx`). Re-added for the redesign.
 - `react-resizable-panels` (**v2** — the v4 API differs; pin to `^2`) — the
-  resizable column/pane layout (`PanelGroup`/`Panel`/`PanelResizeHandle`).
+  resizable panes of **Split mode** + the FileTree/editor split inside
+  `CodeEditorPane` (`PanelGroup`/`Panel`/`PanelResizeHandle`).
 - `@monaco-editor/react` + `monaco-editor` — the code editor. **Lazy-loaded**
   (own chunk) and **self-hosted workers** via Vite `?worker` imports
   (`MonacoEditor.tsx`) — no CDN, per platform rule.
 - `@playwright/test` (devDep) — e2e at `e2e/playground.spec.ts` /
   `playwright.config.ts` (root); `npm run test:e2e`.
 
-`react-rnd` (and the `react-draggable` 4.5.0 override) were **removed** — they
-were only used by the deleted window chrome. Phaser stays vendored (above), not
-an npm dep.
+Phaser stays vendored (above), not an npm dep.
 
 ## The control channel (pause / mute / stats)
 
@@ -131,43 +152,58 @@ The studio **owns the host HTML**; kids only edit `game.js` (+ optional assets,
 
 ## Files
 
-Top-level runtime + page (the core/novel pieces — shared with the code studio's model):
+Top-level flow + runtime (the core/novel pieces — shared with the code studio's model):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `PlaygroundPage.tsx` | Top-level page. Single source of truth for the local VFS + monotonic `runKey`; renders the **fixed two-pane split** (`CodeEditorPane` `flex-[2]` left, `GameRunnerPane` `flex-1` right). No backend/auth wiring this iteration. | ✅ |
-| `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts` (single source of truth for the console protocol). Also injects the **`GAME_CONTROL` shim** (pause/mute/stat channel) and exports `StatMessage`/`isStatMessage`. | ✅ |
+| `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + the lifted VFS + monotonic `runKey`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
+| `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
+| `GeneratingScreen.tsx` | Blocking "building" animation (spinning `.pg-orb-spin` orb + staged status + progress bar). Calls the **stub** `generateScaffold(prompt)` once, then `onDone(files)`. | ✅ |
+| `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. | ✅ |
+| `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
+| `playgroundStore.ts` | Zustand store: `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. | ✅ |
+| `playground.css` | `pg-`-namespaced CSS the Tailwind utilities can't express: the `.pg-glow` halo (`@property --pg-a` conic rotation), `.pg-orb-spin`, `.pg-shimmer`; honors `prefers-reduced-motion`. | ✅ |
+| `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. **Multi-file:** injects every text `.js` file as its own classic `<script>` in array order with the **entry (`main.js`, else `game.js`, else last) injected LAST**, concatenates all `.css` into the stage `<style>`; global classes only, **no `import`/`export`**. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts`. Also injects the **`GAME_CONTROL` shim** and exports `StatMessage`/`isStatMessage`. | ✅ |
 | `GameFrame.tsx` | Renders the sandboxed iframe + optional console panel + "Fix this error" hook. Posts control messages (`paused`/`muted`) and reads `__airbotixStat` to report `onFps`/`onConsoleCount`. | ✅ |
-| `starterGame.ts` | Canonical Pong seed VFS (one `game.js`); `PlaygroundPage` seeds its VFS from this. | ✅ |
 | `screenPresets.ts` | Fixed stage-size presets (iPhone/iPad/720p/…) for the Game Runner dropdown. | ✅ |
+| `starterGame.ts` | Original single-`game.js` Pong VFS. Superseded as the seed by `panes/starterProject.ts`; kept only as a reference. | reference |
+
+Windowing (`desktop/`):
+
+| File | Role | Keeper? |
+|---|---|---|
+| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized). Dark title-bar (icon + label + min/max/close), reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting` so a drag across the game iframe doesn't stall. **No taskbar / desktop icons.** | ✅ |
 
 Panes (`panes/`):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `CodeEditorPane.tsx` | Left region: an inner resizable group of FileTree / center editor (tab row + ▶ Play + lazy Monaco) / docked AI chat. Holds a local draft; ▶ Play / AI turn are the commit points back to the VFS. | ✅ |
-| `GameRunnerPane.tsx` | Right pane: toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props unchanged (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
-| `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between columns/panes. | ✅ |
-| `FileTree.tsx` | File list sidebar (emoji per extension, active-file highlight). | ✅ |
+| `ChatPane.tsx` | **Standalone chat** = `useGameAgent` + `AIChatPanel`. The chat is no longer docked in the code editor; it's its own window (Window mode) / its own `💬 Chat` tab (Split mode). | ✅ |
+| `CodeEditorPane.tsx` | FileTree sidebar + a **multi-tab** editor (tab strip with active / dirty `●` / close `×` per open tab + ▶ Play + lazy Monaco). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. | ✅ |
+| `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
+| `starterProject.ts` | The rich **hierarchical** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays ~1.8s, stamps the prompt into `main.js`, returns the project). Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
+| `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
+| `FileTree.tsx` | **Nested folder tree** (built from slash-delimited paths, folders-first, collapsible, default-expanded) with **📄 Files / 🧊 Assets tabs** (filters by `kind`); emoji per extension, active-file highlight. | ✅ |
 | `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. | ✅ |
 | `AIChatPanel.tsx` | Purely-presentational chat UI (kid/agent bubbles, tool chips). Takes `useGameAgent` state via props; never calls the hook itself. Badged "stub demo". | ✅ |
 | `useGameAgent.ts` | Chat controller hook (send → pending → resolve, then apply+run). `runTurn` is the **swap seam** — defaults to the stub, later an adapter over the real backend. | ✅ |
-| `gameAgentStub.ts` | The **local stub turn** (`runTurnStub`): no network, deterministically tweaks `game.js`'s first hex bg colour so the turn→VFS→run path is visibly exercised. Replaced by the real backend call later. | swap-out |
+| `gameAgentStub.ts` | The **local stub turn** (`runTurnStub`): no network, deterministically tweaks the first hex bg colour so the turn→VFS→run path is visibly exercised. Replaced by the real backend call later. | swap-out |
 
 Reuses the `VfsFile` type from `../code/codeApi.ts` (game projects share the VFS
 model with code projects).
 
-> **The `desktop/` folder, `ShareWindow.tsx`, and `GameSandboxDevPage.tsx` were
-> all DELETED.** The windowing layer (Desktop/Window/Taskbar/DesktopIcon/window
-> store) is gone in favor of the fixed split; the dev route now renders the real
-> `PlaygroundPage` directly.
+> **`PlaygroundPage.tsx` was DELETED** — its role is now split across
+> `PlaygroundApp` (state machine + VFS) and `Workspace` (layout). The `desktop/`
+> folder is back but holds **only `Window.tsx`** (no `Desktop`/`Taskbar`/
+> `DesktopIcon`/`ShareWindow`); the dev route now renders `PlaygroundApp`.
 
 ## Routes
 
 - `/playground-sandbox` — **DEV-ONLY** (wrapped in `import.meta.env.DEV` in
-  `src/app/router.tsx`, stripped from prod). No auth. Renders the full
-  **`PlaygroundPage`** (the fixed two-pane split), seeded with the local Pong
-  VFS. See README.
+  `src/app/router.tsx`, stripped from prod). No auth. Renders **`PlaygroundApp`**
+  — it opens on the Landing screen; typing a prompt runs the generating screen,
+  then lands in the workspace (Window mode by default; toggle to Split). See
+  README. (The old `PlaygroundPage` route target was deleted.)
 - Planned product routes (not yet built): `/learn/create/playground` (hub),
   `/learn/playground/:projectId` (studio, behind kid auth + backend),
   `/learn/playground/:projectId/play` (fullscreen).
@@ -180,18 +216,24 @@ Naming convention: the **playground** is the feature (routes/hub/api use
 
 **Shipped (UI shell):**
 
-- The sandbox runtime + control channel (`buildGamePreview.ts`, `GameFrame.tsx`).
-- The **fixed two-pane split** (`PlaygroundPage`): Code Editor pane with
-  lazy/self-hosted Monaco + file tree + collapsible docked chat (`panes/`), Game
-  Runner pane with pause/mute/screen-size/restart/console + status bar.
-- A **local** VFS seeded with Pong (`starterGame.ts`); ▶ Play and the chat turn
-  apply edits and re-run.
+- The **3-phase flow** (`PlaygroundApp`): Landing (glow prompt + chips) →
+  Generating (orb + staged status, runs the stub scaffold) → Workspace.
+- **Two layout modes** (`Workspace` + `LayoutToggle`, **default Window**): Window
+  mode = 3 draggable `react-rnd` windows (`desktop/Window.tsx`); Split mode =
+  `react-resizable-panels` with a Chat/Code tab + Game Runner.
+- Standalone chat (`ChatPane`), a **multi-tab** Code Editor (lazy/self-hosted
+  Monaco + nested FileTree with Files/Assets tabs), and a Game Runner with
+  pause/mute/screen-size/restart/console + status bar (placeholder until ▶ Play).
+- The sandbox runtime + control channel (`buildGamePreview.ts`, `GameFrame.tsx`),
+  now **multi-file** (all `.js` injected, entry last).
+- A **local**, rich hierarchical VFS (`panes/starterProject.ts`); ▶ Play and the
+  chat turn apply edits and re-run.
 - The AI chat **UX**, backed by the **local stub** (`gameAgentStub.ts` via the
-  `runTurn` seam in `useGameAgent.ts`) — offline, no LLM.
-- Verified by **4 passing Playwright specs** (`e2e/playground.spec.ts`, run with
-  `npm run test:e2e`): both panes render, fps + pause/resume control channel,
-  screen preset, stub chat turn. (The old window drag/minimize/icon/taskbar specs
-  were removed with the windowing layer.)
+  `runTurn` seam in `useGameAgent.ts`) — offline, no LLM. Scaffold generation is
+  likewise a **local stub** (`generateScaffold`).
+- Verified by **5 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+  `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
+  layout toggle Window ⇄ Split, AI chat stub, runner placeholder → Play.
 
 **Not yet built / still future:**
 
@@ -202,7 +244,7 @@ Naming convention: the **playground** is the feature (routes/hub/api use
 2. **Project save/load** — the VFS is in-memory only; no persistence.
 3. The authed product routes — `/learn/playground/:projectId` (studio, behind
    `<ProtectedRoute kind="kid">` + backend), plus the hub/fullscreen routes.
-   `PlaygroundPage` is currently reachable only via the dev `/playground-sandbox`.
+   `PlaygroundApp` is currently reachable only via the dev `/playground-sandbox`.
 4. **Backend (`platform-backend/code-sessions`)**: a `game` project kind with a
    Phaser starter template + a Phaser-aware agent system prompt.
 5. A **Share** feature (the old placeholder Share window was deleted; not built).

@@ -12,35 +12,48 @@ but the preview hosts Phaser + a game canvas instead of a generic web page.
 
 ## How it works (1-minute version)
 
-The UI is a **permanent, resizable split** — the **Code Editor** fills the left
-~2/3 and the **Game Runner** the right ~1/3, full screen height. The Code Editor
-is itself three resizable columns (**file list / editor / AI helper**), so all
-four boundaries are drag-resizable (`react-resizable-panels`). No windows,
-taskbar, or desktop shortcuts. The Game Runner scales the game to fit its pane,
-preserving aspect ratio (the whole game stays visible, never scrolled).
+The Playground is a **3-phase flow** (`PlaygroundApp.tsx`):
 
-1. A kid's game is just a `game.js` file (a Phaser scene). The studio owns the
-   surrounding HTML.
-2. The **Code Editor** pane has a file tree, a Monaco editor, and a collapsible
-   docked AI chat panel. Editing + ▶ Play (or an AI turn) update the in-memory
-   project files and re-run the game.
+1. **Landing** — a Gemini-style prompt box (with an animated rotating
+   brand-gradient glow border) and a row of starter game chips. Describe a game
+   and hit Enter / the send button.
+2. **Generating** — a blocking "building your game" animation (a spinning
+   gradient orb + a staged status list + progress bar) while the (stubbed)
+   scaffold generator runs, then it advances to the workspace.
+3. **Workspace** — the studio, in one of **two layout modes** picked by the
+   top-right toggle (**default: Windows**):
+   - **Windows** — three draggable, stackable floating windows: **💬 Chat**,
+     **</> Code Editor**, **🎮 Game Runner** (no taskbar / desktop icons).
+   - **Split** — a resizable split: a left region with a **💬 Chat / </> Code**
+     tab strip and the **Game Runner** on the right.
+
+Inside the workspace:
+
+1. The generated game is a small **multi-file** Phaser project (`main.js` +
+   `src/scenes/*.js` + a stylesheet); the studio owns the surrounding HTML.
+2. **Chat** is its own pane now (a window, or the Chat tab). The **Code Editor**
+   has a nested file tree (Files / Assets tabs) and a multi-tab Monaco editor.
+   Editing + ▶ Play (or an AI turn) update the in-memory files and re-run.
 3. `buildGamePreview.ts` assembles a single self-contained HTML document
    (`srcdoc`): a `#game` mount point, the vendored Phaser `<script>`, a console
-   shim, a control shim, then the kid's `game.js`.
-4. The **Game Runner** pane renders that document via `GameFrame.tsx` in a
+   shim, a control shim, then **every `.js` file** (entry `main.js` last).
+4. The **Game Runner** renders that document via `GameFrame.tsx` in a
    locked-down `<iframe>` (`sandbox="allow-scripts …"`, **no**
    `allow-same-origin`) — the game runs JS and nothing else, can't reach the app,
-   cookies, or the auth token. The runner adds pause/mute, screen-size presets, a
-   restart, a console toggle, and a status bar (Running/Paused · fps · logs).
+   cookies, or the auth token. It shows a "Press ▶ to play" placeholder until you
+   start it, then adds pause/mute, screen-size presets, a restart, a console
+   toggle, and a status bar (Running/Paused · fps · logs).
 5. `console.log`/errors inside the game are forwarded out via `postMessage` and
    shown in the console panel; an error can be sent back to the AI to fix.
 
-### The runtime contract for `game.js`
+### The runtime contract for game code
 
-- `Phaser` is available as a **global** — don't `import` it.
+- `Phaser` is available as a **global** — don't `import`/`export` (no module
+  system in the sandbox; scenes are global classes, the entry `main.js` runs
+  last and builds `new Phaser.Game(...)`).
 - Mount your game into the element with `id="game"`.
 - To use an image/sound, add it as a project asset and reference it by its path
-  string (`this.load.image('hero', 'sprites/hero.png')`); the build inlines it.
+  string (`this.load.image('hero', 'assets/hero.png')`); the build inlines it.
 
 ## Files
 
@@ -48,16 +61,26 @@ preserving aspect ratio (the whole game stays visible, never scrolled).
 playground/
 ├── CLAUDE.md             # AI-assistant context + self-update mandate
 ├── README.md             # this file
-├── PlaygroundPage.tsx    # top-level page: fixed two-pane split + owns the local VFS + run state
-├── buildGamePreview.ts   # builds the sandboxed Phaser srcdoc + control shim
+├── PlaygroundApp.tsx     # top-level state machine: landing → generating → workspace + owns the VFS + run state
+├── LandingScreen.tsx     # phase 1: glow prompt box + starter chips
+├── GeneratingScreen.tsx  # phase 2: building animation; runs the stub scaffold
+├── Workspace.tsx         # phase 3: the studio shell (Windows / Split layout)
+├── LayoutToggle.tsx      # ⊞ Windows / ◫ Split segmented toggle
+├── playgroundStore.ts    # Zustand: layout mode (default window) + window geometry
+├── playground.css        # pg-* animations (glow halo, orb spin, shimmer)
+├── buildGamePreview.ts   # builds the sandboxed Phaser srcdoc + control shim (multi-file)
 ├── GameFrame.tsx         # renders the sandbox iframe + console + control channel
-├── starterGame.ts        # the Pong seed game (one game.js)
 ├── screenPresets.ts      # screen-size presets for the Game Runner
+├── starterGame.ts        # legacy single-game.js Pong (superseded by panes/starterProject.ts)
+├── desktop/
+│   └── Window.tsx            # a floating draggable window (react-rnd) for Windows mode
 └── panes/                # the panes + their parts
-    ├── CodeEditorPane.tsx    # left region: resizable file tree / Monaco / AI chat + ▶ Play
-    ├── GameRunnerPane.tsx    # right pane: toolbar + scale-to-fit game stage + status bar
-    ├── ResizeHandle.tsx      # draggable divider between columns/panes
-    ├── FileTree.tsx          # file list sidebar
+    ├── ChatPane.tsx          # standalone AI chat (useGameAgent + AIChatPanel)
+    ├── CodeEditorPane.tsx    # file tree + multi-tab Monaco editor + ▶ Play (no docked chat)
+    ├── GameRunnerPane.tsx    # toolbar + scale-to-fit game stage + status bar (placeholder until ▶)
+    ├── starterProject.ts     # rich multi-file seed project + the stub generateScaffold()
+    ├── ResizeHandle.tsx      # draggable divider between resizable panes
+    ├── FileTree.tsx          # nested folder tree + Files/Assets tabs
     ├── MonacoEditor.tsx      # lazy, self-hosted Monaco
     ├── AIChatPanel.tsx       # chat UI (presentational)
     ├── useGameAgent.ts       # chat controller (runTurn swap seam)
@@ -66,11 +89,8 @@ playground/
 
 Phaser itself is vendored (self-hosted, not a CDN) at
 `public/vendor/phaser-3.80.1.min.js`. Monaco is an npm dep but lazy-loaded with
-self-hosted workers (also no CDN).
-
-> The old windowing layer (a `desktop/` folder + `Window`/`Taskbar`/`DesktopIcon`
-> + a `ShareWindow`, all on `react-rnd`) was **removed** in favor of this fixed
-> split; the `windows/` folder was renamed `panes/`.
+self-hosted workers (also no CDN). Windows mode uses `react-rnd@^10`; Split mode
++ the editor split use `react-resizable-panels@^2`.
 
 ## Run it in dev (no auth, no backend)
 
@@ -91,12 +111,15 @@ http://localhost:4321/playground-sandbox
 
 > Port is **4321** (set in `vite.config.ts`), not Vite's default 5173.
 
-You'll get the **fixed two-pane split**: the Code Editor (Monaco + file tree +
-AI chat) on the left and the Game Runner on the right, running a playable Pong
-(move the green paddle with the **mouse** or **↑/↓**). Edit `game.js` and hit ▶
-Play, use pause/mute/screen-size/restart/console in the runner, and send the AI a
-prompt (the reply is a clearly-labelled **stub**). The project files are
-in-memory only — no save.
+You'll land on the **Landing** screen: type a prompt (or tap a starter chip) and
+hit Enter → the **Generating** animation runs → the **Workspace** opens. It opens
+in **Windows** mode (three floating windows — Chat, Code Editor, Game Runner);
+use the top-right toggle to switch to **Split**. The generated project is a
+multi-file Pong scaffold (move the green paddle with the **mouse** or **↑/↓**).
+Edit a file and hit ▶ Play, press ▶ in the runner to start it, use
+pause/mute/screen-size/restart/console, and send the AI a prompt (both the reply
+and the scaffold are clearly-labelled **stubs**). The project files are in-memory
+only — no save.
 
 ### Run the e2e tests
 
@@ -107,8 +130,9 @@ npm run test:e2e
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
 `playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Four specs: both panes render, the fps + pause/resume
-control channel, a screen preset, and the stub chat turn.
+the dev server itself. Five specs: landing → generating → workspace, the
+multi-file scaffold, the layout toggle (Windows ⇄ Split), the stub AI chat turn,
+and the runner placeholder → Play.
 
 ### Why this is safe to ship
 
@@ -119,14 +143,14 @@ no-auth way to view the playground locally until the authed
 
 ## Not built yet
 
-- **Real backend AI** — the chat turn is a local stub today. The real loop runs
-  **server-side** (`platform-backend/code-sessions`) via a future
-  `playgroundApi.ts` over the `runTurn` seam; the kid surface never calls an LLM
-  directly (all AI goes through `platform-backend /llm/*`).
+- **Real backend AI** — both the chat turn and the scaffold generation
+  (`generateScaffold`) are local stubs today. The real loop runs **server-side**
+  (`platform-backend/code-sessions`) via a future `playgroundApi.ts` over the
+  `runTurn` seam; the kid surface never calls an LLM directly (all AI goes
+  through `platform-backend /llm/*`).
 - **Project save/load** — the VFS is in-memory only.
-- The product pages/routes: `PlaygroundHubPage` (`/learn/create/playground`),
-  the authed studio (`/learn/playground/:projectId`), and the fullscreen
-  `.../play` route.
+- The **authed product route** — `/learn/playground/:projectId` behind
+  `<ProtectedRoute kind="kid">` + backend (plus a hub and a fullscreen
+  `.../play` route). `PlaygroundApp` is dev-only for now.
 - Backend `game` project kind + Phaser-aware agent prompt.
-- A **Share** feature (the old placeholder Share window was removed).
 - `docs/product/prd/learn-game-studio-prd.md`.
