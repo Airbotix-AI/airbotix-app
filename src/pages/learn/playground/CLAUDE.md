@@ -36,7 +36,12 @@ The UI is a **3-phase flow**, driven by a small state machine in
    - **Window mode (default):** three draggable/stackable floating windows
      (`desktop/Window.tsx`, on **`react-rnd`**) over the dark surface, wrapping
      `ChatPane` / `CodeEditorPane` / `GameRunnerPane`. Per-window geometry + z are
-     in `playgroundStore`. Dark windows only — **no taskbar / desktop icons**.
+     in `playgroundStore` (default layout — Code lower-left & wide, Chat
+     center-top & focused, Game right — is seeded from the viewport at store
+     init). The surface has **desktop shortcut icons** (`desktop/DesktopIcon`,
+     bottom z-layer) to reopen windows, and a **bottom `Taskbar`**
+     (`desktop/Taskbar`) to restore/switch/minimize + hold the `LayoutToggle`.
+     **Maximize fills the whole surface** (above the taskbar).
    - **Split mode:** a `react-resizable-panels` horizontal group — a left region
      with a `💬 Chat` / `</> Code` tab strip + a `ResizeHandle` + the
      `GameRunnerPane` on the right.
@@ -54,9 +59,10 @@ text, with `brand-sky`/`brand-mint` accents (Monaco runs the `vs-dark` theme).
 > **Windowing is BACK — but only as one of two layout modes.** An earlier
 > iteration had fully removed the window layer in favor of a fixed split; the
 > redesign re-introduces floating windows (`desktop/Window.tsx`, `react-rnd`) as
-> the default mode, with the resizable split kept as the alternate mode. There is
-> still **no taskbar, no desktop icons, and no `Desktop`/`ShareWindow`** — just
-> three windows + the `LayoutToggle`.
+> the default mode, with the resizable split kept as the alternate mode. Window
+> mode now also has **desktop shortcut icons + a bottom taskbar** (to restore
+> minimized/closed windows and switch when maximized). All UI uses **modern
+> `lucide-react` vector icons** (no emoji glyphs in the chrome).
 
 Lives under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="kid">`).
 Authoritative design: `docs/workflow-redesign-design.md` (+ the `mockup-*.png`
@@ -104,6 +110,9 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 
 ## Dependencies
 
+- `lucide-react` — modern vector icons used across the whole playground UI
+  (window controls, titles, toolbars, toggle, file tree, send). No emoji glyphs
+  in the chrome.
 - `react-rnd` (**`^10`**, with a `react-draggable` `4.5.0` `overrides` pin in
   `package.json`) — the floating draggable/resizable windows of **Window mode**
   (`desktop/Window.tsx`). Re-added for the redesign.
@@ -172,7 +181,10 @@ Windowing (`desktop/`):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized). Dark title-bar (icon + label + min/max/close), reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting` so a drag across the game iframe doesn't stall. **No taskbar / desktop icons.** | ✅ |
+| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. | ✅ |
+| `Taskbar.tsx` | Bottom dock: brand + `LayoutToggle` + a button per window (restore/switch/minimize); active window highlighted. | ✅ |
+| `DesktopIcon.tsx` | A desktop shortcut tile (brand-tinted, lucide icon) to (re)open/focus a window. Bottom z-layer (below windows). | ✅ |
+| `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER`; shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
 
 Panes (`panes/`):
 
