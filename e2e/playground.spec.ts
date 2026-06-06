@@ -467,3 +467,51 @@ test('a closed window leaves the taskbar and reopens from its desktop icon', asy
   await page.getByRole('button', { name: 'Game Runner' }).first().click();
   await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeVisible();
 });
+
+// ── Asset Viewer (4th window / Assets split tab) ─────────────────────────────
+
+// 1×1 transparent PNG for import tests.
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC',
+  'base64',
+);
+
+test('asset viewer: opens in window mode from its desktop icon', async ({ page }) => {
+  await reachWorkspace(page);
+  // It starts closed (so the desktop isn't crowded) — open it from its tile.
+  await page.getByRole('button', { name: 'Asset Viewer' }).click();
+  await expect(page.getByText('All assets')).toBeVisible();
+});
+
+test('asset viewer: AI-generates an asset and shows its code-ref (split tab)', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+
+  await expect(page.getByText('All assets')).toBeVisible();
+  await page.getByPlaceholder(/Describe an asset/).fill('a happy coin');
+  await page.getByRole('button', { name: 'Generate', exact: true }).click();
+
+  // The generated asset's detail opens with a copy-able Phaser loader snippet.
+  await expect(
+    page.getByText("this.load.image('a_happy_coin', 'assets/generated/a_happy_coin.svg')"),
+  ).toBeVisible({ timeout: 5_000 });
+});
+
+test('asset viewer: import an image → grid card + code-ref + Copy', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+
+  await page.setInputFiles('input[type="file"]', {
+    name: 'hero.png',
+    mimeType: 'image/png',
+    buffer: TINY_PNG,
+  });
+
+  // Card appears in the grid; open it → exact loader snippet → Copy confirms.
+  await page.getByText('hero.png').click({ timeout: 5_000 });
+  await expect(page.getByText("this.load.image('hero', 'assets/imported/hero.png')")).toBeVisible();
+  await page.getByRole('button', { name: 'Copy' }).click();
+  await expect(page.getByText('Code copied — paste it into your game.')).toBeVisible();
+});
