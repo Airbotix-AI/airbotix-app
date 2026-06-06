@@ -210,8 +210,8 @@ Windowing (`desktop/`):
 | File | Role | Keeper? |
 |---|---|---|
 | `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; **double-click the title bar toggles maximize/restore**; **restore returns to the pre-maximize rect** (imperative `updatePosition`/`updateSize` via a ref in a `useLayoutEffect` — react-rnd's `default` only seeds first mount, so without this it'd snap to 0,0). `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. `variant="game"` → always-dark window (`data-theme="dark"`) with the highlighted `.pg-runner-bar` gradient title bar. | ✅ |
-| `Taskbar.tsx` | Bottom dock: brand + `LayoutToggle` + a button per window (restore/switch/minimize); active window highlighted. | ✅ |
-| `DesktopIcon.tsx` | A desktop shortcut tile (brand-tinted, lucide icon) to (re)open/focus a window. Bottom z-layer (below windows). | ✅ |
+| `Taskbar.tsx` | Bottom dock: the **Airbotix logo** (`public/logo-{black,white}-horizontal.png` — the real site mark, theme-swapped: black on light, white on dark) + a "Playground" surface label + `LayoutToggle` + `ThemeToggle` + a button per window (restore/switch/minimize); active window highlighted with its brand accent (`WINDOW_ACCENT`). | ✅ |
+| `DesktopIcon.tsx` | A desktop shortcut tile to (re)open/focus a window — app-icon style: raised `pg-surface` tile carrying the window's **brand-tinted glow** (`TILE_SHADOW`) with the (unchanged) lucide glyph in a soft `WINDOW_ACCENT.wash` chip; lifts on hover. Bottom z-layer (below windows). | ✅ |
 | `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER` + `WINDOW_ACCENT` (per-window brand identity: chat=sky, code=mint, game=coral — border/icon/wash classes); shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
 
 Panes (`panes/`):

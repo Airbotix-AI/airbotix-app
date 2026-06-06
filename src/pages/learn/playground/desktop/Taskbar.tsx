@@ -13,7 +13,6 @@
 // game=coral — `WINDOW_ACCENT`), matching the desktop tiles and the mockup.
 
 import clsx from 'clsx';
-import { LayoutGrid } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
 import { ThemeToggle } from '../ThemeToggle';
@@ -22,6 +21,7 @@ import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
 
 export function Taskbar() {
+  const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const openOrFocus = usePlaygroundStore((s) => s.openOrFocus);
@@ -51,9 +51,17 @@ export function Taskbar() {
 
   return (
     <div className="flex h-14 items-center gap-2 border-t border-pg-border bg-pg-surface px-4">
-      <div className="flex items-center gap-2 pr-2">
-        <LayoutGrid size={20} className="text-brand-mint" />
-        <span className="font-extrabold text-brand-mint">playground</span>
+      {/* Airbotix brand mark (the logo used across the site) + surface name.
+          Theme-aware: black on light, white on dark. */}
+      <div className="flex items-center gap-2.5 pr-2">
+        <img
+          src={theme === 'dark' ? '/logo-white-horizontal.png' : '/logo-black-horizontal.png'}
+          alt="Airbotix"
+          draggable={false}
+          className="h-6 w-auto select-none"
+        />
+        <span aria-hidden className="h-5 w-px bg-pg-border" />
+        <span className="text-[13px] font-bold text-pg-text-dim">Playground</span>
       </div>
 
       <LayoutToggle />
