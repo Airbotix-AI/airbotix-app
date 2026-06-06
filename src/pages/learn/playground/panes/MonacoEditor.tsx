@@ -91,6 +91,27 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
   const theme = usePlaygroundStore((s) => s.theme)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
+  // Hover / suggest / parameter-hint widgets are "overflow widgets". By default
+  // Monaco renders them INSIDE the editor DOM, so they get clipped by the code
+  // window's `overflow:hidden` (rounded corners) — and the window's react-rnd
+  // `transform` traps even position:fixed widgets. Render them into a body-level
+  // node instead (`overflowWidgetsDomNode` + `fixedOverflowWidgets`), so a long
+  // doc tooltip escapes the window and shows fully on top. The node carries the
+  // `monaco-editor` class so the widget CSS + active (global) theme apply.
+  const overflowNodeRef = useRef<HTMLDivElement | null>(null)
+  if (overflowNodeRef.current === null && typeof document !== 'undefined') {
+    const node = document.createElement('div')
+    node.className = 'monaco-editor'
+    node.style.zIndex = '100000' // above the floating windows
+    overflowNodeRef.current = node
+  }
+  useEffect(() => {
+    const node = overflowNodeRef.current
+    if (!node) return
+    document.body.appendChild(node)
+    return () => node.remove()
+  }, [])
+
   // Jump to a line on request. The model is already updated (the value-sync
   // effect of the inner <Editor> is a child effect, so it runs before this
   // parent effect), so revealing/positioning here lands on the new content.
@@ -134,6 +155,10 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
         wordWrap: 'on',
         scrollBeyondLastLine: false,
         automaticLayout: true,
+        // Render hover/suggest widgets in the body-level node so they aren't
+        // clipped by the window (see overflowNodeRef above).
+        fixedOverflowWidgets: true,
+        overflowWidgetsDomNode: overflowNodeRef.current ?? undefined,
       }}
     />
   )

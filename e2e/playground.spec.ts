@@ -203,6 +203,17 @@ test('code editor window launches wide (editor area doubled, file column unchang
   expect(Math.abs(box!.width - expected)).toBeLessThan(12);
 });
 
+test('code editor: hover/overflow widgets render outside the window (not clipped)', async ({ page }) => {
+  await reachWorkspace(page); // Window mode; the Code Editor mounts Monaco.
+  // Monaco renders hover/suggest widgets into a BODY-level node (not inside the
+  // editor), so the window's overflow:hidden can't clip a long doc tooltip. The
+  // `.overflowingContentWidgets` container living under `body > .monaco-editor`
+  // is the proof the widgets escape the window.
+  await expect(
+    page.locator('body > div.monaco-editor .overflowingContentWidgets'),
+  ).toHaveCount(1, { timeout: 15_000 });
+});
+
 // Serve a single-file project whose entry throws on a known line, then reach the
 // workspace. The thrown error is what the debugging specs below act on.
 async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {
