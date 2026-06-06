@@ -1,5 +1,5 @@
 import { Gamepad2, Pause, Play, RotateCcw, Smartphone, Terminal, Volume2, VolumeX } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
@@ -76,6 +76,32 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
   const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
   const logCount = lines.length;
 
+  // Size the stage to the chosen preset's ASPECT RATIO, scaled to fit the pane
+  // (letterboxed against black). This is what makes the preset dropdown actually
+  // do something — picking iPhone gives a tall portrait box, 720p a wide one. A
+  // ResizeObserver keeps it fitted as the pane/window resizes; the running game
+  // re-fits live (the iframe resize fires Phaser's Scale.FIT) — no reload.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const fit = () => {
+      // Inset by STAGE_PAD so the "screen" never touches the pane edges — the
+      // desk shows all around it, making the device frame readable.
+      const STAGE_PAD = 16;
+      const cw = el.clientWidth - STAGE_PAD * 2;
+      const ch = el.clientHeight - STAGE_PAD * 2;
+      if (cw <= 0 || ch <= 0) return;
+      const scale = Math.min(cw / preset.w, ch / preset.h);
+      setBox({ w: Math.floor(preset.w * scale), h: Math.floor(preset.h * scale) });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [preset.w, preset.h]);
+
   return (
     // The Game Runner is always DARK (a media-player surface), regardless of the
     // playground theme — `data-theme="dark"` re-themes its pg-* chrome locally.
@@ -130,10 +156,17 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
         </ToolButton>
       </div>
 
-      {/* Stage — edge-to-edge; the game letterboxes against black via Scale.FIT. */}
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+      {/* Stage — the game sits in a preset-aspect "screen" box, centered on the
+          darker desk so its edges (border + shadow) read as a device frame. */}
+      <div
+        ref={stageRef}
+        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-pg-desktop"
+      >
         {running ? (
-          <div className="h-full w-full bg-black">
+          <div
+            className="overflow-hidden rounded-md bg-black shadow-[0_10px_40px_-8px_rgba(0,0,0,0.8)] ring-1 ring-white/20"
+            style={box ? { width: box.w, height: box.h } : { width: '100%', height: '100%' }}
+          >
             <GameFrame
               files={files}
               runKey={runKey}

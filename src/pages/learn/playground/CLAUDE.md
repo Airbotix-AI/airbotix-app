@@ -220,7 +220,7 @@ Panes (`panes/`):
 |---|---|---|
 | `ChatPane.tsx` | **Standalone chat** = `useGameAgent` + `AIChatPanel`. The chat is no longer docked in the code editor; it's its own window (Window mode) / its own `💬 Chat` tab (Split mode). | ✅ |
 | `CodeEditorPane.tsx` | FileTree sidebar at a **fixed pixel width** (plain flex layout + a custom drag divider, NOT react-resizable-panels — so growing the window only widens the editor; the column keeps its width) and **collapsible** via a `PanelLeft` toggle in the tab strip + a **multi-tab** editor (tab strip with active / dirty `●` / close `×` per open tab + ▶ Play + lazy Monaco) + a **status bar** (file path · `Ln/Col` · LANGUAGE; no "unsaved" — auto-save is planned). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. | ✅ |
-| `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
+| `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/console), a stage sized to the **selected screen-preset's aspect ratio**, scaled to fit the pane & centered/letterboxed against black (ResizeObserver re-fits on resize; the running game re-fits live with no reload), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
 | `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: real load when a project exists, else/on-failure the local scaffold. `GAME_PROJECT_KIND='game'`. | ✅ (load); swap-out fallback |
 | `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` only when there's no project/backend. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
@@ -279,13 +279,14 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   scaffold (`generateScaffold`) is likewise a **local stub**.
 - **Light + dark theming** (light default) across all three phases + Monaco, via
   `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
-- Verified by **10 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+- Verified by **11 passing Playwright specs** (`e2e/playground.spec.ts`, run with
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
   layout toggle Window ⇄ Split, AI chat stub (+ chat doesn't auto-run), runner
-  placeholder → Play, chat history persists across the layout toggle, theme
-  default-light/toggles/carries into the workspace, the code editor (status bar +
-  Files/Assets split + file-column toggle), window dbl-click maximize + restore-
-  to-prior-position, and closed-window reopen.
+  placeholder → Play, screen-size presets reshape the stage, chat history persists
+  across the layout toggle, theme default-light/toggles/carries into the
+  workspace, the code editor (status bar + Files/Assets split + file-column
+  toggle), window dbl-click maximize + restore-to-prior-position, and
+  closed-window reopen.
 
 **Not yet built / still future:**
 

@@ -89,6 +89,24 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
 
+test('game runner: screen-size presets reshape the stage (portrait vs landscape)', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  const frame = page.locator('iframe[title="Game"]');
+  await expect(frame).toBeVisible();
+
+  const aspect = async () => {
+    const b = await frame.boundingBox();
+    return b!.width / b!.height;
+  };
+  // iPhone (390×844) → portrait stage (taller than wide).
+  await page.getByLabel('Screen size').selectOption('iphone');
+  expect(await aspect()).toBeLessThan(1);
+  // 720p (1280×720) → landscape stage (wider than tall).
+  await page.getByLabel('Screen size').selectOption('720p');
+  expect(await aspect()).toBeGreaterThan(1);
+});
+
 test('theme: light by default, toggles, and the choice carries into the workspace', async ({ page }) => {
   await page.goto('/playground-sandbox');
   const root = page.locator('[data-theme]').first();
