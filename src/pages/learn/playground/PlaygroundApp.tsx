@@ -7,6 +7,7 @@ import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore } from './playgroundStore';
 import { loadProject as loadPersisted, saveProject as savePersisted } from './projectPersistence';
 import { type ProjectChange, useProjectStore } from './projectStore';
+import { withPreloadedAssets } from './sampleAssets';
 import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
@@ -120,12 +121,15 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             const project = useProjectStore.getState();
             const history = useHistoryStore.getState();
             if (persisted && persisted.files.length > 0) {
-              project.hydrate(persisted.files, persisted.folders);
+              // Always (re)seed the read-only preloaded samples, so they appear
+              // even for projects persisted before they existed.
+              project.hydrate(withPreloadedAssets(persisted.files), persisted.folders);
               history.hydrate(persisted.checkpoints);
             } else {
-              project.setFiles(f);
+              const seeded = withPreloadedAssets(f);
+              project.setFiles(seeded);
               history.reset();
-              history.record(f, Date.now(), 'Initial version');
+              history.record(seeded, Date.now(), 'Initial version');
             }
             setPhase('workspace');
           }}

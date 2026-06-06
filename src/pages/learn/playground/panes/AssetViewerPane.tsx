@@ -13,6 +13,8 @@ import {
   Copy,
   Film,
   Image as ImageIcon,
+  Loader2,
+  Lock,
   Music,
   Search,
   Sparkles,
@@ -22,6 +24,7 @@ import {
 
 import type { VfsFile } from '../../code/codeApi';
 import { runGen } from '../assetGen';
+import { isPreloadedAsset } from '../sampleAssets';
 import { useProjectStore } from '../projectStore';
 import { AssetPreview } from './AssetPreview';
 import {
@@ -43,6 +46,13 @@ interface AssetViewerPaneProps {
 const ALL = '__all__';
 const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
 const ANIM_SUFFIX = '.anim.json';
+// The stub returns instantly; hold the loading state briefly so the generating
+// animation is actually visible (and it reads like real generation latency).
+const MIN_GEN_MS = 900;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function isAsset(f: VfsFile): boolean {
   return f.kind === 'asset' || f.path.startsWith('assets/');
@@ -137,6 +147,13 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
 
   const selected = selectedPath ? (files.find((f) => f.path === selectedPath) ?? null) : null;
 
+  // Browsing a category (or searching) always returns to the grid — never leaves
+  // you stuck on the previously-opened asset's detail screen.
+  function showCategory(c: string) {
+    setCategory(c);
+    setSelectedPath(null);
+  }
+
   const takenPaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
   const targetDir = category === ALL ? 'imported' : category;
 
@@ -161,11 +178,14 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
     setGenerating(true);
     setNotice(null);
     try {
-      const result = await runGen({
-        kind: genKind,
-        prompt: genPrompt.trim(),
-        refAssetPath: selectedPath ?? undefined,
-      });
+      const [result] = await Promise.all([
+        runGen({
+          kind: genKind,
+          prompt: genPrompt.trim(),
+          refAssetPath: selectedPath ?? undefined,
+        }),
+        sleep(MIN_GEN_MS),
+      ]);
       const ext = genKind === 'audio' ? 'wav' : 'svg';
       const slug = genPrompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'asset';
       const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
@@ -197,7 +217,10 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
             <Search size={15} className="text-pg-text-muted" />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedPath(null);
+              }}
               placeholder="Search assets…"
               className="w-full bg-transparent text-[13px] outline-none placeholder:text-pg-text-muted"
             />
@@ -208,7 +231,7 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
             label="All assets"
             count={assets.length}
             active={category === ALL}
-            onClick={() => setCategory(ALL)}
+            onClick={() => showCategory(ALL)}
           />
           {categories.map(([c, n]) => (
             <CategoryRow
@@ -216,7 +239,7 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
               label={c}
               count={n}
               active={category === c}
-              onClick={() => setCategory(c)}
+              onClick={() => showCategory(c)}
             />
           ))}
         </nav>
@@ -278,12 +301,13 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
               onGenerate={() => void onGenerate()}
             />
             <div className="min-h-0 flex-1 overflow-auto p-4">
-              {visible.length === 0 ? (
+              {visible.length === 0 && !generating ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
                   No assets here yet — Import or ✨ Generate to add some.
                 </p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+                  {generating && <GeneratingCard />}
                   {visible.map((a) => {
                     const kind = assetKindOf(a.path, files);
                     return (
@@ -293,8 +317,16 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
                         onClick={() => setSelectedPath(a.path)}
                         className="flex flex-col overflow-hidden rounded-xl border border-pg-border bg-pg-surface text-left transition-colors hover:border-brand-bubblegum/60"
                       >
-                        <div className="h-28 bg-pg-surface-2 p-2">
+                        <div className="relative h-28 bg-pg-surface-2 p-2">
                           <Thumb asset={a} kind={kind} />
+                          {isPreloadedAsset(a.path) && (
+                            <span
+                              title="Sample (read-only)"
+                              className="absolute right-1.5 top-1.5 rounded-full bg-pg-bg/80 p-1 text-pg-text-muted"
+                            >
+                              <Lock size={11} />
+                            </span>
+                          )}
                         </div>
                         <div className="px-2.5 py-2">
                           <p className="truncate text-[12.5px] font-bold">{basename(a.path)}</p>
@@ -311,6 +343,20 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function GeneratingCard() {
+  return (
+    <div className="flex animate-pulse flex-col overflow-hidden rounded-xl border border-brand-bubblegum/50 bg-pg-surface">
+      <div className="flex h-28 items-center justify-center bg-pg-surface-2">
+        <Loader2 size={30} className="animate-spin text-brand-bubblegum" />
+      </div>
+      <div className="px-2.5 py-2">
+        <p className="text-[12.5px] font-bold text-brand-bubblegum">Generating…</p>
+        <p className="text-[11px] text-pg-text-muted">AI demo</p>
       </div>
     </div>
   );
@@ -383,9 +429,9 @@ function GenerateBar({
         type="button"
         onClick={onGenerate}
         disabled={busy || !prompt.trim()}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
       >
-        <Sparkles size={15} />
+        {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
         {busy ? 'Generating…' : 'Generate'}
       </button>
     </div>
@@ -415,6 +461,8 @@ function DetailView({
   const kind = assetKindOf(asset.path, files);
   const anim = kind === 'sprite' ? parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path))) : null;
   const snippet = codeRefFor(asset, anim);
+  // Preloaded samples are read-only (no rename/delete); user/AI assets get CRUD.
+  const locked = isPreloadedAsset(asset.path);
 
   useEffect(() => {
     setDims(null);
@@ -450,7 +498,9 @@ function DetailView({
         >
           <ArrowLeft size={15} /> Back
         </button>
-        {renaming ? (
+        {locked ? (
+          <span className="truncate text-[14px] font-extrabold">{basename(asset.path)}</span>
+        ) : renaming ? (
           <input
             autoFocus
             value={nameDraft}
@@ -475,9 +525,16 @@ function DetailView({
             {basename(asset.path)}
           </button>
         )}
-        <span className="ml-auto rounded-full bg-brand-bubblegum/15 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
-          {kind}
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          {locked && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text-dim">
+              <Lock size={11} /> Sample
+            </span>
+          )}
+          <span className="rounded-full bg-brand-bubblegum/15 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
+            {kind}
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-2">
@@ -503,12 +560,16 @@ function DetailView({
                 <Copy size={14} /> Copy
               </button>
             </div>
-            <pre className="overflow-auto rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] text-pg-text">
+            <pre className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text">
               {snippet}
             </pre>
           </div>
 
-          {confirmDelete ? (
+          {locked ? (
+            <p className="inline-flex w-fit items-center gap-1.5 text-[12px] text-pg-text-muted">
+              <Lock size={13} /> Sample asset — read-only. Import or generate your own to edit.
+            </p>
+          ) : confirmDelete ? (
             <div className="flex items-center gap-2 rounded-xl border border-brand-coral/50 bg-brand-coral/10 p-3 text-[12.5px]">
               <span className="font-semibold">Delete this asset?</span>
               <button type="button" onClick={onDelete} className="ml-auto rounded-lg bg-brand-coral px-3 py-1 font-bold text-white">

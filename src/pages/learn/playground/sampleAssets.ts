@@ -96,3 +96,24 @@ export const SAMPLE_ASSETS: VfsFile[] = [
   asset('assets/audio/chime.wav', buildChimeWav()),
   asset('assets/video/intro.mp4', `data:video/mp4;base64,${SAMPLE_MP4_BASE64}`),
 ];
+
+/**
+ * Preloaded sample paths (+ the starter README): always merged into a project on
+ * load and READ-ONLY in the Asset Viewer — they "stay" and can't be modified,
+ * while user/AI-created assets get full CRUD.
+ */
+export const PRELOADED_ASSET_PATHS: ReadonlySet<string> = new Set<string>([
+  ...SAMPLE_ASSETS.map((a) => a.path),
+  'assets/README.txt',
+]);
+
+export function isPreloadedAsset(path: string): boolean {
+  return PRELOADED_ASSET_PATHS.has(path);
+}
+
+/** Add any missing preloaded samples to a file set (deduped by path). */
+export function withPreloadedAssets(files: VfsFile[]): VfsFile[] {
+  const have = new Set(files.map((f) => f.path));
+  const missing = SAMPLE_ASSETS.filter((a) => !have.has(a.path));
+  return missing.length ? [...files, ...missing] : files;
+}
