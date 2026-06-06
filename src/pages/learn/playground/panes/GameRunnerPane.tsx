@@ -75,6 +75,26 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
 
   const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
   const logCount = lines.length;
+  // Count problems = errors AND warnings. Phaser reports developer-facing issues
+  // (e.g. "Scene not found", missing textures) via console.warn, so warnings must
+  // count too — to a kid those are "something's wrong" just like errors.
+  const problemCount = lines.reduce(
+    (n, l) => (l.level === 'error' || l.level === 'warn' ? n + 1 : n),
+    0,
+  );
+
+  // Auto-open the console on the FIRST problem of a run, so the kid sees what's
+  // wrong. Only on the 0 → >0 edge — later problems don't re-open it (the kid can
+  // close it and keep it closed; a restart resets `lines`, so it can open again).
+  const sawProblems = useRef(false);
+  useEffect(() => {
+    if (problemCount > 0 && !sawProblems.current) {
+      sawProblems.current = true;
+      setShowConsole(true);
+    } else if (problemCount === 0) {
+      sawProblems.current = false;
+    }
+  }, [problemCount]);
 
   // Size the stage to the chosen preset's ASPECT RATIO, scaled to fit the pane
   // (letterboxed against black). This is what makes the preset dropdown actually

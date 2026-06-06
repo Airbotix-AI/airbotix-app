@@ -89,6 +89,31 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
 
+test('game runner: a problem (error OR warning) auto-opens the console', async ({ page }) => {
+  // Serve a project whose entry file logs a WARNING (like Phaser's "Scene not
+  // found") — warnings must auto-open the console too, not just thrown errors.
+  const code = "console.warn('Scene not found for key: Game1');\n";
+  await page.route('**/projects/**/code/files', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ files: [{ path: 'main.js', content: code, kind: 'text', size: code.length }] }),
+    }),
+  );
+  await page.goto('/playground-sandbox?projectId=warn-1');
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('x');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+
+  // Console is closed until something goes wrong.
+  await expect(page.getByText('Console', { exact: true })).toBeHidden();
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  // The warning auto-opens the console and shows the message.
+  await expect(page.getByText('Console', { exact: true })).toBeVisible({ timeout: 6_000 });
+  await expect(page.getByText(/Scene not found for key: Game1/)).toBeVisible();
+});
+
 test('game runner: screen-size presets reshape the stage (portrait vs landscape)', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: 'Play' }).first().click();
