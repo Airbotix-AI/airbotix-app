@@ -7,13 +7,20 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
-import { FileCode2, Play, X } from 'lucide-react';
-import React, { Suspense, useEffect, useState } from 'react';
-import { Panel, PanelGroup } from 'react-resizable-panels';
+import { FileCode2, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { FileTree } from './FileTree';
-import { ResizeHandle } from './ResizeHandle';
+import type { CursorPosition } from './MonacoEditor';
+
+// Files column: a FIXED pixel width (not a percentage), so growing the window
+// only widens the editor — the file list keeps its width. Drag the divider to
+// resize within these bounds.
+const FILES_DEFAULT_W = 220;
+const FILES_MIN_W = 140;
+/** Min pixels the editor keeps; caps how wide the files column can be dragged. */
+const EDITOR_MIN_W = 240;
 
 // Monaco (~3–5 MB incl. workers) is code-split into its own chunk and fetched
 // only when this pane mounts (design §6). MUST stay a `React.lazy` import.
@@ -46,6 +53,11 @@ function languageFor(path: string): string {
   // as broken JavaScript.
   if (ext === 'txt' || ext === '') return 'plaintext';
   return 'javascript';
+}
+
+/** Status-bar language label, e.g. 'src/x.js' → 'JAVASCRIPT'. */
+function languageLabel(path: string): string {
+  return languageFor(path).toUpperCase();
 }
 
 export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPaneProps) {
@@ -160,21 +172,68 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
 
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
 
+  // Caret position for the status bar, reported by Monaco.
+  const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1 });
+
+  // Files column: fixed px width + collapse toggle. The editor flexes, so the
+  // column keeps its width when the window grows.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [filesWidth, setFilesWidth] = useState(FILES_DEFAULT_W);
+  const [filesCollapsed, setFilesCollapsed] = useState(false);
+  const toggleFiles = () => setFilesCollapsed((c) => !c);
+
+  // Drag the divider to resize the (pixel-width) files column.
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = filesWidth;
+    const maxW = Math.max(FILES_MIN_W, (rootRef.current?.clientWidth ?? 800) - EDITOR_MIN_W);
+    const onMove = (ev: MouseEvent) =>
+      setFilesWidth(Math.min(maxW, Math.max(FILES_MIN_W, startW + ev.clientX - startX)));
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   return (
-    <PanelGroup direction="horizontal" className="h-full min-h-0 bg-pg-bg text-pg-text" autoSaveId="pg-editor">
-      {/* Files list */}
-      <Panel defaultSize={28} minSize={12} className="min-w-0">
-        <aside className="h-full overflow-y-auto bg-pg-text/5">
-          <FileTree files={files} activePath={activeTab} onSelect={openTab} />
-        </aside>
-      </Panel>
+    <div ref={rootRef} className="flex h-full min-h-0 bg-pg-bg text-pg-text">
+      {/* Files list (fixed px width; collapsible via the tab-strip button) */}
+      {!filesCollapsed && (
+        <>
+          <aside
+            style={{ width: filesWidth }}
+            className="h-full shrink-0 overflow-y-auto bg-pg-text/5"
+          >
+            <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+          </aside>
+          {/* Drag divider */}
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            onMouseDown={startResize}
+            className="group relative w-1.5 shrink-0 cursor-col-resize"
+          >
+            <span className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-pg-text/15 transition-colors group-hover:bg-brand-sky" />
+          </div>
+        </>
+      )}
 
-      <ResizeHandle />
-
-      {/* Code editor — tab strip + ▶ Play + Monaco */}
-      <Panel defaultSize={72} minSize={30} className="min-w-0">
+      {/* Code editor — tab strip + ▶ Play + Monaco + status bar */}
+      <div className="min-w-0 flex-1">
         <section className="flex h-full min-w-0 flex-col">
           <div className="flex shrink-0 items-center gap-1.5 bg-pg-text/5 border-b border-pg-border px-2 py-1.5">
+            <button
+              type="button"
+              aria-label={filesCollapsed ? 'Show files' : 'Hide files'}
+              aria-pressed={!filesCollapsed}
+              onClick={toggleFiles}
+              className="shrink-0 rounded-md p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+            >
+              {filesCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
             <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
               {openTabs.length === 0 ? (
                 <span className="px-2 py-1 text-[13px] font-semibold text-pg-text-muted">No file open</span>
@@ -244,6 +303,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                   value={editorValue}
                   onChange={(v) => setDrafts((prev) => ({ ...prev, [activeTab]: v }))}
                   language={languageFor(activeTab)}
+                  onCursorChange={setCursor}
                 />
               </Suspense>
             ) : (
@@ -252,8 +312,24 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
               </div>
             )}
           </div>
+
+          {/* Status bar: file path (left) · Ln/Col + language (right). Auto-save
+              is planned, so there's intentionally no "unsaved" indicator here. */}
+          <div className="flex shrink-0 items-center justify-between gap-2 border-t border-pg-border bg-pg-text/5 px-3 py-1 text-[11px] font-medium text-pg-text-muted">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <FileCode2 size={12} aria-hidden className="shrink-0" />
+              <span className="truncate">{activeTab || 'No file open'}</span>
+            </div>
+            {activeTab && (
+              <div className="flex shrink-0 items-center gap-2">
+                <span>Ln {cursor.line}, Col {cursor.column}</span>
+                <span aria-hidden className="text-pg-border">|</span>
+                <span>{languageLabel(activeTab)}</span>
+              </div>
+            )}
+          </div>
         </section>
-      </Panel>
-    </PanelGroup>
+      </div>
+    </div>
   );
 }

@@ -130,11 +130,12 @@ npm run test:e2e
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
 `playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Eight specs: landing → generating → workspace, the
+the dev server itself. Ten specs: landing → generating → workspace, the
 multi-file scaffold, the layout toggle (Windows ⇄ Split), the stub AI chat turn,
 the runner placeholder → Play, chat-history persistence across the layout
-toggle, the theme toggle (default light, carries into the workspace), and
-closed-window reopen.
+toggle, the theme toggle (default light, carries into the workspace), the code
+editor (status bar + Files/Assets split + file-column toggle), window dbl-click
+maximize + restore-to-prior-position, and closed-window reopen.
 
 ### Why this is safe to ship
 

@@ -77,7 +77,7 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     rect,
   });
   return {
-    code: base('code', 1, r(ICON_COL_PX, H * 0.3, W * 0.4, H * 0.62)),
+    code: base('code', 1, r(ICON_COL_PX, H * 0.3, W / 3, H * 0.62)),
     game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
   };

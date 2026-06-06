@@ -35,13 +35,20 @@ const jsDefaults = (
 ).typescript.javascriptDefaults
 jsDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false })
 
+export interface CursorPosition {
+  line: number
+  column: number
+}
+
 interface MonacoEditorProps {
   value: string
   onChange: (v: string) => void
   language?: string
+  /** Reports the caret position for the editor status bar (1-based Ln/Col). */
+  onCursorChange?: (pos: CursorPosition) => void
 }
 
-function MonacoEditor({ value, onChange, language = 'javascript' }: MonacoEditorProps) {
+function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange }: MonacoEditorProps) {
   // Follow the playground theme: light editor in light mode, vs-dark in dark.
   const theme = usePlaygroundStore((s) => s.theme)
   return (
@@ -51,8 +58,18 @@ function MonacoEditor({ value, onChange, language = 'javascript' }: MonacoEditor
       language={language}
       value={value}
       onChange={(v) => onChange(v ?? '')}
+      onMount={(editor) => {
+        const report = () => {
+          const p = editor.getPosition()
+          if (p) onCursorChange?.({ line: p.lineNumber, column: p.column })
+        }
+        report()
+        editor.onDidChangeCursorPosition(report)
+      }}
       options={{
-        minimap: { enabled: false },
+        // `showSlider: 'always'` keeps the viewport rectangle visible so it
+        // tracks scrolling (the default 'mouseover' only shows it on hover).
+        minimap: { enabled: true, showSlider: 'always' },
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 13,
         wordWrap: 'on',

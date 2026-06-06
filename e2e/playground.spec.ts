@@ -38,6 +38,28 @@ test('generated project is multi-file (nested src/scenes in the Code editor)', a
   await expect(page.getByText('scenes').first()).toBeVisible();
 });
 
+test('code editor: status bar, Files/Assets split, and the file-column toggle', async ({ page }) => {
+  await reachWorkspace(page);
+  // Split mode → Code tab gives a clean, unobstructed editor.
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Code/ }).click();
+
+  // Status bar: caret position + language (no "unsaved" — auto-save is planned).
+  await expect(page.getByText(/Ln \d+, Col \d+/).first()).toBeVisible();
+  await expect(page.getByText('JAVASCRIPT', { exact: true }).first()).toBeVisible();
+
+  // Files tab shows source (src) but NOT the assets folder (it has its own tab).
+  await expect(page.getByText('src', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('assets', { exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: /Assets/ }).click();
+  await expect(page.getByText(/README/).first()).toBeVisible();
+  await page.getByRole('button', { name: /Files/ }).click();
+
+  // Hide-files toggle collapses the column (button label flips).
+  await page.getByRole('button', { name: 'Hide files' }).click();
+  await expect(page.getByRole('button', { name: 'Show files' })).toBeVisible();
+});
+
 test('layout toggle switches Window ⇄ Split', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: /Split/ }).click();

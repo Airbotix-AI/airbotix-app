@@ -54,6 +54,18 @@ function iconFor(path: string): LucideIcon {
   return FILE_ICON[ext] ?? File;
 }
 
+// Tab membership is by ROLE, not just the `kind` flag: anything under `assets/`
+// (or flagged `kind: 'asset'`) belongs to the Assets tab; everything else is a
+// source file under Files. This keeps the `assets/` folder OUT of the Files tab
+// (it has its own tab) — e.g. `assets/README.txt` is text but shows under Assets.
+function isAssetFile(file: VfsFile): boolean {
+  return file.kind === 'asset' || file.path.startsWith('assets/');
+}
+
+function inTab(file: VfsFile, tab: TabId): boolean {
+  return tab === 'asset' ? isAssetFile(file) : !isAssetFile(file);
+}
+
 // ── Tree model ──────────────────────────────────────────────────────────────
 
 interface TreeNode {
@@ -183,13 +195,13 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
   const [tab, setTab] = useState<TabId>('text');
 
   const tree = useMemo(
-    () => buildTree(files.filter((f) => f.kind === tab)),
+    () => buildTree(files.filter((f) => inTab(f, tab))),
     [files, tab],
   );
 
   // Default everything expanded; reset whenever the tab's folder set changes.
   const [expanded, setExpanded] = useState<Set<string>>(() =>
-    collectFolderPaths(buildTree(files.filter((f) => f.kind === 'text')), new Set()),
+    collectFolderPaths(buildTree(files.filter((f) => inTab(f, 'text'))), new Set()),
   );
   const [seenFolders, setSeenFolders] = useState('');
   const folderKey = useMemo(
