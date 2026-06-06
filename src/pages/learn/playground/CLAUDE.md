@@ -368,6 +368,13 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   workspace, the code editor (status bar + Files/Assets split + file-column
   toggle), window dbl-click maximize + restore-to-prior-position, and
   closed-window reopen.
+- The **pure logic** is also covered by **vitest unit specs** (`*.spec.ts`, `npm test`):
+  `vfsOps` (path helpers + file/folder CRUD + collision/rename-into-self guards),
+  `buildGamePreview` (entry-last multi-file injection, per-file `//# sourceURL`,
+  no-leading-newline guard, asset data-URL inlining, debug flag, `isStatMessage`),
+  `historyStore` (`summarize` + record dedupe/cap/snapshot-copy), `projectStore`
+  (the VFS funnel's change descriptor + monotonic seq), and the `gameAgentStub`
+  turn. The UI/Monaco/iframe stays Playwright-only.
 
 **Not yet built / still future:**
 
