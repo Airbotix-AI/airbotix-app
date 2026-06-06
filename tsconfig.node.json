@@ -6,7 +6,13 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "types": ["node"]
+    "types": ["node"],
+    // Emit the composite build's JS/types OUT of the project root. tsc -b must
+    // emit (composite), but emitting `vite.config.js` in-place lets it SHADOW
+    // `vite.config.ts` — Vite resolves `.js` before `.ts`, so a stale compiled
+    // config (e.g. predating a config change) would silently win. Out-of-tree
+    // emit keeps `vite.config.ts` the single source Vite ever loads.
+    "outDir": "./node_modules/.cache/tsconfig-node"
   },
   "include": ["vite.config.ts"]
 }

@@ -1,0 +1,187 @@
+/**
+ * playground.css — theme tokens + plain CSS animations the Tailwind utilities
+ * can't express. Imported by the Playground screens.
+ *
+ * Brand colors: coral #FF7A66 · bubblegum #FF6BA9 · sky #5DAEFF · mint #3DD9A9
+ *
+ * Everything here is namespaced with the `pg-` prefix so it won't collide
+ * with Tailwind utilities or other component styles.
+ */
+
+/* =========================================================================
+ * 0. Theme tokens — the single source of truth for light/dark.
+ * =========================================================================
+ * The playground root carries `data-theme="light|dark"` (set from the store in
+ * PlaygroundApp); these vars flip there. Tailwind's `pg-*` colors resolve to
+ * them (tailwind.config.js), so every pane re-themes from this one place.
+ * Channels are space-separated RGB so `rgb(var(--x) / <alpha>)` opacity works.
+ *
+ * Semantics: bg = app base · desktop = window backdrop (deepest) · surface =
+ * raised panel/window/card · surface-2 = toolbars/tabs/inputs · border =
+ * hairline/divider · text / text-dim / text-muted = primary/secondary/tertiary.
+ * Brand tokens (coral/sky/mint/sunshine/bubblegum) stay constant across themes.
+ * Light values come from DESIGN.md (canvas/ink/hairline/steel); dark values are
+ * the studio chrome shades. */
+[data-theme='light'] {
+  --pg-bg: 255 254 247;          /* canvas      #FFFEF7 */
+  --pg-desktop: 245 239 227;     /* hairline-sf #F5EFE3 */
+  --pg-surface: 255 255 255;     /* canvas-pure #FFFFFF */
+  --pg-surface-2: 255 248 238;   /* surface     #FFF8EE */
+  --pg-border: 239 232 218;      /* hairline    #EFE8DA */
+  --pg-text: 31 27 45;           /* ink         #1F1B2D */
+  --pg-text-dim: 61 56 81;       /* ink-soft    #3D3851 */
+  --pg-text-muted: 156 149 171;  /* steel       #9C95AB */
+  --pg-vignette-from: 255 255 255;
+  --pg-vignette-to: 245 239 227;
+}
+
+[data-theme='dark'] {
+  --pg-bg: 31 27 45;             /* ink         #1F1B2D */
+  --pg-desktop: 14 11 22;        /*             #0E0B16 */
+  --pg-surface: 36 33 51;        /*             #242133 */
+  --pg-surface-2: 46 42 64;      /*             #2E2A40 */
+  --pg-border: 70 65 92;         /*             #46415C */
+  --pg-text: 255 254 247;        /* on-dark     #FFFEF7 */
+  --pg-text-dim: 199 192 213;    /* stone       #C7C0D5 */
+  --pg-text-muted: 156 149 171;  /* steel       #9C95AB */
+  --pg-vignette-from: 23 18 31;  /*             #17121F */
+  --pg-vignette-to: 15 11 24;    /*             #0F0B18 */
+}
+
+/* Soft radial vignette used by the Landing / Generating screens — themed via
+ * the vignette vars so both flow with the chosen theme. */
+.pg-canvas {
+  background: radial-gradient(
+    70% 70% at 50% 40%,
+    rgb(var(--pg-vignette-from)) 0%,
+    rgb(var(--pg-vignette-to)) 100%
+  );
+}
+
+/* Window-mode desktop backdrop. Light = the mint-wash → sky-wash diagonal from
+ * the reference mockup (docs/virtual-desktop-mockup.svg `#desk` gradient); dark
+ * = the deep flat backdrop. (Brand wash hexes are constant design tokens.) */
+.pg-desktop-bg {
+  background: linear-gradient(135deg, #DCF6EC 0%, #E8F2FF 100%);
+}
+[data-theme='dark'] .pg-desktop-bg {
+  background: #0E0B16;
+}
+
+/* The Game Runner title bar is "highlighted" with the brand purple → sky bar
+ * from the mockup (`#runnerBar`), in BOTH themes — the runner is always dark. */
+.pg-runner-bar {
+  background: linear-gradient(90deg, #7C5CFF 0%, #5DAEFF 100%);
+}
+
+/* Hide the native scrollbar (used by the editor tab strip — it scrolls by drag,
+ * with fading edges as the overflow affordance instead of a scrollbar). */
+.pg-no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.pg-no-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
+/* Animatable custom angle. Without @property the browser treats `--pg-a` as a
+ * plain string and can't interpolate it — registering it as an <angle> makes
+ * the conic-gradient rotation animate smoothly. */
+@property --pg-a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* =========================================================================
+ * 1. Rotating gradient glow — landing prompt box halo
+ * =========================================================================
+ * Usage: wrap the prompt box in `.pg-glow` and give that wrapper (or its
+ * inner content) a solid background so the glow reads as a halo behind it.
+ * The `::before` is the blurred conic ring sitting one layer back (z-index -1).
+ */
+.pg-glow {
+  position: relative;
+  /* establishes a stacking context so the -1 glow stays behind inner content */
+  isolation: isolate;
+}
+
+.pg-glow::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0.8;
+  filter: blur(10px);
+  background: conic-gradient(
+    from var(--pg-a, 0deg),
+    #FF7A66,
+    #FF6BA9,
+    #5DAEFF,
+    #3DD9A9,
+    #FF7A66
+  );
+  animation: pg-glow-spin 6s linear infinite;
+}
+
+/* Spins the conic gradient by driving the registered --pg-a angle. The ring
+ * stays hugging the box (the gradient rotates in place; we do NOT rotate the
+ * element itself — rotating a rectangle would fling its corners out). Modern
+ * engines (Chrome/Safari/FF) support @property; where they don't, the gradient
+ * simply doesn't spin (a static brand-gradient halo), which is an acceptable
+ * graceful degradation. */
+@keyframes pg-glow-spin {
+  to {
+    --pg-a: 360deg;
+  }
+}
+
+/* =========================================================================
+ * 2. Orb / arc spin — generating screen
+ * =========================================================================
+ */
+@keyframes pg-orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pg-orb-spin {
+  animation: pg-orb-spin 1.4s linear infinite;
+}
+
+/* =========================================================================
+ * 3. Progress bar shimmer (optional) — generating screen
+ * =========================================================================
+ * Apply `.pg-shimmer` to a progress fill; the moving highlight sweeps across.
+ * Pair with a background-size wider than the element for the sweep effect.
+ */
+@keyframes pg-shimmer {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+
+.pg-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: pg-shimmer 1.8s linear infinite;
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .pg-glow::before,
+  .pg-orb-spin,
+  .pg-shimmer {
+    animation: none;
+  }
+}
