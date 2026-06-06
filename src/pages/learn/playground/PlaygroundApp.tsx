@@ -1,11 +1,10 @@
 import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import type { VfsFile } from '@/pages/learn/code/codeApi';
-
 import { GeneratingScreen } from './GeneratingScreen';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore } from './playgroundStore';
+import { useProjectStore } from './projectStore';
 import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
@@ -27,7 +26,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const projectId = projectIdProp ?? searchParams.get('projectId') ?? undefined;
   const [phase, setPhase] = useState<Phase>('landing');
   const [prompt, setPrompt] = useState('');
-  const [files, setFiles] = useState<VfsFile[]>([]);
+  // The VFS lives in the project store (single funnel for editor saves, AI
+  // turns, file CRUD, drag moves — and the seam for history + persistence).
+  const files = useProjectStore((s) => s.files);
+  const loadProject = useProjectStore((s) => s.setFiles);
+  const applyFiles = useProjectStore((s) => s.apply);
   const [runKey, setRunKey] = useState(0);
   // Whether the game has been launched. ▶ Play (editor or runner) and AI turns
   // set this so the Game Runner mounts. Bringing the runner window to the FRONT
@@ -54,7 +57,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           prompt={prompt}
           projectId={projectId}
           onDone={(f) => {
-            setFiles(f);
+            loadProject(f);
             setPhase('workspace');
           }}
         />
@@ -64,7 +67,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           files={files}
           runKey={runKey}
           running={running}
-          onApplyFiles={setFiles}
+          onApplyFiles={applyFiles}
           onRun={run}
         />
       )}
