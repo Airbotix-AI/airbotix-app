@@ -291,9 +291,12 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await expect(page.getByTestId('history-detail')).toBeVisible();
   await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(narrow);
 
-  // Click the changed file → its diff opens as its OWN tab next to the files.
+  // Click the changed file → its diff opens as its OWN tab next to the files,
+  // with clear Before / After column labels.
   await page.getByRole('button', { name: 'Diff main.js' }).click();
   await expect(page.getByTestId('history-diff')).toBeVisible();
+  await expect(page.getByTestId('history-diff').getByText('Before')).toBeVisible();
+  await expect(page.getByTestId('history-diff').getByText('After')).toBeVisible();
 
   // It's a real tab: switch to the file tab (diff hides), then back to the diff tab.
   await page.getByRole('button', { name: 'main.js', exact: true }).click();
