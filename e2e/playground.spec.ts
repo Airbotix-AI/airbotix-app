@@ -191,7 +191,7 @@ test('code editor window launches wide (editor area doubled, file column unchang
   // The launch width doubles the editor area while the fixed file column keeps
   // its width: width = files col + 2·(W/3 − files col). (Keep FILES_COL in sync
   // with CODE_FILES_COL_W / FILES_DEFAULT_W in the app.)
-  const FILES_COL = 220;
+  const FILES_COL = 256; // CODE_FILES_COL_W / FILES_DEFAULT_W
   const W = await page.evaluate(() => window.innerWidth);
   const expected = FILES_COL + 2 * (W / 3 - FILES_COL);
   const win = page

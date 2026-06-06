@@ -45,8 +45,10 @@ const baseName = (path: string) => path.split('/').pop() || path;
 // Files column: a FIXED pixel width (not a percentage), so growing the window
 // only widens the editor — the file list keeps its width. Drag the divider to
 // resize within these bounds.
-const FILES_DEFAULT_W = 220;
-const FILES_MIN_W = 140;
+// Wide enough that the Explorer / History / Search switcher shows all three tabs
+// (min is the floor a drag can shrink the column to, so tabs stay visible).
+const FILES_DEFAULT_W = 256;
+const FILES_MIN_W = 224;
 /** Min pixels the editor keeps; caps how wide the files column can be dragged. */
 const EDITOR_MIN_W = 240;
 /** Sidebar auto-widens to this when the (two-column) History view opens. */
@@ -469,7 +471,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             className="flex h-full shrink-0 flex-col overflow-hidden bg-pg-text/5"
           >
             {/* Files / History view switcher */}
-            <div className="flex shrink-0 gap-0.5 border-b border-pg-border px-1.5 py-1.5">
+            <div className="pg-no-scrollbar flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-pg-border px-1.5 py-1.5">
               {([
                 { id: 'files', label: 'Explorer', Icon: FolderTree },
                 { id: 'history', label: 'History', Icon: History },
@@ -480,7 +482,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                   type="button"
                   aria-pressed={sidebarView === id}
                   onClick={() => switchSidebar(id)}
-                  className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] font-bold transition-colors ${
+                  className={`flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-bold transition-colors ${
                     sidebarView === id
                       ? 'bg-pg-text/10 text-pg-text'
                       : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
