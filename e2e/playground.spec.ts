@@ -349,6 +349,31 @@ test('persistence: edits survive a page refresh', async ({ page }) => {
   await expect(page.getByText('Persist.js').first()).toBeVisible();
 });
 
+test('search: find across files and jump to a result', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByLabel('Search files').fill('Boot');
+
+  // A Boot.js match → click it → that file opens at the line (status bar = path).
+  const match = page.getByTestId('search-results').getByRole('button', { name: /Boot\.js:\d+/ }).first();
+  await expect(match).toBeVisible();
+  await match.click();
+  await expect(page.getByText('src/scenes/Boot.js')).toBeVisible();
+});
+
+test('search: replace all across files', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByLabel('Search files').fill('paddle');
+  await expect(page.getByTestId('search-results').getByRole('button', { name: /Game\.js:\d+/ }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Show replace' }).click();
+  await page.getByLabel('Replace with').fill('bat');
+  await page.getByRole('button', { name: 'All', exact: true }).click();
+  await expect(page.getByText(/Replaced \d+ match/)).toBeVisible();
+});
+
 test('history: file-tree operations are recorded', async ({ page }) => {
   await reachWorkspace(page);
   // Create a file via the tree → it should appear in the history timeline.

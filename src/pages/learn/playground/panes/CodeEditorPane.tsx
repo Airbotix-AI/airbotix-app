@@ -7,7 +7,17 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
-import { FileCode2, FolderTree, GitCompare, History, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
+import {
+  FileCode2,
+  FolderTree,
+  GitCompare,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Play,
+  Search,
+  X,
+} from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -16,6 +26,9 @@ import { useProjectStore } from '../projectStore';
 import { FileTree } from './FileTree';
 import { HistoryPanel } from './HistoryPanel';
 import type { CursorPosition, JumpTarget } from './MonacoEditor';
+import { SearchPanel } from './SearchPanel';
+
+type SidebarView = 'files' | 'history' | 'search';
 
 // Lazy like MonacoEditor — the diff view pulls monaco into the shared lazy chunk.
 const HistoryDiff = React.lazy(() => import('./HistoryDiff'));
@@ -254,8 +267,8 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
-  // Left sidebar view (file tree vs. history).
-  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+  // Left sidebar view (file tree / history / search).
+  const [sidebarView, setSidebarView] = useState<SidebarView>('files');
   // Diff tabs open in the SAME tab strip as files (special `diff::` ids), so you
   // can switch between a diff and your files. `diffTabs` holds each one's content.
   const [diffTabs, setDiffTabs] = useState<Record<string, { path: string; original: string; modified: string }>>({});
@@ -319,10 +332,46 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
       setFilesWidth(widthBeforeHistory.current);
     }
   };
-  const switchSidebar = (view: 'files' | 'history') => {
+  const switchSidebar = (view: SidebarView) => {
     if (view === sidebarView) return;
     if (view !== 'history') setHistoryDetailOpen(false); // restore on leaving History
     setSidebarView(view);
+  };
+
+  // Search → open a result at its line. (Offset nonce so it can't collide with
+  // the console-error jump's `openLocation` nonces.)
+  const searchJumpSeq = useRef(1_000_000);
+  const goToLine = (path: string, line: number) => {
+    openTab(path);
+    setJumpTo({ line, nonce: (searchJumpSeq.current += 1) });
+  };
+
+  // Search → replace every case-insensitive match across text files; commits to
+  // the VFS, refreshes open drafts, records a history checkpoint. Returns the count.
+  const replaceAll = (query: string, replacement: string): number => {
+    if (!query) return 0;
+    const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const cur = useProjectStore.getState().files;
+    let count = 0;
+    const next = cur.map((f) => {
+      if (f.kind !== 'text') return f;
+      const m = f.content.match(re);
+      if (!m) return f;
+      count += m.length;
+      const content = f.content.replace(re, replacement);
+      return { ...f, content, size: content.length };
+    });
+    if (count === 0) return 0;
+    onApplyFiles(next);
+    const sync = (prev: Record<string, string>): Record<string, string> => {
+      const out = { ...prev };
+      for (const f of next) if (f.path in out) out[f.path] = f.content;
+      return out;
+    };
+    setDrafts(sync);
+    setSynced(sync);
+    record(next, Date.now(), `replaced "${query}"`);
+    return count;
   };
 
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
@@ -420,17 +469,18 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             className="flex h-full shrink-0 flex-col overflow-hidden bg-pg-text/5"
           >
             {/* Files / History view switcher */}
-            <div className="flex shrink-0 gap-0.5 border-b border-pg-border px-2 py-1.5">
+            <div className="flex shrink-0 gap-0.5 border-b border-pg-border px-1.5 py-1.5">
               {([
                 { id: 'files', label: 'Explorer', Icon: FolderTree },
                 { id: 'history', label: 'History', Icon: History },
+                { id: 'search', label: 'Search', Icon: Search },
               ] as const).map(({ id, label, Icon }) => (
                 <button
                   key={id}
                   type="button"
                   aria-pressed={sidebarView === id}
                   onClick={() => switchSidebar(id)}
-                  className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-bold transition-colors ${
+                  className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] font-bold transition-colors ${
                     sidebarView === id
                       ? 'bg-pg-text/10 text-pg-text'
                       : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
@@ -444,13 +494,15 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             <div className="min-h-0 flex-1 overflow-y-auto">
               {sidebarView === 'files' ? (
                 <FileTree files={files} activePath={activeTab} onSelect={openTab} />
-              ) : (
+              ) : sidebarView === 'history' ? (
                 <HistoryPanel
                   onRevert={revertTo}
                   onDiff={openDiffTab}
                   onRevertFile={revertFile}
                   onDetailOpen={setHistoryDetailOpen}
                 />
+              ) : (
+                <SearchPanel files={files} onOpenResult={goToLine} onReplaceAll={replaceAll} />
               )}
             </div>
           </aside>
