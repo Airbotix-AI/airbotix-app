@@ -28,8 +28,11 @@ The UI is a **3-phase flow**, driven by a small state machine in
    chips. Enter (no Shift) or the send button submits the prompt.
 2. **`GeneratingScreen`** — a blocking "building your game" animation (a spinning
    brand-gradient orb `.pg-orb-spin` + a staged status list + progress bar). It
-   runs the **stubbed** `generateScaffold(prompt)` once, then advances to the
-   workspace with the resulting VFS.
+   runs `resolveProjectFiles({ projectId, prompt })` once (`panes/playgroundApi.ts`):
+   with a `projectId` it loads the **real** files from the S3-backed backend
+   (`GET /projects/:id/code/files`); without one — or if that fails — it falls
+   back to the local `generateScaffold` stub. Then it advances to the workspace
+   with the resulting VFS.
 3. **`Workspace`** — the actual studio, in one of **two layout modes** chosen by a
    toggle (`LayoutToggle`, state in `playgroundStore.layoutMode`, **default =
    Window**):
@@ -89,11 +92,15 @@ Authoritative design: `docs/workflow-redesign-design.md` (+ the `mockup-*.png`
 landing/generating/workspace mockups). The older `docs/virtual-desktop-design.md`
 + `docs/plans/` are **historical**.
 
-> **Scope shipped: UI shell only.** The 3-phase flow, both layout modes, Monaco
-> editor, Game Runner control channel, and the chat UX are all real. Scaffold
-> generation is a **local stub** (`generateScaffold`, no network), the VFS is
-> **local** (no save/load), and there's **no auth/backend**. See "Status & what's
-> next".
+> **Scope shipped: UI shell + real file READ.** The 3-phase flow, both layout
+> modes, Monaco editor, Game Runner control channel, and the chat UX are all real.
+> File **loading is real** — `resolveProjectFiles` reads a project's VFS from the
+> S3-backed backend (`GET /projects/:id/code/files`, via `src/lib/api.ts`) when a
+> `projectId` is present, falling back to the local `generateScaffold` scaffold
+> otherwise. Still stubbed: the AI **turn** (`gameAgentStub`), file **write-back /
+> save** (edits stay in memory), and **scaffold generation** (the no-project
+> fallback). The DEV `/playground-sandbox` has no auth (reads `?projectId` to
+> exercise the real load). See "Status & what's next".
 
 ## The security model (do NOT weaken)
 
@@ -185,9 +192,9 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 
 | File | Role | Keeper? |
 |---|---|---|
-| `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + the lifted VFS + monotonic `runKey`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
+| `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + the lifted VFS + monotonic `runKey` + the optional `projectId` (prop, or `?projectId` query param in the dev sandbox) threaded to `GeneratingScreen`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
-| `GeneratingScreen.tsx` | Blocking "building" animation (spinning `.pg-orb-spin` orb + staged status + progress bar). Calls the **stub** `generateScaffold(prompt)` once, then `onDone(files)`. | ✅ |
+| `GeneratingScreen.tsx` | Blocking "building"/"loading" animation (spinning `.pg-orb-spin` orb + staged status + progress bar; caption reads "Loading your game…" when a `projectId` is set, else "Building…"). Calls `resolveProjectFiles({ projectId, prompt })` once, then `onDone(files)`. | ✅ |
 | `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
 | `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |
@@ -202,7 +209,7 @@ Windowing (`desktop/`):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. `variant="game"` → always-dark window (`data-theme="dark"`) with the highlighted `.pg-runner-bar` gradient title bar. | ✅ |
+| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; **double-click the title bar toggles maximize/restore**; **restore returns to the pre-maximize rect** (imperative `updatePosition`/`updateSize` via a ref in a `useLayoutEffect` — react-rnd's `default` only seeds first mount, so without this it'd snap to 0,0). `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. `variant="game"` → always-dark window (`data-theme="dark"`) with the highlighted `.pg-runner-bar` gradient title bar. | ✅ |
 | `Taskbar.tsx` | Bottom dock: brand + `LayoutToggle` + a button per window (restore/switch/minimize); active window highlighted. | ✅ |
 | `DesktopIcon.tsx` | A desktop shortcut tile (brand-tinted, lucide icon) to (re)open/focus a window. Bottom z-layer (below windows). | ✅ |
 | `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER` + `WINDOW_ACCENT` (per-window brand identity: chat=sky, code=mint, game=coral — border/icon/wash classes); shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
@@ -214,7 +221,8 @@ Panes (`panes/`):
 | `ChatPane.tsx` | **Standalone chat** = `useGameAgent` + `AIChatPanel`. The chat is no longer docked in the code editor; it's its own window (Window mode) / its own `💬 Chat` tab (Split mode). | ✅ |
 | `CodeEditorPane.tsx` | FileTree sidebar + a **multi-tab** editor (tab strip with active / dirty `●` / close `×` per open tab + ▶ Play + lazy Monaco). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. | ✅ |
 | `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/console), an **aspect-preserving scale-to-fit** stage (ResizeObserver), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. Props (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
-| `starterProject.ts` | The rich **hierarchical** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays ~1.8s, stamps the prompt into `main.js`, returns the project). Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
+| `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: real load when a project exists, else/on-failure the local scaffold. `GAME_PROJECT_KIND='game'`. | ✅ (load); swap-out fallback |
+| `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` only when there's no project/backend. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
 | `FileTree.tsx` | **Nested folder tree** (built from slash-delimited paths, folders-first, collapsible, default-expanded) with **📄 Files / 🧊 Assets tabs** (filters by `kind`); emoji per extension, active-file highlight. | ✅ |
 | `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. **Follows the playground theme** (`vs` light / `vs-dark` dark) via `playgroundStore.theme`. | ✅ |
@@ -236,7 +244,9 @@ model with code projects).
   `src/app/router.tsx`, stripped from prod). No auth. Renders **`PlaygroundApp`**
   — it opens on the Landing screen; typing a prompt runs the generating screen,
   then lands in the workspace (Window mode by default; toggle to Split). See
-  README. (The old `PlaygroundPage` route target was deleted.)
+  README. Append **`?projectId=<id>`** to exercise the real S3-backed file load
+  (`GET /projects/:id/code/files`) against a running/mocked backend; without it
+  the local scaffold is used. (The old `PlaygroundPage` route target was deleted.)
 - Planned product routes (not yet built): `/learn/create/playground` (hub),
   `/learn/playground/:projectId` (studio, behind kid auth + backend),
   `/learn/playground/:projectId/play` (fullscreen).
@@ -259,11 +269,14 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   pause/mute/screen-size/restart/console + status bar (placeholder until ▶ Play).
 - The sandbox runtime + control channel (`buildGamePreview.ts`, `GameFrame.tsx`),
   now **multi-file** (all `.js` injected, entry last).
-- A **local**, rich hierarchical VFS (`panes/starterProject.ts`); ▶ Play and the
-  chat turn apply edits and re-run.
+- **Real file load** (`panes/playgroundApi.ts` `resolveProjectFiles`): reads a
+  project's VFS from the S3-backed backend (`GET /projects/:id/code/files`) when a
+  `projectId` is present, else the local hierarchical scaffold
+  (`panes/starterProject.ts`). ▶ Play and the chat turn apply edits and re-run
+  (edits stay in memory — no write-back yet).
 - The AI chat **UX**, backed by the **local stub** (`gameAgentStub.ts` via the
-  `runTurn` seam in `useGameAgent.ts`) — offline, no LLM. Scaffold generation is
-  likewise a **local stub** (`generateScaffold`).
+  `runTurn` seam in `useGameAgent.ts`) — offline, no LLM. The no-project
+  scaffold (`generateScaffold`) is likewise a **local stub**.
 - **Light + dark theming** (light default) across all three phases + Monaco, via
   `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
 - Verified by **8 passing Playwright specs** (`e2e/playground.spec.ts`, run with
@@ -278,7 +291,10 @@ Naming convention: the **playground** is the feature (routes/hub/api use
    code-session loop (`playgroundApi.ts` over `POST /projects/:id/code/turn`,
    etc.). The vibe-coding loop runs **server-side** (decision D-CODE1); the kid
    surface must NEVER call an LLM directly (platform contract §5).
-2. **Project save/load** — the VFS is in-memory only; no persistence.
+2. **Project save / write-back** — file **read** is real (`resolveProjectFiles`
+   → `GET /projects/:id/code/files`), but edits are **not persisted**: ▶ Play and
+   chat turns mutate the in-memory VFS only. A write path (`PUT`/turn-commit back
+   to the backend/S3) is still to build.
 3. The authed product routes — `/learn/playground/:projectId` (studio, behind
    `<ProtectedRoute kind="kid">` + backend), plus the hub/fullscreen routes.
    `PlaygroundApp` is currently reachable only via the dev `/playground-sandbox`.

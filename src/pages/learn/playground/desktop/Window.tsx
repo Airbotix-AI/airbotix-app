@@ -16,6 +16,7 @@
 // frame (iframes eat pointer events, stalling the drag).
 
 import { Minimize2, Minus, Square, X } from 'lucide-react';
+import { useLayoutEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
@@ -46,6 +47,23 @@ export function Window({ id, title, icon, children, variant = 'default' }: Windo
   const interacting = usePlaygroundStore((s) => s.interacting);
   const setInteracting = usePlaygroundStore((s) => s.setInteracting);
 
+  const rndRef = useRef<Rnd>(null);
+  const wasMaximized = useRef(maximized);
+
+  // Restore to the saved rect on the maximized → restored transition. react-rnd
+  // is UNCONTROLLED (its `default` only seeds the first mount), and maximizing
+  // forces it to position {0,0}; without this it would snap to the top-left on
+  // restore. `rect` still holds the pre-maximize geometry (maximize never calls
+  // setRect), so we imperatively move/size it back. useLayoutEffect = before
+  // paint, so there's no top-left flash.
+  useLayoutEffect(() => {
+    if (wasMaximized.current && !maximized && rndRef.current) {
+      rndRef.current.updatePosition({ x: rect.x, y: rect.y });
+      rndRef.current.updateSize({ width: rect.w, height: rect.h });
+    }
+    wasMaximized.current = maximized;
+  }, [maximized, rect.x, rect.y, rect.w, rect.h]);
+
   if (!open || minimized) return null;
 
   const focused = zIndex === topZ;
@@ -53,6 +71,7 @@ export function Window({ id, title, icon, children, variant = 'default' }: Windo
 
   return (
     <Rnd
+      ref={rndRef}
       default={{ x: rect.x, y: rect.y, width: rect.w, height: rect.h }}
       {...(maximized
         ? {
@@ -91,6 +110,7 @@ export function Window({ id, title, icon, children, variant = 'default' }: Windo
         }`}
       >
         <div
+          onDoubleClick={() => toggleMaximize(id)}
           className={`pg-win-title flex cursor-move items-center justify-between gap-2 border-b px-3 py-2 ${
             isGame
               ? 'pg-runner-bar border-transparent text-white'
@@ -105,7 +125,8 @@ export function Window({ id, title, icon, children, variant = 'default' }: Windo
               {title}
             </span>
           </div>
-          <div className="flex items-center gap-1">
+          {/* Stop dbl-click on the controls from also toggling maximize. */}
+          <div className="flex items-center gap-1" onDoubleClick={(e) => e.stopPropagation()}>
             {[
               { key: 'min', label: `Minimize ${title}`, onClick: () => minimize(id), node: <Minus size={16} /> },
               {

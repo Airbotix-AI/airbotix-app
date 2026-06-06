@@ -100,6 +100,27 @@ test('chat history persists across a layout-mode switch', async ({ page }) => {
   await expect(page.getByText('persist me please')).toBeVisible();
 });
 
+test('double-click the title bar maximizes, and restore returns to the prior position', async ({ page }) => {
+  await reachWorkspace(page);
+  const win = page.locator('.react-draggable:has(.pg-win-title:has-text("Chat"))').first();
+  const bar = page.locator('.pg-win-title:has-text("Chat")').first();
+
+  const before = await win.boundingBox();
+  // Double-click the title bar → maximized (fills the desktop, grows).
+  await bar.dblclick();
+  const maxed = await win.boundingBox();
+  expect(maxed!.width).toBeGreaterThan(before!.width);
+  expect(Math.round(maxed!.x)).toBe(0);
+  expect(Math.round(maxed!.y)).toBe(0);
+
+  // Double-click again → restored to the SAME spot it was before (not 0,0).
+  await bar.dblclick();
+  const restored = await win.boundingBox();
+  expect(Math.round(restored!.x)).toBe(Math.round(before!.x));
+  expect(Math.round(restored!.y)).toBe(Math.round(before!.y));
+  expect(Math.round(restored!.width)).toBe(Math.round(before!.width));
+});
+
 test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {
   await reachWorkspace(page);
   // Close the Game Runner window via its titlebar close button.
