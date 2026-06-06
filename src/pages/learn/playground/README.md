@@ -136,8 +136,9 @@ npm run test:e2e
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
 `playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Fifteen specs: landing → generating → workspace, the
-multi-file scaffold, the layout toggle (Windows ⇄ Split), the stub AI chat turn,
+the dev server itself. Sixteen specs: landing → generating → workspace, the
+multi-file scaffold, the Code Editor launch width (editor area doubled, file
+column fixed), the layout toggle (Windows ⇄ Split), the stub AI chat turn,
 the runner placeholder → Play, screen-size presets reshape the stage, a problem
 (error or warning) auto-opens the console, jump-to-error (a located error opens
 that file at that line), Ask AI to fix (error → chat agent), the editor

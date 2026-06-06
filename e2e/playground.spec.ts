@@ -186,6 +186,23 @@ test('double-click the title bar maximizes, and restore returns to the prior pos
   expect(Math.round(restored!.width)).toBe(Math.round(before!.width));
 });
 
+test('code editor window launches wide (editor area doubled, file column unchanged)', async ({ page }) => {
+  await reachWorkspace(page); // Window mode default.
+  // The launch width doubles the editor area while the fixed file column keeps
+  // its width: width = files col + 2·(W/3 − files col). (Keep FILES_COL in sync
+  // with CODE_FILES_COL_W / FILES_DEFAULT_W in the app.)
+  const FILES_COL = 220;
+  const W = await page.evaluate(() => window.innerWidth);
+  const expected = FILES_COL + 2 * (W / 3 - FILES_COL);
+  const win = page
+    .locator('.react-draggable:has(.pg-win-title:has-text("Code Editor"))')
+    .first();
+  const box = await win.boundingBox();
+  expect(box).not.toBeNull();
+  // Tolerance covers the store's Math.round + the window border.
+  expect(Math.abs(box!.width - expected)).toBeLessThan(12);
+});
+
 // Serve a single-file project whose entry throws on a known line, then reach the
 // workspace. The thrown error is what the debugging specs below act on.
 async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {

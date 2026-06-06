@@ -260,7 +260,7 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 | `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. Owns the chat agent (`useGameAgent`, so history survives the layout toggle), the `locationRequest` for jump-to-error (`handleOpenLocation` → focuses Code), and `handleAskFix` (sends an error to the chat agent → focuses Chat). | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
 | `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |
-| `playgroundStore.ts` | Zustand store: `theme` (default `'light'`) + `setTheme`/`toggleTheme`; `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. Default Code Editor window width is **⅓ of the viewport** (`W/3`). | ✅ |
+| `playgroundStore.ts` | Zustand store: `theme` (default `'light'`) + `setTheme`/`toggleTheme`; `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. The Code Editor launches **wide enough to DOUBLE the editor area** while its fixed file column keeps its width — `width = CODE_FILES_COL_W + 2·(W/3 − CODE_FILES_COL_W)` (the old `W/3` launch made the editor part read too narrow). `CODE_FILES_COL_W` must stay in sync with `FILES_DEFAULT_W` in `CodeEditorPane`. | ✅ |
 | `playground.css` | The **theme tokens** (`[data-theme='light'|'dark']` CSS vars the `pg-*` Tailwind colors resolve to) + `.pg-canvas` (themed vignette) + the `pg-`-namespaced animations Tailwind can't express: the `.pg-glow` halo (`@property --pg-a` conic rotation), `.pg-orb-spin`, `.pg-shimmer`; honors `prefers-reduced-motion`. | ✅ |
 | `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. **Multi-file:** injects every text `.js` file as its own classic `<script>` in array order with the **entry (`main.js`, else `game.js`, else last) injected LAST** + a **`//# sourceURL=<path>`** per script (so errors report the kid's file/line), concatenates all `.css` into the stage `<style>`; global classes only, **no `import`/`export`**. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts`. Also injects the **`GAME_CONTROL` shim** (incl. the `__airbotixDebug` physics-debug flag via `BuildGameOptions.debug`) and exports `StatMessage`/`isStatMessage`. | ✅ |
 | `GameFrame.tsx` | Renders the sandboxed iframe + optional console panel + "Fix this error" hook. Posts control messages (`paused`/`muted`/`debug` via the `srcdoc`) and reads `__airbotixStat` to report `onFps`/`onConsoleCount`; surfaces console `loc` to its `onConsole` consumer. | ✅ |
@@ -341,8 +341,9 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   scaffold (`generateScaffold`) is likewise a **local stub**.
 - **Light + dark theming** (light default) across all three phases + Monaco, via
   `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
-- Verified by **15 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+- Verified by **16 passing Playwright specs** (`e2e/playground.spec.ts`, run with
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
+  **the Code Editor launches with the editor area doubled (file column fixed)**,
   layout toggle Window ⇄ Split, AI chat stub (+ chat doesn't auto-run), runner
   placeholder → Play, screen-size presets reshape the stage, a problem (error or
   warning) auto-opens the console, **jump-to-error (a located console error opens

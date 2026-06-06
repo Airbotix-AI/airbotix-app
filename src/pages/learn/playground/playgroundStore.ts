@@ -60,6 +60,10 @@ const TASKBAR_H = 56;
 // Left margin that keeps the desktop shortcut icon column clear, so a closed
 // window can always be reopened from its icon (windows don't cover it by default).
 const ICON_COL_PX = 124;
+// Width of the Code Editor's fixed file column (keep in sync with
+// `FILES_DEFAULT_W` in `panes/CodeEditorPane.tsx`). Used to size the launch
+// window so the EDITOR area — window width minus this column — is what scales.
+const CODE_FILES_COL_W = 220;
 
 function r(x: number, y: number, w: number, h: number): WinRect {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
@@ -76,8 +80,13 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     zIndex,
     rect,
   });
+  // Launch the Code Editor with DOUBLE the editor area while the file column
+  // keeps its width: width = files column + 2·(prior editor area), where the
+  // prior editor area was W/3 − files column. (The old launch width was W/3 and
+  // the editor part read too narrow.)
+  const codeW = CODE_FILES_COL_W + 2 * (W / 3 - CODE_FILES_COL_W);
   return {
-    code: base('code', 1, r(ICON_COL_PX, H * 0.3, W / 3, H * 0.62)),
+    code: base('code', 1, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
   };
