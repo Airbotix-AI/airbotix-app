@@ -7,13 +7,21 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
-import { FileCode2, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
+import { FileCode2, FolderTree, History, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
+import { useHistoryStore, type Checkpoint } from '../historyStore';
 import { useProjectStore } from '../projectStore';
 import { FileTree } from './FileTree';
+import { HistoryPanel } from './HistoryPanel';
 import type { CursorPosition, JumpTarget } from './MonacoEditor';
+
+// Lazy like MonacoEditor — the diff view pulls monaco into the shared lazy chunk.
+const HistoryDiff = React.lazy(() => import('./HistoryDiff'));
+
+/** Idle pause (ms of no typing) after which edits auto-commit + snapshot to history. */
+const IDLE_SAVE_MS = 1200;
 
 // Files column: a FIXED pixel width (not a percentage), so growing the window
 // only widens the editor — the file list keeps its width. Drag the divider to
@@ -200,9 +208,9 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     });
   };
 
-  // ▶ Play: write ALL dirty drafts back into the VFS, then run. The committed
-  // drafts are no longer dirty, so advance their baseline to match.
-  const handlePlay = () => {
+  // Commit ALL dirty drafts back into the VFS and advance their baselines, then
+  // return the merged files. Shared by ▶ Play and the idle autosave.
+  const commitDrafts = (): VfsFile[] => {
     const next = files.map((f) =>
       isDirty(f.path) ? { ...f, content: drafts[f.path], size: drafts[f.path].length } : f,
     );
@@ -214,7 +222,50 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
       return advanced;
     });
     onApplyFiles(next);
+    return next;
+  };
+
+  // ▶ Play: commit drafts, then run.
+  const handlePlay = () => {
+    commitDrafts();
     onRun();
+  };
+
+  // Idle autosnapshot: after a pause in typing, commit the drafts and record a
+  // history checkpoint — so work is captured without a manual save and the
+  // History tab fills in as the kid types. Re-armed on every keystroke (drafts
+  // change); fires once the dust settles. Does NOT run the game.
+  const record = useHistoryStore((s) => s.record);
+  useEffect(() => {
+    if (!openTabs.some((p) => isDirty(p))) return;
+    const t = setTimeout(() => {
+      const next = commitDrafts();
+      record(next, Date.now());
+    }, IDLE_SAVE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
+
+  // Left sidebar view (file tree vs. history) + the history diff overlay.
+  const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
+  const [diff, setDiff] = useState<{ path: string; original: string; modified: string } | null>(null);
+
+  // Revert the whole project to a checkpoint, reset open-tab drafts to it, and
+  // record the revert as its own checkpoint.
+  const revertTo = (cp: Checkpoint) => {
+    onApplyFiles(cp.files);
+    const reset = (prev: Record<string, string>): Record<string, string> => {
+      const out = { ...prev };
+      for (const p of openTabs) {
+        const f = cp.files.find((x) => x.path === p);
+        if (f) out[p] = f.content;
+      }
+      return out;
+    };
+    setDrafts(reset);
+    setSynced(reset);
+    record(cp.files, Date.now(), `reverted · ${cp.summary}`);
+    setDiff(null);
   };
 
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
@@ -306,9 +357,41 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
         <>
           <aside
             style={{ width: filesWidth }}
-            className="h-full shrink-0 overflow-y-auto bg-pg-text/5"
+            className="flex h-full shrink-0 flex-col overflow-hidden bg-pg-text/5"
           >
-            <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+            {/* Files / History view switcher */}
+            <div className="flex shrink-0 gap-0.5 border-b border-pg-border px-2 py-1.5">
+              {([
+                { id: 'files', label: 'Explorer', Icon: FolderTree },
+                { id: 'history', label: 'History', Icon: History },
+              ] as const).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={sidebarView === id}
+                  onClick={() => setSidebarView(id)}
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-bold transition-colors ${
+                    sidebarView === id
+                      ? 'bg-pg-text/10 text-pg-text'
+                      : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
+                  }`}
+                >
+                  <Icon size={14} aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {sidebarView === 'files' ? (
+                <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+              ) : (
+                <HistoryPanel
+                  currentFiles={files}
+                  onRevert={revertTo}
+                  onDiff={(path, original, modified) => setDiff({ path, original, modified })}
+                />
+              )}
+            </div>
           </aside>
           {/* Drag divider */}
           <div
@@ -405,7 +488,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             </button>
           </div>
 
-          <div className="min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1">
             {activeTab ? (
               <Suspense
                 fallback={
@@ -425,6 +508,41 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             ) : (
               <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
                 Pick a file to start editing.
+              </div>
+            )}
+
+            {/* History diff overlay — left = old (peek), right = current. */}
+            {diff && (
+              <div className="absolute inset-0 z-20 flex flex-col bg-pg-bg" data-testid="history-diff">
+                <div className="flex shrink-0 items-center gap-2 border-b border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[12px]">
+                  <History size={13} aria-hidden className="text-brand-sky" />
+                  <span className="font-bold text-pg-text">Diff</span>
+                  <span className="truncate text-pg-text-dim">{diff.path}</span>
+                  <span className="hidden text-pg-text-muted sm:inline">old → now</span>
+                  <button
+                    type="button"
+                    aria-label="Close diff"
+                    onClick={() => setDiff(null)}
+                    className="ml-auto rounded-md p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <Suspense
+                    fallback={
+                      <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
+                        Loading diff…
+                      </div>
+                    }
+                  >
+                    <HistoryDiff
+                      original={diff.original}
+                      modified={diff.modified}
+                      language={languageFor(diff.path)}
+                    />
+                  </Suspense>
+                </div>
               </div>
             )}
           </div>

@@ -271,6 +271,31 @@ test('file tree: drag a file into a folder moves it', async ({ page }) => {
   await expect(page.locator('[data-path="main.js"]')).toHaveCount(0);
 });
 
+test('history: idle autosnapshot records a checkpoint, then diff + revert', async ({ page }) => {
+  await reachWorkspace(page); // Window mode; Code Editor on the scaffold.
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+
+  // History starts seeded with the initial version.
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.getByText('Initial version')).toBeVisible();
+
+  // Type into the editor → after the idle pause it auto-commits + snapshots.
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.type('// history checkpoint test\n');
+  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
+
+  // Diff the initial version vs now (left = old/peek, right = current).
+  await page.getByText('Initial version').click(); // expand its changed-files list
+  await page.getByRole('button', { name: 'Diff main.js' }).click();
+  await expect(page.getByTestId('history-diff')).toBeVisible();
+  await page.getByRole('button', { name: 'Close diff' }).click();
+  await expect(page.getByTestId('history-diff')).toBeHidden();
+
+  // Revert to the initial version → recorded as its own checkpoint.
+  await page.getByRole('button', { name: 'Revert to Initial version' }).click();
+  await expect(page.getByText(/reverted/)).toBeVisible();
+});
+
 // Serve a single-file project whose entry throws on a known line, then reach the
 // workspace. The thrown error is what the debugging specs below act on.
 async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {

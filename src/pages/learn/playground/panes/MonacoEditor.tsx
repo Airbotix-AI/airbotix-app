@@ -1,41 +1,8 @@
-import { loader, default as Editor } from '@monaco-editor/react'
-import * as monaco from 'monaco-editor'
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
+import { default as Editor } from '@monaco-editor/react'
 import { useEffect, useRef } from 'react'
 
 import { usePlaygroundStore } from '../playgroundStore'
-
-// Self-host Monaco workers (platform rule: no CDN). Vite `?worker` imports are
-// bundled locally and instantiated here based on the language label.
-self.MonacoEnvironment = {
-  getWorker(_workerId: string, label: string): Worker {
-    if (label === 'typescript' || label === 'javascript') {
-      return new tsWorker()
-    }
-    return new editorWorker()
-  },
-}
-
-// Force @monaco-editor/react to use the locally bundled monaco-editor instead
-// of fetching it from the default CDN. Module scope = runs exactly once.
-loader.config({ monaco })
-
-// Lenient diagnostics for kids: surface syntax errors, but suppress the noisier
-// semantic/type complaints that aren't useful for beginner JavaScript.
-// (monaco-editor's bundled .d.ts stubs `languages.typescript`; the API exists at
-// runtime in the full bundle, so cast to reach it.)
-const jsDefaults = (
-  monaco.languages as unknown as {
-    typescript: {
-      javascriptDefaults: {
-        setDiagnosticsOptions: (o: { noSemanticValidation: boolean; noSyntaxValidation: boolean }) => void
-        addExtraLib: (content: string, filePath?: string) => void
-      }
-    }
-  }
-).typescript.javascriptDefaults
-jsDefaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false })
+import { jsDefaults, monaco } from './monacoSetup'
 
 // Phaser IntelliSense: load the vendored Phaser .d.ts into the JS language
 // service so kids get hover docs, ⌘/Ctrl-click go-to-definition, and `Phaser.`

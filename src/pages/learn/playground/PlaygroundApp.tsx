@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { GeneratingScreen } from './GeneratingScreen';
+import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore } from './playgroundStore';
 import { useProjectStore } from './projectStore';
@@ -58,6 +59,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           projectId={projectId}
           onDone={(f) => {
             loadProject(f);
+            // Seed history with the starting version so the timeline + diffs have
+            // a baseline to compare against.
+            const history = useHistoryStore.getState();
+            history.reset();
+            history.record(f, Date.now(), 'Initial version');
             setPhase('workspace');
           }}
         />
