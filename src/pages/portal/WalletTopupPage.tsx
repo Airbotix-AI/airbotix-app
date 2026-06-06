@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
+import { TopupLimitModal } from './TopupLimitModal';
+import { asTopupLimit, type TopupLimitInfo } from './walletTypes';
 
 type PackSku = 'starter_10' | 'family_30' | 'mega_50' | 'school_100';
 
@@ -38,6 +40,7 @@ export function WalletTopupPage() {
   const nav = useNavigate();
   const [busy, setBusy] = useState<PackSku | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<TopupLimitInfo | null>(null);
 
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
 
@@ -54,7 +57,14 @@ export function WalletTopupPage() {
       console.info('[topup]', res);
       window.location.href = res.checkout_url;
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
+      // Anti-fraud 429s (TOPUP_*) get the dedicated §4.4.2 limit modal; anything
+      // else falls back to the inline error banner.
+      const topupLimit = e instanceof ApiError ? asTopupLimit(e) : null;
+      if (topupLimit) {
+        setLimit(topupLimit);
+      } else {
+        setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
+      }
       setBusy(null);
     }
   };
@@ -145,6 +155,8 @@ export function WalletTopupPage() {
       <p className="mt-8 text-[13px] text-slate2">
         Powered by Airwallex. Cards charged in AUD.
       </p>
+
+      {limit && <TopupLimitModal info={limit} onClose={() => setLimit(null)} />}
     </div>
   );
 }
