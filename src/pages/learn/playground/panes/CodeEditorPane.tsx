@@ -7,7 +7,7 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
-import { FileCode2, FolderTree, History, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
+import { FileCode2, FolderTree, GitCompare, History, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -22,6 +22,12 @@ const HistoryDiff = React.lazy(() => import('./HistoryDiff'));
 
 /** Idle pause (ms of no typing) after which edits auto-commit + snapshot to history. */
 const IDLE_SAVE_MS = 1200;
+
+// Diff tabs share the editor tab strip with file tabs, distinguished by an id
+// prefix (a real file path can't contain `::`). One diff tab per file path.
+const DIFF_PREFIX = 'diff::';
+const isDiffTab = (id: string) => id.startsWith(DIFF_PREFIX);
+const baseName = (path: string) => path.split('/').pop() || path;
 
 // Files column: a FIXED pixel width (not a percentage), so growing the window
 // only widens the editor — the file list keeps its width. Drag the divider to
@@ -246,9 +252,17 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
-  // Left sidebar view (file tree vs. history) + the history diff overlay.
+  // Left sidebar view (file tree vs. history).
   const [sidebarView, setSidebarView] = useState<'files' | 'history'>('files');
-  const [diff, setDiff] = useState<{ path: string; original: string; modified: string } | null>(null);
+  // Diff tabs open in the SAME tab strip as files (special `diff::` ids), so you
+  // can switch between a diff and your files. `diffTabs` holds each one's content.
+  const [diffTabs, setDiffTabs] = useState<Record<string, { path: string; original: string; modified: string }>>({});
+  const openDiffTab = (path: string, original: string, modified: string) => {
+    const id = `${DIFF_PREFIX}${path}`;
+    setDiffTabs((prev) => ({ ...prev, [id]: { path, original, modified } }));
+    setOpenTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setActiveTab(id);
+  };
 
   // Revert the whole project to a checkpoint, reset open-tab drafts to it, and
   // record the revert as its own checkpoint.
@@ -265,10 +279,11 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     setDrafts(reset);
     setSynced(reset);
     record(cp.files, Date.now(), `reverted · ${cp.summary}`);
-    setDiff(null);
   };
 
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
+  // The active tab is a diff when it carries diff content; else it's a file.
+  const activeDiff = activeTab && isDiffTab(activeTab) ? diffTabs[activeTab] : null;
 
   // Caret position for the status bar, reported by Monaco.
   const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1 });
@@ -385,11 +400,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {sidebarView === 'files' ? (
                 <FileTree files={files} activePath={activeTab} onSelect={openTab} />
               ) : (
-                <HistoryPanel
-                  currentFiles={files}
-                  onRevert={revertTo}
-                  onDiff={(path, original, modified) => setDiff({ path, original, modified })}
-                />
+                <HistoryPanel currentFiles={files} onRevert={revertTo} onDiff={openDiffTab} />
               )}
             </div>
           </aside>
@@ -435,12 +446,14 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {openTabs.length === 0 ? (
                 <span className="px-2 py-1 text-[13px] font-semibold text-pg-text-muted">No file open</span>
               ) : (
-                openTabs.map((path) => {
-                  const isActive = path === activeTab;
-                  const name = path.split('/').pop() ?? path;
+                openTabs.map((tabId) => {
+                  const isActive = tabId === activeTab;
+                  const dt = isDiffTab(tabId) ? diffTabs[tabId] : null;
+                  const name = dt ? `${baseName(dt.path)} (diff)` : baseName(tabId);
+                  const TabIcon = dt ? GitCompare : FileCode2;
                   return (
                     <div
-                      key={path}
+                      key={tabId}
                       data-tab-active={isActive ? 'true' : 'false'}
                       className={`group flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
                         isActive
@@ -450,12 +463,12 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                     >
                       <button
                         type="button"
-                        onClick={() => setActiveTab(path)}
+                        onClick={() => setActiveTab(tabId)}
                         className="flex min-w-0 items-center gap-1.5"
                       >
-                        <FileCode2 size={14} aria-hidden />
+                        <TabIcon size={14} aria-hidden className={dt ? 'text-brand-sky' : undefined} />
                         <span className="truncate">{name}</span>
-                        {isDirty(path) && (
+                        {!dt && isDirty(tabId) && (
                           <span
                             aria-label="Unsaved changes"
                             className="h-1.5 w-1.5 rounded-full bg-brand-mint"
@@ -465,7 +478,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                       <button
                         type="button"
                         aria-label={`Close ${name}`}
-                        onClick={() => closeTab(path)}
+                        onClick={() => closeTab(tabId)}
                         className={`ml-0.5 rounded text-pg-text-muted transition-colors hover:text-pg-text ${
                           isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                         }`}
@@ -488,8 +501,26 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             </button>
           </div>
 
-          <div className="relative min-h-0 flex-1">
-            {activeTab ? (
+          <div className="relative min-h-0 flex-1" data-testid={activeDiff ? 'history-diff' : undefined}>
+            {!activeTab ? (
+              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
+                Pick a file to start editing.
+              </div>
+            ) : activeDiff ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
+                    Loading diff…
+                  </div>
+                }
+              >
+                <HistoryDiff
+                  original={activeDiff.original}
+                  modified={activeDiff.modified}
+                  language={languageFor(activeDiff.path)}
+                />
+              </Suspense>
+            ) : (
               <Suspense
                 fallback={
                   <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
@@ -505,60 +536,27 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                   jumpTo={jumpTo}
                 />
               </Suspense>
-            ) : (
-              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
-                Pick a file to start editing.
-              </div>
-            )}
-
-            {/* History diff overlay — left = old (peek), right = current. */}
-            {diff && (
-              <div className="absolute inset-0 z-20 flex flex-col bg-pg-bg" data-testid="history-diff">
-                <div className="flex shrink-0 items-center gap-2 border-b border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[12px]">
-                  <History size={13} aria-hidden className="text-brand-sky" />
-                  <span className="font-bold text-pg-text">Diff</span>
-                  <span className="truncate text-pg-text-dim">{diff.path}</span>
-                  <span className="hidden text-pg-text-muted sm:inline">old → now</span>
-                  <button
-                    type="button"
-                    aria-label="Close diff"
-                    onClick={() => setDiff(null)}
-                    className="ml-auto rounded-md p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="min-h-0 flex-1">
-                  <Suspense
-                    fallback={
-                      <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
-                        Loading diff…
-                      </div>
-                    }
-                  >
-                    <HistoryDiff
-                      original={diff.original}
-                      modified={diff.modified}
-                      language={languageFor(diff.path)}
-                    />
-                  </Suspense>
-                </div>
-              </div>
             )}
           </div>
 
-          {/* Status bar: file path (left) · Ln/Col + language (right). Auto-save
-              is planned, so there's intentionally no "unsaved" indicator here. */}
+          {/* Status bar: file path (left) · Ln/Col + language (right). The idle
+              autosave keeps the VFS current, so there's no "unsaved" indicator. */}
           <div className="flex shrink-0 items-center justify-between gap-2 border-t border-pg-border bg-pg-text/5 px-3 py-1 text-[11px] font-medium text-pg-text-muted">
             <div className="flex min-w-0 items-center gap-1.5">
-              <FileCode2 size={12} aria-hidden className="shrink-0" />
-              <span className="truncate">{activeTab || 'No file open'}</span>
+              {activeDiff ? <GitCompare size={12} aria-hidden className="shrink-0 text-brand-sky" /> : <FileCode2 size={12} aria-hidden className="shrink-0" />}
+              <span className="truncate">{activeDiff ? activeDiff.path : activeTab || 'No file open'}</span>
             </div>
             {activeTab && (
               <div className="flex shrink-0 items-center gap-2">
-                <span>Ln {cursor.line}, Col {cursor.column}</span>
-                <span aria-hidden className="text-pg-border">|</span>
-                <span>{languageLabel(activeTab)}</span>
+                {activeDiff ? (
+                  <span className="font-bold text-brand-sky">DIFF · old → now</span>
+                ) : (
+                  <>
+                    <span>Ln {cursor.line}, Col {cursor.column}</span>
+                    <span aria-hidden className="text-pg-border">|</span>
+                    <span>{languageLabel(activeTab)}</span>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -284,11 +284,19 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await page.keyboard.type('// history checkpoint test\n');
   await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
 
-  // Diff the initial version vs now (left = old/peek, right = current).
+  // Diff the initial version vs now — it opens as its OWN tab next to the files.
   await page.getByText('Initial version').click(); // expand its changed-files list
   await page.getByRole('button', { name: 'Diff main.js' }).click();
   await expect(page.getByTestId('history-diff')).toBeVisible();
-  await page.getByRole('button', { name: 'Close diff' }).click();
+
+  // It's a real tab: switch to the file tab (diff hides), then back to the diff tab.
+  await page.getByRole('button', { name: 'main.js', exact: true }).click();
+  await expect(page.getByTestId('history-diff')).toBeHidden();
+  await page.getByRole('button', { name: 'main.js (diff)', exact: true }).click();
+  await expect(page.getByTestId('history-diff')).toBeVisible();
+
+  // Close the diff tab.
+  await page.getByRole('button', { name: 'Close main.js (diff)' }).click();
   await expect(page.getByTestId('history-diff')).toBeHidden();
 
   // Revert to the initial version → recorded as its own checkpoint.
