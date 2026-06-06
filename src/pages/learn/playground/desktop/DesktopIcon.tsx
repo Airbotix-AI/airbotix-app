@@ -11,6 +11,7 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
   chat: 'shadow-[0_10px_22px_-8px_rgba(93,174,255,0.55)]',
   code: 'shadow-[0_10px_22px_-8px_rgba(61,217,169,0.55)]',
   game: 'shadow-[0_10px_22px_-8px_rgba(255,122,102,0.55)]',
+  assets: 'shadow-[0_10px_22px_-8px_rgba(255,107,169,0.55)]',
 };
 
 /**

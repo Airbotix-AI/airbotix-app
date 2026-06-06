@@ -1,4 +1,4 @@
-import { Code2, Gamepad2, MessageSquare } from 'lucide-react';
+import { Code2, Gamepad2, Images, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -8,6 +8,7 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   chat: { title: 'Chat', Icon: MessageSquare },
   code: { title: 'Code Editor', Icon: Code2 },
   game: { title: 'Game Runner', Icon: Gamepad2 },
+  assets: { title: 'Asset Viewer', Icon: Images },
 };
 
 /**
@@ -21,7 +22,12 @@ export const WINDOW_ACCENT: Record<PgWindowId, { border: string; icon: string; w
   chat: { border: 'border-brand-sky/50', icon: 'text-brand-sky', wash: 'bg-brand-sky/15' },
   code: { border: 'border-brand-mint/50', icon: 'text-brand-mint', wash: 'bg-brand-mint/15' },
   game: { border: 'border-brand-coral/50', icon: 'text-brand-coral', wash: 'bg-brand-coral/15' },
+  assets: {
+    border: 'border-brand-bubblegum/50',
+    icon: 'text-brand-bubblegum',
+    wash: 'bg-brand-bubblegum/15',
+  },
 };
 
 /** Display order for the windows in the Taskbar and Desktop. */
-export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game'];
+export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets'];

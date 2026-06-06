@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets';
 
 export interface WinRect {
   x: number;
@@ -89,6 +89,9 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     code: base('code', 1, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
+    // The Asset Viewer starts CLOSED (opened from its desktop tile / taskbar
+    // button) so the desktop isn't crowded with four overlapping windows.
+    assets: { ...base('assets', 1, r(ICON_COL_PX, H * 0.18, W * 0.45, H * 0.68)), open: false },
   };
 }
 
