@@ -191,7 +191,7 @@ test('code editor window launches wide (editor area doubled, file column unchang
   // The launch width doubles the editor area while the fixed file column keeps
   // its width: width = files col + 2·(W/3 − files col). (Keep FILES_COL in sync
   // with CODE_FILES_COL_W / FILES_DEFAULT_W in the app.)
-  const FILES_COL = 220;
+  const FILES_COL = 256; // CODE_FILES_COL_W / FILES_DEFAULT_W
   const W = await page.evaluate(() => window.innerWidth);
   const expected = FILES_COL + 2 * (W / 3 - FILES_COL);
   const win = page
@@ -212,6 +212,176 @@ test('code editor: hover/overflow widgets render outside the window (not clipped
   await expect(
     page.locator('body > div.monaco-editor .overflowingContentWidgets'),
   ).toHaveCount(1, { timeout: 15_000 });
+});
+
+test('file tree: create, rename, and delete a file', async ({ page }) => {
+  await reachWorkspace(page); // Window mode; Code Editor open on the scaffold.
+  const nameInput = page.getByLabel('File or folder name');
+
+  // CREATE — header "New file" → type → Enter. The new file opens as a tab too.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await nameInput.fill('Hello.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('Hello.js').first()).toBeVisible();
+
+  // RENAME — the row's rename action (clickable even before hover) → new name.
+  await page.getByRole('button', { name: 'Rename Hello.js' }).click();
+  await nameInput.fill('World.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('World.js').first()).toBeVisible();
+  await expect(page.getByText('Hello.js')).toHaveCount(0); // tree + tab both remapped
+
+  // DELETE — trash → confirm → gone from tree and the tab closes.
+  await page.getByRole('button', { name: 'Delete World.js' }).click();
+  await page.getByRole('button', { name: 'Confirm delete World.js' }).click();
+  await expect(page.getByText('World.js')).toHaveCount(0);
+});
+
+test('file tree: create a folder and a file inside it', async ({ page }) => {
+  await reachWorkspace(page);
+  const nameInput = page.getByLabel('File or folder name');
+
+  // New empty folder — it renders even with no files yet (explicit empty folder).
+  await page.getByRole('button', { name: 'New folder', exact: true }).click();
+  await nameInput.fill('levels');
+  await nameInput.press('Enter');
+  await expect(page.getByText('levels').first()).toBeVisible();
+
+  // New file inside that folder via its hover "+file" action.
+  await page.getByRole('button', { name: 'New file in levels' }).click();
+  await nameInput.fill('one.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('one.js').first()).toBeVisible();
+});
+
+test('file tree: drag a file into a folder moves it', async ({ page }) => {
+  await reachWorkspace(page);
+  // main.js sits at the root; `src` is a folder. Native HTML5 DnD needs dispatched
+  // drag events sharing one DataTransfer (Playwright's mouse drag won't trigger it).
+  const dt = await page.evaluateHandle(() => new DataTransfer());
+  const source = page.locator('[data-path="main.js"]');
+  const folder = page.locator('[data-path="src"]');
+  await expect(source).toHaveCount(1);
+  await source.dispatchEvent('dragstart', { dataTransfer: dt });
+  await folder.dispatchEvent('dragover', { dataTransfer: dt });
+  await folder.dispatchEvent('drop', { dataTransfer: dt });
+
+  // main.js is now under src/, and no longer at the root.
+  await expect(page.locator('[data-path="src/main.js"]')).toHaveCount(1);
+  await expect(page.locator('[data-path="main.js"]')).toHaveCount(0);
+});
+
+test('history: idle autosnapshot records a checkpoint, then diff + revert', async ({ page }) => {
+  await reachWorkspace(page); // Window mode; Code Editor on the scaffold.
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+
+  // Open History — with nothing selected it stays at the original width.
+  const sidebar = page.getByTestId('editor-sidebar');
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.getByText('Initial version')).toBeVisible();
+  const narrow = (await sidebar.boundingBox())!.width;
+
+  // Type into the editor → after the idle pause it auto-commits + snapshots.
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.type('// history checkpoint test\n');
+  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
+
+  // Selecting an entry shows its file-detail column AND auto-widens the sidebar.
+  await page.getByText(/edited main\.js/).click();
+  await expect(page.getByTestId('history-detail')).toBeVisible();
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(narrow);
+
+  // Click the changed file → its diff opens as its OWN tab next to the files,
+  // with clear Before / After column labels.
+  await page.getByRole('button', { name: 'Diff main.js' }).click();
+  await expect(page.getByTestId('history-diff')).toBeVisible();
+  await expect(page.getByTestId('history-diff').getByText('Before')).toBeVisible();
+  await expect(page.getByTestId('history-diff').getByText('After')).toBeVisible();
+
+  // It's a real tab: switch to the file tab (diff hides), then back to the diff tab.
+  await page.getByRole('button', { name: 'main.js', exact: true }).click();
+  await expect(page.getByTestId('history-diff')).toBeHidden();
+  await page.getByRole('button', { name: 'main.js (diff)', exact: true }).click();
+  await expect(page.getByTestId('history-diff')).toBeVisible();
+
+  // Close the diff tab.
+  await page.getByRole('button', { name: 'Close main.js (diff)' }).click();
+  await expect(page.getByTestId('history-diff')).toBeHidden();
+
+  // Select the initial version → whole-project revert (asks to confirm).
+  await page.getByText('Initial version').click();
+  await page.getByRole('button', { name: 'Revert to Initial version' }).click();
+  await page.getByRole('button', { name: 'Confirm revert', exact: true }).click();
+  await expect(page.getByText(/reverted ·/)).toBeVisible();
+});
+
+test('history: revert a single file (with confirm)', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.type('// file-level revert test\n');
+  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
+
+  // Select the initial version → its detail lists main.js → revert JUST that file.
+  await page.getByText('Initial version').click();
+  await page.getByRole('button', { name: 'Revert main.js', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm revert main.js' }).click();
+  await expect(page.getByText(/reverted main\.js/)).toBeVisible();
+});
+
+test('persistence: edits survive a page refresh', async ({ page }) => {
+  await reachWorkspace(page);
+  // Create a file, then let the debounced IndexedDB save land.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await page.getByLabel('File or folder name').fill('Persist.js');
+  await page.getByLabel('File or folder name').press('Enter');
+  await expect(page.getByText('Persist.js').first()).toBeVisible();
+  await page.waitForTimeout(1200); // > SAVE_DEBOUNCE_MS (600)
+
+  // Reload → re-enter the studio → the file is restored from IndexedDB, not the
+  // fresh scaffold.
+  await page.reload();
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Persist.js').first()).toBeVisible();
+});
+
+test('search: find across files and jump to a result', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByLabel('Search files').fill('Boot');
+
+  // A Boot.js match → click it → that file opens at the line (status bar = path).
+  const match = page.getByTestId('search-results').getByRole('button', { name: /Boot\.js:\d+/ }).first();
+  await expect(match).toBeVisible();
+  await match.click();
+  await expect(page.getByText('src/scenes/Boot.js')).toBeVisible();
+});
+
+test('search: replace all across files', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByLabel('Search files').fill('paddle');
+  await expect(page.getByTestId('search-results').getByRole('button', { name: /Game\.js:\d+/ }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Show replace' }).click();
+  await page.getByLabel('Replace with').fill('bat');
+  await page.getByRole('button', { name: 'All', exact: true }).click();
+  await expect(page.getByText(/Replaced \d+ match/)).toBeVisible();
+});
+
+test('history: file-tree operations are recorded', async ({ page }) => {
+  await reachWorkspace(page);
+  // Create a file via the tree → it should appear in the history timeline.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await page.getByLabel('File or folder name').fill('Note.js');
+  await page.getByLabel('File or folder name').press('Enter');
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.getByText(/created Note\.js/)).toBeVisible();
 });
 
 // Serve a single-file project whose entry throws on a known line, then reach the

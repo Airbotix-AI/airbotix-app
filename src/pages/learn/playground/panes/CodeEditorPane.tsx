@@ -7,20 +7,52 @@
 // round-tripping through the page on every keystroke. ▶ Play is the commit
 // point that lifts the dirty drafts back into the VFS.
 
-import { FileCode2, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react';
+import {
+  FileCode2,
+  FolderTree,
+  GitCompare,
+  History,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Play,
+  Search,
+  X,
+} from 'lucide-react';
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
+import { useHistoryStore, type Checkpoint } from '../historyStore';
+import { useProjectStore } from '../projectStore';
 import { FileTree } from './FileTree';
+import { HistoryPanel } from './HistoryPanel';
 import type { CursorPosition, JumpTarget } from './MonacoEditor';
+import { SearchPanel } from './SearchPanel';
+
+type SidebarView = 'files' | 'history' | 'search';
+
+// Lazy like MonacoEditor — the diff view pulls monaco into the shared lazy chunk.
+const HistoryDiff = React.lazy(() => import('./HistoryDiff'));
+
+/** Idle pause (ms of no typing) after which edits auto-commit + snapshot to history. */
+const IDLE_SAVE_MS = 1200;
+
+// Diff tabs share the editor tab strip with file tabs, distinguished by an id
+// prefix (a real file path can't contain `::`). One diff tab per file path.
+const DIFF_PREFIX = 'diff::';
+const isDiffTab = (id: string) => id.startsWith(DIFF_PREFIX);
+const baseName = (path: string) => path.split('/').pop() || path;
 
 // Files column: a FIXED pixel width (not a percentage), so growing the window
 // only widens the editor — the file list keeps its width. Drag the divider to
 // resize within these bounds.
-const FILES_DEFAULT_W = 220;
-const FILES_MIN_W = 140;
+// Wide enough that the Explorer / History / Search switcher shows all three tabs
+// (min is the floor a drag can shrink the column to, so tabs stay visible).
+const FILES_DEFAULT_W = 256;
+const FILES_MIN_W = 224;
 /** Min pixels the editor keeps; caps how wide the files column can be dragged. */
 const EDITOR_MIN_W = 240;
+/** Sidebar auto-widens to this when the (two-column) History view opens. */
+const HISTORY_MIN_W = 380;
 
 // Monaco (~3–5 MB incl. workers) is code-split into its own chunk and fetched
 // only when this pane mounts (design §6). MUST stay a `React.lazy` import.
@@ -105,6 +137,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     const nextDrafts: Record<string, string> = { ...drafts };
     const nextSynced: Record<string, string> = { ...synced };
     for (const path of openTabs) {
+      // Skip files that no longer exist (renamed/deleted) — the structural
+      // reconcile effect below remaps/closes those tabs; refreshing here would
+      // wipe the draft to '' before the remap lands.
+      if (!files.some((f) => f.path === path)) continue;
       const committed = fileContent(path);
       const baseline = synced[path];
       const dirty = path in drafts && drafts[path] !== (baseline ?? committed);
@@ -120,6 +156,31 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
+
+  // Structural reconcile: when the file tree renames/moves/deletes files, remap
+  // open tabs (+ their drafts/baselines) to the new paths and close tabs whose
+  // file is gone. Keyed on the store `change` seq so it fires once per mutation.
+  const change = useProjectStore((s) => s.change);
+  useEffect(() => {
+    if (!change || (change.remaps.length === 0 && change.removed.length === 0)) return;
+    const remap = new Map(change.remaps.map((r) => [r.from, r.to]));
+    const gone = new Set(change.removed);
+    const remapKeys = (m: Record<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(m)) {
+        if (gone.has(k)) continue;
+        out[remap.get(k) ?? k] = v;
+      }
+      return out;
+    };
+    const nextTabs = openTabs.filter((p) => !gone.has(p)).map((p) => remap.get(p) ?? p);
+    setOpenTabs(nextTabs);
+    setActiveTab((prev) => (gone.has(prev) ? (nextTabs[0] ?? '') : remap.get(prev) ?? prev));
+    setDrafts(remapKeys);
+    setSynced(remapKeys);
+    // Only react to a new mutation (seq) — not to tab-state churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [change?.seq]);
 
   const openTab = (path: string) => {
     setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
@@ -170,9 +231,9 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     });
   };
 
-  // ▶ Play: write ALL dirty drafts back into the VFS, then run. The committed
-  // drafts are no longer dirty, so advance their baseline to match.
-  const handlePlay = () => {
+  // Commit ALL dirty drafts back into the VFS and advance their baselines, then
+  // return the merged files. Shared by ▶ Play and the idle autosave.
+  const commitDrafts = (): VfsFile[] => {
     const next = files.map((f) =>
       isDirty(f.path) ? { ...f, content: drafts[f.path], size: drafts[f.path].length } : f,
     );
@@ -184,10 +245,140 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
       return advanced;
     });
     onApplyFiles(next);
+    return next;
+  };
+
+  // ▶ Play: commit drafts, then run.
+  const handlePlay = () => {
+    commitDrafts();
     onRun();
   };
 
+  // Idle autosnapshot: after a pause in typing, commit the drafts and record a
+  // history checkpoint — so work is captured without a manual save and the
+  // History tab fills in as the kid types. Re-armed on every keystroke (drafts
+  // change); fires once the dust settles. Does NOT run the game.
+  const record = useHistoryStore((s) => s.record);
+  useEffect(() => {
+    if (!openTabs.some((p) => isDirty(p))) return;
+    const t = setTimeout(() => {
+      const next = commitDrafts();
+      record(next, Date.now());
+    }, IDLE_SAVE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
+
+  // Left sidebar view (file tree / history / search).
+  const [sidebarView, setSidebarView] = useState<SidebarView>('files');
+  // Diff tabs open in the SAME tab strip as files (special `diff::` ids), so you
+  // can switch between a diff and your files. `diffTabs` holds each one's content.
+  const [diffTabs, setDiffTabs] = useState<Record<string, { path: string; original: string; modified: string }>>({});
+  const openDiffTab = (path: string, original: string, modified: string) => {
+    const id = `${DIFF_PREFIX}${path}`;
+    setDiffTabs((prev) => ({ ...prev, [id]: { path, original, modified } }));
+    setOpenTabs((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setActiveTab(id);
+  };
+
+  // Revert the whole project to a checkpoint, reset open-tab drafts to it, and
+  // record the revert as its own checkpoint.
+  const revertTo = (cp: Checkpoint) => {
+    onApplyFiles(cp.files);
+    const reset = (prev: Record<string, string>): Record<string, string> => {
+      const out = { ...prev };
+      for (const p of openTabs) {
+        const f = cp.files.find((x) => x.path === p);
+        if (f) out[p] = f.content;
+      }
+      return out;
+    };
+    setDrafts(reset);
+    setSynced(reset);
+    record(cp.files, Date.now(), `reverted · ${cp.summary}`);
+  };
+
+  // Revert a SINGLE file to its state at a checkpoint: `file` = that checkpoint's
+  // version (set/restore it), or `null` if the file didn't exist there (delete it).
+  const revertFile = (path: string, file: VfsFile | null) => {
+    const cur = useProjectStore.getState().files;
+    const next = !file
+      ? cur.filter((f) => f.path !== path)
+      : cur.some((f) => f.path === path)
+        ? cur.map((f) => (f.path === path ? { ...file } : f))
+        : [...cur, { ...file }];
+    onApplyFiles(next); // a delete reconciles the open tab shut via the store `change`
+    if (file) {
+      // Override any in-progress draft for this file with the reverted content.
+      const overwrite = (prev: Record<string, string>): Record<string, string> =>
+        path in prev ? { ...prev, [path]: file.content } : prev;
+      setDrafts(overwrite);
+      setSynced(overwrite);
+    }
+    record(next, Date.now(), `reverted ${baseName(path)}`);
+  };
+
+  // The sidebar auto-widens ONLY while a History entry is selected (i.e. the
+  // two-column file detail is showing); deselecting or leaving History restores
+  // the prior width. Driven by HistoryPanel via `onDetailOpen`.
+  const widthBeforeHistory = useRef(FILES_DEFAULT_W);
+  const detailOpen = useRef(false);
+  const setHistoryDetailOpen = (open: boolean) => {
+    if (open === detailOpen.current) return;
+    detailOpen.current = open;
+    if (open) {
+      widthBeforeHistory.current = filesWidth;
+      const maxW = (rootRef.current?.clientWidth ?? 900) - EDITOR_MIN_W;
+      setFilesWidth(Math.max(filesWidth, Math.min(HISTORY_MIN_W, Math.max(FILES_MIN_W, maxW))));
+    } else {
+      setFilesWidth(widthBeforeHistory.current);
+    }
+  };
+  const switchSidebar = (view: SidebarView) => {
+    if (view === sidebarView) return;
+    if (view !== 'history') setHistoryDetailOpen(false); // restore on leaving History
+    setSidebarView(view);
+  };
+
+  // Search → open a result at its line. (Offset nonce so it can't collide with
+  // the console-error jump's `openLocation` nonces.)
+  const searchJumpSeq = useRef(1_000_000);
+  const goToLine = (path: string, line: number) => {
+    openTab(path);
+    setJumpTo({ line, nonce: (searchJumpSeq.current += 1) });
+  };
+
+  // Search → replace every case-insensitive match across text files; commits to
+  // the VFS, refreshes open drafts, records a history checkpoint. Returns the count.
+  const replaceAll = (query: string, replacement: string): number => {
+    if (!query) return 0;
+    const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const cur = useProjectStore.getState().files;
+    let count = 0;
+    const next = cur.map((f) => {
+      if (f.kind !== 'text') return f;
+      const m = f.content.match(re);
+      if (!m) return f;
+      count += m.length;
+      const content = f.content.replace(re, replacement);
+      return { ...f, content, size: content.length };
+    });
+    if (count === 0) return 0;
+    onApplyFiles(next);
+    const sync = (prev: Record<string, string>): Record<string, string> => {
+      const out = { ...prev };
+      for (const f of next) if (f.path in out) out[f.path] = f.content;
+      return out;
+    };
+    setDrafts(sync);
+    setSynced(sync);
+    record(next, Date.now(), `replaced "${query}"`);
+    return count;
+  };
+
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
+  // The active tab is a diff when it carries diff content; else it's a file.
+  const activeDiff = activeTab && isDiffTab(activeTab) ? diffTabs[activeTab] : null;
 
   // Caret position for the status bar, reported by Monaco.
   const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1 });
@@ -275,10 +466,47 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
       {!filesCollapsed && (
         <>
           <aside
+            data-testid="editor-sidebar"
             style={{ width: filesWidth }}
-            className="h-full shrink-0 overflow-y-auto bg-pg-text/5"
+            className="flex h-full shrink-0 flex-col overflow-hidden bg-pg-text/5"
           >
-            <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+            {/* Files / History view switcher */}
+            <div className="pg-no-scrollbar flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-pg-border px-1.5 py-1.5">
+              {([
+                { id: 'files', label: 'Explorer', Icon: FolderTree },
+                { id: 'history', label: 'History', Icon: History },
+                { id: 'search', label: 'Search', Icon: Search },
+              ] as const).map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={sidebarView === id}
+                  onClick={() => switchSidebar(id)}
+                  className={`flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-bold transition-colors ${
+                    sidebarView === id
+                      ? 'bg-pg-text/10 text-pg-text'
+                      : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
+                  }`}
+                >
+                  <Icon size={14} aria-hidden />
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {sidebarView === 'files' ? (
+                <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+              ) : sidebarView === 'history' ? (
+                <HistoryPanel
+                  onRevert={revertTo}
+                  onDiff={openDiffTab}
+                  onRevertFile={revertFile}
+                  onDetailOpen={setHistoryDetailOpen}
+                />
+              ) : (
+                <SearchPanel files={files} onOpenResult={goToLine} onReplaceAll={replaceAll} />
+              )}
+            </div>
           </aside>
           {/* Drag divider */}
           <div
@@ -322,12 +550,14 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {openTabs.length === 0 ? (
                 <span className="px-2 py-1 text-[13px] font-semibold text-pg-text-muted">No file open</span>
               ) : (
-                openTabs.map((path) => {
-                  const isActive = path === activeTab;
-                  const name = path.split('/').pop() ?? path;
+                openTabs.map((tabId) => {
+                  const isActive = tabId === activeTab;
+                  const dt = isDiffTab(tabId) ? diffTabs[tabId] : null;
+                  const name = dt ? `${baseName(dt.path)} (diff)` : baseName(tabId);
+                  const TabIcon = dt ? GitCompare : FileCode2;
                   return (
                     <div
-                      key={path}
+                      key={tabId}
                       data-tab-active={isActive ? 'true' : 'false'}
                       className={`group flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
                         isActive
@@ -337,12 +567,12 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                     >
                       <button
                         type="button"
-                        onClick={() => setActiveTab(path)}
+                        onClick={() => setActiveTab(tabId)}
                         className="flex min-w-0 items-center gap-1.5"
                       >
-                        <FileCode2 size={14} aria-hidden />
+                        <TabIcon size={14} aria-hidden className={dt ? 'text-brand-sky' : undefined} />
                         <span className="truncate">{name}</span>
-                        {isDirty(path) && (
+                        {!dt && isDirty(tabId) && (
                           <span
                             aria-label="Unsaved changes"
                             className="h-1.5 w-1.5 rounded-full bg-brand-mint"
@@ -352,7 +582,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                       <button
                         type="button"
                         aria-label={`Close ${name}`}
-                        onClick={() => closeTab(path)}
+                        onClick={() => closeTab(tabId)}
                         className={`ml-0.5 rounded text-pg-text-muted transition-colors hover:text-pg-text ${
                           isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                         }`}
@@ -375,8 +605,26 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             </button>
           </div>
 
-          <div className="min-h-0 flex-1">
-            {activeTab ? (
+          <div className="relative min-h-0 flex-1" data-testid={activeDiff ? 'history-diff' : undefined}>
+            {!activeTab ? (
+              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
+                Pick a file to start editing.
+              </div>
+            ) : activeDiff ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
+                    Loading diff…
+                  </div>
+                }
+              >
+                <HistoryDiff
+                  original={activeDiff.original}
+                  modified={activeDiff.modified}
+                  language={languageFor(activeDiff.path)}
+                />
+              </Suspense>
+            ) : (
               <Suspense
                 fallback={
                   <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
@@ -392,25 +640,27 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                   jumpTo={jumpTo}
                 />
               </Suspense>
-            ) : (
-              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
-                Pick a file to start editing.
-              </div>
             )}
           </div>
 
-          {/* Status bar: file path (left) · Ln/Col + language (right). Auto-save
-              is planned, so there's intentionally no "unsaved" indicator here. */}
+          {/* Status bar: file path (left) · Ln/Col + language (right). The idle
+              autosave keeps the VFS current, so there's no "unsaved" indicator. */}
           <div className="flex shrink-0 items-center justify-between gap-2 border-t border-pg-border bg-pg-text/5 px-3 py-1 text-[11px] font-medium text-pg-text-muted">
             <div className="flex min-w-0 items-center gap-1.5">
-              <FileCode2 size={12} aria-hidden className="shrink-0" />
-              <span className="truncate">{activeTab || 'No file open'}</span>
+              {activeDiff ? <GitCompare size={12} aria-hidden className="shrink-0 text-brand-sky" /> : <FileCode2 size={12} aria-hidden className="shrink-0" />}
+              <span className="truncate">{activeDiff ? activeDiff.path : activeTab || 'No file open'}</span>
             </div>
             {activeTab && (
               <div className="flex shrink-0 items-center gap-2">
-                <span>Ln {cursor.line}, Col {cursor.column}</span>
-                <span aria-hidden className="text-pg-border">|</span>
-                <span>{languageLabel(activeTab)}</span>
+                {activeDiff ? (
+                  <span className="font-bold text-brand-sky">DIFF · old → now</span>
+                ) : (
+                  <>
+                    <span>Ln {cursor.line}, Col {cursor.column}</span>
+                    <span aria-hidden className="text-pg-border">|</span>
+                    <span>{languageLabel(activeTab)}</span>
+                  </>
+                )}
               </div>
             )}
           </div>
