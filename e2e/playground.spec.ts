@@ -308,13 +308,14 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await page.getByRole('button', { name: 'Close main.js (diff)' }).click();
   await expect(page.getByTestId('history-diff')).toBeHidden();
 
-  // Select the initial version → whole-project revert from the detail header.
+  // Select the initial version → whole-project revert (asks to confirm).
   await page.getByText('Initial version').click();
   await page.getByRole('button', { name: 'Revert to Initial version' }).click();
+  await page.getByRole('button', { name: 'Confirm revert', exact: true }).click();
   await expect(page.getByText(/reverted ·/)).toBeVisible();
 });
 
-test('history: revert a single file', async ({ page }) => {
+test('history: revert a single file (with confirm)', async ({ page }) => {
   await reachWorkspace(page);
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
   await page.getByRole('button', { name: 'History', exact: true }).click();
@@ -325,7 +326,18 @@ test('history: revert a single file', async ({ page }) => {
   // Select the initial version → its detail lists main.js → revert JUST that file.
   await page.getByText('Initial version').click();
   await page.getByRole('button', { name: 'Revert main.js', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm revert main.js' }).click();
   await expect(page.getByText(/reverted main\.js/)).toBeVisible();
+});
+
+test('history: file-tree operations are recorded', async ({ page }) => {
+  await reachWorkspace(page);
+  // Create a file via the tree → it should appear in the history timeline.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await page.getByLabel('File or folder name').fill('Note.js');
+  await page.getByLabel('File or folder name').press('Enter');
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await expect(page.getByText(/created Note\.js/)).toBeVisible();
 });
 
 // Serve a single-file project whose entry throws on a known line, then reach the

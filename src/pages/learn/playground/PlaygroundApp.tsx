@@ -1,14 +1,26 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { GeneratingScreen } from './GeneratingScreen';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore } from './playgroundStore';
-import { useProjectStore } from './projectStore';
+import { type ProjectChange, useProjectStore } from './projectStore';
 import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
+
+const base = (p: string) => p.split('/').pop() || p;
+
+/** History label for a file-tree mutation (create/rename/move/delete). */
+function changeSummary(c: ProjectChange): string | undefined {
+  if (c.kind === 'create-file' && c.added.length) return `created ${base(c.added[0])}`;
+  if (c.kind === 'remove' && c.removed.length)
+    return `deleted ${base(c.removed[0])}${c.removed.length > 1 ? ` +${c.removed.length - 1}` : ''}`;
+  if (c.kind === 'rename' && c.remaps.length) return `renamed ${base(c.remaps[0].from)} → ${base(c.remaps[0].to)}`;
+  if (c.kind === 'move' && c.remaps.length) return `moved ${base(c.remaps[0].from)}`;
+  return undefined;
+}
 
 interface PlaygroundAppProps {
   /**
@@ -41,6 +53,19 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const run = useCallback(() => {
     setRunning(true);
     setRunKey((k) => k + 1);
+  }, []);
+
+  // Record file-tree operations (create/rename/move/delete) in history. Typing is
+  // snapshotted by the editor's idle autosave; this covers structural changes so
+  // they're in the timeline and revertable too.
+  useEffect(() => {
+    return useProjectStore.subscribe((state) => {
+      const c = state.change;
+      if (!c) return;
+      if (c.kind === 'create-file' || c.kind === 'rename' || c.kind === 'move' || c.kind === 'remove') {
+        useHistoryStore.getState().record(state.files, Date.now(), changeSummary(c));
+      }
+    });
   }, []);
 
   return (

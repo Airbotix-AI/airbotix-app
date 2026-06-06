@@ -7,7 +7,7 @@
 // Click a file → open its diff tab (left = the older version / peek, right = this
 // version). Revert (in the detail header) restores the whole project to the entry.
 
-import { History, RotateCcw } from 'lucide-react';
+import { Check, History, RotateCcw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -61,6 +61,8 @@ const base = (p: string) => p.split('/').pop() || p;
 export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: HistoryPanelProps) {
   const checkpoints = useHistoryStore((s) => s.checkpoints);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Pending revert confirmation: the whole project, or a single file.
+  const [confirm, setConfirm] = useState<{ kind: 'project' } | { kind: 'file'; path: string } | null>(null);
 
   const selectedIndex = checkpoints.findIndex((c) => c.id === selectedId);
   const selected = selectedIndex >= 0 ? checkpoints[selectedIndex] : null;
@@ -98,7 +100,10 @@ export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: H
               <li key={cp.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId((cur) => (cur === cp.id ? null : cp.id))}
+                  onClick={() => {
+                    setConfirm(null);
+                    setSelectedId((cur) => (cur === cp.id ? null : cp.id));
+                  }}
                   className={`flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors ${
                     isSel ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
                   }`}
@@ -122,17 +127,41 @@ export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: H
             <span className="min-w-0 flex-1 truncate text-[11px] font-extrabold uppercase tracking-[0.1em] text-brand-sky">
               {selectedIndex === 0 ? 'Latest' : 'Changed'}
             </span>
-            {selectedIndex !== 0 && (
-              <button
-                type="button"
-                aria-label={`Revert to ${selected.summary}`}
-                title="Revert the whole project to this version"
-                onClick={() => onRevert(selected)}
-                className="flex items-center gap-1 rounded-md bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-pg-text/20"
-              >
-                <RotateCcw size={12} aria-hidden /> Revert
-              </button>
-            )}
+            {selectedIndex !== 0 &&
+              (confirm?.kind === 'project' ? (
+                <span className="flex items-center gap-1 text-[11px] font-bold text-pg-text">
+                  Revert all?
+                  <button
+                    type="button"
+                    aria-label="Confirm revert"
+                    onClick={() => {
+                      onRevert(selected);
+                      setConfirm(null);
+                    }}
+                    className="rounded p-0.5 text-brand-coral hover:bg-wash-coral"
+                  >
+                    <Check size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Cancel revert"
+                    onClick={() => setConfirm(null)}
+                    className="rounded p-0.5 text-pg-text-muted hover:bg-pg-text/10 hover:text-pg-text"
+                  >
+                    <X size={13} />
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={`Revert to ${selected.summary}`}
+                  title="Revert the whole project to this version"
+                  onClick={() => setConfirm({ kind: 'project' })}
+                  className="flex items-center gap-1 rounded-md bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-pg-text/20"
+                >
+                  <RotateCcw size={12} aria-hidden /> Revert
+                </button>
+              ))}
           </div>
           <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
             {changes.length === 0 ? (
@@ -157,15 +186,39 @@ export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: H
                       </span>
                       <span className="truncate">{base(path)}</span>
                     </button>
-                    <button
-                      type="button"
-                      aria-label={`Revert ${path}`}
-                      title="Revert just this file to this version"
-                      onClick={() => onRevertFile(path, selected.files.find((f) => f.path === path) ?? null)}
-                      className="shrink-0 rounded p-0.5 text-pg-text-muted opacity-0 transition-opacity hover:bg-pg-text/10 hover:text-pg-text group-hover:opacity-100"
-                    >
-                      <RotateCcw size={12} aria-hidden />
-                    </button>
+                    {confirm?.kind === 'file' && confirm.path === path ? (
+                      <span className="flex shrink-0 items-center gap-0.5">
+                        <button
+                          type="button"
+                          aria-label={`Confirm revert ${path}`}
+                          onClick={() => {
+                            onRevertFile(path, selected.files.find((f) => f.path === path) ?? null);
+                            setConfirm(null);
+                          }}
+                          className="rounded p-0.5 text-brand-coral hover:bg-wash-coral"
+                        >
+                          <Check size={12} aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Cancel revert"
+                          onClick={() => setConfirm(null)}
+                          className="rounded p-0.5 text-pg-text-muted hover:bg-pg-text/10 hover:text-pg-text"
+                        >
+                          <X size={12} aria-hidden />
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Revert ${path}`}
+                        title="Revert just this file to this version"
+                        onClick={() => setConfirm({ kind: 'file', path })}
+                        className="shrink-0 rounded p-0.5 text-pg-text-muted opacity-0 transition-opacity hover:bg-pg-text/10 hover:text-pg-text group-hover:opacity-100"
+                      >
+                        <RotateCcw size={12} aria-hidden />
+                      </button>
+                    )}
                   </div>
                 </li>
               ))
