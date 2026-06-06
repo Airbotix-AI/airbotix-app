@@ -8,7 +8,7 @@
 // version). Revert (in the detail header) restores the whole project to the entry.
 
 import { History, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { useHistoryStore, type Checkpoint } from '../historyStore';
@@ -20,6 +20,8 @@ interface HistoryPanelProps {
   onRevert: (cp: Checkpoint) => void;
   /** Revert a single file to its version at a checkpoint (`file`), or delete it (`null`). */
   onRevertFile: (path: string, file: VfsFile | null) => void;
+  /** True while a checkpoint is selected (the file-detail column is showing). */
+  onDetailOpen: (open: boolean) => void;
 }
 
 type FileStatus = 'edited' | 'added' | 'removed';
@@ -56,7 +58,7 @@ const STATUS_LABEL: Record<FileStatus, { letter: string; color: string }> = {
 };
 const base = (p: string) => p.split('/').pop() || p;
 
-export function HistoryPanel({ onDiff, onRevert, onRevertFile }: HistoryPanelProps) {
+export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: HistoryPanelProps) {
   const checkpoints = useHistoryStore((s) => s.checkpoints);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -65,6 +67,13 @@ export function HistoryPanel({ onDiff, onRevert, onRevertFile }: HistoryPanelPro
   // Newest-first, so the "previous" (older) checkpoint is the NEXT index.
   const prev = selected ? checkpoints[selectedIndex + 1] ?? null : null;
   const changes = selected ? changedIn(selected, prev) : [];
+
+  // Tell the pane whether the file-detail column is showing, so it can widen the
+  // sidebar only while an entry is selected (the guard there makes this idempotent).
+  const detailVisible = selected != null;
+  useEffect(() => {
+    onDetailOpen(detailVisible);
+  }, [detailVisible, onDetailOpen]);
 
   if (checkpoints.length === 0) {
     return (
@@ -89,7 +98,7 @@ export function HistoryPanel({ onDiff, onRevert, onRevertFile }: HistoryPanelPro
               <li key={cp.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(cp.id)}
+                  onClick={() => setSelectedId((cur) => (cur === cp.id ? null : cp.id))}
                   className={`flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors ${
                     isSel ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
                   }`}

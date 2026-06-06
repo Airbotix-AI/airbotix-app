@@ -303,18 +303,25 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     record(next, Date.now(), `reverted ${baseName(path)}`);
   };
 
-  // Switch the sidebar view; opening History auto-widens the (two-column) panel,
-  // and returning to Explorer restores the prior width.
+  // The sidebar auto-widens ONLY while a History entry is selected (i.e. the
+  // two-column file detail is showing); deselecting or leaving History restores
+  // the prior width. Driven by HistoryPanel via `onDetailOpen`.
   const widthBeforeHistory = useRef(FILES_DEFAULT_W);
-  const switchSidebar = (view: 'files' | 'history') => {
-    if (view === sidebarView) return;
-    if (view === 'history') {
+  const detailOpen = useRef(false);
+  const setHistoryDetailOpen = (open: boolean) => {
+    if (open === detailOpen.current) return;
+    detailOpen.current = open;
+    if (open) {
       widthBeforeHistory.current = filesWidth;
       const maxW = (rootRef.current?.clientWidth ?? 900) - EDITOR_MIN_W;
       setFilesWidth(Math.max(filesWidth, Math.min(HISTORY_MIN_W, Math.max(FILES_MIN_W, maxW))));
     } else {
       setFilesWidth(widthBeforeHistory.current);
     }
+  };
+  const switchSidebar = (view: 'files' | 'history') => {
+    if (view === sidebarView) return;
+    if (view !== 'history') setHistoryDetailOpen(false); // restore on leaving History
     setSidebarView(view);
   };
 
@@ -438,7 +445,12 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {sidebarView === 'files' ? (
                 <FileTree files={files} activePath={activeTab} onSelect={openTab} />
               ) : (
-                <HistoryPanel onRevert={revertTo} onDiff={openDiffTab} onRevertFile={revertFile} />
+                <HistoryPanel
+                  onRevert={revertTo}
+                  onDiff={openDiffTab}
+                  onRevertFile={revertFile}
+                  onDetailOpen={setHistoryDetailOpen}
+                />
               )}
             </div>
           </aside>

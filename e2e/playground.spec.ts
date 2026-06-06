@@ -275,21 +275,22 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await reachWorkspace(page); // Window mode; Code Editor on the scaffold.
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
 
-  // Opening History auto-widens the sidebar so the two columns fit.
+  // Open History — with nothing selected it stays at the original width.
   const sidebar = page.getByTestId('editor-sidebar');
-  const filesWidth = (await sidebar.boundingBox())!.width;
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await expect(page.getByText('Initial version')).toBeVisible();
-  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(filesWidth);
+  const narrow = (await sidebar.boundingBox())!.width;
 
   // Type into the editor → after the idle pause it auto-commits + snapshots.
   await page.locator('.monaco-editor').first().click();
   await page.keyboard.type('// history checkpoint test\n');
   await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
 
-  // Click the entry → a detail column lists the files THAT entry changed.
+  // Selecting an entry shows its file-detail column AND auto-widens the sidebar.
   await page.getByText(/edited main\.js/).click();
   await expect(page.getByTestId('history-detail')).toBeVisible();
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(narrow);
+
   // Click the changed file → its diff opens as its OWN tab next to the files.
   await page.getByRole('button', { name: 'Diff main.js' }).click();
   await expect(page.getByTestId('history-diff')).toBeVisible();
