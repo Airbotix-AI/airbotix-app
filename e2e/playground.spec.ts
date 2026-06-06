@@ -275,9 +275,12 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await reachWorkspace(page); // Window mode; Code Editor on the scaffold.
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
 
-  // History starts seeded with the initial version.
+  // Opening History auto-widens the sidebar so the two columns fit.
+  const sidebar = page.getByTestId('editor-sidebar');
+  const filesWidth = (await sidebar.boundingBox())!.width;
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await expect(page.getByText('Initial version')).toBeVisible();
+  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(filesWidth);
 
   // Type into the editor → after the idle pause it auto-commits + snapshots.
   await page.locator('.monaco-editor').first().click();
@@ -301,10 +304,24 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
   await page.getByRole('button', { name: 'Close main.js (diff)' }).click();
   await expect(page.getByTestId('history-diff')).toBeHidden();
 
-  // Select the initial version → revert from the detail header.
+  // Select the initial version → whole-project revert from the detail header.
   await page.getByText('Initial version').click();
   await page.getByRole('button', { name: 'Revert to Initial version' }).click();
-  await expect(page.getByText(/reverted/)).toBeVisible();
+  await expect(page.getByText(/reverted ·/)).toBeVisible();
+});
+
+test('history: revert a single file', async ({ page }) => {
+  await reachWorkspace(page);
+  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  await page.getByRole('button', { name: 'History', exact: true }).click();
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.type('// file-level revert test\n');
+  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
+
+  // Select the initial version → its detail lists main.js → revert JUST that file.
+  await page.getByText('Initial version').click();
+  await page.getByRole('button', { name: 'Revert main.js', exact: true }).click();
+  await expect(page.getByText(/reverted main\.js/)).toBeVisible();
 });
 
 // Serve a single-file project whose entry throws on a known line, then reach the

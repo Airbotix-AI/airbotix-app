@@ -36,6 +36,8 @@ const FILES_DEFAULT_W = 220;
 const FILES_MIN_W = 140;
 /** Min pixels the editor keeps; caps how wide the files column can be dragged. */
 const EDITOR_MIN_W = 240;
+/** Sidebar auto-widens to this when the (two-column) History view opens. */
+const HISTORY_MIN_W = 380;
 
 // Monaco (~3–5 MB incl. workers) is code-split into its own chunk and fetched
 // only when this pane mounts (design §6). MUST stay a `React.lazy` import.
@@ -281,6 +283,41 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     record(cp.files, Date.now(), `reverted · ${cp.summary}`);
   };
 
+  // Revert a SINGLE file to its state at a checkpoint: `file` = that checkpoint's
+  // version (set/restore it), or `null` if the file didn't exist there (delete it).
+  const revertFile = (path: string, file: VfsFile | null) => {
+    const cur = useProjectStore.getState().files;
+    const next = !file
+      ? cur.filter((f) => f.path !== path)
+      : cur.some((f) => f.path === path)
+        ? cur.map((f) => (f.path === path ? { ...file } : f))
+        : [...cur, { ...file }];
+    onApplyFiles(next); // a delete reconciles the open tab shut via the store `change`
+    if (file) {
+      // Override any in-progress draft for this file with the reverted content.
+      const overwrite = (prev: Record<string, string>): Record<string, string> =>
+        path in prev ? { ...prev, [path]: file.content } : prev;
+      setDrafts(overwrite);
+      setSynced(overwrite);
+    }
+    record(next, Date.now(), `reverted ${baseName(path)}`);
+  };
+
+  // Switch the sidebar view; opening History auto-widens the (two-column) panel,
+  // and returning to Explorer restores the prior width.
+  const widthBeforeHistory = useRef(FILES_DEFAULT_W);
+  const switchSidebar = (view: 'files' | 'history') => {
+    if (view === sidebarView) return;
+    if (view === 'history') {
+      widthBeforeHistory.current = filesWidth;
+      const maxW = (rootRef.current?.clientWidth ?? 900) - EDITOR_MIN_W;
+      setFilesWidth(Math.max(filesWidth, Math.min(HISTORY_MIN_W, Math.max(FILES_MIN_W, maxW))));
+    } else {
+      setFilesWidth(widthBeforeHistory.current);
+    }
+    setSidebarView(view);
+  };
+
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
   // The active tab is a diff when it carries diff content; else it's a file.
   const activeDiff = activeTab && isDiffTab(activeTab) ? diffTabs[activeTab] : null;
@@ -371,6 +408,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
       {!filesCollapsed && (
         <>
           <aside
+            data-testid="editor-sidebar"
             style={{ width: filesWidth }}
             className="flex h-full shrink-0 flex-col overflow-hidden bg-pg-text/5"
           >
@@ -384,7 +422,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                   key={id}
                   type="button"
                   aria-pressed={sidebarView === id}
-                  onClick={() => setSidebarView(id)}
+                  onClick={() => switchSidebar(id)}
                   className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-bold transition-colors ${
                     sidebarView === id
                       ? 'bg-pg-text/10 text-pg-text'
@@ -400,7 +438,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {sidebarView === 'files' ? (
                 <FileTree files={files} activePath={activeTab} onSelect={openTab} />
               ) : (
-                <HistoryPanel onRevert={revertTo} onDiff={openDiffTab} />
+                <HistoryPanel onRevert={revertTo} onDiff={openDiffTab} onRevertFile={revertFile} />
               )}
             </div>
           </aside>

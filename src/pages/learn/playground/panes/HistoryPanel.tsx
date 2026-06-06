@@ -10,13 +10,16 @@
 import { History, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
+import type { VfsFile } from '../../code/codeApi';
 import { useHistoryStore, type Checkpoint } from '../historyStore';
 
 interface HistoryPanelProps {
   /** Open a diff: left = the version before this entry, right = this entry. */
   onDiff: (path: string, original: string, modified: string) => void;
-  /** Revert the project to a checkpoint. */
+  /** Revert the whole project to a checkpoint. */
   onRevert: (cp: Checkpoint) => void;
+  /** Revert a single file to its version at a checkpoint (`file`), or delete it (`null`). */
+  onRevertFile: (path: string, file: VfsFile | null) => void;
 }
 
 type FileStatus = 'edited' | 'added' | 'removed';
@@ -53,7 +56,7 @@ const STATUS_LABEL: Record<FileStatus, { letter: string; color: string }> = {
 };
 const base = (p: string) => p.split('/').pop() || p;
 
-export function HistoryPanel({ onDiff, onRevert }: HistoryPanelProps) {
+export function HistoryPanel({ onDiff, onRevert, onRevertFile }: HistoryPanelProps) {
   const checkpoints = useHistoryStore((s) => s.checkpoints);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -128,22 +131,33 @@ export function HistoryPanel({ onDiff, onRevert }: HistoryPanelProps) {
             ) : (
               changes.map(({ path, status }) => (
                 <li key={path}>
-                  <button
-                    type="button"
-                    aria-label={`Diff ${path}`}
-                    title={path}
-                    onClick={() => {
-                      const original = prev?.files.find((f) => f.path === path)?.content ?? '';
-                      const modified = selected.files.find((f) => f.path === path)?.content ?? '';
-                      onDiff(path, original, modified);
-                    }}
-                    className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text"
-                  >
-                    <span className={`text-[10px] font-bold ${STATUS_LABEL[status].color}`}>
-                      {STATUS_LABEL[status].letter}
-                    </span>
-                    <span className="truncate">{base(path)}</span>
-                  </button>
+                  <div className="group flex items-center rounded pr-1 hover:bg-pg-text/5">
+                    <button
+                      type="button"
+                      aria-label={`Diff ${path}`}
+                      title={`Diff ${path}`}
+                      onClick={() => {
+                        const original = prev?.files.find((f) => f.path === path)?.content ?? '';
+                        const modified = selected.files.find((f) => f.path === path)?.content ?? '';
+                        onDiff(path, original, modified);
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-[12px] text-pg-text-dim hover:text-pg-text"
+                    >
+                      <span className={`text-[10px] font-bold ${STATUS_LABEL[status].color}`}>
+                        {STATUS_LABEL[status].letter}
+                      </span>
+                      <span className="truncate">{base(path)}</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Revert ${path}`}
+                      title="Revert just this file to this version"
+                      onClick={() => onRevertFile(path, selected.files.find((f) => f.path === path) ?? null)}
+                      className="shrink-0 rounded p-0.5 text-pg-text-muted opacity-0 transition-opacity hover:bg-pg-text/10 hover:text-pg-text group-hover:opacity-100"
+                    >
+                      <RotateCcw size={12} aria-hidden />
+                    </button>
+                  </div>
                 </li>
               ))
             )}
