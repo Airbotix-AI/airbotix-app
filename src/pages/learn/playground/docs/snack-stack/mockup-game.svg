@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="960" viewBox="0 0 540 960" font-family="'Baloo 2','Nunito',system-ui,sans-serif">
+  <!-- Snack Stack — main game screen mockup (ORIGINAL design, genre conventions; not a reproduction) -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE9C9"/>
+      <stop offset="1" stop-color="#FFD8A8"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBEBD0"/>
+      <stop offset="1" stop-color="#F2D6A8"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#FFB836"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#7a4a1f" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="540" height="960" fill="url(#sky)"/>
+
+  <!-- ===== isometric floor (hero play area) ===== -->
+  <polygon points="270,150 540,300 270,760 0,300" fill="url(#floor)"/>
+  <polygon points="270,150 540,300 270,760 0,300" fill="none" stroke="#E6C089" stroke-width="3"/>
+  <!-- back wall hint -->
+  <polygon points="60,300 270,180 480,300 270,300" fill="#FFF3DD" opacity="0.7"/>
+
+  <!-- ambient customer queue (head + body sprites) -->
+  <g>
+    <g transform="translate(360,250)"><circle r="11" fill="#FF9F68"/><rect x="-12" y="9" width="24" height="22" rx="11" fill="#FF7A59"/></g>
+    <g transform="translate(392,266)"><circle r="11" fill="#7ED0B8"/><rect x="-12" y="9" width="24" height="22" rx="11" fill="#4FBF9B"/></g>
+    <g transform="translate(424,282)"><circle r="11" fill="#9FB8FF"/><rect x="-12" y="9" width="24" height="22" rx="11" fill="#6E8BF0"/></g>
+  </g>
+
+  <!-- ===== stations ===== -->
+  <!-- Burger Grill (upgrade available -> floating arrow) -->
+  <g transform="translate(150,300)" filter="url(#soft)">
+    <rect x="-58" y="-44" width="116" height="92" rx="18" fill="#F25C54"/>
+    <rect x="-58" y="-44" width="116" height="34" rx="16" fill="#FF7A66"/>
+    <!-- burger icon -->
+    <ellipse cx="0" cy="-2" rx="30" ry="10" fill="#F6C26B"/>
+    <rect x="-30" y="-4" width="60" height="9" fill="#7BBE6B"/>
+    <ellipse cx="0" cy="4" rx="30" ry="10" fill="#8A5A33"/>
+    <ellipse cx="0" cy="16" rx="30" ry="11" fill="#F6C26B"/>
+    <circle cx="-10" cy="-16" r="2" fill="#fff"/><circle cx="8" cy="-15" r="2" fill="#fff"/>
+    <text x="0" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Burger Grill · Lv 14</text>
+  </g>
+  <!-- bouncing upgrade arrow -->
+  <g transform="translate(150,232)">
+    <circle r="20" fill="#FFD45E" filter="url(#soft)"/>
+    <path d="M0,-9 L9,4 H4 V11 H-4 V4 H-9 Z" fill="#3A2E25"/>
+  </g>
+
+  <!-- Fry Station -->
+  <g transform="translate(335,360)" filter="url(#soft)">
+    <rect x="-58" y="-44" width="116" height="92" rx="18" fill="#4FBF9B"/>
+    <rect x="-58" y="-44" width="116" height="34" rx="16" fill="#6FD3B2"/>
+    <!-- fries icon -->
+    <rect x="-22" y="-18" width="44" height="30" rx="6" fill="#F25C54"/>
+    <rect x="-16" y="-30" width="6" height="22" rx="3" fill="#FFD45E"/>
+    <rect x="-6" y="-34" width="6" height="26" rx="3" fill="#FFD45E"/>
+    <rect x="4" y="-31" width="6" height="23" rx="3" fill="#FFD45E"/>
+    <text x="0" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Fry Station · Lv 9</text>
+    <!-- progress fill bar -->
+    <rect x="-44" y="50" width="88" height="9" rx="4.5" fill="#ffffff" opacity="0.55"/>
+    <rect x="-44" y="50" width="56" height="9" rx="4.5" fill="#FFD45E"/>
+  </g>
+
+  <!-- Drink Machine (with a hired manager worker beside it) -->
+  <g transform="translate(180,470)" filter="url(#soft)">
+    <rect x="-54" y="-42" width="108" height="88" rx="18" fill="#5BB6E8"/>
+    <rect x="-54" y="-42" width="108" height="32" rx="16" fill="#7FCBF2"/>
+    <path d="M-16,-20 H16 L11,18 H-11 Z" fill="#fff"/>
+    <rect x="-16" y="-22" width="32" height="7" rx="3" fill="#F25C54"/>
+    <text x="0" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Drink Machine · Lv 11</text>
+  </g>
+  <!-- manager / worker sprite -->
+  <g transform="translate(252,498)"><circle r="12" fill="#FFCBA3"/><rect x="-13" y="10" width="26" height="26" rx="12" fill="#9B6BF0"/><rect x="-13" y="10" width="26" height="9" rx="4" fill="#fff" opacity="0.7"/></g>
+  <text x="252" y="552" text-anchor="middle" font-size="11" font-weight="700" fill="#6b4a7a">auto ✓ manager</text>
+
+  <!-- collectible coins on the counter (tap to collect) -->
+  <g>
+    <g transform="translate(300,560)"><circle r="17" fill="url(#coin)" filter="url(#soft)"/><circle r="17" fill="none" stroke="#E29A1E" stroke-width="2"/><text y="5" text-anchor="middle" font-size="14" font-weight="800" fill="#9a5a00">$</text></g>
+    <g transform="translate(338,576)"><circle r="14" fill="url(#coin)"/><circle r="14" fill="none" stroke="#E29A1E" stroke-width="2"/></g>
+    <g transform="translate(268,580)"><circle r="13" fill="url(#coin)"/><circle r="13" fill="none" stroke="#E29A1E" stroke-width="2"/></g>
+  </g>
+
+  <!-- empty dotted "new station" plot -->
+  <g transform="translate(360,610)">
+    <rect x="-56" y="-40" width="112" height="84" rx="18" fill="#ffffff" opacity="0.35"/>
+    <rect x="-56" y="-40" width="112" height="84" rx="18" fill="none" stroke="#B98A4E" stroke-width="3" stroke-dasharray="9 8"/>
+    <circle cx="0" cy="-2" r="17" fill="#7BBE6B"/>
+    <path d="M0,-12 V8 M-10,-2 H10" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <text x="0" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#8a5a2a">New station</text>
+  </g>
+
+  <!-- ===== TOP HUD ===== -->
+  <rect x="0" y="0" width="540" height="70" fill="#3A2E25" opacity="0.10"/>
+  <!-- money pill -->
+  <g transform="translate(20,18)" filter="url(#soft)">
+    <rect width="170" height="40" rx="20" fill="#fff"/>
+    <circle cx="26" cy="20" r="15" fill="url(#coin)"/><circle cx="26" cy="20" r="15" fill="none" stroke="#E29A1E" stroke-width="2"/>
+    <text x="26" y="25" text-anchor="middle" font-size="14" font-weight="800" fill="#9a5a00">$</text>
+    <text x="52" y="27" font-size="20" font-weight="800" fill="#3A2E25">12.4K</text>
+  </g>
+  <!-- gem pill (future / earned-only) -->
+  <g transform="translate(206,18)">
+    <rect width="96" height="40" rx="20" fill="#fff" opacity="0.85"/>
+    <path d="M26,9 L37,16 L26,31 L15,16 Z" fill="#5BC8FF"/>
+    <text x="52" y="27" font-size="18" font-weight="800" fill="#3A2E25">38</text>
+  </g>
+  <!-- settings gear -->
+  <g transform="translate(490,38)">
+    <circle r="22" fill="#fff" filter="url(#soft)"/>
+    <circle r="9" fill="none" stroke="#3A2E25" stroke-width="3"/>
+    <g stroke="#3A2E25" stroke-width="3" stroke-linecap="round"><path d="M0,-15 V-11"/><path d="M0,15 V11"/><path d="M-15,0 H-11"/><path d="M15,0 H11"/><path d="M-11,-11 l3,3"/><path d="M11,11 l-3,-3"/><path d="M11,-11 l-3,3"/><path d="M-11,11 l3,-3"/></g>
+  </g>
+
+  <!-- ===== BOTTOM BAR ===== -->
+  <rect x="0" y="820" width="540" height="140" fill="#3A2E25" opacity="0.06"/>
+  <!-- restaurant progress -->
+  <text x="36" y="858" font-size="13" font-weight="700" fill="#7a5a33">Restaurant level</text>
+  <rect x="36" y="868" width="468" height="20" rx="10" fill="#ffffff"/>
+  <rect x="36" y="868" width="300" height="20" rx="10" fill="#7BBE6B"/>
+  <text x="270" y="883" text-anchor="middle" font-size="12" font-weight="800" fill="#3A2E25">6 / 10 stations</text>
+  <!-- collect-all / primary CTA -->
+  <g transform="translate(36,904)" filter="url(#soft)">
+    <rect width="338" height="44" rx="22" fill="#FF8A3D"/>
+    <text x="169" y="29" text-anchor="middle" font-size="17" font-weight="800" fill="#fff">Tap a dish to collect 🪙</text>
+  </g>
+  <!-- upgrades button (opens panel) -->
+  <g transform="translate(398,904)" filter="url(#soft)">
+    <rect width="106" height="44" rx="22" fill="#5B7CF0"/>
+    <path d="M22,29 l8,-10 l8,10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="68" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">Shop</text>
+  </g>
+
+  <!-- title chip -->
+  <text x="270" y="120" text-anchor="middle" font-size="13" font-weight="700" fill="#a06a2e" opacity="0.8">SNACK STACK — main screen (mockup)</text>
+</svg>
