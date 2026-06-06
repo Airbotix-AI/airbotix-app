@@ -46,6 +46,8 @@ interface ProjectState {
 
   /** Reset to a freshly-loaded project (clears folders + history of change). */
   setFiles: (files: VfsFile[]) => void;
+  /** Restore a persisted project (files + explicit empty folders) on load. */
+  hydrate: (files: VfsFile[], folders: string[]) => void;
   /** Replace the VFS wholesale — editor ▶ Play commit and AI turns. */
   apply: (files: VfsFile[]) => void;
 
@@ -71,6 +73,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setFiles: (files) =>
     set({ files, folders: [], change: { seq: nextSeq(), kind: 'init', remaps: [], removed: [], added: [] } }),
+
+  hydrate: (files, folders) =>
+    set({ files, folders, change: { seq: nextSeq(), kind: 'init', remaps: [], removed: [], added: [] } }),
 
   apply: (files) =>
     set((s) => {

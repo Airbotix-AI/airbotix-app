@@ -330,6 +330,25 @@ test('history: revert a single file (with confirm)', async ({ page }) => {
   await expect(page.getByText(/reverted main\.js/)).toBeVisible();
 });
 
+test('persistence: edits survive a page refresh', async ({ page }) => {
+  await reachWorkspace(page);
+  // Create a file, then let the debounced IndexedDB save land.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await page.getByLabel('File or folder name').fill('Persist.js');
+  await page.getByLabel('File or folder name').press('Enter');
+  await expect(page.getByText('Persist.js').first()).toBeVisible();
+  await page.waitForTimeout(1200); // > SAVE_DEBOUNCE_MS (600)
+
+  // Reload → re-enter the studio → the file is restored from IndexedDB, not the
+  // fresh scaffold.
+  await page.reload();
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Persist.js').first()).toBeVisible();
+});
+
 test('history: file-tree operations are recorded', async ({ page }) => {
   await reachWorkspace(page);
   // Create a file via the tree → it should appear in the history timeline.

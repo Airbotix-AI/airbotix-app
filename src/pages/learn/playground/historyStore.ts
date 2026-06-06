@@ -29,6 +29,8 @@ interface HistoryState {
   checkpoints: Checkpoint[];
   /** Record a snapshot. No-op if identical to the latest. Returns the new checkpoint (or null). */
   record: (files: VfsFile[], ts: number, summary?: string) => Checkpoint | null;
+  /** Restore persisted checkpoints (continues ids past the restored max). */
+  hydrate: (checkpoints: Checkpoint[]) => void;
   reset: () => void;
 }
 
@@ -75,6 +77,12 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     };
     set({ checkpoints: [cp, ...checkpoints].slice(0, MAX_CHECKPOINTS) });
     return cp;
+  },
+
+  hydrate: (checkpoints) => {
+    // Continue the id counter past the restored max so new ids don't collide.
+    counter = checkpoints.reduce((m, c) => Math.max(m, Number(c.id.replace('cp_', '')) || 0), 0);
+    set({ checkpoints });
   },
 
   reset: () => set({ checkpoints: [] }),

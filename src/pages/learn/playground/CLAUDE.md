@@ -259,6 +259,7 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 |---|---|---|
 | `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + monotonic `runKey` + `running` + the optional `projectId` (prop, or `?projectId` query param in the dev sandbox) threaded to `GeneratingScreen`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. The **VFS now lives in `projectStore`** (not local state): `GeneratingScreen` done → `setFiles`, editor ▶ Play / AI turn → `apply`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
 | `projectStore.ts` | **Zustand project store — the single funnel for every VFS mutation** (editor saves, AI turns, file CRUD, drag moves). Holds `files` + explicit empty `folders` + a `change` descriptor (kind + remaps/removed/added + monotonic `seq`) so consumers reconcile without re-diffing. `PlaygroundApp` **subscribes to `change`** and records CRUD ops (create/rename/move/delete) into history; the editor's idle autosave records typing. Actions: `setFiles` (load/reset), `apply` (wholesale replace), `createFile`/`createFolder`/`rename`/`move`/`remove` (delegate to `vfsOps`). The seam history + IndexedDB persistence hang off. | ✅ |
+| `projectPersistence.ts` | **Local project persistence** — saves the VFS (`files` + `folders`) + edit history to **IndexedDB** (`loadProject`/`saveProject`, keyed by project; `dev-sandbox` key in the DEV route), best-effort (any failure → falls back to the scaffold). `PlaygroundApp` restores it on load (`hydrate`) and debounce-saves on change. **The seam**: a backend write endpoint replaces these two functions later (no backend write path exists yet — only `GET …/code/files`). | ✅ |
 | `historyStore.ts` | **Zustand edit-history store** — a capped, newest-first list of project `Checkpoint`s (full VFS snapshot + `ts` + a `summary` of what changed). `record(files, ts, summary?)` skips snapshots identical to the latest; `summarize()` builds the "edited X +N" label; `reset()` on project load. In-memory now (M4 persists it). | ✅ |
 | `vfsOps.ts` | **Pure operations over the flat `VfsFile[]`** (folders implicit from path segments; explicit empty folders tracked alongside): `createFile`/`createFolder`/`renamePath`/`movePath`/`removePath` + path helpers. Each returns a `VfsMutation` (new files/folders + precise remaps/removed/added). Folder ops act on every file under a `prefix/`; guards collisions + moving a folder into itself. | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
@@ -350,7 +351,7 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   scaffold (`generateScaffold`) is likewise a **local stub**.
 - **Light + dark theming** (light default) across all three phases + Monaco, via
   `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
-- Verified by **23 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+- Verified by **24 passing Playwright specs** (`e2e/playground.spec.ts`, run with
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
   **file CRUD (create file opens a tab; rename remaps the tab; delete closes it; create folder + nested file)**,
   **drag-to-move (drag a file into a folder)**,
@@ -373,10 +374,12 @@ Naming convention: the **playground** is the feature (routes/hub/api use
    code-session loop (`playgroundApi.ts` over `POST /projects/:id/code/turn`,
    etc.). The vibe-coding loop runs **server-side** (decision D-CODE1); the kid
    surface must NEVER call an LLM directly (platform contract §5).
-2. **Project save / write-back** — file **read** is real (`resolveProjectFiles`
-   → `GET /projects/:id/code/files`), but edits are **not persisted**: ▶ Play and
-   chat turns mutate the in-memory VFS only. A write path (`PUT`/turn-commit back
-   to the backend/S3) is still to build.
+2. **Backend project save / write-back** — file **read** is real
+   (`resolveProjectFiles` → `GET /projects/:id/code/files`) and edits now persist
+   **locally** (IndexedDB, `projectPersistence.ts`) so a refresh restores them.
+   What's still missing is the **server-side** write path (`PUT`/turn-commit back
+   to the backend/S3); `projectPersistence`'s `loadProject`/`saveProject` are the
+   seam it slots into.
 3. The authed product routes — `/learn/playground/:projectId` (studio, behind
    `<ProtectedRoute kind="kid">` + backend), plus the hub/fullscreen routes.
    `PlaygroundApp` is currently reachable only via the dev `/playground-sandbox`.
