@@ -214,6 +214,46 @@ test('code editor: hover/overflow widgets render outside the window (not clipped
   ).toHaveCount(1, { timeout: 15_000 });
 });
 
+test('file tree: create, rename, and delete a file', async ({ page }) => {
+  await reachWorkspace(page); // Window mode; Code Editor open on the scaffold.
+  const nameInput = page.getByLabel('File or folder name');
+
+  // CREATE — header "New file" → type → Enter. The new file opens as a tab too.
+  await page.getByRole('button', { name: 'New file', exact: true }).click();
+  await nameInput.fill('Hello.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('Hello.js').first()).toBeVisible();
+
+  // RENAME — the row's rename action (clickable even before hover) → new name.
+  await page.getByRole('button', { name: 'Rename Hello.js' }).click();
+  await nameInput.fill('World.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('World.js').first()).toBeVisible();
+  await expect(page.getByText('Hello.js')).toHaveCount(0); // tree + tab both remapped
+
+  // DELETE — trash → confirm → gone from tree and the tab closes.
+  await page.getByRole('button', { name: 'Delete World.js' }).click();
+  await page.getByRole('button', { name: 'Confirm delete World.js' }).click();
+  await expect(page.getByText('World.js')).toHaveCount(0);
+});
+
+test('file tree: create a folder and a file inside it', async ({ page }) => {
+  await reachWorkspace(page);
+  const nameInput = page.getByLabel('File or folder name');
+
+  // New empty folder — it renders even with no files yet (explicit empty folder).
+  await page.getByRole('button', { name: 'New folder', exact: true }).click();
+  await nameInput.fill('levels');
+  await nameInput.press('Enter');
+  await expect(page.getByText('levels').first()).toBeVisible();
+
+  // New file inside that folder via its hover "+file" action.
+  await page.getByRole('button', { name: 'New file in levels' }).click();
+  await nameInput.fill('one.js');
+  await nameInput.press('Enter');
+  await expect(page.getByText('one.js').first()).toBeVisible();
+});
+
 // Serve a single-file project whose entry throws on a known line, then reach the
 // workspace. The thrown error is what the debugging specs below act on.
 async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {

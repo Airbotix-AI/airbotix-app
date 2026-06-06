@@ -11,6 +11,7 @@ import { FileCode2, PanelLeftClose, PanelLeftOpen, Play, X } from 'lucide-react'
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
+import { useProjectStore } from '../projectStore';
 import { FileTree } from './FileTree';
 import type { CursorPosition, JumpTarget } from './MonacoEditor';
 
@@ -105,6 +106,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     const nextDrafts: Record<string, string> = { ...drafts };
     const nextSynced: Record<string, string> = { ...synced };
     for (const path of openTabs) {
+      // Skip files that no longer exist (renamed/deleted) — the structural
+      // reconcile effect below remaps/closes those tabs; refreshing here would
+      // wipe the draft to '' before the remap lands.
+      if (!files.some((f) => f.path === path)) continue;
       const committed = fileContent(path);
       const baseline = synced[path];
       const dirty = path in drafts && drafts[path] !== (baseline ?? committed);
@@ -120,6 +125,31 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files]);
+
+  // Structural reconcile: when the file tree renames/moves/deletes files, remap
+  // open tabs (+ their drafts/baselines) to the new paths and close tabs whose
+  // file is gone. Keyed on the store `change` seq so it fires once per mutation.
+  const change = useProjectStore((s) => s.change);
+  useEffect(() => {
+    if (!change || (change.remaps.length === 0 && change.removed.length === 0)) return;
+    const remap = new Map(change.remaps.map((r) => [r.from, r.to]));
+    const gone = new Set(change.removed);
+    const remapKeys = (m: Record<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(m)) {
+        if (gone.has(k)) continue;
+        out[remap.get(k) ?? k] = v;
+      }
+      return out;
+    };
+    const nextTabs = openTabs.filter((p) => !gone.has(p)).map((p) => remap.get(p) ?? p);
+    setOpenTabs(nextTabs);
+    setActiveTab((prev) => (gone.has(prev) ? (nextTabs[0] ?? '') : remap.get(prev) ?? prev));
+    setDrafts(remapKeys);
+    setSynced(remapKeys);
+    // Only react to a new mutation (seq) — not to tab-state churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [change?.seq]);
 
   const openTab = (path: string) => {
     setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
