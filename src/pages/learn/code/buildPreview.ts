@@ -61,6 +61,8 @@ export const ASSET_MIME: Record<string, string> = {
   gif: 'image/gif',
   svg: 'image/svg+xml',
   webp: 'image/webp',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
 };
 
 function file(files: VfsFile[], path: string): string {

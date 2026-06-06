@@ -12,6 +12,7 @@ import {
   FilePlus2,
   FileText,
   FileType,
+  FileVideo,
   Folder,
   FolderPlus,
   Pencil,
@@ -53,6 +54,8 @@ const FILE_ICON: Record<string, LucideIcon> = {
   wav: FileAudio,
   ogg: FileAudio,
   m4a: FileAudio,
+  mp4: FileVideo,
+  webm: FileVideo,
 };
 
 function iconFor(path: string): LucideIcon {
