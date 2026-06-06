@@ -88,9 +88,9 @@ function defaultWindows(): Record<PgWindowId, WinState> {
   // the editor part read too narrow.)
   const codeW = CODE_FILES_COL_W + 2 * (W / 3 - CODE_FILES_COL_W);
   return {
-    // Open on launch, lowest z: a wide backdrop whose titlebar peeks above the
-    // others (its top sits just above Chat's) and whose edges show around them.
-    assets: base('assets', 1, r(ICON_COL_PX, H * 0.04, W - ICON_COL_PX - 24, H * 0.9)),
+    // Open on launch, lowest z: a backdrop behind the three front windows. Width
+    // is 75% of the available span (the full-width default read too wide).
+    assets: base('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: base('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: base('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     chat: base('chat', 4, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
