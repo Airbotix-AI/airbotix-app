@@ -125,10 +125,12 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 (platform rule: no Cloudflare/CDN; self-host on S3+CloudFront).
 
 - Served from the app origin at `public/vendor/phaser-3.80.1.min.js`. The file is
-  **NOT committed to git** — it's materialized from the `phaser` npm dependency
-  by `scripts/copy-phaser.mjs` (`predev`/`prebuild`), git-ignored, and copied into
-  the deploy artifact by Vite (`public/` → `dist/`). Git tracks only the version
-  pin (`package.json` + lockfile). See "Dependencies" for the upgrade procedure.
+  **NOT committed to git** — it's materialized from the `phaser` npm dependency by
+  the **`vendor-phaser` Vite plugin** (`vite.config.ts`, `buildStart` → runs on
+  every dev-server start AND build, so the file exists no matter how Vite is
+  launched), git-ignored, and copied into the deploy artifact by Vite (`public/` →
+  `dist/`). Git tracks only the version pin. See "Dependencies" for the upgrade
+  procedure. **If this file is missing the game throws "Phaser is not defined".**
 - Injected into the srcdoc as a classic `<script src="/vendor/...">`.
 - An opaque-origin srcdoc frame may still **fetch public subresources**, and a
   srcdoc's relative/absolute-path URLs resolve against the **parent** origin —
@@ -158,14 +160,15 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 
 - `phaser` (**`3.80.1`**, a regular `dependency`) — Phaser is an **npm dep** but
   is **never imported into the JS bundle** (zero bundle-size impact). It's only a
-  source for two files that `scripts/copy-phaser.mjs` materializes into
-  `public/vendor/` at `predev`/`prebuild` time (git-ignored, served same-origin —
-  no CDN): the **engine** `phaser-3.80.1.min.js` (loaded as a `<script>` into the
-  sandbox) and the **types** `phaser-3.80.1.d.ts` (lazy-`fetch`ed into Monaco for
-  IntelliSense; never bundled). **Upgrading:** `npm i phaser@<new>`, then bump
-  `PHASER_VERSION` in `scripts/copy-phaser.mjs` **and** the `/vendor/phaser-<v>…`
-  constants in `buildGamePreview.ts` + `panes/MonacoEditor.tsx` (the script
-  hard-fails on a version/constant mismatch so a 404'd asset can't ship).
+  source for two files that the **`vendor-phaser` Vite plugin** (`vite.config.ts`)
+  materializes into `public/vendor/` on every dev/build (git-ignored, served
+  same-origin — no CDN): the **engine** `phaser-3.80.1.min.js` (loaded as a
+  `<script>` into the sandbox) and the **types** `phaser-3.80.1.d.ts`
+  (lazy-`fetch`ed into Monaco for IntelliSense; never bundled). **Upgrading:**
+  `npm i phaser@<new>`, then bump `PHASER_VERSION` in `vite.config.ts` **and** the
+  `/vendor/phaser-<v>…` constants in `buildGamePreview.ts` +
+  `panes/MonacoEditor.tsx` (the plugin throws on a version/constant mismatch so a
+  404'd asset can't ship).
 
 ## The control channel (pause / mute / stats)
 
