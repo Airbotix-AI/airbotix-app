@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Airbotix unified Portal (/portal/*, parents) + Learn (/learn/*, kids) SPA. app.airbotix.ai. AWS S3 + CloudFront, Sydney.",
   "scripts": {
+    "vendor:phaser": "node scripts/copy-phaser.mjs",
+    "predev": "node scripts/copy-phaser.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-phaser.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
@@ -26,6 +29,7 @@
     "livecodes": "^0.14.1",
     "lucide-react": "^1.17.0",
     "monaco-editor": "^0.55.1",
+    "phaser": "^3.80.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

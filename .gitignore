@@ -37,3 +37,9 @@ vite.config.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Vendored Phaser — materialized from the `phaser` npm dep at build/dev time by
+# scripts/copy-phaser.mjs (predev/prebuild), served from our own origin (no CDN).
+# Tracked via the package.json version pin, not as committed binaries.
+/public/vendor/phaser-*.min.js
+/public/vendor/phaser-*.d.ts

@@ -245,14 +245,20 @@ test('Ask AI to fix: a console error is sent to the chat agent', async ({ page }
 test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ page }) => {
   await page.goto('/playground-sandbox');
   // Arm the wait BEFORE the editor mounts (Monaco onMount triggers the fetch).
-  const dtsRequest = page.waitForRequest('**/vendor/phaser-3.80.1.d.ts', { timeout: 15_000 });
+  // Assert the RESPONSE (not just the request) is 200 — the .d.ts is now
+  // materialized from the `phaser` npm dep by scripts/copy-phaser.mjs (predev),
+  // so this also guards that the build-time copy actually served the file.
+  const dtsResponse = page.waitForResponse(
+    (r) => r.url().includes('/vendor/phaser-3.80.1.d.ts'),
+    { timeout: 15_000 },
+  );
   const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
   await input.fill('a pong game');
   await input.press('Enter');
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
   // The Code Editor mounting (Window mode default) lazy-fetches the type defs.
-  const req = await dtsRequest;
-  expect(req.url()).toContain('/vendor/phaser-3.80.1.d.ts');
+  const res = await dtsResponse;
+  expect(res.status()).toBe(200);
 });
 
 test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {

@@ -124,7 +124,11 @@ sandbox="allow-scripts allow-pointer-lock allow-orientation-lock"
 Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 (platform rule: no Cloudflare/CDN; self-host on S3+CloudFront).
 
-- Vendored at `public/vendor/phaser-3.80.1.min.js`, served from the app origin.
+- Served from the app origin at `public/vendor/phaser-3.80.1.min.js`. The file is
+  **NOT committed to git** — it's materialized from the `phaser` npm dependency
+  by `scripts/copy-phaser.mjs` (`predev`/`prebuild`), git-ignored, and copied into
+  the deploy artifact by Vite (`public/` → `dist/`). Git tracks only the version
+  pin (`package.json` + lockfile). See "Dependencies" for the upgrade procedure.
 - Injected into the srcdoc as a classic `<script src="/vendor/...">`.
 - An opaque-origin srcdoc frame may still **fetch public subresources**, and a
   srcdoc's relative/absolute-path URLs resolve against the **parent** origin —
@@ -152,9 +156,16 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 - `@playwright/test` (devDep) — e2e at `e2e/playground.spec.ts` /
   `playwright.config.ts` (root); `npm run test:e2e`.
 
-Phaser stays vendored (above), not an npm dep — both the engine
-(`public/vendor/phaser-3.80.1.min.js`) and, for editor IntelliSense, its types
-(`public/vendor/phaser-3.80.1.d.ts`, lazy-`fetch`ed into Monaco, never bundled).
+- `phaser` (**`3.80.1`**, a regular `dependency`) — Phaser is an **npm dep** but
+  is **never imported into the JS bundle** (zero bundle-size impact). It's only a
+  source for two files that `scripts/copy-phaser.mjs` materializes into
+  `public/vendor/` at `predev`/`prebuild` time (git-ignored, served same-origin —
+  no CDN): the **engine** `phaser-3.80.1.min.js` (loaded as a `<script>` into the
+  sandbox) and the **types** `phaser-3.80.1.d.ts` (lazy-`fetch`ed into Monaco for
+  IntelliSense; never bundled). **Upgrading:** `npm i phaser@<new>`, then bump
+  `PHASER_VERSION` in `scripts/copy-phaser.mjs` **and** the `/vendor/phaser-<v>…`
+  constants in `buildGamePreview.ts` + `panes/MonacoEditor.tsx` (the script
+  hard-fails on a version/constant mismatch so a 404'd asset can't ship).
 
 ## The control channel (pause / mute / stats)
 
