@@ -1,6 +1,7 @@
 // Typed fetch with auto-refresh on 401. See auth-system-prd.md §3 + §4.3.
 
 import { useAuthStore } from '@/auth/authStore';
+import type { GenAssetRequest, GenAssetResult } from '@/pages/learn/playground/assetGen';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
@@ -100,4 +101,13 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/**
+ * Generate a game asset via platform-backend (Stars-metered, audited). The kid
+ * surface never calls an LLM directly — this is the real target for the
+ * `runGen` seam in `@/pages/learn/playground/assetGen`. Backend endpoint TBD.
+ */
+export async function generateAsset(req: GenAssetRequest): Promise<GenAssetResult> {
+  return api<GenAssetResult>('/llm/generate-asset', { method: 'POST', body: req });
 }
