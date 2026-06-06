@@ -186,6 +186,75 @@ test('double-click the title bar maximizes, and restore returns to the prior pos
   expect(Math.round(restored!.width)).toBe(Math.round(before!.width));
 });
 
+// Serve a single-file project whose entry throws on a known line, then reach the
+// workspace. The thrown error is what the debugging specs below act on.
+async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {
+  // `throwLine` is 1-based in the authored file. Pad with comment lines so the
+  // throw sits exactly on that line — the jump-to-error spec asserts the caret
+  // lands there, which only holds if `//# sourceURL` line numbers match the file.
+  const pad = Array.from({ length: throwLine - 1 }, (_, i) => `// line ${i + 1}`);
+  const code = [...pad, "throw new Error('kaboom from main');", ''].join('\n');
+  await page.route('**/projects/**/code/files', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ files: [{ path: 'main.js', content: code, kind: 'text', size: code.length }] }),
+    }),
+  );
+  await page.goto(`/playground-sandbox?projectId=${projectId}`);
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('x');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+}
+
+test('jump-to-error: a console error location opens that file at that line in the editor', async ({ page }) => {
+  await reachWorkspaceWithThrow(page, 'throw-1', 3);
+  // Split mode keeps the runner (right) and editor (left) un-occluded.
+  await page.getByRole('button', { name: /Split/ }).click();
+
+  // Run the game → the entry script throws → console auto-opens with a LOCATED
+  // error (this only works if `//# sourceURL` makes the error's filename = the
+  // kid's file and the line number match the authored line).
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  const jump = page.getByRole('button', { name: 'main.js:3' });
+  await expect(jump).toBeVisible({ timeout: 6_000 });
+
+  // Click the location → the editor opens main.js and the caret lands on line 3.
+  await jump.click();
+  await expect(page.getByRole('tab', { name: /Code/ })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('Ln 3, Col 1')).toBeVisible();
+});
+
+test('Ask AI to fix: a console error is sent to the chat agent', async ({ page }) => {
+  await reachWorkspaceWithThrow(page, 'throw-2', 3);
+  await page.getByRole('button', { name: /Split/ }).click();
+
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  const askFix = page.getByRole('button', { name: /Ask AI to fix/ });
+  await expect(askFix).toBeVisible({ timeout: 6_000 });
+
+  // Clicking routes the error to chat (focuses the Chat tab) and gets a reply.
+  await askFix.click();
+  await expect(page.getByRole('tab', { name: /Chat/ })).toHaveAttribute('aria-selected', 'true');
+  // The kid bubble carries the error; the stub agent replies (chat-only text).
+  await expect(page.getByText(/kaboom from main/).first()).toBeVisible();
+  await expect(page.getByText(/AI demo|sample tweak|isn.t connected/i)).toBeVisible({ timeout: 6_000 });
+});
+
+test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ page }) => {
+  await page.goto('/playground-sandbox');
+  // Arm the wait BEFORE the editor mounts (Monaco onMount triggers the fetch).
+  const dtsRequest = page.waitForRequest('**/vendor/phaser-3.80.1.d.ts', { timeout: 15_000 });
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  // The Code Editor mounting (Window mode default) lazy-fetches the type defs.
+  const req = await dtsRequest;
+  expect(req.url()).toContain('/vendor/phaser-3.80.1.d.ts');
+});
+
 test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {
   await reachWorkspace(page);
   // Close the Game Runner window via its titlebar close button.

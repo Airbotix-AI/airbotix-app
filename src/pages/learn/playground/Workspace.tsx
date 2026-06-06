@@ -13,7 +13,7 @@
 // Dark-themed throughout (design-system tokens only; no raw hex / Tailwind
 // defaults beyond the desktop bg). Matches docs/mockup-workspace-v2.png.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
 import clsx from 'clsx';
@@ -73,6 +73,31 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
   const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles });
   const chatProps = { chat, busy, error, onSend: send };
 
+  // A request from the runner console to open a file at a line (jump-to-error).
+  // The Code Editor pane reacts to it; the monotonic nonce makes a repeat click
+  // on the same file:line re-fire (a new object identity each time).
+  const [locationRequest, setLocationRequest] = useState<{
+    file: string;
+    line: number;
+    nonce: number;
+  } | null>(null);
+  const jumpNonce = useRef(0);
+  const handleOpenLocation = (file: string, line: number) => {
+    setLocationRequest({ file, line, nonce: (jumpNonce.current += 1) });
+    // Bring the editor forward so the kid sees the jump.
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
+    else setSplitTab('code');
+  };
+
+  // "Ask AI to fix" on a console error → send the error to the chat agent and
+  // surface the chat. (The agent turn is still the local stub, but the UX path
+  // is real.)
+  const handleAskFix = (message: string) => {
+    send(message);
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
+    else setSplitTab('chat');
+  };
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
@@ -92,7 +117,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             title={WINDOW_META.code.title}
             icon={<WINDOW_META.code.Icon size={16} />}
           >
-            <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
+            <CodeEditorPane
+              files={files}
+              onApplyFiles={onApplyFiles}
+              onRun={runFromEditor}
+              openLocation={locationRequest}
+            />
           </Window>
           <Window
             id="chat"
@@ -107,7 +137,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             title={WINDOW_META.game.title}
             icon={<WINDOW_META.game.Icon size={16} />}
           >
-            <GameRunnerPane files={files} runKey={runKey} running={running} onRun={onRun} />
+            <GameRunnerPane
+              files={files}
+              runKey={runKey}
+              running={running}
+              onRun={onRun}
+              onOpenLocation={handleOpenLocation}
+              onAskFix={handleAskFix}
+            />
           </Window>
         </div>
 
@@ -161,7 +198,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
                 {splitTab === 'chat' ? (
                   <ChatPane {...chatProps} />
                 ) : (
-                  <CodeEditorPane files={files} onApplyFiles={onApplyFiles} onRun={runFromEditor} />
+                  <CodeEditorPane
+                    files={files}
+                    onApplyFiles={onApplyFiles}
+                    onRun={runFromEditor}
+                    openLocation={locationRequest}
+                  />
                 )}
               </div>
             </section>
@@ -171,7 +213,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
 
           {/* Right: Game Runner */}
           <Panel defaultSize={33} minSize={20} className="min-w-0">
-            <GameRunnerPane files={files} runKey={runKey} running={running} onRun={onRun} />
+            <GameRunnerPane
+              files={files}
+              runKey={runKey}
+              running={running}
+              onRun={onRun}
+              onOpenLocation={handleOpenLocation}
+              onAskFix={handleAskFix}
+            />
           </Panel>
         </PanelGroup>
       </div>

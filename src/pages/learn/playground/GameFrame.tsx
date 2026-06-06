@@ -22,6 +22,8 @@ interface GameFrameProps {
   /** Reports the full captured console lines (so a parent can render its own
    *  console panel instead of the built-in one). */
   onConsole?: (lines: ConsoleLine[]) => void;
+  /** Force Phaser arcade physics debug draw (hitboxes/velocities). */
+  debug?: boolean;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -47,9 +49,10 @@ export function GameFrame({
   onFps,
   onConsoleCount,
   onConsole,
+  debug = false,
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
-  const srcDoc = useMemo(() => buildGameSrcDoc(files), [files]);
+  const srcDoc = useMemo(() => buildGameSrcDoc(files, { debug }), [files, debug]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /** Post a control message to the sandboxed frame (opaque origin → targetOrigin '*'). */
@@ -82,7 +85,7 @@ export function GameFrame({
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (isConsoleMessage(e.data)) {
-        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text }]);
+        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text, loc: e.data.loc }]);
         return;
       }
       if (isStatMessage(e.data)) {

@@ -12,7 +12,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { FileTree } from './FileTree';
-import type { CursorPosition } from './MonacoEditor';
+import type { CursorPosition, JumpTarget } from './MonacoEditor';
 
 // Files column: a FIXED pixel width (not a percentage), so growing the window
 // only widens the editor — the file list keeps its width. Drag the divider to
@@ -33,6 +33,9 @@ interface CodeEditorPaneProps {
   onApplyFiles: (files: VfsFile[]) => void;
   /** Re-run the game (PlaygroundPage bumps runKey). */
   onRun: () => void;
+  /** A request (from a console error) to open a file and reveal a line. The
+   *  `nonce` lets a repeat request for the same file+line re-fire. */
+  openLocation?: { file: string; line: number; nonce: number } | null;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -60,7 +63,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: CodeEditorPaneProps) {
   // The set of paths shown as tabs, the active one, and the editable draft text
   // per open tab. `drafts` only holds content for open tabs (lazily seeded).
   const [openTabs, setOpenTabs] = useState<string[]>(() => {
@@ -125,6 +128,20 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
     setDrafts((prev) => (path in prev ? prev : { ...prev, [path]: content }));
     setSynced((prev) => (path in prev ? prev : { ...prev, [path]: content }));
   };
+
+  // Jump-to-error: a console error's file:line opens that file's tab and reveals
+  // the line in Monaco. Only acts on real VFS paths (an error from Phaser
+  // internals / about:srcdoc has no matching file — ignore it). `nonce` is what
+  // makes a repeat click on the same line re-fire (the object identity changes).
+  const [jumpTo, setJumpTo] = useState<JumpTarget | null>(null);
+  useEffect(() => {
+    if (!openLocation) return;
+    if (!files.some((f) => f.path === openLocation.file)) return;
+    openTab(openLocation.file);
+    setJumpTo({ line: openLocation.line, nonce: openLocation.nonce });
+    // Only react to a new request (nonce) — not to `files`/`openTab` churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openLocation]);
 
   const closeTab = (path: string) => {
     setOpenTabs((prev) => {
@@ -217,7 +234,6 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
     const ro = new ResizeObserver(updateTabFade);
     ro.observe(el);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openTabs.length]);
 
   // Keep the active tab in view (selecting/opening one off-screen scrolls to it).
@@ -373,6 +389,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                   onChange={(v) => setDrafts((prev) => ({ ...prev, [activeTab]: v }))}
                   language={languageFor(activeTab)}
                   onCursorChange={setCursor}
+                  jumpTo={jumpTo}
                 />
               </Suspense>
             ) : (

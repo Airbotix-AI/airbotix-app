@@ -1,4 +1,4 @@
-import { Gamepad2, Pause, Play, RotateCcw, Smartphone, Terminal, Volume2, VolumeX } from 'lucide-react';
+import { Bug, Gamepad2, Pause, Play, RotateCcw, Smartphone, Sparkles, Terminal, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -15,6 +15,21 @@ interface GameRunnerPaneProps {
   running: boolean;
   /** Launch / re-run the game (PlaygroundApp flips `running` + bumps runKey). */
   onRun: () => void;
+  /** Open a console error's source location in the editor (jump to file+line). */
+  onOpenLocation?: (file: string, line: number) => void;
+  /** Send a console error to the AI chat to fix ("Ask AI to fix"). */
+  onAskFix?: (message: string) => void;
+}
+
+/** Short file name for a console location (the basename of the sourceURL path). */
+function baseName(file: string): string {
+  return file.split(/[\\/]/).pop() || file;
+}
+
+/** Kid-friendly prompt for the AI from a captured error line (with its location). */
+function fixPrompt(line: ConsoleLine): string {
+  const where = line.loc ? ` (in ${baseName(line.loc.file)}, line ${line.loc.line})` : '';
+  return `My game has an error${where}: ${line.text}\nCan you fix it?`;
 }
 
 const DEFAULT_PRESET_ID = 'original';
@@ -65,11 +80,12 @@ function ToolButton({
  * status bar, NOT overlaid on the stage. `running` is owned by PlaygroundApp;
  * pressing ▶ anywhere calls `onRun()`.
  */
-export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPaneProps) {
+export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, onAskFix }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
   const [showConsole, setShowConsole] = useState(false);
+  const [debug, setDebug] = useState(false);
   const [fps, setFps] = useState(0);
   const [lines, setLines] = useState<ConsoleLine[]>([]);
 
@@ -82,6 +98,8 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
     (n, l) => (l.level === 'error' || l.level === 'warn' ? n + 1 : n),
     0,
   );
+  // The most recent real error — what "Ask AI to fix" sends to the chat agent.
+  const lastError = [...lines].reverse().find((l) => l.level === 'error' && l.text !== 'ready');
 
   // Auto-open the console on the FIRST problem of a run, so the kid sees what's
   // wrong. Only on the 0 → >0 edge — later problems don't re-open it (the kid can
@@ -171,6 +189,14 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
           <RotateCcw size={18} />
         </ToolButton>
 
+        <ToolButton
+          label={debug ? 'Hide physics debug' : 'Show physics debug'}
+          active={debug}
+          onClick={() => setDebug((d) => !d)}
+        >
+          <Bug size={18} />
+        </ToolButton>
+
         <ToolButton label="Toggle console" active={showConsole} onClick={() => setShowConsole((s) => !s)}>
           <Terminal size={18} />
         </ToolButton>
@@ -192,6 +218,7 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
               runKey={runKey}
               paused={paused}
               muted={muted}
+              debug={debug}
               onFps={setFps}
               onConsole={setLines}
             />
@@ -220,10 +247,19 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
           <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pg-text-muted">Console</span>
             <span className="text-[11px] text-pg-text-dim">{logCount}</span>
+            {lastError && onAskFix && (
+              <button
+                type="button"
+                onClick={() => onAskFix(fixPrompt(lastError))}
+                className="ml-auto flex items-center gap-1 rounded-md bg-brand-sky/20 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-brand-sky/30"
+              >
+                <Sparkles size={12} aria-hidden /> Ask AI to fix
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setLines([])}
-              className="ml-auto rounded-md px-2 py-0.5 text-[11px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+              className={`${lastError && onAskFix ? 'ml-1.5' : 'ml-auto'} rounded-md px-2 py-0.5 text-[11px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text`}
             >
               Clear
             </button>
@@ -239,7 +275,19 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
                     className={`flex gap-1.5 border-b border-pg-border py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
                   >
                     <span aria-hidden className="select-none text-pg-text-muted">›</span>
-                    <span className="min-w-0 whitespace-pre-wrap break-words">{l.text}</span>
+                    <span className="min-w-0 whitespace-pre-wrap break-words">
+                      {l.text}
+                      {l.loc && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenLocation?.(l.loc!.file, l.loc!.line)}
+                          title="Open in editor"
+                          className="ml-1.5 rounded bg-pg-text/10 px-1.5 py-px font-sans text-[11px] font-semibold text-pg-text-dim underline-offset-2 transition-colors hover:bg-pg-text/20 hover:text-pg-text hover:underline"
+                        >
+                          {baseName(l.loc.file)}:{l.loc.line}
+                        </button>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>

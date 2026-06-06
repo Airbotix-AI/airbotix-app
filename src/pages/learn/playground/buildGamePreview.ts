@@ -59,7 +59,17 @@ const GAME_CONTROL = `
   if (!window.Phaser || !window.Phaser.Game) return;
   var __OrigGame = window.Phaser.Game;
   var __game = null;
-  function __WrappedGame(cfg) { __game = new __OrigGame(cfg); return __game; }
+  function __WrappedGame(cfg) {
+    // Physics-debug toggle: force arcade debug draw (hitboxes/velocities) on,
+    // regardless of the kid's config, when the runner asked for it.
+    if (window.__airbotixDebug && cfg) {
+      cfg.physics = cfg.physics || {};
+      cfg.physics.arcade = cfg.physics.arcade || {};
+      cfg.physics.arcade.debug = true;
+    }
+    __game = new __OrigGame(cfg);
+    return __game;
+  }
   __WrappedGame.prototype = __OrigGame.prototype;
   for (var k in __OrigGame) { try { __WrappedGame[k] = __OrigGame[k]; } catch (e) {} }
   window.Phaser.Game = __WrappedGame;
@@ -135,16 +145,31 @@ function entryIndex(jsFiles: VfsFile[]): number {
  * else the last js file (so a single-`game.js` project still runs unchanged).
  * All text `.css` files are concatenated into the stage `<style>`.
  */
-export function buildGameSrcDoc(files: VfsFile[]): string {
+export interface BuildGameOptions {
+  /** Force Phaser arcade physics debug draw (hitboxes/velocities). */
+  debug?: boolean;
+}
+
+export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): string {
   const assets = files.filter((f) => f.kind === 'asset');
 
   const jsFiles = files.filter((f) => f.kind === 'text' && f.path.endsWith('.js'));
   const entry = entryIndex(jsFiles);
-  // Non-entry js files keep their array order; the entry goes last.
+  // Non-entry js files keep their array order; the entry goes last. Each script
+  // gets a `//# sourceURL=<path>` so uncaught errors (and stack traces) report
+  // the kid's FILE and the correct line number — the key to debugging.
+  //
+  // ⚠️ The kid's content must start IMMEDIATELY after `<script>` — NO leading
+  // newline. With `//# sourceURL`, the browser numbers lines relative to the
+  // script's own text, so a leading `\n` would shift every reported line down by
+  // one (errors would point one line below the real spot, breaking jump-to-error).
   const ordered = [...jsFiles.filter((_, i) => i !== entry), ...(entry === -1 ? [] : [jsFiles[entry]])];
   const scriptTags = ordered.map(
-    (f) => `<script>${inlineAssetRefs(f.content, assets)}${'<'}/script>`,
+    (f) => `<script>${inlineAssetRefs(f.content, assets)}\n//# sourceURL=${f.path}\n${'<'}/script>`,
   );
+
+  // Set before the game scripts run so the constructor wrapper can read it.
+  const debugFlag = `<script>window.__airbotixDebug=${opts.debug ? 'true' : 'false'};${'<'}/script>`;
 
   const css = files
     .filter((f) => f.kind === 'text' && f.path.endsWith('.css'))
@@ -163,6 +188,7 @@ export function buildGameSrcDoc(files: VfsFile[]): string {
     CONSOLE_CAPTURE,
     `<script src="${PHASER_SRC}"></script>`,
     PHASER_GUARD,
+    debugFlag,
     GAME_CONTROL,
     ...scriptTags,
     '</body></html>',

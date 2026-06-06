@@ -41,10 +41,16 @@ Inside the workspace:
    locked-down `<iframe>` (`sandbox="allow-scripts …"`, **no**
    `allow-same-origin`) — the game runs JS and nothing else, can't reach the app,
    cookies, or the auth token. It shows a "Press ▶ to play" placeholder until you
-   start it, then adds pause/mute, screen-size presets, a restart, a console
-   toggle, and a status bar (Running/Paused · fps · logs).
+   start it, then adds pause/mute, screen-size presets, a restart, a
+   physics-debug toggle (draw hitboxes), a console toggle, and a status bar
+   (Running/Paused · fps · logs).
 5. `console.log`/errors inside the game are forwarded out via `postMessage` and
-   shown in the console panel; an error can be sent back to the AI to fix.
+   shown in the console panel. Each error knows its **file and line** (every
+   script carries a `//# sourceURL`), so the console offers a `file:line` button
+   that **jumps to it in the editor**, plus an **Ask AI to fix** button that
+   sends the error to the chat. The editor also has Phaser **autocomplete /
+   hover docs / go-to-definition** (the vendored `phaser.d.ts` loaded into
+   Monaco).
 
 ### The runtime contract for game code
 
@@ -130,14 +136,15 @@ npm run test:e2e
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
 `playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Twelve specs: landing → generating → workspace, the
+the dev server itself. Fifteen specs: landing → generating → workspace, the
 multi-file scaffold, the layout toggle (Windows ⇄ Split), the stub AI chat turn,
 the runner placeholder → Play, screen-size presets reshape the stage, a problem
-(error or warning) auto-opens the console,
-chat-history persistence across the layout toggle, the theme toggle (default
-light, carries into the workspace), the code editor (status bar + Files/Assets
-split + file-column toggle), window dbl-click maximize +
-restore-to-prior-position, and closed-window reopen.
+(error or warning) auto-opens the console, jump-to-error (a located error opens
+that file at that line), Ask AI to fix (error → chat agent), the editor
+lazy-loading the Phaser `.d.ts`, chat-history persistence across the layout
+toggle, the theme toggle (default light, carries into the workspace), the code
+editor (status bar + Files/Assets split + file-column toggle), window dbl-click
+maximize + restore-to-prior-position, and closed-window reopen.
 
 ### Why this is safe to ship
 

@@ -35,7 +35,18 @@ export const CONSOLE_CAPTURE = `
     var orig = console[level];
     console[level] = function () { send(level, arguments); orig && orig.apply(console, arguments); };
   });
-  window.addEventListener('error', function (e) { send('error', [e.message]); });
+  // Uncaught errors carry a location — post it structured so the console can show
+  // file:line and the editor can jump there (sourceURL makes filename = the file).
+  window.addEventListener('error', function (e) {
+    try {
+      parent.postMessage({
+        __airbotixConsole: true,
+        level: 'error',
+        text: e.message || 'Error',
+        loc: e.filename ? { file: e.filename, line: e.lineno || 0, col: e.colno || 0 } : undefined
+      }, '*');
+    } catch (err) {}
+  });
   window.addEventListener('unhandledrejection', function (e) {
     send('error', ['Unhandled promise: ' + (e.reason && e.reason.message || e.reason)]);
   });
@@ -97,6 +108,8 @@ export function buildSrcDoc(files: VfsFile[]): string {
 export interface ConsoleLine {
   level: 'log' | 'info' | 'warn' | 'error';
   text: string;
+  /** Source location of an uncaught error (sourceURL → file). Used to jump to it. */
+  loc?: { file: string; line: number; col: number };
 }
 
 export function isConsoleMessage(data: unknown): data is { __airbotixConsole: true } & ConsoleLine {

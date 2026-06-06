@@ -152,7 +152,9 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
 - `@playwright/test` (devDep) — e2e at `e2e/playground.spec.ts` /
   `playwright.config.ts` (root); `npm run test:e2e`.
 
-Phaser stays vendored (above), not an npm dep.
+Phaser stays vendored (above), not an npm dep — both the engine
+(`public/vendor/phaser-3.80.1.min.js`) and, for editor IntelliSense, its types
+(`public/vendor/phaser-3.80.1.d.ts`, lazy-`fetch`ed into Monaco, never bundled).
 
 ## The control channel (pause / mute / stats)
 
@@ -166,6 +168,12 @@ statics, so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
 - **Parent → frame:** `{ __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute' }`
   → `game.loop.sleep()/wake()` and `game.sound.mute`.
 - **Frame → parent:** `{ __airbotixStat: true, fps, paused }` every ~500 ms.
+- **Physics-debug toggle** (NOT postMessage — set before the game scripts run):
+  `buildGameSrcDoc(files, { debug })` injects `window.__airbotixDebug`; the
+  `Phaser.Game` constructor wrapper reads it and forces `physics.arcade.debug =
+  true` regardless of the kid's config, drawing hitboxes/velocities. Driven by
+  the Game Runner's `Bug` toolbar button (`GameRunnerPane` `debug` state →
+  `GameFrame` `debug` prop → `BuildGameOptions.debug`).
 - `GameFrame.tsx` posts control on `paused`/`muted` change **and re-asserts after
   a remount** (the first fresh stat triggers a re-assert, since the control
   effects fire before the new game instance exists). `isStatMessage` typeguards
@@ -173,6 +181,49 @@ statics, so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
 - All shim access is `try/catch`-wrapped (game may not exist yet / Phaser
   internals may differ). Keep it on `postMessage` only — never reach for
   `allow-same-origin` to "simplify" this.
+
+## Debugging errors (kid-facing)
+
+When a kid's game throws, the studio points them straight at the broken line and
+offers an AI fix — all over `postMessage`, no sandbox weakening:
+
+- **Filenames are real.** Each injected `<script>` gets a `//# sourceURL=<path>`
+  (`buildGamePreview.ts`), so the browser attributes uncaught errors (and stack
+  frames) to the kid's actual VFS file with the correct line number, instead of
+  the anonymous assembled document. ⚠️ With `sourceURL`, line numbers are counted
+  from the script's own text, so the kid's content must follow `<script>` with
+  **no leading newline** — otherwise every reported line is off by one (the
+  jump-to-error spec guards this).
+- **Errors carry a location.** `CONSOLE_CAPTURE` (shared from `../code/buildPreview.ts`)
+  posts `window.error` as `{ level:'error', text, loc:{ file, line, col } }`
+  (`loc` from `ErrorEvent.filename/lineno`, which now equals the sourceURL path).
+  `ConsoleLine.loc` is the typed shape.
+- **Jump to the error.** The Game Runner console renders a `basename:line` button
+  per located error → `GameRunnerPane.onOpenLocation(file, line)` →
+  `Workspace.handleOpenLocation` (sets a monotonic-`nonce` `locationRequest` +
+  focuses the Code window/tab) → `CodeEditorPane.openLocation` opens that file's
+  tab and sets `jumpTo` → `MonacoEditor` `revealLineInCenter` + `setPosition` +
+  `focus`. Guarded: only real VFS paths jump (a Phaser-internal / `about:srcdoc`
+  origin has no matching file and is ignored).
+- **Ask AI to fix.** The console header shows an **Ask AI to fix** button for the
+  most recent error → `GameRunnerPane.onAskFix` → `Workspace.handleAskFix` sends
+  a kid-framed prompt (error text + `file:line`) to the chat agent and focuses
+  the Chat window/tab. (The agent turn is still the **stub** — the UX path is
+  real, the fix is not yet.)
+
+## Editor IntelliSense (Phaser types)
+
+`MonacoEditor` lazily loads the **vendored** Phaser `.d.ts`
+(`public/vendor/phaser-3.80.1.d.ts`, ~6 MB) the first time any editor mounts:
+`fetch('/vendor/...')` (self-hosted, no CDN — same rule as the engine itself),
+strip the leading `/// <reference types="./matter" />` (Matter types aren't
+vendored), then `javascriptDefaults.addExtraLib(...)`. The file declares an
+ambient global `namespace Phaser`, so this gives **hover docs, ⌘/Ctrl-click
+go-to-definition, and `Phaser.` autocomplete** with zero extra global wiring. The
+~6 MB `.d.ts` is parsed by the TS worker on its own thread and is **never bundled**
+(runtime fetch, module-level once-guard). Semantic *validation* stays **off**
+(`noSemanticValidation: true`) so kids still get no red squiggles — completion /
+hover / definition work independently of diagnostics.
 
 ## Runtime contract (what kids write)
 
@@ -195,13 +246,13 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 | `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + the lifted VFS + monotonic `runKey` + the optional `projectId` (prop, or `?projectId` query param in the dev sandbox) threaded to `GeneratingScreen`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
 | `GeneratingScreen.tsx` | Blocking "building"/"loading" animation (spinning `.pg-orb-spin` orb + staged status + progress bar; caption reads "Loading your game…" when a `projectId` is set, else "Building…"). Calls `resolveProjectFiles({ projectId, prompt })` once, then `onDone(files)`. | ✅ |
-| `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. | ✅ |
+| `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. Owns the chat agent (`useGameAgent`, so history survives the layout toggle), the `locationRequest` for jump-to-error (`handleOpenLocation` → focuses Code), and `handleAskFix` (sends an error to the chat agent → focuses Chat). | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
 | `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |
 | `playgroundStore.ts` | Zustand store: `theme` (default `'light'`) + `setTheme`/`toggleTheme`; `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. Default Code Editor window width is **⅓ of the viewport** (`W/3`). | ✅ |
 | `playground.css` | The **theme tokens** (`[data-theme='light'|'dark']` CSS vars the `pg-*` Tailwind colors resolve to) + `.pg-canvas` (themed vignette) + the `pg-`-namespaced animations Tailwind can't express: the `.pg-glow` halo (`@property --pg-a` conic rotation), `.pg-orb-spin`, `.pg-shimmer`; honors `prefers-reduced-motion`. | ✅ |
-| `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. **Multi-file:** injects every text `.js` file as its own classic `<script>` in array order with the **entry (`main.js`, else `game.js`, else last) injected LAST**, concatenates all `.css` into the stage `<style>`; global classes only, **no `import`/`export`**. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts`. Also injects the **`GAME_CONTROL` shim** and exports `StatMessage`/`isStatMessage`. | ✅ |
-| `GameFrame.tsx` | Renders the sandboxed iframe + optional console panel + "Fix this error" hook. Posts control messages (`paused`/`muted`) and reads `__airbotixStat` to report `onFps`/`onConsoleCount`. | ✅ |
+| `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. **Multi-file:** injects every text `.js` file as its own classic `<script>` in array order with the **entry (`main.js`, else `game.js`, else last) injected LAST** + a **`//# sourceURL=<path>`** per script (so errors report the kid's file/line), concatenates all `.css` into the stage `<style>`; global classes only, **no `import`/`export`**. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts`. Also injects the **`GAME_CONTROL` shim** (incl. the `__airbotixDebug` physics-debug flag via `BuildGameOptions.debug`) and exports `StatMessage`/`isStatMessage`. | ✅ |
+| `GameFrame.tsx` | Renders the sandboxed iframe + optional console panel + "Fix this error" hook. Posts control messages (`paused`/`muted`/`debug` via the `srcdoc`) and reads `__airbotixStat` to report `onFps`/`onConsoleCount`; surfaces console `loc` to its `onConsole` consumer. | ✅ |
 | `screenPresets.ts` | Fixed stage-size presets (iPhone/iPad/720p/…) for the Game Runner dropdown. | ✅ |
 | `starterGame.ts` | Original single-`game.js` Pong VFS. Superseded as the seed by `panes/starterProject.ts`; kept only as a reference. | reference |
 
@@ -219,13 +270,13 @@ Panes (`panes/`):
 | File | Role | Keeper? |
 |---|---|---|
 | `ChatPane.tsx` | **Standalone chat** = `useGameAgent` + `AIChatPanel`. The chat is no longer docked in the code editor; it's its own window (Window mode) / its own `💬 Chat` tab (Split mode). | ✅ |
-| `CodeEditorPane.tsx` | FileTree sidebar at a **fixed pixel width** (plain flex layout + a custom drag divider, NOT react-resizable-panels — so growing the window only widens the editor; the column keeps its width) and **collapsible** via a `PanelLeft` toggle in the tab strip + a **multi-tab** editor (tab strip with dirty `●` / close `×`; the active tab is a soft `brand-sky/15` pill (bold text) — clearly distinct, consistent with the FileTree active row; the strip has **no scrollbar** — drag to scroll, with fading edges signalling overflow, and the active tab auto-scrolls into view — plus ▶ Play + lazy Monaco) + a **status bar** (file path · `Ln/Col` · LANGUAGE; no "unsaved" — auto-save is planned). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. | ✅ |
-| `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/console), a stage sized to the **selected screen-preset's aspect ratio**, scaled to fit the pane & centered/letterboxed against black (ResizeObserver re-fits on resize; the running game re-fits live with no reload), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. The console **auto-opens on the first problem of a run** — error OR warning (Phaser reports "Scene not found" etc. as `console.warn`); 0 → >0 edge only, later problems don't re-open it, a restart resets. Props (`files`/`runKey`/`onRestart`); ↻ starts when idle, else bumps `runKey`. | ✅ |
+| `CodeEditorPane.tsx` | FileTree sidebar at a **fixed pixel width** (plain flex layout + a custom drag divider, NOT react-resizable-panels — so growing the window only widens the editor; the column keeps its width) and **collapsible** via a `PanelLeft` toggle in the tab strip + a **multi-tab** editor (tab strip with dirty `●` / close `×`; the active tab is a soft `brand-sky/15` pill (bold text) — clearly distinct, consistent with the FileTree active row; the strip has **no scrollbar** — drag to scroll, with fading edges signalling overflow, and the active tab auto-scrolls into view — plus ▶ Play + lazy Monaco) + a **status bar** (file path · `Ln/Col` · LANGUAGE; no "unsaved" — auto-save is planned). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. Accepts an `openLocation` (file+line+nonce) → opens that tab and feeds Monaco a `jumpTo` (jump-to-error). | ✅ |
+| `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/**physics-debug** `Bug` toggle/console), a stage sized to the **selected screen-preset's aspect ratio**, scaled to fit the pane & centered/letterboxed against black (ResizeObserver re-fits on resize; the running game re-fits live with no reload), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. The console **auto-opens on the first problem of a run** — error OR warning (Phaser reports "Scene not found" etc. as `console.warn`); 0 → >0 edge only, later problems don't re-open it, a restart resets. Located errors get a `basename:line` jump button (`onOpenLocation`) and the console header an **Ask AI to fix** button for the last error (`onAskFix`). Props (`files`/`runKey`/`onRun`/`onOpenLocation`/`onAskFix`); ↻ starts when idle, else bumps `runKey`. | ✅ |
 | `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: real load when a project exists, else/on-failure the local scaffold. `GAME_PROJECT_KIND='game'`. | ✅ (load); swap-out fallback |
 | `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` only when there's no project/backend. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
 | `FileTree.tsx` | **Nested folder tree** (built from slash-delimited paths, folders-first, collapsible, default-expanded) with brand-sky **Files / Assets pill tabs**. Tab membership is by ROLE (`inTab`): anything under `assets/` or `kind:'asset'` → **Assets**, everything else → **Files** — so the `assets/` folder stays OUT of the Files tab. lucide file/folder icons; active-file highlight (sky tint). | ✅ |
-| `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. **Minimap on** (`showSlider: 'always'` so the viewport rectangle tracks scrolling, not just on hover). Reports caret position via `onCursorChange` (drives the status bar). **Follows the playground theme** (`vs` light / `vs-dark` dark) via `playgroundStore.theme`. | ✅ |
+| `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids (`noSemanticValidation` — no red squiggles). **Phaser IntelliSense**: lazily `addExtraLib`s the vendored `/vendor/phaser-3.80.1.d.ts` on first mount → hover docs / go-to-definition / `Phaser.` autocomplete (never bundled; see "Editor IntelliSense"). **Minimap on** (`showSlider: 'always'` so the viewport rectangle tracks scrolling, not just on hover). Reports caret via `onCursorChange` (status bar); accepts a `jumpTo` (`revealLineInCenter` + `setPosition` + `focus`) for jump-to-error. **Follows the playground theme** (`vs` light / `vs-dark` dark) via `playgroundStore.theme`. | ✅ |
 | `AIChatPanel.tsx` | Purely-presentational chat UI (kid/agent bubbles, tool chips). Takes `useGameAgent` state via props; never calls the hook itself. Badged "stub demo". | ✅ |
 | `useGameAgent.ts` | Chat controller hook (send → pending → resolve, then apply+run). `runTurn` is the **swap seam** — defaults to the stub, later an adapter over the real backend. | ✅ |
 | `gameAgentStub.ts` | The **local stub turn** (`runTurnStub`): no network, deterministically tweaks the first hex bg colour so the turn→VFS→run path is visibly exercised. Replaced by the real backend call later. | swap-out |
@@ -279,12 +330,14 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   scaffold (`generateScaffold`) is likewise a **local stub**.
 - **Light + dark theming** (light default) across all three phases + Monaco, via
   `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
-- Verified by **12 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+- Verified by **15 passing Playwright specs** (`e2e/playground.spec.ts`, run with
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
   layout toggle Window ⇄ Split, AI chat stub (+ chat doesn't auto-run), runner
   placeholder → Play, screen-size presets reshape the stage, a problem (error or
-  warning) auto-opens the console, chat history persists
-  across the layout toggle, theme default-light/toggles/carries into the
+  warning) auto-opens the console, **jump-to-error (a located console error opens
+  that file at that exact line)**, **Ask AI to fix (the error routes to the chat
+  agent)**, **the editor lazy-loads the vendored Phaser `.d.ts`**, chat history
+  persists across the layout toggle, theme default-light/toggles/carries into the
   workspace, the code editor (status bar + Files/Assets split + file-column
   toggle), window dbl-click maximize + restore-to-prior-position, and
   closed-window reopen.
