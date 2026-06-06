@@ -254,6 +254,23 @@ test('file tree: create a folder and a file inside it', async ({ page }) => {
   await expect(page.getByText('one.js').first()).toBeVisible();
 });
 
+test('file tree: drag a file into a folder moves it', async ({ page }) => {
+  await reachWorkspace(page);
+  // main.js sits at the root; `src` is a folder. Native HTML5 DnD needs dispatched
+  // drag events sharing one DataTransfer (Playwright's mouse drag won't trigger it).
+  const dt = await page.evaluateHandle(() => new DataTransfer());
+  const source = page.locator('[data-path="main.js"]');
+  const folder = page.locator('[data-path="src"]');
+  await expect(source).toHaveCount(1);
+  await source.dispatchEvent('dragstart', { dataTransfer: dt });
+  await folder.dispatchEvent('dragover', { dataTransfer: dt });
+  await folder.dispatchEvent('drop', { dataTransfer: dt });
+
+  // main.js is now under src/, and no longer at the root.
+  await expect(page.locator('[data-path="src/main.js"]')).toHaveCount(1);
+  await expect(page.locator('[data-path="main.js"]')).toHaveCount(0);
+});
+
 // Serve a single-file project whose entry throws on a known line, then reach the
 // workspace. The thrown error is what the debugging specs below act on.
 async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {

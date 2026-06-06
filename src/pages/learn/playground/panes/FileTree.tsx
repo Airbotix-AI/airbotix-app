@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type DragEvent } from 'react';
 import {
   Boxes,
   Check,
@@ -172,6 +172,13 @@ interface RowProps {
   confirming: string | null;
   creatingIn: string | null;
   createKind: 'file' | 'folder';
+  dragOver: string | null;
+  canDrop: (target: string) => boolean;
+  onDragStart: (path: string) => void;
+  onDragEnd: () => void;
+  onDragOverFolder: (path: string, e: DragEvent) => void;
+  onDragLeaveFolder: (path: string) => void;
+  onDropOnFolder: (path: string, e: DragEvent) => void;
   onToggle: (path: string) => void;
   onSelect: (path: string) => void;
   onStartRename: (path: string) => void;
@@ -272,10 +279,23 @@ function TreeRow(props: RowProps) {
   if (node.isFolder) {
     const isOpen = expanded.has(node.path);
     const Chevron = isOpen ? ChevronDown : ChevronRight;
+    const dropping = props.dragOver === node.path;
     return (
       <li>
         <div
-          className="group flex items-center rounded-lg pr-2 transition-colors hover:bg-pg-text/5"
+          data-path={node.path}
+          draggable
+          onDragStart={(e) => {
+            e.stopPropagation();
+            props.onDragStart(node.path);
+          }}
+          onDragEnd={props.onDragEnd}
+          onDragOver={(e) => props.onDragOverFolder(node.path, e)}
+          onDragLeave={() => props.onDragLeaveFolder(node.path)}
+          onDrop={(e) => props.onDropOnFolder(node.path, e)}
+          className={`group flex items-center rounded-lg pr-2 transition-colors ${
+            dropping ? 'bg-brand-sky/20 ring-1 ring-brand-sky' : 'hover:bg-pg-text/5'
+          }`}
           style={indent}
         >
           <button
@@ -316,6 +336,13 @@ function TreeRow(props: RowProps) {
   return (
     <li>
       <div
+        data-path={node.path}
+        draggable
+        onDragStart={(e) => {
+          e.stopPropagation();
+          props.onDragStart(node.path);
+        }}
+        onDragEnd={props.onDragEnd}
         className={`group flex items-center rounded-lg pr-2 transition-colors ${
           isActive ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
         }`}
@@ -345,6 +372,7 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
   const createFolder = useProjectStore((s) => s.createFolder);
   const renameOp = useProjectStore((s) => s.rename);
   const removeOp = useProjectStore((s) => s.remove);
+  const moveOp = useProjectStore((s) => s.move);
 
   // Root for the current tab: assets live under `assets/`, source at the root.
   const baseDir = tab === 'asset' ? 'assets' : '';
@@ -435,7 +463,53 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
     }
   };
 
+  // ── Drag-to-move ────────────────────────────────────────────────────────────
+  const [dragPath, setDragPath] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null); // folder path, or '' for root
+
+  // Can't drop onto itself or into its own descendant.
+  const canDrop = (target: string) =>
+    dragPath != null && target !== dragPath && !target.startsWith(`${dragPath}/`);
+
+  const doMove = (target: string) => {
+    const src = dragPath;
+    setDragPath(null);
+    setDragOver(null);
+    if (!src || !canDrop(target) || dirname(src) === target) return; // no-op if already there
+    try {
+      moveOp(src, target);
+    } catch (e) {
+      flashError(e);
+    }
+  };
+
+  const dnd = {
+    dragOver,
+    canDrop,
+    onDragStart: (path: string) => {
+      clearAll();
+      setDragPath(path);
+    },
+    onDragEnd: () => {
+      setDragPath(null);
+      setDragOver(null);
+    },
+    onDragOverFolder: (path: string, e: DragEvent) => {
+      if (!canDrop(path)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setDragOver(path);
+    },
+    onDragLeaveFolder: (path: string) => setDragOver((d) => (d === path ? null : d)),
+    onDropOnFolder: (path: string, e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      doMove(path);
+    },
+  };
+
   const rowProps = {
+    ...dnd,
     activePath,
     expanded,
     renaming,
@@ -516,8 +590,26 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
         </div>
       )}
 
-      {/* Nested tree */}
-      <div className="flex-1 overflow-auto px-2 pb-3">
+      {/* Nested tree — the empty area is a drop target for moving to the root. */}
+      <div
+        onDragOver={(e) => {
+          if (dragPath && dirname(dragPath) !== '') {
+            e.preventDefault();
+            setDragOver('');
+          }
+        }}
+        onDragLeave={(e) => {
+          // Only clear when leaving the container itself, not a child row.
+          if (e.currentTarget === e.target) setDragOver((d) => (d === '' ? null : d));
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          doMove('');
+        }}
+        className={`flex-1 overflow-auto px-2 pb-3 ${
+          dragOver === '' ? 'rounded-lg ring-1 ring-inset ring-brand-sky' : ''
+        }`}
+      >
         <ul className="space-y-0.5">
           {/* Root-level create input (when creating directly under this tab's base) */}
           {creating && creating.dir === baseDir && (
