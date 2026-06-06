@@ -198,6 +198,61 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
     window.addEventListener('mouseup', onUp);
   };
 
+  // Tab strip: no scrollbar — drag to scroll, with fading edges signalling more.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabDraggedRef = useRef(false);
+  const [tabFade, setTabFade] = useState({ left: false, right: false });
+
+  const updateTabFade = () => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setTabFade({ left: el.scrollLeft > 1, right: el.scrollLeft < max - 1 });
+  };
+
+  useEffect(() => {
+    updateTabFade();
+    const el = tabsRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateTabFade);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openTabs.length]);
+
+  // Keep the active tab in view (selecting/opening one off-screen scrolls to it).
+  useEffect(() => {
+    tabsRef.current
+      ?.querySelector('[data-tab-active="true"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [activeTab]);
+
+  // Drag anywhere on the strip to scroll it. A move past the threshold sets a
+  // flag so the trailing click doesn't select/close a tab (swallowed on capture).
+  const onTabsPointerDown = (e: React.PointerEvent) => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const startX = e.clientX;
+    const startLeft = el.scrollLeft;
+    tabDraggedRef.current = false;
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      if (Math.abs(dx) > 4) tabDraggedRef.current = true;
+      el.scrollLeft = startLeft - dx;
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
+  const FADE_PX = 28;
+  const tabMask = `linear-gradient(to right, transparent 0, #000 ${
+    tabFade.left ? `${FADE_PX}px` : '0'
+  }, #000 calc(100% - ${tabFade.right ? `${FADE_PX}px` : '0px'}), transparent 100%)`;
+
   return (
     <div ref={rootRef} className="flex h-full min-h-0 bg-pg-bg text-pg-text">
       {/* Files list (fixed px width; collapsible via the tab-strip button) */}
@@ -234,7 +289,20 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
             >
               {filesCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
             </button>
-            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+            <div
+              ref={tabsRef}
+              onScroll={updateTabFade}
+              onPointerDown={onTabsPointerDown}
+              onClickCapture={(e) => {
+                if (tabDraggedRef.current) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  tabDraggedRef.current = false;
+                }
+              }}
+              style={{ maskImage: tabMask, WebkitMaskImage: tabMask }}
+              className="pg-no-scrollbar flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto select-none"
+            >
               {openTabs.length === 0 ? (
                 <span className="px-2 py-1 text-[13px] font-semibold text-pg-text-muted">No file open</span>
               ) : (
@@ -244,9 +312,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                   return (
                     <div
                       key={path}
+                      data-tab-active={isActive ? 'true' : 'false'}
                       className={`group flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
                         isActive
-                          ? 'bg-pg-surface-2 text-pg-text font-semibold shadow-sm'
+                          ? 'bg-brand-sky/15 text-pg-text font-semibold'
                           : 'text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text'
                       }`}
                     >

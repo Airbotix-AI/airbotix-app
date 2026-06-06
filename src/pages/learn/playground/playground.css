@@ -74,6 +74,15 @@
   background: linear-gradient(90deg, #7C5CFF 0%, #5DAEFF 100%);
 }
 
+/* Hide the native scrollbar (used by the editor tab strip — it scrolls by drag,
+ * with fading edges as the overflow affordance instead of a scrollbar). */
+.pg-no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+.pg-no-scrollbar::-webkit-scrollbar {
+  display: none; /* WebKit */
+}
+
 /* Animatable custom angle. Without @property the browser treats `--pg-a` as a
  * plain string and can't interpolate it — registering it as an <angle> makes
  * the conic-gradient rotation animate smoothly. */
