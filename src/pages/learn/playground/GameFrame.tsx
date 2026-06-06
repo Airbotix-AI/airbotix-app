@@ -25,8 +25,8 @@ interface GameFrameProps {
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
-  log: 'text-ink-soft',
-  info: 'text-ink-soft',
+  log: 'text-pg-text-dim',
+  info: 'text-pg-text-dim',
   warn: 'text-brand-sunshine',
   error: 'text-brand-coral',
 };
@@ -124,10 +124,10 @@ export function GameFrame({
       </div>
 
       {showConsole && (
-        <div className="shrink-0 max-h-40 overflow-y-auto border-t border-hairline bg-canvas-pure px-4 py-2">
-          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate2 mb-1">Console</div>
+        <div className="shrink-0 max-h-40 overflow-y-auto border-t border-pg-border bg-pg-desktop px-4 py-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-pg-text-muted mb-1">Console</div>
           {lines.length === 0 ? (
-            <div className="text-[12px] text-slate2 font-mono">…</div>
+            <div className="text-[12px] text-pg-text-muted font-mono">…</div>
           ) : (
             <ul className="space-y-0.5">
               {lines.map((l, i) => (

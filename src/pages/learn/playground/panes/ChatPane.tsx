@@ -13,7 +13,7 @@ interface ChatPaneProps {
 // across modes; lifting the state keeps the history).
 export function ChatPane({ chat, busy, error, onSend }: ChatPaneProps) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-ink">
+    <div className="flex h-full min-h-0 flex-col bg-pg-bg">
       <AIChatPanel chat={chat} busy={busy} error={error} onSend={onSend} />
     </div>
   );

@@ -7,17 +7,19 @@
 // highlighted in a sky tint, open-but-not-active windows read neutral, and
 // minimized/closed windows are dimmed.
 //
-// The dark hexes (#16121F bar, #221E30 button, #46415C border) match the
-// mockup chrome and the sibling Window.tsx; the accents use design tokens
-// (brand-mint, brand-sky, canvas-pure, stone2, steel).
+// Surfaces use the themeable pg-* tokens (pg-surface dock, pg-surface-2 button,
+// pg-border) so the bar flips light/dark with the rest of the playground; the
+// active window button carries its OWN brand identity (chat=sky, code=mint,
+// game=coral — `WINDOW_ACCENT`), matching the desktop tiles and the mockup.
 
 import clsx from 'clsx';
 import { LayoutGrid } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
+import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
 
-import { WINDOW_META, WINDOW_ORDER } from './windowMeta';
+import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
 
 export function Taskbar() {
   const windows = usePlaygroundStore((s) => s.windows);
@@ -48,19 +50,21 @@ export function Taskbar() {
   };
 
   return (
-    <div className="flex h-14 items-center gap-2 border-t border-[#46415C] bg-[#16121F] px-4">
+    <div className="flex h-14 items-center gap-2 border-t border-pg-border bg-pg-surface px-4">
       <div className="flex items-center gap-2 pr-2">
         <LayoutGrid size={20} className="text-brand-mint" />
         <span className="font-extrabold text-brand-mint">playground</span>
       </div>
 
       <LayoutToggle />
+      <ThemeToggle />
 
       {layoutMode === 'window' && (
         <div className="flex items-center gap-2 pl-2">
           {WINDOW_ORDER.filter((id) => windows[id].open).map((id) => {
             const w = windows[id];
             const { title, Icon } = WINDOW_META[id];
+            const accent = WINDOW_ACCENT[id];
             const isActive = id === activeId;
             const isVisible = w.open && !w.minimized;
 
@@ -80,13 +84,13 @@ export function Taskbar() {
                 className={clsx(
                   'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm font-semibold leading-none transition-colors',
                   isActive
-                    ? 'border-brand-sky/50 bg-brand-sky/16 text-canvas-pure'
+                    ? clsx(accent.wash, accent.border, 'text-pg-text')
                     : isVisible
-                      ? 'border-[#46415C] bg-[#221E30] text-stone2 hover:text-canvas-pure'
-                      : 'border-transparent bg-transparent text-steel hover:text-stone2',
+                      ? 'border-pg-border bg-pg-surface-2 text-pg-text-dim hover:text-pg-text'
+                      : 'border-transparent bg-transparent text-pg-text-muted hover:text-pg-text-dim',
                 )}
               >
-                <Icon size={18} />
+                <Icon size={18} className={isActive ? accent.icon : undefined} />
                 {title}
               </button>
             );

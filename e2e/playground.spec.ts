@@ -67,6 +67,25 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
   await expect(page.getByText('Press ▶ to play')).toBeHidden();
 });
 
+test('theme: light by default, toggles, and the choice carries into the workspace', async ({ page }) => {
+  await page.goto('/playground-sandbox');
+  const root = page.locator('[data-theme]').first();
+  await expect(root).toHaveAttribute('data-theme', 'light');
+
+  // Toggle to dark on the landing screen.
+  await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+  await expect(root).toHaveAttribute('data-theme', 'dark');
+
+  // The chosen theme is global — it survives the move into the workspace.
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('a pong game');
+  await input.press('Enter');
+  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-theme]').first()).toHaveAttribute('data-theme', 'dark');
+  // The workspace exposes the toggle too (now switching back to light).
+  await expect(page.getByRole('button', { name: 'Switch to light theme' })).toBeVisible();
+});
+
 test('chat history persists across a layout-mode switch', async ({ page }) => {
   await reachWorkspace(page);
   const chat = page.getByPlaceholder('What should we build?');

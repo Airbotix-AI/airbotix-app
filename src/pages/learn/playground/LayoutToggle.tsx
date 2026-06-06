@@ -23,7 +23,7 @@ export function LayoutToggle() {
   const setLayoutMode = usePlaygroundStore((s) => s.setLayoutMode);
 
   return (
-    <div className="inline-flex h-7 items-center gap-0.5 rounded-full border border-canvas-pure/10 bg-canvas-pure/5 p-0.5">
+    <div className="inline-flex h-7 items-center gap-0.5 rounded-full border border-pg-border bg-pg-text/5 p-0.5">
       {SEGMENTS.map(({ mode, label, Icon }) => {
         const active = layoutMode === mode;
         return (
@@ -36,7 +36,7 @@ export function LayoutToggle() {
               'inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-[11px] leading-none transition-colors',
               active
                 ? 'bg-brand-sky font-extrabold text-ink'
-                : 'font-semibold text-stone2 hover:text-canvas-pure',
+                : 'font-semibold text-pg-text-dim hover:text-pg-text',
             )}
           >
             <Icon size={15} />

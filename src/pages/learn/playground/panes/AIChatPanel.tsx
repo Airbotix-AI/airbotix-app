@@ -28,8 +28,8 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-canvas-pure/10 px-4 py-3">
-        <span className="flex items-center gap-1.5 text-[14px] font-extrabold text-canvas-pure">
+      <div className="flex shrink-0 items-center gap-2 border-b border-pg-border px-4 py-3">
+        <span className="flex items-center gap-1.5 text-[14px] font-extrabold text-pg-text">
           <Sparkles size={16} className="text-brand-sunshine" />
           AI Helper
         </span>
@@ -40,7 +40,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
         {chat.length === 0 && (
-          <div className="py-8 text-center text-[14px] font-semibold text-stone2">
+          <div className="py-8 text-center text-[14px] font-semibold text-pg-text-dim">
             Tell me what to make and I'll code it 🤖
           </div>
         )}
@@ -50,13 +50,13 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
       </div>
 
       {error && (
-        <div className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-canvas-pure">
+        <div className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-pg-text">
           {error}
         </div>
       )}
 
-      <div className="shrink-0 border-t border-canvas-pure/10 p-3">
-        <div className="flex items-center gap-2 rounded-2xl border-2 border-canvas-pure/15 bg-canvas-pure/5 pr-1.5 focus-within:border-brand-sky">
+      <div className="shrink-0 border-t border-pg-border p-3">
+        <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pr-1.5 focus-within:border-brand-sky">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -68,7 +68,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             }}
             placeholder="What should we build?"
             rows={2}
-            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-canvas-pure placeholder:text-steel focus:outline-none"
+            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-pg-text placeholder:text-pg-text-muted focus:outline-none"
           />
           <button
             onClick={submit}
@@ -79,7 +79,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
             {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
-        <div className="mt-1.5 text-[11px] text-steel">Enter to send · Shift+Enter for a new line</div>
+        <div className="mt-1.5 text-[11px] text-pg-text-muted">Enter to send · Shift+Enter for a new line</div>
       </div>
     </div>
   );
@@ -98,7 +98,7 @@ function ChatRow({ item }: { item: ChatItem }) {
   return (
     <div className="flex justify-start">
       <div
-        className={`max-w-[90%] rounded-2xl border border-canvas-pure/10 bg-canvas-pure/10 px-4 py-2.5 text-[14px] leading-relaxed text-canvas-pure ${
+        className={`max-w-[90%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[14px] leading-relaxed text-pg-text ${
           item.pending ? 'italic opacity-60' : ''
         }`}
       >

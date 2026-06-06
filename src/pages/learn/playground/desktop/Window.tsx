@@ -25,9 +25,15 @@ interface WindowProps {
   title: string;
   icon: React.ReactNode;
   children: React.ReactNode;
+  /**
+   * 'game' renders an always-dark window with a highlighted brand-gradient title
+   * bar (the Game Runner is a media-player surface — dark in both themes). The
+   * `data-theme="dark"` on the root re-themes the chrome + pane to dark locally.
+   */
+  variant?: 'default' | 'game';
 }
 
-export function Window({ id, title, icon, children }: WindowProps) {
+export function Window({ id, title, icon, children, variant = 'default' }: WindowProps) {
   const { open, minimized, maximized, zIndex, rect } = usePlaygroundStore(
     (s) => s.windows[id],
   );
@@ -43,6 +49,7 @@ export function Window({ id, title, icon, children }: WindowProps) {
   if (!open || minimized) return null;
 
   const focused = zIndex === topZ;
+  const isGame = variant === 'game';
 
   return (
     <Rnd
@@ -78,41 +85,57 @@ export function Window({ id, title, icon, children }: WindowProps) {
       }}
     >
       <div
-        className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-[#242133] text-[#E7E2F0] shadow-[0_18px_40px_-8px_rgba(0,0,0,0.6)] ${
-          focused ? 'border-brand-sky/60' : 'border-[#46415C]'
+        data-theme={isGame ? 'dark' : undefined}
+        className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-pg-surface text-pg-text shadow-[0_18px_40px_-8px_rgba(0,0,0,0.6)] ${
+          focused ? 'border-brand-sky/60' : 'border-pg-border'
         }`}
       >
-        <div className="pg-win-title flex cursor-move items-center justify-between gap-2 border-b border-[#46415C] bg-[#2E2A40] px-3 py-2 text-[#E7E2F0]">
+        <div
+          className={`pg-win-title flex cursor-move items-center justify-between gap-2 border-b px-3 py-2 ${
+            isGame
+              ? 'pg-runner-bar border-transparent text-white'
+              : 'border-pg-border bg-pg-surface-2 text-pg-text'
+          }`}
+        >
           <div className="flex min-w-0 items-center gap-2">
             <span aria-hidden className="flex items-center leading-none">
               {icon}
             </span>
-            <span className="truncate text-sm font-medium text-[#E7E2F0]">
+            <span className={`truncate text-sm font-medium ${isGame ? 'text-white' : 'text-pg-text'}`}>
               {title}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label={`Minimize ${title}`}
-              onClick={() => minimize(id)}
-              className="rounded-md p-1 leading-none text-[#9B94AC] transition-colors hover:bg-canvas-pure/10 hover:text-canvas-pure"
-            >
-              <Minus size={16} />
-            </button>
-            <button
-              type="button"
-              aria-label={maximized ? `Restore ${title}` : `Maximize ${title}`}
-              onClick={() => toggleMaximize(id)}
-              className="rounded-md p-1 leading-none text-[#9B94AC] transition-colors hover:bg-canvas-pure/10 hover:text-canvas-pure"
-            >
-              {maximized ? <Minimize2 size={16} /> : <Square size={16} />}
-            </button>
+            {[
+              { key: 'min', label: `Minimize ${title}`, onClick: () => minimize(id), node: <Minus size={16} /> },
+              {
+                key: 'max',
+                label: maximized ? `Restore ${title}` : `Maximize ${title}`,
+                onClick: () => toggleMaximize(id),
+                node: maximized ? <Minimize2 size={16} /> : <Square size={16} />,
+              },
+            ].map((b) => (
+              <button
+                key={b.key}
+                type="button"
+                aria-label={b.label}
+                onClick={b.onClick}
+                className={`rounded-md p-1 leading-none transition-colors ${
+                  isGame
+                    ? 'text-white/75 hover:bg-white/20 hover:text-white'
+                    : 'text-pg-text-muted hover:bg-pg-text/10 hover:text-pg-text'
+                }`}
+              >
+                {b.node}
+              </button>
+            ))}
             <button
               type="button"
               aria-label={`Close ${title}`}
               onClick={() => close(id)}
-              className="rounded-md p-1 leading-none text-[#9B94AC] transition-colors hover:bg-canvas-pure/10 hover:text-brand-coral"
+              className={`rounded-md p-1 leading-none transition-colors hover:text-brand-coral ${
+                isGame ? 'text-white/75 hover:bg-white/20' : 'text-pg-text-muted hover:bg-pg-text/10'
+              }`}
             >
               <X size={16} />
             </button>

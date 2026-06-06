@@ -29,10 +29,6 @@ const STEPS = [
 // finish right as the scaffold resolves.
 const STEP_INTERVAL_MS = SCAFFOLD_DELAY_MS / STEPS.length;
 
-// Near-black canvas vignette from the mockup (#17121F → #0F0B18). Raw hex is
-// allowed here per the task: there are no design tokens for these dark stops.
-const CANVAS_BG = 'radial-gradient(70% 70% at 50% 40%, #17121F 0%, #0F0B18 100%)';
-
 export function GeneratingScreen({
   prompt,
   onDone,
@@ -74,12 +70,9 @@ export function GeneratingScreen({
   }, [prompt]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 text-canvas-pure"
-      style={{ background: CANVAS_BG }}
-    >
+    <div className="pg-canvas fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 text-pg-text">
       {/* Prompt echo — the kid's request, shown while it builds. */}
-      <p className="max-w-2xl text-center text-xl italic text-stone2">
+      <p className="max-w-2xl text-center text-xl italic text-pg-text-dim">
         “{prompt}”
       </p>
 
@@ -94,7 +87,7 @@ export function GeneratingScreen({
 
         {/* Progress bar — fills smoothly 0 → 100% over the build span (linear,
             monotonic; no shimmer sweep). */}
-        <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-[#221E30]">
+        <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-pg-text/10">
           <div
             className="h-full rounded-full"
             style={{
@@ -108,7 +101,7 @@ export function GeneratingScreen({
       </ol>
 
       {/* Blocking caption. */}
-      <p className="font-extrabold text-stone2">Building your game…</p>
+      <p className="font-extrabold text-pg-text-dim">Building your game…</p>
     </div>
   );
 }
@@ -135,15 +128,15 @@ function StatusRow({ label, state }: { label: string; state: RowState }) {
           </span>
         )}
         {state === 'active' && <Loader2 size={20} className="animate-spin text-brand-sky" />}
-        {state === 'pending' && <span className="h-2 w-2 rounded-full bg-steel" />}
+        {state === 'pending' && <span className="h-2 w-2 rounded-full bg-pg-text-muted" />}
       </span>
       <span
         className={
           state === 'active'
             ? 'bg-gradient-to-r from-brand-sky via-brand-bubblegum to-brand-mint bg-clip-text font-bold text-transparent'
             : state === 'done'
-              ? 'text-stone2'
-              : 'text-steel'
+              ? 'text-pg-text-dim'
+              : 'text-pg-text-muted'
         }
       >
         {label}
@@ -183,7 +176,8 @@ function Orb() {
           cy="80"
           r="64"
           fill="none"
-          stroke="#3A3548"
+          stroke="currentColor"
+          className="text-pg-border"
           strokeWidth="6"
         />
         {/* ~three-quarter arc of the brand gradient. */}
@@ -196,7 +190,7 @@ function Orb() {
         />
       </svg>
       {/* Still white core dot (not spun). */}
-      <span className="absolute h-3 w-3 rounded-full bg-canvas-pure" />
+      <span className="absolute h-3 w-3 rounded-full bg-pg-text" />
     </div>
   );
 }

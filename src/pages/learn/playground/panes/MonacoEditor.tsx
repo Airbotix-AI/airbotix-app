@@ -3,6 +3,8 @@ import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 
+import { usePlaygroundStore } from '../playgroundStore'
+
 // Self-host Monaco workers (platform rule: no CDN). Vite `?worker` imports are
 // bundled locally and instantiated here based on the language label.
 self.MonacoEnvironment = {
@@ -40,10 +42,12 @@ interface MonacoEditorProps {
 }
 
 function MonacoEditor({ value, onChange, language = 'javascript' }: MonacoEditorProps) {
+  // Follow the playground theme: light editor in light mode, vs-dark in dark.
+  const theme = usePlaygroundStore((s) => s.theme)
   return (
     <Editor
       height="100%"
-      theme="vs-dark"
+      theme={theme === 'dark' ? 'vs-dark' : 'vs'}
       language={language}
       value={value}
       onChange={(v) => onChange(v ?? '')}

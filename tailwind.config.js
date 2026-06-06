@@ -42,6 +42,20 @@ export default {
           500: '#ef4444',
           600: '#dc2626',
         },
+        // Playground themeable tokens — resolve to CSS vars set per `data-theme`
+        // (see src/pages/learn/playground/playground.css). Light = default,
+        // dark = the `[data-theme="dark"]` subtree. Channel form keeps Tailwind
+        // opacity modifiers working (e.g. `bg-pg-text/10`).
+        pg: {
+          bg:           'rgb(var(--pg-bg) / <alpha-value>)',
+          desktop:      'rgb(var(--pg-desktop) / <alpha-value>)',
+          surface:      'rgb(var(--pg-surface) / <alpha-value>)',
+          'surface-2':  'rgb(var(--pg-surface-2) / <alpha-value>)',
+          border:       'rgb(var(--pg-border) / <alpha-value>)',
+          text:         'rgb(var(--pg-text) / <alpha-value>)',
+          'text-dim':   'rgb(var(--pg-text-dim) / <alpha-value>)',
+          'text-muted': 'rgb(var(--pg-text-muted) / <alpha-value>)',
+        },
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],

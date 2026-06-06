@@ -132,10 +132,10 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
           type="button"
           onClick={() => onToggle(node.path)}
           style={indent}
-          className="flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-semibold text-stone2 transition-colors hover:bg-canvas-pure/5 hover:text-canvas-pure"
+          className="flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/5 hover:text-pg-text"
         >
-          <Chevron size={14} className="shrink-0 text-steel" aria-hidden />
-          <Folder size={14} className="shrink-0 text-steel" aria-hidden />
+          <Chevron size={14} className="shrink-0 text-pg-text-muted" aria-hidden />
+          <Folder size={14} className="shrink-0 text-pg-text-muted" aria-hidden />
           <span className="truncate">{node.name}</span>
         </button>
         {isOpen && node.children.length > 0 && (
@@ -167,8 +167,8 @@ function TreeRow({ node, depth, activePath, expanded, onToggle, onSelect }: RowP
         style={indent}
         className={`flex w-full items-center gap-1.5 rounded-lg py-1.5 pr-2 text-left text-[13px] font-semibold transition-colors ${
           isActive
-            ? 'bg-canvas-pure/15 text-canvas-pure'
-            : 'text-stone2 hover:bg-canvas-pure/5 hover:text-canvas-pure'
+            ? 'bg-brand-sky/15 text-pg-text'
+            : 'text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text'
         }`}
       >
         <span className="w-3.5 shrink-0" aria-hidden />
@@ -212,8 +212,8 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Files / Assets tab strip */}
-      <div className="flex gap-1 border-b border-canvas-pure/10 px-2 pt-2">
+      {/* Files / Assets tab strip — full pills; active = solid brand-sky. */}
+      <div className="flex gap-1.5 px-2 pt-2.5 pb-1.5">
         {TABS.map((t) => {
           const isActive = t.id === tab;
           return (
@@ -221,10 +221,10 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 rounded-t-lg px-3 py-1.5 text-[12px] font-bold transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold transition-colors ${
                 isActive
-                  ? 'bg-canvas-pure/15 text-canvas-pure'
-                  : 'text-stone2 hover:bg-canvas-pure/5 hover:text-canvas-pure'
+                  ? 'bg-brand-sky text-white'
+                  : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
               }`}
             >
               <t.Icon size={14} aria-hidden />
@@ -243,7 +243,7 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
       {/* Nested tree */}
       <div className="flex-1 overflow-auto px-2 pb-3">
         {tree.length === 0 ? (
-          <p className="px-2 py-2 text-[12px] font-semibold text-steel">
+          <p className="px-2 py-2 text-[12px] font-semibold text-pg-text-muted">
             {tab === 'asset' ? 'No assets yet.' : 'No files yet.'}
           </p>
         ) : (

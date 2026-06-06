@@ -161,10 +161,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
   const editorValue = activeTab ? drafts[activeTab] ?? fileContent(activeTab) : '';
 
   return (
-    <PanelGroup direction="horizontal" className="h-full min-h-0 bg-ink text-canvas-pure" autoSaveId="pg-editor">
+    <PanelGroup direction="horizontal" className="h-full min-h-0 bg-pg-bg text-pg-text" autoSaveId="pg-editor">
       {/* Files list */}
       <Panel defaultSize={28} minSize={12} className="min-w-0">
-        <aside className="h-full overflow-y-auto bg-canvas-pure/5">
+        <aside className="h-full overflow-y-auto bg-pg-text/5">
           <FileTree files={files} activePath={activeTab} onSelect={openTab} />
         </aside>
       </Panel>
@@ -174,10 +174,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
       {/* Code editor — tab strip + ▶ Play + Monaco */}
       <Panel defaultSize={72} minSize={30} className="min-w-0">
         <section className="flex h-full min-w-0 flex-col">
-          <div className="flex shrink-0 items-center bg-canvas-pure/5 border-b border-canvas-pure/10">
-            <div className="flex min-w-0 flex-1 items-center gap-0 overflow-x-auto">
+          <div className="flex shrink-0 items-center gap-1.5 bg-pg-text/5 border-b border-pg-border px-2 py-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
               {openTabs.length === 0 ? (
-                <span className="px-3 py-2 text-[13px] font-semibold text-steel">No file open</span>
+                <span className="px-2 py-1 text-[13px] font-semibold text-pg-text-muted">No file open</span>
               ) : (
                 openTabs.map((path) => {
                   const isActive = path === activeTab;
@@ -185,10 +185,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                   return (
                     <div
                       key={path}
-                      className={`group flex shrink-0 items-center gap-2 border-r border-canvas-pure/10 border-b-2 px-3 py-2 text-[13px] transition-colors ${
+                      className={`group flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[13px] transition-colors ${
                         isActive
-                          ? 'bg-ink text-canvas-pure border-b-brand-sky'
-                          : 'text-stone2 border-b-transparent hover:bg-canvas-pure/5 hover:text-canvas-pure'
+                          ? 'bg-pg-surface-2 text-pg-text font-semibold shadow-sm'
+                          : 'text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text'
                       }`}
                     >
                       <button
@@ -209,7 +209,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                         type="button"
                         aria-label={`Close ${name}`}
                         onClick={() => closeTab(path)}
-                        className={`ml-0.5 rounded text-steel transition-colors hover:text-canvas-pure ${
+                        className={`ml-0.5 rounded text-pg-text-muted transition-colors hover:text-pg-text ${
                           isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                         }`}
                       >
@@ -235,7 +235,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
             {activeTab ? (
               <Suspense
                 fallback={
-                  <div className="flex h-full items-center justify-center text-[13px] font-semibold text-stone2">
+                  <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-dim">
                     Loading editor…
                   </div>
                 }
@@ -247,7 +247,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun }: CodeEditorPanePro
                 />
               </Suspense>
             ) : (
-              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-steel">
+              <div className="flex h-full items-center justify-center text-[13px] font-semibold text-pg-text-muted">
                 Pick a file to start editing.
               </div>
             )}

@@ -1,8 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import './playground.css'
-
-/** Near-black page background from the mockup's vignette (not bg-ink, which is lighter). */
-const PAGE_BG = '#0F0B18'
+import { ThemeToggle } from './ThemeToggle'
 
 interface StarterChip {
   label: string
@@ -20,9 +18,10 @@ const STARTER_CHIPS: readonly StarterChip[] = [
 ]
 
 /**
- * Gemini-style landing entry for the kids' game Playground. Dark theme, a single
- * glowing prompt box (`.pg-glow` rotating brand-gradient halo) plus starter chips.
- * Submits the trimmed prompt via Enter (no Shift) or the send button.
+ * Gemini-style landing entry for the kids' game Playground. A single glowing
+ * prompt box (`.pg-glow` rotating brand-gradient halo) plus starter chips, over
+ * the themed `.pg-canvas` vignette. A `ThemeToggle` sits top-right. Submits the
+ * trimmed prompt via Enter (no Shift) or the send button.
  */
 export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void }) {
   const [prompt, setPrompt] = useState('')
@@ -40,18 +39,18 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
   }
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center px-6"
-      style={{ backgroundColor: PAGE_BG }}
-    >
+    <div className="pg-canvas relative flex min-h-screen flex-col items-center justify-center px-6">
+      {/* Theme switch */}
+      <ThemeToggle className="absolute right-5 top-5" />
+
       {/* Wordmark */}
-      <p className="mb-10 text-xl font-extrabold text-stone2">
+      <p className="mb-10 text-xl font-extrabold text-pg-text-dim">
         <span className="text-brand-sky">✦</span> Airbotix Playground
       </p>
 
       {/* Prompt box with animated glow halo */}
       <div className="pg-glow w-full max-w-3xl rounded-2xl">
-        <div className="relative rounded-2xl bg-[#221E30] p-5">
+        <div className="relative rounded-2xl bg-pg-surface p-5">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -59,7 +58,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             rows={4}
             placeholder="Describe a game and we'll build it…"
             aria-label="Describe a game"
-            className="w-full resize-none bg-transparent text-lg text-canvas-pure placeholder:text-steel focus:outline-none"
+            className="w-full resize-none bg-transparent text-lg text-pg-text placeholder:text-pg-text-muted focus:outline-none"
           />
 
           {/* Send button */}
@@ -82,7 +81,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             key={chip.label}
             type="button"
             onClick={() => setPrompt(chip.prompt)}
-            className="rounded-full border border-[#3A3548] bg-[#221E30] px-4 py-2 text-sm font-bold text-canvas-pure transition-colors hover:border-brand-sky"
+            className="rounded-full border border-pg-border bg-pg-surface px-4 py-2 text-sm font-bold text-pg-text transition-colors hover:border-brand-sky"
           >
             {chip.emoji} {chip.label}
           </button>

@@ -4,11 +4,14 @@ import type { VfsFile } from '@/pages/learn/code/codeApi';
 
 import { GeneratingScreen } from './GeneratingScreen';
 import { LandingScreen } from './LandingScreen';
+import { usePlaygroundStore } from './playgroundStore';
 import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
 export function PlaygroundApp() {
+  // The whole playground (all phases) themes from this one `data-theme` root.
+  const theme = usePlaygroundStore((s) => s.theme);
   const [phase, setPhase] = useState<Phase>('landing');
   const [prompt, setPrompt] = useState('');
   const [files, setFiles] = useState<VfsFile[]>([]);
@@ -24,7 +27,7 @@ export function PlaygroundApp() {
   }, []);
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-ink">
+    <div data-theme={theme} className="h-screen w-full overflow-hidden bg-pg-bg">
       {phase === 'landing' && (
         <LandingScreen
           onSubmit={(p) => {

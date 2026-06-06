@@ -8,6 +8,9 @@ import { create } from 'zustand';
 
 export type LayoutMode = 'window' | 'split';
 
+/** Visual theme for the whole playground (all phases share it). Light = default. */
+export type Theme = 'light' | 'dark';
+
 export type PgWindowId = 'chat' | 'code' | 'game';
 
 export interface WinRect {
@@ -27,6 +30,10 @@ export interface WinState {
 }
 
 interface PlaygroundState {
+  /** Visual theme, shared across landing / generating / workspace. */
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  toggleTheme: () => void;
   layoutMode: LayoutMode;
   setLayoutMode: (m: LayoutMode) => void;
   windows: Record<PgWindowId, WinState>;
@@ -80,6 +87,9 @@ const DEFAULT_WINDOWS = defaultWindows();
 const INITIAL_TOP_Z = 3;
 
 export const usePlaygroundStore = create<PlaygroundState>((set) => ({
+  theme: 'light',
+  setTheme: (t) => set({ theme: t }),
+  toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
   layoutMode: 'window',
   setLayoutMode: (m) => set({ layoutMode: m }),
   windows: DEFAULT_WINDOWS,

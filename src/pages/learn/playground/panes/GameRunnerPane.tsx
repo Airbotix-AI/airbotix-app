@@ -21,8 +21,8 @@ const DEFAULT_PRESET_ID = 'original';
 
 /** Console line level → text color (VSCode-terminal flavor). */
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
-  log: 'text-stone2',
-  info: 'text-stone2',
+  log: 'text-pg-text-dim',
+  info: 'text-pg-text-dim',
   warn: 'text-brand-sunshine',
   error: 'text-brand-coral',
 };
@@ -47,7 +47,7 @@ function ToolButton({
       title={label}
       onClick={onClick}
       className={`flex h-8 w-8 items-center justify-center rounded-lg text-base transition-colors ${
-        active ? 'bg-canvas-pure/20 text-canvas-pure' : 'text-stone2 hover:bg-canvas-pure/10 hover:text-canvas-pure'
+        active ? 'bg-pg-text/20 text-pg-text' : 'text-pg-text-dim hover:bg-pg-text/10 hover:text-pg-text'
       }`}
     >
       {children}
@@ -77,9 +77,12 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
   const logCount = lines.length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-ink text-canvas-pure">
+    // The Game Runner is always DARK (a media-player surface), regardless of the
+    // playground theme — `data-theme="dark"` re-themes its pg-* chrome locally.
+    // In Window mode the game Window also forces dark; this covers Split mode.
+    <div data-theme="dark" className="flex h-full min-h-0 flex-col bg-pg-bg text-pg-text">
       {/* Toolbar */}
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-canvas-pure/10 bg-canvas-pure/5 px-3 py-2">
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-surface-2 px-3 py-2">
         <ToolButton
           label={!running ? 'Play' : paused ? 'Play' : 'Pause'}
           active={running && !paused}
@@ -103,15 +106,15 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
         </ToolButton>
 
         <label className="flex items-center gap-1.5">
-          <Smartphone aria-hidden size={18} className="text-stone2" />
+          <Smartphone aria-hidden size={18} className="text-pg-text-dim" />
           <select
             aria-label="Screen size"
             value={presetId}
             onChange={(e) => setPresetId(e.target.value)}
-            className="rounded-lg border border-canvas-pure/20 bg-canvas-pure/10 px-2 py-1 text-xs font-medium text-canvas-pure focus:outline-none focus:ring-2 focus:ring-brand-sky"
+            className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1 text-xs font-medium text-pg-text focus:outline-none focus:ring-2 focus:ring-brand-sky"
           >
             {SCREEN_PRESETS.map((p) => (
-              <option key={p.id} value={p.id} className="text-ink">
+              <option key={p.id} value={p.id} className="text-pg-text">
                 {p.label}
               </option>
             ))}
@@ -141,16 +144,16 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
             />
           </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-center">
-            <Gamepad2 size={44} className="text-steel" />
+          <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-pg-desktop text-center">
+            <Gamepad2 size={44} className="text-pg-text-muted" />
             <div className="space-y-0.5">
-              <p className="text-sm font-bold text-stone2">Press ▶ to play</p>
-              <p className="text-xs text-steel">your game shows up here</p>
+              <p className="text-sm font-bold text-pg-text-dim">Press ▶ to play</p>
+              <p className="text-xs text-pg-text-muted">your game shows up here</p>
             </div>
             <button
               type="button"
               onClick={onRun}
-              className="flex items-center gap-1.5 rounded-lg bg-canvas-pure/10 px-3 py-1.5 text-sm font-bold text-canvas-pure transition-colors hover:bg-canvas-pure/20 focus:outline-none focus:ring-2 focus:ring-brand-sky"
+              className="flex items-center gap-1.5 rounded-lg bg-pg-text/10 px-3 py-1.5 text-sm font-bold text-pg-text transition-colors hover:bg-pg-text/20 focus:outline-none focus:ring-2 focus:ring-brand-sky"
             >
               <Play size={16} /> Play
             </button>
@@ -160,29 +163,29 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
 
       {/* Console panel — separate bottom section, above the status bar. */}
       {showConsole && (
-        <div className="flex h-48 shrink-0 flex-col border-t border-canvas-pure/10 bg-[#0E0B16] font-mono">
+        <div className="flex h-48 shrink-0 flex-col border-t border-pg-border bg-pg-desktop font-mono">
           <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-steel">Console</span>
-            <span className="text-[11px] text-stone2">{logCount}</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pg-text-muted">Console</span>
+            <span className="text-[11px] text-pg-text-dim">{logCount}</span>
             <button
               type="button"
               onClick={() => setLines([])}
-              className="ml-auto rounded-md px-2 py-0.5 text-[11px] font-semibold text-stone2 transition-colors hover:bg-canvas-pure/10 hover:text-canvas-pure"
+              className="ml-auto rounded-md px-2 py-0.5 text-[11px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
             >
               Clear
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
             {lines.length === 0 ? (
-              <div className="text-[12px] text-steel">—</div>
+              <div className="text-[12px] text-pg-text-muted">—</div>
             ) : (
               <ul>
                 {lines.map((l, i) => (
                   <li
                     key={i}
-                    className={`flex gap-1.5 border-b border-canvas-pure/[0.04] py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
+                    className={`flex gap-1.5 border-b border-pg-border py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
                   >
-                    <span aria-hidden className="select-none text-steel">›</span>
+                    <span aria-hidden className="select-none text-pg-text-muted">›</span>
                     <span className="min-w-0 whitespace-pre-wrap break-words">{l.text}</span>
                   </li>
                 ))}
@@ -193,11 +196,11 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
       )}
 
       {/* Status bar */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-canvas-pure/10 bg-canvas-pure/5 px-3 py-1.5 text-xs">
+      <div className="flex shrink-0 items-center gap-2 border-t border-pg-border bg-pg-surface-2 px-3 py-1.5 text-xs">
         {!running ? (
           <>
-            <span aria-hidden className="h-2 w-2 rounded-full bg-steel" />
-            <span className="font-bold text-canvas-pure">Idle</span>
+            <span aria-hidden className="h-2 w-2 rounded-full bg-pg-text-muted" />
+            <span className="font-bold text-pg-text">Idle</span>
           </>
         ) : (
           <>
@@ -205,14 +208,14 @@ export function GameRunnerPane({ files, runKey, running, onRun }: GameRunnerPane
               aria-hidden
               className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
             />
-            <span className="font-bold text-canvas-pure">{paused ? 'Paused' : 'Running'}</span>
-            <span className="text-steel">·</span>
-            <span className="text-stone2">{fps + ' fps'}</span>
-            <span className="text-steel">·</span>
-            <span className="text-stone2">{logCount + ' logs'}</span>
+            <span className="font-bold text-pg-text">{paused ? 'Paused' : 'Running'}</span>
+            <span className="text-pg-text-muted">·</span>
+            <span className="text-pg-text-dim">{fps + ' fps'}</span>
+            <span className="text-pg-text-muted">·</span>
+            <span className="text-pg-text-dim">{logCount + ' logs'}</span>
           </>
         )}
-        <span className="ml-auto text-stone2">
+        <span className="ml-auto text-pg-text-dim">
           {preset.w} × {preset.h}
         </span>
       </div>

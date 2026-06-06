@@ -75,9 +75,9 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
 
   if (layoutMode === 'window') {
     return (
-      <div className="flex h-full w-full flex-col bg-ink text-canvas-pure">
+      <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
         {/* Desktop surface — the maximized window fills this, above the taskbar. */}
-        <div className="relative min-h-0 flex-1 overflow-hidden bg-[#0E0B16]">
+        <div className="pg-desktop-bg relative min-h-0 flex-1 overflow-hidden">
           {/* Left-edge shortcut column */}
           {/* Desktop icons are the bottom layer — windows (zIndex ≥ 1) sit above. */}
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
@@ -103,6 +103,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
           </Window>
           <Window
             id="game"
+            variant="game"
             title={WINDOW_META.game.title}
             icon={<WINDOW_META.game.Icon size={16} />}
           >
@@ -117,12 +118,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
   }
 
   return (
-    <div className="flex h-full w-full flex-col bg-ink text-canvas-pure">
+    <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
       {/* Split: horizontal PanelGroup, above the docked taskbar */}
       <div className="relative min-h-0 flex-1">
         <PanelGroup
           direction="horizontal"
-          className="h-full min-h-0 bg-ink"
+          className="h-full min-h-0 bg-pg-bg"
           autoSaveId="pg-workspace-split"
         >
           {/* Left: Chat / Code tab strip + active pane */}
@@ -131,7 +132,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               <div
                 role="tablist"
                 aria-label="Editor mode"
-                className="flex shrink-0 items-center gap-0.5 border-b border-canvas-pure/10 bg-canvas-pure/5 px-2 py-1.5"
+                className="flex shrink-0 items-center gap-0.5 border-b border-pg-border bg-pg-text/5 px-2 py-1.5"
               >
                 {SPLIT_TABS.map(({ id, label }) => {
                   const active = splitTab === id;
@@ -146,8 +147,8 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
                       className={clsx(
                         'inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[13px] leading-none transition-colors',
                         active
-                          ? 'bg-canvas-pure/15 font-extrabold text-canvas-pure'
-                          : 'font-semibold text-stone2 hover:text-canvas-pure',
+                          ? 'bg-pg-text/15 font-extrabold text-pg-text'
+                          : 'font-semibold text-pg-text-dim hover:text-pg-text',
                       )}
                     >
                       <Icon size={14} />

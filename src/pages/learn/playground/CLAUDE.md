@@ -52,9 +52,29 @@ pause/mute/screen-size/restart/console controls and a status bar; its stage
 no scroll) via a `ResizeObserver`. **Chat is now standalone** (`panes/ChatPane`)
 — it is no longer docked inside the code editor.
 
-The whole playground is **dark-themed**: `bg-ink` base, `canvas-pure/<opacity>`
-for raised surfaces + borders, `text-canvas-pure`/`text-stone2`/`text-steel`
-text, with `brand-sky`/`brand-mint` accents (Monaco runs the `vs-dark` theme).
+The playground is **themeable (light + dark), light is the default**. A single
+`data-theme` attribute on the `PlaygroundApp` root (from `playgroundStore.theme`)
+flips a set of semantic CSS variables defined in `playground.css`
+(`[data-theme='light'|'dark']`), which the Tailwind `pg-*` color tokens resolve
+to (`tailwind.config.js`): `pg-bg` (app base) · `pg-desktop` (window backdrop) ·
+`pg-surface` / `pg-surface-2` (raised panels / toolbars) · `pg-border` · `pg-text`
+/ `pg-text-dim` / `pg-text-muted`. Translucent overlays use `pg-text/<n>` (ink in
+light, near-white in dark). Brand tokens (`brand-sky`/`brand-mint`/…) stay
+constant across themes. All three phases share one theme (set on the root),
+Monaco follows it (`vs` light / `vs-dark` dark), and a `ThemeToggle` icon button
+(Sun/Moon) sits on the Landing screen (top-right) and in the workspace `Taskbar`.
+Light values come from DESIGN.md (canvas/ink/hairline/steel); dark values are the
+studio chrome shades.
+
+Reference-mockup specifics (`docs/virtual-desktop-mockup.svg`): the **window-mode
+desktop backdrop** is a mint-wash→sky-wash gradient in light / deep flat in dark
+(`.pg-desktop-bg`); each window carries a **brand identity** (`WINDOW_ACCENT` —
+chat=sky, code=mint, game=coral) shared by the desktop tiles AND the active
+taskbar button; the **Files/Assets tabs** are full pills (active = solid
+brand-sky); the **editor file tabs** are soft pills (active filled). The **Game
+Runner is ALWAYS dark** in both themes (a media-player surface) — its pane forces
+`data-theme="dark"`, and in Window mode its window uses `variant="game"` (a
+highlighted brand purple→sky `.pg-runner-bar` title bar over a dark body).
 
 > **Windowing is BACK — but only as one of two layout modes.** An earlier
 > iteration had fully removed the window layer in favor of a fixed split; the
@@ -170,8 +190,9 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 | `GeneratingScreen.tsx` | Blocking "building" animation (spinning `.pg-orb-spin` orb + staged status + progress bar). Calls the **stub** `generateScaffold(prompt)` once, then `onDone(files)`. | ✅ |
 | `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
-| `playgroundStore.ts` | Zustand store: `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. | ✅ |
-| `playground.css` | `pg-`-namespaced CSS the Tailwind utilities can't express: the `.pg-glow` halo (`@property --pg-a` conic rotation), `.pg-orb-spin`, `.pg-shimmer`; honors `prefers-reduced-motion`. | ✅ |
+| `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |
+| `playgroundStore.ts` | Zustand store: `theme` (default `'light'`) + `setTheme`/`toggleTheme`; `layoutMode` (default `'window'`) + Window-mode geometry/z/open/min/max + `interacting` (drag overlay flag) for the 3 windows. | ✅ |
+| `playground.css` | The **theme tokens** (`[data-theme='light'|'dark']` CSS vars the `pg-*` Tailwind colors resolve to) + `.pg-canvas` (themed vignette) + the `pg-`-namespaced animations Tailwind can't express: the `.pg-glow` halo (`@property --pg-a` conic rotation), `.pg-orb-spin`, `.pg-shimmer`; honors `prefers-reduced-motion`. | ✅ |
 | `buildGamePreview.ts` | Assembles the sandboxed Phaser `srcdoc` from the VFS. **Multi-file:** injects every text `.js` file as its own classic `<script>` in array order with the **entry (`main.js`, else `game.js`, else last) injected LAST**, concatenates all `.css` into the stage `<style>`; global classes only, **no `import`/`export`**. Reuses `CONSOLE_CAPTURE` + `ASSET_MIME` from `../code/buildPreview.ts`. Also injects the **`GAME_CONTROL` shim** and exports `StatMessage`/`isStatMessage`. | ✅ |
 | `GameFrame.tsx` | Renders the sandboxed iframe + optional console panel + "Fix this error" hook. Posts control messages (`paused`/`muted`) and reads `__airbotixStat` to report `onFps`/`onConsoleCount`. | ✅ |
 | `screenPresets.ts` | Fixed stage-size presets (iPhone/iPad/720p/…) for the Game Runner dropdown. | ✅ |
@@ -181,10 +202,10 @@ Windowing (`desktop/`):
 
 | File | Role | Keeper? |
 |---|---|---|
-| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. | ✅ |
+| `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. `variant="game"` → always-dark window (`data-theme="dark"`) with the highlighted `.pg-runner-bar` gradient title bar. | ✅ |
 | `Taskbar.tsx` | Bottom dock: brand + `LayoutToggle` + a button per window (restore/switch/minimize); active window highlighted. | ✅ |
 | `DesktopIcon.tsx` | A desktop shortcut tile (brand-tinted, lucide icon) to (re)open/focus a window. Bottom z-layer (below windows). | ✅ |
-| `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER`; shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
+| `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER` + `WINDOW_ACCENT` (per-window brand identity: chat=sky, code=mint, game=coral — border/icon/wash classes); shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
 
 Panes (`panes/`):
 
@@ -196,7 +217,7 @@ Panes (`panes/`):
 | `starterProject.ts` | The rich **hierarchical** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays ~1.8s, stamps the prompt into `main.js`, returns the project). Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
 | `FileTree.tsx` | **Nested folder tree** (built from slash-delimited paths, folders-first, collapsible, default-expanded) with **📄 Files / 🧊 Assets tabs** (filters by `kind`); emoji per extension, active-file highlight. | ✅ |
-| `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. | ✅ |
+| `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded** + **self-hosted workers** (Vite `?worker`, `loader.config({ monaco })` — no CDN). Lenient JS diagnostics for kids. **Follows the playground theme** (`vs` light / `vs-dark` dark) via `playgroundStore.theme`. | ✅ |
 | `AIChatPanel.tsx` | Purely-presentational chat UI (kid/agent bubbles, tool chips). Takes `useGameAgent` state via props; never calls the hook itself. Badged "stub demo". | ✅ |
 | `useGameAgent.ts` | Chat controller hook (send → pending → resolve, then apply+run). `runTurn` is the **swap seam** — defaults to the stub, later an adapter over the real backend. | ✅ |
 | `gameAgentStub.ts` | The **local stub turn** (`runTurnStub`): no network, deterministically tweaks the first hex bg colour so the turn→VFS→run path is visibly exercised. Replaced by the real backend call later. | swap-out |
@@ -243,9 +264,13 @@ Naming convention: the **playground** is the feature (routes/hub/api use
 - The AI chat **UX**, backed by the **local stub** (`gameAgentStub.ts` via the
   `runTurn` seam in `useGameAgent.ts`) — offline, no LLM. Scaffold generation is
   likewise a **local stub** (`generateScaffold`).
-- Verified by **5 passing Playwright specs** (`e2e/playground.spec.ts`, run with
+- **Light + dark theming** (light default) across all three phases + Monaco, via
+  `data-theme` + `pg-*` tokens + `ThemeToggle` (see the theming paragraph above).
+- Verified by **8 passing Playwright specs** (`e2e/playground.spec.ts`, run with
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
-  layout toggle Window ⇄ Split, AI chat stub, runner placeholder → Play.
+  layout toggle Window ⇄ Split, AI chat stub (+ chat doesn't auto-run), runner
+  placeholder → Play, chat history persists across the layout toggle, theme
+  default-light/toggles/carries into the workspace, and closed-window reopen.
 
 **Not yet built / still future:**
 
@@ -267,5 +292,8 @@ Naming convention: the **playground** is the feature (routes/hub/api use
 
 - All AI traffic → `platform-backend /llm/*` (Stars metered, audited). No direct
   LLM calls from this folder.
-- Design system tokens only (no raw hex / Tailwind defaults).
+- Design system tokens only (no raw hex / Tailwind defaults). For themeable
+  surfaces use the `pg-*` tokens (which flip with `data-theme`); brand tokens and
+  the game-stage `bg-black` stay constant. Don't reintroduce hardcoded chrome
+  hexes (`#242133` etc.) — they don't theme.
 - Never log PII (kid nickname, prompts, project content).

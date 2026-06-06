@@ -2,22 +2,12 @@ import clsx from 'clsx';
 
 import { usePlaygroundStore } from '../playgroundStore';
 import type { PgWindowId } from '../playgroundStore';
-import { WINDOW_META } from './windowMeta';
-
-/**
- * Per-id accent: tile border + icon colour. Matches the brand-tinted desktop
- * tiles in `docs/mockup-workspace-v2.png` (chat=sky, code=mint, game=coral).
- */
-const ACCENT: Record<PgWindowId, { border: string; icon: string }> = {
-  chat: { border: 'border-brand-sky/50', icon: 'text-brand-sky' },
-  code: { border: 'border-brand-mint/50', icon: 'text-brand-mint' },
-  game: { border: 'border-brand-coral/50', icon: 'text-brand-coral' },
-};
+import { WINDOW_ACCENT, WINDOW_META } from './windowMeta';
 
 /** A desktop shortcut tile (Window mode) — click to open/focus its window. */
 export function DesktopIcon({ id }: { id: PgWindowId }) {
   const { title, Icon } = WINDOW_META[id];
-  const accent = ACCENT[id];
+  const accent = WINDOW_ACCENT[id];
   const openOrFocus = usePlaygroundStore((s) => s.openOrFocus);
 
   const open = () => openOrFocus(id);
@@ -32,13 +22,13 @@ export function DesktopIcon({ id }: { id: PgWindowId }) {
     >
       <span
         className={clsx(
-          'flex h-[84px] w-[84px] items-center justify-center rounded-2xl border bg-[#242133] transition-transform duration-150 group-hover:scale-105',
+          'flex h-[84px] w-[84px] items-center justify-center rounded-2xl border bg-pg-surface transition-transform duration-150 group-hover:scale-105',
           accent.border,
         )}
       >
         <Icon size={30} className={accent.icon} />
       </span>
-      <span className="text-[12px] font-bold text-stone2">{title}</span>
+      <span className="text-[12px] font-bold text-pg-text-dim">{title}</span>
     </button>
   );
 }
