@@ -153,7 +153,7 @@ export function SettingsPage() {
           {me.data.kind === 'user' && (
             <>
               <Row label="Email" value={me.data.email} />
-              <Row label="Display name" value={me.data.display_name ?? '—'} />
+              <DisplayNameEditor current={me.data.display_name} />
               <Row label="Role" value={me.data.role} />
             </>
           )}
@@ -358,6 +358,55 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-4">
       <span className="text-slate2 font-medium">{label}</span>
       <span className="font-semibold text-ink">{value}</span>
+    </div>
+  );
+}
+
+/** Inline editor for the parent's own display_name via PATCH /auth/me. */
+function DisplayNameEditor({ current }: { current: string | null }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState(current ?? '');
+  const [err, setErr] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: (display_name: string) =>
+      api('/auth/me', { method: 'PATCH', body: { display_name } }),
+    onSuccess: () => {
+      setErr(null);
+      qc.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not save.'),
+  });
+
+  const trimmed = value.trim();
+  const dirty = trimmed !== (current ?? '') && trimmed.length > 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-slate2 font-medium">Display name</span>
+        <div className="flex items-center gap-2">
+          <input
+            className="input-k12 py-1.5 text-[14px]"
+            style={{ maxWidth: '200px' }}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Your name"
+            maxLength={120}
+          />
+          <button
+            type="button"
+            disabled={!dirty || mut.isPending}
+            onClick={() => mut.mutate(trimmed)}
+            className="btn-pill-secondary"
+          >
+            {mut.isPending ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+      {err && <p className="field-error mt-1 text-right">{err}</p>}
+      {mut.isSuccess && !dirty && !err && (
+        <p className="text-[12px] font-semibold text-brand-mint mt-1 text-right">Saved ✓</p>
+      )}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthPrincipal } from '@/auth/types';
+import { useAuthStore } from '@/auth/authStore';
+import { useLogout } from '@/auth/useAuth';
 import { mockUseMe } from '@/test/mocks';
 import { RegisterPage } from './RegisterPage';
 
@@ -12,7 +14,7 @@ vi.mock('react-router-dom', async (orig) => ({
   ...(await orig<typeof import('react-router-dom')>()),
   useNavigate: () => navigate,
 }));
-vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn() }));
+vi.mock('@/auth/useAuth', () => ({ useMe: vi.fn(), useLogout: vi.fn() }));
 
 const parent = (family_id: string | null): AuthPrincipal =>
   ({ kind: 'user', sub: 'u1', email: 'p@e.com', display_name: 'Sam', role: 'parent', family_id }) as AuthPrincipal;
@@ -28,7 +30,13 @@ function renderPage() {
   );
 }
 
-beforeEach(() => navigate.mockReset());
+beforeEach(() => {
+  navigate.mockReset();
+  // The page now guards on a bootstrapped, authenticated parent session before
+  // it shows the form (otherwise: "Loading session…" or bounce to login).
+  useAuthStore.setState({ accessToken: 'jwt', bootstrapped: true });
+  vi.mocked(useLogout).mockReturnValue(vi.fn());
+});
 
 describe('RegisterPage', () => {
   it('redirects to the portal when the parent already has a family', async () => {
