@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import type { VfsFile } from '@/pages/learn/code/codeApi';
 
@@ -9,9 +10,21 @@ import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
-export function PlaygroundApp() {
+interface PlaygroundAppProps {
+  /**
+   * The backend project whose files to open (its VFS is loaded from the
+   * S3-backed backend). Supplied by the authed `/learn/playground/:projectId`
+   * route once it exists; in the DEV sandbox it's read from a `?projectId`
+   * query param if present, else absent → the local starter scaffold is used.
+   */
+  projectId?: string;
+}
+
+export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps = {}) {
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
+  const [searchParams] = useSearchParams();
+  const projectId = projectIdProp ?? searchParams.get('projectId') ?? undefined;
   const [phase, setPhase] = useState<Phase>('landing');
   const [prompt, setPrompt] = useState('');
   const [files, setFiles] = useState<VfsFile[]>([]);
@@ -39,6 +52,7 @@ export function PlaygroundApp() {
       {phase === 'generating' && (
         <GeneratingScreen
           prompt={prompt}
+          projectId={projectId}
           onDone={(f) => {
             setFiles(f);
             setPhase('workspace');

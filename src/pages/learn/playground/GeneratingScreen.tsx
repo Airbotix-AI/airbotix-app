@@ -3,17 +3,19 @@
 // vignette canvas, echoed prompt, a spinning brand-gradient orb, a staged status
 // list that ticks through, a progress bar, and a "Building your game…" caption.
 //
-// It owns NO product logic: it calls the stubbed `generateScaffold(prompt)`
-// (panes/starterProject.ts) once on mount and hands the resulting VFS to
-// `onDone`. The staged status is purely cosmetic timing — it advances on a timer
-// and is decoupled from when the scaffold actually resolves (the stub delays
-// ~1.8s; the steps cap at the last so the list never overruns the resolve).
+// It owns NO product logic: on mount it calls `resolveProjectFiles` once — which
+// loads the REAL project files from the S3-backed backend when a `projectId` is
+// given, else falls back to the local starter scaffold — and hands the resulting
+// VFS to `onDone`. The staged status is purely cosmetic timing — it advances on
+// a timer, decoupled from when the files actually resolve (the steps cap at the
+// last so the list never overruns the resolve).
 
 import { Check, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import type { VfsFile } from '../code/codeApi';
-import { generateScaffold, SCAFFOLD_DELAY_MS } from './panes/starterProject';
+import { resolveProjectFiles } from './panes/playgroundApi';
+import { SCAFFOLD_DELAY_MS } from './panes/starterProject';
 
 // The build stages the kid sees tick through — intentionally GENERIC (work for
 // any creation, not just games) and purely cosmetic (see file header).
@@ -31,9 +33,12 @@ const STEP_INTERVAL_MS = SCAFFOLD_DELAY_MS / STEPS.length;
 
 export function GeneratingScreen({
   prompt,
+  projectId,
   onDone,
 }: {
   prompt: string;
+  /** When set, the real project files are loaded from the backend (S3-backed). */
+  projectId?: string;
   onDone: (files: VfsFile[]) => void;
 }) {
   const [step, setStep] = useState(0);
@@ -55,8 +60,9 @@ export function GeneratingScreen({
     // Kick off the progress-bar fill on the next frame (so the transition runs).
     const raf = requestAnimationFrame(() => setFilling(true));
 
-    // The real (stubbed) work. When it resolves, stop ticking and hand off.
-    generateScaffold(prompt).then((files) => {
+    // Resolve the files (real backend load when projectId is set, else the local
+    // scaffold). When it resolves, stop ticking and hand off.
+    resolveProjectFiles({ projectId, prompt }).then((files) => {
       if (cancelled) return;
       window.clearInterval(ticker);
       onDoneRef.current(files);
@@ -67,7 +73,7 @@ export function GeneratingScreen({
       window.clearInterval(ticker);
       cancelAnimationFrame(raf);
     };
-  }, [prompt]);
+  }, [prompt, projectId]);
 
   return (
     <div className="pg-canvas fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 text-pg-text">
@@ -100,8 +106,10 @@ export function GeneratingScreen({
         </li>
       </ol>
 
-      {/* Blocking caption. */}
-      <p className="font-extrabold text-pg-text-dim">Building your game…</p>
+      {/* Blocking caption — "loading" when opening a real project, else "building". */}
+      <p className="font-extrabold text-pg-text-dim">
+        {projectId ? 'Loading your game…' : 'Building your game…'}
+      </p>
     </div>
   );
 }
