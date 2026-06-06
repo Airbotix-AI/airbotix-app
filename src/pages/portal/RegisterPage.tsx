@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
-import { useMe } from '@/auth/useAuth';
+import { useAuthStore } from '@/auth/authStore';
+import { useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError, refreshAccessToken } from '@/lib/api';
 
 import {
@@ -20,6 +21,9 @@ import {
 // Family setup. Backend auto-generates the family code (kid-memorable 4 chars).
 // Multi-step "90s wizard" comes once underlying endpoints settle.
 const schema = z.object({
+  // The parent's own name (§3.1 wizard step "[1] Your name"). Written to
+  // User.display_name via PATCH /auth/me before the family is created.
+  your_name: z.string().min(1).max(120),
   family_name: z.string().min(1).max(80),
   region: z.string().min(2).max(8),
   city: z.string().max(80).optional(),
@@ -44,8 +48,12 @@ interface CreatedFamily {
 
 export function RegisterPage() {
   const nav = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const me = useMe();
+  const logout = useLogout();
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamily | null>(null);
 
@@ -65,9 +73,65 @@ export function RegisterPage() {
     defaultValues: { region: 'AU', preferred_language: detectPreferredLanguage() },
   });
 
+  // Creating a family requires an authenticated parent (OTP token in memory).
+  // Unlike /portal/*, this route isn't behind <ProtectedRoute>, so guard here:
+  // wait for the on-mount /auth/refresh to settle, then bounce to login if there
+  // is still no session. Without this, a reload or an expired 15-min access token
+  // drops the user onto the form and the first POST /families fails with a raw 401.
+  // (Kept after all hooks so the Rules of Hooks hold on every render path.)
+  if (!bootstrapped || (accessToken && me.isLoading)) {
+    return (
+      <div className="flex h-full items-center justify-center text-slate-500">
+        Loading session…
+      </div>
+    );
+  }
+  if (!accessToken) {
+    return <Navigate to="/portal/login" state={{ from: location }} replace />;
+  }
+  // A kid should never be on the parent setup route — bounce to their surface.
+  if (me.data?.kind === 'kid') {
+    return <Navigate to="/learn" replace />;
+  }
+  // Family creation is parent-only (POST /families → 403 for any other role).
+  // If this browser holds a teacher/admin/super_admin session (e.g. restored
+  // from the shared `.airbotix.ai` refresh cookie), don't let the form submit
+  // into a raw "Forbidden Exception" — explain it and offer a clean sign-out.
+  if (me.data?.kind === 'user' && me.data.role !== 'parent') {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="mb-2">
+            <span className="sticker-coral">Wrong account</span>
+          </div>
+          <h1 className="hero-display mt-6">Family setup is for parents.</h1>
+          <p className="lead-text mt-4">
+            You're signed in as <strong>{me.data.role}</strong> ({me.data.email}). Creating a
+            family needs a parent account. Sign out and register with a different email.
+          </p>
+          <button
+            onClick={async () => {
+              await logout();
+              nav('/portal/login', { replace: true });
+            }}
+            className="btn-pill-primary w-full mt-8"
+          >
+            Sign out & use a parent email →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
+      // §3.1 step 3 "[1] Your name" → set the parent's own name first, so the
+      // account has an identity before the family exists.
+      await api('/auth/me', {
+        method: 'PATCH',
+        body: { display_name: values.your_name.trim() },
+      });
       const city = values.city?.trim();
       const postcode = values.postcode?.trim();
       const family = await api<CreatedFamily>('/families', {
@@ -158,6 +222,14 @@ export function RegisterPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
           <section className="space-y-4">
             <div className="eyebrow eyebrow-sky">Your family</div>
+            <Field label="Your name" error={errors.your_name?.message}>
+              <input
+                className="input-k12"
+                placeholder="Lightman Wang"
+                autoComplete="name"
+                {...register('your_name')}
+              />
+            </Field>
             <Field label="Family name" error={errors.family_name?.message}>
               <input
                 className="input-k12"
