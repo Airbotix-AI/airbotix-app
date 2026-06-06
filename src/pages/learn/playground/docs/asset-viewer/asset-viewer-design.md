@@ -285,3 +285,19 @@ also update `playground/CLAUDE.md` (new pane, new window id, Assets-tab removal)
 The real `/llm/generate-asset` backend (platform-backend), the standalone
 `docs/food-tycoon/` review app (stays separate as reference), and any change to
 `VfsFile` / `projectStore` / persistence schema.
+
+## 12. Sample assets (dev)
+
+The starter project (`panes/starterProject.ts` → `sampleAssets.ts`) seeds one
+example of every kind so the viewer is testable out of the box: image
+(`assets/ui/coin.svg`), sprite (`assets/characters/hero_bounce.svg` +
+`.anim.json`), audio (`assets/audio/chime.wav`), video
+(`assets/video/intro.mp4`), text (`assets/README.txt`). Image/sprite/audio are
+built as data URLs in code; the video is a pre-encoded mp4 in `sampleVideo.ts`,
+regenerated with:
+
+```
+ffmpeg -f lavfi -i "testsrc2=size=128x128:rate=12:duration=2" \
+  -pix_fmt yuv420p -c:v libx264 -crf 36 -movflags +faststart intro.mp4
+# then base64 the bytes into sampleVideo.ts's SAMPLE_MP4_BASE64
+```

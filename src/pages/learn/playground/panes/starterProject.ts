@@ -13,6 +13,7 @@
 // URL rewrite, so this scaffold references none and runs as-is.
 
 import type { VfsFile } from '../../code/codeApi';
+import { SAMPLE_ASSETS } from '../sampleAssets';
 
 // ── Entry: builds the game and wires the scene list (entry, injected LAST) ────
 
@@ -154,6 +155,9 @@ export const STARTER_PROJECT: VfsFile[] = [
   { path: 'src/scenes/GameOver.js', content: GAME_OVER_JS, kind: 'text', size: GAME_OVER_JS.length },
   { path: 'assets/README.txt', content: ASSETS_README, kind: 'text', size: ASSETS_README.length },
   { path: 'style.css', content: STYLE_CSS, kind: 'text', size: STYLE_CSS.length },
+  // One sample of every Asset Viewer kind (image / sprite / audio / video) so
+  // the viewer has something to show out of the box. Text is README.txt above.
+  ...SAMPLE_ASSETS,
 ];
 
 // How long the stub pretends to "generate" before returning the scaffold.
