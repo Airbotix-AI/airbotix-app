@@ -515,3 +515,12 @@ test('asset viewer: import an image → grid card + code-ref + Copy', async ({ p
   await page.getByRole('button', { name: 'Copy' }).click();
   await expect(page.getByText('Code copied — paste it into your game.')).toBeVisible();
 });
+
+test('asset viewer: a text asset previews as plain text', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+  // The starter ships assets/README.txt — opening it shows its text content.
+  await page.getByText('README.txt').click({ timeout: 5_000 });
+  await expect(page.getByText(/Drop sprites\/sounds here/)).toBeVisible();
+});

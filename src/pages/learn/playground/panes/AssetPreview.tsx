@@ -169,6 +169,14 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
     );
   }
 
+  if (kind === 'text') {
+    return (
+      <pre className="max-h-[420px] w-full overflow-auto whitespace-pre-wrap break-words rounded-xl border border-pg-border bg-pg-surface-2 p-3 font-mono text-[12.5px] text-pg-text">
+        {asset.content}
+      </pre>
+    );
+  }
+
   // image / sprite / other → a background-toggleable stage
   return (
     <div className="flex flex-col gap-3">
