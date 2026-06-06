@@ -400,7 +400,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
               {sidebarView === 'files' ? (
                 <FileTree files={files} activePath={activeTab} onSelect={openTab} />
               ) : (
-                <HistoryPanel currentFiles={files} onRevert={revertTo} onDiff={openDiffTab} />
+                <HistoryPanel onRevert={revertTo} onDiff={openDiffTab} />
               )}
             </div>
           </aside>

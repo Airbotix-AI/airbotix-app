@@ -1,17 +1,19 @@
-// History timeline (the left-sidebar "History" view of the Code Editor). Lists
-// the project checkpoints newest-first, grouped into coarse time chunks. Expand a
-// checkpoint to see which files changed SINCE it; click a file to diff (peek the
-// old version on the left), or Revert the whole project back to that snapshot.
+// History timeline (the left-sidebar "History" view of the Code Editor), as a
+// two-column master-detail:
+//   - left  = the project checkpoints, newest-first (click to select; no expand);
+//   - right = the files THAT entry changed — i.e. diffed against the checkpoint
+//             RIGHT BEFORE it (so "edited GameOver.js" lists GameOver.js with a
+//             real before→after diff, not "changes since now").
+// Click a file → open its diff tab (left = the older version / peek, right = this
+// version). Revert (in the detail header) restores the whole project to the entry.
 
-import { ChevronDown, ChevronRight, History, RotateCcw } from 'lucide-react';
+import { History, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
-import type { VfsFile } from '../../code/codeApi';
 import { useHistoryStore, type Checkpoint } from '../historyStore';
 
 interface HistoryPanelProps {
-  currentFiles: VfsFile[];
-  /** Open a diff: left = historical (peek), right = current. */
+  /** Open a diff: left = the version before this entry, right = this entry. */
   onDiff: (path: string, original: string, modified: string) => void;
   /** Revert the project to a checkpoint. */
   onRevert: (cp: Checkpoint) => void;
@@ -19,55 +21,52 @@ interface HistoryPanelProps {
 
 type FileStatus = 'edited' | 'added' | 'removed';
 
-/** Files that differ between a checkpoint (then) and the current VFS (now). */
-function changedSince(cp: Checkpoint, current: VfsFile[]): { path: string; status: FileStatus }[] {
-  const then = new Map(cp.files.map((f) => [f.path, f.content]));
-  const now = new Map(current.map((f) => [f.path, f.content]));
+/** Files this checkpoint changed vs the one before it (`prev`, or none for the first). */
+function changedIn(cp: Checkpoint, prev: Checkpoint | null): { path: string; status: FileStatus }[] {
+  const now = new Map(cp.files.map((f) => [f.path, f.content]));
+  if (!prev) {
+    return [...now.keys()].sort().map((path) => ({ path, status: 'added' as const }));
+  }
+  const before = new Map(prev.files.map((f) => [f.path, f.content]));
   const out: { path: string; status: FileStatus }[] = [];
-  for (const path of new Set([...then.keys(), ...now.keys()])) {
-    const inThen = then.has(path);
-    const inNow = now.has(path);
-    if (inThen && inNow) {
-      if (then.get(path) !== now.get(path)) out.push({ path, status: 'edited' });
-    } else if (inThen) out.push({ path, status: 'removed' }); // existed then, gone now
-    else out.push({ path, status: 'added' }); // added since
+  for (const path of new Set([...before.keys(), ...now.keys()])) {
+    const inB = before.has(path);
+    const inN = now.has(path);
+    if (inB && inN) {
+      if (before.get(path) !== now.get(path)) out.push({ path, status: 'edited' });
+    } else if (inN) out.push({ path, status: 'added' });
+    else out.push({ path, status: 'removed' });
   }
   return out.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-/** Coarse time chunk for grouping ("Just now" / "Earlier today" / "Older"). */
-function chunkOf(ts: number, now: number): string {
-  const min = (now - ts) / 60_000;
-  if (min < 2) return 'Just now';
-  if (min < 60) return 'Last hour';
-  if (min < 60 * 24) return 'Earlier today';
-  return 'Older';
-}
-
 function clock(ts: number): string {
   const d = new Date(ts);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-const STATUS_COLOR: Record<FileStatus, string> = {
-  edited: 'text-brand-sky',
-  added: 'text-brand-mint',
-  removed: 'text-brand-coral',
+const STATUS_LABEL: Record<FileStatus, { letter: string; color: string }> = {
+  edited: { letter: 'M', color: 'text-brand-sky' },
+  added: { letter: 'A', color: 'text-brand-mint' },
+  removed: { letter: 'D', color: 'text-brand-coral' },
 };
 const base = (p: string) => p.split('/').pop() || p;
 
-export function HistoryPanel({ currentFiles, onDiff, onRevert }: HistoryPanelProps) {
+export function HistoryPanel({ onDiff, onRevert }: HistoryPanelProps) {
   const checkpoints = useHistoryStore((s) => s.checkpoints);
-  const [open, setOpen] = useState<string | null>(null);
-  const now = Date.now();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const selectedIndex = checkpoints.findIndex((c) => c.id === selectedId);
+  const selected = selectedIndex >= 0 ? checkpoints[selectedIndex] : null;
+  // Newest-first, so the "previous" (older) checkpoint is the NEXT index.
+  const prev = selected ? checkpoints[selectedIndex + 1] ?? null : null;
+  const changes = selected ? changedIn(selected, prev) : [];
 
   if (checkpoints.length === 0) {
     return (
       <div className="flex h-full flex-col">
-        <PanelHeader />
+        <Header label="History" />
         <p className="px-3 py-3 text-[12px] font-semibold text-pg-text-muted">
           No history yet. Your edits are snapshotted automatically as you work.
         </p>
@@ -75,95 +74,91 @@ export function HistoryPanel({ currentFiles, onDiff, onRevert }: HistoryPanelPro
     );
   }
 
-  // Group consecutive checkpoints into time chunks, preserving newest-first order.
-  let lastChunk = '';
-
   return (
-    <div className="flex h-full flex-col">
-      <PanelHeader />
-      <ul className="min-h-0 flex-1 overflow-auto px-2 pb-3" data-testid="history-list">
-        {checkpoints.map((cp, i) => {
-          const chunk = chunkOf(cp.ts, now);
-          const showChunk = chunk !== lastChunk;
-          lastChunk = chunk;
-          const isOpen = open === cp.id;
-          const Chevron = isOpen ? ChevronDown : ChevronRight;
-          const changes = isOpen ? changedSince(cp, currentFiles) : [];
-          const isCurrent = i === 0;
-          return (
-            <li key={cp.id}>
-              {showChunk && (
-                <div className="px-2 pt-3 pb-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-pg-text-muted">
-                  {chunk}
-                </div>
-              )}
-              <div className="group flex items-center rounded-lg pr-1.5 transition-colors hover:bg-pg-text/5">
+    <div className="flex h-full min-h-0">
+      {/* Versions column */}
+      <div className="flex min-w-0 flex-1 flex-col border-r border-pg-border">
+        <Header label="History" />
+        <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
+          {checkpoints.map((cp, i) => {
+            const isSel = cp.id === selectedId;
+            return (
+              <li key={cp.id}>
                 <button
                   type="button"
-                  onClick={() => setOpen(isOpen ? null : cp.id)}
-                  className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pl-1.5 text-left"
+                  onClick={() => setSelectedId(cp.id)}
+                  className={`flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors ${
+                    isSel ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
+                  }`}
                 >
-                  <Chevron size={13} className="shrink-0 text-pg-text-muted" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-semibold text-pg-text">{cp.summary}</span>
-                    <span className="block text-[10px] text-pg-text-muted">
-                      {clock(cp.ts)}
-                      {isCurrent ? ' · current' : ''}
-                    </span>
+                  <span className="truncate text-[13px] font-semibold text-pg-text">{cp.summary}</span>
+                  <span className="text-[10px] text-pg-text-muted">
+                    {clock(cp.ts)}
+                    {i === 0 ? ' · current' : ''}
                   </span>
                 </button>
-                {!isCurrent && (
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Detail column — files this version changed (appears on selection) */}
+      {selected && (
+        <div className="flex min-w-0 flex-1 flex-col" data-testid="history-detail">
+          <div className="flex items-center gap-1.5 px-2 py-2">
+            <span className="min-w-0 flex-1 truncate text-[11px] font-extrabold uppercase tracking-[0.1em] text-brand-sky">
+              {selectedIndex === 0 ? 'Latest' : 'Changed'}
+            </span>
+            {selectedIndex !== 0 && (
+              <button
+                type="button"
+                aria-label={`Revert to ${selected.summary}`}
+                title="Revert the whole project to this version"
+                onClick={() => onRevert(selected)}
+                className="flex items-center gap-1 rounded-md bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-pg-text/20"
+              >
+                <RotateCcw size={12} aria-hidden /> Revert
+              </button>
+            )}
+          </div>
+          <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
+            {changes.length === 0 ? (
+              <li className="px-2 py-1 text-[11px] text-pg-text-muted">No file changes.</li>
+            ) : (
+              changes.map(({ path, status }) => (
+                <li key={path}>
                   <button
                     type="button"
-                    aria-label={`Revert to ${cp.summary}`}
-                    title="Revert to this version"
-                    onClick={() => onRevert(cp)}
-                    className="rounded p-1 text-pg-text-muted opacity-0 transition-opacity hover:bg-pg-text/10 hover:text-pg-text group-hover:opacity-100"
+                    aria-label={`Diff ${path}`}
+                    title={path}
+                    onClick={() => {
+                      const original = prev?.files.find((f) => f.path === path)?.content ?? '';
+                      const modified = selected.files.find((f) => f.path === path)?.content ?? '';
+                      onDiff(path, original, modified);
+                    }}
+                    className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text"
                   >
-                    <RotateCcw size={13} />
+                    <span className={`text-[10px] font-bold ${STATUS_LABEL[status].color}`}>
+                      {STATUS_LABEL[status].letter}
+                    </span>
+                    <span className="truncate">{base(path)}</span>
                   </button>
-                )}
-              </div>
-              {isOpen && (
-                <ul className="pb-1 pl-6">
-                  {changes.length === 0 ? (
-                    <li className="px-2 py-1 text-[11px] text-pg-text-muted">No changes since this version.</li>
-                  ) : (
-                    changes.map(({ path, status }) => (
-                      <li key={path}>
-                        <button
-                          type="button"
-                          aria-label={`Diff ${path}`}
-                          onClick={() => {
-                            const orig = cp.files.find((f) => f.path === path)?.content ?? '';
-                            const mod = currentFiles.find((f) => f.path === path)?.content ?? '';
-                            onDiff(path, orig, mod);
-                          }}
-                          className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-[12px] text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text"
-                        >
-                          <span className={`text-[10px] font-bold uppercase ${STATUS_COLOR[status]}`}>
-                            {status[0]}
-                          </span>
-                          <span className="truncate">{base(path)}</span>
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
 
-function PanelHeader() {
+function Header({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-1.5 px-3 pt-3 pb-1">
       <History size={14} aria-hidden className="text-brand-sky" />
-      <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">History</span>
+      <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">{label}</span>
     </div>
   );
 }
