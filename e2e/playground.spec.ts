@@ -38,7 +38,7 @@ test('generated project is multi-file (nested src/scenes in the Code editor)', a
   await expect(page.getByText('scenes').first()).toBeVisible();
 });
 
-test('code editor: status bar, Files/Assets split, and the file-column toggle', async ({ page }) => {
+test('code editor: status bar, Files-only tree, and the file-column toggle', async ({ page }) => {
   await reachWorkspace(page);
   // Split mode → Code tab gives a clean, unobstructed editor.
   await page.getByRole('button', { name: /Split/ }).click();
@@ -48,12 +48,10 @@ test('code editor: status bar, Files/Assets split, and the file-column toggle', 
   await expect(page.getByText(/Ln \d+, Col \d+/).first()).toBeVisible();
   await expect(page.getByText('JAVASCRIPT', { exact: true }).first()).toBeVisible();
 
-  // Files tab shows source (src) but NOT the assets folder (it has its own tab).
+  // The file tree is Files-only now — source (src) shows, the assets/ subtree
+  // does NOT (assets live in the Asset Viewer, its own surface).
   await expect(page.getByText('src', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('assets', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: /Assets/ }).click();
-  await expect(page.getByText(/README/).first()).toBeVisible();
-  await page.getByRole('button', { name: /Files/ }).click();
 
   // Hide-files toggle collapses the column (button label flips).
   await page.getByRole('button', { name: 'Hide files' }).click();
@@ -468,4 +466,78 @@ test('a closed window leaves the taskbar and reopens from its desktop icon', asy
   // (the first 'Game Runner' button = the desktop shortcut).
   await page.getByRole('button', { name: 'Game Runner' }).first().click();
   await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeVisible();
+});
+
+// ── Asset Viewer (4th window / Assets split tab) ─────────────────────────────
+
+// 1×1 transparent PNG for import tests.
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC',
+  'base64',
+);
+
+test('asset viewer: open by default (at the back) in window mode', async ({ page }) => {
+  await reachWorkspace(page);
+  // Opens on launch as the backdrop window — its grid is present without a click.
+  await expect(page.getByText('All assets')).toBeVisible();
+  // Bringing it forward from its taskbar button keeps it shown.
+  await page.getByRole('button', { name: 'Asset Viewer' }).last().click();
+  await expect(page.getByText('All assets')).toBeVisible();
+});
+
+test('asset viewer: AI-generates an asset and shows its code-ref (split tab)', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+
+  await expect(page.getByText('All assets')).toBeVisible();
+  await page.getByPlaceholder(/Describe an asset/).fill('a happy coin');
+  await page.getByRole('button', { name: 'Generate', exact: true }).click();
+
+  // The generated asset's detail opens with a copy-able Phaser loader snippet.
+  await expect(
+    page.getByText("this.load.image('a_happy_coin', 'assets/generated/a_happy_coin.svg')"),
+  ).toBeVisible({ timeout: 5_000 });
+});
+
+test('asset viewer: import an image → grid card + code-ref + Copy', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+
+  await page.setInputFiles('input[type="file"]', {
+    name: 'hero.png',
+    mimeType: 'image/png',
+    buffer: TINY_PNG,
+  });
+
+  // Card appears in the grid; open it → exact loader snippet → Copy confirms.
+  await page.getByText('hero.png').click({ timeout: 5_000 });
+  await expect(page.getByText("this.load.image('hero', 'assets/imported/hero.png')")).toBeVisible();
+  await page.getByRole('button', { name: 'Copy' }).click();
+  await expect(page.getByText('Code copied — paste it into your game.')).toBeVisible();
+});
+
+test('asset viewer: a text asset previews as plain text', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+  // The starter ships assets/README.txt — opening it shows its text content.
+  await page.getByText('README.txt').click({ timeout: 5_000 });
+  await expect(page.getByText(/Drop sprites\/sounds here/)).toBeVisible();
+});
+
+test('asset viewer: samples are read-only and categories navigate out of detail', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+
+  // Open a preloaded sample → read-only (no Delete button, shows the notice).
+  await page.getByText('coin.svg').click({ timeout: 5_000 });
+  await expect(page.getByText(/read-only/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
+
+  // Clicking a category returns to the grid (not stuck on the detail screen).
+  await page.getByRole('button', { name: /^audio/ }).click();
+  await expect(page.getByText('chime.wav')).toBeVisible();
 });

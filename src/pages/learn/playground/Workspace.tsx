@@ -23,6 +23,7 @@ import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
 import { WINDOW_META } from './desktop/windowMeta';
+import { AssetViewerPane } from './panes/AssetViewerPane';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
@@ -43,13 +44,14 @@ interface WorkspaceProps {
   onRun: () => void;
 }
 
-type SplitTab = 'chat' | 'code';
+type SplitTab = 'chat' | 'code' | 'assets';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2), not an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images), not an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
+  { id: 'assets', label: 'Assets' },
 ];
 
 export function Workspace({ files, runKey, running, onApplyFiles, onRun }: WorkspaceProps) {
@@ -109,6 +111,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
             <DesktopIcon id="chat" />
             <DesktopIcon id="code" />
             <DesktopIcon id="game" />
+            <DesktopIcon id="assets" />
           </div>
 
           {/* Floating windows */}
@@ -145,6 +148,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
             />
+          </Window>
+          <Window
+            id="assets"
+            title={WINDOW_META.assets.title}
+            icon={<WINDOW_META.assets.Icon size={16} />}
+          >
+            <AssetViewerPane files={files} />
           </Window>
         </div>
 
@@ -197,13 +207,15 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
               <div className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
                   <ChatPane {...chatProps} />
-                ) : (
+                ) : splitTab === 'code' ? (
                   <CodeEditorPane
                     files={files}
                     onApplyFiles={onApplyFiles}
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                   />
+                ) : (
+                  <AssetViewerPane files={files} />
                 )}
               </div>
             </section>

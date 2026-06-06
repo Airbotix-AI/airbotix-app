@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <radialGradient id="desk" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#181222"/><stop offset="1" stop-color="#0C0913"/></radialGradient>
+    <linearGradient id="bub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FBE"/><stop offset="1" stop-color="#FF4F8F"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5DAEFF"/><stop offset="1" stop-color="#3D8BE0"/></linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3DD9A9"/><stop offset="1" stop-color="#2BB68C"/></linearGradient>
+    <pattern id="checker" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#3A3548"/><rect width="10" height="10" fill="#2C2839"/><rect x="10" y="10" width="10" height="10" fill="#2C2839"/></pattern>
+    <filter id="win" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/></filter>
+    <filter id="bdg" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/></filter>
+    <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-4 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-code" viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-game" viewBox="0 0 24 24"><path d="M7 9h10a5 5 0 0 1 4.5 7.2c-.8 1.6-3 1.8-4.2.5L16 15H8l-1.3 1.7c-1.2 1.3-3.4 1.1-4.2-.5A5 5 0 0 1 7 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="11.8" r="1" fill="currentColor"/><circle cx="17.5" cy="13.6" r="1" fill="currentColor"/></symbol>
+    <symbol id="ic-assets" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="9.5" r="1.8" fill="currentColor"/><path d="M5 17l4.5-4.5 3 3 3-3L21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="ic-min" viewBox="0 0 24 24"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-max" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-upload" viewBox="0 0 24 24"><path d="M12 16V5M8 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></symbol>
+    <symbol id="ic-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-split" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 5v14" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-sound" viewBox="0 0 24 24"><path d="M5 9v6h4l5 4V5L9 9H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M3 15h18M8 5v14M16 5v14" stroke="currentColor" stroke-width="1.6"/></symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="900" fill="url(#desk)"/>
+
+  <!-- desktop shortcut column -->
+  <g>
+    <g transform="translate(20,32)"><rect width="72" height="72" rx="18" fill="#242133" stroke="#5DAEFF" stroke-opacity="0.5"/><use href="#ic-chat" x="22" y="22" width="28" height="28" color="#5DAEFF"/></g>
+    <text x="56" y="124" text-anchor="middle" font-size="12" font-weight="700" fill="#B7B0C6">Chat</text>
+    <g transform="translate(20,140)"><rect width="72" height="72" rx="18" fill="#242133" stroke="#3DD9A9" stroke-opacity="0.5"/><use href="#ic-code" x="22" y="22" width="28" height="28" color="#3DD9A9"/></g>
+    <text x="56" y="232" text-anchor="middle" font-size="12" font-weight="700" fill="#B7B0C6">Code</text>
+    <g transform="translate(20,248)"><rect width="72" height="72" rx="18" fill="#242133" stroke="#FF7A66" stroke-opacity="0.5"/><use href="#ic-game" x="22" y="22" width="28" height="28" color="#FF7A66"/></g>
+    <text x="56" y="340" text-anchor="middle" font-size="12" font-weight="700" fill="#B7B0C6">Runner</text>
+    <g transform="translate(20,356)"><rect width="72" height="72" rx="18" fill="#242133" stroke="#FF6BA9" stroke-opacity="0.7"/><use href="#ic-assets" x="22" y="22" width="28" height="28" color="#FF6BA9"/></g>
+    <text x="56" y="448" text-anchor="middle" font-size="12" font-weight="800" fill="#FF9AC6">Assets</text>
+  </g>
+
+  <!-- peeking windows behind -->
+  <g opacity="0.55" filter="url(#win)"><rect x="120" y="470" width="430" height="400" rx="14" fill="#242133" stroke="#46415C"/><path d="M120 484a14 14 0 0 1 14-14h402a14 14 0 0 1 14 14v26H120z" fill="#2E2A40"/><use href="#ic-code" x="138" y="476" width="20" height="20" color="#3DD9A9"/><text x="166" y="491" font-size="13" font-weight="700" fill="#B7B0C6">Code Editor</text></g>
+  <g opacity="0.55" filter="url(#win)"><rect x="1280" y="120" width="300" height="360" rx="14" fill="#242133" stroke="#46415C"/><path d="M1280 134a14 14 0 0 1 14-14h272a14 14 0 0 1 14 14v26h-300z" fill="#2E2A40"/><use href="#ic-game" x="1298" y="126" width="20" height="20" color="#FF9A88"/><text x="1326" y="141" font-size="13" font-weight="700" fill="#B7B0C6">Game Runner</text></g>
+
+  <!-- ===== Asset Viewer window (front, focused) ===== -->
+  <g filter="url(#win)"><rect x="280" y="64" width="1010" height="772" rx="16" fill="#242133" stroke="#FF6BA9" stroke-opacity="0.6" stroke-width="2"/></g>
+  <path d="M280 80a16 16 0 0 1 16-16h978a16 16 0 0 1 16 16v34H280z" fill="#2E2A40"/>
+  <use href="#ic-assets" x="302" y="72" width="24" height="24" color="#FF6BA9"/>
+  <text x="336" y="90" font-size="16" font-weight="800" fill="#FFFFFF">Asset Viewer</text>
+  <use href="#ic-min" x="1198" y="73" width="22" height="22" color="#9B94AC"/><use href="#ic-max" x="1224" y="73" width="22" height="22" color="#9B94AC"/><use href="#ic-close" x="1250" y="73" width="22" height="22" color="#FF7A66"/>
+
+  <!-- left rail -->
+  <rect x="280" y="98" width="248" height="738" fill="#201D2E"/>
+  <line x1="528" y1="98" x2="528" y2="836" stroke="#3A3650"/>
+  <!-- search -->
+  <rect x="298" y="120" width="212" height="34" rx="9" fill="#2E2A40" stroke="#46415C"/><use href="#ic-search" x="306" y="127" width="18" height="18" color="#8B84A0"/><text x="332" y="142" font-size="12.5" fill="#8B84A0">Search assets…</text>
+  <!-- category list -->
+  <g font-size="13">
+    <rect x="294" y="170" width="220" height="32" rx="9" fill="#FF6BA9" opacity="0.16"/><rect x="294" y="170" width="220" height="32" rx="9" fill="none" stroke="#FF6BA9" stroke-opacity="0.5"/><text x="312" y="191" font-weight="800" fill="#FFFFFF">All assets</text><text x="500" y="191" text-anchor="end" font-weight="700" fill="#FF9AC6">42</text>
+    <text x="312" y="231" fill="#C7C0D5">Characters</text><text x="500" y="231" text-anchor="end" fill="#8B84A0">12</text>
+    <text x="312" y="265" fill="#C7C0D5">Stations</text><text x="500" y="265" text-anchor="end" fill="#8B84A0">9</text>
+    <text x="312" y="299" fill="#C7C0D5">UI</text><text x="500" y="299" text-anchor="end" fill="#8B84A0">11</text>
+    <text x="312" y="333" fill="#C7C0D5">VFX</text><text x="500" y="333" text-anchor="end" fill="#8B84A0">5</text>
+    <text x="312" y="367" fill="#C7C0D5">Backgrounds</text><text x="500" y="367" text-anchor="end" fill="#8B84A0">2</text>
+    <text x="312" y="401" fill="#C7C0D5">Icons</text><text x="500" y="401" text-anchor="end" fill="#8B84A0">8</text>
+    <text x="312" y="435" fill="#C7C0D5">Audio</text><text x="500" y="435" text-anchor="end" fill="#8B84A0">3</text>
+    <text x="312" y="469" fill="#6E6786">Other</text><text x="500" y="469" text-anchor="end" fill="#6E6786">2</text>
+  </g>
+  <!-- rail actions (bottom) -->
+  <line x1="294" y1="744" x2="514" y2="744" stroke="#3A3650"/>
+  <g transform="translate(294,762)"><rect width="106" height="40" rx="11" fill="#2E2A40" stroke="#46415C"/><use href="#ic-upload" x="14" y="10" width="20" height="20" color="#B7B0C6"/><text x="64" y="25" text-anchor="middle" font-size="12.5" font-weight="700" fill="#E7E2F0">Import</text></g>
+  <g transform="translate(408,762)"><rect width="106" height="40" rx="11" fill="url(#bub)"/><use href="#ic-spark" x="14" y="10" width="20" height="20" color="#fff"/><text x="66" y="25" text-anchor="middle" font-size="12.5" font-weight="800" fill="#fff">Generate</text></g>
+
+  <!-- grid header -->
+  <text x="552" y="138" font-size="14" font-weight="800" fill="#FFFFFF">All assets</text>
+  <text x="660" y="138" font-size="12.5" fill="#8B84A0">42 items · drag &amp; drop or paste to import</text>
+  <use href="#ic-grid" x="1248" y="123" width="20" height="20" color="#FF6BA9"/>
+
+  <!-- thumbnail grid: 3 cols x 2 rows -->
+  <g font-size="12">
+    <!-- card template helper: card 226w x 196h -->
+    <!-- row 1 -->
+    <g transform="translate(552,158)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#46415C"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="url(#checker)"/>
+      <g transform="translate(78,40)"><rect width="70" height="86" rx="10" fill="#7FC2FF"/><circle cx="35" cy="26" r="14" fill="#FFE0C2"/></g>
+      <text x="16" y="160" font-weight="700" fill="#E7E2F0">worker_walk.png</text>
+      <text x="16" y="180" fill="#8B84A0">384 × 128 · 4f strip</text>
+      <use href="#ic-film" x="190" y="150" width="20" height="20" color="#FF6BA9"/>
+    </g>
+    <g transform="translate(794,158)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#46415C"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="url(#checker)"/>
+      <g transform="translate(70,44)"><circle cx="40" cy="40" r="34" fill="#FFB638"/><circle cx="32" cy="34" r="5" fill="#3D3851"/><circle cx="50" cy="34" r="5" fill="#3D3851"/></g>
+      <text x="16" y="160" font-weight="700" fill="#E7E2F0">customer_01.png</text>
+      <text x="16" y="180" fill="#8B84A0">96 × 128 · PNG</text>
+    </g>
+    <g transform="translate(1036,158)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#46415C"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="url(#checker)"/>
+      <g transform="translate(64,40)"><rect width="92" height="80" rx="12" fill="#6BE7BF"/><rect x="14" y="52" width="64" height="16" rx="8" fill="#1FC692"/></g>
+      <text x="16" y="160" font-weight="700" fill="#E7E2F0">coffee_station.png</text>
+      <text x="16" y="180" fill="#8B84A0">160 × 160 · PNG</text>
+    </g>
+    <!-- row 2 -->
+    <g transform="translate(552,372)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#FF6BA9" stroke-opacity="0.7" stroke-width="2"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="url(#checker)"/>
+      <g transform="translate(80,46)"><rect width="66" height="34" rx="12" fill="#2BB68C"/><rect x="14" y="11" width="38" height="10" rx="5" fill="#DCF6EC"/></g>
+      <text x="16" y="160" font-weight="700" fill="#FFFFFF">btn_buy.png</text>
+      <text x="16" y="180" fill="#FF9AC6">132 × 68 · selected</text>
+    </g>
+    <g transform="translate(794,372)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#46415C"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="url(#checker)"/>
+      <g transform="translate(86,42)"><use href="#ic-spark" x="0" y="0" width="54" height="54" color="#FFD43B"/></g>
+      <text x="16" y="160" font-weight="700" fill="#E7E2F0">coin_burst.png</text>
+      <text x="16" y="180" fill="#8B84A0">128 × 128 · PNG</text>
+    </g>
+    <g transform="translate(1036,372)">
+      <rect width="226" height="196" rx="14" fill="#1B1828" stroke="#46415C"/>
+      <rect x="14" y="14" width="198" height="124" rx="10" fill="#15121E"/>
+      <use href="#ic-sound" x="84" y="46" width="56" height="56" color="#5DAEFF"/>
+      <path d="M30 96 q12 -22 24 0 t24 0 t24 0 t24 0 t24 0 t24 0" fill="none" stroke="#5DAEFF" stroke-width="2" transform="translate(0,-6)" opacity="0.5"/>
+      <text x="16" y="160" font-weight="700" fill="#E7E2F0">ding.mp3</text>
+      <text x="16" y="180" fill="#8B84A0">0:01 · audio</text>
+    </g>
+    <!-- generate tile -->
+    <g transform="translate(1036,372)" opacity="0"></g>
+  </g>
+
+  <!-- "+ Generate" ghost card -->
+  <g transform="translate(552,586)">
+    <rect width="710" height="64" rx="14" fill="none" stroke="#FF6BA9" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="7 7"/>
+    <use href="#ic-spark" x="22" y="20" width="24" height="24" color="#FF6BA9"/>
+    <text x="60" y="40" font-size="13.5" font-weight="800" fill="#FF9AC6">Generate a new asset with AI</text>
+    <text x="320" y="40" font-size="12.5" fill="#8B84A0">describe it → routed via platform-backend /llm/* (stub for now)</text>
+  </g>
+
+  <!-- ===== Taskbar ===== -->
+  <rect x="0" y="900" width="1600" height="52" fill="#16121F"/><line x1="0" y1="900" x2="1600" y2="900" stroke="#46415C" stroke-width="1.5"/>
+  <use href="#ic-grid" x="24" y="914" width="22" height="22" color="#3DD9A9"/><text x="54" y="932" font-size="14" font-weight="800" fill="#3DD9A9">playground</text>
+  <rect x="200" y="912" width="142" height="28" rx="14" fill="#201D2E" stroke="#46415C"/>
+  <rect x="203" y="915" width="70" height="22" rx="11" fill="#5DAEFF"/><use href="#ic-grid" x="212" y="917" width="16" height="16" color="#0E0B16"/><text x="252" y="930" text-anchor="middle" font-size="11" font-weight="800" fill="#0E0B16">Win</text>
+  <use href="#ic-split" x="282" y="917" width="16" height="16" color="#8B84A0"/><text x="320" y="930" text-anchor="middle" font-size="11" font-weight="700" fill="#8B84A0">Split</text>
+  <g>
+    <rect x="402" y="910" width="120" height="32" rx="9" fill="#221E30" stroke="#46415C"/><use href="#ic-chat" x="414" y="916" width="20" height="20" color="#B7B0C6"/><text x="442" y="931" font-size="12" fill="#B7B0C6">Chat</text>
+    <rect x="534" y="910" width="150" height="32" rx="9" fill="#221E30" stroke="#46415C"/><use href="#ic-code" x="546" y="916" width="20" height="20" color="#B7B0C6"/><text x="574" y="931" font-size="12" fill="#B7B0C6">Code Editor</text>
+    <rect x="696" y="910" width="150" height="32" rx="9" fill="#221E30" stroke="#46415C"/><use href="#ic-game" x="708" y="916" width="20" height="20" color="#B7B0C6"/><text x="736" y="931" font-size="12" fill="#B7B0C6">Game Runner</text>
+    <rect x="858" y="910" width="150" height="32" rx="9" fill="#FF6BA9" opacity="0.16"/><rect x="858" y="910" width="150" height="32" rx="9" fill="none" stroke="#FF6BA9" stroke-opacity="0.6"/><use href="#ic-assets" x="870" y="916" width="20" height="20" color="#FF6BA9"/><text x="898" y="931" font-size="12" font-weight="700" fill="#FFFFFF">Asset Viewer</text>
+  </g>
+
+  <!-- ===== annotation badges ===== -->
+  <g font-weight="800" font-size="14" text-anchor="middle" filter="url(#bdg)">
+    <g><circle cx="56" cy="392" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="56" y="397" fill="#fff">1</text></g>
+    <g><circle cx="406" cy="296" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="406" y="301" fill="#fff">2</text></g>
+    <g><circle cx="660" cy="180" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="660" y="185" fill="#fff">3</text></g>
+    <g><circle cx="746" cy="380" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="746" y="385" fill="#1F1B2D">4</text></g>
+    <g><circle cx="461" cy="782" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="461" y="787" fill="#1F1B2D">5</text></g>
+    <g><circle cx="933" cy="926" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="933" y="931" fill="#1F1B2D">6</text></g>
+  </g>
+
+  <!-- ===== legend ===== -->
+  <rect x="0" y="952" width="1600" height="228" fill="#16121F"/><line x1="0" y1="952" x2="1600" y2="952" stroke="#46415C"/>
+  <text x="40" y="992" font-size="19" font-weight="800" fill="#FFFFFF">Asset Viewer — Window mode</text>
+  <text x="370" y="992" font-size="13" fill="#8B84A0">— a 4th floating window (bubblegum accent) alongside Chat / Code / Runner; opened from its desktop tile or taskbar button</text>
+  <g font-size="13">
+    <g transform="translate(40,1020)">
+      <g><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">1</text><text x="30" y="4" font-weight="800" fill="#fff">New desktop tile + window</text><text x="30" y="23" fill="#B7B0C6">Registered like the others (PgWindowId 'assets'); auto desktop icon, taskbar button, drag/min/max.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">2</text><text x="30" y="4" font-weight="800" fill="#fff">Category rail + search</text><text x="30" y="23" fill="#B7B0C6">Categories derived from the first folder under assets/ (characters, stations, ui, vfx…), with counts.</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">3</text><text x="30" y="4" font-weight="800" fill="#fff">Thumbnail grid</text><text x="30" y="23" fill="#B7B0C6">Real previews on a checkerboard; dimensions/duration shown; drag-drop &amp; paste to import.</text></g>
+    </g>
+    <g transform="translate(820,1020)">
+      <g><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">4</text><text x="30" y="4" font-weight="800" fill="#fff">Frame-based badge</text><text x="30" y="23" fill="#B7B0C6">Sprite strips with a .anim.json sidecar get a film badge and an animation player in the detail view.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">5</text><text x="30" y="4" font-weight="800" fill="#fff">Import + ✨ Generate</text><text x="30" y="23" fill="#B7B0C6">Import = file picker/drag/paste. Generate routes through platform-backend /llm/* (local stub for now).</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">6</text><text x="30" y="4" font-weight="800" fill="#fff">Same surface in Split mode</text><text x="30" y="23" fill="#B7B0C6">Identical pane appears as a 4th "Assets" tab in Split mode — see mockup-asset-viewer-split.svg.</text></g>
+    </g>
+  </g>
+</svg>

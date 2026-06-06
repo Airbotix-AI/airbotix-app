@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets';
 
 export interface WinRect {
   x: number;
@@ -50,12 +50,14 @@ interface PlaygroundState {
   setRect: (id: PgWindowId, rect: WinRect) => void;
 }
 
-// Default window layout (v2 mockup): Code Editor lower-left & wide, Chat
-// center & top (front-most/focused), Game Runner right. Computed from the
-// viewport at module load so windows mount with the right geometry — `Window`
-// uses react-rnd UNCONTROLLED `default`, so the rects must be correct BEFORE
-// mount (a post-mount setRect would be ignored by the uncontrolled drag).
-// zIndex: code(1) < game(2) < chat(3) so Chat starts on top.
+// Default window layout (v2 mockup): Asset Viewer is a large BACKDROP at the
+// back, then Code Editor lower-left & wide, Game Runner right, Chat center & top
+// (front-most/focused). Computed from the viewport at module load so windows
+// mount with the right geometry — `Window` uses react-rnd UNCONTROLLED `default`,
+// so the rects must be correct BEFORE mount (a post-mount setRect would be
+// ignored by the uncontrolled drag).
+// zIndex: assets(1) < code(2) < game(3) < chat(4) so Chat starts on top and the
+// Asset Viewer sits behind, its edges peeking around the three front windows.
 const TASKBAR_H = 56;
 // Left margin that keeps the desktop shortcut icon column clear, so a closed
 // window can always be reopened from its icon (windows don't cover it by default).
@@ -86,14 +88,17 @@ function defaultWindows(): Record<PgWindowId, WinState> {
   // the editor part read too narrow.)
   const codeW = CODE_FILES_COL_W + 2 * (W / 3 - CODE_FILES_COL_W);
   return {
-    code: base('code', 1, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
-    game: base('game', 2, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
-    chat: base('chat', 3, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
+    // Open on launch, lowest z: a backdrop behind the three front windows. Width
+    // is 75% of the available span (the full-width default read too wide).
+    assets: base('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
+    code: base('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
+    game: base('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
+    chat: base('chat', 4, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
   };
 }
 
 const DEFAULT_WINDOWS = defaultWindows();
-const INITIAL_TOP_Z = 3;
+const INITIAL_TOP_Z = 4;
 
 export const usePlaygroundStore = create<PlaygroundState>((set) => ({
   theme: 'light',

@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, type DragEvent } from 'react';
 import {
-  Boxes,
   Check,
   ChevronDown,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   FilePlus2,
   FileText,
   FileType,
+  FileVideo,
   Folder,
   FolderPlus,
   Pencil,
@@ -28,13 +28,6 @@ interface FileTreeProps {
   activePath: string;
   onSelect: (path: string) => void;
 }
-
-type TabId = 'text' | 'asset';
-
-const TABS: ReadonlyArray<{ id: TabId; label: string; Icon: LucideIcon }> = [
-  { id: 'text', label: 'Files', Icon: FileText },
-  { id: 'asset', label: 'Assets', Icon: Boxes },
-];
 
 const FILE_ICON: Record<string, LucideIcon> = {
   js: FileCode2,
@@ -53,6 +46,8 @@ const FILE_ICON: Record<string, LucideIcon> = {
   wav: FileAudio,
   ogg: FileAudio,
   m4a: FileAudio,
+  mp4: FileVideo,
+  webm: FileVideo,
 };
 
 function iconFor(path: string): LucideIcon {
@@ -366,7 +361,6 @@ function TreeRow(props: RowProps) {
 }
 
 export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
-  const [tab, setTab] = useState<TabId>('text');
   const folders = useProjectStore((s) => s.folders);
   const createFile = useProjectStore((s) => s.createFile);
   const createFolder = useProjectStore((s) => s.createFolder);
@@ -374,17 +368,12 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
   const removeOp = useProjectStore((s) => s.remove);
   const moveOp = useProjectStore((s) => s.move);
 
-  // Root for the current tab: assets live under `assets/`, source at the root.
-  const baseDir = tab === 'asset' ? 'assets' : '';
+  // Source files live at the root. Assets (the `assets/` subtree) are NOT shown
+  // here — they have their own surface, the Asset Viewer.
+  const baseDir = '';
 
-  const visibleFiles = useMemo(
-    () => files.filter((f) => (tab === 'asset' ? isAssetFile(f) : !isAssetFile(f))),
-    [files, tab],
-  );
-  const visibleFolders = useMemo(
-    () => folders.filter((d) => (tab === 'asset' ? isAssetPath(d) : !isAssetPath(d))),
-    [folders, tab],
-  );
+  const visibleFiles = useMemo(() => files.filter((f) => !isAssetFile(f)), [files]);
+  const visibleFolders = useMemo(() => folders.filter((d) => !isAssetPath(d)), [folders]);
   const tree = useMemo(() => buildTree(visibleFiles, visibleFolders), [visibleFiles, visibleFolders]);
 
   // Default everything expanded; re-expand when the folder set changes.
@@ -535,29 +524,6 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Files / Assets tab strip */}
-      <div className="flex gap-1.5 px-2 pt-2.5 pb-1.5">
-        {TABS.map((t) => {
-          const isActive = t.id === tab;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => {
-                setTab(t.id);
-                clearAll();
-              }}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold transition-colors ${
-                isActive ? 'bg-brand-sky text-white' : 'text-pg-text-muted hover:bg-pg-text/5 hover:text-pg-text'
-              }`}
-            >
-              <t.Icon size={14} aria-hidden />
-              <span>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Project label + new file / new folder actions */}
       <div className="flex items-center gap-1.5 px-3 pt-3 pb-1">
         <Folder size={14} aria-hidden className="text-brand-sky" />
@@ -625,7 +591,7 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
           )}
           {tree.length === 0 && !creating ? (
             <li className="px-2 py-2 text-[12px] font-semibold text-pg-text-muted">
-              {tab === 'asset' ? 'No assets yet.' : 'No files yet.'}
+              No files yet.
             </li>
           ) : (
             tree.map((node) => <TreeRow key={node.path} {...rowProps} node={node} depth={0} />)

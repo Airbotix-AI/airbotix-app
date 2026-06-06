@@ -36,18 +36,20 @@ The UI is a **3-phase flow**, driven by a small state machine in
 3. **`Workspace`** — the actual studio, in one of **two layout modes** chosen by a
    toggle (`LayoutToggle`, state in `playgroundStore.layoutMode`, **default =
    Window**):
-   - **Window mode (default):** three draggable/stackable floating windows
+   - **Window mode (default):** four draggable/stackable floating windows
      (`desktop/Window.tsx`, on **`react-rnd`**) over the dark surface, wrapping
-     `ChatPane` / `CodeEditorPane` / `GameRunnerPane`. Per-window geometry + z are
-     in `playgroundStore` (default layout — Code lower-left & wide, Chat
-     center-top & focused, Game right — is seeded from the viewport at store
-     init). The surface has **desktop shortcut icons** (`desktop/DesktopIcon`,
-     bottom z-layer) to reopen windows, and a **bottom `Taskbar`**
-     (`desktop/Taskbar`) to restore/switch/minimize + hold the `LayoutToggle`.
-     **Maximize fills the whole surface** (above the taskbar).
+     `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane`. The
+     **Asset Viewer** (`assets` window, brand-bubblegum) starts **closed** —
+     opened from its desktop tile / taskbar button — so the desktop isn't
+     crowded. Per-window geometry + z are in `playgroundStore` (default layout —
+     Code lower-left & wide, Chat center-top & focused, Game right — is seeded
+     from the viewport at store init). The surface has **desktop shortcut icons**
+     (`desktop/DesktopIcon`, bottom z-layer) to reopen windows, and a **bottom
+     `Taskbar`** (`desktop/Taskbar`) to restore/switch/minimize + hold the
+     `LayoutToggle`. **Maximize fills the whole surface** (above the taskbar).
    - **Split mode:** a `react-resizable-panels` horizontal group — a left region
-     with a `💬 Chat` / `</> Code` tab strip + a `ResizeHandle` + the
-     `GameRunnerPane` on the right.
+     with a `💬 Chat` / `</> Code` / `🗂 Assets` tab strip + a `ResizeHandle` +
+     the `GameRunnerPane` on the right.
 
 The Game Runner pane hosts the sandboxed `GameFrame` with
 pause/mute/screen-size/restart/console controls and a status bar; its stage
@@ -72,9 +74,10 @@ studio chrome shades.
 Reference-mockup specifics (`docs/virtual-desktop-mockup.svg`): the **window-mode
 desktop backdrop** is a mint-wash→sky-wash gradient in light / deep flat in dark
 (`.pg-desktop-bg`); each window carries a **brand identity** (`WINDOW_ACCENT` —
-chat=sky, code=mint, game=coral) shared by the desktop tiles AND the active
-taskbar button; the **Files/Assets tabs** are full pills (active = solid
-brand-sky); the **editor file tabs** are soft pills (active filled). The **Game
+chat=sky, code=mint, game=coral, assets=bubblegum) shared by the desktop tiles
+AND the active taskbar button; the **editor file tabs** are soft pills (active
+filled). (The FileTree's old Files/Assets tab split is gone — it's Files-only
+now; assets live in the Asset Viewer.) The **Game
 Runner is ALWAYS dark** in both themes (a media-player surface) — its pane forces
 `data-theme="dark"`, and in Window mode its window uses `variant="game"` (a
 highlighted brand purple→sky `.pg-runner-bar` title bar over a dark body).
@@ -250,6 +253,13 @@ The studio **owns the host HTML**; kids only edit `game.js` (+ optional assets,
   `this.load.image('hero', 'sprites/hero.png')`) are rewritten to inlined
   `data:` URLs at build time so they load at the opaque origin. PARTIAL/V0 — a
   dedicated preview origin is the V1 plan (mirrors the code studio's deferral).
+- Asset kinds: image (`png/jpg/jpeg/gif/svg/webp`), audio (`mp3/wav/ogg/m4a`),
+  **video** (`mp4/webm`). An image with a sibling **`<path>.anim.json`** sidecar
+  (`{ frameWidth, frameHeight, frames, fps }`) is a **sprite strip** — the Asset
+  Viewer animates it and emits a `load.spritesheet(...)` snippet. The **Asset
+  Viewer** (`panes/AssetViewerPane`) is where kids browse / preview / import /
+  AI-generate assets and copy the exact loader call; see its design doc in
+  `docs/asset-viewer/`.
 
 ## Files
 
@@ -281,7 +291,7 @@ Windowing (`desktop/`):
 | `Window.tsx` | A single floating window for Window mode, on **`react-rnd`** (uncontrolled drag, controlled only when maximized → fills the whole surface). Raised-contrast surface + border + shadow, **sky border when focused** (topmost z); lucide min/max/close; **double-click the title bar toggles maximize/restore**; **restore returns to the pre-maximize rect** (imperative `updatePosition`/`updateSize` via a ref in a `useLayoutEffect` — react-rnd's `default` only seeds first mount, so without this it'd snap to 0,0). `icon` is a `ReactNode`; reads/writes its rect/z in `playgroundStore`; a transparent overlay covers the body while any window is `interacting`. `variant="game"` → always-dark window (`data-theme="dark"`) with the highlighted `.pg-runner-bar` gradient title bar. | ✅ |
 | `Taskbar.tsx` | Bottom dock: the **Airbotix logo** (`public/logo-{black,white}-horizontal.png` — the real site mark, theme-swapped: black on light, white on dark) + a "Playground" surface label + `LayoutToggle` + `ThemeToggle` + a button per window (restore/switch/minimize); active window highlighted with its brand accent (`WINDOW_ACCENT`). | ✅ |
 | `DesktopIcon.tsx` | A desktop shortcut tile to (re)open/focus a window — app-icon style: raised `pg-surface` tile carrying the window's **brand-tinted glow** (`TILE_SHADOW`) with the (unchanged) lucide glyph in a soft `WINDOW_ACCENT.wash` chip; lifts on hover. Bottom z-layer (below windows). | ✅ |
-| `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER` + `WINDOW_ACCENT` (per-window brand identity: chat=sky, code=mint, game=coral — border/icon/wash classes); shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
+| `windowMeta.tsx` | `WINDOW_META` (id → title + lucide `Icon`) + `WINDOW_ORDER` + `WINDOW_ACCENT` (per-window brand identity: chat=sky, code=mint, game=coral, assets=bubblegum — border/icon/wash classes); shared by Window/Taskbar/DesktopIcon/Workspace. | ✅ |
 
 Panes (`panes/`):
 
@@ -297,7 +307,11 @@ Panes (`panes/`):
 | `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: real load when a project exists, else/on-failure the local scaffold. `GAME_PROJECT_KIND='game'`. | ✅ (load); swap-out fallback |
 | `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` only when there's no project/backend. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
-| `FileTree.tsx` | **Nested folder tree** (built from slash-delimited file paths + explicit empty `folders`, folders-first, collapsible, default-expanded) with brand-sky **Files / Assets pill tabs** (membership by ROLE: `assets/` subtree → Assets, else Files). **Full file CRUD** wired to `projectStore`: header **New file / New folder** (create at the tab's base — `''`/`assets`), per-row hover **rename** (inline input) + **delete** (inline confirm) + folder **+file**; collisions/invalid names flash an inline error. **Drag-to-move**: rows are `draggable` (`data-path`), folders + the tree's empty area are drop targets (sky highlight) → `projectStore.move`, guarding a folder into itself/descendant. lucide icons; active-file highlight. | ✅ |
+| `FileTree.tsx` | **Nested folder tree**, **Files-only** (built from slash-delimited file paths + explicit empty `folders`, folders-first, collapsible, default-expanded; the `assets/` subtree is hidden — it lives in the Asset Viewer). **Full file CRUD** wired to `projectStore`: header **New file / New folder** (create at root), per-row hover **rename** (inline input) + **delete** (inline confirm) + folder **+file**; collisions/invalid names flash an inline error. **Drag-to-move**: rows are `draggable` (`data-path`), folders + the tree's empty area are drop targets (sky highlight) → `projectStore.move`, guarding a folder into itself/descendant. lucide icons; active-file highlight. | ✅ |
+| `AssetViewerPane.tsx` | **The Asset Viewer** (4th window / `🗂 Assets` split tab; design `docs/asset-viewer/`). Category rail (derived from the first folder under `assets/`) + search, thumbnail grid, and a detail view = `AssetPreview` + metadata + copy-able **code-ref** + manage (rename/delete). **Import** (file picker / drag-drop / paste) and **AI generate** (`runGen` stub) both write via `projectStore.createFile`. Hides `.anim.json` sidecars from the grid. | ✅ |
+| `AssetPreview.tsx` | Kind-aware preview: multi-background image stage (checker/dark/white/green), sprite **animation player** (from the `.anim.json` sidecar), **wavesurfer.js** waveform + transport for audio, inline `<video>` for video. | ✅ |
+| `assetMeta.ts` | Pure, view-time asset helpers (NO VFS schema change): `categoryOf`, `assetKindOf` (image/sprite/audio/video/text), `parseAnimSidecar`, `slugifyKey`, `codeRefFor` (Phaser loader snippet), `formatBytes`, + cached DOM decode (`decodeImageMeta`/`decodeAudioMeta`). Unit-tested. | ✅ |
+| `assetGen.ts` + `assetGenStub.ts` | AI asset-gen **seam** (`runGen`, design §7), defaulting to a deterministic offline **stub** (image→SVG swatch, audio→PCM-WAV tone). Real target = `api.generateAsset` (`POST /llm/generate-asset`). Mirrors the chat `runTurn`/`gameAgentStub` seam. | swap-out (stub) |
 | `MonacoEditor.tsx` | Monaco wrapper, **lazy-loaded**; workers + diagnostics come from the shared **`monacoSetup`** (self-hosted, no CDN). **Phaser IntelliSense**: lazily `addExtraLib`s the vendored `/vendor/phaser-3.80.1.d.ts` on first mount → hover docs / go-to-definition / `Phaser.` autocomplete (never bundled; see "Editor IntelliSense"). **Minimap on** (`showSlider: 'always'` so the viewport rectangle tracks scrolling, not just on hover). Reports caret via `onCursorChange` (status bar); accepts a `jumpTo` (`revealLineInCenter` + `setPosition` + `focus`) for jump-to-error. **Overflow widgets escape the window**: hover/suggest render into a **body-level `monaco-editor` node** (`overflowWidgetsDomNode` + `fixedOverflowWidgets`) so the window's `overflow:hidden` (+ react-rnd `transform`) can't clip a long doc tooltip. **Follows the playground theme** (`vs` light / `vs-dark` dark) via `playgroundStore.theme`. | ✅ |
 | `AIChatPanel.tsx` | Purely-presentational chat UI (kid/agent bubbles, tool chips). Takes `useGameAgent` state via props; never calls the hook itself. Badged "stub demo". | ✅ |
 | `useGameAgent.ts` | Chat controller hook (send → pending → resolve, then apply+run). `runTurn` is the **swap seam** — defaults to the stub, later an adapter over the real backend. | ✅ |
@@ -338,7 +352,7 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   mode = 3 draggable `react-rnd` windows (`desktop/Window.tsx`); Split mode =
   `react-resizable-panels` with a Chat/Code tab + Game Runner.
 - Standalone chat (`ChatPane`), a **multi-tab** Code Editor (lazy/self-hosted
-  Monaco + nested FileTree with Files/Assets tabs), and a Game Runner with
+  Monaco + Files-only FileTree), a kind-aware **Asset Viewer**, and a Game Runner with
   pause/mute/screen-size/restart/console + status bar (placeholder until ▶ Play).
 - The sandbox runtime + control channel (`buildGamePreview.ts`, `GameFrame.tsx`),
   now **multi-file** (all `.js` injected, entry last).
