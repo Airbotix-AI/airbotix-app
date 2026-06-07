@@ -150,10 +150,12 @@ export function AIChatPanel({
 
 /**
  * The staged-turn card (PRD J2). A Lite turn shows the agency beat ("here's what
- * I'll change… Do it / Show me first"); a Pro multi-file turn shows the plan
- * gate ("Approve / Not yet"). Both lead with the default-on prediction beat — a
- * typing-free "what will change?" so the kid thinks before spending a metered
- * turn. The diff stays plain-English in chat; we never yank the editor open.
+ * I'll do… Do it / Show me first") BEFORE the turn is spent — confirm runs it,
+ * cancel spends nothing. A Pro multi-file turn shows the plan gate ("Approve / Not
+ * yet") after the turn ran (writes collected, not persisted). Both lead with the
+ * default-on prediction beat — a typing-free "what will change?" so the kid thinks
+ * before spending a metered turn. The diff stays plain-English in chat; we never
+ * yank the editor open.
  */
 function PendingCard({
   pending,
@@ -173,7 +175,7 @@ function PendingCard({
       className="rounded-2xl border-2 border-brand-sky/50 bg-brand-sky/5 px-4 py-3 text-[14px] text-pg-text"
     >
       <div className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-brand-sky">
-        <Sparkles size={14} /> {isPlan ? "Here's my plan" : "Here's what I'll change"}
+        <Sparkles size={14} /> {isPlan ? "Here's my plan" : "Here's what I'll do"}
       </div>
       <p className="mt-1.5 whitespace-pre-wrap">{pending.summary}</p>
 

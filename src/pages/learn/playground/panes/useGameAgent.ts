@@ -4,9 +4,11 @@
 //
 //   - REAL (a `projectId` is set — the authed studio): the turn runs SERVER-SIDE
 //     via `runAgentTurn` (gameAgent → code/codeApi). Streams token + per-tool
-//     deltas live; meters Stars; gates Pro multi-file behind plan→approve; lets a
-//     Lite kid choose "Do it / Show me first" (OD-1 agency beat) and answer a
-//     default-on prediction beat (OD-3) before spending a (metered) turn. The kid
+//     deltas live; meters Stars; gates Pro multi-file behind plan→approve. For a
+//     Lite kid the "Do it / Show me first" agency beat + default-on prediction beat
+//     (OD-1/OD-3) fire BEFORE the turn is spent — the turn POSTs only on confirm,
+//     because a Lite (non-approval) turn auto-applies + debits Stars inside the POST
+//     (D-CODE1c, §10 "后扣模式"), so "Show me first" must not have spent it. The kid
 //     NEVER calls an LLM (CLAUDE.md #5).
 //   - STUB (no `projectId` — the DEV sandbox): the offline `runTurnStub`, so the
 //     desktop stays demoable with no backend. The chat UI is identical.
@@ -48,10 +50,17 @@ export interface ChatItem {
 
 /**
  * A turn the kid must confirm before it applies (PRD J2). `kind` distinguishes:
- *   - 'agency' — Lite "here's what I'll change… Do it / Show me first" (OD-1);
- *   - 'plan'   — Pro multi-file plan→approve gate (requires_approval).
- * Both carry the staged turn + its prediction question (the default-on predict
- * beat, OD-3) so the kid thinks before spending a metered turn.
+ *   - 'agency' — Lite "here's what I'll do… Do it / Show me first" (OD-1). This
+ *     beat fires BEFORE the turn is spent: a non-approval (Lite) turn AUTO-APPLIES
+ *     and DEBITS Stars server-side inside the POST (D-CODE1c, §10 "后扣模式"), so
+ *     we must NOT run it until the kid confirms — otherwise "Show me first" would
+ *     leak Stars and desync the persisted VFS. Hence `result` is null here and the
+ *     turn runs on confirm.
+ *   - 'plan'   — Pro multi-file plan→approve gate (requires_approval). The turn has
+ *     already run (read-only/collected writes), `result` carries the staged turn,
+ *     and confirm calls `approve` to persist; cancel calls `reject` to discard.
+ * Both carry a prediction question (the default-on predict beat, OD-3) so the kid
+ * thinks before spending a metered turn.
  */
 export interface PendingTurn {
   kind: 'agency' | 'plan';
@@ -59,7 +68,10 @@ export interface PendingTurn {
   prompt: string;
   summary: string;
   changes: { path: string; before: string; after: string }[];
-  /** The staged full result (real path) — applied on confirm. */
+  /**
+   * The staged full result. Set for a Pro 'plan' (the turn ran, awaiting approve).
+   * NULL for a Lite 'agency' beat — the turn has NOT run yet (it runs on confirm).
+   */
   result: AgentTurnResult | null;
   /** A typing-free "what will change?" question (PRD J2 prediction beat). */
   prediction: string;
@@ -276,16 +288,37 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         return;
       }
 
-      // ── REAL path: server-side loop, Stars-metered, streamed, gated. ──
+      // ── Lite agency beat (OD-1): the typing-free "Do it / Show me first" +
+      // predict beat fires BEFORE the turn is spent. A Lite (non-approval) turn
+      // AUTO-APPLIES + DEBITS Stars server-side inside POST /code/turn (D-CODE1c,
+      // §10 "后扣模式"), so we must NOT run it yet — running-then-staging would let
+      // "Show me first" leak Stars and desync the persisted VFS. The turn runs on
+      // confirm (`confirmPending`). No backend call, no Stars, no VFS change here.
+      if (mode === 'lite') {
+        setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        setBusy(false);
+        setPending({
+          kind: 'agency',
+          turnId: '',
+          prompt: trimmed,
+          summary: "I'll make that change for you. Want me to go ahead?",
+          changes: [],
+          result: null,
+          prediction: predictionQuestion(trimmed),
+        });
+        return;
+      }
+
+      // ── REAL Pro path: server-side loop, Stars-metered, streamed, gated. ──
       try {
         const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode });
-        // Pro multi-file → plan→approve gate; Lite → agency beat ("Do it / Show
-        // me first"). Both stage the turn behind a confirm with a prediction beat;
-        // the VFS does NOT change until the kid confirms.
-        if (result.requires_approval || mode === 'lite') {
+        // Pro multi-file → plan→approve gate (writes were collected, not persisted).
+        // A non-approval Pro turn auto-applied + debited inside the POST, so apply
+        // it immediately (mirror useCodeStudio) — never stage an applied turn.
+        if (result.requires_approval) {
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
           setPending({
-            kind: result.requires_approval ? 'plan' : 'agency',
+            kind: 'plan',
             turnId: result.turn_id,
             prompt: trimmed,
             summary:
@@ -315,9 +348,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   );
 
   /**
-   * Confirm a staged turn (Lite "Do it" OR Pro "✓ Approve"). For a Pro plan we
-   * ask the backend to persist (`approveTurn`); a Lite agency beat already has the
-   * staged result, so we apply it directly. Either way Stars debit once on apply.
+   * Confirm a staged turn (Lite "Do it" OR Pro "✓ Approve"). For a Pro plan we ask
+   * the backend to persist the already-run turn (`approveTurn`). For a Lite agency
+   * beat the turn has NOT run yet — confirm is what SPENDS it: we POST /code/turn
+   * now (which auto-applies + debits Stars server-side, D-CODE1c) and apply the
+   * result. Either way Stars debit once, only after the kid commits.
    */
   const confirmPending = useCallback(async () => {
     const p = pending;
@@ -330,7 +365,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const result =
         p.kind === 'plan'
           ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve' })
-          : p.result!;
+          : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode });
       setPending(null);
       await applyResult(result, pendingId);
     } catch (e) {
@@ -341,11 +376,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [pending, busy, nextId, deps, projectId, applyResult]);
+  }, [pending, busy, nextId, deps, projectId, mode, applyResult]);
 
   /**
-   * Cancel a staged turn ("Show me first" / reject). No VFS change, no Stars. For
-   * a Pro plan we tell the backend to discard the staged writes.
+   * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the
+   * turn was NEVER run (it runs only on confirm), so nothing was charged or written
+   * — no backend call, genuinely "nothing changed". For a Pro plan the turn ran but
+   * its writes were only collected (not persisted), so we tell the backend to
+   * discard them (`reject`). Either way: no Stars leak, no persisted VFS change.
    */
   const cancelPending = useCallback(async () => {
     const p = pending;
