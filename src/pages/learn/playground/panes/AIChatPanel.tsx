@@ -4,7 +4,7 @@
 // (CodeEditorPane) and its state is passed in via props — this component never
 // calls the hook itself.
 
-import { Loader2, Send, Sparkles } from 'lucide-react';
+import { Code2, Loader2, Play, Send, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ChatItem } from './useGameAgent';
@@ -14,9 +14,12 @@ interface AIChatPanelProps {
   busy: boolean;
   error: string | null;
   onSend: (text: string) => void;
+  /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
+  onRunGame?: () => void;
+  onSeeCode?: () => void;
 }
 
-export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
+export function AIChatPanel({ chat, busy, error, onSend, onRunGame, onSeeCode }: AIChatPanelProps) {
   const [input, setInput] = useState('');
 
   const submit = () => {
@@ -45,7 +48,7 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
           </div>
         )}
         {chat.map((item) => (
-          <ChatRow key={item.id} item={item} />
+          <ChatRow key={item.id} item={item} onRunGame={onRunGame} onSeeCode={onSeeCode} />
         ))}
       </div>
 
@@ -85,7 +88,15 @@ export function AIChatPanel({ chat, busy, error, onSend }: AIChatPanelProps) {
   );
 }
 
-function ChatRow({ item }: { item: ChatItem }) {
+function ChatRow({
+  item,
+  onRunGame,
+  onSeeCode,
+}: {
+  item: ChatItem;
+  onRunGame?: () => void;
+  onSeeCode?: () => void;
+}) {
   if (item.role === 'kid') {
     return (
       <div className="flex justify-end">
@@ -95,6 +106,7 @@ function ChatRow({ item }: { item: ChatItem }) {
       </div>
     );
   }
+  const hasActions = item.actions && item.actions.length > 0;
   return (
     <div className="flex justify-start">
       <div
@@ -111,6 +123,29 @@ function ChatRow({ item }: { item: ChatItem }) {
                 ✏️ {t.replace('edit_file:', '').replace('write_file:', '')}
               </span>
             ))}
+          </div>
+        )}
+
+        {hasActions && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.actions?.includes('run') && (
+              <button
+                type="button"
+                onClick={onRunGame}
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-4 py-2 text-[13px] font-extrabold text-ink shadow-brand-mint transition-transform hover:-translate-y-0.5"
+              >
+                <Play size={16} /> Run game
+              </button>
+            )}
+            {item.actions?.includes('code') && (
+              <button
+                type="button"
+                onClick={onSeeCode}
+                className="inline-flex items-center gap-1.5 rounded-full border-2 border-brand-sky/60 px-4 py-2 text-[13px] font-extrabold text-brand-sky transition-colors hover:bg-brand-sky/10"
+              >
+                <Code2 size={16} /> See code
+              </button>
+            )}
           </div>
         )}
       </div>

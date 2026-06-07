@@ -48,6 +48,13 @@ interface PlaygroundState {
   minimize: (id: PgWindowId) => void;
   toggleMaximize: (id: PgWindowId) => void;
   setRect: (id: PgWindowId, rect: WinRect) => void;
+  /**
+   * Clamp every window's rect to the actual desktop-surface size (width×height,
+   * in px). The default rects are seeded from `window.innerHeight` at module
+   * load, which over-shoots when the studio renders under the Learn nav — this
+   * keeps windows fully inside the surface (esp. ones opened later from chat).
+   */
+  fitWindows: (width: number, height: number) => void;
 }
 
 // Default window layout (v2 mockup): Asset Viewer is a large BACKDROP at the
@@ -87,13 +94,20 @@ function defaultWindows(): Record<PgWindowId, WinState> {
   // prior editor area was W/3 − files column. (The old launch width was W/3 and
   // the editor part read too narrow.)
   const codeW = CODE_FILES_COL_W + 2 * (W / 3 - CODE_FILES_COL_W);
+  // Chat-first launch: only Chat opens; Code / Game Runner / Asset Viewer start
+  // CLOSED (reopened from their desktop tiles, or from the chat's Run / See-code
+  // actions). Their rects are still seeded for when they open. zIndex keeps Chat
+  // on top.
+  const closed = (id: PgWindowId, zIndex: number, rect: WinRect): WinState => ({
+    ...base(id, zIndex, rect),
+    open: false,
+  });
   return {
-    // Open on launch, lowest z: a backdrop behind the three front windows. Width
-    // is 75% of the available span (the full-width default read too wide).
-    assets: base('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
-    code: base('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
-    game: base('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
-    chat: base('chat', 4, r(W * 0.3, H * 0.05, W * 0.36, H * 0.8)),
+    assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
+    code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
+    game: closed('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
+    // Open + focused + centered as the sole launch window.
+    chat: base('chat', 4, r(W * 0.29, H * 0.06, W * 0.42, H * 0.82)),
   };
 }
 
@@ -165,4 +179,24 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
         [id]: { ...state.windows[id], rect },
       },
     })),
+  fitWindows: (width, height) =>
+    set((state) => {
+      const MARGIN = 8;
+      const maxW = Math.max(240, width - MARGIN);
+      const maxH = Math.max(200, height - MARGIN);
+      let changed = false;
+      const windows = { ...state.windows };
+      for (const id of Object.keys(windows) as PgWindowId[]) {
+        const win = windows[id];
+        const w = Math.min(win.rect.w, maxW);
+        const h = Math.min(win.rect.h, maxH);
+        const x = Math.min(Math.max(win.rect.x, 0), Math.max(0, width - w));
+        const y = Math.min(Math.max(win.rect.y, 0), Math.max(0, height - h));
+        if (w !== win.rect.w || h !== win.rect.h || x !== win.rect.x || y !== win.rect.y) {
+          windows[id] = { ...win, rect: { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) } };
+          changed = true;
+        }
+      }
+      return changed ? { windows } : {};
+    }),
 }));

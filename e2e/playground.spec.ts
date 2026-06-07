@@ -8,13 +8,18 @@ import { test, expect, type Page } from '@playwright/test';
 
 const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
 
-async function reachWorkspace(page: Page) {
+type WindowName = 'Code Editor' | 'Game Runner' | 'Asset Viewer';
+
+async function reachWorkspace(page: Page, open?: WindowName) {
   await page.goto('/playground-sandbox');
   const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
   await input.fill('a pong game');
   await input.press('Enter');
   // Workspace marker: the layout toggle (taskbar) appears.
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  // Chat-first launch opens ONLY Chat; open + focus a window when a test drives
+  // the editor / runner / asset viewer (click its desktop tile).
+  if (open) await page.getByRole('button', { name: open }).first().click();
 }
 
 test('landing shows the prompt + starter chips, and Enter → generating → workspace', async ({ page }) => {
@@ -27,13 +32,13 @@ test('landing shows the prompt + starter chips, and Enter → generating → wor
   await input.press('Enter');
 
   await expect(page.getByText('Building your game…')).toBeVisible({ timeout: 4_000 });
-  // Workspace (Window mode default): the Game Runner window + taskbar toggle.
+  // Workspace (Window mode default): chat-first — the AI hands off the scaffold.
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText('Game Runner').first()).toBeVisible();
+  await expect(page.getByText(/Your game starter is ready/)).toBeVisible();
 });
 
 test('generated project is multi-file (nested src/scenes in the Code editor)', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   await expect(page.getByText('main.js').first()).toBeVisible();
   await expect(page.getByText('scenes').first()).toBeVisible();
 });
@@ -69,7 +74,7 @@ test('layout toggle switches Window ⇄ Split', async ({ page }) => {
 });
 
 test('AI chat (stub): sending a prompt shows the kid message and a reply', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Game Runner');
   const chat = page.getByPlaceholder('What should we build?');
   await chat.fill('make the ball faster');
   await chat.press('Enter');
@@ -80,7 +85,7 @@ test('AI chat (stub): sending a prompt shows the kid message and a reply', async
 });
 
 test('game runner: placeholder until Play, then it starts', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Game Runner');
   await expect(page.getByText('Press ▶ to play')).toBeVisible();
   // The placeholder's Play button launches the game (placeholder disappears).
   await page.getByRole('button', { name: 'Play' }).first().click();
@@ -103,6 +108,8 @@ test('game runner: a problem (error OR warning) auto-opens the console', async (
   await input.fill('x');
   await input.press('Enter');
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  // Chat-first: open the Game Runner to drive it.
+  await page.getByRole('button', { name: 'Game Runner' }).first().click();
 
   // Console is closed until something goes wrong.
   await expect(page.getByText('Console', { exact: true })).toBeHidden();
@@ -113,7 +120,7 @@ test('game runner: a problem (error OR warning) auto-opens the console', async (
 });
 
 test('game runner: screen-size presets reshape the stage (portrait vs landscape)', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Game Runner');
   await page.getByRole('button', { name: 'Play' }).first().click();
   const frame = page.locator('iframe[title="Game"]');
   await expect(frame).toBeVisible();
@@ -185,7 +192,7 @@ test('double-click the title bar maximizes, and restore returns to the prior pos
 });
 
 test('code editor window launches wide (editor area doubled, file column unchanged)', async ({ page }) => {
-  await reachWorkspace(page); // Window mode default.
+  await reachWorkspace(page, 'Code Editor'); // Window mode default.
   // The launch width doubles the editor area while the fixed file column keeps
   // its width: width = files col + 2·(W/3 − files col). (Keep FILES_COL in sync
   // with CODE_FILES_COL_W / FILES_DEFAULT_W in the app.)
@@ -202,7 +209,7 @@ test('code editor window launches wide (editor area doubled, file column unchang
 });
 
 test('code editor: hover/overflow widgets render outside the window (not clipped)', async ({ page }) => {
-  await reachWorkspace(page); // Window mode; the Code Editor mounts Monaco.
+  await reachWorkspace(page, 'Code Editor'); // Window mode; the Code Editor mounts Monaco.
   // Monaco renders hover/suggest widgets into a BODY-level node (not inside the
   // editor), so the window's overflow:hidden can't clip a long doc tooltip. The
   // `.overflowingContentWidgets` container living under `body > .monaco-editor`
@@ -213,7 +220,7 @@ test('code editor: hover/overflow widgets render outside the window (not clipped
 });
 
 test('file tree: create, rename, and delete a file', async ({ page }) => {
-  await reachWorkspace(page); // Window mode; Code Editor open on the scaffold.
+  await reachWorkspace(page, 'Code Editor'); // Window mode; Code Editor on the scaffold.
   const nameInput = page.getByLabel('File or folder name');
 
   // CREATE — header "New file" → type → Enter. The new file opens as a tab too.
@@ -236,7 +243,7 @@ test('file tree: create, rename, and delete a file', async ({ page }) => {
 });
 
 test('file tree: create a folder and a file inside it', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   const nameInput = page.getByLabel('File or folder name');
 
   // New empty folder — it renders even with no files yet (explicit empty folder).
@@ -253,7 +260,7 @@ test('file tree: create a folder and a file inside it', async ({ page }) => {
 });
 
 test('file tree: drag a file into a folder moves it', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   // main.js sits at the root; `src` is a folder. Native HTML5 DnD needs dispatched
   // drag events sharing one DataTransfer (Playwright's mouse drag won't trigger it).
   const dt = await page.evaluateHandle(() => new DataTransfer());
@@ -270,7 +277,7 @@ test('file tree: drag a file into a folder moves it', async ({ page }) => {
 });
 
 test('history: idle autosnapshot records a checkpoint, then diff + revert', async ({ page }) => {
-  await reachWorkspace(page); // Window mode; Code Editor on the scaffold.
+  await reachWorkspace(page, 'Code Editor'); // Window mode; Code Editor on the scaffold.
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
 
   // Open History — with nothing selected it stays at the original width.
@@ -314,7 +321,7 @@ test('history: idle autosnapshot records a checkpoint, then diff + revert', asyn
 });
 
 test('history: revert a single file (with confirm)', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await page.locator('.monaco-editor').first().click();
@@ -329,7 +336,7 @@ test('history: revert a single file (with confirm)', async ({ page }) => {
 });
 
 test('persistence: edits survive a page refresh', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   // Create a file, then let the debounced IndexedDB save land.
   await page.getByRole('button', { name: 'New file', exact: true }).click();
   await page.getByLabel('File or folder name').fill('Persist.js');
@@ -344,11 +351,13 @@ test('persistence: edits survive a page refresh', async ({ page }) => {
   await input.fill('a pong game');
   await input.press('Enter');
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  // Chat-first reopens with only Chat — open Code to verify the restored file.
+  await page.getByRole('button', { name: 'Code Editor' }).first().click();
   await expect(page.getByText('Persist.js').first()).toBeVisible();
 });
 
 test('search: find across files and jump to a result', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByLabel('Search files').fill('Boot');
@@ -361,7 +370,7 @@ test('search: find across files and jump to a result', async ({ page }) => {
 });
 
 test('search: replace all across files', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByLabel('Search files').fill('paddle');
   await expect(page.getByTestId('search-results').getByRole('button', { name: /Game\.js:\d+/ }).first()).toBeVisible();
@@ -373,7 +382,7 @@ test('search: replace all across files', async ({ page }) => {
 });
 
 test('history: file-tree operations are recorded', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Code Editor');
   // Create a file via the tree → it should appear in the history timeline.
   await page.getByRole('button', { name: 'New file', exact: true }).click();
   await page.getByLabel('File or folder name').fill('Note.js');
@@ -452,13 +461,14 @@ test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ pa
   await input.fill('a pong game');
   await input.press('Enter');
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-  // The Code Editor mounting (Window mode default) lazy-fetches the type defs.
+  // Chat-first: open the Code Editor — its Monaco onMount lazy-fetches the defs.
+  await page.getByRole('button', { name: 'Code Editor' }).first().click();
   const res = await dtsResponse;
   expect(res.status()).toBe(200);
 });
 
 test('a closed window leaves the taskbar and reopens from its desktop icon', async ({ page }) => {
-  await reachWorkspace(page);
+  await reachWorkspace(page, 'Game Runner');
   // Close the Game Runner window via its titlebar close button.
   await page.getByRole('button', { name: 'Close Game Runner' }).click();
   await expect(page.getByRole('button', { name: 'Close Game Runner' })).toBeHidden();
@@ -476,12 +486,9 @@ const TINY_PNG = Buffer.from(
   'base64',
 );
 
-test('asset viewer: open by default (at the back) in window mode', async ({ page }) => {
-  await reachWorkspace(page);
-  // Opens on launch as the backdrop window — its grid is present without a click.
-  await expect(page.getByText('All assets')).toBeVisible();
-  // Bringing it forward from its taskbar button keeps it shown.
-  await page.getByRole('button', { name: 'Asset Viewer' }).last().click();
+test('asset viewer: opens from its desktop tile (window mode)', async ({ page }) => {
+  // Chat-first: the Asset Viewer starts closed; opening its tile shows the grid.
+  await reachWorkspace(page, 'Asset Viewer');
   await expect(page.getByText('All assets')).toBeVisible();
 });
 
@@ -540,4 +547,32 @@ test('asset viewer: samples are read-only and categories navigate out of detail'
   // Clicking a category returns to the grid (not stuck on the detail screen).
   await page.getByRole('button', { name: /^audio/ }).click();
   await expect(page.getByText('chime.wav')).toBeVisible();
+});
+
+// ── Chat-first launch ────────────────────────────────────────────────────────
+
+test('workspace launches chat-first: only Chat open, with the scaffold hand-off', async ({ page }) => {
+  await reachWorkspace(page);
+  // The kid's landing prompt + a generic "starter ready" message + the CTAs.
+  await expect(page.getByText('a pong game').first()).toBeVisible();
+  await expect(page.getByText(/Your game starter is ready/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Run game' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'See code' })).toBeVisible();
+  // Code / Runner / Assets windows are CLOSED (no titlebar close buttons, and the
+  // editor's file tree isn't mounted).
+  await expect(page.getByRole('button', { name: 'Close Game Runner' })).toHaveCount(0);
+  await expect(page.getByText('main.js')).toHaveCount(0);
+});
+
+test('chat "Run game" opens and plays the Game Runner', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: 'Run game' }).click();
+  // The runner opens AND runs (the game iframe mounts; no Play-placeholder).
+  await expect(page.locator('iframe[title="Game"]')).toBeVisible({ timeout: 6_000 });
+});
+
+test('chat "See code" opens the Code Editor', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: 'See code' }).click();
+  await expect(page.getByText('main.js').first()).toBeVisible();
 });
