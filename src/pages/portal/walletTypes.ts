@@ -129,3 +129,33 @@ export const FAILURE_THRESHOLD_OPTIONS = [1, 2, 3, 4, 5] as const;
 export function aud(cents: number): string {
   return `A$${(cents / 100).toFixed(0)}`;
 }
+
+// ── Topup anti-fraud limits (parent-portal-prd §4.4.2, backend D-WAL-02) ────
+// The backend returns `429` with one of these codes when a top-up is blocked.
+
+export interface TopupLimitInfo {
+  code: string;
+  message: string;
+  details?: {
+    resets_at?: string;
+    current_aud_cents?: number;
+    limit_aud_cents?: number;
+    limit?: number;
+  };
+}
+
+/** Narrow an ApiError-like value to a TopupLimitInfo, or null if it isn't one. */
+export function asTopupLimit(e: {
+  status?: number;
+  code?: string;
+  message?: string;
+  details?: unknown;
+}): TopupLimitInfo | null {
+  // Only the anti-fraud 429s — not, say, a future unrelated TOPUP_* 4xx.
+  if (e.status !== 429 || !e.code || !e.code.startsWith('TOPUP_')) return null;
+  return {
+    code: e.code,
+    message: e.message ?? 'Top-up limit reached.',
+    details: (e.details ?? undefined) as TopupLimitInfo['details'],
+  };
+}
