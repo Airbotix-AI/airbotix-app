@@ -76,6 +76,7 @@ export function friendlyError(e: unknown): string {
       return 'Out of Stars! Ask a parent to top up.';
     if (e.code === 'FAMILY_PAUSED') return 'Your family paused AI. Ask a parent.';
     if (e.code === 'FAMILY_REQUIRED') return 'You need a family first.';
+    if (e.code === 'PAYLOAD_TOO_LARGE') return 'This file is too big — try a smaller one. No Stars were charged.';
     return e.message;
   }
   return 'Could not reach AI.';

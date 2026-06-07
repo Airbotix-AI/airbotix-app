@@ -15,9 +15,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
+import { useQuery } from '@tanstack/react-query';
 
 import clsx from 'clsx';
 
+import { useMe } from '@/auth/useAuth';
+import { listClasses } from '@/pages/learn/classroom/classroomApi';
+import { api } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
@@ -30,6 +34,8 @@ import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
+import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
+import { ShareLinkPanel } from './ShareLinkPanel';
 
 interface WorkspaceProps {
   /** The lifted VFS — owned by PlaygroundApp. */
@@ -44,6 +50,16 @@ interface WorkspaceProps {
   onRun: () => void;
   /** The kid's landing-screen prompt — seeds the launch hand-off chat message. */
   prompt: string;
+  /**
+   * The real backend project. When set, AI turns run server-side (Stars-metered,
+   * streamed, plan/approve-gated, PRD J2); when absent (DEV sandbox) the offline
+   * stub turn runs behind the same UI.
+   */
+  projectId?: string;
+}
+
+interface Wallet {
+  stars_balance: number;
 }
 
 type SplitTab = 'chat' | 'code' | 'assets';
@@ -56,9 +72,38 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'assets', label: 'Assets' },
 ];
 
-export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt }: WorkspaceProps) {
+export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt, projectId }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
-  const [splitTab, setSplitTab] = useState<SplitTab>('chat');
+  const [splitTab, setSplitTab] = useState<SplitTab>(
+    () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
+  );
+  useEffect(() => {
+    writeWorkspaceSlice('split', { tab: splitTab });
+  }, [splitTab]);
+
+  // Age-derived tier (OD-1): Lite 8–11 (agency beat) / Pro 12–17 (plan→approve).
+  // Default Lite when age is unknown (the safest, simplest UX).
+  const me = useMe();
+  const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
+  const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const mode: 'lite' | 'pro' = age != null && age >= 12 ? 'pro' : 'lite';
+
+  // Family Stars balance for the metered display (real path). Refetched after a
+  // turn debits (OD-3 "meter every turn").
+  const wallet = useQuery<Wallet>({
+    queryKey: ['wallet', familyId],
+    queryFn: () => api<Wallet>(`/families/${familyId}/wallet`),
+    enabled: !!familyId && !!projectId,
+  });
+  // "Ask my teacher" only makes sense when the kid is in a class — gate the
+  // raise-hand on class membership.
+  const classes = useQuery({
+    queryKey: ['kid', kidId, 'classes'],
+    queryFn: () => listClasses(kidId!),
+    enabled: !!kidId,
+  });
+  const inClass = (classes.data?.length ?? 0) > 0;
   // Default window placement (Code lower-left & wide, Chat center-top & front,
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
@@ -74,7 +119,31 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
-  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles, introPrompt: prompt });
+  const {
+    chat,
+    busy,
+    error,
+    offline,
+    pending,
+    balance,
+    canUndo,
+    safeguard,
+    handRaised,
+    send,
+    confirmPending,
+    cancelPending,
+    undo,
+    raiseHand,
+    lowerHand,
+  } = useGameAgent({
+      files,
+      onApplyFiles,
+      introPrompt: prompt,
+      projectId,
+      mode,
+      balance: wallet.data?.stars_balance,
+      onStarsCharged: () => wallet.refetch(),
+    });
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
   // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).
@@ -86,7 +155,19 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
     chat,
     busy,
     error,
+    offline,
+    balance,
+    pending,
+    canUndo,
+    safeguard,
+    handRaised,
+    inClass,
     onSend: send,
+    onConfirm: confirmPending,
+    onCancel: cancelPending,
+    onUndo: undo,
+    onRaiseHand: raiseHand,
+    onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
   };
@@ -136,6 +217,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
         {/* Desktop surface — the maximized window fills this, above the taskbar. */}
         <div ref={surfaceRef} className="pg-desktop-bg relative min-h-0 flex-1 overflow-hidden">
+          {/* External share-link control (J8) — only for a REAL backend project. */}
+          {projectId && (
+            <div className="absolute right-4 top-4 z-40">
+              <ShareLinkPanel projectId={projectId} />
+            </div>
+          )}
+
           {/* Left-edge shortcut column */}
           {/* Desktop icons are the bottom layer — windows (zIndex ≥ 1) sit above. */}
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
@@ -185,7 +273,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
           </Window>
         </div>
 
@@ -234,6 +322,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
                     </button>
                   );
                 })}
+                {/* External share-link control (J8) — real backend project only. */}
+                {projectId && (
+                  <div className="ml-auto">
+                    <ShareLinkPanel projectId={projectId} />
+                  </div>
+                )}
               </div>
               <div className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
@@ -246,7 +340,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
                     openLocation={locationRequest}
                   />
                 ) : (
-                  <AssetViewerPane files={files} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
                 )}
               </div>
             </section>

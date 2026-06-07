@@ -8,10 +8,11 @@ import { PlaygroundApp } from './PlaygroundApp';
  * full-bleed below it (via FLUID_ROUTES); the studio fills the area with `h-full`.
  * The DEV `/playground-sandbox` is the no-auth, truly full-screen quick-test entry.
  *
- * Phase 1 (frontend-only): the backend has no `game` project kind yet, so the
- * playground's file load 404s for these ids and falls back to the local Phaser
- * scaffold, persisting to IndexedDB keyed by `projectId`. Phase 2 makes it a real
- * server-backed game project. The Tiny Game card routes here with a `local-<uuid>`.
+ * The Tiny Game card now creates a REAL `kind='game'` backend project (PRD J1)
+ * and routes here with its id; the studio loads that project's seeded Phaser VFS
+ * (`GET /projects/:id/code/files`). If the backend `game` kind isn't ready, create
+ * falls back to a `local-<uuid>` id whose file load 404s → the local scaffold
+ * (IndexedDB-cached, keyed by `projectId`).
  */
 export function LearnPlaygroundPage() {
   const { projectId } = useParams<{ projectId: string }>();

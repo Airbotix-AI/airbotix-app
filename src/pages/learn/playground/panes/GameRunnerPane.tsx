@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
+import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
 
@@ -83,8 +84,15 @@ function ToolButton({
 export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, onAskFix }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
-  const [showConsole, setShowConsole] = useState(false);
+  // Persisted Game Runner selections (J9): screen preset + console visibility.
+  const runnerSeed = useRef(
+    readWorkspaceSlice('game-runner', { runnerPresetId: '', runnerShowConsole: false }),
+  ).current;
+  const [presetId, setPresetId] = useState(() => runnerSeed.runnerPresetId || DEFAULT_PRESET_ID);
+  const [showConsole, setShowConsole] = useState(() => runnerSeed.runnerShowConsole);
+  useEffect(() => {
+    writeWorkspaceSlice('game-runner', { runnerPresetId: presetId, runnerShowConsole: showConsole });
+  }, [presetId, showConsole]);
   const [debug, setDebug] = useState(false);
   const [fps, setFps] = useState(0);
   const [lines, setLines] = useState<ConsoleLine[]>([]);

@@ -1,7 +1,10 @@
 import clsx from 'clsx';
 import { NavLink } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useLogout, useMe } from '@/auth/useAuth';
+import { api } from '@/lib/api';
+import { useWsEvent } from '@/lib/useWsEvent';
 
 // Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
@@ -15,9 +18,30 @@ const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal/settings', label: 'Settings' },
 ];
 
+const APPROVALS_PATH = '/portal/approvals';
+
+interface ApprovalLite {
+  status: string;
+}
+
 export function PortalNavDrawer() {
   const me = useMe();
   const logout = useLogout();
+  const qc = useQueryClient();
+  const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
+
+  // Pending-approval badge (§2 / §4.5). Shares the ['approvals', familyId] cache
+  // with ApprovalsPage, and live-updates via the same WS events.
+  const approvals = useQuery<ApprovalLite[]>({
+    queryKey: ['approvals', familyId],
+    queryFn: () => api<ApprovalLite[]>(`/families/${familyId}/approvals`),
+    enabled: !!familyId,
+  });
+  const pendingCount = approvals.data?.filter((a) => a.status === 'pending').length ?? 0;
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['approvals', familyId] });
+  useWsEvent('approval.new', invalidate, [familyId]);
+  useWsEvent('approval.resolved', invalidate, [familyId]);
 
   return (
     <nav className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 md:flex md:flex-col">
@@ -34,17 +58,30 @@ export function PortalNavDrawer() {
       </div>
 
       <ul className="space-y-1">
-        {ITEMS.map((item) => (
-          <li key={item.to}>
-            <NavLink
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => clsx('nav-link', isActive && 'nav-link-active')}
-            >
-              {item.label}
-            </NavLink>
-          </li>
-        ))}
+        {ITEMS.map((item) => {
+          const showBadge = item.to === APPROVALS_PATH && pendingCount > 0;
+          return (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  clsx('nav-link flex items-center justify-between', isActive && 'nav-link-active')
+                }
+              >
+                <span>{item.label}</span>
+                {showBadge && (
+                  <span
+                    className="ml-2 inline-flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-coral px-1.5 text-[11px] font-bold text-white"
+                    aria-label={`${pendingCount} pending approvals`}
+                  >
+                    {pendingCount}
+                  </span>
+                )}
+              </NavLink>
+            </li>
+          );
+        })}
       </ul>
 
       <div className="mt-auto pt-6 border-t border-hairline">

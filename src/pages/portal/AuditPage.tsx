@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { describeAuditEvent, friendlyActor, type AuditTone } from '@/lib/auditCopy';
 
 interface AuditEvent {
   id: string;
@@ -17,15 +18,15 @@ interface AuditEvent {
   occurred_at: string;
 }
 
-const ACTOR_STICKER: Record<string, string> = {
-  kid: 'bubblegum',
-  agent: 'sky',
-  parent: 'coral',
-  teacher: 'sunshine',
-  admin: 'mint',
-  super_admin: 'mint',
-  system: 'sky',
-  service: 'sky',
+// Tone → leading-bubble background. Tailwind can't see dynamic class names, so
+// map each tone to a static class string.
+const TONE_BUBBLE: Record<AuditTone, string> = {
+  coral: 'bg-wash-coral',
+  bubblegum: 'bg-wash-bubblegum',
+  sunshine: 'bg-wash-sunshine',
+  sky: 'bg-wash-sky',
+  mint: 'bg-wash-mint',
+  slate: 'bg-surface-soft',
 };
 
 export function AuditPage() {
@@ -56,7 +57,7 @@ export function AuditPage() {
         <div className="eyebrow eyebrow-sky">Activity</div>
         <h1 className="section-heading">Everything that happened</h1>
         <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
-          Every AI call, every wallet move, every approval — auditable, replay-able.
+          A plain-language record of every top-up, AI request, and approval in your family — newest first.
         </p>
       </div>
 
@@ -78,42 +79,67 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
   return (
     <div className="card-base p-0 overflow-hidden">
       <ul className="divide-y divide-hairline">
-        {events.map((e) => {
-          const sticker = ACTOR_STICKER[e.actor] ?? 'sky';
-          return (
-            <li key={e.id} className="px-6 py-4">
-              <div className="flex items-start gap-4">
-                <span className={`sticker-${sticker} shrink-0 mt-0.5`} style={{ transform: 'rotate(-2deg)' }}>
-                  {e.actor}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-bold text-ink truncate">{e.event_type}</div>
-                  {e.payload && Object.keys(e.payload).length > 0 && (
-                    <pre className="text-[12px] text-ink-soft mt-2 bg-surface-soft p-3 rounded-xl overflow-x-auto font-mono">
-                      {JSON.stringify(e.payload, null, 2)}
-                    </pre>
-                  )}
-                  <div className="text-[12px] text-slate2 mt-2">
-                    {new Date(e.occurred_at).toLocaleString()}
-                    {e.kid_id && ` · kid ${e.kid_id.slice(-6)}`}
-                    {e.project_id && (
-                      <>
-                        {' · '}
-                        <Link
-                          to={`/portal/audit/project/${e.project_id}`}
-                          className="font-semibold text-brand-coral hover:underline"
-                        >
-                          project →
-                        </Link>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </li>
-          );
-        })}
+        {events.map((event) => (
+          <AuditRow key={event.id} event={event} />
+        ))}
       </ul>
     </div>
+  );
+}
+
+function AuditRow({ event }: { event: AuditEvent }) {
+  const copy = describeAuditEvent(event);
+  const hasPayload = event.payload && Object.keys(event.payload).length > 0;
+
+  return (
+    <li className="px-6 py-4">
+      <div className="flex items-start gap-4">
+        <span
+          className={`${TONE_BUBBLE[copy.tone]} shrink-0 grid place-items-center rounded-2xl`}
+          style={{ width: 40, height: 40, fontSize: 20, lineHeight: 1 }}
+          aria-hidden="true"
+        >
+          {copy.icon}
+        </span>
+
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-ink">{copy.title}</div>
+          {copy.detail && (
+            <div className="text-[13px] text-ink-soft mt-0.5">{copy.detail}</div>
+          )}
+
+          <div className="text-[12px] text-slate2 mt-1.5">
+            {friendlyActor(event.actor)}
+            {' · '}
+            {new Date(event.occurred_at).toLocaleString()}
+            {event.project_id && (
+              <>
+                {' · '}
+                <Link
+                  to={`/portal/audit/project/${event.project_id}`}
+                  className="font-semibold text-brand-coral hover:underline"
+                >
+                  view project →
+                </Link>
+              </>
+            )}
+          </div>
+
+          {hasPayload && (
+            <details className="mt-2 group">
+              <summary className="text-[11px] text-steel cursor-pointer select-none hover:text-slate2 list-none">
+                <span className="group-open:hidden">Technical details ▸</span>
+                <span className="hidden group-open:inline">Technical details ▾</span>
+              </summary>
+              <pre className="text-[12px] text-ink-soft mt-2 bg-surface-soft p-3 rounded-xl overflow-x-auto font-mono">
+                {event.event_type}
+                {'\n'}
+                {JSON.stringify(event.payload, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
