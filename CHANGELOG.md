@@ -6,6 +6,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-07
 
+### CI
+- `ci.yml` now actually runs the unit tests: the job runs `lint → typecheck →
+  test → build` (was build-only, so the Vitest suite never ran in CI).
+
 ### Changed
 - `.gitignore`: explicitly ignore the compiled `vite.config.js` / `vite.config.d.ts`
   (stray `tsc -b` outputs) so they never get committed alongside `vite.config.ts`.
