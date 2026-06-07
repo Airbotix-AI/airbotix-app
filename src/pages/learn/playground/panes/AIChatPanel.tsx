@@ -110,6 +110,9 @@ function ChatRow({
   return (
     <div className="flex justify-start">
       <div
+        // The chat-first launch hand-off message (the one carrying Run / See-code
+        // actions) is the stable marker that the studio opened (PRD J1 testid).
+        data-testid={hasActions ? 'chat-starter' : undefined}
         className={`max-w-[90%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[14px] leading-relaxed text-pg-text ${
           item.pending ? 'italic opacity-60' : ''
         }`}

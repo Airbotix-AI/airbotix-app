@@ -33,10 +33,13 @@ const STEP_INTERVAL_MS = SCAFFOLD_DELAY_MS / STEPS.length;
 
 export function GeneratingScreen({
   prompt,
+  name,
   projectId,
   onDone,
 }: {
   prompt: string;
+  /** The kid's game name (PRD J1) — labels the local scaffold when no backend. */
+  name?: string;
   /** When set, the real project files are loaded from the backend (S3-backed). */
   projectId?: string;
   onDone: (files: VfsFile[]) => void;
@@ -62,7 +65,7 @@ export function GeneratingScreen({
 
     // Resolve the files (real backend load when projectId is set, else the local
     // scaffold). When it resolves, stop ticking and hand off.
-    resolveProjectFiles({ projectId, prompt }).then((files) => {
+    resolveProjectFiles({ projectId, prompt, name }).then((files) => {
       if (cancelled) return;
       window.clearInterval(ticker);
       onDoneRef.current(files);
@@ -73,7 +76,7 @@ export function GeneratingScreen({
       window.clearInterval(ticker);
       cancelAnimationFrame(raf);
     };
-  }, [prompt, projectId]);
+  }, [prompt, name, projectId]);
 
   return (
     <div className="pg-canvas fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 text-pg-text">

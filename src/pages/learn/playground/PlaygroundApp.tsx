@@ -44,8 +44,15 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const projectId = projectIdProp ?? searchParams.get('projectId') ?? undefined;
   // Persistence key: the real project, or a fixed key for the DEV sandbox.
   const persistKey = projectId ?? 'dev-sandbox';
-  const [phase, setPhase] = useState<Phase>('landing');
+  // When the studio opens on a REAL backend project (the authed
+  // `/learn/playground/:projectId` route, PRD J1), skip the landing prompt and go
+  // straight to loading its seeded VFS — the kid already named + created it on the
+  // hub. The DEV sandbox (no route project) still starts at the landing entry.
+  const [phase, setPhase] = useState<Phase>(projectIdProp ? 'generating' : 'landing');
   const [prompt, setPrompt] = useState('');
+  // The kid-chosen game name (PRD J1). For a real backend game project it's set
+  // at create; on the landing path it labels this session's build.
+  const [name, setName] = useState('');
   // The VFS lives in the project store (single funnel for editor saves, AI
   // turns, file CRUD, drag moves — and the seam for history + persistence).
   const files = useProjectStore((s) => s.files);
@@ -108,8 +115,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {phase === 'landing' && (
         <LandingScreen
-          onSubmit={(p) => {
+          onSubmit={(p, gameName) => {
             setPrompt(p);
+            setName(gameName ?? '');
             setPhase('generating');
           }}
         />
@@ -117,6 +125,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       {phase === 'generating' && (
         <GeneratingScreen
           prompt={prompt}
+          name={name}
           projectId={projectId}
           onDone={async (f) => {
             // Restore a persisted project (survives refresh) if one exists for this
