@@ -48,15 +48,14 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * direct LLM). A `ThemeToggle` sits top-right. Submits the trimmed prompt via
  * Enter (no Shift) or the send button, carrying the kid's game name.
  */
-export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string, name?: string) => void }) {
+export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void }) {
   const [prompt, setPrompt] = useState('')
-  const [name, setName] = useState('')
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef<MediaRecorder | null>(null)
 
   const submit = () => {
     const trimmed = prompt.trim()
-    if (trimmed) onSubmit(trimmed, name.trim() || undefined)
+    if (trimmed) onSubmit(trimmed)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -111,17 +110,6 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string, name?: 
         <span className="text-brand-sky">✦</span> Airbotix Playground
       </p>
 
-      {/* Name your game (PRD J1 "Name your game", e.g. SUPERCAT) */}
-      <div className="mb-3 flex w-full max-w-3xl items-center gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name your game (e.g. SUPERCAT)"
-          aria-label="Name your game"
-          data-testid="game-name-input"
-          className="flex-1 rounded-xl border border-pg-border bg-pg-surface px-4 py-2.5 text-base font-bold text-pg-text placeholder:text-pg-text-muted focus:border-brand-sky focus:outline-none"
-        />
-      </div>
 
       {/* Prompt box with animated glow halo */}
       <div className="pg-glow w-full max-w-3xl rounded-2xl">

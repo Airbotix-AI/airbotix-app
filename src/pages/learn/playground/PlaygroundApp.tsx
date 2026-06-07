@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useSearchParams } from 'react-router-dom';
 
+import { useMe } from '@/auth/useAuth';
+
 import { GeneratingScreen } from './GeneratingScreen';
+import { createGameProject } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
-import { usePlaygroundStore } from './playgroundStore';
-import { loadProject as loadPersisted, saveProject as savePersisted } from './projectPersistence';
+import { usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
+import {
+  loadProject as loadPersisted,
+  saveProject as savePersisted,
+  loadWorkspaceUi,
+  saveWorkspaceUi,
+} from './projectPersistence';
+import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
 import { withPreloadedAssets } from './sampleAssets';
 import { useSaveStatusStore } from './saveStatusStore';
@@ -42,18 +51,25 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
   const [searchParams] = useSearchParams();
-  const projectId = projectIdProp ?? searchParams.get('projectId') ?? undefined;
+  const me = useMe();
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
+  // The hub starts a NEW game with the sentinel id `new`, so the studio opens
+  // PROMPT-FIRST on the landing screen (the 3-phase flow). The real `kind='game'`
+  // project is created on prompt SUBMIT (below), not on the hub click — otherwise
+  // a kid who backs out at the prompt would orphan an empty project.
+  const isNew = projectIdProp === 'new';
+  // The real owned project id once known: the route param, or the id created on
+  // submit. `undefined` for a new-but-not-yet-created game and the DEV sandbox.
+  const [createdId, setCreatedId] = useState<string | undefined>(undefined);
+  const ownedProjectId = createdId ?? (isNew ? undefined : projectIdProp);
+  const projectId = ownedProjectId ?? searchParams.get('projectId') ?? undefined;
   // Persistence key: the real project, or a fixed key for the DEV sandbox.
   const persistKey = projectId ?? 'dev-sandbox';
-  // When the studio opens on a REAL backend project (the authed
-  // `/learn/playground/:projectId` route, PRD J1), skip the landing prompt and go
-  // straight to loading its seeded VFS — the kid already named + created it on the
-  // hub. The DEV sandbox (no route project) still starts at the landing entry.
-  const [phase, setPhase] = useState<Phase>(projectIdProp ? 'generating' : 'landing');
+  // A real owned route project (re)opens straight into loading its seeded VFS; a
+  // NEW game and the DEV sandbox start on the landing prompt.
+  const [phase, setPhase] = useState<Phase>(projectIdProp && !isNew ? 'generating' : 'landing');
   const [prompt, setPrompt] = useState('');
-  // The kid-chosen game name (PRD J1). For a real backend game project it's set
-  // at create; on the landing path it labels this session's build.
-  const [name, setName] = useState('');
   // The VFS lives in the project store (single funnel for editor saves, AI
   // turns, file CRUD, drag moves — and the seam for history + persistence).
   const files = useProjectStore((s) => s.files);
@@ -136,6 +152,37 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     };
   }, [phase, persistKey, projectId, setSaveStatus]);
 
+  // Persist the workspace UI ("resume where I left off") — debounced, while in the
+  // workspace. Single place: snapshot the whole namespaced bag + the playground
+  // store's slice. FUTURE-PROOF — any new pane that registers a slice via
+  // `usePersistedWorkspaceState` is captured here automatically, no edits needed.
+  useEffect(() => {
+    if (phase !== 'workspace' || !projectId) return; // DEV sandbox is transient
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const blob = useWorkspaceUiStore.getState().snapshot();
+        const ps = usePlaygroundStore.getState();
+        blob.slices.playground = {
+          theme: ps.theme,
+          layoutMode: ps.layoutMode,
+          windows: ps.windows,
+          topZ: ps.topZ,
+        };
+        void saveWorkspaceUi(persistKey, blob);
+      }, SAVE_DEBOUNCE_MS);
+    };
+    schedule(); // capture the initial layout on entry
+    const unsubUi = useWorkspaceUiStore.subscribe(schedule);
+    const unsubPg = usePlaygroundStore.subscribe(schedule);
+    return () => {
+      clearTimeout(timer);
+      unsubUi();
+      unsubPg();
+    };
+  }, [phase, persistKey, projectId]);
+
   // Guard against accidentally leaving the studio (the Learn nav now sits above
   // it): block in-app navigation away while in the workspace and confirm first.
   const blocker = useBlocker(phase === 'workspace');
@@ -144,9 +191,26 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {phase === 'landing' && (
         <LandingScreen
-          onSubmit={(p, gameName) => {
+          onSubmit={async (p) => {
             setPrompt(p);
-            setName(gameName ?? '');
+            // For a NEW game, create the real backend `kind='game'` project now —
+            // AFTER the prompt — then load it. The **prompt is the project name**
+            // (capped to a sensible length). Falls back to a throwaway local
+            // scaffold if the backend isn't ready, so the studio still opens.
+            if (isNew && !createdId) {
+              try {
+                const game = await createGameProject({
+                  kidId,
+                  familyId,
+                  title: p.trim().slice(0, 80) || 'My game',
+                  template: 'phaser_blank',
+                });
+                setCreatedId(game.id);
+                window.history.replaceState(null, '', `/learn/playground/${game.id}`);
+              } catch {
+                setCreatedId(`local-${crypto.randomUUID()}`);
+              }
+            }
             setPhase('generating');
           }}
         />
@@ -154,7 +218,6 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       {phase === 'generating' && (
         <GeneratingScreen
           prompt={prompt}
-          name={name}
           projectId={projectId}
           onDone={async (f) => {
             // Load the project (PRD J9): for a REAL project the backend is the
@@ -186,6 +249,20 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
               history.record(seeded, Date.now(), 'Initial version');
               setSaveStatus('idle');
             }
+            // Restore the saved workspace UI (open tabs, sidebar, layout mode,
+            // window positions/status, asset + runner selections, theme) so the
+            // studio reopens exactly where the kid left it. MUST run before the
+            // workspace (and its panes) mount so their persisted slices seed. Only
+            // for a REAL project (resume); the DEV sandbox is transient → reset to
+            // defaults and never persist, so each session/e2e starts clean.
+            if (projectId) {
+              const ui = await loadWorkspaceUi(persistKey);
+              useWorkspaceUiStore.getState().restore(ui);
+              const pg = ui?.slices?.playground as PlaygroundSnapshot | undefined;
+              if (pg) usePlaygroundStore.getState().restore(pg);
+            } else {
+              useWorkspaceUiStore.getState().restore(null);
+            }
             setPhase('workspace');
           }}
         />
@@ -198,11 +275,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onApplyFiles={applyFiles}
           onRun={run}
           prompt={prompt}
-          // Only the AUTHED studio route (a real owned project, passed as a prop)
-          // runs server-side AI turns. The DEV sandbox — even when a `?projectId`
-          // query selects a VFS fixture for the runner — keeps the offline stub
-          // turn so the debug/warn specs stay deterministic and LLM-free.
-          projectId={projectIdProp}
+          // Only a real OWNED project (the authed route param, or the id created
+          // on submit) runs server-side AI turns. The DEV sandbox — even when a
+          // `?projectId` query selects a VFS fixture for the runner — keeps the
+          // offline stub turn so the debug/warn specs stay deterministic and
+          // LLM-free.
+          projectId={ownedProjectId}
         />
       )}
 

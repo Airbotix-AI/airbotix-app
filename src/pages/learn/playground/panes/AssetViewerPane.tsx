@@ -28,6 +28,7 @@ import { runGen } from '../assetGen';
 import { addAssetToGame } from './assetInsert';
 import { isPreloadedAsset } from '../sampleAssets';
 import { useProjectStore } from '../projectStore';
+import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
 import {
   animSidecarPath,
@@ -143,9 +144,24 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
 
-  const [category, setCategory] = useState<string>(ALL);
-  const [query, setQuery] = useState('');
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  // Persisted Asset Viewer selections (J9 "resume where I left off").
+  const assetSeed = useRef(
+    readWorkspaceSlice('asset-viewer', {
+      assetCategory: ALL,
+      assetQuery: '',
+      assetSelectedPath: null as string | null,
+    }),
+  ).current;
+  const [category, setCategory] = useState<string>(() => assetSeed.assetCategory);
+  const [query, setQuery] = useState(() => assetSeed.assetQuery);
+  const [selectedPath, setSelectedPath] = useState<string | null>(() => assetSeed.assetSelectedPath);
+  useEffect(() => {
+    writeWorkspaceSlice('asset-viewer', {
+      assetCategory: category,
+      assetQuery: query,
+      assetSelectedPath: selectedPath,
+    });
+  }, [category, query, selectedPath]);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

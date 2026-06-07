@@ -52,6 +52,10 @@ export function GeneratingScreen({
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
+  // Building = a NEW game from a typed prompt → the full "building your game"
+  // animation. Resuming an existing project has no prompt → load only, no build phase.
+  const building = prompt.trim().length > 0;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -64,50 +68,64 @@ export function GeneratingScreen({
     const raf = requestAnimationFrame(() => setFilling(true));
 
     // Resolve the files (real backend load when projectId is set, else the local
-    // scaffold). When it resolves, stop ticking and hand off.
+    // scaffold). For a NEW build the load resolves almost instantly, so hold the
+    // hand-off until the staged animation has played its full `SCAFFOLD_DELAY_MS`.
+    // For a RESUME (no prompt) hand off as soon as the VFS loads — no build phase.
+    const startedAt = Date.now();
+    let doneTimer = 0;
     resolveProjectFiles({ projectId, prompt, name }).then((files) => {
       if (cancelled) return;
-      window.clearInterval(ticker);
-      onDoneRef.current(files);
+      const remaining = building
+        ? Math.max(0, SCAFFOLD_DELAY_MS - (Date.now() - startedAt))
+        : 0;
+      doneTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        window.clearInterval(ticker);
+        onDoneRef.current(files);
+      }, remaining);
     });
 
     return () => {
       cancelled = true;
       window.clearInterval(ticker);
       cancelAnimationFrame(raf);
+      if (doneTimer) window.clearTimeout(doneTimer);
     };
-  }, [prompt, name, projectId]);
+  }, [prompt, name, projectId, building]);
 
   return (
     <div className="pg-canvas fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 px-6 text-pg-text">
-      {/* Prompt echo — the kid's request, shown while it builds. */}
-      <p className="max-w-2xl text-center text-xl italic text-pg-text-dim">
-        “{prompt}”
-      </p>
+      {/* Prompt echo — the kid's request, only while BUILDING a new game. */}
+      {building && (
+        <p className="max-w-2xl text-center text-xl italic text-pg-text-dim">
+          “{prompt}”
+        </p>
+      )}
 
-      {/* Animated gradient orb — the waiting indicator. */}
+      {/* Animated gradient orb — the waiting indicator (build + resume). */}
       <Orb />
 
-      {/* Staged status list. */}
-      <ol className="flex flex-col gap-3 text-[17px]">
-        {STEPS.map((label, i) => (
-          <StatusRow key={label} label={label} state={rowState(i, step)} />
-        ))}
+      {/* Staged "building" status list + progress bar — only for a NEW build,
+          never on resume (resuming just loads the saved game). */}
+      {building && (
+        <ol className="flex flex-col gap-3 text-[17px]">
+          {STEPS.map((label, i) => (
+            <StatusRow key={label} label={label} state={rowState(i, step)} />
+          ))}
 
-        {/* Progress bar — fills smoothly 0 → 100% over the build span (linear,
-            monotonic; no shimmer sweep). */}
-        <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-pg-text/10">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: filling ? '100%' : '0%',
-              transition: `width ${SCAFFOLD_DELAY_MS}ms linear`,
-              backgroundImage:
-                'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
-            }}
-          />
-        </li>
-      </ol>
+          <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-pg-text/10">
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: filling ? '100%' : '0%',
+                transition: `width ${SCAFFOLD_DELAY_MS}ms linear`,
+                backgroundImage:
+                  'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
+              }}
+            />
+          </li>
+        </ol>
+      )}
 
       {/* Blocking caption — "loading" when opening a real project, else "building". */}
       <p className="font-extrabold text-pg-text-dim">

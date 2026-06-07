@@ -33,6 +33,7 @@ import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
+import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 import { ShareLinkPanel } from './ShareLinkPanel';
 
 interface WorkspaceProps {
@@ -72,7 +73,12 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
 
 export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt, projectId }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
-  const [splitTab, setSplitTab] = useState<SplitTab>('chat');
+  const [splitTab, setSplitTab] = useState<SplitTab>(
+    () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
+  );
+  useEffect(() => {
+    writeWorkspaceSlice('split', { tab: splitTab });
+  }, [splitTab]);
 
   // Age-derived tier (OD-1): Lite 8–11 (agency beat) / Pro 12–17 (plan→approve).
   // Default Lite when age is unknown (the safest, simplest UX).

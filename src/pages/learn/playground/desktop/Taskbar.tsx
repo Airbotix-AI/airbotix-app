@@ -96,7 +96,6 @@ export function Taskbar() {
 
       <LayoutToggle />
       <ThemeToggle />
-      <SaveStatusBadge />
 
       {layoutMode === 'window' && (
         <div className="flex items-center gap-2 pl-2">
@@ -136,6 +135,11 @@ export function Taskbar() {
           })}
         </div>
       )}
+
+      {/* Save status — pinned to the bottom-right corner of the workspace. */}
+      <div className="ml-auto">
+        <SaveStatusBadge />
+      </div>
     </div>
   );
 }
