@@ -108,7 +108,7 @@ export function FamilyDetailPage() {
 
   return (
     <div>
-      <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">← Family</Link>
+      <Link to={`/portal/family/${kidId}`} className="btn-pill-ghost mb-4 -ml-3">← Growth</Link>
 
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>

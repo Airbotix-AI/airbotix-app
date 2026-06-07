@@ -23,6 +23,7 @@ import { BillingPage } from '@/pages/portal/BillingPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
+import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
 import { FamilyNewPage } from '@/pages/portal/FamilyNewPage';
 import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
 import { RegisterPage } from '@/pages/portal/RegisterPage';
@@ -110,7 +111,8 @@ export const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
-      { path: 'family/:kidId', element: <FamilyDetailPage /> },
+      { path: 'family/:kidId', element: <KidGrowthPage /> },
+      { path: 'family/:kidId/settings', element: <FamilyDetailPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'wallet/topup', element: <WalletTopupPage /> },
       { path: 'wallet/auto-topup', element: <WalletAutoTopupPage /> },
