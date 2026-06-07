@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useSearchParams } from 'react-router-dom';
 
 import { GeneratingScreen } from './GeneratingScreen';
@@ -8,6 +8,7 @@ import { usePlaygroundStore } from './playgroundStore';
 import { loadProject as loadPersisted, saveProject as savePersisted } from './projectPersistence';
 import { type ProjectChange, useProjectStore } from './projectStore';
 import { withPreloadedAssets } from './sampleAssets';
+import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 
 type Phase = 'landing' | 'generating' | 'workspace';
@@ -62,6 +63,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // set this so the Game Runner mounts. Bringing the runner window to the FRONT
   // is done only for the editor's ▶ Play (in Workspace) — NOT for chat turns.
   const [running, setRunning] = useState(false);
+  const setSaveStatus = useSaveStatusStore((s) => s.set);
+  // The server save version we last reconciled against (PRD J3, last-write-wins).
+  // A ref so the debounced save reads the latest without re-subscribing.
+  const versionRef = useRef(0);
 
   const run = useCallback(() => {
     setRunning(true);
@@ -81,21 +86,45 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     });
   }, []);
 
-  // Persist the project (VFS + history) to IndexedDB on change, debounced, while
-  // in the workspace — so a refresh restores the work (see projectPersistence).
+  // Persist the project (VFS + history) on change, debounced, while in the
+  // workspace. The backend is the source of truth (PRD J3): we PUT the VFS and
+  // show a visible save status; IndexedDB is the offline cache/outbox. On a
+  // stale-version save the server's newer copy wins and the kid's superseded
+  // build drops into History so it stays recoverable (never the word "conflict").
   useEffect(() => {
     if (phase !== 'workspace') return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
+      setSaveStatus('saving');
       clearTimeout(timer);
-      timer = setTimeout(() => {
+      timer = setTimeout(async () => {
         const ps = useProjectStore.getState();
-        void savePersisted(persistKey, {
-          files: ps.files,
-          folders: ps.folders,
-          checkpoints: useHistoryStore.getState().checkpoints,
-          savedAt: Date.now(),
-        });
+        const result = await savePersisted(
+          persistKey,
+          {
+            files: ps.files,
+            folders: ps.folders,
+            checkpoints: useHistoryStore.getState().checkpoints,
+            savedAt: Date.now(),
+            version: versionRef.current,
+          },
+          projectId,
+        );
+        if (result.status === 'saved') {
+          versionRef.current = result.version;
+          setSaveStatus('saved');
+        } else if (result.status === 'queued') {
+          setSaveStatus('queued');
+        } else {
+          // kept-newest: adopt the server's snapshot, record the superseded build
+          // in History (recoverable), and reassure the kid we kept their newest.
+          versionRef.current = result.server.version;
+          useHistoryStore
+            .getState()
+            .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)');
+          useProjectStore.getState().apply(withPreloadedAssets(result.server.files));
+          setSaveStatus('kept-newest');
+        }
       }, SAVE_DEBOUNCE_MS);
     };
     const unsubProject = useProjectStore.subscribe(schedule);
@@ -105,7 +134,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       unsubProject();
       unsubHistory();
     };
-  }, [phase, persistKey]);
+  }, [phase, persistKey, projectId, setSaveStatus]);
 
   // Guard against accidentally leaving the studio (the Learn nav now sits above
   // it): block in-app navigation away while in the workspace and confirm first.
@@ -128,21 +157,34 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           name={name}
           projectId={projectId}
           onDone={async (f) => {
-            // Restore a persisted project (survives refresh) if one exists for this
-            // key; otherwise open the freshly-resolved files + seed history.
-            const persisted = await loadPersisted(persistKey);
+            // Load the project (PRD J9): for a REAL project the backend is the
+            // source of truth — `loadPersisted` reads its saved versioned VFS (and
+            // falls back to the offline cache); for the DEV sandbox it's the cache.
+            // `f` (from GeneratingScreen) is the scaffold fallback when neither
+            // exists. Restoring the saved VFS means a reload never reopens the
+            // scaffold.
+            const persisted = await loadPersisted(persistKey, projectId);
             const project = useProjectStore.getState();
             const history = useHistoryStore.getState();
             if (persisted && persisted.files.length > 0) {
+              versionRef.current = persisted.version;
               // Always (re)seed the read-only preloaded samples, so they appear
               // even for projects persisted before they existed.
               project.hydrate(withPreloadedAssets(persisted.files), persisted.folders);
-              history.hydrate(persisted.checkpoints);
+              if (persisted.checkpoints.length > 0) {
+                history.hydrate(persisted.checkpoints);
+              } else {
+                history.reset();
+                history.record(persisted.files, Date.now(), 'Initial version');
+              }
+              setSaveStatus('saved');
             } else {
+              versionRef.current = 0;
               const seeded = withPreloadedAssets(f);
               project.setFiles(seeded);
               history.reset();
               history.record(seeded, Date.now(), 'Initial version');
+              setSaveStatus('idle');
             }
             setPhase('workspace');
           }}

@@ -8,7 +8,7 @@
 // client so auth + refresh + error envelopes behave identically to the rest of
 // the app, and no LLM endpoint is ever hit directly (airbotix-app CLAUDE.md #5).
 
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 export const CODE_PROJECT_KIND = 'code' as const;
 
@@ -146,14 +146,79 @@ export async function getProject(projectId: string): Promise<CodeProject> {
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
 
 /**
+ * A versioned VFS snapshot. `version` is the server's monotonic save counter
+ * (bumped on every write); the client echoes it back on save so the backend can
+ * detect a stale write (last-write-wins reconcile, PRD §6 D-GAME3 / J3).
+ */
+export interface VfsSnapshot {
+  files: VfsFile[];
+  version: number;
+}
+
+/**
  * Read the project's virtual FS. The backend seeds starter template files into
  * the VFS at project create (D-CODE1d), so this endpoint is the single source
  * of truth — there is no local starter fallback. Used for initial load + the
  * iframe preview.
  */
 export async function readVfs(projectId: string): Promise<VfsFile[]> {
-  const res = await api<{ files: VfsFile[] }>(`/projects/${projectId}/code/files`);
-  return res.files ?? [];
+  return (await readVfsSnapshot(projectId)).files;
+}
+
+/**
+ * Read the project's VFS WITH its server version (PRD J3). The save flow needs
+ * the version to PUT a non-stale write; `version` defaults to 0 if the backend
+ * omits it (older projects / not-yet-saved), which still reconciles correctly.
+ */
+export async function readVfsSnapshot(projectId: string): Promise<VfsSnapshot> {
+  const res = await api<{ files?: VfsFile[]; version?: number }>(`/projects/${projectId}/code/files`);
+  return { files: res.files ?? [], version: res.version ?? 0 };
+}
+
+// ── VFS save / write-back (D-GAME3b: PUT /projects/:id/code/files) ──────────
+
+/** A stale-version save (PRD J3): the backend rejected our `version` (409). */
+export class SaveConflictError extends Error {
+  constructor(public readonly current: VfsSnapshot) {
+    super('save_conflict');
+    this.name = 'SaveConflictError';
+  }
+}
+
+/**
+ * Persist the project's VFS server-side (PRD §6 D-GAME3b / J3). Sends the files
+ * + the `version` we last loaded; the backend writes atomically and returns the
+ * bumped version. A stale `version` (another tab/device saved first) yields a
+ * `409` carrying the server's current snapshot — surfaced as `SaveConflictError`
+ * so the caller can reconcile last-write-wins (server wins, keep the newest copy
+ * recoverable in History). `idempotency_key` makes a network retry safe.
+ */
+export async function saveVfs(args: {
+  projectId: string;
+  files: VfsFile[];
+  version: number;
+  idempotencyKey?: string;
+}): Promise<VfsSnapshot> {
+  try {
+    const res = await api<{ files?: VfsFile[]; version: number }>(
+      `/projects/${args.projectId}/code/files`,
+      {
+        method: 'PUT',
+        body: {
+          files: args.files,
+          version: args.version,
+          idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
+        },
+      },
+    );
+    return { files: res.files ?? args.files, version: res.version };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 409) {
+      const current = (e.details ?? {}) as { files?: VfsFile[]; version?: number };
+      throw new SaveConflictError({ files: current.files ?? [], version: current.version ?? args.version });
+    }
+    throw e;
+  }
 }
 
 // ── Agent turn (D-CODE1d: POST /projects/:id/code/turn) ────────────────────
