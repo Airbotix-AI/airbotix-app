@@ -46,3 +46,4 @@ coverage
 # origin (no CDN). Tracked via the package.json version pin, not as binaries.
 /public/vendor/phaser-*.min.js
 /public/vendor/phaser-*.d.ts
+.claude/worktrees/

@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import { useMe } from '@/auth/useAuth';
 import { getOnboardingFlag, setOnboardingFlag } from '@/lib/onboardingStorage';
+import { onOpenWelcomeTour } from './welcomeTour';
 
 interface Slide {
   emoji: string;
@@ -21,10 +22,34 @@ const SLIDES: Slide[] = [
     title: 'Welcome to Airbotix',
     body: (
       <p>
-        Airbotix is where your child learns by <strong>making real things</strong> with AI —
-        pictures, stories, games, even code. A friendly AI coach guides them and asks questions,
-        instead of doing the work for them.
+        Airbotix is where your child <strong>learns by making real things</strong> with AI —
+        pictures, music, stories, videos, games, even code. The AI is a coach that asks questions
+        and guides — it never just does the work for them.
       </p>
+    ),
+  },
+  {
+    emoji: '🎨',
+    grad: 'bg-grad-bubblegum',
+    eyebrow: 'What they make',
+    eyebrowColor: 'eyebrow-bubblegum',
+    title: 'What your child will make & learn',
+    body: (
+      <ul className="space-y-2">
+        <li>
+          🎨 <strong>Image, Music & Voice</strong> — make art, songs, and characters
+        </li>
+        <li>
+          🎬 <strong>Video</strong> — turn their ideas into short videos
+        </li>
+        <li>
+          💻 <strong>Code & Games</strong> — build real games and apps they can play and share
+        </li>
+        <li className="pt-1 text-ink">
+          Along the way they build <strong>creativity, AI literacy, and problem-solving</strong> —
+          by directing the AI, not copying it.
+        </li>
+      </ul>
     ),
   },
   {
@@ -62,30 +87,44 @@ const SLIDES: Slide[] = [
 ];
 
 /**
- * One-time, full-screen, skippable welcome (parent-portal-onboarding-prd §4).
- * Self-gates: shows only for a parent-with-family who hasn't seen it. Closing
- * (Skip or "Let's go") sets the `welcomeSeen` flag so it never auto-shows again.
+ * Full-screen, skippable welcome tour (parent-portal-onboarding-prd §4).
+ * Auto-opens once for a parent-with-family who hasn't seen it (`welcomeSeen`
+ * flag), and can be re-opened any time via `openWelcomeTour()` (Dashboard
+ * "How it works" button) so the explanation is never lost after the first skip.
  */
 export function WelcomeWizard() {
   const me = useMe();
   const user = me.data?.kind === 'user' ? me.data : null;
   const sub = user?.sub ?? '';
   const hasFamily = !!user?.family_id;
+  const ready = !!user && hasFamily && !!sub;
 
-  // Read once on mount — we don't need this to be reactive, and closing uses
-  // local state to hide immediately.
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
-  const shouldShow =
-    !!user && hasFamily && !!sub && open && !getOnboardingFlag(sub, 'welcomeSeen');
+  // Auto-open once, the first time a set-up parent lands here.
+  useEffect(() => {
+    if (ready && !getOnboardingFlag(sub, 'welcomeSeen')) setOpen(true);
+  }, [ready, sub]);
+
+  // Re-open on demand (e.g. "How it works").
+  useEffect(
+    () =>
+      onOpenWelcomeTour(() => {
+        setStep(0);
+        setOpen(true);
+      }),
+    [],
+  );
+
+  const shouldShow = ready && open;
 
   const close = () => {
     if (sub) setOnboardingFlag(sub, 'welcomeSeen');
     setOpen(false);
   };
 
-  // Escape-to-close (matches expected modal behavior for keyboard users).
+  // Escape-to-close.
   useEffect(() => {
     if (!shouldShow) return;
     const onKey = (e: KeyboardEvent) => {
@@ -93,7 +132,6 @@ export function WelcomeWizard() {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-    // close is stable enough; re-bind only when visibility changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldShow]);
 

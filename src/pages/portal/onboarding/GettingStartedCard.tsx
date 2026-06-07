@@ -127,7 +127,7 @@ export function GettingStartedCard() {
     },
     addStars: {
       label: `Add Stars so ${ob.kidName} can create`,
-      sub: `Stars are ${ob.kidName}'s AI allowance.`,
+      sub: `Stars are like pocket money for AI — each thing ${ob.kidName} makes uses a few.`,
       action: (
         <Link to="/portal/wallet/topup" className="btn-pill-primary">
           Add Stars →

@@ -7,6 +7,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-07
 
 ### Added
+- Parent onboarding clarity pass (follow-up to the welcome flow): the welcome tour
+  gained a concrete **"What your child will make & learn"** slide (Image/Music/Voice,
+  Video, Code & Games + the skills built) and is now **re-openable any time** via a
+  **"How it works"** button on the Dashboard (`openWelcomeTour`), not just on first
+  login. New reusable **`StarsExplainer`** ("what are Stars?", qualitative — no hard
+  $ conversion) on the top-up + wallet pages and a clearer checklist subtitle. The
+  kid-login helper now shows a **QR code + "Copy login link"** (`/learn/login?family_code=…`)
+  so parents don't dictate a code and kids don't type one; the kid login page pre-fills
+  the family code from that query param. City is now a **dropdown of major AU cities
+  (+ "Other")** on register + settings instead of free text. Adds `qrcode.react`.
 - Parent-portal first-login onboarding (`parent-portal-onboarding-prd.md`): a one-time,
   skippable 3-slide **WelcomeWizard** ("what Airbotix is / you're in control / 3 next steps")
   and a persistent, data-driven **GettingStartedCard** checklist on the Dashboard (log kid in →

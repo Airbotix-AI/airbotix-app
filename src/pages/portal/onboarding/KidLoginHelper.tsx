@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface KidLoginHelperProps {
   /** the family `code` from GET /families/:id; empty string while loading */
@@ -16,6 +17,25 @@ interface KidLoginHelperProps {
  */
 export function KidLoginHelper({ familyCode, kidName, onClose }: KidLoginHelperProps) {
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  // A scan/click link that lands on the kid login with the code pre-filled, so
+  // the parent never has to dictate a code and the kid never types one.
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const loginUrl = familyCode
+    ? `${origin}/learn/login?family_code=${encodeURIComponent(familyCode)}`
+    : '';
+
+  const copyLink = () => {
+    if (!loginUrl) return;
+    try {
+      navigator.clipboard?.writeText(loginUrl);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1800);
+    } catch {
+      // clipboard blocked
+    }
+  };
 
   // Escape-to-close (matches expected modal behavior for keyboard users).
   useEffect(() => {
@@ -98,6 +118,24 @@ export function KidLoginHelper({ familyCode, kidName, onClose }: KidLoginHelperP
             </span>
           </li>
         </ol>
+
+        {loginUrl && (
+          <div className="mt-5 rounded-2xl border border-hairline bg-surface p-4 text-center">
+            <p className="text-[13px] font-semibold text-ink">Even easier: scan on their device</p>
+            <p className="mt-0.5 text-[12px] text-slate2">The family code is already filled in.</p>
+            <div className="mt-3 flex justify-center">
+              <div className="rounded-xl bg-canvas-pure p-3">
+                <QRCodeSVG value={loginUrl} size={132} aria-label="QR code to open kid login" />
+              </div>
+            </div>
+            <button onClick={copyLink} className="btn-pill-secondary mt-4">
+              {linkCopied ? 'Link copied ✓' : 'Copy login link'}
+            </button>
+            <span className="sr-only" aria-live="polite">
+              {linkCopied ? 'Login link copied' : ''}
+            </span>
+          </div>
+        )}
 
         <p className="lead-text mt-5" style={{ fontSize: '13px' }}>
           Forgot the PIN? You can reset it any time under <strong>My Family</strong>.

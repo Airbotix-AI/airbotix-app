@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
+import { openWelcomeTour } from './onboarding/welcomeTour';
 
 interface Wallet {
   stars_balance: number;
@@ -68,6 +69,11 @@ export function DashboardPage() {
         <p className="lead-text mt-3">
           5-second answer to "what's my kid doing and is everything OK?"
         </p>
+        {hasFamily && (
+          <button onClick={openWelcomeTour} className="btn-pill-ghost mt-4">
+            <span aria-hidden="true">✨ </span>How it works
+          </button>
+        )}
       </div>
 
       {!hasFamily ? (

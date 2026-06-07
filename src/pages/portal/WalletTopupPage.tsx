@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
+import { StarsExplainer } from './StarsExplainer';
 
 type PackSku = 'starter_10' | 'family_30' | 'mega_50' | 'school_100';
 
@@ -18,11 +19,12 @@ interface Pack {
 }
 
 // Mirror of platform-backend STARS_PACKS (src/wallet/wallet.dto.ts).
+// 1 star = A$0.02 (50 stars per A$1). Per-action costs stay small (chat = 1★ ≈ 2¢).
 const PACKS: Pack[] = [
-  { sku: 'starter_10', label: 'Starter',  stars: 10,  bonus: 0,  price_aud: 10,  color: 'sky' },
-  { sku: 'family_30',  label: 'Family',   stars: 30,  bonus: 5,  price_aud: 30,  color: 'mint',      tag: 'Popular' },
-  { sku: 'mega_50',    label: 'Mega',     stars: 50,  bonus: 15, price_aud: 50,  color: 'bubblegum', tag: 'Best value' },
-  { sku: 'school_100', label: 'School',   stars: 100, bonus: 40, price_aud: 100, color: 'coral' },
+  { sku: 'starter_10', label: 'Starter',  stars: 500,  bonus: 0,    price_aud: 10,  color: 'sky' },
+  { sku: 'family_30',  label: 'Family',   stars: 1500, bonus: 250,  price_aud: 30,  color: 'mint',      tag: 'Popular' },
+  { sku: 'mega_50',    label: 'Mega',     stars: 2500, bonus: 750,  price_aud: 50,  color: 'bubblegum', tag: 'Best value' },
+  { sku: 'school_100', label: 'School',   stars: 5000, bonus: 2000, price_aud: 100, color: 'coral' },
 ];
 
 interface TopupResponse {
@@ -84,6 +86,8 @@ export function WalletTopupPage() {
           Pick a pack. Bigger packs include bonus Stars.
         </p>
       </div>
+
+      <StarsExplainer className="mb-8" />
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {PACKS.map((pack) => {
