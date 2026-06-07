@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 // Vendored Phaser is npm-sourced (the `phaser` dep) and git-ignored — NOT a CDN
 // (platform rule), NOT committed. This plugin copies the engine + types from
@@ -73,5 +74,11 @@ export default defineConfig({
   build: {
     sourcemap: true,
     target: 'es2022',
+  },
+  // Vitest (unit) must NOT collect the Playwright specs in e2e/ — they use the
+  // Playwright runner (`test.use`, fixtures) and aren't valid under vitest. Keep
+  // the defaults and add e2e/ so `npm run test` runs only the real unit tests.
+  test: {
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
