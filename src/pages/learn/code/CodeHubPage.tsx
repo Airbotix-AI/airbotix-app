@@ -14,6 +14,7 @@ import {
   type CodeProject,
   type CodeTemplate,
 } from './codeApi';
+import { createGameProject } from '@/pages/learn/playground/panes/playgroundApi';
 
 /** Code Studio hub — `/learn/create/code` (learn-code-studio-prd.md §2.1). */
 export function CodeHubPage() {
@@ -36,12 +37,24 @@ export function CodeHubPage() {
     setBusy(template.id);
     setError(null);
     // Tiny Game opens the Phaser game studio (the playground), not the web code
-    // editor. Phase 1 is client-only: no backend project yet (the playground runs
-    // on its local Phaser scaffold + IndexedDB, keyed by this id). A real
-    // game-kind backend project is Phase 2. The `local-` prefix marks it as not
-    // server-backed (the file load 404s → local scaffold fallback).
+    // editor. It now creates a REAL `kind='game'` backend project (PRD J1 / M1):
+    // the backend seeds a Phaser template into the S3-backed VFS and the studio
+    // opens on those real files. The `phaser_pong` template backs the Tiny Game
+    // card. Falls back to the local scaffold only when the backend isn't ready.
     if (template.id === 'tiny_game') {
-      nav(`/learn/playground/local-${crypto.randomUUID()}`);
+      try {
+        const game = await createGameProject({
+          kidId,
+          familyId,
+          title: template.title,
+          template: 'phaser_pong',
+        });
+        nav(`/learn/playground/${game.id}`);
+      } catch {
+        // Backend `game` kind not ready (or offline) → throwaway local scaffold,
+        // so the studio still opens. Real project lands once M1 ships.
+        nav(`/learn/playground/local-${crypto.randomUUID()}`);
+      }
       return;
     }
     try {
@@ -95,6 +108,9 @@ export function CodeHubPage() {
           <button
             key={t.id}
             type="button"
+            // The Tiny Game card opens the Phaser studio on a real game project
+            // (PRD J1) — its testid follows the J1 `hub-template-pong` contract.
+            data-testid={t.id === 'tiny_game' ? 'hub-template-pong' : `hub-template-${t.id}`}
             disabled={busy !== null}
             onClick={() => start(t)}
             className={`pack-card ${t.color} text-left`}

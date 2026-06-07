@@ -10,12 +10,61 @@
 // scaffold when one isn't (the DEV `/playground-sandbox` has no project, and the
 // game backend isn't built yet) — so the playground always opens with files.
 
+import { api } from '@/lib/api';
 import { readVfs } from '../../code/codeApi';
 import type { VfsFile } from '../../code/codeApi';
 import { generateScaffold } from './starterProject';
 
 /** Project kind for games (a Phaser-templated backend project). */
 export const GAME_PROJECT_KIND = 'game' as const;
+
+/**
+ * The three Phaser starter templates the backend seeds at create time (PRD §3
+ * OQ-2 / §12 — `phaser_pong` paddle/physics, `phaser_catcher` click/collect,
+ * `phaser_blank` freeform). The hub's picture chips map onto these.
+ */
+export type GameTemplateId = 'phaser_pong' | 'phaser_catcher' | 'phaser_blank';
+
+/**
+ * Create a REAL `kind='game'` backend project (PRD J1 / §4.2). Mirrors the code
+ * studio's `createCodeProject`: the backend seeds the Phaser template into the
+ * S3-backed VFS at create time and returns the project id; the studio then opens
+ * on the real files via `readVfs` (`GET /projects/:id/code/files`). This replaces
+ * the throwaway `local-<uuid>` scaffold path.
+ */
+export async function createGameProject(args: {
+  kidId: string | null;
+  familyId: string | null;
+  /** The kid-chosen game name (PRD J1 "Name your game", e.g. "SUPERCAT"). */
+  title: string;
+  template: GameTemplateId;
+}): Promise<{ id: string }> {
+  return api<{ id: string }>(`/projects`, {
+    method: 'POST',
+    body: {
+      title: args.title,
+      product_line: 'line_b_coding',
+      kind: GAME_PROJECT_KIND,
+      template: args.template,
+      ...(args.kidId ? { kid_id: args.kidId } : {}),
+      ...(args.familyId ? { family_id: args.familyId } : {}),
+    },
+  });
+}
+
+/**
+ * Transcribe a voice idea to text for the prompt box (UDL / OD-6 voice input).
+ * STT runs SERVER-SIDE via `platform-backend /llm/transcribe` — the kid surface
+ * NEVER calls an LLM/STT provider directly (airbotix-app CLAUDE.md #5). The mic
+ * captures audio in the browser and posts it (base64 data URL, like the asset
+ * pipeline) through the shared `api` client; only the transcript text comes back.
+ */
+export async function transcribeVoice(args: { audioDataUrl: string }): Promise<{ text: string }> {
+  return api<{ text: string }>(`/llm/transcribe`, {
+    method: 'POST',
+    body: { audio: args.audioDataUrl },
+  });
+}
 
 /**
  * Load a game project's files from the backend (S3-backed, Sydney) via the
@@ -31,6 +80,8 @@ export interface ResolveFilesOptions {
   projectId?: string;
   /** Used only by the local fallback scaffold (stamped into its entry file). */
   prompt: string;
+  /** The kid's game name (PRD J1) — preferred over the prompt to title the scaffold. */
+  name?: string;
 }
 
 /**
@@ -42,7 +93,7 @@ export interface ResolveFilesOptions {
  * exercised automatically; nothing else in the UI changes.
  */
 export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<VfsFile[]> {
-  const { projectId, prompt } = opts;
+  const { projectId, prompt, name } = opts;
   if (projectId) {
     try {
       const files = await loadGameFiles(projectId);
@@ -51,5 +102,6 @@ export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<Vf
       // Network / auth / backend-not-ready → fall back to the local scaffold.
     }
   }
-  return generateScaffold(prompt);
+  // Prefer the kid's explicit game name (PRD J1) to title the scaffold.
+  return generateScaffold(name?.trim() || prompt);
 }
