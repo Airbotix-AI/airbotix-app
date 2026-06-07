@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1380" viewBox="0 0 1600 1380" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5DAEFF"/><stop offset="1" stop-color="#3D8BE0"/></linearGradient>
+    <linearGradient id="stage" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F172A"/><stop offset="1" stop-color="#1E293B"/></linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000" flood-opacity="0.5"/></filter>
+    <filter id="win" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity="0.55"/></filter>
+    <filter id="badge" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/></filter>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1380" fill="#0F0B18"/>
+
+  <!-- ============ STATE A : Window mode (default) ============ -->
+  <text x="48" y="36" font-size="15" font-weight="800" fill="#C7C0D5">STATE A — Window mode (default): draggable, stackable windows</text>
+  <g filter="url(#soft)"><rect x="40" y="52" width="1520" height="668" rx="16" fill="#1B1826"/></g>
+  <!-- top bar + layout toggle -->
+  <rect x="40" y="52" width="1520" height="44" rx="16" fill="#221E30"/><rect x="40" y="78" width="1520" height="18" fill="#221E30"/>
+  <text x="64" y="80" font-size="14" font-weight="800" fill="#C7C0D5">Workspace</text>
+  <g>
+    <rect x="1320" y="62" width="224" height="26" rx="13" fill="#15121E" stroke="#3A3548"/>
+    <rect x="1323" y="65" width="112" height="20" rx="10" fill="#5DAEFF"/>
+    <text x="1379" y="79" text-anchor="middle" font-size="12" font-weight="800" fill="#0F0B18">⊞ Windows</text>
+    <text x="1490" y="79" text-anchor="middle" font-size="12" font-weight="700" fill="#9C95AB">◫ Split</text>
+  </g>
+
+  <!-- Window: Game Runner (back) -->
+  <g filter="url(#win)"><rect x="980" y="124" width="520" height="300" rx="12" fill="#1F1B2D"/></g>
+  <rect x="980" y="124" width="520" height="34" rx="12" fill="#2A2636"/><rect x="980" y="146" width="520" height="12" fill="#2A2636"/>
+  <text x="1000" y="146" font-size="12.5" font-weight="700" fill="#C7C0D5">🎮 Game Runner</text>
+  <text x="1452" y="146" font-size="12" fill="#9C95AB">—  ▢  ✕</text>
+  <rect x="992" y="170" width="496" height="242" rx="8" fill="url(#stage)" stroke="#5DAEFF" stroke-opacity="0.25"/>
+  <rect x="1008" y="280" width="10" height="52" rx="4" fill="#6EE7B7"/><rect x="1462" y="262" width="10" height="52" rx="4" fill="#FCA5A5"/>
+  <circle cx="1240" cy="296" r="8" fill="#fff"/><text x="1240" y="206" text-anchor="middle" font-size="17" font-weight="800" fill="#fff">0</text>
+
+  <!-- Window: Code Editor (mid) -->
+  <g filter="url(#win)"><rect x="420" y="178" width="624" height="362" rx="12" fill="#1F1B2D"/></g>
+  <rect x="420" y="178" width="624" height="34" rx="12" fill="#2A2636"/><rect x="420" y="200" width="624" height="12" fill="#2A2636"/>
+  <text x="440" y="200" font-size="12.5" font-weight="700" fill="#C7C0D5">&lt;/&gt; Code Editor</text>
+  <text x="996" y="200" font-size="12" fill="#9C95AB">—  ▢  ✕</text>
+  <!-- files/assets subtabs -->
+  <text x="436" y="234" font-size="11.5" font-weight="800" fill="#FFFFFF">📄 Files</text><text x="500" y="234" font-size="11.5" fill="#9C95AB">🧊 Assets</text>
+  <line x1="432" y1="244" x2="1032" y2="244" stroke="#3A3548"/>
+  <line x1="580" y1="244" x2="580" y2="528" stroke="#3A3548"/>
+  <!-- tree -->
+  <g font-size="11.5" font-family="monospace">
+    <text x="440" y="268" fill="#C7C0D5">▾ 📁 Moon Breaker</text>
+    <text x="456" y="290" fill="#9C95AB">▸ assets</text>
+    <text x="456" y="312" fill="#C7C0D5">▾ src/scenes</text>
+    <rect x="468" y="320" width="104" height="20" rx="5" fill="#5DAEFF" opacity="0.18"/>
+    <text x="480" y="334" fill="#FFFFFF">Game.js</text>
+    <text x="476" y="356" fill="#C7C0D5">Boot.js</text>
+    <text x="456" y="378" fill="#C7C0D5">main.js</text><circle cx="528" cy="374" r="3.5" fill="#3DD9A9"/>
+  </g>
+  <!-- editor tabs + code -->
+  <g font-size="11"><rect x="592" y="252" width="70" height="22" rx="6" fill="#2A2636"/><text x="602" y="267" fill="#C7C0D5">main.js</text>
+    <rect x="668" y="252" width="78" height="22" rx="6" fill="#1B1826"/><text x="678" y="267" fill="#FFFFFF" font-weight="700">Game.js</text></g>
+  <rect x="592" y="282" width="420" height="246" fill="#1B1826"/>
+  <g font-family="monospace" font-size="11">
+    <text x="604" y="304"><tspan fill="#C879DF">class</tspan><tspan fill="#E6E1F0"> Game </tspan><tspan fill="#C879DF">extends</tspan><tspan fill="#5DAEFF"> Phaser</tspan><tspan fill="#E6E1F0">.Scene {</tspan></text>
+    <text x="604" y="324" fill="#E6E1F0">  create() {</text>
+    <text x="604" y="344" fill="#E6E1F0">    this.initPlayer();</text>
+    <text x="604" y="364" fill="#E6E1F0">    this.initPhysics();</text>
+    <text x="604" y="384" fill="#E6E1F0">  }</text>
+    <text x="604" y="404" fill="#E6E1F0">}</text>
+  </g>
+  <rect x="1014" y="282" width="18" height="246" fill="#14111E"/>
+  <g fill="#3A3548"><rect x="1017" y="290" width="12" height="2.5"/><rect x="1017" y="297" width="8" height="2.5"/><rect x="1017" y="304" width="10" height="2.5"/><rect x="1017" y="311" width="7" height="2.5"/></g>
+
+  <!-- Window: Chat (front) -->
+  <g filter="url(#win)"><rect x="120" y="332" width="520" height="352" rx="12" fill="#1F1B2D"/></g>
+  <rect x="120" y="332" width="520" height="34" rx="12" fill="#2A2636"/><rect x="120" y="354" width="520" height="12" fill="#2A2636"/>
+  <text x="140" y="354" font-size="12.5" font-weight="700" fill="#C7C0D5">💬 Chat</text>
+  <text x="592" y="354" font-size="12" fill="#9C95AB">—  ▢  ✕</text>
+  <g><rect x="350" y="386" width="270" height="38" rx="13" fill="url(#sky)"/><text x="604" y="410" text-anchor="end" font-size="13" fill="#fff">make a pong game</text></g>
+  <g><rect x="140" y="438" width="430" height="58" rx="13" fill="#2A2636" stroke="#3A3548"/><text x="158" y="463" font-size="12.5" fill="#FFFFFF">Done! ⚡ I built your Pong —</text><text x="158" y="482" font-size="12.5" fill="#FFFFFF">press ▶ to play.</text></g>
+  <rect x="140" y="628" width="440" height="40" rx="14" fill="#2A2636" stroke="#3A3548" stroke-width="2"/>
+  <text x="158" y="652" font-size="12.5" fill="#9C95AB">What should we build next?</text>
+  <circle cx="556" cy="648" r="14" fill="url(#sky)"/><text x="556" y="653" text-anchor="middle" font-size="12" fill="#fff">➤</text>
+
+  <!-- ============ STATE B : Split mode ============ -->
+  <text x="48" y="772" font-size="15" font-weight="800" fill="#C7C0D5">STATE B — Split mode (toggle to the fixed layout)</text>
+  <g filter="url(#soft)"><rect x="40" y="788" width="1520" height="392" rx="16" fill="#1F1B2D"/></g>
+  <rect x="40" y="788" width="1520" height="40" rx="16" fill="#221E30"/><rect x="40" y="812" width="1520" height="16" fill="#221E30"/>
+  <text x="64" y="813" font-size="13" font-weight="800" fill="#C7C0D5">Workspace</text>
+  <g>
+    <rect x="1320" y="796" width="224" height="24" rx="12" fill="#15121E" stroke="#3A3548"/>
+    <text x="1379" y="812" text-anchor="middle" font-size="12" font-weight="700" fill="#9C95AB">⊞ Windows</text>
+    <rect x="1432" y="798" width="110" height="20" rx="10" fill="#5DAEFF"/>
+    <text x="1487" y="812" text-anchor="middle" font-size="12" font-weight="800" fill="#0F0B18">◫ Split</text>
+  </g>
+  <line x1="1050" y1="828" x2="1050" y2="1180" stroke="#3A3548" stroke-width="1.5"/>
+  <!-- left: chat (tab) -->
+  <rect x="64" y="844" width="92" height="26" rx="8" fill="#5DAEFF" opacity="0.18"/><text x="110" y="862" text-anchor="middle" font-size="12.5" font-weight="800" fill="#5DAEFF">💬 Chat</text>
+  <text x="176" y="862" font-size="12.5" font-weight="700" fill="#9C95AB">&lt;/&gt; Code</text>
+  <line x1="64" y1="878" x2="1026" y2="878" stroke="#3A3548"/>
+  <g><rect x="690" y="900" width="320" height="38" rx="13" fill="url(#sky)"/><text x="990" y="924" text-anchor="end" font-size="13" fill="#fff">make a pong game</text></g>
+  <g><rect x="64" y="950" width="520" height="40" rx="13" fill="#2A2636" stroke="#3A3548"/><text x="84" y="975" font-size="12.5" fill="#FFFFFF">Done! ⚡ press ▶ to play.</text></g>
+  <rect x="64" y="1120" width="958" height="40" rx="14" fill="#2A2636" stroke="#3A3548" stroke-width="2"/><text x="84" y="1144" font-size="12.5" fill="#9C95AB">What should we build next?</text>
+  <circle cx="998" cy="1140" r="14" fill="url(#sky)"/><text x="998" y="1145" text-anchor="middle" font-size="12" fill="#fff">➤</text>
+  <!-- right: runner placeholder -->
+  <g font-size="15" fill="#C7C0D5"><text x="1074" y="862">▶</text><text x="1106" y="862">🔊</text><text x="1140" y="862">📱</text><text x="1174" y="862">↻</text></g>
+  <line x1="1050" y1="878" x2="1560" y2="878" stroke="#3A3548"/>
+  <rect x="1110" y="930" width="392" height="180" rx="14" fill="#17141F" stroke="#3A3548" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="1306" y="1010" text-anchor="middle" font-size="34">🎮</text>
+  <text x="1306" y="1048" text-anchor="middle" font-size="13" font-weight="700" fill="#9C95AB">Press ▶ to play</text>
+
+  <!-- badges -->
+  <g font-weight="800" font-size="14" text-anchor="middle" filter="url(#badge)">
+    <g><circle cx="1320" cy="75" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="1320" y="80" fill="#fff">1</text></g>
+    <g><circle cx="640" cy="195" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="640" y="200" fill="#fff">2</text></g>
+    <g><circle cx="140" cy="349" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="140" y="354" fill="#fff">3</text></g>
+    <g><circle cx="448" cy="195" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="448" y="200" fill="#fff">4</text></g>
+    <g><circle cx="1000" cy="141" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="1000" y="146" fill="#fff">5</text></g>
+    <g><circle cx="176" cy="862" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="176" y="867" fill="#fff">6</text></g>
+    <g><circle cx="1306" cy="930" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="1306" y="935" fill="#fff">7</text></g>
+  </g>
+
+  <!-- legend -->
+  <rect x="0" y="1180" width="1600" height="200" fill="#17141F"/>
+  <line x1="0" y1="1180" x2="1600" y2="1180" stroke="#3A3548"/>
+  <text x="48" y="1218" font-size="19" font-weight="800" fill="#FFFFFF">Annotations</text>
+  <text x="210" y="1218" font-size="14" fill="#9C95AB">— Workspace: two layout modes via a toggle (default Window mode)</text>
+  <g font-size="13.5">
+    <g transform="translate(48,1244)">
+      <g><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">1</text><text x="32" y="4" font-weight="800" fill="#fff">Layout toggle</text><text x="32" y="23" fill="#C7C0D5">⊞ Windows ⇄ ◫ Split. Default = Windows.</text></g>
+      <g transform="translate(0,50)"><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">2</text><text x="32" y="4" font-weight="800" fill="#fff">Draggable, stackable windows</text><text x="32" y="23" fill="#C7C0D5">Titlebars drag; min/max/close; they overlap + resize.</text></g>
+    </g>
+    <g transform="translate(560,1244)">
+      <g><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">3</text><text x="32" y="4" font-weight="800" fill="#fff">Chat window</text><text x="32" y="23" fill="#C7C0D5">History + pinned prompt (primary).</text></g>
+      <g transform="translate(0,50)"><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">4</text><text x="32" y="4" font-weight="800" fill="#fff">Code Editor window</text><text x="32" y="23" fill="#C7C0D5">Rich editor: Files/Assets, nested tree, tabs, minimap.</text></g>
+    </g>
+    <g transform="translate(1080,1244)">
+      <g><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">5</text><text x="32" y="4" font-weight="800" fill="#fff">Game Runner window</text><text x="32" y="23" fill="#C7C0D5">Toolbar + scale-to-fit stage.</text></g>
+      <g transform="translate(0,50)"><circle cx="12" cy="8" r="12" fill="#FF7A66"/><text x="12" y="13" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">6</text><text x="32" y="4" font-weight="800" fill="#fff">Split mode + 7 placeholder</text><text x="32" y="23" fill="#C7C0D5">Fixed: Chat 2/3 (Chat/Code tab) + Runner 1/3 "Press ▶".</text></g>
+    </g>
+  </g>
+</svg>

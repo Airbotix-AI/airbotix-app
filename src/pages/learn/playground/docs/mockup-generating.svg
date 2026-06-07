@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <radialGradient id="vign" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#17121F"/><stop offset="1" stop-color="#0F0B18"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF7A66"/><stop offset="0.33" stop-color="#FF6BA9"/>
+      <stop offset="0.66" stop-color="#5DAEFF"/><stop offset="1" stop-color="#3DD9A9"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#5DAEFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#5DAEFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="badge" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.4"/></filter>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="720" fill="url(#vign)"/>
+  <g transform="translate(1480,28)"><rect x="0" y="0" width="92" height="24" rx="12" fill="#FFD43B"/><text x="46" y="17" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">MOCKUP</text></g>
+
+  <!-- prompt echo -->
+  <text x="800" y="150" text-anchor="middle" font-size="22" font-style="italic" fill="#C7C0D5">“let's create a pong game”</text>
+
+  <!-- glowing orb -->
+  <circle cx="800" cy="320" r="92" fill="url(#core)" filter="url(#blur)"/>
+  <circle cx="800" cy="320" r="70" fill="none" stroke="#3A3548" stroke-width="6"/>
+  <path d="M 800 250 A 70 70 0 1 1 730 320" fill="none" stroke="url(#ring)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="800" cy="320" r="10" fill="#FFFFFF"/>
+
+  <!-- staged status -->
+  <g transform="translate(520,452)" font-size="17">
+    <text x="0" y="0" fill="#3DD9A9" font-weight="800">✓</text><text x="28" y="0" fill="#C7C0D5">Planning the game</text>
+    <text x="0" y="40" fill="#3DD9A9" font-weight="800">✓</text><text x="28" y="40" fill="#C7C0D5">Creating scenes &amp; files</text>
+    <text x="0" y="80" fill="#5DAEFF" font-weight="800">⟳</text><text x="28" y="80" fill="#FFFFFF" font-weight="700">Writing <tspan font-family="monospace">game.js</tspan>…</text>
+    <text x="0" y="120" fill="#9C95AB" font-weight="800">•</text><text x="28" y="120" fill="#9C95AB">Wiring up the stage</text>
+  </g>
+  <!-- progress shimmer -->
+  <rect x="520" y="592" width="560" height="8" rx="4" fill="#221E30"/>
+  <rect x="520" y="592" width="300" height="8" rx="4" fill="url(#ring)"/>
+
+  <!-- caption -->
+  <text x="800" y="664" text-anchor="middle" font-size="18" font-weight="800" fill="#C7C0D5">Building your game…</text>
+
+  <!-- badges -->
+  <g font-weight="800" font-size="15" text-anchor="middle" filter="url(#badge)">
+    <g><circle cx="985" cy="143" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="985" y="149" fill="#fff">1</text></g>
+    <g><circle cx="892" cy="262" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="892" y="268" fill="#fff">2</text></g>
+    <g><circle cx="488" cy="532" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="488" y="538" fill="#fff">3</text></g>
+    <g><circle cx="952" cy="658" r="15" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="952" y="664" fill="#fff">4</text></g>
+  </g>
+
+  <!-- legend -->
+  <rect x="0" y="720" width="1600" height="200" fill="#17141F"/>
+  <line x1="0" y1="720" x2="1600" y2="720" stroke="#3A3548"/>
+  <text x="48" y="762" font-size="19" font-weight="800" fill="#FFFFFF">Annotations</text>
+  <text x="210" y="762" font-size="14" fill="#9C95AB">— Generating screen (blocking; stubbed scaffold)</text>
+  <g font-size="14">
+    <g transform="translate(48,792)">
+      <g><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">1</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Prompt echo</text>
+        <text x="36" y="26" fill="#C7C0D5">The kid's request, shown while it builds.</text></g>
+      <g transform="translate(0,52)"><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">2</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Animated gradient orb</text>
+        <text x="36" y="26" fill="#C7C0D5">Spinning brand-gradient ring — the waiting indicator.</text></g>
+    </g>
+    <g transform="translate(820,792)">
+      <g><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">3</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Staged status</text>
+        <text x="36" y="26" fill="#C7C0D5">Steps tick through as the scaffold is created.</text></g>
+      <g transform="translate(0,52)"><circle cx="13" cy="9" r="13" fill="#FF7A66"/><text x="13" y="14" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">4</text>
+        <text x="36" y="6" font-weight="800" fill="#FFFFFF">Blocking caption</text>
+        <text x="36" y="26" fill="#C7C0D5">Non-dismissable; stubbed ~few seconds → workspace.</text></g>
+    </g>
+  </g>
+</svg>

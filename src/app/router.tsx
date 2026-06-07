@@ -3,9 +3,17 @@ import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LearnLayout } from './LearnLayout';
 import { PortalLayout } from './PortalLayout';
+import { TeacherLayout } from './TeacherLayout';
 
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
+
+// The Phaser game studio. `/playground-sandbox` is the DEV-only no-auth entry;
+// `/learn/playground/:projectId` (LearnPlaygroundPage) is the authed kid entry
+// the Tiny Game card opens. Phase 1 runs on the local scaffold (no backend
+// `game` kind yet — see LearnPlaygroundPage).
+import { PlaygroundApp } from '@/pages/learn/playground/PlaygroundApp';
+import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
 import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
@@ -43,16 +51,49 @@ import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
 import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
 import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
 import { ClassWallViewPage } from '@/pages/learn/classroom/ClassWallViewPage';
+import { ClassGamesWallPage } from '@/pages/learn/classroom/ClassGamesWallPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
+// Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
+// `user` principal (role=teacher); the full console lives in a sibling repo —
+// this is the in-app class dashboard + live view + assessment FE.
+import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
+import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
+import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
 import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
 import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 
+// PUBLIC, no-auth play host for an external share-link (learn-game-studio-prd
+// §17.8 J8 / D-GAME10). Renders ONLY the bare game canvas (no editor/chat/console/
+// Game-Runner chrome), no auth token, no LLM — the opaque-origin sandbox only.
+import { PublicPlayPage } from '@/pages/play/PublicPlayPage';
+
 export const router = createBrowserRouter([
   // Root redirect based on principal kind
   { path: '/', element: <RootPage /> },
+
+  // PUBLIC external share-link play route — NO auth, NO layout, NO studio chrome.
+  // A logged-out visitor (e.g. grandma) opens /play/:shareId and plays the kid's
+  // frozen, read-only game snapshot. Deliberately NOT under any <ProtectedRoute>.
+  { path: '/play/:shareId', element: <PublicPlayPage /> },
+
+  // DEV-ONLY: view the playground desktop without auth. Stripped from prod builds.
+  // Wrapped in h-screen so the studio (now h-full) fills the viewport here, where
+  // there's no LearnLayout to provide height.
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/playground-sandbox',
+          element: (
+            <div className="h-screen">
+              <PlaygroundApp />
+            </div>
+          ),
+        },
+      ]
+    : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },
@@ -84,6 +125,23 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // Teacher — class-session surface (kind="user", role=teacher). Class dashboard
+  // + per-kid live read-only view + assessment (learn-game-studio-prd §17.12 J12).
+  {
+    path: '/teacher',
+    element: (
+      <ProtectedRoute kind="user">
+        <TeacherLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: 'classes/:classId', element: <ClassDashboardPage /> },
+      { path: 'classes/:classId/kids/:kidId', element: <LiveViewPage /> },
+      { path: 'classes/:classId/kids/:kidId/assessment', element: <AssessmentPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+
   // Learn — kid surface
   { path: '/learn/login', element: <LearnLoginPage /> },
   { path: '/learn/class-code', element: <ClassCodePage /> },
@@ -104,6 +162,7 @@ export const router = createBrowserRouter([
       { path: 'wall', element: <ClassWallPage /> },
       { path: 'classroom', element: <ClassroomListPage /> },
       { path: 'classroom/:classId', element: <ClassWallViewPage /> },
+      { path: 'classroom/:classId/games', element: <ClassGamesWallPage /> },
       { path: 'classroom/:classId/post/:projectId', element: <ClassPostPage /> },
       { path: 'profile', element: <LearnProfilePage /> },
       { path: 'create', element: <CreateHubPage /> },
@@ -114,6 +173,11 @@ export const router = createBrowserRouter([
       { path: 'create/code', element: <CodeHubPage /> },
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
+      // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
+      // -bleed via FLUID_ROUTES in LearnLayout. The Tiny Game card routes here.
+      // Phase 1: local Phaser scaffold (no backend game kind yet). The DEV
+      // `/playground-sandbox` stays the no-auth quick-test entry.
+      { path: 'playground/:projectId', element: <LearnPlaygroundPage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

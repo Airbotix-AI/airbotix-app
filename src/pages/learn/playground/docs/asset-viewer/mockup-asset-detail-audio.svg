@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <radialGradient id="desk" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#181222"/><stop offset="1" stop-color="#0C0913"/></radialGradient>
+    <linearGradient id="bub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FBE"/><stop offset="1" stop-color="#FF4F8F"/></linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3DD9A9"/><stop offset="1" stop-color="#2BB68C"/></linearGradient>
+    <filter id="win" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/></filter>
+    <filter id="bdg" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/></filter>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path d="M8 6l10 6-10 6z" fill="currentColor"/></symbol>
+    <symbol id="ic-pause" viewBox="0 0 24 24"><rect x="7" y="6" width="4" height="12" rx="1" fill="currentColor"/><rect x="13" y="6" width="4" height="12" rx="1" fill="currentColor"/></symbol>
+    <symbol id="ic-loop" viewBox="0 0 24 24"><path d="M4 12a6 6 0 0 1 6-6h7l-2.5-2.5M20 12a6 6 0 0 1-6 6H7l2.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-sound" viewBox="0 0 24 24"><path d="M5 9v6h4l5 4V5L9 9H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M17 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-insert" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></symbol>
+    <symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M5 19l1-4L17 4l3 3L9 18l-4 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-move" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16M8 8l4-4 4 4M8 16l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-swap" viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="ic-assets" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="9.5" r="1.8" fill="currentColor"/><path d="M5 17l4.5-4.5 3 3 3-3L21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="760" fill="url(#desk)"/>
+
+  <!-- detail surface -->
+  <g filter="url(#win)"><rect x="70" y="36" width="1460" height="684" rx="18" fill="#242133" stroke="#5DAEFF" stroke-opacity="0.5" stroke-width="2"/></g>
+  <path d="M70 54a18 18 0 0 1 18-18h1424a18 18 0 0 1 18 18v36H70z" fill="#2E2A40"/>
+  <use href="#ic-sound" x="92" y="46" width="24" height="24" color="#5DAEFF"/>
+  <text x="126" y="64" font-size="16" font-weight="800" fill="#FFFFFF">ding.mp3</text>
+  <rect x="252" y="48" width="74" height="24" rx="12" fill="#5DAEFF" opacity="0.18"/><text x="289" y="64" text-anchor="middle" font-size="11.5" font-weight="800" fill="#9FCBFF">audio</text>
+  <use href="#ic-close" x="1490" y="51" width="22" height="22" color="#9B94AC"/>
+
+  <!-- ===== LEFT: waveform + transport ===== -->
+  <text x="100" y="124" font-size="12.5" font-weight="800" fill="#8B84A0">WAVEFORM</text>
+  <text x="200" y="124" font-size="12" fill="#6E6786">(rendered with wavesurfer.js — already a project dependency)</text>
+  <rect x="100" y="136" width="700" height="280" rx="14" fill="#15121E" stroke="#46415C"/>
+  <line x1="100" y1="276" x2="800" y2="276" stroke="#2C2839"/>
+  <!-- waveform bars (played = bubblegum, remaining = muted) -->
+  <g transform="translate(120,276)">
+    <rect x="0" y="-4" width="7" height="8" rx="2" fill="#FF6BA9"/>
+    <rect x="16" y="-7" width="7" height="14" rx="2" fill="#FF6BA9"/>
+    <rect x="32" y="-12" width="7" height="24" rx="2" fill="#FF6BA9"/>
+    <rect x="48" y="-20" width="7" height="40" rx="2" fill="#FF6BA9"/>
+    <rect x="64" y="-32" width="7" height="64" rx="2" fill="#FF6BA9"/>
+    <rect x="80" y="-46" width="7" height="92" rx="2" fill="#FF6BA9"/>
+    <rect x="96" y="-55" width="7" height="110" rx="2" fill="#FF6BA9"/>
+    <rect x="112" y="-48" width="7" height="96" rx="2" fill="#FF6BA9"/>
+    <rect x="128" y="-37" width="7" height="74" rx="2" fill="#FF6BA9"/>
+    <rect x="144" y="-44" width="7" height="88" rx="2" fill="#FF6BA9"/>
+    <rect x="160" y="-33" width="7" height="66" rx="2" fill="#FF6BA9"/>
+    <rect x="176" y="-25" width="7" height="50" rx="2" fill="#FF6BA9"/>
+    <rect x="192" y="-30" width="7" height="60" rx="2" fill="#FF6BA9"/>
+    <rect x="208" y="-21" width="7" height="42" rx="2" fill="#FF6BA9"/>
+    <rect x="224" y="-24" width="7" height="48" rx="2" fill="#FF6BA9"/>
+    <rect x="240" y="-17" width="7" height="34" rx="2" fill="#5A5470"/>
+    <rect x="256" y="-19" width="7" height="38" rx="2" fill="#5A5470"/>
+    <rect x="272" y="-14" width="7" height="28" rx="2" fill="#5A5470"/>
+    <rect x="288" y="-16" width="7" height="32" rx="2" fill="#5A5470"/>
+    <rect x="304" y="-12" width="7" height="24" rx="2" fill="#5A5470"/>
+    <rect x="320" y="-14" width="7" height="28" rx="2" fill="#5A5470"/>
+    <rect x="336" y="-10" width="7" height="20" rx="2" fill="#5A5470"/>
+    <rect x="352" y="-12" width="7" height="24" rx="2" fill="#5A5470"/>
+    <rect x="368" y="-9" width="7" height="18" rx="2" fill="#5A5470"/>
+    <rect x="384" y="-11" width="7" height="22" rx="2" fill="#5A5470"/>
+    <rect x="400" y="-8" width="7" height="16" rx="2" fill="#5A5470"/>
+    <rect x="416" y="-9" width="7" height="18" rx="2" fill="#5A5470"/>
+    <rect x="432" y="-7" width="7" height="14" rx="2" fill="#5A5470"/>
+    <rect x="448" y="-8" width="7" height="16" rx="2" fill="#5A5470"/>
+    <rect x="464" y="-6" width="7" height="12" rx="2" fill="#5A5470"/>
+    <rect x="480" y="-7" width="7" height="14" rx="2" fill="#5A5470"/>
+    <rect x="496" y="-5" width="7" height="11" rx="2" fill="#5A5470"/>
+    <rect x="512" y="-6" width="7" height="13" rx="2" fill="#5A5470"/>
+    <rect x="528" y="-5" width="7" height="10" rx="2" fill="#5A5470"/>
+    <rect x="544" y="-6" width="7" height="12" rx="2" fill="#5A5470"/>
+    <rect x="560" y="-4" width="7" height="9" rx="2" fill="#5A5470"/>
+    <rect x="576" y="-5" width="7" height="10" rx="2" fill="#5A5470"/>
+    <rect x="592" y="-4" width="7" height="8" rx="2" fill="#5A5470"/>
+    <rect x="608" y="-4" width="7" height="9" rx="2" fill="#5A5470"/>
+    <rect x="624" y="-3" width="7" height="7" rx="2" fill="#5A5470"/>
+  </g>
+  <!-- playhead -->
+  <line x1="363" y1="148" x2="363" y2="404" stroke="#FFFFFF" stroke-width="2"/>
+  <circle cx="363" cy="148" r="5" fill="#FFFFFF"/>
+
+  <!-- transport -->
+  <g transform="translate(100,448)"><circle cx="26" cy="26" r="26" fill="url(#bub)"/><use href="#ic-pause" x="14" y="14" width="24" height="24" color="#fff"/></g>
+  <text x="172" y="482" font-size="14" font-weight="700" fill="#E7E2F0">0:00</text>
+  <text x="214" y="482" font-size="13" fill="#6E6786">/ 0:01</text>
+  <!-- scrubber -->
+  <rect x="280" y="468" width="340" height="8" rx="4" fill="#2E2A40"/><rect x="280" y="468" width="120" height="8" rx="4" fill="#FF6BA9"/><circle cx="400" cy="472" r="8" fill="#fff"/>
+  <!-- loop -->
+  <g transform="translate(644,452)"><rect width="44" height="44" rx="12" fill="#FF6BA9" opacity="0.16"/><rect width="44" height="44" rx="12" fill="none" stroke="#FF6BA9" stroke-opacity="0.5"/><use href="#ic-loop" x="10" y="10" width="24" height="24" color="#FF9AC6"/></g>
+  <!-- volume -->
+  <use href="#ic-sound" x="708" y="462" width="22" height="22" color="#B7B0C6"/>
+  <rect x="738" y="471" width="56" height="6" rx="3" fill="#2E2A40"/><rect x="738" y="471" width="40" height="6" rx="3" fill="#B7B0C6"/>
+  <!-- format chips -->
+  <text x="100" y="556" font-size="12.5" font-weight="800" fill="#8B84A0">SOURCE FORMATS</text>
+  <g font-size="11.5" font-weight="700"><rect x="240" y="542" width="60" height="22" rx="11" fill="#221E30" stroke="#46415C"/><text x="270" y="557" text-anchor="middle" fill="#C7C0D5">mp3</text>
+  <rect x="308" y="542" width="60" height="22" rx="11" fill="#221E30" stroke="#46415C"/><text x="338" y="557" text-anchor="middle" fill="#8B84A0">+ ogg</text></g>
+  <text x="100" y="592" font-size="12" fill="#6E6786">Tip: ship mp3 + ogg so every browser can play the sound (Phaser picks the supported one).</text>
+
+  <!-- divider -->
+  <line x1="832" y1="110" x2="832" y2="700" stroke="#3A3650"/>
+
+  <!-- ===== RIGHT column ===== -->
+  <rect x="864" y="116" width="630" height="150" rx="14" fill="#201D2E" stroke="#3A3650"/>
+  <text x="884" y="146" font-size="13" font-weight="800" fill="#FFFFFF">Details</text>
+  <g font-size="12.5">
+    <text x="884" y="176" fill="#8B84A0">Path</text><text x="1476" y="176" text-anchor="end" font-family="monospace" fill="#C7C0D5">assets/audio/ding.mp3</text>
+    <text x="884" y="204" fill="#8B84A0">Type</text><text x="1476" y="204" text-anchor="end" fill="#C7C0D5">MP3 audio</text>
+    <text x="884" y="232" fill="#8B84A0">Duration · rate</text><text x="1476" y="232" text-anchor="end" fill="#C7C0D5">0:01.2 · 44.1 kHz · stereo</text>
+    <text x="884" y="256" fill="#8B84A0">Size</text><text x="1476" y="256" text-anchor="end" fill="#C7C0D5">9.6 KB</text>
+  </g>
+
+  <rect x="864" y="282" width="630" height="120" rx="14" fill="#201D2E" stroke="#3A3650"/>
+  <text x="884" y="312" font-size="13" font-weight="800" fill="#FFFFFF">Use it in your code</text>
+  <g transform="translate(1316,294)"><rect width="80" height="28" rx="9" fill="#2E2A40" stroke="#46415C"/><use href="#ic-copy" x="8" y="5" width="18" height="18" color="#B7B0C6"/><text x="50" y="19" text-anchor="middle" font-size="11.5" font-weight="700" fill="#E7E2F0">Copy</text></g>
+  <g transform="translate(1404,294)"><rect width="90" height="28" rx="9" fill="url(#mint)"/><use href="#ic-insert" x="8" y="5" width="18" height="18" color="#0E2A20"/><text x="56" y="19" text-anchor="middle" font-size="11.5" font-weight="800" fill="#0E2A20">Insert</text></g>
+  <rect x="884" y="332" width="590" height="56" rx="10" fill="#15121E" stroke="#46415C"/>
+  <g font-family="monospace" font-size="12.5">
+    <text x="900" y="358"><tspan fill="#E6E1F0">this.load.</tspan><tspan fill="#5DAEFF">audio</tspan><tspan fill="#E6E1F0">(</tspan><tspan fill="#3DD9A9">'ding'</tspan><tspan fill="#E6E1F0">, </tspan><tspan fill="#3DD9A9">'assets/audio/ding.mp3'</tspan><tspan fill="#E6E1F0">);</tspan></text>
+    <text x="900" y="378"><tspan fill="#6E6786">// later:  this.sound.play('ding');</tspan></text>
+  </g>
+
+  <rect x="864" y="418" width="630" height="200" rx="14" fill="#201D2E" stroke="#FF6BA9" stroke-opacity="0.4"/>
+  <use href="#ic-spark" x="884" y="434" width="20" height="20" color="#FF6BA9"/>
+  <text x="912" y="450" font-size="13" font-weight="800" fill="#FFFFFF">Generate a sound</text>
+  <rect x="1300" y="432" width="86" height="22" rx="11" fill="#FFD43B"/><text x="1343" y="447" text-anchor="middle" font-size="10.5" font-weight="800" fill="#1F1B2D">stub demo</text>
+  <rect x="884" y="464" width="590" height="60" rx="10" fill="#2E2A40" stroke="#46415C"/>
+  <text x="900" y="490" font-size="12.5" fill="#C7C0D5">a short bright "ding" coin pickup, cheerful, retro arcade,</text>
+  <text x="900" y="510" font-size="12.5" fill="#C7C0D5">mono, under 1 second…</text>
+  <g font-size="11.5" font-weight="700">
+    <rect x="884" y="536" width="92" height="28" rx="9" fill="#1B1828" stroke="#46415C"/><text x="930" y="554" text-anchor="middle" fill="#C7C0D5">audio ▾</text>
+    <rect x="984" y="536" width="120" height="28" rx="9" fill="#1B1828" stroke="#46415C"/><text x="1044" y="554" text-anchor="middle" fill="#C7C0D5">≤ 2 s ▾</text>
+  </g>
+  <g transform="translate(884,572)"><rect width="220" height="38" rx="11" fill="url(#bub)"/><use href="#ic-spark" x="16" y="9" width="20" height="20" color="#fff"/><text x="128" y="24" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">Generate sound</text></g>
+  <text x="1130" y="596" font-size="11.5" fill="#6E6786">POST /llm/generate-asset · kind:'audio'</text>
+
+  <!-- manage -->
+  <g font-size="12" font-weight="700">
+    <g transform="translate(864,640)"><rect width="120" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-pencil" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="74" y="25" text-anchor="middle" fill="#E7E2F0">Rename</text></g>
+    <g transform="translate(994,640)"><rect width="110" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-move" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="68" y="25" text-anchor="middle" fill="#E7E2F0">Move</text></g>
+    <g transform="translate(1114,640)"><rect width="124" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-swap" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="78" y="25" text-anchor="middle" fill="#E7E2F0">Replace</text></g>
+    <g transform="translate(1374,640)"><rect width="120" height="40" rx="11" fill="#3A1620" stroke="#FF7A66" stroke-opacity="0.5"/><use href="#ic-trash" x="16" y="11" width="18" height="18" color="#FF7A66"/><text x="76" y="25" text-anchor="middle" fill="#FF9A88">Delete</text></g>
+  </g>
+
+  <!-- annotation badges -->
+  <g font-weight="800" font-size="14" text-anchor="middle" filter="url(#bdg)">
+    <g><circle cx="120" cy="149" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="120" y="154" fill="#fff">1</text></g>
+    <g><circle cx="363" cy="148" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="363" y="153" fill="#fff">2</text></g>
+    <g><circle cx="126" cy="474" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="126" y="479" fill="#fff">3</text></g>
+    <g><circle cx="884" cy="302" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="884" y="307" fill="#1F1B2D">4</text></g>
+    <g><circle cx="912" cy="438" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="912" y="443" fill="#1F1B2D">5</text></g>
+  </g>
+
+  <!-- legend -->
+  <rect x="0" y="760" width="1600" height="240" fill="#16121F"/><line x1="0" y1="760" x2="1600" y2="760" stroke="#46415C"/>
+  <text x="40" y="800" font-size="19" font-weight="800" fill="#FFFFFF">Asset Viewer — audio detail</text>
+  <text x="360" y="800" font-size="13" fill="#8B84A0">— the detail view's preview region swaps to a waveform + transport for sound assets</text>
+  <g font-size="13">
+    <g transform="translate(40,828)">
+      <g><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">1</text><text x="30" y="4" font-weight="800" fill="#fff">Waveform (wavesurfer.js)</text><text x="30" y="23" fill="#B7B0C6">Reuses the existing dependency — no new packages. Played portion tinted; click to seek.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">2</text><text x="30" y="4" font-weight="800" fill="#fff">Playhead + scrub</text><text x="30" y="23" fill="#B7B0C6">Drag the playhead/scrubber to preview any point; current / total time shown.</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">3</text><text x="30" y="4" font-weight="800" fill="#fff">Transport — play / loop / volume</text><text x="30" y="23" fill="#B7B0C6">Loop for SFX checks; format chips remind kids to ship mp3 + ogg for cross-browser playback.</text></g>
+    </g>
+    <g transform="translate(820,828)">
+      <g><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">4</text><text x="30" y="4" font-weight="800" fill="#fff">Code-ref = load.audio</text><text x="30" y="23" fill="#B7B0C6">Copy / Insert the exact loader call + a play() reminder; key defaults to the filename.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">5</text><text x="30" y="4" font-weight="800" fill="#fff">Generate a sound</text><text x="30" y="23" fill="#B7B0C6">Same AI seam, kind:'audio' (+ duration). POST /llm/generate-asset; local stub returns a short tone for now.</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#3DD9A9"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#0E2A20">✓</text><text x="30" y="4" font-weight="800" fill="#fff">Shared metadata + manage</text><text x="30" y="23" fill="#B7B0C6">Duration / sample-rate / channels decoded client-side; rename / move / replace / delete identical to images.</text></g>
+    </g>
+  </g>
+</svg>

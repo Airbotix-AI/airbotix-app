@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 interface Project {
   id: string;
   title: string;
+  kind?: 'creative' | 'code' | 'game';
   product_line: 'line_a_creative' | 'line_b_coding';
   visibility: 'private' | 'class' | 'public';
   thumbnail_s3_key: string | null;
@@ -74,9 +75,12 @@ function relativeDate(iso: string): string {
 export function ProjectsListPage() {
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const qc = useQueryClient();
   const [tab, setTab] = useState<FilterTab>('all');
   const [showNewModal, setShowNewModal] = useState(false);
   const [visibleCount, setVisibleCount] = useState(24);
+  // Inline delete confirmation: the id of the project awaiting a "Delete this?" confirm.
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const projects = useQuery<Project[]>({
     queryKey: ['projects', 'kid', kidId],
@@ -86,6 +90,18 @@ export function ProjectsListPage() {
 
   const filtered = applyFilter(projects.data ?? [], tab);
   const atLimit = (projects.data?.length ?? 0) >= 50;
+
+  const del = useMutation({
+    mutationFn: (id: string) => api<void>(`/projects/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      setConfirmId(null);
+      qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
+    },
+  });
+
+  // Resume opens a game in the studio (PRD J9); other kinds open their project detail.
+  const resumeHref = (p: Project) =>
+    p.kind === 'game' ? `/learn/playground/${p.id}` : `/learn/projects/${p.id}`;
 
   return (
     <div>
@@ -146,7 +162,16 @@ export function ProjectsListPage() {
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {filtered.slice(0, visibleCount).map((p) => (
-              <ProjectCard key={p.id} project={p} />
+              <ProjectCard
+                key={p.id}
+                project={p}
+                resumeHref={resumeHref(p)}
+                confirming={confirmId === p.id}
+                deleting={del.isPending && confirmId === p.id}
+                onAskDelete={() => setConfirmId(p.id)}
+                onCancelDelete={() => setConfirmId(null)}
+                onConfirmDelete={() => del.mutate(p.id)}
+              />
             ))}
           </div>
           {filtered.length > visibleCount && (
@@ -171,45 +196,100 @@ export function ProjectsListPage() {
 
 // ─── Project card ─────────────────────────────────────────────────────────────
 
-function ProjectCard({ project: p }: { project: Project }) {
+function ProjectCard({
+  project: p,
+  resumeHref,
+  confirming,
+  deleting,
+  onAskDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  project: Project;
+  resumeHref: string;
+  confirming: boolean;
+  deleting: boolean;
+  onAskDelete: () => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+}) {
   const badge = p.visibility !== 'private'
     ? VISIBILITY_STICKER[p.visibility]
     : STATUS_STICKER[p.status];
   const thumbBg = THUMB_BG[p.product_line] ?? 'bg-wash-sky';
   const thumbIcon = THUMB_ICON[p.product_line] ?? '🎨';
 
+  // Body is a Link (games resume in the playground, PRD J9); the action row holds
+  // the interactive Open / Delete controls — kept outside the <Link> so the
+  // delete buttons aren't nested in an anchor.
   return (
-    <Link
-      to={`/learn/projects/${p.id}`}
-      className="card-base block p-0 overflow-hidden transition-transform hover:-translate-y-1"
-    >
-      {/* Thumbnail — 4:3 ratio */}
-      <div className={`aspect-[4/3] ${thumbBg} flex items-center justify-center overflow-hidden`}>
-        {p.thumbnail_s3_key ? (
-          <img src={p.thumbnail_s3_key} alt="" className="h-full w-full object-cover" />
+    <div className="card-base p-0 overflow-hidden" data-testid="project-card">
+      <Link
+        to={resumeHref}
+        className="block transition-transform hover:-translate-y-1"
+        data-testid="project-resume"
+      >
+        {/* Thumbnail — 4:3 ratio */}
+        <div className={`aspect-[4/3] ${thumbBg} flex items-center justify-center overflow-hidden`}>
+          {p.thumbnail_s3_key ? (
+            <img src={p.thumbnail_s3_key} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[36px] opacity-25">{thumbIcon}</span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="p-3 space-y-1">
+          <h3 className="text-[14px] font-bold text-ink leading-snug line-clamp-2">
+            {p.title}
+          </h3>
+          <p className="text-[12px] text-steel">
+            {p.artifact_count} {p.artifact_count === 1 ? 'item' : 'items'}
+          </p>
+          <div className="flex items-center justify-between gap-1 pt-0.5">
+            {badge && (
+              <span className={`sticker-${badge.color}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
+                {badge.label}
+              </span>
+            )}
+            <span className="text-[11px] text-steel ml-auto">{relativeDate(p.updated_at)}</span>
+          </div>
+        </div>
+      </Link>
+
+      {/* Resume / Delete actions (delete asks for confirmation first). */}
+      <div className="flex items-center justify-between gap-2 border-t border-hairline px-3 py-2">
+        <Link to={resumeHref} className="text-[12px] font-bold text-brand-sky">
+          {p.kind === 'game' ? 'Resume game →' : 'Open →'}
+        </Link>
+        {confirming ? (
+          <span className="flex items-center gap-2 text-[12px]">
+            <span className="text-slate2">Delete this?</span>
+            <button
+              type="button"
+              onClick={onConfirmDelete}
+              disabled={deleting}
+              className="font-bold text-brand-coral disabled:opacity-50"
+              data-testid="project-delete-confirm"
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+            <button type="button" onClick={onCancelDelete} className="font-bold text-slate2">
+              Cancel
+            </button>
+          </span>
         ) : (
-          <span className="text-[36px] opacity-25">{thumbIcon}</span>
+          <button
+            type="button"
+            onClick={onAskDelete}
+            className="text-[12px] font-bold text-slate2 hover:text-brand-coral"
+            data-testid="project-delete"
+          >
+            Delete
+          </button>
         )}
       </div>
-
-      {/* Info */}
-      <div className="p-3 space-y-1">
-        <h3 className="text-[14px] font-bold text-ink leading-snug line-clamp-2">
-          {p.title}
-        </h3>
-        <p className="text-[12px] text-steel">
-          {p.artifact_count} {p.artifact_count === 1 ? 'item' : 'items'}
-        </p>
-        <div className="flex items-center justify-between gap-1 pt-0.5">
-          {badge && (
-            <span className={`sticker-${badge.color}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-              {badge.label}
-            </span>
-          )}
-          <span className="text-[11px] text-steel ml-auto">{relativeDate(p.updated_at)}</span>
-        </div>
-      </div>
-    </Link>
+    </div>
   );
 }
 
