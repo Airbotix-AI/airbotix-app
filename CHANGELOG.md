@@ -7,6 +7,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-07
 
 ### Added
+- Parent Portal **Courses** page (`/portal/courses`): browse published course packs and
+  request a seat for a kid. Submits to `POST /bookings` (`source=parent_portal`) so the
+  request lands in the super-admin Bookings inbox.
 - **My Family is now a growth surface, not a settings form** (`parent-portal-growth-report-prd.md`): tapping a kid lands on a warm **growth report** (`/portal/family/:kidId`, new `KidGrowthPage`) — a one-sentence headline, highlight tiles (creations / day-streak / minutes exploring / studios tried), a 28-day daily-activity sparkline, and a friendly "what they've been making" breakdown — instead of the profile editor. The family list now shows a per-kid growth teaser (`KidGrowthTeaser`) + sparkline with a "See growth →" action, kids first and the family code demoted below. A brand-new kid shows an encouraging **🌱 early state** (reuses the onboarding `KidLoginHelper` with the copyable family code) rather than "No data". Profile / Reset PIN / Delete move verbatim to `/portal/family/:kidId/settings`. Growth derived purely from the existing usage endpoints (`/kids/:id/usage`, `/usage/trend`) in new pure helpers (`kidGrowth.ts`, +Vitest); shared `TrendBars` extracted to `src/components/`. Frontend-only, no backend change.
 - Parent onboarding clarity pass (follow-up to the welcome flow): the welcome tour
   gained a concrete **"What your child will make & learn"** slide (Image/Music/Voice,

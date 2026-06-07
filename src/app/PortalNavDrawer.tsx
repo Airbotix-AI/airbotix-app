@@ -9,6 +9,7 @@ import { useWsEvent } from '@/lib/useWsEvent';
 // Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal', label: 'Dashboard', end: true },
+  { to: '/portal/courses', label: 'Courses' },
   { to: '/portal/family', label: 'My Family' },
   { to: '/portal/wallet', label: 'Wallet' },
   { to: '/portal/usage', label: 'Usage' },
