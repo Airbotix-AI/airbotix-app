@@ -81,6 +81,14 @@ async function mockBackendAsKid(page: Page, opts: { age?: number; pro?: boolean 
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
   );
 
+  // Safeguarding classify runs server-side BEFORE any turn (J13). For the J2 happy
+  // path the message is always a normal game request → `{ safeguarding: null }`, so
+  // the studio proceeds to the turn. Registered after the turn routes so its more
+  // specific glob wins (Playwright matches most-recently-added first).
+  await page.route('**/projects/*/code/turn/classify', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ safeguarding: null }) }),
+  );
+
   // The agent turn + approve. Registered BEFORE `/code/files` so the more-specific
   // turn globs win (Playwright matches most-recently-added first).
   await page.route('**/projects/*/code/turn', (route) => {

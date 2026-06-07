@@ -68,6 +68,36 @@ export interface FileChange {
   lines_removed: number;
 }
 
+// A region-correct crisis resource (helpline) the backend binds to the family /
+// school enrolment record — NEVER improvised client-side (learn-game-studio-prd
+// §11g / J13). Shown standing on the distress rescue path.
+export interface CrisisResource {
+  /** Helpline / service name, e.g. "Kids Helpline". */
+  name: string;
+  /** Dialable number, e.g. "1800 55 1800". */
+  phone: string;
+  /** One short, kid-readable line about who to call and why. */
+  note?: string;
+}
+
+// The server-side safeguarding verdict (learn-game-studio-prd §11g / J13). When
+// present on a turn result, the input firewall + intent classifier ran BEFORE any
+// LLM call and decided NOT to run a game turn — the studio must render the
+// deflection (and, for distress, the standing crisis resource) and must NOT apply
+// files, stream a turn, or charge Stars. The classifier never closes the loop
+// alone; the backend has already logged the safeguarding audit event + escalation.
+export interface SafeguardingVerdict {
+  // `personal-disclosure` → gentle deflect + log, no escalation. `distress`
+  // (self-harm-adjacent) → recall-favouring: standing crisis resource + sticky
+  // safe-mode (the resource persists; re-disclosure escalates a tier) + escalate.
+  class: 'personal-disclosure' | 'distress';
+  // The standing, kid-readable deflection — the backend's wording, never improvised
+  // client-side. The agent "breaks character" and routes to a trusted grown-up.
+  message: string;
+  // Present for `distress`: the region-correct standing crisis resource.
+  crisisResource?: CrisisResource;
+}
+
 export interface AgentTurnResult {
   // Backend-issued id for the turn — used to approve/reject a staged plan.
   turn_id: string;
@@ -82,6 +112,9 @@ export interface AgentTurnResult {
   summary: string;
   stars_charged: number;
   tools_fired: string[];
+  // Set when the safeguarding classifier deflected this message instead of running
+  // a game turn (J13). When present, NO files/Stars/stream — render the rescue UI.
+  safeguarding?: SafeguardingVerdict;
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────
@@ -246,6 +279,38 @@ export async function runAgentTurn(args: {
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
     },
   });
+}
+
+// ── Safeguarding classify (J13 / §11g: POST …/code/turn/classify) ───────────
+
+/**
+ * Ask the backend to classify a chat message BEFORE any LLM call (the J13 input
+ * firewall + intent classifier). Returns a {@link SafeguardingVerdict} only when
+ * the message is deflected (personal-disclosure / distress) — `null` means it's a
+ * normal game request and the caller may proceed to a turn. The classifier runs
+ * server-side and never spends Stars; the backend logs the safeguarding audit
+ * event + escalation. The kid NEVER calls an LLM directly (CLAUDE.md #5).
+ */
+export async function classifyMessage(args: {
+  projectId: string;
+  prompt: string;
+}): Promise<SafeguardingVerdict | null> {
+  const res = await api<{ safeguarding: SafeguardingVerdict | null }>(
+    `/projects/${args.projectId}/code/turn/classify`,
+    { method: 'POST', body: { prompt: args.prompt } },
+  );
+  return res.safeguarding;
+}
+
+// ── Raise hand: "Ask my teacher" (J4) ───────────────────────────────────────
+
+/**
+ * Raise a hand to the teacher's live view (J4) — a lightweight, always-safe
+ * signal that the kid wants help. No LLM, no Stars; the calm waiting state in the
+ * studio never depends on this resolving.
+ */
+export async function raiseHand(args: { projectId: string }): Promise<void> {
+  await api<void>(`/projects/${args.projectId}/raise-hand`, { method: 'POST', body: {} });
 }
 
 // ── Plan approve/reject (D-CODE1d: POST …/code/turn/:turnId/approve) ────────

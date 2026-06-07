@@ -14,8 +14,11 @@
 
 import {
   approveTurn as apiApproveTurn,
+  classifyMessage as apiClassifyMessage,
+  raiseHand as apiRaiseHand,
   runAgentTurn as apiRunAgentTurn,
   type AgentTurnResult,
+  type SafeguardingVerdict,
   type VfsFile,
 } from '../../code/codeApi';
 
@@ -38,15 +41,38 @@ export type ApproveAgentTurn = (args: {
   decision: 'approve' | 'reject';
 }) => Promise<AgentTurnResult>;
 
+/**
+ * Run the safeguarding intent classifier (J13 / §11g) — server-side, BEFORE any
+ * LLM call, so a distress/personal disclosure is deflected without ever spending a
+ * turn (matches the J13 sequence "classify intent before any LLM"). Returns a
+ * verdict ONLY when the message is deflected; `null` means "a normal game request,
+ * proceed to a turn". The kid never calls an LLM (CLAUDE.md #5).
+ */
+export type ClassifyMessage = (args: {
+  projectId: string;
+  prompt: string;
+}) => Promise<SafeguardingVerdict | null>;
+
+/**
+ * "Ask my teacher" raise-hand (J4) — posts a lightweight signal the teacher's live
+ * view surfaces. Optional: the calm waiting state never depends on it succeeding,
+ * and the DEV sandbox has no backend. No LLM, no Stars (CLAUDE.md #5).
+ */
+export type RaiseHand = (args: { projectId: string }) => Promise<void>;
+
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface GameAgentDeps {
   runTurn: RunAgentTurn;
   approve: ApproveAgentTurn;
+  classify: ClassifyMessage;
+  raiseHand?: RaiseHand;
 }
 
 export const realGameAgentDeps: GameAgentDeps = {
   runTurn: apiRunAgentTurn,
   approve: apiApproveTurn,
+  classify: apiClassifyMessage,
+  raiseHand: apiRaiseHand,
 };
 
 /** Per-token reveal cadence (ms). Kept short so a turn never feels laggy. */
@@ -102,4 +128,4 @@ export function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
-export type { AgentTurnResult, VfsFile };
+export type { AgentTurnResult, SafeguardingVerdict, VfsFile };
