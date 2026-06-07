@@ -146,11 +146,13 @@ export interface TopupLimitInfo {
 
 /** Narrow an ApiError-like value to a TopupLimitInfo, or null if it isn't one. */
 export function asTopupLimit(e: {
+  status?: number;
   code?: string;
   message?: string;
   details?: unknown;
 }): TopupLimitInfo | null {
-  if (!e.code || !e.code.startsWith('TOPUP_')) return null;
+  // Only the anti-fraud 429s — not, say, a future unrelated TOPUP_* 4xx.
+  if (e.status !== 429 || !e.code || !e.code.startsWith('TOPUP_')) return null;
   return {
     code: e.code,
     message: e.message ?? 'Top-up limit reached.',
