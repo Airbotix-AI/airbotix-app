@@ -85,23 +85,27 @@ export interface ResolveFilesOptions {
 }
 
 /**
- * Resolve the files to open in the workspace. With a `projectId` we load the
- * REAL files from the backend; with none — or if that load fails (offline /
- * backend not ready / empty) — we fall back to the local starter scaffold so the
- * editor never opens empty. This is the swap seam: once the authed
- * `/learn/playground/:projectId` route + game backend exist, the real path is
- * exercised automatically; nothing else in the UI changes.
+ * Resolve the files to open in the workspace.
+ *
+ * For a REAL project (`projectId` present) the backend VFS is the SOURCE OF
+ * TRUTH — we load it and nothing else. There is deliberately **no scaffold
+ * fallback**: if the files can't be loaded (network / auth / backend / a project
+ * with no files) we THROW so the caller can show an error and send the kid back
+ * to project creation, rather than silently opening a fake starter game.
+ *
+ * Only when there is NO project — the DEV `/playground-sandbox`, which is a
+ * throwaway test harness, not a saved project — do we return the local starter
+ * scaffold so the editor never opens empty.
  */
 export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<VfsFile[]> {
   const { projectId, prompt, name } = opts;
   if (projectId) {
-    try {
-      const files = await loadGameFiles(projectId);
-      if (files.length > 0) return files;
-    } catch {
-      // Network / auth / backend-not-ready → fall back to the local scaffold.
+    const files = await loadGameFiles(projectId);
+    if (files.length === 0) {
+      throw new Error(`Project ${projectId} loaded no files`);
     }
+    return files;
   }
-  // Prefer the kid's explicit game name (PRD J1) to title the scaffold.
+  // No project (DEV sandbox only): the local scaffold, titled from the prompt/name.
   return generateScaffold(name?.trim() || prompt);
 }

@@ -3,12 +3,13 @@
 // vignette canvas, echoed prompt, a spinning brand-gradient orb, a staged status
 // list that ticks through, a progress bar, and a "Building your game…" caption.
 //
-// It owns NO product logic: on mount it calls `resolveProjectFiles` once — which
-// loads the REAL project files from the S3-backed backend when a `projectId` is
-// given, else falls back to the local starter scaffold — and hands the resulting
-// VFS to `onDone`. The staged status is purely cosmetic timing — it advances on
-// a timer, decoupled from when the files actually resolve (the steps cap at the
-// last so the list never overruns the resolve).
+// It owns NO product logic: on mount it calls `resolveProjectFiles` once and
+// hands the resulting VFS to `onDone`. For a real project the backend is the
+// source of truth (no scaffold fallback) — if it can't load, `onError` fires and
+// the caller shows an error + returns to project creation; the local scaffold is
+// only for the project-less DEV sandbox. The staged status is purely cosmetic
+// timing — it advances on a timer, decoupled from when the files resolve (the
+// steps cap at the last so the list never overruns the resolve).
 
 import { Check, Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -36,6 +37,7 @@ export function GeneratingScreen({
   name,
   projectId,
   onDone,
+  onError,
 }: {
   prompt: string;
   /** The kid's game name (PRD J1) — labels the local scaffold when no backend. */
@@ -43,14 +45,18 @@ export function GeneratingScreen({
   /** When set, the real project files are loaded from the backend (S3-backed). */
   projectId?: string;
   onDone: (files: VfsFile[]) => void;
+  /** Loading the real project failed — no scaffold fallback; the caller errors out. */
+  onError?: (err: unknown) => void;
 }) {
   const [step, setStep] = useState(0);
   // Drives the progress bar: starts false, flips true on mount so the bar's
   // width transitions 0 → 100% smoothly (and monotonically) over the build span.
   const [filling, setFilling] = useState(false);
-  // Keep the latest onDone without re-running the mount effect.
+  // Keep the latest callbacks without re-running the mount effect.
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   // Building = a NEW game from a typed prompt → the full "building your game"
   // animation. Resuming an existing project has no prompt → load only, no build phase.
@@ -73,17 +79,25 @@ export function GeneratingScreen({
     // For a RESUME (no prompt) hand off as soon as the VFS loads — no build phase.
     const startedAt = Date.now();
     let doneTimer = 0;
-    resolveProjectFiles({ projectId, prompt, name }).then((files) => {
-      if (cancelled) return;
-      const remaining = building
-        ? Math.max(0, SCAFFOLD_DELAY_MS - (Date.now() - startedAt))
-        : 0;
-      doneTimer = window.setTimeout(() => {
+    resolveProjectFiles({ projectId, prompt, name })
+      .then((files) => {
+        if (cancelled) return;
+        const remaining = building
+          ? Math.max(0, SCAFFOLD_DELAY_MS - (Date.now() - startedAt))
+          : 0;
+        doneTimer = window.setTimeout(() => {
+          if (cancelled) return;
+          window.clearInterval(ticker);
+          onDoneRef.current(files);
+        }, remaining);
+      })
+      .catch((err) => {
+        // Real project couldn't load → no fallback; the caller shows an error
+        // and sends the kid back to project creation.
         if (cancelled) return;
         window.clearInterval(ticker);
-        onDoneRef.current(files);
-      }, remaining);
-    });
+        onErrorRef.current?.(err);
+      });
 
     return () => {
       cancelled = true;

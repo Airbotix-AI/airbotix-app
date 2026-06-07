@@ -1,5 +1,6 @@
+import { AlertTriangle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useBlocker, useSearchParams } from 'react-router-dom';
+import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 
@@ -56,6 +57,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // kid focuses them, so the leave dialog reads it to always sit on top.
   const topZ = usePlaygroundStore((s) => s.topZ);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
@@ -92,6 +94,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // thumbnail when the kid leaves. Excludes the leave dialog (a sibling below).
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState(false);
+  // A real project couldn't be opened (load failed / create failed). The backend
+  // is the source of truth — there's no scaffold fallback — so we show an error
+  // and the kid heads back to project creation.
+  const [loadError, setLoadError] = useState(false);
 
   const run = useCallback(() => {
     setRunning(true);
@@ -213,6 +219,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
 
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
+      {loadError ? (
+        <LoadErrorScreen onBack={() => navigate('/learn/create')} />
+      ) : (
+        <>
       {phase === 'landing' && (
         <LandingScreen
           onSubmit={async (p) => {
@@ -232,7 +242,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
                 setCreatedId(game.id);
                 window.history.replaceState(null, '', `/learn/playground/${game.id}`);
               } catch {
-                setCreatedId(`local-${crypto.randomUUID()}`);
+                // Can't create the project on the backend → no local fallback;
+                // show the error and send the kid back to project creation.
+                setLoadError(true);
+                return;
               }
             }
             setPhase('generating');
@@ -289,6 +302,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             }
             setPhase('workspace');
           }}
+          onError={() => setLoadError(true)}
         />
       )}
       {phase === 'workspace' && (
@@ -347,6 +361,34 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           </div>
         </div>
       )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// Shown when a real project can't be opened — the backend is the source of truth
+// and there is no scaffold fallback, so the kid heads back to project creation.
+function LoadErrorScreen({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="pg-canvas flex h-full flex-col items-center justify-center gap-5 px-6 text-center text-pg-text">
+      <div className="grid h-16 w-16 place-items-center rounded-2xl bg-wash-coral text-brand-coral">
+        <AlertTriangle size={30} />
+      </div>
+      <div className="space-y-1.5">
+        <h1 className="text-[20px] font-extrabold">We couldn&apos;t open this game</h1>
+        <p className="max-w-sm text-[14px] text-pg-text-dim">
+          It may have been removed, or there was a problem loading it. Let&apos;s head back so
+          you can make or pick another one.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-xl bg-brand-coral px-5 py-2.5 text-[14px] font-extrabold text-white"
+      >
+        Make something new
+      </button>
     </div>
   );
 }

@@ -576,3 +576,20 @@ test('chat "See code" opens the Code Editor', async ({ page }) => {
   await page.getByRole('button', { name: 'See code' }).click();
   await expect(page.getByText('main.js').first()).toBeVisible();
 });
+
+test('a project that fails to load shows an error and a way back to creation (no scaffold fallback)', async ({ page }) => {
+  // Backend is the source of truth: a failed load must NOT silently open a local
+  // scaffold — it shows an error and routes back to project creation.
+  await page.route('**/projects/**/code/files', (route) =>
+    route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' }),
+  );
+  await page.goto('/playground-sandbox?projectId=broken-1');
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await input.fill('x');
+  await input.press('Enter');
+
+  // Error screen, not the workspace / not a scaffold.
+  await expect(page.getByText(/couldn't open this game/i)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: /Make something new/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Split/ })).toBeHidden();
+});
