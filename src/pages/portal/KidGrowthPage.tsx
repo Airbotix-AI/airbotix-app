@@ -56,7 +56,11 @@ export function KidGrowthPage() {
 
   const trend = useQuery<UsageTrendPoint[]>({
     queryKey: ['kid', kidId, 'usage-trend', from, to],
-    queryFn: () => api<UsageTrendPoint[]>(`/kids/${kidId}/usage/trend?from=${from}&to=${to}&metric=stars`),
+    // /usage/trend returns { metric, series: [...] } — unwrap to the array.
+    queryFn: () =>
+      api<{ series: UsageTrendPoint[] }>(
+        `/kids/${kidId}/usage/trend?from=${from}&to=${to}&metric=stars`,
+      ).then((r) => r.series ?? []),
     enabled: !!kidId,
     retry: false,
   });
