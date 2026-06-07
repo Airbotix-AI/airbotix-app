@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LearnLayout } from './LearnLayout';
 import { PortalLayout } from './PortalLayout';
+import { TeacherLayout } from './TeacherLayout';
 
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
@@ -52,6 +53,12 @@ import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
 import { ClassWallViewPage } from '@/pages/learn/classroom/ClassWallViewPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
+// Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
+// `user` principal (role=teacher); the full console lives in a sibling repo —
+// this is the in-app class dashboard + live view + assessment FE.
+import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
+import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
+import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
 import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
@@ -103,6 +110,23 @@ export const router = createBrowserRouter([
       { path: 'audit/project/:id', element: <AuditProjectPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'billing', element: <BillingPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+
+  // Teacher — class-session surface (kind="user", role=teacher). Class dashboard
+  // + per-kid live read-only view + assessment (learn-game-studio-prd §17.12 J12).
+  {
+    path: '/teacher',
+    element: (
+      <ProtectedRoute kind="user">
+        <TeacherLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: 'classes/:classId', element: <ClassDashboardPage /> },
+      { path: 'classes/:classId/kids/:kidId', element: <LiveViewPage /> },
+      { path: 'classes/:classId/kids/:kidId/assessment', element: <AssessmentPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
