@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
+import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import { DesktopIcon } from './desktop/DesktopIcon';
@@ -85,6 +86,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
   const me = useMe();
   const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const mode: 'lite' | 'pro' = age != null && age >= 12 ? 'pro' : 'lite';
 
   // Family Stars balance for the metered display (real path). Refetched after a
@@ -94,6 +96,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     queryFn: () => api<Wallet>(`/families/${familyId}/wallet`),
     enabled: !!familyId && !!projectId,
   });
+  // "Ask my teacher" only makes sense when the kid is in a class — gate the
+  // raise-hand on class membership.
+  const classes = useQuery({
+    queryKey: ['kid', kidId, 'classes'],
+    queryFn: () => listClasses(kidId!),
+    enabled: !!kidId,
+  });
+  const inClass = (classes.data?.length ?? 0) > 0;
   // Default window placement (Code lower-left & wide, Chat center-top & front,
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
@@ -124,6 +134,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     cancelPending,
     undo,
     raiseHand,
+    lowerHand,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -150,11 +161,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     canUndo,
     safeguard,
     handRaised,
+    inClass,
     onSend: send,
     onConfirm: confirmPending,
     onCancel: cancelPending,
     onUndo: undo,
     onRaiseHand: raiseHand,
+    onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
   };
