@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AgentTurnResult, VfsFile } from '../../code/codeApi';
+import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
 import { ApiError } from '@/lib/api';
 import {
   isOffline,
@@ -46,6 +46,8 @@ export interface ChatItem {
   changes?: { path: string; before: string; after: string }[];
   /** Optional CTA buttons (e.g. the launch "Run game" / "See code" hand-off). */
   actions?: ChatAction[];
+  /** A safeguarding deflection bubble (J13) — rendered with the rescue styling. */
+  safeguard?: boolean;
 }
 
 /**
@@ -105,6 +107,13 @@ const PENDING_TEXT = 'Thinking…';
 const ERROR_TEXT = 'Could not reach the AI. Try again.';
 /** Calm, kid-framed offline copy (PRD J2 — never a frozen screen). */
 const OFFLINE_TEXT = 'Internet hiccup — your work is safe. Try again in a moment.';
+/**
+ * The cap-reached "ask your grown-up" copy (J11 / §11g(e)). When the parent
+ * spending cap (or wallet) is hit, the backend blocks AI turns BEFORE any LLM
+ * call; the kid sees this — never a dead end. Exported so the panel can tag it
+ * with the `cap-message` testid without substring-matching the wording.
+ */
+export const CAP_MESSAGE = 'You used all the Stars for now. Ask your grown-up to add more. ⭐';
 
 const STARTER_MESSAGE =
   'Your game starter is ready to play 🎮\n\n' +
@@ -125,7 +134,7 @@ function friendlyError(e: unknown): string {
   if (isOffline()) return OFFLINE_TEXT;
   if (e instanceof ApiError) {
     if (e.code === 'WALLET_INSUFFICIENT' || e.code === 'DAILY_CAP_EXCEEDED' || e.status === 402)
-      return 'Out of Stars! Ask a grown-up to top up.';
+      return CAP_MESSAGE;
     if (e.code === 'FAMILY_PAUSED') return 'Your family paused AI. Ask a grown-up.';
     if (e.code === 'MODERATION_REJECTED')
       return "Let's keep it kind and safe — try asking for something else.";
@@ -161,6 +170,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const [offline, setOffline] = useState<boolean>(isOffline());
   // A turn awaiting the kid's confirm (Lite agency beat OR Pro plan gate, J2).
   const [pending, setPending] = useState<PendingTurn | null>(null);
+  // The safeguarding verdict for the current session (J13 / §11g). Set when the
+  // backend classifier deflects a message instead of running a game turn. STICKY:
+  // a `distress` verdict's crisis resource PERSISTS (sticky safe-mode) and never
+  // downgrades to `personal-disclosure`; re-disclosure escalates a tier (tracked
+  // by `safeguardTier`) but never resets to normal game-help.
+  const [safeguard, setSafeguard] = useState<SafeguardingVerdict | null>(null);
+  const safeguardTier = useRef(0);
+  // The "Ask my teacher" raise-hand (J4): a calm waiting state once raised.
+  const [handRaised, setHandRaised] = useState(false);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
   const [canUndo, setCanUndo] = useState(false);
@@ -236,6 +254,33 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     [files, onApplyFiles, onStarsCharged],
   );
 
+  /**
+   * Handle a safeguarding deflection (J13 / §11g). The backend classifier decided
+   * NOT to run a game turn — so we apply NO files, charge NO Stars, and stream NO
+   * turn. We replace the pending bubble with the standing deflection and surface
+   * the rescue UI. STICKY safe-mode: a `distress` verdict never downgrades and its
+   * crisis resource persists; a re-disclosure escalates a tier (never resets to
+   * normal game-help). A `personal-disclosure` deflects + logs without escalation.
+   */
+  const applySafeguard = useCallback(
+    (verdict: SafeguardingVerdict, pendingId: string) => {
+      // Sticky: once in distress, stay in distress (a later personal-disclosure
+      // must not relax the safe-mode); each new trigger escalates a tier.
+      safeguardTier.current += 1;
+      setSafeguard((prev) =>
+        prev?.class === 'distress' && verdict.class !== 'distress' ? prev : verdict,
+      );
+      setChat((prev) =>
+        prev.map((it) =>
+          it.id === pendingId
+            ? { id: pendingId, role: 'agent', text: verdict.message, safeguard: true }
+            : it,
+        ),
+      );
+    },
+    [],
+  );
+
   const send = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -286,6 +331,24 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           setBusy(false);
         }
         return;
+      }
+
+      // ── Safeguarding gate (J13 / §11g): classify the message server-side BEFORE
+      // any LLM call or agency beat. A distress / personal-disclosure message is
+      // DEFLECTED here — it never becomes a game turn, never spends Stars, never
+      // changes the VFS. This must run for BOTH tiers (it precedes the Lite agency
+      // beat below). The classifier is free and recall-favouring (§11g). On a
+      // classify failure we fall through to the normal flow (fail-open to game-help
+      // is acceptable — the backend turn firewall is a second line of defence).
+      try {
+        const verdict = await deps.classify({ projectId: projectId!, prompt: trimmed });
+        if (verdict) {
+          applySafeguard(verdict, pendingId);
+          setBusy(false);
+          return;
+        }
+      } catch {
+        // Classifier unreachable — proceed; the turn-level firewall still applies.
       }
 
       // ── Lite agency beat (OD-1): the typing-free "Do it / Show me first" +
@@ -344,8 +407,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult],
+    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard],
   );
+
+  /**
+   * "Ask my teacher" raise-hand (J4). Flips into a calm waiting state and posts a
+   * lightweight signal to the teacher (real path). It is a deliberately tiny,
+   * always-safe action: no LLM, no Stars, no VFS change. Idempotent — a second tap
+   * while already raised is a no-op (the kid just sees the calm waiting copy).
+   */
+  const raiseHand = useCallback(() => {
+    if (handRaised) return;
+    setHandRaised(true);
+    // Best-effort notify; the calm waiting state never depends on it succeeding.
+    if (isReal && projectId) {
+      void deps.raiseHand?.({ projectId }).catch(() => {});
+    }
+  }, [handRaised, isReal, projectId, deps]);
 
   /**
    * Confirm a staged turn (Lite "Do it" OR Pro "✓ Approve"). For a Pro plan we ask
@@ -426,9 +504,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     pending,
     balance,
     canUndo,
+    /** The standing safeguarding verdict (J13) — drives the rescue UI when set. */
+    safeguard,
+    /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
+    handRaised,
     send,
     confirmPending,
     cancelPending,
     undo,
+    raiseHand,
   };
 }

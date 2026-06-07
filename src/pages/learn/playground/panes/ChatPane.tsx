@@ -1,3 +1,4 @@
+import type { SafeguardingVerdict } from '../../code/codeApi';
 import { AIChatPanel } from './AIChatPanel';
 import type { ChatItem, PendingTurn } from './useGameAgent';
 
@@ -9,10 +10,13 @@ interface ChatPaneProps {
   balance?: number;
   pending?: PendingTurn | null;
   canUndo?: boolean;
+  safeguard?: SafeguardingVerdict | null;
+  handRaised?: boolean;
   onSend: (text: string) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
+  onRaiseHand?: () => void;
   onRunGame?: () => void;
   onSeeCode?: () => void;
 }

@@ -7,10 +7,29 @@
 // first" agency beat OR Pro "Approve / Not yet" plan gate, both with a default-on
 // prediction beat), a free Undo of the last change, and a calm offline banner.
 
-import { Code2, Loader2, Play, Send, Sparkles, Star, Undo2, WifiOff } from 'lucide-react';
+import {
+  Bot,
+  Code2,
+  Hand,
+  Heart,
+  Loader2,
+  Phone,
+  Play,
+  Send,
+  Sparkles,
+  Star,
+  Undo2,
+  Volume2,
+  WifiOff,
+} from 'lucide-react';
 import { useState } from 'react';
 
-import type { ChatItem, PendingTurn } from './useGameAgent';
+import type { SafeguardingVerdict } from '../../code/codeApi';
+import { canReadAloud, readAloud } from './readAloud';
+import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
+
+/** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
+const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
 
 interface AIChatPanelProps {
   chat: ChatItem[];
@@ -24,10 +43,16 @@ interface AIChatPanelProps {
   pending?: PendingTurn | null;
   /** Undo the last applied change is available (free local revert). */
   canUndo?: boolean;
+  /** The standing safeguarding verdict (J13) — shows the persistent crisis resource. */
+  safeguard?: SafeguardingVerdict | null;
+  /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
+  handRaised?: boolean;
   onSend: (text: string) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
+  /** "Ask my teacher" raise-hand (J4). */
+  onRaiseHand?: () => void;
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
@@ -41,10 +66,13 @@ export function AIChatPanel({
   balance,
   pending,
   canUndo,
+  safeguard,
+  handRaised,
   onSend,
   onConfirm,
   onCancel,
   onUndo,
+  onRaiseHand,
   onRunGame,
   onSeeCode,
 }: AIChatPanelProps) {
@@ -65,6 +93,16 @@ export function AIChatPanel({
           AI Helper
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="raise-hand"
+            onClick={onRaiseHand}
+            disabled={handRaised}
+            aria-pressed={handRaised}
+            className="inline-flex items-center gap-1 rounded-full border border-pg-border px-2.5 py-0.5 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/5 disabled:opacity-60"
+          >
+            <Hand size={12} /> {handRaised ? 'Hand up' : 'Ask my teacher'}
+          </button>
           {canUndo && (
             <button
               type="button"
@@ -85,6 +123,36 @@ export function AIChatPanel({
           )}
         </div>
       </div>
+
+      {/* Persistent, kid-readable AI disclosure (J13 / §11g(a)) — ambient on every
+          turn, distinct from the parent-facing C-list disclosure. The child must
+          always be reminded the helper is a robot, not a person. */}
+      <div
+        data-testid="ai-disclosure"
+        className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-text/5 px-4 py-1.5 text-[11px] font-semibold text-pg-text-dim"
+      >
+        <Bot size={12} className="shrink-0 text-brand-sky" />
+        I'm a robot helper, not a person.
+      </div>
+
+      {/* Calm waiting state for the "Ask my teacher" raise-hand (J4). Stays up so a
+          non-reading / stuck kid isn't left guessing whether help is coming. */}
+      {handRaised && (
+        <div
+          data-testid="raise-hand-waiting"
+          className="mx-4 mt-3 flex items-center gap-2 rounded-2xl border border-brand-sky/40 bg-brand-sky/10 px-4 py-2 text-[12px] font-semibold text-pg-text"
+        >
+          <Hand size={14} className="text-brand-sky" /> Your hand is up — your teacher
+          will come help you soon. Take a breath, your work is safe.
+        </div>
+      )}
+
+      {/* Standing crisis resource (J13 / §11g) — sticky safe-mode: once a distress
+          verdict arrives it PERSISTS (never shown-once), with read-aloud on the
+          rescue path. The wording is the backend's, never improvised here. */}
+      {safeguard?.crisisResource && (
+        <CrisisResourceBanner resource={safeguard.crisisResource} />
+      )}
 
       {offline && (
         <div
@@ -111,7 +179,10 @@ export function AIChatPanel({
       </div>
 
       {error && (
-        <div className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-pg-text">
+        <div
+          data-testid={isCapMessage(error) ? 'cap-message' : 'chat-error'}
+          className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-pg-text"
+        >
           {error}
         </div>
       )}
@@ -239,6 +310,34 @@ function ChatRow({
       </div>
     );
   }
+  // A safeguarding deflection (J13): the agent "breaks character" — distinct calm
+  // styling, a read-aloud control for the rescue path, and NO turn/stars/diff/CTA
+  // chrome (it was never a game turn).
+  if (item.safeguard) {
+    return (
+      <div className="flex justify-start">
+        <div
+          data-testid="safeguard-break"
+          className="max-w-[90%] rounded-2xl border-2 border-brand-coral/50 bg-brand-coral/10 px-4 py-3 text-[14px] leading-relaxed text-pg-text"
+        >
+          <div className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-brand-coral">
+            <Heart size={14} className="fill-current" /> A quick check-in
+          </div>
+          <p className="mt-1.5 whitespace-pre-wrap">{item.text}</p>
+          {canReadAloud() && (
+            <button
+              type="button"
+              data-testid="safeguard-read-aloud"
+              onClick={() => readAloud(item.text)}
+              className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border-2 border-brand-coral/50 px-3.5 py-1.5 text-[12px] font-extrabold text-brand-coral transition-colors hover:bg-brand-coral/10"
+            >
+              <Volume2 size={14} /> Read it to me
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
   const hasActions = item.actions && item.actions.length > 0;
   // The streaming bubble carries `agent-msg-streaming`; a settled one `agent-msg`
   // (the stable markers the J2 e2e asserts the live→final transition by).
@@ -301,6 +400,44 @@ function ChatRow({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The standing, region-correct crisis resource (J13 / §11g). PERSISTENT (sticky
+ * safe-mode — pinned above the chat, not a one-shot bubble) with a read-aloud
+ * control so a distressed / non-reading child can hear who to call. The name +
+ * number are the backend's (bound to enrolment), never improvised here.
+ */
+function CrisisResourceBanner({
+  resource,
+}: {
+  resource: NonNullable<SafeguardingVerdict['crisisResource']>;
+}) {
+  const spoken = `${resource.note ? resource.note + '. ' : ''}You can call ${resource.name} on ${resource.phone}.`;
+  return (
+    <div
+      data-testid="crisis-resource"
+      className="mx-4 mt-3 rounded-2xl border-2 border-brand-coral/50 bg-brand-coral/10 px-4 py-3 text-pg-text"
+    >
+      <div className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-brand-coral">
+        <Phone size={14} /> Talk to someone who can help
+      </div>
+      {resource.note && <p className="mt-1 text-[13px] leading-relaxed">{resource.note}</p>}
+      <div className="mt-1.5 text-[14px] font-extrabold">
+        {resource.name}: <span data-testid="crisis-phone">{resource.phone}</span>
+      </div>
+      {canReadAloud() && (
+        <button
+          type="button"
+          data-testid="crisis-read-aloud"
+          onClick={() => readAloud(spoken)}
+          className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border-2 border-brand-coral/50 px-3.5 py-1.5 text-[12px] font-extrabold text-brand-coral transition-colors hover:bg-brand-coral/10"
+        >
+          <Volume2 size={14} /> Read it to me
+        </button>
+      )}
     </div>
   );
 }

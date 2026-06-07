@@ -102,8 +102,22 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
-  const { chat, busy, error, offline, pending, balance, canUndo, send, confirmPending, cancelPending, undo } =
-    useGameAgent({
+  const {
+    chat,
+    busy,
+    error,
+    offline,
+    pending,
+    balance,
+    canUndo,
+    safeguard,
+    handRaised,
+    send,
+    confirmPending,
+    cancelPending,
+    undo,
+    raiseHand,
+  } = useGameAgent({
       files,
       onApplyFiles,
       introPrompt: prompt,
@@ -127,10 +141,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     balance,
     pending,
     canUndo,
+    safeguard,
+    handRaised,
     onSend: send,
     onConfirm: confirmPending,
     onCancel: cancelPending,
     onUndo: undo,
+    onRaiseHand: raiseHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
   };
