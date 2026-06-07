@@ -183,11 +183,7 @@ export function ProjectsListPage() {
                 project={p}
                 localThumb={localThumbs.data?.[p.id]}
                 resumeHref={resumeHref(p)}
-                confirming={confirmId === p.id}
-                deleting={del.isPending && confirmId === p.id}
                 onAskDelete={() => setConfirmId(p.id)}
-                onCancelDelete={() => setConfirmId(null)}
-                onConfirmDelete={() => del.mutate(p.id)}
               />
             ))}
           </div>
@@ -207,6 +203,15 @@ export function ProjectsListPage() {
       {showNewModal && kidId && (
         <NewProjectModal kidId={kidId} onClose={() => setShowNewModal(false)} />
       )}
+
+      {confirmId && (
+        <DeleteConfirmDialog
+          title={(projects.data ?? []).find((p) => p.id === confirmId)?.title ?? 'this project'}
+          deleting={del.isPending}
+          onConfirm={() => del.mutate(confirmId)}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -217,20 +222,12 @@ function ProjectCard({
   project: p,
   localThumb,
   resumeHref,
-  confirming,
-  deleting,
   onAskDelete,
-  onCancelDelete,
-  onConfirmDelete,
 }: {
   project: Project;
   localThumb?: string;
   resumeHref: string;
-  confirming: boolean;
-  deleting: boolean;
   onAskDelete: () => void;
-  onCancelDelete: () => void;
-  onConfirmDelete: () => void;
 }) {
   const thumbSrc = p.thumbnail_s3_key ?? localThumb ?? null;
   const badge = p.visibility !== 'private'
@@ -260,7 +257,8 @@ function ProjectCard({
 
         {/* Info */}
         <div className="p-3 space-y-1">
-          <h3 className="text-[14px] font-bold text-ink leading-snug line-clamp-2">
+          {/* Fixed 2-line height so cards align regardless of name length. */}
+          <h3 className="text-[14px] font-bold text-ink leading-snug line-clamp-2 min-h-[2lh]">
             {p.title}
           </h3>
           <p className="text-[12px] text-steel">
@@ -277,37 +275,72 @@ function ProjectCard({
         </div>
       </Link>
 
-      {/* Resume / Delete actions (delete asks for confirmation first). */}
+      {/* Resume / Delete actions (delete opens a confirm dialog). */}
       <div className="flex items-center justify-between gap-2 border-t border-hairline px-3 py-2">
         <Link to={resumeHref} className="text-[12px] font-bold text-brand-sky">
           {p.kind === 'game' ? 'Resume game →' : 'Open →'}
         </Link>
-        {confirming ? (
-          <span className="flex items-center gap-2 text-[12px]">
-            <span className="text-slate2">Delete this?</span>
-            <button
-              type="button"
-              onClick={onConfirmDelete}
-              disabled={deleting}
-              className="font-bold text-brand-coral disabled:opacity-50"
-              data-testid="project-delete-confirm"
-            >
-              {deleting ? 'Deleting…' : 'Delete'}
-            </button>
-            <button type="button" onClick={onCancelDelete} className="font-bold text-slate2">
-              Cancel
-            </button>
-          </span>
-        ) : (
+        <button
+          type="button"
+          onClick={onAskDelete}
+          className="text-[12px] font-bold text-slate2 hover:text-brand-coral"
+          data-testid="project-delete"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Delete confirmation dialog ─────────────────────────────────────────────────
+
+function DeleteConfirmDialog({
+  title,
+  deleting,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  deleting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+      onClick={onCancel}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="card-base w-full max-w-sm p-5 text-ink"
+      >
+        <h2 className="text-[17px] font-extrabold">Delete this project?</h2>
+        <p className="mt-2 text-[13.5px] text-steel">
+          “{title}” will be removed for good. This can’t be undone.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
-            onClick={onAskDelete}
-            className="text-[12px] font-bold text-slate2 hover:text-brand-coral"
-            data-testid="project-delete"
+            autoFocus
+            disabled={deleting}
+            onClick={onCancel}
+            className="rounded-lg border border-hairline px-4 py-2 text-[13px] font-bold text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
           >
-            Delete
+            Cancel
           </button>
-        )}
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={onConfirm}
+            className="rounded-lg bg-brand-coral px-4 py-2 text-[13px] font-extrabold text-white disabled:opacity-70"
+            data-testid="project-delete-confirm"
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
       </div>
     </div>
   );
