@@ -15,9 +15,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
+import { useQuery } from '@tanstack/react-query';
 
 import clsx from 'clsx';
 
+import { useMe } from '@/auth/useAuth';
+import { api } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
@@ -44,6 +47,16 @@ interface WorkspaceProps {
   onRun: () => void;
   /** The kid's landing-screen prompt — seeds the launch hand-off chat message. */
   prompt: string;
+  /**
+   * The real backend project. When set, AI turns run server-side (Stars-metered,
+   * streamed, plan/approve-gated, PRD J2); when absent (DEV sandbox) the offline
+   * stub turn runs behind the same UI.
+   */
+  projectId?: string;
+}
+
+interface Wallet {
+  stars_balance: number;
 }
 
 type SplitTab = 'chat' | 'code' | 'assets';
@@ -56,9 +69,24 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'assets', label: 'Assets' },
 ];
 
-export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt }: WorkspaceProps) {
+export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt, projectId }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>('chat');
+
+  // Age-derived tier (OD-1): Lite 8–11 (agency beat) / Pro 12–17 (plan→approve).
+  // Default Lite when age is unknown (the safest, simplest UX).
+  const me = useMe();
+  const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
+  const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
+  const mode: 'lite' | 'pro' = age != null && age >= 12 ? 'pro' : 'lite';
+
+  // Family Stars balance for the metered display (real path). Refetched after a
+  // turn debits (OD-3 "meter every turn").
+  const wallet = useQuery<Wallet>({
+    queryKey: ['wallet', familyId],
+    queryFn: () => api<Wallet>(`/families/${familyId}/wallet`),
+    enabled: !!familyId && !!projectId,
+  });
   // Default window placement (Code lower-left & wide, Chat center-top & front,
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
@@ -74,7 +102,16 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
-  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles, introPrompt: prompt });
+  const { chat, busy, error, offline, pending, balance, canUndo, send, confirmPending, cancelPending, undo } =
+    useGameAgent({
+      files,
+      onApplyFiles,
+      introPrompt: prompt,
+      projectId,
+      mode,
+      balance: wallet.data?.stars_balance,
+      onStarsCharged: () => wallet.refetch(),
+    });
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
   // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).
@@ -86,7 +123,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt 
     chat,
     busy,
     error,
+    offline,
+    balance,
+    pending,
+    canUndo,
     onSend: send,
+    onConfirm: confirmPending,
+    onCancel: cancelPending,
+    onUndo: undo,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
   };

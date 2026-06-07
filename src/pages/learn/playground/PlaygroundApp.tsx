@@ -198,6 +198,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onApplyFiles={applyFiles}
           onRun={run}
           prompt={prompt}
+          // Only the AUTHED studio route (a real owned project, passed as a prop)
+          // runs server-side AI turns. The DEV sandbox — even when a `?projectId`
+          // query selects a VFS fixture for the runner — keeps the offline stub
+          // turn so the debug/warn specs stay deterministic and LLM-free.
+          projectId={projectIdProp}
         />
       )}
 
