@@ -13,7 +13,9 @@ import {
   saveProject as savePersisted,
   loadWorkspaceUi,
   saveWorkspaceUi,
+  saveThumbnail,
 } from './projectPersistence';
+import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
 import { withPreloadedAssets } from './sampleAssets';
@@ -86,6 +88,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // The server save version we last reconciled against (PRD J3, last-write-wins).
   // A ref so the debounced save reads the latest without re-subscribing.
   const versionRef = useRef(0);
+  // Wraps the workspace so we can snapshot it (chrome + game) for the Projects
+  // thumbnail when the kid leaves. Excludes the leave dialog (a sibling below).
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const run = useCallback(() => {
     setRunning(true);
@@ -190,6 +196,21 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // it): block in-app navigation away while in the workspace and confirm first.
   const blocker = useBlocker(phase === 'workspace');
 
+  // Capture a workspace thumbnail (real projects only — the dev sandbox is
+  // transient), persist it locally, then leave. Best-effort: never blocks exit.
+  const handleLeave = useCallback(async () => {
+    if (projectId && workspaceRef.current) {
+      setLeaving(true);
+      try {
+        const dataUrl = await captureWorkspaceThumbnail(workspaceRef.current);
+        if (dataUrl) await saveThumbnail(projectId, dataUrl);
+      } catch {
+        // Thumbnail is best-effort; leaving must not depend on it.
+      }
+    }
+    blocker.proceed?.();
+  }, [projectId, blocker]);
+
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {phase === 'landing' && (
@@ -271,6 +292,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
         />
       )}
       {phase === 'workspace' && (
+        <div ref={workspaceRef} className="h-full min-h-0 w-full">
         <Workspace
           files={files}
           runKey={runKey}
@@ -285,6 +307,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           // LLM-free.
           projectId={ownedProjectId}
         />
+        </div>
       )}
 
       {blocker.state === 'blocked' && (
@@ -306,17 +329,19 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
               <button
                 type="button"
                 autoFocus
+                disabled={leaving}
                 onClick={() => blocker.reset?.()}
-                className="rounded-lg border border-pg-border px-4 py-2 text-[13px] font-bold transition-colors hover:bg-pg-text/5"
+                className="rounded-lg border border-pg-border px-4 py-2 text-[13px] font-bold transition-colors hover:bg-pg-text/5 disabled:opacity-50"
               >
                 Keep building
               </button>
               <button
                 type="button"
-                onClick={() => blocker.proceed?.()}
-                className="rounded-lg bg-brand-coral px-4 py-2 text-[13px] font-extrabold text-white"
+                disabled={leaving}
+                onClick={handleLeave}
+                className="rounded-lg bg-brand-coral px-4 py-2 text-[13px] font-extrabold text-white disabled:opacity-70"
               >
-                Leave
+                {leaving ? 'Saving…' : 'Leave'}
               </button>
             </div>
           </div>

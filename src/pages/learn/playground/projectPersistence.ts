@@ -96,6 +96,31 @@ export async function saveWorkspaceUi(key: string, blob: WorkspaceUiBlob): Promi
   }
 }
 
+// ── Workspace thumbnail (the Projects-list card image). The backend has no image
+//    upload path for games (thumbnail_s3_key takes an S3 key, not a data URL), so
+//    the captured composite lives device-local in the SAME store under a `thumb:`
+//    prefix — same model as the locally-persisted game VFS above. ──
+const THUMB_PREFIX = 'thumb:';
+
+/** Load the locally-stored thumbnail data URL for a project (or null). */
+export async function loadThumbnail(key: string): Promise<string | null> {
+  try {
+    const data = await withStore<string | undefined>('readonly', (s) => s.get(THUMB_PREFIX + key));
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist a thumbnail data URL for a project. Best-effort — swallows failures. */
+export async function saveThumbnail(key: string, dataUrl: string): Promise<void> {
+  try {
+    await withStore('readwrite', (s) => s.put(dataUrl, THUMB_PREFIX + key));
+  } catch {
+    // Thumbnail is best-effort; losing it only falls back to the placeholder.
+  }
+}
+
 /**
  * Load a project to open in the studio (PRD J9). With a `projectId` the SERVER
  * is the source of truth: we read its versioned VFS, refresh the cache, and
