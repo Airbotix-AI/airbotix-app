@@ -7,9 +7,12 @@ import { PortalLayout } from './PortalLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
-// DEV-ONLY: the playground (no auth). Landing → generating → workspace (two layout
-// modes). The real /learn/playground/:projectId route (auth + backend) comes later.
+// The Phaser game studio. `/playground-sandbox` is the DEV-only no-auth entry;
+// `/learn/playground/:projectId` (LearnPlaygroundPage) is the authed kid entry
+// the Tiny Game card opens. Phase 1 runs on the local scaffold (no backend
+// `game` kind yet — see LearnPlaygroundPage).
 import { PlaygroundApp } from '@/pages/learn/playground/PlaygroundApp';
+import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
 import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
@@ -59,7 +62,20 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootPage /> },
 
   // DEV-ONLY: view the playground desktop without auth. Stripped from prod builds.
-  ...(import.meta.env.DEV ? [{ path: '/playground-sandbox', element: <PlaygroundApp /> }] : []),
+  // Wrapped in h-screen so the studio (now h-full) fills the viewport here, where
+  // there's no LearnLayout to provide height.
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/playground-sandbox',
+          element: (
+            <div className="h-screen">
+              <PlaygroundApp />
+            </div>
+          ),
+        },
+      ]
+    : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },
@@ -121,6 +137,11 @@ export const router = createBrowserRouter([
       { path: 'create/code', element: <CodeHubPage /> },
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
+      // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
+      // -bleed via FLUID_ROUTES in LearnLayout. The Tiny Game card routes here.
+      // Phase 1: local Phaser scaffold (no backend game kind yet). The DEV
+      // `/playground-sandbox` stays the no-auth quick-test entry.
+      { path: 'playground/:projectId', element: <LearnPlaygroundPage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

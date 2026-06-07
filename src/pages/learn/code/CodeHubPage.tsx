@@ -35,6 +35,15 @@ export function CodeHubPage() {
   const start = async (template: CodeTemplate) => {
     setBusy(template.id);
     setError(null);
+    // Tiny Game opens the Phaser game studio (the playground), not the web code
+    // editor. Phase 1 is client-only: no backend project yet (the playground runs
+    // on its local Phaser scaffold + IndexedDB, keyed by this id). A real
+    // game-kind backend project is Phase 2. The `local-` prefix marks it as not
+    // server-backed (the file load 404s → local scaffold fallback).
+    if (template.id === 'tiny_game') {
+      nav(`/learn/playground/local-${crypto.randomUUID()}`);
+      return;
+    }
     try {
       const project = await createCodeProject({
         kidId,
