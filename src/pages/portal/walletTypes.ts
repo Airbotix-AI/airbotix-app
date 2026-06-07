@@ -7,7 +7,7 @@ export type AutoTopupSku = 'starter_10' | 'family_30' | 'mega_50';
 
 export interface AutoTopupConfig {
   auto_topup_enabled: boolean;
-  auto_topup_threshold_stars: number; // 5 / 10 / 20 / 50
+  auto_topup_threshold_stars: number; // 250 / 500 / 1000 / 2500 (A$5/10/20/50)
   auto_topup_sku: AutoTopupSku | null;
   auto_topup_payment_method_id: string | null;
   auto_topup_daily_cap_aud_cents: number; // max 10000 (A$100)
@@ -114,7 +114,7 @@ export interface UsageTrendPoint {
 
 // ── Shared constants (parent-portal-prd §4.4.1 decision table) ─────────────
 
-export const THRESHOLD_OPTIONS = [5, 10, 20, 50] as const;
+export const THRESHOLD_OPTIONS = [250, 500, 1000, 2500] as const; // A$5/10/20/50 @ 50★/A$
 
 // Stars shown = base + bonus, matching STARS_PACKS (backend single source of truth).
 // 1 star = A$0.02 (50 stars per A$1).

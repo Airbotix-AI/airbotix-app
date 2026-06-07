@@ -6,14 +6,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-07
 
-### Changed
-- **Stars economy re-pegged: 1 star = A$0.02 (was A$1)** — mirrors platform-backend.
-  Top-up packs now credit 500 / 1750 / 3250 / 7000★ (Starter/Family/Mega/School,
-  incl. bonus), auto-topup SKUs + threshold options realigned to 50★ per A$, and
-  Studio per-action costs updated (image 4→8★, video 5→40★; chat/voice/code/music
-  unchanged) so a single chat costs ≈ A$0.02 and a $10 pack lasts hundreds of turns.
-
 ### Added
+- **My Family is now a growth surface, not a settings form** (`parent-portal-growth-report-prd.md`): tapping a kid lands on a warm **growth report** (`/portal/family/:kidId`, new `KidGrowthPage`) — a one-sentence headline, highlight tiles (creations / day-streak / minutes exploring / studios tried), a 28-day daily-activity sparkline, and a friendly "what they've been making" breakdown — instead of the profile editor. The family list now shows a per-kid growth teaser (`KidGrowthTeaser`) + sparkline with a "See growth →" action, kids first and the family code demoted below. A brand-new kid shows an encouraging **🌱 early state** (reuses the onboarding `KidLoginHelper` with the copyable family code) rather than "No data". Profile / Reset PIN / Delete move verbatim to `/portal/family/:kidId/settings`. Growth derived purely from the existing usage endpoints (`/kids/:id/usage`, `/usage/trend`) in new pure helpers (`kidGrowth.ts`, +Vitest); shared `TrendBars` extracted to `src/components/`. Frontend-only, no backend change.
 - Parent onboarding clarity pass (follow-up to the welcome flow): the welcome tour
   gained a concrete **"What your child will make & learn"** slide (Image/Music/Voice,
   Video, Code & Games + the skills built) and is now **re-openable any time** via a
@@ -35,6 +29,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   blocking (D-ONB2-02).
 
 ### Changed
+- **Stars economy re-pegged: 1 star = A$0.02 (was A$1)** — mirrors platform-backend.
+  Top-up packs now credit 500 / 1750 / 3250 / 7000★ (Starter/Family/Mega/School,
+  incl. bonus), auto-topup SKUs + threshold options realigned to 50★ per A$, and
+  Studio per-action costs updated (image 4→8★, video 5→40★; chat/voice/code/music
+  unchanged) so a single chat costs ≈ A$0.02 and a $10 pack lasts hundreds of turns.
 - **Activity page (`/portal/audit`) now speaks plain language.** It previously dumped
   raw machine `event_type` strings (`wallet.topup_initiated`) and the full JSON payload
   (`pack_sku`, `payment_intent_id`, `amount_aud_cents`…) — unreadable for parents. Each
