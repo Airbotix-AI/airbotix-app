@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { runGen } from './assetGen';
+import { describe, it, expect, vi } from 'vitest';
+import { runGen, type AssetGenDeps } from './assetGen';
 
-describe('asset generation stub', () => {
+describe('asset generation — stub fallback (DEV sandbox, no projectId)', () => {
   it('returns an SVG data URL for images', async () => {
     const r = await runGen({ kind: 'image', prompt: 'a cheerful barista' });
     expect(r.mime).toBe('image/svg+xml');
@@ -25,5 +25,26 @@ describe('asset generation stub', () => {
     const a = await runGen({ kind: 'image', prompt: 'red truck' });
     const b = await runGen({ kind: 'image', prompt: 'blue truck' });
     expect(a.dataUrl).not.toBe(b.dataUrl);
+  });
+});
+
+describe('asset generation — real backend (authed studio, projectId set)', () => {
+  it('routes through the injected backend dep when a projectId is present', async () => {
+    const generate = vi.fn().mockResolvedValue({ dataUrl: 'data:image/png;base64,AA', mime: 'image/png' });
+    const deps: AssetGenDeps = { generate };
+    const req = { projectId: 'game-1', kind: 'image' as const, prompt: 'a pixel coin' };
+
+    const r = await runGen(req, deps);
+
+    expect(generate).toHaveBeenCalledWith(req);
+    expect(r.mime).toBe('image/png');
+  });
+
+  it('never falls back to the stub when a projectId is present', async () => {
+    const generate = vi.fn().mockResolvedValue({ dataUrl: 'data:image/png;base64,AA', mime: 'image/png' });
+    const r = await runGen({ projectId: 'game-1', kind: 'image', prompt: 'x' }, { generate });
+    // A stub result would be image/svg+xml with meta.stub — assert it is NOT that.
+    expect(r.mime).not.toBe('image/svg+xml');
+    expect(r.meta?.stub).toBeUndefined();
   });
 });

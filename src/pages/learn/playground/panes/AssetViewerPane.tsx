@@ -16,6 +16,7 @@ import {
   Loader2,
   Lock,
   Music,
+  Plus,
   Search,
   Sparkles,
   Trash2,
@@ -24,6 +25,7 @@ import {
 
 import type { VfsFile } from '../../code/codeApi';
 import { runGen } from '../assetGen';
+import { addAssetToGame } from './assetInsert';
 import { isPreloadedAsset } from '../sampleAssets';
 import { useProjectStore } from '../projectStore';
 import { AssetPreview } from './AssetPreview';
@@ -41,6 +43,18 @@ import {
 
 interface AssetViewerPaneProps {
   files: VfsFile[];
+  /**
+   * The real backend project. When set, AI generation routes through
+   * platform-backend (Stars-metered, content-filtered, audited — PRD J5); when
+   * absent (DEV sandbox) the offline stub runs behind the same UI.
+   */
+  projectId?: string;
+  /**
+   * Commit a VFS change back to the page-level source of truth — used by the
+   * one-tap "Add to my game" to write the loader + use into a scene. When absent
+   * (read-only contexts), the add-to-game button is hidden.
+   */
+  onApplyFiles?: (files: VfsFile[]) => void;
 }
 
 const ALL = '__all__';
@@ -73,6 +87,22 @@ function uniquePath(desired: string, taken: Set<string>): string {
   let n = 1;
   while (taken.has(`${stem}-${n}${ext}`)) n += 1;
   return `${stem}-${n}${ext}`;
+}
+
+const MIME_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+  'image/webp': 'webp',
+  'audio/wav': 'wav',
+  'audio/mpeg': 'mp3',
+  'audio/ogg': 'ogg',
+};
+
+/** Map a generated asset's mime → file extension (fallback by kind). */
+function extForResult(kind: 'image' | 'audio', mime: string): string {
+  return MIME_EXT[mime] ?? (kind === 'audio' ? 'wav' : 'svg');
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -108,7 +138,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files }: AssetViewerPaneProps) {
+export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
@@ -123,6 +153,7 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
   const [genPrompt, setGenPrompt] = useState('');
   const [genKind, setGenKind] = useState<'image' | 'audio'>('image');
   const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
 
   const assets = useMemo(() => files.filter(isDisplayable), [files]);
 
@@ -177,24 +208,43 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
     if (!genPrompt.trim() || generating) return;
     setGenerating(true);
     setNotice(null);
+    setGenError(null);
     try {
       const [result] = await Promise.all([
         runGen({
+          projectId,
           kind: genKind,
           prompt: genPrompt.trim(),
           refAssetPath: selectedPath ?? undefined,
         }),
         sleep(MIN_GEN_MS),
       ]);
-      const ext = genKind === 'audio' ? 'wav' : 'svg';
+      // Pick the extension from the returned mime (real backend may return png /
+      // mp3); fall back to the stub's svg / wav.
+      const ext = extForResult(genKind, result.mime);
       const slug = genPrompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'asset';
       const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
       createFile(path, 'asset', result.dataUrl);
       setSelectedPath(path);
-      setNotice('Generated (AI demo stub).');
+      setNotice(projectId ? 'Generated ✨ — add it to your game below.' : 'Generated (AI demo).');
+    } catch {
+      // Calm, kid-framed retry copy (never a frozen screen — PRD J5 offline).
+      setGenError("That didn't work — check your internet and try again.");
     } finally {
       setGenerating(false);
     }
+  }
+
+  /** One-tap "Add to my game": write the loader + a sensible use into a scene. */
+  function onAddToGame(addAsset: VfsFile) {
+    if (!onApplyFiles) return;
+    const r = addAssetToGame(files, addAsset);
+    if (!r.files) {
+      setNotice("Couldn't find a scene to add it to — open the code and load it yourself.");
+      return;
+    }
+    onApplyFiles(r.files);
+    setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
   }
 
   return (
@@ -276,6 +326,8 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
           <DetailView
             asset={selected}
             files={files}
+            canAddToGame={!!onApplyFiles}
+            onAddToGame={() => onAddToGame(selected)}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
               rename(selected.path, to);
@@ -296,6 +348,7 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
               prompt={genPrompt}
               kind={genKind}
               busy={generating}
+              error={genError}
               onPrompt={setGenPrompt}
               onKind={setGenKind}
               onGenerate={() => void onGenerate()}
@@ -314,6 +367,7 @@ export function AssetViewerPane({ files }: AssetViewerPaneProps) {
                       <button
                         key={a.path}
                         type="button"
+                        data-testid="asset-card"
                         onClick={() => setSelectedPath(a.path)}
                         className="flex flex-col overflow-hidden rounded-xl border border-pg-border bg-pg-surface text-left transition-colors hover:border-brand-bubblegum/60"
                       >
@@ -394,6 +448,7 @@ function GenerateBar({
   prompt,
   kind,
   busy,
+  error,
   onPrompt,
   onKind,
   onGenerate,
@@ -401,39 +456,52 @@ function GenerateBar({
   prompt: string;
   kind: 'image' | 'audio';
   busy: boolean;
+  error: string | null;
   onPrompt: (v: string) => void;
   onKind: (k: 'image' | 'audio') => void;
   onGenerate: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-pg-border bg-pg-surface px-3 py-2">
-      <Sparkles size={16} className="text-brand-bubblegum" />
-      <input
-        value={prompt}
-        onChange={(e) => onPrompt(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onGenerate();
-        }}
-        placeholder="Describe an asset to generate with AI…"
-        className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
-      />
-      <select
-        value={kind}
-        onChange={(e) => onKind(e.target.value as 'image' | 'audio')}
-        className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5 text-[12px] font-semibold"
-      >
-        <option value="image">image</option>
-        <option value="audio">audio</option>
-      </select>
-      <button
-        type="button"
-        onClick={onGenerate}
-        disabled={busy || !prompt.trim()}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
-      >
-        {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-        {busy ? 'Generating…' : 'Generate'}
-      </button>
+    <div className="shrink-0 border-b border-pg-border bg-pg-surface">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Sparkles size={16} className="text-brand-bubblegum" />
+        <input
+          value={prompt}
+          data-testid="asset-generate-prompt"
+          onChange={(e) => onPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onGenerate();
+          }}
+          placeholder="Describe an asset to generate with AI…"
+          className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
+        />
+        <select
+          value={kind}
+          onChange={(e) => onKind(e.target.value as 'image' | 'audio')}
+          className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5 text-[12px] font-semibold"
+        >
+          <option value="image">image</option>
+          <option value="audio">audio</option>
+        </select>
+        <button
+          type="button"
+          data-testid="asset-generate"
+          onClick={onGenerate}
+          disabled={busy || !prompt.trim()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
+        >
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+          {busy ? 'Generating…' : 'Generate'}
+        </button>
+      </div>
+      {error && (
+        <div
+          data-testid="asset-generate-error"
+          className="border-t border-brand-coral/40 bg-brand-coral/10 px-4 py-1.5 text-[12px] text-brand-coral"
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -441,6 +509,8 @@ function GenerateBar({
 function DetailView({
   asset,
   files,
+  canAddToGame,
+  onAddToGame,
   onBack,
   onRename,
   onDelete,
@@ -448,6 +518,8 @@ function DetailView({
 }: {
   asset: VfsFile;
   files: VfsFile[];
+  canAddToGame: boolean;
+  onAddToGame: () => void;
   onBack: () => void;
   onRename: (to: string) => void;
   onDelete: () => void;
@@ -549,6 +621,20 @@ function DetailView({
             <Row k="Size" v={formatBytes(asset.size || asset.content.length)} />
           </dl>
 
+          {/* One-tap insert (PRD J5): a kid won't hand-paste the code-ref, so the
+              primary action wires the loader + a use into a scene automatically.
+              The code-ref below is kept for older kids who want to do it by hand. */}
+          {canAddToGame && !locked && (
+            <button
+              type="button"
+              data-testid="asset-add-to-game"
+              onClick={onAddToGame}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2.5 text-[13px] font-extrabold text-white transition-colors hover:bg-brand-bubblegum/90"
+            >
+              <Plus size={16} /> Add to my game
+            </button>
+          )}
+
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12.5px] font-extrabold">Use it in your code</span>
@@ -560,7 +646,10 @@ function DetailView({
                 <Copy size={14} /> Copy
               </button>
             </div>
-            <pre className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text">
+            <pre
+              data-testid="asset-codeRef"
+              className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text"
+            >
               {snippet}
             </pre>
           </div>
