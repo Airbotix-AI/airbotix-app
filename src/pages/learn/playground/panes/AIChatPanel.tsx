@@ -47,12 +47,16 @@ interface AIChatPanelProps {
   safeguard?: SafeguardingVerdict | null;
   /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
   handRaised?: boolean;
+  /** Only show "Ask my teacher" when the kid is in a class (else there's no
+   *  teacher to ask). */
+  inClass?: boolean;
   onSend: (text: string) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
-  /** "Ask my teacher" raise-hand (J4). */
+  /** "Ask my teacher" raise-hand + put-it-back-down (J4). */
   onRaiseHand?: () => void;
+  onLowerHand?: () => void;
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
@@ -68,11 +72,13 @@ export function AIChatPanel({
   canUndo,
   safeguard,
   handRaised,
+  inClass,
   onSend,
   onConfirm,
   onCancel,
   onUndo,
   onRaiseHand,
+  onLowerHand,
   onRunGame,
   onSeeCode,
 }: AIChatPanelProps) {
@@ -93,16 +99,22 @@ export function AIChatPanel({
           AI Helper
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            data-testid="raise-hand"
-            onClick={onRaiseHand}
-            disabled={handRaised}
-            aria-pressed={handRaised}
-            className="inline-flex items-center gap-1 rounded-full border border-pg-border px-2.5 py-0.5 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/5 disabled:opacity-60"
-          >
-            <Hand size={12} /> {handRaised ? 'Hand up' : 'Ask my teacher'}
-          </button>
+          {inClass && (
+            <button
+              type="button"
+              data-testid="raise-hand"
+              onClick={handRaised ? onLowerHand : onRaiseHand}
+              aria-pressed={handRaised}
+              title={handRaised ? 'Tap to put your hand down' : 'Ask your teacher for help'}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition-colors ${
+                handRaised
+                  ? 'border-brand-coral/40 bg-wash-coral text-ink'
+                  : 'border-pg-border text-pg-text-dim hover:bg-pg-text/5'
+              }`}
+            >
+              <Hand size={12} /> {handRaised ? 'Hand up — tap to lower' : 'Ask my teacher'}
+            </button>
+          )}
           {canUndo && (
             <button
               type="button"

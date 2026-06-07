@@ -12,11 +12,13 @@ interface ChatPaneProps {
   canUndo?: boolean;
   safeguard?: SafeguardingVerdict | null;
   handRaised?: boolean;
+  inClass?: boolean;
   onSend: (text: string) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
   onRaiseHand?: () => void;
+  onLowerHand?: () => void;
   onRunGame?: () => void;
   onSeeCode?: () => void;
 }

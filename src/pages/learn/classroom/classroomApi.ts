@@ -69,9 +69,11 @@ export const REPORT_REASONS: Array<{ id: ReportReason; emoji: string; label: str
   { id: 'someone_else_should_see_this', emoji: '🆘', label: 'A grown-up should see this' },
 ];
 
-export async function listClasses(kidId: string): Promise<ClassSummary[]> {
+// The signed-in kid's own active classes. Uses the principal (the `kidId` arg is
+// kept for the caller's query key); the backend resolves the kid from the token.
+export async function listClasses(_kidId: string): Promise<ClassSummary[]> {
   try {
-    return await api<ClassSummary[]>(`/kids/${kidId}/classes`);
+    return await api<ClassSummary[]>(`/classes/mine`);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
     throw e;

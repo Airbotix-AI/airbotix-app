@@ -425,6 +425,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     }
   }, [handRaised, isReal, projectId, deps]);
 
+  /** Put the "Ask my teacher" hand back down (cancel the raise). Local toggle —
+   *  the backend raise/lower wiring lands with the teacher-WS work (I‑6/I‑7). */
+  const lowerHand = useCallback(() => {
+    setHandRaised(false);
+  }, []);
+
   /**
    * Confirm a staged turn (Lite "Do it" OR Pro "✓ Approve"). For a Pro plan we ask
    * the backend to persist the already-run turn (`approveTurn`). For a Lite agency
@@ -513,5 +519,6 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     cancelPending,
     undo,
     raiseHand,
+    lowerHand,
   };
 }
