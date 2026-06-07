@@ -33,6 +33,7 @@ import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
+import { ShareLinkPanel } from './ShareLinkPanel';
 
 interface WorkspaceProps {
   /** The lifted VFS — owned by PlaygroundApp. */
@@ -197,6 +198,13 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
         {/* Desktop surface — the maximized window fills this, above the taskbar. */}
         <div ref={surfaceRef} className="pg-desktop-bg relative min-h-0 flex-1 overflow-hidden">
+          {/* External share-link control (J8) — only for a REAL backend project. */}
+          {projectId && (
+            <div className="absolute right-4 top-4 z-40">
+              <ShareLinkPanel projectId={projectId} />
+            </div>
+          )}
+
           {/* Left-edge shortcut column */}
           {/* Desktop icons are the bottom layer — windows (zIndex ≥ 1) sit above. */}
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
@@ -295,6 +303,12 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
                     </button>
                   );
                 })}
+                {/* External share-link control (J8) — real backend project only. */}
+                {projectId && (
+                  <div className="ml-auto">
+                    <ShareLinkPanel projectId={projectId} />
+                  </div>
+                )}
               </div>
               <div className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
