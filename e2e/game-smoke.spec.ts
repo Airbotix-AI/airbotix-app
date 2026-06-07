@@ -37,9 +37,10 @@ async function installGameSignalRecorder(page: Page) {
       if (!m || typeof m !== 'object') return;
       if ((m as { __airbotixConsole?: true }).__airbotixConsole === true) {
         const cm = m as { level?: string; text?: string };
-        // The runner posts a synthetic { level:'error', text:'ready' } handshake
-        // that is NOT a real error — exclude it (GameFrame does the same).
-        if (cm.level === 'error' && cm.text !== 'ready') {
+        // Record every console error. The runtime's 'ready' handshake is posted
+        // at level:'info' (see buildPreview.ts), so it is naturally excluded —
+        // an error-level message means the kid's game actually errored.
+        if (cm.level === 'error') {
           w.__smokeErrors.push(String(cm.text));
         }
       } else if ((m as { __airbotixStat?: true }).__airbotixStat === true) {
@@ -84,8 +85,9 @@ test('game-smoke: the starter game runs with zero console errors and a live canv
   await expect(page.getByText(/\bRunning\b/)).toBeVisible();
   await expect(page.getByText(/[1-9]\d* fps/)).toBeVisible({ timeout: 6_000 });
 
-  // Signal 2 — zero uncaught console errors from the kid's game (the handshake
-  // 'ready' line is excluded in the recorder). Give a beat for any late error to
+  // Signal 2 — zero uncaught console errors from the kid's game. The recorder
+  // captures every error-level console message (the runtime's 'ready' handshake
+  // is info-level, so it never counts). Give a beat for any late error to
   // arrive AFTER we've already confirmed the loop is running.
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { __smokeErrors: string[] }).__smokeErrors), {

@@ -24,10 +24,11 @@ see `src/pages/learn/playground/buildGamePreview.ts`:
 - `{ __airbotixConsole, level, text, loc }` — every console call.
 - `{ __airbotixStat, fps, paused }` — every ~500ms while the loop runs.
 
-`game-smoke.spec.ts` installs a page init-script that records console-level
-errors (excluding the synthetic `ready` handshake) and the max observed `fps`,
-then polls: **fps > 0** AND **errors == []**. Deterministic — it waits on those
-conditions, never on a fixed sleep.
+`game-smoke.spec.ts` installs a page init-script that records every error-level
+console message and the max observed `fps`, then polls: **fps > 0** AND
+**errors == []**. The runtime's `ready` handshake is posted at `info` level (not
+`error`), so it never counts as a failure — a genuine `console.error` from the
+game would. Deterministic — it waits on those conditions, never on a fixed sleep.
 
 ## Visual-regression baselines
 
@@ -44,3 +45,7 @@ npm run test:e2e -- visual.spec.ts --update-snapshots
 
 Then review and commit the regenerated PNGs under `e2e/__screenshots__/`. Do not
 update baselines to make an unexpected diff pass — investigate the diff first.
+
+> Because `snapshotPathTemplate` drops the OS/arch key, CI must pin the Playwright
+> version to match the committed baselines, or the tight `maxDiffPixelRatio: 0.01`
+> tolerance will compare against renderers the baselines were never generated on.
