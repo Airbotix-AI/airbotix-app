@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
-import { api } from '@/lib/api';
+import { api, ApiError, apiDownload } from '@/lib/api';
 import type { FamilyUsage, UsageSummary } from './walletTypes';
 
 type Range = '24h' | '7d' | '28d';
@@ -21,7 +21,25 @@ export function UsagePage() {
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   const [range, setRange] = useState<Range>('7d');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const { from, to } = rangeBounds(range);
+
+  const exportCsv = async () => {
+    if (!familyId) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      await apiDownload(
+        `/families/${familyId}/usage/export.csv?from=${from}&to=${to}`,
+        `airbotix-usage-${from}_to_${to}.csv`,
+      );
+    } catch (e) {
+      setExportError(e instanceof ApiError ? e.message : 'Could not export CSV.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const summary = useQuery<UsageSummary>({
     queryKey: ['family', familyId, 'usage-summary', range],
@@ -58,20 +76,35 @@ export function UsagePage() {
             How much AI your family used — Stars, requests, and which kid. No prompts or content stored here.
           </p>
         </div>
-        <div className="flex gap-1.5">
-          {(['24h', '7d', '28d'] as Range[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`rounded-full px-4 py-1.5 text-[13px] font-bold transition-colors ${
-                range === r ? 'bg-brand-sky text-white' : 'bg-surface text-ink-soft hover:bg-wash-sky hover:text-ink'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-1.5">
+            {(['24h', '7d', '28d'] as Range[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-bold transition-colors ${
+                  range === r ? 'bg-brand-sky text-white' : 'bg-surface text-ink-soft hover:bg-wash-sky hover:text-ink'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={exportCsv}
+            disabled={exporting}
+            className="btn-pill-secondary text-[13px] disabled:opacity-60"
+          >
+            {exporting ? 'Exporting…' : `↓ Export CSV (${range})`}
+          </button>
         </div>
       </div>
+
+      {exportError && (
+        <div className="mb-6 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+          {exportError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
         <div className="stat-tile sky">
