@@ -72,7 +72,7 @@ export function BillingPage() {
         <div>
           <div className="eyebrow eyebrow-mint">Billing</div>
           <h1 className="section-heading">Payment history</h1>
-          <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
+          <p className="lead-text mt-2 text-[15px]">
             Every Stars Pack you bought — card and auto top-ups, plus refunds. Receipts via Airwallex.
           </p>
         </div>
@@ -100,7 +100,7 @@ export function BillingPage() {
         />
       </div>
 
-      <h2 className="section-heading mb-4" style={{ fontSize: '22px' }}>Purchases &amp; refunds</h2>
+      <h2 className="section-heading mb-4 text-[22px]">Purchases &amp; refunds</h2>
       {tx.isLoading ? (
         <p className="lead-text">Loading…</p>
       ) : rows.length > 0 ? (
