@@ -6,9 +6,33 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-07
 
-### CI
-- `ci.yml` now actually runs the unit tests: the job runs `lint → typecheck →
-  test → build` (was build-only, so the Vitest suite never ran in CI).
+### Changed
+- **Stars economy re-pegged: 1 star = A$0.02 (was A$1)** — mirrors platform-backend.
+  Top-up packs now credit 500 / 1750 / 3250 / 7000★ (Starter/Family/Mega/School,
+  incl. bonus), auto-topup SKUs + threshold options realigned to 50★ per A$, and
+  Studio per-action costs updated (image 4→8★, video 5→40★; chat/voice/code/music
+  unchanged) so a single chat costs ≈ A$0.02 and a $10 pack lasts hundreds of turns.
+
+### Added
+- Parent onboarding clarity pass (follow-up to the welcome flow): the welcome tour
+  gained a concrete **"What your child will make & learn"** slide (Image/Music/Voice,
+  Video, Code & Games + the skills built) and is now **re-openable any time** via a
+  **"How it works"** button on the Dashboard (`openWelcomeTour`), not just on first
+  login. New reusable **`StarsExplainer`** ("what are Stars?", qualitative — no hard
+  $ conversion) on the top-up + wallet pages and a clearer checklist subtitle. The
+  kid-login helper now shows a **QR code + "Copy login link"** (`/learn/login?family_code=…`)
+  so parents don't dictate a code and kids don't type one; the kid login page pre-fills
+  the family code from that query param. City is now a **dropdown of major AU cities
+  (+ "Other")** on register + settings instead of free text. Adds `qrcode.react`.
+- Parent-portal first-login onboarding (`parent-portal-onboarding-prd.md`): a one-time,
+  skippable 3-slide **WelcomeWizard** ("what Airbotix is / you're in control / 3 next steps")
+  and a persistent, data-driven **GettingStartedCard** checklist on the Dashboard (log kid in →
+  add Stars → optional spending limits), plus a **KidLoginHelper** modal showing the copyable
+  family code + plain-language login steps. Frontend-only: completion derived from existing
+  family/wallet/payment-methods/auto-topup queries + per-parent (`sub`-keyed) localStorage flags
+  (`src/lib/onboardingStorage.ts`); pure logic in `onboardingState.ts` with Vitest coverage.
+  Mounted in `DashboardPage` (parent-with-family branch only). Payment step is gentle / never
+  blocking (D-ONB2-02).
 
 ### Changed
 - **Activity page (`/portal/audit`) now speaks plain language.** It previously dumped
@@ -24,6 +48,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   grouping / filters / export remain unbuilt).
 - `.gitignore`: explicitly ignore the compiled `vite.config.js` / `vite.config.d.ts`
   (stray `tsc -b` outputs) so they never get committed alongside `vite.config.ts`.
+
+### CI
+- `ci.yml` now actually runs the unit tests: the job runs `lint → typecheck →
+  test → build` (was build-only, so the Vitest suite never ran in CI).
 
 ## 2026-06-06
 

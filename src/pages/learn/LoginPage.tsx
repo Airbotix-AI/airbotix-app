@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { kidLogin } from '@/auth/useAuth';
@@ -16,12 +16,18 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
   const nav = useNavigate();
+  const [sp] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  // Pre-fill the family code when arriving from a parent's shared link / QR
+  // (/learn/login?family_code=XXXX), so the kid only types nickname + PIN.
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { family_code: (sp.get('family_code') ?? '').toUpperCase() },
+  });
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
