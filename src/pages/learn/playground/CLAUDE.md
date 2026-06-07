@@ -334,9 +334,20 @@ model with code projects).
   README. Append **`?projectId=<id>`** to exercise the real S3-backed file load
   (`GET /projects/:id/code/files`) against a running/mocked backend; without it
   the local scaffold is used. (The old `PlaygroundPage` route target was deleted.)
-- Planned product routes (not yet built): `/learn/create/playground` (hub),
-  `/learn/playground/:projectId` (studio, behind kid auth + backend),
-  `/learn/playground/:projectId/play` (fullscreen).
+  Wrapped in an `h-screen` div in the router so the now-`h-full` `PlaygroundApp`
+  fills the viewport here (no LearnLayout to supply height).
+- `/learn/playground/:projectId` — **authed kid route** (`<ProtectedRoute
+  kind="kid">`), rendered by `LearnPlaygroundPage` → `PlaygroundApp`. It's a
+  `/learn` CHILD, so it **keeps the Learn top nav** (`LearnLayout`) and renders
+  full-bleed below it (added to `FLUID_ROUTES` in `LearnLayout`); the studio root
+  is **`h-full`** (fills the area under the nav). The **Tiny Game** card
+  (`code/CodeHubPage` `start()`) routes here with a client `local-<uuid>` id.
+  Phase 1 (frontend-only): the backend has no `game` kind yet, so the file load
+  404s → local Phaser scaffold + IndexedDB keyed by the id (no Stars charge / not
+  in the projects list yet).
+- Still planned: `/learn/create/playground` (hub), the backend `game` project
+  kind + Phaser template/seed (Phase 2 — makes it a real server-backed project),
+  and `/learn/playground/:projectId/play` (fullscreen).
 
 Naming convention: the **playground** is the feature (routes/hub/api use
 `playground`); a single **game** artifact keeps `game` (`GameFrame`,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useBlocker, useSearchParams } from 'react-router-dom';
 
 import { GeneratingScreen } from './GeneratingScreen';
 import { useHistoryStore } from './historyStore';
@@ -100,8 +100,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     };
   }, [phase, persistKey]);
 
+  // Guard against accidentally leaving the studio (the Learn nav now sits above
+  // it): block in-app navigation away while in the workspace and confirm first.
+  const blocker = useBlocker(phase === 'workspace');
+
   return (
-    <div data-theme={theme} className="h-screen w-full overflow-hidden bg-pg-bg">
+    <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {phase === 'landing' && (
         <LandingScreen
           onSubmit={(p) => {
@@ -143,6 +147,39 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onApplyFiles={applyFiles}
           onRun={run}
         />
+      )}
+
+      {blocker.state === 'blocked' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-sm rounded-2xl border border-pg-border bg-pg-surface p-5 text-pg-text shadow-2xl"
+          >
+            <h2 className="text-[17px] font-extrabold">Leave the game studio?</h2>
+            <p className="mt-2 text-[13.5px] text-pg-text-dim">
+              Your game is saved on this device, so it&apos;ll be here when you come back — but
+              you&apos;ll leave the editor now.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => blocker.reset?.()}
+                className="rounded-lg border border-pg-border px-4 py-2 text-[13px] font-bold transition-colors hover:bg-pg-text/5"
+              >
+                Keep building
+              </button>
+              <button
+                type="button"
+                onClick={() => blocker.proceed?.()}
+                className="rounded-lg bg-brand-coral px-4 py-2 text-[13px] font-extrabold text-white"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
