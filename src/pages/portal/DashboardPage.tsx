@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { GettingStartedCard } from './onboarding/GettingStartedCard';
+import { WelcomeWizard } from './onboarding/WelcomeWizard';
 
 interface Wallet {
   stars_balance: number;
@@ -85,6 +87,8 @@ export function DashboardPage() {
         </div>
       ) : (
         <>
+          <WelcomeWizard />
+          <GettingStartedCard />
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
             <div className="stat-tile coral">
               <div className="stat-num text-brand-coral tabular-nums">{starsToday}</div>

@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { clearOnboardingFlag } from '@/lib/onboardingStorage';
 
 import {
   AU_STATES,
@@ -158,9 +159,22 @@ export function SettingsPage() {
             </>
           )}
         </div>
-        <button onClick={() => logout(true)} className="btn-pill-secondary mt-6">
-          Sign out everywhere
-        </button>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button onClick={() => logout(true)} className="btn-pill-secondary">
+            Sign out everywhere
+          </button>
+          {me.data.kind === 'user' && (
+            <button
+              onClick={() => {
+                clearOnboardingFlag(me.data.sub, 'welcomeSeen');
+                nav('/portal');
+              }}
+              className="btn-pill-ghost"
+            >
+              Replay intro
+            </button>
+          )}
+        </div>
       </section>
 
       {familyId && (
