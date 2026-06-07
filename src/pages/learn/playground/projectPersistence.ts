@@ -15,6 +15,7 @@
 // same IndexedDB store, no backend round-trip.
 
 import { readVfsSnapshot, saveVfs, SaveConflictError, type VfsFile, type VfsSnapshot } from '../code/codeApi';
+import { type WorkspaceUiBlob } from './workspaceUiStore';
 import type { Checkpoint } from './historyStore';
 
 export interface PersistedProject {
@@ -66,6 +67,32 @@ async function writeCache(key: string, data: PersistedProject): Promise<void> {
     await withStore('readwrite', (s) => s.put(data, key));
   } catch {
     // Caching is best-effort; losing a cache write only costs an offline reload.
+  }
+}
+
+// ── Workspace UI state (per-device "resume where I left off", J9). Stored in the
+//    SAME IndexedDB store under a `ui:` key prefix (no schema bump). This is UI
+//    state, not project data, so it never touches the backend VFS. ──
+const UI_PREFIX = 'ui:';
+
+/** Load the persisted workspace UI blob for a project (or null). Best-effort. */
+export async function loadWorkspaceUi(key: string): Promise<WorkspaceUiBlob | null> {
+  try {
+    const data = await withStore<WorkspaceUiBlob | undefined>('readonly', (s) =>
+      s.get(UI_PREFIX + key),
+    );
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the workspace UI blob for a project. Best-effort — swallows failures. */
+export async function saveWorkspaceUi(key: string, blob: WorkspaceUiBlob): Promise<void> {
+  try {
+    await withStore('readwrite', (s) => s.put(blob, UI_PREFIX + key));
+  } catch {
+    // UI persistence is best-effort; losing it only resets the layout once.
   }
 }
 

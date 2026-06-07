@@ -110,10 +110,10 @@ test('UDL accessibility smoke: picture starter chips + read-aloud + voice on the
   await expect(page.getByTestId('starter-chip').first()).toBeVisible();
   expect(await page.getByTestId('starter-chip').count()).toBeGreaterThan(0);
 
-  // Read-aloud + voice input + name field are present with accessible labels.
+  // Read-aloud + voice input are present with accessible labels. (No game-name
+  // field: the project title is derived from the prompt and the AI names it.)
   await expect(page.getByTestId('read-aloud')).toHaveAttribute('aria-label', 'Read aloud');
   await expect(page.getByTestId('voice-input')).toBeVisible();
-  await expect(page.getByTestId('game-name-input')).toBeVisible();
 
   // Read-aloud uses on-device speech synthesis (no network / no LLM): clicking it
   // must not throw and must call window.speechSynthesis.speak.

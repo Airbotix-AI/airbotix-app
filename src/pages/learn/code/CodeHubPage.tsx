@@ -14,7 +14,6 @@ import {
   type CodeProject,
   type CodeTemplate,
 } from './codeApi';
-import { createGameProject } from '@/pages/learn/playground/panes/playgroundApi';
 
 /** Code Studio hub — `/learn/create/code` (learn-code-studio-prd.md §2.1). */
 export function CodeHubPage() {
@@ -42,19 +41,11 @@ export function CodeHubPage() {
     // opens on those real files. The `phaser_pong` template backs the Tiny Game
     // card. Falls back to the local scaffold only when the backend isn't ready.
     if (template.id === 'tiny_game') {
-      try {
-        const game = await createGameProject({
-          kidId,
-          familyId,
-          title: template.title,
-          template: 'phaser_pong',
-        });
-        nav(`/learn/playground/${game.id}`);
-      } catch {
-        // Backend `game` kind not ready (or offline) → throwaway local scaffold,
-        // so the studio still opens. Real project lands once M1 ships.
-        nav(`/learn/playground/local-${crypto.randomUUID()}`);
-      }
+      // Prompt-first (the 3-phase flow): open the playground on its LANDING screen
+      // so the kid describes the game first. The real `kind='game'` project is
+      // created on prompt submit (in PlaygroundApp), not here — so the kid sees the
+      // prompt entry, and backing out never orphans an empty project.
+      nav('/learn/playground/new');
       return;
     }
     try {

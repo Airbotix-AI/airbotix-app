@@ -55,6 +55,18 @@ interface PlaygroundState {
    * keeps windows fully inside the surface (esp. ones opened later from chat).
    */
   fitWindows: (width: number, height: number) => void;
+  /** Restore theme + layout + window geometry from a persisted snapshot (the
+   *  'playground' slice of the workspace blob). Window rects are re-clamped to the
+   *  current surface by the ResizeObserver → `fitWindows` after restore. */
+  restore: (snap: PlaygroundSnapshot) => void;
+}
+
+/** The persistable slice of the playground store (theme + layout + windows). */
+export interface PlaygroundSnapshot {
+  theme: Theme;
+  layoutMode: LayoutMode;
+  windows: Record<PgWindowId, WinState>;
+  topZ: number;
 }
 
 // Default window layout (v2 mockup): Asset Viewer is a large BACKDROP at the
@@ -120,6 +132,13 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
   toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
   layoutMode: 'window',
   setLayoutMode: (m) => set({ layoutMode: m }),
+  restore: (snap) =>
+    set({
+      theme: snap.theme,
+      layoutMode: snap.layoutMode,
+      windows: snap.windows,
+      topZ: snap.topZ,
+    }),
   windows: DEFAULT_WINDOWS,
   topZ: INITIAL_TOP_Z,
   interacting: false,
