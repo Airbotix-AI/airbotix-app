@@ -320,7 +320,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             aria-modal="true"
             className="w-full max-w-sm rounded-2xl border border-pg-border bg-pg-surface p-5 text-pg-text shadow-2xl"
           >
-            <h2 className="text-[17px] font-extrabold">Leave the game studio?</h2>
+            <h2 className="text-[17px] font-extrabold text-pg-text">Leave the game studio?</h2>
             <p className="mt-2 text-[13.5px] text-pg-text-dim">
               Your game is saved on this device, so it&apos;ll be here when you come back — but
               you&apos;ll leave the editor now.
