@@ -229,7 +229,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
           </Window>
         </div>
 
@@ -290,7 +290,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
                     openLocation={locationRequest}
                   />
                 ) : (
-                  <AssetViewerPane files={files} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
                 )}
               </div>
             </section>
