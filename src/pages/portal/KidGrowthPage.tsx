@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { TrendBars } from '@/components/TrendBars';
-import { KidLoginHelper } from './onboarding/KidLoginHelper';
 import { GROWTH_WINDOW_DAYS, summarize, growthHeadline, studioMeta } from './kidGrowth';
 import type { KidUsageDetail, UsageTrendPoint } from './walletTypes';
 
@@ -39,7 +38,7 @@ export function KidGrowthPage() {
   const { kidId } = useParams<{ kidId: string }>();
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
-  const [showLogin, setShowLogin] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { from, to } = growthBounds();
 
   const kid = useQuery<Kid>({
@@ -86,6 +85,14 @@ export function KidGrowthPage() {
     .filter(([, v]) => v.requests > 0)
     .sort((a, b) => b[1].requests - a[1].requests);
 
+  const copyCode = () => {
+    const code = family.data?.code;
+    if (!code) return;
+    navigator.clipboard?.writeText(code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div>
       <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">← Family</Link>
@@ -111,10 +118,32 @@ export function KidGrowthPage() {
             creations and progress grow right here.
           </p>
 
-          {familyId && (
-            <button onClick={() => setShowLogin(true)} className="btn-pill-primary mt-5">
-              Get {name} signed in →
-            </button>
+          {familyId && family.data?.code && (
+            <div className="mt-5 rounded-2xl border border-brand-mint/30 bg-wash-mint p-5">
+              <div className="text-[15px] font-bold text-ink">Get {name} signed in</div>
+              <p className="mt-2 text-[14px] text-ink-soft">
+                1. On {name}&apos;s device, open{' '}
+                <span className="font-mono font-semibold">app.airbotix.ai/learn/login</span>
+              </p>
+              <p className="mt-2 text-[14px] text-ink-soft">2. Enter your family code:</p>
+              <div className="mt-2 flex items-center gap-3">
+                <span
+                  className="font-mono font-extrabold text-ink"
+                  style={{ fontSize: '28px', letterSpacing: '0.2em' }}
+                >
+                  {family.data.code}
+                </span>
+                <button onClick={copyCode} className="btn-pill-secondary">Copy</button>
+                {copied && (
+                  <span aria-live="polite" className="text-[12px] font-semibold text-brand-mint">
+                    Copied ✓
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-[14px] text-ink-soft">
+                3. {name} types their nickname and 4-digit PIN — that&apos;s it! 🎉
+              </p>
+            </div>
           )}
 
           <div className="mt-6 border-t border-ink/10 pt-5">
@@ -189,14 +218,6 @@ export function KidGrowthPage() {
           <span aria-hidden="true">⚙ </span>Profile, PIN &amp; safety settings →
         </Link>
       </div>
-
-      {showLogin && (
-        <KidLoginHelper
-          familyCode={family.data?.code ?? ''}
-          kidName={name}
-          onClose={() => setShowLogin(false)}
-        />
-      )}
     </div>
   );
 }
