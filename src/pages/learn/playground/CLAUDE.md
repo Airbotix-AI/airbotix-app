@@ -160,6 +160,9 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
   (`MonacoEditor.tsx`) — no CDN, per platform rule.
 - `@playwright/test` (devDep) — e2e at `e2e/playground.spec.ts` /
   `playwright.config.ts` (root); `npm run test:e2e`.
+- `html-to-image` — DOM→canvas for the Projects thumbnail (`workspaceThumbnail.ts`).
+  **Lazy-loaded** (`await import`) so it only ships when a thumbnail is captured;
+  honors CSS transforms (react-rnd window positions) better than html2canvas.
 
 - `phaser` (**`3.80.1`**, a regular `dependency`) — Phaser is an **npm dep** but
   is **never imported into the JS bundle** (zero bundle-size impact). It's only a
@@ -182,9 +185,11 @@ kid's game instance (our vendored build has **no `Phaser.GAMES` registry**, so a
 constructor wrapper is the only handle). The wrapper preserves `.prototype` +
 statics, so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
 
-- **Parent → frame:** `{ __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute' }`
-  → `game.loop.sleep()/wake()` and `game.sound.mute`.
-- **Frame → parent:** `{ __airbotixStat: true, fps, paused }` every ~500 ms.
+- **Parent → frame:** `{ __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute'|'snapshot' }`
+  → `game.loop.sleep()/wake()`, `game.sound.mute`, and `renderer.snapshot()` (for the
+  Projects thumbnail — `snapshot()` over `canvas.toDataURL()` so WebGL isn't blank).
+- **Frame → parent:** `{ __airbotixStat: true, fps, paused }` every ~500 ms, and a
+  one-shot `{ __airbotixSnapshot: true, dataUrl }` in reply to a `snapshot` request.
 - **Physics-debug toggle** (NOT postMessage — set before the game scripts run):
   `buildGameSrcDoc(files, { debug })` injects `window.__airbotixDebug`; the
   `Phaser.Game` constructor wrapper reads it and forces `physics.arcade.debug =
@@ -269,7 +274,8 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 |---|---|---|
 | `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + monotonic `runKey` + `running` + the optional `projectId` (prop, or `?projectId` query param in the dev sandbox) threaded to `GeneratingScreen`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. The **VFS now lives in `projectStore`** (not local state): `GeneratingScreen` done → `setFiles`, editor ▶ Play / AI turn → `apply`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
 | `projectStore.ts` | **Zustand project store — the single funnel for every VFS mutation** (editor saves, AI turns, file CRUD, drag moves). Holds `files` + explicit empty `folders` + a `change` descriptor (kind + remaps/removed/added + monotonic `seq`) so consumers reconcile without re-diffing. `PlaygroundApp` **subscribes to `change`** and records CRUD ops (create/rename/move/delete) into history; the editor's idle autosave records typing. Actions: `setFiles` (load/reset), `apply` (wholesale replace), `createFile`/`createFolder`/`rename`/`move`/`remove` (delegate to `vfsOps`). The seam history + IndexedDB persistence hang off. | ✅ |
-| `projectPersistence.ts` | **Local project persistence** — saves the VFS (`files` + `folders`) + edit history to **IndexedDB** (`loadProject`/`saveProject`, keyed by project; `dev-sandbox` key in the DEV route), best-effort (any failure → falls back to the scaffold). `PlaygroundApp` restores it on load (`hydrate`) and debounce-saves on change. **The seam**: a backend write endpoint replaces these two functions later (no backend write path exists yet — only `GET …/code/files`). | ✅ |
+| `projectPersistence.ts` | **Local project persistence** — saves the VFS (`files` + `folders`) + edit history to **IndexedDB** (`loadProject`/`saveProject`, keyed by project; `dev-sandbox` key in the DEV route), best-effort (any failure → falls back to the scaffold). `PlaygroundApp` restores it on load (`hydrate`) and debounce-saves on change. Also hosts, in the same store under key prefixes, the workspace **UI blob** (`ui:`, `load/saveWorkspaceUi`) and the Projects **thumbnail** (`thumb:`, `load/saveThumbnail`). **The seam**: a backend write endpoint replaces these later (no backend write path exists yet — only `GET …/code/files`). | ✅ |
+| `workspaceThumbnail.ts` | Captures the **Projects-list thumbnail** on leave: requests the game canvas FROM INSIDE the sandbox (`snapshot` control msg → `__airbotixSnapshot`), **lazy-loads `html-to-image`** to snapshot the studio chrome (the iframe is filtered out — opaque origin can't be read), composites the game over the iframe's rect, and downscales to a small JPEG data URL. `PlaygroundApp` calls it from the leave dialog and `saveThumbnail`s it (real projects only). Never throws (best-effort → placeholder). | ✅ |
 | `historyStore.ts` | **Zustand edit-history store** — a capped, newest-first list of project `Checkpoint`s (full VFS snapshot + `ts` + a `summary` of what changed). `record(files, ts, summary?)` skips snapshots identical to the latest; `summarize()` builds the "edited X +N" label; `reset()` on project load. In-memory now (M4 persists it). | ✅ |
 | `vfsOps.ts` | **Pure operations over the flat `VfsFile[]`** (folders implicit from path segments; explicit empty folders tracked alongside): `createFile`/`createFolder`/`renamePath`/`movePath`/`removePath` + path helpers. Each returns a `VfsMutation` (new files/folders + precise remaps/removed/added). Folder ops act on every file under a `prefix/`; guards collisions + moving a folder into itself. | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { loadThumbnail } from './playground/projectPersistence';
 
 interface Project {
   id: string;
@@ -91,6 +92,21 @@ export function ProjectsListPage() {
   const filtered = applyFilter(projects.data ?? [], tab);
   const atLimit = (projects.data?.length ?? 0) >= 50;
 
+  // Game thumbnails are captured + stored device-locally (no backend image upload
+  // path yet — see playground/workspaceThumbnail). Load them for the listed games
+  // and use them when the backend has no thumbnail_s3_key.
+  const gameIds = (projects.data ?? []).filter((p) => p.kind === 'game').map((p) => p.id);
+  const localThumbs = useQuery<Record<string, string>>({
+    queryKey: ['playground-thumbs', gameIds.join(',')],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        gameIds.map(async (id) => [id, await loadThumbnail(id)] as const),
+      );
+      return Object.fromEntries(entries.filter(([, v]) => v)) as Record<string, string>;
+    },
+    enabled: gameIds.length > 0,
+  });
+
   const del = useMutation({
     mutationFn: (id: string) => api<void>(`/projects/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
@@ -165,6 +181,7 @@ export function ProjectsListPage() {
               <ProjectCard
                 key={p.id}
                 project={p}
+                localThumb={localThumbs.data?.[p.id]}
                 resumeHref={resumeHref(p)}
                 confirming={confirmId === p.id}
                 deleting={del.isPending && confirmId === p.id}
@@ -198,6 +215,7 @@ export function ProjectsListPage() {
 
 function ProjectCard({
   project: p,
+  localThumb,
   resumeHref,
   confirming,
   deleting,
@@ -206,6 +224,7 @@ function ProjectCard({
   onConfirmDelete,
 }: {
   project: Project;
+  localThumb?: string;
   resumeHref: string;
   confirming: boolean;
   deleting: boolean;
@@ -213,6 +232,7 @@ function ProjectCard({
   onCancelDelete: () => void;
   onConfirmDelete: () => void;
 }) {
+  const thumbSrc = p.thumbnail_s3_key ?? localThumb ?? null;
   const badge = p.visibility !== 'private'
     ? VISIBILITY_STICKER[p.visibility]
     : STATUS_STICKER[p.status];
@@ -231,8 +251,8 @@ function ProjectCard({
       >
         {/* Thumbnail — 4:3 ratio */}
         <div className={`aspect-[4/3] ${thumbBg} flex items-center justify-center overflow-hidden`}>
-          {p.thumbnail_s3_key ? (
-            <img src={p.thumbnail_s3_key} alt="" className="h-full w-full object-cover" />
+          {thumbSrc ? (
+            <img src={thumbSrc} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="text-[36px] opacity-25">{thumbIcon}</span>
           )}

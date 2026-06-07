@@ -82,7 +82,18 @@ const GAME_CONTROL = `
       if (m.action === 'resume') __game.loop.wake();
       if (m.action === 'mute')   __game.sound.mute = true;
       if (m.action === 'unmute') __game.sound.mute = false;
-    } catch (e) {}
+      if (m.action === 'snapshot') {
+        // For a thumbnail. renderer.snapshot() works for WebGL (where a plain
+        // canvas.toDataURL() returns blank once the drawing buffer is composited).
+        if (__game.renderer && __game.renderer.snapshot) {
+          __game.renderer.snapshot(function (image) {
+            try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: (image && image.src) || null }, '*'); } catch (er) {}
+          });
+        } else {
+          parent.postMessage({ __airbotixSnapshot: true, dataUrl: __game.canvas ? __game.canvas.toDataURL() : null }, '*');
+        }
+      }
+    } catch (e) { try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: null }, '*'); } catch (er) {} }
   });
 
   setInterval(function () {

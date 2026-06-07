@@ -118,6 +118,7 @@ export function GameFrame({
           ref={iframeRef}
           key={runKey}
           title="Game"
+          data-game-frame=""
           // Deliberately NO allow-same-origin / allow-top-navigation / allow-forms.
           // allow-pointer-lock + allow-orientation-lock are safe and useful for games.
           sandbox="allow-scripts allow-pointer-lock allow-orientation-lock"
