@@ -6,6 +6,7 @@ import { useWsEvent } from '@/lib/useWsEvent';
 import { useMe } from '@/auth/useAuth';
 import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
+import { StarsExplainer } from './StarsExplainer';
 
 interface Wallet {
   id: string;
@@ -145,6 +146,8 @@ export function WalletPage() {
           <div className="stat-label">This week</div>
         </div>
       </div>
+
+      <StarsExplainer className="mb-8" />
 
       {w && <CapsCard wallet={w} familyId={familyId} />}
 

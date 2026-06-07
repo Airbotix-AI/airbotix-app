@@ -116,10 +116,12 @@ export interface UsageTrendPoint {
 
 export const THRESHOLD_OPTIONS = [250, 500, 1000, 2500] as const; // A$5/10/20/50 @ 50★/A$
 
+// Stars shown = base + bonus, matching STARS_PACKS (backend single source of truth).
+// 1 star = A$0.02 (50 stars per A$1).
 export const AUTO_TOPUP_SKUS: Array<{ sku: AutoTopupSku; label: string; price_aud: number; stars: number }> = [
-  { sku: 'starter_10', label: 'Starter', price_aud: 10, stars: 100 },
-  { sku: 'family_30', label: 'Family', price_aud: 30, stars: 350 },
-  { sku: 'mega_50', label: 'Mega', price_aud: 50, stars: 650 },
+  { sku: 'starter_10', label: 'Starter', price_aud: 10, stars: 500 },
+  { sku: 'family_30', label: 'Family', price_aud: 30, stars: 1750 },
+  { sku: 'mega_50', label: 'Mega', price_aud: 50, stars: 3250 },
 ];
 
 export const DAILY_CAP_OPTIONS_CENTS = [1000, 3000, 5000, 10000] as const; // A$10–100

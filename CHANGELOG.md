@@ -31,7 +31,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ### Changed
 - **Stars economy re-pegged: 1 star = A$0.02 (was A$1)** — mirrors platform-backend.
   Top-up packs now credit 500 / 1750 / 3250 / 7000★ (Starter/Family/Mega/School,
-  incl. bonus), auto-topup SKUs and threshold options realigned to 50★ per A$, and
+  incl. bonus), auto-topup SKUs + threshold options realigned to 50★ per A$, and
   Studio per-action costs updated (image 4→8★, video 5→40★; chat/voice/code/music
   unchanged) so a single chat costs ≈ A$0.02 and a $10 pack lasts hundreds of turns.
 - **Activity page (`/portal/audit`) now speaks plain language.** It previously dumped
