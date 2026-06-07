@@ -14,6 +14,9 @@ import type { VfsFile } from '../../code/codeApi';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
 
 /** One chat bubble. Mirrors `code/useCodeStudio` `ChatItem` (no Stars in the stub). */
+/** In-chat call-to-action buttons (rendered on the message that carries them). */
+export type ChatAction = 'run' | 'code';
+
 export interface ChatItem {
   id: string;
   role: 'kid' | 'agent';
@@ -21,6 +24,8 @@ export interface ChatItem {
   pending?: boolean;
   toolsFired?: string[];
   changes?: { path: string; before: string; after: string }[];
+  /** Optional CTA buttons (e.g. the launch "Run game" / "See code" hand-off). */
+  actions?: ChatAction[];
 }
 
 export interface UseGameAgentOptions {
@@ -30,12 +35,34 @@ export interface UseGameAgentOptions {
   onApplyFiles: (files: VfsFile[]) => void;
   /** The swap seam. Defaults to the offline stub. */
   runTurn?: RunTurn;
+  /**
+   * Seed the chat on first mount with the launch hand-off: the kid's
+   * landing-screen prompt + a generic "your starter is ready" message carrying
+   * Run / See-code actions. Game-type-agnostic on purpose (we don't know what
+   * the scaffold is). A non-empty prompt also shows the kid's bubble.
+   */
+  introPrompt?: string;
 }
 
 /** Shown on the pending agent bubble while the turn is in flight. */
 const PENDING_TEXT = 'Thinking…';
 /** Friendly fallback when the turn throws (stub never does, but the seam might). */
 const ERROR_TEXT = 'Could not reach the AI. Try again.';
+
+/** Generic, game-type-agnostic launch message — the scaffold is already runnable. */
+const STARTER_MESSAGE =
+  'Your game starter is ready to play 🎮\n\n' +
+  'I put together a runnable starter for your idea — it already works out of the ' +
+  'box. Take it for a spin now, or open the code whenever you want to start ' +
+  'changing things.';
+
+function buildIntro(prompt: string | undefined): ChatItem[] {
+  const items: ChatItem[] = [];
+  const p = prompt?.trim();
+  if (p) items.push({ id: 'intro-kid', role: 'kid', text: p });
+  items.push({ id: 'intro-agent', role: 'agent', text: STARTER_MESSAGE, actions: ['run', 'code'] });
+  return items;
+}
 
 /**
  * Chat controller for the playground AI panel. `send(text)` pushes the kid's
@@ -45,9 +72,13 @@ const ERROR_TEXT = 'Could not reach the AI. Try again.';
  * chatting never auto-plays. Empty input and sends while busy are ignored.
  */
 export function useGameAgent(opts: UseGameAgentOptions) {
-  const { files, onApplyFiles, runTurn = runTurnStub } = opts;
+  const { files, onApplyFiles, runTurn = runTurnStub, introPrompt } = opts;
 
-  const [chat, setChat] = useState<ChatItem[]>([]);
+  // Seed the launch hand-off once on mount (kid prompt + "starter ready" + CTAs)
+  // when an introPrompt is provided; lazy initialiser so it runs exactly once.
+  const [chat, setChat] = useState<ChatItem[]>(() =>
+    introPrompt !== undefined ? buildIntro(introPrompt) : [],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

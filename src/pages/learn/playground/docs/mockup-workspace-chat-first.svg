@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15111F"/><stop offset="1" stop-color="#0B0813"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6FB8FF"/><stop offset="1" stop-color="#3D7FE6"/></linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4BE3B4"/><stop offset="1" stop-color="#1FB98C"/></linearGradient>
+    <linearGradient id="orb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9B7BFF"/><stop offset="0.5" stop-color="#5DAEFF"/><stop offset="1" stop-color="#3DD9A9"/></linearGradient>
+    <linearGradient id="winhdr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A2540"/><stop offset="1" stop-color="#221E33"/></linearGradient>
+    <radialGradient id="glowSky" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#5DAEFF" stop-opacity="0.55"/><stop offset="1" stop-color="#5DAEFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowPink" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FF6BA9" stop-opacity="0.5"/><stop offset="1" stop-color="#FF6BA9" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowMint" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#3DD9A9" stop-opacity="0.4"/><stop offset="1" stop-color="#3DD9A9" stop-opacity="0"/></radialGradient>
+    <filter id="win" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="24" stdDeviation="40" flood-color="#000" flood-opacity="0.55"/></filter>
+    <filter id="skyGlow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="0" stdDeviation="26" flood-color="#5DAEFF" flood-opacity="0.35"/></filter>
+    <filter id="mintGlow" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#21C896" flood-opacity="0.55"/></filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/></filter>
+    <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-8l-4 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-code" viewBox="0 0 24 24"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-game" viewBox="0 0 24 24"><path d="M7 9h10a5 5 0 0 1 4.5 7.2c-.8 1.6-3 1.8-4.2.5L16 15H8l-1.3 1.7c-1.2 1.3-3.4 1.1-4.2-.5A5 5 0 0 1 7 9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="15.5" cy="11.8" r="1" fill="currentColor"/><circle cx="17.5" cy="13.6" r="1" fill="currentColor"/></symbol>
+    <symbol id="ic-assets" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="9.5" r="1.8" fill="currentColor"/><path d="M5 17l4.5-4.5 3 3 3-3L21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="ic-min" viewBox="0 0 24 24"><path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-max" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path d="M8 6l10 6-10 6z" fill="currentColor"/></symbol>
+    <symbol id="ic-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-split" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 5v14" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-send" viewBox="0 0 24 24"><path d="M5 12l15-7-7 15-2-6-6-2z" fill="currentColor"/></symbol>
+  </defs>
+
+  <!-- backdrop + ambient brand glow blobs (modern aurora) -->
+  <rect x="0" y="0" width="1600" height="904" fill="url(#bg)"/>
+  <circle cx="1320" cy="120" r="360" fill="url(#glowSky)"/>
+  <circle cx="240" cy="820" r="380" fill="url(#glowPink)"/>
+  <circle cx="820" cy="500" r="420" fill="url(#glowMint)"/>
+
+  <!-- ===== Learn top nav (kept; synced to the dark studio theme) ===== -->
+  <rect x="0" y="0" width="1600" height="58" fill="#1A1626" fill-opacity="0.85"/><line x1="0" y1="58" x2="1600" y2="58" stroke="#ffffff" stroke-opacity="0.06"/>
+  <g transform="translate(28,13)" filter="url(#soft)"><rect width="32" height="32" rx="11" fill="#FF6BA9"/><text x="16" y="22" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">A</text></g>
+  <text x="70" y="27" font-size="9.5" font-weight="800" letter-spacing="1.2" fill="#7E7791">AIRBOTIX</text>
+  <text x="70" y="41" font-size="14" font-weight="800" fill="#ECE8F5">Learn</text>
+  <g font-size="13" font-weight="600" fill="#9A93AC"><text x="188" y="35">✨ AI Studio</text><text x="300" y="35">Home</text><text x="372" y="35">Projects</text><text x="464" y="35">Create</text><text x="556" y="35">Missions</text></g>
+  <rect x="1468" y="16" width="104" height="28" rx="14" fill="#ffffff" fill-opacity="0.06"/><text x="1520" y="34" text-anchor="middle" font-size="12.5" font-weight="700" fill="#B7B0C6">Sign out</text>
+
+  <!-- ===== desktop app tiles (closed windows; reachable any time) ===== -->
+  <g>
+    <g transform="translate(28,96)" filter="url(#skyGlow)"><rect width="74" height="74" rx="20" fill="#262238"/><rect width="74" height="74" rx="20" fill="none" stroke="#5DAEFF" stroke-opacity="0.6"/><rect x="14" y="14" width="46" height="46" rx="13" fill="#5DAEFF" fill-opacity="0.16"/><use href="#ic-chat" x="23" y="23" width="28" height="28" color="#7FC2FF"/><circle cx="64" cy="10" r="6" fill="#3DD9A9" stroke="#15111F" stroke-width="2"/></g>
+    <text x="65" y="190" text-anchor="middle" font-size="12.5" font-weight="800" fill="#9FCBFF">Chat</text>
+    <g transform="translate(28,212)" opacity="0.5"><rect width="74" height="74" rx="20" fill="#211D30"/><rect x="14" y="14" width="46" height="46" rx="13" fill="#3DD9A9" fill-opacity="0.12"/><use href="#ic-code" x="23" y="23" width="28" height="28" color="#3DD9A9"/></g>
+    <text x="65" y="306" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7E7791">Code</text>
+    <g transform="translate(28,328)" opacity="0.5"><rect width="74" height="74" rx="20" fill="#211D30"/><rect x="14" y="14" width="46" height="46" rx="13" fill="#FF7A66" fill-opacity="0.12"/><use href="#ic-game" x="23" y="23" width="28" height="28" color="#FF7A66"/></g>
+    <text x="65" y="422" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7E7791">Runner</text>
+    <g transform="translate(28,444)" opacity="0.5"><rect width="74" height="74" rx="20" fill="#211D30"/><rect x="14" y="14" width="46" height="46" rx="13" fill="#FF6BA9" fill-opacity="0.12"/><use href="#ic-assets" x="23" y="23" width="28" height="28" color="#FF6BA9"/></g>
+    <text x="65" y="538" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7E7791">Assets</text>
+  </g>
+
+  <!-- ===== Chat window — the only window open on launch ===== -->
+  <g filter="url(#win)"><rect x="446" y="96" width="708" height="690" rx="26" fill="#1C1830"/></g>
+  <rect x="446" y="96" width="708" height="690" rx="26" fill="none" stroke="#5DAEFF" stroke-opacity="0.35" stroke-width="1.5"/>
+  <!-- header -->
+  <path d="M446 122a26 26 0 0 1 26-26h656a26 26 0 0 1 26 26v42H446z" fill="url(#winhdr)"/>
+  <g filter="url(#skyGlow)"><circle cx="490" cy="138" r="19" fill="url(#orb)"/></g>
+  <use href="#ic-chat" x="481" y="129" width="18" height="18" color="#ffffff"/>
+  <circle cx="503" cy="151" r="5" fill="#3DD9A9" stroke="#221E33" stroke-width="2"/>
+  <text x="522" y="133" font-size="15.5" font-weight="800" fill="#FFFFFF">AI Helper</text>
+  <text x="522" y="150" font-size="11.5" fill="#9A93AC">building your game with you</text>
+  <g opacity="0.7"><use href="#ic-min" x="1064" y="127" width="22" height="22" color="#9B94AC"/><use href="#ic-max" x="1092" y="127" width="22" height="22" color="#9B94AC"/><use href="#ic-close" x="1120" y="127" width="22" height="22" color="#9B94AC"/></g>
+
+  <!-- kid message = the landing-screen prompt -->
+  <text x="1130" y="210" text-anchor="end" font-size="11" font-weight="700" fill="#6E6786">YOU</text>
+  <g filter="url(#soft)"><rect x="700" y="222" width="430" height="48" rx="18" fill="url(#sky)"/></g>
+  <rect x="700" y="222" width="430" height="48" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+  <text x="1108" y="251" text-anchor="end" font-size="14" font-weight="600" fill="#fff">a space game where I dodge asteroids 🚀</text>
+
+  <!-- AI message: avatar + a polished "starter ready" card (generic copy) -->
+  <g filter="url(#skyGlow)"><circle cx="494" cy="330" r="17" fill="url(#orb)"/></g>
+  <use href="#ic-chat" x="486" y="322" width="16" height="16" color="#fff"/>
+
+  <g filter="url(#soft)"><rect x="528" y="306" width="600" height="232" rx="20" fill="#252136"/></g>
+  <rect x="528" y="306" width="600" height="232" rx="20" fill="none" stroke="#ffffff" stroke-opacity="0.07"/>
+  <!-- 'ready' chip -->
+  <rect x="552" y="330" width="138" height="28" rx="14" fill="#3DD9A9" fill-opacity="0.16"/>
+  <circle cx="570" cy="344" r="9" fill="url(#mint)"/><use href="#ic-check" x="564" y="338" width="12" height="12" color="#0E2A20"/>
+  <text x="586" y="349" font-size="12" font-weight="800" fill="#6FE7C2">Starter ready</text>
+  <!-- heading + generic body -->
+  <text x="552" y="392" font-size="17" font-weight="800" fill="#FFFFFF">Your game starter is ready to play 🎮</text>
+  <text x="552" y="420" font-size="13.5" fill="#C9C3D8">I put together a runnable starter for your idea — it already</text>
+  <text x="552" y="440" font-size="13.5" fill="#C9C3D8">works out of the box. Take it for a spin now, or open the</text>
+  <text x="552" y="460" font-size="13.5" fill="#C9C3D8">code whenever you want to start changing things.</text>
+  <!-- in-chat actions -->
+  <g filter="url(#mintGlow)"><rect x="552" y="480" width="168" height="46" rx="14" fill="url(#mint)"/></g>
+  <use href="#ic-play" x="576" y="492" width="22" height="22" color="#08231A"/><text x="660" y="508" text-anchor="middle" font-size="14" font-weight="800" fill="#08231A">Run game</text>
+  <rect x="736" y="480" width="166" height="46" rx="14" fill="#ffffff" fill-opacity="0.05"/><rect x="736" y="480" width="166" height="46" rx="14" fill="none" stroke="#5DAEFF" stroke-opacity="0.55" stroke-width="1.5"/>
+  <use href="#ic-code" x="760" y="492" width="22" height="22" color="#8FC6FF"/><text x="846" y="508" text-anchor="middle" font-size="14" font-weight="800" fill="#9FCBFF">See code</text>
+
+  <text x="552" y="586" font-size="12.5" fill="#7E7791">…or just tell me what to build or change next 👇</text>
+
+  <!-- input -->
+  <rect x="476" y="710" width="648" height="56" rx="18" fill="#211D31"/><rect x="476" y="710" width="648" height="56" rx="18" fill="none" stroke="#ffffff" stroke-opacity="0.10"/>
+  <text x="502" y="744" font-size="14" fill="#7E7791">Message the AI…</text>
+  <g filter="url(#skyGlow)"><circle cx="1092" cy="738" r="20" fill="url(#sky)"/></g><use href="#ic-send" x="1083" y="729" width="18" height="18" color="#fff"/>
+
+  <!-- ===== taskbar ===== -->
+  <rect x="0" y="848" width="1600" height="56" fill="#120E1C"/><line x1="0" y1="848" x2="1600" y2="848" stroke="#ffffff" stroke-opacity="0.06"/>
+  <use href="#ic-grid" x="28" y="862" width="22" height="22" color="#3DD9A9"/><text x="58" y="880" font-size="14" font-weight="800" fill="#3DD9A9">playground</text>
+  <rect x="208" y="861" width="146" height="30" rx="15" fill="#ffffff" fill-opacity="0.05"/>
+  <rect x="211" y="864" width="72" height="24" rx="12" fill="#5DAEFF"/><use href="#ic-grid" x="221" y="867" width="16" height="16" color="#0E0B16"/><text x="261" y="880" text-anchor="middle" font-size="11" font-weight="800" fill="#0E0B16">Win</text>
+  <use href="#ic-split" x="292" y="867" width="16" height="16" color="#8B84A0"/><text x="332" y="880" text-anchor="middle" font-size="11" font-weight="700" fill="#8B84A0">Split</text>
+  <g filter="url(#soft)"><rect x="416" y="860" width="124" height="32" rx="10" fill="#5DAEFF" fill-opacity="0.18"/></g>
+  <rect x="416" y="860" width="124" height="32" rx="10" fill="none" stroke="#5DAEFF" stroke-opacity="0.6"/><use href="#ic-chat" x="428" y="866" width="20" height="20" color="#7FC2FF"/><text x="458" y="881" font-size="12.5" font-weight="800" fill="#FFFFFF">Chat</text>
+  <text x="560" y="881" font-size="12" fill="#6E6786">Code · Runner · Assets are closed — reopen from the desktop tiles, or via Run game / See code.</text>
+
+  <!-- ===== slim caption ===== -->
+  <rect x="0" y="904" width="1600" height="136" fill="#120E1C"/><line x1="0" y1="904" x2="1600" y2="904" stroke="#ffffff" stroke-opacity="0.06"/>
+  <text x="40" y="948" font-size="19" font-weight="800" fill="#FFFFFF">Workspace launch — chat-first</text>
+  <text x="392" y="948" font-size="13" fill="#8B84A0">On entering the studio, only Chat opens and the AI hands off the runnable scaffold.</text>
+  <g font-size="13" font-weight="600" fill="#C9C3D8">
+    <circle cx="48" cy="986" r="5" fill="#5DAEFF"/><text x="62" y="990">Only Chat is open — Code / Runner / Assets start closed (reachable from the tiles).</text>
+    <circle cx="640" cy="986" r="5" fill="#3DD9A9"/><text x="654" y="990">AI uses generic copy (no game-type assumptions) — the prompt stays the kid's.</text>
+    <circle cx="48" cy="1014" r="5" fill="#FFD43B"/><text x="62" y="1018">Run game → opens + plays the Game Runner.</text>
+    <circle cx="640" cy="1014" r="5" fill="#FF6BA9"/><text x="654" y="1018">See code → opens the Code Editor.</text>
+  </g>
+</svg>

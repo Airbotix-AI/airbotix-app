@@ -146,6 +146,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           running={running}
           onApplyFiles={applyFiles}
           onRun={run}
+          prompt={prompt}
         />
       )}
 

@@ -13,7 +13,7 @@
 // Dark-themed throughout (design-system tokens only; no raw hex / Tailwind
 // defaults beyond the desktop bg). Matches docs/mockup-workspace-v2.png.
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 
 import clsx from 'clsx';
@@ -42,6 +42,8 @@ interface WorkspaceProps {
   onApplyFiles: (f: VfsFile[]) => void;
   /** Re-run the game (PlaygroundApp bumps runKey). */
   onRun: () => void;
+  /** The kid's landing-screen prompt — seeds the launch hand-off chat message. */
+  prompt: string;
 }
 
 type SplitTab = 'chat' | 'code' | 'assets';
@@ -54,7 +56,7 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'assets', label: 'Assets' },
 ];
 
-export function Workspace({ files, runKey, running, onApplyFiles, onRun }: WorkspaceProps) {
+export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>('chat');
   // Default window placement (Code lower-left & wide, Chat center-top & front,
@@ -72,8 +74,22 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
-  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles });
-  const chatProps = { chat, busy, error, onSend: send };
+  const { chat, busy, error, send } = useGameAgent({ files, onApplyFiles, introPrompt: prompt });
+
+  // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
+  // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).
+  const handleSeeCode = () => {
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
+    else setSplitTab('code');
+  };
+  const chatProps = {
+    chat,
+    busy,
+    error,
+    onSend: send,
+    onRunGame: runFromEditor,
+    onSeeCode: handleSeeCode,
+  };
 
   // A request from the runner console to open a file at a line (jump-to-error).
   // The Code Editor pane reacts to it; the monotonic nonce makes a repeat click
@@ -100,11 +116,26 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun }: Works
     else setSplitTab('chat');
   };
 
+  // Keep window rects inside the actual desktop surface (default rects are seeded
+  // from window.innerHeight and over-shoot under the Learn nav). Clamping BEFORE a
+  // window opens from chat means it mounts already-fitted (Window's react-rnd
+  // `default` only reads the rect on first mount).
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const fitWindows = usePlaygroundStore((s) => s.fitWindows);
+  useEffect(() => {
+    const el = surfaceRef.current;
+    if (!el) return undefined;
+    fitWindows(el.clientWidth, el.clientHeight);
+    const ro = new ResizeObserver(() => fitWindows(el.clientWidth, el.clientHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitWindows, layoutMode]);
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
         {/* Desktop surface — the maximized window fills this, above the taskbar. */}
-        <div className="pg-desktop-bg relative min-h-0 flex-1 overflow-hidden">
+        <div ref={surfaceRef} className="pg-desktop-bg relative min-h-0 flex-1 overflow-hidden">
           {/* Left-edge shortcut column */}
           {/* Desktop icons are the bottom layer — windows (zIndex ≥ 1) sit above. */}
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
