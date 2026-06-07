@@ -50,6 +50,9 @@ interface PlaygroundAppProps {
 export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps = {}) {
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
+  // Highest window z-index — floating windows climb past any static z-index as the
+  // kid focuses them, so the leave dialog reads it to always sit on top.
+  const topZ = usePlaygroundStore((s) => s.topZ);
   const [searchParams] = useSearchParams();
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
@@ -285,7 +288,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       )}
 
       {blocker.state === 'blocked' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/50 p-4"
+          style={{ zIndex: topZ + 100 }}
+        >
           <div
             role="alertdialog"
             aria-modal="true"
