@@ -116,6 +116,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('game');
   };
 
+  // Surface/focus a panel for a turn's workspace action: open+focus the window
+  // (Window mode) or switch the split tab (Split mode; the Game pane is always
+  // visible there, so 'game' is a no-op).
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets') => {
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus(target);
+    else if (target !== 'game') setSplitTab(target);
+  };
+
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
@@ -143,6 +151,11 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
       mode,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
+      clientActions: {
+        runGame: runFromEditor,
+        restartGame: runFromEditor,
+        focusPanel,
+      },
     });
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or

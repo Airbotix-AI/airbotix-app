@@ -19,6 +19,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import {
+  executeClientActions,
+  type ClientActionHandlers,
+} from '../executeClientActions';
 import { ApiError } from '@/lib/api';
 import {
   isOffline,
@@ -92,6 +96,9 @@ export interface UseGameAgentOptions {
   balance?: number;
   /** Called after a turn debits Stars so the wallet can refetch. */
   onStarsCharged?: (charged: number) => void;
+  /** Studio handlers for a turn's workspace actions (run/restart/focus). When
+   *  set, client_actions on a turn result are executed after the VFS applies. */
+  clientActions?: ClientActionHandlers;
   /** STUB seam (DEV sandbox only). Ignored when `projectId` is set. */
   runTurn?: RunTurn;
   /** Backend seam (tests inject a mock; defaults to the real API). */
@@ -155,6 +162,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     mode = 'lite',
     balance,
     onStarsCharged,
+    clientActions,
     runTurn = runTurnStub,
     deps = realGameAgentDeps,
     introPrompt,
@@ -250,8 +258,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       );
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
+      // Run any workspace actions the turn asked for (play/restart/focus).
+      if (clientActions) executeClientActions(result.client_actions, clientActions);
     },
-    [files, onApplyFiles, onStarsCharged],
+    [files, onApplyFiles, onStarsCharged, clientActions],
   );
 
   /**

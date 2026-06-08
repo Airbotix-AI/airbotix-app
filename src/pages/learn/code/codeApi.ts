@@ -98,6 +98,16 @@ export interface SafeguardingVerdict {
   crisisResource?: CrisisResource;
 }
 
+// A workspace action the backend agent asks the Game Studio UI to perform
+// (play/restart the game, open the code view, bring a pane to front, offer a
+// button). Executed client-side by executeClientActions (forward-compatible:
+// unknown actions are ignored).
+export interface ClientAction {
+  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button';
+  target?: string;
+  label?: string;
+}
+
 export interface AgentTurnResult {
   // Backend-issued id for the turn — used to approve/reject a staged plan.
   turn_id: string;
@@ -115,6 +125,9 @@ export interface AgentTurnResult {
   // Set when the safeguarding classifier deflected this message instead of running
   // a game turn (J13). When present, NO files/Stars/stream — render the rescue UI.
   safeguarding?: SafeguardingVerdict;
+  // Workspace actions for the Game Studio to execute after the turn applies
+  // (run/restart the game, focus a pane…). See executeClientActions.
+  client_actions?: ClientAction[];
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────
