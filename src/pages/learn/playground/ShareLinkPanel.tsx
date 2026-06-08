@@ -39,6 +39,8 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
     // re-check the server rather than trust a stale `pending`/`none` snapshot.
     refetchOnMount: 'always',
     staleTime: 0,
+    // While awaiting approval, poll so the minted link appears on its own.
+    refetchInterval: (q) => (q.state.data?.status === 'pending' ? 4000 : false),
   });
 
   // Re-check the share state every time the panel is opened (the parent may have
@@ -114,11 +116,21 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
           )}
 
           {status === 'pending' && (
-            <div
-              data-testid="share-approval-pending"
-              className="rounded-xl bg-wash-sunshine px-3 py-3 text-[13px] font-semibold text-ink"
-            >
-              🕊 Asking your grown-up… your link appears here once they say yes.
+            <div data-testid="share-approval-pending" className="space-y-2">
+              <div className="rounded-xl bg-wash-sunshine px-3 py-3 text-[13px] font-semibold text-ink">
+                🕊 Asking your grown-up… your link appears here once they say yes.
+              </div>
+              {shareId && (
+                <button
+                  type="button"
+                  data-testid="share-cancel"
+                  onClick={() => revoke.mutate(shareId)}
+                  disabled={revoke.isPending}
+                  className="w-full rounded-full bg-pg-text/10 px-3 py-1.5 text-[12px] font-bold text-pg-text-dim hover:bg-pg-text/20 transition-colors disabled:opacity-60"
+                >
+                  {revoke.isPending ? 'Canceling…' : 'Cancel request'}
+                </button>
+              )}
             </div>
           )}
 

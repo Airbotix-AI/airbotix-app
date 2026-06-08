@@ -5,6 +5,12 @@ import { useWsEvent } from '@/lib/useWsEvent';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import {
+  approveShareLink,
+  listShareRequests,
+  revokeShareLink,
+  type PendingShareRequest,
+} from '@/pages/learn/playground/sharingApi';
 
 interface Approval {
   id: string;
@@ -88,6 +94,8 @@ export function ApprovalsPage() {
           </div>
         )}
       </section>
+
+      <ShareLinkRequests familyId={familyId} />
 
       {resolved.length > 0 && (
         <section>
@@ -175,6 +183,98 @@ function ApprovalCard({
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Game share-link requests (J8 / D-GAME10a) ──────────────────────────────
+// A kid asked to make an external "send-it-to-grandma" play-link; approving here
+// mints it (freezes a PII-stripped snapshot), declining cancels the request.
+function ShareLinkRequests({ familyId }: { familyId: string }) {
+  const qc = useQueryClient();
+  const reqs = useQuery<PendingShareRequest[]>({
+    queryKey: ['share-requests', familyId],
+    queryFn: () => listShareRequests(familyId),
+    enabled: !!familyId,
+  });
+  useWsEvent('approval.new', () => qc.invalidateQueries({ queryKey: ['share-requests', familyId] }), [familyId]);
+
+  const items = reqs.data ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-[18px] font-bold text-ink">Game share links</h2>
+        <span className="sticker-bubblegum">{items.length}</span>
+      </div>
+      <p className="lead-text mb-4" style={{ fontSize: '14px' }}>
+        Your kid wants a link so others can play their game. Anyone with the link can play it —
+        no login. You can turn it off anytime.
+      </p>
+      <div className="space-y-4">
+        {items.map((r) => (
+          <ShareRequestCard key={r.share_id} req={r} familyId={familyId} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ShareRequestCard({ req, familyId }: { req: PendingShareRequest; familyId: string }) {
+  const qc = useQueryClient();
+  const [err, setErr] = useState<string | null>(null);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['share-requests', familyId] });
+    qc.invalidateQueries({ queryKey: ['share', req.project_id] });
+  };
+  const approve = useMutation({
+    mutationFn: () => approveShareLink(req.project_id),
+    onSuccess: refresh,
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not approve.'),
+  });
+  const decline = useMutation({
+    mutationFn: () => revokeShareLink(req.share_id),
+    onSuccess: refresh,
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not decline.'),
+  });
+  const busy = approve.isPending || decline.isPending;
+
+  return (
+    <div className="card-base" data-testid="share-request-card">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="sticker-sunshine">share link</span>
+            <span className="text-[14px] font-bold text-ink truncate">{req.project_title}</span>
+          </div>
+          <p className="text-[12px] text-slate2 mt-2">
+            Asked {new Date(req.requested_at).toLocaleString()}
+          </p>
+          {err && (
+            <div className="mt-3 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-2 text-[12px] font-medium text-ink">
+              {err}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button
+            data-testid="share-request-approve"
+            onClick={() => approve.mutate()}
+            disabled={busy}
+            className="btn-pill-primary disabled:opacity-60"
+          >
+            {approve.isPending ? '…' : 'Make link'}
+          </button>
+          <button
+            onClick={() => decline.mutate()}
+            disabled={busy}
+            className="btn-pill-secondary disabled:opacity-60"
+          >
+            {decline.isPending ? '…' : 'Decline'}
+          </button>
+        </div>
       </div>
     </div>
   );
