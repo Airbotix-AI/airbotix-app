@@ -5,7 +5,6 @@ import {
   getShareLink,
   requestShareLink,
   revokeShareLink,
-  setShareHandle,
   type ShareLink,
 } from './sharingApi';
 
@@ -39,6 +38,10 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
     // re-check the server rather than trust a stale `pending`/`none` snapshot.
     refetchOnMount: 'always',
     staleTime: 0,
+    // Poll while the panel is open: pending → the minted link appears on its own;
+    // active → the opened/played counts stay fresh.
+    refetchInterval: (q) =>
+      q.state.data?.status === 'pending' || q.state.data?.status === 'active' ? 5000 : false,
   });
 
   // Re-check the share state every time the panel is opened (the parent may have
@@ -55,10 +58,6 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
 
   const request = useMutation({
     mutationFn: () => requestShareLink(projectId),
-    onSuccess: set,
-  });
-  const toggleHandle = useMutation({
-    mutationFn: (showHandle: boolean) => setShareHandle({ projectId, showHandle }),
     onSuccess: set,
   });
   const revoke = useMutation({
@@ -114,11 +113,21 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
           )}
 
           {status === 'pending' && (
-            <div
-              data-testid="share-approval-pending"
-              className="rounded-xl bg-wash-sunshine px-3 py-3 text-[13px] font-semibold text-ink"
-            >
-              🕊 Asking your grown-up… your link appears here once they say yes.
+            <div data-testid="share-approval-pending" className="space-y-2">
+              <div className="rounded-xl bg-wash-sunshine px-3 py-3 text-[13px] font-semibold text-ink">
+                🕊 Asking your grown-up… your link appears here once they say yes.
+              </div>
+              {shareId && (
+                <button
+                  type="button"
+                  data-testid="share-cancel"
+                  onClick={() => revoke.mutate(shareId)}
+                  disabled={revoke.isPending}
+                  className="w-full rounded-full bg-pg-text/10 px-3 py-1.5 text-[12px] font-bold text-pg-text-dim hover:bg-pg-text/20 transition-colors disabled:opacity-60"
+                >
+                  {revoke.isPending ? 'Canceling…' : 'Cancel request'}
+                </button>
+              )}
             </div>
           )}
 
@@ -147,16 +156,10 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-[12px] font-semibold text-pg-text-dim">
-                <input
-                  type="checkbox"
-                  data-testid="share-handle-toggle"
-                  checked={share.data?.show_handle ?? false}
-                  onChange={(e) => toggleHandle.mutate(e.target.checked)}
-                  disabled={toggleHandle.isPending}
-                />
-                Show my display handle (no real name)
-              </label>
+              {/* How many times the game was played (J8). */}
+              <div data-testid="share-stats" className="text-[12px] font-semibold text-pg-text-dim">
+                🎮 {share.data?.plays ?? 0} {(share.data?.plays ?? 0) === 1 ? 'play' : 'plays'}
+              </div>
 
               <button
                 type="button"

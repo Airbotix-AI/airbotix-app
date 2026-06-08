@@ -5,6 +5,12 @@ import { useWsEvent } from '@/lib/useWsEvent';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import {
+  approveShareLink,
+  listFamilyShareLinks,
+  revokeShareLink,
+  type FamilyShareLink,
+} from '@/pages/learn/playground/sharingApi';
 
 interface Approval {
   id: string;
@@ -88,6 +94,8 @@ export function ApprovalsPage() {
           </div>
         )}
       </section>
+
+      <ShareLinkRequests familyId={familyId} />
 
       {resolved.length > 0 && (
         <section>
@@ -175,6 +183,151 @@ function ApprovalCard({
             </button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Game share-link requests (J8 / D-GAME10a) ──────────────────────────────
+// A kid asked to make an external "send-it-to-grandma" play-link; approving here
+// mints it (freezes a PII-stripped snapshot), declining cancels the request.
+function ShareLinkRequests({ familyId }: { familyId: string }) {
+  const qc = useQueryClient();
+  const links = useQuery<FamilyShareLink[]>({
+    queryKey: ['share-requests', familyId],
+    queryFn: () => listFamilyShareLinks(familyId),
+    enabled: !!familyId,
+  });
+  useWsEvent('approval.new', () => qc.invalidateQueries({ queryKey: ['share-requests', familyId] }), [familyId]);
+
+  const items = links.data ?? [];
+  if (items.length === 0) return null;
+  const pendingCount = items.filter((s) => s.status === 'pending').length;
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-[18px] font-bold text-ink">Game share links</h2>
+        {pendingCount > 0 && <span className="sticker-sunshine">{pendingCount} to review</span>}
+      </div>
+      <p className="lead-text mb-4" style={{ fontSize: '14px' }}>
+        Links let others play your kid's game — no login. Approve a request to make a link, see how
+        many people opened and played it, and turn any link off whenever you want.
+      </p>
+      <div className="space-y-4">
+        {items.map((s) => (
+          <ShareLinkCard key={s.share_id} link={s} familyId={familyId} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ShareLinkCard({ link, familyId }: { link: FamilyShareLink; familyId: string }) {
+  const qc = useQueryClient();
+  const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const shareUrl = `${window.location.origin}/play/${link.share_id}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the URL is still visible + selectable */
+    }
+  };
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['share-requests', familyId] });
+    qc.invalidateQueries({ queryKey: ['share', link.project_id] });
+  };
+  const approve = useMutation({
+    mutationFn: () => approveShareLink(link.project_id),
+    onSuccess: refresh,
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not approve.'),
+  });
+  const remove = useMutation({
+    mutationFn: () => revokeShareLink(link.share_id),
+    onSuccess: refresh,
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not update.'),
+  });
+  const busy = approve.isPending || remove.isPending;
+  const isPending = link.status === 'pending';
+
+  return (
+    <div className="card-base" data-testid="share-request-card">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className={isPending ? 'sticker-sunshine' : 'sticker-mint'}>
+              {isPending ? 'waiting for you' : 'link is on'}
+            </span>
+            <span className="text-[14px] font-bold text-ink truncate">{link.project_title}</span>
+          </div>
+          {!isPending && (
+            <>
+              <p className="text-[13px] text-ink-soft mt-2">
+                🎮 {link.plays} {link.plays === 1 ? 'play' : 'plays'}
+              </p>
+              {/* The actual link — the parent can view + copy + share it. */}
+              <div className="mt-2 flex items-center gap-2 max-w-md">
+                <input
+                  data-testid="share-link-url"
+                  readOnly
+                  value={shareUrl}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 rounded-lg bg-ink/5 px-2 py-1.5 text-[12px] font-mono text-ink-soft"
+                />
+                <button
+                  type="button"
+                  data-testid="share-link-copy"
+                  onClick={copy}
+                  className="shrink-0 rounded-lg bg-brand-sky px-2.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
+                >
+                  {copied ? '✓' : 'Copy'}
+                </button>
+              </div>
+            </>
+          )}
+          <p className="text-[12px] text-slate2 mt-2">
+            {isPending ? 'Asked' : 'Created'} {new Date(link.requested_at).toLocaleString()}
+          </p>
+          {err && (
+            <div className="mt-3 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-2 text-[12px] font-medium text-ink">
+              {err}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 shrink-0">
+          {isPending ? (
+            <>
+              <button
+                data-testid="share-request-approve"
+                onClick={() => approve.mutate()}
+                disabled={busy}
+                className="btn-pill-primary disabled:opacity-60"
+              >
+                {approve.isPending ? '…' : 'Make link'}
+              </button>
+              <button
+                onClick={() => remove.mutate()}
+                disabled={busy}
+                className="btn-pill-secondary disabled:opacity-60"
+              >
+                {remove.isPending ? '…' : 'Decline'}
+              </button>
+            </>
+          ) : (
+            <button
+              data-testid="share-link-revoke"
+              onClick={() => remove.mutate()}
+              disabled={busy}
+              className="btn-pill-secondary disabled:opacity-60"
+            >
+              {remove.isPending ? '…' : 'Turn off'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
