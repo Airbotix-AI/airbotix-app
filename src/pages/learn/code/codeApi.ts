@@ -9,6 +9,7 @@
 // the app, and no LLM endpoint is ever hit directly (airbotix-app CLAUDE.md #5).
 
 import { api, ApiError } from '@/lib/api';
+import { surfacePrincipal, useAuthStore } from '@/auth/authStore';
 
 export const CODE_PROJECT_KIND = 'code' as const;
 
@@ -98,6 +99,16 @@ export interface SafeguardingVerdict {
   crisisResource?: CrisisResource;
 }
 
+// A workspace action the backend agent asks the Game Studio UI to perform
+// (play/restart the game, open the code view, bring a pane to front, offer a
+// button). Executed client-side by executeClientActions (forward-compatible:
+// unknown actions are ignored).
+export interface ClientAction {
+  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button';
+  target?: string;
+  label?: string;
+}
+
 export interface AgentTurnResult {
   // Backend-issued id for the turn — used to approve/reject a staged plan.
   turn_id: string;
@@ -115,6 +126,9 @@ export interface AgentTurnResult {
   // Set when the safeguarding classifier deflected this message instead of running
   // a game turn (J13). When present, NO files/Stars/stream — render the rescue UI.
   safeguarding?: SafeguardingVerdict;
+  // Workspace actions for the Game Studio to execute after the turn applies
+  // (run/restart the game, focus a pane…). See executeClientActions.
+  client_actions?: ClientAction[];
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────
@@ -282,6 +296,76 @@ export async function runAgentTurn(args: {
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
     },
   });
+}
+
+/** Live progress from a streaming turn (SSE) — what the agent is doing right now. */
+export type TurnEvent =
+  | { type: 'file'; path: string }
+  | { type: 'action'; action: string }
+  | { type: 'summary'; text: string };
+
+const STREAM_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
+
+/**
+ * Streaming agent turn (SSE, POST /projects/:id/code/turn/stream). Calls
+ * `onEvent` for each live progress event while the agent works, then resolves
+ * with the final AgentTurnResult — used by the streaming loading screen.
+ */
+export async function streamAgentTurn(
+  args: { projectId: string; prompt: string; mode: 'lite' | 'pro' },
+  onEvent: (e: TurnEvent) => void,
+): Promise<AgentTurnResult> {
+  const token = useAuthStore.getState().tokens[surfacePrincipal()];
+  const res = await fetch(`${STREAM_BASE}/projects/${args.projectId}/code/turn/stream`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      prompt: args.prompt,
+      mode: args.mode,
+      idempotency_key: crypto.randomUUID(),
+    }),
+  });
+  if (!res.ok || !res.body) {
+    throw new ApiError(res.status, 'TURN_FAILED', 'Could not start the build.');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let result: AgentTurnResult | null = null;
+  let failure: { code: string; message: string } | null = null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    // SSE frames are separated by a blank line.
+    while ((nl = buf.indexOf('\n\n')) !== -1) {
+      const frame = buf.slice(0, nl);
+      buf = buf.slice(nl + 2);
+      const line = frame.split('\n').find((l) => l.startsWith('data:'));
+      if (!line) continue;
+      let evt: { type: string; [k: string]: unknown };
+      try {
+        evt = JSON.parse(line.slice(5).trim());
+      } catch {
+        continue;
+      }
+      if (evt.type === 'done') result = evt.result as AgentTurnResult;
+      else if (evt.type === 'error')
+        failure = { code: String(evt.code), message: String(evt.message) };
+      else onEvent(evt as TurnEvent);
+    }
+  }
+
+  if (failure) throw new ApiError(400, failure.code, failure.message);
+  if (!result) throw new ApiError(500, 'TURN_FAILED', 'The build did not finish.');
+  return result;
 }
 
 // ── Safeguarding classify (J13 / §11g: POST …/code/turn/classify) ───────────

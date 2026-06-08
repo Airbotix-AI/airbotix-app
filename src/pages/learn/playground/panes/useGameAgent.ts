@@ -19,6 +19,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import {
+  executeClientActions,
+  type ClientActionHandlers,
+} from '../executeClientActions';
 import { ApiError } from '@/lib/api';
 import {
   isOffline,
@@ -92,6 +96,13 @@ export interface UseGameAgentOptions {
   balance?: number;
   /** Called after a turn debits Stars so the wallet can refetch. */
   onStarsCharged?: (charged: number) => void;
+  /** Studio handlers for a turn's workspace actions (run/restart/focus). When
+   *  set, client_actions on a turn result are executed after the VFS applies. */
+  clientActions?: ClientActionHandlers;
+  /** The AI's first turn (generated on the loading screen) — seeds the chat with
+   *  the real opening exchange instead of the canned starter. Takes precedence
+   *  over `introPrompt`. */
+  firstTurn?: FirstTurnSeed;
   /** STUB seam (project-less session only). Ignored when `projectId` is set. */
   runTurn?: RunTurn;
   /** Backend seam (tests inject a mock; defaults to the real API). */
@@ -129,6 +140,27 @@ function buildIntro(prompt: string | undefined): ChatItem[] {
   return items;
 }
 
+/** The AI's first turn (run on the loading screen) replayed into the chat so the
+ *  workspace opens with the real opening exchange, not a canned starter. */
+export interface FirstTurnSeed {
+  prompt: string;
+  reply: string;
+  toolsFired?: string[];
+}
+
+function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
+  return [
+    { id: 'first-kid', role: 'kid', text: seed.prompt },
+    {
+      id: 'first-agent',
+      role: 'agent',
+      text: seed.reply,
+      toolsFired: seed.toolsFired,
+      actions: ['run', 'code'],
+    },
+  ];
+}
+
 /** Kid-framed error copy for the known backend failure envelopes (mirror code). */
 function friendlyError(e: unknown): string {
   if (isOffline()) return OFFLINE_TEXT;
@@ -155,15 +187,21 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     mode = 'lite',
     balance,
     onStarsCharged,
+    clientActions,
     runTurn = runTurnStub,
     deps = realGameAgentDeps,
     introPrompt,
+    firstTurn,
   } = opts;
 
   const isReal = !!projectId;
 
   const [chat, setChat] = useState<ChatItem[]>(() =>
-    introPrompt !== undefined ? buildIntro(introPrompt) : [],
+    firstTurn
+      ? buildFirstTurn(firstTurn)
+      : introPrompt !== undefined
+        ? buildIntro(introPrompt)
+        : [],
   );
   const [busy, setBusy] = useState(false);
   // Whether the token-by-token reveal replay is currently running (drives the
@@ -278,8 +316,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
+      // Run any workspace actions the turn asked for (play/restart/focus).
+      if (clientActions) executeClientActions(result.client_actions, clientActions);
     },
-    [files, onApplyFiles, onStarsCharged],
+    [files, onApplyFiles, onStarsCharged, clientActions],
   );
 
   /**

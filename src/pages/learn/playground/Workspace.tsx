@@ -32,7 +32,7 @@ import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
-import { useGameAgent } from './panes/useGameAgent';
+import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 import { ShareLinkPanel } from './ShareLinkPanel';
@@ -56,6 +56,8 @@ interface WorkspaceProps {
    * offline stub turn runs behind the same UI.
    */
   projectId?: string;
+  /** The AI's first turn (generated on the loading screen) — seeds the chat. */
+  firstTurn?: FirstTurnSeed;
 }
 
 interface Wallet {
@@ -72,7 +74,16 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'assets', label: 'Assets' },
 ];
 
-export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt, projectId }: WorkspaceProps) {
+export function Workspace({
+  files,
+  runKey,
+  running,
+  onApplyFiles,
+  onRun,
+  prompt,
+  projectId,
+  firstTurn,
+}: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
@@ -116,6 +127,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('game');
   };
 
+  // Surface/focus a panel for a turn's workspace action: open+focus the window
+  // (Window mode) or switch the split tab (Split mode; the Game pane is always
+  // visible there, so 'game' is a no-op).
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets') => {
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus(target);
+    else if (target !== 'game') setSplitTab(target);
+  };
+
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
@@ -144,8 +163,14 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
       introPrompt: prompt,
       projectId,
       mode,
+      firstTurn,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
+      clientActions: {
+        runGame: runFromEditor,
+        restartGame: runFromEditor,
+        focusPanel,
+      },
     });
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or

@@ -22,6 +22,7 @@ import { type ProjectChange, useProjectStore } from './projectStore';
 import { isPreloadedAsset, withPreloadedAssets } from './sampleAssets';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
+import type { FirstTurnSeed } from './panes/useGameAgent';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
@@ -76,6 +77,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // The `?projectId` query fallback was only used by the removed DEV sandbox
   // route — now effectively dead (see the prop doc / follow-up note).
   const projectId = ownedProjectId ?? searchParams.get('projectId') ?? undefined;
+
+  // Age tier (OD-1) for the first-turn generation: Lite 8–11 / Pro 12–17.
+  const kidAge = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
+  const mode: 'lite' | 'pro' = kidAge != null && kidAge >= 12 ? 'pro' : 'lite';
+  // The AI's first turn (generated on the loading screen) → seeds the workspace chat.
+  const [firstTurn, setFirstTurn] = useState<FirstTurnSeed | undefined>(undefined);
   // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
@@ -264,7 +271,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
         <GeneratingScreen
           prompt={prompt}
           projectId={projectId}
-          onDone={async (f) => {
+          mode={mode}
+          onDone={async (f, ft) => {
+            // The AI's first turn (if any) seeds the workspace chat history.
+            setFirstTurn(ft);
             // Load the project (PRD J9): for a REAL project the backend is the
             // source of truth — `loadPersisted` reads its saved versioned VFS (and
             // falls back to the offline cache); for a project-less session it's the cache.
@@ -322,6 +332,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onApplyFiles={applyFiles}
           onRun={run}
           prompt={prompt}
+          firstTurn={firstTurn}
           // Only a real OWNED project (the authed route param, or the id created
           // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
