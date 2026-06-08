@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLogout, useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { listShareRequests, type PendingShareRequest } from '@/pages/learn/playground/sharingApi';
 
 // Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
@@ -38,9 +39,20 @@ export function PortalNavDrawer() {
     queryFn: () => api<ApprovalLite[]>(`/families/${familyId}/approvals`),
     enabled: !!familyId,
   });
-  const pendingCount = approvals.data?.filter((a) => a.status === 'pending').length ?? 0;
+  // Pending game share-link requests count toward the Approvals badge too (J8).
+  const shareRequests = useQuery<PendingShareRequest[]>({
+    queryKey: ['share-requests', familyId],
+    queryFn: () => listShareRequests(familyId!),
+    enabled: !!familyId,
+  });
+  const pendingCount =
+    (approvals.data?.filter((a) => a.status === 'pending').length ?? 0) +
+    (shareRequests.data?.length ?? 0);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['approvals', familyId] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['approvals', familyId] });
+    qc.invalidateQueries({ queryKey: ['share-requests', familyId] });
+  };
   useWsEvent('approval.new', invalidate, [familyId]);
   useWsEvent('approval.resolved', invalidate, [familyId]);
 

@@ -234,14 +234,6 @@ test.fixme('J8: share-link shows parent-approval pending, then a copyable URL + 
   const url = page.getByTestId('share-url');
   await expect(url).toBeVisible();
   await expect(url).toHaveValue(new RegExp(`/play/${SHARE_ID}$`));
-
-  // The display-handle toggle (OD-7) is present and togglable. The toggle is a
-  // controlled checkbox driven by the server response, so click + poll the state
-  // (the PUT round-trips before the box reflects checked).
-  const handleToggle = page.getByTestId('share-handle-toggle');
-  await expect(handleToggle).toBeVisible();
-  await handleToggle.click();
-  await expect(handleToggle).toBeChecked();
 });
 
 // ── Public /play/:shareId — game-only, no chrome, no PII ───────────────────────

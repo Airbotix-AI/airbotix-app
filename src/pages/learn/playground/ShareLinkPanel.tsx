@@ -5,7 +5,6 @@ import {
   getShareLink,
   requestShareLink,
   revokeShareLink,
-  setShareHandle,
   type ShareLink,
 } from './sharingApi';
 
@@ -57,10 +56,6 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
 
   const request = useMutation({
     mutationFn: () => requestShareLink(projectId),
-    onSuccess: set,
-  });
-  const toggleHandle = useMutation({
-    mutationFn: (showHandle: boolean) => setShareHandle({ projectId, showHandle }),
     onSuccess: set,
   });
   const revoke = useMutation({
@@ -158,17 +153,6 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
                   </button>
                 </div>
               </div>
-
-              <label className="flex items-center gap-2 text-[12px] font-semibold text-pg-text-dim">
-                <input
-                  type="checkbox"
-                  data-testid="share-handle-toggle"
-                  checked={share.data?.show_handle ?? false}
-                  onChange={(e) => toggleHandle.mutate(e.target.checked)}
-                  disabled={toggleHandle.isPending}
-                />
-                Show my display handle (no real name)
-              </label>
 
               <button
                 type="button"
