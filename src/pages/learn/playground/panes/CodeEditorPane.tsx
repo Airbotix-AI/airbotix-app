@@ -48,8 +48,10 @@ const baseName = (path: string) => path.split('/').pop() || path;
 // resize within these bounds.
 // Wide enough that the Explorer / History / Search switcher shows all three tabs
 // (min is the floor a drag can shrink the column to, so tabs stay visible).
-const FILES_DEFAULT_W = 256;
-const FILES_MIN_W = 224;
+// Wide enough that the Explorer / Time Machine / Search switcher always shows all
+// three tabs in full (the min is the floor a drag can shrink to).
+const FILES_DEFAULT_W = 280;
+const FILES_MIN_W = 272;
 /** Min pixels the editor keeps; caps how wide the files column can be dragged. */
 const EDITOR_MIN_W = 240;
 /** Sidebar auto-widens to this when the (two-column) History view opens. */
@@ -283,7 +285,8 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     if (!openTabs.some((p) => isDirty(p))) return;
     const t = setTimeout(() => {
       const next = commitDrafts();
-      record(next, Date.now());
+      // coalesce: a burst of typing folds into one "you changed your game" point.
+      record(next, Date.now(), undefined, { coalesce: true });
     }, IDLE_SAVE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -386,7 +389,9 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
   // Files column: fixed px width + collapse toggle. The editor flexes, so the
   // column keeps its width when the window grows.
   const rootRef = useRef<HTMLDivElement>(null);
-  const [filesWidth, setFilesWidth] = useState(() => editorSeed.filesWidth);
+  // Clamp any older persisted width up to the new minimum (so the tab switcher
+  // always fits, even for projects saved before the min changed).
+  const [filesWidth, setFilesWidth] = useState(() => Math.max(FILES_MIN_W, editorSeed.filesWidth));
   const [filesCollapsed, setFilesCollapsed] = useState(() => editorSeed.filesCollapsed);
 
   // Write the editor UI back to the persisted workspace slice (debounce-saved by

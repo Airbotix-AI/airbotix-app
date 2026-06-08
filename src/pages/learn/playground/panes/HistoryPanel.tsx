@@ -20,7 +20,7 @@ import {
   Undo2,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useHistoryStore, type Checkpoint } from '../historyStore';
 
@@ -108,6 +108,29 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
     onDetailOpen(confirmId !== null);
   }, [confirmId, onDetailOpen]);
 
+  // No scrollbar — fade the top/bottom edges to signal there's more (only the
+  // edge that actually has hidden content).
+  const listRef = useRef<HTMLUListElement>(null);
+  const [fade, setFade] = useState({ top: false, bottom: false });
+  const updateFade = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const max = el.scrollHeight - el.clientHeight;
+    setFade({ top: el.scrollTop > 1, bottom: el.scrollTop < max - 1 });
+  };
+  useEffect(() => {
+    updateFade();
+    const el = listRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateFade);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [checkpoints.length, expandedId, confirmId]);
+  const FADE_PX = 22;
+  const listMask = `linear-gradient(to bottom, transparent 0, #000 ${
+    fade.top ? `${FADE_PX}px` : '0'
+  }, #000 calc(100% - ${fade.bottom ? `${FADE_PX}px` : '0px'}), transparent 100%)`;
+
   if (checkpoints.length === 0) {
     return (
       <div className="flex h-full flex-col">
@@ -122,7 +145,12 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Header />
-      <ul className="min-h-0 flex-1 space-y-1.5 overflow-auto px-2 pb-3">
+      <ul
+        ref={listRef}
+        onScroll={updateFade}
+        style={{ maskImage: listMask, WebkitMaskImage: listMask }}
+        className="pg-no-scrollbar min-h-0 flex-1 space-y-1.5 overflow-auto px-2 pb-3"
+      >
         {checkpoints.map((cp, i) => {
           const isNow = i === 0;
           const { Icon, title } = describe(cp.summary);
@@ -136,7 +164,7 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
               key={cp.id}
               data-testid="history-entry"
               className={`rounded-xl border ${
-                isNow ? 'border-brand-mint/40 bg-wash-mint/40' : 'border-pg-border bg-pg-text/5'
+                isNow ? 'border-brand-mint/45 bg-brand-mint/10' : 'border-pg-border bg-pg-text/5'
               }`}
             >
               {/* Top row: icon + title + time (+ a "Now" pill on the latest). */}
@@ -150,7 +178,9 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold text-pg-text">{title}</p>
-                  <p className="text-[11px] text-pg-text-muted">{isNow ? "you're here now" : ago(cp.ts)}</p>
+                  <p className="truncate text-[11px] text-pg-text-muted">
+                    {isNow ? "you're here now" : ago(cp.ts)}
+                  </p>
                 </div>
                 {isNow && (
                   <span className="shrink-0 rounded-full bg-brand-mint/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-brand-mint">
@@ -171,7 +201,7 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
                         setConfirmId(cp.id);
                         setExpandedId(null);
                       }}
-                      className="flex items-center gap-1.5 rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white transition-transform hover:-translate-y-0.5"
+                      className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white transition-transform hover:-translate-y-0.5"
                     >
                       <RotateCcw size={13} aria-hidden /> Go back
                     </button>
@@ -181,7 +211,7 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
                       type="button"
                       aria-expanded={expanded}
                       onClick={() => setExpandedId(expanded ? null : cp.id)}
-                      className={`flex items-center gap-0.5 rounded-lg px-2 py-1.5 text-[12px] font-bold text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text ${
+                      className={`flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[12px] font-bold text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text ${
                         isNow ? '' : 'ml-auto'
                       }`}
                     >
@@ -206,14 +236,14 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
                         onRevert(cp);
                         setConfirmId(null);
                       }}
-                      className="flex items-center gap-1.5 rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white"
+                      className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white"
                     >
                       <Check size={13} aria-hidden /> Yes, go back
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmId(null)}
-                      className="flex items-center gap-1 rounded-lg border border-pg-border px-3 py-1.5 text-[12.5px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/5"
+                      className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-pg-border px-3 py-1.5 text-[12.5px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/5"
                     >
                       <X size={13} aria-hidden /> Cancel
                     </button>
