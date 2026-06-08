@@ -11,14 +11,16 @@
 // timing — it advances on a timer, decoupled from when the files resolve (the
 // steps cap at the last so the list never overruns the resolve).
 
-import { Check, Loader2 } from 'lucide-react';
+import { Check, FileCode2, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
-import { runAgentTurn, type VfsFile } from '../code/codeApi';
-import { streamTurn } from './panes/gameAgent';
+import { streamAgentTurn, type TurnEvent, type VfsFile } from '../code/codeApi';
 import type { FirstTurnSeed } from './panes/useGameAgent';
 import { resolveProjectFiles } from './panes/playgroundApi';
 import { SCAFFOLD_DELAY_MS } from './panes/starterProject';
+
+/** Map a VFS path to a short friendly file label for the activity list. */
+const fileLabel = (path: string) => path.split('/').pop() || path;
 
 // The build stages the kid sees tick through — intentionally GENERIC (work for
 // any creation, not just games) and purely cosmetic (see file header).
@@ -55,8 +57,10 @@ export function GeneratingScreen({
   onError?: (err: unknown) => void;
 }) {
   const [step, setStep] = useState(0);
-  // The AI's reply, revealed token-by-token once the first-turn generation lands.
+  // The AI's reply (arrives near the end of generation).
   const [streamed, setStreamed] = useState('');
+  // Live activity from the stream — the files the AI is writing, in order.
+  const [built, setBuilt] = useState<string[]>([]);
   // Drives the progress bar: starts false, flips true on mount so the bar's
   // width transitions 0 → 100% smoothly (and monotonically) over the build span.
   const [filling, setFilling] = useState(false);
@@ -69,7 +73,7 @@ export function GeneratingScreen({
   modeRef.current = mode;
   // The first-turn generation, fired ONCE — a ref-guarded promise so React 18
   // StrictMode's double-invoke (and any re-render) can't run/charge two turns.
-  const turnRef = useRef<ReturnType<typeof runAgentTurn> | null>(null);
+  const turnRef = useRef<ReturnType<typeof streamAgentTurn> | null>(null);
 
   // Building = a NEW game from a typed prompt → the full "building your game"
   // animation. Resuming an existing project has no prompt → load only, no build phase.
@@ -99,18 +103,23 @@ export function GeneratingScreen({
     //    `result.files` is the finished game and `result.summary` is the reply. ──
     if (aiBuild) {
       if (!turnRef.current) {
-        turnRef.current = runAgentTurn({ projectId: projectId!, prompt, mode: modeRef.current });
+        // Stream the build — `onEvent` updates the live activity via the (stable)
+        // state setters, so it's safe regardless of which StrictMode run is live.
+        turnRef.current = streamAgentTurn(
+          { projectId: projectId!, prompt, mode: modeRef.current },
+          (e: TurnEvent) => {
+            if (e.type === 'file') {
+              const label = fileLabel(e.path);
+              setBuilt((b) => (b.includes(label) ? b : [...b, label]));
+            } else if (e.type === 'summary') {
+              setStreamed(e.text);
+            }
+          },
+        );
       }
       turnRef.current
-        .then(async (result) => {
+        .then((result) => {
           if (cancelled) return;
-          await streamTurn(
-            result,
-            (d) => {
-              if (!cancelled && d.type === 'token') setStreamed((t) => t + d.text);
-            },
-            streamSig,
-          );
           handoff(result.files, { prompt, reply: result.summary, toolsFired: result.tools_fired });
         })
         .catch(async () => {
@@ -169,37 +178,76 @@ export function GeneratingScreen({
       {/* Animated gradient orb — the waiting indicator (build + resume). */}
       <Orb />
 
-      {/* Staged "building" status list + progress bar — only for a NEW build,
-          never on resume (resuming just loads the saved game). */}
-      {building && (
-        <ol className="flex flex-col gap-3 text-[17px]">
-          {STEPS.map((label, i) => (
-            <StatusRow key={label} label={label} state={rowState(i, step)} />
-          ))}
+      {/* LIVE activity. A real AI build streams the files as they're written; the
+          DEV sandbox (no projectId) keeps the cosmetic staged list. */}
+      {aiBuild ? (
+        <div className="flex w-[min(420px,82vw)] flex-col gap-3">
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-pg-text-dim">
+            <Sparkles size={16} className="text-brand-bubblegum" />
+            {built.length === 0 ? 'Designing & writing the code…' : 'Building your game'}
+          </div>
 
-          <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-pg-text/10">
+          {built.length === 0 ? (
+            <div className="flex items-center gap-3 text-[16px] text-pg-text-muted">
+              <Loader2 size={18} className="animate-spin text-brand-sky" />
+              Writing the code…
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {built.map((label) => (
+                <li key={label} className="flex items-center gap-3 text-[16px] text-pg-text-dim">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-mint/15 text-brand-mint">
+                    <Check size={14} strokeWidth={3} />
+                  </span>
+                  <FileCode2 size={15} className="text-pg-text-muted" />
+                  <span className="font-medium">{label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-pg-text/10">
             <div
-              className="h-full rounded-full"
+              className="h-full rounded-full transition-all duration-500"
               style={{
-                width: filling ? '100%' : '0%',
-                transition: `width ${SCAFFOLD_DELAY_MS}ms linear`,
-                backgroundImage:
-                  'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
+                width: streamed
+                  ? '100%'
+                  : built.length
+                    ? `${Math.min(90, 30 + built.length * 12)}%`
+                    : '20%',
+                backgroundImage: 'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
               }}
             />
-          </li>
-        </ol>
+          </div>
+        </div>
+      ) : (
+        building && (
+          <ol className="flex flex-col gap-3 text-[17px]">
+            {STEPS.map((label, i) => (
+              <StatusRow key={label} label={label} state={rowState(i, step)} />
+            ))}
+            <li className="mt-2 h-2 w-[min(560px,80vw)] overflow-hidden rounded-full bg-pg-text/10">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: filling ? '100%' : '0%',
+                  transition: `width ${SCAFFOLD_DELAY_MS}ms linear`,
+                  backgroundImage: 'linear-gradient(90deg, #FF7A66, #FF6BA9, #5DAEFF, #3DD9A9)',
+                }}
+              />
+            </li>
+          </ol>
+        )
       )}
 
-      {/* The AI's reply, revealed as it streams in once generation lands. */}
+      {/* The AI's reply — its kid-facing message, shown when generation lands. */}
       {streamed && (
-        <p
+        <div
           data-testid="generating-stream"
-          className="max-w-2xl whitespace-pre-wrap text-center text-lg font-medium text-pg-text"
+          className="max-w-xl rounded-2xl bg-pg-surface/70 px-5 py-4 text-center text-lg font-medium text-pg-text shadow-sm"
         >
           {streamed}
-          <span className="ml-0.5 animate-pulse">▍</span>
-        </p>
+        </div>
       )}
 
       {/* Blocking caption. */}
