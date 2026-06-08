@@ -8,11 +8,10 @@ import { TeacherLayout } from './TeacherLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
-// The Phaser game studio. `/playground-sandbox` is the DEV-only no-auth entry;
-// `/learn/playground/:projectId` (LearnPlaygroundPage) is the authed kid entry
-// the Tiny Game card opens. Phase 1 runs on the local scaffold (no backend
+// The Phaser game studio. `/learn/playground/:projectId` (LearnPlaygroundPage)
+// is the authed kid entry the Tiny Game card opens; `/learn/playground/new`
+// drives the create/landing flow. Phase 1 runs on the local scaffold (no backend
 // `game` kind yet — see LearnPlaygroundPage).
-import { PlaygroundApp } from '@/pages/learn/playground/PlaygroundApp';
 import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
@@ -80,22 +79,6 @@ export const router = createBrowserRouter([
   // A logged-out visitor (e.g. grandma) opens /play/:shareId and plays the kid's
   // frozen, read-only game snapshot. Deliberately NOT under any <ProtectedRoute>.
   { path: '/play/:shareId', element: <PublicPlayPage /> },
-
-  // DEV-ONLY: view the playground desktop without auth. Stripped from prod builds.
-  // Wrapped in h-screen so the studio (now h-full) fills the viewport here, where
-  // there's no LearnLayout to provide height.
-  ...(import.meta.env.DEV
-    ? [
-        {
-          path: '/playground-sandbox',
-          element: (
-            <div className="h-screen">
-              <PlaygroundApp />
-            </div>
-          ),
-        },
-      ]
-    : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },
@@ -179,8 +162,10 @@ export const router = createBrowserRouter([
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
       // -bleed via FLUID_ROUTES in LearnLayout. The Tiny Game card routes here.
-      // Phase 1: local Phaser scaffold (no backend game kind yet). The DEV
-      // `/playground-sandbox` stays the no-auth quick-test entry.
+      // Phase 1: local Phaser scaffold (no backend game kind yet). This authed
+      // route is the only entry — `/learn/playground/:projectId` opens a game and
+      // `/learn/playground/new` drives the create/landing flow. (Dev/e2e testing
+      // uses a route-mocked authed harness, not a separate no-auth route.)
       { path: 'playground/:projectId', element: <LearnPlaygroundPage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },

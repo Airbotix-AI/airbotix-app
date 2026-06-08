@@ -98,21 +98,18 @@ Phaser itself is vendored (self-hosted, not a CDN) at
 self-hosted workers (also no CDN). Windows mode uses `react-rnd@^10`; Split mode
 + the editor split use `react-resizable-panels@^2`.
 
-## Run it in dev (no auth, no backend)
+## Run it in dev
 
-The real studio will sit behind kid auth (`<ProtectedRoute kind="kid">`), which
-needs the backend running and a logged-in kid. To let you **see the sandboxed
-runtime without any of that**, there's a dev-only route that bypasses auth.
+The studio sits behind kid auth (`<ProtectedRoute kind="kid">`), so the only
+entry is the authed `/learn/playground/:projectId` route (with
+`/learn/playground/new` driving the create/landing flow). To see the sandboxed
+runtime locally, sign in as a kid and open a game, or — for automated runs — use
+the route-mocked authed harness (`e2e/helpers.ts`) the e2e specs rely on (it
+stubs auth + the backend, so no real login/backend is needed).
 
 ```bash
 # from airbotix-app/
 npm run dev
-```
-
-Then open:
-
-```
-http://localhost:4321/playground-sandbox
 ```
 
 > Port is **4321** (set in `vite.config.ts`), not Vite's default 5173.
@@ -135,8 +132,9 @@ npm run test:e2e
 ```
 
 This runs the Playwright specs in `e2e/playground.spec.ts` (config:
-`playwright.config.ts`) against the dev `/playground-sandbox` route — it boots
-the dev server itself. Seventeen specs: landing → generating → workspace, the
+`playwright.config.ts`) against the authed `/learn/playground/:projectId` route
+via a route-mocked authed harness (`e2e/helpers.ts`) — it boots the dev server
+itself. Seventeen specs: landing → generating → workspace, the
 multi-file scaffold, the Code Editor launch width (editor area doubled, file
 column fixed), Monaco overflow widgets escaping the window (hover not clipped),
 the layout toggle (Windows ⇄ Split), the stub AI chat turn,
@@ -148,12 +146,14 @@ toggle, the theme toggle (default light, carries into the workspace), the code
 editor (status bar + Files/Assets split + file-column toggle), window dbl-click
 maximize + restore-to-prior-position, and closed-window reopen.
 
-### Why this is safe to ship
+### Entry route
 
-The `/playground-sandbox` route is wrapped in `import.meta.env.DEV` in
-`src/app/router.tsx`, so it is **compiled out of production builds**. It's the
-no-auth way to view the playground locally until the authed
-`/learn/playground/:projectId` route (backend + kid auth) lands.
+The only entry is the authed `/learn/playground/:projectId` route in
+`src/app/router.tsx` (behind `<ProtectedRoute kind="kid">`), with
+`/learn/playground/new` driving the create/landing flow. Dev/e2e runs reach it
+through a route-mocked authed harness (`e2e/helpers.ts`) — there is no separate
+no-auth route. (The earlier DEV-only `/playground-sandbox` route has been
+removed.)
 
 ## Not built yet
 

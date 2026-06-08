@@ -68,16 +68,24 @@ async function mockBackendAsKid(page: Page, opts: { age?: number; pro?: boolean 
   // stay original) vs a CONFIRM (the pink change is now persisted).
   let persistedFiles = SEEDED_VFS.files;
 
-  await page.route('**/auth/refresh', (route) =>
+  // NOTE the trailing `*`: the real refresh/me URLs carry a `?kind=kid` query, and
+  // a bare `**/auth/refresh` glob does NOT match a query string (the page would
+  // bounce to /learn/login). `**/auth/refresh*` matches the query.
+  await page.route('**/auth/refresh*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'kid-token' }) }),
   );
-  await page.route('**/auth/me', (route) =>
+  await page.route('**/auth/me*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'kid', kid }) }),
   );
   await page.route('**/families/*/wallet', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stars_balance: stars }) }),
   );
   await page.route('**/kids/*/projects*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+  );
+  // `/classes/mine` gates the "Ask my teacher" toggle; left unmocked it 401s and
+  // logs the kid out (→ /learn/login). Return an empty list to keep the session.
+  await page.route('**/classes/mine*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
   );
 
@@ -167,6 +175,12 @@ async function installGameSignalRecorder(page: Page) {
 async function openStudio(page: Page) {
   await page.goto('/learn/create/code');
   await page.getByTestId('hub-template-pong').click();
+  // The Pong card routes PROMPT-FIRST to the landing screen; submitting creates
+  // the real (mocked) project and advances into the studio on game-77.
+  const input = page.getByPlaceholder("Describe a game and we'll build it…");
+  await expect(input).toBeVisible({ timeout: 10_000 });
+  await input.fill('a pong game');
+  await input.press('Enter');
   await expect(page).toHaveURL(/\/learn\/playground\/game-77$/);
   await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
 }

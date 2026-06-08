@@ -21,11 +21,14 @@ import {
   Undo2,
   Volume2,
   WifiOff,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { SafeguardingVerdict } from '../../code/codeApi';
 import { canReadAloud, readAloud } from './readAloud';
+import { ThinkingBubble } from './ThinkingBubble';
+import { useStickToBottom } from './useStickToBottom';
 import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
 
 /** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
@@ -34,6 +37,8 @@ const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
 interface AIChatPanelProps {
   chat: ChatItem[];
   busy: boolean;
+  /** The typing-animation replay is running — the send button becomes Stop (H1). */
+  streaming?: boolean;
   error: string | null;
   /** Offline banner (J2 — calm, work-is-safe copy). */
   offline?: boolean;
@@ -60,11 +65,16 @@ interface AIChatPanelProps {
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
+  onStop?: () => void;
+  /** Retry the last prompt after a (non-cap) error (H2). */
+  onRetry?: () => void;
 }
 
 export function AIChatPanel({
   chat,
   busy,
+  streaming,
   error,
   offline,
   balance,
@@ -81,8 +91,16 @@ export function AIChatPanel({
   onLowerHand,
   onRunGame,
   onSeeCode,
+  onStop,
+  onRetry,
 }: AIChatPanelProps) {
   const [input, setInput] = useState('');
+
+  // Stick-to-bottom + "new messages" pill (Gap A). The dep changes on every
+  // append AND every streamed token so the hook re-glues / re-arms the pill.
+  const last = chat[chat.length - 1];
+  const dep = `${chat.length}:${last?.text.length ?? 0}:${last?.streaming ? 's' : ''}${last?.pending ? 'p' : ''}:${pending ? 1 : 0}`;
+  const { listRef, showJump, jumpToBottom } = useStickToBottom(dep);
 
   const submit = () => {
     const t = input.trim();
@@ -175,27 +193,65 @@ export function AIChatPanel({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
-        {chat.length === 0 && (
-          <div className="py-8 text-center text-[14px] font-semibold text-pg-text-dim">
-            Tell me what to make and I'll code it 🤖
-          </div>
-        )}
-        {chat.map((item) => (
-          <ChatRow key={item.id} item={item} onRunGame={onRunGame} onSeeCode={onSeeCode} />
-        ))}
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={listRef}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+          className="h-full overflow-y-auto px-4 py-4 space-y-3"
+        >
+          {chat.length === 0 && (
+            <div className="py-8 text-center text-[14px] font-semibold text-pg-text-dim">
+              Tell me what to make and I'll code it 🤖
+            </div>
+          )}
+          {chat.map((item) =>
+            item.pending ? (
+              <ThinkingBubble key={item.id} />
+            ) : (
+              <ChatRow key={item.id} item={item} onRunGame={onRunGame} onSeeCode={onSeeCode} />
+            ),
+          )}
 
-        {pending && (
-          <PendingCard pending={pending} busy={!!busy} onConfirm={onConfirm} onCancel={onCancel} />
+          {pending && (
+            <PendingCard pending={pending} busy={!!busy} onConfirm={onConfirm} onCancel={onCancel} />
+          )}
+        </div>
+
+        {/* "New messages" pill (Gap A) — only while released & new content arrived. */}
+        {showJump && (
+          <button
+            type="button"
+            data-testid="chat-jump-newest"
+            onClick={jumpToBottom}
+            aria-label="Jump to newest messages"
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-grad-sky px-3 py-1 text-[12px] font-extrabold text-white shadow-brand-sky transition-opacity hover:opacity-90"
+          >
+            ↓ New stuff!
+          </button>
         )}
       </div>
 
       {error && (
         <div
           data-testid={isCapMessage(error) ? 'cap-message' : 'chat-error'}
-          className="mx-4 mb-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-pg-text"
+          className="mx-4 mb-2 flex items-center gap-2 rounded-2xl border border-brand-coral/40 bg-brand-coral/15 px-4 py-2 text-[12px] font-medium text-pg-text"
         >
-          {error}
+          <span className="min-w-0 flex-1">{error}</span>
+          {/* The cap message is not retryable (the kid needs a grown-up to add
+              Stars), so only offer Try-again on a transient failure. */}
+          {onRetry && !isCapMessage(error) && (
+            <button
+              type="button"
+              data-testid="chat-retry"
+              onClick={onRetry}
+              aria-label="Try the last message again"
+              className="shrink-0 rounded-full bg-grad-sky px-3 py-0.5 text-[11px] font-extrabold text-white shadow-brand-sky transition-opacity hover:opacity-90"
+            >
+              Try again ↻
+            </button>
+          )}
         </div>
       )}
 
@@ -215,15 +271,27 @@ export function AIChatPanel({
             rows={2}
             className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-pg-text placeholder:text-pg-text-muted focus:outline-none"
           />
-          <button
-            onClick={submit}
-            disabled={busy || !!pending || !input.trim()}
-            data-testid="chat-send"
-            aria-label="Send"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
-          >
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          </button>
+          {streaming ? (
+            <button
+              type="button"
+              onClick={onStop}
+              data-testid="chat-stop"
+              aria-label="Stop"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5"
+            >
+              <X size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={submit}
+              disabled={busy || !!pending || !input.trim()}
+              data-testid="chat-send"
+              aria-label="Send"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
+            >
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            </button>
+          )}
         </div>
         <div className="mt-1.5 text-[11px] text-pg-text-muted">Enter to send · Shift+Enter for a new line</div>
       </div>
@@ -370,7 +438,7 @@ function ChatRow({
       >
         <div className="whitespace-pre-wrap">
           {item.text}
-          {item.streaming && <span className="ml-0.5 animate-pulse">▍</span>}
+          {item.streaming && <span aria-hidden="true" className="ml-0.5 animate-pulse">▍</span>}
         </div>
 
         {item.stars != null && item.stars > 0 && !item.pending && (

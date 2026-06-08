@@ -46,10 +46,13 @@ async function mockBackendAsKid(page: Page, opts: { conflict?: boolean } = {}) {
   // adopt the server's version the next save succeeds — the realistic reconcile.
   let conflictArmed = !!opts.conflict;
 
-  await page.route('**/auth/refresh', (route) =>
+  // NOTE the trailing `*`: the real refresh/me URLs carry a `?kind=kid` query, and
+  // a bare `**/auth/refresh` glob does NOT match a query string (the page would
+  // bounce to /learn/login). `**/auth/refresh*` matches the query.
+  await page.route('**/auth/refresh*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'kid-token' }) }),
   );
-  await page.route('**/auth/me', (route) =>
+  await page.route('**/auth/me*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'kid', kid: KID }) }),
   );
   await page.route('**/families/*/wallet', (route) =>
@@ -60,6 +63,11 @@ async function mockBackendAsKid(page: Page, opts: { conflict?: boolean } = {}) {
     }),
   );
   await page.route('**/kids/*/projects*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+  );
+  // `/classes/mine` gates the "Ask my teacher" toggle; left unmocked it 401s and
+  // logs the kid out (→ /learn/login). Return an empty list to keep the session.
+  await page.route('**/classes/mine*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
   );
 
@@ -116,6 +124,12 @@ async function mockBackendAsKid(page: Page, opts: { conflict?: boolean } = {}) {
 async function openStudio(page: Page) {
   await page.goto('/learn/create/code');
   await page.getByTestId('hub-template-pong').click();
+  // The Pong card routes PROMPT-FIRST to the landing screen; submitting creates
+  // the real (mocked) project and advances into the studio on game-77.
+  const input = page.getByPlaceholder("Describe a game and we'll build it…");
+  await expect(input).toBeVisible({ timeout: 10_000 });
+  await input.fill('a pong game');
+  await input.press('Enter');
   await expect(page).toHaveURL(/\/learn\/playground\/game-77$/);
   await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'See code' }).click();
@@ -141,7 +155,10 @@ test('J3: edit → save-status reaches "All saved ✓" → reload restores the s
   // file is present; not the scaffold which lacked it).
   await page.reload();
   await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'See code' }).click();
+  // After reload the workspace restores its open windows, so the Code Editor is
+  // surfaced from the taskbar "Code Editor" button (the chat "See code" CTA is
+  // covered by the restored editor window).
+  await page.getByRole('button', { name: 'Code Editor' }).first().click();
   await expect(page.getByText('Saved.js').first()).toBeVisible({ timeout: 10_000 });
 });
 
@@ -160,9 +177,13 @@ test('J3: a stale-version save keeps the newest copy (never the word "conflict")
   await expect(status).toContainText('We kept your newest copy');
   await expect(page.getByText(/conflict/i)).toHaveCount(0);
 
-  // The superseded build is recoverable in History (not silently lost).
-  await page.getByRole('button', { name: 'History', exact: true }).click();
-  await expect(page.getByText(/we kept your newest/i)).toBeVisible();
+  // The superseded build is recoverable in the Time Machine (not silently lost).
+  // Its entry reads "Kept your newest copy" (HistoryPanel `describe()`). Scope to
+  // the editor sidebar so this matches the recovery entry, not the taskbar badge.
+  await page.getByRole('button', { name: 'Time Machine', exact: true }).click();
+  await expect(
+    page.getByTestId('editor-sidebar').getByText(/kept your newest/i),
+  ).toBeVisible();
 });
 
 // ── Stable save-state screenshot ──────────────────────────────────────────────

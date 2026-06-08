@@ -47,7 +47,7 @@ interface AssetViewerPaneProps {
   /**
    * The real backend project. When set, AI generation routes through
    * platform-backend (Stars-metered, content-filtered, audited — PRD J5); when
-   * absent (DEV sandbox) the offline stub runs behind the same UI.
+   * absent (a project-less session) the offline stub runs behind the same UI.
    */
   projectId?: string;
   /**

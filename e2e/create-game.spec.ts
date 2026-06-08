@@ -1,109 +1,42 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+
+import { mockBackendAsKid, openStudio, openLanding, STUDIO_PROJECT_ID } from './helpers';
 
 // ── PR FE1 — real game project create/open + core UDL + naming (PRD J1) ───────
-// Every backend call is ROUTE-MOCKED (page.route) so the suite is deterministic
-// and offline: auth bootstrap, /auth/me (a kid), wallet, project list, the real
-// `POST /projects {kind:'game'}` create, and the seeded VFS read. No network, no
-// live LLM. Asserts the J1 flow: pick the Tiny Game card on the authed hub →
-// studio opens on the real (mocked) VFS, chat-first, with a named project; plus a
-// UDL accessibility smoke (picture starter chips + read-aloud + voice present)
-// and a stable hub screenshot.
+// Every backend call is ROUTE-MOCKED through the SHARED harness (`./helpers`) so
+// the suite is deterministic, offline, and LLM-free (CLAUDE.md #5). The harness
+// owns the auth bootstrap (its globs match the real `?kind=kid` query, and it
+// mocks `/classes/mine` so the kid isn't logged out — two fixes the old local
+// mock here was missing), the wallet, the project list, the real `POST /projects
+// {kind:'game'}` create (→ `game-77`), and the seeded VFS read.
+//
+// These specs now run on the AUTHED route (the DEV `/playground-sandbox` is going
+// away): the J1 hub→studio flow via `openStudio`, and the LandingScreen UDL/voice
+// surface via `openLanding` (the authed `/learn/playground/new` prompt-first
+// entry). Asserts the J1 flow (Tiny Game card → studio on the real mocked VFS,
+// chat-first) plus the UDL accessibility surface (picture starter chips +
+// read-aloud + voice) and a stable landing screenshot.
 
-const KID = { id: 'kid-1', nickname: 'Robo', age: 9, family_id: 'fam-1' };
-
-// The seeded Phaser VFS the backend returns for a freshly-created game project
-// (D-GAME2 shape: entry main.js + a scene + style.css). Kept minimal + runnable.
-const SEEDED_VFS = {
-  files: [
-    {
-      path: 'main.js',
-      content:
-        "new Phaser.Game({ type: Phaser.AUTO, parent: 'game', width: 320, height: 240, scene: [Boot] });\n",
-      kind: 'text',
-      size: 96,
-    },
-    {
-      path: 'src/scenes/Boot.js',
-      content: "class Boot extends Phaser.Scene { constructor(){ super('Boot'); } create(){} }\n",
-      kind: 'text',
-      size: 80,
-    },
-    { path: 'style.css', content: 'html,body{margin:0;background:#000}\n', kind: 'text', size: 34 },
-  ],
-};
-
-/**
- * Mock the whole backend the hub→studio flow touches and seat a kid session.
- * `addInitScript` seeds the in-memory access token + bootstrapped flag BEFORE the
- * app mounts so the kid-only routes don't bounce to /learn/login.
- */
-async function mockBackendAsKid(page: Page) {
-  // Auth bootstrap: /auth/refresh hands back an access token; /auth/me a kid.
-  await page.route('**/auth/refresh', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'kid-token' }) }),
-  );
-  await page.route('**/auth/me', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ role: 'kid', kid: KID }),
-    }),
-  );
-  // Wallet (the hub shows the Stars balance).
-  await page.route('**/families/*/wallet', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false }),
-    }),
-  );
-  // Past projects list (empty — keeps the hub deterministic).
-  await page.route('**/kids/*/projects*', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
-  );
-  // The seeded VFS read for the created project (studio opens on these files).
-  // Registered BEFORE the create route so the more-specific `/code/files` glob
-  // wins for that request (Playwright matches most-recently-added first).
-  await page.route('**/projects/*/code/files', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_VFS) }),
-  );
-  // The REAL game-project create (PRD J1): assert it's kind=game, then 201 an id.
-  await page.route('**/projects', (route) => {
-    if (route.request().method() !== 'POST') return route.continue();
-    const body = route.request().postDataJSON() as { kind?: string; template?: string; title?: string };
-    expect(body.kind).toBe('game');
-    expect(body.template).toBe('phaser_pong');
-    return route.fulfill({
-      status: 201,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'game-77' }),
-    });
-  });
-}
+const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
 
 test('J1: Tiny Game card creates a real game project and opens the studio on its VFS', async ({ page }) => {
   await mockBackendAsKid(page);
-  await page.goto('/learn/create/code');
+  // `openStudio` drives the real authed J1 hub → prompt-first landing → create
+  // flow into the chat-first workspace on `game-77` (the mocked create id), and
+  // (with `openCode`) opens the editor and awaits the seeded `main.js`.
+  await openStudio(page, { openCode: true });
 
-  // The hub renders the Tiny Game card (J1 `hub-template-pong`).
-  const card = page.getByTestId('hub-template-pong');
-  await expect(card).toBeVisible();
-
-  // Pick it → backend create (mocked, asserted kind=game) → route to the studio.
-  await card.click();
-  await expect(page).toHaveURL(/\/learn\/playground\/game-77$/);
-
-  // Studio opens chat-first on the REAL (mocked) seeded VFS: the launch hand-off
-  // message is present, and the seeded entry file is reachable in the editor.
-  await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
-  await page.getByRole('button', { name: 'See code' }).click();
+  // Landed on the studio for the real (mocked) created project, chat-first.
+  await expect(page).toHaveURL(new RegExp(`/learn/playground/${STUDIO_PROJECT_ID}$`));
+  await expect(page.getByTestId('chat-starter')).toBeVisible();
   await expect(page.getByText('main.js').first()).toBeVisible();
 });
 
 test('UDL accessibility smoke: picture starter chips + read-aloud + voice on the landing', async ({ page }) => {
-  // The DEV sandbox renders the same LandingScreen (no auth needed for the a11y
-  // surface). Assert the OD-6 controls are present and labelled.
-  await page.goto('/playground-sandbox');
+  // The LandingScreen a11y surface now lives at the AUTHED `/learn/playground/new`
+  // (no longer the DEV sandbox). Assert the OD-6 controls are present and labelled.
+  await mockBackendAsKid(page);
+  await openLanding(page);
   await expect(page.getByTestId('studio-root')).toBeVisible();
 
   // Picture/icon starter chips (≥1) — each a tappable picture for non-readers.
@@ -134,26 +67,65 @@ test('UDL accessibility smoke: picture starter chips + read-aloud + voice on the
   expect(spoke).toBe(true);
 });
 
-test('voice input: a chip-named game can be named and submitted (UDL naming)', async ({ page }) => {
-  await page.goto('/playground-sandbox');
-  // Name the game (PRD J1) + pick a picture chip, then build — the name + prompt
-  // carry into the studio (chat-first launch echoes the kid's idea).
-  await page.getByTestId('game-name-input').fill('SUPERCAT');
-  await page.getByTestId('starter-chip').first().click();
+test('voice input: a spoken idea fills the prompt and submits into the create flow (UDL naming)', async ({ page }) => {
+  // Voice idea input (OD-6): the mic records → backend STT (`/llm/transcribe`) →
+  // the transcript fills the prompt box. Stub that seam so the click is offline +
+  // deterministic, then submit ("Build game") → the mocked create→workspace flow.
+  await mockBackendAsKid(page);
+  await page.route('**/llm/transcribe', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ text: 'a game with a cute cat hero' }),
+    }),
+  );
+  // The voice button drives MediaRecorder + getUserMedia; stub them so a tap
+  // records, stops, and resolves through the (mocked) STT seam without a real mic.
+  await page.addInitScript(() => {
+    class FakeRecorder {
+      ondataavailable: ((e: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      mimeType = 'audio/webm';
+      start() {
+        this.ondataavailable?.({ data: new Blob(['x'], { type: this.mimeType }) });
+      }
+      stop() {
+        this.onstop?.();
+      }
+    }
+    (window as unknown as { MediaRecorder: unknown }).MediaRecorder = FakeRecorder;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => ({ getTracks: () => [] }) },
+    });
+  });
+
+  await openLanding(page);
+
+  // Tap voice (start recording) → tap again (stop) → STT fills the prompt box.
+  const voice = page.getByTestId('voice-input');
+  await voice.click();
+  await voice.click();
+  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
+  await expect(input).toHaveValue(/cute cat hero/, { timeout: 10_000 });
+
+  // Submit ("Build game") → the mocked create→workspace flow advances into the
+  // studio on `game-77`, chat-first.
   await page.getByRole('button', { name: 'Build game' }).click();
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByTestId('chat-starter')).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/learn/playground/${STUDIO_PROJECT_ID}$`));
+  await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 15_000 });
 });
 
-// ── Stable hub screenshot ─────────────────────────────────────────────────────
+// ── Stable landing screenshot ─────────────────────────────────────────────────
 test.describe('visual', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test('visual: landing screen with UDL controls', async ({ page }) => {
-    await page.goto('/playground-sandbox');
+    await mockBackendAsKid(page);
+    await openLanding(page);
     await expect(page.locator('[data-theme]').first()).toHaveAttribute('data-theme', 'light');
-    // Wait on a stable element so the screen is fully laid out before the shot.
-    await expect(page.getByTestId('game-name-input')).toBeVisible();
+    // Wait on stable elements so the screen is fully laid out before the shot.
+    await expect(page.getByPlaceholder(LANDING_PLACEHOLDER)).toBeVisible();
     await expect(page.getByTestId('starter-chip').first()).toBeVisible();
     await expect(page).toHaveScreenshot('landing-udl.png', {
       animations: 'disabled',

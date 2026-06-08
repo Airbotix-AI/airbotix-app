@@ -35,7 +35,7 @@ async function stubDualAuth(page: Page): Promise<{ refreshKinds: string[] }> {
 
   // /auth/me answers per principal, distinguished by the bearer token the api
   // client attaches for that surface's session.
-  await page.route('**/auth/me', async (route) => {
+  await page.route('**/auth/me*', async (route) => {
     const auth = route.request().headers()['authorization'] ?? '';
     const isKid = auth.includes(KID_TOKEN);
     const body = isKid

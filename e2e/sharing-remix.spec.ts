@@ -34,25 +34,37 @@ const RUNNABLE_VFS = {
 
 /** Auth bootstrap + wallet so the kid-only routes don't bounce to /learn/login. */
 async function mockKidSession(page: Page) {
-  await page.route('**/auth/refresh', (route) =>
+  // NOTE the trailing `*`: the real refresh/me URLs carry a `?kind=kid` query, and
+  // a bare `**/auth/refresh` glob does NOT match a query string (the page would
+  // bounce to /learn/login). `**/auth/refresh*` matches the query.
+  await page.route('**/auth/refresh*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ access_token: 'kid-token' }),
     }),
   );
-  await page.route('**/auth/me', (route) =>
+  await page.route('**/auth/me*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ role: 'kid', kid: KID }),
     }),
   );
-  await page.route('**/families/*/wallet', (route) =>
+  await page.route('**/families/*/wallet*', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false }),
+    }),
+  );
+  // `/classes/mine` gates the studio's "Ask my teacher" toggle; left unmocked it
+  // 401s and logs the kid out (→ /learn/login) when the remix opens the studio.
+  await page.route('**/classes/mine*', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([]),
     }),
   );
 }

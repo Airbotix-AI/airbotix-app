@@ -79,14 +79,14 @@ const ASSESSMENT = {
 const API = 'http://localhost:3001';
 
 async function mockBackendAsTeacher(page: Page) {
-  await page.route(`${API}/auth/refresh`, (route) =>
+  await page.route(`${API}/auth/refresh*`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ access_token: 'teacher-token' }),
     }),
   );
-  await page.route(`${API}/auth/me`, (route) =>
+  await page.route(`${API}/auth/me*`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
