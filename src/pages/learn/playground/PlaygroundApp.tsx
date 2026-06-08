@@ -19,7 +19,7 @@ import {
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
-import { withPreloadedAssets } from './sampleAssets';
+import { isPreloadedAsset, withPreloadedAssets } from './sampleAssets';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 
@@ -133,7 +133,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
         const result = await savePersisted(
           persistKey,
           {
-            files: ps.files,
+            // The read-only sample assets are client-seeded demo content (re-added
+            // on every load via withPreloadedAssets) — never persist them: they'd
+            // bloat the save and the audio/video ones used to break it.
+            files: ps.files.filter((f) => !isPreloadedAsset(f.path)),
             folders: ps.folders,
             checkpoints: useHistoryStore.getState().checkpoints,
             savedAt: Date.now(),
