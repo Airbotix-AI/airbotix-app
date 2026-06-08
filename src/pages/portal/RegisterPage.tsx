@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useAuthStore } from '@/auth/authStore';
 import { useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError, refreshAccessToken } from '@/lib/api';
+import { CityField } from './CityField';
 
 import {
   ACQUISITION_SOURCES,
@@ -67,6 +68,7 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -150,7 +152,7 @@ export function RegisterPage() {
       // The OTP-login token was minted before the family existed, so it carries
       // family_id=null. Refresh it now so the kid-creation call passes the
       // family-scope guard (otherwise POST /families/:id/kids → 403).
-      await refreshAccessToken();
+      await refreshAccessToken('user');
       await api<unknown>(`/families/${family.id}/kids`, {
         method: 'POST',
         body: {
@@ -242,11 +244,12 @@ export function RegisterPage() {
               <input className="input-k12" {...register('region')} />
             </Field>
             <Field label="Which city are you in? (optional)" error={errors.city?.message}>
-              <input
-                className="input-k12"
-                placeholder="Sydney"
-                autoComplete="address-level2"
-                {...register('city')}
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  <CityField value={field.value ?? ''} onChange={field.onChange} />
+                )}
               />
             </Field>
             <div className="grid grid-cols-2 gap-4">

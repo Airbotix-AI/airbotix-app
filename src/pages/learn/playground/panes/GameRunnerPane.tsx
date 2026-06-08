@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
+import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
 
@@ -83,11 +84,31 @@ function ToolButton({
 export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, onAskFix }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
-  const [presetId, setPresetId] = useState(DEFAULT_PRESET_ID);
-  const [showConsole, setShowConsole] = useState(false);
+  // Persisted Game Runner selections (J9): screen preset + console visibility.
+  const runnerSeed = useRef(
+    readWorkspaceSlice('game-runner', { runnerPresetId: '', runnerShowConsole: false }),
+  ).current;
+  const [presetId, setPresetId] = useState(() => runnerSeed.runnerPresetId || DEFAULT_PRESET_ID);
+  const [showConsole, setShowConsole] = useState(() => runnerSeed.runnerShowConsole);
+  useEffect(() => {
+    writeWorkspaceSlice('game-runner', { runnerPresetId: presetId, runnerShowConsole: showConsole });
+  }, [presetId, showConsole]);
   const [debug, setDebug] = useState(false);
   const [fps, setFps] = useState(0);
   const [lines, setLines] = useState<ConsoleLine[]>([]);
+
+  // The running game uses a SNAPSHOT of the VFS taken at launch (keyed to runKey),
+  // so editor autosaves — which mutate `files` WITHOUT a Play — don't silently
+  // reload the game mid-edit. A real run (▶ Play / restart / AI turn) bumps runKey
+  // and re-snapshots. Updated synchronously during render so the first Play already
+  // uses the latest code (no double-load).
+  const lastRunKey = useRef(runKey);
+  const runFilesRef = useRef(files);
+  if (runKey !== lastRunKey.current) {
+    lastRunKey.current = runKey;
+    runFilesRef.current = files;
+  }
+  const runFiles = runFilesRef.current;
 
   const preset = SCREEN_PRESETS.find((p) => p.id === presetId) ?? SCREEN_PRESETS[0];
   const logCount = lines.length;
@@ -214,7 +235,7 @@ export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, 
             style={box ? { width: box.w, height: box.h } : { width: '100%', height: '100%' }}
           >
             <GameFrame
-              files={files}
+              files={runFiles}
               runKey={runKey}
               paused={paused}
               muted={muted}

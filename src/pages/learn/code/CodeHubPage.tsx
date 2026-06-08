@@ -36,12 +36,16 @@ export function CodeHubPage() {
     setBusy(template.id);
     setError(null);
     // Tiny Game opens the Phaser game studio (the playground), not the web code
-    // editor. Phase 1 is client-only: no backend project yet (the playground runs
-    // on its local Phaser scaffold + IndexedDB, keyed by this id). A real
-    // game-kind backend project is Phase 2. The `local-` prefix marks it as not
-    // server-backed (the file load 404s → local scaffold fallback).
+    // editor. It now creates a REAL `kind='game'` backend project (PRD J1 / M1):
+    // the backend seeds a Phaser template into the S3-backed VFS and the studio
+    // opens on those real files. The `phaser_pong` template backs the Tiny Game
+    // card. Falls back to the local scaffold only when the backend isn't ready.
     if (template.id === 'tiny_game') {
-      nav(`/learn/playground/local-${crypto.randomUUID()}`);
+      // Prompt-first (the 3-phase flow): open the playground on its LANDING screen
+      // so the kid describes the game first. The real `kind='game'` project is
+      // created on prompt submit (in PlaygroundApp), not here — so the kid sees the
+      // prompt entry, and backing out never orphans an empty project.
+      nav('/learn/playground/new');
       return;
     }
     try {
@@ -95,6 +99,9 @@ export function CodeHubPage() {
           <button
             key={t.id}
             type="button"
+            // The Tiny Game card opens the Phaser studio on a real game project
+            // (PRD J1) — its testid follows the J1 `hub-template-pong` contract.
+            data-testid={t.id === 'tiny_game' ? 'hub-template-pong' : `hub-template-${t.id}`}
             disabled={busy !== null}
             onClick={() => start(t)}
             className={`pack-card ${t.color} text-left`}

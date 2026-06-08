@@ -1,3 +1,7 @@
+# CI checks — runs on PRs, main pushes, and manual dispatch.
+# Lint / typecheck / unit test / build. No deploy, no AWS credentials.
+# Production deploy lives in deploy.yml.
+
 name: ci
 
 on:
@@ -6,8 +10,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  typecheck:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,4 +23,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test --if-present
       - run: npm run build

@@ -5,6 +5,11 @@ import { defineConfig, devices } from '@playwright/test';
 // no-auth /playground-sandbox route.
 export default defineConfig({
   testDir: './e2e',
+  // Visual-regression baselines (toHaveScreenshot) live in one committed dir,
+  // keyed by spec + name only — NOT by OS/arch. CI runs the same headless
+  // Chromium as local, so a flat, portable path keeps baselines reusable.
+  // Update them with: npm run test:e2e -- visual.spec.ts --update-snapshots
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

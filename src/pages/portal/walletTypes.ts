@@ -7,7 +7,7 @@ export type AutoTopupSku = 'starter_10' | 'family_30' | 'mega_50';
 
 export interface AutoTopupConfig {
   auto_topup_enabled: boolean;
-  auto_topup_threshold_stars: number; // 5 / 10 / 20 / 50
+  auto_topup_threshold_stars: number; // 250 / 500 / 1000 / 2500 (A$5/10/20/50)
   auto_topup_sku: AutoTopupSku | null;
   auto_topup_payment_method_id: string | null;
   auto_topup_daily_cap_aud_cents: number; // max 10000 (A$100)
@@ -114,12 +114,14 @@ export interface UsageTrendPoint {
 
 // ── Shared constants (parent-portal-prd §4.4.1 decision table) ─────────────
 
-export const THRESHOLD_OPTIONS = [5, 10, 20, 50] as const;
+export const THRESHOLD_OPTIONS = [250, 500, 1000, 2500] as const; // A$5/10/20/50 @ 50★/A$
 
+// Stars shown = base + bonus, matching STARS_PACKS (backend single source of truth).
+// 1 star = A$0.02 (50 stars per A$1).
 export const AUTO_TOPUP_SKUS: Array<{ sku: AutoTopupSku; label: string; price_aud: number; stars: number }> = [
-  { sku: 'starter_10', label: 'Starter', price_aud: 10, stars: 100 },
-  { sku: 'family_30', label: 'Family', price_aud: 30, stars: 350 },
-  { sku: 'mega_50', label: 'Mega', price_aud: 50, stars: 650 },
+  { sku: 'starter_10', label: 'Starter', price_aud: 10, stars: 500 },
+  { sku: 'family_30', label: 'Family', price_aud: 30, stars: 1750 },
+  { sku: 'mega_50', label: 'Mega', price_aud: 50, stars: 3250 },
 ];
 
 export const DAILY_CAP_OPTIONS_CENTS = [1000, 3000, 5000, 10000] as const; // A$10–100
@@ -128,4 +130,34 @@ export const FAILURE_THRESHOLD_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 export function aud(cents: number): string {
   return `A$${(cents / 100).toFixed(0)}`;
+}
+
+// ── Topup anti-fraud limits (parent-portal-prd §4.4.2, backend D-WAL-02) ────
+// The backend returns `429` with one of these codes when a top-up is blocked.
+
+export interface TopupLimitInfo {
+  code: string;
+  message: string;
+  details?: {
+    resets_at?: string;
+    current_aud_cents?: number;
+    limit_aud_cents?: number;
+    limit?: number;
+  };
+}
+
+/** Narrow an ApiError-like value to a TopupLimitInfo, or null if it isn't one. */
+export function asTopupLimit(e: {
+  status?: number;
+  code?: string;
+  message?: string;
+  details?: unknown;
+}): TopupLimitInfo | null {
+  // Only the anti-fraud 429s — not, say, a future unrelated TOPUP_* 4xx.
+  if (e.status !== 429 || !e.code || !e.code.startsWith('TOPUP_')) return null;
+  return {
+    code: e.code,
+    message: e.message ?? 'Top-up limit reached.',
+    details: (e.details ?? undefined) as TopupLimitInfo['details'],
+  };
 }

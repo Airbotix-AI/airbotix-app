@@ -13,12 +13,42 @@
 // game=coral — `WINDOW_ACCENT`), matching the desktop tiles and the mockup.
 
 import clsx from 'clsx';
+import { Check, CloudOff, Loader2 } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
+import { useSaveStatusStore, type SaveStatus } from '../saveStatusStore';
 import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
 
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
+
+// Kid-readable save reassurance (PRD J3). 'conflict' is NEVER surfaced — a stale
+// save reads as keeping their newest copy.
+const SAVE_LABEL: Record<Exclude<SaveStatus, 'idle'>, string> = {
+  saving: 'Saving…',
+  saved: 'All saved ✓',
+  queued: 'Saved on this device',
+  'kept-newest': 'We kept your newest copy',
+};
+
+function SaveStatusBadge() {
+  const status = useSaveStatusStore((s) => s.status);
+  if (status === 'idle') return null;
+  return (
+    <span
+      data-testid="save-status"
+      data-status={status}
+      className="inline-flex items-center gap-1.5 text-[12px] font-bold text-pg-text-dim"
+    >
+      {status === 'saving' && <Loader2 size={13} aria-hidden className="animate-spin text-brand-sky" />}
+      {status === 'saved' && <Check size={13} aria-hidden className="text-brand-mint" />}
+      {(status === 'queued' || status === 'kept-newest') && (
+        <CloudOff size={13} aria-hidden className="text-pg-text-muted" />
+      )}
+      {SAVE_LABEL[status]}
+    </span>
+  );
+}
 
 export function Taskbar() {
   const theme = usePlaygroundStore((s) => s.theme);
@@ -105,6 +135,11 @@ export function Taskbar() {
           })}
         </div>
       )}
+
+      {/* Save status — pinned to the bottom-right corner of the workspace. */}
+      <div className="ml-auto">
+        <SaveStatusBadge />
+      </div>
     </div>
   );
 }

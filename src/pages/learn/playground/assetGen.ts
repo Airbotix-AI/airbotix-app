@@ -1,13 +1,18 @@
-// The AI asset-generation SEAM (design §7). `runGen` defaults to the local
-// deterministic stub so the Asset Viewer's generate → preview → use flow works
-// offline. Swapping in the real backend later is a ONE-LINE change here (point
-// `runGen` at `api.generateAsset`) — callers (AssetViewerPane) stay identical.
+// The AI asset-generation SEAM (design §7 / PRD J5). It has TWO modes behind the
+// SAME `runGen` call, mirroring `useGameAgent`'s real/stub split:
 //
-// Hard rule: the kid surface NEVER calls an LLM directly. The real call goes
-// through platform-backend `POST /llm/generate-asset` (see `generateAsset` in
-// `src/lib/api.ts`), which meters Stars + audits. That endpoint is not built
-// yet, hence the stub.
+//   - REAL (a `projectId` is set — the authed studio): the call goes through
+//     platform-backend `POST /llm/generate-asset` (`api.generateAsset`), which
+//     meters Stars, content-filters the prompt AND the result, audits, and writes
+//     the asset into the project VFS. The kid surface NEVER calls an LLM directly
+//     (CLAUDE.md #5) — this only POSTs a prompt and renders what comes back.
+//   - STUB (no `projectId` — the DEV sandbox): the offline deterministic
+//     `generateAssetStub`, so the desktop stays demoable with no backend.
+//
+// The backend is injected as a dep (`deps`) so tests can route-mock it; the real
+// default is `generateAsset` from `@/lib/api`.
 
+import { generateAsset } from '@/lib/api';
 import { generateAssetStub } from './assetGenStub';
 
 export interface GenAssetRequest {
@@ -26,10 +31,19 @@ export interface GenAssetResult {
   meta?: Record<string, unknown>;
 }
 
+/** Injectable backend seam (real by default; swapped in unit tests). */
+export interface AssetGenDeps {
+  generate: (req: GenAssetRequest) => Promise<GenAssetResult>;
+}
+
+export const realAssetGenDeps: AssetGenDeps = { generate: generateAsset };
+
 /**
- * Generate one asset. SWAP SEAM: defaults to the stub; replace the body with
- * `return generateAsset(req);` (from `@/lib/api`) once the backend ships.
+ * Generate one asset. With a `projectId` (real studio) it routes through the
+ * backend; without one (DEV sandbox) it falls back to the offline stub so the
+ * generate → preview → add-to-game flow works with no network.
  */
-export function runGen(req: GenAssetRequest): Promise<GenAssetResult> {
+export function runGen(req: GenAssetRequest, deps: AssetGenDeps = realAssetGenDeps): Promise<GenAssetResult> {
+  if (req.projectId) return deps.generate(req);
   return generateAssetStub(req);
 }

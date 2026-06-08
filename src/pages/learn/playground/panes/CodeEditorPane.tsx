@@ -23,6 +23,7 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import type { VfsFile } from '../../code/codeApi';
 import { useHistoryStore, type Checkpoint } from '../historyStore';
 import { useProjectStore } from '../projectStore';
+import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { FileTree } from './FileTree';
 import { HistoryPanel } from './HistoryPanel';
 import type { CursorPosition, JumpTarget } from './MonacoEditor';
@@ -47,8 +48,10 @@ const baseName = (path: string) => path.split('/').pop() || path;
 // resize within these bounds.
 // Wide enough that the Explorer / History / Search switcher shows all three tabs
 // (min is the floor a drag can shrink the column to, so tabs stay visible).
-const FILES_DEFAULT_W = 256;
-const FILES_MIN_W = 224;
+// Wide enough that the Explorer / Time Machine / Search switcher always shows all
+// three tabs in full (the min is the floor a drag can shrink to).
+const FILES_DEFAULT_W = 280;
+const FILES_MIN_W = 272;
 /** Min pixels the editor keeps; caps how wide the files column can be dragged. */
 const EDITOR_MIN_W = 240;
 /** Sidebar auto-widens to this when the (two-column) History view opens. */
@@ -96,28 +99,47 @@ function languageLabel(path: string): string {
 }
 
 export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: CodeEditorPaneProps) {
+  // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
+  // filtered to files that still exist; the `[files]` effect fills their drafts on
+  // mount. Read once (useRef) so it's stable across renders.
+  const editorSeed = useRef(
+    readWorkspaceSlice('editor', {
+      sidebar: 'files' as SidebarView,
+      activeTab: '',
+      openTabs: [] as string[],
+      filesWidth: FILES_DEFAULT_W,
+      filesCollapsed: false,
+    }),
+  ).current;
+  const initialEntry = entryPath(files);
+  const seededTabs = editorSeed.openTabs.filter(
+    (t) => !isDiffTab(t) && files.some((f) => f.path === t),
+  );
+  const initialTabs = seededTabs.length ? seededTabs : initialEntry ? [initialEntry] : [];
+  const initialActive =
+    editorSeed.activeTab && initialTabs.includes(editorSeed.activeTab)
+      ? editorSeed.activeTab
+      : (initialTabs[0] ?? initialEntry);
+  const seedTabContents = (): Record<string, string> => {
+    const out: Record<string, string> = {};
+    for (const t of initialTabs) {
+      const c = files.find((f) => f.path === t)?.content;
+      if (c !== undefined) out[t] = c;
+    }
+    return out;
+  };
+
   // The set of paths shown as tabs, the active one, and the editable draft text
   // per open tab. `drafts` only holds content for open tabs (lazily seeded).
-  const [openTabs, setOpenTabs] = useState<string[]>(() => {
-    const entry = entryPath(files);
-    return entry ? [entry] : [];
-  });
-  const [activeTab, setActiveTab] = useState<string>(() => entryPath(files));
-  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
-    const entry = entryPath(files);
-    const content = files.find((f) => f.path === entry)?.content ?? '';
-    return entry ? { [entry]: content } : {};
-  });
+  const [openTabs, setOpenTabs] = useState<string[]>(() => initialTabs);
+  const [activeTab, setActiveTab] = useState<string>(() => initialActive);
+  const [drafts, setDrafts] = useState<Record<string, string>>(seedTabContents);
   // The committed VFS content each open draft was last reconciled against. This
   // is the baseline that makes "dirty" unambiguous: a tab is dirty iff its draft
   // diverges from `synced[path]` (the kid typed). When `files` changes, a tab
   // whose draft still equals its baseline is CLEAN and gets refreshed to the new
   // commit; a dirty tab keeps the kid's text.
-  const [synced, setSynced] = useState<Record<string, string>>(() => {
-    const entry = entryPath(files);
-    const content = files.find((f) => f.path === entry)?.content ?? '';
-    return entry ? { [entry]: content } : {};
-  });
+  const [synced, setSynced] = useState<Record<string, string>>(seedTabContents);
 
   /** The committed VFS content for a path (empty string if it's gone). */
   const fileContent = (path: string): string =>
@@ -263,14 +285,15 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     if (!openTabs.some((p) => isDirty(p))) return;
     const t = setTimeout(() => {
       const next = commitDrafts();
-      record(next, Date.now());
+      // coalesce: a burst of typing folds into one "you changed your game" point.
+      record(next, Date.now(), undefined, { coalesce: true });
     }, IDLE_SAVE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
   // Left sidebar view (file tree / history / search).
-  const [sidebarView, setSidebarView] = useState<SidebarView>('files');
+  const [sidebarView, setSidebarView] = useState<SidebarView>(() => editorSeed.sidebar);
   // Diff tabs open in the SAME tab strip as files (special `diff::` ids), so you
   // can switch between a diff and your files. `diffTabs` holds each one's content.
   const [diffTabs, setDiffTabs] = useState<Record<string, { path: string; original: string; modified: string }>>({});
@@ -296,26 +319,6 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     setDrafts(reset);
     setSynced(reset);
     record(cp.files, Date.now(), `reverted · ${cp.summary}`);
-  };
-
-  // Revert a SINGLE file to its state at a checkpoint: `file` = that checkpoint's
-  // version (set/restore it), or `null` if the file didn't exist there (delete it).
-  const revertFile = (path: string, file: VfsFile | null) => {
-    const cur = useProjectStore.getState().files;
-    const next = !file
-      ? cur.filter((f) => f.path !== path)
-      : cur.some((f) => f.path === path)
-        ? cur.map((f) => (f.path === path ? { ...file } : f))
-        : [...cur, { ...file }];
-    onApplyFiles(next); // a delete reconciles the open tab shut via the store `change`
-    if (file) {
-      // Override any in-progress draft for this file with the reverted content.
-      const overwrite = (prev: Record<string, string>): Record<string, string> =>
-        path in prev ? { ...prev, [path]: file.content } : prev;
-      setDrafts(overwrite);
-      setSynced(overwrite);
-    }
-    record(next, Date.now(), `reverted ${baseName(path)}`);
   };
 
   // The sidebar auto-widens ONLY while a History entry is selected (i.e. the
@@ -386,8 +389,22 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
   // Files column: fixed px width + collapse toggle. The editor flexes, so the
   // column keeps its width when the window grows.
   const rootRef = useRef<HTMLDivElement>(null);
-  const [filesWidth, setFilesWidth] = useState(FILES_DEFAULT_W);
-  const [filesCollapsed, setFilesCollapsed] = useState(false);
+  // Clamp any older persisted width up to the new minimum (so the tab switcher
+  // always fits, even for projects saved before the min changed).
+  const [filesWidth, setFilesWidth] = useState(() => Math.max(FILES_MIN_W, editorSeed.filesWidth));
+  const [filesCollapsed, setFilesCollapsed] = useState(() => editorSeed.filesCollapsed);
+
+  // Write the editor UI back to the persisted workspace slice (debounce-saved by
+  // PlaygroundApp). Only real file tabs are persisted (diff tabs are transient).
+  useEffect(() => {
+    writeWorkspaceSlice('editor', {
+      sidebar: sidebarView,
+      activeTab,
+      openTabs: openTabs.filter((t) => !isDiffTab(t)),
+      filesWidth,
+      filesCollapsed,
+    });
+  }, [sidebarView, activeTab, openTabs, filesWidth, filesCollapsed]);
   const toggleFiles = () => setFilesCollapsed((c) => !c);
 
   // Drag the divider to resize the (pixel-width) files column.
@@ -474,7 +491,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             <div className="pg-no-scrollbar flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-pg-border px-1.5 py-1.5">
               {([
                 { id: 'files', label: 'Explorer', Icon: FolderTree },
-                { id: 'history', label: 'History', Icon: History },
+                { id: 'history', label: 'Time Machine', Icon: History },
                 { id: 'search', label: 'Search', Icon: Search },
               ] as const).map(({ id, label, Icon }) => (
                 <button
@@ -500,7 +517,6 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                 <HistoryPanel
                   onRevert={revertTo}
                   onDiff={openDiffTab}
-                  onRevertFile={revertFile}
                   onDetailOpen={setHistoryDetailOpen}
                 />
               ) : (

@@ -25,9 +25,12 @@ logs
 coverage
 
 # build artifacts (tsc -b composite project leftovers). The vite-config project
-# emits to node_modules/.cache (see tsconfig.node.json outDir) so the compiled
-# vite.config.js can't shadow vite.config.ts — nothing lands in the repo root.
+# is meant to emit to node_modules/.cache (see tsconfig.node.json outDir), but a
+# stray tsc run can still drop these in the repo root — ignore them explicitly so
+# the compiled config never shadows / gets committed alongside vite.config.ts.
 *.tsbuildinfo
+/vite.config.js
+/vite.config.d.ts
 
 # build-time public env (kept local; CI injects via workflow env)
 .env.production
@@ -43,3 +46,4 @@ coverage
 # origin (no CDN). Tracked via the package.json version pin, not as binaries.
 /public/vendor/phaser-*.min.js
 /public/vendor/phaser-*.d.ts
+.claude/worktrees/

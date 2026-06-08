@@ -9,6 +9,30 @@
 export const AU_STATES = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'ACT', 'NT'] as const;
 export type AuState = (typeof AU_STATES)[number];
 
+/**
+ * Major Australian cities for the (optional) city picker. A dropdown beats free
+ * text for low-IT parents; "Other…" reveals a text input for towns not listed.
+ * Stored as a plain string backend-side, so this list is frontend-only.
+ */
+export const AU_CITIES = [
+  'Sydney',
+  'Melbourne',
+  'Brisbane',
+  'Perth',
+  'Adelaide',
+  'Gold Coast',
+  'Canberra',
+  'Newcastle',
+  'Wollongong',
+  'Sunshine Coast',
+  'Geelong',
+  'Hobart',
+  'Townsville',
+  'Cairns',
+  'Darwin',
+  'Central Coast',
+] as const;
+
 /** Backend enum values for `acquisition_source`. */
 export const ACQUISITION_SOURCES = [
   'search_ads',

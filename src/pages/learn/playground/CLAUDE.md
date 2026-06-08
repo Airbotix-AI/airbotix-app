@@ -99,9 +99,10 @@ landing/generating/workspace mockups). The older `docs/virtual-desktop-design.md
 > modes, Monaco editor, Game Runner control channel, and the chat UX are all real.
 > File **loading is real** — `resolveProjectFiles` reads a project's VFS from the
 > S3-backed backend (`GET /projects/:id/code/files`, via `src/lib/api.ts`) when a
-> `projectId` is present, falling back to the local `generateScaffold` scaffold
-> otherwise. Still stubbed: the AI **turn** (`gameAgentStub`), file **write-back /
-> save** (edits stay in memory), and **scaffold generation** (the no-project
+> `projectId` is present. The backend is the **source of truth: no scaffold
+> fallback** — a load failure shows an error and routes back to project creation.
+> `generateScaffold` is used **only** for the project-less DEV sandbox. Still
+> stubbed: the AI **turn** (`gameAgentStub`), and **scaffold generation** (the no-project
 > fallback). The DEV `/playground-sandbox` has no auth (reads `?projectId` to
 > exercise the real load). See "Status & what's next".
 
@@ -160,6 +161,9 @@ Phaser (~1.18 MB) is **self-hosted**, NOT inlined and NOT from a CDN
   (`MonacoEditor.tsx`) — no CDN, per platform rule.
 - `@playwright/test` (devDep) — e2e at `e2e/playground.spec.ts` /
   `playwright.config.ts` (root); `npm run test:e2e`.
+- `html-to-image` — DOM→canvas for the Projects thumbnail (`workspaceThumbnail.ts`).
+  **Lazy-loaded** (`await import`) so it only ships when a thumbnail is captured;
+  honors CSS transforms (react-rnd window positions) better than html2canvas.
 
 - `phaser` (**`3.80.1`**, a regular `dependency`) — Phaser is an **npm dep** but
   is **never imported into the JS bundle** (zero bundle-size impact). It's only a
@@ -182,9 +186,11 @@ kid's game instance (our vendored build has **no `Phaser.GAMES` registry**, so a
 constructor wrapper is the only handle). The wrapper preserves `.prototype` +
 statics, so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
 
-- **Parent → frame:** `{ __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute' }`
-  → `game.loop.sleep()/wake()` and `game.sound.mute`.
-- **Frame → parent:** `{ __airbotixStat: true, fps, paused }` every ~500 ms.
+- **Parent → frame:** `{ __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute'|'snapshot' }`
+  → `game.loop.sleep()/wake()`, `game.sound.mute`, and `renderer.snapshot()` (for the
+  Projects thumbnail — `snapshot()` over `canvas.toDataURL()` so WebGL isn't blank).
+- **Frame → parent:** `{ __airbotixStat: true, fps, paused }` every ~500 ms, and a
+  one-shot `{ __airbotixSnapshot: true, dataUrl }` in reply to a `snapshot` request.
 - **Physics-debug toggle** (NOT postMessage — set before the game scripts run):
   `buildGameSrcDoc(files, { debug })` injects `window.__airbotixDebug`; the
   `Phaser.Game` constructor wrapper reads it and forces `physics.arcade.debug =
@@ -269,11 +275,12 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 |---|---|---|
 | `PlaygroundApp.tsx` | Top-level state machine. Owns `phase` (`landing`/`generating`/`workspace`) + monotonic `runKey` + `running` + the optional `projectId` (prop, or `?projectId` query param in the dev sandbox) threaded to `GeneratingScreen`; renders `LandingScreen` → `GeneratingScreen` → `Workspace`. The **VFS now lives in `projectStore`** (not local state): `GeneratingScreen` done → `setFiles`, editor ▶ Play / AI turn → `apply`. (Replaced the deleted `PlaygroundPage.tsx`.) | ✅ |
 | `projectStore.ts` | **Zustand project store — the single funnel for every VFS mutation** (editor saves, AI turns, file CRUD, drag moves). Holds `files` + explicit empty `folders` + a `change` descriptor (kind + remaps/removed/added + monotonic `seq`) so consumers reconcile without re-diffing. `PlaygroundApp` **subscribes to `change`** and records CRUD ops (create/rename/move/delete) into history; the editor's idle autosave records typing. Actions: `setFiles` (load/reset), `apply` (wholesale replace), `createFile`/`createFolder`/`rename`/`move`/`remove` (delegate to `vfsOps`). The seam history + IndexedDB persistence hang off. | ✅ |
-| `projectPersistence.ts` | **Local project persistence** — saves the VFS (`files` + `folders`) + edit history to **IndexedDB** (`loadProject`/`saveProject`, keyed by project; `dev-sandbox` key in the DEV route), best-effort (any failure → falls back to the scaffold). `PlaygroundApp` restores it on load (`hydrate`) and debounce-saves on change. **The seam**: a backend write endpoint replaces these two functions later (no backend write path exists yet — only `GET …/code/files`). | ✅ |
+| `projectPersistence.ts` | **Local project persistence** — saves the VFS (`files` + `folders`) + edit history to **IndexedDB** (`loadProject`/`saveProject`, keyed by project; `dev-sandbox` key in the DEV route), best-effort (any failure → falls back to the scaffold). `PlaygroundApp` restores it on load (`hydrate`) and debounce-saves on change. Also hosts, in the same store under key prefixes, the workspace **UI blob** (`ui:`, `load/saveWorkspaceUi`) and the Projects **thumbnail** (`thumb:`, `load/saveThumbnail`). **The seam**: a backend write endpoint replaces these later (no backend write path exists yet — only `GET …/code/files`). | ✅ |
+| `workspaceThumbnail.ts` | Captures the **Projects-list thumbnail** on leave: requests the game canvas FROM INSIDE the sandbox (`snapshot` control msg → `__airbotixSnapshot`), **lazy-loads `html-to-image`** to snapshot the studio chrome (the iframe is filtered out — opaque origin can't be read), composites the game over the iframe's rect, and downscales to a small JPEG data URL. `PlaygroundApp` calls it from the leave dialog and `saveThumbnail`s it (real projects only). Never throws (best-effort → placeholder). | ✅ |
 | `historyStore.ts` | **Zustand edit-history store** — a capped, newest-first list of project `Checkpoint`s (full VFS snapshot + `ts` + a `summary` of what changed). `record(files, ts, summary?)` skips snapshots identical to the latest; `summarize()` builds the "edited X +N" label; `reset()` on project load. In-memory now (M4 persists it). | ✅ |
 | `vfsOps.ts` | **Pure operations over the flat `VfsFile[]`** (folders implicit from path segments; explicit empty folders tracked alongside): `createFile`/`createFolder`/`renamePath`/`movePath`/`removePath` + path helpers. Each returns a `VfsMutation` (new files/folders + precise remaps/removed/added). Folder ops act on every file under a `prefix/`; guards collisions + moving a folder into itself. | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
-| `GeneratingScreen.tsx` | Blocking "building"/"loading" animation (spinning `.pg-orb-spin` orb + staged status + progress bar; caption reads "Loading your game…" when a `projectId` is set, else "Building…"). Calls `resolveProjectFiles({ projectId, prompt })` once, then `onDone(files)`. | ✅ |
+| `GeneratingScreen.tsx` | Blocking "building"/"loading" animation (spinning `.pg-orb-spin` orb + staged status + progress bar; caption reads "Loading your game…" when a `projectId` is set, else "Building…"). Calls `resolveProjectFiles({ projectId, prompt })` once, then `onDone(files)` — or `onError` if a real project can't load (no scaffold fallback). | ✅ |
 | `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. Owns the chat agent (`useGameAgent`, so history survives the layout toggle), the `locationRequest` for jump-to-error (`handleOpenLocation` → focuses Code), and `handleAskFix` (sends an error to the chat agent → focuses Chat). | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
 | `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |
@@ -299,13 +306,13 @@ Panes (`panes/`):
 |---|---|---|
 | `ChatPane.tsx` | **Standalone chat** = `useGameAgent` + `AIChatPanel`. The chat is no longer docked in the code editor; it's its own window (Window mode) / its own `💬 Chat` tab (Split mode). | ✅ |
 | `CodeEditorPane.tsx` | **Reconciles open tabs to structural VFS changes** (rename/move/delete from the tree) via the store `change` descriptor — remaps open tabs + their drafts/baselines to new paths, closes tabs for deleted files (the `[files]` content-refresh skips non-existent paths so it can't wipe a draft mid-rename). FileTree sidebar at a **fixed pixel width** (plain flex layout + a custom drag divider, NOT react-resizable-panels — so growing the window only widens the editor; the column keeps its width) and **collapsible** via a `PanelLeft` toggle in the tab strip + a **multi-tab** editor (tab strip with dirty `●` / close `×`; the active tab is a soft `brand-sky/15` pill (bold text) — clearly distinct, consistent with the FileTree active row; the strip has **no scrollbar** — drag to scroll, with fading edges signalling overflow, and the active tab auto-scrolls into view — plus ▶ Play + lazy Monaco) + a **status bar** (file path · `Ln/Col` · LANGUAGE; no "unsaved" marker — the idle autosave keeps the VFS current). **No docked chat anymore.** Holds a per-tab local draft; ▶ Play commits all dirty drafts back to the VFS and runs. **Idle autosave**: after `IDLE_SAVE_MS` of no typing, dirty drafts auto-commit AND record a **history checkpoint** (no run) — so work isn't lost and the History timeline fills in. The left sidebar is an **Explorer / History / Search switcher** (FileTree / `HistoryPanel` / `SearchPanel`); selecting a checkpoint file opens a **diff TAB** (`diff::<path>` id, `GitCompare` icon, `HistoryDiff` lazy) **in the editor tab strip** — switch between it and your files like any tab, close it like any tab; **revert** restores a checkpoint (+ records the revert). Accepts an `openLocation` (file+line+nonce) → opens that tab and feeds Monaco a `jumpTo` (jump-to-error). | ✅ |
-| `HistoryPanel.tsx` | The **History sidebar view**, a **two-column master-detail** (no expand): left = project `Checkpoint`s newest-first (click to select); right = the files **that entry changed** — diffed against the checkpoint RIGHT BEFORE it (so "edited X" lists X with a real before→after diff, NOT "changes since now"). Click a file → **diff tab** (`onDiff`, left = the prior version / peek, right = this version); per-file **Revert** (`onRevertFile` — restore one file to that version, or delete it if absent there) on hover; whole-project **Revert** in the detail header (`onRevert`, hidden for the current entry). **Both reverts ask an inline confirm** (✓/✕) before applying. The sidebar **auto-widens only while an entry is selected** (`HISTORY_MIN_W`, the detail column showing) — `onDetailOpen`; deselecting (click the entry again) or leaving History restores the prior width. Reads `historyStore`. | ✅ |
+| `HistoryPanel.tsx` | The **"Time Machine" sidebar view** — a kid-first, single-column list of save points (newest first), deliberately NOT git-speak. Each entry = a friendly icon + plain-language title (`describe()` maps the technical `Checkpoint.summary`: edited→"Changed …", created→"Added …", reverted→"Went back in time", initial→"Your game started here") + a fuzzy "X ago" time (`ago()`, no clocks). The newest is marked **Now / you're here** (no actions). The hero action is **Go back** (`onRevert` → whole-project restore) behind a reassuring inline confirm ("…your newest version is saved here too"). An optional **What changed** disclosure reveals a plain file list (new/changed/gone tags, no M/A/D) → tap a file → **diff tab** (`onDiff`, before/after). **No per-file revert, no timestamps, no master-detail.** `onDetailOpen(confirming)` widens the sidebar a touch only while the confirm is open. Reads `historyStore`. | ✅ |
 | `SearchPanel.tsx` | The **Search sidebar view**: case-insensitive substring search across every text file → results grouped by file (collapsible) with line + snippet → click a result to **jump** (`onOpenResult` → opens the file at the line). Optional **replace-all** (`onReplaceAll`) swaps every match across the project (committed + recorded in history). | ✅ |
 | `HistoryDiff.tsx` | **Lazy Monaco `DiffEditor`** wrapper (read-only, side-by-side) for the history diff overlay — own chunk via `monacoSetup`, never bundled in main. | ✅ |
 | `monacoSetup.ts` | **Shared Monaco bootstrap** — self-hosted workers (no CDN) + lenient kid diagnostics + `loader.config`. Imported by BOTH `MonacoEditor` and `HistoryDiff` so the heavy monaco bundle lives in one shared lazy chunk, configured once. | ✅ |
 | `GameRunnerPane.tsx` | Toolbar (pause/mute/screen-size/restart/**physics-debug** `Bug` toggle/console), a stage sized to the **selected screen-preset's aspect ratio**, scaled to fit the pane & centered/letterboxed against black (ResizeObserver re-fits on resize; the running game re-fits live with no reload), status bar. **Gated**: the game does NOT auto-run — until the kid presses ▶ (toolbar or placeholder button → local `started`), the stage shows a "Press ▶ to play" placeholder and the status reads "Idle"; once started it mounts `GameFrame` and the status shows Running/Paused · fps · logs · WxH. The console **auto-opens on the first problem of a run** — error OR warning (Phaser reports "Scene not found" etc. as `console.warn`); 0 → >0 edge only, later problems don't re-open it, a restart resets. Located errors get a `basename:line` jump button (`onOpenLocation`) and the console header an **Ask AI to fix** button for the last error (`onAskFix`). Props (`files`/`runKey`/`onRun`/`onOpenLocation`/`onAskFix`); ↻ starts when idle, else bumps `runKey`. | ✅ |
-| `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: real load when a project exists, else/on-failure the local scaffold. `GAME_PROJECT_KIND='game'`. | ✅ (load); swap-out fallback |
-| `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` only when there's no project/backend. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
+| `playgroundApi.ts` | Project file I/O. `loadGameFiles(projectId)` reads the **real** VFS from the S3-backed backend (delegates to the code studio's `readVfs` → `GET /projects/:id/code/files` via `src/lib/api.ts`; the browser never touches S3). `resolveProjectFiles({ projectId, prompt })` is the single entry the UI calls: for a real project the backend is the **source of truth** — it loads it and **THROWS on failure/empty (no scaffold fallback)**, so the caller errors out + returns to creation. The local scaffold is returned **only when there's no project** (the DEV sandbox). `GAME_PROJECT_KIND='game'`. | ✅ |
+| `starterProject.ts` | The rich **hierarchical** **fallback** seed VFS `STARTER_PROJECT` (`main.js`, `src/scenes/Boot.js`/`Game.js`/`GameOver.js`, `assets/README.txt`, `style.css` — global classes, entry `main.js` last) + the **stub** `async generateScaffold(prompt)` (delays `SCAFFOLD_DELAY_MS`, stamps the prompt into `main.js`). Used by `resolveProjectFiles` **only when there's no project** (the DEV sandbox) — never as a fallback for a failed real-project load. Replaces `starterGame.ts` as the seed. | swap-out (generateScaffold) |
 | `ResizeHandle.tsx` | Styled `PanelResizeHandle` — the draggable divider between resizable panes. | ✅ |
 | `FileTree.tsx` | **Nested folder tree**, **Files-only** (built from slash-delimited file paths + explicit empty `folders`, folders-first, collapsible, default-expanded; the `assets/` subtree is hidden — it lives in the Asset Viewer). **Full file CRUD** wired to `projectStore`: header **New file / New folder** (create at root), per-row hover **rename** (inline input) + **delete** (inline confirm) + folder **+file**; collisions/invalid names flash an inline error. **Drag-to-move**: rows are `draggable` (`data-path`), folders + the tree's empty area are drop targets (sky highlight) → `projectStore.move`, guarding a folder into itself/descendant. lucide icons; active-file highlight. | ✅ |
 | `AssetViewerPane.tsx` | **The Asset Viewer** (4th window / `🗂 Assets` split tab; design `docs/asset-viewer/`). Category rail (derived from the first folder under `assets/`) + search, thumbnail grid, and a detail view = `AssetPreview` + metadata + copy-able **code-ref** + manage (rename/delete). **Import** (file picker / drag-drop / paste) and **AI generate** (`runGen` stub) both write via `projectStore.createFile`. Hides `.anim.json` sidecars from the grid. | ✅ |
@@ -369,9 +376,9 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   now **multi-file** (all `.js` injected, entry last).
 - **Real file load** (`panes/playgroundApi.ts` `resolveProjectFiles`): reads a
   project's VFS from the S3-backed backend (`GET /projects/:id/code/files`) when a
-  `projectId` is present, else the local hierarchical scaffold
-  (`panes/starterProject.ts`). ▶ Play and the chat turn apply edits and re-run
-  (edits stay in memory — no write-back yet).
+  `projectId` is present — the **source of truth, no scaffold fallback** (a failed
+  load → error screen → back to creation). The local hierarchical scaffold
+  (`panes/starterProject.ts`) is used **only** for the project-less DEV sandbox.
 - The AI chat **UX**, backed by the **local stub** (`gameAgentStub.ts` via the
   `runTurn` seam in `useGameAgent.ts`) — offline, no LLM. The no-project
   scaffold (`generateScaffold`) is likewise a **local stub**.
@@ -381,7 +388,7 @@ Naming convention: the **playground** is the feature (routes/hub/api use
   `npm run test:e2e`): landing → generating → workspace, multi-file scaffold,
   **file CRUD (create file opens a tab; rename remaps the tab; delete closes it; create folder + nested file)**,
   **drag-to-move (drag a file into a folder)**,
-  **edit history (idle autosnapshot records a checkpoint → diff → revert)**,
+  **Time Machine (idle autosnapshot records a save point → "what changed" diff → "go back")**,
   **the Code Editor launches with the editor area doubled (file column fixed)**,
   **Monaco overflow widgets render in a body-level node (hover not clipped by the window)**,
   layout toggle Window ⇄ Split, AI chat stub (+ chat doesn't auto-run), runner
@@ -400,12 +407,11 @@ Naming convention: the **playground** is the feature (routes/hub/api use
    code-session loop (`playgroundApi.ts` over `POST /projects/:id/code/turn`,
    etc.). The vibe-coding loop runs **server-side** (decision D-CODE1); the kid
    surface must NEVER call an LLM directly (platform contract §5).
-2. **Backend project save / write-back** — file **read** is real
-   (`resolveProjectFiles` → `GET /projects/:id/code/files`) and edits now persist
-   **locally** (IndexedDB, `projectPersistence.ts`) so a refresh restores them.
-   What's still missing is the **server-side** write path (`PUT`/turn-commit back
-   to the backend/S3); `projectPersistence`'s `loadProject`/`saveProject` are the
-   seam it slots into.
+2. **AI-turn write-back** — manual editor saves ARE real (`saveProject` → `saveVfs`,
+   last-write-wins with a 409 `kept-newest` path, mirrored to the IndexedDB cache),
+   so the backend holds each project's latest edits (this is why loading is
+   remote-only with no scaffold fallback). What's still stubbed is the **AI turn**
+   committing its own file changes server-side — it rides on #1 (the turn is a stub).
 3. The authed product routes — `/learn/playground/:projectId` (studio, behind
    `<ProtectedRoute kind="kid">` + backend), plus the hub/fullscreen routes.
    `PlaygroundApp` is currently reachable only via the dev `/playground-sandbox`.

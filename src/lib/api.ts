@@ -122,6 +122,60 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
 }
 
 /**
+ * Authenticated file download (non-JSON, e.g. CSV export). Mirrors `api`'s auth
+ * + silent-refresh handling, but streams the body to a Blob and triggers a
+ * browser download instead of parsing JSON.
+ */
+export async function apiDownload(
+  path: string,
+  filename: string,
+  principal: PrincipalKind = defaultPrincipal(),
+): Promise<void> {
+  const exec = async (token: string | null): Promise<Response> => {
+    const headers: Record<string, string> = {};
+    if (token) headers.authorization = `Bearer ${token}`;
+    return fetch(`${BASE_URL}${path}`, { headers, credentials: 'include' });
+  };
+
+  let token = useAuthStore.getState().tokens[principal];
+  let res = await exec(token);
+  if (res.status === 401) {
+    const next = await refreshAccessToken(principal);
+    if (next) {
+      token = next;
+      res = await exec(token);
+    } else {
+      useAuthStore.getState().clearToken(principal);
+    }
+  }
+
+  if (!res.ok) {
+    let code = `HTTP_${res.status}`;
+    let message = res.statusText;
+    try {
+      const errBody = (await res.json()) as { error?: { code: string; message: string } };
+      if (errBody.error) {
+        code = errBody.error.code;
+        message = errBody.error.message;
+      }
+    } catch {
+      // body wasn't JSON — keep the status-based defaults
+    }
+    throw new ApiError(res.status, code, message);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Generate a game asset via platform-backend (Stars-metered, audited). The kid
  * surface never calls an LLM directly — this is the real target for the
  * `runGen` seam in `@/pages/learn/playground/assetGen`. Backend endpoint TBD.

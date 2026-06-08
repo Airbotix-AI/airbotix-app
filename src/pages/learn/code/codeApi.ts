@@ -8,7 +8,7 @@
 // client so auth + refresh + error envelopes behave identically to the rest of
 // the app, and no LLM endpoint is ever hit directly (airbotix-app CLAUDE.md #5).
 
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 export const CODE_PROJECT_KIND = 'code' as const;
 
@@ -68,6 +68,36 @@ export interface FileChange {
   lines_removed: number;
 }
 
+// A region-correct crisis resource (helpline) the backend binds to the family /
+// school enrolment record — NEVER improvised client-side (learn-game-studio-prd
+// §11g / J13). Shown standing on the distress rescue path.
+export interface CrisisResource {
+  /** Helpline / service name, e.g. "Kids Helpline". */
+  name: string;
+  /** Dialable number, e.g. "1800 55 1800". */
+  phone: string;
+  /** One short, kid-readable line about who to call and why. */
+  note?: string;
+}
+
+// The server-side safeguarding verdict (learn-game-studio-prd §11g / J13). When
+// present on a turn result, the input firewall + intent classifier ran BEFORE any
+// LLM call and decided NOT to run a game turn — the studio must render the
+// deflection (and, for distress, the standing crisis resource) and must NOT apply
+// files, stream a turn, or charge Stars. The classifier never closes the loop
+// alone; the backend has already logged the safeguarding audit event + escalation.
+export interface SafeguardingVerdict {
+  // `personal-disclosure` → gentle deflect + log, no escalation. `distress`
+  // (self-harm-adjacent) → recall-favouring: standing crisis resource + sticky
+  // safe-mode (the resource persists; re-disclosure escalates a tier) + escalate.
+  class: 'personal-disclosure' | 'distress';
+  // The standing, kid-readable deflection — the backend's wording, never improvised
+  // client-side. The agent "breaks character" and routes to a trusted grown-up.
+  message: string;
+  // Present for `distress`: the region-correct standing crisis resource.
+  crisisResource?: CrisisResource;
+}
+
 export interface AgentTurnResult {
   // Backend-issued id for the turn — used to approve/reject a staged plan.
   turn_id: string;
@@ -82,6 +112,9 @@ export interface AgentTurnResult {
   summary: string;
   stars_charged: number;
   tools_fired: string[];
+  // Set when the safeguarding classifier deflected this message instead of running
+  // a game turn (J13). When present, NO files/Stars/stream — render the rescue UI.
+  safeguarding?: SafeguardingVerdict;
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────
@@ -146,14 +179,82 @@ export async function getProject(projectId: string): Promise<CodeProject> {
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
 
 /**
+ * A versioned VFS snapshot. `version` is the server's monotonic save counter
+ * (bumped on every write); the client echoes it back on save so the backend can
+ * detect a stale write (last-write-wins reconcile, PRD §6 D-GAME3 / J3).
+ */
+export interface VfsSnapshot {
+  files: VfsFile[];
+  version: number;
+}
+
+/**
  * Read the project's virtual FS. The backend seeds starter template files into
  * the VFS at project create (D-CODE1d), so this endpoint is the single source
  * of truth — there is no local starter fallback. Used for initial load + the
  * iframe preview.
  */
 export async function readVfs(projectId: string): Promise<VfsFile[]> {
-  const res = await api<{ files: VfsFile[] }>(`/projects/${projectId}/code/files`);
-  return res.files ?? [];
+  return (await readVfsSnapshot(projectId)).files;
+}
+
+/**
+ * Read the project's VFS WITH its server version (PRD J3). The save flow needs
+ * the version to PUT a non-stale write; `version` defaults to 0 if the backend
+ * omits it (older projects / not-yet-saved), which still reconciles correctly.
+ */
+export async function readVfsSnapshot(projectId: string): Promise<VfsSnapshot> {
+  const res = await api<{ files?: VfsFile[]; version?: number }>(`/projects/${projectId}/code/files`);
+  return { files: res.files ?? [], version: res.version ?? 0 };
+}
+
+// ── VFS save / write-back (D-GAME3b: PUT /projects/:id/code/files) ──────────
+
+/** A stale-version save (PRD J3): the backend rejected our `version` (409). */
+export class SaveConflictError extends Error {
+  constructor(public readonly current: VfsSnapshot) {
+    super('save_conflict');
+    this.name = 'SaveConflictError';
+  }
+}
+
+/**
+ * Persist the project's VFS server-side (PRD §6 D-GAME3b / J3). Sends the files
+ * + the `version` we last loaded; the backend writes atomically and returns the
+ * bumped version. A stale `version` (another tab/device saved first) yields a
+ * `409` carrying the server's current snapshot — surfaced as `SaveConflictError`
+ * so the caller can reconcile last-write-wins (server wins, keep the newest copy
+ * recoverable in History). `idempotency_key` makes a network retry safe.
+ */
+export async function saveVfs(args: {
+  projectId: string;
+  files: VfsFile[];
+  version: number;
+  idempotencyKey?: string;
+}): Promise<VfsSnapshot> {
+  try {
+    const res = await api<{ files?: VfsFile[]; version: number }>(
+      `/projects/${args.projectId}/code/files`,
+      {
+        method: 'PUT',
+        body: {
+          files: args.files,
+          // Backend DTO field is `expected_version` (optimistic concurrency); a
+          // plain `version` is dropped → validation 400 → every save fell back to
+          // "Saved on this device" (queued) and never synced.
+          expected_version: args.version,
+          idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
+        },
+      },
+    );
+    return { files: res.files ?? args.files, version: res.version };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 409) {
+      const current = (e.details ?? {}) as { files?: VfsFile[]; version?: number };
+      throw new SaveConflictError({ files: current.files ?? [], version: current.version ?? args.version });
+    }
+    throw e;
+  }
 }
 
 // ── Agent turn (D-CODE1d: POST /projects/:id/code/turn) ────────────────────
@@ -181,6 +282,38 @@ export async function runAgentTurn(args: {
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
     },
   });
+}
+
+// ── Safeguarding classify (J13 / §11g: POST …/code/turn/classify) ───────────
+
+/**
+ * Ask the backend to classify a chat message BEFORE any LLM call (the J13 input
+ * firewall + intent classifier). Returns a {@link SafeguardingVerdict} only when
+ * the message is deflected (personal-disclosure / distress) — `null` means it's a
+ * normal game request and the caller may proceed to a turn. The classifier runs
+ * server-side and never spends Stars; the backend logs the safeguarding audit
+ * event + escalation. The kid NEVER calls an LLM directly (CLAUDE.md #5).
+ */
+export async function classifyMessage(args: {
+  projectId: string;
+  prompt: string;
+}): Promise<SafeguardingVerdict | null> {
+  const res = await api<{ safeguarding: SafeguardingVerdict | null }>(
+    `/projects/${args.projectId}/code/turn/classify`,
+    { method: 'POST', body: { prompt: args.prompt } },
+  );
+  return res.safeguarding;
+}
+
+// ── Raise hand: "Ask my teacher" (J4) ───────────────────────────────────────
+
+/**
+ * Raise a hand to the teacher's live view (J4) — a lightweight, always-safe
+ * signal that the kid wants help. No LLM, no Stars; the calm waiting state in the
+ * studio never depends on this resolving.
+ */
+export async function raiseHand(args: { projectId: string }): Promise<void> {
+  await api<void>(`/projects/${args.projectId}/raise-hand`, { method: 'POST', body: {} });
 }
 
 // ── Plan approve/reject (D-CODE1d: POST …/code/turn/:turnId/approve) ────────
