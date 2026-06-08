@@ -115,7 +115,20 @@ export interface UseGameAgentOptions {
 }
 
 const PENDING_TEXT = 'Thinking…';
+/**
+ * "Can't get to the server" copy — used when the request never reached the
+ * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
+ * `ApiError` was produced, OR a gateway is down (502/503/504). Distinct from
+ * SERVER_ERROR_TEXT so a connectivity problem reads differently from a backend
+ * that WAS reached but errored (the common dev-mode "backend restarting" case).
+ */
 const ERROR_TEXT = 'Could not reach the AI. Try again.';
+/**
+ * "The backend was reached but errored" copy (an unexpected 5xx / unhandled
+ * status). The AI server answered with a failure rather than being unreachable,
+ * so we don't claim we "couldn't reach" it — that misdirects debugging.
+ */
+const SERVER_ERROR_TEXT = 'The AI ran into a problem. Try again in a moment.';
 /** Calm, kid-framed offline copy (PRD J2 — never a frozen screen). */
 const OFFLINE_TEXT = 'Internet hiccup — your work is safe. Try again in a moment.';
 /**
@@ -172,7 +185,14 @@ function friendlyError(e: unknown): string {
       return "Let's keep it kind and safe — try asking for something else.";
     if (e.code === 'MODERATION_WARN')
       return 'That message looked a bit off. Try saying it a different way.';
+    // A gateway is down (the backend itself is unreachable behind a proxy) → keep
+    // the "can't reach" copy; any other status means the server answered with a
+    // failure → it WAS reached, so surface the distinct server-error copy.
+    if (e.status === 502 || e.status === 503 || e.status === 504) return ERROR_TEXT;
+    return SERVER_ERROR_TEXT;
   }
+  // Not an ApiError → `fetch` rejected before any response (connection refused /
+  // DNS / CORS): the backend was never reached.
   return ERROR_TEXT;
 }
 

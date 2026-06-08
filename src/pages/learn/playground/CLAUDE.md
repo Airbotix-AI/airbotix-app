@@ -26,13 +26,19 @@ The UI is a **3-phase flow**, driven by a small state machine in
    animated rotating brand-gradient glow border (`.pg-glow` in `playground.css`,
    driven by a registered `@property --pg-a` conic rotation) plus starter game
    chips. Enter (no Shift) or the send button submits the prompt.
-2. **`GeneratingScreen`** — a blocking "building your game" animation (a spinning
-   brand-gradient orb `.pg-orb-spin` + a staged status list + progress bar). It
-   runs `resolveProjectFiles({ projectId, prompt })` once (`panes/playgroundApi.ts`):
-   with a `projectId` it loads the **real** files from the S3-backed backend
-   (`GET /projects/:id/code/files`); without one — or if that fails — it falls
-   back to the local `generateScaffold` stub. Then it advances to the workspace
-   with the resulting VFS.
+2. **`GeneratingScreen`** — a blocking "building your game" screen driven by
+   **REAL streamed progress**. For a new game on a real project it fires the
+   **streaming** first turn (`streamAgentTurn`, SSE `POST …/code/turn/stream`) and
+   moves through three honest phases: **thinking** (turn running, no file yet → a
+   looping platformer **build-stage** animation `BuildStage` + rotating kid
+   build-tips, since there's genuinely nothing real to show yet), **building**
+   (each `file` event reveals a file in a live list — the backend now emits a
+   `file` event the moment the model starts writing each one), and **done** (the
+   AI's moderated reply + a short celebratory beat, then handoff). On a stream
+   failure it falls back to `resolveProjectFiles` (seeded template) so the kid is
+   never trapped; a **resume / project-less** session just loads the VFS (no AI
+   turn) behind the same build-stage. The build-stage animation lives in
+   `playground.css` **§5** (pure CSS, honors `prefers-reduced-motion`).
 3. **`Workspace`** — the actual studio, in one of **two layout modes** chosen by a
    toggle (`LayoutToggle`, state in `playgroundStore.layoutMode`, **default =
    Window**):
@@ -282,7 +288,7 @@ Top-level flow + runtime (the core/novel pieces — shared with the code studio'
 | `historyStore.ts` | **Zustand edit-history store** — a capped, newest-first list of project `Checkpoint`s (full VFS snapshot + `ts` + a `summary` of what changed). `record(files, ts, summary?)` skips snapshots identical to the latest; `summarize()` builds the "edited X +N" label; `reset()` on project load. In-memory now (M4 persists it). | ✅ |
 | `vfsOps.ts` | **Pure operations over the flat `VfsFile[]`** (folders implicit from path segments; explicit empty folders tracked alongside): `createFile`/`createFolder`/`renamePath`/`movePath`/`removePath` + path helpers. Each returns a `VfsMutation` (new files/folders + precise remaps/removed/added). Folder ops act on every file under a `prefix/`; guards collisions + moving a folder into itself. | ✅ |
 | `LandingScreen.tsx` | Gemini-style entry: a prompt box with the `.pg-glow` rotating-gradient halo + starter game chips; Enter / send → `onSubmit(prompt)`. | ✅ |
-| `GeneratingScreen.tsx` | Blocking "building"/"loading" animation (spinning `.pg-orb-spin` orb + staged status + progress bar; caption reads "Loading your game…" when a `projectId` is set, else "Building…"). Calls `resolveProjectFiles({ projectId, prompt })` once, then `onDone(files)` — or `onError` if a real project can't load (no scaffold fallback). | ✅ |
+| `GeneratingScreen.tsx` | "Building your game" screen on **real streamed progress** — phases **thinking → building → done** (see flow §2). For a new game it fires the **streaming** turn (`streamAgentTurn`), reveals each `file` as it streams, shows the AI reply on done after a short beat, then `onDone(files, firstTurn)`; a stream failure falls back to `resolveProjectFiles` (never traps the kid); resume/project-less just loads the VFS. Hosts the pure-CSS `BuildStage` (a looping platformer scene; keyframes in `playground.css` §5) + rotating build-tips. `onError` only when a resume/load truly fails. | ✅ |
 | `Workspace.tsx` | The studio shell: thin top bar (`LayoutToggle`) + the active layout — Window mode (3 `<Window>`s) or Split mode (`PanelGroup` with a Chat/Code tab strip + `GameRunnerPane`). Reads `layoutMode` from the store. Owns the chat agent (`useGameAgent`, so history survives the layout toggle), the `locationRequest` for jump-to-error (`handleOpenLocation` → focuses Code), and `handleAskFix` (sends an error to the chat agent → focuses Chat). | ✅ |
 | `LayoutToggle.tsx` | Segmented `⊞ Windows` / `◫ Split` control; sets `playgroundStore.layoutMode`. | ✅ |
 | `ThemeToggle.tsx` | Sun/Moon icon button that flips `playgroundStore.theme` (light ⇄ dark). Rendered on the Landing screen (top-right) and in the `Taskbar` (next to `LayoutToggle`). | ✅ |

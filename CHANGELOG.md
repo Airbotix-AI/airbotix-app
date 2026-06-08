@@ -4,6 +4,36 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-09
+
+### Changed
+- **Playground "building your game" screen — total redesign around real progress.**
+  The old screen showed a spinning orb + a fake timed progress bar + canned "Writing
+  the code…" steps that didn't reflect anything real (the backend generated the whole
+  game in one non-streaming call, so the first ~20–30s had no signal). `GeneratingScreen`
+  now drives **three honest phases off the streamed turn**: **thinking** (turn running,
+  no file yet → a fun looping platformer **build-stage** animation + rotating kid
+  build-tips, since there's genuinely nothing real to show), **building** (each file
+  reveals in a live list the instant the AI starts writing it — see the backend
+  streaming change), and **done** (the AI's moderated reply + a short celebratory beat,
+  then handoff). Stream failure still falls back to the seeded template (kid never
+  trapped); resume/project-less sessions load behind the same stage. New pure-CSS
+  build-stage animation in `playground.css` §5 (honors `prefers-reduced-motion`).
+  Covered by `GeneratingScreen.test.tsx` (thinking → progressive file reveal → ready
+  → handoff).
+
+## 2026-06-08
+
+### Fixed
+- **Playground AI chat error copy now distinguishes "couldn't reach the server" from
+  "the server errored."** `useGameAgent.friendlyError` previously collapsed every
+  unhandled turn failure into "Could not reach the AI" — so a real backend 5xx
+  (e.g. the dev backend mid-restart) misread as a connectivity problem. Now a
+  transport failure (`fetch` rejected → no `ApiError`) or a gateway-down
+  502/503/504 keeps the "Could not reach the AI. Try again." copy, while any other
+  reached-but-failed status shows a distinct "The AI ran into a problem. Try again
+  in a moment." Covered by new `useGameAgent.test.ts` cases (transport vs 5xx vs 503).
+
 ## 2026-06-07
 
 ### Added
