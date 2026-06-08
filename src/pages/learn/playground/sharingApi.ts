@@ -41,8 +41,7 @@ export interface ShareLink {
   expires_at?: string | null;
   /** Whether an anonymized display handle is shown to visitors (OD-7), vs none. */
   show_handle?: boolean;
-  /** Engagement (active links): how many opened the link / actually played the game. */
-  opens?: number;
+  /** Engagement (active links): how many times the game was played (= opened). */
   plays?: number;
 }
 
@@ -52,7 +51,6 @@ interface RawShareView {
   share_id?: string;
   expires_at?: string | null;
   show_handle?: boolean;
-  opens?: number;
   plays?: number;
 }
 const toShareLink = (r: RawShareView): ShareLink => ({
@@ -60,7 +58,6 @@ const toShareLink = (r: RawShareView): ShareLink => ({
   shareId: r.share_id,
   expires_at: r.expires_at ?? null,
   show_handle: r.show_handle ?? false,
-  opens: r.opens ?? 0,
   plays: r.plays ?? 0,
 });
 
@@ -110,7 +107,6 @@ export interface FamilyShareLink {
   project_title: string;
   kid_id: string | null;
   requested_at: string;
-  opens: number;
   plays: number;
 }
 
@@ -127,15 +123,6 @@ export async function listFamilyShareLinks(familyId: string): Promise<FamilyShar
 /** Parent approves a request → mints the link (freezes a PII-stripped snapshot). */
 export async function approveShareLink(projectId: string): Promise<ShareLink> {
   return toShareLink(await api<RawShareView>(`/projects/${projectId}/share/approve`, { method: 'POST', body: {} }));
-}
-
-/** Public beacon (no auth): the game ran on the play page → count one play. */
-export async function reportPlay(shareId: string): Promise<void> {
-  try {
-    await fetch(`${BASE_URL}/play/${shareId}/played`, { method: 'POST' });
-  } catch {
-    /* best-effort metric — never disrupt play */
-  }
 }
 
 /** The public play page got a 410 — the link was revoked or expired (J8). */

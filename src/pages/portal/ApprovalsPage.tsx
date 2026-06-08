@@ -226,6 +226,17 @@ function ShareLinkRequests({ familyId }: { familyId: string }) {
 function ShareLinkCard({ link, familyId }: { link: FamilyShareLink; familyId: string }) {
   const qc = useQueryClient();
   const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const shareUrl = `${window.location.origin}/play/${link.share_id}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked — the URL is still visible + selectable */
+    }
+  };
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['share-requests', familyId] });
     qc.invalidateQueries({ queryKey: ['share', link.project_id] });
@@ -254,9 +265,29 @@ function ShareLinkCard({ link, familyId }: { link: FamilyShareLink; familyId: st
             <span className="text-[14px] font-bold text-ink truncate">{link.project_title}</span>
           </div>
           {!isPending && (
-            <p className="text-[13px] text-ink-soft mt-2">
-              👀 {link.opens} opened · 🎮 {link.plays} played
-            </p>
+            <>
+              <p className="text-[13px] text-ink-soft mt-2">
+                🎮 {link.plays} {link.plays === 1 ? 'play' : 'plays'}
+              </p>
+              {/* The actual link — the parent can view + copy + share it. */}
+              <div className="mt-2 flex items-center gap-2 max-w-md">
+                <input
+                  data-testid="share-link-url"
+                  readOnly
+                  value={shareUrl}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 rounded-lg bg-ink/5 px-2 py-1.5 text-[12px] font-mono text-ink-soft"
+                />
+                <button
+                  type="button"
+                  data-testid="share-link-copy"
+                  onClick={copy}
+                  className="shrink-0 rounded-lg bg-brand-sky px-2.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
+                >
+                  {copied ? '✓' : 'Copy'}
+                </button>
+              </div>
+            </>
           )}
           <p className="text-[12px] text-slate2 mt-2">
             {isPending ? 'Asked' : 'Created'} {new Date(link.requested_at).toLocaleString()}

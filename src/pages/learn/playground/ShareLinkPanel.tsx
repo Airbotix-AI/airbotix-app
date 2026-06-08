@@ -156,10 +156,9 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
                 </div>
               </div>
 
-              {/* How many people opened the link + actually played it (J8). */}
-              <div data-testid="share-stats" className="flex items-center gap-3 text-[12px] font-semibold text-pg-text-dim">
-                <span>👀 {share.data?.opens ?? 0} opened</span>
-                <span>🎮 {share.data?.plays ?? 0} played</span>
+              {/* How many times the game was played (J8). */}
+              <div data-testid="share-stats" className="text-[12px] font-semibold text-pg-text-dim">
+                🎮 {share.data?.plays ?? 0} {(share.data?.plays ?? 0) === 1 ? 'play' : 'plays'}
               </div>
 
               <button
