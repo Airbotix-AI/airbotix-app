@@ -67,6 +67,9 @@ export function GeneratingScreen({
   onErrorRef.current = onError;
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  // The first-turn generation, fired ONCE — a ref-guarded promise so React 18
+  // StrictMode's double-invoke (and any re-render) can't run/charge two turns.
+  const turnRef = useRef<ReturnType<typeof runAgentTurn> | null>(null);
 
   // Building = a NEW game from a typed prompt → the full "building your game"
   // animation. Resuming an existing project has no prompt → load only, no build phase.
@@ -95,7 +98,10 @@ export function GeneratingScreen({
     //    reply. The turn auto-applies + persists the VFS server-side, so
     //    `result.files` is the finished game and `result.summary` is the reply. ──
     if (aiBuild) {
-      runAgentTurn({ projectId: projectId!, prompt, mode: modeRef.current })
+      if (!turnRef.current) {
+        turnRef.current = runAgentTurn({ projectId: projectId!, prompt, mode: modeRef.current });
+      }
+      turnRef.current
         .then(async (result) => {
           if (cancelled) return;
           await streamTurn(
