@@ -41,6 +41,9 @@ export interface ShareLink {
   expires_at?: string | null;
   /** Whether an anonymized display handle is shown to visitors (OD-7), vs none. */
   show_handle?: boolean;
+  /** Engagement (active links): how many opened the link / actually played the game. */
+  opens?: number;
+  plays?: number;
 }
 
 /** Backend ShareView (snake_case) → FE ShareLink. */
@@ -49,12 +52,16 @@ interface RawShareView {
   share_id?: string;
   expires_at?: string | null;
   show_handle?: boolean;
+  opens?: number;
+  plays?: number;
 }
 const toShareLink = (r: RawShareView): ShareLink => ({
   status: r.status,
   shareId: r.share_id,
   expires_at: r.expires_at ?? null,
   show_handle: r.show_handle ?? false,
+  opens: r.opens ?? 0,
+  plays: r.plays ?? 0,
 });
 
 /** Ask for a share-link (kid → parent approval, J8). Returns `pending` until approved. */
@@ -93,21 +100,24 @@ export async function revokeShareLink(shareId: string): Promise<void> {
   await api<void>(`/share/${shareId}`, { method: 'DELETE' });
 }
 
-// ── Parent approval (Portal, J8 / D-GAME10a) ────────────────────────────────
+// ── Parent approval + management (Portal, J8 / D-GAME10a) ───────────────────
 
-/** A pending share-link request as the parent sees it in their Portal inbox. */
-export interface PendingShareRequest {
+/** A family share-link as the parent sees it: `pending` (decide) or `active` (revoke + metrics). */
+export interface FamilyShareLink {
   share_id: string;
+  status: 'pending' | 'active';
   project_id: string;
   project_title: string;
   kid_id: string | null;
   requested_at: string;
+  opens: number;
+  plays: number;
 }
 
-/** The parent's pending share-link requests across their family. */
-export async function listShareRequests(familyId: string): Promise<PendingShareRequest[]> {
+/** The family's share-links (pending awaiting approval + active, revocable). */
+export async function listFamilyShareLinks(familyId: string): Promise<FamilyShareLink[]> {
   try {
-    return await api<PendingShareRequest[]>(`/families/${familyId}/share-requests`);
+    return await api<FamilyShareLink[]>(`/families/${familyId}/share-requests`);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
     throw e;
@@ -117,6 +127,15 @@ export async function listShareRequests(familyId: string): Promise<PendingShareR
 /** Parent approves a request → mints the link (freezes a PII-stripped snapshot). */
 export async function approveShareLink(projectId: string): Promise<ShareLink> {
   return toShareLink(await api<RawShareView>(`/projects/${projectId}/share/approve`, { method: 'POST', body: {} }));
+}
+
+/** Public beacon (no auth): the game ran on the play page → count one play. */
+export async function reportPlay(shareId: string): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/play/${shareId}/played`, { method: 'POST' });
+  } catch {
+    /* best-effort metric — never disrupt play */
+  }
 }
 
 /** The public play page got a 410 — the link was revoked or expired (J8). */

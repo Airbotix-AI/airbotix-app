@@ -38,8 +38,10 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
     // re-check the server rather than trust a stale `pending`/`none` snapshot.
     refetchOnMount: 'always',
     staleTime: 0,
-    // While awaiting approval, poll so the minted link appears on its own.
-    refetchInterval: (q) => (q.state.data?.status === 'pending' ? 4000 : false),
+    // Poll while the panel is open: pending → the minted link appears on its own;
+    // active → the opened/played counts stay fresh.
+    refetchInterval: (q) =>
+      q.state.data?.status === 'pending' || q.state.data?.status === 'active' ? 5000 : false,
   });
 
   // Re-check the share state every time the panel is opened (the parent may have
@@ -152,6 +154,12 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
                     {copied ? '✓' : 'Copy'}
                   </button>
                 </div>
+              </div>
+
+              {/* How many people opened the link + actually played it (J8). */}
+              <div data-testid="share-stats" className="flex items-center gap-3 text-[12px] font-semibold text-pg-text-dim">
+                <span>👀 {share.data?.opens ?? 0} opened</span>
+                <span>🎮 {share.data?.plays ?? 0} played</span>
               </div>
 
               <button

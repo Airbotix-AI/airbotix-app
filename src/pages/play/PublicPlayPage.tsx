@@ -1,8 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 
 import { ReadOnlyGameFrame } from '../learn/playground/ReadOnlyGameFrame';
-import { ShareGoneError, readPublicSnapshot } from '../learn/playground/sharingApi';
+import { ShareGoneError, readPublicSnapshot, reportPlay } from '../learn/playground/sharingApi';
 import type { VfsFile } from '../learn/code/codeApi';
 
 /**
@@ -34,6 +35,22 @@ export function PublicPlayPage() {
     retry: (_count, err) => !(err instanceof ShareGoneError),
     staleTime: Infinity,
   });
+
+  // Count one "play" the first time the sandboxed game reports it's running
+  // (fps > 0) — the open already counted when the snapshot loaded. Best-effort.
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!shareId) return;
+    const onMsg = (e: MessageEvent) => {
+      const m = e.data as { __airbotixStat?: boolean; fps?: number } | null;
+      if (m?.__airbotixStat === true && (m.fps ?? 0) > 0 && !reported.current) {
+        reported.current = true;
+        void reportPlay(shareId);
+      }
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [shareId]);
 
   // Revoked or expired → 410 Gone. A flat, friendly, PII-free page.
   if (snapshot.error instanceof ShareGoneError) {
