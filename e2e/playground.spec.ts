@@ -196,7 +196,7 @@ test('code editor window launches wide (editor area doubled, file column unchang
   // The launch width doubles the editor area while the fixed file column keeps
   // its width: width = files col + 2·(W/3 − files col). (Keep FILES_COL in sync
   // with CODE_FILES_COL_W / FILES_DEFAULT_W in the app.)
-  const FILES_COL = 256; // CODE_FILES_COL_W / FILES_DEFAULT_W
+  const FILES_COL = 280; // CODE_FILES_COL_W / FILES_DEFAULT_W
   const W = await page.evaluate(() => window.innerWidth);
   const expected = FILES_COL + 2 * (W / 3 - FILES_COL);
   const win = page
@@ -276,63 +276,34 @@ test('file tree: drag a file into a folder moves it', async ({ page }) => {
   await expect(page.locator('[data-path="main.js"]')).toHaveCount(0);
 });
 
-test('history: idle autosnapshot records a checkpoint, then diff + revert', async ({ page }) => {
+test('time machine: snapshot → see what changed → go back', async ({ page }) => {
   await reachWorkspace(page, 'Code Editor'); // Window mode; Code Editor on the scaffold.
   await expect(page.locator('.monaco-editor').first()).toBeVisible();
 
-  // Open History — with nothing selected it stays at the original width.
-  const sidebar = page.getByTestId('editor-sidebar');
-  await page.getByRole('button', { name: 'History', exact: true }).click();
-  await expect(page.getByText('Initial version')).toBeVisible();
-  const narrow = (await sidebar.boundingBox())!.width;
+  await page.getByRole('button', { name: 'Time Machine', exact: true }).click();
+  await expect(page.getByText('Your game started here')).toBeVisible();
 
-  // Type into the editor → after the idle pause it auto-commits + snapshots.
+  // Type into the editor → after the idle pause it auto-commits + snapshots. The
+  // new save point becomes the current ("Now") one, titled in plain language.
   await page.locator('.monaco-editor').first().click();
-  await page.keyboard.type('// history checkpoint test\n');
-  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
+  await page.keyboard.type('// time machine test\n');
+  await expect(page.getByText(/Changed main\.js/)).toBeVisible({ timeout: 6_000 });
 
-  // Selecting an entry shows its file-detail column AND auto-widens the sidebar.
-  await page.getByText(/edited main\.js/).click();
-  await expect(page.getByTestId('history-detail')).toBeVisible();
-  await expect.poll(async () => (await sidebar.boundingBox())!.width).toBeGreaterThan(narrow);
-
-  // Click the changed file → its diff opens as its OWN tab next to the files,
-  // with clear Before / After column labels.
-  await page.getByRole('button', { name: 'Diff main.js' }).click();
+  // "What changed" on that save point → tap the file → before/after opens as its
+  // own tab, with clear Before / After labels.
+  const now = page.getByTestId('history-entry').filter({ hasText: 'Changed main.js' }).first();
+  await now.getByRole('button', { name: 'What changed' }).click();
+  await now.getByTestId('history-file').first().click();
   await expect(page.getByTestId('history-diff')).toBeVisible();
   await expect(page.getByTestId('history-diff').getByText('Before')).toBeVisible();
   await expect(page.getByTestId('history-diff').getByText('After')).toBeVisible();
 
-  // It's a real tab: switch to the file tab (diff hides), then back to the diff tab.
-  await page.getByRole('button', { name: 'main.js', exact: true }).click();
-  await expect(page.getByTestId('history-diff')).toBeHidden();
-  await page.getByRole('button', { name: 'main.js (diff)', exact: true }).click();
-  await expect(page.getByTestId('history-diff')).toBeVisible();
-
-  // Close the diff tab.
-  await page.getByRole('button', { name: 'Close main.js (diff)' }).click();
-  await expect(page.getByTestId('history-diff')).toBeHidden();
-
-  // Select the initial version → whole-project revert (asks to confirm).
-  await page.getByText('Initial version').click();
-  await page.getByRole('button', { name: 'Revert to Initial version' }).click();
-  await page.getByRole('button', { name: 'Confirm revert', exact: true }).click();
-  await expect(page.getByText(/reverted ·/)).toBeVisible();
-});
-
-test('history: revert a single file (with confirm)', async ({ page }) => {
-  await reachWorkspace(page, 'Code Editor');
-  await expect(page.locator('.monaco-editor').first()).toBeVisible();
-  await page.getByRole('button', { name: 'History', exact: true }).click();
-  await page.locator('.monaco-editor').first().click();
-  await page.keyboard.type('// file-level revert test\n');
-  await expect(page.getByText(/edited main\.js/)).toBeVisible({ timeout: 6_000 });
-
-  // Select the initial version → its detail lists main.js → revert JUST that file.
-  await page.getByText('Initial version').click();
-  await page.getByRole('button', { name: 'Revert main.js', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm revert main.js' }).click();
-  await expect(page.getByText(/reverted main\.js/)).toBeVisible();
+  // Go back to the start → reassuring confirm → restore (recorded as its own
+  // "Went back in time" save point).
+  const start = page.getByTestId('history-entry').filter({ hasText: 'Your game started here' }).first();
+  await start.getByTestId('history-goback').click();
+  await page.getByTestId('history-goback-confirm').click();
+  await expect(page.getByText('Went back in time')).toBeVisible();
 });
 
 test('persistence: edits survive a page refresh', async ({ page }) => {
@@ -381,14 +352,14 @@ test('search: replace all across files', async ({ page }) => {
   await expect(page.getByText(/Replaced \d+ match/)).toBeVisible();
 });
 
-test('history: file-tree operations are recorded', async ({ page }) => {
+test('time machine: file-tree operations are recorded', async ({ page }) => {
   await reachWorkspace(page, 'Code Editor');
-  // Create a file via the tree → it should appear in the history timeline.
+  // Create a file via the tree → it should appear in the Time Machine timeline.
   await page.getByRole('button', { name: 'New file', exact: true }).click();
   await page.getByLabel('File or folder name').fill('Note.js');
   await page.getByLabel('File or folder name').press('Enter');
-  await page.getByRole('button', { name: 'History', exact: true }).click();
-  await expect(page.getByText(/created Note\.js/)).toBeVisible();
+  await page.getByRole('button', { name: 'Time Machine', exact: true }).click();
+  await expect(page.getByText(/Added Note\.js/)).toBeVisible();
 });
 
 // Serve a single-file project whose entry throws on a known line, then reach the

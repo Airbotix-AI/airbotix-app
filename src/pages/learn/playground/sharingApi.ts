@@ -35,23 +35,41 @@ export type ShareStatus = 'none' | 'pending' | 'active' | 'revoked';
 
 export interface ShareLink {
   status: ShareStatus;
-  /** Present only when `active`: the unlisted capability URL path `/play/:shareId`. */
+  /** The link id — plays (`/play/:shareId`) once `active`; revokes/cancels in any state. */
   shareId?: string;
   /** ISO timestamp the link auto-expires (→ 410). */
   expires_at?: string | null;
   /** Whether an anonymized display handle is shown to visitors (OD-7), vs none. */
   show_handle?: boolean;
+  /** Engagement (active links): how many times the game was played (= opened). */
+  plays?: number;
 }
 
-/** Ask to mint a share-link. Returns `pending` until a parent approves (J8). */
+/** Backend ShareView (snake_case) → FE ShareLink. */
+interface RawShareView {
+  status: ShareStatus;
+  share_id?: string;
+  expires_at?: string | null;
+  show_handle?: boolean;
+  plays?: number;
+}
+const toShareLink = (r: RawShareView): ShareLink => ({
+  status: r.status,
+  shareId: r.share_id,
+  expires_at: r.expires_at ?? null,
+  show_handle: r.show_handle ?? false,
+  plays: r.plays ?? 0,
+});
+
+/** Ask for a share-link (kid → parent approval, J8). Returns `pending` until approved. */
 export async function requestShareLink(projectId: string): Promise<ShareLink> {
-  return api<ShareLink>(`/projects/${projectId}/share`, { method: 'POST' });
+  return toShareLink(await api<RawShareView>(`/projects/${projectId}/share`, { method: 'POST' }));
 }
 
-/** The current share-link state for a project (pending/active/none). */
+/** The current share-link state for a project (none/pending/active). */
 export async function getShareLink(projectId: string): Promise<ShareLink> {
   try {
-    return await api<ShareLink>(`/projects/${projectId}/share`);
+    return toShareLink(await api<RawShareView>(`/projects/${projectId}/share`));
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return { status: 'none' };
     throw e;
@@ -60,22 +78,51 @@ export async function getShareLink(projectId: string): Promise<ShareLink> {
 
 /**
  * Toggle the anonymized display handle vs no author label on the public page
- * (OD-7 / §17.8). Never exposes kid PII either way — `show_handle` shows a chosen
- * display handle, not the real nickname/family/email.
+ * (OD-7 / §17.8). Never exposes kid PII — it's a generated handle, not a real name.
  */
 export async function setShareHandle(args: {
   projectId: string;
   showHandle: boolean;
 }): Promise<ShareLink> {
-  return api<ShareLink>(`/projects/${args.projectId}/share`, {
-    method: 'PUT',
-    body: { show_handle: args.showHandle },
-  });
+  return toShareLink(
+    await api<RawShareView>(`/projects/${args.projectId}/share`, {
+      method: 'PUT',
+      body: { show_handle: args.showHandle },
+    }),
+  );
 }
 
-/** Revoke a share-link (kid OR parent). Subsequent public GETs serve 410. */
+/** Revoke OR cancel a share-link (kid OR parent). Subsequent public GETs serve 410. */
 export async function revokeShareLink(shareId: string): Promise<void> {
   await api<void>(`/share/${shareId}`, { method: 'DELETE' });
+}
+
+// ── Parent approval + management (Portal, J8 / D-GAME10a) ───────────────────
+
+/** A family share-link as the parent sees it: `pending` (decide) or `active` (revoke + metrics). */
+export interface FamilyShareLink {
+  share_id: string;
+  status: 'pending' | 'active';
+  project_id: string;
+  project_title: string;
+  kid_id: string | null;
+  requested_at: string;
+  plays: number;
+}
+
+/** The family's share-links (pending awaiting approval + active, revocable). */
+export async function listFamilyShareLinks(familyId: string): Promise<FamilyShareLink[]> {
+  try {
+    return await api<FamilyShareLink[]>(`/families/${familyId}/share-requests`);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
+    throw e;
+  }
+}
+
+/** Parent approves a request → mints the link (freezes a PII-stripped snapshot). */
+export async function approveShareLink(projectId: string): Promise<ShareLink> {
+  return toShareLink(await api<RawShareView>(`/projects/${projectId}/share/approve`, { method: 'POST', body: {} }));
 }
 
 /** The public play page got a 410 — the link was revoked or expired (J8). */

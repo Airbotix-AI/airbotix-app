@@ -63,7 +63,7 @@ export function ProfilePage() {
             </>
           )}
         </div>
-        <button onClick={() => logout(false)} className="btn-pill-secondary mt-6">
+        <button onClick={() => logout('kid', false)} className="btn-pill-secondary mt-6">
           Sign out
         </button>
       </div>
