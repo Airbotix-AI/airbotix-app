@@ -32,7 +32,7 @@ import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { ResizeHandle } from './panes/ResizeHandle';
-import { useGameAgent } from './panes/useGameAgent';
+import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 import { ShareLinkPanel } from './ShareLinkPanel';
@@ -56,6 +56,8 @@ interface WorkspaceProps {
    * stub turn runs behind the same UI.
    */
   projectId?: string;
+  /** The AI's first turn (generated on the loading screen) — seeds the chat. */
+  firstTurn?: FirstTurnSeed;
 }
 
 interface Wallet {
@@ -72,7 +74,16 @@ const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'assets', label: 'Assets' },
 ];
 
-export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt, projectId }: WorkspaceProps) {
+export function Workspace({
+  files,
+  runKey,
+  running,
+  onApplyFiles,
+  onRun,
+  prompt,
+  projectId,
+  firstTurn,
+}: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
@@ -149,6 +160,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
       introPrompt: prompt,
       projectId,
       mode,
+      firstTurn,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
       clientActions: {
