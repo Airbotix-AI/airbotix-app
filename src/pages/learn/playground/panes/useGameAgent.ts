@@ -10,8 +10,8 @@
 //     because a Lite (non-approval) turn auto-applies + debits Stars inside the POST
 //     (D-CODE1c, §10 "后扣模式"), so "Show me first" must not have spent it. The kid
 //     NEVER calls an LLM (CLAUDE.md #5).
-//   - STUB (no `projectId` — the DEV sandbox): the offline `runTurnStub`, so the
-//     desktop stays demoable with no backend. The chat UI is identical.
+//   - STUB (no `projectId` — a project-less session): the offline `runTurnStub`,
+//     so the desktop stays demoable with no backend. The chat UI is identical.
 //
 // Undo is FREE (OD-3): a local revert of the last applied change — never an AI
 // call. Offline mid-turn surfaces a calm banner (J2), not a frozen screen.
@@ -84,7 +84,7 @@ export interface UseGameAgentOptions {
   files: VfsFile[];
   /** Commit the turn's resulting VFS back to the page-level source of truth. */
   onApplyFiles: (files: VfsFile[]) => void;
-  /** The real backend project. When absent, the offline stub runs (DEV sandbox). */
+  /** The real backend project. When absent, the offline stub runs (project-less session). */
   projectId?: string;
   /** Age-derived tier: Lite (8–11) auto-applies w/ agency beat; Pro (12–17) approves. */
   mode?: 'lite' | 'pro';
@@ -92,7 +92,7 @@ export interface UseGameAgentOptions {
   balance?: number;
   /** Called after a turn debits Stars so the wallet can refetch. */
   onStarsCharged?: (charged: number) => void;
-  /** STUB seam (DEV sandbox only). Ignored when `projectId` is set. */
+  /** STUB seam (project-less session only). Ignored when `projectId` is set. */
   runTurn?: RunTurn;
   /** Backend seam (tests inject a mock; defaults to the real API). */
   deps?: GameAgentDeps;
@@ -166,6 +166,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     introPrompt !== undefined ? buildIntro(introPrompt) : [],
   );
   const [busy, setBusy] = useState(false);
+  // Whether the token-by-token reveal replay is currently running (drives the
+  // Stop / skip-animation button, H1). Distinct from `busy` (which spans the
+  // whole turn incl. the network round-trip).
+  const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState<boolean>(isOffline());
   // A turn awaiting the kid's confirm (Lite agency beat OR Pro plan gate, J2).
@@ -184,6 +188,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const [canUndo, setCanUndo] = useState(false);
   // Abort the in-flight stream replay on unmount / a new turn.
   const streamAbort = useRef<{ aborted: boolean }>({ aborted: false });
+  // True only once the component has actually unmounted — lets us tell a
+  // user-initiated "skip the animation" abort (still finalize) apart from an
+  // unmount abort (bail, the component is gone).
+  const unmountedRef = useRef(false);
+  // The last prompt sent — so a failed turn can be retried verbatim (H2).
+  const lastPromptRef = useRef<string>('');
 
   // Reflect connectivity into a banner the panel renders (J2 offline state).
   useEffect(() => {
@@ -197,8 +207,16 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     };
   }, []);
 
-  useEffect(() => () => {
-    streamAbort.current.aborted = true;
+  useEffect(() => {
+    // Re-arm on (re)mount: StrictMode's dev mount→cleanup→remount cycle would
+    // otherwise leave `unmountedRef` poisoned `true`, so the very first streamed
+    // turn's finalize block (gated on `!unmountedRef.current`) would never run and
+    // the reply would be stuck on the `agent-msg-streaming` bubble forever.
+    unmountedRef.current = false;
+    return () => {
+      streamAbort.current.aborted = true;
+      unmountedRef.current = true;
+    };
   }, []);
 
   const seq = useRef(0);
@@ -224,6 +242,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       );
       const sig = { aborted: false };
       streamAbort.current = sig;
+      setStreaming(true);
       await streamTurn(result, (d) => {
         setChat((prev) =>
           prev.map((it) => {
@@ -233,21 +252,30 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           }),
         );
       }, sig);
-      if (sig.aborted) return;
-      setChat((prev) =>
-        prev.map((it) =>
-          it.id === pendingId
-            ? {
-                id: pendingId,
-                role: 'agent',
-                text: result.summary,
-                stars: result.stars_charged,
-                toolsFired: result.tools_fired,
-                changes: toChanges(result),
-              }
-            : it,
-        ),
-      );
+      // A user-initiated abort (Stop) sets sig.aborted to skip the reveal loop,
+      // but the turn is already paid for — so we STILL finalize (full summary +
+      // tools + apply + stars). Only an actual unmount skips the React state
+      // updates (the bubble + streaming flag belong to a gone tree). The apply +
+      // stars callbacks, though, ALWAYS run: the turn was charged server-side, so
+      // dropping its files would lose paid-for work and desync the persisted VFS
+      // (they write to the Zustand store / wallet, which is safe after unmount).
+      if (!unmountedRef.current) {
+        setChat((prev) =>
+          prev.map((it) =>
+            it.id === pendingId
+              ? {
+                  id: pendingId,
+                  role: 'agent',
+                  text: result.summary,
+                  stars: result.stars_charged,
+                  toolsFired: result.tools_fired,
+                  changes: toChanges(result),
+                }
+              : it,
+          ),
+        );
+        setStreaming(false);
+      }
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
     },
@@ -285,6 +313,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
+      lastPromptRef.current = trimmed;
 
       // Offline pre-check (real path) — never even attempt the call; keep work safe.
       if (isReal && isOffline()) {
@@ -302,7 +331,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
       ]);
 
-      // ── STUB path (DEV sandbox): the offline tweak, no Stars/approval. ──
+      // ── STUB path (project-less session): the offline tweak, no Stars/approval. ──
       if (!isReal) {
         try {
           const result = await runTurn(trimmed, files);
@@ -502,9 +531,32 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     ]);
   }, [onApplyFiles, nextId]);
 
+  /**
+   * Stop / skip the typing animation (H1). The reply is a client-side replay and
+   * the work is already paid for, so "Stop" means skip-to-end: flip the abort flag
+   * so `streamTurn` exits its per-token loop, and `applyResult` then jumps straight
+   * to the finished bubble (it does NOT discard the result or waste Stars).
+   */
+  const abort = useCallback(() => {
+    streamAbort.current.aborted = true;
+  }, []);
+
+  /**
+   * Retry the last prompt after an error (H2). Resends the exact prompt verbatim
+   * (the kid never has to retype). The cap message is not retryable — the panel
+   * gates the Try-again button on that.
+   */
+  const retryLast = useCallback(() => {
+    if (busy || pending) return;
+    if (!lastPromptRef.current) return;
+    setError(null);
+    void send(lastPromptRef.current);
+  }, [busy, pending, send]);
+
   return {
     chat,
     busy,
+    streaming,
     error,
     offline,
     pending,
@@ -520,5 +572,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     undo,
     raiseHand,
     lowerHand,
+    /** Stop / skip the typing animation (H1) — finalizes, never wastes Stars. */
+    abort,
+    /** Resend the last prompt after a (non-cap) error (H2). */
+    retryLast,
   };
 }

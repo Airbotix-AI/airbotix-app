@@ -6,7 +6,7 @@
 //     meters Stars, content-filters the prompt AND the result, audits, and writes
 //     the asset into the project VFS. The kid surface NEVER calls an LLM directly
 //     (CLAUDE.md #5) — this only POSTs a prompt and renders what comes back.
-//   - STUB (no `projectId` — the DEV sandbox): the offline deterministic
+//   - STUB (no `projectId` — a project-less session): the offline deterministic
 //     `generateAssetStub`, so the desktop stays demoable with no backend.
 //
 // The backend is injected as a dep (`deps`) so tests can route-mock it; the real
@@ -40,7 +40,7 @@ export const realAssetGenDeps: AssetGenDeps = { generate: generateAsset };
 
 /**
  * Generate one asset. With a `projectId` (real studio) it routes through the
- * backend; without one (DEV sandbox) it falls back to the offline stub so the
+ * backend; without one (a project-less session) it falls back to the offline stub so the
  * generate → preview → add-to-game flow works with no network.
  */
 export function runGen(req: GenAssetRequest, deps: AssetGenDeps = realAssetGenDeps): Promise<GenAssetResult> {

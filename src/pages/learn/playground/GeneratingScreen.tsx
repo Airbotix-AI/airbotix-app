@@ -7,7 +7,7 @@
 // hands the resulting VFS to `onDone`. For a real project the backend is the
 // source of truth (no scaffold fallback) — if it can't load, `onError` fires and
 // the caller shows an error + returns to project creation; the local scaffold is
-// only for the project-less DEV sandbox. The staged status is purely cosmetic
+// only for a project-less session. The staged status is purely cosmetic
 // timing — it advances on a timer, decoupled from when the files resolve (the
 // steps cap at the last so the list never overruns the resolve).
 

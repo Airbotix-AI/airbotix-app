@@ -58,9 +58,9 @@ export function ClassDashboardPage() {
     [classId],
   );
 
-  // DEV-only deterministic seam for e2e (mirrors the no-auth /playground-sandbox
-  // pattern): a `class-feed-test` window event injects a live feed delta without a
-  // real socket.io backend. Stripped from production builds.
+  // DEV-only deterministic seam for e2e: a `class-feed-test` window event injects
+  // a live feed delta without a real socket.io backend. Stripped from production
+  // builds.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const onTest = (e: Event) =>

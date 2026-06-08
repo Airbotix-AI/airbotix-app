@@ -177,11 +177,34 @@
   animation: pg-shimmer 1.8s linear infinite;
 }
 
+/* =========================================================================
+ * 4. Thinking-bubble status line (chat "thinking" wait — chat-ux Gap B)
+ * =========================================================================
+ * Each cycled status line remounts (React `key`), so this fade/rise plays on
+ * every line change for liveliness. Pairs with the small `.pg-orb-spin` orb in
+ * `ThinkingBubble`. Reduced-motion is honored below (no rise, instant show).
+ */
+@keyframes pg-thinking-line {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pg-thinking-line {
+  animation: pg-thinking-line 0.32s ease-out;
+}
+
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .pg-glow::before,
   .pg-orb-spin,
-  .pg-shimmer {
+  .pg-shimmer,
+  .pg-thinking-line {
     animation: none;
   }
 }

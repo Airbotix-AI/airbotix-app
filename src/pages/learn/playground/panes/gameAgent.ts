@@ -56,7 +56,7 @@ export type ClassifyMessage = (args: {
 /**
  * "Ask my teacher" raise-hand (J4) — posts a lightweight signal the teacher's live
  * view surfaces. Optional: the calm waiting state never depends on it succeeding,
- * and the DEV sandbox has no backend. No LLM, no Stars (CLAUDE.md #5).
+ * and a project-less session has no backend. No LLM, no Stars (CLAUDE.md #5).
  */
 export type RaiseHand = (args: { projectId: string }) => Promise<void>;
 

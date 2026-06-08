@@ -5,6 +5,7 @@ import type { ChatItem, PendingTurn } from './useGameAgent';
 interface ChatPaneProps {
   chat: ChatItem[];
   busy: boolean;
+  streaming?: boolean;
   error: string | null;
   offline?: boolean;
   balance?: number;
@@ -21,6 +22,8 @@ interface ChatPaneProps {
   onLowerHand?: () => void;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  onStop?: () => void;
+  onRetry?: () => void;
 }
 
 // Presentational. The chat state (`useGameAgent`) is owned by `Workspace` so it

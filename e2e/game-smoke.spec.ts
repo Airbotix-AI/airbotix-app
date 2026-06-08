@@ -1,9 +1,14 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+
+import { installGameSignalRecorder, mockBackendAsKid, openStudio } from './helpers';
 
 // ── M0 game-smoke ─────────────────────────────────────────────────────────────
-// The verification harness every Game Studio PR reuses. It launches the DEV-only,
-// no-auth studio (/playground-sandbox), runs the (stub) Phaser starter, and proves
-// the game actually RUNS, deterministically:
+// The verification harness every Game Studio PR reuses. Migrated off the DEV-only
+// `/playground-sandbox` route onto the AUTHED `/learn/playground/:projectId` route
+// with a fully route-mocked backend (see `helpers.ts`): it seats a kid session,
+// seeds the REAL multi-file `STARTER_PROJECT` scaffold as the project's VFS, opens
+// the studio chat-first, runs the (stub) Phaser starter, and proves the game
+// actually RUNS, deterministically:
 //
 //   "game runs" === zero console errors  AND  the canvas renders (a stat fps > 0)
 //
@@ -12,59 +17,17 @@ import { test, expect, type Page } from '@playwright/test';
 //   { __airbotixConsole, level, text, loc }   for every console call, and
 //   { __airbotixStat,    fps, paused }         every ~500ms while the game loops.
 // The iframe posts to `parent` (the page's own window), so we capture them with a
-// page init-script — no app/source changes, no arbitrary sleeps.
-
-const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
-
-/**
- * Install a recorder on `window` BEFORE any app code runs. It mirrors the
- * runner's two message kinds so the test can poll deterministic counters instead
- * of sleeping. Cleared per navigation by `addInitScript` re-running on each load.
- */
-async function installGameSignalRecorder(page: Page) {
-  await page.addInitScript(() => {
-    const w = window as unknown as {
-      __smokeErrors: string[];
-      __smokeMaxFps: number;
-    };
-    w.__smokeErrors = [];
-    w.__smokeMaxFps = 0;
-    window.addEventListener('message', (e: MessageEvent) => {
-      const m = e.data as
-        | { __airbotixConsole?: true; level?: string; text?: string }
-        | { __airbotixStat?: true; fps?: number }
-        | null;
-      if (!m || typeof m !== 'object') return;
-      if ((m as { __airbotixConsole?: true }).__airbotixConsole === true) {
-        const cm = m as { level?: string; text?: string };
-        // Record every console error. The runtime's 'ready' handshake is posted
-        // at level:'info' (see buildPreview.ts), so it is naturally excluded —
-        // an error-level message means the kid's game actually errored.
-        if (cm.level === 'error') {
-          w.__smokeErrors.push(String(cm.text));
-        }
-      } else if ((m as { __airbotixStat?: true }).__airbotixStat === true) {
-        const fps = (m as { fps?: number }).fps ?? 0;
-        if (fps > w.__smokeMaxFps) w.__smokeMaxFps = fps;
-      }
-    });
-  });
-}
-
-/** Landing → generate → workspace (chat-first), matching playground.spec.ts. */
-async function reachWorkspace(page: Page) {
-  await page.goto('/playground-sandbox');
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('a pong game');
-  await input.press('Enter');
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-}
+// page init-script (`installGameSignalRecorder`) — no app/source changes, no
+// arbitrary sleeps.
 
 test('game-smoke: the starter game runs with zero console errors and a live canvas (fps > 0)', async ({
   page,
 }) => {
   await installGameSignalRecorder(page);
-  await reachWorkspace(page);
+  // Seed the REAL starter scaffold as the project VFS so the studio opens on a
+  // runnable multi-file Phaser game (main.js + Boot/Game scenes).
+  await mockBackendAsKid(page, { age: 9 });
+  await openStudio(page);
 
   // Chat-first launch: "Run game" opens the runner AND plays it (mounts the game
   // iframe, no Play-placeholder). This is the same path a kid takes from chat.

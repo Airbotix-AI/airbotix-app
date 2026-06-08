@@ -44,8 +44,11 @@ interface PlaygroundAppProps {
   /**
    * The backend project whose files to open (its VFS is loaded from the
    * S3-backed backend). Supplied by the authed `/learn/playground/:projectId`
-   * route once it exists; in the DEV sandbox it's read from a `?projectId`
-   * query param if present, else absent → the local starter scaffold is used.
+   * route. When absent (e.g. the `/learn/playground/new` create/landing flow
+   * before a project exists) the local starter scaffold is used. NOTE: this
+   * component also reads a `?projectId` query param below as a fallback — that
+   * path was only exercised by the removed DEV sandbox route and is now
+   * effectively dead (kept out of scope; see the follow-up note).
    */
   projectId?: string;
 }
@@ -67,14 +70,16 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // a kid who backs out at the prompt would orphan an empty project.
   const isNew = projectIdProp === 'new';
   // The real owned project id once known: the route param, or the id created on
-  // submit. `undefined` for a new-but-not-yet-created game and the DEV sandbox.
+  // submit. `undefined` for a new-but-not-yet-created game (project-less session).
   const [createdId, setCreatedId] = useState<string | undefined>(undefined);
   const ownedProjectId = createdId ?? (isNew ? undefined : projectIdProp);
+  // The `?projectId` query fallback was only used by the removed DEV sandbox
+  // route — now effectively dead (see the prop doc / follow-up note).
   const projectId = ownedProjectId ?? searchParams.get('projectId') ?? undefined;
-  // Persistence key: the real project, or a fixed key for the DEV sandbox.
+  // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
-  // NEW game and the DEV sandbox start on the landing prompt.
+  // NEW game (project-less session) starts on the landing prompt.
   const [phase, setPhase] = useState<Phase>(projectIdProp && !isNew ? 'generating' : 'landing');
   const [prompt, setPrompt] = useState('');
   // The VFS lives in the project store (single funnel for editor saves, AI
@@ -175,7 +180,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // store's slice. FUTURE-PROOF — any new pane that registers a slice via
   // `usePersistedWorkspaceState` is captured here automatically, no edits needed.
   useEffect(() => {
-    if (phase !== 'workspace' || !projectId) return; // DEV sandbox is transient
+    if (phase !== 'workspace' || !projectId) return; // a project-less session is transient
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       clearTimeout(timer);
@@ -205,7 +210,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // it): block in-app navigation away while in the workspace and confirm first.
   const blocker = useBlocker(phase === 'workspace');
 
-  // Capture a workspace thumbnail (real projects only — the dev sandbox is
+  // Capture a workspace thumbnail (real projects only — a project-less session is
   // transient), persist it locally, then leave. Best-effort: never blocks exit.
   const handleLeave = useCallback(async () => {
     if (projectId && workspaceRef.current) {
@@ -262,7 +267,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onDone={async (f) => {
             // Load the project (PRD J9): for a REAL project the backend is the
             // source of truth — `loadPersisted` reads its saved versioned VFS (and
-            // falls back to the offline cache); for the DEV sandbox it's the cache.
+            // falls back to the offline cache); for a project-less session it's the cache.
             // `f` (from GeneratingScreen) is the scaffold fallback when neither
             // exists. Restoring the saved VFS means a reload never reopens the
             // scaffold.
@@ -293,8 +298,8 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             // window positions/status, asset + runner selections, theme) so the
             // studio reopens exactly where the kid left it. MUST run before the
             // workspace (and its panes) mount so their persisted slices seed. Only
-            // for a REAL project (resume); the DEV sandbox is transient → reset to
-            // defaults and never persist, so each session/e2e starts clean.
+            // for a REAL project (resume); a project-less session is transient → reset
+            // to defaults and never persist, so each session/e2e starts clean.
             if (projectId) {
               const ui = await loadWorkspaceUi(persistKey);
               useWorkspaceUiStore.getState().restore(ui);
@@ -318,8 +323,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onRun={run}
           prompt={prompt}
           // Only a real OWNED project (the authed route param, or the id created
-          // on submit) runs server-side AI turns. The DEV sandbox — even when a
-          // `?projectId` query selects a VFS fixture for the runner — keeps the
+          // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
           // LLM-free.
           projectId={ownedProjectId}

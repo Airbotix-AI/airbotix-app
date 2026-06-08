@@ -1,12 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 
+import { mockBackendAsKid, openStudio } from './helpers';
+
 // ── PR FE6 — safety UX: AI disclosure + safeguarding deflection + cap + raise-hand
-// (learn-game-studio-prd §11 / J13 / J4). Every backend call is ROUTE-MOCKED
-// (page.route) so the suite is offline + byte-deterministic: auth bootstrap,
-// /auth/me (a kid), wallet, project list, the seeded VFS read, the create, AND —
-// the heart of this PR — the safeguarding CLASSIFY (`POST …/code/turn/classify`)
-// which the studio calls BEFORE any turn (J13 sequence: classify before any LLM).
-// No network, no live LLM (CLAUDE.md #5).
+// (learn-game-studio-prd §11 / J13 / J4). MIGRATED onto the shared harness
+// (`e2e/helpers.ts`): `mockBackendAsKid` seats a kid + mocks every backend the
+// studio touches (auth WITH `?kind=kid`, /classes/mine, wallet, the VFS, the
+// prompt-first hub→landing→create flow), and `openStudio` drives it into the
+// workspace on `game-77`. This spec layers its SPECIAL mocks ON TOP (registered
+// AFTER mockBackendAsKid so Playwright's most-recently-added match wins): the
+// safeguarding CLASSIFY (`POST …/code/turn/classify`) returning the deflection
+// verdicts, the raise-hand signal, and the at-cap turn (402). No live LLM.
 //
 // Asserts the J13/J4 surface:
 //   - the persistent AI disclosure ("robot helper, not a person") is always shown;
@@ -17,21 +21,6 @@ import { test, expect, type Page } from '@playwright/test';
 //   - the at-cap turn shows the "ask your grown-up" cap message;
 //   - "Ask my teacher" raise-hand flips into a calm waiting state;
 //   - a stable screenshot of the rescue surface.
-
-const GAME_JS = `new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'game',
-  width: 320,
-  height: 240,
-  backgroundColor: '#0f172a',
-  scene: { create() { this.add.rectangle(160, 120, 40, 40, 0x38bdf8); } },
-});
-`;
-
-const SEEDED_VFS = {
-  version: 1,
-  files: [{ path: 'main.js', content: GAME_JS, kind: 'text', size: GAME_JS.length }],
-};
 
 const CRISIS = {
   name: 'Kids Helpline',
@@ -53,33 +42,43 @@ const PERSONAL_VERDICT = {
 type Verdict = typeof DISTRESS_VERDICT | typeof PERSONAL_VERDICT | null;
 
 /**
- * Seat a kid session + mock every backend the studio touches. `classify` decides
- * the safeguarding verdict per call (it can change across messages to drive the
- * sticky-mode assertion). `capped` makes the turn POST return the cap error.
+ * Seat a kid via the shared harness, then layer THIS PR's safety mocks ON TOP
+ * (registered AFTER `mockBackendAsKid` so Playwright's most-recently-added match
+ * wins). `classify` decides the safeguarding verdict per call (it can change
+ * across messages to drive the sticky-mode assertion); `capped` makes the turn
+ * POST return the cap error (the parent spending-cap block, §11g(e)).
+ *
+ * The cap test runs as a Pro kid (`age: 13`) so a send POSTs the turn directly
+ * (no Lite agency beat) and immediately hits the mocked 402.
+ *
+ * `inClass` puts the kid in a class so the "Ask my teacher" raise-hand surfaces:
+ * Workspace gates the button on `GET /classes/mine` being non-empty, and the
+ * shared harness mocks it EMPTY (the right default for the other specs). The
+ * raise-hand test overrides it with one class.
  */
-async function mockBackendAsKid(
+async function seatKid(
   page: Page,
-  opts: { age?: number; classify?: () => Verdict; capped?: boolean } = {},
+  opts: { age?: number; classify?: () => Verdict; capped?: boolean; inClass?: boolean } = {},
 ) {
-  const kid = { id: 'kid-1', nickname: 'Robo', age: opts.age ?? 9, family_id: 'fam-1' };
-  const stars = 42;
   const classify = opts.classify ?? (() => null);
 
-  await page.route('**/auth/refresh', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'kid-token' }) }),
-  );
-  await page.route('**/auth/me', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'kid', kid }) }),
-  );
-  await page.route('**/families/*/wallet', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stars_balance: stars }) }),
-  );
-  await page.route('**/kids/*/projects*', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
-  );
+  await mockBackendAsKid(page, { age: opts.age ?? 9 });
+
+  // Put the kid in a class so the raise-hand ("Ask my teacher") button renders
+  // (the harness mocks /classes/mine empty by default → button gated off).
+  if (opts.inClass) {
+    await page.route('**/classes/mine*', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 'class-1', name: 'Robotics 101' }]),
+      }),
+    );
+  }
 
   // The safeguarding classify — runs BEFORE any turn (J13). When it returns a
-  // verdict the studio deflects and NEVER posts a turn.
+  // verdict the studio deflects and NEVER posts a turn. Overrides the harness's
+  // always-null classify.
   await page.route('**/projects/*/code/turn/classify', (route) =>
     route.fulfill({
       status: 200,
@@ -94,58 +93,22 @@ async function mockBackendAsKid(
     route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
   );
 
-  // The agent turn. In `capped` mode it returns the cap error (the parent
-  // spending-cap block, §11g(e)); otherwise it's a no-op success (these tests
-  // never reach a turn on the happy safeguarding path).
-  await page.route('**/projects/*/code/turn', (route) => {
-    if (route.request().method() !== 'POST') return route.continue();
-    if (opts.capped) {
+  // The at-cap turn (§11g(e)): a Pro kid's send POSTs the turn → the cap error.
+  // Overrides the harness's success turn. Only registered when `capped`.
+  if (opts.capped) {
+    await page.route('**/projects/*/code/turn', (route) => {
+      if (route.request().method() !== 'POST') return route.continue();
       return route.fulfill({
         status: 402,
         contentType: 'application/json',
         body: JSON.stringify({ error: { code: 'DAILY_CAP_EXCEEDED', message: 'cap' } }),
       });
-    }
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        turn_id: 'turn-1',
-        requires_approval: false,
-        plan: null,
-        changes: [],
-        files: SEEDED_VFS.files,
-        summary: 'ok',
-        stars_charged: 0,
-        tools_fired: [],
-      }),
     });
-  });
-
-  await page.route('**/projects/*/code/files', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_VFS) });
-    }
-    const b = route.request().postDataJSON() as { files: unknown; version: number };
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ files: b.files, version: b.version + 1 }) });
-  });
-
-  await page.route('**/projects', (route) => {
-    if (route.request().method() !== 'POST') return route.continue();
-    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'game-77' }) });
-  });
-}
-
-/** Drive the authed J1 hub → studio flow into the chat-first workspace. */
-async function openStudio(page: Page) {
-  await page.goto('/learn/create/code');
-  await page.getByTestId('hub-template-pong').click();
-  await expect(page).toHaveURL(/\/learn\/playground\/game-77$/);
-  await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
+  }
 }
 
 test('the persistent AI disclosure ("robot helper, not a person") is always shown', async ({ page }) => {
-  await mockBackendAsKid(page, { age: 9 });
+  await seatKid(page, { age: 9 });
   await openStudio(page);
   const disclosure = page.getByTestId('ai-disclosure');
   await expect(disclosure).toBeVisible();
@@ -159,7 +122,7 @@ test('J13 distress: deflection + standing crisis resource, and NO game turn runs
     if (req.method() === 'POST' && /\/code\/turn$/.test(req.url())) turnPosts.push(req.url());
   });
 
-  await mockBackendAsKid(page, { age: 9, classify: () => DISTRESS_VERDICT });
+  await seatKid(page, { age: 9, classify: () => DISTRESS_VERDICT });
   await openStudio(page);
 
   await page.getByTestId('chat-input').fill('i feel like nobody would care if i was gone');
@@ -187,7 +150,7 @@ test('J13 distress: deflection + standing crisis resource, and NO game turn runs
 });
 
 test('J13 personal-disclosure: deflects WITHOUT a crisis resource or escalation', async ({ page }) => {
-  await mockBackendAsKid(page, { age: 9, classify: () => PERSONAL_VERDICT });
+  await seatKid(page, { age: 9, classify: () => PERSONAL_VERDICT });
   await openStudio(page);
 
   await page.getByTestId('chat-input').fill('my dog died yesterday');
@@ -201,7 +164,7 @@ test('J13 personal-disclosure: deflects WITHOUT a crisis resource or escalation'
 });
 
 test('at-cap: a blocked turn shows the "ask your grown-up" cap message', async ({ page }) => {
-  await mockBackendAsKid(page, { age: 13, capped: true }); // Pro tier → turn POSTs on send
+  await seatKid(page, { age: 13, capped: true }); // Pro tier → turn POSTs on send
   await openStudio(page);
 
   await page.getByTestId('chat-input').fill('make the ball faster');
@@ -212,7 +175,17 @@ test('at-cap: a blocked turn shows the "ask your grown-up" cap message', async (
 });
 
 test('J4 raise-hand: "Ask my teacher" flips into a calm waiting state', async ({ page }) => {
-  await mockBackendAsKid(page, { age: 9 });
+  // Record raise-hand POSTs — the calm raised state must fire EXACTLY ONE signal,
+  // even if the (now toggle-able) button is tapped again (idempotent — no second
+  // signal). This is the "no second signal" guarantee the old `toBeDisabled` stood
+  // in for, asserted directly now that the raised button is a lower-your-hand
+  // toggle (`aria-pressed`) rather than a disabled one-shot.
+  const handPosts: string[] = [];
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && /\/raise-hand$/.test(req.url())) handPosts.push(req.url());
+  });
+
+  await seatKid(page, { age: 9, inClass: true });
   await openStudio(page);
 
   const raise = page.getByTestId('raise-hand');
@@ -221,9 +194,16 @@ test('J4 raise-hand: "Ask my teacher" flips into a calm waiting state', async ({
 
   await expect(page.getByTestId('raise-hand-waiting')).toBeVisible();
   await expect(page.getByTestId('raise-hand-waiting')).toContainText(/teacher will come help/i);
-  // The button reflects the raised state (calm, idempotent — no second signal).
+  // The button reflects the raised state (calm): pressed + the "hand up" affordance.
   await expect(raise).toContainText(/hand up/i);
-  await expect(raise).toBeDisabled();
+  await expect(raise).toHaveAttribute('aria-pressed', 'true');
+
+  // Idempotent — exactly one teacher signal fired (the raise), and tapping again
+  // lowers the hand LOCALLY without emitting a second backend signal.
+  await expect.poll(() => handPosts.length).toBe(1);
+  await raise.click();
+  await expect(page.getByTestId('raise-hand-waiting')).toBeHidden();
+  expect(handPosts).toHaveLength(1);
 });
 
 // ── Stable rescue-surface screenshot ──────────────────────────────────────────
@@ -231,7 +211,7 @@ test.describe('visual', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test('visual: the distress deflection + standing crisis resource', async ({ page }) => {
-    await mockBackendAsKid(page, { age: 9, classify: () => DISTRESS_VERDICT });
+    await seatKid(page, { age: 9, classify: () => DISTRESS_VERDICT });
     await openStudio(page);
 
     await page.getByTestId('chat-input').fill('i feel like nobody would care if i was gone');

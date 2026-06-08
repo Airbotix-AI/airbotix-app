@@ -52,8 +52,8 @@ interface WorkspaceProps {
   prompt: string;
   /**
    * The real backend project. When set, AI turns run server-side (Stars-metered,
-   * streamed, plan/approve-gated, PRD J2); when absent (DEV sandbox) the offline
-   * stub turn runs behind the same UI.
+   * streamed, plan/approve-gated, PRD J2); when absent (a project-less session) the
+   * offline stub turn runs behind the same UI.
    */
   projectId?: string;
 }
@@ -122,6 +122,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
   const {
     chat,
     busy,
+    streaming,
     error,
     offline,
     pending,
@@ -135,6 +136,8 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     undo,
     raiseHand,
     lowerHand,
+    abort,
+    retryLast,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -154,6 +157,7 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
   const chatProps = {
     chat,
     busy,
+    streaming,
     error,
     offline,
     balance,
@@ -170,6 +174,8 @@ export function Workspace({ files, runKey, running, onApplyFiles, onRun, prompt,
     onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
+    onStop: abort,
+    onRetry: retryLast,
   };
 
   // A request from the runner console to open a file at a line (jump-to-error).
