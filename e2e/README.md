@@ -1,7 +1,9 @@
 # e2e — Playground verification harness
 
-Playwright specs run against the Vite dev server on the DEV-only, no-auth
-`/playground-sandbox` route (config: `../playwright.config.ts`, port `4321`).
+Playwright specs run against the Vite dev server on the authed
+`/learn/playground/:projectId` route, via a route-mocked authed harness
+(`helpers.ts`) that drives `/learn/playground/new` + `/learn/create/code` — there
+is no separate no-auth route (config: `../playwright.config.ts`, port `4321`).
 
 ```bash
 npm run test:e2e            # run everything headless

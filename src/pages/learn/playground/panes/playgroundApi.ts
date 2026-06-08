@@ -7,8 +7,9 @@
 //
 // `resolveProjectFiles` is the single entry the UI calls: it loads the real
 // files when a project is available, and falls back to the local starter
-// scaffold when one isn't (the DEV `/playground-sandbox` has no project, and the
-// game backend isn't built yet) — so the playground always opens with files.
+// scaffold when one isn't (a project-less session — e.g. the create/landing flow
+// before a project exists, and the game backend isn't built yet) — so the
+// playground always opens with files.
 
 import { api } from '@/lib/api';
 import { readVfs } from '../../code/codeApi';
@@ -93,9 +94,9 @@ export interface ResolveFilesOptions {
  * with no files) we THROW so the caller can show an error and send the kid back
  * to project creation, rather than silently opening a fake starter game.
  *
- * Only when there is NO project — the DEV `/playground-sandbox`, which is a
- * throwaway test harness, not a saved project — do we return the local starter
- * scaffold so the editor never opens empty.
+ * Only when there is NO project — a project-less session (e.g. the create/landing
+ * flow before a project exists), not a saved project — do we return the local
+ * starter scaffold so the editor never opens empty.
  */
 export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<VfsFile[]> {
   const { projectId, prompt, name } = opts;
@@ -106,6 +107,6 @@ export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<Vf
     }
     return files;
   }
-  // No project (DEV sandbox only): the local scaffold, titled from the prompt/name.
+  // No project (a project-less session): the local scaffold, titled from the prompt/name.
   return generateScaffold(name?.trim() || prompt);
 }

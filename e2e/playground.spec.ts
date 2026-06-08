@@ -1,29 +1,59 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// E2E for the redesigned Playground (DEV-only /playground-sandbox, no auth):
-// Landing (glow prompt + chips) → Generating (blocking) → Workspace with two
-// layout modes (Window default / Split). Stubbed generation + AI turn.
+import {
+  STUDIO_PROJECT_ID,
+  mockBackendAsKid,
+  openLanding,
+  openStudio,
+  type VfsFile,
+} from './helpers';
+
+// The migrated suite drives the FULL authed flow per test (hub → landing →
+// generating → workspace → lazy Monaco / game iframe) — markedly heavier than the
+// old direct `goto('/playground-sandbox')`. Against a single Vite dev server under
+// Playwright's default fan-out (≈ CPUs/2 workers) the slowest mounts (Monaco, the
+// game iframe) can brush past the 30s default. Give every test in this file more
+// headroom — assertions are unchanged; this only absorbs server contention.
+test.describe.configure({ timeout: 90_000 });
+
+// E2E for the redesigned Playground — MIGRATED off the DEV-only
+// `/playground-sandbox` route onto the AUTHED `/learn/playground/:projectId`
+// route via the shared harness (`e2e/helpers.ts`). Every backend call is
+// ROUTE-MOCKED (page.route) so the suite stays deterministic, offline and
+// LLM-free (CLAUDE.md #5):
+//   Landing (glow prompt + chips) → Generating (blocking) → Workspace with two
+//   layout modes (Window default / Split).
 // NOTE: window titles appear in 3 places (desktop icon, window titlebar, taskbar
 // button) so text selectors use .first() / roles to stay unambiguous.
+//
+// CHAT BEHAVIOUR differs from the old offline stub: on the authed route a Lite
+// kid (default age 9) gets the agency beat (`agency-card`, confirm `show-me-first`
+// = "Do it", cancel `show-diff-first`), THEN the reply streams
+// (`agent-msg-streaming` → `agent-msg`) and Stars debit. The chat specs below
+// drive that real flow.
 
 const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
 
 type WindowName = 'Code Editor' | 'Game Runner' | 'Asset Viewer';
 
+/**
+ * Reach the chat-first workspace on the authed route via the shared harness:
+ * `mockBackendAsKid` (seats a Lite kid + mocks every backend) + `openStudio`
+ * (hub → landing prompt → studio on `game-77`). The studio launches chat-first;
+ * when a test drives the editor / runner / asset viewer, open its window from the
+ * desktop tile (the first button bearing the window name).
+ */
 async function reachWorkspace(page: Page, open?: WindowName) {
-  await page.goto('/playground-sandbox');
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('a pong game');
-  await input.press('Enter');
-  // Workspace marker: the layout toggle (taskbar) appears.
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-  // Chat-first launch opens ONLY Chat; open + focus a window when a test drives
-  // the editor / runner / asset viewer (click its desktop tile).
+  await mockBackendAsKid(page);
+  await openStudio(page);
   if (open) await page.getByRole('button', { name: open }).first().click();
 }
 
 test('landing shows the prompt + starter chips, and Enter → generating → workspace', async ({ page }) => {
-  await page.goto('/playground-sandbox');
+  // The authed new-project LandingScreen (`/learn/playground/new`). Submitting a
+  // prompt creates the (mocked) project → game-77 → generating → workspace.
+  await mockBackendAsKid(page);
+  await openLanding(page);
   await expect(page.getByPlaceholder(LANDING_PLACEHOLDER)).toBeVisible();
   await expect(page.getByRole('button', { name: /Pong/ })).toBeVisible();
 
@@ -31,7 +61,11 @@ test('landing shows the prompt + starter chips, and Enter → generating → wor
   await input.fill('a pong game');
   await input.press('Enter');
 
-  await expect(page.getByText('Building your game…')).toBeVisible({ timeout: 4_000 });
+  // The blocking generating screen shows while the (mocked) real project loads.
+  // On the authed route a projectId is set, so the caption reads "Loading your
+  // game…" (vs the project-less "Building…"). The URL has already advanced to the
+  // created project.
+  await expect(page).toHaveURL(new RegExp(`/learn/playground/${STUDIO_PROJECT_ID}$`));
   // Workspace (Window mode default): chat-first — the AI hands off the scaffold.
   await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText(/Your game starter is ready/)).toBeVisible();
@@ -73,13 +107,21 @@ test('layout toggle switches Window ⇄ Split', async ({ page }) => {
   await expect(page.getByText('Code Editor').first()).toBeVisible();
 });
 
-test('AI chat (stub): sending a prompt shows the kid message and a reply', async ({ page }) => {
+test('AI chat: a prompt → agency beat → "Do it" → kid message + streamed reply (no auto-run)', async ({ page }) => {
+  // Authed Lite flow (replaces the old offline stub): send → agency beat → "Do
+  // it" (`show-me-first`) → the kid message + a streamed agent reply. Chatting
+  // must NOT auto-run the game — the runner stays on its placeholder.
   await reachWorkspace(page, 'Game Runner');
-  const chat = page.getByPlaceholder('What should we build?');
+  const chat = page.getByTestId('chat-input');
   await chat.fill('make the ball faster');
   await chat.press('Enter');
   await expect(page.getByText('make the ball faster')).toBeVisible();
-  await expect(page.getByText(/AI demo|sample tweak|isn.t connected/i)).toBeVisible({ timeout: 6_000 });
+
+  // The Lite agency beat appears; "Do it" runs the turn → a streamed reply lands.
+  await expect(page.getByTestId('agency-card')).toBeVisible({ timeout: 6_000 });
+  await page.getByTestId('show-me-first').click();
+  await expect(page.getByTestId('agent-msg')).toBeVisible({ timeout: 6_000 });
+
   // Chatting must NOT auto-run the game — the runner stays on its placeholder.
   await expect(page.getByText('Press ▶ to play')).toBeVisible();
 });
@@ -95,28 +137,23 @@ test('game runner: placeholder until Play, then it starts', async ({ page }) => 
 test('game runner: a problem (error OR warning) auto-opens the console', async ({ page }) => {
   // Serve a project whose entry file logs a WARNING (like Phaser's "Scene not
   // found") — warnings must auto-open the console too, not just thrown errors.
+  // Injected via the harness's `files` override (a single warning-logging main.js).
   const code = "console.warn('Scene not found for key: Game1');\n";
-  await page.route('**/projects/**/code/files', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ files: [{ path: 'main.js', content: code, kind: 'text', size: code.length }] }),
-    }),
-  );
-  await page.goto('/playground-sandbox?projectId=warn-1');
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('x');
-  await input.press('Enter');
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await mockBackendAsKid(page, {
+    files: [{ path: 'main.js', content: code, kind: 'text', size: code.length }],
+  });
+  await openStudio(page);
   // Chat-first: open the Game Runner to drive it.
   await page.getByRole('button', { name: 'Game Runner' }).first().click();
 
   // Console is closed until something goes wrong.
   await expect(page.getByText('Console', { exact: true })).toBeHidden();
   await page.getByRole('button', { name: 'Play' }).first().click();
-  // The warning auto-opens the console and shows the message.
-  await expect(page.getByText('Console', { exact: true })).toBeVisible({ timeout: 6_000 });
-  await expect(page.getByText(/Scene not found for key: Game1/)).toBeVisible();
+  // The warning auto-opens the console and shows the message. The iframe must
+  // load Phaser + run before the warn fires, so allow generous headroom under
+  // parallel load.
+  await expect(page.getByText('Console', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/Scene not found for key: Game1/)).toBeVisible({ timeout: 6_000 });
 });
 
 test('game runner: screen-size presets reshape the stage (portrait vs landscape)', async ({ page }) => {
@@ -138,7 +175,8 @@ test('game runner: screen-size presets reshape the stage (portrait vs landscape)
 });
 
 test('theme: light by default, toggles, and the choice carries into the workspace', async ({ page }) => {
-  await page.goto('/playground-sandbox');
+  await mockBackendAsKid(page);
+  await openLanding(page);
   const root = page.locator('[data-theme]').first();
   await expect(root).toHaveAttribute('data-theme', 'light');
 
@@ -175,13 +213,19 @@ test('double-click the title bar maximizes, and restore returns to the prior pos
   const win = page.locator('.react-draggable:has(.pg-win-title:has-text("Chat"))').first();
   const bar = page.locator('.pg-win-title:has-text("Chat")').first();
 
+  // Maximize fills the DESKTOP SURFACE — on the authed route that surface sits
+  // BELOW the Learn top nav, so the maximized window snaps to the surface's
+  // top-left (not the viewport's 0,0). Measure relative to the surface.
+  const surface = page.locator('.pg-desktop-bg').first();
+  const surfaceBox = await surface.boundingBox();
+
   const before = await win.boundingBox();
   // Double-click the title bar → maximized (fills the desktop, grows).
   await bar.dblclick();
   const maxed = await win.boundingBox();
   expect(maxed!.width).toBeGreaterThan(before!.width);
-  expect(Math.round(maxed!.x)).toBe(0);
-  expect(Math.round(maxed!.y)).toBe(0);
+  expect(Math.round(maxed!.x)).toBe(Math.round(surfaceBox!.x));
+  expect(Math.round(maxed!.y)).toBe(Math.round(surfaceBox!.y));
 
   // Double-click again → restored to the SAME spot it was before (not 0,0).
   await bar.dblclick();
@@ -278,7 +322,9 @@ test('file tree: drag a file into a folder moves it', async ({ page }) => {
 
 test('time machine: snapshot → see what changed → go back', async ({ page }) => {
   await reachWorkspace(page, 'Code Editor'); // Window mode; Code Editor on the scaffold.
-  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  // The Code window + lazy Monaco take a beat to mount under the authed flow —
+  // give it room before driving the editor.
+  await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: 'Time Machine', exact: true }).click();
   await expect(page.getByText('Your game started here')).toBeVisible();
@@ -315,21 +361,18 @@ test('persistence: edits survive a page refresh', async ({ page }) => {
   await expect(page.getByText('Persist.js').first()).toBeVisible();
   await page.waitForTimeout(1200); // > SAVE_DEBOUNCE_MS (600)
 
-  // Reload → re-enter the studio → the file is restored from IndexedDB, not the
-  // fresh scaffold.
+  // Reload → the studio re-reads the project; the created file is restored from
+  // the persisted VFS (the PUT autosave landed). Chat-first reopens with only
+  // Chat — open Code to verify the restored file.
   await page.reload();
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('a pong game');
-  await input.press('Enter');
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
-  // Chat-first reopens with only Chat — open Code to verify the restored file.
+  await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Code Editor' }).first().click();
   await expect(page.getByText('Persist.js').first()).toBeVisible();
 });
 
 test('search: find across files and jump to a result', async ({ page }) => {
   await reachWorkspace(page, 'Code Editor');
-  await expect(page.locator('.monaco-editor').first()).toBeVisible();
+  await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByLabel('Search files').fill('Boot');
 
@@ -362,30 +405,22 @@ test('time machine: file-tree operations are recorded', async ({ page }) => {
   await expect(page.getByText(/Added Note\.js/)).toBeVisible();
 });
 
-// Serve a single-file project whose entry throws on a known line, then reach the
-// workspace. The thrown error is what the debugging specs below act on.
-async function reachWorkspaceWithThrow(page: Page, projectId: string, throwLine = 3) {
+// Reach the chat-first workspace with a single-file project whose entry THROWS on
+// a known line — the thrown error is what the debugging specs below act on. Built
+// on the shared harness: the throwing main.js is injected via `files`.
+async function reachWorkspaceWithThrow(page: Page, throwLine = 3) {
   // `throwLine` is 1-based in the authored file. Pad with comment lines so the
   // throw sits exactly on that line — the jump-to-error spec asserts the caret
   // lands there, which only holds if `//# sourceURL` line numbers match the file.
   const pad = Array.from({ length: throwLine - 1 }, (_, i) => `// line ${i + 1}`);
   const code = [...pad, "throw new Error('kaboom from main');", ''].join('\n');
-  await page.route('**/projects/**/code/files', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ files: [{ path: 'main.js', content: code, kind: 'text', size: code.length }] }),
-    }),
-  );
-  await page.goto(`/playground-sandbox?projectId=${projectId}`);
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('x');
-  await input.press('Enter');
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  const files: VfsFile[] = [{ path: 'main.js', content: code, kind: 'text', size: code.length }];
+  await mockBackendAsKid(page, { files });
+  await openStudio(page);
 }
 
 test('jump-to-error: a console error location opens that file at that line in the editor', async ({ page }) => {
-  await reachWorkspaceWithThrow(page, 'throw-1', 3);
+  await reachWorkspaceWithThrow(page, 3);
   // Split mode keeps the runner (right) and editor (left) un-occluded.
   await page.getByRole('button', { name: /Split/ }).click();
 
@@ -393,8 +428,10 @@ test('jump-to-error: a console error location opens that file at that line in th
   // error (this only works if `//# sourceURL` makes the error's filename = the
   // kid's file and the line number match the authored line).
   await page.getByRole('button', { name: 'Play' }).first().click();
+  // The iframe must load Phaser + throw before the located error surfaces — allow
+  // headroom under parallel load.
   const jump = page.getByRole('button', { name: 'main.js:3' });
-  await expect(jump).toBeVisible({ timeout: 6_000 });
+  await expect(jump).toBeVisible({ timeout: 15_000 });
 
   // Click the location → the editor opens main.js and the caret lands on line 3.
   await jump.click();
@@ -403,35 +440,35 @@ test('jump-to-error: a console error location opens that file at that line in th
 });
 
 test('Ask AI to fix: a console error is sent to the chat agent', async ({ page }) => {
-  await reachWorkspaceWithThrow(page, 'throw-2', 3);
+  await reachWorkspaceWithThrow(page, 3);
   await page.getByRole('button', { name: /Split/ }).click();
 
   await page.getByRole('button', { name: 'Play' }).first().click();
+  // The iframe must load Phaser + throw before the error (and its "Ask AI to fix"
+  // button) surfaces — allow headroom under parallel load.
   const askFix = page.getByRole('button', { name: /Ask AI to fix/ });
-  await expect(askFix).toBeVisible({ timeout: 6_000 });
+  await expect(askFix).toBeVisible({ timeout: 15_000 });
 
-  // Clicking routes the error to chat (focuses the Chat tab) and gets a reply.
+  // Clicking routes the error to chat (focuses the Chat tab). On the authed route
+  // the error prompt becomes a kid message; a Lite kid then sees the agency beat
+  // (the turn is staged, not yet spent) — the error reached the chat agent.
   await askFix.click();
   await expect(page.getByRole('tab', { name: /Chat/ })).toHaveAttribute('aria-selected', 'true');
-  // The kid bubble carries the error; the stub agent replies (chat-only text).
   await expect(page.getByText(/kaboom from main/).first()).toBeVisible();
-  await expect(page.getByText(/AI demo|sample tweak|isn.t connected/i)).toBeVisible({ timeout: 6_000 });
+  await expect(page.getByTestId('agency-card')).toBeVisible({ timeout: 6_000 });
 });
 
 test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ page }) => {
-  await page.goto('/playground-sandbox');
+  await mockBackendAsKid(page);
   // Arm the wait BEFORE the editor mounts (Monaco onMount triggers the fetch).
   // Assert the RESPONSE (not just the request) is 200 — the .d.ts is now
-  // materialized from the `phaser` npm dep by scripts/copy-phaser.mjs (predev),
-  // so this also guards that the build-time copy actually served the file.
+  // materialized from the `phaser` npm dep by the vendor-phaser Vite plugin, so
+  // this also guards that the build-time copy actually served the file.
   const dtsResponse = page.waitForResponse(
     (r) => r.url().includes('/vendor/phaser-3.80.1.d.ts'),
     { timeout: 15_000 },
   );
-  const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
-  await input.fill('a pong game');
-  await input.press('Enter');
-  await expect(page.getByRole('button', { name: /Split/ })).toBeVisible({ timeout: 10_000 });
+  await openStudio(page);
   // Chat-first: open the Code Editor — its Monaco onMount lazy-fetches the defs.
   await page.getByRole('button', { name: 'Code Editor' }).first().click();
   const res = await dtsResponse;
@@ -464,7 +501,21 @@ test('asset viewer: opens from its desktop tile (window mode)', async ({ page })
 });
 
 test('asset viewer: AI-generates an asset and shows its code-ref (split tab)', async ({ page }) => {
-  await reachWorkspace(page);
+  // On the authed route the asset-gen seam routes through the REAL backend
+  // (`POST /llm/generate-asset`, because a projectId is set), unlike the old
+  // project-less sandbox which used the offline stub. Mock it (registered AFTER
+  // mockBackendAsKid so it wins) to return an SVG → the same generated snippet.
+  await mockBackendAsKid(page);
+  const SVG = 'data:image/svg+xml;base64,' + Buffer.from('<svg/>').toString('base64');
+  await page.route('**/llm/generate-asset', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ dataUrl: SVG, mime: 'image/svg+xml' }),
+    });
+  });
+  await openStudio(page);
   await page.getByRole('button', { name: /Split/ }).click();
   await page.getByRole('tab', { name: /Assets/ }).click();
 
@@ -550,11 +601,18 @@ test('chat "See code" opens the Code Editor', async ({ page }) => {
 
 test('a project that fails to load shows an error and a way back to creation (no scaffold fallback)', async ({ page }) => {
   // Backend is the source of truth: a failed load must NOT silently open a local
-  // scaffold — it shows an error and routes back to project creation.
-  await page.route('**/projects/**/code/files', (route) =>
-    route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' }),
-  );
-  await page.goto('/playground-sandbox?projectId=broken-1');
+  // scaffold — it shows an error and routes back to project creation. This is
+  // authed-route behaviour already; the harness seats the session, then a
+  // 500 on GET /code/files (registered AFTER mockBackendAsKid so it wins) fails
+  // the load.
+  await mockBackendAsKid(page);
+  await page.route('**/projects/*/code/files', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"boom"}' });
+    }
+    return route.continue();
+  });
+  await openLanding(page);
   const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
   await input.fill('x');
   await input.press('Enter');
@@ -563,4 +621,179 @@ test('a project that fails to load shows an error and a way back to creation (no
   await expect(page.getByText(/couldn't open this game/i)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole('button', { name: /Make something new/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /Split/ })).toBeHidden();
+});
+
+// ── New chat-UX features (chat-ux-design.md §2.1 / §2.2 / §3) ─────────────────
+// On the authed route each turn is the real Lite flow: send → agency beat → "Do
+// it" (`show-me-first`) → the thinking bubble shows during the POST/stream → a
+// streamed `agent-msg` settles. These exercise that flow on the live chat.
+
+test('AI chat: a fun thinking bubble shows while the AI works', async ({ page }) => {
+  await mockBackendAsKid(page);
+  // Delay the turn POST so the thinking bubble (the pending bubble while the turn
+  // is in flight) is reliably catchable — the harness's instant mock would settle
+  // before the assertion could see it. Registered AFTER mockBackendAsKid so it wins.
+  await page.route('**/projects/*/code/turn', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    await new Promise((r) => setTimeout(r, 1_500));
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        turn_id: 'turn-1',
+        requires_approval: false,
+        plan: null,
+        changes: [],
+        files: [{ path: 'main.js', content: '// ok\n', kind: 'text', size: 6 }],
+        summary: 'I made it bouncier for you!',
+        stars_charged: 2,
+        tools_fired: ['edit_file:main.js'],
+      }),
+    });
+  });
+  await openStudio(page);
+  const chat = page.getByTestId('chat-input');
+  await chat.fill('make the ball bouncier');
+  await chat.press('Enter');
+  await expect(page.getByText('make the ball bouncier')).toBeVisible();
+
+  // Confirm the agency beat — the turn POSTs here, and the animated thinking
+  // bubble shows for the round-trip (Gap B — replaces the dull italic "Thinking…").
+  await expect(page.getByTestId('agency-card')).toBeVisible({ timeout: 6_000 });
+  await page.getByTestId('show-me-first').click();
+  await expect(page.getByTestId('thinking-bubble')).toBeVisible();
+
+  // When the turn resolves, the thinking bubble is REPLACED by a settled reply.
+  await expect(page.getByTestId('agent-msg')).toBeVisible({ timeout: 6_000 });
+  await expect(page.getByTestId('thinking-bubble')).toBeHidden();
+});
+
+test('AI chat: a "new messages" pill appears when scrolled up, and click re-pins', async ({ page }) => {
+  await reachWorkspace(page);
+  const chat = page.getByTestId('chat-input');
+  const list = page.getByRole('log');
+
+  // One authed turn = send → agency beat → "Do it" → await the settled agent msg.
+  const runTurn = async (text: string) => {
+    await chat.fill(text);
+    await chat.press('Enter');
+    await expect(page.getByTestId('agency-card')).toBeVisible({ timeout: 6_000 });
+    await page.getByTestId('show-me-first').click();
+    // Wait for the reply to settle (the input is busy-gated while it streams).
+    await expect.poll(async () => page.getByTestId('agent-msg').count()).toBeGreaterThan(0);
+    await expect(page.getByTestId('agent-msg').last()).toBeVisible({ timeout: 6_000 });
+  };
+
+  // Seed enough turns that the list overflows (each turn adds a kid bubble + a
+  // reply). Loop until the list actually overflows (robust to row heights).
+  for (let i = 0; i < 6; i++) {
+    await runTurn(`tweak number ${i}`);
+    const overflow = await list.evaluate((el) => el.scrollHeight - el.clientHeight);
+    if (overflow > 40) break;
+  }
+  await expect
+    .poll(async () => list.evaluate((el) => el.scrollHeight - el.clientHeight))
+    .toBeGreaterThan(40);
+
+  // Scroll UP to re-read → releases the stick-to-bottom. Dispatch the scroll
+  // event explicitly and let the handler's `setAtBottom(false)` commit BEFORE the
+  // next content change — otherwise the layout effect still reads "pinned" and
+  // glues back down (no pill). Poll the list stays parked at the top.
+  await list.evaluate((el) => {
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event('scroll'));
+  });
+  await expect.poll(async () => list.evaluate((el) => el.scrollTop)).toBeLessThan(40);
+
+  // A new message arrives while released → the kid bubble appends (content grew
+  // while not pinned) and the "↓ New stuff!" pill surfaces. We assert the pill on
+  // this single, stable append (no streaming churn): the agency beat hasn't been
+  // confirmed, so the list isn't re-arming the pill token-by-token.
+  await chat.fill('one more tweak');
+  await chat.press('Enter');
+  await expect(page.getByText('one more tweak')).toBeVisible();
+  const pill = page.getByTestId('chat-jump-newest');
+  await expect(pill).toBeVisible({ timeout: 6_000 });
+
+  // Tapping it re-pins: the pill disappears and the newest message scrolls into
+  // view (the user-facing guarantee — robust to sub-threshold padding/animation).
+  await pill.click();
+  await expect(pill).toBeHidden();
+  const newest = page.getByText('one more tweak');
+  await expect
+    .poll(
+      async () =>
+        newest.evaluate((msg) => {
+          const log = msg.closest('[role="log"]')!;
+          const m = msg.getBoundingClientRect();
+          const l = log.getBoundingClientRect();
+          // The newest bubble's bottom is at/above the list's visible bottom edge.
+          return m.bottom - l.bottom;
+        }),
+      { timeout: 10_000 },
+    )
+    .toBeLessThan(8);
+});
+
+test('AI chat: the message list is an accessible live region', async ({ page }) => {
+  await reachWorkspace(page);
+  const list = page.getByRole('log');
+  await expect(list).toBeVisible();
+  await expect(list).toHaveAttribute('aria-live', 'polite');
+});
+
+// ── Stop / skip the streaming animation (H1) — REAL (authed) path ─────────────
+// `chat-stop` renders only while the client-side token replay (`streamTurn`)
+// runs, which is the authed (projectId) chat path. To widen the streaming window
+// enough to reliably catch the Stop button, we register OUR OWN turn override
+// (AFTER mockBackendAsKid so it wins) returning a LONG summary — the per-token
+// replay (~18ms/token) then takes long enough to click Stop mid-stream. Stop
+// finalizes the reply (it's already paid for): the streaming bubble settles to a
+// full `agent-msg`, never discarding the result.
+test('Stop skips the streaming animation and finalizes the reply', async ({ page }) => {
+  await mockBackendAsKid(page);
+  // A long summary widens the per-token replay window so Stop is reliably catchable.
+  const longSummary = (
+    'I changed the block colour to pink for you. ' +
+    'Press the Play button to see it run in the Game Runner. ' +
+    'Then come back and tell me what you want to change next — ' +
+    'we can make it faster, bigger, or add a whole new thing to your game.'
+  ).repeat(3);
+  await page.route('**/projects/*/code/turn', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        turn_id: 'turn-1',
+        requires_approval: false,
+        plan: null,
+        changes: [],
+        files: [{ path: 'main.js', content: '// stopped\n', kind: 'text', size: 11 }],
+        summary: longSummary,
+        stars_charged: 2,
+        tools_fired: ['edit_file:main.js'],
+      }),
+    });
+  });
+  await openStudio(page);
+
+  // Send → agency beat → "Do it" runs the turn → the reply STREAMS (a long
+  // summary keeps the replay running long enough to catch Stop).
+  await page.getByTestId('chat-input').fill('make the block pink');
+  await page.getByTestId('chat-send').click();
+  await expect(page.getByTestId('agency-card')).toBeVisible({ timeout: 6_000 });
+  await page.getByTestId('show-me-first').click();
+
+  await expect(page.getByTestId('agent-msg-streaming')).toBeVisible({ timeout: 6_000 });
+  // The Stop button is visible during streaming → click it.
+  const stop = page.getByTestId('chat-stop');
+  await expect(stop).toBeVisible({ timeout: 6_000 });
+  await stop.click();
+
+  // Stop finalizes (skip-to-end, not discard): the streaming bubble settles to a
+  // full `agent-msg` with the complete summary, and the Stop button is gone.
+  await expect(page.getByTestId('agent-msg')).toContainText('pink', { timeout: 6_000 });
+  await expect(page.getByTestId('agent-msg-streaming')).toHaveCount(0);
+  await expect(stop).toHaveCount(0);
 });

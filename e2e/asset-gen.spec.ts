@@ -1,12 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 
+import { mockBackendAsKid, openStudio, type VfsFile } from './helpers';
+
 // ── PR FE4 — AI asset generation wired + one-tap "Add to my game" (PRD J5) ─────
-// Every backend call is ROUTE-MOCKED (page.route) so the suite is deterministic
-// and offline: auth bootstrap, /auth/me (a kid), wallet, project list, the
-// seeded VFS read, the real game-project create, and — the heart of this PR —
-// the ASSET GENERATION endpoint (`POST /llm/generate-asset`). No network, no
-// live LLM (CLAUDE.md #5): the backend meters Stars + content-filters; the kid
-// surface only POSTs a prompt and renders the returned data URL.
+// MIGRATED onto the shared harness (`e2e/helpers.ts`): `mockBackendAsKid` seats a
+// kid + mocks every backend the studio touches (auth WITH `?kind=kid`,
+// /classes/mine, the prompt-first hub→landing→create flow), and `openStudio`
+// drives it into the workspace on `game-77`. This spec layers its SPECIAL mock —
+// the ASSET GENERATION endpoint (`POST /llm/generate-asset`) — on top, registered
+// AFTER mockBackendAsKid so Playwright's most-recently-added match wins.
+// No network, no live LLM (CLAUDE.md #5): the backend meters Stars +
+// content-filters; the kid surface only POSTs a prompt and renders the data URL.
 //
 // Asserts the J5 surface:
 //   - Generate (real path, projectId set) → POSTs /llm/generate-asset → an asset
@@ -42,55 +46,34 @@ const MAIN_JS = `new Phaser.Game({
 });
 `;
 
-const SEEDED_VFS = {
-  version: 1,
-  files: [
-    { path: 'main.js', content: MAIN_JS, kind: 'text', size: MAIN_JS.length },
-    { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
-  ],
-};
+// The asset-gen tests need a Game scene with preload()/create() so the one-tap
+// insert has a real scene to write the loader + use into. Serve this 2-file VFS
+// via the shared harness's `files` override (vs its default STARTER_PROJECT).
+const ASSET_GEN_VFS: VfsFile[] = [
+  { path: 'main.js', content: MAIN_JS, kind: 'text', size: MAIN_JS.length },
+  { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
+];
 
-/** Seat a kid session + mock every backend the studio touches, incl. generate-asset. */
-async function mockBackendAsKid(page: Page) {
-  const kid = { id: 'kid-1', nickname: 'Robo', age: 9, family_id: 'fam-1' };
-  let stars = 42;
-
-  await page.route('**/auth/refresh', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: 'kid-token' }) }),
-  );
-  await page.route('**/auth/me', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ role: 'kid', kid }) }),
-  );
-  await page.route('**/families/*/wallet', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ stars_balance: stars }) }),
-  );
-  await page.route('**/kids/*/projects*', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
-  );
+/**
+ * Seat a kid session via the shared harness + layer THIS PR's generate-asset mock
+ * ON TOP (registered AFTER `mockBackendAsKid` so Playwright's most-recently-added
+ * match wins). The harness already mocks auth (with `?kind=kid`), /classes/mine,
+ * wallet, the VFS, and the prompt-first hub→landing→create flow; we only override
+ * the VFS seed (a Game scene with preload/create) and add generate-asset.
+ */
+async function mockAssetGenBackend(page: Page) {
+  await mockBackendAsKid(page, { files: ASSET_GEN_VFS });
 
   // THE PR ENDPOINT: generate-asset. Returns a real image data URL + mime; the
-  // backend (modelled here) meters Stars — debit once per generation.
+  // backend (modelled here) meters Stars — debit once per generation. Registered
+  // after the harness so this specific route wins over its broader globs.
   await page.route('**/llm/generate-asset', (route) => {
     if (route.request().method() !== 'POST') return route.continue();
-    stars -= 1;
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ dataUrl: PNG_DATA_URL, mime: 'image/png', meta: { stars_charged: 1 } }),
     });
-  });
-
-  await page.route('**/projects/*/code/files', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SEEDED_VFS) });
-    }
-    const b = route.request().postDataJSON() as { files: unknown; version: number };
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ files: b.files, version: b.version + 1 }) });
-  });
-
-  await page.route('**/projects', (route) => {
-    if (route.request().method() !== 'POST') return route.continue();
-    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'game-77' }) });
   });
 }
 
@@ -115,10 +98,7 @@ async function installGameSignalRecorder(page: Page) {
 
 /** Drive the authed J1 hub → studio flow, then open the Assets split tab. */
 async function openAssets(page: Page) {
-  await page.goto('/learn/create/code');
-  await page.getByTestId('hub-template-pong').click();
-  await expect(page).toHaveURL(/\/learn\/playground\/game-77$/);
-  await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 10_000 });
+  await openStudio(page);
   await page.getByRole('button', { name: /Split/ }).click();
   await page.getByRole('tab', { name: /Assets/ }).click();
   await expect(page.getByText('All assets')).toBeVisible();
@@ -126,7 +106,7 @@ async function openAssets(page: Page) {
 
 test('J5: generate (real backend) → asset card → add-to-game inserts a loader the game uses', async ({ page }) => {
   await installGameSignalRecorder(page);
-  await mockBackendAsKid(page);
+  await mockAssetGenBackend(page);
   await openAssets(page);
 
   // Generate → POST /llm/generate-asset → the generated asset's detail opens.
@@ -172,7 +152,7 @@ test('J5: generate goes through the backend (Stars debit) — kid never calls an
     if (req.method() === 'POST' && /\/llm\/generate-asset$/.test(req.url())) genPosts.push(req.url());
   });
 
-  await mockBackendAsKid(page);
+  await mockAssetGenBackend(page);
   await openAssets(page);
 
   await page.getByTestId('asset-generate-prompt').fill('pixel coin');
@@ -188,7 +168,7 @@ test.describe('visual', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test('visual: a generated asset detail with the Add-to-my-game CTA', async ({ page }) => {
-    await mockBackendAsKid(page);
+    await mockAssetGenBackend(page);
     await openAssets(page);
 
     await page.getByTestId('asset-generate-prompt').fill('pixel coin');

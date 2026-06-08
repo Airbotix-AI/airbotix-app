@@ -11,8 +11,9 @@
 // it into History — recoverable, never silently lost. The word "conflict" never
 // reaches the kid (caller copy says "we kept your newest copy").
 //
-// The DEV `/playground-sandbox` has no project id, so it stays cache-only — the
-// same IndexedDB store, no backend round-trip.
+// A project-less session (e.g. the `/learn/playground/new` create/landing flow
+// before a project exists) has no project id, so it stays cache-only — the same
+// IndexedDB store, no backend round-trip.
 
 import { readVfsSnapshot, saveVfs, SaveConflictError, type VfsFile, type VfsSnapshot } from '../code/codeApi';
 import { type WorkspaceUiBlob } from './workspaceUiStore';

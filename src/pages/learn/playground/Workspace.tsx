@@ -52,8 +52,8 @@ interface WorkspaceProps {
   prompt: string;
   /**
    * The real backend project. When set, AI turns run server-side (Stars-metered,
-   * streamed, plan/approve-gated, PRD J2); when absent (DEV sandbox) the offline
-   * stub turn runs behind the same UI.
+   * streamed, plan/approve-gated, PRD J2); when absent (a project-less session) the
+   * offline stub turn runs behind the same UI.
    */
   projectId?: string;
   /** The AI's first turn (generated on the loading screen) — seeds the chat. */
@@ -141,6 +141,7 @@ export function Workspace({
   const {
     chat,
     busy,
+    streaming,
     error,
     offline,
     pending,
@@ -154,6 +155,8 @@ export function Workspace({
     undo,
     raiseHand,
     lowerHand,
+    abort,
+    retryLast,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -179,6 +182,7 @@ export function Workspace({
   const chatProps = {
     chat,
     busy,
+    streaming,
     error,
     offline,
     balance,
@@ -195,6 +199,8 @@ export function Workspace({
     onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
+    onStop: abort,
+    onRetry: retryLast,
   };
 
   // A request from the runner console to open a file at a line (jump-to-error).
