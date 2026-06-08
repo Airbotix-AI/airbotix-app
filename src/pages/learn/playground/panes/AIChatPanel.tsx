@@ -373,12 +373,6 @@ function ChatRow({
           {item.streaming && <span className="ml-0.5 animate-pulse">▍</span>}
         </div>
 
-        {item.stars != null && item.stars > 0 && !item.pending && (
-          <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-brand-sunshine">
-            <Star size={11} className="fill-current" /> {item.stars} used
-          </div>
-        )}
-
         {item.toolsFired && item.toolsFired.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {item.toolsFired.map((t, i) => (
