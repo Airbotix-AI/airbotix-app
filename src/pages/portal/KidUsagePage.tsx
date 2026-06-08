@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { useAuthStore } from '@/auth/authStore';
+import { getToken } from '@/auth/authStore';
 import { api } from '@/lib/api';
 import type { KidUsageDetail, UsageTrendPoint } from './walletTypes';
 
@@ -39,7 +39,7 @@ export function KidUsagePage() {
     setExporting(true);
     setExportError(null);
     try {
-      const token = useAuthStore.getState().accessToken;
+      const token = getToken('user');
       const res = await fetch(
         `${BASE_URL}/kids/${kidId}/usage/export.csv?from=${from}&to=${to}`,
         { headers: token ? { authorization: `Bearer ${token}` } : {}, credentials: 'include' },

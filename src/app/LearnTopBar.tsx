@@ -72,7 +72,7 @@ export function LearnTopBar() {
             </div>
           )}
           <button
-            onClick={() => logout(false)}
+            onClick={() => logout('kid', false)}
             className={clsx(
               themed
                 ? 'rounded-full border border-pg-border px-4 py-1.5 text-[14px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text'

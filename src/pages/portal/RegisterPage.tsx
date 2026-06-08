@@ -52,7 +52,7 @@ export function RegisterPage() {
   const qc = useQueryClient();
   const me = useMe();
   const logout = useLogout();
-  const accessToken = useAuthStore((s) => s.accessToken);
+  const accessToken = useAuthStore((s) => s.tokens.user);
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamily | null>(null);
@@ -111,7 +111,7 @@ export function RegisterPage() {
           </p>
           <button
             onClick={async () => {
-              await logout();
+              await logout('user');
               nav('/portal/login', { replace: true });
             }}
             className="btn-pill-primary w-full mt-8"
