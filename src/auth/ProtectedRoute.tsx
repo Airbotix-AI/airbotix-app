@@ -12,9 +12,9 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, kind }: ProtectedRouteProps) {
   const location = useLocation();
-  const accessToken = useAuthStore((s) => s.accessToken);
+  const accessToken = useAuthStore((s) => s.tokens[kind]);
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
-  const me = useMe();
+  const me = useMe(kind);
 
   // Wait for the one-shot /auth/refresh on app mount to settle. Without this,
   // a page reload always sees accessToken=null on the first render and would
@@ -46,12 +46,8 @@ export function ProtectedRoute({ children, kind }: ProtectedRouteProps) {
     return <Navigate to={fallback} replace />;
   }
 
-  // Cross-surface: kid logged in trying to enter /portal/* → bounce to /learn.
-  // Parent trying to enter /learn/* → bounce to /portal.
-  if (me.data.kind !== kind) {
-    const elsewhere = me.data.kind === 'user' ? '/portal' : '/learn';
-    return <Navigate to={elsewhere} replace />;
-  }
-
+  // Each surface validates its own principal (`useMe(kind)`), so no cross-surface
+  // bounce: a parent and a kid can both be signed in and each surface is reachable
+  // as long as that kind's session exists.
   return <>{children}</>;
 }

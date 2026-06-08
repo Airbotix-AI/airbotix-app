@@ -1,9 +1,15 @@
 // Thin Socket.IO wrapper. JWT goes in the handshake auth payload.
 // See platform-backend-api-spec.md §6 for the room model.
+//
+// One socket per principal kind so a parent and a kid signed in at the same time
+// each get their own authenticated connection. Today only the kid (Learn) surface
+// uses WS, so callers pass 'kid'; the per-kind map keeps it correct under dual
+// sessions and ready for a future portal socket.
 
 import { io, type Socket } from 'socket.io-client';
 
-import { useAuthStore } from '@/auth/authStore';
+import { getToken } from '@/auth/authStore';
+import type { PrincipalKind } from '@/auth/types';
 
 // Origin only — the gateway path ('/ws') must be the socket.io `path` option,
 // not a URL suffix (a suffix is parsed as a namespace and leaves path at the
@@ -11,20 +17,21 @@ import { useAuthStore } from '@/auth/authStore';
 const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030';
 const WS_PATH = '/ws';
 
-let socket: Socket | null = null;
+const sockets: Record<PrincipalKind, Socket | null> = { user: null, kid: null };
 
-export function getSocket(): Socket | null {
-  const token = useAuthStore.getState().accessToken;
+export function getSocket(kind: PrincipalKind = 'kid'): Socket | null {
+  const token = getToken(kind);
   if (!token) return null;
 
-  if (socket && socket.connected) return socket;
-  if (socket) {
+  const existing = sockets[kind];
+  if (existing && existing.connected) return existing;
+  if (existing) {
     // Token may have changed — recreate
-    socket.disconnect();
-    socket = null;
+    existing.disconnect();
+    sockets[kind] = null;
   }
 
-  socket = io(WS_URL, {
+  const socket = io(WS_URL, {
     path: WS_PATH,
     autoConnect: true,
     transports: ['websocket'],
@@ -33,19 +40,29 @@ export function getSocket(): Socket | null {
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
   });
+  sockets[kind] = socket;
 
   return socket;
 }
 
-export function closeSocket(): void {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
+// Close one principal's socket, or all of them when no kind is given.
+export function closeSocket(kind?: PrincipalKind): void {
+  const kinds: PrincipalKind[] = kind ? [kind] : ['user', 'kid'];
+  for (const k of kinds) {
+    const socket = sockets[k];
+    if (socket) {
+      socket.disconnect();
+      sockets[k] = null;
+    }
   }
 }
 
-export function onWsEvent<T = unknown>(event: string, handler: (payload: T) => void): () => void {
-  const sock = getSocket();
+export function onWsEvent<T = unknown>(
+  event: string,
+  handler: (payload: T) => void,
+  kind: PrincipalKind = 'kid',
+): () => void {
+  const sock = getSocket(kind);
   if (!sock) return () => undefined;
   sock.on(event, handler);
   return () => {
@@ -53,8 +70,8 @@ export function onWsEvent<T = unknown>(event: string, handler: (payload: T) => v
   };
 }
 
-export function sendWsEvent(event: string, payload?: unknown): void {
-  const sock = getSocket();
+export function sendWsEvent(event: string, payload?: unknown, kind: PrincipalKind = 'kid'): void {
+  const sock = getSocket(kind);
   if (!sock) return;
   sock.emit(event, payload);
 }

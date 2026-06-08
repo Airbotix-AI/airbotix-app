@@ -138,7 +138,7 @@ export function SettingsPage() {
   const deleteMut = useMutation({
     mutationFn: () => api(`/families/${familyId}`, { method: 'DELETE' }),
     onSuccess: async () => {
-      await logout(true);
+      await logout('user', true);
       nav('/portal/login', { replace: true });
     },
   });
@@ -371,7 +371,7 @@ export function SettingsPage() {
                   Replay intro
                 </button>
               )}
-              <button onClick={() => logout(true)} className="btn-pill-ghost w-full gap-2">
+              <button onClick={() => logout('user', true)} className="btn-pill-ghost w-full gap-2">
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 Sign out everywhere
               </button>

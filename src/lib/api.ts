@@ -1,9 +1,14 @@
 // Typed fetch with auto-refresh on 401. See auth-system-prd.md §3 + §4.3.
 
-import { useAuthStore } from '@/auth/authStore';
+import { surfacePrincipal, useAuthStore } from '@/auth/authStore';
+import type { PrincipalKind } from '@/auth/types';
 import type { GenAssetRequest, GenAssetResult } from '@/pages/learn/playground/assetGen';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+
+// A request inherits the principal of the surface it is fired from unless an
+// explicit `principal` is passed (e.g. /auth/me, login/logout target a kind).
+const defaultPrincipal = surfacePrincipal;
 
 export class ApiError extends Error {
   constructor(
@@ -22,33 +27,45 @@ interface ApiOpts {
   body?: unknown;
   signal?: AbortSignal;
   skipAuthRefresh?: boolean;
+  /** Which session's token to use. Defaults to the current surface's principal. */
+  principal?: PrincipalKind;
 }
 
-let refreshInFlight: Promise<string | null> | null = null;
+// In-flight dedupe is per kind so a parent and kid refresh can run concurrently
+// without clobbering each other.
+const refreshInFlight: Record<PrincipalKind, Promise<string | null> | null> = {
+  user: null,
+  kid: null,
+};
 
-export async function refreshAccessToken(): Promise<string | null> {
-  if (refreshInFlight) return refreshInFlight;
-  refreshInFlight = (async () => {
+export async function refreshAccessToken(
+  kind: PrincipalKind = defaultPrincipal(),
+): Promise<string | null> {
+  const existing = refreshInFlight[kind];
+  if (existing) return existing;
+  const run = (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      const res = await fetch(`${BASE_URL}/auth/refresh?kind=${kind}`, {
         method: 'POST',
         credentials: 'include',
       });
       if (!res.ok) return null;
       const body = (await res.json()) as { access_token: string };
-      useAuthStore.getState().setAccessToken(body.access_token);
+      useAuthStore.getState().setToken(kind, body.access_token);
       return body.access_token;
     } catch {
       return null;
     } finally {
-      refreshInFlight = null;
+      refreshInFlight[kind] = null;
     }
   })();
-  return refreshInFlight;
+  refreshInFlight[kind] = run;
+  return run;
 }
 
 export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   const { method = 'GET', body, signal, skipAuthRefresh } = opts;
+  const principal = opts.principal ?? defaultPrincipal();
 
   const exec = async (token: string | null): Promise<Response> => {
     const headers: Record<string, string> = {
@@ -64,11 +81,11 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
     });
   };
 
-  let token = useAuthStore.getState().accessToken;
+  let token = useAuthStore.getState().tokens[principal];
   let res = await exec(token);
 
   if (res.status === 401 && !skipAuthRefresh) {
-    const next = await refreshAccessToken();
+    const next = await refreshAccessToken(principal);
     if (next) {
       token = next;
       res = await exec(token);
@@ -94,7 +111,8 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
       // ignore
     }
     if (res.status === 401) {
-      useAuthStore.getState().clear();
+      // Only drop the failing principal's session — the other one survives.
+      useAuthStore.getState().clearToken(principal);
     }
     throw new ApiError(res.status, code, message, details, requestId);
   }
@@ -108,22 +126,26 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
  * + silent-refresh handling, but streams the body to a Blob and triggers a
  * browser download instead of parsing JSON.
  */
-export async function apiDownload(path: string, filename: string): Promise<void> {
+export async function apiDownload(
+  path: string,
+  filename: string,
+  principal: PrincipalKind = defaultPrincipal(),
+): Promise<void> {
   const exec = async (token: string | null): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (token) headers.authorization = `Bearer ${token}`;
     return fetch(`${BASE_URL}${path}`, { headers, credentials: 'include' });
   };
 
-  let token = useAuthStore.getState().accessToken;
+  let token = useAuthStore.getState().tokens[principal];
   let res = await exec(token);
   if (res.status === 401) {
-    const next = await refreshAccessToken();
+    const next = await refreshAccessToken(principal);
     if (next) {
       token = next;
       res = await exec(token);
     } else {
-      useAuthStore.getState().clear();
+      useAuthStore.getState().clearToken(principal);
     }
   }
 

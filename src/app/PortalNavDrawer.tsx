@@ -109,7 +109,7 @@ export function PortalNavDrawer() {
             </div>
           </div>
         )}
-        <button onClick={() => logout(false)} className="btn-pill-ghost w-full justify-start">
+        <button onClick={() => logout('user', false)} className="btn-pill-ghost w-full justify-start">
           Sign out
         </button>
       </div>
