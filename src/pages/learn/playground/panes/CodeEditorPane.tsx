@@ -318,26 +318,6 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     record(cp.files, Date.now(), `reverted · ${cp.summary}`);
   };
 
-  // Revert a SINGLE file to its state at a checkpoint: `file` = that checkpoint's
-  // version (set/restore it), or `null` if the file didn't exist there (delete it).
-  const revertFile = (path: string, file: VfsFile | null) => {
-    const cur = useProjectStore.getState().files;
-    const next = !file
-      ? cur.filter((f) => f.path !== path)
-      : cur.some((f) => f.path === path)
-        ? cur.map((f) => (f.path === path ? { ...file } : f))
-        : [...cur, { ...file }];
-    onApplyFiles(next); // a delete reconciles the open tab shut via the store `change`
-    if (file) {
-      // Override any in-progress draft for this file with the reverted content.
-      const overwrite = (prev: Record<string, string>): Record<string, string> =>
-        path in prev ? { ...prev, [path]: file.content } : prev;
-      setDrafts(overwrite);
-      setSynced(overwrite);
-    }
-    record(next, Date.now(), `reverted ${baseName(path)}`);
-  };
-
   // The sidebar auto-widens ONLY while a History entry is selected (i.e. the
   // two-column file detail is showing); deselecting or leaving History restores
   // the prior width. Driven by HistoryPanel via `onDetailOpen`.
@@ -506,7 +486,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
             <div className="pg-no-scrollbar flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-pg-border px-1.5 py-1.5">
               {([
                 { id: 'files', label: 'Explorer', Icon: FolderTree },
-                { id: 'history', label: 'History', Icon: History },
+                { id: 'history', label: 'Time Machine', Icon: History },
                 { id: 'search', label: 'Search', Icon: Search },
               ] as const).map(({ id, label, Icon }) => (
                 <button
@@ -532,7 +512,6 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                 <HistoryPanel
                   onRevert={revertTo}
                   onDiff={openDiffTab}
-                  onRevertFile={revertFile}
                   onDetailOpen={setHistoryDetailOpen}
                 />
               ) : (

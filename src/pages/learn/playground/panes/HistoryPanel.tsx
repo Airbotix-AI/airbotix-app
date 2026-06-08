@@ -1,37 +1,46 @@
-// History timeline (the left-sidebar "History" view of the Code Editor), as a
-// two-column master-detail:
-//   - left  = the project checkpoints, newest-first (click to select; no expand);
-//   - right = the files THAT entry changed — i.e. diffed against the checkpoint
-//             RIGHT BEFORE it (so "edited GameOver.js" lists GameOver.js with a
-//             real before→after diff, not "changes since now").
-// Click a file → open its diff tab (left = the older version / peek, right = this
-// version). Revert (in the detail header) restores the whole project to the entry.
+// "Time Machine" — the kid-friendly version history (the Code Editor's Time
+// Machine sidebar view). One clean, single-column list of save points, newest
+// first. The hero action is **Go back**: it restores the WHOLE game to that
+// point after a reassuring confirm (the newest version is always kept, so it's
+// safe). Each entry can optionally reveal **what changed** — a plain-language
+// file list; tapping a file opens a before/after view. No git-speak, no
+// timestamps, no per-file revert.
 
-import { Check, History, RotateCcw, X } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Cloud,
+  FilePen,
+  FilePlus2,
+  FileX2,
+  type LucideIcon,
+  RotateCcw,
+  Sparkles,
+  Undo2,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import type { VfsFile } from '../../code/codeApi';
 import { useHistoryStore, type Checkpoint } from '../historyStore';
 
 interface HistoryPanelProps {
-  /** Open a diff: left = the version before this entry, right = this entry. */
+  /** Open a before/after view: left = the version before this entry, right = it. */
   onDiff: (path: string, original: string, modified: string) => void;
-  /** Revert the whole project to a checkpoint. */
+  /** Restore the WHOLE game to a save point. */
   onRevert: (cp: Checkpoint) => void;
-  /** Revert a single file to its version at a checkpoint (`file`), or delete it (`null`). */
-  onRevertFile: (path: string, file: VfsFile | null) => void;
-  /** True while a checkpoint is selected (the file-detail column is showing). */
+  /** True while a confirm is open, so the pane can give it a little more room. */
   onDetailOpen: (open: boolean) => void;
 }
 
 type FileStatus = 'edited' | 'added' | 'removed';
 
-/** Files this checkpoint changed vs the one before it (`prev`, or none for the first). */
+const base = (p: string) => p.split('/').pop() || p;
+
+/** Files this save point changed vs the one before it (or all, for the first). */
 function changedIn(cp: Checkpoint, prev: Checkpoint | null): { path: string; status: FileStatus }[] {
   const now = new Map(cp.files.map((f) => [f.path, f.content]));
-  if (!prev) {
-    return [...now.keys()].sort().map((path) => ({ path, status: 'added' as const }));
-  }
+  if (!prev) return [...now.keys()].sort().map((path) => ({ path, status: 'added' as const }));
   const before = new Map(prev.files.map((f) => [f.path, f.content]));
   const out: { path: string; status: FileStatus }[] = [];
   for (const path of new Set([...before.keys(), ...now.keys()])) {
@@ -45,196 +54,218 @@ function changedIn(cp: Checkpoint, prev: Checkpoint | null): { path: string; sta
   return out.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function clock(ts: number): string {
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+/** Friendly "X ago" — no exact clocks. */
+function ago(ts: number): string {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 10) return 'just now';
+  if (s < 60) return 'moments ago';
+  const m = Math.round(s / 60);
+  if (m < 60) return m === 1 ? 'a minute ago' : `${m} minutes ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return h === 1 ? 'an hour ago' : `${h} hours ago`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'yesterday' : `${d} days ago`;
 }
 
-const STATUS_LABEL: Record<FileStatus, { letter: string; color: string }> = {
-  edited: { letter: 'M', color: 'text-brand-sky' },
-  added: { letter: 'A', color: 'text-brand-mint' },
-  removed: { letter: 'D', color: 'text-brand-coral' },
+/** A plain-language title + icon for a save point, from its (technical) summary. */
+function describe(summary: string): { Icon: LucideIcon; title: string } {
+  const first = summary.split(', ')[0];
+  const lower = first.toLowerCase();
+  if (lower.startsWith('initial') || lower === 'no change')
+    return { Icon: Sparkles, title: 'Your game started here' };
+  if (lower.startsWith('reverted') || lower.startsWith('went back'))
+    return { Icon: Undo2, title: 'Went back in time' };
+  if (lower.includes('newest')) return { Icon: Cloud, title: 'Kept your newest copy' };
+  const [verb, ...restArr] = first.split(' ');
+  const rest = restArr.join(' ').replace(/\s+\+\d+$/, ''); // drop the "+N" tail
+  const VERB: Record<string, { word: string; Icon: LucideIcon }> = {
+    edited: { word: 'Changed', Icon: FilePen },
+    replaced: { word: 'Changed', Icon: FilePen },
+    added: { word: 'Added', Icon: FilePlus2 },
+    created: { word: 'Added', Icon: FilePlus2 },
+    removed: { word: 'Removed', Icon: FileX2 },
+    deleted: { word: 'Removed', Icon: FileX2 },
+    renamed: { word: 'Renamed', Icon: FilePen },
+    moved: { word: 'Moved', Icon: FilePen },
+  };
+  const v = VERB[verb] ?? { word: 'Changed', Icon: FilePen };
+  return { Icon: v.Icon, title: rest ? `${v.word} ${rest}` : `${v.word} your game` };
+}
+
+const TAG: Record<FileStatus, { label: string; color: string; Icon: LucideIcon }> = {
+  edited: { label: 'changed', color: 'text-brand-sky', Icon: FilePen },
+  added: { label: 'new', color: 'text-brand-mint', Icon: FilePlus2 },
+  removed: { label: 'gone', color: 'text-brand-coral', Icon: FileX2 },
 };
-const base = (p: string) => p.split('/').pop() || p;
 
-export function HistoryPanel({ onDiff, onRevert, onRevertFile, onDetailOpen }: HistoryPanelProps) {
+export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelProps) {
   const checkpoints = useHistoryStore((s) => s.checkpoints);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Pending revert confirmation: the whole project, or a single file.
-  const [confirm, setConfirm] = useState<{ kind: 'project' } | { kind: 'file'; path: string } | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const selectedIndex = checkpoints.findIndex((c) => c.id === selectedId);
-  const selected = selectedIndex >= 0 ? checkpoints[selectedIndex] : null;
-  // Newest-first, so the "previous" (older) checkpoint is the NEXT index.
-  const prev = selected ? checkpoints[selectedIndex + 1] ?? null : null;
-  const changes = selected ? changedIn(selected, prev) : [];
-
-  // Tell the pane whether the file-detail column is showing, so it can widen the
-  // sidebar only while an entry is selected (the guard there makes this idempotent).
-  const detailVisible = selected != null;
+  // Give the confirm a touch more room (reuses the pane's sidebar-widen hook).
   useEffect(() => {
-    onDetailOpen(detailVisible);
-  }, [detailVisible, onDetailOpen]);
+    onDetailOpen(confirmId !== null);
+  }, [confirmId, onDetailOpen]);
 
   if (checkpoints.length === 0) {
     return (
       <div className="flex h-full flex-col">
-        <Header label="History" />
-        <p className="px-3 py-3 text-[12px] font-semibold text-pg-text-muted">
-          No history yet. Your edits are snapshotted automatically as you work.
+        <Header />
+        <p className="px-3 py-3 text-[12.5px] font-semibold text-pg-text-muted">
+          Nothing here yet. As you build, your game is saved here so you can always go back.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      {/* Versions column */}
-      <div className="flex min-w-0 flex-1 flex-col border-r border-pg-border">
-        <Header label="History" />
-        <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
-          {checkpoints.map((cp, i) => {
-            const isSel = cp.id === selectedId;
-            return (
-              <li key={cp.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirm(null);
-                    setSelectedId((cur) => (cur === cp.id ? null : cp.id));
-                  }}
-                  className={`flex w-full flex-col rounded-lg px-2 py-1.5 text-left transition-colors ${
-                    isSel ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
+    <div className="flex h-full min-h-0 flex-col">
+      <Header />
+      <ul className="min-h-0 flex-1 space-y-1.5 overflow-auto px-2 pb-3">
+        {checkpoints.map((cp, i) => {
+          const isNow = i === 0;
+          const { Icon, title } = describe(cp.summary);
+          const prev = checkpoints[i + 1] ?? null;
+          const changes = changedIn(cp, prev);
+          const expanded = expandedId === cp.id;
+          const confirming = confirmId === cp.id;
+
+          return (
+            <li
+              key={cp.id}
+              data-testid="history-entry"
+              className={`rounded-xl border ${
+                isNow ? 'border-brand-mint/40 bg-wash-mint/40' : 'border-pg-border bg-pg-text/5'
+              }`}
+            >
+              {/* Top row: icon + title + time (+ a "Now" pill on the latest). */}
+              <div className="flex items-center gap-2 px-2.5 py-2">
+                <span
+                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+                    isNow ? 'bg-brand-mint/20 text-brand-mint' : 'bg-pg-text/10 text-pg-text-dim'
                   }`}
                 >
-                  <span className="truncate text-[13px] font-semibold text-pg-text">{cp.summary}</span>
-                  <span className="text-[10px] text-pg-text-muted">
-                    {clock(cp.ts)}
-                    {i === 0 ? ' · current' : ''}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {/* Detail column — files this version changed (appears on selection) */}
-      {selected && (
-        <div className="flex min-w-0 flex-1 flex-col" data-testid="history-detail">
-          <div className="flex items-center gap-1.5 px-2 py-2">
-            <span className="min-w-0 flex-1 truncate text-[11px] font-extrabold uppercase tracking-[0.1em] text-brand-sky">
-              {selectedIndex === 0 ? 'Latest' : 'Changed'}
-            </span>
-            {selectedIndex !== 0 &&
-              (confirm?.kind === 'project' ? (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-pg-text">
-                  Revert all?
-                  <button
-                    type="button"
-                    aria-label="Confirm revert"
-                    onClick={() => {
-                      onRevert(selected);
-                      setConfirm(null);
-                    }}
-                    className="rounded p-0.5 text-brand-coral hover:bg-wash-coral"
-                  >
-                    <Check size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Cancel revert"
-                    onClick={() => setConfirm(null)}
-                    className="rounded p-0.5 text-pg-text-muted hover:bg-pg-text/10 hover:text-pg-text"
-                  >
-                    <X size={13} />
-                  </button>
+                  <Icon size={15} aria-hidden />
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  aria-label={`Revert to ${selected.summary}`}
-                  title="Revert the whole project to this version"
-                  onClick={() => setConfirm({ kind: 'project' })}
-                  className="flex items-center gap-1 rounded-md bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-pg-text/20"
-                >
-                  <RotateCcw size={12} aria-hidden /> Revert
-                </button>
-              ))}
-          </div>
-          <ul className="min-h-0 flex-1 overflow-auto px-1.5 pb-2">
-            {changes.length === 0 ? (
-              <li className="px-2 py-1 text-[11px] text-pg-text-muted">No file changes.</li>
-            ) : (
-              changes.map(({ path, status }) => (
-                <li key={path}>
-                  <div className="group flex items-center rounded pr-1 hover:bg-pg-text/5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-bold text-pg-text">{title}</p>
+                  <p className="text-[11px] text-pg-text-muted">{isNow ? "you're here now" : ago(cp.ts)}</p>
+                </div>
+                {isNow && (
+                  <span className="shrink-0 rounded-full bg-brand-mint/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-brand-mint">
+                    Now
+                  </span>
+                )}
+              </div>
+
+              {/* Actions: "Go back" (except the current point — you're already
+                  there) + an optional "What changed" peek. */}
+              {!confirming && (!isNow || changes.length > 0) && (
+                <div className="flex items-center gap-1 px-2.5 pb-2">
+                  {!isNow && (
                     <button
                       type="button"
-                      aria-label={`Diff ${path}`}
-                      title={`Diff ${path}`}
+                      data-testid="history-goback"
                       onClick={() => {
-                        const original = prev?.files.find((f) => f.path === path)?.content ?? '';
-                        const modified = selected.files.find((f) => f.path === path)?.content ?? '';
-                        onDiff(path, original, modified);
+                        setConfirmId(cp.id);
+                        setExpandedId(null);
                       }}
-                      className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-[12px] text-pg-text-dim hover:text-pg-text"
+                      className="flex items-center gap-1.5 rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white transition-transform hover:-translate-y-0.5"
                     >
-                      <span className={`text-[10px] font-bold ${STATUS_LABEL[status].color}`}>
-                        {STATUS_LABEL[status].letter}
-                      </span>
-                      <span className="truncate">{base(path)}</span>
+                      <RotateCcw size={13} aria-hidden /> Go back
                     </button>
-                    {confirm?.kind === 'file' && confirm.path === path ? (
-                      <span className="flex shrink-0 items-center gap-0.5">
-                        <button
-                          type="button"
-                          aria-label={`Confirm revert ${path}`}
-                          onClick={() => {
-                            onRevertFile(path, selected.files.find((f) => f.path === path) ?? null);
-                            setConfirm(null);
-                          }}
-                          className="rounded p-0.5 text-brand-coral hover:bg-wash-coral"
-                        >
-                          <Check size={12} aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          aria-label="Cancel revert"
-                          onClick={() => setConfirm(null)}
-                          className="rounded p-0.5 text-pg-text-muted hover:bg-pg-text/10 hover:text-pg-text"
-                        >
-                          <X size={12} aria-hidden />
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-label={`Revert ${path}`}
-                        title="Revert just this file to this version"
-                        onClick={() => setConfirm({ kind: 'file', path })}
-                        className="shrink-0 rounded p-0.5 text-pg-text-muted opacity-0 transition-opacity hover:bg-pg-text/10 hover:text-pg-text group-hover:opacity-100"
-                      >
-                        <RotateCcw size={12} aria-hidden />
-                      </button>
-                    )}
+                  )}
+                  {changes.length > 0 && (
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      onClick={() => setExpandedId(expanded ? null : cp.id)}
+                      className={`flex items-center gap-0.5 rounded-lg px-2 py-1.5 text-[12px] font-bold text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text ${
+                        isNow ? '' : 'ml-auto'
+                      }`}
+                    >
+                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />} What changed
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Reassuring confirm — clear about exactly what happens. */}
+              {confirming && (
+                <div className="px-2.5 pb-2.5">
+                  <p className="mb-2 text-[12px] leading-snug text-pg-text-dim">
+                    Bring your game back to how it was <b className="text-pg-text">{ago(cp.ts)}</b>? Your newest
+                    version is saved here too, so you can always come back.
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      data-testid="history-goback-confirm"
+                      onClick={() => {
+                        onRevert(cp);
+                        setConfirmId(null);
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-brand-sky px-3 py-1.5 text-[12.5px] font-extrabold text-white"
+                    >
+                      <Check size={13} aria-hidden /> Yes, go back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmId(null)}
+                      className="flex items-center gap-1 rounded-lg border border-pg-border px-3 py-1.5 text-[12.5px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/5"
+                    >
+                      <X size={13} aria-hidden /> Cancel
+                    </button>
                   </div>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      )}
+                </div>
+              )}
+
+              {/* "What changed" — a plain-language file list; tap to see before/after. */}
+              {expanded && !confirming && (
+                <ul className="border-t border-pg-border/70 px-2.5 py-1.5">
+                  {changes.map(({ path, status }) => {
+                    const tag = TAG[status];
+                    return (
+                      <li key={path}>
+                        <button
+                          type="button"
+                          data-testid="history-file"
+                          aria-label={`See what changed in ${path}`}
+                          onClick={() => {
+                            const original = prev?.files.find((f) => f.path === path)?.content ?? '';
+                            const modified = cp.files.find((f) => f.path === path)?.content ?? '';
+                            onDiff(path, original, modified);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12px] text-pg-text-dim transition-colors hover:bg-pg-text/5 hover:text-pg-text"
+                        >
+                          <tag.Icon size={13} aria-hidden className={`shrink-0 ${tag.color}`} />
+                          <span className="min-w-0 flex-1 truncate">{base(path)}</span>
+                          <span className={`shrink-0 text-[10px] font-bold ${tag.color}`}>{tag.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
 
-function Header({ label }: { label: string }) {
+function Header() {
   return (
-    <div className="flex items-center gap-1.5 px-3 pt-3 pb-1">
-      <History size={14} aria-hidden className="text-brand-sky" />
-      <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">{label}</span>
+    <div className="shrink-0 px-3 pt-3 pb-2">
+      <div className="flex items-center gap-1.5">
+        <span aria-hidden className="text-[15px]">🕰️</span>
+        <span className="text-[12px] font-extrabold text-pg-text">Time Machine</span>
+      </div>
+      <p className="mt-0.5 text-[11px] leading-snug text-pg-text-muted">
+        Go back to an earlier version of your game. Your newest is always kept.
+      </p>
     </div>
   );
 }
