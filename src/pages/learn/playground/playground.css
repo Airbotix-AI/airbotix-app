@@ -199,12 +199,128 @@
   animation: pg-thinking-line 0.32s ease-out;
 }
 
+/* =========================================================================
+ * 5. Generating screen — the "build stage" (a playful platformer scene the
+ *    kid watches while the AI builds their game). Pure CSS so it loops with
+ *    zero JS, and stays delightful during the gap before the first real file.
+ * =========================================================================
+ */
+/* The little hero hops continuously while running left↔right across the stage. */
+@keyframes pg-hero-run {
+  from {
+    left: 12%;
+  }
+  to {
+    left: 76%;
+  }
+}
+@keyframes pg-hero-hop {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  45% {
+    transform: translateY(-30px) scaleY(1.05);
+  }
+  50% {
+    transform: translateY(-32px) scaleY(1.05);
+  }
+  90% {
+    transform: translateY(0) scaleY(0.92);
+  }
+}
+.pg-hero {
+  animation:
+    pg-hero-run 3s ease-in-out infinite alternate,
+    pg-hero-hop 0.85s ease-in-out infinite;
+}
+/* Platforms + clouds gently bob (stagger with an inline animation-delay). */
+@keyframes pg-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.pg-bob {
+  animation: pg-bob 2.6s ease-in-out infinite;
+}
+/* Sparkles twinkle (stagger with an inline animation-delay). */
+@keyframes pg-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.pg-twinkle {
+  animation: pg-twinkle 1.8s ease-in-out infinite;
+}
+/* Each real file row slides + fades in as the AI starts writing it. */
+@keyframes pg-file-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.pg-file-in {
+  animation: pg-file-in 0.34s ease-out both;
+}
+/* Indeterminate progress — a brand segment sweeps L→R while we wait (clearly
+ * FORWARD; no determinate % to fake, since the build burst lands at the end). */
+@keyframes pg-indeterminate {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+.pg-indeterminate {
+  animation: pg-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* The "ready!" celebration pop on the done beat. */
+@keyframes pg-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pg-pop {
+  animation: pg-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .pg-glow::before,
   .pg-orb-spin,
   .pg-shimmer,
-  .pg-thinking-line {
+  .pg-thinking-line,
+  .pg-hero,
+  .pg-bob,
+  .pg-twinkle,
+  .pg-file-in,
+  .pg-indeterminate,
+  .pg-pop {
     animation: none;
   }
 }

@@ -8,6 +8,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from '@/lib/api';
 import type { AgentTurnResult } from '../../code/codeApi';
 import type { GameAgentDeps } from './gameAgent';
 import { useGameAgent } from './useGameAgent';
@@ -71,6 +72,22 @@ function setup(onApplyFiles = vi.fn(), onStarsCharged = vi.fn()) {
   return { ...view, deps, onApplyFiles, onStarsCharged };
 }
 
+/** Render with a `runTurn` that rejects, so we can assert the error copy. */
+function setupFailing(error: unknown) {
+  const deps: GameAgentDeps = {
+    runTurn: vi.fn(async () => {
+      throw error;
+    }),
+    approve: vi.fn(async () => TURN),
+    classify: vi.fn(async () => null),
+    raiseHand: vi.fn(async () => {}),
+  };
+  const view = renderHook(() =>
+    useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+  );
+  return { ...view, deps };
+}
+
 describe('useGameAgent streamed apply (H1)', () => {
   it('Stop mid-stream still finalizes exactly once', async () => {
     resolveStream = null;
@@ -126,5 +143,36 @@ describe('useGameAgent streamed apply (H1)', () => {
     expect(onStarsCharged).toHaveBeenCalledWith(2);
     const lastChat = result.current.chat[result.current.chat.length - 1];
     expect(lastChat.text).toBe(TURN.summary);
+  });
+});
+
+describe('useGameAgent error copy distinguishes unreachable vs server-error', () => {
+  const REACH_FAIL = 'Could not reach the AI. Try again.';
+  const SERVER_FAIL = 'The AI ran into a problem. Try again in a moment.';
+
+  it('a transport failure (fetch rejected, no ApiError) reads as "could not reach"', async () => {
+    const { result } = setupFailing(new TypeError('Failed to fetch'));
+    await act(async () => {
+      await result.current.send('make it blue');
+    });
+    await waitFor(() => expect(result.current.error).toBe(REACH_FAIL));
+    expect(result.current.chat[result.current.chat.length - 1].text).toBe(REACH_FAIL);
+  });
+
+  it('a backend 5xx (server reached but errored) reads as a server problem', async () => {
+    const { result } = setupFailing(new ApiError(500, 'INTERNAL', 'boom'));
+    await act(async () => {
+      await result.current.send('make it blue');
+    });
+    await waitFor(() => expect(result.current.error).toBe(SERVER_FAIL));
+    expect(result.current.chat[result.current.chat.length - 1].text).toBe(SERVER_FAIL);
+  });
+
+  it('a gateway-down 503 keeps the "could not reach" copy', async () => {
+    const { result } = setupFailing(new ApiError(503, 'HTTP_503', 'unavailable'));
+    await act(async () => {
+      await result.current.send('make it blue');
+    });
+    await waitFor(() => expect(result.current.error).toBe(REACH_FAIL));
   });
 });
