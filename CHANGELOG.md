@@ -4,6 +4,13 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-09
+
+### Added
+- **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
+  page: shows hours remaining across entitlements, lists hour-pack plans, and starts an Airwallex
+  checkout to buy (mirrors the wallet topup flow). "Tutoring" nav item added.
+
 ## 2026-06-07
 
 ### Added
