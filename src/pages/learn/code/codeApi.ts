@@ -239,7 +239,10 @@ export async function saveVfs(args: {
         method: 'PUT',
         body: {
           files: args.files,
-          version: args.version,
+          // Backend DTO field is `expected_version` (optimistic concurrency); a
+          // plain `version` is dropped → validation 400 → every save fell back to
+          // "Saved on this device" (queued) and never synced.
+          expected_version: args.version,
           idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
         },
       },
