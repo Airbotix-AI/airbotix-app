@@ -84,7 +84,7 @@ const ICON_COL_PX = 124;
 // Width of the Code Editor's fixed file column (keep in sync with
 // `FILES_DEFAULT_W` in `panes/CodeEditorPane.tsx`). Used to size the launch
 // window so the EDITOR area — window width minus this column — is what scales.
-const CODE_FILES_COL_W = 256;
+const CODE_FILES_COL_W = 280;
 
 function r(x: number, y: number, w: number, h: number): WinRect {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };

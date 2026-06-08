@@ -20,15 +20,29 @@ export interface Checkpoint {
   files: VfsFile[];
   /** Human summary of what changed vs the previous checkpoint, e.g. "edited main.js". */
   summary: string;
+  /** True if this point is an in-progress editing session that later edits in the
+   *  same session FOLD INTO (so a burst of typing is one entry, not dozens). */
+  coalescable?: boolean;
 }
 
 /** Most recent checkpoints kept; older ones drop off the end. */
 const MAX_CHECKPOINTS = 50;
 
+/** Consecutive coalescable edits within this gap fold into one save point. A kid
+ *  changing a line produces several idle-autosaves; they should read as ONE
+ *  "you changed your game", not one entry per pause. */
+const COALESCE_WINDOW_MS = 90_000;
+
+interface RecordOptions {
+  /** This is a continuous-editing autosave: fold it into the latest save point if
+   *  that one is also a recent editing session (instead of adding a new entry). */
+  coalesce?: boolean;
+}
+
 interface HistoryState {
   checkpoints: Checkpoint[];
-  /** Record a snapshot. No-op if identical to the latest. Returns the new checkpoint (or null). */
-  record: (files: VfsFile[], ts: number, summary?: string) => Checkpoint | null;
+  /** Record a snapshot. No-op if identical to the latest. Returns the checkpoint (or null). */
+  record: (files: VfsFile[], ts: number, summary?: string, opts?: RecordOptions) => Checkpoint | null;
   /** Restore persisted checkpoints (continues ids past the restored max). */
   hydrate: (checkpoints: Checkpoint[]) => void;
   reset: () => void;
@@ -65,15 +79,34 @@ const nextId = () => `cp_${(counter += 1)}`;
 export const useHistoryStore = create<HistoryState>((set, get) => ({
   checkpoints: [],
 
-  record: (files, ts, summary) => {
+  record: (files, ts, summary, opts) => {
     const { checkpoints } = get();
     const latest = checkpoints[0];
     if (latest && sameFiles(latest.files, files)) return null;
+    const snapshot = files.map((f) => ({ ...f })); // snapshot copy
+
+    // Fold a continuous-editing autosave into the current session: replace the
+    // latest point in place (keeping its id) and re-summarise against the point
+    // BEFORE the session, so the timeline shows one evolving "you changed your
+    // game" instead of one entry per keystroke-pause.
+    if (opts?.coalesce && latest?.coalescable && ts - latest.ts < COALESCE_WINDOW_MS) {
+      const before = checkpoints[1]?.files ?? null;
+      const updated: Checkpoint = {
+        ...latest,
+        ts,
+        files: snapshot,
+        summary: summary ?? summarize(before, files),
+      };
+      set({ checkpoints: [updated, ...checkpoints.slice(1)] });
+      return updated;
+    }
+
     const cp: Checkpoint = {
       id: nextId(),
       ts,
-      files: files.map((f) => ({ ...f })), // snapshot copy
+      files: snapshot,
       summary: summary ?? summarize(latest?.files ?? null, files),
+      coalescable: opts?.coalesce,
     };
     set({ checkpoints: [cp, ...checkpoints].slice(0, MAX_CHECKPOINTS) });
     return cp;
