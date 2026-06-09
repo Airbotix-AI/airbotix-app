@@ -159,9 +159,12 @@ export function WorkspacePage() {
       // Music studio uses the structured MIDI-score endpoint instead of raw audio,
       // so the frontend Tone.js player can render per-instrument layered playback.
       if (studio === 'music') {
+        // Free-play workspace session: no project_id (backend treats it as
+        // free-play, like the sibling studios). The generated artifact is linked
+        // to the Learning Session via append-artifact, not a project.
         return api('/llm/music-score', {
           method: 'POST',
-          body: { prompt: fullPrompt, project_id: 'cmp810wr00007119oiy5jukd2' },
+          body: { prompt: fullPrompt },
         });
       }
       const endpoint = studio === 'voice' ? 'tts' : studio;
