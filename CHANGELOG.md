@@ -7,6 +7,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Changed
+- **Upgraded the game runtime to Phaser 4.1.0** (from 3.80.1). Phaser 4's full build
+  (`dist/phaser.min.js`) is still a UMD that sets `window.Phaser`, so the opaque-origin
+  sandbox keeps loading it as a classic global `<script>` (no `allow-same-origin`, no
+  CDN — the `vendor-phaser` Vite plugin re-materializes the engine + `.d.ts` into
+  `public/vendor/`). Bumped `PHASER_VERSION` + the `/vendor/phaser-<v>.*` constants in
+  `vite.config.ts`, `buildGamePreview.ts`, `MonacoEditor.tsx`. The `Phaser.Game`
+  constructor-wrapper control channel (pause/mute/stats) still works. Verified by the
+  `game-smoke` e2e (starter game runs, fps > 0, zero console errors) and the Phaser
+  `.d.ts` IntelliSense e2e. The agent system prompt deliberately keeps teaching the
+  Phaser-3-style game API — it's backward-compatible, runs on the Phaser 4 engine, and
+  is the most reliable surface for the model to generate.
 - **Playground "building your game" screen — total redesign around real progress.**
   The old screen showed a spinning orb + a fake timed progress bar + canned "Writing
   the code…" steps that didn't reflect anything real (the backend generated the whole
