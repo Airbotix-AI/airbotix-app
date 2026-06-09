@@ -28,7 +28,6 @@ import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
 import { WINDOW_META } from './desktop/windowMeta';
 import { AssetViewerPane } from './panes/AssetViewerPane';
-import { addAssetToGame } from './panes/assetInsert';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
@@ -97,6 +96,9 @@ export function Workspace({
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
   );
+  // A request to open a specific asset in the Asset Viewer (from a chat card).
+  const [openAsset, setOpenAsset] = useState<{ path: string; nonce: number } | null>(null);
+  const openAssetNonce = useRef(0);
   useEffect(() => {
     writeWorkspaceSlice('split', { tab: splitTab });
   }, [splitTab]);
@@ -227,14 +229,19 @@ export function Workspace({
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
   };
-  // Chat "Add to my game" CTA on a generated-asset message → inject its loader.
-  const addAssetFromChat = (path: string) => {
-    const asset = files.find((f) => f.path === path);
-    if (!asset) return;
-    const r = addAssetToGame(files, asset);
-    if (r.files) onApplyFiles(r.files);
+  // Tapping a finished asset in chat → bring the Asset Viewer to front and open
+  // that asset there (the nonce re-fires even when reopening the same path).
+  const openAssetInViewer = (path: string) => {
+    focusPanel('assets');
+    setOpenAsset({ path, nonce: openAssetNonce.current++ });
   };
   const assetSrcFromChat = (path: string) => files.find((f) => f.path === path)?.content;
+  // Asset Viewer Generate/Remix → bring the Chat to front (it's where generation
+  // shows), then post the request. The chat auto-scrolls to the new message.
+  const requestAssetGenFromViewer = (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+    focusPanel('chat');
+    requestAssetGen(prompt, ref);
+  };
   const chatProps = {
     chat,
     busy,
@@ -258,7 +265,7 @@ export function Workspace({
     // Tap a changed-file row → open the editor and highlight the change (§11.4).
     onOpenFile: (path: string, fromLine?: number, toLine?: number) =>
       handleOpenLocation(path, fromLine ?? 1, toLine),
-    onAddAssetToGame: addAssetFromChat,
+    onOpenAsset: openAssetInViewer,
     assetSrc: assetSrcFromChat,
     onStop: abort,
     onRetry: retryLast,
@@ -346,7 +353,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGen} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
           </Window>
           <Window
             id="help"
@@ -416,7 +423,7 @@ export function Workspace({
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGen} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
                 )}
               </div>
             </section>

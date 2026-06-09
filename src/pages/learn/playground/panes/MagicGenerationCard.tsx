@@ -22,6 +22,7 @@ export function MagicGenerationCard({
   status,
   prompt,
   mode,
+  refSrc,
   onCancel,
   onRetry,
   onDismiss,
@@ -29,6 +30,8 @@ export function MagicGenerationCard({
   status: GenStatus;
   prompt: string;
   mode: GenMode;
+  /** For a remix: the reference asset being varied (shown beside the orb). */
+  refSrc?: string;
   onCancel: () => void;
   onRetry: () => void;
   onDismiss: () => void;
@@ -59,6 +62,15 @@ export function MagicGenerationCard({
           ))}
 
         <div className="flex items-center gap-3.5">
+          {/* the reference asset being remixed (when this is a remix) */}
+          {refSrc && (
+            <img
+              src={refSrc}
+              crossOrigin="anonymous"
+              alt="reference"
+              className="h-[44px] w-[44px] shrink-0 rounded-xl bg-white object-contain p-1 shadow-[0_0_0_2px_#fff,0_6px_16px_-6px_rgba(155,123,255,.45)]"
+            />
+          )}
           {/* the magic orb */}
           <div className="relative h-[58px] w-[58px] shrink-0">
             <div

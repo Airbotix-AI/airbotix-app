@@ -15,7 +15,6 @@ import {
   Image as ImageIcon,
   Loader2,
   Music,
-  Plus,
   Search,
   Sparkles,
   Trash2,
@@ -24,7 +23,6 @@ import {
 } from 'lucide-react';
 
 import type { VfsFile } from '../../code/codeApi';
-import { addAssetToGame, addLibraryAssetToGame } from './assetInsert';
 import {
   ASSET_LIBRARY,
   LIBRARY_CATEGORIES,
@@ -67,6 +65,8 @@ interface AssetViewerPaneProps {
    * it shares the one-AI-at-a-time lock and shows in the conversation.
    */
   onRequestAssetGen?: (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => void;
+  /** A request to open a specific asset's detail (from a chat "done" card tap). */
+  openAsset?: { path: string; nonce: number } | null;
 }
 
 const ALL = '__all__';
@@ -129,7 +129,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: AssetViewerPaneProps) {
+export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
@@ -159,6 +159,16 @@ export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: Asse
       assetSelectedPath: selectedPath,
     });
   }, [source, category, query, selectedPath]);
+  // Open a specific asset on request (a chat "done" card tap, §3): switch to My
+  // assets and reveal its detail. The nonce re-fires even for the same path.
+  useEffect(() => {
+    if (!openAsset) return;
+    setSource('mine');
+    setCategory(ALL);
+    setSelectedLibId(null);
+    setSelectedPath(openAsset.path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAsset?.nonce]);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -261,38 +271,13 @@ export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: Asse
     if (!genPrompt.trim()) return;
     onRequestAssetGen?.(genPrompt.trim());
     setGenPrompt('');
-    setNotice('Sent to chat ✨ — watch it generate there.');
   }
 
   function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
     if (!prompt.trim()) return;
     onRequestAssetGen?.(prompt.trim(), ref);
-    setNotice('Remix sent to chat ✨');
   }
 
-  /** One-tap "Add to my game": write the loader + a sensible use into a scene. */
-  function onAddToGame(addAsset: VfsFile) {
-    if (!onApplyFiles) return;
-    const r = addAssetToGame(files, addAsset);
-    if (!r.files) {
-      setNotice("Couldn't find a scene to add it to — open the code and load it yourself.");
-      return;
-    }
-    onApplyFiles(r.files);
-    setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
-  }
-
-  /** Add a shared Library asset by URL (it's never copied into the VFS). */
-  function onAddLibraryToGame(lib: LibraryAsset) {
-    if (!onApplyFiles) return;
-    const r = addLibraryAssetToGame(files, lib);
-    if (!r.files) {
-      setNotice("Couldn't find a scene to add it to — open the code and load it yourself.");
-      return;
-    }
-    onApplyFiles(r.files);
-    setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
-  }
 
   return (
     <div
@@ -377,9 +362,7 @@ export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: Asse
           selectedLib ? (
             <LibraryDetailView
               asset={selectedLib}
-              canAddToGame={!!onApplyFiles}
               busy={false}
-              onAddToGame={() => onAddLibraryToGame(selectedLib)}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
               onCopyRef={(snippet) => {
@@ -394,9 +377,7 @@ export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: Asse
           <DetailView
             asset={selected}
             files={files}
-            canAddToGame={!!onApplyFiles}
             busy={false}
-            onAddToGame={() => onAddToGame(selected)}
             onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
@@ -559,20 +540,16 @@ function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id
   );
 }
 
-/** The read-only Library asset detail: preview + Add-to-game + copy code-ref. */
+/** The read-only Library asset detail: preview + Remix + copy code-ref. */
 function LibraryDetailView({
   asset,
-  canAddToGame,
   busy,
-  onAddToGame,
   onRemix,
   onBack,
   onCopyRef,
 }: {
   asset: LibraryAsset;
-  canAddToGame: boolean;
   busy: boolean;
-  onAddToGame: () => void;
   onRemix: (prompt: string) => void;
   onBack: () => void;
   onCopyRef: (snippet: string) => void;
@@ -613,17 +590,6 @@ function LibraryDetailView({
             <Row k="License" v={asset.license} />
             <Row k="Source" v="Shared library (read-only)" />
           </dl>
-
-          {canAddToGame && (
-            <button
-              type="button"
-              data-testid="library-add-to-game"
-              onClick={onAddToGame}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2.5 text-[13px] font-extrabold text-white transition-colors hover:bg-brand-bubblegum/90"
-            >
-              <Plus size={16} /> Add to my game
-            </button>
-          )}
 
           {asset.kind === 'image' && <RemixBar busy={busy} onRemix={onRemix} />}
 
@@ -719,9 +685,7 @@ function GenerateBar({
 function DetailView({
   asset,
   files,
-  canAddToGame,
   busy,
-  onAddToGame,
   onRemix,
   onBack,
   onRename,
@@ -730,9 +694,7 @@ function DetailView({
 }: {
   asset: VfsFile;
   files: VfsFile[];
-  canAddToGame: boolean;
   busy: boolean;
-  onAddToGame: () => void;
   onRemix: (prompt: string) => void;
   onBack: () => void;
   onRename: (to: string) => void;
@@ -825,20 +787,6 @@ function DetailView({
             {anim && <Row k="Frames" v={`${anim.frames} @ ${anim.fps}fps · ${anim.frameWidth}×${anim.frameHeight}`} />}
             <Row k="Size" v={formatBytes(asset.size || asset.content.length)} />
           </dl>
-
-          {/* One-tap insert (PRD J5): a kid won't hand-paste the code-ref, so the
-              primary action wires the loader + a use into a scene automatically.
-              The code-ref below is kept for older kids who want to do it by hand. */}
-          {canAddToGame && (
-            <button
-              type="button"
-              data-testid="asset-add-to-game"
-              onClick={onAddToGame}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2.5 text-[13px] font-extrabold text-white transition-colors hover:bg-brand-bubblegum/90"
-            >
-              <Plus size={16} /> Add to my game
-            </button>
-          )}
 
           {(kind === 'image' || kind === 'sprite') && <RemixBar busy={busy} onRemix={onRemix} />}
 

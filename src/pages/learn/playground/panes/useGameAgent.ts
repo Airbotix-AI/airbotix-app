@@ -66,7 +66,13 @@ export interface ChatItem {
    * An AI asset-generation message (D-ASSET §3): the magic card while it runs,
    * then the finished asset with Add-to-game / Remix. `path` is the new VFS asset.
    */
-  assetGen?: { status: 'generating' | 'done' | 'error'; prompt: string; path?: string };
+  assetGen?: {
+    status: 'generating' | 'done' | 'error';
+    prompt: string;
+    path?: string;
+    /** For a remix: the reference asset's `data:` URL / URL, shown in the card. */
+    refSrc?: string;
+  };
 }
 
 /**
@@ -469,10 +475,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   // done. Caller owns the `busy` lock. Cancel is handled by the card → store.cancel().
   const runAssetTurn = useCallback(
     async (prompt: string, bubbleId: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      // Resolve the reference asset's image src so the card can show what's being
+      // remixed (a VFS asset's data URL, or a Library asset's URL).
+      const refSrc = ref?.refUrl ?? (ref?.refAssetPath ? files.find((f) => f.path === ref.refAssetPath)?.content : undefined);
       setChat((prev) =>
         prev.map((it) =>
           it.id === bubbleId
-            ? { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt } }
+            ? { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt, refSrc } }
             : it,
         ),
       );
@@ -486,13 +495,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         prev.flatMap((it) => {
           if (it.id !== bubbleId) return [it];
           if (status === 'done' && resultPath)
-            return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'done' as const, prompt, path: resultPath } }];
+            return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'done' as const, prompt, path: resultPath, refSrc } }];
           if (status === 'idle') return []; // cancelled → drop the bubble
-          return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'error' as const, prompt } }];
+          return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'error' as const, prompt, refSrc } }];
         }),
       );
     },
-    [projectId],
+    [projectId, files],
   );
 
   const send = useCallback(

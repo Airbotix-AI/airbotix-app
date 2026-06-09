@@ -7,6 +7,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Changed
+- **Chat generation UX polish.** The Asset Viewer's Generate/Remix no longer shows a
+  "sent to chat" banner — instead it **brings the Chat to front** (and the chat
+  auto-scrolls to the new message). A **remix** now shows the **reference asset** in the
+  in-flight chat card. The finished-asset chat card drops the "Add to my game" button,
+  shows the asset **larger**, and is **tap-to-open** in the Asset Viewer. Also removed the
+  "Add to my game" button from the Asset Viewer detail screens (confusing) — the AI wires
+  assets into the game from chat; the copy-able code-ref remains for manual use.
 - **AI asset generation now lives in the CHAT** (learn-game-studio-assets-prd §3) — the
   single home for all AI conversation. A typed message is classified server-side as an
   **asset** request vs a **game-code** change (`/turn/classify` returns `intent`) and

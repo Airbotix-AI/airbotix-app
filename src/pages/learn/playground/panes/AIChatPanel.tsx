@@ -153,9 +153,9 @@ interface AIChatPanelProps {
   onSeeCode?: () => void;
   /** Open a changed file in the editor and highlight the change (§11.4). */
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
-  /** Add a generated asset (by VFS path) to the game — the chat "done" card CTA (§3). */
-  onAddAssetToGame?: (path: string) => void;
-  /** Resolve an asset's `data:` URL by VFS path, for the chat "done" thumbnail. */
+  /** Open a finished asset (by VFS path) in the Asset Viewer — the chat "done" card tap (§3). */
+  onOpenAsset?: (path: string) => void;
+  /** Resolve an asset's `data:` URL by VFS path, for the chat "done" preview. */
   assetSrc?: (path: string) => string | undefined;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
@@ -184,7 +184,7 @@ export function AIChatPanel({
   onRunGame,
   onSeeCode,
   onOpenFile,
-  onAddAssetToGame,
+  onOpenAsset,
   assetSrc,
   onStop,
   onRetry,
@@ -312,7 +312,7 @@ export function AIChatPanel({
                 onSeeCode={onSeeCode}
                 onSend={onSend}
                 onOpenFile={onOpenFile}
-                onAddAssetToGame={onAddAssetToGame}
+                onOpenAsset={onOpenAsset}
                 assetSrc={assetSrc}
               />
             ),
@@ -482,7 +482,7 @@ function ChatRow({
   onSeeCode,
   onSend,
   onOpenFile,
-  onAddAssetToGame,
+  onOpenAsset,
   assetSrc,
 }: {
   item: ChatItem;
@@ -490,7 +490,7 @@ function ChatRow({
   onSeeCode?: () => void;
   onSend?: (text: string) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
-  onAddAssetToGame?: (path: string) => void;
+  onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;
 }) {
   if (item.role === 'kid') {
@@ -508,34 +508,29 @@ function ChatRow({
     const ag = item.assetGen;
     if (ag.status === 'done' && ag.path) {
       const src = assetSrc?.(ag.path);
+      const path = ag.path;
+      // The finished asset, shown big. Tapping it opens it in the Asset Viewer.
       return (
         <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 px-3 py-2.5">
-            <div className="flex items-center gap-3">
-              {src && (
-                <img
-                  src={src}
-                  crossOrigin="anonymous"
-                  alt=""
-                  className="h-12 w-12 shrink-0 rounded-lg bg-pg-surface-2 object-contain"
-                />
-              )}
-              <div>
-                <div className="text-[13px] font-extrabold text-pg-text">Here’s your asset! ✨</div>
-                <div className="text-[11.5px] text-pg-text-muted">saved to My assets</div>
-              </div>
-            </div>
-            {onAddAssetToGame && (
-              <button
-                type="button"
-                data-testid="chat-asset-add"
-                onClick={() => onAddAssetToGame(ag.path!)}
-                className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2 text-[12.5px] font-extrabold text-white"
-              >
-                ＋ Add to my game
-              </button>
+          <button
+            type="button"
+            data-testid="chat-asset-open"
+            onClick={() => onOpenAsset?.(path)}
+            className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 p-2.5 text-left transition-colors hover:border-brand-bubblegum/60"
+          >
+            <div className="mb-2 px-1 text-[13px] font-extrabold text-pg-text">Here’s your asset! ✨</div>
+            {src && (
+              <img
+                src={src}
+                crossOrigin="anonymous"
+                alt=""
+                className="h-40 w-full rounded-xl bg-pg-surface-2 object-contain p-2"
+              />
             )}
-          </div>
+            <div className="mt-1.5 px-1 text-[11.5px] text-pg-text-muted">
+              saved to My assets · tap to open it
+            </div>
+          </button>
         </div>
       );
     }
@@ -554,7 +549,8 @@ function ChatRow({
           <MagicGenerationCard
             status="generating"
             prompt={ag.prompt}
-            mode="create"
+            mode={ag.refSrc ? 'remix' : 'create'}
+            refSrc={ag.refSrc}
             onCancel={() => useGenerationStore.getState().cancel()}
             onRetry={() => undefined}
             onDismiss={() => undefined}
