@@ -163,6 +163,8 @@ export interface FirstTurnSeed {
   prompt: string;
   reply: string;
   toolsFired?: string[];
+  /** The teacher's 2–3 next-step options from the first turn (§11.4 / D-PAP-06). */
+  nextSteps?: NextStep[];
 }
 
 function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
@@ -173,6 +175,7 @@ function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
       role: 'agent',
       text: seed.reply,
       toolsFired: seed.toolsFired,
+      nextSteps: seed.nextSteps,
       actions: ['run', 'code'],
     },
   ];

@@ -143,7 +143,13 @@ export function GeneratingScreen({
           window.clearInterval(reveal);
           window.clearInterval(tipTimer);
           doneTimer = window.setTimeout(
-            () => finish(r.files, { prompt, reply: r.summary, toolsFired: r.tools_fired }),
+            () =>
+              finish(r.files, {
+                prompt,
+                reply: r.summary,
+                toolsFired: r.tools_fired,
+                nextSteps: r.next_steps,
+              }),
             DONE_BEAT_MS,
           );
         }
