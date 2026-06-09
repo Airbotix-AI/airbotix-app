@@ -14,7 +14,6 @@ import {
   Film,
   Image as ImageIcon,
   Loader2,
-  Lock,
   Music,
   Plus,
   Search,
@@ -26,7 +25,6 @@ import {
 import type { VfsFile } from '../../code/codeApi';
 import { runGen } from '../assetGen';
 import { addAssetToGame } from './assetInsert';
-import { isPreloadedAsset } from '../sampleAssets';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
@@ -389,14 +387,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
                       >
                         <div className="relative h-28 bg-pg-surface-2 p-2">
                           <Thumb asset={a} kind={kind} />
-                          {isPreloadedAsset(a.path) && (
-                            <span
-                              title="Sample (read-only)"
-                              className="absolute right-1.5 top-1.5 rounded-full bg-pg-bg/80 p-1 text-pg-text-muted"
-                            >
-                              <Lock size={11} />
-                            </span>
-                          )}
                         </div>
                         <div className="px-2.5 py-2">
                           <p className="truncate text-[12.5px] font-bold">{basename(a.path)}</p>
@@ -549,8 +539,6 @@ function DetailView({
   const kind = assetKindOf(asset.path, files);
   const anim = kind === 'sprite' ? parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path))) : null;
   const snippet = codeRefFor(asset, anim);
-  // Preloaded samples are read-only (no rename/delete); user/AI assets get CRUD.
-  const locked = isPreloadedAsset(asset.path);
 
   useEffect(() => {
     setDims(null);
@@ -586,9 +574,7 @@ function DetailView({
         >
           <ArrowLeft size={15} /> Back
         </button>
-        {locked ? (
-          <span className="truncate text-[14px] font-extrabold">{basename(asset.path)}</span>
-        ) : renaming ? (
+        {renaming ? (
           <input
             autoFocus
             value={nameDraft}
@@ -614,11 +600,6 @@ function DetailView({
           </button>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {locked && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text-dim">
-              <Lock size={11} /> Sample
-            </span>
-          )}
           <span className="rounded-full bg-brand-bubblegum/15 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
             {kind}
           </span>
@@ -640,7 +621,7 @@ function DetailView({
           {/* One-tap insert (PRD J5): a kid won't hand-paste the code-ref, so the
               primary action wires the loader + a use into a scene automatically.
               The code-ref below is kept for older kids who want to do it by hand. */}
-          {canAddToGame && !locked && (
+          {canAddToGame && (
             <button
               type="button"
               data-testid="asset-add-to-game"
@@ -670,11 +651,7 @@ function DetailView({
             </pre>
           </div>
 
-          {locked ? (
-            <p className="inline-flex w-fit items-center gap-1.5 text-[12px] text-pg-text-muted">
-              <Lock size={13} /> Sample asset — read-only. Import or generate your own to edit.
-            </p>
-          ) : confirmDelete ? (
+          {confirmDelete ? (
             <div className="flex items-center gap-2 rounded-xl border border-brand-coral/50 bg-brand-coral/10 p-3 text-[12.5px]">
               <span className="font-semibold">Delete this asset?</span>
               <button type="button" onClick={onDelete} className="ml-auto rounded-lg bg-brand-coral px-3 py-1 font-bold text-white">

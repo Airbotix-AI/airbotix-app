@@ -20,7 +20,6 @@ import {
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
-import { isPreloadedAsset, withPreloadedAssets } from './sampleAssets';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 import type { FirstTurnSeed } from './panes/useGameAgent';
@@ -149,10 +148,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
         const result = await savePersisted(
           persistKey,
           {
-            // The read-only sample assets are client-seeded demo content (re-added
-            // on every load via withPreloadedAssets) — never persist them: they'd
-            // bloat the save and the audio/video ones used to break it.
-            files: ps.files.filter((f) => !isPreloadedAsset(f.path)),
+            files: ps.files,
             folders: ps.folders,
             checkpoints: useHistoryStore.getState().checkpoints,
             savedAt: Date.now(),
@@ -172,7 +168,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           useHistoryStore
             .getState()
             .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)');
-          useProjectStore.getState().apply(withPreloadedAssets(result.server.files));
+          useProjectStore.getState().apply(result.server.files);
           setSaveStatus('kept-newest');
         }
       }, SAVE_DEBOUNCE_MS);
@@ -290,9 +286,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             const history = useHistoryStore.getState();
             if (persisted && persisted.files.length > 0) {
               versionRef.current = persisted.version;
-              // Always (re)seed the read-only preloaded samples, so they appear
-              // even for projects persisted before they existed.
-              project.hydrate(withPreloadedAssets(persisted.files), persisted.folders);
+              project.hydrate(persisted.files, persisted.folders);
               if (persisted.checkpoints.length > 0) {
                 history.hydrate(persisted.checkpoints);
               } else {
@@ -302,10 +296,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
               setSaveStatus('saved');
             } else {
               versionRef.current = 0;
-              const seeded = withPreloadedAssets(f);
-              project.setFiles(seeded);
+              project.setFiles(f);
               history.reset();
-              history.record(seeded, Date.now(), 'Initial version');
+              history.record(f, Date.now(), 'Initial version');
               setSaveStatus('idle');
             }
             // Restore the saved workspace UI (open tabs, sidebar, layout mode,

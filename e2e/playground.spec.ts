@@ -556,21 +556,6 @@ test('asset viewer: a text asset previews as plain text', async ({ page }) => {
   await expect(page.getByText(/Drop sprites\/sounds here/)).toBeVisible();
 });
 
-test('asset viewer: samples are read-only and categories navigate out of detail', async ({ page }) => {
-  await reachWorkspace(page);
-  await page.getByRole('button', { name: /Split/ }).click();
-  await page.getByRole('tab', { name: /Assets/ }).click();
-
-  // Open a preloaded sample → read-only (no Delete button, shows the notice).
-  await page.getByText('coin.svg').click({ timeout: 5_000 });
-  await expect(page.getByText(/read-only/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
-
-  // Clicking a category returns to the grid (not stuck on the detail screen).
-  await page.getByRole('button', { name: /^audio/ }).click();
-  await expect(page.getByText('chime.wav')).toBeVisible();
-});
-
 // ── Chat-first launch ────────────────────────────────────────────────────────
 
 test('workspace launches chat-first: only Chat open, with the scaffold hand-off', async ({ page }) => {

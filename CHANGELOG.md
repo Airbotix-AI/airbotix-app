@@ -71,6 +71,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
   Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
   `alt` label — no HTML injection. Unknown key → alt caption fallback.
+### Removed
+- **Playground: dropped the seeded sample/test assets and the read-only "preloaded"
+  lock.** New game projects no longer ship `coin.svg` / `hero_bounce` sprite /
+  `chime.wav` / `intro.mp4` in their VFS — those were test fixtures. The Asset Viewer
+  now treats every VFS asset as the kid's own (full CRUD; no `Lock` badge / "Sample —
+  read-only" state). Deleted `sampleAssets.ts`, `sampleVideo.ts`, and
+  `sampleAssets.test.ts`; removed `withPreloadedAssets`/`isPreloadedAsset` seeding +
+  save-time filtering from `PlaygroundApp`. The shared **Library** source (Kenney CC0 +
+  emoji, referenced by URL) replaces "something to start with" — see PRD
+  `learn-game-studio-assets-prd.md` A0 / D-ASSET-3, D-ASSET-6. New projects start with
+  an empty `assets/` (plus the `README.txt` scaffold note); Import / ✨ Generate still
+  populate it. Removed the now-obsolete "samples are read-only" e2e.
 
 ### Changed
 - **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`
