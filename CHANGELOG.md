@@ -71,6 +71,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
   Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
   `alt` label — no HTML injection. Unknown key → alt caption fallback.
+- **Playground shared asset Library — foundation (zero-host emoji provider).** New
+  `assetLibrary.ts`: a curated, kid-appropriate **emoji** catalog (characters /
+  animals / food / nature / items / symbols) exposed as read-only `LibraryAsset`
+  records referenced by URL — never copied into the VFS. URLs are derived from the
+  emoji codepoint via `twemojiUrl()` (pinned `jdecked/twemoji@15.1.0`, VS16 stripped),
+  so the asset the kid browses is exactly what the game loads (WYSIWYG). `searchLibrary()`
+  filters by category + name/tags (the same shape the `search_assets` agent tool will
+  use). This is the data layer for the Library source tab (Asset Viewer UI wiring lands
+  next). Zero hosting (D-ASSET-11/12); hosted Kenney CC0 is the v2 provider. See PRD
+  `learn-game-studio-assets-prd.md` A2 / §4.4.
+
 ### Changed
 - **Playground asset generation is now prompt-only — removed the image/audio
   dropdown** (D-ASSET-4). The kid describes what they want in one box ("a pixel
