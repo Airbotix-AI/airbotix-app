@@ -7,8 +7,9 @@ function handlers(): ClientActionHandlers & {
   runGame: ReturnType<typeof vi.fn>;
   restartGame: ReturnType<typeof vi.fn>;
   focusPanel: ReturnType<typeof vi.fn>;
+  openHelp: ReturnType<typeof vi.fn>;
 } {
-  return { runGame: vi.fn(), restartGame: vi.fn(), focusPanel: vi.fn() };
+  return { runGame: vi.fn(), restartGame: vi.fn(), focusPanel: vi.fn(), openHelp: vi.fn() };
 }
 
 describe('executeClientActions', () => {
@@ -46,6 +47,27 @@ describe('executeClientActions', () => {
     // 'game' is the fallback for focus_panel.
     expect(h.focusPanel).toHaveBeenNthCalledWith(1, 'game');
     expect(h.focusPanel).toHaveBeenNthCalledWith(2, 'game');
+  });
+
+  it('open_help opens the Guide at the doc + anchor', () => {
+    const h = handlers();
+    executeClientActions(
+      [{ action: 'open_help', target: 'phaser/arcade-physics', anchor: 'gravity' }],
+      h,
+    );
+    expect(h.openHelp).toHaveBeenCalledWith('phaser/arcade-physics', 'gravity');
+  });
+
+  it('open_help without a target is ignored (no blank Guide)', () => {
+    const h = handlers();
+    executeClientActions([{ action: 'open_help' }], h);
+    expect(h.openHelp).not.toHaveBeenCalled();
+  });
+
+  it('focus_panel can target the help pane', () => {
+    const h = handlers();
+    executeClientActions([{ action: 'focus_panel', target: 'help' }], h);
+    expect(h.focusPanel).toHaveBeenCalledWith('help');
   });
 
   it('ignores unsupported actions (forward-compatible)', () => {

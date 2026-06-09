@@ -132,9 +132,19 @@ export function Workspace({
   // Surface/focus a panel for a turn's workspace action: open+focus the window
   // (Window mode) or switch the split tab (Split mode; the Game pane is always
   // visible there, so 'game' is a no-op).
-  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets') => {
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => {
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus(target);
     else if (target !== 'game') setSplitTab(target);
+  };
+
+  // The agent's `open_help` — surface the Guide and jump it to a passage. A
+  // monotonic nonce makes a repeat jump to the same place re-fire (HelpPane reacts
+  // to the new object identity). Mirrors the jump-to-error `locationRequest` seam.
+  const [helpRequest, setHelpRequest] = useState<{ docId: string; anchor?: string; nonce: number } | null>(null);
+  const helpNonce = useRef(0);
+  const openHelp = (docId: string, anchor?: string) => {
+    focusPanel('help');
+    setHelpRequest({ docId, anchor, nonce: (helpNonce.current += 1) });
   };
 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
@@ -172,6 +182,7 @@ export function Workspace({
         runGame: runFromEditor,
         restartGame: runFromEditor,
         focusPanel,
+        openHelp,
       },
     });
 
@@ -314,7 +325,7 @@ export function Workspace({
             title={WINDOW_META.help.title}
             icon={<WINDOW_META.help.Icon size={16} />}
           >
-            <HelpPane mode={mode} />
+            <HelpPane mode={mode} request={helpRequest ?? undefined} />
           </Window>
         </div>
 
@@ -381,7 +392,7 @@ export function Workspace({
                     openLocation={locationRequest}
                   />
                 ) : splitTab === 'help' ? (
-                  <HelpPane mode={mode} />
+                  <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
                 )}

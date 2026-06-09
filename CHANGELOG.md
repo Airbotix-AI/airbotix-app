@@ -7,6 +7,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Added
+- **Game Guide — `open_help` client action (MH2a, frontend)**. Extends the agent's
+  `ClientAction` channel (`code/codeApi.ts`) with `open_help { target: docId, anchor? }`,
+  dispatched by `executeClientActions` → a new `openHelp` handler that surfaces the Guide
+  (window or Split tab) and jumps it to the passage. `HelpPane` gains a `request` prop
+  (nonce-keyed, mirroring the editor's jump-to-error seam) that drives the navigation.
+  This is the frontend half of HJ2: once the backend (MH2b) emits `open_help`, the kid's
+  Guide opens at the cited passage. Tested: `executeClientActions.test.ts` (dispatch +
+  no-target ignore + `focus_panel` to help) and `e2e/help-guide.spec.ts` HJ2 (a mocked
+  turn returning `open_help` opens the Guide at the gravity passage, no VFS changes).
+  The backend `search_help`/`read_help` tools + system prompt remain MH2b.
 - **Game Guide — in-studio help (MH1, frontend)** for the Game Studio playground
   (PRD `docs/product/prd/learn-game-studio-help-prd.md`). A 5th playground window
   (`help`, "Guide", `BookOpen`, `brand-sunshine` accent) reachable from a desktop tile

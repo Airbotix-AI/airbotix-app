@@ -27,6 +27,12 @@ import {
 interface HelpPaneProps {
   /** The kid's studio mode → the default reading tier (Lite 8–11 / Pro 12–17). */
   mode: 'lite' | 'pro';
+  /**
+   * An external request to open a doc (+ optional anchor) — the agent's `open_help`
+   * client action (MH2). The monotonic `nonce` lets a repeat jump to the same place
+   * re-fire (a new object identity each time). Mirrors the editor's jump-to-error seam.
+   */
+  request?: { docId: string; anchor?: string; nonce: number };
 }
 
 /** Persisted Guide UI (resume where the kid left off, per project session). */
@@ -37,7 +43,7 @@ interface HelpSlice {
 
 const DEFAULT_DOC = 'engine/what-is-an-engine';
 
-export function HelpPane({ mode }: HelpPaneProps) {
+export function HelpPane({ mode, request }: HelpPaneProps) {
   const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC, tier: mode });
   const [tier, setTier] = useState<Tier>(saved.tier);
   const [docId, setDocId] = useState<string>(saved.docId);
@@ -70,6 +76,17 @@ export function HelpPane({ mode }: HelpPaneProps) {
     if (anchor) setPendingAnchor(anchor);
     else readerRef.current?.scrollTo({ top: 0 });
   };
+
+  // React to an external open request (the agent's `open_help`, via Workspace). The
+  // `request` object identity changes per nonce, so this fires exactly once per jump
+  // (and once on mount if a request is already present). Setters are stable → no churn.
+  useEffect(() => {
+    if (!request) return;
+    setDocId(request.docId);
+    setQuery('');
+    if (request.anchor) setPendingAnchor(request.anchor);
+    else readerRef.current?.scrollTo({ top: 0 });
+  }, [request]);
 
   return (
     <div className="flex h-full min-h-0 bg-pg-bg text-pg-text" data-testid="help-pane">
