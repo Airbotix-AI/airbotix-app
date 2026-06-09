@@ -4,7 +4,7 @@ import { surfacePrincipal, useAuthStore } from '@/auth/authStore';
 import type { PrincipalKind } from '@/auth/types';
 import type { GenAssetRequest, GenAssetResult } from '@/pages/learn/playground/assetGen';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 // A request inherits the principal of the surface it is fired from unless an
 // explicit `principal` is passed (e.g. /auth/me, login/logout target a kind).

@@ -5,7 +5,7 @@ import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
-import { useExitSummary, useStudioSession } from './shared/useSession';
+import { useStudioSession } from './shared/useSession';
 import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 const VOICES = [
@@ -31,8 +31,7 @@ export function VoiceBoothPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
 
-  const { sessionId } = useStudioSession('voice');
-  const { summary, endNow, dismiss } = useExitSummary();
+  const { summary, endNow, dismiss } = useStudioSession('voice');
 
   const generate = useGenerate('tts');
   const recent = useRecentArtifacts('audio');
@@ -157,7 +156,7 @@ export function VoiceBoothPage() {
       )}
       <div className="flex justify-center mt-8">
         <button
-          onClick={() => endNow(sessionId)}
+          onClick={() => endNow()}
           className="btn-pill-secondary"
         >
           🎓 Done for now
