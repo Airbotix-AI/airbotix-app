@@ -246,16 +246,31 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   }
 
   const takenPaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
-  const targetDir = category === ALL ? 'imported' : category;
 
   async function importFiles(list: FileList | File[]) {
+    // Imports always go to MY assets. Land in the selected VFS category when one
+    // is open, else `imported`. (The Library is read-only — D-ASSET-6.)
+    const targetDir = source === 'mine' && category !== ALL ? category : 'imported';
     let warned = false;
-    for (const file of Array.from(list)) {
-      if (file.size > SOFT_SIZE_CAP) warned = true;
-      const dataUrl = await fileToDataUrl(file);
-      const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
-      takenPaths.add(path);
-      createFile(path, 'asset', dataUrl);
+    try {
+      for (const file of Array.from(list)) {
+        if (file.size > SOFT_SIZE_CAP) warned = true;
+        const dataUrl = await fileToDataUrl(file);
+        const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
+        takenPaths.add(path);
+        createFile(path, 'asset', dataUrl);
+      }
+    } catch {
+      setGenError(null);
+      setNotice("Couldn't import that file — please try a different one.");
+      return;
+    }
+    // A drop/paste while browsing the Library shouldn't hide the result: surface
+    // it under My assets.
+    if (source !== 'mine') {
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedLibId(null);
     }
     setNotice(
       warned

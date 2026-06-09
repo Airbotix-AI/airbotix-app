@@ -94,6 +94,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `learn-game-studio-assets-prd.md` A2 / §4.4.
 
 ### Changed
+- **Playground: hardened local asset import** (A4). Imports now fail soft (a calm
+  "couldn't import that file" notice instead of a silent hang on a bad read), always
+  target **My assets** (`assets/imported/`, or the open VFS category), and a drop/paste
+  while browsing the read-only Library switches back to My assets so the imported file
+  is actually visible.
 - **Playground asset generation is now prompt-only — removed the image/audio
   dropdown** (D-ASSET-4). The kid describes what they want in one box ("a pixel
   coin", "a jump sound") and the AI decides the kind: the real backend infers it
