@@ -32,6 +32,7 @@ import {
 import { api, ApiError } from '@/lib/api';
 import {
   isOffline,
+  predictionQuestion,
   realGameAgentDeps,
   streamTurn,
   type GameAgentDeps,
