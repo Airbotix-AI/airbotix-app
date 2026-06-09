@@ -71,6 +71,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
   Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
   `alt` label — no HTML injection. Unknown key → alt caption fallback.
+- **Playground Asset Viewer: shared read-only Library tab (zero-host emoji).** The
+  pane now has a **Library | My assets** source switch (D-ASSET-6). Library browses the
+  emoji provider — thumbnails load cross-origin from the CDN, category chips + search
+  filter it, and a read-only detail offers **Add to my game**. "Add to game" for a
+  library asset injects a **URL-form** loader (`this.load.setCORS('anonymous');
+  this.load.image(key, '<cdn url>')`) via `addLibraryAssetToGame` — the asset is
+  referenced by URL and never copied into the VFS, so it stays immutable + shared. The
+  game preview leaves `https://` URLs un-rewritten (only VFS paths inline to data URLs),
+  and the cross-origin texture is loaded `crossOrigin:'anonymous'` so the canvas isn't
+  tainted (D-ASSET-7). New e2e proves browse → add → the game runs clean loading the
+  emoji by URL. See PRD `learn-game-studio-assets-prd.md` A2 / §4.4.
 - **Playground shared asset Library — foundation (zero-host emoji provider).** New
   `assetLibrary.ts`: a curated, kid-appropriate **emoji** catalog (characters /
   animals / food / nature / items / symbols) exposed as read-only `LibraryAsset`

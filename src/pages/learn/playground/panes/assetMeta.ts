@@ -118,6 +118,18 @@ export function codeRefFor(asset: VfsFile, anim?: AnimMeta | null): string {
   return `this.load.image('${key}', '${path}')`;
 }
 
+/**
+ * The copy-able Phaser loader for a shared **Library** asset (D-ASSET-2): it is
+ * referenced by its stable URL, not a VFS path. Images set `crossOrigin` so the
+ * cross-origin texture doesn't taint the canvas (D-ASSET-7). Mirrors what
+ * `assetInsert.addLibraryAssetToGame` injects.
+ */
+export function libraryCodeRef(name: string, kind: AssetKind, url: string): string {
+  const key = slugifyKey(name);
+  if (kind === 'audio') return `this.load.audio('${key}', '${url}')`;
+  return `this.load.setCORS('anonymous');\nthis.load.image('${key}', '${url}')`;
+}
+
 export function formatBytes(n: number): string {
   if (n < BYTES_PER_KB) return `${n} B`;
   const kb = n / BYTES_PER_KB;

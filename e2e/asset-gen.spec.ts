@@ -163,6 +163,67 @@ test('J5: generate goes through the backend (Stars debit) — kid never calls an
   expect(genPosts).toHaveLength(1);
 });
 
+/**
+ * Mock the emoji CDN (Twemoji on jsDelivr) so the Library's cross-origin image
+ * loads deterministically with `Access-Control-Allow-Origin: *` — the crossOrigin
+ * load succeeds and the canvas stays untainted (D-ASSET-7/12). No real network.
+ */
+async function mockEmojiCdn(page: Page) {
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgYGAAAAAEAAH2FzhVAAAAAElFTkSuQmCC',
+    'base64',
+  );
+  await page.route('**/jdecked/twemoji@**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: PNG,
+    }),
+  );
+}
+
+test('A2: Library → pick an emoji → add-to-game loads it by URL (not inlined) and runs', async ({
+  page,
+}) => {
+  await installGameSignalRecorder(page);
+  await mockAssetGenBackend(page); // seats a kid + a Game scene with preload()/create()
+  await mockEmojiCdn(page);
+  await openAssets(page);
+
+  // Switch to the shared Library source; the emoji grid renders.
+  await page.getByTestId('asset-source-library').click();
+  await expect(page.getByTestId('library-card').first()).toBeVisible();
+
+  // Narrow to the Coin and open it → the detail shows a URL-form loader with CORS.
+  await page.getByPlaceholder(/Search the library/).fill('coin');
+  await page.getByTestId('library-card').first().click();
+  await expect(page.getByTestId('library-codeRef')).toContainText("this.load.setCORS('anonymous')");
+  await expect(page.getByTestId('library-codeRef')).toContainText(
+    "this.load.image('coin', 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png')",
+  );
+
+  // One-tap add → the URL loader + a use are written into the Game scene.
+  await page.getByTestId('library-add-to-game').click();
+  await expect(page.getByText(/Added .* to your game/)).toBeVisible();
+
+  // Run it: the runner's srcdoc carries the URL loader VERBATIM — a library asset
+  // is referenced by URL, never inlined into the VFS as a data: URL.
+  await page.getByRole('button', { name: 'Play' }).first().click();
+  const frame = page.locator('iframe[title="Game"]');
+  await expect(frame).toBeVisible({ timeout: 6_000 });
+  const src = await frame.getAttribute('srcdoc');
+  expect(src).toContain("this.load.image('coin', 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png')");
+  expect(src).toContain("this.load.setCORS('anonymous')");
+
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __smokeMaxFps: number }).__smokeMaxFps), { timeout: 10_000 })
+    .toBeGreaterThan(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __smokeErrors: string[] }).__smokeErrors), { timeout: 3_000 })
+    .toEqual([]);
+});
+
 // ── Stable detail screenshot (generated asset + add-to-game CTA) ───────────────
 test.describe('visual', () => {
   test.use({ viewport: { width: 1280, height: 800 } });

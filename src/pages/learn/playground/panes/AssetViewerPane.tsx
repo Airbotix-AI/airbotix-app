@@ -24,7 +24,13 @@ import {
 
 import type { VfsFile } from '../../code/codeApi';
 import { runGen, type GenAssetResult } from '../assetGen';
-import { addAssetToGame } from './assetInsert';
+import { addAssetToGame, addLibraryAssetToGame } from './assetInsert';
+import {
+  ASSET_LIBRARY,
+  LIBRARY_CATEGORIES,
+  searchLibrary,
+  type LibraryAsset,
+} from '../assetLibrary';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
@@ -35,6 +41,7 @@ import {
   codeRefFor,
   decodeImageMeta,
   formatBytes,
+  libraryCodeRef,
   parseAnimSidecar,
   type AssetKind,
   type ImageMeta,
@@ -57,6 +64,8 @@ interface AssetViewerPaneProps {
 }
 
 const ALL = '__all__';
+/** Which source the Asset Viewer is browsing (D-ASSET-6). */
+type AssetSource = 'mine' | 'library';
 const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
 const ANIM_SUFFIX = '.anim.json';
 // The stub returns instantly; hold the loading state briefly so the generating
@@ -151,21 +160,28 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   // Persisted Asset Viewer selections (J9 "resume where I left off").
   const assetSeed = useRef(
     readWorkspaceSlice('asset-viewer', {
+      assetSource: 'mine' as AssetSource,
       assetCategory: ALL,
       assetQuery: '',
       assetSelectedPath: null as string | null,
     }),
   ).current;
+  // Which source the pane is browsing: the kid's own VFS assets, or the shared
+  // read-only Library (D-ASSET-6). Library assets are referenced by URL and never
+  // enter the VFS.
+  const [source, setSource] = useState<AssetSource>(() => assetSeed.assetSource);
   const [category, setCategory] = useState<string>(() => assetSeed.assetCategory);
   const [query, setQuery] = useState(() => assetSeed.assetQuery);
   const [selectedPath, setSelectedPath] = useState<string | null>(() => assetSeed.assetSelectedPath);
+  const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
   useEffect(() => {
     writeWorkspaceSlice('asset-viewer', {
+      assetSource: source,
       assetCategory: category,
       assetQuery: query,
       assetSelectedPath: selectedPath,
     });
-  }, [category, query, selectedPath]);
+  }, [source, category, query, selectedPath]);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,11 +213,36 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
 
   const selected = selectedPath ? (files.find((f) => f.path === selectedPath) ?? null) : null;
 
+  // ── Library (shared, read-only) browse state ──────────────────────────────
+  const libCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of ASSET_LIBRARY) counts.set(a.category, (counts.get(a.category) ?? 0) + 1);
+    return LIBRARY_CATEGORIES.map((c) => [c, counts.get(c) ?? 0] as [string, number]);
+  }, []);
+  const libVisible = useMemo(
+    () => searchLibrary(query, category === ALL ? null : category),
+    [query, category],
+  );
+  const selectedLib = selectedLibId
+    ? (ASSET_LIBRARY.find((a) => a.id === selectedLibId) ?? null)
+    : null;
+
+  // Switching source resets category + clears any open detail so the two sources
+  // (whose categories differ) never show a mismatched selection.
+  function switchSource(next: AssetSource) {
+    setSource(next);
+    setCategory(ALL);
+    setQuery('');
+    setSelectedPath(null);
+    setSelectedLibId(null);
+  }
+
   // Browsing a category (or searching) always returns to the grid — never leaves
   // you stuck on the previously-opened asset's detail screen.
   function showCategory(c: string) {
     setCategory(c);
     setSelectedPath(null);
+    setSelectedLibId(null);
   }
 
   const takenPaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
@@ -265,6 +306,18 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
   }
 
+  /** Add a shared Library asset by URL (it's never copied into the VFS). */
+  function onAddLibraryToGame(lib: LibraryAsset) {
+    if (!onApplyFiles) return;
+    const r = addLibraryAssetToGame(files, lib);
+    if (!r.files) {
+      setNotice("Couldn't find a scene to add it to — open the code and load it yourself.");
+      return;
+    }
+    onApplyFiles(r.files);
+    setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
+  }
+
   return (
     <div
       className="flex h-full w-full bg-pg-bg text-pg-text"
@@ -278,9 +331,10 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
         if (imgs.length) void importFiles(imgs);
       }}
     >
-      {/* Left rail: categories + actions */}
+      {/* Left rail: source tabs + categories + actions */}
       <aside className="flex w-56 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
-        <div className="p-3">
+        <div className="flex flex-col gap-3 p-3">
+          <SourceTabs source={source} onSource={switchSource} />
           <div className="flex items-center gap-2 rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5">
             <Search size={15} className="text-pg-text-muted" />
             <input
@@ -288,20 +342,21 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelectedPath(null);
+                setSelectedLibId(null);
               }}
-              placeholder="Search assets…"
+              placeholder={source === 'library' ? 'Search the library…' : 'Search assets…'}
               className="w-full bg-transparent text-[13px] outline-none placeholder:text-pg-text-muted"
             />
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-auto px-2 text-[13px]">
           <CategoryRow
-            label="All assets"
-            count={assets.length}
+            label={source === 'library' ? 'All' : 'All assets'}
+            count={source === 'library' ? ASSET_LIBRARY.length : assets.length}
             active={category === ALL}
             onClick={() => showCategory(ALL)}
           />
-          {categories.map(([c, n]) => (
+          {(source === 'library' ? libCategories : categories).map(([c, n]) => (
             <CategoryRow
               key={c}
               label={c}
@@ -311,26 +366,28 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             />
           ))}
         </nav>
-        <div className="flex gap-2 border-t border-pg-border p-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5"
-          >
-            <Upload size={15} /> Import
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,audio/*,video/*"
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files?.length) void importFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        {source === 'mine' && (
+          <div className="flex gap-2 border-t border-pg-border p-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5"
+            >
+              <Upload size={15} /> Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,audio/*,video/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void importFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )}
       </aside>
 
       {/* Main: grid OR detail */}
@@ -340,7 +397,22 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             {notice}
           </div>
         )}
-        {selected ? (
+        {source === 'library' ? (
+          selectedLib ? (
+            <LibraryDetailView
+              asset={selectedLib}
+              canAddToGame={!!onApplyFiles}
+              onAddToGame={() => onAddLibraryToGame(selectedLib)}
+              onBack={() => setSelectedLibId(null)}
+              onCopyRef={(snippet) => {
+                void navigator.clipboard?.writeText(snippet);
+                setNotice('Code copied — paste it into your game.');
+              }}
+            />
+          ) : (
+            <LibraryGrid items={libVisible} onSelect={setSelectedLibId} />
+          )
+        ) : selected ? (
           <DetailView
             asset={selected}
             files={files}
@@ -419,6 +491,155 @@ function GeneratingCard() {
       <div className="px-2.5 py-2">
         <p className="text-[12.5px] font-bold text-brand-bubblegum">Generating…</p>
         <p className="text-[11px] text-pg-text-muted">AI demo</p>
+      </div>
+    </div>
+  );
+}
+
+/** The Library | My assets source switch (D-ASSET-6). */
+function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: AssetSource) => void }) {
+  const tab = (id: AssetSource, label: string) => (
+    <button
+      type="button"
+      data-testid={`asset-source-${id}`}
+      aria-pressed={source === id}
+      onClick={() => onSource(id)}
+      className={clsx(
+        'flex-1 rounded-lg px-2 py-1.5 text-[12.5px] font-extrabold transition-colors',
+        source === id ? 'bg-brand-bubblegum text-white' : 'text-pg-text-dim hover:bg-pg-text/5',
+      )}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="flex items-center gap-1 rounded-xl border border-pg-border bg-pg-surface-2 p-1">
+      {tab('library', 'Library')}
+      {tab('mine', 'My assets')}
+    </div>
+  );
+}
+
+/** The read-only Library grid (emoji thumbnails loaded from the CDN by URL). */
+function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id: string) => void }) {
+  if (items.length === 0) {
+    return (
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        <p className="mt-8 text-center text-[13px] text-pg-text-muted">No library assets match your search.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3">
+        {items.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            data-testid="library-card"
+            onClick={() => onSelect(a.id)}
+            className="flex flex-col overflow-hidden rounded-xl border border-pg-border bg-pg-surface text-left transition-colors hover:border-brand-bubblegum/60"
+          >
+            <div className="flex h-20 items-center justify-center bg-pg-surface-2 p-2">
+              <img
+                src={a.thumbUrl}
+                alt={a.name}
+                crossOrigin="anonymous"
+                loading="lazy"
+                className="h-12 w-12 object-contain"
+              />
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="truncate text-[12px] font-bold">{a.name}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The read-only Library asset detail: preview + Add-to-game + copy code-ref. */
+function LibraryDetailView({
+  asset,
+  canAddToGame,
+  onAddToGame,
+  onBack,
+  onCopyRef,
+}: {
+  asset: LibraryAsset;
+  canAddToGame: boolean;
+  onAddToGame: () => void;
+  onBack: () => void;
+  onCopyRef: (snippet: string) => void;
+}) {
+  const snippet = libraryCodeRef(asset.name, asset.kind, asset.url);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-pg-border px-3 py-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[13px] font-semibold text-pg-text-dim hover:text-pg-text"
+        >
+          <ArrowLeft size={15} /> Back
+        </button>
+        <span className="truncate text-[14px] font-extrabold">{asset.name}</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="rounded-full bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
+            Library
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-2">
+        <div className="flex items-center justify-center rounded-xl border border-pg-border bg-pg-surface-2 p-6">
+          <img
+            src={asset.url}
+            alt={asset.name}
+            crossOrigin="anonymous"
+            className="h-28 w-28 object-contain"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <dl className="rounded-xl border border-pg-border bg-pg-surface p-3 text-[12.5px]">
+            <Row k="Name" v={asset.name} />
+            <Row k="Category" v={asset.category} />
+            <Row k="License" v={asset.license} />
+            <Row k="Source" v="Shared library (read-only)" />
+          </dl>
+
+          {canAddToGame && (
+            <button
+              type="button"
+              data-testid="library-add-to-game"
+              onClick={onAddToGame}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2.5 text-[13px] font-extrabold text-white transition-colors hover:bg-brand-bubblegum/90"
+            >
+              <Plus size={16} /> Add to my game
+            </button>
+          )}
+
+          <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[12.5px] font-extrabold">Use it in your code</span>
+              <button
+                type="button"
+                onClick={() => onCopyRef(snippet)}
+                className="inline-flex items-center gap-1 rounded-lg border border-pg-border px-2 py-1 text-[11.5px] font-bold hover:bg-pg-text/5"
+              >
+                <Copy size={14} /> Copy
+              </button>
+            </div>
+            <pre
+              data-testid="library-codeRef"
+              className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text"
+            >
+              {snippet}
+            </pre>
+          </div>
+        </div>
       </div>
     </div>
   );
