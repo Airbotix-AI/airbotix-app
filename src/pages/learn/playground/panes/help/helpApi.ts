@@ -82,7 +82,13 @@ function snippet(d: HelpDoc, terms: string[], tier?: Tier): string {
  * result list, is the browse affordance).
  */
 export function searchHelp(query: string, tier?: Tier, limit = 8): HelpResult[] {
-  const terms = query.toLowerCase().split(/\s+/).filter((t) => t.length >= 2);
+  // Punctuation-stripped terms (≥2 chars) so "how do I jump?" matches the "jump"
+  // tag (not "jump?"). Kept in sync with the backend HelpSearchService tokenizer.
+  const terms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.replace(/[^a-z0-9]+/g, ''))
+    .filter((t) => t.length >= 2);
   if (terms.length === 0) return [];
 
   const hits: HelpResult[] = [];

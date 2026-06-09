@@ -33,6 +33,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (HJ1: open from desktop → browse → search → read → tier toggle).
 
 ### Fixed
+- **Help search tokenizer strips punctuation** (`helpApi.searchHelp`) so a kid query like
+  "how do I jump?" matches the "jump" tag (not "jump?"). Kept in sync with the backend
+  `HelpSearchService` tokenizer (so the agent's `search_help` and the pane's own search rank
+  identically).
 - **e2e harness: `mockBackendAsKid` now mocks `GET /projects/*/share` → 404** ("no share
   yet"). `ShareLinkPanel` queries it on every real-project workspace; left unmocked it
   401'd → the api client cleared the kid token → a delayed bounce to `/learn/login` that
