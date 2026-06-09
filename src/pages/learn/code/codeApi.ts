@@ -99,14 +99,73 @@ export interface SafeguardingVerdict {
   crisisResource?: CrisisResource;
 }
 
-// A workspace action the backend agent asks the Game Studio UI to perform
-// (play/restart the game, open the code view, bring a pane to front, offer a
-// button). Executed client-side by executeClientActions (forward-compatible:
-// unknown actions are ignored).
+// A workspace action the backend agent asks the Game Studio UI to perform. The
+// agent uses these to DIRECT THE CHILD'S ATTENTION to what it just did — open the
+// changed file, highlight the new lines, run the game (playground-ai-prompt-prd.md
+// D-PAP-08, App. A). Executed client-side by executeClientActions
+// (forward-compatible: unknown actions are ignored).
+export type ClientActionName =
+  // A · Show & teach
+  | 'run_game'
+  | 'restart_game'
+  | 'show_code'
+  | 'focus_panel'
+  | 'open_file'
+  | 'highlight_code'
+  | 'jump_to_line'
+  | 'show_console'
+  | 'physics_debug'
+  | 'set_screen_size'
+  | 'show_button'
+  // B · Windows & look
+  | 'open_window'
+  | 'close_window'
+  | 'minimize_window'
+  | 'maximize_window'
+  | 'restore_window'
+  | 'move_window'
+  | 'resize_window'
+  | 'set_theme'
+  | 'set_layout'
+  // C · Navigate / search / history
+  | 'search'
+  | 'replace_all'
+  | 'set_sidebar'
+  | 'open_history'
+  | 'open_diff'
+  | 'revert_to'
+  // D · Assets
+  | 'open_asset_viewer'
+  | 'select_asset'
+  | 'generate_asset'
+  | 'copy_loader';
+
 export interface ClientAction {
-  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button';
+  action: ClientActionName;
+  /** Pane for show_code / focus_panel; window id for the window ops. */
   target?: string;
+  /** show_button text. */
   label?: string;
+  /** File path for open_file / highlight_code / jump_to_line / open_diff / select_asset. */
+  path?: string;
+  /** highlight_code: inclusive line range. */
+  fromLine?: number;
+  toLine?: number;
+  /** jump_to_line target line. */
+  line?: number;
+  /** Single-enum param: show_console open|close, physics_debug on|off, set_theme light|dark, etc. */
+  mode?: string;
+  /** search query. */
+  query?: string;
+  /** replace_all find/replace. */
+  find?: string;
+  replace?: string;
+  /** generate_asset prompt. */
+  prompt?: string;
+  /** revert_to checkpoint id. */
+  checkpoint?: string;
+  /** move_window / resize_window geometry. */
+  rect?: { x?: number; y?: number; w?: number; h?: number };
 }
 
 export interface AgentTurnResult {

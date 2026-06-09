@@ -134,6 +134,24 @@ export function Workspace({
     else if (target !== 'game') setSplitTab(target);
   };
 
+  // Open a file in the code view and (optionally) reveal/highlight a line range.
+  // Shared by the console's jump-to-error AND the agent's open_file/jump_to_line/
+  // highlight_code UI tools (D-PAP-08). The monotonic nonce makes a repeat request
+  // for the same file:line re-fire (a new object identity each time).
+  const [locationRequest, setLocationRequest] = useState<{
+    file: string;
+    line: number;
+    toLine?: number;
+    nonce: number;
+  } | null>(null);
+  const jumpNonce = useRef(0);
+  const handleOpenLocation = (file: string, line: number, toLine?: number) => {
+    setLocationRequest({ file, line, toLine, nonce: (jumpNonce.current += 1) });
+    // Bring the editor forward so the kid sees the jump.
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
+    else setSplitTab('code');
+  };
+
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
@@ -169,6 +187,12 @@ export function Workspace({
         runGame: runFromEditor,
         restartGame: runFromEditor,
         focusPanel,
+        // Teaching tools: open/reveal/highlight the file the agent just changed.
+        openFile: (path, fromLine, toLine) => handleOpenLocation(path, fromLine ?? 1, toLine),
+        // Look tools — only fire when the agent was asked (guardrail enforced
+        // backend-side); here they just drive the store.
+        setTheme: (t) => usePlaygroundStore.getState().setTheme(t),
+        setLayout: (m) => usePlaygroundStore.getState().setLayoutMode(m),
       },
     });
 
@@ -200,22 +224,6 @@ export function Workspace({
     onSeeCode: handleSeeCode,
     onStop: abort,
     onRetry: retryLast,
-  };
-
-  // A request from the runner console to open a file at a line (jump-to-error).
-  // The Code Editor pane reacts to it; the monotonic nonce makes a repeat click
-  // on the same file:line re-fire (a new object identity each time).
-  const [locationRequest, setLocationRequest] = useState<{
-    file: string;
-    line: number;
-    nonce: number;
-  } | null>(null);
-  const jumpNonce = useRef(0);
-  const handleOpenLocation = (file: string, line: number) => {
-    setLocationRequest({ file, line, nonce: (jumpNonce.current += 1) });
-    // Bring the editor forward so the kid sees the jump.
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
-    else setSplitTab('code');
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and

@@ -39,6 +39,8 @@ export interface CursorPosition {
  *  error). `nonce` makes repeat jumps to the same line re-fire the effect. */
 export interface JumpTarget {
   line: number
+  /** When set, highlight the inclusive [line, toLine] range (agent highlight_code). */
+  toLine?: number
   column?: number
   nonce: number
 }
@@ -79,6 +81,9 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     return () => node.remove()
   }, [])
 
+  // Decorations for the agent's highlight_code range (cleared on the next jump).
+  const highlightRef = useRef<string[]>([])
+
   // Jump to a line on request. The model is already updated (the value-sync
   // effect of the inner <Editor> is a child effect, so it runs before this
   // parent effect), so revealing/positioning here lands on the new content.
@@ -87,6 +92,20 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     if (!ed || !jumpTo) return
     ed.revealLineInCenter(jumpTo.line)
     ed.setPosition({ lineNumber: jumpTo.line, column: jumpTo.column ?? 1 })
+    // highlight_code: flag the [line, toLine] range so the kid sees exactly what
+    // the agent changed. A plain jump (no toLine) clears any prior highlight.
+    const end = jumpTo.toLine && jumpTo.toLine >= jumpTo.line ? jumpTo.toLine : null
+    highlightRef.current = ed.deltaDecorations(
+      highlightRef.current,
+      end
+        ? [
+            {
+              range: new monaco.Range(jumpTo.line, 1, end, 1),
+              options: { isWholeLine: true, className: 'pg-code-highlight' },
+            },
+          ]
+        : [],
+    )
     ed.focus()
   }, [jumpTo])
 

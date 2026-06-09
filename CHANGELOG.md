@@ -6,6 +6,21 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Added
+- **Game-agent UI tool handlers — the teacher can drive the studio** (`playground/executeClientActions.ts`,
+  `Workspace.tsx`, `panes/CodeEditorPane.tsx`, `panes/MonacoEditor.tsx`, `code/codeApi.ts`, `playground.css`;
+  `playground-ai-prompt-prd.md` MP4 / D-PAP-08, App. A). `ClientAction` now models the full Group A–D
+  surface; `executeClientActions` dispatches the **Group A teaching tools**: `open_file` /
+  `jump_to_line` / `highlight_code` all route through a shared `openFile(path, fromLine?, toLine?)` so the
+  studio opens the file the agent just changed and **highlights the exact line range** (Monaco whole-line
+  `pg-code-highlight` decoration), plus `set_theme` / `set_layout` (wired to the playground store) and
+  optional `show_console` / `physics_debug` / `set_screen_size` / `open_history` / `open_asset_viewer`
+  handlers. The console's jump-to-error and the agent's open/highlight now share one location path
+  (`handleOpenLocation` gains an optional `toLine`). Handlers are optional and unknown/unwired actions are
+  ignored (forward-compatible), so the backend can expose the whole surface while the studio honours only
+  what it can today. Covered by `executeClientActions.test.ts` (routing, mode→bool/enum mapping, invalid
+  mode rejection, path-less no-op, asset-viewer fallback).
+
 ### CI
 - **Fixed the playground e2e harness logging the kid out mid-test** (`e2e/helpers.ts`). The
   Workspace's ShareLinkPanel fetches `GET /projects/:id/share` on mount; unmocked, it hit the real

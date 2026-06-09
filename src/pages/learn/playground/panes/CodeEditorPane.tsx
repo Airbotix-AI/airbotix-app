@@ -68,9 +68,10 @@ interface CodeEditorPaneProps {
   onApplyFiles: (files: VfsFile[]) => void;
   /** Re-run the game (PlaygroundPage bumps runKey). */
   onRun: () => void;
-  /** A request (from a console error) to open a file and reveal a line. The
-   *  `nonce` lets a repeat request for the same file+line re-fire. */
-  openLocation?: { file: string; line: number; nonce: number } | null;
+  /** A request (from a console error, or the agent's open_file/highlight_code) to
+   *  open a file and reveal a line — `toLine` highlights a range. The `nonce` lets
+   *  a repeat request for the same file+line re-fire. */
+  openLocation?: { file: string; line: number; toLine?: number; nonce: number } | null;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -221,7 +222,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
     if (!openLocation) return;
     if (!files.some((f) => f.path === openLocation.file)) return;
     openTab(openLocation.file);
-    setJumpTo({ line: openLocation.line, nonce: openLocation.nonce });
+    setJumpTo({ line: openLocation.line, toLine: openLocation.toLine, nonce: openLocation.nonce });
     // Only react to a new request (nonce) — not to `files`/`openTab` churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openLocation]);
