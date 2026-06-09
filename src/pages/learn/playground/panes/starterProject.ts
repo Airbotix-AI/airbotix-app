@@ -13,7 +13,6 @@
 // URL rewrite, so this scaffold references none and runs as-is.
 
 import type { VfsFile } from '../../code/codeApi';
-import { SAMPLE_ASSETS } from '../sampleAssets';
 
 // ── Entry: builds the game and wires the scene list (entry, injected LAST) ────
 
@@ -133,14 +132,6 @@ class GameOver extends Phaser.Scene {
 }
 `;
 
-// ── Static assets folder (kept text so the VFS stays free of binary blobs) ────
-
-const ASSETS_README = `Drop sprites/sounds here.
-
-Reference them from src/scenes/Game.js, for example:
-  this.load.image('hero', 'assets/hero.png');
-`;
-
 // ── Host stylesheet (the studio owns the page; kids may tweak the frame) ──────
 
 const STYLE_CSS = `html, body { margin: 0; background: #000; }
@@ -153,11 +144,7 @@ export const STARTER_PROJECT: VfsFile[] = [
   { path: 'src/scenes/Boot.js', content: BOOT_JS, kind: 'text', size: BOOT_JS.length },
   { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
   { path: 'src/scenes/GameOver.js', content: GAME_OVER_JS, kind: 'text', size: GAME_OVER_JS.length },
-  { path: 'assets/README.txt', content: ASSETS_README, kind: 'text', size: ASSETS_README.length },
   { path: 'style.css', content: STYLE_CSS, kind: 'text', size: STYLE_CSS.length },
-  // One sample of every Asset Viewer kind (image / sprite / audio / video) so
-  // the viewer has something to show out of the box. Text is README.txt above.
-  ...SAMPLE_ASSETS,
 ];
 
 // How long the stub pretends to "generate" before returning the scaffold.

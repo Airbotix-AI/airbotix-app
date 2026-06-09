@@ -8,6 +8,7 @@ import {
   slugifyKey,
   codeRefFor,
   formatBytes,
+  dataUrlToText,
 } from './assetMeta';
 
 function asset(path: string): VfsFile {
@@ -79,5 +80,33 @@ describe('formatBytes', () => {
     expect(formatBytes(512)).toBe('512 B');
     expect(formatBytes(18841)).toBe('18.4 KB');
     expect(formatBytes(2_000_000)).toBe('1.9 MB');
+  });
+});
+
+describe('dataUrlToText', () => {
+  const b64 = (s: string) => Buffer.from(s, 'utf-8').toString('base64');
+
+  it('decodes a base64 text data URL (imported .txt)', () => {
+    expect(dataUrlToText(`data:text/plain;base64,${b64('Drop sprites/sounds here.')}`)).toBe(
+      'Drop sprites/sounds here.',
+    );
+  });
+
+  it('decodes UTF-8 multibyte content', () => {
+    expect(dataUrlToText(`data:text/plain;base64,${b64('café — 日本語')}`)).toBe('café — 日本語');
+  });
+
+  it('decodes a non-base64 (percent-encoded) text data URL', () => {
+    expect(dataUrlToText('data:text/plain,hello%20world')).toBe('hello world');
+  });
+
+  it('passes raw text through unchanged (AI/editor files)', () => {
+    expect(dataUrlToText('const x = 1;')).toBe('const x = 1;');
+  });
+
+  it('returns the raw string when the data URL is malformed', () => {
+    expect(dataUrlToText('data:text/plain;base64,!!!not-base64')).toBe(
+      'data:text/plain;base64,!!!not-base64',
+    );
   });
 });

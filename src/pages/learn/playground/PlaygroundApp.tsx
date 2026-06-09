@@ -20,7 +20,6 @@ import {
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
-import { isPreloadedAsset, withPreloadedAssets } from './sampleAssets';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 import type { FirstTurnSeed } from './panes/useGameAgent';
@@ -138,44 +137,46 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // show a visible save status; IndexedDB is the offline cache/outbox. On a
   // stale-version save the server's newer copy wins and the kid's superseded
   // build drops into History so it stays recoverable (never the word "conflict").
+  // Persist the live project NOW (bypassing the debounce). Used by the debounced
+  // autosave AND on exit (handleLeave) so a just-created asset/import that's still
+  // within the debounce window isn't lost when the workspace unmounts.
+  const flushSave = useCallback(async () => {
+    const ps = useProjectStore.getState();
+    const result = await savePersisted(
+      persistKey,
+      {
+        files: ps.files,
+        folders: ps.folders,
+        checkpoints: useHistoryStore.getState().checkpoints,
+        savedAt: Date.now(),
+        version: versionRef.current,
+      },
+      projectId,
+    );
+    if (result.status === 'saved') {
+      versionRef.current = result.version;
+      setSaveStatus('saved');
+    } else if (result.status === 'queued') {
+      setSaveStatus('queued');
+    } else {
+      // kept-newest: adopt the server's snapshot, record the superseded build
+      // in History (recoverable), and reassure the kid we kept their newest.
+      versionRef.current = result.server.version;
+      useHistoryStore
+        .getState()
+        .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)');
+      useProjectStore.getState().apply(result.server.files);
+      setSaveStatus('kept-newest');
+    }
+  }, [persistKey, projectId, setSaveStatus]);
+
   useEffect(() => {
     if (phase !== 'workspace') return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       setSaveStatus('saving');
       clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const ps = useProjectStore.getState();
-        const result = await savePersisted(
-          persistKey,
-          {
-            // The read-only sample assets are client-seeded demo content (re-added
-            // on every load via withPreloadedAssets) — never persist them: they'd
-            // bloat the save and the audio/video ones used to break it.
-            files: ps.files.filter((f) => !isPreloadedAsset(f.path)),
-            folders: ps.folders,
-            checkpoints: useHistoryStore.getState().checkpoints,
-            savedAt: Date.now(),
-            version: versionRef.current,
-          },
-          projectId,
-        );
-        if (result.status === 'saved') {
-          versionRef.current = result.version;
-          setSaveStatus('saved');
-        } else if (result.status === 'queued') {
-          setSaveStatus('queued');
-        } else {
-          // kept-newest: adopt the server's snapshot, record the superseded build
-          // in History (recoverable), and reassure the kid we kept their newest.
-          versionRef.current = result.server.version;
-          useHistoryStore
-            .getState()
-            .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)');
-          useProjectStore.getState().apply(withPreloadedAssets(result.server.files));
-          setSaveStatus('kept-newest');
-        }
-      }, SAVE_DEBOUNCE_MS);
+      timer = setTimeout(() => void flushSave(), SAVE_DEBOUNCE_MS);
     };
     const unsubProject = useProjectStore.subscribe(schedule);
     const unsubHistory = useHistoryStore.subscribe(schedule);
@@ -184,7 +185,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       unsubProject();
       unsubHistory();
     };
-  }, [phase, persistKey, projectId, setSaveStatus]);
+  }, [phase, flushSave, setSaveStatus]);
 
   // Persist the workspace UI ("resume where I left off") — debounced, while in the
   // workspace. Single place: snapshot the whole namespaced bag + the playground
@@ -226,6 +227,13 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const handleLeave = useCallback(async () => {
     if (projectId && workspaceRef.current) {
       setLeaving(true);
+      // Flush any pending (debounced) save FIRST so a just-imported/generated
+      // asset persists even if the kid leaves immediately. Best-effort.
+      try {
+        await flushSave();
+      } catch {
+        // A failed flush must not trap the kid in the studio.
+      }
       try {
         const dataUrl = await captureWorkspaceThumbnail(workspaceRef.current);
         if (dataUrl) await saveThumbnail(projectId, dataUrl);
@@ -234,7 +242,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       }
     }
     blocker.proceed?.();
-  }, [projectId, blocker]);
+  }, [projectId, blocker, flushSave]);
 
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
@@ -290,9 +298,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             const history = useHistoryStore.getState();
             if (persisted && persisted.files.length > 0) {
               versionRef.current = persisted.version;
-              // Always (re)seed the read-only preloaded samples, so they appear
-              // even for projects persisted before they existed.
-              project.hydrate(withPreloadedAssets(persisted.files), persisted.folders);
+              project.hydrate(persisted.files, persisted.folders);
               if (persisted.checkpoints.length > 0) {
                 history.hydrate(persisted.checkpoints);
               } else {
@@ -302,10 +308,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
               setSaveStatus('saved');
             } else {
               versionRef.current = 0;
-              const seeded = withPreloadedAssets(f);
-              project.setFiles(seeded);
+              project.setFiles(f);
               history.reset();
-              history.record(seeded, Date.now(), 'Initial version');
+              history.record(f, Date.now(), 'Initial version');
               setSaveStatus('idle');
             }
             // Restore the saved workspace UI (open tabs, sidebar, layout mode,

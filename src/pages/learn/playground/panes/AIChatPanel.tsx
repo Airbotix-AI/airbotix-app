@@ -27,6 +27,8 @@ import {
 import { useState } from 'react';
 
 import type { SafeguardingVerdict } from '../../code/codeApi';
+import { useGenerationStore } from '../generationStore';
+import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
 import { ThinkingBubble } from './ThinkingBubble';
 import { useStickToBottom } from './useStickToBottom';
@@ -151,6 +153,10 @@ interface AIChatPanelProps {
   onSeeCode?: () => void;
   /** Open a changed file in the editor and highlight the change (§11.4). */
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  /** Open a finished asset (by VFS path) in the Asset Viewer — the chat "done" card tap (§3). */
+  onOpenAsset?: (path: string) => void;
+  /** Resolve an asset's `data:` URL by VFS path, for the chat "done" preview. */
+  assetSrc?: (path: string) => string | undefined;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
   /** Retry the last prompt after a (non-cap) error (H2). */
@@ -178,6 +184,8 @@ export function AIChatPanel({
   onRunGame,
   onSeeCode,
   onOpenFile,
+  onOpenAsset,
+  assetSrc,
   onStop,
   onRetry,
 }: AIChatPanelProps) {
@@ -304,6 +312,8 @@ export function AIChatPanel({
                 onSeeCode={onSeeCode}
                 onSend={onSend}
                 onOpenFile={onOpenFile}
+                onOpenAsset={onOpenAsset}
+                assetSrc={assetSrc}
               />
             ),
           )}
@@ -472,18 +482,79 @@ function ChatRow({
   onSeeCode,
   onSend,
   onOpenFile,
+  onOpenAsset,
+  assetSrc,
 }: {
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
   onSend?: (text: string) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  onOpenAsset?: (path: string) => void;
+  assetSrc?: (path: string) => string | undefined;
 }) {
   if (item.role === 'kid') {
     return (
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-2xl bg-grad-sky text-white px-4 py-2.5 text-[14px] leading-relaxed shadow-brand-sky">
           {item.text}
+        </div>
+      </div>
+    );
+  }
+  // AI asset generation (D-ASSET §3): the magic card while it runs, then the
+  // finished asset with an Add-to-game CTA (a gentle text bubble on error).
+  if (item.assetGen) {
+    const ag = item.assetGen;
+    if (ag.status === 'done' && ag.path) {
+      const src = assetSrc?.(ag.path);
+      const path = ag.path;
+      // The finished asset, shown big. Tapping it opens it in the Asset Viewer.
+      return (
+        <div className="flex justify-start">
+          <button
+            type="button"
+            data-testid="chat-asset-open"
+            onClick={() => onOpenAsset?.(path)}
+            className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 p-2.5 text-left transition-colors hover:border-brand-bubblegum/60"
+          >
+            <div className="mb-2 px-1 text-[13px] font-extrabold text-pg-text">Here’s your asset! ✨</div>
+            {src && (
+              <img
+                src={src}
+                crossOrigin="anonymous"
+                alt=""
+                className="h-40 w-full rounded-xl bg-pg-surface-2 object-contain p-2"
+              />
+            )}
+            <div className="mt-1.5 px-1 text-[11.5px] text-pg-text-muted">
+              saved to My assets · tap to open it
+            </div>
+          </button>
+        </div>
+      );
+    }
+    if (ag.status === 'error') {
+      return (
+        <div className="flex justify-start">
+          <div className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[13.5px] text-pg-text-dim">
+            🌧️ That fizzled — try asking again.
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex w-full justify-start">
+        <div className="w-[92%]">
+          <MagicGenerationCard
+            status="generating"
+            prompt={ag.prompt}
+            mode={ag.refSrc ? 'remix' : 'create'}
+            refSrc={ag.refSrc}
+            onCancel={() => useGenerationStore.getState().cancel()}
+            onRetry={() => undefined}
+            onDismiss={() => undefined}
+          />
         </div>
       </div>
     );
