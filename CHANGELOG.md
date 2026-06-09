@@ -7,6 +7,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Changed
+- **e2e specs rewired to the chat-hosted asset flow.** `e2e/asset-gen.spec.ts` +
+  `e2e/playground.spec.ts` no longer drive the removed in-pane `asset-add-to-game` /
+  `library-add-to-game` detail flow. Generate/Remix now assert the **chat** surface:
+  the finished asset is a tappable `chat-asset-open` card; tapping it opens the asset in
+  the viewer (`asset-codeRef`). Stars-debit + remix `ref_url` assertions kept; the Library
+  test now proves the URL-form code-ref (referenced, not inlined). Dropped the stale
+  add-to-game CTA screenshot test + baseline. (Matches the cross-repo `kid-playground-asset`
+  harness journey, also rewired.)
 - **Chat generation UX polish.** The Asset Viewer's Generate/Remix no longer shows a
   "sent to chat" banner — instead it **brings the Chat to front** (and the chat
   auto-scrolls to the new message). A **remix** now shows the **reference asset** in the
@@ -26,6 +34,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   visual are reused; the Asset Viewer's pinned card was removed.
 
 ### Fixed
+- **Imported text assets preview as readable text again.** Local import (D-ASSET A4)
+  stores every file as a `data:` URL, so a `.txt`'s content was a base64 data URL and the
+  Asset Viewer text preview showed the encoded string. Added `dataUrlToText` (decodes
+  base64/percent-encoded text data URLs, UTF-8 safe; passes raw AI/editor text through)
+  and use it in `AssetPreview`.
 - **Generated/imported assets now persist across exit & resume.** Two causes: (1) the
   debounced autosave was cancelled when leaving the project — added `flushSave()` in
   `PlaygroundApp` that commits any pending save on exit (and reused it for the debounce);

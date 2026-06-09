@@ -523,7 +523,10 @@ test('asset viewer: AI-generates an asset and shows its code-ref (split tab)', a
   await page.getByPlaceholder(/Describe an asset/).fill('a happy coin');
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
 
-  // The generated asset's detail opens with a copy-able Phaser loader snippet.
+  // Generation runs in the chat (one AI turn at a time) and finishes as a
+  // tappable asset card; tapping it opens the asset back in the viewer with a
+  // copy-able Phaser loader snippet.
+  await page.getByTestId('chat-asset-open').click({ timeout: 8_000 });
   await expect(
     page.getByText("this.load.image('a_happy_coin', 'assets/generated/a_happy_coin.svg')"),
   ).toBeVisible({ timeout: 5_000 });

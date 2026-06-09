@@ -12,13 +12,14 @@ import { mockBackendAsKid, openStudio, type VfsFile } from './helpers';
 // No network, no live LLM (CLAUDE.md #5): the backend meters Stars +
 // content-filters; the kid surface only POSTs a prompt and renders the data URL.
 //
-// Asserts the J5 surface:
-//   - Generate (real path, projectId set) → POSTs /llm/generate-asset → an asset
-//     card appears in the grid → its detail shows a copy-able Phaser code-ref.
-//   - One-tap "Add to my game" → inserts the loader into a scene the game can use
-//     (the runner's srcdoc now contains `this.load.image('…','assets/…')`) and the
-//     game still runs clean (fps > 0, zero errors) — the asset is loadable.
-//   - A stable screenshot of the generated-asset detail (with the add-to-game CTA).
+// Asserts the J5 surface (generation now lives in the CHAT — one AI turn at a
+// time — entered from the Asset Viewer's Generate/Remix bars):
+//   - Generate (real path, projectId set) → POSTs /llm/generate-asset → the
+//     finished asset surfaces as a tappable chat card (`chat-asset-open`);
+//     tapping it opens the asset in the viewer with a copy-able Phaser code-ref.
+//   - The generate goes through platform-backend exactly once (Stars debit).
+//   - Remix posts the reference `ref_url` (Library asset's CDN URL) to the backend.
+//   - A Library emoji's detail gives a URL-form loader (referenced, not inlined).
 
 // A tiny green PNG the mocked generate endpoint returns (1×1, valid image bytes).
 const PNG_DATA_URL =
@@ -77,25 +78,6 @@ async function mockAssetGenBackend(page: Page) {
   });
 }
 
-/** Record the runner's game signals (errors + fps) — the game-smoke oracle. */
-async function installGameSignalRecorder(page: Page) {
-  await page.addInitScript(() => {
-    const w = window as unknown as { __smokeErrors: string[]; __smokeMaxFps: number };
-    w.__smokeErrors = [];
-    w.__smokeMaxFps = 0;
-    window.addEventListener('message', (e: MessageEvent) => {
-      const m = e.data as { __airbotixConsole?: true; level?: string; text?: string; __airbotixStat?: true; fps?: number } | null;
-      if (!m || typeof m !== 'object') return;
-      if (m.__airbotixConsole === true) {
-        if (m.level === 'error') w.__smokeErrors.push(String(m.text));
-      } else if (m.__airbotixStat === true) {
-        const fps = m.fps ?? 0;
-        if (fps > w.__smokeMaxFps) w.__smokeMaxFps = fps;
-      }
-    });
-  });
-}
-
 /** Drive the authed J1 hub → studio flow, then open the Assets split tab. */
 async function openAssets(page: Page) {
   await openStudio(page);
@@ -104,44 +86,26 @@ async function openAssets(page: Page) {
   await expect(page.getByText('All assets')).toBeVisible();
 }
 
-test('J5: generate (real backend) → asset card → add-to-game inserts a loader the game uses', async ({ page }) => {
-  await installGameSignalRecorder(page);
+test('J5: generate (asset-viewer button) → runs in chat → finished card opens the asset', async ({ page }) => {
   await mockAssetGenBackend(page);
   await openAssets(page);
 
-  // Generate → POST /llm/generate-asset → the generated asset's detail opens.
+  // Generate from the Asset Viewer → the request is posted to the CHAT (where all
+  // AI conversation lives, one at a time) → POST /llm/generate-asset.
   await page.getByTestId('asset-generate-prompt').fill('pixel coin');
   await page.getByTestId('asset-generate').click();
 
-  // The detail shows the exact Phaser loader code-ref for the generated PNG.
+  // The finished asset surfaces as a tappable chat card (no in-pane add-to-game).
+  const done = page.getByTestId('chat-asset-open');
+  await expect(done).toBeVisible({ timeout: 8_000 });
+
+  // Tapping it opens the asset in the Asset Viewer, whose detail shows the exact
+  // Phaser loader code-ref for the generated PNG.
+  await done.click();
   await expect(page.getByTestId('asset-codeRef')).toContainText(
     "this.load.image('pixel_coin', 'assets/generated/pixel_coin.png')",
     { timeout: 6_000 },
   );
-
-  // ONE-TAP add: the loader + a use are written into the Game scene.
-  await expect(page.getByTestId('asset-add-to-game')).toBeVisible();
-  await page.getByTestId('asset-add-to-game').click();
-  await expect(page.getByText(/Added .* to your game/)).toBeVisible();
-
-  // The game can now LOAD the asset: run it → the runner's srcdoc carries the
-  // inserted loader, and the game runs clean (fps > 0, zero errors). In Split
-  // mode the Game Runner is always mounted on the right; press its Play button
-  // (the toolbar control — the center overlay shares the "Play" name).
-  await page.getByRole('button', { name: 'Play' }).first().click();
-  const frame = page.locator('iframe[title="Game"]');
-  await expect(frame).toBeVisible({ timeout: 6_000 });
-  const src = await frame.getAttribute('srcdoc');
-  expect(src).toContain("this.load.image('pixel_coin'");
-  // The path literal was inlined to a data: URL (Phaser loads it directly).
-  expect(src).toContain('data:image/png;base64');
-
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __smokeMaxFps: number }).__smokeMaxFps), { timeout: 10_000 })
-    .toBeGreaterThan(0);
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __smokeErrors: string[] }).__smokeErrors), { timeout: 3_000 })
-    .toEqual([]);
 });
 
 test('J5: generate goes through the backend (Stars debit) — kid never calls an LLM', async ({ page }) => {
@@ -157,7 +121,7 @@ test('J5: generate goes through the backend (Stars debit) — kid never calls an
 
   await page.getByTestId('asset-generate-prompt').fill('pixel coin');
   await page.getByTestId('asset-generate').click();
-  await expect(page.getByTestId('asset-codeRef')).toBeVisible({ timeout: 6_000 });
+  await expect(page.getByTestId('chat-asset-open')).toBeVisible({ timeout: 8_000 });
 
   // Exactly one backend generate call fired (no direct-LLM, no duplicate).
   expect(genPosts).toHaveLength(1);
@@ -183,10 +147,9 @@ async function mockEmojiCdn(page: Page) {
   );
 }
 
-test('A2: Library → pick an emoji → add-to-game loads it by URL (not inlined) and runs', async ({
+test('A2: Library → pick an emoji → its detail gives a URL-form loader (referenced, not inlined)', async ({
   page,
 }) => {
-  await installGameSignalRecorder(page);
   await mockAssetGenBackend(page); // seats a kid + a Game scene with preload()/create()
   await mockEmojiCdn(page);
   await openAssets(page);
@@ -196,35 +159,17 @@ test('A2: Library → pick an emoji → add-to-game loads it by URL (not inlined
   await expect(page.getByTestId('library-card').first()).toBeVisible();
 
   // Narrow to the Coin and open it → the detail shows a URL-form loader with CORS.
+  // A library asset is referenced by its CDN URL, never inlined into the VFS as a
+  // data: URL — so its copy-able code-ref is the URL loader + crossOrigin setup.
   await page.getByPlaceholder(/Search the library/).fill('coin');
   await page.getByTestId('library-card').first().click();
   await expect(page.getByTestId('library-codeRef')).toContainText("this.load.setCORS('anonymous')");
   await expect(page.getByTestId('library-codeRef')).toContainText(
     "this.load.image('coin', 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png')",
   );
-
-  // One-tap add → the URL loader + a use are written into the Game scene.
-  await page.getByTestId('library-add-to-game').click();
-  await expect(page.getByText(/Added .* to your game/)).toBeVisible();
-
-  // Run it: the runner's srcdoc carries the URL loader VERBATIM — a library asset
-  // is referenced by URL, never inlined into the VFS as a data: URL.
-  await page.getByRole('button', { name: 'Play' }).first().click();
-  const frame = page.locator('iframe[title="Game"]');
-  await expect(frame).toBeVisible({ timeout: 6_000 });
-  const src = await frame.getAttribute('srcdoc');
-  expect(src).toContain("this.load.image('coin', 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png')");
-  expect(src).toContain("this.load.setCORS('anonymous')");
-
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __smokeMaxFps: number }).__smokeMaxFps), { timeout: 10_000 })
-    .toBeGreaterThan(0);
-  await expect
-    .poll(() => page.evaluate(() => (window as unknown as { __smokeErrors: string[] }).__smokeErrors), { timeout: 3_000 })
-    .toEqual([]);
 });
 
-test('A5: Remix a library emoji → backend gets ref_url → variation lands in My assets', async ({
+test('A5: Remix a library emoji → runs in chat → backend gets the ref_url', async ({
   page,
 }) => {
   const genBodies: string[] = [];
@@ -245,35 +190,13 @@ test('A5: Remix a library emoji → backend gets ref_url → variation lands in 
   await page.getByTestId('asset-remix-prompt').fill('make it blue');
   await page.getByTestId('asset-remix').click();
 
-  // The variation lands under My assets (assets/generated) and is shown selected.
-  await expect(page.getByText(/Remixed/)).toBeVisible();
-  await expect(page.getByTestId('asset-codeRef')).toContainText(
-    "this.load.image('make_it_blue', 'assets/generated/make_it_blue.png')",
-    { timeout: 6_000 },
-  );
+  // The remix runs in the chat (the reference asset is shown in the magic card)
+  // and finishes as a tappable asset card.
+  await expect(page.getByTestId('chat-asset-open')).toBeVisible({ timeout: 8_000 });
 
   // The backend received the remix reference (the Library asset's URL).
   expect(genBodies).toHaveLength(1);
   const body = JSON.parse(genBodies[0]) as { ref_url?: string; prompt?: string };
   expect(body.prompt).toBe('make it blue');
   expect(body.ref_url).toBe('https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png');
-});
-
-// ── Stable detail screenshot (generated asset + add-to-game CTA) ───────────────
-test.describe('visual', () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
-  test('visual: a generated asset detail with the Add-to-my-game CTA', async ({ page }) => {
-    await mockAssetGenBackend(page);
-    await openAssets(page);
-
-    await page.getByTestId('asset-generate-prompt').fill('pixel coin');
-    await page.getByTestId('asset-generate').click();
-    await expect(page.getByTestId('asset-add-to-game')).toBeVisible({ timeout: 6_000 });
-    // Screenshot the detail's action column (deterministic — fixed mock result).
-    await expect(page.getByTestId('asset-add-to-game')).toHaveScreenshot('asset-add-to-game.png', {
-      animations: 'disabled',
-      maxDiffPixelRatio: 0.02,
-    });
-  });
 });
