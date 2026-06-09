@@ -6,6 +6,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Added
+- **Teacher next-step option chips in the playground chat** (`panes/AIChatPanel.tsx`,
+  `panes/useGameAgent.ts`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` §11.4 / D-PAP-06).
+  A settled agent turn now carries the backend's `next_steps` (`{label, prompt, tag:'concept'|'fun'}`)
+  onto its chat bubble and renders them as **tappable chips** — concept chips (sky/✨) and fun chips
+  (bubblegum/🪄); tapping one sends its `prompt` as the next turn. `AgentTurnResult` gains
+  `next_steps` + `history_label` (FE1 of the teacher model). Covered by a new `AIChatPanel.test.tsx`
+  + a `useGameAgent` data-flow assertion. (History-label wiring + removing the old Lite/Pro
+  agency/approval beats land in follow-ups.)
+
 ### Changed
 - **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
   The share control used to float top-right over the desktop surface (Window mode) or

@@ -20,6 +20,7 @@ import {
   Star,
   Undo2,
   Volume2,
+  Wand2,
   WifiOff,
   X,
 } from 'lucide-react';
@@ -210,7 +211,13 @@ export function AIChatPanel({
             item.pending ? (
               <ThinkingBubble key={item.id} />
             ) : (
-              <ChatRow key={item.id} item={item} onRunGame={onRunGame} onSeeCode={onSeeCode} />
+              <ChatRow
+                key={item.id}
+                item={item}
+                onRunGame={onRunGame}
+                onSeeCode={onSeeCode}
+                onSend={onSend}
+              />
             ),
           )}
 
@@ -376,10 +383,12 @@ function ChatRow({
   item,
   onRunGame,
   onSeeCode,
+  onSend,
 }: {
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  onSend?: (text: string) => void;
 }) {
   if (item.role === 'kid') {
     return (
@@ -471,6 +480,29 @@ function ChatRow({
                 <Code2 size={16} /> See code
               </button>
             )}
+          </div>
+        )}
+
+        {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06).
+            Tapping one sends its prompt as the next turn. */}
+        {item.nextSteps && item.nextSteps.length > 0 && (
+          <div data-testid="next-steps" className="mt-3 flex flex-wrap gap-2">
+            {item.nextSteps.map((step, i) => (
+              <button
+                key={i}
+                type="button"
+                data-testid="next-step"
+                onClick={() => onSend?.(step.prompt)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold transition-transform hover:-translate-y-0.5 ${
+                  step.tag === 'concept'
+                    ? 'bg-brand-sky/15 text-brand-sky'
+                    : 'bg-brand-bubblegum/15 text-brand-bubblegum'
+                }`}
+              >
+                {step.tag === 'concept' ? <Sparkles size={14} /> : <Wand2 size={14} />}
+                {step.label}
+              </button>
+            ))}
           </div>
         )}
       </div>

@@ -129,6 +129,21 @@ export interface AgentTurnResult {
   // Workspace actions for the Game Studio to execute after the turn applies
   // (run/restart the game, focus a pane…). See executeClientActions.
   client_actions?: ClientAction[];
+  // The teacher's "what shall we do next?" options (playground §11.4 / D-PAP-06),
+  // rendered as tappable chips; tapping one sends `prompt` as the next turn.
+  next_steps?: NextStep[];
+  // A short, kid-readable label for the history timeline (null/absent if none).
+  history_label?: string | null;
+}
+
+/** One next-step option the teacher offers on `done` (rendered as a chip). */
+export interface NextStep {
+  /** Kid-facing button text, e.g. "Add jumping 🦘". */
+  label: string;
+  /** The prompt this option sends as the next turn. */
+  prompt: string;
+  /** Whether this option teaches a concept or is just for fun. */
+  tag: 'concept' | 'fun';
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────

@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import type { AgentTurnResult, NextStep, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
 import {
   executeClientActions,
   type ClientActionHandlers,
@@ -52,6 +52,8 @@ export interface ChatItem {
   actions?: ChatAction[];
   /** A safeguarding deflection bubble (J13) — rendered with the rescue styling. */
   safeguard?: boolean;
+  /** Teacher "what next?" option chips (§11.4 / D-PAP-06) — tap to send `prompt`. */
+  nextSteps?: NextStep[];
 }
 
 /**
@@ -328,6 +330,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                   stars: result.stars_charged,
                   toolsFired: result.tools_fired,
                   changes: toChanges(result),
+                  nextSteps: result.next_steps,
                 }
               : it,
           ),
