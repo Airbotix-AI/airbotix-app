@@ -103,9 +103,9 @@ export interface SafeguardingVerdict {
 
 // A workspace action the backend agent asks the Game Studio UI to perform. The
 // agent uses these to DIRECT THE CHILD'S ATTENTION to what it just did — open the
-// changed file, highlight the new lines, run the game (playground-ai-prompt-prd.md
-// D-PAP-08, App. A). Executed client-side by executeClientActions
-// (forward-compatible: unknown actions are ignored).
+// changed file, highlight the new lines, run the game — or jump the kid to a Game
+// Guide passage (playground-ai-prompt-prd.md D-PAP-08, App. A). Executed
+// client-side by executeClientActions (forward-compatible: unknown actions ignored).
 export type ClientActionName =
   // A · Show & teach
   | 'run_game'
@@ -140,12 +140,16 @@ export type ClientActionName =
   | 'open_asset_viewer'
   | 'select_asset'
   | 'generate_asset'
-  | 'copy_loader';
+  | 'copy_loader'
+  // Game Guide
+  | 'open_help';
 
 export interface ClientAction {
   action: ClientActionName;
-  /** Pane for show_code / focus_panel; window id for the window ops. */
+  /** Pane for show_code / focus_panel; window id for the window ops; the Guide docId for open_help. */
   target?: string;
+  /** open_help → the heading anchor within the doc to scroll to. */
+  anchor?: string;
   /** show_button text. */
   label?: string;
   /** File path for open_file / highlight_code / jump_to_line / open_diff / select_asset. */

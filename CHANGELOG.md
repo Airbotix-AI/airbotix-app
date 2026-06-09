@@ -61,6 +61,63 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   + a `useGameAgent` data-flow assertion. (History-label wiring + removing the old Lite/Pro
   agency/approval beats land in follow-ups.)
 
+### Added
+- **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
+  page: shows outstanding per-session charges bound to each class, totals what's owed, and starts
+  an Airwallex checkout to pay all outstanding charges at once (mirrors the wallet topup flow).
+  "Tutoring" nav item added.
+- **Game Guide SVG concept diagrams (D-HELP-07).** New `panes/help/helpDiagrams.tsx` —
+  a registry of type-safe React SVGs (xy-coordinates, game-loop, gravity-and-jump,
+  collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
+  Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
+  `alt` label — no HTML injection. Unknown key → alt caption fallback.
+
+### Changed
+- **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`
+  loads `GET /help/docs` via TanStack Query and renders + searches it client-side; the
+  bundled `panes/help/helpContent.ts` is **deleted** so platform-backend is the single
+  source (D‑HELP‑02). New `helpTypes.ts` (shared shape) + `helpApi` becomes
+  `loadHelpCorpus` + pure `searchDocs`/`getDoc`. Loading/error states added. This also
+  unblocks comprehensive, clearly-tiered content (authored once, server-side). E2E mocks
+  `GET /help/docs` in `mockBackendAsKid`.
+
+### Added
+- **Game Guide — `open_help` client action (MH2a, frontend)**. Extends the agent's
+  `ClientAction` channel (`code/codeApi.ts`) with `open_help { target: docId, anchor? }`,
+  dispatched by `executeClientActions` → a new `openHelp` handler that surfaces the Guide
+  (window or Split tab) and jumps it to the passage. `HelpPane` gains a `request` prop
+  (nonce-keyed, mirroring the editor's jump-to-error seam) that drives the navigation.
+  This is the frontend half of HJ2: once the backend (MH2b) emits `open_help`, the kid's
+  Guide opens at the cited passage. Tested: `executeClientActions.test.ts` (dispatch +
+  no-target ignore + `focus_panel` to help) and `e2e/help-guide.spec.ts` HJ2 (a mocked
+  turn returning `open_help` opens the Guide at the gravity passage, no VFS changes).
+  The backend `search_help`/`read_help` tools + system prompt remain MH2b.
+- **Game Guide — in-studio help (MH1, frontend)** for the Game Studio playground
+  (PRD `docs/product/prd/learn-game-studio-help-prd.md`). A 5th playground window
+  (`help`, "Guide", `BookOpen`, `brand-sunshine` accent) reachable from a desktop tile
+  (Window mode) and a Split tab. Renders a curated, kid-tiered (Lite/Pro) corpus —
+  Phaser 4, game basics, game-engine basics — authored as typed structured content
+  (`panes/help/helpContent.ts`, no markdown/sanitizer dep) behind a `helpApi` data seam
+  (client-side lexical search today; MH0 swaps it to `GET /help/docs*`). New:
+  `panes/HelpPane.tsx`, `panes/help/{helpContent,helpApi}.ts`; wired through
+  `playgroundStore` (`PgWindowId`), `windowMeta`, `DesktopIcon` (sunshine-contrast
+  exception: solid chip + `text-ink` glyph), `Workspace`. The AI `search_help`/`read_help`
+  tools + the `open_help` client action are MH2 (backend, not in this change). Tested:
+  `helpContent.test.ts` (corpus invariants + the HJ6 runtime-contract/Phaser-major sync
+  guard, D‑HELP‑06), `helpApi.test.ts` (search + tier filtering), `e2e/help-guide.spec.ts`
+  (HJ1: open from desktop → browse → search → read → tier toggle).
+
+### Fixed
+- **Help search tokenizer strips punctuation** (`helpApi.searchHelp`) so a kid query like
+  "how do I jump?" matches the "jump" tag (not "jump?"). Kept in sync with the backend
+  `HelpSearchService` tokenizer (so the agent's `search_help` and the pane's own search rank
+  identically).
+- **e2e harness: `mockBackendAsKid` now mocks `GET /projects/*/share` → 404** ("no share
+  yet"). `ShareLinkPanel` queries it on every real-project workspace; left unmocked it
+  401'd → the api client cleared the kid token → a delayed bounce to `/learn/login` that
+  fast specs happened to beat (and which flaked the `create-game` openCode spec). Share-
+  specific specs still override with their own route (matched most-recent-first).
+
 ### Changed
 - **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
   The share control used to float top-right over the desktop surface (Window mode) or

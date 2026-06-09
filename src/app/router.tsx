@@ -28,6 +28,7 @@ import { FamilyNewPage } from '@/pages/portal/FamilyNewPage';
 import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
 import { RegisterPage } from '@/pages/portal/RegisterPage';
 import { SettingsPage } from '@/pages/portal/SettingsPage';
+import { TutoringPage } from '@/pages/portal/TutoringPage';
 import { VerifyOtpPage } from '@/pages/portal/VerifyOtpPage';
 import { WalletPage } from '@/pages/portal/WalletPage';
 import { WalletTopupPage } from '@/pages/portal/WalletTopupPage';
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
       { path: 'wallet', element: <WalletPage /> },
       { path: 'wallet/topup', element: <WalletTopupPage /> },
       { path: 'wallet/auto-topup', element: <WalletAutoTopupPage /> },
+      { path: 'tutoring', element: <TutoringPage /> },
       { path: 'usage', element: <UsagePage /> },
       { path: 'usage/:kidId', element: <KidUsagePage /> },
       { path: 'approvals', element: <ApprovalsPage /> },

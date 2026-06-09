@@ -1,19 +1,21 @@
 import type { ClientAction } from '../code/codeApi';
 
-/** The four panels the studio can surface/focus (Window ids = Split tabs + game). */
-export type PanelTarget = 'chat' | 'code' | 'game' | 'assets';
+/** The panels the studio can surface/focus (Window ids = Split tabs + game). */
+export type PanelTarget = 'chat' | 'code' | 'game' | 'assets' | 'help';
 
 /**
- * Studio-side handlers the interpreter dispatches to. The Workspace supplies them
- * so this module stays pure + testable. The core Group A teaching handlers
- * (run/restart/focus/openFile) are required; the rest are optional — an action
- * with no handler is a safe no-op, so the backend can add tools (D-PAP-08, App. A)
- * without breaking older clients.
+ * so this module stays pure + testable. The core handlers (run/restart/focus the
+ * game, jump the Guide to a passage) are required; the Group A teaching handlers
+ * (openFile, theme/layout, console, etc.) are optional — an action with no handler
+ * is a safe no-op, so the backend can add tools (D-PAP-08, App. A) without breaking
+ * older clients.
  */
 export interface ClientActionHandlers {
   runGame: () => void;
   restartGame: () => void;
   focusPanel: (target: PanelTarget) => void;
+  /** Open/focus the Game Guide at a doc (+ optional anchor) — the `open_help` action. */
+  openHelp: (docId: string, anchor?: string) => void;
   /** Open a file in the code view; optionally scroll to / highlight a line range. */
   openFile?: (path: string, fromLine?: number, toLine?: number) => void;
   setTheme?: (mode: 'light' | 'dark') => void;
@@ -25,7 +27,7 @@ export interface ClientActionHandlers {
   openAssetViewer?: () => void;
 }
 
-const PANELS: readonly PanelTarget[] = ['chat', 'code', 'game', 'assets'];
+const PANELS: readonly PanelTarget[] = ['chat', 'code', 'game', 'assets', 'help'];
 
 function asPanel(target: string | undefined, fallback: PanelTarget): PanelTarget {
   return PANELS.includes(target as PanelTarget) ? (target as PanelTarget) : fallback;
@@ -87,6 +89,11 @@ export function executeClientActions(
         break;
       case 'open_asset_viewer':
         (handlers.openAssetViewer ?? (() => handlers.focusPanel('assets')))();
+        break;
+      case 'open_help':
+        // The agent jumps the kid to a Guide passage (target=docId, anchor=heading).
+        // No target = nothing to open; ignore rather than open a blank Guide.
+        if (a.target) handlers.openHelp(a.target, a.anchor);
         break;
       default:
         // show_button is a chat CTA; window move/resize, search, asset-gen, revert,

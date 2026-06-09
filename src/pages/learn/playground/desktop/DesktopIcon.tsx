@@ -12,6 +12,7 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
   code: 'shadow-[0_10px_22px_-8px_rgba(61,217,169,0.55)]',
   game: 'shadow-[0_10px_22px_-8px_rgba(255,122,102,0.55)]',
   assets: 'shadow-[0_10px_22px_-8px_rgba(255,107,169,0.55)]',
+  help: 'shadow-[0_10px_22px_-8px_rgba(255,212,59,0.55)]',
 };
 
 /**
@@ -26,6 +27,13 @@ export function DesktopIcon({ id }: { id: PgWindowId }) {
   const openOrFocus = usePlaygroundStore((s) => s.openOrFocus);
 
   const open = () => openOrFocus(id);
+
+  // Sunshine-contrast exception (PRD §4.1): `brand-sunshine` is too light for the
+  // pale-wash + tinted-glyph pattern, so the Guide tile fills the chip SOLID with a
+  // theme-constant dark `text-ink` glyph instead. Tokens only — no raw hex.
+  const isHelp = id === 'help';
+  const chipClass = isHelp ? 'bg-brand-sunshine' : accent.wash;
+  const glyphClass = isHelp ? 'text-ink' : accent.icon;
 
   return (
     <button
@@ -42,8 +50,8 @@ export function DesktopIcon({ id }: { id: PgWindowId }) {
           TILE_SHADOW[id],
         )}
       >
-        <span className={clsx('flex h-[46px] w-[46px] items-center justify-center rounded-2xl', accent.wash)}>
-          <Icon size={26} className={accent.icon} />
+        <span className={clsx('flex h-[46px] w-[46px] items-center justify-center rounded-2xl', chipClass)}>
+          <Icon size={26} className={glyphClass} />
         </span>
       </span>
       <span className="text-[12px] font-bold text-pg-text-dim transition-colors group-hover:text-pg-text">

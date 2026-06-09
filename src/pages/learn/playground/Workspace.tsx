@@ -31,6 +31,7 @@ import { AssetViewerPane } from './panes/AssetViewerPane';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
+import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
@@ -65,14 +66,15 @@ interface Wallet {
   stars_balance: number;
 }
 
-type SplitTab = 'chat' | 'code' | 'assets';
+type SplitTab = 'chat' | 'code' | 'assets' | 'help';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2 / Images), not an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
   { id: 'assets', label: 'Assets' },
+  { id: 'help', label: 'Guide' },
 ];
 
 export function Workspace({
@@ -136,7 +138,7 @@ export function Workspace({
   // Surface/focus a panel for a turn's workspace action: open+focus the window
   // (Window mode) or switch the split tab (Split mode; the Game pane is always
   // visible there, so 'game' is a no-op).
-  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets') => {
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => {
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus(target);
     else if (target !== 'game') setSplitTab(target);
   };
@@ -157,6 +159,18 @@ export function Workspace({
     // Bring the editor forward so the kid sees the jump.
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
+  };
+
+  // The agent's `open_help` — surface the Guide and jump it to a passage. A
+  // monotonic nonce makes a repeat jump to the same place re-fire (HelpPane reacts
+  // to the new object identity). Mirrors the jump-to-error `locationRequest` seam.
+  const [helpRequest, setHelpRequest] = useState<{ docId: string; anchor?: string; nonce: number } | null>(
+    null,
+  );
+  const helpNonce = useRef(0);
+  const openHelp = (docId: string, anchor?: string) => {
+    focusPanel('help');
+    setHelpRequest({ docId, anchor, nonce: (helpNonce.current += 1) });
   };
 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
@@ -195,6 +209,7 @@ export function Workspace({
         runGame: runFromEditor,
         restartGame: runFromEditor,
         focusPanel,
+        openHelp,
         // Teaching tools: open/reveal/highlight the file the agent just changed.
         openFile: (path, fromLine, toLine) => handleOpenLocation(path, fromLine ?? 1, toLine),
         // Look tools — only fire when the agent was asked (guardrail enforced
@@ -272,6 +287,7 @@ export function Workspace({
             <DesktopIcon id="code" />
             <DesktopIcon id="game" />
             <DesktopIcon id="assets" />
+            <DesktopIcon id="help" />
           </div>
 
           {/* Floating windows */}
@@ -316,6 +332,13 @@ export function Workspace({
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
             <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+          </Window>
+          <Window
+            id="help"
+            title={WINDOW_META.help.title}
+            icon={<WINDOW_META.help.Icon size={16} />}
+          >
+            <HelpPane mode={mode} request={helpRequest ?? undefined} />
           </Window>
         </div>
 
@@ -375,6 +398,8 @@ export function Workspace({
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                   />
+                ) : splitTab === 'help' ? (
+                  <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
                 )}
