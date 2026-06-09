@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { useAuthStore } from '@/auth/authStore';
+import { getToken } from '@/auth/authStore';
 import { api } from '@/lib/api';
 import type { KidUsageDetail, UsageTrendPoint } from './walletTypes';
+import { TrendBars } from '@/components/TrendBars';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 const DEFAULT_DAYS = 28;
@@ -39,7 +40,7 @@ export function KidUsagePage() {
     setExporting(true);
     setExportError(null);
     try {
-      const token = useAuthStore.getState().accessToken;
+      const token = getToken('user');
       const res = await fetch(
         `${BASE_URL}/kids/${kidId}/usage/export.csv?from=${from}&to=${to}`,
         { headers: token ? { authorization: `Bearer ${token}` } : {}, credentials: 'include' },
@@ -161,22 +162,6 @@ export function KidUsagePage() {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function TrendBars({ points }: { points: UsageTrendPoint[] }) {
-  const max = Math.max(1, ...points.map((p) => p.value));
-  return (
-    <div className="flex items-end gap-1 h-28">
-      {points.map((p) => (
-        <div key={p.local_date} className="flex-1 flex flex-col items-center justify-end" title={`${p.local_date}: ${p.value}★`}>
-          <div
-            className="w-full rounded-t bg-brand-sky"
-            style={{ height: `${Math.max(4, (p.value / max) * 100)}%` }}
-          />
-        </div>
-      ))}
     </div>
   );
 }

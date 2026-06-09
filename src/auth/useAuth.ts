@@ -2,12 +2,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { closeSocket, getSocket } from '@/lib/ws';
-import { useAuthStore } from './authStore';
+import { surfacePrincipal, useAuthStore } from './authStore';
 import type {
   AuthPrincipal,
   ClassCodeLoginResponse,
   KidLoginResponse,
   MeResponse,
+  PrincipalKind,
   VerifyOtpResponse,
 } from './types';
 
@@ -35,12 +36,16 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
   };
 }
 
-export function useMe() {
-  const accessToken = useAuthStore((s) => s.accessToken);
+// `/auth/me` is fetched per principal kind so the parent and kid sessions are
+// cached independently. Defaults to the surface you're on (`/learn/*` = kid),
+// which is correct for every page since the two surfaces are route-segregated;
+// ProtectedRoute/RootPage pass an explicit kind.
+export function useMe(kind: PrincipalKind = surfacePrincipal()) {
+  const token = useAuthStore((s) => s.tokens[kind]);
   return useQuery<AuthPrincipal>({
-    queryKey: ['auth', 'me'],
-    queryFn: async () => normaliseMe(await api<MeResponse>('/auth/me')),
-    enabled: accessToken !== null,
+    queryKey: ['auth', 'me', kind],
+    queryFn: async () => normaliseMe(await api<MeResponse>('/auth/me', { principal: kind })),
+    enabled: token !== null,
     staleTime: 60_000,
   });
 }
@@ -61,10 +66,9 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
     body: { email, code },
     skipAuthRefresh: true,
   });
-  useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setToken('user', res.access_token);
   useAuthStore.getState().setBootstrapped(true);
-  // Trigger WS connect with new token
-  setTimeout(() => getSocket(), 0);
+  // No portal WS consumer today, so the parent login does not open a socket.
   return res;
 }
 
@@ -80,10 +84,10 @@ export async function kidLogin(
     body: { family_code: familyCode, nickname, pin },
     skipAuthRefresh: true,
   });
-  useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setToken('kid', res.access_token);
   useAuthStore.getState().setBootstrapped(true);
-  // Trigger WS connect with new token
-  setTimeout(() => getSocket(), 0);
+  // Trigger WS connect with the new kid token
+  setTimeout(() => getSocket('kid'), 0);
   return res;
 }
 
@@ -98,27 +102,30 @@ export async function classCodeLogin(
     body: { class_code: classCode, display_nickname: displayNickname },
     skipAuthRefresh: true,
   });
-  useAuthStore.getState().setAccessToken(res.access_token);
+  useAuthStore.getState().setToken('kid', res.access_token);
   useAuthStore.getState().setBootstrapped(true);
-  // Trigger WS connect with new token
-  setTimeout(() => getSocket(), 0);
+  // Trigger WS connect with the new kid token
+  setTimeout(() => getSocket('kid'), 0);
   return res;
 }
 
 // ── Logout ──────────────────────────────────────────────────────────────────
 
+// Logs out a single principal so the other session stays alive. Defaults to the
+// current surface's principal.
 export function useLogout() {
   const qc = useQueryClient();
-  return async (everywhere = false) => {
+  return async (kind: PrincipalKind, everywhere = false) => {
     try {
       await api<void>(everywhere ? '/auth/logout-everywhere' : '/auth/logout', {
         method: 'POST',
+        principal: kind,
       });
     } catch {
       // ignore — clearing client state regardless
     }
-    useAuthStore.getState().clear();
-    closeSocket();
-    qc.clear();
+    useAuthStore.getState().clearToken(kind);
+    closeSocket(kind);
+    qc.removeQueries({ queryKey: ['auth', 'me', kind] });
   };
 }

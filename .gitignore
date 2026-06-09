@@ -24,10 +24,26 @@ logs
 # tests
 coverage
 
-# build artifacts (tsc -b composite project leftovers)
+# build artifacts (tsc -b composite project leftovers). The vite-config project
+# is meant to emit to node_modules/.cache (see tsconfig.node.json outDir), but a
+# stray tsc run can still drop these in the repo root — ignore them explicitly so
+# the compiled config never shadows / gets committed alongside vite.config.ts.
 *.tsbuildinfo
-vite.config.js
-vite.config.d.ts
+/vite.config.js
+/vite.config.d.ts
 
 # build-time public env (kept local; CI injects via workflow env)
 .env.production
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Vendored Phaser — materialized from the `phaser` npm dep by the vendor-phaser
+# Vite plugin (vite.config.ts, runs on every dev/build), served from our own
+# origin (no CDN). Tracked via the package.json version pin, not as binaries.
+/public/vendor/phaser-*.min.js
+/public/vendor/phaser-*.d.ts
+.claude/worktrees/

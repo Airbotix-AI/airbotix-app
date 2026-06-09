@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { KidGrowthTeaser } from './KidGrowthTeaser';
 
 interface Kid {
   id: string;
   nickname: string;
   age: number;
-  pin_hash: string | null;
   is_active: boolean;
   daily_star_cap: number | null;
   created_at: string;
@@ -64,26 +64,6 @@ export function FamilyListPage() {
         <Link to="/portal/family/new" className="btn-pill-primary">+ Add kid</Link>
       </div>
 
-      {family.data && (
-        <div className="card-base mb-8 flex items-center justify-between gap-6">
-          <div>
-            <div className="eyebrow eyebrow-mint">Family code</div>
-            <div className="font-mono font-extrabold text-ink mt-1" style={{ fontSize: '40px', letterSpacing: '0.2em' }}>
-              {family.data.code}
-            </div>
-            <p className="text-[13px] text-slate2 mt-2">
-              Kids type this code, their nickname, and PIN to sign in.
-            </p>
-          </div>
-          <button
-            onClick={() => navigator.clipboard?.writeText(family.data!.code)}
-            className="btn-pill-secondary"
-          >
-            Copy
-          </button>
-        </div>
-      )}
-
       {kids.isLoading ? (
         <div className="lead-text">Loading kids…</div>
       ) : kids.data && kids.data.length > 0 ? (
@@ -100,18 +80,14 @@ export function FamilyListPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="text-[28px] font-bold text-ink leading-tight">{kid.nickname}</div>
-                    <div className="text-[13px] text-slate2 mt-1">
-                      Age {kid.age}
-                      {kid.daily_star_cap !== null && ` · cap ${kid.daily_star_cap}/day`}
-                    </div>
+                    <div className="text-[13px] text-slate2 mt-1">Age {kid.age}</div>
                   </div>
-                  <span className={`sticker-${color}`}>
-                    {kid.is_active ? 'Active' : 'Paused'}
-                  </span>
+                  <span className={`sticker-${color}`}>{kid.is_active ? 'Active' : 'Paused'}</span>
                 </div>
-                <div className="mt-6 text-[13px] font-semibold text-brand-coral">
-                  Manage →
-                </div>
+
+                <KidGrowthTeaser kidId={kid.id} name={kid.nickname} />
+
+                <div className="mt-5 text-[13px] font-semibold text-brand-coral">See growth →</div>
               </Link>
             );
           })}
@@ -126,6 +102,29 @@ export function FamilyListPage() {
           </h2>
           <p className="lead-text mt-2">Add your first kid to get them signed in.</p>
           <Link to="/portal/family/new" className="btn-pill-primary mt-6">+ Add kid</Link>
+        </div>
+      )}
+
+      {family.data && (
+        <div className="card-base mt-8 flex items-center justify-between gap-6">
+          <div>
+            <div className="eyebrow eyebrow-mint">Family code</div>
+            <div
+              className="font-mono font-extrabold text-ink mt-1"
+              style={{ fontSize: '40px', letterSpacing: '0.2em' }}
+            >
+              {family.data.code}
+            </div>
+            <p className="text-[13px] text-slate2 mt-2">
+              Kids type this code, their nickname, and PIN to sign in.
+            </p>
+          </div>
+          <button
+            onClick={() => navigator.clipboard?.writeText(family.data!.code)}
+            className="btn-pill-secondary"
+          >
+            Copy
+          </button>
         </div>
       )}
     </div>

@@ -8,8 +8,9 @@ import { LearnTopBar } from './LearnTopBar';
 const HEARTBEAT_INTERVAL_MS = 10_000;
 
 // Routes that need to render full-bleed (no centered max-width container).
-// Workspace is the IDE-style 3-pane surface and must use 100% width.
-const FLUID_ROUTES = ['/learn/workspace', '/learn/code'];
+// Workspace is the IDE-style 3-pane surface and must use 100% width; the
+// playground is the Phaser game-studio desktop (fills the area below the nav).
+const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 
 export function LearnLayout() {
   const { pathname } = useLocation();

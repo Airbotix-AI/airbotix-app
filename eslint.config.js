@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules'] },
+  // `public/vendor` holds the vendored Phaser engine + its ~6 MB .d.ts
+  // (materialized from the npm dep, git-ignored) — third-party, never lint it.
+  { ignores: ['dist', 'node_modules', 'public/vendor', '.claude/worktrees/**'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

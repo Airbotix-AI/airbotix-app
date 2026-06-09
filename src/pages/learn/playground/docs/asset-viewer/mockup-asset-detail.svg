@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1060" viewBox="0 0 1600 1060" font-family="'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif">
+  <defs>
+    <radialGradient id="desk" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#181222"/><stop offset="1" stop-color="#0C0913"/></radialGradient>
+    <linearGradient id="bub" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8FBE"/><stop offset="1" stop-color="#FF4F8F"/></linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3DD9A9"/><stop offset="1" stop-color="#2BB68C"/></linearGradient>
+    <pattern id="checker" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#C7C0D5"/><rect width="12" height="12" fill="#9C95AB"/><rect x="12" y="12" width="12" height="12" fill="#9C95AB"/></pattern>
+    <filter id="win" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/></filter>
+    <filter id="bdg" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/></filter>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-play" viewBox="0 0 24 24"><path d="M8 6l10 6-10 6z" fill="currentColor"/></symbol>
+    <symbol id="ic-pause" viewBox="0 0 24 24"><rect x="7" y="6" width="4" height="12" rx="1" fill="currentColor"/><rect x="13" y="6" width="4" height="12" rx="1" fill="currentColor"/></symbol>
+    <symbol id="ic-step" viewBox="0 0 24 24"><path d="M7 6l8 6-8 6z" fill="currentColor"/><rect x="16" y="6" width="3" height="12" rx="1" fill="currentColor"/></symbol>
+    <symbol id="ic-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="ic-insert" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="ic-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="currentColor"/></symbol>
+    <symbol id="ic-pencil" viewBox="0 0 24 24"><path d="M5 19l1-4L17 4l3 3L9 18l-4 1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-move" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16M8 8l4-4 4 4M8 16l4 4 4-4M8 8l-4 4 4 4M16 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-swap" viewBox="0 0 24 24"><path d="M4 9h13l-3-3M20 15H7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="ic-assets" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="9.5" r="1.8" fill="currentColor"/><path d="M5 17l4.5-4.5 3 3 3-3L21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="820" fill="url(#desk)"/>
+
+  <!-- ===== Detail surface ===== -->
+  <g filter="url(#win)"><rect x="70" y="36" width="1460" height="744" rx="18" fill="#242133" stroke="#FF6BA9" stroke-opacity="0.55" stroke-width="2"/></g>
+  <path d="M70 54a18 18 0 0 1 18-18h1424a18 18 0 0 1 18 18v36H70z" fill="#2E2A40"/>
+  <use href="#ic-assets" x="92" y="46" width="24" height="24" color="#FF6BA9"/>
+  <text x="126" y="64" font-size="16" font-weight="800" fill="#FFFFFF">worker_walk.png</text>
+  <rect x="300" y="48" width="104" height="24" rx="12" fill="#FF6BA9" opacity="0.18"/><text x="352" y="64" text-anchor="middle" font-size="11.5" font-weight="800" fill="#FF9AC6">characters</text>
+  <rect x="414" y="48" width="92" height="24" rx="12" fill="#5DAEFF" opacity="0.18"/><text x="460" y="64" text-anchor="middle" font-size="11.5" font-weight="800" fill="#9FCBFF">4f sprite</text>
+  <use href="#ic-close" x="1490" y="51" width="22" height="22" color="#9B94AC"/>
+
+  <!-- ===== LEFT: preview + animation player ===== -->
+  <!-- background toggle -->
+  <text x="100" y="124" font-size="12.5" font-weight="800" fill="#8B84A0">PREVIEW BACKGROUND</text>
+  <g font-size="12" font-weight="700">
+    <rect x="100" y="134" width="120" height="30" rx="9" fill="#FF6BA9" opacity="0.16"/><rect x="100" y="134" width="120" height="30" rx="9" fill="none" stroke="#FF6BA9" stroke-opacity="0.6"/><rect x="112" y="142" width="16" height="16" rx="3" fill="url(#checker)"/><text x="160" y="154" text-anchor="middle" fill="#FFFFFF">Checker</text>
+    <rect x="230" y="134" width="86" height="30" rx="9" fill="#221E30" stroke="#46415C"/><rect x="242" y="142" width="16" height="16" rx="3" fill="#0F0B18"/><text x="288" y="154" text-anchor="middle" fill="#B7B0C6">Dark</text>
+    <rect x="326" y="134" width="92" height="30" rx="9" fill="#221E30" stroke="#46415C"/><rect x="338" y="142" width="16" height="16" rx="3" fill="#FFFFFF"/><text x="388" y="154" text-anchor="middle" fill="#B7B0C6">White</text>
+    <rect x="428" y="134" width="100" height="30" rx="9" fill="#221E30" stroke="#46415C"/><rect x="440" y="142" width="16" height="16" rx="3" fill="#00B140"/><text x="494" y="154" text-anchor="middle" fill="#B7B0C6">Green</text>
+  </g>
+
+  <!-- preview stage -->
+  <rect x="100" y="176" width="700" height="404" rx="14" fill="url(#checker)"/>
+  <!-- one large animated frame (worker) -->
+  <g transform="translate(330,236)">
+    <ellipse cx="70" cy="300" rx="58" ry="12" fill="#000" opacity="0.18"/>
+    <rect x="28" y="120" width="84" height="120" rx="20" fill="#5DAEFF"/>
+    <circle cx="70" cy="86" r="40" fill="#FFE0C2"/>
+    <rect x="48" y="60" width="44" height="22" rx="10" fill="#FF7A66"/>
+    <rect x="34" y="236" width="26" height="64" rx="12" fill="#3D8FFF"/>
+    <rect x="80" y="236" width="26" height="64" rx="12" fill="#3D8FFF"/>
+  </g>
+  <!-- baseline overlay -->
+  <line x1="120" y1="536" x2="780" y2="536" stroke="#FF6BA9" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="128" y="528" font-size="11.5" font-weight="800" fill="#FF6BA9">baseline (foot)</text>
+  <!-- origin marker -->
+  <g stroke="#3DD9A9" stroke-width="2"><line x1="400" y1="524" x2="400" y2="548"/><line x1="388" y1="536" x2="412" y2="536"/></g>
+  <text x="416" y="540" font-size="11.5" font-weight="800" fill="#3DD9A9">origin 0.5 / 1.0</text>
+
+  <!-- animation player -->
+  <text x="100" y="612" font-size="12.5" font-weight="800" fill="#8B84A0">ANIMATION</text>
+  <text x="200" y="612" font-size="12" fill="#6E6786">(from worker_walk.png.anim.json — 96×128, 4 frames)</text>
+  <g transform="translate(100,624)"><circle cx="22" cy="22" r="22" fill="url(#bub)"/><use href="#ic-pause" x="10" y="10" width="24" height="24" color="#fff"/></g>
+  <g transform="translate(156,624)"><rect width="44" height="44" rx="12" fill="#2E2A40" stroke="#46415C"/><use href="#ic-step" x="10" y="10" width="24" height="24" color="#B7B0C6"/></g>
+  <text x="216" y="640" font-size="13" font-weight="700" fill="#E7E2F0">frame 2 / 4</text>
+  <text x="216" y="660" font-size="12" fill="#8B84A0">8 fps</text>
+  <rect x="300" y="636" width="160" height="8" rx="4" fill="#2E2A40"/><rect x="300" y="636" width="64" height="8" rx="4" fill="#FF6BA9"/>
+  <!-- frame strip -->
+  <g>
+    <rect x="500" y="622" width="48" height="48" rx="8" fill="url(#checker)"/><rect x="500" y="622" width="48" height="48" rx="8" fill="none" stroke="#46415C"/>
+    <rect x="556" y="622" width="48" height="48" rx="8" fill="url(#checker)"/><rect x="556" y="622" width="48" height="48" rx="8" fill="none" stroke="#FF6BA9" stroke-width="2.5"/>
+    <rect x="612" y="622" width="48" height="48" rx="8" fill="url(#checker)"/><rect x="612" y="622" width="48" height="48" rx="8" fill="none" stroke="#46415C"/>
+    <rect x="668" y="622" width="48" height="48" rx="8" fill="url(#checker)"/><rect x="668" y="622" width="48" height="48" rx="8" fill="none" stroke="#46415C"/>
+  </g>
+  <text x="100" y="712" font-size="12" fill="#8B84A0">Overlays:</text>
+  <g font-size="11.5" font-weight="700"><rect x="160" y="698" width="92" height="24" rx="12" fill="#FF6BA9" opacity="0.16"/><rect x="160" y="698" width="92" height="24" rx="12" fill="none" stroke="#FF6BA9" stroke-opacity="0.5"/><text x="206" y="714" text-anchor="middle" fill="#FF9AC6">baseline</text>
+  <rect x="262" y="698" width="78" height="24" rx="12" fill="#3DD9A9" opacity="0.16"/><rect x="262" y="698" width="78" height="24" rx="12" fill="none" stroke="#3DD9A9" stroke-opacity="0.5"/><text x="301" y="714" text-anchor="middle" fill="#7FF0CE">origin</text></g>
+
+  <!-- divider -->
+  <line x1="832" y1="110" x2="832" y2="760" stroke="#3A3650"/>
+
+  <!-- ===== RIGHT column ===== -->
+  <!-- metadata -->
+  <rect x="864" y="116" width="630" height="160" rx="14" fill="#201D2E" stroke="#3A3650"/>
+  <text x="884" y="146" font-size="13" font-weight="800" fill="#FFFFFF">Details</text>
+  <g font-size="12.5">
+    <text x="884" y="176" fill="#8B84A0">Path</text><text x="1476" y="176" text-anchor="end" font-family="monospace" fill="#C7C0D5">assets/characters/worker_walk.png</text>
+    <text x="884" y="204" fill="#8B84A0">Type</text><text x="1476" y="204" text-anchor="end" fill="#C7C0D5">PNG · sprite strip (4 frames)</text>
+    <text x="884" y="232" fill="#8B84A0">Dimensions</text><text x="1476" y="232" text-anchor="end" fill="#C7C0D5">384 × 128  (frame 96 × 128)</text>
+    <text x="884" y="260" fill="#8B84A0">Size</text><text x="1476" y="260" text-anchor="end" fill="#C7C0D5">18.4 KB</text>
+  </g>
+
+  <!-- code reference -->
+  <rect x="864" y="292" width="630" height="158" rx="14" fill="#201D2E" stroke="#3A3650"/>
+  <text x="884" y="322" font-size="13" font-weight="800" fill="#FFFFFF">Use it in your code</text>
+  <g transform="translate(1316,304)"><rect width="80" height="28" rx="9" fill="#2E2A40" stroke="#46415C"/><use href="#ic-copy" x="8" y="5" width="18" height="18" color="#B7B0C6"/><text x="50" y="19" text-anchor="middle" font-size="11.5" font-weight="700" fill="#E7E2F0">Copy</text></g>
+  <g transform="translate(1404,304)"><rect width="90" height="28" rx="9" fill="url(#mint)"/><use href="#ic-insert" x="8" y="5" width="18" height="18" color="#0E2A20"/><text x="56" y="19" text-anchor="middle" font-size="11.5" font-weight="800" fill="#0E2A20">Insert</text></g>
+  <rect x="884" y="344" width="590" height="88" rx="10" fill="#15121E" stroke="#46415C"/>
+  <g font-family="monospace" font-size="12.5">
+    <text x="900" y="372"><tspan fill="#E6E1F0">this.load.</tspan><tspan fill="#5DAEFF">spritesheet</tspan><tspan fill="#E6E1F0">(</tspan></text>
+    <text x="924" y="394"><tspan fill="#3DD9A9">'worker_walk'</tspan><tspan fill="#E6E1F0">, </tspan><tspan fill="#3DD9A9">'assets/characters/worker_walk.png'</tspan><tspan fill="#E6E1F0">,</tspan></text>
+    <text x="924" y="416"><tspan fill="#E6E1F0">{ </tspan><tspan fill="#FF9AC6">frameWidth</tspan><tspan fill="#E6E1F0">: </tspan><tspan fill="#FF7A66">96</tspan><tspan fill="#E6E1F0">, </tspan><tspan fill="#FF9AC6">frameHeight</tspan><tspan fill="#E6E1F0">: </tspan><tspan fill="#FF7A66">128</tspan><tspan fill="#E6E1F0"> });</tspan></text>
+  </g>
+
+  <!-- AI panel -->
+  <rect x="864" y="466" width="630" height="220" rx="14" fill="#201D2E" stroke="#FF6BA9" stroke-opacity="0.4"/>
+  <use href="#ic-spark" x="884" y="482" width="20" height="20" color="#FF6BA9"/>
+  <text x="912" y="498" font-size="13" font-weight="800" fill="#FFFFFF">Generate with AI</text>
+  <rect x="1300" y="480" width="86" height="22" rx="11" fill="#FFD43B"/><text x="1343" y="495" text-anchor="middle" font-size="10.5" font-weight="800" fill="#1F1B2D">stub demo</text>
+  <rect x="884" y="512" width="590" height="64" rx="10" fill="#2E2A40" stroke="#46415C"/>
+  <text x="900" y="538" font-size="12.5" fill="#C7C0D5">a cheerful barista worker, 4-frame walk cycle, side view,</text>
+  <text x="900" y="558" font-size="12.5" fill="#C7C0D5">transparent background, cozy 2.5D style…</text>
+  <g font-size="11.5" font-weight="700">
+    <rect x="884" y="588" width="92" height="28" rx="9" fill="#1B1828" stroke="#46415C"/><text x="930" y="606" text-anchor="middle" fill="#C7C0D5">image ▾</text>
+    <rect x="984" y="588" width="120" height="28" rx="9" fill="#1B1828" stroke="#46415C"/><text x="1044" y="606" text-anchor="middle" fill="#C7C0D5">384 × 128 ▾</text>
+    <rect x="1112" y="588" width="180" height="28" rx="9" fill="#1B1828" stroke="#46415C"/><use href="#ic-assets" x="1122" y="592" width="18" height="18" color="#8B84A0"/><text x="1212" y="606" text-anchor="middle" fill="#C7C0D5">ref: this asset</text>
+  </g>
+  <g transform="translate(884,632)"><rect width="280" height="40" rx="11" fill="url(#bub)"/><use href="#ic-spark" x="18" y="10" width="20" height="20" color="#fff"/><text x="156" y="25" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">Regenerate variation</text></g>
+  <text x="1180" y="657" font-size="11.5" fill="#6E6786">POST /llm/generate-asset</text>
+
+  <!-- manage actions -->
+  <g font-size="12" font-weight="700">
+    <g transform="translate(864,706)"><rect width="120" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-pencil" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="74" y="25" text-anchor="middle" fill="#E7E2F0">Rename</text></g>
+    <g transform="translate(994,706)"><rect width="110" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-move" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="68" y="25" text-anchor="middle" fill="#E7E2F0">Move</text></g>
+    <g transform="translate(1114,706)"><rect width="124" height="40" rx="11" fill="#221E30" stroke="#46415C"/><use href="#ic-swap" x="16" y="11" width="18" height="18" color="#B7B0C6"/><text x="78" y="25" text-anchor="middle" fill="#E7E2F0">Replace</text></g>
+    <g transform="translate(1374,706)"><rect width="120" height="40" rx="11" fill="#3A1620" stroke="#FF7A66" stroke-opacity="0.5"/><use href="#ic-trash" x="16" y="11" width="18" height="18" color="#FF7A66"/><text x="76" y="25" text-anchor="middle" fill="#FF9A88">Delete</text></g>
+  </g>
+
+  <!-- annotation badges -->
+  <g font-weight="800" font-size="14" text-anchor="middle" filter="url(#bdg)">
+    <g><circle cx="120" cy="149" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="120" y="154" fill="#fff">1</text></g>
+    <g><circle cx="120" cy="536" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="120" y="541" fill="#fff">2</text></g>
+    <g><circle cx="122" cy="646" r="14" fill="#FF7A66" stroke="#fff" stroke-width="2.5"/><text x="122" y="651" fill="#fff">3</text></g>
+    <g><circle cx="884" cy="312" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="884" y="317" fill="#1F1B2D">4</text></g>
+    <g><circle cx="912" cy="486" r="14" fill="#FFD43B" stroke="#fff" stroke-width="2.5"/><text x="912" y="491" fill="#1F1B2D">5</text></g>
+  </g>
+
+  <!-- legend -->
+  <rect x="0" y="820" width="1600" height="240" fill="#16121F"/><line x1="0" y1="820" x2="1600" y2="820" stroke="#46415C"/>
+  <text x="40" y="860" font-size="19" font-weight="800" fill="#FFFFFF">Asset Viewer — detail view</text>
+  <text x="350" y="860" font-size="13" fill="#8B84A0">— opens when a card is selected (right drawer in Window mode / side panel in Split mode)</text>
+  <g font-size="13">
+    <g transform="translate(40,888)">
+      <g><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">1</text><text x="30" y="4" font-weight="800" fill="#fff">Multi-background preview</text><text x="30" y="23" fill="#B7B0C6">Checker / dark / white / green — exposes matte edges, halos and baked-in fills at a glance.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">2</text><text x="30" y="4" font-weight="800" fill="#fff">Baseline + origin overlays</text><text x="30" y="23" fill="#B7B0C6">Verify a foot-aligned walk cycle and the sprite origin, toggle-able under the stage.</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#FF7A66"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">3</text><text x="30" y="4" font-weight="800" fill="#fff">Animation player</text><text x="30" y="23" fill="#B7B0C6">Driven by the optional .anim.json sidecar (frameWidth/Height/frames/fps) — play/pause/step + frame strip.</text></g>
+    </g>
+    <g transform="translate(820,888)">
+      <g><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">4</text><text x="30" y="4" font-weight="800" fill="#fff">"Use it in your code"</text><text x="30" y="23" fill="#B7B0C6">Exact Phaser loader snippet (image / audio / spritesheet) — Copy or Insert straight into the editor.</text></g>
+      <g transform="translate(0,54)"><circle cx="11" cy="8" r="11" fill="#FFD43B"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#1F1B2D">5</text><text x="30" y="4" font-weight="800" fill="#fff">AI generate / regenerate</text><text x="30" y="23" fill="#B7B0C6">Prompt + kind + size (+ this asset as reference) → POST /llm/generate-asset. Local stub until the backend lands.</text></g>
+      <g transform="translate(0,108)"><circle cx="11" cy="8" r="11" fill="#3DD9A9"/><text x="11" y="13" text-anchor="middle" font-size="11" font-weight="800" fill="#0E2A20">✓</text><text x="30" y="4" font-weight="800" fill="#fff">Manage</text><text x="30" y="23" fill="#B7B0C6">Rename / move category / replace-in-place / delete — all through the projectStore mutation funnel.</text></g>
+    </g>
+  </g>
+</svg>
