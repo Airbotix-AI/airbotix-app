@@ -16,9 +16,11 @@ import {
   approveTurn as apiApproveTurn,
   classifyMessage as apiClassifyMessage,
   raiseHand as apiRaiseHand,
+  reportRuntimeErrors as apiReportRuntimeErrors,
   runAgentTurn as apiRunAgentTurn,
   type AgentTurnResult,
   type SafeguardingVerdict,
+  type VerifyFixResult,
   type VfsFile,
 } from '../../code/codeApi';
 
@@ -60,12 +62,25 @@ export type ClassifyMessage = (args: {
  */
 export type RaiseHand = (args: { projectId: string }) => Promise<void>;
 
+/**
+ * Self-verify auto-fix (MP3 / D-PAP-09,13,23). Report the runtime errors the
+ * sandbox captured running a just-applied game; the backend fixes them (≤2) or
+ * hands off to co-debug.
+ */
+export type ReportRuntimeErrors = (args: {
+  projectId: string;
+  errors: string[];
+  attempt: number;
+  mode: 'lite' | 'pro';
+}) => Promise<VerifyFixResult>;
+
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface GameAgentDeps {
   runTurn: RunAgentTurn;
   approve: ApproveAgentTurn;
   classify: ClassifyMessage;
   raiseHand?: RaiseHand;
+  reportRuntimeErrors: ReportRuntimeErrors;
 }
 
 export const realGameAgentDeps: GameAgentDeps = {
@@ -73,6 +88,7 @@ export const realGameAgentDeps: GameAgentDeps = {
   approve: apiApproveTurn,
   classify: apiClassifyMessage,
   raiseHand: apiRaiseHand,
+  reportRuntimeErrors: apiReportRuntimeErrors,
 };
 
 /** Per-token reveal cadence (ms). Kept short so a turn never feels laggy. */

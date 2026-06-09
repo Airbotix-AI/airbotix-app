@@ -181,6 +181,7 @@ export function Workspace({
     lowerHand,
     abort,
     retryLast,
+    autoFixFromErrors,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -306,6 +307,7 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
+              onRuntimeErrors={autoFixFromErrors}
             />
           </Window>
           <Window
@@ -391,6 +393,7 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
+              onRuntimeErrors={autoFixFromErrors}
             />
           </Panel>
         </PanelGroup>

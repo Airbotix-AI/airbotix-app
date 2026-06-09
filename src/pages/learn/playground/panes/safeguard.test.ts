@@ -36,6 +36,7 @@ function makeDeps(verdicts: (SafeguardingVerdict | null)[]): GameAgentDeps {
     approve: vi.fn(async () => TURN),
     classify: vi.fn(async () => verdicts[Math.min(i++, verdicts.length - 1)] ?? null),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
 }
 

@@ -117,6 +117,8 @@ export interface UseGameAgentOptions {
 }
 
 const PENDING_TEXT = 'Thinking…';
+/** Shown while the agent auto-fixes a runtime error the game hit (MP3). */
+const AUTOFIX_TEXT = 'Hmm, the game hit a snag — let me fix that…';
 /**
  * "Can't get to the server" copy — used when the request never reached the
  * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
@@ -245,6 +247,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const [handRaised, setHandRaised] = useState(false);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
+  // Self-verify auto-fix attempts for the CURRENT broken game (MP3 / D-PAP-13).
+  // Reset on every fresh user-initiated turn; bounded server-side (≤2) → co-debug.
+  const autofixAttempt = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   // Abort the in-flight stream replay on unmount / a new turn.
   const streamAbort = useRef<{ aborted: boolean }>({ aborted: false });
@@ -346,6 +351,53 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   );
 
   /**
+   * Self-verify round-trip (MP3 / D-PAP-09,13,23). The studio ran a just-applied
+   * game and the sandbox caught runtime errors; report them so the backend
+   * auto-fixes (≤2 attempts) or hands off to "let's debug together". Idempotent
+   * while busy; a no-op off the real path or with no errors.
+   */
+  const autoFixFromErrors = useCallback(
+    async (errors: string[]) => {
+      if (!isReal || busy || pending || streaming || errors.length === 0) return;
+      autofixAttempt.current += 1;
+      const attempt = autofixAttempt.current;
+      const pendingId = nextId();
+      setBusy(true);
+      setError(null);
+      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: AUTOFIX_TEXT, pending: true }]);
+      try {
+        const res = await deps.reportRuntimeErrors({ projectId: projectId!, errors, attempt, mode });
+        if (res.co_debug) {
+          // Exhausted (or nothing to fix) → a warm hand-off, not a silent broken game.
+          setChat((prev) =>
+            prev.map((it) =>
+              it.id === pendingId
+                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's debug this together!" }
+                : it,
+            ),
+          );
+          return;
+        }
+        if (res.turn) {
+          await applyResult(res.turn, pendingId);
+        } else {
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        }
+      } catch (e) {
+        const msg = friendlyError(e);
+        if (msg === OFFLINE_TEXT) setOffline(true);
+        setError(msg);
+        setChat((prev) =>
+          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, applyResult],
+  );
+
+  /**
    * Handle a safeguarding deflection (J13 / §11g). The backend classifier decided
    * NOT to run a game turn — so we apply NO files, charge NO Stars, and stream NO
    * turn. We replace the pending bubble with the standing deflection and surface
@@ -377,6 +429,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
       lastPromptRef.current = trimmed;
+      // A fresh, kid-initiated turn restarts the auto-fix budget for whatever it builds.
+      autofixAttempt.current = 0;
 
       // Offline pre-check (real path) — never even attempt the call; keep work safe.
       if (isReal && isOffline()) {
@@ -639,5 +693,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     abort,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
+    /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23). */
+    autoFixFromErrors,
   };
 }

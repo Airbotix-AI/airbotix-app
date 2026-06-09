@@ -58,6 +58,7 @@ function makeDeps(): GameAgentDeps {
     approve: vi.fn(async () => TURN),
     classify: vi.fn(async () => null),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
 }
 
@@ -85,6 +86,7 @@ function setupFailing(error: unknown) {
     approve: vi.fn(async () => TURN),
     classify: vi.fn(async () => null),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
   const view = renderHook(() =>
     useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),

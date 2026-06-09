@@ -7,6 +7,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Added
+- **Self-verify round-trip — the studio reports runtime errors so the agent auto-fixes**
+  (`playground/verifyRoundtrip.ts`, `panes/GameRunnerPane.tsx`, `panes/useGameAgent.ts`, `panes/gameAgent.ts`,
+  `Workspace.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` MP3 / D-PAP-09,13,23). The game runs in
+  the opaque-origin sandbox, so the captured console is the only runtime-error signal. `extractRuntimeErrors`
+  pulls the real `error`-level lines (drops logs/warnings + the shim's "ready", formats `text (file:line)`,
+  de-dupes, caps at 6); `GameRunnerPane` reports them once per distinct (run, error-set) via `onRuntimeErrors`;
+  `useGameAgent.autoFixFromErrors` posts them to the backend (`reportRuntimeErrors` → `POST …/code/verify-fix`),
+  applies the returned fix turn, or shows the **"let's debug this together"** message once the backend has
+  exhausted its ≤2 attempts (`co_debug`). The auto-fix budget resets on each fresh kid-initiated turn. New
+  `VerifyFixResult` type + `reportRuntimeErrors` injected through the `GameAgentDeps` seam. Covered by
+  `verifyRoundtrip.test.ts`; the full apply→run→report→re-run round-trip is exercised by the umbrella harness.
 - **Resume recap — "welcome back, here's where we left off"** (`playground/ResumeRecap.tsx`,
   `PlaygroundApp.tsx`, `Workspace.tsx`, `panes/ChatPane.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md`
   MP5 / D-PAP-19,22). On a genuine resume (a real game project reopened with no fresh first turn), the studio

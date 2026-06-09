@@ -384,6 +384,48 @@ export async function runAgentTurn(args: {
   });
 }
 
+/**
+ * Self-verify auto-fix (playground-ai-prompt-prd.md MP3 / D-PAP-09,13,23). After
+ * the studio runs a freshly-applied game and the sandbox captures console errors,
+ * it reports them so the backend can run a bounded fix turn — or, once attempts are
+ * exhausted, hand off to "let's debug together" (`co_debug`).
+ */
+export interface VerifyFixResult {
+  /** True when a fix turn ran; false on the co-debug / nothing-to-fix hand-off. */
+  attempted: boolean;
+  /** True once auto-fix is exhausted — show the "let's debug together" UI. */
+  co_debug: boolean;
+  /** The attempt number consumed (1-based). */
+  attempt: number;
+  /** The fix turn (present when attempted). */
+  turn?: AgentTurnResult;
+  /** A kid-facing message for the co-debug hand-off (present when co_debug). */
+  message?: string;
+}
+
+/**
+ * Report the runtime errors the sandbox captured running a just-applied game, so
+ * the backend auto-fixes them (≤2 attempts) or hands off to co-debug. `attempt` is
+ * 1-based and increments each FE→BE round-trip for the same broken game.
+ */
+export async function reportRuntimeErrors(args: {
+  projectId: string;
+  errors: string[];
+  attempt: number;
+  mode: 'lite' | 'pro';
+  idempotencyKey?: string;
+}): Promise<VerifyFixResult> {
+  return api<VerifyFixResult>(`/projects/${args.projectId}/code/verify-fix`, {
+    method: 'POST',
+    body: {
+      errors: args.errors,
+      attempt: args.attempt,
+      mode: args.mode,
+      idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
+    },
+  });
+}
+
 /** Live progress from a streaming turn (SSE) — what the agent is doing right now. */
 export type TurnEvent =
   | { type: 'file'; path: string }
