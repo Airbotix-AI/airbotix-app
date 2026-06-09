@@ -11,6 +11,7 @@ import { listFamilyShareLinks, type FamilyShareLink } from '@/pages/learn/playgr
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal', label: 'Dashboard', end: true },
   { to: '/portal/courses', label: 'Courses' },
+  { to: '/portal/tutoring', label: 'Tutoring' },
   { to: '/portal/family', label: 'My Family' },
   { to: '/portal/wallet', label: 'Wallet' },
   { to: '/portal/usage', label: 'Usage' },

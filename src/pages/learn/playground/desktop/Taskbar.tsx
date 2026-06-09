@@ -17,6 +17,7 @@ import { Check, CloudOff, Loader2 } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
 import { useSaveStatusStore, type SaveStatus } from '../saveStatusStore';
+import { ShareLinkPanel } from '../ShareLinkPanel';
 import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
 
@@ -50,7 +51,12 @@ function SaveStatusBadge() {
   );
 }
 
-export function Taskbar() {
+interface TaskbarProps {
+  /** The real backend project — gates the share-link control (J8). */
+  projectId?: string;
+}
+
+export function Taskbar({ projectId }: TaskbarProps) {
   const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
@@ -136,9 +142,11 @@ export function Taskbar() {
         </div>
       )}
 
-      {/* Save status — pinned to the bottom-right corner of the workspace. */}
-      <div className="ml-auto">
+      {/* Right cluster: save reassurance + the external share-link control (J8,
+          real backend project only). */}
+      <div className="ml-auto flex items-center gap-3">
         <SaveStatusBadge />
+        {projectId && <ShareLinkPanel projectId={projectId} />}
       </div>
     </div>
   );
