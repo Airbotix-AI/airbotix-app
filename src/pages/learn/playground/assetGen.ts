@@ -24,8 +24,10 @@ export interface GenAssetRequest {
    */
   kind?: 'image' | 'audio';
   prompt: string;
-  /** Optional source asset to vary ("regenerate variation"). */
+  /** Remix: a project VFS asset to vary (image-to-image — D-ASSET-5). */
   refAssetPath?: string;
+  /** Remix: a shared Library asset URL to vary (image-to-image — D-ASSET-5). */
+  refUrl?: string;
   /** Optional target size hint, e.g. "384 × 128". */
   size?: string;
 }

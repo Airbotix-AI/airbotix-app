@@ -20,6 +20,7 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  Wand2,
 } from 'lucide-react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -321,6 +322,38 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
   }
 
+  /**
+   * Remix an existing image (mine or a library asset) into a NEW variation that
+   * lands in My assets/generated (D-ASSET-5). The ref is a VFS path (mine) or a
+   * URL (library); the result is selected so the kid sees it.
+   */
+  async function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
+    if (!prompt.trim() || generating) return;
+    setGenerating(true);
+    setNotice(null);
+    setGenError(null);
+    try {
+      const [result] = await Promise.all([
+        runGen({ projectId, prompt: prompt.trim(), ...ref }),
+        sleep(MIN_GEN_MS),
+      ]);
+      const ext = extForResult(result);
+      const slug = prompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'remix';
+      const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
+      createFile(path, 'asset', result.dataUrl);
+      // Reveal the new variation under My assets.
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedLibId(null);
+      setSelectedPath(path);
+      setNotice('Remixed ✨ — your new version is in My assets.');
+    } catch {
+      setGenError("That didn't work — check your internet and try again.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   /** Add a shared Library asset by URL (it's never copied into the VFS). */
   function onAddLibraryToGame(lib: LibraryAsset) {
     if (!onApplyFiles) return;
@@ -417,7 +450,9 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             <LibraryDetailView
               asset={selectedLib}
               canAddToGame={!!onApplyFiles}
+              busy={generating}
               onAddToGame={() => onAddLibraryToGame(selectedLib)}
+              onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
               onCopyRef={(snippet) => {
                 void navigator.clipboard?.writeText(snippet);
@@ -432,7 +467,9 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             asset={selected}
             files={files}
             canAddToGame={!!onApplyFiles}
+            busy={generating}
             onAddToGame={() => onAddToGame(selected)}
+            onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
               rename(selected.path, to);
@@ -535,6 +572,46 @@ function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: A
   );
 }
 
+/** Remix an image with AI — a prompt describing the change → a new variation. */
+function RemixBar({ busy, onRemix }: { busy: boolean; onRemix: (prompt: string) => void }) {
+  const [p, setP] = useState('');
+  const go = () => {
+    if (p.trim()) {
+      onRemix(p.trim());
+      setP('');
+    }
+  };
+  return (
+    <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-extrabold">
+        <Wand2 size={14} className="text-brand-bubblegum" /> Remix with AI
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          value={p}
+          data-testid="asset-remix-prompt"
+          onChange={(e) => setP(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') go();
+          }}
+          placeholder="Describe the change — e.g. 'make it blue'"
+          className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
+        />
+        <button
+          type="button"
+          data-testid="asset-remix"
+          onClick={go}
+          disabled={busy || !p.trim()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
+        >
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+          Remix
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** The read-only Library grid (emoji thumbnails loaded from the CDN by URL). */
 function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id: string) => void }) {
   if (items.length === 0) {
@@ -578,13 +655,17 @@ function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id
 function LibraryDetailView({
   asset,
   canAddToGame,
+  busy,
   onAddToGame,
+  onRemix,
   onBack,
   onCopyRef,
 }: {
   asset: LibraryAsset;
   canAddToGame: boolean;
+  busy: boolean;
   onAddToGame: () => void;
+  onRemix: (prompt: string) => void;
   onBack: () => void;
   onCopyRef: (snippet: string) => void;
 }) {
@@ -635,6 +716,8 @@ function LibraryDetailView({
               <Plus size={16} /> Add to my game
             </button>
           )}
+
+          {asset.kind === 'image' && <RemixBar busy={busy} onRemix={onRemix} />}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -742,7 +825,9 @@ function DetailView({
   asset,
   files,
   canAddToGame,
+  busy,
   onAddToGame,
+  onRemix,
   onBack,
   onRename,
   onDelete,
@@ -751,7 +836,9 @@ function DetailView({
   asset: VfsFile;
   files: VfsFile[];
   canAddToGame: boolean;
+  busy: boolean;
   onAddToGame: () => void;
+  onRemix: (prompt: string) => void;
   onBack: () => void;
   onRename: (to: string) => void;
   onDelete: () => void;
@@ -857,6 +944,8 @@ function DetailView({
               <Plus size={16} /> Add to my game
             </button>
           )}
+
+          {(kind === 'image' || kind === 'sprite') && <RemixBar busy={busy} onRemix={onRemix} />}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">

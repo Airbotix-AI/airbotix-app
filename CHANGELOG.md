@@ -93,7 +93,20 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   next). Zero hosting (D-ASSET-11/12); hosted Kenney CC0 is the v2 provider. See PRD
   `learn-game-studio-assets-prd.md` A2 / §4.4.
 
+### Added
+- **Playground: AI remix of any image (A5, D-ASSET-5).** Image detail views (both My
+  assets and the Library) now have a **Remix with AI** box: describe a change ("make it
+  blue") and the AI returns a variation that lands in **My assets/generated**. Remix of
+  a project asset sends `ref_asset_path`; remix of a Library asset sends its `ref_url` —
+  the backend does image-to-image. The offline stub folds the reference into its hash so
+  a remix is a deterministic variation. e2e proves a Library remix posts the `ref_url`
+  and the result appears under My assets.
+
 ### Changed
+- **Playground: `generateAsset` now sends the snake_case backend contract**
+  (`project_id` / `ref_asset_path` / `ref_url`). The camelCase `GenAssetRequest` seam was
+  never wired to the real DTO (asset-gen had been stub/mock only); A3/A5 make the path
+  real, so the client maps the fields. Backwards-compatible for the mocked e2e.
 - **Playground: hardened local asset import** (A4). Imports now fail soft (a calm
   "couldn't import that file" notice instead of a silent hang on a bad read), always
   target **My assets** (`assets/imported/`, or the open VFS category), and a drop/paste

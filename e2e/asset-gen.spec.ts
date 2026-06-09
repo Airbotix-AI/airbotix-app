@@ -224,6 +224,41 @@ test('A2: Library → pick an emoji → add-to-game loads it by URL (not inlined
     .toEqual([]);
 });
 
+test('A5: Remix a library emoji → backend gets ref_url → variation lands in My assets', async ({
+  page,
+}) => {
+  const genBodies: string[] = [];
+  page.on('request', (req) => {
+    if (req.method() === 'POST' && /\/llm\/generate-asset$/.test(req.url())) {
+      genBodies.push(req.postData() ?? '');
+    }
+  });
+
+  await mockAssetGenBackend(page);
+  await mockEmojiCdn(page);
+  await openAssets(page);
+
+  // Open the Coin in the Library, then remix it with a change prompt.
+  await page.getByTestId('asset-source-library').click();
+  await page.getByPlaceholder(/Search the library/).fill('coin');
+  await page.getByTestId('library-card').first().click();
+  await page.getByTestId('asset-remix-prompt').fill('make it blue');
+  await page.getByTestId('asset-remix').click();
+
+  // The variation lands under My assets (assets/generated) and is shown selected.
+  await expect(page.getByText(/Remixed/)).toBeVisible();
+  await expect(page.getByTestId('asset-codeRef')).toContainText(
+    "this.load.image('make_it_blue', 'assets/generated/make_it_blue.png')",
+    { timeout: 6_000 },
+  );
+
+  // The backend received the remix reference (the Library asset's URL).
+  expect(genBodies).toHaveLength(1);
+  const body = JSON.parse(genBodies[0]) as { ref_url?: string; prompt?: string };
+  expect(body.prompt).toBe('make it blue');
+  expect(body.ref_url).toBe('https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/1fa99.png');
+});
+
 // ── Stable detail screenshot (generated asset + add-to-game CTA) ───────────────
 test.describe('visual', () => {
   test.use({ viewport: { width: 1280, height: 800 } });

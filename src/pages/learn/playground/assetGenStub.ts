@@ -49,7 +49,10 @@ function escapeXml(s: string): string {
 /** A coloured rounded-rect swatch labelled with the prompt — deterministic SVG. */
 function buildSvgSwatch(req: GenAssetRequest): GenAssetResult {
   const { w, h } = parseSize(req.size);
-  const hue = hashString(req.prompt) % 360;
+  // Fold any remix reference into the hash so a remix is a deterministic
+  // VARIATION of a plain generation (different hue), not the same swatch.
+  const seed = `${req.prompt}|${req.refUrl ?? req.refAssetPath ?? ''}`;
+  const hue = hashString(seed) % 360;
   const fill = `hsl(${hue}, 70%, 62%)`;
   const label = escapeXml(req.prompt.slice(0, 40));
   const svg =
