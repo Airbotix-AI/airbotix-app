@@ -9,7 +9,6 @@ interface Kid {
   id: string;
   nickname: string;
   age: number;
-  pin_hash: string | null;
   is_active: boolean;
   daily_star_cap: number | null;
   created_at: string;
