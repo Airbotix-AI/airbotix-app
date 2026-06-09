@@ -245,6 +245,9 @@ export function Workspace({
     onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
+    // Tap a changed-file row → open the editor and highlight the change (§11.4).
+    onOpenFile: (path: string, fromLine?: number, toLine?: number) =>
+      handleOpenLocation(path, fromLine ?? 1, toLine),
     onStop: abort,
     onRetry: retryLast,
     recap: showRecap ? resumeRecap : null,

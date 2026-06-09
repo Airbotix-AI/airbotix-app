@@ -45,3 +45,45 @@ describe('AIChatPanel — next-step option chips', () => {
     expect(screen.queryByTestId('next-steps')).toBeNull();
   });
 });
+
+// §11.4 — per-file "what changed" rows: ONE clickable row per file (consolidate
+// multiple edits), with the teacher's note; tapping opens the editor + highlights.
+describe('AIChatPanel — changed-file rows', () => {
+  const before = 'class Game {\n  create() {}\n}\n';
+  const after = 'class Game {\n  create() {\n    this.add.rectangle(1, 2, 3, 4);\n  }\n}\n';
+  const chat: ChatItem[] = [
+    {
+      id: 'a1',
+      role: 'agent',
+      text: 'Added a wall.',
+      // The same file edited twice — must consolidate to ONE row.
+      changes: [
+        { path: 'src/scenes/Game.js', before, after },
+        { path: 'src/scenes/Game.js', before: after, after: after + '// more\n' },
+      ],
+      fileNotes: [{ path: 'src/scenes/Game.js', note: 'added a wall + collision' }],
+    },
+  ];
+
+  it('consolidates multiple edits to one file into a single row, with its note', () => {
+    render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />);
+    const rows = screen.getAllByTestId('file-change');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('src/scenes/Game.js');
+    expect(rows[0].textContent).toContain('added a wall + collision');
+  });
+
+  it('tapping a row opens the file at the changed line range', () => {
+    const onOpenFile = vi.fn();
+    render(
+      <AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} onOpenFile={onOpenFile} />,
+    );
+    fireEvent.click(screen.getByTestId('file-change'));
+    // The change starts on line 2 (the create() body grew) — opened with a range.
+    expect(onOpenFile).toHaveBeenCalledTimes(1);
+    const [path, from, to] = onOpenFile.mock.calls[0];
+    expect(path).toBe('src/scenes/Game.js');
+    expect(from).toBeGreaterThanOrEqual(2);
+    expect(to).toBeGreaterThanOrEqual(from);
+  });
+});

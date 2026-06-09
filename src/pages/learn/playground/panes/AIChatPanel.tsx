@@ -35,6 +35,72 @@ import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
 /** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
 const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
 
+/** One clickable "what changed" row for the chat bubble (§11.4). */
+interface ChangedFile {
+  path: string;
+  note?: string;
+  fromLine?: number;
+  toLine?: number;
+}
+
+/**
+ * The inclusive [from, to] line range that differs between two file versions
+ * (1-based, in the AFTER file), or null when unchanged — so a click can highlight
+ * exactly what changed in the editor.
+ */
+function changedLineRange(before: string, after: string): { from: number; to: number } | null {
+  if (before === after) return null;
+  const a = before.split('\n');
+  const b = after.split('\n');
+  let from = 0;
+  while (from < a.length && from < b.length && a[from] === b[from]) from += 1;
+  let endA = a.length - 1;
+  let endB = b.length - 1;
+  while (endA >= from && endB >= from && a[endA] === b[endB]) {
+    endA -= 1;
+    endB -= 1;
+  }
+  // `from`..`endB` (0-based) is the changed region in the after file; if the change
+  // was a pure deletion (endB < from), highlight the single line at `from`.
+  const toLine = Math.max(from, endB) + 1;
+  return { from: from + 1, to: Math.min(toLine, b.length) };
+}
+
+/**
+ * Build the per-file change rows for an agent bubble: ONE row per file
+ * (consolidate multiple edits, §11.4), the teacher's note (if any), and the line
+ * range to highlight. Driven by the applied diff (`changes`) for the range, the
+ * teacher's `fileNotes` for descriptions, and `toolsFired` only as a path fallback.
+ */
+function buildChangedFiles(item: ChatItem): ChangedFile[] {
+  const noteByPath = new Map((item.fileNotes ?? []).map((n) => [n.path, n.note]));
+  const seen = new Set<string>();
+  const out: ChangedFile[] = [];
+  for (const c of item.changes ?? []) {
+    if (seen.has(c.path)) continue;
+    seen.add(c.path);
+    const range = changedLineRange(c.before, c.after);
+    out.push({ path: c.path, note: noteByPath.get(c.path), fromLine: range?.from, toLine: range?.to });
+  }
+  // Files the teacher noted but that produced no diff entry (rare) still get a row.
+  for (const n of item.fileNotes ?? []) {
+    if (!seen.has(n.path)) {
+      seen.add(n.path);
+      out.push({ path: n.path, note: n.note });
+    }
+  }
+  // Fallback: no diff + no notes but tools fired (e.g. a write the diff missed).
+  if (out.length === 0) {
+    for (const t of item.toolsFired ?? []) {
+      const path = t.replace(/^(edit_file|write_file):/, '');
+      if (!path || seen.has(path)) continue;
+      seen.add(path);
+      out.push({ path });
+    }
+  }
+  return out;
+}
+
 interface AIChatPanelProps {
   chat: ChatItem[];
   busy: boolean;
@@ -66,6 +132,8 @@ interface AIChatPanelProps {
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Open a changed file in the editor and highlight the change (§11.4). */
+  onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
   /** Retry the last prompt after a (non-cap) error (H2). */
@@ -92,6 +160,7 @@ export function AIChatPanel({
   onLowerHand,
   onRunGame,
   onSeeCode,
+  onOpenFile,
   onStop,
   onRetry,
 }: AIChatPanelProps) {
@@ -217,6 +286,7 @@ export function AIChatPanel({
                 onRunGame={onRunGame}
                 onSeeCode={onSeeCode}
                 onSend={onSend}
+                onOpenFile={onOpenFile}
               />
             ),
           )}
@@ -384,11 +454,13 @@ function ChatRow({
   onRunGame,
   onSeeCode,
   onSend,
+  onOpenFile,
 }: {
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
   onSend?: (text: string) => void;
+  onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
 }) {
   if (item.role === 'kid') {
     return (
@@ -450,15 +522,35 @@ function ChatRow({
           {item.streaming && <span aria-hidden="true" className="ml-0.5 animate-pulse">▍</span>}
         </div>
 
-        {item.toolsFired && item.toolsFired.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.toolsFired.map((t, i) => (
-              <span key={i} className="rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
-                ✏️ {t.replace('edit_file:', '').replace('write_file:', '')}
-              </span>
-            ))}
-          </div>
-        )}
+        {(() => {
+          // Per-file "what changed" rows (§11.4): ONE row per changed file
+          // (consolidate multiple edits to the same file), each with the teacher's
+          // short note and clickable → opens the editor + highlights the change.
+          const changedFiles = buildChangedFiles(item);
+          if (changedFiles.length === 0) return null;
+          return (
+            <div data-testid="file-changes" className="mt-2.5 flex flex-col gap-1.5">
+              {changedFiles.map((f) => (
+                <button
+                  key={f.path}
+                  type="button"
+                  data-testid="file-change"
+                  onClick={() => onOpenFile?.(f.path, f.fromLine, f.toLine)}
+                  disabled={!onOpenFile}
+                  className="group flex items-start gap-1.5 rounded-lg bg-wash-mint/70 px-2.5 py-1.5 text-left transition-colors enabled:hover:bg-wash-mint disabled:cursor-default"
+                >
+                  <span aria-hidden="true">📝</span>
+                  <span className="min-w-0">
+                    <span className="font-bold text-[11.5px] text-ink underline-offset-2 group-enabled:group-hover:underline">
+                      {f.path}
+                    </span>
+                    {f.note && <span className="text-[11.5px] text-ink/70"> — {f.note}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {hasActions && (
           <div className="mt-3 flex flex-wrap gap-2">

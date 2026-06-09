@@ -26,6 +26,7 @@ interface ChatPaneProps {
   onLowerHand?: () => void;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onStop?: () => void;
   onRetry?: () => void;
 }

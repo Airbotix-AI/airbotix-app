@@ -197,6 +197,8 @@ export interface AgentTurnResult {
   // The teacher's "what shall we do next?" options (playground §11.4 / D-PAP-06),
   // rendered as tappable chips; tapping one sends `prompt` as the next turn.
   next_steps?: NextStep[];
+  // Per-file "what changed" notes (playground §11.4) — one clickable row per file.
+  file_notes?: FileNote[];
   // A short, kid-readable label for the history timeline (null/absent if none).
   history_label?: string | null;
   // The teacher's updated "where we left off" (playground §11 / D-PAP-19,22),
@@ -212,6 +214,12 @@ export interface NextStep {
   prompt: string;
   /** Whether this option teaches a concept or is just for fun. */
   tag: 'concept' | 'fun';
+}
+
+/** A per-file "what changed" note (playground §11.4) — a clickable row in the chat. */
+export interface FileNote {
+  path: string;
+  note: string;
 }
 
 /** The teacher's lightweight "where we left off", shown as a recap on resume. */

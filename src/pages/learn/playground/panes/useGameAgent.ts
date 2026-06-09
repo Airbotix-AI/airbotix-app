@@ -18,7 +18,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AgentTurnResult, NextStep, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import type {
+  AgentTurnResult,
+  FileNote,
+  NextStep,
+  SafeguardingVerdict,
+  VfsFile,
+} from '../../code/codeApi';
 import {
   executeClientActions,
   type ClientActionHandlers,
@@ -26,7 +32,6 @@ import {
 import { ApiError } from '@/lib/api';
 import {
   isOffline,
-  predictionQuestion,
   realGameAgentDeps,
   streamTurn,
   type GameAgentDeps,
@@ -48,6 +53,8 @@ export interface ChatItem {
   stars?: number;
   toolsFired?: string[];
   changes?: { path: string; before: string; after: string }[];
+  /** Per-file "what changed" notes (§11.4) — one clickable row per file; tap → open + highlight. */
+  fileNotes?: FileNote[];
   /** Optional CTA buttons (e.g. the launch "Run game" / "See code" hand-off). */
   actions?: ChatAction[];
   /** A safeguarding deflection bubble (J13) — rendered with the rescue styling. */
@@ -338,6 +345,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                   stars: result.stars_charged,
                   toolsFired: result.tools_fired,
                   changes: toChanges(result),
+                  fileNotes: result.file_notes,
                   nextSteps: result.next_steps,
                 }
               : it,
@@ -349,6 +357,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       onStarsCharged?.(result.stars_charged);
       // Run any workspace actions the turn asked for (play/restart/focus).
       if (clientActions) executeClientActions(result.client_actions, clientActions);
+      // Auto-restart after any change so the kid immediately sees it run (the agent
+      // doesn't have to remember to emit run_game). Skip if it already asked to
+      // run/restart (avoid a double re-mount).
+      const changed = (result.changes?.length ?? 0) > 0;
+      const alreadyRan = (result.client_actions ?? []).some(
+        (a) => a.action === 'run_game' || a.action === 'restart_game',
+      );
+      if (changed && !alreadyRan) clientActions?.restartGame();
     },
     [files, onApplyFiles, onStarsCharged, clientActions],
   );
@@ -500,50 +516,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         // Classifier unreachable — proceed; the turn-level firewall still applies.
       }
 
-      // ── Lite agency beat (OD-1): the typing-free "Do it / Show me first" +
-      // predict beat fires BEFORE the turn is spent. A Lite (non-approval) turn
-      // AUTO-APPLIES + DEBITS Stars server-side inside POST /code/turn (D-CODE1c,
-      // §10 "后扣模式"), so we must NOT run it yet — running-then-staging would let
-      // "Show me first" leak Stars and desync the persisted VFS. The turn runs on
-      // confirm (`confirmPending`). No backend call, no Stars, no VFS change here.
-      if (mode === 'lite') {
-        setChat((prev) => prev.filter((it) => it.id !== pendingId));
-        setBusy(false);
-        setPending({
-          kind: 'agency',
-          turnId: '',
-          prompt: trimmed,
-          summary: "I'll make that change for you. Want me to go ahead?",
-          changes: [],
-          result: null,
-          prediction: predictionQuestion(trimmed),
-        });
-        return;
-      }
-
-      // ── REAL Pro path: server-side loop, Stars-metered, streamed, gated. ──
+      // ── The game agent always auto-applies (playground teacher model, D-PAP-03):
+      // the kid's request IS the go-ahead, so there is NO "Do it / Show me first"
+      // agency beat and NO plan→approve gate (those belong to the Code Studio). Run
+      // the turn server-side (Stars-metered + applied inside POST /code/turn) and
+      // stream the result straight into the chat.
       try {
         const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode });
-        // Pro multi-file → plan→approve gate (writes were collected, not persisted).
-        // A non-approval Pro turn auto-applied + debited inside the POST, so apply
-        // it immediately (mirror useCodeStudio) — never stage an applied turn.
-        if (result.requires_approval) {
-          setChat((prev) => prev.filter((it) => it.id !== pendingId));
-          setPending({
-            kind: 'plan',
-            turnId: result.turn_id,
-            prompt: trimmed,
-            summary:
-              result.plan?.plan_text ??
-              (result.changes.length
-                ? `I'll change ${result.changes.map((c) => c.path).join(', ')}.`
-                : result.summary),
-            changes: toChanges(result),
-            result,
-            prediction: predictionQuestion(trimmed),
-          });
-          return;
-        }
         await applyResult(result, pendingId);
       } catch (e) {
         const msg = friendlyError(e);
