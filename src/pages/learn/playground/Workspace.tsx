@@ -31,6 +31,7 @@ import { AssetViewerPane } from './panes/AssetViewerPane';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
+import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
@@ -64,14 +65,15 @@ interface Wallet {
   stars_balance: number;
 }
 
-type SplitTab = 'chat' | 'code' | 'assets';
+type SplitTab = 'chat' | 'code' | 'assets' | 'help';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2 / Images), not an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
   { id: 'assets', label: 'Assets' },
+  { id: 'help', label: 'Guide' },
 ];
 
 export function Workspace({
@@ -262,6 +264,7 @@ export function Workspace({
             <DesktopIcon id="code" />
             <DesktopIcon id="game" />
             <DesktopIcon id="assets" />
+            <DesktopIcon id="help" />
           </div>
 
           {/* Floating windows */}
@@ -305,6 +308,13 @@ export function Workspace({
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
             <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+          </Window>
+          <Window
+            id="help"
+            title={WINDOW_META.help.title}
+            icon={<WINDOW_META.help.Icon size={16} />}
+          >
+            <HelpPane mode={mode} />
           </Window>
         </div>
 
@@ -370,6 +380,8 @@ export function Workspace({
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                   />
+                ) : splitTab === 'help' ? (
+                  <HelpPane mode={mode} />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
                 )}

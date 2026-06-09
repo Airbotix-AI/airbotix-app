@@ -1,4 +1,4 @@
-import { Code2, Gamepad2, Images, MessageSquare } from 'lucide-react';
+import { BookOpen, Code2, Gamepad2, Images, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -9,6 +9,7 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   code: { title: 'Code Editor', Icon: Code2 },
   game: { title: 'Game Runner', Icon: Gamepad2 },
   assets: { title: 'Asset Viewer', Icon: Images },
+  help: { title: 'Guide', Icon: BookOpen },
 };
 
 /**
@@ -27,7 +28,16 @@ export const WINDOW_ACCENT: Record<PgWindowId, { border: string; icon: string; w
     icon: 'text-brand-bubblegum',
     wash: 'bg-brand-bubblegum/15',
   },
+  // help=sunshine — the one brand colour not used by another window. NOTE:
+  // `brand-sunshine` (#FFD43B) is much lighter than the others, so a tinted glyph
+  // on the pale wash reads poorly; `DesktopIcon` renders the Guide tile with a
+  // SOLID sunshine chip + a dark `text-ink` glyph instead (see DesktopIcon).
+  help: {
+    border: 'border-brand-sunshine/50',
+    icon: 'text-brand-sunshine',
+    wash: 'bg-brand-sunshine/15',
+  },
 };
 
 /** Display order for the windows in the Taskbar and Desktop. */
-export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets'];
+export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets', 'help'];

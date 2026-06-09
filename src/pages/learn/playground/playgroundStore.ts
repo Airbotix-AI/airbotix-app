@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game' | 'assets';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help';
 
 export interface WinRect {
   x: number;
@@ -118,6 +118,10 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: closed('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
+    // The Game Guide (help) — a comfortable reading column, closed by default
+    // (opened from its desktop tile / the Split "Guide" tab, or — MH2 — when the
+    // agent emits `open_help`).
+    help: closed('help', 1, r(ICON_COL_PX + 40, H * 0.08, Math.min(620, (W - ICON_COL_PX - 24) * 0.55), H * 0.82)),
     // Open + focused + centered as the sole launch window.
     chat: base('chat', 4, r(W * 0.29, H * 0.06, W * 0.42, H * 0.82)),
   };

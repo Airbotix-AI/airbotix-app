@@ -1,0 +1,259 @@
+// The Game Guide pane (PRD `learn-game-studio-help-prd.md` §4 / HJ1) — the
+// in-studio help reader. Used identically by Window mode (the "Guide" floating
+// window) and Split mode (the "Guide" tab). A left nav (pillars → docs) with a
+// search box, and a reader that renders the doc's blocks filtered to the current
+// reading tier (Lite 8–11 / Pro 12–17, defaulting to the kid's studio mode, with
+// a manual toggle). No network, no LLM, no Stars — pure reading (D‑HELP‑01).
+//
+// The kid's search runs CLIENT-SIDE over the already-loaded corpus (helpApi), so
+// the query never leaves the device (HJ5). The MH2 AI path will call an imperative
+// `navigate(docId, anchor)` here when the agent emits `open_help`; for MH1 the kid
+// drives navigation by clicking the nav or a search result.
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import clsx from 'clsx';
+import { BookOpen, Search } from 'lucide-react';
+
+import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
+import {
+  HELP_PILLARS,
+  getHelpDoc,
+  listHelpDocs,
+  searchHelp,
+  type HelpBlock,
+  type Tier,
+} from './help/helpApi';
+
+interface HelpPaneProps {
+  /** The kid's studio mode → the default reading tier (Lite 8–11 / Pro 12–17). */
+  mode: 'lite' | 'pro';
+}
+
+/** Persisted Guide UI (resume where the kid left off, per project session). */
+interface HelpSlice {
+  docId: string;
+  tier: Tier;
+}
+
+const DEFAULT_DOC = 'engine/what-is-an-engine';
+
+export function HelpPane({ mode }: HelpPaneProps) {
+  const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC, tier: mode });
+  const [tier, setTier] = useState<Tier>(saved.tier);
+  const [docId, setDocId] = useState<string>(saved.docId);
+  const [query, setQuery] = useState('');
+  const docs = useMemo(() => listHelpDocs(), []);
+  const doc = getHelpDoc(docId);
+  const results = useMemo(() => searchHelp(query, tier), [query, tier]);
+  const searching = query.trim().length > 0;
+
+  // Resume slice — persist the open doc + tier (real project sessions only; the
+  // workspace store decides whether a project-less session persists).
+  useEffect(() => {
+    writeWorkspaceSlice('help', { docId, tier });
+  }, [docId, tier]);
+
+  // Scroll the reader to a heading anchor when one is requested (search result
+  // with an anchor, or — later, MH2 — an agent `open_help`).
+  const readerRef = useRef<HTMLDivElement>(null);
+  const [pendingAnchor, setPendingAnchor] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!pendingAnchor || !readerRef.current) return;
+    const el = readerRef.current.querySelector(`[data-anchor="${pendingAnchor}"]`);
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    setPendingAnchor(undefined);
+  }, [pendingAnchor, docId]);
+
+  const open = (id: string, anchor?: string) => {
+    setDocId(id);
+    setQuery('');
+    if (anchor) setPendingAnchor(anchor);
+    else readerRef.current?.scrollTo({ top: 0 });
+  };
+
+  return (
+    <div className="flex h-full min-h-0 bg-pg-bg text-pg-text" data-testid="help-pane">
+      {/* ── Left: search + nav ─────────────────────────────────────────────── */}
+      <nav className="flex w-48 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
+        <div className="border-b border-pg-border p-2">
+          <div className="flex items-center gap-1.5 rounded-lg border border-pg-border bg-pg-bg px-2">
+            <Search size={14} className="shrink-0 text-pg-text-muted" />
+            <input
+              data-testid="help-search-input"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search the guide…"
+              aria-label="Search the guide"
+              className="w-full bg-transparent py-1.5 text-[13px] text-pg-text outline-none placeholder:text-pg-text-muted"
+            />
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          {searching ? (
+            <SearchResults results={results} onOpen={open} />
+          ) : (
+            HELP_PILLARS.map((p) => (
+              <div key={p.id} className="mb-3">
+                <div
+                  data-testid={`help-nav-${p.id}`}
+                  className="px-1.5 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted"
+                >
+                  {p.title}
+                </div>
+                <ul className="flex flex-col gap-0.5">
+                  {docs
+                    .filter((d) => d.pillar === p.id)
+                    .map((d) => (
+                      <li key={d.id}>
+                        <button
+                          type="button"
+                          data-testid={`help-nav-doc-${d.id}`}
+                          aria-current={d.id === docId}
+                          onClick={() => open(d.id)}
+                          className={clsx(
+                            'w-full rounded-md px-1.5 py-1 text-left text-[13px] transition-colors',
+                            d.id === docId
+                              ? 'bg-brand-sunshine/20 font-bold text-pg-text'
+                              : 'font-medium text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text',
+                          )}
+                        >
+                          {d.title}
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))
+          )}
+        </div>
+      </nav>
+
+      {/* ── Right: reader ──────────────────────────────────────────────────── */}
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-pg-border bg-pg-surface px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-brand-sunshine text-ink">
+              <BookOpen size={14} />
+            </span>
+            <span className="truncate text-[14px] font-extrabold">{doc?.title ?? 'Game Guide'}</span>
+          </div>
+          <TierToggle tier={tier} onChange={setTier} />
+        </header>
+
+        <div ref={readerRef} data-testid="help-reader" className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          {doc ? (
+            <article className="mx-auto flex max-w-2xl flex-col gap-3 pb-8">
+              {doc.blocks
+                .filter((b) => !b.tier || b.tier === tier)
+                .map((b, i) => (
+                  <Block key={i} block={b} />
+                ))}
+            </article>
+          ) : (
+            <p className="text-pg-text-muted">Pick a topic on the left to start reading.</p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function SearchResults({
+  results,
+  onOpen,
+}: {
+  results: ReturnType<typeof searchHelp>;
+  onOpen: (id: string, anchor?: string) => void;
+}) {
+  if (results.length === 0) {
+    return (
+      <p data-testid="help-empty" className="px-1.5 py-2 text-[13px] text-pg-text-muted">
+        No matches — try another word, like “jump”, “score” or “move”.
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-1">
+      {results.map((r) => (
+        <li key={r.id}>
+          <button
+            type="button"
+            data-testid={`help-result-${r.id}`}
+            onClick={() => onOpen(r.id, r.anchor)}
+            className="w-full rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-pg-text/5"
+          >
+            <span className="block text-[13px] font-bold text-pg-text">{r.title}</span>
+            <span className="block text-[11.5px] leading-snug text-pg-text-muted">{r.snippet}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TierToggle({ tier, onChange }: { tier: Tier; onChange: (t: Tier) => void }) {
+  return (
+    <div
+      data-testid="help-tier-toggle"
+      role="radiogroup"
+      aria-label="Reading level"
+      className="flex shrink-0 items-center gap-0.5 rounded-lg bg-pg-text/5 p-0.5"
+    >
+      {(['lite', 'pro'] as const).map((t) => (
+        <button
+          key={t}
+          type="button"
+          role="radio"
+          aria-checked={tier === t}
+          data-testid={`help-tier-${t}`}
+          onClick={() => onChange(t)}
+          className={clsx(
+            'rounded-md px-2.5 py-1 text-[12px] font-bold capitalize transition-colors',
+            tier === t ? 'bg-pg-surface text-pg-text shadow-sm' : 'text-pg-text-dim hover:text-pg-text',
+          )}
+        >
+          {t === 'lite' ? 'Simple' : 'More'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Render one content block. Plain React — no markdown/HTML injection. */
+function Block({ block }: { block: HelpBlock }) {
+  switch (block.kind) {
+    case 'heading':
+      return (
+        <h3
+          data-anchor={block.anchor}
+          data-testid={`help-anchor-${block.anchor}`}
+          className="scroll-mt-2 pt-1 text-[16px] font-extrabold text-pg-text"
+        >
+          {block.text}
+        </h3>
+      );
+    case 'para':
+      return <p className="text-[14px] leading-relaxed text-pg-text-dim">{block.text}</p>;
+    case 'list':
+      return (
+        <ul className="ml-4 flex list-disc flex-col gap-1 text-[14px] leading-relaxed text-pg-text-dim">
+          {block.items.map((it, i) => (
+            <li key={i}>{it}</li>
+          ))}
+        </ul>
+      );
+    case 'code':
+      return (
+        <pre className="overflow-x-auto rounded-lg border border-pg-border bg-pg-text/5 p-3 text-[12.5px] leading-relaxed text-pg-text">
+          <code>{block.code}</code>
+        </pre>
+      );
+    case 'callout':
+      return (
+        <div className="flex items-start gap-2 rounded-lg border border-brand-sunshine/40 bg-brand-sunshine/10 p-3 text-[13.5px] font-medium text-pg-text">
+          <span>💡 {block.text}</span>
+        </div>
+      );
+  }
+}

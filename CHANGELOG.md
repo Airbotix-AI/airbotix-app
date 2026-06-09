@@ -6,6 +6,29 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Added
+- **Game Guide — in-studio help (MH1, frontend)** for the Game Studio playground
+  (PRD `docs/product/prd/learn-game-studio-help-prd.md`). A 5th playground window
+  (`help`, "Guide", `BookOpen`, `brand-sunshine` accent) reachable from a desktop tile
+  (Window mode) and a Split tab. Renders a curated, kid-tiered (Lite/Pro) corpus —
+  Phaser 4, game basics, game-engine basics — authored as typed structured content
+  (`panes/help/helpContent.ts`, no markdown/sanitizer dep) behind a `helpApi` data seam
+  (client-side lexical search today; MH0 swaps it to `GET /help/docs*`). New:
+  `panes/HelpPane.tsx`, `panes/help/{helpContent,helpApi}.ts`; wired through
+  `playgroundStore` (`PgWindowId`), `windowMeta`, `DesktopIcon` (sunshine-contrast
+  exception: solid chip + `text-ink` glyph), `Workspace`. The AI `search_help`/`read_help`
+  tools + the `open_help` client action are MH2 (backend, not in this change). Tested:
+  `helpContent.test.ts` (corpus invariants + the HJ6 runtime-contract/Phaser-major sync
+  guard, D‑HELP‑06), `helpApi.test.ts` (search + tier filtering), `e2e/help-guide.spec.ts`
+  (HJ1: open from desktop → browse → search → read → tier toggle).
+
+### Fixed
+- **e2e harness: `mockBackendAsKid` now mocks `GET /projects/*/share` → 404** ("no share
+  yet"). `ShareLinkPanel` queries it on every real-project workspace; left unmocked it
+  401'd → the api client cleared the kid token → a delayed bounce to `/learn/login` that
+  fast specs happened to beat (and which flaked the `create-game` openCode spec). Share-
+  specific specs still override with their own route (matched most-recent-first).
+
 ### Changed
 - **Upgraded the game runtime to Phaser 4.1.0** (from 3.80.1). Phaser 4's full build
   (`dist/phaser.min.js`) is still a UMD that sets `window.Phaser`, so the opaque-origin

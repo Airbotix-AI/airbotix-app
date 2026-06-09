@@ -166,6 +166,18 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
     return route.fulfill(json({ files: persistedFiles, version }));
   });
 
+  // ── Share-link status (J8) ───────────────────────────────────────────────────
+  // `ShareLinkPanel` mounts for EVERY real-project workspace and GETs the share
+  // state on mount. Left unmocked it 401s → the api client clears the kid token →
+  // the session bounces to /learn/login mid-test (a latent race the fast specs
+  // happen to beat). Default to "no share yet" (404 → `{ status: 'none' }`, which
+  // `getShareLink` handles). Share-specific specs override by registering their own
+  // `**/projects/*/share` route AFTER this (Playwright matches most-recent first).
+  await page.route('**/projects/*/share', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill(json({ error: { code: 'NOT_FOUND', message: 'no share' } }, 404));
+    return route.continue();
+  });
+
   // ── The real game-project create (authed hub → studio) ───────────────────────
   await page.route('**/projects', (route) => {
     if (route.request().method() !== 'POST') return route.continue();
