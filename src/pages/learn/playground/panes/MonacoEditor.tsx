@@ -14,7 +14,7 @@ import { jsDefaults, monaco } from './monacoSetup'
 // parsed by the TS worker on its own thread. We strip the leading
 // `/// <reference types="./matter" />` — it points at Matter physics types we
 // don't vendor, and a dangling reference would fail to resolve.
-const PHASER_DTS_URL = '/vendor/phaser-3.80.1.d.ts'
+const PHASER_DTS_URL = '/vendor/phaser-4.1.0.d.ts'
 let phaserTypesLoaded = false
 async function loadPhaserTypes(): Promise<void> {
   if (phaserTypesLoaded) return

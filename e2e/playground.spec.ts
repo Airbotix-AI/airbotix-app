@@ -465,7 +465,7 @@ test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ pa
   // materialized from the `phaser` npm dep by the vendor-phaser Vite plugin, so
   // this also guards that the build-time copy actually served the file.
   const dtsResponse = page.waitForResponse(
-    (r) => r.url().includes('/vendor/phaser-3.80.1.d.ts'),
+    (r) => r.url().includes('/vendor/phaser-4.1.0.d.ts'),
     { timeout: 15_000 },
   );
   await openStudio(page);

@@ -17,7 +17,7 @@ import { configDefaults } from 'vitest/config';
 // `/vendor/phaser-<v>…` constants in src/pages/learn/playground/buildGamePreview.ts
 // + panes/MonacoEditor.tsx. The version check throws on drift so a 404'd asset
 // can't ship.
-const PHASER_VERSION = '3.80.1';
+const PHASER_VERSION = '4.1.0';
 
 function vendorPhaser(): Plugin {
   return {
