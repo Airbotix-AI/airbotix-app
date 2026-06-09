@@ -7,6 +7,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Added
+- **Resume recap — "welcome back, here's where we left off"** (`playground/ResumeRecap.tsx`,
+  `PlaygroundApp.tsx`, `Workspace.tsx`, `panes/ChatPane.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md`
+  MP5 / D-PAP-19,22). On a genuine resume (a real game project reopened with no fresh first turn), the studio
+  fetches the project's persisted `learning_context` (`getProject`) and shows a dismissible welcome-back card
+  above the chat: the game summary, the concepts the kid has learned (chips), and what they were about to do
+  next, with a **"Keep building →"** continue button. Best-effort + non-blocking — the kid can ignore it and
+  just start typing; a fetch failure simply skips the card. `CodeProject`/`AgentTurnResult` gain
+  `learning_context`. Covered by `ResumeRecap.test.tsx` (summary/concepts/next render, summary-only, continue tap).
 - **Game-agent UI tool handlers — the teacher can drive the studio** (`playground/executeClientActions.ts`,
   `Workspace.tsx`, `panes/CodeEditorPane.tsx`, `panes/MonacoEditor.tsx`, `code/codeApi.ts`, `playground.css`;
   `playground-ai-prompt-prd.md` MP4 / D-PAP-08, App. A). `ClientAction` now models the full Group A–D

@@ -50,6 +50,8 @@ export interface CodeProject {
   visibility: 'private' | 'class' | 'public';
   updated_at: string;
   created_at: string;
+  /** The teacher's "where we left off" (D-PAP-19,22); present on resumed games. */
+  learning_context?: LearningContext | null;
 }
 
 // ── Agent turn model (PRD §4 / §4.5 — server-side loop) ────────────────────
@@ -193,6 +195,9 @@ export interface AgentTurnResult {
   next_steps?: NextStep[];
   // A short, kid-readable label for the history timeline (null/absent if none).
   history_label?: string | null;
+  // The teacher's updated "where we left off" (playground §11 / D-PAP-19,22),
+  // persisted on the project and used for the resume recap.
+  learning_context?: LearningContext | null;
 }
 
 /** One next-step option the teacher offers on `done` (rendered as a chip). */
@@ -203,6 +208,13 @@ export interface NextStep {
   prompt: string;
   /** Whether this option teaches a concept or is just for fun. */
   tag: 'concept' | 'fun';
+}
+
+/** The teacher's lightweight "where we left off", shown as a recap on resume. */
+export interface LearningContext {
+  summary: string;
+  concepts?: string[];
+  next?: string;
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────

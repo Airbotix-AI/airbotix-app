@@ -22,7 +22,7 @@ import clsx from 'clsx';
 import { useMe } from '@/auth/useAuth';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
-import type { VfsFile } from '../code/codeApi';
+import type { LearningContext, VfsFile } from '../code/codeApi';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
@@ -57,6 +57,8 @@ interface WorkspaceProps {
   projectId?: string;
   /** The AI's first turn (generated on the loading screen) — seeds the chat. */
   firstTurn?: FirstTurnSeed;
+  /** The teacher's "where we left off" on a resumed game → welcome-back card (D-PAP-19,22). */
+  resumeRecap?: LearningContext | null;
 }
 
 interface Wallet {
@@ -82,8 +84,13 @@ export function Workspace({
   prompt,
   projectId,
   firstTurn,
+  resumeRecap,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
+  // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
+  // it simply sits above the chat; it never blocks typing). D-PAP-19,22.
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  const showRecap = !!resumeRecap && !recapDismissed;
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
   );
@@ -224,6 +231,8 @@ export function Workspace({
     onSeeCode: handleSeeCode,
     onStop: abort,
     onRetry: retryLast,
+    recap: showRecap ? resumeRecap : null,
+    onContinueRecap: () => setRecapDismissed(true),
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and

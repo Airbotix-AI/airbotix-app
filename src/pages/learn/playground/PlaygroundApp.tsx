@@ -4,6 +4,7 @@ import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 
+import { getProject, type LearningContext } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
@@ -83,6 +84,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const mode: 'lite' | 'pro' = kidAge != null && kidAge >= 12 ? 'pro' : 'lite';
   // The AI's first turn (generated on the loading screen) → seeds the workspace chat.
   const [firstTurn, setFirstTurn] = useState<FirstTurnSeed | undefined>(undefined);
+  // Resume recap (D-PAP-19,22): the teacher's persisted "where we left off", shown
+  // as a welcome-back card on a resumed game (no fresh first turn).
+  const [resumeRecap, setResumeRecap] = useState<LearningContext | null>(null);
   // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
@@ -318,6 +322,17 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
             } else {
               useWorkspaceUiStore.getState().restore(null);
             }
+            // Resume recap (D-PAP-19,22): on a genuine resume (real project, no
+            // fresh first turn) fetch the teacher's persisted "where we left off"
+            // and show the welcome-back card. Best-effort — never block the studio.
+            if (projectId && !ft) {
+              try {
+                const proj = await getProject(projectId);
+                setResumeRecap(proj.learning_context ?? null);
+              } catch {
+                setResumeRecap(null);
+              }
+            }
             setPhase('workspace');
           }}
           onError={() => setLoadError(true)}
@@ -333,6 +348,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onRun={run}
           prompt={prompt}
           firstTurn={firstTurn}
+          resumeRecap={resumeRecap}
           // Only a real OWNED project (the authed route param, or the id created
           // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
