@@ -1,50 +1,80 @@
 import { describe, it, expect } from 'vitest';
 
-import { getHelpDoc, listHelpDocs, searchHelp } from './helpApi';
-import { HELP_DOCS } from './helpContent';
+import { getDoc, searchDocs } from './helpApi';
+import type { HelpDoc } from './helpTypes';
 
-describe('helpApi list/get', () => {
-  it('lists every doc as metadata', () => {
-    expect(listHelpDocs()).toHaveLength(HELP_DOCS.length);
-    expect(listHelpDocs()[0]).toMatchObject({ id: expect.any(String), pillar: expect.any(String), title: expect.any(String) });
-  });
+// A representative fixture mirroring the backend corpus shape (the real content is
+// fetched from GET /help/docs at runtime; these are the search/ranking invariants).
+const DOCS: HelpDoc[] = [
+  {
+    id: 'phaser/arcade-physics',
+    pillar: 'phaser',
+    title: 'Arcade physics (gravity, jumping)',
+    tags: ['physics', 'gravity', 'jump', 'fall'],
+    blocks: [
+      { kind: 'heading', text: 'Make things fall and jump', anchor: 'gravity' },
+      { kind: 'para', tier: 'lite', text: 'Gravity makes your player fall.' },
+      { kind: 'code', tier: 'pro', code: 'this.player.body.setVelocityY(-450); // setGravityY too' },
+    ],
+  },
+  {
+    id: 'basics/moving-with-input',
+    pillar: 'basics',
+    title: 'Moving your player',
+    tags: ['move', 'input', 'keys'],
+    blocks: [
+      { kind: 'heading', text: 'Listen for keys, then move', anchor: 'overview' },
+      { kind: 'code', tier: 'pro', code: 'this.player.body.setVelocityX(-200);' },
+    ],
+  },
+  {
+    id: 'basics/sprites-and-objects',
+    pillar: 'basics',
+    title: 'Sprites and game objects',
+    tags: ['sprite', 'guy', 'character'],
+    blocks: [{ kind: 'heading', text: 'The things in your game', anchor: 'overview' }],
+  },
+  {
+    id: 'basics/score-and-lives',
+    pillar: 'basics',
+    title: 'Score and lives',
+    tags: ['score', 'points'],
+    blocks: [{ kind: 'heading', text: 'Keeping count', anchor: 'overview' }],
+  },
+];
 
-  it('gets a doc by id, undefined for unknown', () => {
-    expect(getHelpDoc('phaser/arcade-physics')?.title).toBeTruthy();
-    expect(getHelpDoc('nope/missing')).toBeUndefined();
+describe('getDoc', () => {
+  it('finds a doc by id, undefined for unknown', () => {
+    expect(getDoc(DOCS, 'phaser/arcade-physics')?.title).toBeTruthy();
+    expect(getDoc(DOCS, 'nope/missing')).toBeUndefined();
   });
 });
 
-describe('searchHelp ranking', () => {
+describe('searchDocs ranking', () => {
   it('returns nothing for an empty / too-short query', () => {
-    expect(searchHelp('')).toEqual([]);
-    expect(searchHelp('a')).toEqual([]);
+    expect(searchDocs(DOCS, '')).toEqual([]);
+    expect(searchDocs(DOCS, 'a')).toEqual([]);
   });
 
-  it('ranks a tag hit ("jump") to the arcade-physics doc', () => {
-    const top = searchHelp('jump')[0];
+  it('ranks a tag hit ("jump") to arcade-physics with its anchor', () => {
+    const top = searchDocs(DOCS, 'jump')[0];
     expect(top.id).toBe('phaser/arcade-physics');
-    expect(top.anchor).toBe('gravity'); // its first heading anchor
+    expect(top.anchor).toBe('gravity');
     expect(top.snippet).toBeTruthy();
   });
 
-  it('finds the movement doc from a kid synonym ("guy")', () => {
-    // "guy" is a tag synonym on the sprites doc; "move" hits the movement doc.
-    expect(searchHelp('move').map((r) => r.id)).toContain('basics/moving-with-input');
-    expect(searchHelp('guy').map((r) => r.id)).toContain('basics/sprites-and-objects');
+  it('strips punctuation so "how do I jump?" still matches', () => {
+    expect(searchDocs(DOCS, 'how do I jump?')[0].id).toBe('phaser/arcade-physics');
   });
 
-  it('a title hit outranks a body-only hit', () => {
-    const results = searchHelp('score');
-    expect(results[0].id).toBe('basics/score-and-lives'); // title contains "Score"
+  it('finds docs from kid synonyms; a title hit outranks a body hit', () => {
+    expect(searchDocs(DOCS, 'move').map((r) => r.id)).toContain('basics/moving-with-input');
+    expect(searchDocs(DOCS, 'guy').map((r) => r.id)).toContain('basics/sprites-and-objects');
+    expect(searchDocs(DOCS, 'score')[0].id).toBe('basics/score-and-lives');
   });
-});
 
-describe('searchHelp tier filtering', () => {
-  // `setVelocityX` appears ONLY in a Pro-tier code block (not a title/tag), so it
-  // must surface under Pro but be invisible under Lite.
   it('excludes Pro-only passages from a Lite search', () => {
-    expect(searchHelp('setVelocityX', 'lite')).toEqual([]);
-    expect(searchHelp('setVelocityX', 'pro').map((r) => r.id)).toContain('basics/moving-with-input');
+    expect(searchDocs(DOCS, 'setVelocityX', 'lite')).toEqual([]);
+    expect(searchDocs(DOCS, 'setVelocityX', 'pro').map((r) => r.id)).toContain('basics/moving-with-input');
   });
 });

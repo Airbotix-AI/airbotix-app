@@ -6,6 +6,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Changed
+- **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`
+  loads `GET /help/docs` via TanStack Query and renders + searches it client-side; the
+  bundled `panes/help/helpContent.ts` is **deleted** so platform-backend is the single
+  source (D‑HELP‑02). New `helpTypes.ts` (shared shape) + `helpApi` becomes
+  `loadHelpCorpus` + pure `searchDocs`/`getDoc`. Loading/error states added. This also
+  unblocks comprehensive, clearly-tiered content (authored once, server-side). E2E mocks
+  `GET /help/docs` in `mockBackendAsKid`.
+
 ### Added
 - **Game Guide — `open_help` client action (MH2a, frontend)**. Extends the agent's
   `ClientAction` channel (`code/codeApi.ts`) with `open_help { target: docId, anchor? }`,

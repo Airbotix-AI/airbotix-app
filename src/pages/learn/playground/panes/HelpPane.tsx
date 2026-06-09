@@ -11,18 +11,13 @@
 // drives navigation by clicking the nav or a search result.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { BookOpen, Search } from 'lucide-react';
+import { BookOpen, Loader2, Search } from 'lucide-react';
 
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
-import {
-  HELP_PILLARS,
-  getHelpDoc,
-  listHelpDocs,
-  searchHelp,
-  type HelpBlock,
-  type Tier,
-} from './help/helpApi';
+import { getDoc, loadHelpCorpus, searchDocs } from './help/helpApi';
+import type { HelpBlock, HelpResult, Tier } from './help/helpTypes';
 
 interface HelpPaneProps {
   /** The kid's studio mode → the default reading tier (Lite 8–11 / Pro 12–17). */
@@ -48,9 +43,14 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
   const [tier, setTier] = useState<Tier>(saved.tier);
   const [docId, setDocId] = useState<string>(saved.docId);
   const [query, setQuery] = useState('');
-  const docs = useMemo(() => listHelpDocs(), []);
-  const doc = getHelpDoc(docId);
-  const results = useMemo(() => searchHelp(query, tier), [query, tier]);
+
+  // The corpus is the backend's single source — fetched once via GET /help/docs
+  // and rendered/searched client-side (the kid's query never leaves the device).
+  const corpus = useQuery({ queryKey: ['help-corpus'], queryFn: loadHelpCorpus, staleTime: Infinity });
+  const docs = useMemo(() => corpus.data?.docs ?? [], [corpus.data]);
+  const pillars = corpus.data?.pillars ?? [];
+  const doc = getDoc(docs, docId);
+  const results = useMemo(() => searchDocs(docs, query, tier), [docs, query, tier]);
   const searching = query.trim().length > 0;
 
   // Resume slice — persist the open doc + tier (real project sessions only; the
@@ -107,10 +107,18 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {searching ? (
+          {corpus.isPending ? (
+            <div className="flex items-center gap-2 px-1.5 py-2 text-[13px] text-pg-text-muted">
+              <Loader2 size={14} className="animate-spin text-brand-sunshine" /> Loading the guide…
+            </div>
+          ) : corpus.isError ? (
+            <p className="px-1.5 py-2 text-[13px] text-pg-text-muted">
+              Couldn&apos;t load the guide. Check your connection and try again.
+            </p>
+          ) : searching ? (
             <SearchResults results={results} onOpen={open} />
           ) : (
-            HELP_PILLARS.map((p) => (
+            pillars.map((p) => (
               <div key={p.id} className="mb-3">
                 <div
                   data-testid={`help-nav-${p.id}`}
@@ -180,7 +188,7 @@ function SearchResults({
   results,
   onOpen,
 }: {
-  results: ReturnType<typeof searchHelp>;
+  results: HelpResult[];
   onOpen: (id: string, anchor?: string) => void;
 }) {
   if (results.length === 0) {

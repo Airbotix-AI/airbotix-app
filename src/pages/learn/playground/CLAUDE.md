@@ -28,7 +28,7 @@ a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="k
   Windows = `PgWindowId`+`WINDOW_ORDER`/`WINDOW_META`/`WINDOW_ACCENT` (add an id + pane →
   flows through desktop/taskbar/split). `HelpPane` = the **Game Guide** (`panes/help/`:
   curated kid-tiered Phaser/game-basics corpus + `helpApi` search seam; help=sunshine,
-  solid-chip glyph; MH0 swaps the bundle to `/help/docs*`; PRD `learn-game-studio-help-prd.md`).
+  solid-chip glyph; fetches the backend corpus via `GET /help/docs` (single source); PRD `learn-game-studio-help-prd.md`).
 
 The VFS is owned by `projectStore` (the single funnel for every mutation — edits,
 AI turns, file CRUD); edit history in `historyStore`; local cache in IndexedDB
