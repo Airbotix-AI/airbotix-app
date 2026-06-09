@@ -96,6 +96,7 @@ const HELP_CORPUS = {
       blocks: [
         { kind: 'heading', text: 'Make things fall and jump', anchor: 'gravity' },
         { kind: 'para', tier: 'lite', text: 'Turn on gravity and your player will fall down.' },
+        { kind: 'diagram', diagram: 'gravity-and-jump', alt: 'gravity pulls down, jump pushes up' },
         { kind: 'code', tier: 'pro', code: 'this.player.body.setGravityY(800);' },
       ],
     },

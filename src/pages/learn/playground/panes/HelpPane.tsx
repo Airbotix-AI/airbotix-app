@@ -17,6 +17,7 @@ import { BookOpen, Loader2, Search } from 'lucide-react';
 
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { getDoc, loadHelpCorpus, searchDocs } from './help/helpApi';
+import { HelpDiagram } from './help/helpDiagrams';
 import type { HelpBlock, HelpResult, Tier } from './help/helpTypes';
 
 interface HelpPaneProps {
@@ -280,5 +281,7 @@ function Block({ block }: { block: HelpBlock }) {
           <span>💡 {block.text}</span>
         </div>
       );
+    case 'diagram':
+      return <HelpDiagram diagram={block.diagram} alt={block.alt} />;
   }
 }

@@ -10,7 +10,10 @@ export type HelpBlock =
   | { kind: 'para'; text: string; tier?: Tier }
   | { kind: 'list'; items: string[]; tier?: Tier }
   | { kind: 'code'; code: string; tier?: Tier }
-  | { kind: 'callout'; text: string; tier?: Tier };
+  | { kind: 'callout'; text: string; tier?: Tier }
+  // `diagram` names an SVG (rendered by helpDiagrams.tsx); `alt` is the accessible
+  // label and is indexed for search.
+  | { kind: 'diagram'; diagram: string; alt: string; tier?: Tier };
 
 export interface HelpDoc {
   id: string;

@@ -30,6 +30,8 @@ test('Game Guide: open from desktop → browse → search → read → tier togg
   const reader = page.getByTestId('help-reader');
   await expect(reader).toContainText('fall');
   await expect(reader).not.toContainText('setGravityY');
+  // A concept diagram (SVG) renders to help understanding.
+  await expect(page.getByTestId('help-diagram-gravity-and-jump')).toBeVisible();
 
   // Tier toggle → "More" (Pro) reveals the deeper code passage.
   await page.getByTestId('help-tier-pro').click();

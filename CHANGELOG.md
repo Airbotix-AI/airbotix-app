@@ -6,6 +6,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Added
+- **Game Guide SVG concept diagrams (D-HELP-07).** New `panes/help/helpDiagrams.tsx` —
+  a registry of type-safe React SVGs (xy-coordinates, game-loop, gravity-and-jump,
+  collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
+  Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
+  `alt` label — no HTML injection. Unknown key → alt caption fallback.
+
 ### Changed
 - **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`
   loads `GET /help/docs` via TanStack Query and renders + searches it client-side; the

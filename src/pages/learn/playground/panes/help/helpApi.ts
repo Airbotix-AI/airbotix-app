@@ -29,6 +29,7 @@ function searchText(d: HelpDoc, tier?: Tier): string {
     if (tier && b.tier && b.tier !== tier) continue;
     if (b.kind === 'list') parts.push(...b.items);
     else if (b.kind === 'code') parts.push(b.code);
+    else if (b.kind === 'diagram') parts.push(b.alt);
     else parts.push(b.text);
   }
   return parts.join(' \n ').toLowerCase();
