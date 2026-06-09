@@ -8,8 +8,59 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ### Added
 - **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
-  page: shows hours remaining across entitlements, lists hour-pack plans, and starts an Airwallex
-  checkout to buy (mirrors the wallet topup flow). "Tutoring" nav item added.
+  page: shows outstanding per-session charges bound to each class, totals what's owed, and starts
+  an Airwallex checkout to pay all outstanding charges at once (mirrors the wallet topup flow).
+  "Tutoring" nav item added.
+
+### Changed
+- **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
+  The share control used to float top-right over the desktop surface (Window mode) or
+  sit in the split tab strip; it now lives on the bottom bar in **both** layout modes,
+  rendered once. The button itself reflects the live share status — neutral **Share**,
+  a sunshine **Waiting for grown-up** beat while a parent-approval is pending, and a
+  mint **Link live** pill showing the play count once approved — and the status is
+  polled even while the panel is closed, so an out-of-band parent approval (Portal)
+  lights it up on its own. Clicking opens a popup rendered into `document.body` (floats
+  above the desktop windows + taskbar, never clipped) anchored just above the button;
+  clicking outside it or pressing Escape dismisses it. Re-enabled the previously
+  `fixme`'d share-link UI e2e (now green from a direct studio load).
+- **Upgraded the game runtime to Phaser 4.1.0** (from 3.80.1). Phaser 4's full build
+  (`dist/phaser.min.js`) is still a UMD that sets `window.Phaser`, so the opaque-origin
+  sandbox keeps loading it as a classic global `<script>` (no `allow-same-origin`, no
+  CDN — the `vendor-phaser` Vite plugin re-materializes the engine + `.d.ts` into
+  `public/vendor/`). Bumped `PHASER_VERSION` + the `/vendor/phaser-<v>.*` constants in
+  `vite.config.ts`, `buildGamePreview.ts`, `MonacoEditor.tsx`. The `Phaser.Game`
+  constructor-wrapper control channel (pause/mute/stats) still works. Verified by the
+  `game-smoke` e2e (starter game runs, fps > 0, zero console errors) and the Phaser
+  `.d.ts` IntelliSense e2e. The agent system prompt deliberately keeps teaching the
+  Phaser-3-style game API — it's backward-compatible, runs on the Phaser 4 engine, and
+  is the most reliable surface for the model to generate.
+- **Playground "building your game" screen — total redesign around real progress.**
+  The old screen showed a spinning orb + a fake timed progress bar + canned "Writing
+  the code…" steps that didn't reflect anything real (the backend generated the whole
+  game in one non-streaming call, so the first ~20–30s had no signal). `GeneratingScreen`
+  now drives **three honest phases off the streamed turn**: **thinking** (turn running,
+  no file yet → a fun looping platformer **build-stage** animation + rotating kid
+  build-tips, since there's genuinely nothing real to show), **building** (each file
+  reveals in a live list the instant the AI starts writing it — see the backend
+  streaming change), and **done** (the AI's moderated reply + a short celebratory beat,
+  then handoff). Stream failure still falls back to the seeded template (kid never
+  trapped); resume/project-less sessions load behind the same stage. New pure-CSS
+  build-stage animation in `playground.css` §5 (honors `prefers-reduced-motion`).
+  Covered by `GeneratingScreen.test.tsx` (thinking → progressive file reveal → ready
+  → handoff).
+
+## 2026-06-08
+
+### Fixed
+- **Playground AI chat error copy now distinguishes "couldn't reach the server" from
+  "the server errored."** `useGameAgent.friendlyError` previously collapsed every
+  unhandled turn failure into "Could not reach the AI" — so a real backend 5xx
+  (e.g. the dev backend mid-restart) misread as a connectivity problem. Now a
+  transport failure (`fetch` rejected → no `ApiError`) or a gateway-down
+  502/503/504 keeps the "Could not reach the AI. Try again." copy, while any other
+  reached-but-failed status shows a distinct "The AI ran into a problem. Try again
+  in a moment." Covered by new `useGameAgent.test.ts` cases (transport vs 5xx vs 503).
 
 ## 2026-06-07
 

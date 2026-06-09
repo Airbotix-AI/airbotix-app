@@ -28,7 +28,7 @@ import { ASSET_MIME, CONSOLE_CAPTURE } from '../code/buildPreview';
 export { isConsoleMessage, type ConsoleLine } from '../code/buildPreview';
 
 /** Self-hosted Phaser build. Version-pinned; vendored in `public/vendor/`. */
-const PHASER_SRC = '/vendor/phaser-3.80.1.min.js';
+const PHASER_SRC = '/vendor/phaser-4.1.0.min.js';
 
 /** Friendly guard shown if the vendored Phaser file fails to load (network/CSP). */
 const PHASER_GUARD = `
