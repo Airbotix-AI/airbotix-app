@@ -67,36 +67,53 @@ function changedLineRange(before: string, after: string): { from: number; to: nu
 }
 
 /**
+ * A one-sentence, kid-friendly description for a file when the teacher didn't give
+ * its own note — so EVERY changed-file row always reads as a sentence, never a bare
+ * path. The teacher's `fileNotes` note (contextual to the change) is preferred; this
+ * is the role-based fallback keyed off the well-known scaffold layout.
+ */
+function describeFile(path: string): string {
+  const name = path.split('/').pop() ?? path;
+  if (name === 'main.js') return "The game's starting point — it sets everything up.";
+  if (name === 'Boot.js') return 'Gets the game ready before it starts.';
+  if (name === 'Game.js') return 'Your main game scene — where the action happens.';
+  if (name === 'GameOver.js') return 'The screen shown when the game ends.';
+  if (name === 'style.css') return 'How the game page looks.';
+  if (name.endsWith('.css')) return 'Styling for how things look.';
+  if (path.includes('/scenes/')) return 'A game scene (one screen of your game).';
+  if (name.endsWith('.json')) return 'Settings or data for your game.';
+  if (name.endsWith('.js')) return 'Code that makes your game work.';
+  return 'A file in your game.';
+}
+
+/**
  * Build the per-file change rows for an agent bubble: ONE row per file
- * (consolidate multiple edits, §11.4), the teacher's note (if any), and the line
+ * (consolidate multiple edits, §11.4), a one-sentence description, and the line
  * range to highlight. Driven by the applied diff (`changes`) for the range, the
- * teacher's `fileNotes` for descriptions, and `toolsFired` only as a path fallback.
+ * teacher's `fileNotes` for descriptions (falling back to a role-based sentence so
+ * a row is never just a path), and `toolsFired` only as a path fallback.
  */
 function buildChangedFiles(item: ChatItem): ChangedFile[] {
   const noteByPath = new Map((item.fileNotes ?? []).map((n) => [n.path, n.note]));
   const seen = new Set<string>();
   const out: ChangedFile[] = [];
-  for (const c of item.changes ?? []) {
-    if (seen.has(c.path)) continue;
-    seen.add(c.path);
-    const range = changedLineRange(c.before, c.after);
-    out.push({ path: c.path, note: noteByPath.get(c.path), fromLine: range?.from, toLine: range?.to });
-  }
+  const add = (path: string, range?: { from: number; to: number } | null) => {
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    out.push({
+      path,
+      note: noteByPath.get(path) ?? describeFile(path),
+      fromLine: range?.from,
+      toLine: range?.to,
+    });
+  };
+  for (const c of item.changes ?? []) add(c.path, changedLineRange(c.before, c.after));
   // Files the teacher noted but that produced no diff entry (rare) still get a row.
-  for (const n of item.fileNotes ?? []) {
-    if (!seen.has(n.path)) {
-      seen.add(n.path);
-      out.push({ path: n.path, note: n.note });
-    }
-  }
-  // Fallback: no diff + no notes but tools fired (e.g. a write the diff missed).
+  for (const n of item.fileNotes ?? []) add(n.path);
+  // Fallback: no diff + no notes but tools fired (e.g. the first-turn scaffold,
+  // whose files arrive as toolsFired rather than a diff).
   if (out.length === 0) {
-    for (const t of item.toolsFired ?? []) {
-      const path = t.replace(/^(edit_file|write_file):/, '');
-      if (!path || seen.has(path)) continue;
-      seen.add(path);
-      out.push({ path });
-    }
+    for (const t of item.toolsFired ?? []) add(t.replace(/^(edit_file|write_file):/, ''));
   }
   return out;
 }

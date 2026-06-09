@@ -73,6 +73,24 @@ describe('AIChatPanel — changed-file rows', () => {
     expect(rows[0].textContent).toContain('added a wall + collision');
   });
 
+  it('gives every file a one-sentence description even with no model notes (first-turn scaffold)', () => {
+    const scaffold: ChatItem[] = [
+      {
+        id: 's1',
+        role: 'agent',
+        text: 'I made a starter game!',
+        // First-turn files arrive as toolsFired (no diff, no notes).
+        toolsFired: ['write_file:main.js', 'write_file:src/scenes/Game.js', 'write_file:style.css'],
+      },
+    ];
+    render(<AIChatPanel chat={scaffold} busy={false} error={null} onSend={vi.fn()} />);
+    const rows = screen.getAllByTestId('file-change');
+    expect(rows).toHaveLength(3);
+    // Each row reads as a sentence, never a bare path.
+    expect(rows.find((r) => r.textContent?.includes('main.js'))?.textContent).toContain('starting point');
+    expect(rows.find((r) => r.textContent?.includes('style.css'))?.textContent).toContain('looks');
+  });
+
   it('tapping a row opens the file at the changed line range', () => {
     const onOpenFile = vi.fn();
     render(

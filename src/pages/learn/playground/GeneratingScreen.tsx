@@ -149,6 +149,7 @@ export function GeneratingScreen({
                 reply: r.summary,
                 toolsFired: r.tools_fired,
                 nextSteps: r.next_steps,
+                fileNotes: r.file_notes,
               }),
             DONE_BEAT_MS,
           );

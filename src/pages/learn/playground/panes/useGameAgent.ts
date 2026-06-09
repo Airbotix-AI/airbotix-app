@@ -126,6 +126,9 @@ export interface UseGameAgentOptions {
 const PENDING_TEXT = 'Thinking…';
 /** Shown while the agent auto-fixes a runtime error the game hit (MP3). */
 const AUTOFIX_TEXT = 'Hmm, the game hit a snag — let me fix that…';
+/** Client actions that pull the code editor to the front — NOT auto-run on turn
+ *  finish; the kid opens the editor by tapping a changed-file row instead. */
+const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
 /**
  * "Can't get to the server" copy — used when the request never reached the
  * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
@@ -172,6 +175,8 @@ export interface FirstTurnSeed {
   toolsFired?: string[];
   /** The teacher's 2–3 next-step options from the first turn (§11.4 / D-PAP-06). */
   nextSteps?: NextStep[];
+  /** Per-file "what changed" notes from the first turn — descriptions for the file rows. */
+  fileNotes?: FileNote[];
 }
 
 function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
@@ -182,6 +187,7 @@ function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
       role: 'agent',
       text: seed.reply,
       toolsFired: seed.toolsFired,
+      fileNotes: seed.fileNotes,
       nextSteps: seed.nextSteps,
       actions: ['run', 'code'],
     },
@@ -355,8 +361,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
-      // Run any workspace actions the turn asked for (play/restart/focus).
-      if (clientActions) executeClientActions(result.client_actions, clientActions);
+      // Run the turn's workspace actions — but NOT the ones that yank the code
+      // editor to the front. The kid opens the editor by tapping a changed-file
+      // row (onOpenFile); a finished turn shouldn't steal focus to the code. We
+      // still honour run/restart/look/help actions.
+      const autoActions = (result.client_actions ?? []).filter(
+        (a) =>
+          !EDITOR_FOCUS_ACTIONS.has(a.action) && !(a.action === 'focus_panel' && a.target === 'code'),
+      );
+      if (clientActions) executeClientActions(autoActions, clientActions);
       // Auto-restart after any change so the kid immediately sees it run (the agent
       // doesn't have to remember to emit run_game). Skip if it already asked to
       // run/restart (avoid a double re-mount).
