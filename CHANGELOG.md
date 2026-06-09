@@ -6,6 +6,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Added
+- **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
+  page: shows outstanding per-session charges bound to each class, totals what's owed, and starts
+  an Airwallex checkout to pay all outstanding charges at once (mirrors the wallet topup flow).
+  "Tutoring" nav item added.
+
 ### Changed
 - **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
   The share control used to float top-right over the desktop surface (Window mode) or
