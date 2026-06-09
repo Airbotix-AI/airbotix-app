@@ -7,6 +7,61 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Added
+- **Self-verify round-trip — the studio reports runtime errors so the agent auto-fixes**
+  (`playground/verifyRoundtrip.ts`, `panes/GameRunnerPane.tsx`, `panes/useGameAgent.ts`, `panes/gameAgent.ts`,
+  `Workspace.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` MP3 / D-PAP-09,13,23). The game runs in
+  the opaque-origin sandbox, so the captured console is the only runtime-error signal. `extractRuntimeErrors`
+  pulls the real `error`-level lines (drops logs/warnings + the shim's "ready", formats `text (file:line)`,
+  de-dupes, caps at 6); `GameRunnerPane` reports them once per distinct (run, error-set) via `onRuntimeErrors`;
+  `useGameAgent.autoFixFromErrors` posts them to the backend (`reportRuntimeErrors` → `POST …/code/verify-fix`),
+  applies the returned fix turn, or shows the **"let's debug this together"** message once the backend has
+  exhausted its ≤2 attempts (`co_debug`). The auto-fix budget resets on each fresh kid-initiated turn. New
+  `VerifyFixResult` type + `reportRuntimeErrors` injected through the `GameAgentDeps` seam. Covered by
+  `verifyRoundtrip.test.ts`; the full apply→run→report→re-run round-trip is exercised by the umbrella harness.
+- **Resume recap — "welcome back, here's where we left off"** (`playground/ResumeRecap.tsx`,
+  `PlaygroundApp.tsx`, `Workspace.tsx`, `panes/ChatPane.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md`
+  MP5 / D-PAP-19,22). On a genuine resume (a real game project reopened with no fresh first turn), the studio
+  fetches the project's persisted `learning_context` (`getProject`) and shows a dismissible welcome-back card
+  above the chat: the game summary, the concepts the kid has learned (chips), and what they were about to do
+  next, with a **"Keep building →"** continue button. Best-effort + non-blocking — the kid can ignore it and
+  just start typing; a fetch failure simply skips the card. `CodeProject`/`AgentTurnResult` gain
+  `learning_context`. Covered by `ResumeRecap.test.tsx` (summary/concepts/next render, summary-only, continue tap).
+- **Game-agent UI tool handlers — the teacher can drive the studio** (`playground/executeClientActions.ts`,
+  `Workspace.tsx`, `panes/CodeEditorPane.tsx`, `panes/MonacoEditor.tsx`, `code/codeApi.ts`, `playground.css`;
+  `playground-ai-prompt-prd.md` MP4 / D-PAP-08, App. A). `ClientAction` now models the full Group A–D
+  surface; `executeClientActions` dispatches the **Group A teaching tools**: `open_file` /
+  `jump_to_line` / `highlight_code` all route through a shared `openFile(path, fromLine?, toLine?)` so the
+  studio opens the file the agent just changed and **highlights the exact line range** (Monaco whole-line
+  `pg-code-highlight` decoration), plus `set_theme` / `set_layout` (wired to the playground store) and
+  optional `show_console` / `physics_debug` / `set_screen_size` / `open_history` / `open_asset_viewer`
+  handlers. The console's jump-to-error and the agent's open/highlight now share one location path
+  (`handleOpenLocation` gains an optional `toLine`). Handlers are optional and unknown/unwired actions are
+  ignored (forward-compatible), so the backend can expose the whole surface while the studio honours only
+  what it can today. Covered by `executeClientActions.test.ts` (routing, mode→bool/enum mapping, invalid
+  mode rejection, path-less no-op, asset-viewer fallback).
+
+### CI
+- **Fixed the playground e2e harness logging the kid out mid-test** (`e2e/helpers.ts`). The
+  Workspace's ShareLinkPanel fetches `GET /projects/:id/share` on mount; unmocked, it hit the real
+  backend, 401'd, and tripped `api()`'s `clearToken` → the kid bounced to `/learn/login`, unmounting
+  the studio (the intermittent "element detached from the DOM" flake — machine-dependent: only bites
+  where a real `:3001` backend is up). Now mocked as "not shared". Also abort the streaming first turn
+  (`POST /code/turn/stream`, GeneratingScreen) so it deterministically falls back to the seeded
+  `GET /code/files` instead of racing a real backend. `create-game` now passes reliably (4.3s vs prior
+  timeouts). (Note: `real-ai-turn` still has a separate, pre-existing intermittent flake under
+  investigation.)
+
+### Added
+- **Teacher next-step option chips in the playground chat** (`panes/AIChatPanel.tsx`,
+  `panes/useGameAgent.ts`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` §11.4 / D-PAP-06).
+  A settled agent turn now carries the backend's `next_steps` (`{label, prompt, tag:'concept'|'fun'}`)
+  onto its chat bubble and renders them as **tappable chips** — concept chips (sky/✨) and fun chips
+  (bubblegum/🪄); tapping one sends its `prompt` as the next turn. `AgentTurnResult` gains
+  `next_steps` + `history_label` (FE1 of the teacher model). Covered by a new `AIChatPanel.test.tsx`
+  + a `useGameAgent` data-flow assertion. (History-label wiring + removing the old Lite/Pro
+  agency/approval beats land in follow-ups.)
+
+### Added
 - **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
   page: shows outstanding per-session charges bound to each class, totals what's owed, and starts
   an Airwallex checkout to pay all outstanding charges at once (mirrors the wallet topup flow).

@@ -18,7 +18,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import type {
+  AgentTurnResult,
+  FileNote,
+  NextStep,
+  SafeguardingVerdict,
+  VfsFile,
+} from '../../code/codeApi';
 import {
   executeClientActions,
   type ClientActionHandlers,
@@ -26,7 +32,6 @@ import {
 import { ApiError } from '@/lib/api';
 import {
   isOffline,
-  predictionQuestion,
   realGameAgentDeps,
   streamTurn,
   type GameAgentDeps,
@@ -48,10 +53,14 @@ export interface ChatItem {
   stars?: number;
   toolsFired?: string[];
   changes?: { path: string; before: string; after: string }[];
+  /** Per-file "what changed" notes (§11.4) — one clickable row per file; tap → open + highlight. */
+  fileNotes?: FileNote[];
   /** Optional CTA buttons (e.g. the launch "Run game" / "See code" hand-off). */
   actions?: ChatAction[];
   /** A safeguarding deflection bubble (J13) — rendered with the rescue styling. */
   safeguard?: boolean;
+  /** Teacher "what next?" option chips (§11.4 / D-PAP-06) — tap to send `prompt`. */
+  nextSteps?: NextStep[];
 }
 
 /**
@@ -115,6 +124,11 @@ export interface UseGameAgentOptions {
 }
 
 const PENDING_TEXT = 'Thinking…';
+/** Shown while the agent auto-fixes a runtime error the game hit (MP3). */
+const AUTOFIX_TEXT = 'Hmm, the game hit a snag — let me fix that…';
+/** Client actions that pull the code editor to the front — NOT auto-run on turn
+ *  finish; the kid opens the editor by tapping a changed-file row instead. */
+const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
 /**
  * "Can't get to the server" copy — used when the request never reached the
  * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
@@ -159,6 +173,10 @@ export interface FirstTurnSeed {
   prompt: string;
   reply: string;
   toolsFired?: string[];
+  /** The teacher's 2–3 next-step options from the first turn (§11.4 / D-PAP-06). */
+  nextSteps?: NextStep[];
+  /** Per-file "what changed" notes from the first turn — descriptions for the file rows. */
+  fileNotes?: FileNote[];
 }
 
 function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
@@ -169,6 +187,8 @@ function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
       role: 'agent',
       text: seed.reply,
       toolsFired: seed.toolsFired,
+      fileNotes: seed.fileNotes,
+      nextSteps: seed.nextSteps,
       actions: ['run', 'code'],
     },
   ];
@@ -243,6 +263,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const [handRaised, setHandRaised] = useState(false);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
+  // Self-verify auto-fix attempts for the CURRENT broken game (MP3 / D-PAP-13).
+  // Reset on every fresh user-initiated turn; bounded server-side (≤2) → co-debug.
+  const autofixAttempt = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   // Abort the in-flight stream replay on unmount / a new turn.
   const streamAbort = useRef<{ aborted: boolean }>({ aborted: false });
@@ -328,6 +351,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                   stars: result.stars_charged,
                   toolsFired: result.tools_fired,
                   changes: toChanges(result),
+                  fileNotes: result.file_notes,
+                  nextSteps: result.next_steps,
                 }
               : it,
           ),
@@ -336,10 +361,72 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
-      // Run any workspace actions the turn asked for (play/restart/focus).
-      if (clientActions) executeClientActions(result.client_actions, clientActions);
+      // Run the turn's workspace actions — but NOT the ones that yank the code
+      // editor to the front. The kid opens the editor by tapping a changed-file
+      // row (onOpenFile); a finished turn shouldn't steal focus to the code. We
+      // still honour run/restart/look/help actions.
+      const autoActions = (result.client_actions ?? []).filter(
+        (a) =>
+          !EDITOR_FOCUS_ACTIONS.has(a.action) && !(a.action === 'focus_panel' && a.target === 'code'),
+      );
+      if (clientActions) executeClientActions(autoActions, clientActions);
+      // Auto-restart after any change so the kid immediately sees it run (the agent
+      // doesn't have to remember to emit run_game). Skip if it already asked to
+      // run/restart (avoid a double re-mount).
+      const changed = (result.changes?.length ?? 0) > 0;
+      const alreadyRan = (result.client_actions ?? []).some(
+        (a) => a.action === 'run_game' || a.action === 'restart_game',
+      );
+      if (changed && !alreadyRan) clientActions?.restartGame();
     },
     [files, onApplyFiles, onStarsCharged, clientActions],
+  );
+
+  /**
+   * Self-verify round-trip (MP3 / D-PAP-09,13,23). The studio ran a just-applied
+   * game and the sandbox caught runtime errors; report them so the backend
+   * auto-fixes (≤2 attempts) or hands off to "let's debug together". Idempotent
+   * while busy; a no-op off the real path or with no errors.
+   */
+  const autoFixFromErrors = useCallback(
+    async (errors: string[]) => {
+      if (!isReal || busy || pending || streaming || errors.length === 0) return;
+      autofixAttempt.current += 1;
+      const attempt = autofixAttempt.current;
+      const pendingId = nextId();
+      setBusy(true);
+      setError(null);
+      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: AUTOFIX_TEXT, pending: true }]);
+      try {
+        const res = await deps.reportRuntimeErrors({ projectId: projectId!, errors, attempt, mode });
+        if (res.co_debug) {
+          // Exhausted (or nothing to fix) → a warm hand-off, not a silent broken game.
+          setChat((prev) =>
+            prev.map((it) =>
+              it.id === pendingId
+                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's debug this together!" }
+                : it,
+            ),
+          );
+          return;
+        }
+        if (res.turn) {
+          await applyResult(res.turn, pendingId);
+        } else {
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        }
+      } catch (e) {
+        const msg = friendlyError(e);
+        if (msg === OFFLINE_TEXT) setOffline(true);
+        setError(msg);
+        setChat((prev) =>
+          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, applyResult],
   );
 
   /**
@@ -374,6 +461,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
       lastPromptRef.current = trimmed;
+      // A fresh, kid-initiated turn restarts the auto-fix budget for whatever it builds.
+      autofixAttempt.current = 0;
 
       // Offline pre-check (real path) — never even attempt the call; keep work safe.
       if (isReal && isOffline()) {
@@ -440,50 +529,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         // Classifier unreachable — proceed; the turn-level firewall still applies.
       }
 
-      // ── Lite agency beat (OD-1): the typing-free "Do it / Show me first" +
-      // predict beat fires BEFORE the turn is spent. A Lite (non-approval) turn
-      // AUTO-APPLIES + DEBITS Stars server-side inside POST /code/turn (D-CODE1c,
-      // §10 "后扣模式"), so we must NOT run it yet — running-then-staging would let
-      // "Show me first" leak Stars and desync the persisted VFS. The turn runs on
-      // confirm (`confirmPending`). No backend call, no Stars, no VFS change here.
-      if (mode === 'lite') {
-        setChat((prev) => prev.filter((it) => it.id !== pendingId));
-        setBusy(false);
-        setPending({
-          kind: 'agency',
-          turnId: '',
-          prompt: trimmed,
-          summary: "I'll make that change for you. Want me to go ahead?",
-          changes: [],
-          result: null,
-          prediction: predictionQuestion(trimmed),
-        });
-        return;
-      }
-
-      // ── REAL Pro path: server-side loop, Stars-metered, streamed, gated. ──
+      // ── The game agent always auto-applies (playground teacher model, D-PAP-03):
+      // the kid's request IS the go-ahead, so there is NO "Do it / Show me first"
+      // agency beat and NO plan→approve gate (those belong to the Code Studio). Run
+      // the turn server-side (Stars-metered + applied inside POST /code/turn) and
+      // stream the result straight into the chat.
       try {
         const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode });
-        // Pro multi-file → plan→approve gate (writes were collected, not persisted).
-        // A non-approval Pro turn auto-applied + debited inside the POST, so apply
-        // it immediately (mirror useCodeStudio) — never stage an applied turn.
-        if (result.requires_approval) {
-          setChat((prev) => prev.filter((it) => it.id !== pendingId));
-          setPending({
-            kind: 'plan',
-            turnId: result.turn_id,
-            prompt: trimmed,
-            summary:
-              result.plan?.plan_text ??
-              (result.changes.length
-                ? `I'll change ${result.changes.map((c) => c.path).join(', ')}.`
-                : result.summary),
-            changes: toChanges(result),
-            result,
-            prediction: predictionQuestion(trimmed),
-          });
-          return;
-        }
         await applyResult(result, pendingId);
       } catch (e) {
         const msg = friendlyError(e);
@@ -636,5 +688,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     abort,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
+    /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23). */
+    autoFixFromErrors,
   };
 }

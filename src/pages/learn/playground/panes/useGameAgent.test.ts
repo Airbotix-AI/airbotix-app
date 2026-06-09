@@ -45,6 +45,10 @@ const TURN: AgentTurnResult = {
   summary: 'I made it blue.',
   stars_charged: 2,
   tools_fired: ['edit_file:main.js'],
+  next_steps: [
+    { label: 'Add a score', prompt: 'add a score', tag: 'concept' },
+    { label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' },
+  ],
 };
 
 /** A non-approval Pro turn that applies; classify always passes (null). */
@@ -54,6 +58,7 @@ function makeDeps(): GameAgentDeps {
     approve: vi.fn(async () => TURN),
     classify: vi.fn(async () => null),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
 }
 
@@ -81,6 +86,7 @@ function setupFailing(error: unknown) {
     approve: vi.fn(async () => TURN),
     classify: vi.fn(async () => null),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
   const view = renderHook(() =>
     useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
@@ -143,6 +149,8 @@ describe('useGameAgent streamed apply (H1)', () => {
     expect(onStarsCharged).toHaveBeenCalledWith(2);
     const lastChat = result.current.chat[result.current.chat.length - 1];
     expect(lastChat.text).toBe(TURN.summary);
+    // The turn's next-step options ride onto the settled bubble (FE1 contract).
+    expect(lastChat.nextSteps).toEqual(TURN.next_steps);
   });
 });
 

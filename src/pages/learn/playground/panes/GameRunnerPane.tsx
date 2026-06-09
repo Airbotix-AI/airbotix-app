@@ -6,6 +6,7 @@ import { GameFrame } from '../GameFrame';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
+import { extractRuntimeErrors } from '../verifyRoundtrip';
 
 interface GameRunnerPaneProps {
   /** The lifted VFS — owned by PlaygroundApp. */
@@ -20,6 +21,8 @@ interface GameRunnerPaneProps {
   onOpenLocation?: (file: string, line: number) => void;
   /** Send a console error to the AI chat to fix ("Ask AI to fix"). */
   onAskFix?: (message: string) => void;
+  /** Self-verify (MP3): report the captured runtime errors so the agent auto-fixes. */
+  onRuntimeErrors?: (errors: string[]) => void;
 }
 
 /** Short file name for a console location (the basename of the sourceURL path). */
@@ -81,7 +84,15 @@ function ToolButton({
  * status bar, NOT overlaid on the stage. `running` is owned by PlaygroundApp;
  * pressing ▶ anywhere calls `onRun()`.
  */
-export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, onAskFix }: GameRunnerPaneProps) {
+export function GameRunnerPane({
+  files,
+  runKey,
+  running,
+  onRun,
+  onOpenLocation,
+  onAskFix,
+  onRuntimeErrors,
+}: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   // Persisted Game Runner selections (J9): screen preset + console visibility.
@@ -121,6 +132,20 @@ export function GameRunnerPane({ files, runKey, running, onRun, onOpenLocation, 
   );
   // The most recent real error — what "Ask AI to fix" sends to the chat agent.
   const lastError = [...lines].reverse().find((l) => l.level === 'error' && l.text !== 'ready');
+
+  // Self-verify (MP3 / D-PAP-09,13,23): when a run captures runtime errors, report
+  // them up so the agent can auto-fix. Fire once per distinct (run, error-set) so a
+  // steady error stream doesn't re-trigger; the caller bounds attempts (≤2 → co-debug).
+  const reportedErrorsRef = useRef('');
+  useEffect(() => {
+    if (!onRuntimeErrors) return;
+    const errs = extractRuntimeErrors(lines);
+    if (errs.length === 0) return;
+    const sig = `${runKey}:${errs.join('|')}`;
+    if (sig === reportedErrorsRef.current) return;
+    reportedErrorsRef.current = sig;
+    onRuntimeErrors(errs);
+  }, [lines, runKey, onRuntimeErrors]);
 
   // Auto-open the console on the FIRST problem of a run, so the kid sees what's
   // wrong. Only on the 0 → >0 edge — later problems don't re-open it (the kid can
