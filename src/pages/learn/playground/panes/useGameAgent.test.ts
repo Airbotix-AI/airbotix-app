@@ -56,7 +56,7 @@ function makeDeps(): GameAgentDeps {
   return {
     runTurn: vi.fn(async () => TURN),
     approve: vi.fn(async () => TURN),
-    classify: vi.fn(async () => null),
+    classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
@@ -84,7 +84,7 @@ function setupFailing(error: unknown) {
       throw error;
     }),
     approve: vi.fn(async () => TURN),
-    classify: vi.fn(async () => null),
+    classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };

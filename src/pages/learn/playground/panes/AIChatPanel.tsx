@@ -27,6 +27,8 @@ import {
 import { useState } from 'react';
 
 import type { SafeguardingVerdict } from '../../code/codeApi';
+import { useGenerationStore } from '../generationStore';
+import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
 import { ThinkingBubble } from './ThinkingBubble';
 import { useStickToBottom } from './useStickToBottom';
@@ -151,6 +153,10 @@ interface AIChatPanelProps {
   onSeeCode?: () => void;
   /** Open a changed file in the editor and highlight the change (§11.4). */
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  /** Add a generated asset (by VFS path) to the game — the chat "done" card CTA (§3). */
+  onAddAssetToGame?: (path: string) => void;
+  /** Resolve an asset's `data:` URL by VFS path, for the chat "done" thumbnail. */
+  assetSrc?: (path: string) => string | undefined;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
   /** Retry the last prompt after a (non-cap) error (H2). */
@@ -178,6 +184,8 @@ export function AIChatPanel({
   onRunGame,
   onSeeCode,
   onOpenFile,
+  onAddAssetToGame,
+  assetSrc,
   onStop,
   onRetry,
 }: AIChatPanelProps) {
@@ -304,6 +312,8 @@ export function AIChatPanel({
                 onSeeCode={onSeeCode}
                 onSend={onSend}
                 onOpenFile={onOpenFile}
+                onAddAssetToGame={onAddAssetToGame}
+                assetSrc={assetSrc}
               />
             ),
           )}
@@ -472,18 +482,83 @@ function ChatRow({
   onSeeCode,
   onSend,
   onOpenFile,
+  onAddAssetToGame,
+  assetSrc,
 }: {
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
   onSend?: (text: string) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  onAddAssetToGame?: (path: string) => void;
+  assetSrc?: (path: string) => string | undefined;
 }) {
   if (item.role === 'kid') {
     return (
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-2xl bg-grad-sky text-white px-4 py-2.5 text-[14px] leading-relaxed shadow-brand-sky">
           {item.text}
+        </div>
+      </div>
+    );
+  }
+  // AI asset generation (D-ASSET §3): the magic card while it runs, then the
+  // finished asset with an Add-to-game CTA (a gentle text bubble on error).
+  if (item.assetGen) {
+    const ag = item.assetGen;
+    if (ag.status === 'done' && ag.path) {
+      const src = assetSrc?.(ag.path);
+      return (
+        <div className="flex justify-start">
+          <div className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 px-3 py-2.5">
+            <div className="flex items-center gap-3">
+              {src && (
+                <img
+                  src={src}
+                  crossOrigin="anonymous"
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-lg bg-pg-surface-2 object-contain"
+                />
+              )}
+              <div>
+                <div className="text-[13px] font-extrabold text-pg-text">Here’s your asset! ✨</div>
+                <div className="text-[11.5px] text-pg-text-muted">saved to My assets</div>
+              </div>
+            </div>
+            {onAddAssetToGame && (
+              <button
+                type="button"
+                data-testid="chat-asset-add"
+                onClick={() => onAddAssetToGame(ag.path!)}
+                className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2 text-[12.5px] font-extrabold text-white"
+              >
+                ＋ Add to my game
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    if (ag.status === 'error') {
+      return (
+        <div className="flex justify-start">
+          <div className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[13.5px] text-pg-text-dim">
+            🌧️ That fizzled — try asking again.
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex w-full justify-start">
+        <div className="w-[92%]">
+          <MagicGenerationCard
+            status="generating"
+            prompt={ag.prompt}
+            mode="create"
+            onCancel={() => useGenerationStore.getState().cancel()}
+            onRetry={() => undefined}
+            onDismiss={() => undefined}
+          />
         </div>
       </div>
     );

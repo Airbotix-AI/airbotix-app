@@ -19,6 +19,7 @@ import {
   reportRuntimeErrors as apiReportRuntimeErrors,
   runAgentTurn as apiRunAgentTurn,
   type AgentTurnResult,
+  type ClassifyResult,
   type SafeguardingVerdict,
   type VerifyFixResult,
   type VfsFile,
@@ -53,7 +54,7 @@ export type ApproveAgentTurn = (args: {
 export type ClassifyMessage = (args: {
   projectId: string;
   prompt: string;
-}) => Promise<SafeguardingVerdict | null>;
+}) => Promise<ClassifyResult>;
 
 /**
  * "Ask my teacher" raise-hand (J4) — posts a lightweight signal the teacher's live

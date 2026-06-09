@@ -28,6 +28,7 @@ import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
 import { WINDOW_META } from './desktop/windowMeta';
 import { AssetViewerPane } from './panes/AssetViewerPane';
+import { addAssetToGame } from './panes/assetInsert';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
@@ -188,6 +189,7 @@ export function Workspace({
     safeguard,
     handRaised,
     send,
+    requestAssetGen,
     confirmPending,
     cancelPending,
     undo,
@@ -225,6 +227,14 @@ export function Workspace({
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
   };
+  // Chat "Add to my game" CTA on a generated-asset message → inject its loader.
+  const addAssetFromChat = (path: string) => {
+    const asset = files.find((f) => f.path === path);
+    if (!asset) return;
+    const r = addAssetToGame(files, asset);
+    if (r.files) onApplyFiles(r.files);
+  };
+  const assetSrcFromChat = (path: string) => files.find((f) => f.path === path)?.content;
   const chatProps = {
     chat,
     busy,
@@ -248,6 +258,8 @@ export function Workspace({
     // Tap a changed-file row → open the editor and highlight the change (§11.4).
     onOpenFile: (path: string, fromLine?: number, toLine?: number) =>
       handleOpenLocation(path, fromLine ?? 1, toLine),
+    onAddAssetToGame: addAssetFromChat,
+    assetSrc: assetSrcFromChat,
     onStop: abort,
     onRetry: retryLast,
     recap: showRecap ? resumeRecap : null,
@@ -334,7 +346,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGen} />
           </Window>
           <Window
             id="help"
@@ -404,7 +416,7 @@ export function Workspace({
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGen} />
                 )}
               </div>
             </section>

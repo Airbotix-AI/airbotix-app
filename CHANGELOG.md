@@ -6,6 +6,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Changed
+- **AI asset generation now lives in the CHAT** (learn-game-studio-assets-prd §3) — the
+  single home for all AI conversation. A typed message is classified server-side as an
+  **asset** request vs a **game-code** change (`/turn/classify` returns `intent`) and
+  routed: an asset request generates as a chat message (the `MagicGenerationCard` while
+  it runs, then the finished asset with **Add to my game**); a code request runs the
+  usual game turn. Generation and code turns **share one in-flight lock** (one AI thing
+  at a time). The Asset Viewer's **Generate / Remix** buttons now post into the chat
+  (`onRequestAssetGen` → `useGameAgent.requestAssetGen`) instead of rendering their own
+  card — both entry points, one place out. The `generationStore` engine + magic-card
+  visual are reused; the Asset Viewer's pinned card was removed.
+
 ### Fixed
 - **Generated/imported assets now persist across exit & resume.** Two causes: (1) the
   debounced autosave was cancelled when leaving the project — added `flushSave()` in

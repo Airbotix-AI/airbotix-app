@@ -557,15 +557,22 @@ export async function streamAgentTurn(
  * server-side and never spends Stars; the backend logs the safeguarding audit
  * event + escalation. The kid NEVER calls an LLM directly (CLAUDE.md #5).
  */
+export type AssetIntent = 'asset' | 'code';
+export interface ClassifyResult {
+  safeguarding: SafeguardingVerdict | null;
+  /** Route a typed chat message: an ASSET request vs a game-CODE change (§3). */
+  intent: AssetIntent;
+}
+
 export async function classifyMessage(args: {
   projectId: string;
   prompt: string;
-}): Promise<SafeguardingVerdict | null> {
-  const res = await api<{ safeguarding: SafeguardingVerdict | null }>(
+}): Promise<ClassifyResult> {
+  const res = await api<{ safeguarding: SafeguardingVerdict | null; intent?: AssetIntent }>(
     `/projects/${args.projectId}/code/turn/classify`,
     { method: 'POST', body: { prompt: args.prompt } },
   );
-  return res.safeguarding;
+  return { safeguarding: res.safeguarding, intent: res.intent ?? 'code' };
 }
 
 // ── Raise hand: "Ask my teacher" (J4) ───────────────────────────────────────

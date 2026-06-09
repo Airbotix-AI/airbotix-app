@@ -31,8 +31,6 @@ import {
   searchLibrary,
   type LibraryAsset,
 } from '../assetLibrary';
-import { useGenerationStore } from '../generationStore';
-import { MagicGenerationCard } from './MagicGenerationCard';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
@@ -63,6 +61,12 @@ interface AssetViewerPaneProps {
    * (read-only contexts), the add-to-game button is hidden.
    */
   onApplyFiles?: (files: VfsFile[]) => void;
+  /**
+   * Generate / remix into the CHAT (D-ASSET §3 "both entry points → one place
+   * out"). The Generate prompt + Remix buttons post the request into the chat so
+   * it shares the one-AI-at-a-time lock and shows in the conversation.
+   */
+  onRequestAssetGen?: (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => void;
 }
 
 const ALL = '__all__';
@@ -125,7 +129,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerPaneProps) {
+export function AssetViewerPane({ files, onApplyFiles, onRequestAssetGen }: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
@@ -162,8 +166,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   // The in-flight generation itself is GLOBAL (generationStore) so it survives
   // this pane closing/reopening (§3 "Magic Generation").
   const [genPrompt, setGenPrompt] = useState('');
-  const gen = useGenerationStore();
-
   const assets = useMemo(() => files.filter(isDisplayable), [files]);
 
   const categories = useMemo(() => {
@@ -252,38 +254,21 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     );
   }
 
-  // Kick off a (global) generation. The store runs it + writes the result into
-  // the VFS even if this pane closes mid-flight; one runs at a time.
+  // Generate / remix go INTO THE CHAT (D-ASSET §3): post the request so it shares
+  // the one-AI-at-a-time lock and shows in the conversation. The new asset lands in
+  // My assets when the chat turn completes.
   function onGenerate() {
-    if (!genPrompt.trim() || gen.status === 'generating') return;
-    setNotice(null);
-    void useGenerationStore.getState().start({ projectId, prompt: genPrompt.trim() });
+    if (!genPrompt.trim()) return;
+    onRequestAssetGen?.(genPrompt.trim());
     setGenPrompt('');
+    setNotice('Sent to chat ✨ — watch it generate there.');
   }
 
-  /** Remix an existing image (mine or a library asset) → a new My-assets variation. */
   function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
-    if (!prompt.trim() || gen.status === 'generating') return;
-    setNotice(null);
-    void useGenerationStore.getState().start({ projectId, prompt: prompt.trim(), mode: 'remix', ...ref });
+    if (!prompt.trim()) return;
+    onRequestAssetGen?.(prompt.trim(), ref);
+    setNotice('Remix sent to chat ✨');
   }
-
-  // When the global generation finishes, REVEAL the new asset here (switch to My
-  // assets, open its detail) and clear the magic card back to the prompt box. The
-  // store already wrote it into the VFS, so this runs whenever the pane is open.
-  useEffect(() => {
-    if (gen.status === 'done' && gen.resultPath) {
-      const wasRemix = gen.mode === 'remix';
-      setSource('mine');
-      setCategory(ALL);
-      setSelectedLibId(null);
-      setSelectedPath(gen.resultPath);
-      setNotice(
-        wasRemix ? 'Remixed ✨ — your new version is in My assets.' : 'Generated ✨ — add it to your game!',
-      );
-      useGenerationStore.getState().dismiss();
-    }
-  }, [gen.status, gen.resultPath, gen.mode]);
 
   /** One-tap "Add to my game": write the loader + a sensible use into a scene. */
   function onAddToGame(addAsset: VfsFile) {
@@ -388,26 +373,12 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             {notice}
           </div>
         )}
-        {/* The GLOBAL magic-generation card — pinned here so it's visible from any
-            tab while one generation runs (D-ASSET §3). */}
-        {(gen.status === 'generating' || gen.status === 'error') && (
-          <div className="px-4 pt-3">
-            <MagicGenerationCard
-              status={gen.status}
-              prompt={gen.prompt}
-              mode={gen.mode}
-              onCancel={() => useGenerationStore.getState().cancel()}
-              onRetry={() => useGenerationStore.getState().retry()}
-              onDismiss={() => useGenerationStore.getState().dismiss()}
-            />
-          </div>
-        )}
         {source === 'library' ? (
           selectedLib ? (
             <LibraryDetailView
               asset={selectedLib}
               canAddToGame={!!onApplyFiles}
-              busy={gen.status === 'generating'}
+              busy={false}
               onAddToGame={() => onAddLibraryToGame(selectedLib)}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
@@ -424,7 +395,7 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             asset={selected}
             files={files}
             canAddToGame={!!onApplyFiles}
-            busy={gen.status === 'generating'}
+            busy={false}
             onAddToGame={() => onAddToGame(selected)}
             onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
@@ -443,9 +414,7 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            {gen.status === 'idle' && (
-              <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
-            )}
+            <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
             <div className="min-h-0 flex-1 overflow-auto p-4">
               {visible.length === 0 ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
