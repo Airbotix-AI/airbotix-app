@@ -7,6 +7,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Changed
+- **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
+  The share control used to float top-right over the desktop surface (Window mode) or
+  sit in the split tab strip; it now lives on the bottom bar in **both** layout modes,
+  rendered once. The button itself reflects the live share status — neutral **Share**,
+  a sunshine **Waiting for grown-up** beat while a parent-approval is pending, and a
+  mint **Link live** pill showing the play count once approved — and the status is
+  polled even while the panel is closed, so an out-of-band parent approval (Portal)
+  lights it up on its own. Clicking opens a popup rendered into `document.body` (floats
+  above the desktop windows + taskbar, never clipped) anchored just above the button;
+  clicking outside it or pressing Escape dismisses it. Re-enabled the previously
+  `fixme`'d share-link UI e2e (now green from a direct studio load).
 - **Upgraded the game runtime to Phaser 4.1.0** (from 3.80.1). Phaser 4's full build
   (`dist/phaser.min.js`) is still a UMD that sets `window.Phaser`, so the opaque-origin
   sandbox keeps loading it as a classic global `<script>` (no `allow-same-origin`, no
