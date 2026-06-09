@@ -122,6 +122,22 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
     route.fulfill(json({ safeguarding: null })),
   );
 
+  // The STREAMING first turn (GeneratingScreen.streamAgentTurn, SSE). It POSTs to
+  // the absolute `VITE_API_BASE_URL` (e.g. :3001), so on a machine where a real
+  // backend is up this would hit it (real LLM, nondeterministic) and race the
+  // generating→workspace transition. Abort it → the screen deterministically
+  // falls back to loading the seeded VFS via `GET /code/files` below.
+  await page.route('**/projects/*/code/turn/stream', (route) => route.abort());
+
+  // The Workspace's ShareLinkPanel fetches the project's share state on mount
+  // (GET /projects/:id/share). Unmocked it 401s against a real backend → the
+  // api() helper clears the kid token → the studio redirects to the LOGIN screen
+  // mid-test (the actual cause of the "element detached from the DOM" flake).
+  // Mock it as "not shared"; a request round-trips through the same route.
+  await page.route('**/projects/*/share', (route) =>
+    route.fulfill(json({ status: route.request().method() === 'POST' ? 'pending' : 'none' })),
+  );
+
   await page.route('**/projects/*/code/turn/*/approve', (route) => {
     if (route.request().method() !== 'POST') return route.continue();
     const decision = (route.request().postDataJSON() as { decision: string }).decision;

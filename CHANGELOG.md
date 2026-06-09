@@ -6,6 +6,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### CI
+- **Fixed the playground e2e harness logging the kid out mid-test** (`e2e/helpers.ts`). The
+  Workspace's ShareLinkPanel fetches `GET /projects/:id/share` on mount; unmocked, it hit the real
+  backend, 401'd, and tripped `api()`'s `clearToken` → the kid bounced to `/learn/login`, unmounting
+  the studio (the intermittent "element detached from the DOM" flake — machine-dependent: only bites
+  where a real `:3001` backend is up). Now mocked as "not shared". Also abort the streaming first turn
+  (`POST /code/turn/stream`, GeneratingScreen) so it deterministically falls back to the seeded
+  `GET /code/files` instead of racing a real backend. `create-game` now passes reliably (4.3s vs prior
+  timeouts). (Note: `real-ai-turn` still has a separate, pre-existing intermittent flake under
+  investigation.)
+
 ### Added
 - **Teacher next-step option chips in the playground chat** (`panes/AIChatPanel.tsx`,
   `panes/useGameAgent.ts`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` §11.4 / D-PAP-06).
