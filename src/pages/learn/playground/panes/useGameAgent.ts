@@ -29,7 +29,7 @@ import {
   executeClientActions,
   type ClientActionHandlers,
 } from '../executeClientActions';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import {
   isOffline,
   realGameAgentDeps,
@@ -261,6 +261,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const safeguardTier = useRef(0);
   // The "Ask my teacher" raise-hand (J4): a calm waiting state once raised.
   const [handRaised, setHandRaised] = useState(false);
+  // A pending MODERATION_WARN ack — kid must confirm before the prompt is retried.
+  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
   // Self-verify auto-fix attempts for the CURRENT broken game (MP3 / D-PAP-13).
@@ -535,15 +537,22 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the turn server-side (Stars-metered + applied inside POST /code/turn) and
       // stream the result straight into the chat.
       try {
-        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode });
+        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode, piiWarnAcknowledged: false });
         await applyResult(result, pendingId);
       } catch (e) {
-        const msg = friendlyError(e);
-        if (msg === OFFLINE_TEXT) setOffline(true);
-        setError(msg);
-        setChat((prev) =>
-          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
-        );
+        if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
+          const details = e.details as { kind?: string } | undefined;
+          const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
+          setWarnPending({ message: e.message, prompt: trimmed, stage });
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        } else {
+          const msg = friendlyError(e);
+          if (msg === OFFLINE_TEXT) setOffline(true);
+          setError(msg);
+          setChat((prev) =>
+            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+          );
+        }
       } finally {
         setBusy(false);
       }
@@ -665,6 +674,58 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     void send(lastPromptRef.current);
   }, [busy, pending, send]);
 
+  const confirmWarn = useCallback(async () => {
+    if (!warnPending || busy) return;
+    const { prompt } = warnPending;
+    setWarnPending(null);
+    if (!projectId) return;
+    const pendingId = nextId();
+    setError(null);
+    setBusy(true);
+    setChat((prev) => [
+      ...prev,
+      { id: nextId(), role: 'kid', text: prompt },
+      { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
+    ]);
+    try {
+      const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true });
+      if (result.requires_approval) {
+        setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        setPending({
+          kind: 'plan',
+          turnId: result.turn_id,
+          prompt,
+          summary: result.plan?.plan_text ?? result.summary,
+          changes: toChanges(result),
+          result,
+          prediction: predictionQuestion(prompt),
+        });
+        return;
+      }
+      await applyResult(result, pendingId);
+    } catch (e) {
+      const msg = friendlyError(e);
+      if (msg === OFFLINE_TEXT) setOffline(true);
+      setError(msg);
+      setChat((prev) =>
+        prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult]);
+
+  const dismissWarn = useCallback(() => {
+    if (warnPending) {
+      void api<void>('/safety/prompt-aborted', {
+        method: 'POST',
+        body: { surface: 'workspace', stage: warnPending.stage },
+        principal: 'kid',
+      }).catch(() => undefined);
+    }
+    setWarnPending(null);
+  }, [warnPending]);
+
   return {
     chat,
     busy,
@@ -690,5 +751,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     retryLast,
     /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23). */
     autoFixFromErrors,
+    /** A pending MODERATION_WARN the kid must ack before the prompt retries. */
+    warnPending,
+    /** Retry the last prompt with pii_warn_acknowledged (ack the MODERATION_WARN). */
+    confirmWarn,
+    /** Dismiss the MODERATION_WARN without retrying. */
+    dismissWarn,
   };
 }
