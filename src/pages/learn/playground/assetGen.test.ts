@@ -50,7 +50,7 @@ describe('asset generation — real backend (authed studio, projectId set)', () 
 
     const r = await runGen(req, deps);
 
-    expect(generate).toHaveBeenCalledWith(req);
+    expect(generate).toHaveBeenCalledWith(req, undefined);
     expect(r.mime).toBe('image/png');
   });
 

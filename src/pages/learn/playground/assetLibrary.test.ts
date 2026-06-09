@@ -69,8 +69,8 @@ describe('searchLibrary', () => {
   });
 
   it('intersects category + query', () => {
-    const r = searchLibrary('star', 'nature');
-    expect(r.every((a) => a.category === 'nature')).toBe(true);
+    const r = searchLibrary('star', 'weather');
+    expect(r.every((a) => a.category === 'weather')).toBe(true);
     expect(r.some((a) => a.name === 'Star')).toBe(true);
   });
 

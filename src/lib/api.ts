@@ -180,7 +180,10 @@ export async function apiDownload(
  * surface never calls an LLM directly — this is the real target for the
  * `runGen` seam in `@/pages/learn/playground/assetGen`.
  */
-export async function generateAsset(req: GenAssetRequest): Promise<GenAssetResult> {
+export async function generateAsset(
+  req: GenAssetRequest,
+  signal?: AbortSignal,
+): Promise<GenAssetResult> {
   // The backend DTO (`GenerateAssetSchema`) is snake_case — map the camelCase seam.
   const body = {
     project_id: req.projectId,
@@ -190,5 +193,5 @@ export async function generateAsset(req: GenAssetRequest): Promise<GenAssetResul
     ref_url: req.refUrl,
     size: req.size,
   };
-  return api<GenAssetResult>('/llm/generate-asset', { method: 'POST', body });
+  return api<GenAssetResult>('/llm/generate-asset', { method: 'POST', body, signal });
 }

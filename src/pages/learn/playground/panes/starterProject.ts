@@ -132,14 +132,6 @@ class GameOver extends Phaser.Scene {
 }
 `;
 
-// ── Static assets folder (kept text so the VFS stays free of binary blobs) ────
-
-const ASSETS_README = `Drop sprites/sounds here.
-
-Reference them from src/scenes/Game.js, for example:
-  this.load.image('hero', 'assets/hero.png');
-`;
-
 // ── Host stylesheet (the studio owns the page; kids may tweak the frame) ──────
 
 const STYLE_CSS = `html, body { margin: 0; background: #000; }
@@ -152,7 +144,6 @@ export const STARTER_PROJECT: VfsFile[] = [
   { path: 'src/scenes/Boot.js', content: BOOT_JS, kind: 'text', size: BOOT_JS.length },
   { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
   { path: 'src/scenes/GameOver.js', content: GAME_OVER_JS, kind: 'text', size: GAME_OVER_JS.length },
-  { path: 'assets/README.txt', content: ASSETS_README, kind: 'text', size: ASSETS_README.length },
   { path: 'style.css', content: STYLE_CSS, kind: 'text', size: STYLE_CSS.length },
 ];
 

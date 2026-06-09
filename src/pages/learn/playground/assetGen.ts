@@ -40,7 +40,7 @@ export interface GenAssetResult {
 
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface AssetGenDeps {
-  generate: (req: GenAssetRequest) => Promise<GenAssetResult>;
+  generate: (req: GenAssetRequest, signal?: AbortSignal) => Promise<GenAssetResult>;
 }
 
 export const realAssetGenDeps: AssetGenDeps = { generate: generateAsset };
@@ -48,9 +48,14 @@ export const realAssetGenDeps: AssetGenDeps = { generate: generateAsset };
 /**
  * Generate one asset. With a `projectId` (real studio) it routes through the
  * backend; without one (a project-less session) it falls back to the offline stub so the
- * generate → preview → add-to-game flow works with no network.
+ * generate → preview → add-to-game flow works with no network. `signal` lets the
+ * caller cancel an in-flight backend generation (the magic-card ✕).
  */
-export function runGen(req: GenAssetRequest, deps: AssetGenDeps = realAssetGenDeps): Promise<GenAssetResult> {
-  if (req.projectId) return deps.generate(req);
+export function runGen(
+  req: GenAssetRequest,
+  deps: AssetGenDeps = realAssetGenDeps,
+  signal?: AbortSignal,
+): Promise<GenAssetResult> {
+  if (req.projectId) return deps.generate(req, signal);
   return generateAssetStub(req);
 }

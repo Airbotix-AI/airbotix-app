@@ -551,8 +551,13 @@ test('asset viewer: a text asset previews as plain text', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: /Split/ }).click();
   await page.getByRole('tab', { name: /Assets/ }).click();
-  // The starter ships assets/README.txt — opening it shows its text content.
-  await page.getByText('README.txt').click({ timeout: 5_000 });
+  // Import a text file → opening it shows its text content in the preview.
+  await page.setInputFiles('input[type="file"]', {
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Drop sprites/sounds here.'),
+  });
+  await page.getByText('notes.txt').click({ timeout: 5_000 });
   await expect(page.getByText(/Drop sprites\/sounds here/)).toBeVisible();
 });
 

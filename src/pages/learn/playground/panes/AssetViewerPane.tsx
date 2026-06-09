@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 
 import type { VfsFile } from '../../code/codeApi';
-import { runGen, type GenAssetResult } from '../assetGen';
 import { addAssetToGame, addLibraryAssetToGame } from './assetInsert';
 import {
   ASSET_LIBRARY,
@@ -32,6 +31,8 @@ import {
   searchLibrary,
   type LibraryAsset,
 } from '../assetLibrary';
+import { useGenerationStore } from '../generationStore';
+import { MagicGenerationCard } from './MagicGenerationCard';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
@@ -69,13 +70,6 @@ const ALL = '__all__';
 type AssetSource = 'mine' | 'library';
 const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
 const ANIM_SUFFIX = '.anim.json';
-// The stub returns instantly; hold the loading state briefly so the generating
-// animation is actually visible (and it reads like real generation latency).
-const MIN_GEN_MS = 900;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function isAsset(f: VfsFile): boolean {
   return f.kind === 'asset' || f.path.startsWith('assets/');
@@ -96,28 +90,6 @@ function uniquePath(desired: string, taken: Set<string>): string {
   let n = 1;
   while (taken.has(`${stem}-${n}${ext}`)) n += 1;
   return `${stem}-${n}${ext}`;
-}
-
-const MIME_EXT: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg',
-  'image/webp': 'webp',
-  'audio/wav': 'wav',
-  'audio/mpeg': 'mp3',
-  'audio/ogg': 'ogg',
-};
-
-/**
- * Pick a file extension for a generated asset. The kind is no longer chosen by
- * the kid (D-ASSET-4): derive it from the returned mime, falling back to the
- * kind the backend/stub reports in `meta.kind`.
- */
-function extForResult(result: GenAssetResult): string {
-  const fromMime = MIME_EXT[result.mime];
-  if (fromMime) return fromMime;
-  return result.meta?.kind === 'audio' ? 'wav' : 'svg';
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -187,9 +159,10 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI generate form — one prompt box; the AI decides image vs audio (D-ASSET-4).
+  // The in-flight generation itself is GLOBAL (generationStore) so it survives
+  // this pane closing/reopening (§3 "Magic Generation").
   const [genPrompt, setGenPrompt] = useState('');
-  const [generating, setGenerating] = useState(false);
-  const [genError, setGenError] = useState<string | null>(null);
+  const gen = useGenerationStore();
 
   const assets = useMemo(() => files.filter(isDisplayable), [files]);
 
@@ -262,7 +235,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
         createFile(path, 'asset', dataUrl);
       }
     } catch {
-      setGenError(null);
       setNotice("Couldn't import that file — please try a different one.");
       return;
     }
@@ -280,35 +252,38 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     );
   }
 
-  async function onGenerate() {
-    if (!genPrompt.trim() || generating) return;
-    setGenerating(true);
+  // Kick off a (global) generation. The store runs it + writes the result into
+  // the VFS even if this pane closes mid-flight; one runs at a time.
+  function onGenerate() {
+    if (!genPrompt.trim() || gen.status === 'generating') return;
     setNotice(null);
-    setGenError(null);
-    try {
-      const [result] = await Promise.all([
-        runGen({
-          projectId,
-          prompt: genPrompt.trim(),
-          refAssetPath: selectedPath ?? undefined,
-        }),
-        sleep(MIN_GEN_MS),
-      ]);
-      // Pick the extension from the returned mime (real backend may return png /
-      // mp3); fall back to the kind the backend/stub reports.
-      const ext = extForResult(result);
-      const slug = genPrompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'asset';
-      const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
-      createFile(path, 'asset', result.dataUrl);
-      setSelectedPath(path);
-      setNotice(projectId ? 'Generated ✨ — add it to your game below.' : 'Generated (AI demo).');
-    } catch {
-      // Calm, kid-framed retry copy (never a frozen screen — PRD J5 offline).
-      setGenError("That didn't work — check your internet and try again.");
-    } finally {
-      setGenerating(false);
-    }
+    void useGenerationStore.getState().start({ projectId, prompt: genPrompt.trim() });
+    setGenPrompt('');
   }
+
+  /** Remix an existing image (mine or a library asset) → a new My-assets variation. */
+  function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
+    if (!prompt.trim() || gen.status === 'generating') return;
+    setNotice(null);
+    void useGenerationStore.getState().start({ projectId, prompt: prompt.trim(), mode: 'remix', ...ref });
+  }
+
+  // When the global generation finishes, REVEAL the new asset here (switch to My
+  // assets, open its detail) and clear the magic card back to the prompt box. The
+  // store already wrote it into the VFS, so this runs whenever the pane is open.
+  useEffect(() => {
+    if (gen.status === 'done' && gen.resultPath) {
+      const wasRemix = gen.mode === 'remix';
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedLibId(null);
+      setSelectedPath(gen.resultPath);
+      setNotice(
+        wasRemix ? 'Remixed ✨ — your new version is in My assets.' : 'Generated ✨ — add it to your game!',
+      );
+      useGenerationStore.getState().dismiss();
+    }
+  }, [gen.status, gen.resultPath, gen.mode]);
 
   /** One-tap "Add to my game": write the loader + a sensible use into a scene. */
   function onAddToGame(addAsset: VfsFile) {
@@ -320,38 +295,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     }
     onApplyFiles(r.files);
     setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
-  }
-
-  /**
-   * Remix an existing image (mine or a library asset) into a NEW variation that
-   * lands in My assets/generated (D-ASSET-5). The ref is a VFS path (mine) or a
-   * URL (library); the result is selected so the kid sees it.
-   */
-  async function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
-    if (!prompt.trim() || generating) return;
-    setGenerating(true);
-    setNotice(null);
-    setGenError(null);
-    try {
-      const [result] = await Promise.all([
-        runGen({ projectId, prompt: prompt.trim(), ...ref }),
-        sleep(MIN_GEN_MS),
-      ]);
-      const ext = extForResult(result);
-      const slug = prompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'remix';
-      const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
-      createFile(path, 'asset', result.dataUrl);
-      // Reveal the new variation under My assets.
-      setSource('mine');
-      setCategory(ALL);
-      setSelectedLibId(null);
-      setSelectedPath(path);
-      setNotice('Remixed ✨ — your new version is in My assets.');
-    } catch {
-      setGenError("That didn't work — check your internet and try again.");
-    } finally {
-      setGenerating(false);
-    }
   }
 
   /** Add a shared Library asset by URL (it's never copied into the VFS). */
@@ -445,12 +388,26 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             {notice}
           </div>
         )}
+        {/* The GLOBAL magic-generation card — pinned here so it's visible from any
+            tab while one generation runs (D-ASSET §3). */}
+        {(gen.status === 'generating' || gen.status === 'error') && (
+          <div className="px-4 pt-3">
+            <MagicGenerationCard
+              status={gen.status}
+              prompt={gen.prompt}
+              mode={gen.mode}
+              onCancel={() => useGenerationStore.getState().cancel()}
+              onRetry={() => useGenerationStore.getState().retry()}
+              onDismiss={() => useGenerationStore.getState().dismiss()}
+            />
+          </div>
+        )}
         {source === 'library' ? (
           selectedLib ? (
             <LibraryDetailView
               asset={selectedLib}
               canAddToGame={!!onApplyFiles}
-              busy={generating}
+              busy={gen.status === 'generating'}
               onAddToGame={() => onAddLibraryToGame(selectedLib)}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
@@ -467,7 +424,7 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             asset={selected}
             files={files}
             canAddToGame={!!onApplyFiles}
-            busy={generating}
+            busy={gen.status === 'generating'}
             onAddToGame={() => onAddToGame(selected)}
             onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
@@ -486,21 +443,16 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <GenerateBar
-              prompt={genPrompt}
-              busy={generating}
-              error={genError}
-              onPrompt={setGenPrompt}
-              onGenerate={() => void onGenerate()}
-            />
+            {gen.status === 'idle' && (
+              <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
+            )}
             <div className="min-h-0 flex-1 overflow-auto p-4">
-              {visible.length === 0 && !generating ? (
+              {visible.length === 0 ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
                   No assets here yet — Import or ✨ Generate to add some.
                 </p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
-                  {generating && <GeneratingCard />}
                   {visible.map((a) => {
                     const kind = assetKindOf(a.path, files);
                     return (
@@ -534,19 +486,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   );
 }
 
-function GeneratingCard() {
-  return (
-    <div className="flex animate-pulse flex-col overflow-hidden rounded-xl border border-brand-bubblegum/50 bg-pg-surface">
-      <div className="flex h-28 items-center justify-center bg-pg-surface-2">
-        <Loader2 size={30} className="animate-spin text-brand-bubblegum" />
-      </div>
-      <div className="px-2.5 py-2">
-        <p className="text-[12.5px] font-bold text-brand-bubblegum">Generating…</p>
-        <p className="text-[11px] text-pg-text-muted">AI demo</p>
-      </div>
-    </div>
-  );
-}
 
 /** The Library | My assets source switch (D-ASSET-6). */
 function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: AssetSource) => void }) {
@@ -773,14 +712,10 @@ function CategoryRow({
 
 function GenerateBar({
   prompt,
-  busy,
-  error,
   onPrompt,
   onGenerate,
 }: {
   prompt: string;
-  busy: boolean;
-  error: string | null;
   onPrompt: (v: string) => void;
   onGenerate: () => void;
 }) {
@@ -802,21 +737,12 @@ function GenerateBar({
           type="button"
           data-testid="asset-generate"
           onClick={onGenerate}
-          disabled={busy || !prompt.trim()}
+          disabled={!prompt.trim()}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-          {busy ? 'Generating…' : 'Generate'}
+          <Sparkles size={15} /> Generate
         </button>
       </div>
-      {error && (
-        <div
-          data-testid="asset-generate-error"
-          className="border-t border-brand-coral/40 bg-brand-coral/10 px-4 py-1.5 text-[12px] text-brand-coral"
-        >
-          {error}
-        </div>
-      )}
     </div>
   );
 }
