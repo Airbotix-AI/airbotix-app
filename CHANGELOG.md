@@ -71,6 +71,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
   Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
   `alt` label — no HTML injection. Unknown key → alt caption fallback.
+### Changed
+- **Playground asset generation is now prompt-only — removed the image/audio
+  dropdown** (D-ASSET-4). The kid describes what they want in one box ("a pixel
+  coin", "a jump sound") and the AI decides the kind: the real backend infers it
+  server-side (`/llm/generate-asset` `kind` is now optional), and the offline stub
+  uses the same keyword heuristic (`inferStubKind`). The generated file's extension
+  is derived from the returned mime / reported kind instead of the picker. See PRD
+  `learn-game-studio-assets-prd.md` A3.
+
 ### Removed
 - **Playground: dropped the seeded sample/test assets and the read-only "preloaded"
   lock.** New game projects no longer ship `coin.svg` / `hero_bounce` sprite /

@@ -103,7 +103,18 @@ function buildWavTone(req: GenAssetRequest): GenAssetResult {
   };
 }
 
+// Mirror of the backend's prompt → kind inference (D-ASSET-4) so the offline
+// stub routes a "jump sound" to audio and "pixel coin" to an image with no kind
+// picker. Audio cue word → audio; otherwise default to an image.
+const AUDIO_HINTS =
+  /\b(sound|sounds|sfx|audio|music|musical|song|tune|melody|jingle|voice|voices|speak|spoken|saying|noise|beep|chime|ringtone|bgm|soundtrack|whistle|hum)\b/i;
+
+export function inferStubKind(prompt: string): 'image' | 'audio' {
+  return AUDIO_HINTS.test(prompt) ? 'audio' : 'image';
+}
+
 export function generateAssetStub(req: GenAssetRequest): Promise<GenAssetResult> {
-  const result = req.kind === 'audio' ? buildWavTone(req) : buildSvgSwatch(req);
+  const kind = req.kind ?? inferStubKind(req.prompt);
+  const result = kind === 'audio' ? buildWavTone(req) : buildSvgSwatch(req);
   return Promise.resolve(result);
 }

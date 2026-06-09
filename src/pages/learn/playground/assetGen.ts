@@ -17,7 +17,12 @@ import { generateAssetStub } from './assetGenStub';
 
 export interface GenAssetRequest {
   projectId?: string;
-  kind: 'image' | 'audio';
+  /**
+   * Optional. The kid describes what they want and the AI decides image vs
+   * audio (D-ASSET-4) — the real backend infers it, the offline stub uses the
+   * same keyword heuristic. Callers no longer pass a kind.
+   */
+  kind?: 'image' | 'audio';
   prompt: string;
   /** Optional source asset to vary ("regenerate variation"). */
   refAssetPath?: string;

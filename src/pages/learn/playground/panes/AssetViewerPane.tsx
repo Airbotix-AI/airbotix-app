@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 import type { VfsFile } from '../../code/codeApi';
-import { runGen } from '../assetGen';
+import { runGen, type GenAssetResult } from '../assetGen';
 import { addAssetToGame } from './assetInsert';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
@@ -99,9 +99,15 @@ const MIME_EXT: Record<string, string> = {
   'audio/ogg': 'ogg',
 };
 
-/** Map a generated asset's mime → file extension (fallback by kind). */
-function extForResult(kind: 'image' | 'audio', mime: string): string {
-  return MIME_EXT[mime] ?? (kind === 'audio' ? 'wav' : 'svg');
+/**
+ * Pick a file extension for a generated asset. The kind is no longer chosen by
+ * the kid (D-ASSET-4): derive it from the returned mime, falling back to the
+ * kind the backend/stub reports in `meta.kind`.
+ */
+function extForResult(result: GenAssetResult): string {
+  const fromMime = MIME_EXT[result.mime];
+  if (fromMime) return fromMime;
+  return result.meta?.kind === 'audio' ? 'wav' : 'svg';
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -163,9 +169,8 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // AI generate form
+  // AI generate form — one prompt box; the AI decides image vs audio (D-ASSET-4).
   const [genPrompt, setGenPrompt] = useState('');
-  const [genKind, setGenKind] = useState<'image' | 'audio'>('image');
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
 
@@ -227,15 +232,14 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
       const [result] = await Promise.all([
         runGen({
           projectId,
-          kind: genKind,
           prompt: genPrompt.trim(),
           refAssetPath: selectedPath ?? undefined,
         }),
         sleep(MIN_GEN_MS),
       ]);
       // Pick the extension from the returned mime (real backend may return png /
-      // mp3); fall back to the stub's svg / wav.
-      const ext = extForResult(genKind, result.mime);
+      // mp3); fall back to the kind the backend/stub reports.
+      const ext = extForResult(result);
       const slug = genPrompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'asset';
       const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
       createFile(path, 'asset', result.dataUrl);
@@ -360,11 +364,9 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
           <div className="flex min-h-0 flex-1 flex-col">
             <GenerateBar
               prompt={genPrompt}
-              kind={genKind}
               busy={generating}
               error={genError}
               onPrompt={setGenPrompt}
-              onKind={setGenKind}
               onGenerate={() => void onGenerate()}
             />
             <div className="min-h-0 flex-1 overflow-auto p-4">
@@ -452,19 +454,15 @@ function CategoryRow({
 
 function GenerateBar({
   prompt,
-  kind,
   busy,
   error,
   onPrompt,
-  onKind,
   onGenerate,
 }: {
   prompt: string;
-  kind: 'image' | 'audio';
   busy: boolean;
   error: string | null;
   onPrompt: (v: string) => void;
-  onKind: (k: 'image' | 'audio') => void;
   onGenerate: () => void;
 }) {
   return (
@@ -478,17 +476,9 @@ function GenerateBar({
           onKeyDown={(e) => {
             if (e.key === 'Enter') onGenerate();
           }}
-          placeholder="Describe an asset to generate with AI…"
+          placeholder="Describe an asset — e.g. 'a pixel coin' or 'a jump sound'…"
           className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
         />
-        <select
-          value={kind}
-          onChange={(e) => onKind(e.target.value as 'image' | 'audio')}
-          className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5 text-[12px] font-semibold"
-        >
-          <option value="image">image</option>
-          <option value="audio">audio</option>
-        </select>
         <button
           type="button"
           data-testid="asset-generate"
