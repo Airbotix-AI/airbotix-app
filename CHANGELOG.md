@@ -6,6 +6,27 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-09
 
+### Fixed
+- **Generated/imported assets now persist across exit & resume.** Two causes: (1) the
+  debounced autosave was cancelled when leaving the project — added `flushSave()` in
+  `PlaygroundApp` that commits any pending save on exit (and reused it for the debounce);
+  (2) asset content round-trip mangled the bytes — the studio VFS uses `data:` URLs but
+  the backend stores raw base64, so `codeApi` now converts binary-asset content at the
+  API boundary (strip on save, re-wrap on load). SVG (backend-text) round-trips verbatim.
+
+### Added
+- **Global "Magic Generation" state (`generationStore`).** AI asset generation is now an
+  app-level Zustand store that owns the async call AND the completion (writing the asset
+  into the VFS), so a single in-flight generation survives the Asset Viewer pane closing/
+  reopening — one generation at a time, cancellable (abort signal threaded through
+  `runGen`/`api.generateAsset`). Paired with a magical animated card (`MagicGenerationCard`).
+- **Asset Library expanded from ~68 to ~280 curated emoji** across faces / characters /
+  animals / food / plants / weather / items / vehicles / sports / music / symbols.
+
+### Removed
+- **Playground: dropped the seeded `assets/README.txt`** from the starter project — new
+  game projects start with a truly empty `assets/`.
+
 ### Added
 - **Self-verify round-trip — the studio reports runtime errors so the agent auto-fixes**
   (`playground/verifyRoundtrip.ts`, `panes/GameRunnerPane.tsx`, `panes/useGameAgent.ts`, `panes/gameAgent.ts`,
