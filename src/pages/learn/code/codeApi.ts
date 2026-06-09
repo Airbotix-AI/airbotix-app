@@ -101,11 +101,14 @@ export interface SafeguardingVerdict {
 
 // A workspace action the backend agent asks the Game Studio UI to perform
 // (play/restart the game, open the code view, bring a pane to front, offer a
-// button). Executed client-side by executeClientActions (forward-compatible:
-// unknown actions are ignored).
+// button, or jump the kid to a Game Guide passage). Executed client-side by
+// executeClientActions (forward-compatible: unknown actions are ignored).
 export interface ClientAction {
-  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button';
+  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button' | 'open_help';
+  /** `focus_panel` → the pane id; `open_help` → the Guide `docId` to open. */
   target?: string;
+  /** `open_help` → the heading anchor within the doc to scroll to. */
+  anchor?: string;
   label?: string;
 }
 

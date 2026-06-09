@@ -1,19 +1,22 @@
 import type { ClientAction } from '../code/codeApi';
 
-/** The four panels the studio can surface/focus (Window ids = Split tabs + game). */
-export type PanelTarget = 'chat' | 'code' | 'game' | 'assets';
+/** The panels the studio can surface/focus (Window ids = Split tabs + game). */
+export type PanelTarget = 'chat' | 'code' | 'game' | 'assets' | 'help';
 
 /**
  * Studio-side handlers the interpreter dispatches to. The Workspace supplies them
- * (run/restart the game, focus a panel) so this module stays pure + testable.
+ * (run/restart the game, focus a panel, jump the Guide to a passage) so this module
+ * stays pure + testable.
  */
 export interface ClientActionHandlers {
   runGame: () => void;
   restartGame: () => void;
   focusPanel: (target: PanelTarget) => void;
+  /** Open/focus the Game Guide at a doc (+ optional anchor) — the `open_help` action. */
+  openHelp: (docId: string, anchor?: string) => void;
 }
 
-const PANELS: readonly PanelTarget[] = ['chat', 'code', 'game', 'assets'];
+const PANELS: readonly PanelTarget[] = ['chat', 'code', 'game', 'assets', 'help'];
 
 function asPanel(target: string | undefined, fallback: PanelTarget): PanelTarget {
   return PANELS.includes(target as PanelTarget) ? (target as PanelTarget) : fallback;
@@ -43,6 +46,11 @@ export function executeClientActions(
         break;
       case 'focus_panel':
         handlers.focusPanel(asPanel(a.target, 'game'));
+        break;
+      case 'open_help':
+        // The agent jumps the kid to a Guide passage (target=docId, anchor=heading).
+        // No target = nothing to open; ignore rather than open a blank Guide.
+        if (a.target) handlers.openHelp(a.target, a.anchor);
         break;
       default:
         // show_button is surfaced as a chat CTA, not a workspace action; ignore here.

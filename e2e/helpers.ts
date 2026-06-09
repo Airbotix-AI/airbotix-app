@@ -68,6 +68,41 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
+// A representative Game Guide corpus for `GET /help/docs` (the pane fetches the
+// real backend corpus in prod; this fixture covers the help journeys' assertions —
+// `arcade-physics#gravity` with a Lite "fall" para + a Pro "setGravityY" block).
+const HELP_CORPUS = {
+  pillars: [
+    { id: 'engine', title: 'How games work', blurb: 'The big ideas.' },
+    { id: 'basics', title: 'Game basics', blurb: 'Sprites, moving, scoring.' },
+    { id: 'phaser', title: 'Phaser 4', blurb: 'The engine.' },
+  ],
+  docs: [
+    {
+      id: 'engine/what-is-an-engine',
+      pillar: 'engine',
+      title: 'What is a game engine?',
+      tags: ['engine'],
+      blocks: [
+        { kind: 'heading', text: 'A helper that does the hard parts', anchor: 'overview' },
+        { kind: 'para', tier: 'lite', text: 'It does the tricky parts so you can build your game.' },
+      ],
+    },
+    {
+      id: 'phaser/arcade-physics',
+      pillar: 'phaser',
+      title: 'Arcade physics (gravity, jumping)',
+      tags: ['physics', 'gravity', 'jump', 'fall'],
+      blocks: [
+        { kind: 'heading', text: 'Make things fall and jump', anchor: 'gravity' },
+        { kind: 'para', tier: 'lite', text: 'Turn on gravity and your player will fall down.' },
+        { kind: 'diagram', diagram: 'gravity-and-jump', alt: 'gravity pulls down, jump pushes up' },
+        { kind: 'code', tier: 'pro', code: 'this.player.body.setGravityY(800);' },
+      ],
+    },
+  ],
+};
+
 interface MockBackendOpts {
   /** Kid age → sets the Lite (<13) / Pro (≥13) tier. Default 9 (Lite). */
   age?: number;
@@ -164,6 +199,21 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
     persistedFiles = body.files;
     version += 1;
     return route.fulfill(json({ files: persistedFiles, version }));
+  });
+
+  // ── Game Guide corpus (the Help pane fetches this on open) ───────────────────
+  await page.route('**/help/docs', (route) => route.fulfill(json(HELP_CORPUS)));
+
+  // ── Share-link status (J8) ───────────────────────────────────────────────────
+  // `ShareLinkPanel` mounts for EVERY real-project workspace and GETs the share
+  // state on mount. Left unmocked it 401s → the api client clears the kid token →
+  // the session bounces to /learn/login mid-test (a latent race the fast specs
+  // happen to beat). Default to "no share yet" (404 → `{ status: 'none' }`, which
+  // `getShareLink` handles). Share-specific specs override by registering their own
+  // `**/projects/*/share` route AFTER this (Playwright matches most-recent first).
+  await page.route('**/projects/*/share', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill(json({ error: { code: 'NOT_FOUND', message: 'no share' } }, 404));
+    return route.continue();
   });
 
   // ── The real game-project create (authed hub → studio) ───────────────────────
