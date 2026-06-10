@@ -69,8 +69,12 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
   const [chat, setChat] = useState<ChatItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
+  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string; categories?: string[] } | null>(null);
   const [runKey, setRunKey] = useState(0);
+  // D-PI8: PII categories acked in this session — re-occurrences skip the modal.
+  const ackedPiiCategories = useRef(new Set<string>());
+  // D-PI8: prompt queued for a silent auto-retry (all categories already acked).
+  const autoRetryRef = useRef<string | null>(null);
   // A staged plan awaiting "✓ yes" before multi-file edits land (PRD §4.1).
   const [pendingPlan, setPendingPlan] = useState<{ prompt: string } | null>(null);
   const idSeq = useRef(0);
@@ -118,18 +122,34 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
    * turn needs approval (`requires_approval`). When it does, we surface the
    * plan and gate the preview behind "✓ yes"; otherwise we apply it directly.
    */
+  // D-PI8: when busy goes false and autoRetryRef is set, silently re-send without
+  // showing the modal (all PII categories were already acked earlier this session).
+  useEffect(() => {
+    if (!busy && autoRetryRef.current !== null) {
+      const p = autoRetryRef.current;
+      autoRetryRef.current = null;
+      // _skipKidBubble: the kid message is already in the chat from the original send.
+      void send(p, { piiWarnAcknowledged: true, _skipKidBubble: true });
+    }
+  }, [busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const send = useCallback(
-    async (prompt: string, opts: { piiWarnAcknowledged?: boolean } = {}) => {
+    async (prompt: string, opts: { piiWarnAcknowledged?: boolean; _skipKidBubble?: boolean } = {}) => {
       const text = prompt.trim();
       if (!text || busy) return;
       setError(null);
       setWarnPending(null);
       setBusy(true);
-      setChat((prev) => [
-        ...prev,
-        { id: nextId(), role: 'kid', text },
-        { id: nextId(), role: 'agent', text: 'Thinking…', pending: true },
-      ]);
+      if (opts._skipKidBubble) {
+        // D-PI8 auto-retry: kid bubble already in chat; only add the thinking placeholder.
+        setChat((prev) => [...prev, { id: nextId(), role: 'agent', text: 'Thinking…', pending: true }]);
+      } else {
+        setChat((prev) => [
+          ...prev,
+          { id: nextId(), role: 'kid', text },
+          { id: nextId(), role: 'agent', text: 'Thinking…', pending: true },
+        ]);
+      }
       try {
         const res = await runAgentTurn({ projectId, prompt: text, mode, piiWarnAcknowledged: opts.piiWarnAcknowledged });
         if (res.requires_approval) {
@@ -153,9 +173,19 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       } catch (e) {
         setChat((prev) => prev.filter((c) => !c.pending));
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
-          const details = e.details as { kind?: string } | undefined;
+          const details = e.details as { kind?: string; categories?: string[] } | undefined;
           const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
-          setWarnPending({ message: e.message, prompt: text, stage });
+          const categories = details?.categories ?? [];
+          // D-PI8: if every detected PII category was already acked this session, skip the modal.
+          const allAcked =
+            details?.kind === 'pii_warn' &&
+            categories.length > 0 &&
+            categories.every((c) => ackedPiiCategories.current.has(c));
+          if (allAcked) {
+            autoRetryRef.current = text; // useEffect fires auto-retry when busy→false
+          } else {
+            setWarnPending({ message: e.message, prompt: text, stage, categories });
+          }
         } else {
           setError(friendly(e));
         }
@@ -168,7 +198,9 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
 
   const confirmWarn = useCallback(async () => {
     if (!warnPending || busy) return;
-    const { prompt } = warnPending;
+    const { prompt, categories } = warnPending;
+    // D-PI8: remember which categories were acked so re-occurrences skip the modal.
+    categories?.forEach((c) => ackedPiiCategories.current.add(c));
     setWarnPending(null);
     await send(prompt, { piiWarnAcknowledged: true });
   }, [warnPending, busy, send]);

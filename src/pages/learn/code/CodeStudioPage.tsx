@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
+import { PiiWarnModal } from '@/components/PiiWarnModal';
 import { CodeChat } from './CodeChat';
 import { FileTree } from './FileTree';
 import { PreviewFrame } from './PreviewFrame';
@@ -151,7 +152,7 @@ function ProLayout({
         </aside>
 
         {/* Chat */}
-        <section className="flex-1 min-w-0 border-r border-hairline">
+        <section className="flex-1 min-w-0 border-r border-hairline relative">
           <CodeChat
             chat={studio.chat}
             busy={studio.busy}
@@ -161,6 +162,11 @@ function ProLayout({
             onSend={(t) => studio.send(t)}
             onApprove={studio.approvePlan}
             onReject={studio.rejectPlan}
+          />
+          <PiiWarnModal
+            warnPending={studio.warnPending}
+            onConfirm={studio.confirmWarn}
+            onDismiss={studio.dismissWarn}
           />
         </section>
 
@@ -219,6 +225,11 @@ function LiteLayout({
             onSend={(t) => studio.send(t)}
             onApprove={studio.approvePlan}
             onReject={studio.rejectPlan}
+          />
+          <PiiWarnModal
+            warnPending={studio.warnPending}
+            onConfirm={studio.confirmWarn}
+            onDismiss={studio.dismissWarn}
           />
           <button
             onClick={() => setShowFiles(true)}

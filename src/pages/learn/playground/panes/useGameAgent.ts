@@ -339,7 +339,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   // The "Ask my teacher" raise-hand (J4): a calm waiting state once raised.
   const [handRaised, setHandRaised] = useState(false);
   // A pending MODERATION_WARN ack — kid must confirm before the prompt is retried.
-  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
+  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string; categories?: string[] } | null>(null);
+  // D-PI8: PII categories acked in this session — re-occurrences skip the modal.
+  const ackedPiiCategories = useRef(new Set<string>());
+  // D-PI8: prompt queued for a silent auto-retry (all PII categories already acked).
+  const autoRetryRef = useRef<string | null>(null);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
   // Self-verify auto-fix attempts for the CURRENT broken game (MP3 / D-PAP-13).
@@ -723,10 +727,20 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         await applyResult(result, pendingId);
       } catch (e) {
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
-          const details = e.details as { kind?: string } | undefined;
+          const details = e.details as { kind?: string; categories?: string[] } | undefined;
           const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
-          setWarnPending({ message: e.message, prompt: trimmed, stage });
+          const categories = details?.categories ?? [];
+          // D-PI8: if every detected PII category was already acked this session, skip the modal.
+          const allAcked =
+            details?.kind === 'pii_warn' &&
+            categories.length > 0 &&
+            categories.every((c) => ackedPiiCategories.current.has(c));
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
+          if (allAcked) {
+            autoRetryRef.current = trimmed; // useEffect fires auto-retry when busy→false
+          } else {
+            setWarnPending({ message: e.message, prompt: trimmed, stage, categories });
+          }
         } else {
           const msg = friendlyError(e);
           if (msg === OFFLINE_TEXT) setOffline(true);
@@ -882,9 +896,40 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     void send(lastPromptRef.current, { guided: lastGuidedRef.current });
   }, [busy, pending, send]);
 
+  // D-PI8: when busy goes false and autoRetryRef is set, silently re-send the prompt
+  // (all PII categories already acked this session — no modal, no duplicate kid bubble).
+  useEffect(() => {
+    if (busy || autoRetryRef.current === null || !projectId) return;
+    const prompt = autoRetryRef.current;
+    autoRetryRef.current = null;
+    const pendingId = nextId();
+    setBusy(true);
+    setError(null);
+    // Kid bubble already in chat from the original send(); just add the thinking placeholder.
+    setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
+    void deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true })
+      .then(async (result) => {
+        if (result.requires_approval) {
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+          setPending({ kind: 'plan', turnId: result.turn_id, prompt, summary: result.plan?.plan_text ?? result.summary, changes: toChanges(result), result, prediction: predictionQuestion(prompt) });
+          return;
+        }
+        await applyResult(result, pendingId);
+      })
+      .catch((e) => {
+        const msg = friendlyError(e);
+        if (msg === OFFLINE_TEXT) setOffline(true);
+        setError(msg);
+        setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)));
+      })
+      .finally(() => setBusy(false));
+  }, [busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const confirmWarn = useCallback(async () => {
     if (!warnPending || busy) return;
-    const { prompt } = warnPending;
+    const { prompt, categories } = warnPending;
+    // D-PI8: remember acked categories so re-occurrences in this session skip the modal.
+    categories?.forEach((c) => ackedPiiCategories.current.add(c));
     setWarnPending(null);
     if (!projectId) return;
     const pendingId = nextId();

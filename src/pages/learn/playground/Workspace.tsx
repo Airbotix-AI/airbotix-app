@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
+import { PiiWarnModal } from '@/components/PiiWarnModal';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
 import type { LearningContext, VfsFile } from '../code/codeApi';
@@ -224,6 +225,9 @@ export function Workspace({
     abort,
     retryLast,
     autoFixFromErrors,
+    warnPending,
+    confirmWarn,
+    dismissWarn,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -411,6 +415,11 @@ export function Workspace({
 
   return (
     <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
+      <PiiWarnModal
+        warnPending={warnPending}
+        onConfirm={confirmWarn}
+        onDismiss={dismissWarn}
+      />
       {/* Split: horizontal PanelGroup, above the docked taskbar */}
       <div className="relative min-h-0 flex-1">
         <PanelGroup

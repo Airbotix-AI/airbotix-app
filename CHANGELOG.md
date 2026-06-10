@@ -65,6 +65,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   build can't erase options the kid was about to tap. New unit tests in `useGameAgent.test.ts`
   + `AIChatPanel.test.tsx`.
 
+## 2026-06-10 (safety-pii-v0-complete)
+
+### Added
+- **PII WARN modal (G6)**: `PiiWarnModal` component shown when backend returns `MODERATION_WARN`. Displays per-category friendly copy (G7), an excerpt of the kid's message, and two actions: "✏️ Let me change it" (dismisses) / "📤 Send anyway (this once)" (re-sends with `piiWarnAcknowledged: true`). Wired into `CodeStudioPage` (both Pro and Lite layouts) and `Workspace`.
+- **Per-category friendly messages (G7)**: `piiMessages.ts` maps each `PiiCategory` to age-appropriate copy with substitution suggestions (young / older variants).
+- **D-PI8 per-session ack memory**: `useCodeStudio` and `useGameAgent` now track which PII categories the kid has acked this session. On the next warn for all-already-acked categories, the modal is skipped and the prompt retries silently — prevents the nag-loop. Kid messages are not duplicated in chat on auto-retry.
+
 ## 2026-06-10 (playground chat resume)
 
 ### Fixed
