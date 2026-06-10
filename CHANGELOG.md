@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (playground next-step chips)
+
+### Changed
+- **Playground chat: next-step chips now appear only on the latest turn.** When a new
+  teacher turn settles, any next-step option chips carried by an earlier chat bubble are
+  cleared, so suggestions never linger on a stale message (`useGameAgent.ts`). Pairs with
+  the backend making `next_steps` conditional — the kid sees options only when they
+  haven't already given a clear next step (playground-ai-prompt-prd.md D-PAP-26).
+
 ## 2026-06-09 (safety gaps)
 
 ### Added

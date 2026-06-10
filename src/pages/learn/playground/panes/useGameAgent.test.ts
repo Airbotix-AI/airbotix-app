@@ -152,6 +152,37 @@ describe('useGameAgent streamed apply (H1)', () => {
     // The turn's next-step options ride onto the settled bubble (FE1 contract).
     expect(lastChat.nextSteps).toEqual(TURN.next_steps);
   });
+
+  it('only the latest settled turn keeps next-step chips — older bubbles are cleared (D-PAP-26)', async () => {
+    resolveStream = null;
+    const { result } = setup();
+
+    // First turn settles with its next-step options.
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(result.current.chat.at(-1)?.nextSteps).toEqual(TURN.next_steps);
+
+    // Second turn: once it settles, the FIRST agent bubble's chips are gone — only
+    // the most recent server message ever carries next-step options.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+
+    const agentBubbles = result.current.chat.filter((c) => c.role === 'agent');
+    expect(agentBubbles).toHaveLength(2);
+    expect(agentBubbles[0].nextSteps).toBeUndefined();
+    expect(agentBubbles[1].nextSteps).toEqual(TURN.next_steps);
+  });
 });
 
 describe('useGameAgent error copy distinguishes unreachable vs server-error', () => {
