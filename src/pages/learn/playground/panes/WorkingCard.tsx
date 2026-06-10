@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 
 import {
+  formatSecs,
   stepElapsedSeconds,
   totalElapsedSeconds,
   type ProgressStep,
@@ -15,14 +16,6 @@ import {
 } from './turnProgress';
 
 const TICK_MS = 1000;
-
-/** Whole-seconds → "4s" under a minute, "1:07" beyond. */
-export function formatSecs(n: number): string {
-  if (n < 60) return `${n}s`;
-  const m = Math.floor(n / 60);
-  const s = n % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 /** Brand spinning orb (same motion language as the ThinkingBubble / GeneratingScreen). */
 function Orb() {

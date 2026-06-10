@@ -132,3 +132,11 @@ export function stepElapsedSeconds(step: ProgressStep, now: number): number {
 export function totalElapsedSeconds(progress: TurnProgress, now: number): number {
   return Math.max(0, Math.round((now - progress.startedAt) / 1000));
 }
+
+/** Whole-seconds → "4s" under a minute, "1:07" beyond. */
+export function formatSecs(n: number): string {
+  if (n < 60) return `${n}s`;
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}

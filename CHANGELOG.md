@@ -15,6 +15,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `pg-surface`/`pg-surface-2`/`pg-text` tokens so the whole card flips with the workspace theme.
   Added `MagicGenerationCard.test.tsx`.
 
+### CI
+- **Unblock lint (`eslint . --max-warnings 0`)** — `WorkingCard.tsx` exported the `formatSecs`
+  helper alongside the component, tripping `react-refresh/only-export-components` and failing CI on
+  `main` since the one-message-turn change. Moved `formatSecs` into the pure-logic `turnProgress.ts`
+  (next to its sibling time helpers); `WorkingCard` + its test now import it from there.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added
