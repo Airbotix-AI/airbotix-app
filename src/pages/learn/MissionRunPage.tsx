@@ -61,6 +61,7 @@ interface MissionRunPageProps {
   missions: Mission[];
   projectId: string;
   packSlug: string;
+  initialMissionId?: string;
 }
 
 interface StepWidgetProps {
@@ -110,8 +111,14 @@ function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Ar
 
 // ─── MissionRunPage ───────────────────────────────────────────────────────────
 
-export function MissionRunPage({ pack, missions, projectId, packSlug }: MissionRunPageProps) {
-  const [currentMissionIdx, setCurrentMissionIdx] = useState(0);
+export function MissionRunPage({ pack, missions, projectId, packSlug, initialMissionId }: MissionRunPageProps) {
+  const initialIdx = useMemo(
+    () => (initialMissionId ? Math.max(0, missions.findIndex((m) => m.id === initialMissionId)) : 0),
+    // initialMissionId and missions are stable across the lifetime of this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [currentMissionIdx, setCurrentMissionIdx] = useState(initialIdx);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());

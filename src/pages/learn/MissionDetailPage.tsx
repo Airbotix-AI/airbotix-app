@@ -18,6 +18,7 @@ export function MissionDetailPage() {
   const { id: slug } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
+  const missionId = searchParams.get('mission') ?? undefined;
   const nav = useNavigate();
   const me = useMe();
   const qc = useQueryClient();
@@ -39,9 +40,9 @@ export function MissionDetailPage() {
           mission_id: mission.id,
         },
       }),
-    onSuccess: (res) => {
+    onSuccess: (res, mission) => {
       qc.invalidateQueries({ queryKey: ['projects'] });
-      nav(`/learn/missions/${slug}?project=${res.id}`);
+      nav(`/learn/missions/${slug}?project=${res.id}&mission=${mission.id}`);
     },
     onError: (e: unknown) => {
       if (e instanceof ApiError && e.code === 'CONFLICT') {
@@ -53,7 +54,7 @@ export function MissionDetailPage() {
             const existing = projects.find(
               (p) => p.mission_id === startMission.variables?.id && p.status === 'in_progress',
             );
-            if (existing) nav(`/learn/missions/${slug}?project=${existing.id}`);
+            if (existing) nav(`/learn/missions/${slug}?project=${existing.id}&mission=${existing.mission_id}`);
           })
           .catch(() => undefined);
       }
@@ -79,6 +80,7 @@ export function MissionDetailPage() {
         missions={allMissions}
         projectId={projectId}
         packSlug={slug!}
+        initialMissionId={missionId}
       />
     );
   }
