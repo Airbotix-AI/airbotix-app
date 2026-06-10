@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -123,7 +123,7 @@ export function MissionRunPage({ pack, missions, projectId, packSlug }: MissionR
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
 
   const mission = missions[currentMissionIdx];
-  const steps = mission?.steps_json ?? [];
+  const steps = useMemo(() => mission?.steps_json ?? [], [mission]);
   const step = steps[currentStepIdx];
   const isLastStep = currentStepIdx === steps.length - 1;
   const isLastMission = currentMissionIdx === missions.length - 1;
