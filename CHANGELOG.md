@@ -4,6 +4,21 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (playground chat resume)
+
+### Fixed
+- **Chat history is now persisted across exit/resume** (J9). The conversation lived only in
+  React state, so reopening a project lost every prior turn. The chat is now cached device-local
+  in IndexedDB (`projectPersistence.ts`, `chat:` prefix — same store as the VFS/workspace-UI
+  cache), restored on resume (`PlaygroundApp` `onDone`), and re-seeded into the agent
+  (`useGameAgent` `initialChat`, which takes precedence over the first-turn/intro seed). The rich
+  per-message data (next-step chips, per-file change rows, file notes) survives — the backend's
+  CodeAgentTurn only records prompt+summary, so the log is kept client-side.
+- **The canned "your game starter is ready to play" message no longer reappears on resume.** On a
+  resume the blank prompt fell through to `buildIntro('')`, re-injecting the starter as if the
+  project were brand new. The seed now requires a non-empty prompt (and restored history wins), so
+  the starter shows only as the first message of a genuinely new project.
+
 ## 2026-06-10 (playground theming fixes)
 
 ### Fixed

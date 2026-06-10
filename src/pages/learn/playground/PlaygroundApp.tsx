@@ -15,6 +15,8 @@ import {
   saveProject as savePersisted,
   loadWorkspaceUi,
   saveWorkspaceUi,
+  loadChatHistory,
+  saveChatHistory,
   saveThumbnail,
 } from './projectPersistence';
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
@@ -22,7 +24,7 @@ import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
-import type { FirstTurnSeed } from './panes/useGameAgent';
+import type { ChatItem, FirstTurnSeed } from './panes/useGameAgent';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
@@ -86,6 +88,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // Resume recap (D-PAP-19,22): the teacher's persisted "where we left off", shown
   // as a welcome-back card on a resumed game (no fresh first turn).
   const [resumeRecap, setResumeRecap] = useState<LearningContext | null>(null);
+  // Restored chat history (J9): the saved conversation, loaded on resume and passed
+  // to the workspace so it reopens with the real log (not a fresh starter seed).
+  const [initialChat, setInitialChat] = useState<ChatItem[] | undefined>(undefined);
   // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
@@ -170,6 +175,27 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     }
   }, [persistKey, projectId, setSaveStatus]);
 
+  // Persist the chat conversation (J9 resume), debounced. The agent hook hands us
+  // the full chat on every change; we strip transient bubbles ("Thinking…" /
+  // mid-stream) and cache the settled log device-local. Real projects only — a
+  // project-less session is transient. `latestChatRef` lets the exit path flush it.
+  const latestChatRef = useRef<ChatItem[]>([]);
+  const chatTimer = useRef<ReturnType<typeof setTimeout>>();
+  const flushChat = useCallback(() => {
+    if (!projectId) return;
+    const settled = latestChatRef.current.filter((c) => !c.pending && !c.streaming);
+    void saveChatHistory(persistKey, settled);
+  }, [persistKey, projectId]);
+  const persistChat = useCallback(
+    (chat: ChatItem[]) => {
+      latestChatRef.current = chat;
+      if (!projectId) return;
+      clearTimeout(chatTimer.current);
+      chatTimer.current = setTimeout(flushChat, SAVE_DEBOUNCE_MS);
+    },
+    [projectId, flushChat],
+  );
+
   useEffect(() => {
     if (phase !== 'workspace') return;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -231,6 +257,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       // asset persists even if the kid leaves immediately. Best-effort.
       try {
         await flushSave();
+        flushChat();
       } catch {
         // A failed flush must not trap the kid in the studio.
       }
@@ -242,7 +269,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       }
     }
     blocker.proceed?.();
-  }, [projectId, blocker, flushSave]);
+  }, [projectId, blocker, flushSave, flushChat]);
 
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
@@ -324,6 +351,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
               useWorkspaceUiStore.getState().restore(ui);
               const pg = ui?.slices?.playground as PlaygroundSnapshot | undefined;
               if (pg) usePlaygroundStore.getState().restore(pg);
+              // Restore the saved conversation (J9) so the chat reopens with the
+              // real log. On a fresh first turn (`ft`) the seed wins instead — the
+              // hook prefers a non-empty restored history but `ft` seeds the first
+              // build before any history exists.
+              if (!ft) setInitialChat((await loadChatHistory(persistKey)) ?? undefined);
             } else {
               useWorkspaceUiStore.getState().restore(null);
             }
@@ -354,6 +386,8 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           prompt={prompt}
           firstTurn={firstTurn}
           resumeRecap={resumeRecap}
+          initialChat={initialChat}
+          onChatChange={persistChat}
           // Only a real OWNED project (the authed route param, or the id created
           // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
