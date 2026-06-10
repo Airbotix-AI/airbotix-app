@@ -18,7 +18,7 @@ interface ChatPaneProps {
   safeguard?: SafeguardingVerdict | null;
   handRaised?: boolean;
   inClass?: boolean;
-  onSend: (text: string) => void;
+  onSend: (text: string, opts?: { guided?: boolean }) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;

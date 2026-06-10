@@ -36,6 +36,8 @@ export type RunAgentTurn = (args: {
   prompt: string;
   mode: 'lite' | 'pro';
   piiWarnAcknowledged?: boolean;
+  /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
+  guided?: boolean;
 }) => Promise<AgentTurnResult>;
 
 /** Approve / reject a staged (Pro) plan. */

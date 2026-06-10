@@ -141,7 +141,7 @@ interface AIChatPanelProps {
   /** Only show "Ask my teacher" when the kid is in a class (else there's no
    *  teacher to ask). */
   inClass?: boolean;
-  onSend: (text: string) => void;
+  onSend: (text: string, opts?: { guided?: boolean }) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
@@ -488,7 +488,7 @@ function ChatRow({
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
-  onSend?: (text: string) => void;
+  onSend?: (text: string, opts?: { guided?: boolean }) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;
@@ -672,7 +672,7 @@ function ChatRow({
                 key={i}
                 type="button"
                 data-testid="next-step"
-                onClick={() => onSend?.(step.prompt)}
+                onClick={() => onSend?.(step.prompt, { guided: true })}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold transition-transform hover:-translate-y-0.5 ${
                   step.tag === 'concept'
                     ? 'bg-brand-sky/15 text-brand-sky'
