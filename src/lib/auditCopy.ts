@@ -303,17 +303,56 @@ function describeLlm(eventType: string, p: Payload): AuditCopy | null {
   };
 }
 
-// Safety events all roll up to one reassuring line for parents.
+// Safety events — differentiated cards so parents understand what was filtered.
+// Event types are the actual backend events from firewall.service.ts / pii.service.ts.
+// safety.prompt.rejected carries a `stage` payload field that discriminates the
+// firewall stage (regex_blacklist / topic_classifier / prompt_injection).
 function describeSafety(eventType: string, p: Payload): AuditCopy | null {
   if (!eventType.startsWith('safety.')) return null;
+
+  // Single unified rejection event — stage field tells us which firewall stage fired.
+  if (eventType === 'safety.prompt.rejected') {
+    const stage = asStr(p.stage);
+    if (stage === 'regex_blacklist')
+      return { icon: '🛡️', tone: 'slate', title: 'Filtered phrase detected', detail: 'A blocked word or phrase was caught before sending.' };
+    if (stage === 'topic_classifier') {
+      const topic = asStr(p.topic);
+      return { icon: '🛡️', tone: 'sunshine', title: 'Topic not allowed', detail: topic ? `Topic: ${humanize(topic)}` : 'This topic is outside the allowed list.' };
+    }
+    if (stage === 'prompt_injection')
+      return { icon: '🚫', tone: 'coral', title: 'Prompt injection blocked', detail: 'An attempt to override AI rules was blocked.' };
+    return { icon: '🛡️', tone: 'sunshine', title: 'Safety filter stepped in', detail: 'Content was checked and adjusted.' };
+  }
+
+  // PII events
+  if (eventType === 'safety.pii.blocked' || eventType === 'safety.pii.artifact_blocked') {
+    const cats = Array.isArray(p.categories) ? (p.categories as string[]).join(', ') : null;
+    return { icon: '🔒', tone: 'sunshine', title: 'Personal info protected', detail: cats ? `Detected: ${cats}` : 'Private information was caught and protected.' };
+  }
+  if (eventType === 'safety.pii.warned')
+    return { icon: '🔒', tone: 'sunshine', title: 'Personal info notice sent', detail: 'A caution about sharing personal details was shown.' };
+  if (eventType === 'safety.pii.warn_acknowledged')
+    return { icon: '✅', tone: 'mint', title: 'Chose to continue after caution', detail: 'Your child acknowledged the personal info notice and continued.' };
+
+  if (eventType === 'safety.pattern.escalated')
+    return { icon: '📣', tone: 'coral', title: 'Repeated safety triggers', detail: 'Multiple safety events in a short period — teacher was notified.' };
+
+  if (eventType === 'safety.prompt.aborted')
+    return { icon: '✅', tone: 'mint', title: 'Made a safer choice', detail: 'Your child stopped before sending a flagged message.' };
+
+  // Output moderation
+  if (eventType === 'safety.response.rejected')
+    return { icon: '🛡️', tone: 'sunshine', title: 'AI response filtered', detail: "The AI's response was blocked before your child saw it." };
+  if (eventType === 'safety.response.redacted')
+    return { icon: '🛡️', tone: 'sky', title: 'AI response adjusted', detail: "Part of the AI's response was removed before your child saw it." };
+
+  // Pass / admin events don't need parent cards.
+  if (/\.passed$|\.published$|\.rollback$/.test(eventType))
+    return { icon: '🛡️', tone: 'mint', title: 'Safety check passed' };
+
   const blocked = /reject|block|redact|warn/.test(eventType);
   return blocked
-    ? {
-        icon: '🛡️',
-        tone: 'sunshine',
-        title: 'Safety filter stepped in',
-        detail: asStr(p.reason) ? humanize(asStr(p.reason)!) : 'Content was checked and adjusted',
-      }
+    ? { icon: '🛡️', tone: 'sunshine', title: 'Safety filter stepped in', detail: 'Content was checked and adjusted.' }
     : { icon: '🛡️', tone: 'mint', title: 'Safety check passed' };
 }
 
