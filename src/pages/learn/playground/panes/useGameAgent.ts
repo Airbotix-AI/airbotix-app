@@ -366,7 +366,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                   fileNotes: result.file_notes,
                   nextSteps: result.next_steps,
                 }
-              : it,
+              : // Only the latest server message shows next-step chips — clear any
+                // carried by an earlier bubble so suggestions never linger on a
+                // stale turn (D-PAP-26 last-message-only).
+                it.nextSteps
+                ? { ...it, nextSteps: undefined }
+                : it,
           ),
         );
         setStreaming(false);
