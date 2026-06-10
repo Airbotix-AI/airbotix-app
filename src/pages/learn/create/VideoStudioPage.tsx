@@ -5,7 +5,7 @@ import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
-import { useExitSummary, useStudioSession } from './shared/useSession';
+import { useStudioSession } from './shared/useSession';
 import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 const DURATIONS = [
@@ -25,8 +25,7 @@ export function VideoStudioPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
 
-  const { sessionId } = useStudioSession('video');
-  const { summary, endNow, dismiss } = useExitSummary();
+  const { summary, endNow, dismiss } = useStudioSession('video');
 
   const generate = useGenerate('video');
   const recent = useRecentArtifacts('video');
@@ -151,7 +150,7 @@ export function VideoStudioPage() {
       )}
       <div className="flex justify-center mt-8">
         <button
-          onClick={() => endNow(sessionId)}
+          onClick={() => endNow()}
           className="btn-pill-secondary"
         >
           🎓 Done for now

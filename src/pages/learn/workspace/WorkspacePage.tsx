@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { friendlyError } from '../create/shared/useStudio';
 import { SessionsPane, type SessionRow } from './SessionsPane';
 import { ChatPane } from './ChatPane';
 import { CodePane } from './CodePane';
@@ -180,16 +181,7 @@ export function WorkspacePage() {
       qc.invalidateQueries({ queryKey: ['kid', kidId, 'sessions'] });
       qc.invalidateQueries({ queryKey: ['wallet', familyId] });
     },
-    onError: (e: unknown) => {
-      if (e instanceof ApiError) {
-        if (e.code === 'WALLET_INSUFFICIENT' || e.code === 'DAILY_CAP_EXCEEDED')
-          setError('Out of Stars! Ask a parent to top up.');
-        else if (e.code === 'FAMILY_PAUSED') setError('Your family paused AI. Ask a parent.');
-        else setError(e.message);
-      } else {
-        setError('Could not reach AI.');
-      }
-    },
+    onError: (e: unknown) => setError(friendlyError(e)),
   });
 
   const latestArtifact = useMemo(() => {
