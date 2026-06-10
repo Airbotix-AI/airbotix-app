@@ -66,8 +66,14 @@ All turns run server-side via `../code/codeApi`:
 - **Initial build:** `GeneratingScreen` → `streamAgentTurn` (SSE); backend builds the
   whole game and auto-applies (even Pro).
 - **Chat edits:** `useGameAgent` → classify (`…/turn/classify`, safeguarding) →
-  `runTurn` (`…/code/turn`). Lite (8–11) gets the "Do it / Show me first" agency beat;
-  Pro (12–17) multi-file edits stage behind a plan→approve gate. Stars metered
+  `runTurn` (`…/code/turn`). The game agent **always auto-applies** (the kid's ask IS
+  the go-ahead) — no agency beat, no plan→approve gate (those belong to the code studio).
+- **One turn → one message.** While a turn runs, the pending bubble is the **`WorkingCard`**
+  (`WorkingCard.tsx`): an honest step list + per-step/total timers built from the real
+  tool/action deltas (`turnProgress.ts`, fed via `streamTurn`'s `onDelta` — never fake
+  cycling copy). It resolves into exactly ONE settled message. A self-verify auto-fix
+  (`/code/verify-fix`) runs as a **silent "fixing 🔧" beat** in the same card (apply silently
+  on success; a single warm co-debug message only when it can't fix). Stars metered
   server-side; undo is local; `client_actions` run via `executeClientActions`.
 
 ## Runtime contract (what the agent/kid writes)

@@ -7,25 +7,30 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from '@/lib/api';
 import type { AgentTurnResult, TurnEvent, VfsFile } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
+import { resolveProjectFiles } from './panes/playgroundApi';
 
-// Capture the stream's onEvent + a manual resolver so the test controls timing.
+// Capture the stream's onEvent + manual resolve/reject so the test controls timing.
 let capturedOnEvent: ((e: TurnEvent) => void) | undefined;
 let resolveTurn: ((r: AgentTurnResult) => void) | undefined;
+let rejectTurn: ((e: unknown) => void) | undefined;
 let streamArgs: unknown;
 
 vi.mock('../code/codeApi', () => ({
   streamAgentTurn: vi.fn((args: unknown, onEvent: (e: TurnEvent) => void) => {
     streamArgs = args;
     capturedOnEvent = onEvent;
-    return new Promise<AgentTurnResult>((res) => {
+    return new Promise<AgentTurnResult>((res, rej) => {
       resolveTurn = res;
+      rejectTurn = rej;
     });
   }),
 }));
 // The fallback path must never be hit in the happy case; mock it so an accidental
-// call is obvious (it would reject).
+// call is obvious (it would reject). Individual tests override it when they DO
+// exercise the fallback (e.g. the safety-refusal path).
 vi.mock('./panes/playgroundApi', () => ({
   resolveProjectFiles: vi.fn(() => Promise.reject(new Error('fallback should not run'))),
 }));
@@ -45,6 +50,7 @@ const RESULT: AgentTurnResult = {
 afterEach(() => {
   capturedOnEvent = undefined;
   resolveTurn = undefined;
+  rejectTurn = undefined;
   vi.clearAllMocks();
 });
 
@@ -80,10 +86,30 @@ describe('GeneratingScreen (real streamed progress)', () => {
 
     // After the short done beat, hands off the finished VFS + the first-turn seed.
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
-    expect(onDone).toHaveBeenCalledWith(FILES, {
-      prompt: 'a platformer',
-      reply: RESULT.summary,
-      toolsFired: RESULT.tools_fired,
+    expect(onDone).toHaveBeenCalledWith(
+      FILES,
+      {
+        prompt: 'a platformer',
+        reply: RESULT.summary,
+        toolsFired: RESULT.tools_fired,
+      },
+      // A successful build is not blocked (3rd arg added for the safety-refusal path).
+      undefined,
+    );
+  });
+
+  it('a safety-refused first turn → opens the scaffold flagged as blocked (no silent empty)', async () => {
+    // The safety check refuses the idea; the screen must NOT trap the kid — it
+    // loads the empty scaffold and flags `blocked` so the workspace explains it.
+    vi.mocked(resolveProjectFiles).mockResolvedValueOnce(FILES);
+    const onDone = vi.fn();
+    render(<GeneratingScreen prompt="something too rough" projectId="p1" mode="lite" onDone={onDone} />);
+
+    await act(async () => {
+      rejectTurn?.(new ApiError(400, 'MODERATION_REJECTED', "That topic isn't allowed at your age."));
     });
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(onDone).toHaveBeenCalledWith(FILES, undefined, true);
   });
 });

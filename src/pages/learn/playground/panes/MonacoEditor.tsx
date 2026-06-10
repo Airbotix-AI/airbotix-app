@@ -88,7 +88,8 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     return () => node.remove()
   }, [])
 
-  // Decorations for the agent's highlight_code range (cleared on the next jump).
+  // Decorations for the agent's highlight_code range (cleared on the next jump,
+  // or as soon as the kid clicks into the code — see onMouseDown in onMount).
   const highlightRef = useRef<string[]>([])
 
   // The "✨ Explain this" floating toolbar: a Monaco content widget anchored to a
@@ -197,6 +198,14 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
         }
         report()
         editor.onDidChangeCursorPosition(report)
+        // The agent's "here's what changed" highlight steps out of the way the
+        // moment the kid clicks into the code — they're now exploring/editing, so
+        // the emphasis shouldn't linger. It returns next time a change row is tapped.
+        editor.onMouseDown(() => {
+          if (highlightRef.current.length) {
+            highlightRef.current = editor.deltaDecorations(highlightRef.current, [])
+          }
+        })
         // A pending jump (requested before mount) lands once the editor exists.
         if (jumpTo) {
           editor.revealLineInCenter(jumpTo.line)

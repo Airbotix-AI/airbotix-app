@@ -64,6 +64,8 @@ interface WorkspaceProps {
   initialChat?: ChatItem[];
   /** Persist the conversation whenever it changes (J9). */
   onChatChange?: (chat: ChatItem[]) => void;
+  /** The first-turn build was safety-refused → seed an explanation + gentler ideas. */
+  blockedSeed?: boolean;
 }
 
 interface Wallet {
@@ -107,6 +109,7 @@ export function Workspace({
   resumeRecap,
   initialChat,
   onChatChange,
+  blockedSeed,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
@@ -203,6 +206,7 @@ export function Workspace({
     chat,
     busy,
     streaming,
+    progress,
     error,
     offline,
     pending,
@@ -229,6 +233,7 @@ export function Workspace({
       firstTurn,
       initialChat,
       onChatChange,
+      blockedSeed,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
       clientActions: {
@@ -268,6 +273,7 @@ export function Workspace({
     chat,
     busy,
     streaming,
+    progress,
     error,
     offline,
     balance,

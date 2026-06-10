@@ -9,6 +9,7 @@
 
 import {
   Bot,
+  ChevronRight,
   Code2,
   Hand,
   Heart,
@@ -31,6 +32,9 @@ import { useGenerationStore } from '../generationStore';
 import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
 import { ThinkingBubble } from './ThinkingBubble';
+import { WorkingCard } from './WorkingCard';
+import { AiroAvatar } from './AiroAvatar';
+import type { TurnProgress } from './turnProgress';
 import { useStickToBottom } from './useStickToBottom';
 import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
 
@@ -88,6 +92,18 @@ function describeFile(path: string): string {
   return 'A file in your game.';
 }
 
+/** A friendly leading emoji for a changed-file row (feature-focused, like the design). */
+function fileEmoji(path: string): string {
+  const name = path.split('/').pop() ?? path;
+  if (name === 'main.js') return '🔌';
+  if (name === 'Game.js' || name === 'Boot.js') return '🎮';
+  if (name === 'GameOver.js') return '🏁';
+  if (name.endsWith('.css')) return '🎨';
+  if (name.endsWith('.json')) return '⚙️';
+  if (path.includes('/scenes/')) return '✨';
+  return '✨';
+}
+
 /**
  * Build the per-file change rows for an agent bubble: ONE row per file
  * (consolidate multiple edits, §11.4), a one-sentence description, and the line
@@ -125,6 +141,9 @@ interface AIChatPanelProps {
   busy: boolean;
   /** The typing-animation replay is running — the send button becomes Stop (H1). */
   streaming?: boolean;
+  /** The in-flight turn's honest progress — drives the WorkingCard on the pending
+   *  bubble (real steps + timer, not the fake-cycling ThinkingBubble). */
+  progress?: TurnProgress | null;
   error: string | null;
   /** Offline banner (J2 — calm, work-is-safe copy). */
   offline?: boolean;
@@ -167,6 +186,7 @@ export function AIChatPanel({
   chat,
   busy,
   streaming,
+  progress,
   error,
   offline,
   balance,
@@ -207,9 +227,9 @@ export function AIChatPanel({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b border-pg-border px-4 py-3">
-        <span className="flex items-center gap-1.5 text-[14px] font-extrabold text-pg-text">
-          <Sparkles size={16} className="text-brand-sunshine" />
-          AI Helper
+        <span className="flex items-center gap-2 text-[14px] font-extrabold text-pg-text">
+          <AiroAvatar size={22} />
+          Airo
         </span>
         <div className="ml-auto flex items-center gap-2">
           {inClass && (
@@ -257,7 +277,7 @@ export function AIChatPanel({
         className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-text/5 px-4 py-1.5 text-[11px] font-semibold text-pg-text-dim"
       >
         <Bot size={12} className="shrink-0 text-brand-sky" />
-        I'm a robot helper, not a person.
+        I'm Airo, a robot helper — not a person.
       </div>
 
       {/* Calm waiting state for the "Ask my teacher" raise-hand (J4). Stays up so a
@@ -303,7 +323,13 @@ export function AIChatPanel({
           )}
           {chat.map((item) =>
             item.pending ? (
-              <ThinkingBubble key={item.id} />
+              // One in-flight turn → the honest WorkingCard (real steps + timer).
+              // ThinkingBubble is the fallback if progress hasn't seeded yet.
+              progress ? (
+                <WorkingCard key={item.id} progress={progress} />
+              ) : (
+                <ThinkingBubble key={item.id} />
+              )
             ) : (
               <ChatRow
                 key={item.id}
@@ -597,14 +623,23 @@ function ChatRow({
       : hasActions
         ? 'chat-starter'
         : 'agent-msg';
+  // The settled message is a raised card with an "AI Helper" header (the design).
+  // While streaming it stays a light, header-less bubble so the type reveal is calm.
+  const settled = !item.streaming;
   return (
     <div className="flex justify-start">
       <div
         data-testid={testid}
-        className={`max-w-[90%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[14px] leading-relaxed text-pg-text ${
-          item.pending || item.streaming ? 'italic opacity-70' : ''
+        className={`max-w-[92%] rounded-2xl border border-pg-border px-4 text-[14px] leading-relaxed text-pg-text ${
+          settled ? 'bg-pg-surface py-3.5 shadow-sm' : 'bg-pg-text/10 py-2.5 italic opacity-80'
         }`}
       >
+        {settled && (
+          <div className="mb-2 flex items-center gap-2">
+            <AiroAvatar size={24} />
+            <span className="text-[13px] font-extrabold text-pg-text">Airo</span>
+          </div>
+        )}
         <div className="whitespace-pre-wrap">
           {item.text}
           {item.streaming && <span aria-hidden="true" className="ml-0.5 animate-pulse">▍</span>}
@@ -617,7 +652,7 @@ function ChatRow({
           const changedFiles = buildChangedFiles(item);
           if (changedFiles.length === 0) return null;
           return (
-            <div data-testid="file-changes" className="mt-2.5 flex flex-col gap-1.5">
+            <div data-testid="file-changes" className="mt-3 flex flex-col gap-2">
               {changedFiles.map((f) => (
                 <button
                   key={f.path}
@@ -625,15 +660,21 @@ function ChatRow({
                   data-testid="file-change"
                   onClick={() => onOpenFile?.(f.path, f.fromLine, f.toLine)}
                   disabled={!onOpenFile}
-                  className="group flex items-start gap-1.5 rounded-lg bg-wash-mint/70 px-2.5 py-1.5 text-left transition-colors enabled:hover:bg-wash-mint disabled:cursor-default"
+                  title={f.path}
+                  className="group flex items-center gap-2.5 rounded-xl border border-pg-border bg-pg-surface-2 px-3 py-2.5 text-left transition-colors enabled:hover:border-brand-sky/50 disabled:cursor-default"
                 >
-                  <span aria-hidden="true">📝</span>
-                  <span className="min-w-0">
-                    <span className="font-bold text-[11.5px] text-ink underline-offset-2 group-enabled:group-hover:underline">
-                      {f.path}
-                    </span>
-                    {f.note && <span className="text-[11.5px] text-ink/70"> — {f.note}</span>}
+                  <span aria-hidden="true" className="text-[15px]">{fileEmoji(f.path)}</span>
+                  <span className="min-w-0 flex-1">
+                    {/* Lead with the friendly, feature-focused change (the design); the
+                        file name rides along quietly for the editor jump + learning. */}
+                    <span className="block truncate text-[13.5px] text-pg-text">{f.note}</span>
+                    <span className="block truncate font-mono text-[11px] text-pg-text-muted">{f.path}</span>
                   </span>
+                  <ChevronRight
+                    size={16}
+                    aria-hidden="true"
+                    className="shrink-0 text-pg-text-muted transition-colors group-enabled:group-hover:text-brand-sky"
+                  />
                 </button>
               ))}
             </div>
@@ -666,23 +707,28 @@ function ChatRow({
         {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06).
             Tapping one sends its prompt as the next turn. */}
         {item.nextSteps && item.nextSteps.length > 0 && (
-          <div data-testid="next-steps" className="mt-3 flex flex-wrap gap-2">
-            {item.nextSteps.map((step, i) => (
-              <button
-                key={i}
-                type="button"
-                data-testid="next-step"
-                onClick={() => onSend?.(step.prompt, { guided: true })}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold transition-transform hover:-translate-y-0.5 ${
-                  step.tag === 'concept'
-                    ? 'bg-brand-sky/15 text-brand-sky'
-                    : 'bg-brand-bubblegum/15 text-brand-bubblegum'
-                }`}
-              >
-                {step.tag === 'concept' ? <Sparkles size={14} /> : <Wand2 size={14} />}
-                {step.label}
-              </button>
-            ))}
+          <div className="mt-3.5 border-t border-pg-border pt-3">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted">
+              What next?
+            </div>
+            <div data-testid="next-steps" className="flex flex-wrap gap-2">
+              {item.nextSteps.map((step, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  data-testid="next-step"
+                  onClick={() => onSend?.(step.prompt, { guided: true })}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-transform hover:-translate-y-0.5 ${
+                    step.tag === 'fun'
+                      ? 'border-brand-bubblegum/45 bg-brand-bubblegum/10 text-brand-bubblegum'
+                      : 'border-brand-sky/45 bg-brand-sky/10 text-brand-sky'
+                  }`}
+                >
+                  {step.tag === 'fun' ? <Wand2 size={14} /> : <Sparkles size={14} />}
+                  {step.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

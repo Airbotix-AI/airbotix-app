@@ -1,0 +1,147 @@
+<svg width="1320" height="880" viewBox="0 0 1320 880" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Inter, Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#17121F"/>
+      <stop offset="1" stop-color="#0E0B16"/>
+    </linearGradient>
+    <linearGradient id="kid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5DAEFF"/>
+      <stop offset="1" stop-color="#7C5CFF"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="0.35" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#9BC8FF"/>
+      <stop offset="0.5" stop-color="#5DAEFF"/>
+      <stop offset="1" stop-color="#7C5CFF"/>
+    </radialGradient>
+    <linearGradient id="prog" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5DAEFF"/>
+      <stop offset="1" stop-color="#3DD9A9"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2B2640"/>
+      <stop offset="1" stop-color="#241F36"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1320" height="880" fill="url(#bg)"/>
+
+  <text x="60" y="64" fill="#FFFEF7" font-size="30" font-weight="800">Playground chat · one turn, one message</text>
+  <text x="60" y="94" fill="#9C95AB" font-size="16.5">A few friendly steps while it works  →  one message when it’s done.</text>
+
+  <!-- ============ PANEL A : WHILE IT WORKS ============ -->
+  <g>
+    <text x="60" y="150" fill="#5DAEFF" font-size="14" font-weight="700" letter-spacing="1.5">1 · WHILE IT WORKS</text>
+    <rect x="60" y="168" width="600" height="648" rx="22" fill="#16121F" stroke="#2E2940" stroke-width="1.5" filter="url(#soft)"/>
+    <rect x="60" y="168" width="600" height="56" rx="22" fill="#1B1626"/>
+    <rect x="60" y="206" width="600" height="18" fill="#1B1626"/>
+    <line x1="60" y1="224" x2="660" y2="224" stroke="#2E2940" stroke-width="1.5"/>
+    <text x="86" y="202" fill="#FFFEF7" font-size="16" font-weight="700">💬  Chat</text>
+
+    <!-- kid bubble -->
+    <rect x="338" y="252" width="296" height="52" rx="18" fill="url(#kid)"/>
+    <text x="614" y="284" fill="#FFFFFF" font-size="15.5" font-weight="600" text-anchor="end">make the aliens shoot back</text>
+
+    <!-- progress card (progress ONLY; input is the panel footer below) -->
+    <rect x="86" y="332" width="510" height="252" rx="20" fill="#201B2E" stroke="#3A3458" stroke-width="1.5"/>
+
+    <circle cx="118" cy="372" r="15" fill="url(#orb)" filter="url(#glow)"/>
+    <text x="146" y="378" fill="#FFFEF7" font-size="17" font-weight="700">Working on it…</text>
+    <circle cx="556" cy="372" r="4.5" fill="#3DD9A9"/>
+    <text x="546" y="377" fill="#3DD9A9" font-size="12" font-weight="700" text-anchor="end">live</text>
+
+    <rect x="118" y="402" width="436" height="9" rx="4.5" fill="#2A2540"/>
+    <rect x="118" y="402" width="262" height="9" rx="4.5" fill="url(#prog)" filter="url(#glow)"/>
+
+    <!-- 3 friendly steps, each with how long it took / is taking -->
+    <circle cx="126" cy="454" r="12" fill="#3DD9A9"/>
+    <path d="M120 454 l4 4 l8 -8" stroke="#0E0B16" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="150" y="459" fill="#C7C0D5" font-size="16">Looked at your game 👀</text>
+    <text x="554" y="459" fill="#6E6886" font-size="13" text-anchor="end" font-family="ui-monospace, Menlo, monospace">2s</text>
+
+    <circle cx="126" cy="500" r="13.5" fill="none" stroke="#5DAEFF" stroke-width="2.5" opacity="0.35"/>
+    <circle cx="126" cy="500" r="6.5" fill="#5DAEFF" filter="url(#glow)"/>
+    <text x="150" y="505" fill="#FFFEF7" font-size="16" font-weight="600">Adding the lasers ✨</text>
+    <text x="554" y="505" fill="#7FC0FF" font-size="13.5" text-anchor="end" font-family="ui-monospace, Menlo, monospace" font-weight="700">0:04</text>
+
+    <circle cx="126" cy="546" r="11.5" fill="none" stroke="#5A5470" stroke-width="2"/>
+    <text x="150" y="551" fill="#7E7791" font-size="16">Making it work 🚀</text>
+
+    <!-- chat input (panel footer, disabled while working) -->
+    <rect x="86" y="748" width="510" height="46" rx="14" fill="#181426" stroke="#2E2940" stroke-width="1.3"/>
+    <text x="108" y="776" fill="#5A5470" font-size="14.5">Working on it…</text>
+    <circle cx="566" cy="771" r="15" fill="#241F36" stroke="#3A3458" stroke-width="1.3"/>
+    <path d="M561 771 a5 5 0 1 1 5 5" stroke="#5DAEFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- arrow -->
+  <g transform="translate(690,494)">
+    <circle cx="0" cy="0" r="22" fill="#201B2E" stroke="#3A3458" stroke-width="1.5"/>
+    <path d="M-7 0 h13 M2 -6 l6 6 l-6 6" stroke="#3DD9A9" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- ============ PANEL B : DONE — ONE MESSAGE ============ -->
+  <g>
+    <text x="724" y="150" fill="#3DD9A9" font-size="14" font-weight="700" letter-spacing="1.5">2 · DONE — ONE MESSAGE</text>
+    <rect x="724" y="168" width="536" height="648" rx="22" fill="#16121F" stroke="#2E2940" stroke-width="1.5" filter="url(#soft)"/>
+    <rect x="724" y="168" width="536" height="56" rx="22" fill="#1B1626"/>
+    <rect x="724" y="206" width="536" height="18" fill="#1B1626"/>
+    <line x1="724" y1="224" x2="1260" y2="224" stroke="#2E2940" stroke-width="1.5"/>
+    <text x="750" y="202" fill="#FFFEF7" font-size="16" font-weight="700">💬  Chat</text>
+
+    <!-- kid bubble -->
+    <rect x="938" y="252" width="296" height="52" rx="18" fill="url(#kid)"/>
+    <text x="1214" y="284" fill="#FFFFFF" font-size="15.5" font-weight="600" text-anchor="end">make the aliens shoot back</text>
+
+    <!-- the ONE message -->
+    <rect x="750" y="332" width="486" height="356" rx="20" fill="#201B2E" stroke="#3A3458" stroke-width="1.5"/>
+
+    <circle cx="782" cy="372" r="15" fill="url(#orb)"/>
+    <text x="810" y="378" fill="#FFFEF7" font-size="16" font-weight="700">Airo</text>
+
+    <text x="774" y="424" fill="#EDEAF5" font-size="16">
+      <tspan x="774" dy="0">Done! The aliens shoot glowing lasers back at</tspan>
+      <tspan x="774" dy="23">your plane now — watch out! 👾</tspan>
+    </text>
+
+    <!-- friendly "what changed" rows (tap → opens the code) -->
+    <rect x="774" y="472" width="438" height="42" rx="12" fill="url(#chip)" stroke="#3A3458" stroke-width="1.2"/>
+    <text x="793" y="498" font-size="16">✨</text>
+    <text x="822" y="498" fill="#EDEAF5" font-size="15">The aliens shoot lasers now</text>
+    <path d="M1196 493 l-4 4 l4 4" stroke="#5DAEFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 1192 497)"/>
+
+    <rect x="774" y="522" width="438" height="42" rx="12" fill="url(#chip)" stroke="#3A3458" stroke-width="1.2"/>
+    <text x="793" y="548" font-size="16">🎮</text>
+    <text x="822" y="548" fill="#EDEAF5" font-size="15">More enemies join the game</text>
+    <path d="M1196 543 l-4 4 l4 4" stroke="#5DAEFF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 1192 547)"/>
+
+    <line x1="774" y1="592" x2="1212" y2="592" stroke="#2E2940" stroke-width="1.3"/>
+    <text x="774" y="618" fill="#7E7791" font-size="12.5" font-weight="700" letter-spacing="0.6">WHAT NEXT?</text>
+
+    <rect x="774" y="634" width="158" height="42" rx="21" fill="#1E2A3D" stroke="#3A6189" stroke-width="1.3"/>
+    <text x="853" y="660" fill="#BBD8FF" font-size="14" font-weight="600" text-anchor="middle">Add a health bar</text>
+    <rect x="942" y="634" width="168" height="42" rx="21" fill="#1E2A3D" stroke="#3A6189" stroke-width="1.3"/>
+    <text x="1026" y="660" fill="#BBD8FF" font-size="14" font-weight="600" text-anchor="middle">Make lasers faster</text>
+    <rect x="1120" y="634" width="92" height="42" rx="21" fill="#2A2333" stroke="#5A4A6E" stroke-width="1.3"/>
+    <text x="1166" y="660" fill="#E7C9FF" font-size="14" font-weight="600" text-anchor="middle">✨ Fun</text>
+
+    <!-- chat input (ready) -->
+    <rect x="750" y="748" width="486" height="46" rx="14" fill="#181426" stroke="#3A3458" stroke-width="1.3"/>
+    <text x="772" y="776" fill="#7E7791" font-size="14.5">What should we build next?</text>
+    <circle cx="1206" cy="771" r="15" fill="#5DAEFF"/>
+    <path d="M1200 771 l12 -5 l-5 12 l-2 -5 z" fill="#0E0B16"/>
+  </g>
+
+  <!-- review notes -->
+  <g transform="translate(60,852)">
+    <circle cx="8" cy="-4" r="5" fill="#3DD9A9"/>
+    <text x="22" y="0" fill="#C7C0D5" font-size="14"><tspan font-weight="700" fill="#FFFEF7">One turn = one message.</tspan>  The reply shows only when it’s really done.</text>
+    <circle cx="712" cy="-4" r="5" fill="#5DAEFF"/>
+    <text x="726" y="0" fill="#C7C0D5" font-size="14"><tspan font-weight="700" fill="#FFFEF7">Simple, honest steps.</tspan>  Friendly progress from real events — no Stars, no clutter.</text>
+  </g>
+</svg>

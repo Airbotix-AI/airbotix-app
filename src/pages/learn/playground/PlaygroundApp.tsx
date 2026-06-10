@@ -91,6 +91,9 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // Restored chat history (J9): the saved conversation, loaded on resume and passed
   // to the workspace so it reopens with the real log (not a fresh starter seed).
   const [initialChat, setInitialChat] = useState<ChatItem[] | undefined>(undefined);
+  // The first-turn build was refused by the safety check → seed the workspace chat
+  // with a friendly explanation + gentler suggestions (not a silent empty project).
+  const [blockedSeed, setBlockedSeed] = useState(false);
   // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
@@ -311,9 +314,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           prompt={prompt}
           projectId={projectId}
           mode={mode}
-          onDone={async (f, ft) => {
+          onDone={async (f, ft, blocked) => {
             // The AI's first turn (if any) seeds the workspace chat history.
             setFirstTurn(ft);
+            // A safety-refused build → seed the chat with an explanation + gentler ideas.
+            setBlockedSeed(!!blocked);
             // Load the project (PRD J9): for a REAL project the backend is the
             // source of truth — `loadPersisted` reads its saved versioned VFS (and
             // falls back to the offline cache); for a project-less session it's the cache.
@@ -388,6 +393,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           resumeRecap={resumeRecap}
           initialChat={initialChat}
           onChatChange={persistChat}
+          blockedSeed={blockedSeed}
           // Only a real OWNED project (the authed route param, or the id created
           // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
