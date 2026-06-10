@@ -18,6 +18,7 @@
 import { readVfsSnapshot, saveVfs, SaveConflictError, type VfsFile, type VfsSnapshot } from '../code/codeApi';
 import { type WorkspaceUiBlob } from './workspaceUiStore';
 import type { Checkpoint } from './historyStore';
+import type { ChatItem } from './panes/useGameAgent';
 
 export interface PersistedProject {
   files: VfsFile[];
@@ -94,6 +95,34 @@ export async function saveWorkspaceUi(key: string, blob: WorkspaceUiBlob): Promi
     await withStore('readwrite', (s) => s.put(blob, UI_PREFIX + key));
   } catch {
     // UI persistence is best-effort; losing it only resets the layout once.
+  }
+}
+
+// ── Chat history (the conversation log, J9 "resume where I left off"). The rich
+//    ChatItem data (next-step chips, per-file change rows, file notes) lives ONLY
+//    client-side — the backend's CodeAgentTurn records just prompt+summary — so
+//    the conversation is cached device-local in the SAME store under a `chat:`
+//    prefix, like the workspace UI above. Best-effort; never touches the VFS. ──
+const CHAT_PREFIX = 'chat:';
+
+/** Load the persisted chat history for a project (or null). Best-effort. */
+export async function loadChatHistory(key: string): Promise<ChatItem[] | null> {
+  try {
+    const data = await withStore<ChatItem[] | undefined>('readonly', (s) =>
+      s.get(CHAT_PREFIX + key),
+    );
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the chat history for a project. Best-effort — swallows failures. */
+export async function saveChatHistory(key: string, chat: ChatItem[]): Promise<void> {
+  try {
+    await withStore('readwrite', (s) => s.put(chat, CHAT_PREFIX + key));
+  } catch {
+    // Chat persistence is best-effort; losing it only resets the log once.
   }
 }
 

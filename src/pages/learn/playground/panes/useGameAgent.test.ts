@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
 import type { AgentTurnResult } from '../../code/codeApi';
 import type { GameAgentDeps } from './gameAgent';
-import { useGameAgent } from './useGameAgent';
+import { useGameAgent, type ChatItem } from './useGameAgent';
 
 // A handle a test can resolve on demand, so `streamTurn` stays pending while we
 // press Stop (which flips the `sig.aborted` flag the hook owns).
@@ -213,5 +213,48 @@ describe('useGameAgent error copy distinguishes unreachable vs server-error', ()
       await result.current.send('make it blue');
     });
     await waitFor(() => expect(result.current.error).toBe(REACH_FAIL));
+  });
+});
+
+// J9 resume: the conversation is restored from saved history, and a blank prompt
+// (a resume) never re-injects the canned "your game starter is ready" starter.
+describe('useGameAgent chat seed + restore (J9 resume)', () => {
+  const restored: ChatItem[] = [
+    { id: 'k1', role: 'kid', text: 'make chess' },
+    { id: 'a1', role: 'agent', text: 'I made a chess board.' },
+    { id: 'k2', role: 'kid', text: 'add turns' },
+    { id: 'a2', role: 'agent', text: 'Added click-to-move turns.' },
+  ];
+
+  it('restored initialChat takes precedence over the intro seed', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: 'make chess', initialChat: restored }),
+    );
+    expect(result.current.chat).toHaveLength(4);
+    expect(result.current.chat.some((c) => c.text.includes('game starter is ready'))).toBe(false);
+    expect(result.current.chat.at(-1)?.text).toBe('Added click-to-move turns.');
+  });
+
+  it('a blank introPrompt (resume) does NOT seed the canned starter', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: '' }),
+    );
+    expect(result.current.chat).toEqual([]);
+  });
+
+  it('a real introPrompt still seeds the starter for a brand-new project', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: 'make a maze' }),
+    );
+    const agent = result.current.chat.find((c) => c.role === 'agent');
+    expect(agent?.text).toContain('game starter is ready');
+  });
+
+  it('persists via onChatChange on the seed (so an immediate exit still saves)', () => {
+    const onChatChange = vi.fn();
+    renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), initialChat: restored, onChatChange }),
+    );
+    expect(onChatChange).toHaveBeenCalledWith(restored);
   });
 });

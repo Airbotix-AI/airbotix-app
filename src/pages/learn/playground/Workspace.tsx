@@ -33,7 +33,7 @@ import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
-import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
+import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
@@ -60,6 +60,10 @@ interface WorkspaceProps {
   firstTurn?: FirstTurnSeed;
   /** The teacher's "where we left off" on a resumed game → welcome-back card (D-PAP-19,22). */
   resumeRecap?: LearningContext | null;
+  /** Restored chat history (J9 resume) — reopens the saved conversation. */
+  initialChat?: ChatItem[];
+  /** Persist the conversation whenever it changes (J9). */
+  onChatChange?: (chat: ChatItem[]) => void;
 }
 
 interface Wallet {
@@ -87,6 +91,8 @@ export function Workspace({
   projectId,
   firstTurn,
   resumeRecap,
+  initialChat,
+  onChatChange,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
@@ -207,6 +213,8 @@ export function Workspace({
       projectId,
       mode,
       firstTurn,
+      initialChat,
+      onChatChange,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
       clientActions: {

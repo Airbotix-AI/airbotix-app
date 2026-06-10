@@ -131,9 +131,21 @@ export interface UseGameAgentOptions {
   deps?: GameAgentDeps;
   /**
    * Seed the chat on first mount with the launch hand-off (kid prompt + a generic
-   * "starter ready" message carrying Run / See-code actions).
+   * "starter ready" message carrying Run / See-code actions). Only used for a
+   * BRAND-NEW project when no real first turn was captured — an empty/blank value
+   * never seeds the starter (so a resume doesn't show "your game starter is ready").
    */
   introPrompt?: string;
+  /**
+   * Restored chat history (J9 resume). When present + non-empty it takes precedence
+   * over `firstTurn` / `introPrompt` — the workspace reopens with the real saved
+   * conversation, not a fresh seed.
+   */
+  initialChat?: ChatItem[];
+  /** Called (with the full chat) whenever the conversation changes, so the owner
+   *  can persist it. Fired on the seed too, so a brand-new project's opening turn
+   *  is saved even if the kid exits immediately. */
+  onChatChange?: (chat: ChatItem[]) => void;
 }
 
 const PENDING_TEXT = 'Thinking…';
@@ -245,16 +257,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     deps = realGameAgentDeps,
     introPrompt,
     firstTurn,
+    initialChat,
+    onChatChange,
   } = opts;
 
   const isReal = !!projectId;
 
   const [chat, setChat] = useState<ChatItem[]>(() =>
-    firstTurn
-      ? buildFirstTurn(firstTurn)
-      : introPrompt !== undefined
-        ? buildIntro(introPrompt)
-        : [],
+    // Restored history (resume) wins; then a real first turn; then the canned
+    // starter — but ONLY when introPrompt is a non-empty prompt, so a resume
+    // (blank prompt) never re-injects "your game starter is ready".
+    initialChat && initialChat.length > 0
+      ? initialChat
+      : firstTurn
+        ? buildFirstTurn(firstTurn)
+        : introPrompt && introPrompt.trim()
+          ? buildIntro(introPrompt)
+          : [],
   );
   const [busy, setBusy] = useState(false);
   // Whether the token-by-token reveal replay is currently running (drives the
@@ -302,6 +321,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       window.removeEventListener('offline', off);
     };
   }, []);
+
+  // Persist the conversation on every change (J9 resume). The owner debounces +
+  // filters transient bubbles; here we just hand it the latest chat — including
+  // the seed, so a brand-new project's opening turn is saved even on a fast exit.
+  const onChatChangeRef = useRef(onChatChange);
+  onChatChangeRef.current = onChatChange;
+  useEffect(() => {
+    onChatChangeRef.current?.(chat);
+  }, [chat]);
 
   useEffect(() => {
     // Re-arm on (re)mount: StrictMode's dev mount→cleanup→remount cycle would
