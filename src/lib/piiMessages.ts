@@ -78,6 +78,6 @@ export function piiWarnCopy(
   isYoung: boolean,
 ): { title: string; body: string } {
   const first = categories?.[0];
-  const copy = (first && PII_WARN_COPY[first]) ?? DEFAULT_COPY;
+  const copy = (first ? PII_WARN_COPY[first] : undefined) ?? DEFAULT_COPY;
   return { title: copy.title, body: isYoung ? copy.young : copy.older };
 }
