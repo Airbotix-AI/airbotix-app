@@ -28,6 +28,20 @@ describe('asset generation — stub fallback (DEV sandbox, no projectId)', () =>
   });
 });
 
+describe('asset generation — prompt-only kind inference (no kind picker, D-ASSET-4)', () => {
+  it('infers an image when the prompt has no audio cue', async () => {
+    const r = await runGen({ prompt: 'a shiny pixel coin' });
+    expect(r.mime).toBe('image/svg+xml');
+  });
+
+  it('infers audio when the prompt names a sound', async () => {
+    for (const prompt of ['a jump sound', 'coin pickup sfx', 'happy background music', 'a robot voice']) {
+      const r = await runGen({ prompt });
+      expect(r.mime, prompt).toBe('audio/wav');
+    }
+  });
+});
+
 describe('asset generation — real backend (authed studio, projectId set)', () => {
   it('routes through the injected backend dep when a projectId is present', async () => {
     const generate = vi.fn().mockResolvedValue({ dataUrl: 'data:image/png;base64,AA', mime: 'image/png' });
@@ -36,7 +50,7 @@ describe('asset generation — real backend (authed studio, projectId set)', () 
 
     const r = await runGen(req, deps);
 
-    expect(generate).toHaveBeenCalledWith(req);
+    expect(generate).toHaveBeenCalledWith(req, undefined);
     expect(r.mime).toBe('image/png');
   });
 

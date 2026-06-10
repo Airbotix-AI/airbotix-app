@@ -22,7 +22,7 @@ import clsx from 'clsx';
 import { useMe } from '@/auth/useAuth';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
-import type { VfsFile } from '../code/codeApi';
+import type { LearningContext, VfsFile } from '../code/codeApi';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
@@ -33,7 +33,7 @@ import { CodeEditorPane } from './panes/CodeEditorPane';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
-import { useGameAgent, type FirstTurnSeed } from './panes/useGameAgent';
+import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
@@ -58,6 +58,12 @@ interface WorkspaceProps {
   projectId?: string;
   /** The AI's first turn (generated on the loading screen) — seeds the chat. */
   firstTurn?: FirstTurnSeed;
+  /** The teacher's "where we left off" on a resumed game → welcome-back card (D-PAP-19,22). */
+  resumeRecap?: LearningContext | null;
+  /** Restored chat history (J9 resume) — reopens the saved conversation. */
+  initialChat?: ChatItem[];
+  /** Persist the conversation whenever it changes (J9). */
+  onChatChange?: (chat: ChatItem[]) => void;
 }
 
 interface Wallet {
@@ -65,6 +71,20 @@ interface Wallet {
 }
 
 type SplitTab = 'chat' | 'code' | 'assets' | 'help';
+
+/** Cap a selected snippet so the chat bubble + prompt stay reasonable — the
+ *  backend already has the whole file as context, so the snippet only points the
+ *  agent at WHICH code to explain. */
+const MAX_EXPLAIN_CHARS = 1200;
+
+/** Build the kid-friendly "explain this selection" prompt. Asks for a plain answer
+ *  and tells the agent NOT to edit — an explain must never change the game. */
+function buildExplainPrompt(code: string): string {
+  const trimmed = code.trim();
+  const snippet =
+    trimmed.length > MAX_EXPLAIN_CHARS ? `${trimmed.slice(0, MAX_EXPLAIN_CHARS)}\n…` : trimmed;
+  return `Explain what this code does in simple words — don't change my game:\n\n${snippet}`;
+}
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
 // of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
@@ -84,11 +104,21 @@ export function Workspace({
   prompt,
   projectId,
   firstTurn,
+  resumeRecap,
+  initialChat,
+  onChatChange,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
+  // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
+  // it simply sits above the chat; it never blocks typing). D-PAP-19,22.
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  const showRecap = !!resumeRecap && !recapDismissed;
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
   );
+  // A request to open a specific asset in the Asset Viewer (from a chat card).
+  const [openAsset, setOpenAsset] = useState<{ path: string; nonce: number } | null>(null);
+  const openAssetNonce = useRef(0);
   useEffect(() => {
     writeWorkspaceSlice('split', { tab: splitTab });
   }, [splitTab]);
@@ -136,10 +166,30 @@ export function Workspace({
     else if (target !== 'game') setSplitTab(target);
   };
 
+  // Open a file in the code view and (optionally) reveal/highlight a line range.
+  // Shared by the console's jump-to-error AND the agent's open_file/jump_to_line/
+  // highlight_code UI tools (D-PAP-08). The monotonic nonce makes a repeat request
+  // for the same file:line re-fire (a new object identity each time).
+  const [locationRequest, setLocationRequest] = useState<{
+    file: string;
+    line: number;
+    toLine?: number;
+    nonce: number;
+  } | null>(null);
+  const jumpNonce = useRef(0);
+  const handleOpenLocation = (file: string, line: number, toLine?: number) => {
+    setLocationRequest({ file, line, toLine, nonce: (jumpNonce.current += 1) });
+    // Bring the editor forward so the kid sees the jump.
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
+    else setSplitTab('code');
+  };
+
   // The agent's `open_help` — surface the Guide and jump it to a passage. A
   // monotonic nonce makes a repeat jump to the same place re-fire (HelpPane reacts
   // to the new object identity). Mirrors the jump-to-error `locationRequest` seam.
-  const [helpRequest, setHelpRequest] = useState<{ docId: string; anchor?: string; nonce: number } | null>(null);
+  const [helpRequest, setHelpRequest] = useState<{ docId: string; anchor?: string; nonce: number } | null>(
+    null,
+  );
   const helpNonce = useRef(0);
   const openHelp = (docId: string, anchor?: string) => {
     focusPanel('help');
@@ -161,6 +211,7 @@ export function Workspace({
     safeguard,
     handRaised,
     send,
+    requestAssetGen,
     confirmPending,
     cancelPending,
     undo,
@@ -168,6 +219,7 @@ export function Workspace({
     lowerHand,
     abort,
     retryLast,
+    autoFixFromErrors,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -175,6 +227,8 @@ export function Workspace({
       projectId,
       mode,
       firstTurn,
+      initialChat,
+      onChatChange,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
       clientActions: {
@@ -182,6 +236,12 @@ export function Workspace({
         restartGame: runFromEditor,
         focusPanel,
         openHelp,
+        // Teaching tools: open/reveal/highlight the file the agent just changed.
+        openFile: (path, fromLine, toLine) => handleOpenLocation(path, fromLine ?? 1, toLine),
+        // Look tools — only fire when the agent was asked (guardrail enforced
+        // backend-side); here they just drive the store.
+        setTheme: (t) => usePlaygroundStore.getState().setTheme(t),
+        setLayout: (m) => usePlaygroundStore.getState().setLayoutMode(m),
       },
     });
 
@@ -190,6 +250,19 @@ export function Workspace({
   const handleSeeCode = () => {
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
+  };
+  // Tapping a finished asset in chat → bring the Asset Viewer to front and open
+  // that asset there (the nonce re-fires even when reopening the same path).
+  const openAssetInViewer = (path: string) => {
+    focusPanel('assets');
+    setOpenAsset({ path, nonce: openAssetNonce.current++ });
+  };
+  const assetSrcFromChat = (path: string) => files.find((f) => f.path === path)?.content;
+  // Asset Viewer Generate/Remix → bring the Chat to front (it's where generation
+  // shows), then post the request. The chat auto-scrolls to the new message.
+  const requestAssetGenFromViewer = (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+    focusPanel('chat');
+    requestAssetGen(prompt, ref);
   };
   const chatProps = {
     chat,
@@ -211,24 +284,15 @@ export function Workspace({
     onLowerHand: lowerHand,
     onRunGame: runFromEditor,
     onSeeCode: handleSeeCode,
+    // Tap a changed-file row → open the editor and highlight the change (§11.4).
+    onOpenFile: (path: string, fromLine?: number, toLine?: number) =>
+      handleOpenLocation(path, fromLine ?? 1, toLine),
+    onOpenAsset: openAssetInViewer,
+    assetSrc: assetSrcFromChat,
     onStop: abort,
     onRetry: retryLast,
-  };
-
-  // A request from the runner console to open a file at a line (jump-to-error).
-  // The Code Editor pane reacts to it; the monotonic nonce makes a repeat click
-  // on the same file:line re-fire (a new object identity each time).
-  const [locationRequest, setLocationRequest] = useState<{
-    file: string;
-    line: number;
-    nonce: number;
-  } | null>(null);
-  const jumpNonce = useRef(0);
-  const handleOpenLocation = (file: string, line: number) => {
-    setLocationRequest({ file, line, nonce: (jumpNonce.current += 1) });
-    // Bring the editor forward so the kid sees the jump.
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
-    else setSplitTab('code');
+    recap: showRecap ? resumeRecap : null,
+    onContinueRecap: () => setRecapDismissed(true),
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and
@@ -236,6 +300,16 @@ export function Workspace({
   // is real.)
   const handleAskFix = (message: string) => {
     send(message);
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
+    else setSplitTab('chat');
+  };
+
+  // "✨ Explain this" on an editor selection → send the snippet to the chat agent
+  // for a plain-words explanation (the prompt asks it not to edit). The playground
+  // teacher model auto-applies with no agency gate, so a plain `send` answers
+  // directly. Surface the chat so the answer is visible.
+  const handleExplainCode = (code: string) => {
+    send(buildExplainPrompt(code));
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
     else setSplitTab('chat');
   };
@@ -281,6 +355,7 @@ export function Workspace({
               onApplyFiles={onApplyFiles}
               onRun={runFromEditor}
               openLocation={locationRequest}
+              onExplainSelection={handleExplainCode}
             />
           </Window>
           <Window
@@ -303,6 +378,7 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
+              onRuntimeErrors={autoFixFromErrors}
             />
           </Window>
           <Window
@@ -310,7 +386,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
           </Window>
           <Window
             id="help"
@@ -376,11 +452,12 @@ export function Workspace({
                     onApplyFiles={onApplyFiles}
                     onRun={runFromEditor}
                     openLocation={locationRequest}
+                    onExplainSelection={handleExplainCode}
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
                 )}
               </div>
             </section>
@@ -397,6 +474,7 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
+              onRuntimeErrors={autoFixFromErrors}
             />
           </Panel>
         </PanelGroup>

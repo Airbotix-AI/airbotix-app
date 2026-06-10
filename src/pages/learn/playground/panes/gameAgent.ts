@@ -16,9 +16,12 @@ import {
   approveTurn as apiApproveTurn,
   classifyMessage as apiClassifyMessage,
   raiseHand as apiRaiseHand,
+  reportRuntimeErrors as apiReportRuntimeErrors,
   runAgentTurn as apiRunAgentTurn,
   type AgentTurnResult,
+  type ClassifyResult,
   type SafeguardingVerdict,
+  type VerifyFixResult,
   type VfsFile,
 } from '../../code/codeApi';
 
@@ -32,6 +35,9 @@ export type RunAgentTurn = (args: {
   projectId: string;
   prompt: string;
   mode: 'lite' | 'pro';
+  piiWarnAcknowledged?: boolean;
+  /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
+  guided?: boolean;
 }) => Promise<AgentTurnResult>;
 
 /** Approve / reject a staged (Pro) plan. */
@@ -51,7 +57,7 @@ export type ApproveAgentTurn = (args: {
 export type ClassifyMessage = (args: {
   projectId: string;
   prompt: string;
-}) => Promise<SafeguardingVerdict | null>;
+}) => Promise<ClassifyResult>;
 
 /**
  * "Ask my teacher" raise-hand (J4) — posts a lightweight signal the teacher's live
@@ -60,12 +66,25 @@ export type ClassifyMessage = (args: {
  */
 export type RaiseHand = (args: { projectId: string }) => Promise<void>;
 
+/**
+ * Self-verify auto-fix (MP3 / D-PAP-09,13,23). Report the runtime errors the
+ * sandbox captured running a just-applied game; the backend fixes them (≤2) or
+ * hands off to co-debug.
+ */
+export type ReportRuntimeErrors = (args: {
+  projectId: string;
+  errors: string[];
+  attempt: number;
+  mode: 'lite' | 'pro';
+}) => Promise<VerifyFixResult>;
+
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface GameAgentDeps {
   runTurn: RunAgentTurn;
   approve: ApproveAgentTurn;
   classify: ClassifyMessage;
   raiseHand?: RaiseHand;
+  reportRuntimeErrors: ReportRuntimeErrors;
 }
 
 export const realGameAgentDeps: GameAgentDeps = {
@@ -73,6 +92,7 @@ export const realGameAgentDeps: GameAgentDeps = {
   approve: apiApproveTurn,
   classify: apiClassifyMessage,
   raiseHand: apiRaiseHand,
+  reportRuntimeErrors: apiReportRuntimeErrors,
 };
 
 /** Per-token reveal cadence (ms). Kept short so a turn never feels laggy. */

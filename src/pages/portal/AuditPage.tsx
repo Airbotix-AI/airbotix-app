@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { Link } from 'react-router-dom';
@@ -87,7 +88,101 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
   );
 }
 
+interface SafetySummary {
+  total: number;
+  window_sec: number;
+  start_at: string;
+  end_at: string;
+  categories: { key: string; label: string; icon: string; count: number }[];
+}
+
+function SafetyEscalatedRow({ event }: { event: AuditEvent }) {
+  const [open, setOpen] = useState(false);
+  const familyId = event.family_id;
+  const kidId = event.kid_id;
+  const windowSec = (event.payload?.['window_sec'] as number | undefined) ?? 3600;
+
+  const summary = useQuery<SafetySummary>({
+    queryKey: ['safety-summary', familyId, kidId, windowSec],
+    queryFn: () =>
+      api<SafetySummary>(`/families/${familyId}/kids/${kidId}/safety-summary?window_sec=${windowSec}`),
+    enabled: open && !!familyId && !!kidId,
+  });
+
+  return (
+    <li className="px-6 py-4 bg-wash-coral/30">
+      <div className="flex items-start gap-4">
+        <span
+          className="bg-wash-coral shrink-0 grid place-items-center rounded-2xl"
+          style={{ width: 40, height: 40, fontSize: 20, lineHeight: 1 }}
+          aria-hidden="true"
+        >
+          📣
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-bold text-ink">Repeated safety triggers</div>
+          <div className="text-[13px] text-ink-soft mt-0.5">
+            Multiple safety events in a short period — teacher was notified.
+          </div>
+          <div className="text-[12px] text-slate2 mt-1.5">
+            {friendlyActor(event.actor)} · {new Date(event.occurred_at).toLocaleString()}
+          </div>
+          <button
+            type="button"
+            className="mt-2 text-[12px] font-semibold text-brand-coral hover:underline"
+            onClick={() => setOpen((o) => !o)}
+          >
+            {open ? 'Hide details ▾' : 'See what they tried ▸'}
+          </button>
+          {open && (
+            <div className="mt-3 card-base bg-wash-coral/20 p-4">
+              {summary.isLoading ? (
+                <p className="text-[13px] text-slate2">Loading…</p>
+              ) : summary.data && summary.data.total > 0 ? (
+                <>
+                  <div className="text-[13px] font-bold text-ink mb-2">
+                    {summary.data.total} block{summary.data.total !== 1 ? 's' : ''} in the last {Math.round(windowSec / 60)} minutes
+                  </div>
+                  <ul className="space-y-1 mb-3">
+                    {summary.data.categories.map((cat) => (
+                      <li key={cat.key} className="flex items-center gap-2 text-[13px] text-ink">
+                        <span>{cat.icon}</span>
+                        <span className="font-medium">{cat.label}</span>
+                        <span className="text-slate2">×{cat.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="text-[11px] text-slate2">
+                    {new Date(summary.data.start_at).toLocaleTimeString()} –{' '}
+                    {new Date(summary.data.end_at).toLocaleTimeString()}
+                  </div>
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    <a
+                      href="https://www.esafety.gov.au/parents/big-issues/online-safety-conversations"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-pill-ghost text-[12px]"
+                    >
+                      How to talk to your child →
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <p className="text-[13px] text-slate2">No recent rejection details available.</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function AuditRow({ event }: { event: AuditEvent }) {
+  if (event.event_type === 'safety.pattern.escalated') {
+    return <SafetyEscalatedRow event={event} />;
+  }
+
   const copy = describeAuditEvent(event);
   const hasPayload = event.payload && Object.keys(event.payload).length > 0;
 

@@ -10,6 +10,7 @@ import {
   revokeShareLink,
   type ShareLink,
 } from './sharingApi';
+import { usePlaygroundStore } from './playgroundStore';
 
 interface ShareLinkPanelProps {
   /** The real backend project (no share UI for the DEV local scaffold). */
@@ -34,6 +35,11 @@ interface ShareLinkPanelProps {
  */
 export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
   const qc = useQueryClient();
+  // The popup portals into `document.body`, OUTSIDE the playground's `data-theme`
+  // root, so the `--pg-*` CSS vars (scoped to `[data-theme]`) would be undefined
+  // there — rendering the surface/border transparent and the text near-invisible.
+  // Carry the current theme onto the portal root to restore the token cascade.
+  const theme = usePlaygroundStore((s) => s.theme);
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -170,10 +176,11 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
         createPortal(
           <div
             ref={popRef}
+            data-theme={theme}
             role="dialog"
             aria-label="Share link"
             style={{ position: 'fixed', right: anchor.right, bottom: anchor.bottom, zIndex: 1000 }}
-            className="w-72 rounded-2xl border border-pg-border bg-pg-desktop p-4 text-pg-text shadow-2xl"
+            className="w-72 rounded-2xl border border-pg-border bg-pg-surface p-4 text-pg-text shadow-2xl"
           >
             {/* Digital-citizenship beat (§11 (c)) — shown before any link exists. */}
             {status !== 'active' && (

@@ -50,6 +50,8 @@ export interface CodeProject {
   visibility: 'private' | 'class' | 'public';
   updated_at: string;
   created_at: string;
+  /** The teacher's "where we left off" (D-PAP-19,22); present on resumed games. */
+  learning_context?: LearningContext | null;
 }
 
 // ── Agent turn model (PRD §4 / §4.5 — server-side loop) ────────────────────
@@ -99,17 +101,77 @@ export interface SafeguardingVerdict {
   crisisResource?: CrisisResource;
 }
 
-// A workspace action the backend agent asks the Game Studio UI to perform
-// (play/restart the game, open the code view, bring a pane to front, offer a
-// button, or jump the kid to a Game Guide passage). Executed client-side by
-// executeClientActions (forward-compatible: unknown actions are ignored).
+// A workspace action the backend agent asks the Game Studio UI to perform. The
+// agent uses these to DIRECT THE CHILD'S ATTENTION to what it just did — open the
+// changed file, highlight the new lines, run the game — or jump the kid to a Game
+// Guide passage (playground-ai-prompt-prd.md D-PAP-08, App. A). Executed
+// client-side by executeClientActions (forward-compatible: unknown actions ignored).
+export type ClientActionName =
+  // A · Show & teach
+  | 'run_game'
+  | 'restart_game'
+  | 'show_code'
+  | 'focus_panel'
+  | 'open_file'
+  | 'highlight_code'
+  | 'jump_to_line'
+  | 'show_console'
+  | 'physics_debug'
+  | 'set_screen_size'
+  | 'show_button'
+  // B · Windows & look
+  | 'open_window'
+  | 'close_window'
+  | 'minimize_window'
+  | 'maximize_window'
+  | 'restore_window'
+  | 'move_window'
+  | 'resize_window'
+  | 'set_theme'
+  | 'set_layout'
+  // C · Navigate / search / history
+  | 'search'
+  | 'replace_all'
+  | 'set_sidebar'
+  | 'open_history'
+  | 'open_diff'
+  | 'revert_to'
+  // D · Assets
+  | 'open_asset_viewer'
+  | 'select_asset'
+  | 'generate_asset'
+  | 'copy_loader'
+  // Game Guide
+  | 'open_help';
+
 export interface ClientAction {
-  action: 'run_game' | 'restart_game' | 'show_code' | 'focus_panel' | 'show_button' | 'open_help';
-  /** `focus_panel` → the pane id; `open_help` → the Guide `docId` to open. */
+  action: ClientActionName;
+  /** Pane for show_code / focus_panel; window id for the window ops; the Guide docId for open_help. */
   target?: string;
-  /** `open_help` → the heading anchor within the doc to scroll to. */
+  /** open_help → the heading anchor within the doc to scroll to. */
   anchor?: string;
+  /** show_button text. */
   label?: string;
+  /** File path for open_file / highlight_code / jump_to_line / open_diff / select_asset. */
+  path?: string;
+  /** highlight_code: inclusive line range. */
+  fromLine?: number;
+  toLine?: number;
+  /** jump_to_line target line. */
+  line?: number;
+  /** Single-enum param: show_console open|close, physics_debug on|off, set_theme light|dark, etc. */
+  mode?: string;
+  /** search query. */
+  query?: string;
+  /** replace_all find/replace. */
+  find?: string;
+  replace?: string;
+  /** generate_asset prompt. */
+  prompt?: string;
+  /** revert_to checkpoint id. */
+  checkpoint?: string;
+  /** move_window / resize_window geometry. */
+  rect?: { x?: number; y?: number; w?: number; h?: number };
 }
 
 export interface AgentTurnResult {
@@ -132,6 +194,39 @@ export interface AgentTurnResult {
   // Workspace actions for the Game Studio to execute after the turn applies
   // (run/restart the game, focus a pane…). See executeClientActions.
   client_actions?: ClientAction[];
+  // The teacher's "what shall we do next?" options (playground §11.4 / D-PAP-06),
+  // rendered as tappable chips; tapping one sends `prompt` as the next turn.
+  next_steps?: NextStep[];
+  // Per-file "what changed" notes (playground §11.4) — one clickable row per file.
+  file_notes?: FileNote[];
+  // A short, kid-readable label for the history timeline (null/absent if none).
+  history_label?: string | null;
+  // The teacher's updated "where we left off" (playground §11 / D-PAP-19,22),
+  // persisted on the project and used for the resume recap.
+  learning_context?: LearningContext | null;
+}
+
+/** One next-step option the teacher offers on `done` (rendered as a chip). */
+export interface NextStep {
+  /** Kid-facing button text, e.g. "Add jumping 🦘". */
+  label: string;
+  /** The prompt this option sends as the next turn. */
+  prompt: string;
+  /** Whether this option teaches a concept or is just for fun. */
+  tag: 'concept' | 'fun';
+}
+
+/** A per-file "what changed" note (playground §11.4) — a clickable row in the chat. */
+export interface FileNote {
+  path: string;
+  note: string;
+}
+
+/** The teacher's lightweight "where we left off", shown as a recap on resume. */
+export interface LearningContext {
+  summary: string;
+  concepts?: string[];
+  next?: string;
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────
@@ -193,6 +288,42 @@ export async function getProject(projectId: string): Promise<CodeProject> {
   return api<CodeProject>(`/projects/${projectId}`);
 }
 
+// ── Asset content representation (studio data: URL ↔ backend raw base64) ─────
+// The backend stores/returns BINARY asset bytes as raw base64 (no prefix) and
+// decodes save payloads with `Buffer.from(content, 'base64')`. The studio VFS
+// represents an asset's `content` as a `data:` URL (so <img src>/Phaser load it
+// directly). Convert at the API boundary, or the round-trip mangles the bytes
+// (the `data:…;base64,` prefix's `:`/`;`/`,` corrupt the base64 decode). SVG is
+// backend-text → its data: URL round-trips verbatim, so it needs no conversion.
+const BINARY_ASSET_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  wav: 'audio/wav',
+  mp3: 'audio/mpeg',
+  ogg: 'audio/ogg',
+  m4a: 'audio/mp4',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+};
+function binaryAssetMime(path: string): string | undefined {
+  return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
+}
+/** Backend raw base64 → studio `data:` URL (binary assets only). */
+function toStudioContent(f: VfsFile): VfsFile {
+  const mime = binaryAssetMime(f.path);
+  if (!mime || f.content.startsWith('data:')) return f;
+  return { ...f, content: `data:${mime};base64,${f.content}` };
+}
+/** Studio `data:` URL → backend raw base64 (binary assets only). */
+function toBackendContent(f: VfsFile): VfsFile {
+  if (!binaryAssetMime(f.path) || !f.content.startsWith('data:')) return f;
+  const comma = f.content.indexOf(',');
+  return comma === -1 ? f : { ...f, content: f.content.slice(comma + 1) };
+}
+
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
 
 /**
@@ -222,7 +353,7 @@ export async function readVfs(projectId: string): Promise<VfsFile[]> {
  */
 export async function readVfsSnapshot(projectId: string): Promise<VfsSnapshot> {
   const res = await api<{ files?: VfsFile[]; version?: number }>(`/projects/${projectId}/code/files`);
-  return { files: res.files ?? [], version: res.version ?? 0 };
+  return { files: (res.files ?? []).map(toStudioContent), version: res.version ?? 0 };
 }
 
 // ── VFS save / write-back (D-GAME3b: PUT /projects/:id/code/files) ──────────
@@ -255,7 +386,7 @@ export async function saveVfs(args: {
       {
         method: 'PUT',
         body: {
-          files: args.files,
+          files: args.files.map(toBackendContent),
           // Backend DTO field is `expected_version` (optimistic concurrency); a
           // plain `version` is dropped → validation 400 → every save fell back to
           // "Saved on this device" (queued) and never synced.
@@ -264,11 +395,14 @@ export async function saveVfs(args: {
         },
       },
     );
-    return { files: res.files ?? args.files, version: res.version };
+    return { files: res.files ? res.files.map(toStudioContent) : args.files, version: res.version };
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) {
       const current = (e.details ?? {}) as { files?: VfsFile[]; version?: number };
-      throw new SaveConflictError({ files: current.files ?? [], version: current.version ?? args.version });
+      throw new SaveConflictError({
+        files: (current.files ?? []).map(toStudioContent),
+        version: current.version ?? args.version,
+      });
     }
     throw e;
   }
@@ -290,11 +424,58 @@ export async function runAgentTurn(args: {
   prompt: string;
   mode: 'lite' | 'pro';
   idempotencyKey?: string;
+  piiWarnAcknowledged?: boolean;
+  /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
+  guided?: boolean;
 }): Promise<AgentTurnResult> {
   return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
     body: {
       prompt: args.prompt,
+      mode: args.mode,
+      idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
+      ...(args.piiWarnAcknowledged ? { pii_warn_acknowledged: true } : {}),
+      ...(args.guided ? { guided: true } : {}),
+    },
+  });
+}
+
+/**
+ * Self-verify auto-fix (playground-ai-prompt-prd.md MP3 / D-PAP-09,13,23). After
+ * the studio runs a freshly-applied game and the sandbox captures console errors,
+ * it reports them so the backend can run a bounded fix turn — or, once attempts are
+ * exhausted, hand off to "let's debug together" (`co_debug`).
+ */
+export interface VerifyFixResult {
+  /** True when a fix turn ran; false on the co-debug / nothing-to-fix hand-off. */
+  attempted: boolean;
+  /** True once auto-fix is exhausted — show the "let's debug together" UI. */
+  co_debug: boolean;
+  /** The attempt number consumed (1-based). */
+  attempt: number;
+  /** The fix turn (present when attempted). */
+  turn?: AgentTurnResult;
+  /** A kid-facing message for the co-debug hand-off (present when co_debug). */
+  message?: string;
+}
+
+/**
+ * Report the runtime errors the sandbox captured running a just-applied game, so
+ * the backend auto-fixes them (≤2 attempts) or hands off to co-debug. `attempt` is
+ * 1-based and increments each FE→BE round-trip for the same broken game.
+ */
+export async function reportRuntimeErrors(args: {
+  projectId: string;
+  errors: string[];
+  attempt: number;
+  mode: 'lite' | 'pro';
+  idempotencyKey?: string;
+}): Promise<VerifyFixResult> {
+  return api<VerifyFixResult>(`/projects/${args.projectId}/code/verify-fix`, {
+    method: 'POST',
+    body: {
+      errors: args.errors,
+      attempt: args.attempt,
       mode: args.mode,
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
     },
@@ -381,15 +562,22 @@ export async function streamAgentTurn(
  * server-side and never spends Stars; the backend logs the safeguarding audit
  * event + escalation. The kid NEVER calls an LLM directly (CLAUDE.md #5).
  */
+export type AssetIntent = 'asset' | 'code';
+export interface ClassifyResult {
+  safeguarding: SafeguardingVerdict | null;
+  /** Route a typed chat message: an ASSET request vs a game-CODE change (§3). */
+  intent: AssetIntent;
+}
+
 export async function classifyMessage(args: {
   projectId: string;
   prompt: string;
-}): Promise<SafeguardingVerdict | null> {
-  const res = await api<{ safeguarding: SafeguardingVerdict | null }>(
+}): Promise<ClassifyResult> {
+  const res = await api<{ safeguarding: SafeguardingVerdict | null; intent?: AssetIntent }>(
     `/projects/${args.projectId}/code/turn/classify`,
     { method: 'POST', body: { prompt: args.prompt } },
   );
-  return res.safeguarding;
+  return { safeguarding: res.safeguarding, intent: res.intent ?? 'code' };
 }
 
 // ── Raise hand: "Ask my teacher" (J4) ───────────────────────────────────────

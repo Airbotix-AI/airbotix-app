@@ -18,12 +18,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AgentTurnResult, SafeguardingVerdict, VfsFile } from '../../code/codeApi';
+import type {
+  AgentTurnResult,
+  FileNote,
+  NextStep,
+  SafeguardingVerdict,
+  VfsFile,
+} from '../../code/codeApi';
 import {
   executeClientActions,
   type ClientActionHandlers,
 } from '../executeClientActions';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import {
   isOffline,
   predictionQuestion,
@@ -32,6 +38,7 @@ import {
   type GameAgentDeps,
 } from './gameAgent';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
+import { useGenerationStore, type StartGenArgs } from '../generationStore';
 
 /** In-chat call-to-action buttons (rendered on the message that carries them). */
 export type ChatAction = 'run' | 'code';
@@ -48,10 +55,25 @@ export interface ChatItem {
   stars?: number;
   toolsFired?: string[];
   changes?: { path: string; before: string; after: string }[];
+  /** Per-file "what changed" notes (§11.4) — one clickable row per file; tap → open + highlight. */
+  fileNotes?: FileNote[];
   /** Optional CTA buttons (e.g. the launch "Run game" / "See code" hand-off). */
   actions?: ChatAction[];
   /** A safeguarding deflection bubble (J13) — rendered with the rescue styling. */
   safeguard?: boolean;
+  /** Teacher "what next?" option chips (§11.4 / D-PAP-06) — tap to send `prompt`. */
+  nextSteps?: NextStep[];
+  /**
+   * An AI asset-generation message (D-ASSET §3): the magic card while it runs,
+   * then the finished asset with Add-to-game / Remix. `path` is the new VFS asset.
+   */
+  assetGen?: {
+    status: 'generating' | 'done' | 'error';
+    prompt: string;
+    path?: string;
+    /** For a remix: the reference asset's `data:` URL / URL, shown in the card. */
+    refSrc?: string;
+  };
 }
 
 /**
@@ -109,12 +131,29 @@ export interface UseGameAgentOptions {
   deps?: GameAgentDeps;
   /**
    * Seed the chat on first mount with the launch hand-off (kid prompt + a generic
-   * "starter ready" message carrying Run / See-code actions).
+   * "starter ready" message carrying Run / See-code actions). Only used for a
+   * BRAND-NEW project when no real first turn was captured — an empty/blank value
+   * never seeds the starter (so a resume doesn't show "your game starter is ready").
    */
   introPrompt?: string;
+  /**
+   * Restored chat history (J9 resume). When present + non-empty it takes precedence
+   * over `firstTurn` / `introPrompt` — the workspace reopens with the real saved
+   * conversation, not a fresh seed.
+   */
+  initialChat?: ChatItem[];
+  /** Called (with the full chat) whenever the conversation changes, so the owner
+   *  can persist it. Fired on the seed too, so a brand-new project's opening turn
+   *  is saved even if the kid exits immediately. */
+  onChatChange?: (chat: ChatItem[]) => void;
 }
 
 const PENDING_TEXT = 'Thinking…';
+/** Shown while the agent auto-fixes a runtime error the game hit (MP3). */
+const AUTOFIX_TEXT = 'Hmm, the game hit a snag — let me fix that…';
+/** Client actions that pull the code editor to the front — NOT auto-run on turn
+ *  finish; the kid opens the editor by tapping a changed-file row instead. */
+const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
 /**
  * "Can't get to the server" copy — used when the request never reached the
  * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
@@ -159,6 +198,10 @@ export interface FirstTurnSeed {
   prompt: string;
   reply: string;
   toolsFired?: string[];
+  /** The teacher's 2–3 next-step options from the first turn (§11.4 / D-PAP-06). */
+  nextSteps?: NextStep[];
+  /** Per-file "what changed" notes from the first turn — descriptions for the file rows. */
+  fileNotes?: FileNote[];
 }
 
 function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
@@ -169,6 +212,8 @@ function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
       role: 'agent',
       text: seed.reply,
       toolsFired: seed.toolsFired,
+      fileNotes: seed.fileNotes,
+      nextSteps: seed.nextSteps,
       actions: ['run', 'code'],
     },
   ];
@@ -212,16 +257,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     deps = realGameAgentDeps,
     introPrompt,
     firstTurn,
+    initialChat,
+    onChatChange,
   } = opts;
 
   const isReal = !!projectId;
 
   const [chat, setChat] = useState<ChatItem[]>(() =>
-    firstTurn
-      ? buildFirstTurn(firstTurn)
-      : introPrompt !== undefined
-        ? buildIntro(introPrompt)
-        : [],
+    // Restored history (resume) wins; then a real first turn; then the canned
+    // starter — but ONLY when introPrompt is a non-empty prompt, so a resume
+    // (blank prompt) never re-injects "your game starter is ready".
+    initialChat && initialChat.length > 0
+      ? initialChat
+      : firstTurn
+        ? buildFirstTurn(firstTurn)
+        : introPrompt && introPrompt.trim()
+          ? buildIntro(introPrompt)
+          : [],
   );
   const [busy, setBusy] = useState(false);
   // Whether the token-by-token reveal replay is currently running (drives the
@@ -241,8 +293,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const safeguardTier = useRef(0);
   // The "Ask my teacher" raise-hand (J4): a calm waiting state once raised.
   const [handRaised, setHandRaised] = useState(false);
+  // A pending MODERATION_WARN ack — kid must confirm before the prompt is retried.
+  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
   const undoTargetRef = useRef<VfsFile[] | null>(null);
+  // Self-verify auto-fix attempts for the CURRENT broken game (MP3 / D-PAP-13).
+  // Reset on every fresh user-initiated turn; bounded server-side (≤2) → co-debug.
+  const autofixAttempt = useRef(0);
   const [canUndo, setCanUndo] = useState(false);
   // Abort the in-flight stream replay on unmount / a new turn.
   const streamAbort = useRef<{ aborted: boolean }>({ aborted: false });
@@ -252,6 +309,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const unmountedRef = useRef(false);
   // The last prompt sent — so a failed turn can be retried verbatim (H2).
   const lastPromptRef = useRef<string>('');
+  // Whether the last prompt came from tapping a next-step chip (a guided step), so a
+  // retry preserves the guided flag and the teacher keeps offering the loop (D-PAP-26).
+  const lastGuidedRef = useRef<boolean>(false);
 
   // Reflect connectivity into a banner the panel renders (J2 offline state).
   useEffect(() => {
@@ -264,6 +324,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       window.removeEventListener('offline', off);
     };
   }, []);
+
+  // Persist the conversation on every change (J9 resume). The owner debounces +
+  // filters transient bubbles; here we just hand it the latest chat — including
+  // the seed, so a brand-new project's opening turn is saved even on a fast exit.
+  const onChatChangeRef = useRef(onChatChange);
+  onChatChangeRef.current = onChatChange;
+  useEffect(() => {
+    onChatChangeRef.current?.(chat);
+  }, [chat]);
 
   useEffect(() => {
     // Re-arm on (re)mount: StrictMode's dev mount→cleanup→remount cycle would
@@ -285,9 +354,16 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     return `m${seq.current++}`;
   }, []);
 
-  /** Apply a completed turn: record the undo target, stream the reply, apply VFS. */
+  /** Apply a completed turn: record the undo target, stream the reply, apply VFS.
+   *  `keepOtherNextSteps` leaves earlier bubbles' chips intact — used by the
+   *  self-verify auto-fix so a system repair turn never wipes the kid's still-unused
+   *  next-step options (D-PAP-26 sticky; the chips belong to the kid, not the fix). */
   const applyResult = useCallback(
-    async (result: AgentTurnResult, pendingId: string) => {
+    async (
+      result: AgentTurnResult,
+      pendingId: string,
+      opts?: { keepOtherNextSteps?: boolean },
+    ) => {
       undoTargetRef.current = files;
       setCanUndo(true);
       // Replace the "Thinking…" bubble with a streaming one, then reveal deltas.
@@ -328,18 +404,93 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                   stars: result.stars_charged,
                   toolsFired: result.tools_fired,
                   changes: toChanges(result),
+                  fileNotes: result.file_notes,
+                  nextSteps: result.next_steps,
                 }
-              : it,
+              : // Only the latest server message shows next-step chips — clear any
+                // carried by an earlier bubble so suggestions never linger on a
+                // stale turn (D-PAP-26 last-message-only). EXCEPT a sticky apply
+                // (auto-fix): a system repair turn must not erase the kid's
+                // still-unused chips, so leave earlier bubbles untouched.
+                opts?.keepOtherNextSteps
+                ? it
+                : it.nextSteps
+                  ? { ...it, nextSteps: undefined }
+                  : it,
           ),
         );
         setStreaming(false);
       }
       onApplyFiles(result.files);
       onStarsCharged?.(result.stars_charged);
-      // Run any workspace actions the turn asked for (play/restart/focus).
-      if (clientActions) executeClientActions(result.client_actions, clientActions);
+      // Run the turn's workspace actions — but NOT the ones that yank the code
+      // editor to the front. The kid opens the editor by tapping a changed-file
+      // row (onOpenFile); a finished turn shouldn't steal focus to the code. We
+      // still honour run/restart/look/help actions.
+      const autoActions = (result.client_actions ?? []).filter(
+        (a) =>
+          !EDITOR_FOCUS_ACTIONS.has(a.action) && !(a.action === 'focus_panel' && a.target === 'code'),
+      );
+      if (clientActions) executeClientActions(autoActions, clientActions);
+      // Auto-restart after any change so the kid immediately sees it run (the agent
+      // doesn't have to remember to emit run_game). Skip if it already asked to
+      // run/restart (avoid a double re-mount).
+      const changed = (result.changes?.length ?? 0) > 0;
+      const alreadyRan = (result.client_actions ?? []).some(
+        (a) => a.action === 'run_game' || a.action === 'restart_game',
+      );
+      if (changed && !alreadyRan) clientActions?.restartGame();
     },
     [files, onApplyFiles, onStarsCharged, clientActions],
+  );
+
+  /**
+   * Self-verify round-trip (MP3 / D-PAP-09,13,23). The studio ran a just-applied
+   * game and the sandbox caught runtime errors; report them so the backend
+   * auto-fixes (≤2 attempts) or hands off to "let's debug together". Idempotent
+   * while busy; a no-op off the real path or with no errors.
+   */
+  const autoFixFromErrors = useCallback(
+    async (errors: string[]) => {
+      if (!isReal || busy || pending || streaming || errors.length === 0) return;
+      autofixAttempt.current += 1;
+      const attempt = autofixAttempt.current;
+      const pendingId = nextId();
+      setBusy(true);
+      setError(null);
+      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: AUTOFIX_TEXT, pending: true }]);
+      try {
+        const res = await deps.reportRuntimeErrors({ projectId: projectId!, errors, attempt, mode });
+        if (res.co_debug) {
+          // Exhausted (or nothing to fix) → a warm hand-off, not a silent broken game.
+          setChat((prev) =>
+            prev.map((it) =>
+              it.id === pendingId
+                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's debug this together!" }
+                : it,
+            ),
+          );
+          return;
+        }
+        if (res.turn) {
+          // Sticky: an auto-fix is a system repair, not a kid action — keep any
+          // next-step chips the kid hasn't acted on yet (D-PAP-26 sticky, #3).
+          await applyResult(res.turn, pendingId, { keepOtherNextSteps: true });
+        } else {
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        }
+      } catch (e) {
+        const msg = friendlyError(e);
+        if (msg === OFFLINE_TEXT) setOffline(true);
+        setError(msg);
+        setChat((prev) =>
+          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, applyResult],
   );
 
   /**
@@ -369,11 +520,51 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     [],
   );
 
+  // Run an asset generation AS A CHAT MESSAGE (D-ASSET §3). The global
+  // generationStore is the engine (it generates + writes the asset into the VFS
+  // and survives the pane); here we just reflect its state into the chat bubble:
+  // magic card while generating → the finished asset (with Add-to-game / Remix) on
+  // done. Caller owns the `busy` lock. Cancel is handled by the card → store.cancel().
+  const runAssetTurn = useCallback(
+    async (prompt: string, bubbleId: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      // Resolve the reference asset's image src so the card can show what's being
+      // remixed (a VFS asset's data URL, or a Library asset's URL).
+      const refSrc = ref?.refUrl ?? (ref?.refAssetPath ? files.find((f) => f.path === ref.refAssetPath)?.content : undefined);
+      setChat((prev) =>
+        prev.map((it) =>
+          it.id === bubbleId
+            ? { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt, refSrc } }
+            : it,
+        ),
+      );
+      const store = useGenerationStore.getState();
+      const args: StartGenArgs = { projectId, prompt };
+      if (ref?.refAssetPath || ref?.refUrl) Object.assign(args, { mode: 'remix', ...ref });
+      await store.start(args);
+      const { status, resultPath } = useGenerationStore.getState();
+      store.dismiss();
+      setChat((prev) =>
+        prev.flatMap((it) => {
+          if (it.id !== bubbleId) return [it];
+          if (status === 'done' && resultPath)
+            return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'done' as const, prompt, path: resultPath, refSrc } }];
+          if (status === 'idle') return []; // cancelled → drop the bubble
+          return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'error' as const, prompt, refSrc } }];
+        }),
+      );
+    },
+    [projectId, files],
+  );
+
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: { guided?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
+      const guided = !!opts?.guided;
       lastPromptRef.current = trimmed;
+      lastGuidedRef.current = guided;
+      // A fresh, kid-initiated turn restarts the auto-fix budget for whatever it builds.
+      autofixAttempt.current = 0;
 
       // Offline pre-check (real path) — never even attempt the call; keep work safe.
       if (isReal && isOffline()) {
@@ -429,74 +620,80 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // beat below). The classifier is free and recall-favouring (§11g). On a
       // classify failure we fall through to the normal flow (fail-open to game-help
       // is acceptable — the backend turn firewall is a second line of defence).
+      let routedIntent: 'asset' | 'code' = 'code';
       try {
-        const verdict = await deps.classify({ projectId: projectId!, prompt: trimmed });
-        if (verdict) {
-          applySafeguard(verdict, pendingId);
+        const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
+        if (safeguarding) {
+          applySafeguard(safeguarding, pendingId);
           setBusy(false);
           return;
         }
+        routedIntent = intent;
       } catch {
-        // Classifier unreachable — proceed; the turn-level firewall still applies.
+        // Classifier unreachable — proceed as a code turn; the turn-level firewall
+        // still applies. (Asset routing simply falls back to a normal game turn.)
       }
 
-      // ── Lite agency beat (OD-1): the typing-free "Do it / Show me first" +
-      // predict beat fires BEFORE the turn is spent. A Lite (non-approval) turn
-      // AUTO-APPLIES + DEBITS Stars server-side inside POST /code/turn (D-CODE1c,
-      // §10 "后扣模式"), so we must NOT run it yet — running-then-staging would let
-      // "Show me first" leak Stars and desync the persisted VFS. The turn runs on
-      // confirm (`confirmPending`). No backend call, no Stars, no VFS change here.
-      if (mode === 'lite') {
-        setChat((prev) => prev.filter((it) => it.id !== pendingId));
+      // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
+      // not a code turn. Shares this turn's `busy` lock (one AI thing at a time). ──
+      if (routedIntent === 'asset') {
+        await runAssetTurn(trimmed, pendingId);
         setBusy(false);
-        setPending({
-          kind: 'agency',
-          turnId: '',
-          prompt: trimmed,
-          summary: "I'll make that change for you. Want me to go ahead?",
-          changes: [],
-          result: null,
-          prediction: predictionQuestion(trimmed),
-        });
         return;
       }
 
-      // ── REAL Pro path: server-side loop, Stars-metered, streamed, gated. ──
+      // ── The game agent always auto-applies (playground teacher model, D-PAP-03):
+      // the kid's request IS the go-ahead, so there is NO "Do it / Show me first"
+      // agency beat and NO plan→approve gate (those belong to the Code Studio). Run
+      // the turn server-side (Stars-metered + applied inside POST /code/turn) and
+      // stream the result straight into the chat.
       try {
-        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode });
-        // Pro multi-file → plan→approve gate (writes were collected, not persisted).
-        // A non-approval Pro turn auto-applied + debited inside the POST, so apply
-        // it immediately (mirror useCodeStudio) — never stage an applied turn.
-        if (result.requires_approval) {
-          setChat((prev) => prev.filter((it) => it.id !== pendingId));
-          setPending({
-            kind: 'plan',
-            turnId: result.turn_id,
-            prompt: trimmed,
-            summary:
-              result.plan?.plan_text ??
-              (result.changes.length
-                ? `I'll change ${result.changes.map((c) => c.path).join(', ')}.`
-                : result.summary),
-            changes: toChanges(result),
-            result,
-            prediction: predictionQuestion(trimmed),
-          });
-          return;
-        }
+        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode, piiWarnAcknowledged: false, guided });
         await applyResult(result, pendingId);
       } catch (e) {
-        const msg = friendlyError(e);
-        if (msg === OFFLINE_TEXT) setOffline(true);
-        setError(msg);
-        setChat((prev) =>
-          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
-        );
+        if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
+          const details = e.details as { kind?: string } | undefined;
+          const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
+          setWarnPending({ message: e.message, prompt: trimmed, stage });
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        } else {
+          const msg = friendlyError(e);
+          if (msg === OFFLINE_TEXT) setOffline(true);
+          setError(msg);
+          setChat((prev) =>
+            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+          );
+        }
       } finally {
         setBusy(false);
       }
     },
-    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard],
+    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn],
+  );
+
+  // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
+  // "both entry points → one place out"): post the request into THIS chat so it
+  // shares the one-AI-at-a-time lock and shows in the conversation like a typed ask.
+  const requestAssetGen = useCallback(
+    (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      const trimmed = prompt.trim();
+      if (!trimmed || busy || pending) return;
+      if (isReal && isOffline()) {
+        setOffline(true);
+        setError(OFFLINE_TEXT);
+        return;
+      }
+      const bubbleId = nextId();
+      setError(null);
+      setBusy(true);
+      setChat((prev) => [
+        ...prev,
+        { id: nextId(), role: 'kid', text: ref ? `Remix it: ${trimmed}` : trimmed },
+        { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt: trimmed } },
+      ]);
+      void runAssetTurn(trimmed, bubbleId, ref).finally(() => setBusy(false));
+    },
+    [busy, pending, isReal, nextId, runAssetTurn],
   );
 
   /**
@@ -610,8 +807,60 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     if (busy || pending) return;
     if (!lastPromptRef.current) return;
     setError(null);
-    void send(lastPromptRef.current);
+    void send(lastPromptRef.current, { guided: lastGuidedRef.current });
   }, [busy, pending, send]);
+
+  const confirmWarn = useCallback(async () => {
+    if (!warnPending || busy) return;
+    const { prompt } = warnPending;
+    setWarnPending(null);
+    if (!projectId) return;
+    const pendingId = nextId();
+    setError(null);
+    setBusy(true);
+    setChat((prev) => [
+      ...prev,
+      { id: nextId(), role: 'kid', text: prompt },
+      { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
+    ]);
+    try {
+      const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true });
+      if (result.requires_approval) {
+        setChat((prev) => prev.filter((it) => it.id !== pendingId));
+        setPending({
+          kind: 'plan',
+          turnId: result.turn_id,
+          prompt,
+          summary: result.plan?.plan_text ?? result.summary,
+          changes: toChanges(result),
+          result,
+          prediction: predictionQuestion(prompt),
+        });
+        return;
+      }
+      await applyResult(result, pendingId);
+    } catch (e) {
+      const msg = friendlyError(e);
+      if (msg === OFFLINE_TEXT) setOffline(true);
+      setError(msg);
+      setChat((prev) =>
+        prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult]);
+
+  const dismissWarn = useCallback(() => {
+    if (warnPending) {
+      void api<void>('/safety/prompt-aborted', {
+        method: 'POST',
+        body: { surface: 'workspace', stage: warnPending.stage },
+        principal: 'kid',
+      }).catch(() => undefined);
+    }
+    setWarnPending(null);
+  }, [warnPending]);
 
   return {
     chat,
@@ -627,6 +876,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
     handRaised,
     send,
+    /** Generate an asset INTO the chat (Asset Viewer Generate/Remix buttons, §3). */
+    requestAssetGen,
     confirmPending,
     cancelPending,
     undo,
@@ -636,5 +887,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     abort,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
+    /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23). */
+    autoFixFromErrors,
+    /** A pending MODERATION_WARN the kid must ack before the prompt retries. */
+    warnPending,
+    /** Retry the last prompt with pii_warn_acknowledged (ack the MODERATION_WARN). */
+    confirmWarn,
+    /** Dismiss the MODERATION_WARN without retrying. */
+    dismissWarn,
   };
 }

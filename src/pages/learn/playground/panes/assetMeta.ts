@@ -118,11 +118,47 @@ export function codeRefFor(asset: VfsFile, anim?: AnimMeta | null): string {
   return `this.load.image('${key}', '${path}')`;
 }
 
+/**
+ * The copy-able Phaser loader for a shared **Library** asset (D-ASSET-2): it is
+ * referenced by its stable URL, not a VFS path. Images set `crossOrigin` so the
+ * cross-origin texture doesn't taint the canvas (D-ASSET-7). Mirrors what
+ * `assetInsert.addLibraryAssetToGame` injects.
+ */
+export function libraryCodeRef(name: string, kind: AssetKind, url: string): string {
+  const key = slugifyKey(name);
+  if (kind === 'audio') return `this.load.audio('${key}', '${url}')`;
+  return `this.load.setCORS('anonymous');\nthis.load.image('${key}', '${url}')`;
+}
+
 export function formatBytes(n: number): string {
   if (n < BYTES_PER_KB) return `${n} B`;
   const kb = n / BYTES_PER_KB;
   if (kb < BYTES_PER_KB) return `${kb.toFixed(1)} KB`;
   return `${(kb / BYTES_PER_KB).toFixed(1)} MB`;
+}
+
+/**
+ * Render a text asset's content as readable text. Imported files are stored as
+ * `data:` URLs (D-ASSET A4 — one uniform VFS shape), so a `.txt`'s content is a
+ * base64 (or percent-encoded) data URL; AI/editor text files are raw strings.
+ * Decode the former, pass the latter through unchanged.
+ */
+export function dataUrlToText(content: string): string {
+  if (!content.startsWith('data:')) return content;
+  const comma = content.indexOf(',');
+  if (comma === -1) return content;
+  const meta = content.slice(5, comma);
+  const data = content.slice(comma + 1);
+  try {
+    if (/;base64/i.test(meta)) {
+      const bin = atob(data);
+      const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+      return new TextDecoder().decode(bytes); // UTF-8 safe
+    }
+    return decodeURIComponent(data);
+  } catch {
+    return content; // malformed — show the raw URL rather than throw
+  }
 }
 
 // ── DOM decode helpers (cached). Not unit-tested — no jsdom configured; the e2e

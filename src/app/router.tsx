@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LearnLayout } from './LearnLayout';
@@ -38,7 +38,6 @@ import { KidUsagePage } from '@/pages/portal/KidUsagePage';
 
 // Learn pages (kid surface — airbotix-app-learn-prd.md)
 import { ClassCodePage } from '@/pages/learn/ClassCodePage';
-import { ClassWallPage } from '@/pages/learn/ClassWallPage';
 import { HomePage as LearnHomePage } from '@/pages/learn/HomePage';
 import { LoginPage as LearnLoginPage } from '@/pages/learn/LoginPage';
 import { MissionDetailPage } from '@/pages/learn/MissionDetailPage';
@@ -148,7 +147,9 @@ export const router = createBrowserRouter([
       { path: 'projects/:id', element: <ProjectDetailPage /> },
       { path: 'missions', element: <MissionsListPage /> },
       { path: 'missions/:id', element: <MissionDetailPage /> },
-      { path: 'wall', element: <ClassWallPage /> },
+      // Legacy alias: the class wall is `/learn/classroom` (ClassroomListPage).
+      // The old `/learn/wall` was a "Coming soon" placeholder — redirect it.
+      { path: 'wall', element: <Navigate to="/learn/classroom" replace /> },
       { path: 'classroom', element: <ClassroomListPage /> },
       { path: 'classroom/:classId', element: <ClassWallViewPage /> },
       { path: 'classroom/:classId/games', element: <ClassGamesWallPage /> },

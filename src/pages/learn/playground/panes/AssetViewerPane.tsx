@@ -14,19 +14,21 @@ import {
   Film,
   Image as ImageIcon,
   Loader2,
-  Lock,
   Music,
-  Plus,
   Search,
   Sparkles,
   Trash2,
   Upload,
+  Wand2,
 } from 'lucide-react';
 
 import type { VfsFile } from '../../code/codeApi';
-import { runGen } from '../assetGen';
-import { addAssetToGame } from './assetInsert';
-import { isPreloadedAsset } from '../sampleAssets';
+import {
+  ASSET_LIBRARY,
+  LIBRARY_CATEGORIES,
+  searchLibrary,
+  type LibraryAsset,
+} from '../assetLibrary';
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
@@ -37,6 +39,7 @@ import {
   codeRefFor,
   decodeImageMeta,
   formatBytes,
+  libraryCodeRef,
   parseAnimSidecar,
   type AssetKind,
   type ImageMeta,
@@ -56,18 +59,21 @@ interface AssetViewerPaneProps {
    * (read-only contexts), the add-to-game button is hidden.
    */
   onApplyFiles?: (files: VfsFile[]) => void;
+  /**
+   * Generate / remix into the CHAT (D-ASSET §3 "both entry points → one place
+   * out"). The Generate prompt + Remix buttons post the request into the chat so
+   * it shares the one-AI-at-a-time lock and shows in the conversation.
+   */
+  onRequestAssetGen?: (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => void;
+  /** A request to open a specific asset's detail (from a chat "done" card tap). */
+  openAsset?: { path: string; nonce: number } | null;
 }
 
 const ALL = '__all__';
+/** Which source the Asset Viewer is browsing (D-ASSET-6). */
+type AssetSource = 'mine' | 'library';
 const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
 const ANIM_SUFFIX = '.anim.json';
-// The stub returns instantly; hold the loading state briefly so the generating
-// animation is actually visible (and it reads like real generation latency).
-const MIN_GEN_MS = 900;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function isAsset(f: VfsFile): boolean {
   return f.kind === 'asset' || f.path.startsWith('assets/');
@@ -88,22 +94,6 @@ function uniquePath(desired: string, taken: Set<string>): string {
   let n = 1;
   while (taken.has(`${stem}-${n}${ext}`)) n += 1;
   return `${stem}-${n}${ext}`;
-}
-
-const MIME_EXT: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg',
-  'image/webp': 'webp',
-  'audio/wav': 'wav',
-  'audio/mpeg': 'mp3',
-  'audio/ogg': 'ogg',
-};
-
-/** Map a generated asset's mime → file extension (fallback by kind). */
-function extForResult(kind: 'image' | 'audio', mime: string): string {
-  return MIME_EXT[mime] ?? (kind === 'audio' ? 'wav' : 'svg');
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -139,7 +129,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerPaneProps) {
+export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
@@ -147,30 +137,45 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   // Persisted Asset Viewer selections (J9 "resume where I left off").
   const assetSeed = useRef(
     readWorkspaceSlice('asset-viewer', {
+      assetSource: 'mine' as AssetSource,
       assetCategory: ALL,
       assetQuery: '',
       assetSelectedPath: null as string | null,
     }),
   ).current;
+  // Which source the pane is browsing: the kid's own VFS assets, or the shared
+  // read-only Library (D-ASSET-6). Library assets are referenced by URL and never
+  // enter the VFS.
+  const [source, setSource] = useState<AssetSource>(() => assetSeed.assetSource);
   const [category, setCategory] = useState<string>(() => assetSeed.assetCategory);
   const [query, setQuery] = useState(() => assetSeed.assetQuery);
   const [selectedPath, setSelectedPath] = useState<string | null>(() => assetSeed.assetSelectedPath);
+  const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
   useEffect(() => {
     writeWorkspaceSlice('asset-viewer', {
+      assetSource: source,
       assetCategory: category,
       assetQuery: query,
       assetSelectedPath: selectedPath,
     });
-  }, [category, query, selectedPath]);
+  }, [source, category, query, selectedPath]);
+  // Open a specific asset on request (a chat "done" card tap, §3): switch to My
+  // assets and reveal its detail. The nonce re-fires even for the same path.
+  useEffect(() => {
+    if (!openAsset) return;
+    setSource('mine');
+    setCategory(ALL);
+    setSelectedLibId(null);
+    setSelectedPath(openAsset.path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAsset?.nonce]);
   const [notice, setNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // AI generate form
+  // AI generate form — one prompt box; the AI decides image vs audio (D-ASSET-4).
+  // The in-flight generation itself is GLOBAL (generationStore) so it survives
+  // this pane closing/reopening (§3 "Magic Generation").
   const [genPrompt, setGenPrompt] = useState('');
-  const [genKind, setGenKind] = useState<'image' | 'audio'>('image');
-  const [generating, setGenerating] = useState(false);
-  const [genError, setGenError] = useState<string | null>(null);
-
   const assets = useMemo(() => files.filter(isDisplayable), [files]);
 
   const categories = useMemo(() => {
@@ -194,24 +199,63 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
 
   const selected = selectedPath ? (files.find((f) => f.path === selectedPath) ?? null) : null;
 
+  // ── Library (shared, read-only) browse state ──────────────────────────────
+  const libCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of ASSET_LIBRARY) counts.set(a.category, (counts.get(a.category) ?? 0) + 1);
+    return LIBRARY_CATEGORIES.map((c) => [c, counts.get(c) ?? 0] as [string, number]);
+  }, []);
+  const libVisible = useMemo(
+    () => searchLibrary(query, category === ALL ? null : category),
+    [query, category],
+  );
+  const selectedLib = selectedLibId
+    ? (ASSET_LIBRARY.find((a) => a.id === selectedLibId) ?? null)
+    : null;
+
+  // Switching source resets category + clears any open detail so the two sources
+  // (whose categories differ) never show a mismatched selection.
+  function switchSource(next: AssetSource) {
+    setSource(next);
+    setCategory(ALL);
+    setQuery('');
+    setSelectedPath(null);
+    setSelectedLibId(null);
+  }
+
   // Browsing a category (or searching) always returns to the grid — never leaves
   // you stuck on the previously-opened asset's detail screen.
   function showCategory(c: string) {
     setCategory(c);
     setSelectedPath(null);
+    setSelectedLibId(null);
   }
 
   const takenPaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
-  const targetDir = category === ALL ? 'imported' : category;
 
   async function importFiles(list: FileList | File[]) {
+    // Imports always go to MY assets. Land in the selected VFS category when one
+    // is open, else `imported`. (The Library is read-only — D-ASSET-6.)
+    const targetDir = source === 'mine' && category !== ALL ? category : 'imported';
     let warned = false;
-    for (const file of Array.from(list)) {
-      if (file.size > SOFT_SIZE_CAP) warned = true;
-      const dataUrl = await fileToDataUrl(file);
-      const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
-      takenPaths.add(path);
-      createFile(path, 'asset', dataUrl);
+    try {
+      for (const file of Array.from(list)) {
+        if (file.size > SOFT_SIZE_CAP) warned = true;
+        const dataUrl = await fileToDataUrl(file);
+        const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
+        takenPaths.add(path);
+        createFile(path, 'asset', dataUrl);
+      }
+    } catch {
+      setNotice("Couldn't import that file — please try a different one.");
+      return;
+    }
+    // A drop/paste while browsing the Library shouldn't hide the result: surface
+    // it under My assets.
+    if (source !== 'mine') {
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedLibId(null);
     }
     setNotice(
       warned
@@ -220,48 +264,20 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
     );
   }
 
-  async function onGenerate() {
-    if (!genPrompt.trim() || generating) return;
-    setGenerating(true);
-    setNotice(null);
-    setGenError(null);
-    try {
-      const [result] = await Promise.all([
-        runGen({
-          projectId,
-          kind: genKind,
-          prompt: genPrompt.trim(),
-          refAssetPath: selectedPath ?? undefined,
-        }),
-        sleep(MIN_GEN_MS),
-      ]);
-      // Pick the extension from the returned mime (real backend may return png /
-      // mp3); fall back to the stub's svg / wav.
-      const ext = extForResult(genKind, result.mime);
-      const slug = genPrompt.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 24) || 'asset';
-      const path = uniquePath(`assets/generated/${slug}.${ext}`, takenPaths);
-      createFile(path, 'asset', result.dataUrl);
-      setSelectedPath(path);
-      setNotice(projectId ? 'Generated ✨ — add it to your game below.' : 'Generated (AI demo).');
-    } catch {
-      // Calm, kid-framed retry copy (never a frozen screen — PRD J5 offline).
-      setGenError("That didn't work — check your internet and try again.");
-    } finally {
-      setGenerating(false);
-    }
+  // Generate / remix go INTO THE CHAT (D-ASSET §3): post the request so it shares
+  // the one-AI-at-a-time lock and shows in the conversation. The new asset lands in
+  // My assets when the chat turn completes.
+  function onGenerate() {
+    if (!genPrompt.trim()) return;
+    onRequestAssetGen?.(genPrompt.trim());
+    setGenPrompt('');
   }
 
-  /** One-tap "Add to my game": write the loader + a sensible use into a scene. */
-  function onAddToGame(addAsset: VfsFile) {
-    if (!onApplyFiles) return;
-    const r = addAssetToGame(files, addAsset);
-    if (!r.files) {
-      setNotice("Couldn't find a scene to add it to — open the code and load it yourself.");
-      return;
-    }
-    onApplyFiles(r.files);
-    setNotice(`Added '${r.key}' to your game ✨ — press Play to see it!`);
+  function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
+    if (!prompt.trim()) return;
+    onRequestAssetGen?.(prompt.trim(), ref);
   }
+
 
   return (
     <div
@@ -276,9 +292,10 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
         if (imgs.length) void importFiles(imgs);
       }}
     >
-      {/* Left rail: categories + actions */}
+      {/* Left rail: source tabs + categories + actions */}
       <aside className="flex w-56 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
-        <div className="p-3">
+        <div className="flex flex-col gap-3 p-3">
+          <SourceTabs source={source} onSource={switchSource} />
           <div className="flex items-center gap-2 rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5">
             <Search size={15} className="text-pg-text-muted" />
             <input
@@ -286,20 +303,21 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
               onChange={(e) => {
                 setQuery(e.target.value);
                 setSelectedPath(null);
+                setSelectedLibId(null);
               }}
-              placeholder="Search assets…"
+              placeholder={source === 'library' ? 'Search the library…' : 'Search assets…'}
               className="w-full bg-transparent text-[13px] outline-none placeholder:text-pg-text-muted"
             />
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-auto px-2 text-[13px]">
           <CategoryRow
-            label="All assets"
-            count={assets.length}
+            label={source === 'library' ? 'All' : 'All assets'}
+            count={source === 'library' ? ASSET_LIBRARY.length : assets.length}
             active={category === ALL}
             onClick={() => showCategory(ALL)}
           />
-          {categories.map(([c, n]) => (
+          {(source === 'library' ? libCategories : categories).map(([c, n]) => (
             <CategoryRow
               key={c}
               label={c}
@@ -309,26 +327,28 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             />
           ))}
         </nav>
-        <div className="flex gap-2 border-t border-pg-border p-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5"
-          >
-            <Upload size={15} /> Import
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,audio/*,video/*"
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files?.length) void importFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
-        </div>
+        {source === 'mine' && (
+          <div className="flex gap-2 border-t border-pg-border p-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5"
+            >
+              <Upload size={15} /> Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,audio/*,video/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void importFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )}
       </aside>
 
       {/* Main: grid OR detail */}
@@ -338,12 +358,27 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
             {notice}
           </div>
         )}
-        {selected ? (
+        {source === 'library' ? (
+          selectedLib ? (
+            <LibraryDetailView
+              asset={selectedLib}
+              busy={false}
+              onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
+              onBack={() => setSelectedLibId(null)}
+              onCopyRef={(snippet) => {
+                void navigator.clipboard?.writeText(snippet);
+                setNotice('Code copied — paste it into your game.');
+              }}
+            />
+          ) : (
+            <LibraryGrid items={libVisible} onSelect={setSelectedLibId} />
+          )
+        ) : selected ? (
           <DetailView
             asset={selected}
             files={files}
-            canAddToGame={!!onApplyFiles}
-            onAddToGame={() => onAddToGame(selected)}
+            busy={false}
+            onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
               rename(selected.path, to);
@@ -360,23 +395,14 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <GenerateBar
-              prompt={genPrompt}
-              kind={genKind}
-              busy={generating}
-              error={genError}
-              onPrompt={setGenPrompt}
-              onKind={setGenKind}
-              onGenerate={() => void onGenerate()}
-            />
+            <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
             <div className="min-h-0 flex-1 overflow-auto p-4">
-              {visible.length === 0 && !generating ? (
+              {visible.length === 0 ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
                   No assets here yet — Import or ✨ Generate to add some.
                 </p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
-                  {generating && <GeneratingCard />}
                   {visible.map((a) => {
                     const kind = assetKindOf(a.path, files);
                     return (
@@ -389,14 +415,6 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
                       >
                         <div className="relative h-28 bg-pg-surface-2 p-2">
                           <Thumb asset={a} kind={kind} />
-                          {isPreloadedAsset(a.path) && (
-                            <span
-                              title="Sample (read-only)"
-                              className="absolute right-1.5 top-1.5 rounded-full bg-pg-bg/80 p-1 text-pg-text-muted"
-                            >
-                              <Lock size={11} />
-                            </span>
-                          )}
                         </div>
                         <div className="px-2.5 py-2">
                           <p className="truncate text-[12.5px] font-bold">{basename(a.path)}</p>
@@ -418,15 +436,182 @@ export function AssetViewerPane({ files, projectId, onApplyFiles }: AssetViewerP
   );
 }
 
-function GeneratingCard() {
+
+/** The Library | My assets source switch (D-ASSET-6). */
+function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: AssetSource) => void }) {
+  const tab = (id: AssetSource, label: string) => (
+    <button
+      type="button"
+      data-testid={`asset-source-${id}`}
+      aria-pressed={source === id}
+      onClick={() => onSource(id)}
+      className={clsx(
+        'flex-1 rounded-lg px-2 py-1.5 text-[12.5px] font-extrabold transition-colors',
+        source === id ? 'bg-brand-bubblegum text-white' : 'text-pg-text-dim hover:bg-pg-text/5',
+      )}
+    >
+      {label}
+    </button>
+  );
   return (
-    <div className="flex animate-pulse flex-col overflow-hidden rounded-xl border border-brand-bubblegum/50 bg-pg-surface">
-      <div className="flex h-28 items-center justify-center bg-pg-surface-2">
-        <Loader2 size={30} className="animate-spin text-brand-bubblegum" />
+    <div className="flex items-center gap-1 rounded-xl border border-pg-border bg-pg-surface-2 p-1">
+      {tab('library', 'Library')}
+      {tab('mine', 'My assets')}
+    </div>
+  );
+}
+
+/** Remix an image with AI — a prompt describing the change → a new variation. */
+function RemixBar({ busy, onRemix }: { busy: boolean; onRemix: (prompt: string) => void }) {
+  const [p, setP] = useState('');
+  const go = () => {
+    if (p.trim()) {
+      onRemix(p.trim());
+      setP('');
+    }
+  };
+  return (
+    <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
+      <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-extrabold">
+        <Wand2 size={14} className="text-brand-bubblegum" /> Remix with AI
       </div>
-      <div className="px-2.5 py-2">
-        <p className="text-[12.5px] font-bold text-brand-bubblegum">Generating…</p>
-        <p className="text-[11px] text-pg-text-muted">AI demo</p>
+      <div className="flex items-center gap-2">
+        <input
+          value={p}
+          data-testid="asset-remix-prompt"
+          onChange={(e) => setP(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') go();
+          }}
+          placeholder="Describe the change — e.g. 'make it blue'"
+          className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
+        />
+        <button
+          type="button"
+          data-testid="asset-remix"
+          onClick={go}
+          disabled={busy || !p.trim()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
+        >
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+          Remix
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The read-only Library grid (emoji thumbnails loaded from the CDN by URL). */
+function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id: string) => void }) {
+  if (items.length === 0) {
+    return (
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        <p className="mt-8 text-center text-[13px] text-pg-text-muted">No library assets match your search.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="min-h-0 flex-1 overflow-auto p-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3">
+        {items.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            data-testid="library-card"
+            onClick={() => onSelect(a.id)}
+            className="flex flex-col overflow-hidden rounded-xl border border-pg-border bg-pg-surface text-left transition-colors hover:border-brand-bubblegum/60"
+          >
+            <div className="flex h-20 items-center justify-center bg-pg-surface-2 p-2">
+              <img
+                src={a.thumbUrl}
+                alt={a.name}
+                crossOrigin="anonymous"
+                loading="lazy"
+                className="h-12 w-12 object-contain"
+              />
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="truncate text-[12px] font-bold">{a.name}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The read-only Library asset detail: preview + Remix + copy code-ref. */
+function LibraryDetailView({
+  asset,
+  busy,
+  onRemix,
+  onBack,
+  onCopyRef,
+}: {
+  asset: LibraryAsset;
+  busy: boolean;
+  onRemix: (prompt: string) => void;
+  onBack: () => void;
+  onCopyRef: (snippet: string) => void;
+}) {
+  const snippet = libraryCodeRef(asset.name, asset.kind, asset.url);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <div className="flex items-center gap-2 border-b border-pg-border px-3 py-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[13px] font-semibold text-pg-text-dim hover:text-pg-text"
+        >
+          <ArrowLeft size={15} /> Back
+        </button>
+        <span className="truncate text-[14px] font-extrabold">{asset.name}</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="rounded-full bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
+            Library
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-2">
+        <div className="flex items-center justify-center rounded-xl border border-pg-border bg-pg-surface-2 p-6">
+          <img
+            src={asset.url}
+            alt={asset.name}
+            crossOrigin="anonymous"
+            className="h-28 w-28 object-contain"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <dl className="rounded-xl border border-pg-border bg-pg-surface p-3 text-[12.5px]">
+            <Row k="Name" v={asset.name} />
+            <Row k="Category" v={asset.category} />
+            <Row k="License" v={asset.license} />
+            <Row k="Source" v="Shared library (read-only)" />
+          </dl>
+
+          {asset.kind === 'image' && <RemixBar busy={busy} onRemix={onRemix} />}
+
+          <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[12.5px] font-extrabold">Use it in your code</span>
+              <button
+                type="button"
+                onClick={() => onCopyRef(snippet)}
+                className="inline-flex items-center gap-1 rounded-lg border border-pg-border px-2 py-1 text-[11.5px] font-bold hover:bg-pg-text/5"
+              >
+                <Copy size={14} /> Copy
+              </button>
+            </div>
+            <pre
+              data-testid="library-codeRef"
+              className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text"
+            >
+              {snippet}
+            </pre>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -462,19 +647,11 @@ function CategoryRow({
 
 function GenerateBar({
   prompt,
-  kind,
-  busy,
-  error,
   onPrompt,
-  onKind,
   onGenerate,
 }: {
   prompt: string;
-  kind: 'image' | 'audio';
-  busy: boolean;
-  error: string | null;
   onPrompt: (v: string) => void;
-  onKind: (k: 'image' | 'audio') => void;
   onGenerate: () => void;
 }) {
   return (
@@ -488,36 +665,19 @@ function GenerateBar({
           onKeyDown={(e) => {
             if (e.key === 'Enter') onGenerate();
           }}
-          placeholder="Describe an asset to generate with AI…"
+          placeholder="Describe an asset — e.g. 'a pixel coin' or 'a jump sound'…"
           className="min-w-0 flex-1 rounded-lg border border-pg-border bg-pg-surface-2 px-3 py-1.5 text-[13px] outline-none placeholder:text-pg-text-muted"
         />
-        <select
-          value={kind}
-          onChange={(e) => onKind(e.target.value as 'image' | 'audio')}
-          className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5 text-[12px] font-semibold"
-        >
-          <option value="image">image</option>
-          <option value="audio">audio</option>
-        </select>
         <button
           type="button"
           data-testid="asset-generate"
           onClick={onGenerate}
-          disabled={busy || !prompt.trim()}
+          disabled={!prompt.trim()}
           className="inline-flex items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-          {busy ? 'Generating…' : 'Generate'}
+          <Sparkles size={15} /> Generate
         </button>
       </div>
-      {error && (
-        <div
-          data-testid="asset-generate-error"
-          className="border-t border-brand-coral/40 bg-brand-coral/10 px-4 py-1.5 text-[12px] text-brand-coral"
-        >
-          {error}
-        </div>
-      )}
     </div>
   );
 }
@@ -525,8 +685,8 @@ function GenerateBar({
 function DetailView({
   asset,
   files,
-  canAddToGame,
-  onAddToGame,
+  busy,
+  onRemix,
   onBack,
   onRename,
   onDelete,
@@ -534,8 +694,8 @@ function DetailView({
 }: {
   asset: VfsFile;
   files: VfsFile[];
-  canAddToGame: boolean;
-  onAddToGame: () => void;
+  busy: boolean;
+  onRemix: (prompt: string) => void;
   onBack: () => void;
   onRename: (to: string) => void;
   onDelete: () => void;
@@ -549,8 +709,6 @@ function DetailView({
   const kind = assetKindOf(asset.path, files);
   const anim = kind === 'sprite' ? parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path))) : null;
   const snippet = codeRefFor(asset, anim);
-  // Preloaded samples are read-only (no rename/delete); user/AI assets get CRUD.
-  const locked = isPreloadedAsset(asset.path);
 
   useEffect(() => {
     setDims(null);
@@ -586,9 +744,7 @@ function DetailView({
         >
           <ArrowLeft size={15} /> Back
         </button>
-        {locked ? (
-          <span className="truncate text-[14px] font-extrabold">{basename(asset.path)}</span>
-        ) : renaming ? (
+        {renaming ? (
           <input
             autoFocus
             value={nameDraft}
@@ -614,11 +770,6 @@ function DetailView({
           </button>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {locked && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-pg-text/10 px-2 py-0.5 text-[11px] font-bold text-pg-text-dim">
-              <Lock size={11} /> Sample
-            </span>
-          )}
           <span className="rounded-full bg-brand-bubblegum/15 px-2 py-0.5 text-[11px] font-bold capitalize text-pg-text-dim">
             {kind}
           </span>
@@ -637,19 +788,7 @@ function DetailView({
             <Row k="Size" v={formatBytes(asset.size || asset.content.length)} />
           </dl>
 
-          {/* One-tap insert (PRD J5): a kid won't hand-paste the code-ref, so the
-              primary action wires the loader + a use into a scene automatically.
-              The code-ref below is kept for older kids who want to do it by hand. */}
-          {canAddToGame && !locked && (
-            <button
-              type="button"
-              data-testid="asset-add-to-game"
-              onClick={onAddToGame}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-bubblegum px-3 py-2.5 text-[13px] font-extrabold text-white transition-colors hover:bg-brand-bubblegum/90"
-            >
-              <Plus size={16} /> Add to my game
-            </button>
-          )}
+          {(kind === 'image' || kind === 'sprite') && <RemixBar busy={busy} onRemix={onRemix} />}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -670,11 +809,7 @@ function DetailView({
             </pre>
           </div>
 
-          {locked ? (
-            <p className="inline-flex w-fit items-center gap-1.5 text-[12px] text-pg-text-muted">
-              <Lock size={13} /> Sample asset — read-only. Import or generate your own to edit.
-            </p>
-          ) : confirmDelete ? (
+          {confirmDelete ? (
             <div className="flex items-center gap-2 rounded-xl border border-brand-coral/50 bg-brand-coral/10 p-3 text-[12.5px]">
               <span className="font-semibold">Delete this asset?</span>
               <button type="button" onClick={onDelete} className="ml-auto rounded-lg bg-brand-coral px-3 py-1 font-bold text-white">

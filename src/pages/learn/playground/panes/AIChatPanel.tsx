@@ -20,12 +20,15 @@ import {
   Star,
   Undo2,
   Volume2,
+  Wand2,
   WifiOff,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { SafeguardingVerdict } from '../../code/codeApi';
+import { useGenerationStore } from '../generationStore';
+import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
 import { ThinkingBubble } from './ThinkingBubble';
 import { useStickToBottom } from './useStickToBottom';
@@ -33,6 +36,89 @@ import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
 
 /** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
 const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
+
+/** One clickable "what changed" row for the chat bubble (§11.4). */
+interface ChangedFile {
+  path: string;
+  note?: string;
+  fromLine?: number;
+  toLine?: number;
+}
+
+/**
+ * The inclusive [from, to] line range that differs between two file versions
+ * (1-based, in the AFTER file), or null when unchanged — so a click can highlight
+ * exactly what changed in the editor.
+ */
+function changedLineRange(before: string, after: string): { from: number; to: number } | null {
+  if (before === after) return null;
+  const a = before.split('\n');
+  const b = after.split('\n');
+  let from = 0;
+  while (from < a.length && from < b.length && a[from] === b[from]) from += 1;
+  let endA = a.length - 1;
+  let endB = b.length - 1;
+  while (endA >= from && endB >= from && a[endA] === b[endB]) {
+    endA -= 1;
+    endB -= 1;
+  }
+  // `from`..`endB` (0-based) is the changed region in the after file; if the change
+  // was a pure deletion (endB < from), highlight the single line at `from`.
+  const toLine = Math.max(from, endB) + 1;
+  return { from: from + 1, to: Math.min(toLine, b.length) };
+}
+
+/**
+ * A one-sentence, kid-friendly description for a file when the teacher didn't give
+ * its own note — so EVERY changed-file row always reads as a sentence, never a bare
+ * path. The teacher's `fileNotes` note (contextual to the change) is preferred; this
+ * is the role-based fallback keyed off the well-known scaffold layout.
+ */
+function describeFile(path: string): string {
+  const name = path.split('/').pop() ?? path;
+  if (name === 'main.js') return "The game's starting point — it sets everything up.";
+  if (name === 'Boot.js') return 'Gets the game ready before it starts.';
+  if (name === 'Game.js') return 'Your main game scene — where the action happens.';
+  if (name === 'GameOver.js') return 'The screen shown when the game ends.';
+  if (name === 'style.css') return 'How the game page looks.';
+  if (name.endsWith('.css')) return 'Styling for how things look.';
+  if (path.includes('/scenes/')) return 'A game scene (one screen of your game).';
+  if (name.endsWith('.json')) return 'Settings or data for your game.';
+  if (name.endsWith('.js')) return 'Code that makes your game work.';
+  return 'A file in your game.';
+}
+
+/**
+ * Build the per-file change rows for an agent bubble: ONE row per file
+ * (consolidate multiple edits, §11.4), a one-sentence description, and the line
+ * range to highlight. Driven by the applied diff (`changes`) for the range, the
+ * teacher's `fileNotes` for descriptions (falling back to a role-based sentence so
+ * a row is never just a path), and `toolsFired` only as a path fallback.
+ */
+function buildChangedFiles(item: ChatItem): ChangedFile[] {
+  const noteByPath = new Map((item.fileNotes ?? []).map((n) => [n.path, n.note]));
+  const seen = new Set<string>();
+  const out: ChangedFile[] = [];
+  const add = (path: string, range?: { from: number; to: number } | null) => {
+    if (!path || seen.has(path)) return;
+    seen.add(path);
+    out.push({
+      path,
+      note: noteByPath.get(path) ?? describeFile(path),
+      fromLine: range?.from,
+      toLine: range?.to,
+    });
+  };
+  for (const c of item.changes ?? []) add(c.path, changedLineRange(c.before, c.after));
+  // Files the teacher noted but that produced no diff entry (rare) still get a row.
+  for (const n of item.fileNotes ?? []) add(n.path);
+  // Fallback: no diff + no notes but tools fired (e.g. the first-turn scaffold,
+  // whose files arrive as toolsFired rather than a diff).
+  if (out.length === 0) {
+    for (const t of item.toolsFired ?? []) add(t.replace(/^(edit_file|write_file):/, ''));
+  }
+  return out;
+}
 
 interface AIChatPanelProps {
   chat: ChatItem[];
@@ -55,7 +141,7 @@ interface AIChatPanelProps {
   /** Only show "Ask my teacher" when the kid is in a class (else there's no
    *  teacher to ask). */
   inClass?: boolean;
-  onSend: (text: string) => void;
+  onSend: (text: string, opts?: { guided?: boolean }) => void;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
@@ -65,6 +151,12 @@ interface AIChatPanelProps {
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Open a changed file in the editor and highlight the change (§11.4). */
+  onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  /** Open a finished asset (by VFS path) in the Asset Viewer — the chat "done" card tap (§3). */
+  onOpenAsset?: (path: string) => void;
+  /** Resolve an asset's `data:` URL by VFS path, for the chat "done" preview. */
+  assetSrc?: (path: string) => string | undefined;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
   /** Retry the last prompt after a (non-cap) error (H2). */
@@ -91,6 +183,9 @@ export function AIChatPanel({
   onLowerHand,
   onRunGame,
   onSeeCode,
+  onOpenFile,
+  onOpenAsset,
+  assetSrc,
   onStop,
   onRetry,
 }: AIChatPanelProps) {
@@ -199,7 +294,7 @@ export function AIChatPanel({
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className="h-full overflow-y-auto px-4 py-4 space-y-3"
+          className="pg-scroll h-full overflow-y-auto px-4 py-4 space-y-3"
         >
           {chat.length === 0 && (
             <div className="py-8 text-center text-[14px] font-semibold text-pg-text-dim">
@@ -210,7 +305,16 @@ export function AIChatPanel({
             item.pending ? (
               <ThinkingBubble key={item.id} />
             ) : (
-              <ChatRow key={item.id} item={item} onRunGame={onRunGame} onSeeCode={onSeeCode} />
+              <ChatRow
+                key={item.id}
+                item={item}
+                onRunGame={onRunGame}
+                onSeeCode={onSeeCode}
+                onSend={onSend}
+                onOpenFile={onOpenFile}
+                onOpenAsset={onOpenAsset}
+                assetSrc={assetSrc}
+              />
             ),
           )}
 
@@ -376,16 +480,81 @@ function ChatRow({
   item,
   onRunGame,
   onSeeCode,
+  onSend,
+  onOpenFile,
+  onOpenAsset,
+  assetSrc,
 }: {
   item: ChatItem;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  onSend?: (text: string, opts?: { guided?: boolean }) => void;
+  onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
+  onOpenAsset?: (path: string) => void;
+  assetSrc?: (path: string) => string | undefined;
 }) {
   if (item.role === 'kid') {
     return (
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-2xl bg-grad-sky text-white px-4 py-2.5 text-[14px] leading-relaxed shadow-brand-sky">
           {item.text}
+        </div>
+      </div>
+    );
+  }
+  // AI asset generation (D-ASSET §3): the magic card while it runs, then the
+  // finished asset with an Add-to-game CTA (a gentle text bubble on error).
+  if (item.assetGen) {
+    const ag = item.assetGen;
+    if (ag.status === 'done' && ag.path) {
+      const src = assetSrc?.(ag.path);
+      const path = ag.path;
+      // The finished asset, shown big. Tapping it opens it in the Asset Viewer.
+      return (
+        <div className="flex justify-start">
+          <button
+            type="button"
+            data-testid="chat-asset-open"
+            onClick={() => onOpenAsset?.(path)}
+            className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 p-2.5 text-left transition-colors hover:border-brand-bubblegum/60"
+          >
+            <div className="mb-2 px-1 text-[13px] font-extrabold text-pg-text">Here’s your asset! ✨</div>
+            {src && (
+              <img
+                src={src}
+                crossOrigin="anonymous"
+                alt=""
+                className="h-40 w-full rounded-xl bg-pg-surface-2 object-contain p-2"
+              />
+            )}
+            <div className="mt-1.5 px-1 text-[11.5px] text-pg-text-muted">
+              saved to My assets · tap to open it
+            </div>
+          </button>
+        </div>
+      );
+    }
+    if (ag.status === 'error') {
+      return (
+        <div className="flex justify-start">
+          <div className="max-w-[85%] rounded-2xl border border-pg-border bg-pg-text/10 px-4 py-2.5 text-[13.5px] text-pg-text-dim">
+            🌧️ That fizzled — try asking again.
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex w-full justify-start">
+        <div className="w-[92%]">
+          <MagicGenerationCard
+            status="generating"
+            prompt={ag.prompt}
+            mode={ag.refSrc ? 'remix' : 'create'}
+            refSrc={ag.refSrc}
+            onCancel={() => useGenerationStore.getState().cancel()}
+            onRetry={() => undefined}
+            onDismiss={() => undefined}
+          />
         </div>
       </div>
     );
@@ -441,15 +610,35 @@ function ChatRow({
           {item.streaming && <span aria-hidden="true" className="ml-0.5 animate-pulse">▍</span>}
         </div>
 
-        {item.toolsFired && item.toolsFired.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.toolsFired.map((t, i) => (
-              <span key={i} className="rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
-                ✏️ {t.replace('edit_file:', '').replace('write_file:', '')}
-              </span>
-            ))}
-          </div>
-        )}
+        {(() => {
+          // Per-file "what changed" rows (§11.4): ONE row per changed file
+          // (consolidate multiple edits to the same file), each with the teacher's
+          // short note and clickable → opens the editor + highlights the change.
+          const changedFiles = buildChangedFiles(item);
+          if (changedFiles.length === 0) return null;
+          return (
+            <div data-testid="file-changes" className="mt-2.5 flex flex-col gap-1.5">
+              {changedFiles.map((f) => (
+                <button
+                  key={f.path}
+                  type="button"
+                  data-testid="file-change"
+                  onClick={() => onOpenFile?.(f.path, f.fromLine, f.toLine)}
+                  disabled={!onOpenFile}
+                  className="group flex items-start gap-1.5 rounded-lg bg-wash-mint/70 px-2.5 py-1.5 text-left transition-colors enabled:hover:bg-wash-mint disabled:cursor-default"
+                >
+                  <span aria-hidden="true">📝</span>
+                  <span className="min-w-0">
+                    <span className="font-bold text-[11.5px] text-ink underline-offset-2 group-enabled:group-hover:underline">
+                      {f.path}
+                    </span>
+                    {f.note && <span className="text-[11.5px] text-ink/70"> — {f.note}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {hasActions && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -471,6 +660,29 @@ function ChatRow({
                 <Code2 size={16} /> See code
               </button>
             )}
+          </div>
+        )}
+
+        {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06).
+            Tapping one sends its prompt as the next turn. */}
+        {item.nextSteps && item.nextSteps.length > 0 && (
+          <div data-testid="next-steps" className="mt-3 flex flex-wrap gap-2">
+            {item.nextSteps.map((step, i) => (
+              <button
+                key={i}
+                type="button"
+                data-testid="next-step"
+                onClick={() => onSend?.(step.prompt, { guided: true })}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold transition-transform hover:-translate-y-0.5 ${
+                  step.tag === 'concept'
+                    ? 'bg-brand-sky/15 text-brand-sky'
+                    : 'bg-brand-bubblegum/15 text-brand-bubblegum'
+                }`}
+              >
+                {step.tag === 'concept' ? <Sparkles size={14} /> : <Wand2 size={14} />}
+                {step.label}
+              </button>
+            ))}
           </div>
         )}
       </div>

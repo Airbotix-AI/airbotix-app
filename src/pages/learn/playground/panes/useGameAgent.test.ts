@@ -11,7 +11,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
 import type { AgentTurnResult } from '../../code/codeApi';
 import type { GameAgentDeps } from './gameAgent';
-import { useGameAgent } from './useGameAgent';
+import { useGameAgent, type ChatItem } from './useGameAgent';
 
 // A handle a test can resolve on demand, so `streamTurn` stays pending while we
 // press Stop (which flips the `sig.aborted` flag the hook owns).
@@ -45,6 +45,10 @@ const TURN: AgentTurnResult = {
   summary: 'I made it blue.',
   stars_charged: 2,
   tools_fired: ['edit_file:main.js'],
+  next_steps: [
+    { label: 'Add a score', prompt: 'add a score', tag: 'concept' },
+    { label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' },
+  ],
 };
 
 /** A non-approval Pro turn that applies; classify always passes (null). */
@@ -52,8 +56,9 @@ function makeDeps(): GameAgentDeps {
   return {
     runTurn: vi.fn(async () => TURN),
     approve: vi.fn(async () => TURN),
-    classify: vi.fn(async () => null),
+    classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
 }
 
@@ -79,8 +84,9 @@ function setupFailing(error: unknown) {
       throw error;
     }),
     approve: vi.fn(async () => TURN),
-    classify: vi.fn(async () => null),
+    classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
+    reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
   };
   const view = renderHook(() =>
     useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
@@ -143,6 +149,111 @@ describe('useGameAgent streamed apply (H1)', () => {
     expect(onStarsCharged).toHaveBeenCalledWith(2);
     const lastChat = result.current.chat[result.current.chat.length - 1];
     expect(lastChat.text).toBe(TURN.summary);
+    // The turn's next-step options ride onto the settled bubble (FE1 contract).
+    expect(lastChat.nextSteps).toEqual(TURN.next_steps);
+  });
+
+  it('only the latest settled turn keeps next-step chips — older bubbles are cleared (D-PAP-26)', async () => {
+    resolveStream = null;
+    const { result } = setup();
+
+    // First turn settles with its next-step options.
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(result.current.chat.at(-1)?.nextSteps).toEqual(TURN.next_steps);
+
+    // Second turn: once it settles, the FIRST agent bubble's chips are gone — only
+    // the most recent server message ever carries next-step options.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+
+    const agentBubbles = result.current.chat.filter((c) => c.role === 'agent');
+    expect(agentBubbles).toHaveLength(2);
+    expect(agentBubbles[0].nextSteps).toBeUndefined();
+    expect(agentBubbles[1].nextSteps).toEqual(TURN.next_steps);
+  });
+});
+
+describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => {
+  it('a guided send (chip tap) forwards guided:true to the backend turn (#1)', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('make the player move', { guided: true });
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: 'make the player move', guided: true }),
+    );
+  });
+
+  it('a free-typed send is NOT guided (#1)', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: 'add a score', guided: false }),
+    );
+  });
+
+  it('an auto-fix turn does NOT wipe the kid’s still-unused next-step chips (#3 sticky)', async () => {
+    resolveStream = null;
+    // The self-verify fix turn is a SYSTEM repair and carries no options of its own.
+    const FIX_TURN: AgentTurnResult = { ...TURN, turn_id: 'fix1', summary: 'Fixed the bug.', next_steps: [] };
+    const deps = makeDeps();
+    deps.reportRuntimeErrors = vi.fn(async () => ({
+      attempted: true,
+      co_debug: false,
+      attempt: 1,
+      turn: FIX_TURN,
+    }));
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    // 1) A normal build turn settles with its next-step chips.
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(result.current.chat.at(-1)?.nextSteps).toEqual(TURN.next_steps);
+
+    // 2) The game throws at runtime → auto-fix runs. Its fix bubble lands AFTER the
+    //    build bubble, but it must NOT clear the chips the kid hasn't acted on yet.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.autoFixFromErrors(['TypeError: boom']);
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+
+    const agentBubbles = result.current.chat.filter((c) => c.role === 'agent');
+    // The earlier build bubble STILL carries its chips (sticky); the fix bubble has none.
+    expect(agentBubbles.at(-2)?.nextSteps).toEqual(TURN.next_steps);
+    expect(agentBubbles.at(-1)?.nextSteps ?? []).toEqual([]);
   });
 });
 
@@ -174,5 +285,48 @@ describe('useGameAgent error copy distinguishes unreachable vs server-error', ()
       await result.current.send('make it blue');
     });
     await waitFor(() => expect(result.current.error).toBe(REACH_FAIL));
+  });
+});
+
+// J9 resume: the conversation is restored from saved history, and a blank prompt
+// (a resume) never re-injects the canned "your game starter is ready" starter.
+describe('useGameAgent chat seed + restore (J9 resume)', () => {
+  const restored: ChatItem[] = [
+    { id: 'k1', role: 'kid', text: 'make chess' },
+    { id: 'a1', role: 'agent', text: 'I made a chess board.' },
+    { id: 'k2', role: 'kid', text: 'add turns' },
+    { id: 'a2', role: 'agent', text: 'Added click-to-move turns.' },
+  ];
+
+  it('restored initialChat takes precedence over the intro seed', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: 'make chess', initialChat: restored }),
+    );
+    expect(result.current.chat).toHaveLength(4);
+    expect(result.current.chat.some((c) => c.text.includes('game starter is ready'))).toBe(false);
+    expect(result.current.chat.at(-1)?.text).toBe('Added click-to-move turns.');
+  });
+
+  it('a blank introPrompt (resume) does NOT seed the canned starter', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: '' }),
+    );
+    expect(result.current.chat).toEqual([]);
+  });
+
+  it('a real introPrompt still seeds the starter for a brand-new project', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: 'make a maze' }),
+    );
+    const agent = result.current.chat.find((c) => c.role === 'agent');
+    expect(agent?.text).toContain('game starter is ready');
+  });
+
+  it('persists via onChatChange on the seed (so an immediate exit still saves)', () => {
+    const onChatChange = vi.fn();
+    renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), initialChat: restored, onChatChange }),
+    );
+    expect(onChatChange).toHaveBeenCalledWith(restored);
   });
 });

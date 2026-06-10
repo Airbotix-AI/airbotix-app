@@ -39,6 +39,8 @@ export interface CursorPosition {
  *  error). `nonce` makes repeat jumps to the same line re-fire the effect. */
 export interface JumpTarget {
   line: number
+  /** When set, highlight the inclusive [line, toLine] range (agent highlight_code). */
+  toLine?: number
   column?: number
   nonce: number
 }
@@ -51,12 +53,19 @@ interface MonacoEditorProps {
   onCursorChange?: (pos: CursorPosition) => void
   /** Reveal + place the caret at a line (jump-to-error). Re-fires when nonce changes. */
   jumpTo?: JumpTarget | null
+  /** Hand the selected code to the AI chat ("✨ Explain this" floating toolbar).
+   *  When unset the toolbar never shows. */
+  onExplainSelection?: (code: string) => void
 }
 
-function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange, jumpTo }: MonacoEditorProps) {
+function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange, jumpTo, onExplainSelection }: MonacoEditorProps) {
   // Follow the playground theme: light editor in light mode, vs-dark in dark.
   const theme = usePlaygroundStore((s) => s.theme)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+  // Keep the latest callback reachable from the once-registered widget without
+  // re-mounting it when the prop identity changes.
+  const onExplainRef = useRef(onExplainSelection)
+  onExplainRef.current = onExplainSelection
 
   // Hover / suggest / parameter-hint widgets are "overflow widgets". By default
   // Monaco renders them INSIDE the editor DOM, so they get clipped by the code
@@ -79,6 +88,73 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     return () => node.remove()
   }, [])
 
+  // Decorations for the agent's highlight_code range (cleared on the next jump).
+  const highlightRef = useRef<string[]>([])
+
+  // The "✨ Explain this" floating toolbar: a Monaco content widget anchored to a
+  // non-empty selection. Built as a content widget (not a React overlay) so Monaco
+  // anchors it to the selection and flips it above/below near the top edge for us.
+  // Clicking it hands the selected code to the chat agent (onExplainSelection).
+  const setupExplainToolbar = (editor: monaco.editor.IStandaloneCodeEditor) => {
+    let selection: monaco.Selection | null = null
+    let visible = false
+
+    const node = document.createElement('div')
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.setAttribute('data-testid', 'explain-selection')
+    // Reuse the brand-sky pill styling (literal class string → Tailwind JIT picks it up).
+    btn.className =
+      'inline-flex items-center gap-1 rounded-full bg-grad-sky px-2.5 py-1 text-[11px] font-extrabold text-white shadow-brand-sky transition-transform hover:-translate-y-0.5'
+    btn.textContent = '✨ Explain this'
+    node.appendChild(btn)
+
+    const widget: monaco.editor.IContentWidget = {
+      getId: () => 'airbotix.explain.toolbar',
+      getDomNode: () => node,
+      getPosition: () =>
+        visible && selection
+          ? {
+              position: { lineNumber: selection.startLineNumber, column: selection.startColumn },
+              preference: [
+                monaco.editor.ContentWidgetPositionPreference.ABOVE,
+                monaco.editor.ContentWidgetPositionPreference.BELOW,
+              ],
+            }
+          : null,
+    }
+    editor.addContentWidget(widget)
+
+    const hide = () => {
+      if (!visible) return
+      visible = false
+      editor.layoutContentWidget(widget)
+    }
+
+    // mousedown would blur/move the caret and collapse the selection before the
+    // click fires — preventDefault keeps the selection intact for the handler.
+    btn.addEventListener('mousedown', (e) => e.preventDefault())
+    btn.addEventListener('click', (e) => {
+      e.preventDefault()
+      const model = editor.getModel()
+      if (!selection || !model) return
+      const code = model.getValueInRange(selection)
+      if (code.trim()) onExplainRef.current?.(code)
+      hide()
+    })
+
+    editor.onDidChangeCursorSelection((e) => {
+      if (e.selection.isEmpty() || !onExplainRef.current) {
+        selection = null
+        hide()
+        return
+      }
+      selection = e.selection
+      visible = true
+      editor.layoutContentWidget(widget)
+    })
+  }
+
   // Jump to a line on request. The model is already updated (the value-sync
   // effect of the inner <Editor> is a child effect, so it runs before this
   // parent effect), so revealing/positioning here lands on the new content.
@@ -87,6 +163,20 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     if (!ed || !jumpTo) return
     ed.revealLineInCenter(jumpTo.line)
     ed.setPosition({ lineNumber: jumpTo.line, column: jumpTo.column ?? 1 })
+    // highlight_code: flag the [line, toLine] range so the kid sees exactly what
+    // the agent changed. A plain jump (no toLine) clears any prior highlight.
+    const end = jumpTo.toLine && jumpTo.toLine >= jumpTo.line ? jumpTo.toLine : null
+    highlightRef.current = ed.deltaDecorations(
+      highlightRef.current,
+      end
+        ? [
+            {
+              range: new monaco.Range(jumpTo.line, 1, end, 1),
+              options: { isWholeLine: true, className: 'pg-code-highlight' },
+            },
+          ]
+        : [],
+    )
     ed.focus()
   }, [jumpTo])
 
@@ -112,6 +202,7 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
           editor.revealLineInCenter(jumpTo.line)
           editor.setPosition({ lineNumber: jumpTo.line, column: jumpTo.column ?? 1 })
         }
+        setupExplainToolbar(editor)
       }}
       options={{
         // `showSlider: 'always'` keeps the viewport rectangle visible so it

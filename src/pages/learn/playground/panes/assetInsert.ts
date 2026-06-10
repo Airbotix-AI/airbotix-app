@@ -12,6 +12,7 @@
 // if missing); the use goes at the end of `create()`.
 
 import type { VfsFile } from '../../code/codeApi';
+import type { LibraryAsset } from '../assetLibrary';
 import {
   AUDIO_EXTS,
   IMAGE_EXTS,
@@ -105,31 +106,85 @@ function insertIntoMethod(src: string, method: string, block: string): string | 
 }
 
 /**
- * Add an asset to the game in one tap: register a unique Phaser key, inject the
- * loader into `preload()` and a sensible use into `create()` of the target
- * scene. Returns the next files (or `null` files if no scene was found).
+ * Shared insert core: find the target scene, pick a unique Phaser key derived
+ * from `baseKey`, inject the loader into `preload()` and the use into `create()`.
+ * The two public entry points differ only in how they build the loader/use lines
+ * (a VFS path vs. a library URL).
  */
-export function addAssetToGame(files: VfsFile[], asset: VfsFile): InsertResult {
+function insertWithKey(
+  files: VfsFile[],
+  baseKey: string,
+  makeLoader: (key: string) => string,
+  makeUse: (key: string) => string,
+): InsertResult {
   const scene = pickSceneFile(files);
   if (!scene) return { files: null, scenePath: null, key: null };
 
-  const anim = parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path)));
-
   // A unique key across the scene so re-adding the same name never collides.
-  const base = slugifyKey(asset.path);
-  let key = base;
+  let key = baseKey;
   let n = 1;
   while (new RegExp(`['"]${key}['"]`).test(scene.content)) {
     n += 1;
-    key = `${base}_${n}`;
+    key = `${baseKey}_${n}`;
   }
 
-  const withLoader = insertIntoMethod(scene.content, 'preload', loaderLine(asset.path, key, anim));
+  const withLoader = insertIntoMethod(scene.content, 'preload', makeLoader(key));
   if (withLoader == null) return { files: null, scenePath: null, key: null };
-  const withUse = insertIntoMethod(withLoader, 'create', usageLine(asset.path, key));
+  const withUse = insertIntoMethod(withLoader, 'create', makeUse(key));
   if (withUse == null) return { files: null, scenePath: null, key: null };
 
   const nextScene: VfsFile = { ...scene, content: withUse, size: withUse.length };
   const nextFiles = files.map((f) => (f.path === scene.path ? nextScene : f));
   return { files: nextFiles, scenePath: scene.path, key };
+}
+
+/**
+ * Add a project (VFS) asset to the game in one tap: register a unique Phaser
+ * key, inject the loader into `preload()` and a sensible use into `create()` of
+ * the target scene. Returns the next files (or `null` files if no scene found).
+ */
+export function addAssetToGame(files: VfsFile[], asset: VfsFile): InsertResult {
+  const anim = parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path)));
+  return insertWithKey(
+    files,
+    slugifyKey(asset.path),
+    (key) => loaderLine(asset.path, key, anim),
+    (key) => usageLine(asset.path, key),
+  );
+}
+
+/** Basename-style key from a library asset's display name (`[a-z0-9_]`). */
+function libraryKey(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return slug || 'asset';
+}
+
+/** Loader for a library asset, which is referenced by URL (NOT a VFS path). */
+function libraryLoaderLine(asset: LibraryAsset, key: string): string {
+  if (asset.kind === 'audio') return `this.load.audio('${key}', '${asset.url}');`;
+  // Image/sprite: set crossOrigin so the cross-origin CDN texture doesn't taint
+  // the canvas (snapshots/remix can still read pixels — D-ASSET-7).
+  return `this.load.setCORS('anonymous');\nthis.load.image('${key}', '${asset.url}');`;
+}
+
+function libraryUsageLine(asset: LibraryAsset, key: string): string {
+  if (asset.kind === 'audio') return `this.sound.play('${key}');`;
+  return `this.add.sprite(this.scale.width / 2, this.scale.height / 2, '${key}');`;
+}
+
+/**
+ * Add a shared **Library** asset to the game (D-ASSET-2). Same one-tap flow as
+ * {@link addAssetToGame}, but the loader points at the asset's stable CDN URL —
+ * nothing is copied into the VFS, so the library stays read-only and shared.
+ */
+export function addLibraryAssetToGame(files: VfsFile[], asset: LibraryAsset): InsertResult {
+  return insertWithKey(
+    files,
+    libraryKey(asset.name),
+    (key) => libraryLoaderLine(asset, key),
+    (key) => libraryUsageLine(asset, key),
+  );
 }

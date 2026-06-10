@@ -69,6 +69,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
   const [chat, setChat] = useState<ChatItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
   const [runKey, setRunKey] = useState(0);
   // A staged plan awaiting "✓ yes" before multi-file edits land (PRD §4.1).
   const [pendingPlan, setPendingPlan] = useState<{ prompt: string } | null>(null);
@@ -118,10 +119,11 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
    * plan and gate the preview behind "✓ yes"; otherwise we apply it directly.
    */
   const send = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, opts: { piiWarnAcknowledged?: boolean } = {}) => {
       const text = prompt.trim();
       if (!text || busy) return;
       setError(null);
+      setWarnPending(null);
       setBusy(true);
       setChat((prev) => [
         ...prev,
@@ -129,7 +131,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
         { id: nextId(), role: 'agent', text: 'Thinking…', pending: true },
       ]);
       try {
-        const res = await runAgentTurn({ projectId, prompt: text, mode });
+        const res = await runAgentTurn({ projectId, prompt: text, mode, piiWarnAcknowledged: opts.piiWarnAcknowledged });
         if (res.requires_approval) {
           stagedTurnId.current = res.turn_id;
           setPendingPlan({ prompt: text });
@@ -145,19 +147,42 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
               toolsFired: res.tools_fired,
             },
           ]);
-          // Don't commit the preview until the kid approves the plan.
           return;
         }
         applyTurn(res);
       } catch (e) {
         setChat((prev) => prev.filter((c) => !c.pending));
-        setError(friendly(e));
+        if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
+          const details = e.details as { kind?: string } | undefined;
+          const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
+          setWarnPending({ message: e.message, prompt: text, stage });
+        } else {
+          setError(friendly(e));
+        }
       } finally {
         setBusy(false);
       }
     },
     [busy, projectId, mode, applyTurn],
   );
+
+  const confirmWarn = useCallback(async () => {
+    if (!warnPending || busy) return;
+    const { prompt } = warnPending;
+    setWarnPending(null);
+    await send(prompt, { piiWarnAcknowledged: true });
+  }, [warnPending, busy, send]);
+
+  const dismissWarn = useCallback(() => {
+    if (warnPending) {
+      void api<void>('/safety/prompt-aborted', {
+        method: 'POST',
+        body: { surface: 'code', stage: warnPending.stage },
+        principal: 'kid',
+      }).catch(() => undefined);
+    }
+    setWarnPending(null);
+  }, [warnPending]);
 
   /** Approve a staged plan ("✓ yes") — asks the backend to persist the turn. */
   const approvePlan = useCallback(async () => {
@@ -213,6 +238,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       chat,
       busy,
       error,
+      warnPending,
       balance,
       runKey,
       pendingPlan,
@@ -220,11 +246,13 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       approvePlan,
       rejectPlan,
       runAnew,
+      confirmWarn,
+      dismissWarn,
       visibility: project.data?.visibility ?? 'private',
     }),
     [
       mode, age, title, liveFiles, vfs.isLoading, project.isLoading, project.data,
-      chat, busy, error, balance, runKey, pendingPlan, send, approvePlan, rejectPlan, runAnew,
+      chat, busy, error, warnPending, balance, runKey, pendingPlan, send, approvePlan, rejectPlan, runAnew, confirmWarn, dismissWarn,
     ],
   );
 }

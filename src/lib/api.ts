@@ -4,7 +4,7 @@ import { surfacePrincipal, useAuthStore } from '@/auth/authStore';
 import type { PrincipalKind } from '@/auth/types';
 import type { GenAssetRequest, GenAssetResult } from '@/pages/learn/playground/assetGen';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 // A request inherits the principal of the surface it is fired from unless an
 // explicit `principal` is passed (e.g. /auth/me, login/logout target a kind).
@@ -178,8 +178,20 @@ export async function apiDownload(
 /**
  * Generate a game asset via platform-backend (Stars-metered, audited). The kid
  * surface never calls an LLM directly — this is the real target for the
- * `runGen` seam in `@/pages/learn/playground/assetGen`. Backend endpoint TBD.
+ * `runGen` seam in `@/pages/learn/playground/assetGen`.
  */
-export async function generateAsset(req: GenAssetRequest): Promise<GenAssetResult> {
-  return api<GenAssetResult>('/llm/generate-asset', { method: 'POST', body: req });
+export async function generateAsset(
+  req: GenAssetRequest,
+  signal?: AbortSignal,
+): Promise<GenAssetResult> {
+  // The backend DTO (`GenerateAssetSchema`) is snake_case — map the camelCase seam.
+  const body = {
+    project_id: req.projectId,
+    kind: req.kind,
+    prompt: req.prompt,
+    ref_asset_path: req.refAssetPath,
+    ref_url: req.refUrl,
+    size: req.size,
+  };
+  return api<GenAssetResult>('/llm/generate-asset', { method: 'POST', body, signal });
 }
