@@ -4,6 +4,22 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — junior block coder, M1 + core editor)
+
+### Added
+- **Blocks Studio** (`learn-blocks-studio-prd.md`) — the junior (~5–8, pre-reader) visual
+  block-coding studio. New **Blocks card** on the Create hub beside Code Studio (free — no
+  Stars). `/learn/create/blocks` (`BlocksHubPage`: blank/story starters + project list) and
+  `/learn/blocks/:projectId` (`BlocksStudioPage`): stage with draggable characters and
+  meadow/space scenes, character + pages rails (≤4 pages), the six colour-coded block
+  categories, tap-to-snap puzzle blocks (number tiles cycle 1–9, Say text editable),
+  **Go!** runs every 🚩 script via a sequential interpreter (`interpreter.ts` — move/turn/
+  hop/say/grow/shrink/hide/show/pop/wait/stop/forever/go-to-page), **Present** hides the
+  editing chrome. Auto-adaptive layout (portrait stacks; `pointer: coarse` bumps targets).
+  The program persists as `project.blocks.json` in the project VFS via the versioned
+  `GET/PUT /projects/:id/code/files` (debounced autosave, server-wins conflict).
+  Tests: `blocksModel` / `blocksStore` / `interpreter` (16 unit tests).
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

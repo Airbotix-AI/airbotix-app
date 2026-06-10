@@ -15,6 +15,7 @@ const STUDIOS: Array<{
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', cost: 1 },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', cost: 5 },
   { to: '/learn/create/code', emoji: '💻', title: 'Code Studio', desc: 'Make a website, game, or tool. AI writes the code.', color: 'sky', cost: 1 },
+  { to: '/learn/create/blocks', emoji: '🧩', title: 'Blocks', desc: 'Snap puzzle blocks to make characters move & talk. No typing!', color: 'mint', cost: 0 },
 ];
 
 export function CreateHubPage() {
@@ -52,7 +53,7 @@ export function CreateHubPage() {
               <p className="mt-2 text-[14px] opacity-90">{s.desc}</p>
               <div className="mt-8 flex items-center justify-between">
                 <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.10em]">
-                  {s.cost}★ per make
+                  {s.cost === 0 ? 'Free — no stars' : `${s.cost}★ per make`}
                 </span>
                 <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
                   Open →

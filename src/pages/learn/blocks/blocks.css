@@ -1,0 +1,379 @@
+/* Blocks Studio styles (learn-blocks-studio-prd.md §11–12).
+ *
+ * Canonical home of the SIX block-category colour tokens (--bsx-cat-*) — they
+ * are load-bearing (colour = meaning, a learned association) and constant in
+ * both themes, like the brand tokens. Everything else uses the K-12 brand
+ * palette. Blocks are true puzzle pieces: a masked socket on the left + a
+ * glossy plug on the right that shows through the next piece's socket when
+ * chained (same construction the PRD mockup validated).
+ *
+ * Auto-adaptive: width/orientation media queries reflow the editor;
+ * (pointer: coarse) bumps every hit target for touch (D-BLK-7).
+ */
+
+.bsx {
+  --bsx-cat-trigger: #ffb400;
+  --bsx-cat-motion: #3d9bf5;
+  --bsx-cat-looks: #a964f7;
+  --bsx-cat-sound: #1fc983;
+  --bsx-cat-control: #ff8a2b;
+  --bsx-cat-end: #ff5677;
+  --bsx-hit: 52px;
+  --bsx-block-h: 62px;
+  --bsx-bg: #f6f1ff;
+  --bsx-surface: #ffffff;
+  --bsx-panel: rgba(255, 255, 255, 0.78);
+  --bsx-rail: rgba(255, 255, 255, 0.66);
+  --bsx-border: #e9e0f6;
+  --bsx-text: #241e3a;
+  --bsx-text-dim: #564e72;
+  --bsx-text-muted: #a89fbf;
+}
+@media (pointer: coarse) {
+  .bsx {
+    --bsx-hit: 64px;
+    --bsx-block-h: 72px;
+  }
+}
+
+/* ── universal "pressable" — every touchable thing looks pushable ─────────── */
+.bsx-press {
+  border: 0;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--bsx-text-dim);
+  background: var(--bsx-surface);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 var(--bsx-border), 0 10px 18px -12px rgba(60, 30, 110, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bsx-press:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--bsx-border), 0 14px 22px -12px rgba(60, 30, 110, 0.45);
+}
+.bsx-press:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--bsx-border);
+}
+
+/* ── the puzzle block ─────────────────────────────────────────────────────── */
+.bsx-block {
+  --c: #888;
+  position: relative;
+  flex: 0 0 auto;
+  height: var(--bsx-block-h);
+  min-width: 64px;
+  padding: 0 16px 0 20px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-weight: 800;
+  font-size: 11.5px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(0 4px 0 color-mix(in srgb, var(--c) 55%, #241030))
+    drop-shadow(0 10px 12px color-mix(in srgb, var(--c) 38%, transparent));
+  transition: transform 0.15s, filter 0.15s;
+}
+.bsx-block:hover {
+  transform: translateY(-3px);
+}
+.bsx-block:active {
+  transform: translateY(2px);
+}
+.bsx-block .bd {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 15px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--c) 62%, #fff) 0%,
+    var(--c) 52%,
+    color-mix(in srgb, var(--c) 80%, #241030) 140%
+  );
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 10px, #000 10.5px);
+  mask: radial-gradient(circle at 0 50%, transparent 10px, #000 10.5px);
+}
+.bsx-block .bd::before {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  top: 8%;
+  height: 26%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+}
+.bsx-block .plug {
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  z-index: -1;
+  background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--c) 50%, #fff), var(--c) 72%);
+}
+.bsx-block .ic {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
+}
+.bsx-block .num {
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 24px;
+  height: 24px;
+  border-radius: 9px;
+  background: #fff;
+  color: #241e3a;
+  font-size: 12.5px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 3px var(--c), 0 4px 8px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+.bsx-block.has-num {
+  padding-bottom: 12px;
+}
+.bsx-block.cat-trigger {
+  --c: var(--bsx-cat-trigger);
+  color: #5d4300;
+}
+.bsx-block.cat-trigger .ic {
+  color: #5d4300;
+}
+.bsx-block.cat-motion {
+  --c: var(--bsx-cat-motion);
+}
+.bsx-block.cat-looks {
+  --c: var(--bsx-cat-looks);
+}
+.bsx-block.cat-sound {
+  --c: var(--bsx-cat-sound);
+}
+.bsx-block.cat-control {
+  --c: var(--bsx-cat-control);
+}
+.bsx-block.cat-end {
+  --c: var(--bsx-cat-end);
+}
+/* a trigger starts a chain (no socket, rounded cap); end blocks have no plug */
+.bsx-block.is-trigger {
+  padding-left: 16px;
+}
+.bsx-block.is-trigger .bd {
+  -webkit-mask: none;
+  mask: none;
+  border-radius: 26px 15px 15px 26px;
+}
+.bsx-block.no-plug .plug {
+  display: none;
+}
+.bsx-block.no-plug .bd {
+  border-radius: 15px 26px 26px 15px;
+}
+/* the block currently executing glows + lifts */
+.bsx-block.lit {
+  transform: translateY(-5px) scale(1.06);
+  filter: drop-shadow(0 6px 0 color-mix(in srgb, var(--c) 55%, #241030))
+    drop-shadow(0 0 16px var(--c)) brightness(1.16) saturate(1.2);
+}
+
+/* ── category buttons ─────────────────────────────────────────────────────── */
+.bsx-cat {
+  --cc: #888;
+  width: var(--bsx-hit);
+  height: var(--bsx-hit);
+  border: 0;
+  border-radius: 16px;
+  font-size: 22px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--cc) 60%, #fff), var(--cc));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--cc) 60%, #201030), 0 8px 14px -8px var(--cc);
+}
+.bsx-cat:hover {
+  transform: translateY(-2px) scale(1.04);
+}
+.bsx-cat:active {
+  transform: translateY(2px);
+}
+.bsx-cat[aria-pressed='true'] {
+  outline: 4px solid var(--bsx-surface);
+  outline-offset: -3px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--cc) 60%, #201030), 0 0 0 4px var(--cc),
+    0 10px 16px -8px var(--cc);
+  transform: scale(1.06);
+}
+.bsx-cat.c-trigger {
+  --cc: var(--bsx-cat-trigger);
+}
+.bsx-cat.c-motion {
+  --cc: var(--bsx-cat-motion);
+}
+.bsx-cat.c-looks {
+  --cc: var(--bsx-cat-looks);
+}
+.bsx-cat.c-sound {
+  --cc: var(--bsx-cat-sound);
+}
+.bsx-cat.c-control {
+  --cc: var(--bsx-cat-control);
+}
+.bsx-cat.c-end {
+  --cc: var(--bsx-cat-end);
+}
+
+/* ── stage scenes (constant brand-wash art, both themes) ──────────────────── */
+.bsx-stage {
+  position: relative;
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid var(--bsx-border);
+  box-shadow: inset 0 -36px 60px -36px rgba(40, 16, 80, 0.35);
+}
+.bsx-stage.scene-meadow {
+  background: linear-gradient(180deg, #9cd7ff, #c8e9ff 60%, #f1faff);
+}
+.bsx-stage.scene-space {
+  background: linear-gradient(180deg, #101b3c, #22184b 60%, #3a1d55);
+}
+.bsx-stage .bsx-grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(20, 60, 120, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 60, 120, 0.1) 1px, transparent 1px);
+  background-size: calc(100% / 20) calc(100% / 15);
+}
+.bsx-stage.scene-space .bsx-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+}
+.bsx-hill {
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  bottom: -22%;
+  height: 46%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, #8fe9c6, #3dd9a9);
+}
+.bsx-stage.scene-space .bsx-hill {
+  background: linear-gradient(180deg, #2a2058, #1a1438);
+}
+.bsx-sprite {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  filter: drop-shadow(0 8px 8px rgba(30, 10, 60, 0.35));
+}
+.bsx-sprite.dragging {
+  cursor: grabbing;
+  filter: drop-shadow(0 14px 14px rgba(30, 10, 60, 0.45)) brightness(1.06);
+}
+.bsx-say {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: #fff;
+  color: #241e3a;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 6px 14px -6px rgba(30, 10, 60, 0.4);
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* ── studio layout (auto-adaptive) ────────────────────────────────────────── */
+.bsx-app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100dvh - 64px); /* under the Learn top bar */
+  gap: 8px;
+  padding: 8px;
+  background: var(--bsx-bg);
+}
+.bsx-middle {
+  display: grid;
+  grid-template-columns: minmax(78px, 96px) minmax(0, 1fr) minmax(92px, 112px);
+  grid-template-areas: 'chars stage pages';
+  gap: 8px;
+  min-height: 0;
+}
+.bsx-railbox {
+  background: var(--bsx-rail);
+  border: 1px solid var(--bsx-border);
+  border-radius: 22px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  align-items: center;
+}
+.bsx-coder {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  height: clamp(200px, 29vh, 300px);
+}
+.bsx-catbar {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px;
+  background: var(--bsx-rail);
+  border: 1px solid var(--bsx-border);
+  border-radius: 22px;
+  overflow: auto;
+  justify-content: center;
+}
+@media (orientation: portrait), (max-width: 880px) {
+  .bsx-middle {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-areas: 'stage' 'chars' 'pages';
+  }
+  .bsx-railbox {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  .bsx-coder {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: clamp(250px, 34vh, 380px);
+  }
+  .bsx-catbar {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+/* present mode hides all editing chrome — the stage IS the screen */
+.bsx-app.present {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.bsx-app.present .bsx-middle {
+  grid-template-columns: 1fr;
+  grid-template-areas: 'stage';
+}
+.bsx-app.present .bsx-railbox,
+.bsx-app.present .bsx-coder,
+.bsx-app.present .bsx-stagefoot {
+  display: none;
+}
