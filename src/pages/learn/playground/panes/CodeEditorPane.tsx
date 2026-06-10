@@ -72,6 +72,8 @@ interface CodeEditorPaneProps {
    *  open a file and reveal a line — `toLine` highlights a range. The `nonce` lets
    *  a repeat request for the same file+line re-fire. */
   openLocation?: { file: string; line: number; toLine?: number; nonce: number } | null;
+  /** Hand a selected code snippet to the AI chat (the "✨ Explain this" toolbar). */
+  onExplainSelection?: (code: string) => void;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -99,7 +101,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExplainSelection }: CodeEditorPaneProps) {
   // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
   // filtered to files that still exist; the `[files]` effect fills their drafts on
   // mount. Read once (useRef) so it's stable across renders.
@@ -655,6 +657,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation }: Cod
                   language={languageFor(activeTab)}
                   onCursorChange={setCursor}
                   jumpTo={jumpTo}
+                  onExplainSelection={onExplainSelection}
                 />
               </Suspense>
             )}

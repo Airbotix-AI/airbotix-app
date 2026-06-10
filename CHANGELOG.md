@@ -60,6 +60,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the **teaching team**, **接下来的课** (upcoming scheduled sessions, up to 5), and a collapsible
   **课程大纲** (published lesson outline — titles + one-liners; unpublished packs show nothing).
   Backed by `GET /tutoring/families/:id/classes`.
+- **"✨ Explain this" selection toolbar in the code editor** (`learn-game-studio-prd.md`).
+  Selecting a block of code in Monaco surfaces a floating "Explain this" pill (a content
+  widget anchored to the selection); clicking it hands the snippet to the AI chat, which
+  answers in plain words. The prompt asks the agent not to edit; under the playground
+  teacher model the turn auto-applies with no agency gate, so a plain `send` answers
+  directly. The backend already has the full file as context, so only the snippet is sent
+  (capped at 1200 chars). Files: `panes/MonacoEditor.tsx` (the toolbar content widget),
+  `panes/CodeEditorPane.tsx` (prop pass-through), `Workspace.tsx` (prompt + chat focus).
+  Tests: `e2e/playground.spec.ts` (select→explain→reply).
 
 ## 2026-06-09
 
