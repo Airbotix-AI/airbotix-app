@@ -44,6 +44,13 @@ describe('AIChatPanel — next-step option chips', () => {
     render(<AIChatPanel chat={plain} busy={false} error={null} onSend={vi.fn()} />);
     expect(screen.queryByTestId('next-steps')).toBeNull();
   });
+
+  // The chat log keeps a visible scrollbar; it must carry the themed `pg-scroll`
+  // utility (slim, rounded, `pg-*`-toned) rather than the heavy default OS bar.
+  it('themes the scroll log with the pg-scroll utility', () => {
+    render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.getByRole('log').className).toContain('pg-scroll');
+  });
 });
 
 // §11.4 — per-file "what changed" rows: ONE clickable row per file (consolidate

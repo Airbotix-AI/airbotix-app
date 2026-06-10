@@ -4,6 +4,22 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (playground theming fixes)
+
+### Fixed
+- **Share-link popup was nearly invisible** (`ShareLinkPanel.tsx`). The popup portals into
+  `document.body` — OUTSIDE the playground's `data-theme` root — so the `--pg-*` tokens (scoped
+  to `[data-theme]`) were undefined there, rendering the surface/border transparent and the text
+  near-invisible. The portal now carries `data-theme={theme}` (restoring the token cascade) and
+  uses the raised `bg-pg-surface` instead of the page-matching `bg-pg-desktop`, so it lifts off
+  the backdrop with a visible boundary.
+
+### Changed
+- **Themed chat scrollbar.** New reusable `.pg-scroll` utility (`playground.css`) — a slim (8px),
+  rounded, transparent-track scrollbar whose thumb is toned from `--pg-text-muted` and brightens on
+  hover, so it matches both light/dark chrome instead of the heavy default OS bar. Applied to the
+  chat log (`AIChatPanel.tsx`).
+
 ## 2026-06-10 (playground next-step chips)
 
 ### Changed
