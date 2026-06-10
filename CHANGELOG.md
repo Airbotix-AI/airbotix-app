@@ -4,6 +4,21 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (guided chip loop)
+
+### Changed
+- **Tapping a next-step chip now continues the guided build loop** (playground-ai-prompt-prd.md
+  D-PAP-29). A tapped chip sends its prompt as a **`guided`** step (`AIChatPanel.tsx` →
+  `useGameAgent.ts` → `codeApi.ts` POST `guided:true`), so the teacher re-offers a fresh set
+  of options for the next phase instead of treating the tap as a "clear instruction" that
+  ended the loop after one step. Free-typed messages stay un-guided. The guided flag is
+  preserved on retry.
+- **A self-verify auto-fix no longer wipes the kid's still-unused next-step chips**
+  (D-PAP-29 sticky). The last-message-only clear in `useGameAgent.applyResult` is skipped
+  for an auto-fix turn (`keepOtherNextSteps`), so a background repair firing right after a
+  build can't erase options the kid was about to tap. New unit tests in `useGameAgent.test.ts`
+  + `AIChatPanel.test.tsx`.
+
 ## 2026-06-10 (playground chat resume)
 
 ### Fixed

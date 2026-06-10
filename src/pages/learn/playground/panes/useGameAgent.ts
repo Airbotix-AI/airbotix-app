@@ -309,6 +309,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const unmountedRef = useRef(false);
   // The last prompt sent — so a failed turn can be retried verbatim (H2).
   const lastPromptRef = useRef<string>('');
+  // Whether the last prompt came from tapping a next-step chip (a guided step), so a
+  // retry preserves the guided flag and the teacher keeps offering the loop (D-PAP-26).
+  const lastGuidedRef = useRef<boolean>(false);
 
   // Reflect connectivity into a banner the panel renders (J2 offline state).
   useEffect(() => {
@@ -351,9 +354,16 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     return `m${seq.current++}`;
   }, []);
 
-  /** Apply a completed turn: record the undo target, stream the reply, apply VFS. */
+  /** Apply a completed turn: record the undo target, stream the reply, apply VFS.
+   *  `keepOtherNextSteps` leaves earlier bubbles' chips intact — used by the
+   *  self-verify auto-fix so a system repair turn never wipes the kid's still-unused
+   *  next-step options (D-PAP-26 sticky; the chips belong to the kid, not the fix). */
   const applyResult = useCallback(
-    async (result: AgentTurnResult, pendingId: string) => {
+    async (
+      result: AgentTurnResult,
+      pendingId: string,
+      opts?: { keepOtherNextSteps?: boolean },
+    ) => {
       undoTargetRef.current = files;
       setCanUndo(true);
       // Replace the "Thinking…" bubble with a streaming one, then reveal deltas.
@@ -399,10 +409,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
                 }
               : // Only the latest server message shows next-step chips — clear any
                 // carried by an earlier bubble so suggestions never linger on a
-                // stale turn (D-PAP-26 last-message-only).
-                it.nextSteps
-                ? { ...it, nextSteps: undefined }
-                : it,
+                // stale turn (D-PAP-26 last-message-only). EXCEPT a sticky apply
+                // (auto-fix): a system repair turn must not erase the kid's
+                // still-unused chips, so leave earlier bubbles untouched.
+                opts?.keepOtherNextSteps
+                ? it
+                : it.nextSteps
+                  ? { ...it, nextSteps: undefined }
+                  : it,
           ),
         );
         setStreaming(false);
@@ -459,7 +473,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           return;
         }
         if (res.turn) {
-          await applyResult(res.turn, pendingId);
+          // Sticky: an auto-fix is a system repair, not a kid action — keep any
+          // next-step chips the kid hasn't acted on yet (D-PAP-26 sticky, #3).
+          await applyResult(res.turn, pendingId, { keepOtherNextSteps: true });
         } else {
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
         }
@@ -541,10 +557,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, opts?: { guided?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
+      const guided = !!opts?.guided;
       lastPromptRef.current = trimmed;
+      lastGuidedRef.current = guided;
       // A fresh, kid-initiated turn restarts the auto-fix budget for whatever it builds.
       autofixAttempt.current = 0;
 
@@ -630,7 +648,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the turn server-side (Stars-metered + applied inside POST /code/turn) and
       // stream the result straight into the chat.
       try {
-        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode, piiWarnAcknowledged: false });
+        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode, piiWarnAcknowledged: false, guided });
         await applyResult(result, pendingId);
       } catch (e) {
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
@@ -789,7 +807,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     if (busy || pending) return;
     if (!lastPromptRef.current) return;
     setError(null);
-    void send(lastPromptRef.current);
+    void send(lastPromptRef.current, { guided: lastGuidedRef.current });
   }, [busy, pending, send]);
 
   const confirmWarn = useCallback(async () => {

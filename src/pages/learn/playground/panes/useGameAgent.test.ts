@@ -185,6 +185,78 @@ describe('useGameAgent streamed apply (H1)', () => {
   });
 });
 
+describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => {
+  it('a guided send (chip tap) forwards guided:true to the backend turn (#1)', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('make the player move', { guided: true });
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: 'make the player move', guided: true }),
+    );
+  });
+
+  it('a free-typed send is NOT guided (#1)', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: 'add a score', guided: false }),
+    );
+  });
+
+  it('an auto-fix turn does NOT wipe the kid’s still-unused next-step chips (#3 sticky)', async () => {
+    resolveStream = null;
+    // The self-verify fix turn is a SYSTEM repair and carries no options of its own.
+    const FIX_TURN: AgentTurnResult = { ...TURN, turn_id: 'fix1', summary: 'Fixed the bug.', next_steps: [] };
+    const deps = makeDeps();
+    deps.reportRuntimeErrors = vi.fn(async () => ({
+      attempted: true,
+      co_debug: false,
+      attempt: 1,
+      turn: FIX_TURN,
+    }));
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    // 1) A normal build turn settles with its next-step chips.
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(result.current.chat.at(-1)?.nextSteps).toEqual(TURN.next_steps);
+
+    // 2) The game throws at runtime → auto-fix runs. Its fix bubble lands AFTER the
+    //    build bubble, but it must NOT clear the chips the kid hasn't acted on yet.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.autoFixFromErrors(['TypeError: boom']);
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+
+    const agentBubbles = result.current.chat.filter((c) => c.role === 'agent');
+    // The earlier build bubble STILL carries its chips (sticky); the fix bubble has none.
+    expect(agentBubbles.at(-2)?.nextSteps).toEqual(TURN.next_steps);
+    expect(agentBubbles.at(-1)?.nextSteps ?? []).toEqual([]);
+  });
+});
+
 describe('useGameAgent error copy distinguishes unreachable vs server-error', () => {
   const REACH_FAIL = 'Could not reach the AI. Try again.';
   const SERVER_FAIL = 'The AI ran into a problem. Try again in a moment.';

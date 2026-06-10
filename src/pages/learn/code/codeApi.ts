@@ -425,6 +425,8 @@ export async function runAgentTurn(args: {
   mode: 'lite' | 'pro';
   idempotencyKey?: string;
   piiWarnAcknowledged?: boolean;
+  /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
+  guided?: boolean;
 }): Promise<AgentTurnResult> {
   return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
@@ -433,6 +435,7 @@ export async function runAgentTurn(args: {
       mode: args.mode,
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
       ...(args.piiWarnAcknowledged ? { pii_warn_acknowledged: true } : {}),
+      ...(args.guided ? { guided: true } : {}),
     },
   });
 }

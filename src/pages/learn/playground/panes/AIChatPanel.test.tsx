@@ -32,11 +32,12 @@ describe('AIChatPanel — next-step option chips', () => {
     expect(chips[1].textContent).toContain('Make it bounce');
   });
 
-  it('tapping a chip sends that option’s prompt', () => {
+  it('tapping a chip sends that option’s prompt as a GUIDED step (D-PAP-26 #1)', () => {
     const onSend = vi.fn();
     render(<AIChatPanel chat={chat} busy={false} error={null} onSend={onSend} />);
     fireEvent.click(screen.getAllByTestId('next-step')[1]);
-    expect(onSend).toHaveBeenCalledWith('make it bounce');
+    // Guided so the teacher keeps offering the next phase's options (chip→chip loop).
+    expect(onSend).toHaveBeenCalledWith('make it bounce', { guided: true });
   });
 
   it('renders no chip row when a bubble has no next steps', () => {
