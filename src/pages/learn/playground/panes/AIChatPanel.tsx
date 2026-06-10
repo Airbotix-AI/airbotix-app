@@ -294,7 +294,7 @@ export function AIChatPanel({
           role="log"
           aria-live="polite"
           aria-relevant="additions"
-          className="h-full overflow-y-auto px-4 py-4 space-y-3"
+          className="pg-scroll h-full overflow-y-auto px-4 py-4 space-y-3"
         >
           {chat.length === 0 && (
             <div className="py-8 text-center text-[14px] font-semibold text-pg-text-dim">
