@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10
+
+### Added
+- **Tutoring page now shows the family's classes** (`/portal/tutoring`, O-5 read-only view).
+  Above the bill, one card per enrolled kid+class: class name + 私教/官方课 badge + whose class,
+  the **teaching team**, **接下来的课** (upcoming scheduled sessions, up to 5), and a collapsible
+  **课程大纲** (published lesson outline — titles + one-liners; unpublished packs show nothing).
+  Backed by `GET /tutoring/families/:id/classes`.
+
 ## 2026-06-09
 
 ### Changed
