@@ -14,7 +14,7 @@ import { Pause, Play, SkipForward } from 'lucide-react';
 import WaveSurfer from 'wavesurfer.js';
 
 import type { VfsFile } from '../../code/codeApi';
-import { animSidecarPath, assetKindOf, parseAnimSidecar, type AnimMeta } from './assetMeta';
+import { animSidecarPath, assetKindOf, dataUrlToText, parseAnimSidecar, type AnimMeta } from './assetMeta';
 
 interface AssetPreviewProps {
   asset: VfsFile;
@@ -172,7 +172,7 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
   if (kind === 'text') {
     return (
       <pre className="max-h-[420px] w-full overflow-auto whitespace-pre-wrap break-words rounded-xl border border-pg-border bg-pg-surface-2 p-3 font-mono text-[12.5px] text-pg-text">
-        {asset.content}
+        {dataUrlToText(asset.content)}
       </pre>
     );
   }

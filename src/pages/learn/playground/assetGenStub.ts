@@ -49,7 +49,10 @@ function escapeXml(s: string): string {
 /** A coloured rounded-rect swatch labelled with the prompt — deterministic SVG. */
 function buildSvgSwatch(req: GenAssetRequest): GenAssetResult {
   const { w, h } = parseSize(req.size);
-  const hue = hashString(req.prompt) % 360;
+  // Fold any remix reference into the hash so a remix is a deterministic
+  // VARIATION of a plain generation (different hue), not the same swatch.
+  const seed = `${req.prompt}|${req.refUrl ?? req.refAssetPath ?? ''}`;
+  const hue = hashString(seed) % 360;
   const fill = `hsl(${hue}, 70%, 62%)`;
   const label = escapeXml(req.prompt.slice(0, 40));
   const svg =
@@ -103,7 +106,18 @@ function buildWavTone(req: GenAssetRequest): GenAssetResult {
   };
 }
 
+// Mirror of the backend's prompt → kind inference (D-ASSET-4) so the offline
+// stub routes a "jump sound" to audio and "pixel coin" to an image with no kind
+// picker. Audio cue word → audio; otherwise default to an image.
+const AUDIO_HINTS =
+  /\b(sound|sounds|sfx|audio|music|musical|song|tune|melody|jingle|voice|voices|speak|spoken|saying|noise|beep|chime|ringtone|bgm|soundtrack|whistle|hum)\b/i;
+
+export function inferStubKind(prompt: string): 'image' | 'audio' {
+  return AUDIO_HINTS.test(prompt) ? 'audio' : 'image';
+}
+
 export function generateAssetStub(req: GenAssetRequest): Promise<GenAssetResult> {
-  const result = req.kind === 'audio' ? buildWavTone(req) : buildSvgSwatch(req);
+  const kind = req.kind ?? inferStubKind(req.prompt);
+  const result = kind === 'audio' ? buildWavTone(req) : buildSvgSwatch(req);
   return Promise.resolve(result);
 }

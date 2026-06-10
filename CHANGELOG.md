@@ -12,8 +12,69 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ### Fixed
 - **`auditCopy.ts` `describeSafety()` used wrong event type names.** The function had fictitious event strings (`safety.regex.rejected`, `safety.pii.input_blocked`, `safety.topic.rejected`, `safety.injection.blocked`) that the backend never emits. Corrected to match actual backend events: `safety.prompt.rejected` (with `payload.stage` discrimination), `safety.pii.blocked`, `safety.pii.warned`. Added `safety.pii.warn_acknowledged`, `safety.prompt.aborted`, `safety.response.rejected`, `safety.response.redacted` cards. Parent audit page now shows correct friendly copy for all safety events.
 - **`dismissWarn()` in `useCodeStudio.ts` and `useGameAgent.ts` never emitted `safety.prompt.aborted`** (PRD §7). Both now fire `POST /safety/prompt-aborted` (fire-and-forget) when the kid dismisses the warn dialog without retrying.
+## 2026-06-10
+
+### Added
+- **Tutoring page now shows the family's classes** (`/portal/tutoring`, O-5 read-only view).
+  Above the bill, one card per enrolled kid+class: class name + 私教/官方课 badge + whose class,
+  the **teaching team**, **接下来的课** (upcoming scheduled sessions, up to 5), and a collapsible
+  **课程大纲** (published lesson outline — titles + one-liners; unpublished packs show nothing).
+  Backed by `GET /tutoring/families/:id/classes`.
 
 ## 2026-06-09
+
+### Changed
+- **e2e specs rewired to the chat-hosted asset flow.** `e2e/asset-gen.spec.ts` +
+  `e2e/playground.spec.ts` no longer drive the removed in-pane `asset-add-to-game` /
+  `library-add-to-game` detail flow. Generate/Remix now assert the **chat** surface:
+  the finished asset is a tappable `chat-asset-open` card; tapping it opens the asset in
+  the viewer (`asset-codeRef`). Stars-debit + remix `ref_url` assertions kept; the Library
+  test now proves the URL-form code-ref (referenced, not inlined). Dropped the stale
+  add-to-game CTA screenshot test + baseline. (Matches the cross-repo `kid-playground-asset`
+  harness journey, also rewired.)
+- **Chat generation UX polish.** The Asset Viewer's Generate/Remix no longer shows a
+  "sent to chat" banner — instead it **brings the Chat to front** (and the chat
+  auto-scrolls to the new message). A **remix** now shows the **reference asset** in the
+  in-flight chat card. The finished-asset chat card drops the "Add to my game" button,
+  shows the asset **larger**, and is **tap-to-open** in the Asset Viewer. Also removed the
+  "Add to my game" button from the Asset Viewer detail screens (confusing) — the AI wires
+  assets into the game from chat; the copy-able code-ref remains for manual use.
+- **AI asset generation now lives in the CHAT** (learn-game-studio-assets-prd §3) — the
+  single home for all AI conversation. A typed message is classified server-side as an
+  **asset** request vs a **game-code** change (`/turn/classify` returns `intent`) and
+  routed: an asset request generates as a chat message (the `MagicGenerationCard` while
+  it runs, then the finished asset with **Add to my game**); a code request runs the
+  usual game turn. Generation and code turns **share one in-flight lock** (one AI thing
+  at a time). The Asset Viewer's **Generate / Remix** buttons now post into the chat
+  (`onRequestAssetGen` → `useGameAgent.requestAssetGen`) instead of rendering their own
+  card — both entry points, one place out. The `generationStore` engine + magic-card
+  visual are reused; the Asset Viewer's pinned card was removed.
+
+### Fixed
+- **Imported text assets preview as readable text again.** Local import (D-ASSET A4)
+  stores every file as a `data:` URL, so a `.txt`'s content was a base64 data URL and the
+  Asset Viewer text preview showed the encoded string. Added `dataUrlToText` (decodes
+  base64/percent-encoded text data URLs, UTF-8 safe; passes raw AI/editor text through)
+  and use it in `AssetPreview`.
+- **Generated/imported assets now persist across exit & resume.** Two causes: (1) the
+  debounced autosave was cancelled when leaving the project — added `flushSave()` in
+  `PlaygroundApp` that commits any pending save on exit (and reused it for the debounce);
+  (2) asset content round-trip mangled the bytes — the studio VFS uses `data:` URLs but
+  the backend stores raw base64, so `codeApi` now converts binary-asset content at the
+  API boundary (strip on save, re-wrap on load). SVG (backend-text) round-trips verbatim.
+
+### Added
+- **Global "Magic Generation" state (`generationStore`).** AI asset generation is now an
+  app-level Zustand store that owns the async call AND the completion (writing the asset
+  into the VFS), so a single in-flight generation survives the Asset Viewer pane closing/
+  reopening — one generation at a time, cancellable (abort signal threaded through
+  `runGen`/`api.generateAsset`). Paired with a magical animated card (`MagicGenerationCard`).
+- **Asset Library expanded from ~68 to ~280 curated emoji** across faces / characters /
+  animals / food / plants / weather / items / vehicles / sports / music / symbols.
+
+### Removed
+- **Playground: dropped the seeded `assets/README.txt`** from the starter project — new
+  game projects start with a truly empty `assets/`.
 
 ### Added
 - **Self-verify round-trip — the studio reports runtime errors so the agent auto-fixes**
@@ -80,6 +141,67 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   collision-overlap, sprite-shapes, scene-flow) keyed by the corpus `diagram` block.
   Rendered in a captioned, theme-aware (`currentColor`) card with `role="img"` + the
   `alt` label — no HTML injection. Unknown key → alt caption fallback.
+- **Playground Asset Viewer: shared read-only Library tab (zero-host emoji).** The
+  pane now has a **Library | My assets** source switch (D-ASSET-6). Library browses the
+  emoji provider — thumbnails load cross-origin from the CDN, category chips + search
+  filter it, and a read-only detail offers **Add to my game**. "Add to game" for a
+  library asset injects a **URL-form** loader (`this.load.setCORS('anonymous');
+  this.load.image(key, '<cdn url>')`) via `addLibraryAssetToGame` — the asset is
+  referenced by URL and never copied into the VFS, so it stays immutable + shared. The
+  game preview leaves `https://` URLs un-rewritten (only VFS paths inline to data URLs),
+  and the cross-origin texture is loaded `crossOrigin:'anonymous'` so the canvas isn't
+  tainted (D-ASSET-7). New e2e proves browse → add → the game runs clean loading the
+  emoji by URL. See PRD `learn-game-studio-assets-prd.md` A2 / §4.4.
+- **Playground shared asset Library — foundation (zero-host emoji provider).** New
+  `assetLibrary.ts`: a curated, kid-appropriate **emoji** catalog (characters /
+  animals / food / nature / items / symbols) exposed as read-only `LibraryAsset`
+  records referenced by URL — never copied into the VFS. URLs are derived from the
+  emoji codepoint via `twemojiUrl()` (pinned `jdecked/twemoji@15.1.0`, VS16 stripped),
+  so the asset the kid browses is exactly what the game loads (WYSIWYG). `searchLibrary()`
+  filters by category + name/tags (the same shape the `search_assets` agent tool will
+  use). This is the data layer for the Library source tab (Asset Viewer UI wiring lands
+  next). Zero hosting (D-ASSET-11/12); hosted Kenney CC0 is the v2 provider. See PRD
+  `learn-game-studio-assets-prd.md` A2 / §4.4.
+
+### Added
+- **Playground: AI remix of any image (A5, D-ASSET-5).** Image detail views (both My
+  assets and the Library) now have a **Remix with AI** box: describe a change ("make it
+  blue") and the AI returns a variation that lands in **My assets/generated**. Remix of
+  a project asset sends `ref_asset_path`; remix of a Library asset sends its `ref_url` —
+  the backend does image-to-image. The offline stub folds the reference into its hash so
+  a remix is a deterministic variation. e2e proves a Library remix posts the `ref_url`
+  and the result appears under My assets.
+
+### Changed
+- **Playground: `generateAsset` now sends the snake_case backend contract**
+  (`project_id` / `ref_asset_path` / `ref_url`). The camelCase `GenAssetRequest` seam was
+  never wired to the real DTO (asset-gen had been stub/mock only); A3/A5 make the path
+  real, so the client maps the fields. Backwards-compatible for the mocked e2e.
+- **Playground: hardened local asset import** (A4). Imports now fail soft (a calm
+  "couldn't import that file" notice instead of a silent hang on a bad read), always
+  target **My assets** (`assets/imported/`, or the open VFS category), and a drop/paste
+  while browsing the read-only Library switches back to My assets so the imported file
+  is actually visible.
+- **Playground asset generation is now prompt-only — removed the image/audio
+  dropdown** (D-ASSET-4). The kid describes what they want in one box ("a pixel
+  coin", "a jump sound") and the AI decides the kind: the real backend infers it
+  server-side (`/llm/generate-asset` `kind` is now optional), and the offline stub
+  uses the same keyword heuristic (`inferStubKind`). The generated file's extension
+  is derived from the returned mime / reported kind instead of the picker. See PRD
+  `learn-game-studio-assets-prd.md` A3.
+
+### Removed
+- **Playground: dropped the seeded sample/test assets and the read-only "preloaded"
+  lock.** New game projects no longer ship `coin.svg` / `hero_bounce` sprite /
+  `chime.wav` / `intro.mp4` in their VFS — those were test fixtures. The Asset Viewer
+  now treats every VFS asset as the kid's own (full CRUD; no `Lock` badge / "Sample —
+  read-only" state). Deleted `sampleAssets.ts`, `sampleVideo.ts`, and
+  `sampleAssets.test.ts`; removed `withPreloadedAssets`/`isPreloadedAsset` seeding +
+  save-time filtering from `PlaygroundApp`. The shared **Library** source (Kenney CC0 +
+  emoji, referenced by URL) replaces "something to start with" — see PRD
+  `learn-game-studio-assets-prd.md` A0 / D-ASSET-3, D-ASSET-6. New projects start with
+  an empty `assets/` (plus the `README.txt` scaffold note); Import / ✨ Generate still
+  populate it. Removed the now-obsolete "samples are read-only" e2e.
 
 ### Changed
 - **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`

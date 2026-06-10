@@ -38,6 +38,7 @@ import {
   type GameAgentDeps,
 } from './gameAgent';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
+import { useGenerationStore, type StartGenArgs } from '../generationStore';
 
 /** In-chat call-to-action buttons (rendered on the message that carries them). */
 export type ChatAction = 'run' | 'code';
@@ -62,6 +63,17 @@ export interface ChatItem {
   safeguard?: boolean;
   /** Teacher "what next?" option chips (§11.4 / D-PAP-06) — tap to send `prompt`. */
   nextSteps?: NextStep[];
+  /**
+   * An AI asset-generation message (D-ASSET §3): the magic card while it runs,
+   * then the finished asset with Add-to-game / Remix. `path` is the new VFS asset.
+   */
+  assetGen?: {
+    status: 'generating' | 'done' | 'error';
+    prompt: string;
+    path?: string;
+    /** For a remix: the reference asset's `data:` URL / URL, shown in the card. */
+    refSrc?: string;
+  };
 }
 
 /**
@@ -459,6 +471,42 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     [],
   );
 
+  // Run an asset generation AS A CHAT MESSAGE (D-ASSET §3). The global
+  // generationStore is the engine (it generates + writes the asset into the VFS
+  // and survives the pane); here we just reflect its state into the chat bubble:
+  // magic card while generating → the finished asset (with Add-to-game / Remix) on
+  // done. Caller owns the `busy` lock. Cancel is handled by the card → store.cancel().
+  const runAssetTurn = useCallback(
+    async (prompt: string, bubbleId: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      // Resolve the reference asset's image src so the card can show what's being
+      // remixed (a VFS asset's data URL, or a Library asset's URL).
+      const refSrc = ref?.refUrl ?? (ref?.refAssetPath ? files.find((f) => f.path === ref.refAssetPath)?.content : undefined);
+      setChat((prev) =>
+        prev.map((it) =>
+          it.id === bubbleId
+            ? { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt, refSrc } }
+            : it,
+        ),
+      );
+      const store = useGenerationStore.getState();
+      const args: StartGenArgs = { projectId, prompt };
+      if (ref?.refAssetPath || ref?.refUrl) Object.assign(args, { mode: 'remix', ...ref });
+      await store.start(args);
+      const { status, resultPath } = useGenerationStore.getState();
+      store.dismiss();
+      setChat((prev) =>
+        prev.flatMap((it) => {
+          if (it.id !== bubbleId) return [it];
+          if (status === 'done' && resultPath)
+            return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'done' as const, prompt, path: resultPath, refSrc } }];
+          if (status === 'idle') return []; // cancelled → drop the bubble
+          return [{ id: bubbleId, role: 'agent' as const, text: '', assetGen: { status: 'error' as const, prompt, refSrc } }];
+        }),
+      );
+    },
+    [projectId, files],
+  );
+
   const send = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -521,15 +569,26 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // beat below). The classifier is free and recall-favouring (§11g). On a
       // classify failure we fall through to the normal flow (fail-open to game-help
       // is acceptable — the backend turn firewall is a second line of defence).
+      let routedIntent: 'asset' | 'code' = 'code';
       try {
-        const verdict = await deps.classify({ projectId: projectId!, prompt: trimmed });
-        if (verdict) {
-          applySafeguard(verdict, pendingId);
+        const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
+        if (safeguarding) {
+          applySafeguard(safeguarding, pendingId);
           setBusy(false);
           return;
         }
+        routedIntent = intent;
       } catch {
-        // Classifier unreachable — proceed; the turn-level firewall still applies.
+        // Classifier unreachable — proceed as a code turn; the turn-level firewall
+        // still applies. (Asset routing simply falls back to a normal game turn.)
+      }
+
+      // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
+      // not a code turn. Shares this turn's `busy` lock (one AI thing at a time). ──
+      if (routedIntent === 'asset') {
+        await runAssetTurn(trimmed, pendingId);
+        setBusy(false);
+        return;
       }
 
       // ── The game agent always auto-applies (playground teacher model, D-PAP-03):
@@ -558,7 +617,32 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard],
+    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn],
+  );
+
+  // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
+  // "both entry points → one place out"): post the request into THIS chat so it
+  // shares the one-AI-at-a-time lock and shows in the conversation like a typed ask.
+  const requestAssetGen = useCallback(
+    (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      const trimmed = prompt.trim();
+      if (!trimmed || busy || pending) return;
+      if (isReal && isOffline()) {
+        setOffline(true);
+        setError(OFFLINE_TEXT);
+        return;
+      }
+      const bubbleId = nextId();
+      setError(null);
+      setBusy(true);
+      setChat((prev) => [
+        ...prev,
+        { id: nextId(), role: 'kid', text: ref ? `Remix it: ${trimmed}` : trimmed },
+        { id: bubbleId, role: 'agent', text: '', assetGen: { status: 'generating', prompt: trimmed } },
+      ]);
+      void runAssetTurn(trimmed, bubbleId, ref).finally(() => setBusy(false));
+    },
+    [busy, pending, isReal, nextId, runAssetTurn],
   );
 
   /**
@@ -741,6 +825,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
     handRaised,
     send,
+    /** Generate an asset INTO the chat (Asset Viewer Generate/Remix buttons, §3). */
+    requestAssetGen,
     confirmPending,
     cancelPending,
     undo,

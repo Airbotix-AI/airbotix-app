@@ -288,6 +288,42 @@ export async function getProject(projectId: string): Promise<CodeProject> {
   return api<CodeProject>(`/projects/${projectId}`);
 }
 
+// ── Asset content representation (studio data: URL ↔ backend raw base64) ─────
+// The backend stores/returns BINARY asset bytes as raw base64 (no prefix) and
+// decodes save payloads with `Buffer.from(content, 'base64')`. The studio VFS
+// represents an asset's `content` as a `data:` URL (so <img src>/Phaser load it
+// directly). Convert at the API boundary, or the round-trip mangles the bytes
+// (the `data:…;base64,` prefix's `:`/`;`/`,` corrupt the base64 decode). SVG is
+// backend-text → its data: URL round-trips verbatim, so it needs no conversion.
+const BINARY_ASSET_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  wav: 'audio/wav',
+  mp3: 'audio/mpeg',
+  ogg: 'audio/ogg',
+  m4a: 'audio/mp4',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+};
+function binaryAssetMime(path: string): string | undefined {
+  return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
+}
+/** Backend raw base64 → studio `data:` URL (binary assets only). */
+function toStudioContent(f: VfsFile): VfsFile {
+  const mime = binaryAssetMime(f.path);
+  if (!mime || f.content.startsWith('data:')) return f;
+  return { ...f, content: `data:${mime};base64,${f.content}` };
+}
+/** Studio `data:` URL → backend raw base64 (binary assets only). */
+function toBackendContent(f: VfsFile): VfsFile {
+  if (!binaryAssetMime(f.path) || !f.content.startsWith('data:')) return f;
+  const comma = f.content.indexOf(',');
+  return comma === -1 ? f : { ...f, content: f.content.slice(comma + 1) };
+}
+
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
 
 /**
@@ -317,7 +353,7 @@ export async function readVfs(projectId: string): Promise<VfsFile[]> {
  */
 export async function readVfsSnapshot(projectId: string): Promise<VfsSnapshot> {
   const res = await api<{ files?: VfsFile[]; version?: number }>(`/projects/${projectId}/code/files`);
-  return { files: res.files ?? [], version: res.version ?? 0 };
+  return { files: (res.files ?? []).map(toStudioContent), version: res.version ?? 0 };
 }
 
 // ── VFS save / write-back (D-GAME3b: PUT /projects/:id/code/files) ──────────
@@ -350,7 +386,7 @@ export async function saveVfs(args: {
       {
         method: 'PUT',
         body: {
-          files: args.files,
+          files: args.files.map(toBackendContent),
           // Backend DTO field is `expected_version` (optimistic concurrency); a
           // plain `version` is dropped → validation 400 → every save fell back to
           // "Saved on this device" (queued) and never synced.
@@ -359,11 +395,14 @@ export async function saveVfs(args: {
         },
       },
     );
-    return { files: res.files ?? args.files, version: res.version };
+    return { files: res.files ? res.files.map(toStudioContent) : args.files, version: res.version };
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) {
       const current = (e.details ?? {}) as { files?: VfsFile[]; version?: number };
-      throw new SaveConflictError({ files: current.files ?? [], version: current.version ?? args.version });
+      throw new SaveConflictError({
+        files: (current.files ?? []).map(toStudioContent),
+        version: current.version ?? args.version,
+      });
     }
     throw e;
   }
@@ -520,15 +559,22 @@ export async function streamAgentTurn(
  * server-side and never spends Stars; the backend logs the safeguarding audit
  * event + escalation. The kid NEVER calls an LLM directly (CLAUDE.md #5).
  */
+export type AssetIntent = 'asset' | 'code';
+export interface ClassifyResult {
+  safeguarding: SafeguardingVerdict | null;
+  /** Route a typed chat message: an ASSET request vs a game-CODE change (§3). */
+  intent: AssetIntent;
+}
+
 export async function classifyMessage(args: {
   projectId: string;
   prompt: string;
-}): Promise<SafeguardingVerdict | null> {
-  const res = await api<{ safeguarding: SafeguardingVerdict | null }>(
+}): Promise<ClassifyResult> {
+  const res = await api<{ safeguarding: SafeguardingVerdict | null; intent?: AssetIntent }>(
     `/projects/${args.projectId}/code/turn/classify`,
     { method: 'POST', body: { prompt: args.prompt } },
   );
-  return res.safeguarding;
+  return { safeguarding: res.safeguarding, intent: res.intent ?? 'code' };
 }
 
 // ── Raise hand: "Ask my teacher" (J4) ───────────────────────────────────────
