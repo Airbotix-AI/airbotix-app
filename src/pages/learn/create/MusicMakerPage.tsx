@@ -5,7 +5,7 @@ import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
-import { useExitSummary, useStudioSession } from './shared/useSession';
+import { useStudioSession } from './shared/useSession';
 import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 const MOODS = ['happy', 'epic', 'calm', 'sad', 'spooky', 'funny'] as const;
@@ -24,8 +24,7 @@ export function MusicMakerPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
 
-  const { sessionId } = useStudioSession('music');
-  const { summary, endNow, dismiss } = useExitSummary();
+  const { summary, endNow, dismiss } = useStudioSession('music');
 
   const generate = useGenerate('music');
   const recent = useRecentArtifacts('audio');
@@ -162,7 +161,7 @@ export function MusicMakerPage() {
       )}
       <div className="flex justify-center mt-8">
         <button
-          onClick={() => endNow(sessionId)}
+          onClick={() => endNow()}
           className="btn-pill-secondary"
         >
           🎓 Done for now

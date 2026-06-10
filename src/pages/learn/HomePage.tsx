@@ -87,7 +87,7 @@ export function HomePage() {
               Visit the class wall to vote and remix.
             </p>
           </div>
-          <Link to="/learn/wall" className="btn-pill-secondary">
+          <Link to="/learn/classroom" className="btn-pill-secondary">
             Open →
           </Link>
         </div>

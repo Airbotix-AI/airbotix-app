@@ -424,6 +424,7 @@ export async function runAgentTurn(args: {
   prompt: string;
   mode: 'lite' | 'pro';
   idempotencyKey?: string;
+  piiWarnAcknowledged?: boolean;
 }): Promise<AgentTurnResult> {
   return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
@@ -431,6 +432,7 @@ export async function runAgentTurn(args: {
       prompt: args.prompt,
       mode: args.mode,
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
+      ...(args.piiWarnAcknowledged ? { pii_warn_acknowledged: true } : {}),
     },
   });
 }

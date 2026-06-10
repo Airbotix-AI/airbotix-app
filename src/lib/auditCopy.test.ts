@@ -89,7 +89,43 @@ describe('describeAuditEvent', () => {
       payload: { reason: 'unsafe_content', surface: 'learn' },
     });
     expect(blocked.title).toBe('Safety filter stepped in');
-    expect(blocked.detail).toBe('Unsafe content');
+    expect(blocked.detail).toBe('Content was checked and adjusted.');
+  });
+
+  it('discriminates safety.prompt.rejected by stage', () => {
+    const regex = describeAuditEvent({
+      event_type: 'safety.prompt.rejected',
+      payload: { stage: 'regex_blacklist' },
+    });
+    expect(regex.title).toBe('Filtered phrase detected');
+
+    const topic = describeAuditEvent({
+      event_type: 'safety.prompt.rejected',
+      payload: { stage: 'topic_classifier', topic: 'violence' },
+    });
+    expect(topic.title).toBe('Topic not allowed');
+    expect(topic.detail).toContain('Violence');
+
+    const injection = describeAuditEvent({
+      event_type: 'safety.prompt.rejected',
+      payload: { stage: 'prompt_injection' },
+    });
+    expect(injection.title).toBe('Prompt injection blocked');
+  });
+
+  it('maps pii and pattern safety events to parent-friendly copy', () => {
+    expect(describeAuditEvent({ event_type: 'safety.pii.blocked', payload: { categories: ['email'] } }).title)
+      .toBe('Personal info protected');
+    expect(describeAuditEvent({ event_type: 'safety.pii.warned', payload: {} }).title)
+      .toBe('Personal info notice sent');
+    expect(describeAuditEvent({ event_type: 'safety.pattern.escalated', payload: {} }).title)
+      .toBe('Repeated safety triggers');
+    expect(describeAuditEvent({ event_type: 'safety.prompt.aborted', payload: {} }).title)
+      .toBe('Made a safer choice');
+    expect(describeAuditEvent({ event_type: 'safety.response.rejected', payload: {} }).title)
+      .toBe('AI response filtered');
+    expect(describeAuditEvent({ event_type: 'safety.response.redacted', payload: {} }).title)
+      .toBe('AI response adjusted');
   });
 
   it('never leaks raw machine strings for unmapped events', () => {

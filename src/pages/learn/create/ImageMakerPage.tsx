@@ -5,7 +5,7 @@ import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
-import { useExitSummary, useStudioSession } from './shared/useSession';
+import { useStudioSession } from './shared/useSession';
 import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
 
 const STYLES = ['cartoon', 'painting', 'pixel-art', 'photo', 'sketch', 'watercolor'] as const;
@@ -24,8 +24,7 @@ export function ImageMakerPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
 
-  const { sessionId } = useStudioSession('image');
-  const { summary, endNow, dismiss } = useExitSummary();
+  const { summary, endNow, dismiss } = useStudioSession('image');
 
   const generate = useGenerate('image');
   const recent = useRecentArtifacts('image');
@@ -155,7 +154,7 @@ export function ImageMakerPage() {
       )}
       <div className="flex justify-center mt-8">
         <button
-          onClick={() => endNow(sessionId)}
+          onClick={() => endNow()}
           className="btn-pill-secondary"
         >
           🎓 Done for now

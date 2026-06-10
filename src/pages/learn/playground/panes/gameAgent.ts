@@ -35,6 +35,7 @@ export type RunAgentTurn = (args: {
   projectId: string;
   prompt: string;
   mode: 'lite' | 'pro';
+  piiWarnAcknowledged?: boolean;
 }) => Promise<AgentTurnResult>;
 
 /** Approve / reject a staged (Pro) plan. */
