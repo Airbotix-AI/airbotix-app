@@ -113,3 +113,44 @@ describe('AIChatPanel — changed-file rows', () => {
     expect(to).toBeGreaterThanOrEqual(from);
   });
 });
+
+// One in-flight turn shows the honest WorkingCard (real steps + timer), not the
+// old fake-cycling ThinkingBubble — and there's exactly one in-flight indicator.
+describe('AIChatPanel — in-flight WorkingCard', () => {
+  const pendingChat: ChatItem[] = [
+    { id: 'k1', role: 'kid', text: 'make the aliens shoot back' },
+    { id: 'a1', role: 'agent', text: '', pending: true },
+  ];
+  const progress = {
+    startedAt: Date.now() - 2000,
+    steps: [
+      { id: 's1', key: 'Aliens.js', label: 'Adding Aliens ✍️', status: 'active' as const, startedAt: Date.now() - 2000 },
+    ],
+  };
+
+  it('renders the WorkingCard (with the real step) for a pending turn when progress is set', () => {
+    render(<AIChatPanel chat={pendingChat} busy progress={progress} error={null} onSend={vi.fn()} />);
+    expect(screen.getByTestId('working-card')).toBeTruthy();
+    expect(screen.getByText('Adding Aliens ✍️')).toBeTruthy();
+    expect(screen.queryByTestId('thinking-bubble')).toBeNull();
+  });
+
+  it('falls back to the ThinkingBubble only if progress has not seeded yet', () => {
+    render(<AIChatPanel chat={pendingChat} busy progress={null} error={null} onSend={vi.fn()} />);
+    expect(screen.getByTestId('thinking-bubble')).toBeTruthy();
+    expect(screen.queryByTestId('working-card')).toBeNull();
+  });
+});
+
+// The helper is branded "Airo" (from Airbotix) with its robot avatar.
+describe('AIChatPanel — Airo branding', () => {
+  it('names the helper Airo in the header + on a settled message, with the avatar', () => {
+    const chat: ChatItem[] = [{ id: 'a1', role: 'agent', text: 'Done!' }];
+    render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />);
+    // Header + the settled message header both read "Airo".
+    expect(screen.getAllByText('Airo').length).toBeGreaterThanOrEqual(2);
+    // The robot avatar is rendered (not a plain circle).
+    expect(screen.getAllByTestId('airo-avatar').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/I'm Airo, a robot helper/)).toBeTruthy();
+  });
+});

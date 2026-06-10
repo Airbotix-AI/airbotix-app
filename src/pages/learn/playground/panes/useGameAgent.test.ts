@@ -214,22 +214,24 @@ describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => 
     );
   });
 
-  it('an auto-fix turn does NOT wipe the kid’s still-unused next-step chips (#3 sticky)', async () => {
+  it('a successful auto-fix applies SILENTLY — no extra message, chips stay (one-message)', async () => {
     resolveStream = null;
-    // The self-verify fix turn is a SYSTEM repair and carries no options of its own.
-    const FIX_TURN: AgentTurnResult = { ...TURN, turn_id: 'fix1', summary: 'Fixed the bug.', next_steps: [] };
+    const FIX_TURN: AgentTurnResult = {
+      ...TURN,
+      turn_id: 'fix1',
+      summary: 'Fixed the bug.',
+      next_steps: [],
+      files: [{ path: 'main.js', content: 'fixed', kind: 'text', size: 5 }],
+      stars_charged: 0,
+    };
     const deps = makeDeps();
-    deps.reportRuntimeErrors = vi.fn(async () => ({
-      attempted: true,
-      co_debug: false,
-      attempt: 1,
-      turn: FIX_TURN,
-    }));
+    deps.reportRuntimeErrors = vi.fn(async () => ({ attempted: true, co_debug: false, attempt: 1, turn: FIX_TURN }));
+    const onApplyFiles = vi.fn();
     const { result } = renderHook(() =>
-      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+      useGameAgent({ files: [], onApplyFiles, projectId: 'p1', mode: 'pro', deps }),
     );
 
-    // 1) A normal build turn settles with its next-step chips.
+    // 1) A normal build settles with its next-step chips.
     await act(async () => {
       void result.current.send('make it blue');
       await waitFor(() => expect(resolveStream).not.toBeNull());
@@ -238,22 +240,43 @@ describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => 
       resolveStream?.();
     });
     expect(result.current.chat.at(-1)?.nextSteps).toEqual(TURN.next_steps);
+    const agentsBefore = result.current.chat.filter((c) => c.role === 'agent').length;
+    onApplyFiles.mockClear();
 
-    // 2) The game throws at runtime → auto-fix runs. Its fix bubble lands AFTER the
-    //    build bubble, but it must NOT clear the chips the kid hasn't acted on yet.
+    // 2) Runtime glitch → auto-fix runs. It applies SILENTLY: no streamTurn replay,
+    //    no new message bubble, and the build bubble keeps its still-unused chips.
     resolveStream = null;
     await act(async () => {
-      void result.current.autoFixFromErrors(['TypeError: boom']);
-      await waitFor(() => expect(resolveStream).not.toBeNull());
-    });
-    await act(async () => {
-      resolveStream?.();
+      await result.current.autoFixFromErrors(['TypeError: boom']);
     });
 
-    const agentBubbles = result.current.chat.filter((c) => c.role === 'agent');
-    // The earlier build bubble STILL carries its chips (sticky); the fix bubble has none.
-    expect(agentBubbles.at(-2)?.nextSteps).toEqual(TURN.next_steps);
-    expect(agentBubbles.at(-1)?.nextSteps ?? []).toEqual([]);
+    expect(deps.reportRuntimeErrors).toHaveBeenCalled();
+    expect(resolveStream).toBeNull(); // no replay → no fix bubble typed out
+    expect(onApplyFiles).toHaveBeenCalledWith(FIX_TURN.files); // the repair WAS applied
+    const agents = result.current.chat.filter((c) => c.role === 'agent');
+    expect(agents.length).toBe(agentsBefore); // no extra message
+    expect(agents.at(-1)?.nextSteps).toEqual(TURN.next_steps); // chips intact
+  });
+
+  it('an auto-fix that can’t fix it hands off with ONE warm message (co_debug)', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    deps.reportRuntimeErrors = vi.fn(async () => ({
+      attempted: false,
+      co_debug: true,
+      attempt: 3,
+      message: "Let's fix this together! 🔧",
+    }));
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+    await act(async () => {
+      await result.current.autoFixFromErrors(['TypeError: boom']);
+    });
+    const agents = result.current.chat.filter((c) => c.role === 'agent');
+    expect(agents).toHaveLength(1);
+    expect(agents[0].text).toContain('fix this together');
+    expect(result.current.progress).toBeNull();
   });
 });
 
@@ -328,5 +351,28 @@ describe('useGameAgent chat seed + restore (J9 resume)', () => {
       useGameAgent({ files: [], onApplyFiles: vi.fn(), initialChat: restored, onChatChange }),
     );
     expect(onChatChange).toHaveBeenCalledWith(restored);
+  });
+
+  it('blockedSeed seeds an explanation bubble + tappable gentler suggestions', () => {
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), introPrompt: 'airplane shooting people', blockedSeed: true }),
+    );
+    expect(result.current.chat).toHaveLength(1);
+    const bubble = result.current.chat[0];
+    expect(bubble.role).toBe('agent');
+    expect(bubble.text.toLowerCase()).toContain('safety');
+    // Gentle, ready-to-tap ideas that will pass moderation (move the kid forward).
+    expect((bubble.nextSteps ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((bubble.nextSteps ?? []).every((s) => s.prompt.length > 0)).toBe(true);
+    // The canned "game starter is ready" must NOT appear on a blocked build.
+    expect(bubble.text.includes('game starter is ready')).toBe(false);
+  });
+
+  it('a real first turn / restored history still wins over blockedSeed', () => {
+    const ft = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), blockedSeed: true, firstTurn: { prompt: 'maze', reply: 'Made a maze.' } }),
+    );
+    expect(ft.result.current.chat.some((c) => c.text === 'Made a maze.')).toBe(true);
+    expect(ft.result.current.chat.some((c) => c.text.toLowerCase().includes('safety helper'))).toBe(false);
   });
 });

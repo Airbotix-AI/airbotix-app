@@ -39,6 +39,12 @@ import {
 } from './gameAgent';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
 import { useGenerationStore, type StartGenArgs } from '../generationStore';
+import {
+  startProgress,
+  applyToolDelta,
+  applyFixingStep,
+  type TurnProgress,
+} from './turnProgress';
 
 /** In-chat call-to-action buttons (rendered on the message that carries them). */
 export type ChatAction = 'run' | 'code';
@@ -146,11 +152,12 @@ export interface UseGameAgentOptions {
    *  can persist it. Fired on the seed too, so a brand-new project's opening turn
    *  is saved even if the kid exits immediately. */
   onChatChange?: (chat: ChatItem[]) => void;
+  /** The first-turn build was refused by the safety check (D-PAP-20). Seed the chat
+   *  with a friendly explanation + gentler suggestion chips instead of an empty log. */
+  blockedSeed?: boolean;
 }
 
 const PENDING_TEXT = 'Thinking…';
-/** Shown while the agent auto-fixes a runtime error the game hit (MP3). */
-const AUTOFIX_TEXT = 'Hmm, the game hit a snag — let me fix that…';
 /** Client actions that pull the code editor to the front — NOT auto-run on turn
  *  finish; the kid opens the editor by tapping a changed-file row instead. */
 const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
@@ -202,6 +209,37 @@ export interface FirstTurnSeed {
   nextSteps?: NextStep[];
   /** Per-file "what changed" notes from the first turn — descriptions for the file rows. */
   fileNotes?: FileNote[];
+}
+
+// The safety check refused the opening idea (D-PAP-20). Instead of dropping the kid
+// into a silent empty project, explain what happened and offer gentle, ready-to-tap
+// ideas that will pass — tapping a chip sends its prompt and builds that game.
+const BLOCKED_MESSAGE =
+  "I couldn't start that one — our safety helper thought the idea sounded a bit too rough for here. 🛡️ " +
+  "No worries, your project is open and ready (it's just empty for now). " +
+  'Try describing your game in a gentler way, or tap one of these to get going:';
+const BLOCKED_SUGGESTIONS: NextStep[] = [
+  {
+    label: '🚀 Spaceship dodging asteroids',
+    prompt: 'a spaceship flying through space, dodging asteroids and collecting stars',
+    tag: 'concept',
+  },
+  {
+    label: '✈️ Plane racing through rings',
+    prompt: 'an airplane racing through floating rings in the sky to score points',
+    tag: 'concept',
+  },
+  {
+    label: '🐱 Catch the falling treats',
+    prompt: 'a cat moving left and right to catch yummy treats falling from the top',
+    tag: 'fun',
+  },
+];
+
+function buildBlockedSeed(): ChatItem[] {
+  return [
+    { id: 'blocked-agent', role: 'agent', text: BLOCKED_MESSAGE, nextSteps: BLOCKED_SUGGESTIONS },
+  ];
 }
 
 function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
@@ -259,27 +297,34 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     firstTurn,
     initialChat,
     onChatChange,
+    blockedSeed,
   } = opts;
 
   const isReal = !!projectId;
 
   const [chat, setChat] = useState<ChatItem[]>(() =>
-    // Restored history (resume) wins; then a real first turn; then the canned
-    // starter — but ONLY when introPrompt is a non-empty prompt, so a resume
-    // (blank prompt) never re-injects "your game starter is ready".
+    // Restored history (resume) wins; then a real first turn; then a safety-refused
+    // build's explanation+suggestions; then the canned starter — but ONLY when
+    // introPrompt is a non-empty prompt, so a resume (blank prompt) never re-injects
+    // "your game starter is ready".
     initialChat && initialChat.length > 0
       ? initialChat
       : firstTurn
         ? buildFirstTurn(firstTurn)
-        : introPrompt && introPrompt.trim()
-          ? buildIntro(introPrompt)
-          : [],
+        : blockedSeed
+          ? buildBlockedSeed()
+          : introPrompt && introPrompt.trim()
+            ? buildIntro(introPrompt)
+            : [],
   );
   const [busy, setBusy] = useState(false);
   // Whether the token-by-token reveal replay is currently running (drives the
   // Stop / skip-animation button, H1). Distinct from `busy` (which spans the
   // whole turn incl. the network round-trip).
   const [streaming, setStreaming] = useState(false);
+  // The in-flight turn's honest progress (drives the WorkingCard). Non-null only
+  // while a turn is working; cleared the instant the single message takes over.
+  const [progress, setProgress] = useState<TurnProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState<boolean>(isOffline());
   // A turn awaiting the kid's confirm (Lite agency beat OR Pro plan gate, J2).
@@ -366,26 +411,37 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     ) => {
       undoTargetRef.current = files;
       setCanUndo(true);
-      // Replace the "Thinking…" bubble with a streaming one, then reveal deltas.
-      setChat((prev) =>
-        prev.map((it) =>
-          it.id === pendingId
-            ? { id: pendingId, role: 'agent', text: '', streaming: true, stars: result.stars_charged }
-            : it,
-        ),
-      );
       const sig = { aborted: false };
       streamAbort.current = sig;
+      // The Stop/skip control (H1) is available for the whole replay.
       setStreaming(true);
-      await streamTurn(result, (d) => {
+      // The bubble stays the WorkingCard (pending) while the tool deltas fill in the
+      // progress steps; the FIRST summary token flips it to the single streaming
+      // message and drops the card — so there's one continuous turn, one message.
+      let flipped = false;
+      const flipToMessage = () => {
+        if (flipped) return;
+        flipped = true;
+        setProgress(null);
         setChat((prev) =>
-          prev.map((it) => {
-            if (it.id !== pendingId) return it;
-            if (d.type === 'token') return { ...it, text: it.text + d.text };
-            return { ...it, toolsFired: [...(it.toolsFired ?? []), d.tool] };
-          }),
+          prev.map((it) =>
+            it.id === pendingId
+              ? { id: pendingId, role: 'agent', text: '', streaming: true, stars: result.stars_charged }
+              : it,
+          ),
         );
+      };
+      await streamTurn(result, (d) => {
+        if (d.type === 'tool') {
+          setProgress((p) => (p ? applyToolDelta(p, d.tool, Date.now()) : p));
+          return;
+        }
+        flipToMessage();
+        setChat((prev) => prev.map((it) => (it.id === pendingId ? { ...it, text: it.text + d.text } : it)));
       }, sig);
+      // An empty summary (or an abort before any token) never flipped — do it now so
+      // the WorkingCard always resolves into the message.
+      flipToMessage();
       // A user-initiated abort (Stop) sets sig.aborted to skip the reveal loop,
       // but the turn is already paid for — so we STILL finalize (full summary +
       // tools + apply + stars). Only an actual unmount skips the React state
@@ -458,39 +514,48 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const pendingId = nextId();
       setBusy(true);
       setError(null);
-      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: AUTOFIX_TEXT, pending: true }]);
+      // A self-repair is NOT a new kid message — show the calm "fixing a little
+      // glitch" WorkingCard beat, never a second chat bubble.
+      setProgress(applyFixingStep(startProgress(Date.now()), Date.now()));
+      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: '', pending: true }]);
       try {
         const res = await deps.reportRuntimeErrors({ projectId: projectId!, errors, attempt, mode });
         if (res.co_debug) {
-          // Exhausted (or nothing to fix) → a warm hand-off, not a silent broken game.
+          // Can't fix on its own → ONE warm hand-off message (never a silent broken game).
+          setProgress(null);
           setChat((prev) =>
             prev.map((it) =>
               it.id === pendingId
-                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's debug this together!" }
+                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's fix this together! 🔧" }
                 : it,
             ),
           );
-          return;
-        }
-        if (res.turn) {
-          // Sticky: an auto-fix is a system repair, not a kid action — keep any
-          // next-step chips the kid hasn't acted on yet (D-PAP-26 sticky, #3).
-          await applyResult(res.turn, pendingId, { keepOtherNextSteps: true });
+        } else if (res.turn) {
+          // Fixed itself → apply the repair SILENTLY and drop the card: no extra
+          // message, so the kid's request still reads as one message + a game that
+          // now works. (Chips on the earlier message are left untouched.)
+          undoTargetRef.current = files;
+          setCanUndo(true);
+          setProgress(null);
+          setChat((prev) => prev.filter((it) => it.id !== pendingId));
+          onApplyFiles(res.turn.files);
+          onStarsCharged?.(res.turn.stars_charged);
+          clientActions?.restartGame();
         } else {
+          setProgress(null);
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
         }
       } catch (e) {
-        const msg = friendlyError(e);
-        if (msg === OFFLINE_TEXT) setOffline(true);
-        setError(msg);
-        setChat((prev) =>
-          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
-        );
+        // A failed background repair must not nag — the game already showed; drop
+        // the card quietly (the kid can always ask again).
+        if (friendlyError(e) === OFFLINE_TEXT) setOffline(true);
+        setProgress(null);
+        setChat((prev) => prev.filter((it) => it.id !== pendingId));
       } finally {
         setBusy(false);
       }
     },
-    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, applyResult],
+    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, files, onApplyFiles, onStarsCharged, clientActions],
   );
 
   /**
@@ -576,6 +641,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const pendingId = nextId();
       setError(null);
       setBusy(true);
+      // Seed the honest progress card immediately — the timer starts ticking and the
+      // "Looking at your game" step shows while the request is in flight.
+      setProgress(startProgress(Date.now()));
       setChat((prev) => [
         ...prev,
         { id: nextId(), role: 'kid', text: trimmed },
@@ -608,6 +676,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
             prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: ERROR_TEXT } : it)),
           );
         } finally {
+          setProgress(null);
           setBusy(false);
         }
         return;
@@ -624,6 +693,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       try {
         const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
         if (safeguarding) {
+          setProgress(null);
           applySafeguard(safeguarding, pendingId);
           setBusy(false);
           return;
@@ -637,6 +707,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
       // not a code turn. Shares this turn's `busy` lock (one AI thing at a time). ──
       if (routedIntent === 'asset') {
+        setProgress(null);
         await runAssetTurn(trimmed, pendingId);
         setBusy(false);
         return;
@@ -665,6 +736,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           );
         }
       } finally {
+        setProgress(null);
         setBusy(false);
       }
     },
@@ -866,6 +938,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     chat,
     busy,
     streaming,
+    /** The in-flight turn's honest progress steps (drives the WorkingCard). */
+    progress,
     error,
     offline,
     pending,

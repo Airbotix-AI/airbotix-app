@@ -4,6 +4,52 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (Airo — named helper + avatar)
+
+### Added
+- **The playground chat helper is now "Airo"** (named from Airbotix) with a friendly robot
+  **avatar** (`AiroAvatar.tsx` — self-contained SVG: brand sky→purple head, glowing antenna,
+  mint eyes). Replaces the generic "AI Helper" label + plain circle in the chat header and on
+  every settled message; the kid-safety disclosure now reads "I'm Airo, a robot helper — not a
+  person." (Parent-facing audit copy stays "AI helper" for clarity.)
+
+## 2026-06-10 (one-turn-one-message working card)
+
+### Added
+- **Honest in-flight `WorkingCard` for every chat turn** (`WorkingCard.tsx`, `turnProgress.ts`).
+  Replaces the fake-cycling `ThinkingBubble` (which "did NOT report real server stages") with a
+  card that shows REAL steps built from the agent's actual tool/action deltas — "Adding Aliens ✍️",
+  "Making sure it works 🚀" — deduped by file, with a per-step timer and a total clock. A file
+  re-write (a syntax-fix pass) shows as a calm "fixing" beat on its row, never an error dump.
+
+### Changed
+- **One turn now resolves to exactly ONE message.** The pending bubble is the `WorkingCard` while
+  the turn works; the first summary token flips it to the single settled message (`useGameAgent`).
+- **Self-verify auto-fix is no longer a second message.** A successful repair (`/code/verify-fix`)
+  applies **silently** behind a transient "Fixing a little glitch 🔧" card — no extra chat bubble,
+  so a kid request reads as one message + a game that now works. Only an exhausted/co-debug fix
+  surfaces a single warm "let's fix this together 🔧" message. This removes the old "responded,
+  but still thinking" gap (the auto-fix used to append `AUTOFIX_TEXT` + its own result bubble).
+- **Settled message restyled to the feature-focused design** (`AIChatPanel.tsx`). The done message
+  is now a raised card with an "AI Helper" header, dark **feature-focused change rows** (the friendly
+  change leads, e.g. "The aliens shoot lasers now", with the file name riding quietly beneath + a
+  chevron that opens the editor), and a "WHAT NEXT?" label above outlined chips — matching the mockup.
+- **Change highlight clears on click** (`MonacoEditor.tsx`). Tapping a changed-file row still opens
+  the editor and highlights the changed lines, but the highlight now disappears the moment the kid
+  clicks anywhere in the code (it returns next time a change row is tapped).
+
+## 2026-06-10 (blocked-build explanation)
+
+### Added
+- **A safety-refused first build now explains itself + offers a way forward** instead of dropping
+  the kid into a silent empty project. When the opening turn is rejected by the moderation gate
+  (`MODERATION_REJECTED`), `GeneratingScreen` flags `blocked` on the scaffold hand-off; `useGameAgent`
+  then seeds the chat with a friendly note ("our safety helper thought the idea sounded a bit too
+  rough… your project is open and ready") plus 2–3 tappable gentler game ideas (spaceship dodging
+  asteroids, plane racing through rings, catch the falling treats). Tapping a chip sends that prompt
+  and builds the game — the kid is never stuck. Threaded `blockedSeed` through PlaygroundApp → Workspace
+  → useGameAgent.
+
 ## 2026-06-10 (guided chip loop)
 
 ### Changed
