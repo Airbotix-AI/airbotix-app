@@ -4,6 +4,17 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-10 (Magic card dark-theme fix)
+
+### Fixed
+- **Magic Generation card now follows the dark theme** (`MagicGenerationCard.tsx`). The card's
+  inner panel, prompt chip, Cancel/Dismiss buttons, orb/reference rings, and progress track were
+  hardcoded light (`from-white`, `bg-white`, `#fff`, `#EDE9F7`) while the text used themeable
+  `pg-*` tokens — so in dark theme the bright panel stayed light and the heading (`text-pg-text`)
+  flipped light and rendered invisibly on it. Replaced the hardcoded surfaces with themeable
+  `pg-surface`/`pg-surface-2`/`pg-text` tokens so the whole card flips with the workspace theme.
+  Added `MagicGenerationCard.test.tsx`.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added
