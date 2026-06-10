@@ -97,6 +97,27 @@ test('code editor: status bar, Files-only tree, and the file-column toggle', asy
   await expect(page.getByRole('button', { name: 'Show files' })).toBeVisible();
 });
 
+test('code editor: "✨ Explain this" on a selection → asks the AI in chat', async ({ page }) => {
+  // Selecting code surfaces the floating "Explain this" toolbar; clicking it sends
+  // the snippet to the chat agent, which answers in the chat (auto-apply teacher
+  // model — a plain send, no agency gate).
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Code/ }).click();
+  await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 15_000 });
+
+  // Select code → the floating toolbar appears.
+  await page.locator('.monaco-editor').first().click();
+  await page.keyboard.press('ControlOrMeta+a');
+  const explain = page.getByTestId('explain-selection');
+  await expect(explain).toBeVisible({ timeout: 6_000 });
+  await explain.click();
+
+  // Chat takes over: the kid bubble carries the explain prompt and a reply streams in.
+  await expect(page.getByText(/Explain what this code does/).first()).toBeVisible({ timeout: 6_000 });
+  await expect(page.getByTestId('agent-msg')).toBeVisible({ timeout: 6_000 });
+});
+
 test('layout toggle switches Window ⇄ Split', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: /Split/ }).click();

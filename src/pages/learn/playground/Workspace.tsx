@@ -72,6 +72,20 @@ interface Wallet {
 
 type SplitTab = 'chat' | 'code' | 'assets' | 'help';
 
+/** Cap a selected snippet so the chat bubble + prompt stay reasonable — the
+ *  backend already has the whole file as context, so the snippet only points the
+ *  agent at WHICH code to explain. */
+const MAX_EXPLAIN_CHARS = 1200;
+
+/** Build the kid-friendly "explain this selection" prompt. Asks for a plain answer
+ *  and tells the agent NOT to edit — an explain must never change the game. */
+function buildExplainPrompt(code: string): string {
+  const trimmed = code.trim();
+  const snippet =
+    trimmed.length > MAX_EXPLAIN_CHARS ? `${trimmed.slice(0, MAX_EXPLAIN_CHARS)}\n…` : trimmed;
+  return `Explain what this code does in simple words — don't change my game:\n\n${snippet}`;
+}
+
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
 // of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
@@ -290,6 +304,16 @@ export function Workspace({
     else setSplitTab('chat');
   };
 
+  // "✨ Explain this" on an editor selection → send the snippet to the chat agent
+  // for a plain-words explanation (the prompt asks it not to edit). The playground
+  // teacher model auto-applies with no agency gate, so a plain `send` answers
+  // directly. Surface the chat so the answer is visible.
+  const handleExplainCode = (code: string) => {
+    send(buildExplainPrompt(code));
+    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
+    else setSplitTab('chat');
+  };
+
   // Keep window rects inside the actual desktop surface (default rects are seeded
   // from window.innerHeight and over-shoot under the Learn nav). Clamping BEFORE a
   // window opens from chat means it mounts already-fitted (Window's react-rnd
@@ -331,6 +355,7 @@ export function Workspace({
               onApplyFiles={onApplyFiles}
               onRun={runFromEditor}
               openLocation={locationRequest}
+              onExplainSelection={handleExplainCode}
             />
           </Window>
           <Window
@@ -427,6 +452,7 @@ export function Workspace({
                     onApplyFiles={onApplyFiles}
                     onRun={runFromEditor}
                     openLocation={locationRequest}
+                    onExplainSelection={handleExplainCode}
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
