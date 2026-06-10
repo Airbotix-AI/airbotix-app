@@ -56,19 +56,61 @@ interface SubmitResult {
   already_accepted?: boolean;
 }
 
-// ─── MissionRunPage ───────────────────────────────────────────────────────────
-
-export function MissionRunPage({
-  pack,
-  missions,
-  projectId,
-  packSlug,
-}: {
+interface MissionRunPageProps {
   pack: CoursePack;
   missions: Mission[];
   projectId: string;
   packSlug: string;
-}) {
+}
+
+interface StepWidgetProps {
+  step: MissionStep;
+  projectId: string;
+  isDone: boolean;
+  onAcknowledge: () => void;
+  onOpenDrawer: () => void;
+  onShare: () => void;
+  isSharing: boolean;
+}
+
+interface StepStudioDrawerProps {
+  step: MissionStep;
+  projectId: string;
+  onClose: () => void;
+  onCreated: () => void;
+}
+
+// ─── Module-level constants ───────────────────────────────────────────────────
+
+const WIDGET_META: Record<string, { emoji: string; label: string; cta: string; stars: number; color: string }> = {
+  image_create: { emoji: '🎨', label: 'Image Maker',  cta: 'Make an image',  stars: 4, color: 'bubblegum' },
+  story_write:  { emoji: '📖', label: 'Story Writer', cta: 'Write a story',  stars: 1, color: 'mint' },
+  voice_create: { emoji: '🔊', label: 'Voice Booth',  cta: 'Record a voice', stars: 1, color: 'sky' },
+  music_create: { emoji: '🎵', label: 'Music Maker',  cta: 'Make music',     stars: 3, color: 'mint' },
+  video_create: { emoji: '🎬', label: 'Video Studio', cta: 'Make a video',   stars: 5, color: 'sunshine' },
+};
+
+const DRAWER_META: Record<string, { title: string; emoji: string; color: string }> = {
+  image_create: { title: 'Image Maker',  emoji: '🎨', color: 'bubblegum' },
+  story_write:  { title: 'Story Writer', emoji: '📖', color: 'mint' },
+  voice_create: { title: 'Voice Booth',  emoji: '🔊', color: 'sky' },
+  music_create: { title: 'Music Maker',  emoji: '🎵', color: 'mint' },
+  video_create: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },
+};
+
+// Pure helper — explicit params to avoid stale-closure issues in effects
+function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Artifact[]): boolean {
+  if (s.completion.type === 'acknowledged') return acknowledged.has(s.id);
+  if (s.completion.type === 'share_request_submitted') return acknowledged.has(s.id);
+  if (s.completion.type === 'artifact_saved') {
+    return (artifactData ?? []).some((a) => a.kind === s.completion.kind);
+  }
+  return false;
+}
+
+// ─── MissionRunPage ───────────────────────────────────────────────────────────
+
+export function MissionRunPage({ pack, missions, projectId, packSlug }: MissionRunPageProps) {
   const [currentMissionIdx, setCurrentMissionIdx] = useState(0);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -133,12 +175,7 @@ export function MissionRunPage({
   // ── Completion check ──────────────────────────────────────────────────────
 
   function stepDone(s: MissionStep): boolean {
-    if (s.completion.type === 'acknowledged') return acknowledged.has(s.id);
-    if (s.completion.type === 'share_request_submitted') return acknowledged.has(s.id);
-    if (s.completion.type === 'artifact_saved') {
-      return (artifacts.data ?? []).some((a) => a.kind === s.completion.kind);
-    }
-    return false;
+    return isStepDone(s, acknowledged, artifacts.data);
   }
 
   function markAcknowledged(stepId: string) {
@@ -147,15 +184,14 @@ export function MissionRunPage({
 
   const currentStepDone = step ? stepDone(step) : false;
 
-  // Auto-advance to next undone step when artifacts refresh
+  // Auto-advance to the first undone step when artifacts or acknowledged state changes
   useEffect(() => {
     if (!steps.length) return;
-    const nextUndone = steps.findIndex((s) => !stepDone(s));
+    const nextUndone = steps.findIndex((s) => !isStepDone(s, acknowledged, artifacts.data));
     if (nextUndone !== -1 && nextUndone !== currentStepIdx) {
       setCurrentStepIdx(nextUndone);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [artifacts.data]);
+  }, [artifacts.data, acknowledged, steps, currentStepIdx]);
 
   // ── Confetti completion screen ────────────────────────────────────────────
 
@@ -164,10 +200,10 @@ export function MissionRunPage({
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
         <div className="text-[64px] mb-4">🎉</div>
         <span className="sticker-mint text-[14px] mb-4">Mission complete!</span>
-        <h1 className="hero-display mt-2" style={{ fontSize: '36px' }}>
+        <h1 className="hero-display text-[36px] mt-2">
           You did it!
         </h1>
-        <p className="lead-text mt-3" style={{ fontSize: '18px' }}>
+        <p className="lead-text text-[18px] mt-3">
           "{mission.title}" — done!
         </p>
         <div className="mt-6 flex items-center gap-2 rounded-2xl bg-wash-mint border border-brand-mint/30 px-6 py-4">
@@ -323,31 +359,7 @@ export function MissionRunPage({
 
 // ─── StepWidget ───────────────────────────────────────────────────────────────
 
-function StepWidget({
-  step,
-  projectId: _projectId,
-  isDone,
-  onAcknowledge,
-  onOpenDrawer,
-  onShare,
-  isSharing,
-}: {
-  step: MissionStep;
-  projectId: string;
-  isDone: boolean;
-  onAcknowledge: () => void;
-  onOpenDrawer: () => void;
-  onShare: () => void;
-  isSharing: boolean;
-}) {
-  const WIDGET_META: Record<string, { emoji: string; label: string; cta: string; stars: number; color: string }> = {
-    image_create:  { emoji: '🎨', label: 'Image Maker',  cta: 'Make an image',  stars: 4, color: 'bubblegum' },
-    story_write:   { emoji: '📖', label: 'Story Writer', cta: 'Write a story',  stars: 1, color: 'mint' },
-    voice_create:  { emoji: '🔊', label: 'Voice Booth',  cta: 'Record a voice', stars: 1, color: 'sky' },
-    music_create:  { emoji: '🎵', label: 'Music Maker',  cta: 'Make music',     stars: 3, color: 'mint' },
-    video_create:  { emoji: '🎬', label: 'Video Studio', cta: 'Make a video',   stars: 5, color: 'sunshine' },
-  };
-
+function StepWidget({ step, projectId: _projectId, isDone, onAcknowledge, onOpenDrawer, onShare, isSharing }: StepWidgetProps) {
   if (step.widget === 'read_only') {
     return isDone ? (
       <div className="flex items-center gap-2 text-brand-mint font-semibold text-[14px]">
@@ -388,10 +400,7 @@ function StepWidget({
         {isDone ? (
           <span className="text-brand-mint font-bold text-[13px]">✓ Done</span>
         ) : (
-          <button
-            onClick={onOpenDrawer}
-            className="btn-pill-primary shrink-0"
-          >
+          <button onClick={onOpenDrawer} className="btn-pill-primary shrink-0">
             {meta.cta} →
           </button>
         )}
@@ -410,26 +419,8 @@ function StepWidget({
 
 // ─── StepStudioDrawer ─────────────────────────────────────────────────────────
 
-function StepStudioDrawer({
-  step,
-  projectId,
-  onClose,
-  onCreated,
-}: {
-  step: MissionStep;
-  projectId: string;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const META: Record<string, { title: string; emoji: string; color: string }> = {
-    image_create: { title: 'Image Maker',  emoji: '🎨', color: 'bubblegum' },
-    story_write:  { title: 'Story Writer', emoji: '📖', color: 'mint' },
-    voice_create: { title: 'Voice Booth',  emoji: '🔊', color: 'sky' },
-    music_create: { title: 'Music Maker',  emoji: '🎵', color: 'mint' },
-    video_create: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },
-  };
-
-  const meta = META[step.widget];
+function StepStudioDrawer({ step, projectId, onClose, onCreated }: StepStudioDrawerProps) {
+  const meta = DRAWER_META[step.widget];
   if (!meta) return null;
 
   return (

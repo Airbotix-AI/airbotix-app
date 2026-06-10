@@ -3,37 +3,13 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
-import { MissionRunPage } from './MissionRunPage';
+import { MissionRunPage, Mission, CoursePack } from './MissionRunPage';
 
-interface MissionStep {
-  id: string;
-  title: string;
-  instruction_md: string;
-  widget: 'image_create' | 'story_write' | 'voice_create' | 'music_create' | 'video_create' | 'share_to_class' | 'read_only';
-  widget_config: Record<string, unknown>;
-  completion: { type: string; kind?: string; min_words?: number };
-}
-
-interface Mission {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  estimated_stars: number;
-  order_index: number;
-  content_md: string;
-  steps_json: MissionStep[];
-}
-
-interface CoursePack {
-  id: string;
-  slug: string;
-  title: string;
+// Detail view needs extra fields beyond what MissionRunPage's CoursePack covers
+interface CoursePackDetail extends CoursePack {
   description: string;
   target_age_min: number;
   target_age_max: number;
-  product_line: 'line_a_creative' | 'line_b_coding';
-  mission_count: number;
   estimated_stars: number;
   missions: Mission[];
 }
@@ -46,9 +22,9 @@ export function MissionDetailPage() {
   const me = useMe();
   const qc = useQueryClient();
 
-  const pack = useQuery<CoursePack>({
+  const pack = useQuery<CoursePackDetail>({
     queryKey: ['course-pack', slug],
-    queryFn: () => api<CoursePack>(`/course-packs/${slug}`),
+    queryFn: () => api<CoursePackDetail>(`/course-packs/${slug}`),
     enabled: !!slug,
   });
 
@@ -74,8 +50,9 @@ export function MissionDetailPage() {
         if (!kidId) return;
         api<{ id: string; mission_id: string; status: string }[]>(`/kids/${kidId}/projects`)
           .then((projects) => {
-            const mission = pack.data?.missions.find((m) => startMission.variables?.id === m.id);
-            const existing = projects.find((p) => p.mission_id === mission?.id && p.status === 'in_progress');
+            const existing = projects.find(
+              (p) => p.mission_id === startMission.variables?.id && p.status === 'in_progress',
+            );
             if (existing) nav(`/learn/missions/${slug}?project=${existing.id}`);
           })
           .catch(() => undefined);
