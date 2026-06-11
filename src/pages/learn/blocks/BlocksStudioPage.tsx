@@ -9,6 +9,7 @@
 // on conflict) — same versioned persistence as the sibling studios.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
 
 import {
@@ -75,7 +76,12 @@ export function BlocksStudioPage() {
   const [category, setCategory] = useState<BlockCategory>('trigger');
   const [present, setPresent] = useState(false);
   const [running, setRunning] = useState(false);
-  const [pickFriend, setPickFriend] = useState(false);
+  // The friend picker floats in a portal (the character rail clips overflow +
+  // has a backdrop-filter, which would otherwise trap/cut off an absolute popup).
+  const [friendPos, setFriendPos] = useState<{ left: number; top: number } | null>(null);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const friendPopRef = useRef<HTMLDivElement>(null);
+  const pickFriend = friendPos !== null;
   // live sprite states while/after a run (charId → state+duration); null = start poses
   const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(null);
   const [says, setSays] = useState<Map<string, string>>(new Map());
@@ -194,6 +200,43 @@ export function BlocksStudioPage() {
     [makeRunner],
   );
 
+  // ── friend picker: anchor a floating panel to the ＋ button (viewport-fixed,
+  //    rendered via portal so the rail's overflow/backdrop-filter can't clip it).
+  const POP_W = 200;
+  const POP_H = 112;
+  const toggleFriendPicker = useCallback(() => {
+    setFriendPos((cur) => {
+      if (cur) return null; // already open → close
+      const r = addBtnRef.current?.getBoundingClientRect();
+      if (!r) return null;
+      let left = r.right + 8;
+      let top = r.top;
+      if (left + POP_W > window.innerWidth - 8) {
+        // no room to the right (e.g. portrait, rail at the bottom) → place above
+        left = Math.min(Math.max(8, r.left), window.innerWidth - POP_W - 8);
+        top = r.top - POP_H - 8;
+      }
+      top = Math.min(Math.max(8, top), window.innerHeight - POP_H - 8);
+      return { left, top };
+    });
+  }, []);
+  useEffect(() => {
+    if (!pickFriend) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (friendPopRef.current?.contains(t) || addBtnRef.current?.contains(t)) return;
+      setFriendPos(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFriendPos(null);
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', () => setFriendPos(null));
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [pickFriend]);
+
   // ── stage drag (pointer events: touch + mouse + pen, D-BLK-7) ─────────────
   const stageRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -308,35 +351,16 @@ export function BlocksStudioPage() {
               )}
             </button>
           ))}
-          <div className="relative w-full max-w-[72px]">
-            <button
-              type="button"
-              data-testid="add-character"
-              onClick={() => setPickFriend((p) => !p)}
-              className="grid aspect-square w-full place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky"
-              title="Add a character"
-            >
-              ＋
-            </button>
-            {pickFriend && (
-              <div className="absolute left-full top-0 z-20 ml-2 grid w-44 grid-cols-4 gap-1.5 rounded-2xl border border-hairline bg-canvas-pure p-2 shadow-card-soft">
-                {FRIEND_CHOICES.map((f) => (
-                  <button
-                    key={f.emoji}
-                    type="button"
-                    className="grid h-9 w-9 place-items-center rounded-xl text-[22px] hover:bg-wash-sky"
-                    title={f.name}
-                    onClick={() => {
-                      useBlocksStore.getState().addCharacter(f.emoji, f.name);
-                      setPickFriend(false);
-                    }}
-                  >
-                    {f.emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <button
+            ref={addBtnRef}
+            type="button"
+            data-testid="add-character"
+            onClick={toggleFriendPicker}
+            className="grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky"
+            title="Add a character"
+          >
+            ＋
+          </button>
         </aside>
 
         <div className="flex min-h-0 flex-col gap-2" style={{ gridArea: 'stage' }}>
@@ -501,6 +525,34 @@ export function BlocksStudioPage() {
           </div>
         </div>
       </section>
+
+      {/* floating friend picker — portalled to <body> so the rail can't clip it */}
+      {pickFriend &&
+        friendPos &&
+        createPortal(
+          <div
+            ref={friendPopRef}
+            data-testid="friend-picker"
+            className="fixed z-[60] grid grid-cols-4 gap-1.5 rounded-2xl border border-hairline bg-canvas-pure p-2 shadow-card-soft"
+            style={{ left: friendPos.left, top: friendPos.top, width: POP_W }}
+          >
+            {FRIEND_CHOICES.map((f) => (
+              <button
+                key={f.emoji}
+                type="button"
+                className="grid h-10 w-10 place-items-center rounded-xl text-[24px] hover:bg-wash-sky"
+                title={f.name}
+                onClick={() => {
+                  useBlocksStore.getState().addCharacter(f.emoji, f.name);
+                  setFriendPos(null);
+                }}
+              >
+                {f.emoji}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

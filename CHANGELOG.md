@@ -20,6 +20,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `GET/PUT /projects/:id/code/files` (debounced autosave, server-wins conflict).
   Tests: `blocksModel` / `blocksStore` / `interpreter` (16 unit tests).
 
+### Fixed
+- **Blocks Studio "add character" picker now floats over the stage** instead of being clipped
+  inside the character rail. The rail has `overflow:auto` + `backdrop-filter`, which trapped the
+  absolutely-positioned popup; it now renders via a `createPortal` to `<body>` with
+  viewport-anchored `fixed` coordinates (placed beside the ＋, flips above it when there's no
+  room — e.g. portrait), with outside-click / Escape to dismiss.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added
