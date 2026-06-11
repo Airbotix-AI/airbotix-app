@@ -137,33 +137,10 @@ export function BlocksStudioPage() {
     };
   }, [projectId]);
 
-  // ── immersive tablet mode: the studio owns the whole screen ───────────────
-  // Kill page scroll / rubber-band while the studio is mounted, and request
-  // browser fullscreen on the first tap (it can't be auto-requested without a
-  // gesture). Leaving the studio (Home / unmount) restores both.
-  useEffect(() => {
-    const html = document.documentElement;
-    const prevOverflow = document.body.style.overflow;
-    const prevOverscroll = html.style.overscrollBehavior;
-    document.body.style.overflow = 'hidden';
-    html.style.overscrollBehavior = 'none';
-    const goFullscreen = () => {
-      if (!document.fullscreenElement && html.requestFullscreen) {
-        void html.requestFullscreen().catch(() => undefined);
-      }
-    };
-    window.addEventListener('pointerdown', goFullscreen, { once: true });
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      html.style.overscrollBehavior = prevOverscroll;
-      window.removeEventListener('pointerdown', goFullscreen);
-      if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
-    };
-  }, []);
-
-  const leaveFullscreen = useCallback(() => {
-    if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
-  }, []);
+  // Immersive tablet mode (page-scroll lock + browser fullscreen) is owned by
+  // LearnLayout, keyed on the route — so it survives this page's remounts and
+  // can't flicker out/in. Going Home navigates to the (non-immersive) hub, which
+  // restores normal browsing.
 
   // ── debounced autosave on any program change (server wins on conflict) ────
   useEffect(() => {
@@ -698,7 +675,6 @@ export function BlocksStudioPage() {
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
         <Link
           to="/learn/create/blocks"
-          onClick={leaveFullscreen}
           className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
           title="Save & back"
         >

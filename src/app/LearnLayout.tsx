@@ -30,6 +30,44 @@ export function LearnLayout() {
     return () => window.clearInterval(id);
   }, []);
 
+  // Immersive surfaces (Blocks Studio) own the whole viewport: lock page scroll
+  // and request browser fullscreen on the first gesture. This lives in the LAYOUT
+  // — which stays mounted across the studio page's re-renders/remounts (e.g. the
+  // periodic auth refresh briefly swapping the route out) — and keys off the
+  // route. Previously the studio component owned this, so any transient remount
+  // dropped fullscreen (unmount cleanup) and re-armed the one-shot enter, making
+  // it flicker out and snap back on the next tap. Keyed on `immersive`, a studio
+  // remount no longer touches it. If the user/browser leaves fullscreen, we don't
+  // yank them back.
+  useEffect(() => {
+    if (!immersive) return undefined;
+    const html = document.documentElement;
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = html.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+
+    let dismissed = false; // user/browser left fullscreen → don't auto re-enter
+    const enter = () => {
+      if (!dismissed && !document.fullscreenElement && html.requestFullscreen) {
+        void html.requestFullscreen().catch(() => undefined);
+      }
+    };
+    const onFsChange = () => {
+      if (!document.fullscreenElement) dismissed = true;
+    };
+    window.addEventListener('pointerdown', enter, { once: true });
+    document.addEventListener('fullscreenchange', onFsChange);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      html.style.overscrollBehavior = prevOverscroll;
+      window.removeEventListener('pointerdown', enter);
+      document.removeEventListener('fullscreenchange', onFsChange);
+      if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
+    };
+  }, [immersive]);
+
   return (
     <div className="flex h-full flex-col bg-canvas">
       {!immersive && <LearnTopBar />}
