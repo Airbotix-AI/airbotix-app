@@ -14,6 +14,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   onto the **latest** committed state (`interpreter.ts`), so concurrent tracks accumulate (matching
   ScratchJr's green-flag behaviour). Hop only touches y; Go Home stays a full explicit reset.
   Tests: 2 new parallel-track cases.
+- **The "currently running" glow now lights up every track at once.** The run-highlight map was keyed
+  by character, so two tracks on the same character overwrote each other's active block — only one lit
+  at a time, making parallel runs look sequential. It's now keyed per **script** (like ScratchJr, which
+  highlights the running block in every thread). Harness: `kid-blocks-parallel`.
 
 ## 2026-06-11 (Blocks Studio — refinement pass)
 

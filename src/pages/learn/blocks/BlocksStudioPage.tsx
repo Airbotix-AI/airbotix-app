@@ -255,11 +255,14 @@ export function BlocksStudioPage() {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
       },
-      onStep: (charId, scriptId, index) =>
+      // key the live highlight by SCRIPT, not character — a character can run
+      // several tracks at once, and each track's current block must glow
+      // simultaneously (ScratchJr highlights the running block in every thread).
+      onStep: (_charId, scriptId, index) =>
         setActiveBlocks((prev) => {
           const next = new Map(prev);
-          if (index < 0) next.delete(charId);
-          else next.set(charId, `${scriptId}:${index}`);
+          if (index < 0) next.delete(scriptId);
+          else next.set(scriptId, `${scriptId}:${index}`);
           return next;
         }),
     });
