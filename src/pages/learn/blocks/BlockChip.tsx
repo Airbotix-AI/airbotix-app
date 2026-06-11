@@ -19,6 +19,7 @@ export function BlockChip({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onPointerCancel,
   title,
 }: {
   block: Block;
@@ -35,6 +36,7 @@ export function BlockChip({
   onPointerDown?: (e: PointerEvent) => void;
   onPointerMove?: (e: PointerEvent) => void;
   onPointerUp?: (e: PointerEvent) => void;
+  onPointerCancel?: (e: PointerEvent) => void;
   title?: string;
 }) {
   const def = blockDef(block.op);
@@ -48,6 +50,7 @@ export function BlockChip({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       style={style}
       className={clsx(
         'bsx-block',

@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
-import { Redo2, Undo2 } from 'lucide-react';
+import { Expand, Image as ImageIcon, MoreHorizontal, Moon, Redo2, RotateCcw, Sun, Undo2, Volume2, VolumeX } from 'lucide-react';
 
 import {
   loadBlocksProject,
@@ -36,10 +36,30 @@ import { saveThumbnail } from '../playground/projectPersistence';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
 import { CHARACTER_GROUPS, SCENES, sceneId } from './library';
-import { sfx } from './sounds';
+import { sfx, isMuted, setMuted } from './sounds';
+import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
 
 const SAVE_DEBOUNCE_MS = 800;
+
+// ── block drag tuning (touch-first) ──────────────────────────────────────────
+// On a tablet a finger that starts on a block must be free to SCROLL the list;
+// only a deliberate HOLD lifts the block to drag. So: touch waits for a short
+// long-press (and cancels if the finger moves first = a scroll); mouse starts
+// on a tiny move threshold. While a drag is active we lock page scrolling with a
+// non-passive touchmove listener (touch-action alone can't be flipped mid-touch).
+const LONGPRESS_MS = 180;
+const TOUCH_CANCEL_PX = 12; // finger travels this far before the hold fires → it's a scroll
+const MOUSE_DRAG_PX = 6; // mouse moves this far → start dragging
+const preventTouchMove = (e: TouchEvent) => {
+  if (e.cancelable) e.preventDefault();
+};
+function lockTouchScroll() {
+  document.addEventListener('touchmove', preventTouchMove, { passive: false });
+}
+function unlockTouchScroll() {
+  document.removeEventListener('touchmove', preventTouchMove);
+}
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
@@ -59,6 +79,12 @@ export function BlocksStudioPage() {
   const [running, setRunning] = useState(false);
   const [scenePick, setScenePick] = useState(false);
   const [charTab, setCharTab] = useState(0);
+  const [muted, setMutedState] = useState(isMuted());
+  const [confirmReset, setConfirmReset] = useState(false);
+  // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
+  // uncluttered (especially in portrait). Anchored below the button.
+  const [moreAnchor, setMoreAnchor] = useState<{ right: number; top: number } | null>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
   // Theme follows the system by default; the toolbar 🌙/☀️ overrides + persists.
   // Shared via a store so the Learn top bar flips with the studio (blocksTheme).
   const theme = useBlocksTheme((s) => s.theme);
@@ -70,6 +96,8 @@ export function BlocksStudioPage() {
   // live sprite states while/after a run (charId → state+duration); null = start poses
   const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(null);
   const [says, setSays] = useState<Map<string, string>>(new Map());
+  // the block each character is executing right now → "lit" glow (charId → "scriptId:index")
+  const [activeBlocks, setActiveBlocks] = useState<Map<string, string>>(new Map());
 
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
@@ -202,6 +230,7 @@ export function BlocksStudioPage() {
     runnerRef.current = null;
     setRunStates(null);
     setSays(new Map());
+    setActiveBlocks(new Map());
     setRunning(false);
   }, [dirty, pageId]);
 
@@ -226,10 +255,20 @@ export function BlocksStudioPage() {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
       },
+      onStep: (charId, scriptId, index) =>
+        setActiveBlocks((prev) => {
+          const next = new Map(prev);
+          if (index < 0) next.delete(charId);
+          else next.set(charId, `${scriptId}:${index}`);
+          return next;
+        }),
     });
     runnerRef.current = runner;
     return runner;
   }, [page]);
+
+  // fast lookup for the "lit" glow: the set of "scriptId:index" running now
+  const activeKeys = useMemo(() => new Set(activeBlocks.values()), [activeBlocks]);
 
   const go = useCallback(() => {
     if (running) return;
@@ -245,8 +284,33 @@ export function BlocksStudioPage() {
     runnerRef.current = null;
     setRunStates(null);
     setSays(new Map());
+    setActiveBlocks(new Map());
     setRunning(false);
   }, []);
+
+  const toggleMute = useCallback(() => {
+    const next = !isMuted();
+    setMuted(next);
+    setMutedState(next);
+    if (!next) sfx.tap(); // a little blip to confirm sound is back on
+  }, []);
+
+  // close the "⋯ More" menu on outside-click / Escape
+  useEffect(() => {
+    if (!moreAnchor) return undefined;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement;
+      if (moreBtnRef.current?.contains(t) || t.closest('[data-testid="more-menu"]')) return;
+      setMoreAnchor(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMoreAnchor(null);
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [moreAnchor]);
 
   const tapSprite = useCallback(
     (id: string) => {
@@ -291,8 +355,43 @@ export function BlocksStudioPage() {
     if (!wasDrag) tapSprite(id); // a clean tap runs the 👆 scripts
   };
 
-  // ── block drag: reorder within the script, OR drop on the BIN to remove.
-  //    The bin is a fixed zone at the end of the block area (block-only). ─────
+  // shared: the script row + insertion slot under a point. Scans EVERY track so
+  // a block can be dropped into a different track (cross-track move) and the
+  // palette can insert anywhere. `exclude` skips the block being dragged while
+  // it's still sitting in its own row.
+  const scanRows = (
+    x: number,
+    y: number,
+    exclude?: { scriptId: string; index: number },
+  ): { scriptId: string; slot: number; dropX: number } | null => {
+    const rows = [
+      ...document.querySelectorAll<HTMLElement>('[data-testid^="script-"]:not([data-testid="script-area"])'),
+    ];
+    for (const row of rows) {
+      const rr = row.getBoundingClientRect();
+      const pad = 18;
+      if (x < rr.left - pad || x > rr.right + pad || y < rr.top - pad || y > rr.bottom + pad) continue;
+      const scriptId = row.getAttribute('data-testid')!.slice('script-'.length);
+      const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
+      let slot = items.length;
+      let dropX = items.length ? items[items.length - 1].getBoundingClientRect().right - rr.left + 2 : 0;
+      for (let i = 1; i < items.length; i += 1) {
+        if (exclude && exclude.scriptId === scriptId && i === exclude.index) continue;
+        const r = items[i].getBoundingClientRect();
+        if (x < r.left + r.width / 2) {
+          slot = i;
+          dropX = r.left - rr.left - 2;
+          break;
+        }
+      }
+      return { scriptId, slot: Math.max(1, slot), dropX };
+    }
+    return null;
+  };
+
+  // ── reorder/move an existing block: HOLD-to-lift, drag across tracks, or drop
+  //    on the BIN to remove. (Mouse starts on a tiny move; touch needs a short
+  //    hold so a quick swipe still scrolls the program list.) ────────────────
   const binRef = useRef<HTMLDivElement>(null);
   const [binArmed, setBinArmed] = useState(false);
   const overBin = (x: number, y: number) => {
@@ -301,86 +400,127 @@ export function BlocksStudioPage() {
     const pad = 16;
     return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
   };
-  const blockDrag = useRef<{ scriptId: string; index: number; x0: number; y0: number; pointerId: number } | null>(null);
+  const blockDrag = useRef<{
+    scriptId: string;
+    index: number;
+    x0: number;
+    y0: number;
+    lastX: number;
+    lastY: number;
+    pointerId: number;
+    touch: boolean;
+    el: HTMLElement;
+  } | null>(null);
+  const blockLP = useRef<number | undefined>(undefined);
   const blockDidDrag = useRef(false);
   const [dragBlk, setDragBlk] = useState<{
     scriptId: string;
     index: number;
-    dx: number;
-    dy: number;
     cx: number;
     cy: number;
     onBin: boolean;
+    targetScriptId: string | null;
     targetSlot: number | null;
     dropX: number | null;
   } | null>(null);
 
+  const blockDragUpdate = (x: number, y: number) => {
+    const d = blockDrag.current;
+    if (!d) return;
+    const onBin = overBin(x, y);
+    setBinArmed(onBin);
+    let targetScriptId: string | null = null;
+    let targetSlot: number | null = null;
+    let dropX: number | null = null;
+    if (!onBin && d.index > 0) {
+      const hit = scanRows(x, y, { scriptId: d.scriptId, index: d.index });
+      if (hit) {
+        targetScriptId = hit.scriptId;
+        targetSlot = hit.slot;
+        dropX = hit.dropX;
+      }
+    }
+    setDragBlk({ scriptId: d.scriptId, index: d.index, cx: x, cy: y, onBin, targetScriptId, targetSlot, dropX });
+  };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    blockDrag.current = { scriptId, index, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
+    if (running || present) return;
+    const touch = e.pointerType === 'touch';
+    const el = e.currentTarget as HTMLElement;
+    const { pointerId, clientX: x0, clientY: y0 } = e;
+    blockDrag.current = { scriptId, index, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
     blockDidDrag.current = false;
+    window.clearTimeout(blockLP.current);
+    if (touch) {
+      blockLP.current = window.setTimeout(() => {
+        const d = blockDrag.current;
+        if (!d || blockDidDrag.current) return;
+        blockDidDrag.current = true;
+        sfx.pickup();
+        try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+        lockTouchScroll();
+        navigator.vibrate?.(8);
+        blockDragUpdate(d.lastX, d.lastY);
+      }, LONGPRESS_MS);
+    }
   };
   const onBlockMove = (e: React.PointerEvent) => {
     const d = blockDrag.current;
     if (!d || e.pointerId !== d.pointerId) return;
-    const dx = e.clientX - d.x0;
-    const dy = e.clientY - d.y0;
-    if (!blockDidDrag.current && Math.hypot(dx, dy) > 8) {
+    d.lastX = e.clientX;
+    d.lastY = e.clientY;
+    if (!blockDidDrag.current) {
+      const moved = Math.hypot(e.clientX - d.x0, e.clientY - d.y0);
+      if (d.touch) {
+        if (moved > TOUCH_CANCEL_PX) {
+          window.clearTimeout(blockLP.current);
+          blockDrag.current = null; // they're scrolling, not dragging
+        }
+        return;
+      }
+      if (moved <= MOUSE_DRAG_PX) return;
       blockDidDrag.current = true;
       sfx.pickup();
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
     }
-    if (!blockDidDrag.current) return;
-    const onBin = overBin(e.clientX, e.clientY);
-    setBinArmed(onBin);
-    // when not heading for the bin, compute the reorder drop slot (body blocks
-    // only — the trigger stays first). targetSlot is the destination index in
-    // the post-removal array; dropX positions the insertion bar.
-    let targetSlot: number | null = null;
-    let dropX: number | null = null;
-    if (!onBin && d.index > 0) {
-      const row = document.querySelector(`[data-testid="script-${d.scriptId}"]`);
-      if (row) {
-        const rowRect = row.getBoundingClientRect();
-        const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
-        let slot = 0;
-        let x = items[0] ? items[0].getBoundingClientRect().right - rowRect.left : 0;
-        items.forEach((el, i) => {
-          if (i === d.index) return;
-          const r = el.getBoundingClientRect();
-          if (e.clientX > r.left + r.width / 2) {
-            slot += 1;
-            x = r.right - rowRect.left + 2;
-          }
-        });
-        targetSlot = Math.max(1, slot);
-        dropX = x;
-      }
-    }
-    setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, cx: e.clientX, cy: e.clientY, onBin, targetSlot, dropX });
+    blockDragUpdate(e.clientX, e.clientY);
   };
-  const onBlockUp = () => {
+  const endBlockDrag = (commit: boolean) => {
+    window.clearTimeout(blockLP.current);
+    unlockTouchScroll();
     const info = dragBlk;
     const d = blockDrag.current;
     blockDrag.current = null;
     setDragBlk(null);
     setBinArmed(false);
-    if (blockDidDrag.current && info && d) {
+    if (commit && blockDidDrag.current && info && d) {
       if (info.onBin) {
         sfx.trash();
         useBlocksStore.getState().removeBlock(d.scriptId, d.index);
-      } else if (info.targetSlot !== null && info.targetSlot !== d.index) {
+      } else if (info.targetScriptId && (info.targetScriptId !== d.scriptId || info.targetSlot !== d.index)) {
         sfx.snap();
-        useBlocksStore.getState().moveBlock(d.scriptId, d.index, info.targetSlot);
+        useBlocksStore
+          .getState()
+          .moveBlockAcross(d.scriptId, d.index, info.targetScriptId, info.targetSlot ?? 1);
       }
     }
     setTimeout(() => (blockDidDrag.current = false), 0);
   };
+  const onBlockUp = () => endBlockDrag(true);
+  const onBlockCancel = () => endBlockDrag(false);
 
-  // ── palette block: TAP adds to the bottom, DRAG drops it at any slot ───────
-  //    (drag into a script's gap to insert; drop anywhere else → append). The
-  //    source tile stays put; a fixed clone follows the pointer (same trick as
-  //    reorder, so it can't be clipped or spawn a scrollbar). ─────────────────
-  const palDrag = useRef<{ op: BlockOp; x0: number; y0: number; pointerId: number } | null>(null);
+  // ── palette block: TAP appends, HOLD-and-drag drops it at any slot (across any
+  //    track). Same hold-to-lift + scroll-lock so the palette stays scrollable. ─
+  const palDrag = useRef<{
+    op: BlockOp;
+    x0: number;
+    y0: number;
+    lastX: number;
+    lastY: number;
+    pointerId: number;
+    touch: boolean;
+    el: HTMLElement;
+  } | null>(null);
+  const palLP = useRef<number | undefined>(undefined);
   const palDidDrag = useRef(false);
   const [palBlk, setPalBlk] = useState<{
     op: BlockOp;
@@ -391,82 +531,81 @@ export function BlocksStudioPage() {
     dropX: number | null;
   } | null>(null);
 
-  // find the script row + insertion slot under the pointer (body ops only —
-  // triggers always start a fresh script, so they just append).
-  const palTarget = (x: number, y: number, op: BlockOp) => {
-    if (isTrigger(op)) return null;
-    // every script row is data-testid="script-<id>" — exclude the script-AREA
-    // wrapper, which also starts with "script-" and would swallow every hit.
-    const rows = [
-      ...document.querySelectorAll<HTMLElement>('[data-testid^="script-"]:not([data-testid="script-area"])'),
-    ];
-    for (const row of rows) {
-      const rr = row.getBoundingClientRect();
-      const pad = 16;
-      if (x < rr.left - pad || x > rr.right + pad || y < rr.top - pad || y > rr.bottom + pad) continue;
-      const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
-      let slot = items.length;
-      let dropX = items.length ? items[items.length - 1].getBoundingClientRect().right - rr.left + 2 : 0;
-      for (let i = 1; i < items.length; i += 1) {
-        const r = items[i].getBoundingClientRect();
-        if (x < r.left + r.width / 2) {
-          slot = i;
-          dropX = r.left - rr.left - 2;
-          break;
-        }
-      }
-      return { scriptId: row.getAttribute('data-testid')!.slice('script-'.length), slot: Math.max(1, slot), dropX };
-    }
-    return null;
+  const palDragUpdate = (x: number, y: number) => {
+    const d = palDrag.current;
+    if (!d) return;
+    const hit = isTrigger(d.op) ? null : scanRows(x, y);
+    setPalBlk({ op: d.op, cx: x, cy: y, scriptId: hit?.scriptId ?? null, slot: hit?.slot ?? 0, dropX: hit?.dropX ?? null });
   };
-
   const onPalDown = (e: React.PointerEvent, op: BlockOp) => {
     if (running || present) return;
-    palDrag.current = { op, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
+    const touch = e.pointerType === 'touch';
+    const el = e.currentTarget as HTMLElement;
+    const { pointerId, clientX: x0, clientY: y0 } = e;
+    palDrag.current = { op, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
     palDidDrag.current = false;
+    window.clearTimeout(palLP.current);
+    if (touch) {
+      palLP.current = window.setTimeout(() => {
+        const d = palDrag.current;
+        if (!d || palDidDrag.current) return;
+        palDidDrag.current = true;
+        sfx.pickup();
+        try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+        lockTouchScroll();
+        navigator.vibrate?.(8);
+        palDragUpdate(d.lastX, d.lastY);
+      }, LONGPRESS_MS);
+    }
   };
   const onPalMove = (e: React.PointerEvent) => {
     const d = palDrag.current;
     if (!d || e.pointerId !== d.pointerId) return;
-    const dx = e.clientX - d.x0;
-    const dy = e.clientY - d.y0;
-    if (!palDidDrag.current && Math.hypot(dx, dy) > 8) {
+    d.lastX = e.clientX;
+    d.lastY = e.clientY;
+    if (!palDidDrag.current) {
+      const moved = Math.hypot(e.clientX - d.x0, e.clientY - d.y0);
+      if (d.touch) {
+        if (moved > TOUCH_CANCEL_PX) {
+          window.clearTimeout(palLP.current);
+          palDrag.current = null;
+        }
+        return;
+      }
+      if (moved <= MOUSE_DRAG_PX) return;
       palDidDrag.current = true;
       sfx.pickup();
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
     }
-    if (!palDidDrag.current) return;
-    const hit = palTarget(e.clientX, e.clientY, d.op);
-    setPalBlk({
-      op: d.op,
-      cx: e.clientX,
-      cy: e.clientY,
-      scriptId: hit?.scriptId ?? null,
-      slot: hit?.slot ?? 0,
-      dropX: hit?.dropX ?? null,
-    });
+    palDragUpdate(e.clientX, e.clientY);
   };
-  const onPalUp = (op: BlockOp) => {
+  const endPalDrag = (op: BlockOp, commit: boolean) => {
+    window.clearTimeout(palLP.current);
+    unlockTouchScroll();
     const info = palBlk;
     const d = palDrag.current;
     palDrag.current = null;
     setPalBlk(null);
     const store = useBlocksStore.getState();
-    if (palDidDrag.current) {
-      if (info && info.scriptId) {
-        sfx.snap();
-        store.insertBlock(d?.op ?? op, info.scriptId, info.slot);
+    if (commit) {
+      if (palDidDrag.current) {
+        if (info && info.scriptId) {
+          sfx.snap();
+          store.insertBlock(d?.op ?? op, info.scriptId, info.slot);
+        } else {
+          sfx.place();
+          store.addBlock(d?.op ?? op);
+        }
       } else {
+        // a clean tap → add to the bottom of the latest script
         sfx.place();
-        store.addBlock(d?.op ?? op);
+        store.addBlock(op);
       }
-    } else {
-      // a clean tap → add to the bottom of the latest script
-      sfx.place();
-      store.addBlock(op);
     }
     setTimeout(() => (palDidDrag.current = false), 0);
   };
+  const onPalUp = (op: BlockOp) => endPalDrag(op, true);
+  const onPalCancel = (op: BlockOp) => endPalDrag(op, false);
 
   // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
   const [editBlk, setEditBlk] = useState<{ scriptId: string; index: number; left: number; top: number } | null>(null);
@@ -509,6 +648,9 @@ export function BlocksStudioPage() {
     const blk = script?.blocks[dragBlk.index];
     return blk ? { block: blk } : null;
   })();
+
+  // never leave the page-scroll lock on if we unmount mid-drag
+  useEffect(() => () => unlockTouchScroll(), []);
 
   if (phase === 'loading') {
     return (
@@ -573,33 +715,39 @@ export function BlocksStudioPage() {
         <div className="flex-1" />
         <button
           type="button"
-          className="bsx-press grid h-11 w-11 place-items-center text-[18px]"
-          onClick={toggleTheme}
-          data-testid="theme-toggle"
-          title={theme === 'dark' ? 'Day mode' : 'Night mode'}
+          className={`bsx-press grid h-11 w-11 place-items-center${muted ? ' bsx-muted-on' : ''}`}
+          onClick={toggleMute}
+          data-testid="mute-toggle"
+          aria-pressed={muted}
+          title={muted ? 'Sounds are OFF — tap to turn on' : 'Sounds are ON — tap to mute'}
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        <button type="button" className="bsx-press grid h-11 place-items-center px-3 text-[13px]" onClick={reset} title="Everyone back to their start spots">
-          <span>⤺ <span className="bsx-tlabel">Reset</span></span>
-        </button>
+        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
         <button
+          ref={moreBtnRef}
           type="button"
-          className="bsx-press grid h-11 place-items-center px-3 text-[13px]"
-          onClick={() => setPresent((p) => !p)}
-          data-testid="present-toggle"
-          title="Big screen — just the stage"
+          className="bsx-press grid h-11 w-11 place-items-center"
+          data-testid="more-menu-btn"
+          aria-haspopup="menu"
+          aria-expanded={moreAnchor !== null}
+          title="More"
+          onClick={() => {
+            sfx.tap();
+            const r = moreBtnRef.current?.getBoundingClientRect();
+            setMoreAnchor((a) =>
+              a ? null : r ? { right: window.innerWidth - r.right, top: r.bottom + 6 } : null,
+            );
+          }}
         >
-          <span>
-            {present ? '✕' : '⛶'} <span className="bsx-tlabel">{present ? 'Exit' : 'Present'}</span>
-          </span>
+          <MoreHorizontal size={20} />
         </button>
         <button
           type="button"
           data-testid="go-button"
           onClick={go}
           disabled={running}
-          className="h-11 rounded-full bg-brand-mint px-6 text-[16px] font-extrabold text-white shadow-brand-mint transition hover:-translate-y-0.5 disabled:opacity-60"
+          className="inline-flex h-11 items-center whitespace-nowrap rounded-full bg-brand-mint px-6 text-[16px] font-extrabold text-white shadow-brand-mint transition hover:-translate-y-0.5 disabled:opacity-60"
           title="Run every 🚩 start"
         >
           ▶ Go!
@@ -665,13 +813,13 @@ export function BlocksStudioPage() {
               type="button"
               data-testid="scene-btn"
               className="bsx-scene-btn"
-              title="Change the scene"
+              title="Change the background"
               onClick={() => {
                 sfx.tap();
                 setScenePick((v) => !v);
               }}
             >
-              🏞
+              <ImageIcon size={20} />
             </button>
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
@@ -697,6 +845,7 @@ export function BlocksStudioPage() {
                     onPointerDown={(e) => onSpriteDown(e, c.id)}
                     onPointerMove={(e) => onSpriteMove(e, c.id)}
                     onPointerUp={() => onSpriteUp(c.id)}
+                    onContextMenu={(e) => e.preventDefault()}
                     style={{
                       left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
                       top: `${((st.gy + 0.5) / GRID_H) * 100}%`,
@@ -722,19 +871,14 @@ export function BlocksStudioPage() {
                 type="button"
                 data-testid={`page-thumb-${i}`}
                 onClick={() => { sfx.page(); useBlocksStore.getState().selectPage(p.id); }}
-                className="bsx-press relative grid w-full place-items-center rounded-xl text-[20px]"
-                style={{
-                  aspectRatio: '4/3',
-                  background:
-                    p.background === 'space'
-                      ? 'linear-gradient(180deg,#101B3C,#3A1D55)'
-                      : 'linear-gradient(180deg,#9CD7FF,#F1FAFF)',
-                  ...(p.id === page.id ? { boxShadow: '0 0 0 4px #FF7A66, 0 4px 0 var(--bsx-border)' } : {}),
-                }}
+                className={`bsx-press bsx-stage bsx-pagethumb${p.id === page.id ? ' sel' : ''}`}
+                data-scene={sceneId(p.background)}
+                style={{ aspectRatio: '4/3' }}
                 title={`Page ${i + 1}`}
               >
-                <span className="absolute left-1.5 top-0.5 text-[10px] font-extrabold text-white drop-shadow">{i + 1}</span>
-                {p.characters[0]?.emoji ?? '🧩'}
+                <span className="bsx-hill" />
+                <span className="bsx-pagethumb-n">{i + 1}</span>
+                <span className="bsx-pagethumb-emoji">{p.characters[0]?.emoji ?? '🧩'}</span>
               </button>
               {project.pages.length > 1 && (
                 <button
@@ -760,7 +904,7 @@ export function BlocksStudioPage() {
               onClick={() => { sfx.add(); useBlocksStore.getState().addPage(); }}
               className="grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral"
               style={{ aspectRatio: '4/3' }}
-              title="Add a page (up to 4)"
+              title="Add a page"
             >
               ＋
             </button>
@@ -800,7 +944,8 @@ export function BlocksStudioPage() {
                 onPointerDown={(e) => onPalDown(e, def.op)}
                 onPointerMove={onPalMove}
                 onPointerUp={() => onPalUp(def.op)}
-                title={`Tap to add "${def.label}" — or drag it into ${selectedChar?.name}'s program`}
+                onPointerCancel={() => onPalCancel(def.op)}
+                title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
               />
             ))}
           </div>
@@ -813,7 +958,11 @@ export function BlocksStudioPage() {
               </div>
             )}
             {selectedChar?.scripts.map((script) => {
-              const rowDrag = dragBlk && dragBlk.scriptId === script.id ? dragBlk : null;
+              const isDragSource = !!dragBlk && dragBlk.scriptId === script.id;
+              // the insertion bar shows in whichever track the block is heading
+              // for — which may be a DIFFERENT track (cross-track move).
+              const showReorderBar =
+                !!dragBlk && !dragBlk.onBin && dragBlk.targetScriptId === script.id && dragBlk.dropX !== null;
               return (
                 <div
                   key={script.id}
@@ -821,7 +970,7 @@ export function BlocksStudioPage() {
                   data-testid={`script-${script.id}`}
                 >
                   {script.blocks.map((b, i) => {
-                    const dr = rowDrag && rowDrag.index === i ? rowDrag : null;
+                    const isDragged = isDragSource && dragBlk!.index === i;
                     const def = blockDef(b.op);
                     return (
                       <BlockChip
@@ -829,30 +978,30 @@ export function BlocksStudioPage() {
                         block={b}
                         inChain
                         isLast={i === script.blocks.length - 1}
-                        dragging={!!dr}
+                        lit={activeKeys.has(`${script.id}:${i}`)}
+                        dragging={isDragged}
                         // the original stays put (dimmed) while a fixed clone
                         // follows the pointer — so it can't be clipped by the
                         // script-area's overflow or pushed behind the bin, and
                         // dragging never adds a horizontal scrollbar.
-                        style={dr ? { opacity: 0.28 } : undefined}
+                        style={isDragged ? { opacity: 0.28 } : undefined}
                         onPointerDown={(e) => onBlockDown(e, script.id, i)}
                         onPointerMove={onBlockMove}
                         onPointerUp={onBlockUp}
+                        onPointerCancel={onBlockCancel}
                         onTap={(e) => onBlockTap(e, script.id, i, b.op)}
                         title={
                           def.hasN
-                            ? 'Tap to change the number · drag to reorder · drag to the bin to remove'
+                            ? 'Tap to change the number · hold to drag · drag to the bin to remove'
                             : b.op === 'say'
-                              ? 'Tap to change the words · drag to reorder · drag to the bin to remove'
-                              : 'Drag to reorder · drag to the bin to remove'
+                              ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                              : 'Hold to drag · drag to another track or the bin'
                         }
                       />
                     );
                   })}
-                  {/* reorder insertion bar */}
-                  {rowDrag && !rowDrag.onBin && rowDrag.dropX !== null && (
-                    <span className="bsx-dropbar" style={{ left: rowDrag.dropX }} />
-                  )}
+                  {/* reorder / cross-track insertion bar */}
+                  {showReorderBar && <span className="bsx-dropbar" style={{ left: dragBlk!.dropX! }} />}
                   {/* palette-drop insertion bar */}
                   {palBlk && palBlk.scriptId === script.id && palBlk.dropX !== null && (
                     <span className="bsx-dropbar" style={{ left: palBlk.dropX }} />
@@ -906,8 +1055,8 @@ export function BlocksStudioPage() {
                       setCharTab(i);
                     }}
                   >
-                    <span className="text-[20px]">{g.emoji}</span>
-                    <span className="text-[11px] font-bold">{g.label}</span>
+                    <span>{g.emoji}</span>
+                    <span>{g.label}</span>
                   </button>
                 ))}
               </div>
@@ -1001,11 +1150,13 @@ export function BlocksStudioPage() {
                   type="button"
                   data-testid="num-minus"
                   className="bsx-step"
-                  onClick={() =>
+                  disabled={(editing.block.n ?? 1) <= 1}
+                  onClick={() => {
+                    sfx.numDown();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1)
-                  }
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1);
+                  }}
                 >
                   −
                 </button>
@@ -1016,17 +1167,94 @@ export function BlocksStudioPage() {
                   type="button"
                   data-testid="num-plus"
                   className="bsx-step"
-                  onClick={() =>
+                  onClick={() => {
+                    sfx.numUp();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1)
-                  }
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1);
+                  }}
                   disabled={(editing.block.n ?? 1) >= MAX_PARAM}
                 >
                   +
                 </button>
               </div>
             )}
+          </div>,
+          document.body,
+        )}
+
+      {/* ── "⋯ More" menu — secondary actions (keeps the bar uncluttered) ── */}
+      {moreAnchor &&
+        createPortal(
+          <div
+            className="bsx"
+            data-theme={theme}
+            data-testid="more-menu"
+            style={{ position: 'fixed', right: moreAnchor.right, top: moreAnchor.top, zIndex: 80 }}
+          >
+            <div className="bsx-menu" role="menu">
+              <button
+                type="button"
+                className="bsx-menu-row"
+                data-testid="theme-toggle"
+                onClick={() => { toggleTheme(); setMoreAnchor(null); }}
+              >
+                {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                <span>{theme === 'dark' ? 'Day mode' : 'Night mode'}</span>
+              </button>
+              <button
+                type="button"
+                className="bsx-menu-row"
+                data-testid="reset-button"
+                onClick={() => { sfx.tap(); setMoreAnchor(null); setConfirmReset(true); }}
+              >
+                <RotateCcw size={18} />
+                <span>Reset</span>
+              </button>
+              <button
+                type="button"
+                className="bsx-menu-row"
+                data-testid="present-toggle"
+                onClick={() => { setMoreAnchor(null); setPresent((p) => !p); }}
+              >
+                <Expand size={18} />
+                <span>{present ? 'Exit big screen' : 'Big screen'}</span>
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* ── reset confirmation — friendly, reversible-sounding, kid-readable ── */}
+      {confirmReset &&
+        createPortal(
+          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setConfirmReset(false)}>
+            <div className="bsx-confirm" data-testid="reset-confirm" onPointerDown={(e) => e.stopPropagation()}>
+              <div className="bsx-confirm-icon">
+                <RotateCcw size={34} />
+              </div>
+              <div className="bsx-confirm-title">Start over?</div>
+              <div className="bsx-confirm-text">
+                Everyone hops back to their start spots. Your blocks stay just the way you made them. ✨
+              </div>
+              <div className="bsx-confirm-btns">
+                <button
+                  type="button"
+                  className="bsx-confirm-cancel"
+                  onClick={() => { sfx.tap(); setConfirmReset(false); }}
+                >
+                  Keep playing
+                </button>
+                <button
+                  type="button"
+                  className="bsx-confirm-ok"
+                  data-testid="reset-confirm-ok"
+                  onClick={() => { sfx.page(); reset(); setConfirmReset(false); }}
+                >
+                  ↺ Reset
+                </button>
+              </div>
+            </div>
           </div>,
           document.body,
         )}

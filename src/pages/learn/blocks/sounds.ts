@@ -6,8 +6,16 @@
 
 type Win = Window & { webkitAudioContext?: typeof AudioContext };
 
+const MUTE_KEY = 'bsx-muted';
+
 let ctx: AudioContext | null = null;
-let muted = false;
+let muted = (() => {
+  try {
+    return localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+})();
 
 function ac(): AudioContext | null {
   if (muted) return null;
@@ -26,6 +34,15 @@ function ac(): AudioContext | null {
 
 export function setMuted(v: boolean): void {
   muted = v;
+  try {
+    localStorage.setItem(MUTE_KEY, v ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
+
+export function isMuted(): boolean {
+  return muted;
 }
 
 interface ToneOpts {
@@ -104,4 +121,8 @@ export const sfx = {
     tone(659, 0.1, { type: 'sine', gain: 0.07 });
     tone(988, 0.14, { type: 'sine', gain: 0.07, delay: 0.055 });
   },
+  /** bumping a block's number UP — a quick rising blip */
+  numUp: () => tone(880, 0.07, { type: 'triangle', gain: 0.07, slideTo: 1180 }),
+  /** bumping a block's number DOWN — a quick falling blip */
+  numDown: () => tone(660, 0.07, { type: 'triangle', gain: 0.07, slideTo: 440 }),
 };

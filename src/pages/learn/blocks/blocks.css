@@ -145,6 +145,44 @@
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--bsx-border), inset 0 1px 0 var(--bsx-top-edge);
 }
+/* muted state reads at a glance — a coral wash + coral icon */
+.bsx-press.bsx-muted-on {
+  background: color-mix(in srgb, var(--bsx-cat-end) 20%, var(--bsx-surface-2));
+  color: var(--bsx-cat-end);
+  border-color: color-mix(in srgb, var(--bsx-cat-end) 50%, var(--bsx-border));
+}
+.bsx-press.bsx-muted-on:hover {
+  background: color-mix(in srgb, var(--bsx-cat-end) 28%, var(--bsx-surface-2));
+}
+
+/* ── "⋯ More" dropdown menu ──────────────────────────────────────────────── */
+.bsx-menu {
+  min-width: 184px;
+  background: var(--bsx-surface);
+  border: 1px solid var(--bsx-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px -18px var(--bsx-shadow);
+  padding: 6px;
+  color: var(--bsx-text);
+}
+.bsx-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 13px;
+  border: 0;
+  background: transparent;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--bsx-text);
+  cursor: pointer;
+  text-align: left;
+}
+.bsx-menu-row:hover {
+  background: var(--bsx-surface-2);
+}
 
 /* ── the puzzle block ─────────────────────────────────────────────────────── */
 .bsx-block {
@@ -277,9 +315,10 @@
   filter: drop-shadow(0 6px 0 color-mix(in srgb, var(--c) 55%, #241030))
     drop-shadow(0 0 16px var(--c)) brightness(1.16) saturate(1.2);
 }
-/* chained blocks are drag-to-remove (ScratchJr-style); never tap-to-delete */
-.bsx-chainwrap .bsx-block {
-  touch-action: none;
+/* blocks let a finger PAN the list (so a swipe scrolls the palette / program);
+   a deliberate hold lifts the block to drag, and JS then locks scrolling. */
+.bsx-block {
+  touch-action: pan-x pan-y;
 }
 .bsx-block.dragging {
   transition: none;
@@ -578,6 +617,38 @@
 .bsx-stage[data-scene='city'] .bsx-hill { background: linear-gradient(180deg, #5b6b8c, #3a4663); }
 .bsx-stage[data-scene='candy'] .bsx-hill { background: linear-gradient(180deg, #ff9ed3, #ff6fb0); }
 
+/* ── page thumbnails — a real mini-scene (reuses .bsx-stage[data-scene]) so the
+   page list mirrors each page's chosen background ─────────────────────────── */
+.bsx-pagethumb {
+  width: 100%;
+  max-width: 96px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  box-shadow: 0 3px 0 var(--bsx-border); /* override .bsx-stage's heavy inset */
+}
+.bsx-pagethumb.sel {
+  outline: 4px solid #ff7a66;
+  outline-offset: -1px;
+}
+.bsx-pagethumb-n {
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  z-index: 2;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.bsx-pagethumb-emoji {
+  position: relative;
+  z-index: 2;
+  line-height: 1;
+  filter: drop-shadow(0 2px 2px rgba(20, 10, 40, 0.3));
+}
+
 /* sun / moon (deco-a) */
 .bsx-stage[data-scene='meadow'] .bsx-deco-a,
 .bsx-stage[data-scene='beach'] .bsx-deco-a,
@@ -673,7 +744,8 @@
   .bsx-deco { animation: none !important; }
 }
 
-/* the 🏞 "change scene" button on the stage */
+/* the "change background" button on the stage — a themed glass chip that flips
+   with light/dark (it sits over a colourful scene, so it must stay legible) */
 .bsx-scene-btn {
   position: absolute;
   left: 8px;
@@ -681,11 +753,13 @@
   z-index: 6;
   width: 40px;
   height: 40px;
-  border: 0;
+  border: 1px solid var(--bsx-border);
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.4);
-  font-size: 20px;
+  background: color-mix(in srgb, var(--bsx-surface) 84%, transparent);
+  color: var(--bsx-text);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -734,29 +808,116 @@
   place-items: center;
   font-size: 16px;
 }
-.bsx-sheet-tabs {
+
+/* ── friendly confirmation card (Reset, etc.) ─────────────────────────────── */
+.bsx-confirm {
+  width: min(92vw, 360px);
+  background: var(--bsx-surface);
+  border: 1px solid var(--bsx-border);
+  border-radius: 26px;
+  box-shadow: 0 40px 80px -30px rgba(40, 20, 90, 0.6);
+  color: var(--bsx-text);
+  padding: 26px 24px 22px;
+  text-align: center;
+}
+.bsx-confirm-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(150deg, var(--bsx-cat-motion), var(--bsx-cat-looks));
+  box-shadow: 0 10px 22px -10px var(--bsx-cat-motion);
+}
+.bsx-confirm-title {
+  font-family: var(--fun, inherit);
+  font-weight: 800;
+  font-size: 22px;
+}
+.bsx-confirm-text {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bsx-text-muted);
+  line-height: 1.45;
+}
+.bsx-confirm-btns {
+  margin-top: 20px;
   display: flex;
+  gap: 10px;
+}
+.bsx-confirm-cancel,
+.bsx-confirm-ok {
+  flex: 1;
+  height: 48px;
+  border-radius: 16px;
+  border: 0;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.bsx-confirm-cancel {
+  background: var(--bsx-surface-2);
+  border: 1px solid var(--bsx-border);
+  color: var(--bsx-text);
+}
+.bsx-confirm-ok {
+  color: #fff;
+  background: linear-gradient(150deg, var(--bsx-cat-motion), var(--bsx-cat-looks));
+  box-shadow: 0 8px 18px -8px var(--bsx-cat-motion);
+}
+.bsx-confirm-cancel:active,
+.bsx-confirm-ok:active {
+  transform: translateY(1px);
+}
+/* all categories fit at once — a 4-column grid that wraps to as many rows as
+   needed (no horizontal scroll), every tab the SAME size. */
+.bsx-sheet-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  padding: 10px 14px;
-  overflow-x: auto;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--bsx-border);
 }
 .bsx-tab {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  gap: 1px;
-  padding: 6px 14px;
-  border: 1px solid var(--bsx-border);
-  border-radius: 14px;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 6px;
+  border: 2px solid var(--bsx-border);
+  border-radius: 16px;
   background: var(--bsx-surface-2);
   color: var(--bsx-text-dim);
   cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.bsx-tab > span:first-child {
+  font-size: 26px;
+  line-height: 1;
+}
+.bsx-tab > span:last-child {
+  font-size: 11px;
+  font-weight: 800;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.bsx-tab:active {
+  transform: translateY(1px);
 }
 .bsx-tab[aria-pressed='true'] {
   background: linear-gradient(135deg, var(--bsx-cat-motion), var(--bsx-cat-looks));
   color: #fff;
   border-color: transparent;
+  box-shadow: 0 6px 14px -6px var(--bsx-cat-motion);
+  transform: translateY(-1px);
 }
 .bsx-sheet-grid {
   display: grid;
@@ -815,6 +976,8 @@
   position: absolute;
   cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* no iOS/Android "Look Up / Search" on the emoji */
   touch-action: none;
   filter: drop-shadow(0 8px 8px rgba(30, 10, 60, 0.35));
 }
@@ -859,6 +1022,18 @@
   background: var(--bsx-bg);
   overflow: hidden; /* the studio never scrolls as a page */
   overscroll-behavior: none;
+  /* a tappable canvas, not a document: no text selection / "Search" callout and
+     no double-tap-to-zoom anywhere in the studio (inputs re-enable text below) */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.bsx-app input,
+.bsx-app textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 .bsx-middle {
   display: grid;
@@ -969,6 +1144,26 @@
   }
 }
 
+/* ── LANDSCAPE tablet: give the coding band real room ────────────────────────
+   The old single-column category rail needed scrolling to reach all six, and the
+   short coder showed barely one track. Now the categories sit in a compact 2×3
+   grid (all six visible, touch-sized, never scrolled) and the band is taller so
+   several tracks show at once. */
+@media (orientation: landscape) and (min-width: 881px) {
+  .bsx-coder {
+    height: clamp(240px, 40vh, 460px);
+  }
+  .bsx-catbar {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-auto-rows: min-content;
+    align-content: center;
+    justify-items: center;
+    gap: 8px;
+    overflow: visible;
+  }
+}
+
 /* present mode hides all editing chrome — the stage IS the screen */
 .bsx-app.present {
   grid-template-rows: auto minmax(0, 1fr);
@@ -981,4 +1176,72 @@
 .bsx-app.present .bsx-coder,
 .bsx-app.present .bsx-stagefoot {
   display: none;
+}
+
+/* ── read-only public player (/play/:shareId) ─────────────────────────────────
+   The shared, view/play-only surface: a big centred stage + a Play button, no
+   editing chrome. Reuses the .bsx-stage scene art and .bsx-sprite rendering. */
+.bsx-play {
+  height: 100%;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--bsx-bg);
+  padding: 16px;
+  box-sizing: border-box;
+}
+.bsx-play-stagewrap {
+  width: min(100%, 1000px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.bsx-play-stage {
+  width: 100%;
+  aspect-ratio: 20 / 15;
+  min-height: 0;
+}
+.bsx-play-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.bsx-play-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 30px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 19px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--bsx-cat-sound);
+  box-shadow: 0 10px 22px -10px var(--bsx-cat-sound);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.bsx-play-go:active {
+  transform: translateY(2px);
+}
+.bsx-play-go:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.bsx-play-dots {
+  display: flex;
+  gap: 8px;
+}
+.bsx-play-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bsx-text) 25%, transparent);
+}
+.bsx-play-dot.on {
+  background: var(--bsx-cat-motion);
 }

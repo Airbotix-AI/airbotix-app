@@ -33,6 +33,9 @@ export interface SpriteHost {
   onSay: (charId: string, text: string | null) => void;
   onPop: () => void;
   onGotoPage: (pageIndex: number) => void;
+  /** The block now executing for a character (for the live "lit" highlight).
+   *  `blockIndex` is the absolute index in the script; -1 means "none / done". */
+  onStep?: (charId: string, scriptId: string, blockIndex: number) => void;
 }
 
 const STEP_MS = 180; // per grid-square at normal speed
@@ -85,7 +88,7 @@ export class BlocksRunner {
     await Promise.all(
       char.scripts
         .filter((s) => s.blocks[0]?.op === 'when_tap')
-        .map((s) => this.runScript(char, s.blocks.slice(1))),
+        .map((s) => this.runScript(char, s.id, s.blocks.slice(1))),
     );
   }
 
@@ -96,22 +99,31 @@ export class BlocksRunner {
       this.page.characters.flatMap((char) =>
         char.scripts
           .filter((s) => s.blocks[0]?.op === op)
-          .map((s) => this.runScript(char, s.blocks.slice(1))),
+          .map((s) => this.runScript(char, s.id, s.blocks.slice(1))),
       ),
     );
   }
 
-  private async runScript(char: Character, body: Block[]): Promise<void> {
+  private async runScript(char: Character, scriptId: string, body: Block[]): Promise<void> {
     let runs = 0;
     do {
       runs += 1;
-      for (const block of body) {
-        if (this.stopped || this.stoppedChars.has(char.id)) return;
-        const again = await this.step(char, block);
-        if (again === 'goto') return; // page jump ends this run
+      for (let i = 0; i < body.length; i += 1) {
+        if (this.stopped || this.stoppedChars.has(char.id)) {
+          this.host.onStep?.(char.id, scriptId, -1);
+          return;
+        }
+        // body[i] is blocks[i+1] (the trigger was sliced off) — report absolute idx
+        this.host.onStep?.(char.id, scriptId, i + 1);
+        const again = await this.step(char, body[i]);
+        if (again === 'goto') {
+          this.host.onStep?.(char.id, scriptId, -1);
+          return; // page jump ends this run
+        }
       }
       // ♾️ "Again" loops the WHOLE script (capped so preview can't hang)
     } while (body.some((b) => b.op === 'forever') && runs < FOREVER_CAP && !this.stopped);
+    this.host.onStep?.(char.id, scriptId, -1);
   }
 
   private async step(char: Character, block: Block): Promise<'ok' | 'goto'> {
@@ -200,7 +212,8 @@ export class BlocksRunner {
         this.stoppedChars.add(char.id);
         break;
       case 'goto_page': {
-        const idx = clamp(n - 1, 0, 3);
+        // pages are unbounded now; the host no-ops if the page doesn't exist
+        const idx = clamp(n - 1, 0, 98);
         this.host.onGotoPage(idx);
         return 'goto';
       }

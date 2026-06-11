@@ -75,6 +75,14 @@ interface BlocksStore {
   /** Reorder a block within its script — drag to change execution order. The
    *  trigger (index 0) stays first; body blocks reorder among 1..n. */
   moveBlock: (scriptId: string, from: number, to: number) => void;
+  /** Move a body block within OR across tracks (scripts) of the current
+   *  character. Triggers never move; the destination index clamps to ≥1. */
+  moveBlockAcross: (
+    fromScriptId: string,
+    fromIndex: number,
+    toScriptId: string,
+    toIndex: number,
+  ) => void;
   moveCharacter: (charId: string, gx: number, gy: number) => void;
 
   /** Internal: apply a mutation + record history. Producer returns the next
@@ -409,6 +417,47 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           return { ...sc, blocks: arr };
         }),
       })),
+    }));
+  },
+
+  moveBlockAcross(fromScriptId, fromIndex, toScriptId, toIndex) {
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => {
+        const from = c.scripts.find((sc) => sc.id === fromScriptId);
+        if (!from || fromIndex <= 0 || fromIndex >= from.blocks.length) return c;
+        const moved = from.blocks[fromIndex];
+        if (isTrigger(moved.op)) return c; // triggers anchor their own track
+        if (fromScriptId === toScriptId) {
+          return {
+            ...c,
+            scripts: c.scripts.map((sc) => {
+              if (sc.id !== fromScriptId) return sc;
+              const arr = [...sc.blocks];
+              arr.splice(fromIndex, 1);
+              const dest = Math.min(Math.max(1, toIndex), arr.length);
+              arr.splice(dest, 0, moved);
+              return { ...sc, blocks: arr };
+            }),
+          };
+        }
+        return {
+          ...c,
+          scripts: c.scripts.map((sc) => {
+            if (sc.id === fromScriptId) {
+              const arr = [...sc.blocks];
+              arr.splice(fromIndex, 1);
+              return { ...sc, blocks: arr };
+            }
+            if (sc.id === toScriptId) {
+              const arr = [...sc.blocks];
+              const dest = Math.min(Math.max(1, toIndex), arr.length);
+              arr.splice(dest, 0, moved);
+              return { ...sc, blocks: arr };
+            }
+            return sc;
+          }),
+        };
+      }),
     }));
   },
 
