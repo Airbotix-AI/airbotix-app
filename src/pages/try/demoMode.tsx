@@ -9,9 +9,12 @@ import { createContext, useContext, type ReactNode } from 'react';
 
 /**
  * Where leaving a demo lands: the marketing site's "Try it" page (the demo's
- * entry point). Env-overridable for local dev (marketing runs on its own port).
+ * entry point). Works out of the box in BOTH environments: production builds
+ * go to airbotix.ai; dev builds go to the marketing dev server (it pins port
+ * 3000 in its vite config). `VITE_MARKETING_URL` overrides either.
  */
-export const DEMO_EXIT_URL = `${import.meta.env.VITE_MARKETING_URL ?? 'https://airbotix.ai'}/try`;
+const MARKETING_DEFAULT = import.meta.env.PROD ? 'https://airbotix.ai' : 'http://localhost:3000';
+export const DEMO_EXIT_URL = `${import.meta.env.VITE_MARKETING_URL ?? MARKETING_DEFAULT}/try`;
 
 export interface DemoMode {
   /** Which demo experience this provider hosts. */

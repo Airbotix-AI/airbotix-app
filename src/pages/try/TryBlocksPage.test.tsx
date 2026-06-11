@@ -47,6 +47,12 @@ describe('TryBlocksPage', () => {
     expect(screen.queryByTestId('share-link-btn')).not.toBeInTheDocument();
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Demo mode');
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Contact us');
+    // Home exits to the marketing "Try it" page — a usable absolute URL in EVERY
+    // environment (dev default = the marketing dev server, prod = airbotix.ai).
+    expect(screen.getByTestId('demo-home')).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^https?:\/\/.+\/try$/),
+    );
     expect(screen.getByTestId('demo-tour')).toBeInTheDocument();
     expect(screen.getByTestId('tour-title')).toHaveTextContent("Cat's Day Out — a story told in blocks");
   });

@@ -23,7 +23,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ### Added
 - Demo Home exit (`/try/blocks`): the studio's 🏠 button leaves to the marketing "Try it"
-  page (`airbotix.ai/try`, env-overridable via `VITE_MARKETING_URL`) instead of the authed
+  page — mode-aware default: prod builds → `airbotix.ai/try`, dev builds → the local marketing dev server (`localhost:3000/try`); `VITE_MARKETING_URL` overrides — instead of the authed
   hub — one `demo?.exitHref` seam in the Blocks toolbar.
 
 ## 2026-06-11 (Try Demo Mode — public /try/* demos)
