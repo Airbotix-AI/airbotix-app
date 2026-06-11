@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
 import { DemoBanner } from './DemoBanner';
-import { DemoModeProvider, type DemoMode } from './demoMode';
+import { DEMO_EXIT_URL, DemoModeProvider, type DemoMode } from './demoMode';
 import { DemoTourOverlay, type DemoTourStep } from './DemoTourOverlay';
 import { TRY_BLOCKS_PROJECT_ID, installBlocksDemo, uninstallBlocksDemo } from './demoAdapters';
 
@@ -51,9 +51,9 @@ const TOUR: DemoTourStep[] = [
   {
     title: "Now it's all yours",
     body:
-      'Explore every block, character, scene and sound. Nothing is saved — reload to start ' +
-      'fresh. Questions? Contact us from the banner above.',
-    nextLabel: 'Finish & explore freely ✨',
+      'Explore every block, character, scene and sound — it shines on a tablet, built for ' +
+      'little fingers. Questions? Contact us from the banner above.',
+    nextLabel: 'Explore freely ✨',
   },
 ];
 
@@ -70,7 +70,7 @@ export function TryBlocksPage() {
     return uninstallBlocksDemo;
   }, []);
 
-  const demoValue = useMemo<DemoMode>(() => ({ surface: 'blocks' }), []);
+  const demoValue = useMemo<DemoMode>(() => ({ surface: 'blocks', exitHref: DEMO_EXIT_URL }), []);
 
   return (
     <DemoModeProvider value={demoValue}>

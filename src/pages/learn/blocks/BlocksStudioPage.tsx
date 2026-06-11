@@ -680,13 +680,25 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
     <div className={`bsx bsx-app${present ? ' present' : ''}`} data-theme={theme} data-testid="blocks-studio">
       {/* ── toolbar ── */}
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
-        <Link
-          to="/learn/create/blocks"
-          className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
-          title="Save & back"
-        >
-          🏠
-        </Link>
+        {/* Try-demo: Home exits to the marketing "Try it" page, not the authed hub. */}
+        {demo?.exitHref ? (
+          <a
+            href={demo.exitHref}
+            data-testid="demo-home"
+            className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
+            title="Back to Try it"
+          >
+            🏠
+          </a>
+        ) : (
+          <Link
+            to="/learn/create/blocks"
+            className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
+            title="Save & back"
+          >
+            🏠
+          </Link>
+        )}
         <button
           type="button"
           data-testid="undo"

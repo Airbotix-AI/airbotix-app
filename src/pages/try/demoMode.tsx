@@ -7,9 +7,20 @@
 
 import { createContext, useContext, type ReactNode } from 'react';
 
+/**
+ * Where leaving a demo lands: the marketing site's "Try it" page (the demo's
+ * entry point). Env-overridable for local dev (marketing runs on its own port).
+ */
+export const DEMO_EXIT_URL = `${import.meta.env.VITE_MARKETING_URL ?? 'https://airbotix.ai'}/try`;
+
 export interface DemoMode {
   /** Which demo experience this provider hosts. */
   surface: 'playground' | 'blocks';
+  /**
+   * Where the studio's Home/exit affordance points in demo mode: back to the
+   * marketing "Try it" page instead of the authed hub.
+   */
+  exitHref?: string;
   /**
    * T1 only (D-DEMO-04): the locked initial prompt. PlaygroundApp seeds its
    * prompt from this and opens straight into the build (no landing screen).
