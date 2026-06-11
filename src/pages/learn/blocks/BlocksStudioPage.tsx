@@ -286,6 +286,51 @@ export function BlocksStudioPage() {
     if (!wasDrag) tapSprite(id); // a clean tap runs the 👆 scripts
   };
 
+  // ── chained-block removal: ScratchJr-style "drag a block out to delete" (a
+  //    deliberate gesture). A plain tap never deletes — it only edits Say's
+  //    words / cycles a number tile. Removal arms once dragged past a threshold.
+  const REMOVE_DIST = 56;
+  const blockDrag = useRef<{ scriptId: string; index: number; x0: number; y0: number; pointerId: number } | null>(null);
+  const blockDidDrag = useRef(false);
+  const [dragBlk, setDragBlk] = useState<{ scriptId: string; index: number; dx: number; dy: number; armed: boolean } | null>(null);
+
+  const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
+    blockDrag.current = { scriptId, index, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
+    blockDidDrag.current = false;
+  };
+  const onBlockMove = (e: React.PointerEvent) => {
+    const d = blockDrag.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    const dist = Math.hypot(dx, dy);
+    if (!blockDidDrag.current && dist > 8) {
+      blockDidDrag.current = true;
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    }
+    if (blockDidDrag.current) setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, armed: dist > REMOVE_DIST });
+  };
+  const onBlockUp = () => {
+    const armed = dragBlk?.armed;
+    const d = blockDrag.current;
+    blockDrag.current = null;
+    setDragBlk(null);
+    if (blockDidDrag.current && armed && d) {
+      useBlocksStore.getState().removeBlock(d.scriptId, d.index);
+    }
+    // keep the flag through the synthetic click that follows pointerup, so a
+    // drag-release doesn't also fire the tap (Say edit); clear next tick.
+    setTimeout(() => (blockDidDrag.current = false), 0);
+  };
+  const onBlockTap = (b: { op: string; text?: string }, scriptId: string, index: number) => {
+    if (blockDidDrag.current) return; // it was a drag, not a tap
+    if (b.op === 'say') {
+      const text = window.prompt('What should they say?', b.text ?? 'Hi!');
+      if (text !== null) useBlocksStore.getState().setSayText(scriptId, index, text);
+    }
+    // any other block: a tap does nothing (no accidental delete)
+  };
+
   if (phase === 'loading') {
     return (
       <div className="bsx flex h-[60vh] items-center justify-center text-[18px] font-bold bsx-muted">
@@ -526,7 +571,7 @@ export function BlocksStudioPage() {
             ))}
           </div>
 
-          <div className="bsx-soft min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area">
+          <div className="bsx-soft relative min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area">
             {selectedChar?.scripts.length === 0 && (
               <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
                 Tap a 🚩 block to start {selectedChar.name}&apos;s program ✨
@@ -534,26 +579,45 @@ export function BlocksStudioPage() {
             )}
             {selectedChar?.scripts.map((script) => (
               <div key={script.id} className="bsx-chainwrap mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4" data-testid={`script-${script.id}`}>
-                {script.blocks.map((b, i) => (
-                  <BlockChip
-                    key={`${script.id}-${i}`}
-                    block={b}
-                    inChain
-                    isLast={i === script.blocks.length - 1}
-                    onTap={() => {
-                      if (b.op === 'say') {
-                        const text = window.prompt('What should they say?', b.text ?? 'Hi!');
-                        if (text !== null) useBlocksStore.getState().setSayText(script.id, i, text);
-                        return;
+                {script.blocks.map((b, i) => {
+                  const dr =
+                    dragBlk && dragBlk.scriptId === script.id && dragBlk.index === i ? dragBlk : null;
+                  return (
+                    <BlockChip
+                      key={`${script.id}-${i}`}
+                      block={b}
+                      inChain
+                      isLast={i === script.blocks.length - 1}
+                      dragging={!!dr}
+                      removing={!!dr?.armed}
+                      style={
+                        dr
+                          ? { transform: `translate(${dr.dx}px, ${dr.dy}px) scale(1.05)`, position: 'relative', zIndex: 30 }
+                          : undefined
                       }
-                      useBlocksStore.getState().removeBlock(script.id, i);
-                    }}
-                    onTapNum={() => useBlocksStore.getState().cycleParam(script.id, i)}
-                    title={b.op === 'say' ? 'Tap to change the words' : 'Tap to take this block off'}
-                  />
-                ))}
+                      onPointerDown={(e) => onBlockDown(e, script.id, i)}
+                      onPointerMove={onBlockMove}
+                      onPointerUp={onBlockUp}
+                      onTap={() => onBlockTap(b, script.id, i)}
+                      onTapNum={() => useBlocksStore.getState().cycleParam(script.id, i)}
+                      title={
+                        b.op === 'say'
+                          ? 'Tap to change the words · drag away to remove'
+                          : 'Drag away to remove'
+                      }
+                    />
+                  );
+                })}
               </div>
             ))}
+            {dragBlk && (
+              <div
+                className={`bsx-trash${dragBlk.armed ? ' armed' : ''}`}
+                data-testid="block-trash"
+              >
+                🗑 {dragBlk.armed ? 'Let go to remove' : 'Drag here to remove'}
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -37,6 +37,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   helpers). The six block-category colours and the meadow/space stage scenes stay constant
   (colour = meaning; the scene is page content, not chrome).
 
+### Fixed
+- **Blocks: tapping a chained block no longer deletes it.** A tap was removing the block instantly
+  with no confirmation or undo — a data-loss hazard for young kids, and unlike the model it follows
+  (where a tap *runs* and you *drag a block out* to delete). Now a plain tap only edits (Say words /
+  cycles a number tile); removal is the deliberate **drag-the-block-away** gesture, with a red
+  "🗑 Let go to remove" drop hint that arms past a threshold. Touch-safe (`touch-action: none` on
+  chained blocks). Tests: `BlockChip.test.tsx`.
+- **Blocks: themed scrollbars.** The studio's scroll areas (rails, category bar, palette, script
+  area) showed default browser scrollbars that clashed with the surface — most visibly in dark.
+  They now use token-driven thin scrollbars that flip with the theme.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

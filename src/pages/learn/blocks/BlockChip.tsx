@@ -2,6 +2,7 @@
 // construction (masked socket + glossy plug, validated in the PRD mockup)
 // lives in blocks.css; this maps a Block/BlockDef onto it.
 
+import type { CSSProperties, PointerEvent } from 'react';
 import clsx from 'clsx';
 
 import { type Block, blockDef, isTrigger } from './blocksModel';
@@ -11,8 +12,14 @@ export function BlockChip({
   inChain,
   isLast,
   lit,
+  dragging,
+  removing,
+  style,
   onTap,
   onTapNum,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
   title,
 }: {
   block: Block;
@@ -20,8 +27,16 @@ export function BlockChip({
   inChain?: boolean;
   isLast?: boolean;
   lit?: boolean;
+  /** This chained block is being dragged (follows the pointer). */
+  dragging?: boolean;
+  /** Dragged far enough that letting go removes it (red "will delete" cue). */
+  removing?: boolean;
+  style?: CSSProperties;
   onTap?: () => void;
   onTapNum?: () => void;
+  onPointerDown?: (e: PointerEvent) => void;
+  onPointerMove?: (e: PointerEvent) => void;
+  onPointerUp?: (e: PointerEvent) => void;
   title?: string;
 }) {
   const def = blockDef(block.op);
@@ -32,6 +47,10 @@ export function BlockChip({
       data-testid={`block-${block.op}`}
       title={title}
       onClick={onTap}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={style}
       className={clsx(
         'bsx-block',
         `cat-${def.category}`,
@@ -39,6 +58,9 @@ export function BlockChip({
         noPlug && 'no-plug',
         def.hasN && 'has-num',
         lit && 'lit',
+        inChain && 'in-chain',
+        dragging && 'dragging',
+        removing && 'removing',
       )}
     >
       <span className="bd" />
@@ -49,6 +71,7 @@ export function BlockChip({
         <span
           className="num"
           data-testid="block-num"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             if (!onTapNum) return;
             e.stopPropagation();
