@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { useDemoMode } from '@/pages/try/demoMode';
 
 import { getProject, type LearningContext } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
@@ -65,6 +66,11 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const me = useMe();
+  // Try-demo mode (try-demo-mode-prd §3): the public /try/playground page wraps
+  // this SAME component in a DemoModeProvider — the prompt is locked and the
+  // studio opens straight into the build (no landing). Null everywhere else, so
+  // the two initializers below behave exactly as before outside the demo.
+  const demo = useDemoMode();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
   // The hub starts a NEW game with the sentinel id `new`, so the studio opens
@@ -98,8 +104,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
   // NEW game (project-less session) starts on the landing prompt.
-  const [phase, setPhase] = useState<Phase>(projectIdProp && !isNew ? 'generating' : 'landing');
-  const [prompt, setPrompt] = useState('');
+  const [phase, setPhase] = useState<Phase>(
+    demo || (projectIdProp && !isNew) ? 'generating' : 'landing',
+  );
+  const [prompt, setPrompt] = useState(demo?.lockedPrompt ?? '');
   // The VFS lives in the project store (single funnel for editor saves, AI
   // turns, file CRUD, drag moves — and the seam for history + persistence).
   const files = useProjectStore((s) => s.files);

@@ -4,6 +4,40 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Try Demo Mode — public /try/* demos)
+
+### Added
+- **Try Demo Mode** (`try-demo-mode-prd.md`): public, no-auth demo routes that render the **real,
+  unmodified studios** — `/try/playground` (Game Playground) and `/try/blocks` (Blocks Studio) —
+  mounted top-level like `/play/:shareId`. New demo layer in `src/pages/try/`:
+  - `DemoModeProvider`/`useDemoMode` context (null = off everywhere outside `/try/*`);
+  - in-memory demo adapters (D-DEMO-02): bundled fruit-catcher starter VFS behind
+    `resolveProjectFiles`, an in-memory Map behind ALL `projectPersistence` reads/writes (no
+    IndexedDB), an in-memory blocks adapter behind `loadBlocksProject`/`saveBlocksProject` serving
+    the bundled 3-page **"Cat's Day Out"** `BlocksProject` (validated by the real parser, played by
+    the real interpreter) — zero `/projects*`/`/llm/*` calls, pristine reset on every entry/reload;
+  - **scripted demo agent** (D-DEMO-04) behind the existing `gameAgentStub` `RunTurn` seam: locked
+    initial prompt + 3 canned turns (fall speed → score ×10 → bigger basket + "You win!") whose
+    diffs flow through the real store funnel (undo/history identical to production); any other
+    prompt — and everything after the script — gets the **contact-us gate** reply (D-DEMO-06,
+    airbotix.ai/book + /contact);
+  - `DemoTourOverlay` (D-DEMO-05; modal intro + floating step cards, progress dots,
+    Next/Back/Skip) and the `DemoBanner` "nothing is saved · Book a chat" strip (D-DEMO-08; cloud
+    share is hidden in the blocks demo).
+  Tiny behaviour-neutral injection points only (all default "off"): demo seams in
+  `playgroundApi`/`projectPersistence`/`gameAgentStub`/`blocksApi`, optional demo context reads in
+  `PlaygroundApp` (locked prompt → straight to build) and `Workspace` (tour drives the real chat
+  `send`), an optional `projectId` prop + share gate in `BlocksStudioPage`, and one scoped
+  `.bsx-demo-host` height rule in `blocks.css`.
+- **`AGENTS.md` demo-parity mandate** (D-DEMO-07): new repo-root `AGENTS.md` + scoped
+  `src/pages/try/AGENTS.md` — any studio behaviour/route/selector change must update the demo
+  script/story/overlay and re-run the demo tests in the same task.
+- Tests: scripted-agent sequence + gate (drift alarms on the starter/script anchors), blocks story
+  round-trip through `parseProject` + real-interpreter playthrough, in-memory adapter semantics
+  (no fetch, reset-on-reinstall), tour overlay flow, public-route + no-network page tests for both
+  demos, and a no-mock e2e smoke (`e2e/try-demo-smoke.spec.ts`: full tour → 3 scripted turns →
+  AI gate; blocks Go/run + page navigation + share hidden; zero forbidden requests).
+
 ## 2026-06-11 (Blocks Studio — stable fullscreen)
 
 ### Fixed

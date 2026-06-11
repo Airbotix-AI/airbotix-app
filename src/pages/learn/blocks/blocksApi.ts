@@ -59,6 +59,18 @@ function serializeHistory(past: HistoryEntry[], future: HistoryEntry[]): string 
 
 export const BLOCKS_PROJECT_KIND = 'blocks' as const;
 
+// ── Try-demo seam (try-demo-mode-prd D-DEMO-02/03) ────────────────────────────
+// The public `/try/blocks` demo swaps load/save for an in-memory adapter that
+// serves the bundled story and no-ops saves — zero `/projects*` calls. Installed
+// /cleared by `src/pages/try/demoAdapters.ts`; null (off) everywhere else.
+let demoBlocksAdapter: {
+  load: typeof loadBlocksProject;
+  save: typeof saveBlocksProject;
+} | null = null;
+export function setDemoBlocksAdapter(adapter: typeof demoBlocksAdapter): void {
+  demoBlocksAdapter = adapter;
+}
+
 export type BlocksTemplateId = 'blocks_blank' | 'blocks_story';
 
 export interface BlocksProjectMeta {
@@ -103,6 +115,8 @@ export interface LoadedBlocksProject {
 }
 
 export async function loadBlocksProject(projectId: string): Promise<LoadedBlocksProject> {
+  // Demo mode: the bundled story, no network (try-demo-mode-prd D-DEMO-02).
+  if (demoBlocksAdapter) return demoBlocksAdapter.load(projectId);
   const snap = await readVfsSnapshot(projectId);
   const doc = snap.files.find((f) => f.path === BLOCKS_PROJECT_FILE);
   const hist = snap.files.find((f) => f.path === BLOCKS_HISTORY_FILE);
@@ -131,6 +145,8 @@ export async function saveBlocksProject(args: {
   otherFiles: VfsFile[];
   history?: { past: HistoryEntry[]; future: HistoryEntry[] };
 }): Promise<BlocksSaveResult> {
+  // Demo mode: in-memory no-op save, no network (try-demo-mode-prd D-DEMO-02).
+  if (demoBlocksAdapter) return demoBlocksAdapter.save(args);
   const files: VfsFile[] = [
     ...args.otherFiles,
     {

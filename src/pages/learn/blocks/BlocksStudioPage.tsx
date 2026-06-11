@@ -31,6 +31,7 @@ import {
   blockDef,
   isTrigger,
 } from './blocksModel';
+import { useDemoMode } from '@/pages/try/demoMode';
 import { useBlocksStore } from './blocksStore';
 import { useBlocksTheme } from './blocksTheme';
 import { captureBlocksThumbnail } from './thumbnail';
@@ -65,8 +66,14 @@ function unlockTouchScroll() {
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
-export function BlocksStudioPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: string } = {}) {
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  // The public /try/blocks demo mounts this page directly (no route param) with
+  // a fixed demo id; everywhere else the authed route param wins (unchanged).
+  const projectId = projectIdProp ?? routeProjectId;
+  // Try-demo (try-demo-mode-prd D-DEMO-08): cloud share is hidden in the demo —
+  // sharing needs a real account; the demo banner explains nothing is saved.
+  const demo = useDemoMode();
   const project = useBlocksStore((s) => s.project);
   const pageId = useBlocksStore((s) => s.pageId);
   const charId = useBlocksStore((s) => s.charId);
@@ -718,7 +725,7 @@ export function BlocksStudioPage() {
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
+        {projectId && !demo && <BlocksSharePanel projectId={projectId} theme={theme} />}
         <button
           ref={moreBtnRef}
           type="button"

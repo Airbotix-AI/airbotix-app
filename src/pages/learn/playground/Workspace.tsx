@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
+import { useDemoMode } from '@/pages/try/demoMode';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
 import type { LearningContext, VfsFile } from '../code/codeApi';
@@ -249,6 +250,14 @@ export function Workspace({
         setLayout: (m) => usePlaygroundStore.getState().setLayoutMode(m),
       },
     });
+
+  // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
+  // overlay drives the canned turns through this REAL `send`. No-op outside the
+  // demo provider (`useDemoMode()` is null everywhere else).
+  const demo = useDemoMode();
+  useEffect(() => {
+    demo?.bindChatSend?.(send);
+  }, [demo, send]);
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
   // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).

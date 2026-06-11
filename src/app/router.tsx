@@ -73,6 +73,12 @@ import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 // Game-Runner chrome), no auth token, no LLM — the opaque-origin sandbox only.
 import { PublicPlayPage } from '@/pages/play/PublicPlayPage';
 
+// PUBLIC, no-auth "Try it" demos (try-demo-mode-prd.md §2 D-DEMO-01). They render
+// the REAL studios wrapped in the demo provider (in-memory state, scripted AI,
+// tour overlay) — like /play/:shareId, deliberately NOT under <ProtectedRoute>.
+import { TryBlocksPage } from '@/pages/try/TryBlocksPage';
+import { TryPlaygroundPage } from '@/pages/try/TryPlaygroundPage';
+
 export const router = createBrowserRouter([
   // Root redirect based on principal kind
   { path: '/', element: <RootPage /> },
@@ -81,6 +87,11 @@ export const router = createBrowserRouter([
   // A logged-out visitor (e.g. grandma) opens /play/:shareId and plays the kid's
   // frozen, read-only game snapshot. Deliberately NOT under any <ProtectedRoute>.
   { path: '/play/:shareId', element: <PublicPlayPage /> },
+
+  // PUBLIC no-signup demo experiences (try-demo-mode-prd.md §1 T1/T2) — the
+  // marketing site's "Try it free" entry points. No token, no redirect.
+  { path: '/try/playground', element: <TryPlaygroundPage /> },
+  { path: '/try/blocks', element: <TryBlocksPage /> },
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },

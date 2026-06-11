@@ -1258,3 +1258,10 @@
 .bsx-play-dot.on {
   background: var(--bsx-cat-motion);
 }
+
+/* ── Try-demo host (try-demo-mode-prd §4): the public /try/blocks page mounts
+   the studio under a fixed demo banner, so the app fills its HOST instead of
+   the viewport. The real (routed) studio keeps the immersive 100dvh above. */
+.bsx-demo-host .bsx-app {
+  height: 100%;
+}
