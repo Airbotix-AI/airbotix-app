@@ -24,8 +24,10 @@ import {
   CATEGORIES,
   GRID_H,
   GRID_W,
+  MAX_COLOR,
   MAX_PAGES,
   MAX_PARAM,
+  MAX_SPEED,
   blockDef,
   isTrigger,
 } from './blocksModel';
@@ -615,6 +617,17 @@ export function BlocksStudioPage() {
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (blockDidDrag.current) return; // it was a drag, not a tap
     const def = blockDef(op as BlockOp);
+    // speed / message-colour blocks cycle their value on tap (no number editor)
+    if (def.param === 'speed') {
+      sfx.numUp();
+      useBlocksStore.getState().cycleParam(scriptId, index, MAX_SPEED);
+      return;
+    }
+    if (def.param === 'color') {
+      sfx.tap();
+      useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
+      return;
+    }
     if (!def.hasN && op !== 'say') return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();

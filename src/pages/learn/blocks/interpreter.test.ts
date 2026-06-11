@@ -123,6 +123,69 @@ describe('BlocksRunner', () => {
     expect(runner.state('cat')!.size).toBeCloseTo(1.4); // 1 + 0.1*4 — the grow survived
   });
 
+  it('Set Speed scales motion duration (slow 2×, normal 1×, fast 0.5×)', async () => {
+    const durs: number[] = [];
+    const sleep = (ms: number) => {
+      durs.push(ms);
+      return Promise.resolve();
+    };
+    const page = makePage({
+      cat: [
+        [
+          { op: 'when_flag' },
+          { op: 'move_right', n: 1 }, // normal → 180
+          { op: 'set_speed', n: 1 }, // slow
+          { op: 'move_right', n: 1 }, // 180 × 2 = 360
+          { op: 'set_speed', n: 3 }, // fast
+          { op: 'move_right', n: 1 }, // 180 × 0.5 = 90
+        ],
+      ],
+    });
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, sleep);
+    await runner.runFlag();
+    expect(durs).toEqual([180, 60, 360, 60, 90]);
+  });
+
+  it('Send Message triggers matching On Message scripts (by colour)', async () => {
+    const page = makePage({
+      sender: [[{ op: 'when_flag' }, { op: 'send_message', n: 2 }]],
+      blue: [[{ op: 'when_message', n: 2 }, { op: 'pop' }]], // matches → fires
+      red: [[{ op: 'when_message', n: 1 }, { op: 'pop' }]], // different colour → silent
+    });
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, instantSleep);
+    await runner.runFlag();
+    expect(r.pops()).toBe(1); // only the colour-2 listener popped
+  });
+
+  it('On Bump fires when one character moves onto another', async () => {
+    const page: Page = {
+      id: 'p',
+      background: 'meadow',
+      characters: [
+        {
+          id: 'cat',
+          name: 'cat',
+          emoji: '🐱',
+          start: { gx: 0, gy: 5, size: 1, rot: 0 },
+          scripts: [{ id: 'c1', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }] as Page['characters'][number]['scripts'][number]['blocks'] }],
+        },
+        {
+          id: 'ball',
+          name: 'ball',
+          emoji: '⚽',
+          start: { gx: 3, gy: 5, size: 1, rot: 0 },
+          scripts: [{ id: 'b1', blocks: [{ op: 'when_bump' }, { op: 'pop' }] as Page['characters'][number]['scripts'][number]['blocks'] }],
+        },
+      ],
+    };
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, instantSleep);
+    await runner.runFlag();
+    expect(r.pops()).toBeGreaterThanOrEqual(1); // cat lands on the ball → bump → pop
+  });
+
   it('hide/show + grow/shrink mutate state; go_home and resetAll restore the start pose', async () => {
     const page = makePage({
       cat: [[{ op: 'when_flag' }, { op: 'grow', n: 5 }, { op: 'hide' }, { op: 'move_right', n: 3 }, { op: 'go_home' }]],

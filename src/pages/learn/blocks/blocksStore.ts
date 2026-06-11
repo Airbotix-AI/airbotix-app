@@ -18,7 +18,7 @@ import {
   MAX_PAGES,
   MAX_PARAM,
   blankProject,
-  blockDef,
+  defaultParam,
   isTrigger,
   newId,
 } from './blocksModel';
@@ -68,7 +68,8 @@ interface BlocksStore {
   insertBlock: (op: BlockOp, scriptId: string, index: number) => void;
   /** Remove a block (the trigger removes its whole script). */
   removeBlock: (scriptId: string, index: number) => void;
-  cycleParam: (scriptId: string, index: number) => void;
+  /** Tap-to-cycle a block's value 1→max→1 (number tile, speed, or msg colour). */
+  cycleParam: (scriptId: string, index: number, max?: number) => void;
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
   setParam: (scriptId: string, index: number, n: number) => void;
   setSayText: (scriptId: string, index: number, text: string) => void;
@@ -289,9 +290,9 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
 
   addBlock(op) {
     get()._commit((s) => {
-      const def = blockDef(op);
       const block: Block = { op };
-      if (def.hasN) block.n = def.defaultN ?? 1;
+      const n = defaultParam(op);
+      if (n !== undefined) block.n = n;
       if (op === 'say') block.text = 'Hi!';
       const cid = currentChar(currentPage(s.project, s.pageId), s.charId).id;
       return {
@@ -320,9 +321,9 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
       return;
     }
     get()._commit((s) => {
-      const def = blockDef(op);
       const block: Block = { op };
-      if (def.hasN) block.n = def.defaultN ?? 1;
+      const n = defaultParam(op);
+      if (n !== undefined) block.n = n;
       if (op === 'say') block.text = 'Hi!';
       return {
         project: patchChar(s.project, s.pageId, s.charId, (c) => ({
@@ -352,7 +353,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     }));
   },
 
-  cycleParam(scriptId, index) {
+  cycleParam(scriptId, index, max = MAX_PARAM) {
     get()._commit((s) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => ({
         ...c,
@@ -362,7 +363,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             : {
                 ...sc,
                 blocks: sc.blocks.map((b, i) =>
-                  i !== index ? b : { ...b, n: ((b.n ?? 1) % MAX_PARAM) + 1 },
+                  i !== index ? b : { ...b, n: ((b.n ?? 1) % max) + 1 },
                 ),
               },
         ),

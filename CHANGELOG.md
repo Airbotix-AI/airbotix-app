@@ -4,6 +4,21 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — closer to ScratchJr)
+
+### Added
+- **Four ScratchJr blocks that were missing** (`blocksModel.ts`, `interpreter.ts`):
+  - **Set Speed** (🐢/🚶/🐇) — tap to cycle slow/normal/fast; scales that character's motion (slow 2×,
+    fast 0.5×).
+  - **On Bump** (💥) — a hat that fires when this character collides with another (grid-cell overlap,
+    once per contact).
+  - **Send Message** (📤) + **Get Message** (📥) — six colours; sending fires every Get-Message script
+    of the same colour across the page (ScratchJr-style broadcast). Tap to cycle the colour.
+  Message/bump-triggered scripts run concurrently and are awaited before the run ends (capped for
+  safety). Still missing vs ScratchJr (by request): Play Recorded Sound; and Repeat/Forever as true
+  nesting C-blocks (our ♾️ Again loops the whole track — the C-block needs the nestable-block model,
+  PRD M3).
+
 ## 2026-06-11 (Blocks Studio — parallel tracks fix)
 
 ### Fixed

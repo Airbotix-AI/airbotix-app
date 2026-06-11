@@ -272,6 +272,19 @@
 .bsx-block.has-num {
   padding-bottom: 12px;
 }
+/* message-colour tag (Send / Get message blocks) — a tappable colour swatch */
+.bsx-msgdot {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 18px;
+  border-radius: 7px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 2;
+}
 .bsx-block.cat-trigger {
   --c: var(--bsx-cat-trigger);
   color: #5d4300;
