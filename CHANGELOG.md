@@ -4,6 +4,19 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (explain-toolbar polish)
+
+### Changed
+- **The playground editor's "✨ Explain this" selection toolbar is now a rounded-rectangle
+  chip styled to match the AI chat** (`panes/MonacoEditor.tsx`). It was ballooning into a large
+  blue circle: the button lacked `whitespace-nowrap`, so Monaco's narrow content-widget box
+  wrapped the label across lines and `rounded-full` rendered the near-square block as a circle.
+  Rebuilt as a `rounded-xl` rectangle using the chat's AI-accent recipe — `bg-grad-sky` +
+  `text-white` + `shadow-brand-sky` + `font-extrabold`, same as the kid bubble / send button —
+  with `whitespace-nowrap` + `ring-1` for a crisp edge, a twinkling sparkle SVG (`pg-twinkle`,
+  the playground's "magical" motif) replacing the inconsistently-rendered emoji, and `my-1` so it
+  no longer kisses the selected line.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

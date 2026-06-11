@@ -104,10 +104,20 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     const btn = document.createElement('button')
     btn.type = 'button'
     btn.setAttribute('data-testid', 'explain-selection')
-    // Reuse the brand-sky pill styling (literal class string → Tailwind JIT picks it up).
+    // A rounded-rectangle chip that matches the AI chat: same sky gradient + white
+    // text + brand-sky glow + extrabold type as the kid bubble / send button, at the
+    // softer `rounded-xl` (a rectangle, not the old circle). `whitespace-nowrap` is
+    // load-bearing — without it Monaco's narrow content-widget box wraps the label
+    // and the chip balloons. `my-1` keeps a gap above/below the selection. Literal
+    // class string → Tailwind JIT picks the utilities up.
     btn.className =
-      'inline-flex items-center gap-1 rounded-full bg-grad-sky px-2.5 py-1 text-[11px] font-extrabold text-white shadow-brand-sky transition-transform hover:-translate-y-0.5'
-    btn.textContent = '✨ Explain this'
+      'my-1 inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-grad-sky px-3 py-1.5 text-[12px] font-extrabold leading-none text-white shadow-brand-sky ring-1 ring-white/25 transition-transform duration-150 hover:-translate-y-0.5'
+    // Twinkling sparkle = the playground's "magical" motif (the same `pg-twinkle`
+    // the Magic Generation card uses). Inline SVG, not the ✨ emoji (renders large/
+    // inconsistently across platforms).
+    btn.innerHTML =
+      '<svg class="pg-twinkle" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.65 5.35L19 9l-5.35 1.65L12 16l-1.65-5.35L5 9l5.35-1.65z"/></svg>' +
+      '<span>Explain this</span>'
     node.appendChild(btn)
 
     const widget: monaco.editor.IContentWidget = {
