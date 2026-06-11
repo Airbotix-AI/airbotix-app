@@ -12,10 +12,12 @@ import {
   type LoadedBlocksProject,
 } from '../learn/blocks/blocksApi';
 import { setDemoRunTurn, type RunTurn } from '../learn/playground/panes/gameAgentStub';
+import { setDemoHelpCorpus } from '../learn/playground/panes/help/helpApi';
 import { setDemoProjectFiles } from '../learn/playground/panes/playgroundApi';
 import { setDemoMemoryPersistence } from '../learn/playground/projectPersistence';
 import { useHistoryStore } from '../learn/playground/historyStore';
 import { useProjectStore } from '../learn/playground/projectStore';
+import { DEMO_HELP_CORPUS } from './demoHelp.playground';
 import { demoStarterFiles } from './demoStarter.playground';
 import { CATS_DAY_OUT } from './demoStory.blocks';
 
@@ -26,13 +28,15 @@ export const TRY_BLOCKS_PROJECT_ID = 'try-demo-blocks';
 
 /**
  * Arm the playground demo: bundled starter VFS, in-memory persistence (no
- * IndexedDB), the scripted agent behind the stub seam, and a clean store slate
- * (D-DEMO-02 reset-on-entry, including SPA re-entry without a reload).
+ * IndexedDB), the scripted agent behind the stub seam, the bundled Game Guide
+ * corpus behind the help seam, and a clean store slate (D-DEMO-02
+ * reset-on-entry, including SPA re-entry without a reload).
  */
 export function installPlaygroundDemo(agent: RunTurn): void {
   setDemoProjectFiles(demoStarterFiles);
   setDemoMemoryPersistence(true); // also covers thumbnails/UI/chat caches
   setDemoRunTurn(agent);
+  setDemoHelpCorpus(DEMO_HELP_CORPUS);
   useProjectStore.getState().setFiles([]);
   useHistoryStore.getState().reset();
 }
@@ -41,6 +45,7 @@ export function uninstallPlaygroundDemo(): void {
   setDemoProjectFiles(null);
   setDemoMemoryPersistence(false);
   setDemoRunTurn(null);
+  setDemoHelpCorpus(null);
 }
 
 // ── T2: Blocks Studio demo ────────────────────────────────────────────────────

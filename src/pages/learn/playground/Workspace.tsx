@@ -31,6 +31,7 @@ import { WINDOW_META } from './desktop/windowMeta';
 import { AssetViewerPane } from './panes/AssetViewerPane';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
+import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
@@ -74,20 +75,6 @@ interface Wallet {
 }
 
 type SplitTab = 'chat' | 'code' | 'assets' | 'help';
-
-/** Cap a selected snippet so the chat bubble + prompt stay reasonable — the
- *  backend already has the whole file as context, so the snippet only points the
- *  agent at WHICH code to explain. */
-const MAX_EXPLAIN_CHARS = 1200;
-
-/** Build the kid-friendly "explain this selection" prompt. Asks for a plain answer
- *  and tells the agent NOT to edit — an explain must never change the game. */
-function buildExplainPrompt(code: string): string {
-  const trimmed = code.trim();
-  const snippet =
-    trimmed.length > MAX_EXPLAIN_CHARS ? `${trimmed.slice(0, MAX_EXPLAIN_CHARS)}\n…` : trimmed;
-  return `Explain what this code does in simple words — don't change my game:\n\n${snippet}`;
-}
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
 // of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
@@ -328,6 +315,20 @@ export function Workspace({
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
     else setSplitTab('chat');
   };
+
+  // Try-demo seam (try-demo-mode-prd §3 v2): register the studio's REAL
+  // affordances so the tour can sequence them (auto-run, restart-after-change,
+  // diff jump, explain-this, asset generate, guide). Every handler is the same
+  // production one the studio's own UI calls. No-op outside the demo provider.
+  useEffect(() => {
+    demo?.bindStudioControls?.({
+      runGame: runFromEditor,
+      focusPanel,
+      openFileAt: handleOpenLocation,
+      explainSelection: handleExplainCode,
+      requestAssetGen: requestAssetGenFromViewer,
+    });
+  });
 
   // Keep window rects inside the actual desktop surface (default rects are seeded
   // from window.innerHeight and over-shoot under the Learn nav). Clamping BEFORE a

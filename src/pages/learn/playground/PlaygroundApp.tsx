@@ -67,9 +67,10 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const navigate = useNavigate();
   const me = useMe();
   // Try-demo mode (try-demo-mode-prd §3): the public /try/playground page wraps
-  // this SAME component in a DemoModeProvider — the prompt is locked and the
-  // studio opens straight into the build (no landing). Null everywhere else, so
-  // the two initializers below behave exactly as before outside the demo.
+  // this SAME component in a DemoModeProvider — the demo starts on the REAL
+  // landing phase with the prompt pre-filled + locked (LandingScreen reads the
+  // context). Null everywhere else, so the initializers below behave exactly as
+  // before outside the demo.
   const demo = useDemoMode();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
@@ -103,10 +104,8 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // Persistence key: the real project, or a fixed key for a project-less session.
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
-  // NEW game (project-less session) starts on the landing prompt.
-  const [phase, setPhase] = useState<Phase>(
-    demo || (projectIdProp && !isNew) ? 'generating' : 'landing',
-  );
+  // NEW game (project-less session — including the demo) starts on the landing prompt.
+  const [phase, setPhase] = useState<Phase>(projectIdProp && !isNew ? 'generating' : 'landing');
   const [prompt, setPrompt] = useState(demo?.lockedPrompt ?? '');
   // The VFS lives in the project store (single funnel for editor saves, AI
   // turns, file CRUD, drag moves — and the seam for history + persistence).

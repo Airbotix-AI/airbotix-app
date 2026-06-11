@@ -16,6 +16,26 @@ import { createContext, useContext, type ReactNode } from 'react';
 const MARKETING_DEFAULT = import.meta.env.PROD ? 'https://airbotix.ai' : 'http://localhost:3000';
 export const DEMO_EXIT_URL = `${import.meta.env.VITE_MARKETING_URL ?? MARKETING_DEFAULT}/try`;
 
+/**
+ * The studio's REAL affordances the Workspace registers for the tour (T1 v2,
+ * try-demo-mode-prd §3). Every handler here IS the production one — the same
+ * functions the editor's ▶ Play, the chat's changed-file rows, the selection
+ * toolbar's "✨ Explain this" and the Asset Viewer's Generate/Remix call — so
+ * the tour only sequences real behaviour, never re-implements it.
+ */
+export interface DemoStudioControls {
+  /** The editor's ▶ Play path: run/restart the game + focus the Game Runner. */
+  runGame: () => void;
+  /** Open/focus a studio panel (window mode) or its split tab. */
+  focusPanel: (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => void;
+  /** The changed-file-row jump: open the editor at a file + highlight lines. */
+  openFileAt: (path: string, line: number, toLine?: number) => void;
+  /** The "✨ Explain this" toolbar path: send a snippet to chat for explaining. */
+  explainSelection: (code: string) => void;
+  /** The Asset Viewer's Generate/Remix entry (offline stub in a demo session). */
+  requestAssetGen: (prompt: string, ref?: { refAssetPath?: string }) => void;
+}
+
 export interface DemoMode {
   /** Which demo experience this provider hosts. */
   surface: 'playground' | 'blocks';
@@ -25,16 +45,28 @@ export interface DemoMode {
    */
   exitHref?: string;
   /**
-   * T1 only (D-DEMO-04): the locked initial prompt. PlaygroundApp seeds its
-   * prompt from this and opens straight into the build (no landing screen).
+   * T1 only (D-DEMO-04): the locked initial prompt. The REAL landing screen
+   * pre-fills it, renders it read-only, and hides the inputs that could change
+   * it (chips / mic) — the demo starts on the real landing phase.
    */
   lockedPrompt?: string;
+  /**
+   * T1 only (§3 step 1): the landing screen registers its real `submit` here so
+   * the tour card's "Create the game" drives the REAL create flow.
+   */
+  bindLandingSubmit?: (submit: () => void) => void;
   /**
    * T1 only (D-DEMO-05): the Workspace registers its real chat `send` here so
    * the tour overlay's "Next" can drive the canned scripted turns through the
    * REAL chat pipeline (store funnel, undo, history — identical to a typed ask).
    */
   bindChatSend?: (send: (text: string) => void) => void;
+  /**
+   * T1 only (§3 v2): the Workspace registers its real studio affordances here
+   * (run/restart, panel focus, editor jump, explain-this, asset generate) so the
+   * tour can sequence them. First bind = the workspace has mounted.
+   */
+  bindStudioControls?: (controls: DemoStudioControls) => void;
 }
 
 const DemoModeContext = createContext<DemoMode | null>(null);

@@ -76,4 +76,44 @@ describe('DemoTourOverlay', () => {
     );
     expect(screen.queryByTestId('demo-tour')).not.toBeInTheDocument();
   });
+
+  it('places the card per the step placement hint (default: center modal / bottom-right floating)', () => {
+    const steps: DemoTourStep[] = [
+      { title: 'A', body: 'a', modal: true },
+      { title: 'B', body: 'b' },
+      { title: 'C', body: 'c', placement: 'beside-input' },
+    ];
+    const { rerender } = render(
+      <DemoTourOverlay steps={steps} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'center');
+    rerender(
+      <DemoTourOverlay steps={steps} step={1} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'bottom-right');
+    rerender(
+      <DemoTourOverlay steps={steps} step={2} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'beside-input');
+  });
+
+  it('hides "Skip tour" on a hideSkip step (the mandatory landing step)', () => {
+    const steps: DemoTourStep[] = [{ title: 'A', body: 'a', hideSkip: true }, { title: 'B', body: 'b' }];
+    const { rerender } = render(
+      <DemoTourOverlay steps={steps} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.queryByTestId('tour-skip')).not.toBeInTheDocument();
+    rerender(
+      <DemoTourOverlay steps={steps} step={1} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-skip')).toBeInTheDocument();
+  });
+
+  it('keeps the Next pill inside the card (truncates instead of overflowing)', () => {
+    setup(1);
+    const next = screen.getByTestId('tour-next');
+    expect(next.className).toContain('max-w-full');
+    expect(next.className).toContain('truncate');
+    expect(next.className).not.toContain('whitespace-nowrap'); // truncate covers it
+  });
 });

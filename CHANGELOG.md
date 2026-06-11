@@ -6,7 +6,37 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Added
+- **`/try/playground` T1 v2 full product tour** (try-demo-mode-prd §3 v0.5, 11 steps): the demo
+  now starts on the REAL landing phase (prompt pre-filled + locked, chips/mic hidden; the step-1
+  card sits beside the input and is not skippable; "Create the game" drives the real create flow
+  via a `bindLandingSubmit` seam); workspace entry auto-opens the Game Runner and starts the game;
+  every scripted change auto-restarts it through the real run path. New tour beats: code-editor
+  diff jump+highlight (the real changed-file-row path), select-code → "✨ Explain this" (scripted
+  plain-words answer matching the real `buildExplainPrompt`), Asset Viewer generate + remix via the
+  existing offline stubs, a deliberate bug turn (undefined method → real console error) followed by
+  a scripted fix turn, and an in-studio Game Guide step served by a bundled offline corpus (new
+  `setDemoHelpCorpus` seam in `helpApi.ts` — zero `GET /help/docs`). Tour data lives in
+  `demoTour.playground.ts` (copy/placement/action per card); the script is versioned v2 with
+  `edit` + `explain` step kinds (`demoScript.playground.ts`).
+- Emoji-art demo starter: the catcher's sprites are now real VFS assets (`assets/apple.svg` 🍎,
+  `assets/basket.svg` 🧺) loaded by the game AND listed in the Asset Viewer, so the art on screen
+  is the art in the viewer.
+- New studio injection points (all optional-context reads, default off): `LandingScreen` locked
+  prompt + submit bind; `Workspace` `bindStudioControls` (run/restart, panel focus, editor jump,
+  explain-this, asset generate); `helpApi` demo-corpus seam. `buildExplainPrompt` moved verbatim
+  from `Workspace.tsx` to `panes/explainPrompt.ts` so the demo can match the real prompt.
+
 ### Changed
+- Tour overlay (`DemoTourOverlay`): step-aware card placements (`beside-input` / `bottom-left` /
+  `bottom-right` / `top-right` / `center`) so a card never covers the surface its step points at;
+  the Next pill truncates inside the card instead of overflowing on long labels; per-step
+  `hideSkip` (used by the mandatory landing step).
+- `playwright.config.ts`: `PW_PORT` env override so ad-hoc e2e runs never reuse a developer's
+  running dev server on the default port 4321.
+- `e2e/try-demo-smoke.spec.ts` walks the full v2 tour end-to-end (locked landing → auto-run →
+  scripted asks with restarts → diff → explain → asset magic → error→fix → guide → free explore →
+  AI gate) and now also forbids `/help/*` requests.
 - Demo banner (`/try/*`) copy made concise: "🎈 Demo mode · Questions? Contact us →", now
   linking to the marketing site's contact page (`airbotix.ai/contact`) instead of `/book`;
   blocks tour final step aligned ("Contact us from the banner above"). The nothing-is-saved

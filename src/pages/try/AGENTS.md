@@ -9,16 +9,44 @@
 The **demo layer only**. The demos render the REAL `PlaygroundApp` and
 `BlocksStudioPage` unchanged; this folder adds:
 
-- `demoMode.tsx` — the context the studios read (`useDemoMode()`, null = off);
+- `demoMode.tsx` — the context the studios read (`useDemoMode()`, null = off),
+  incl. the bind seams (`bindLandingSubmit`, `bindChatSend`,
+  `bindStudioControls`) through which the studios hand the tour their REAL
+  affordances;
 - `demoAdapters.ts` — installs/uninstalls the in-memory overrides behind the
   studios' EXISTING boundary seams (`setDemoProjectFiles`,
-  `setDemoMemoryPersistence`, `setDemoRunTurn`, `setDemoBlocksAdapter`);
-- `demoStarter.playground.ts` + `demoScript.playground.ts` + `scriptedAgent.ts`
-  — the bundled catcher starter and the versioned 3-step scripted AI
-  (D-DEMO-04), replayed through the real `RunTurn` seam and store funnel;
+  `setDemoMemoryPersistence`, `setDemoRunTurn`, `setDemoHelpCorpus`,
+  `setDemoBlocksAdapter`);
+- `demoStarter.playground.ts` (emoji-art catcher starter — its sprites are real
+  VFS assets surfaced in the Asset Viewer) + `demoScript.playground.ts`
+  (versioned 5-step script: edit ×2 → explain → deliberate-bug → fix) +
+  `scriptedAgent.ts` — replayed through the real `RunTurn` seam and store funnel
+  (D-DEMO-04);
+- `demoTour.playground.ts` — the T1 v2 11-card tour DATA (copy + placement +
+  action per card); `TryPlaygroundPage.tsx` is the engine that fires the actions;
+- `demoHelp.playground.ts` — the bundled offline Game Guide corpus
+  (served via `setDemoHelpCorpus` through the pane's real loader);
 - `demoStory.blocks.ts` — the bundled 3-page "Cat's Day Out" `BlocksProject`;
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
-  (D-DEMO-05) + demo banner + public pages.
+  (D-DEMO-05, step-aware placements) + demo banner + public pages.
+
+## T1 v2 tour step map (PRD §3 v0.5 — keep in sync with `demoTour.playground.ts`)
+
+| Card | PRD step | Action (`Next` at the frontier) | Real affordance driven |
+|---|---|---|---|
+| 0 | 1 landing start | `landing-create` | REAL landing phase: locked prompt, card `beside-input`, **not skippable**, submit via `bindLandingSubmit` |
+| 1 | 2 meet your game | `script` step 0 (faster apples) | workspace entry auto-ran the game (`runGame` = editor ▶ Play path) |
+| 2 | 3 one ask → one change | `show-diff` step 0 | `openFileAt` — the changed-file-row jump+highlight |
+| 3 | 4 see the line | `script` step 1 (score +10) | chat send via `bindChatSend` |
+| 4 | 5 keep score | `script` step 2 (explain) | editor highlight + `explainSelection` (the ✨ Explain-this path, prompt = `buildExplainPrompt`) |
+| 5 | 6 explain card | `asset-magic` | Asset Viewer generate → remix via the offline stubs (`requestAssetGen`) |
+| 6 | 7 beautify card | `script` step 3 (deliberate bug) | the diff calls an undefined method → REAL console error |
+| 7 | 8 error card | `script` step 4 (fix) | scripted fix turn repairs it |
+| 8 | 9 fixed card | `open-guide` | `focusPanel('help')` — offline corpus via `setDemoHelpCorpus` |
+| 9 | 10 guide card | `advance` | — |
+| 10 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
+
+Every `edit` script step auto-restarts the game (`runGame`) after its diff lands.
 
 ## Non-negotiable rules (D-DEMO-01…08)
 

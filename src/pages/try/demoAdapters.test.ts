@@ -76,14 +76,32 @@ describe('playground demo adapters', () => {
   it('routes the existing stub seam to the scripted agent while armed (D-DEMO-04)', async () => {
     const { runTurnStub } = await import('../learn/playground/panes/gameAgentStub');
     const { PLAYGROUND_DEMO_SCRIPT } = await import('./demoScript.playground');
+    const step0 = PLAYGROUND_DEMO_SCRIPT.steps[0];
+    if (step0.kind !== 'edit') throw new Error('script step 0 must be an edit step');
     installPlaygroundDemo(agent());
     const files = demoStarterFiles();
-    const scripted = await runTurnStub(PLAYGROUND_DEMO_SCRIPT.steps[0].prompt, files);
-    expect(scripted.summary).toBe(PLAYGROUND_DEMO_SCRIPT.steps[0].reply);
+    const scripted = await runTurnStub(step0.prompt, files);
+    expect(scripted.summary).toBe(step0.reply);
     // Uninstalled → the plain offline stub answers again.
     uninstallPlaygroundDemo();
-    const plain = await runTurnStub(PLAYGROUND_DEMO_SCRIPT.steps[0].prompt, files);
-    expect(plain.summary).not.toBe(PLAYGROUND_DEMO_SCRIPT.steps[0].reply);
+    const plain = await runTurnStub(step0.prompt, files);
+    expect(plain.summary).not.toBe(step0.reply);
+  });
+
+  it('serves the bundled Game Guide corpus offline while armed (§3 step 10)', async () => {
+    const { loadHelpCorpus } = await import('../learn/playground/panes/help/helpApi');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    installPlaygroundDemo(agent());
+    const corpus = await loadHelpCorpus();
+    // The pane's default doc must exist, and the corpus must be searchable.
+    expect(corpus.docs.map((d) => d.id)).toContain('engine/what-is-an-engine');
+    expect(corpus.pillars.length).toBeGreaterThan(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Uninstalled → the seam is off; the loader goes back to the real backend.
+    uninstallPlaygroundDemo();
+    fetchSpy.mockRejectedValueOnce(new Error('offline test'));
+    await expect(loadHelpCorpus()).rejects.toThrow();
+    expect(fetchSpy).toHaveBeenCalled();
   });
 });
 

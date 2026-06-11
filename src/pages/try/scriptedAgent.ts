@@ -1,17 +1,22 @@
 // The scripted demo agent for `/try/playground` (try-demo-mode-prd §2 D-DEMO-04
-// / §3). It satisfies the EXISTING `RunTurn` seam (`panes/gameAgentStub.ts`), so
-// the real chat hook (`useGameAgent`) runs it exactly like the offline stub:
+// / §3 v2). It satisfies the EXISTING `RunTurn` seam (`panes/gameAgentStub.ts`),
+// so the real chat hook (`useGameAgent`) runs it exactly like the offline stub:
 // pending bubble → settled reply → `onApplyFiles` through the real store funnel
 // (undo/history/save-status identical to a real turn). It replays the canned
-// diffs from `demoScript.playground.ts` strictly in order; ANY other prompt —
-// including everything after the script completes — gets the contact-us gate
-// reply (D-DEMO-06) with the files untouched. No network, ever.
+// steps from `demoScript.playground.ts` strictly in order: `edit` steps match
+// their canned prompt and apply their diff; the `explain` step matches the REAL
+// "✨ Explain this" prompt (`buildExplainPrompt(snippet)`) and answers with the
+// canned plain-words explanation (no diff). ANY other prompt — including
+// everything after the script completes — gets the contact-us gate reply
+// (D-DEMO-06) with the files untouched. No network, ever.
 
 import type { VfsFile } from '../learn/code/codeApi';
+import { buildExplainPrompt } from '../learn/playground/panes/explainPrompt';
 import type { RunTurn, TurnResult } from '../learn/playground/panes/gameAgentStub';
 import {
   CONTACT_GATE_MESSAGE,
   PLAYGROUND_DEMO_SCRIPT,
+  type DemoEditStep,
   type DemoScriptStep,
 } from './demoScript.playground';
 
@@ -21,12 +26,12 @@ const SCRIPTED_TURN_DELAY_MS = 700;
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Apply one script step's find/replace edits to the VFS. Pure + drift-tolerant:
+ * Apply one edit step's find/replace edits to the VFS. Pure + drift-tolerant:
  * an edit whose `find` no longer matches is skipped (the tests catch drift; the
  * runtime stays honest — `changes` reflects only what actually changed).
  */
 export function applyScriptStep(
-  step: DemoScriptStep,
+  step: DemoEditStep,
   files: VfsFile[],
 ): { files: VfsFile[]; changes: NonNullable<TurnResult['changes']> } {
   const changes: NonNullable<TurnResult['changes']> = [];
@@ -43,8 +48,15 @@ export function applyScriptStep(
   return { files: next, changes };
 }
 
+/** Whether `prompt` is the canned trigger for `step` — an edit step's exact
+ *  prompt, or the REAL explain-this prompt built from the step's snippet. */
+export function matchesStep(step: DemoScriptStep, prompt: string): boolean {
+  if (step.kind === 'edit') return prompt === step.prompt;
+  return prompt === buildExplainPrompt(step.snippet).trim();
+}
+
 export interface ScriptedAgentOptions {
-  /** Notified after script step `index` (0-based) applies — drives the tour. */
+  /** Notified after script step `index` (0-based) settles — drives the tour. */
   onStepApplied?: (index: number) => void;
   /** Test override for the simulated thinking beat. */
   turnDelayMs?: number;
@@ -62,9 +74,14 @@ export function createScriptedDemoAgent(opts: ScriptedAgentOptions = {}): RunTur
     await delay(turnDelayMs);
 
     const step = PLAYGROUND_DEMO_SCRIPT.steps[nextStep];
-    if (step && prompt.trim() === step.prompt) {
+    if (step && matchesStep(step, prompt.trim())) {
       const index = nextStep;
       nextStep += 1;
+      if (step.kind === 'explain') {
+        // Explains never edit — the canned answer, files untouched.
+        onStepApplied?.(index);
+        return { summary: step.reply, files, toolsFired: [] };
+      }
       const { files: applied, changes } = applyScriptStep(step, files);
       onStepApplied?.(index);
       return {

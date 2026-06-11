@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-// /try/playground (try-demo-mode-prd §3 / acceptance 1): the intro card shows
-// the locked-prompt story; "Start the demo" mounts the REAL PlaygroundApp,
-// which opens straight into the build with zero network and no auth token.
+// /try/playground (try-demo-mode-prd §3 v2 / acceptance 1): the demo starts on
+// the REAL landing phase with the prompt pre-filled + locked, the step-1 card
+// sits beside the input and is NOT skippable, and "Create the game" drives the
+// real create flow — with zero network and no auth token.
 
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,6 +11,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '@/auth/authStore';
+import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
 import { TryPlaygroundPage } from './TryPlaygroundPage';
 
 afterEach(() => {
@@ -29,22 +31,36 @@ function renderPage() {
 }
 
 describe('TryPlaygroundPage', () => {
-  it('shows the modal intro first — the studio is NOT mounted yet', () => {
+  it('starts on the REAL landing phase with the prompt pre-filled and locked', () => {
     renderPage();
-    expect(screen.getByTestId('demo-tour-backdrop')).toBeInTheDocument();
-    expect(screen.getByTestId('tour-title')).toHaveTextContent('This is how a lesson starts');
+    // The real landing screen is mounted (not a rebuilt lookalike, no backdrop).
+    expect(screen.getByTestId('studio-root')).toBeInTheDocument();
+    expect(screen.queryByTestId('demo-tour-backdrop')).not.toBeInTheDocument();
+    const input = screen.getByLabelText('Describe a game') as HTMLTextAreaElement;
+    expect(input.value).toBe(PLAYGROUND_DEMO_SCRIPT.lockedPrompt);
+    expect(input).toHaveAttribute('readonly');
+    // Inputs that could change the locked prompt are hidden in the demo.
+    expect(screen.queryByTestId('starter-chip')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('voice-input')).not.toBeInTheDocument();
     expect(screen.getByTestId('demo-banner')).toBeInTheDocument();
-    expect(screen.queryByTestId('generating-screen')).not.toBeInTheDocument();
   });
 
-  it('Start mounts the REAL studio building the locked prompt — no token, no network', async () => {
+  it('step 1 sits beside the input, is not skippable, and reads "Create the game"', () => {
+    renderPage();
+    expect(screen.getByTestId('tour-title')).toHaveTextContent('Every game starts with a sentence');
+    expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'beside-input');
+    expect(screen.queryByTestId('tour-skip')).not.toBeInTheDocument(); // §3 step 1
+    expect(screen.getByTestId('tour-next')).toHaveTextContent('Create the game');
+  });
+
+  it('"Create the game" drives the REAL create flow — no token, no network', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     expect(useAuthStore.getState().tokens.kid).toBeNull(); // clean session
     renderPage();
-    fireEvent.click(screen.getByTestId('tour-next')); // ▶ Start the demo
-    // The real PlaygroundApp opened straight into the generating phase, echoing
-    // the locked prompt (no landing screen, no editable prompt box). The prompt
-    // also appears in the tour copy, so scope the check to the studio screen.
+    fireEvent.click(screen.getByTestId('tour-next')); // Create the game
+    // The real PlaygroundApp moved into the generating phase, echoing the
+    // locked prompt (it also appears in the landing textarea, so scope the
+    // check to the studio screen).
     const generating = await screen.findByTestId('generating-screen');
     expect(
       within(generating).getByText(/Make a fruit-catcher game where I move a basket/),

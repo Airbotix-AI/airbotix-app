@@ -6,12 +6,33 @@
 // `Phaser` global, mount `id="game"`, global classes, no import/export, entry
 // `main.js` injected last.
 //
-// The named constants below (FALL_SPEED / POINTS_PER_CATCH / BASKET_WIDTH) are
-// the anchors the scripted demo turns edit (`demoScript.playground.ts`) — if you
-// rename or reformat them, update the script's find/replace pairs in the same
-// change (the script tests assert every edit still applies).
+// The sprites are EMOJI ART shipped as real VFS assets (`assets/*.svg`, §3 step
+// 2/7): the game loads them via `this.load.image(...)` — `buildGamePreview`
+// inlines VFS asset paths as data: URLs — and the SAME files appear in the Asset
+// Viewer, so the art the kid sees in the game is the art in the viewer.
+//
+// The named constants below (FALL_SPEED / POINTS_PER_CATCH) and the structural
+// anchors (`class Game…`, `this.cursors = …`, the catchApple body) are what the
+// scripted demo turns edit (`demoScript.playground.ts`) — if you rename or
+// reformat them, update the script's find/replace pairs in the same change
+// (the script tests assert every edit still applies).
 
 import type { VfsFile } from '../learn/code/codeApi';
+
+/** A 64×64 transparent SVG with one big centred emoji, as a base64 data URL. */
+export function emojiSvgDataUrl(emoji: string): string {
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">' +
+    `<text x="32" y="36" font-size="52" text-anchor="middle" dominant-baseline="central">${emoji}</text>` +
+    '</svg>';
+  const bytes = new TextEncoder().encode(svg);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+  return `data:image/svg+xml;base64,${btoa(bin)}`;
+}
+
+const APPLE_SVG = emojiSvgDataUrl('🍎');
+const BASKET_SVG = emojiSvgDataUrl('🧺');
 
 const MAIN_JS = `// Fruit Catcher — entry point. Wires the Game scene into one Phaser.Game.
 new Phaser.Game({
@@ -32,6 +53,7 @@ const H = 600;
 const FALL_SPEED = 150; // how fast apples fall (pixels per second)
 const SPAWN_EVERY_MS = 900; // a new apple drops this often
 const BASKET_WIDTH = 110;
+const APPLE_SIZE = 44;
 const POINTS_PER_CATCH = 1; // score for each apple you catch
 
 class Game extends Phaser.Scene {
@@ -39,9 +61,16 @@ class Game extends Phaser.Scene {
     super('Game');
   }
 
+  preload() {
+    // Emoji art — these live in the project's assets (open the Asset Viewer!).
+    this.load.image('apple', 'assets/apple.svg');
+    this.load.image('basket', 'assets/basket.svg');
+  }
+
   create() {
     this.score = 0;
-    this.basket = this.add.rectangle(W / 2, H - 50, BASKET_WIDTH, 26, 0x6ee7b7);
+    this.basket = this.add.image(W / 2, H - 60, 'basket');
+    this.basket.setDisplaySize(BASKET_WIDTH, BASKET_WIDTH);
     this.physics.add.existing(this.basket);
     this.basket.body.setImmovable(true);
 
@@ -60,7 +89,8 @@ class Game extends Phaser.Scene {
   }
 
   dropApple() {
-    const apple = this.add.circle(Phaser.Math.Between(30, W - 30), -20, 14, 0xfca5a5);
+    const apple = this.add.image(Phaser.Math.Between(30, W - 30), -20, 'apple');
+    apple.setDisplaySize(APPLE_SIZE, APPLE_SIZE);
     this.physics.add.existing(apple);
     apple.body.setVelocity(0, FALL_SPEED);
     this.apples.add(apple);
@@ -100,6 +130,8 @@ export function demoStarterFiles(): VfsFile[] {
     { path: 'main.js', content: MAIN_JS, kind: 'text', size: MAIN_JS.length },
     { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
     { path: 'style.css', content: STYLE_CSS, kind: 'text', size: STYLE_CSS.length },
+    { path: 'assets/apple.svg', content: APPLE_SVG, kind: 'asset', size: APPLE_SVG.length },
+    { path: 'assets/basket.svg', content: BASKET_SVG, kind: 'asset', size: BASKET_SVG.length },
   ];
 }
 
