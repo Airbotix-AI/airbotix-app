@@ -48,6 +48,8 @@ import { ProjectNewPage } from '@/pages/learn/ProjectNewPage';
 import { ProjectsListPage } from '@/pages/learn/ProjectsListPage';
 import { CreateHubPage } from '@/pages/learn/create/CreateHubPage';
 import { CodeHubPage } from '@/pages/learn/code/CodeHubPage';
+import { BlocksHubPage } from '@/pages/learn/blocks/BlocksHubPage';
+import { BlocksStudioPage } from '@/pages/learn/blocks/BlocksStudioPage';
 import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
 import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
 import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
@@ -161,6 +163,9 @@ export const router = createBrowserRouter([
       { path: 'create/voice', element: <VoiceBoothPage /> },
       { path: 'create/video', element: <VideoStudioPage /> },
       { path: 'create/code', element: <CodeHubPage /> },
+      // Blocks Studio (junior block coder, learn-blocks-studio-prd.md §2)
+      { path: 'create/blocks', element: <BlocksHubPage /> },
+      { path: 'blocks/:projectId', element: <BlocksStudioPage /> },
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full

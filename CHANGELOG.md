@@ -4,6 +4,154 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — tablet UX polish + drag-to-place)
+
+### Added
+- **Drag a palette block to any position** (not only tap-to-append). Tapping a palette block still
+  appends it to the bottom of the latest script; now you can also **drag** one into the program and
+  drop it into any gap — an insertion bar shows where it lands, a fixed clone follows the finger
+  (above everything, never clipped, no scrollbar). New `blocksStore.insertBlock(op, scriptId, index)`
+  (body blocks splice at the slot; triggers always start a fresh script).
+- **Bigger character + scene libraries** (`library.ts`). The friend picker is now a centered modal
+  with **4 categorized tabs** (Animals / People / Go! / Fun, ~60 characters). A new **scene picker**
+  (🏞 on the stage) offers **8 animated backgrounds** (Meadow, Space, Beach, Ocean, Sunset, Snow,
+  City, Candy) with live CSS-animated previews; the chosen scene animates on the stage.
+- **Gentle sound effects** for every kid action (`sounds.ts`, WebAudio — no assets): tap, pick-up,
+  snap, place, pop, add, whoosh-to-bin, Go! fanfare, page chime, undo/redo. Resumes on first gesture.
+
+### Changed
+- **Block categories now visibly own the palette.** The palette wears the selected category's colour
+  (top accent bar + a pill naming it) so a child can see which blocks belong to the highlighted
+  category. Each work area gets its own faint wash + accent edge (Friends = sky, Pages = coral,
+  program = mint) so the zones read as distinct places.
+- **Stage backgrounds are animated** (drifting clouds, twinkling stars, rising bubbles, falling snow,
+  candy sprinkles) via CSS `[data-scene]` keyframes, with a `prefers-reduced-motion` guard.
+- Removed the on-stage "Coding: Cat / Tap a friend to run" hint band (tap-to-run is discoverable;
+  drag-to-place there was redundant with the program area).
+
+### Fixed
+- **Portrait: the add-character ＋ button now matches the size of the character thumbnails** (the
+  sizing rule targeted a wrapper the button doesn't have).
+- **Dragging a block no longer slips behind the bin or spawns a horizontal scrollbar** — the dragged
+  block stays in place (dimmed) while a fixed-position clone follows the pointer above everything.
+
+## 2026-06-11 (Blocks Studio — tablet/immersive pass)
+
+### Changed
+- **Blocks Studio is now an immersive, tablet-first app.**
+  - **Fullscreen / no chrome.** Entering the studio (`/learn/blocks/:id`) hides the Learn top nav
+    (`LearnLayout` immersive route) and requests browser fullscreen on the first tap (hides the URL
+    bar where supported); the 🏠 button exits fullscreen + returns to the hub.
+  - **No whole-page scroll.** The studio fills the viewport (`100dvh`) and never scrolls/rubber-bands
+    as a page (`overflow:hidden` + `overscroll-behavior:none`, body scroll locked while mounted) —
+    only the inner panes scroll.
+  - **Redesigned portrait layout.** Stage on top; **Friends + Pages share one compact side-by-side
+    strip** below it; the coding band takes the tall lower half (full-width category row, palette,
+    program, bin). Strip thumbnails are fixed-size horizontal scrollers; Reset/Present collapse to
+    icons so **Go!** always fits on narrow tablets. Companion mockup:
+    `docs/product/prd/mockups/blocks-studio-mockup-portrait.html`.
+
+## 2026-06-11 (responsive Learn nav)
+
+### Fixed
+- **The Learn top-nav items no longer vanish in portrait / narrow widths** (`LearnTopBar.tsx`).
+  The inline nav is `hidden md:flex`, so below 768px (portrait tablet / phone) it disappeared with
+  no replacement. Added a hamburger button (`< md`) that opens a stacked dropdown with all nav
+  items (big tap targets, active item highlighted); it closes on navigate and respects the
+  light/dark studio theme. The inline nav returns at `≥ md` (landscape).
+
+## 2026-06-11 (dev LAN host)
+
+### Fixed
+- **Opening the dev app from a LAN device (phone/tablet) now reaches the backend.** The API/WS URLs
+  were hardcoded to `localhost`, so on another device `localhost` meant the device itself and login
+  failed ("Could not sign in"). New `sameHostInDev` (`lib/devHost.ts`): when the configured backend
+  URL is localhost but the page was opened from a different host (`http://192.168.x.x:4321`), the
+  API + WS calls follow that same host. No-op for real localhost and for production.
+
+## 2026-06-11 (Blocks Studio — junior block coder, M1 + core editor)
+
+### Added
+- **Blocks Studio** (`learn-blocks-studio-prd.md`) — the junior (~5–8, pre-reader) visual
+  block-coding studio. New **Blocks card** on the Create hub beside Code Studio (free — no
+  Stars). `/learn/create/blocks` (`BlocksHubPage`: blank/story starters + project list) and
+  `/learn/blocks/:projectId` (`BlocksStudioPage`): stage with draggable characters and
+  meadow/space scenes, character + pages rails (≤4 pages), the six colour-coded block
+  categories, tap-to-snap puzzle blocks (number tiles cycle 1–9, Say text editable),
+  **Go!** runs every 🚩 script via a sequential interpreter (`interpreter.ts` — move/turn/
+  hop/say/grow/shrink/hide/show/pop/wait/stop/forever/go-to-page), **Present** hides the
+  editing chrome. Auto-adaptive layout (portrait stacks; `pointer: coarse` bumps targets).
+  The program persists as `project.blocks.json` in the project VFS via the versioned
+  `GET/PUT /projects/:id/code/files` (debounced autosave, server-wins conflict).
+  Tests: `blocksModel` / `blocksStore` / `interpreter` (16 unit tests).
+
+### Fixed
+- **Blocks Studio "add character" picker now floats over the stage** instead of being clipped
+  inside the character rail. The rail has `overflow:auto` + `backdrop-filter`, which trapped the
+  absolutely-positioned popup; it now renders via a `createPortal` to `<body>` with
+  viewport-anchored `fixed` coordinates (placed beside the ＋, flips above it when there's no
+  room — e.g. portrait), with outside-click / Escape to dismiss.
+
+### Changed
+- **Blocks Studio now has the mockup's dark theme.** A 🌙/☀️ toggle in the studio toolbar flips
+  the immersive editor between day and night; it defaults to the system `prefers-color-scheme`
+  and persists the override (`localStorage`). The theme is scoped to the `.bsx` app root + the
+  portalled picker (not `<html>`), so the studio goes dark while the rest of the Learn surface
+  stays light. Studio chrome was migrated off the light-only K-12 Tailwind classes onto themeable
+  `--bsx-*` tokens (`blocks.css` gains the dark palette + `bsx-card`/`bsx-soft`/`bsx-muted`
+  helpers). The six block-category colours and the meadow/space stage scenes stay constant
+  (colour = meaning; the scene is page content, not chrome).
+
+### Fixed
+- **Blocks: tapping a chained block no longer deletes it.** A tap was removing the block instantly
+  with no confirmation or undo — a data-loss hazard for young kids, and unlike the model it follows
+  (where a tap *runs* and you *drag a block out* to delete). Now a plain tap only edits (Say words /
+  cycles a number tile); removal is the deliberate **drag-the-block-away** gesture, with a red
+  "🗑 Let go to remove" drop hint that arms past a threshold. Touch-safe (`touch-action: none` on
+  chained blocks). Tests: `BlockChip.test.tsx`.
+- **Blocks: themed scrollbars.** The studio's scroll areas (rails, category bar, palette, script
+  area) showed default browser scrollbars that clashed with the surface — most visibly in dark.
+  They now use token-driven thin scrollbars that flip with the theme.
+
+### Changed
+- **Blocks: tap a whole block to edit + drag to reorder + one shared trash bin.** Several editing
+  upgrades:
+  - **Tap anywhere on a block to edit it** (not just the tiny number tile): a number block opens a
+    big +/− **stepper** popover; a Say block opens a text editor. The number tile is now
+    display-only.
+  - **Drag a block sideways to reorder** the execution order (the 🚩 trigger stays first); a glowing
+    insertion bar shows where it will drop.
+  - **One always-visible trash bin** (bottom-right of the studio) accepts **characters, blocks, AND
+    pages** — drag any of them onto it to delete. The bin is subtle when idle, grows while you drag,
+    and its lid lifts + everything glows red when a draggable is over it. Replaces the
+    block-only in-area trash strip. (Store gains `setParam` / `moveBlock` / `removePage`.)
+
+### Changed (follow-up)
+- **Blocks: undo/redo (persisted), a bigger block-only bin, and a ✕ to remove pages.**
+  - **Undo / redo** in the toolbar (↶ ↷) + ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y). Every editing step is
+    recorded; a drag or stepper session coalesces into one undo step. The **history is persisted
+    with the project** (sidecar `project.blocks.history.json`), so undo still works after a reload.
+  - The **trash bin is now bigger and lives at the end of the block area**, and is **block-only** —
+    drag a block onto it to remove (idle "Bin" → red "Drop!" when armed).
+  - **Removing a page is now the ✕ cross button** on the page thumbnail (same as a character) — the
+    drag-page-to-bin / drag-character-to-bin paths were removed; dragging a character only
+    repositions it now.
+
+### Fixed (follow-up)
+- **Blocks: the Learn top bar now flips dark with the studio.** The studio is full-bleed under the
+  nav, so a light nav over a dark studio looked broken. The theme moved into a shared store
+  (`blocksTheme`); on `/learn/blocks/*` the top bar syncs to it (same mechanism the playground
+  uses). The toolbar 🌙/☀️ toggles both together.
+- **Blocks projects in Projects / My Works now open + show a cover.** They routed to the generic
+  project-detail page (so clicking didn't resume) — they now open in **Blocks Studio**
+  (`/learn/blocks/:id`, "Resume blocks →"). And the studio captures a **canvas screenshot
+  thumbnail** of the scene (sky + hill + characters at their start spots, `thumbnail.ts`) on open
+  and on every save, stored device-local — so the card shows the project instead of a placeholder.
+- **Blocks (dark): toolbar/press buttons now have a clear top edge.** They used `--bsx-surface`,
+  the same colour as the toolbar, so only the bottom shadow read and the top blended in. They now
+  have a 1px border, a slightly-lighter face (`--bsx-surface-2`), and an inset top highlight
+  (`--bsx-top-edge`) so the whole button outline is visible in both themes.
+
 ## 2026-06-11 (explain-toolbar polish)
 
 ### Changed
