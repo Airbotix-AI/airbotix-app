@@ -6,6 +6,7 @@ import { GameFrame } from '../GameFrame';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
+import { useStickToBottom } from './useStickToBottom';
 import { extractRuntimeErrors } from '../verifyRoundtrip';
 
 interface GameRunnerPaneProps {
@@ -30,8 +31,12 @@ function baseName(file: string): string {
   return file.split(/[\\/]/).pop() || file;
 }
 
-/** Kid-friendly prompt for the AI from a captured error line (with its location). */
-function fixPrompt(line: ConsoleLine): string {
+/** Kid-friendly prompt for the AI from a captured error line (with its location).
+ *  Exported: the try-demo scripted agent recognises this exact shape so the
+ *  console's "Ask AI to fix" continues the demo script (drift-alarmed in
+ *  `src/pages/try/scriptedAgent.test.ts` — keep them matching). */
+// eslint-disable-next-line react-refresh/only-export-components
+export function fixPrompt(line: ConsoleLine): string {
   const where = line.loc ? ` (in ${baseName(line.loc.file)}, line ${line.loc.line})` : '';
   return `My game has an error${where}: ${line.text}\nCan you fix it?`;
 }
@@ -45,6 +50,55 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
   warn: 'text-brand-sunshine',
   error: 'text-brand-coral',
 };
+
+/**
+ * The scrollable console output. Its own component so MOUNTING (= the panel
+ * opening, e.g. auto-opened on the first error) starts pinned at the LATEST
+ * line — `useStickToBottom` (the chat list's pin-to-bottom state machine) glues
+ * the view to the bottom on mount and on every new line while the kid is at/near
+ * the bottom, but never yanks them back down after they deliberately scroll up.
+ */
+function ConsoleList({
+  lines,
+  onOpenLocation,
+}: {
+  lines: ConsoleLine[];
+  onOpenLocation?: (file: string, line: number) => void;
+}) {
+  // Changes on append AND clear (count + last text), driving the glue/pill logic.
+  const { listRef } = useStickToBottom(`${lines.length}:${lines[lines.length - 1]?.text ?? ''}`);
+  return (
+    <div ref={listRef} data-testid="console-list" className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
+      {lines.length === 0 ? (
+        <div className="text-[12px] text-pg-text-muted">—</div>
+      ) : (
+        <ul>
+          {lines.map((l, i) => (
+            <li
+              key={i}
+              className={`flex gap-1.5 border-b border-pg-border py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
+            >
+              <span aria-hidden className="select-none text-pg-text-muted">›</span>
+              <span className="min-w-0 whitespace-pre-wrap break-words">
+                {l.text}
+                {l.loc && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenLocation?.(l.loc!.file, l.loc!.line)}
+                    title="Open in editor"
+                    className="ml-1.5 rounded bg-pg-text/10 px-1.5 py-px font-sans text-[11px] font-semibold text-pg-text-dim underline-offset-2 transition-colors hover:bg-pg-text/20 hover:text-pg-text hover:underline"
+                  >
+                    {baseName(l.loc.file)}:{l.loc.line}
+                  </button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /** A small dark-chrome toolbar button (icon-only). */
 function ToolButton({
@@ -310,35 +364,7 @@ export function GameRunnerPane({
               Clear
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
-            {lines.length === 0 ? (
-              <div className="text-[12px] text-pg-text-muted">—</div>
-            ) : (
-              <ul>
-                {lines.map((l, i) => (
-                  <li
-                    key={i}
-                    className={`flex gap-1.5 border-b border-pg-border py-0.5 text-[12px] leading-relaxed ${LEVEL_COLOR[l.level]}`}
-                  >
-                    <span aria-hidden className="select-none text-pg-text-muted">›</span>
-                    <span className="min-w-0 whitespace-pre-wrap break-words">
-                      {l.text}
-                      {l.loc && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenLocation?.(l.loc!.file, l.loc!.line)}
-                          title="Open in editor"
-                          className="ml-1.5 rounded bg-pg-text/10 px-1.5 py-px font-sans text-[11px] font-semibold text-pg-text-dim underline-offset-2 transition-colors hover:bg-pg-text/20 hover:text-pg-text hover:underline"
-                        >
-                          {baseName(l.loc.file)}:{l.loc.line}
-                        </button>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <ConsoleList lines={lines} onOpenLocation={onOpenLocation} />
         </div>
       )}
 

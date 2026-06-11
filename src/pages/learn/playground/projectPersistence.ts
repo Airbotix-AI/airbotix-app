@@ -32,8 +32,42 @@ export interface PersistedProject {
 const DB_NAME = 'airbotix-playground';
 const STORE = 'projects';
 
+// ── Try-demo seam (try-demo-mode-prd D-DEMO-02): in-memory persistence. ──────
+// While a `/try/*` demo is active, EVERY read/write below (project, UI, chat,
+// thumbnail) goes to a plain Map instead of IndexedDB — nothing touches disk,
+// and a reload (new module instance) or re-install (fresh Map) starts pristine.
+// Installed/cleared by `src/pages/try/demoAdapters.ts`; null (off) everywhere else.
+let demoMemoryStore: Map<string, unknown> | null = null;
+export function setDemoMemoryPersistence(on: boolean): void {
+  demoMemoryStore = on ? new Map() : null;
+}
+
+/** A get/put-only IDBObjectStore stand-in over the demo Map (same call shape). */
+function memoryStore(map: Map<string, unknown>): IDBObjectStore {
+  const request = (result: unknown): IDBRequest => {
+    const req = { result } as unknown as IDBRequest;
+    queueMicrotask(() => req.onsuccess?.(new Event('success')));
+    return req;
+  };
+  return {
+    get: (key: IDBValidKey) => request(map.get(String(key))),
+    put: (value: unknown, key: IDBValidKey) => {
+      map.set(String(key), value);
+      return request(undefined);
+    },
+  } as unknown as IDBObjectStore;
+}
+
 /** Open the DB and run one request against the object store; closes after. */
 function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest): Promise<T> {
+  if (demoMemoryStore) {
+    const map = demoMemoryStore;
+    return new Promise<T>((resolve, reject) => {
+      const req = run(memoryStore(map));
+      req.onsuccess = () => resolve(req.result as T);
+      req.onerror = () => reject(req.error);
+    });
+  }
   return new Promise<T>((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
       reject(new Error('IndexedDB unavailable'));

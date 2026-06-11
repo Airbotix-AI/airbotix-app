@@ -1,6 +1,7 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { Mic, Volume2 } from 'lucide-react'
 import './playground.css'
+import { useDemoMode } from '@/pages/try/demoMode'
 import { ThemeToggle } from './ThemeToggle'
 import { transcribeVoice } from './panes/playgroundApi'
 
@@ -49,7 +50,13 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * Enter (no Shift) or the send button, carrying the kid's game name.
  */
 export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void }) {
-  const [prompt, setPrompt] = useState('')
+  // Try-demo seam (try-demo-mode-prd §3 step 1): in the public demo the prompt is
+  // pre-filled + locked (read-only textarea; chips/mic hidden so nothing can change
+  // it), and the real `submit` is registered so the tour's "Create the game" drives
+  // it. `useDemoMode()` is null everywhere else — behaviour identical outside /try.
+  const demo = useDemoMode()
+  const locked = !!demo?.lockedPrompt
+  const [prompt, setPrompt] = useState(demo?.lockedPrompt ?? '')
   const [recording, setRecording] = useState(false)
   const recorderRef = useRef<MediaRecorder | null>(null)
 
@@ -58,10 +65,18 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
     if (trimmed) onSubmit(trimmed)
   }
 
+  const submitRef = useRef(submit)
+  submitRef.current = submit
+  useEffect(() => {
+    demo?.bindLandingSubmit?.(() => submitRef.current())
+  }, [demo])
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      submit()
+      // Demo (§3 step 1): only the tour card creates the game — the read-only
+      // textarea must not submit on Enter.
+      if (!locked) submit()
     }
   }
 
@@ -119,6 +134,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={4}
+            readOnly={locked}
             placeholder="Describe a game and we'll build it…"
             aria-label="Describe a game"
             className="w-full resize-none bg-transparent text-lg text-pg-text placeholder:text-pg-text-muted focus:outline-none"
@@ -136,7 +152,9 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
               <Volume2 size={20} />
             </button>
 
-            {/* Voice/mic idea input (UDL): records → backend STT → fills prompt. */}
+            {/* Voice/mic idea input (UDL): records → backend STT → fills prompt.
+                Hidden when the demo locks the prompt (it would change it). */}
+            {!locked && (
             <button
               type="button"
               onClick={toggleVoice}
@@ -151,12 +169,14 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             >
               <Mic size={20} />
             </button>
+            )}
 
-            {/* Send button */}
+            {/* Send button — inert in the demo (§3 step 1: only the tour card's
+                "Create the game", bound to the same `submit`, fires it). */}
             <button
               type="button"
               onClick={submit}
-              disabled={!prompt.trim()}
+              disabled={locked || !prompt.trim()}
               aria-label="Build game"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sky text-xl text-canvas-pure transition-opacity disabled:opacity-40"
             >
@@ -166,7 +186,8 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
         </div>
       </div>
 
-      {/* Starter chips */}
+      {/* Starter chips — hidden when the demo locks the prompt (they'd change it). */}
+      {!locked && (
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
         {STARTER_CHIPS.map((chip) => (
           <button
@@ -180,6 +201,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
           </button>
         ))}
       </div>
+      )}
     </div>
   )
 }

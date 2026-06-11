@@ -19,6 +19,15 @@ import { generateScaffold } from './starterProject';
 /** Project kind for games (a Phaser-templated backend project). */
 export const GAME_PROJECT_KIND = 'game' as const;
 
+// ── Try-demo seam (try-demo-mode-prd D-DEMO-02/03) ────────────────────────────
+// The public `/try/playground` demo bundles its starter VFS client-side;
+// `resolveProjectFiles` serves it instead of the backend / local scaffold.
+// Installed/cleared by `src/pages/try/demoAdapters.ts`; null (off) everywhere else.
+let demoProjectFiles: (() => VfsFile[]) | null = null;
+export function setDemoProjectFiles(provider: (() => VfsFile[]) | null): void {
+  demoProjectFiles = provider;
+}
+
 /**
  * The three Phaser starter templates the backend seeds at create time (PRD §3
  * OQ-2 / §12 — `phaser_pong` paddle/physics, `phaser_catcher` click/collect,
@@ -100,6 +109,8 @@ export interface ResolveFilesOptions {
  */
 export async function resolveProjectFiles(opts: ResolveFilesOptions): Promise<VfsFile[]> {
   const { projectId, prompt, name } = opts;
+  // Demo mode: the bundled demo starter, no network (try-demo-mode-prd D-DEMO-02).
+  if (demoProjectFiles) return demoProjectFiles();
   if (projectId) {
     const files = await loadGameFiles(projectId);
     if (files.length === 0) {

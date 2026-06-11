@@ -4,6 +4,138 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12
+
+### Fixed (review pass)
+- Tour robustness guards from the adversarial review: the landing "Create the game" fires
+  once per (long) recovery window — a slow build can no longer be double-submitted; asset
+  generate/remix retries are throttled to ~2s (was every 250ms) so a failed generation
+  can't spam the chat.
+
+
+### Changed
+- **`/try/playground` tour refinement pass (try-demo-mode-prd §3 v0.6, 8 tweaks).**
+  (1) Only the tour card creates the game: the landing's own send button is disabled and
+  Enter is inert while the demo locks the prompt (2-line conditional in `LandingScreen`).
+  (2) The generating phase now plays the REAL first-build progress UI: a `demoBuild` branch
+  in `GeneratingScreen` feeds the bundled starter's files through the same thinking →
+  building (file-by-file reveal) → done pipeline a real streamed turn drives, and the new
+  canned `firstTurnReply` seeds the workspace chat exactly like a real first turn (no more
+  generic loading screen + starter message). (3) The acting window always comes to front:
+  scripted chat asks focus the Chat window before sending (diff/explain/asset/guide/run
+  already focused theirs). (4) The explain step now SHOWS the real "✨ Explain this"
+  floating toolbar first: the editor jump gained an optional `select` mode
+  (`openFileAt(..., select)` → Monaco `setSelection` through the REAL selection pipeline,
+  so the toolbar pops over the snippet), holds the beat ~1.6s, then fires the toolbar's own
+  handler. (5) "Make it beautiful" is now a 3-card loop that closes: generate the apple
+  sticker → remix it golden → a new scripted edit wires the remixed asset in as the game's
+  apple (+ auto-restart, so the user sees THEIR art in-game). Demo generations serve
+  hand-crafted SVG art (gradient/shaded apple + golden sparkly remix + a glossy generic
+  fallback, `demoAssets.playground.ts`) via a new `setDemoAssetGen` seam — the real offline
+  stub's deterministic swatches are untouched. (7) The console's real "Ask AI to fix"
+  button continues the script: the scripted agent recognises the console's fix-request
+  prompt (`consoleFixTrigger` + `isConsoleFixPrompt`, drift-alarmed against the exported
+  `fixPrompt`) and replays the fix turn + advances the tour — no contact-us dead end.
+  (8) The demo Game Guide now bundles the REAL corpus (verbatim copy of
+  `platform-backend/src/help/help-content.ts`, drift-alarmed in tests against the sibling
+  source) and the guide step opens directly on the most diagram-rich page
+  (`engine/scenes-and-the-game-loop`, 2 diagrams) via a new `openGuide` studio control.
+  Tour is now 13 cards; script v3 (6 steps). e2e smoke updated (13-card walk + landing
+  inert + console-button path); unit tests cover every new seam.
+
+### Fixed
+- **Game Runner console now auto-scrolls to the latest output.** The console's scroll
+  container had no scroll management: it opened scrolled to the TOP, so the newest line —
+  including the very error that auto-opened it — could sit out of view, and new output kept
+  appending below the fold. The line list is now a `ConsoleList` component on the chat's
+  `useStickToBottom` state machine: opening the panel starts pinned at the latest line, new
+  lines keep the view glued while the kid is at/near the bottom, and a deliberate scroll-up
+  releases the pin (no yanking). Component tests cover open-at-bottom, follow, and no-yank.
+
+### Added
+- **`/try/playground` T1 v2 full product tour** (try-demo-mode-prd §3 v0.5, 11 steps): the demo
+  now starts on the REAL landing phase (prompt pre-filled + locked, chips/mic hidden; the step-1
+  card sits beside the input and is not skippable; "Create the game" drives the real create flow
+  via a `bindLandingSubmit` seam); workspace entry auto-opens the Game Runner and starts the game;
+  every scripted change auto-restarts it through the real run path. New tour beats: code-editor
+  diff jump+highlight (the real changed-file-row path), select-code → "✨ Explain this" (scripted
+  plain-words answer matching the real `buildExplainPrompt`), Asset Viewer generate + remix via the
+  existing offline stubs, a deliberate bug turn (undefined method → real console error) followed by
+  a scripted fix turn, and an in-studio Game Guide step served by a bundled offline corpus (new
+  `setDemoHelpCorpus` seam in `helpApi.ts` — zero `GET /help/docs`). Tour data lives in
+  `demoTour.playground.ts` (copy/placement/action per card); the script is versioned v2 with
+  `edit` + `explain` step kinds (`demoScript.playground.ts`).
+- Emoji-art demo starter: the catcher's sprites are now real VFS assets (`assets/apple.svg` 🍎,
+  `assets/basket.svg` 🧺) loaded by the game AND listed in the Asset Viewer, so the art on screen
+  is the art in the viewer.
+- New studio injection points (all optional-context reads, default off): `LandingScreen` locked
+  prompt + submit bind; `Workspace` `bindStudioControls` (run/restart, panel focus, editor jump,
+  explain-this, asset generate); `helpApi` demo-corpus seam. `buildExplainPrompt` moved verbatim
+  from `Workspace.tsx` to `panes/explainPrompt.ts` so the demo can match the real prompt.
+
+### Changed
+- Tour overlay (`DemoTourOverlay`): step-aware card placements (`beside-input` / `bottom-left` /
+  `bottom-right` / `top-right` / `center`) so a card never covers the surface its step points at;
+  the Next pill truncates inside the card instead of overflowing on long labels; per-step
+  `hideSkip` (used by the mandatory landing step).
+- `playwright.config.ts`: `PW_PORT` env override so ad-hoc e2e runs never reuse a developer's
+  running dev server on the default port 4321.
+- `e2e/try-demo-smoke.spec.ts` walks the full v2 tour end-to-end (locked landing → auto-run →
+  scripted asks with restarts → diff → explain → asset magic → error→fix → guide → free explore →
+  AI gate) and now also forbids `/help/*` requests.
+- Demo banner (`/try/*`) copy made concise: "🎈 Demo mode · Questions? Contact us →", now
+  linking to the marketing site's contact page (`airbotix.ai/contact`) instead of `/book`;
+  blocks tour final step aligned ("Contact us from the banner above"). The nothing-is-saved
+  message stays in the tour copy.
+- `/try/blocks` tour copy rewritten: concise, user-journey guidance only — dropped the
+  meta/technical reassurances ("not a mock-up", "real product") from every card.
+- `/try/playground` tour copy given the same treatment (no "locks the prompt", "scripted",
+  "Monaco", persistence/reset talk); both tours' final card now ends with the contact-us
+  pointer and (blocks) a tablet/touch encouragement. "Nothing is saved" removed from all
+  guidance per product direction — the demo banner + PRD carry the persistence truth.
+- Tour overlay polish: buttons never wrap mid-label (single-line pills), controls row
+  wraps gracefully, all controls are ≥44px touch targets for tablets; final-step button
+  shortened to "Explore freely ✨".
+
+### Added
+- Demo Home exit (`/try/blocks`): the studio's 🏠 button leaves to the marketing "Try it"
+  page — mode-aware default: prod builds → `airbotix.ai/try`, dev builds → the local marketing dev server (`localhost:3000/try`); `VITE_MARKETING_URL` overrides — instead of the authed
+  hub — one `demo?.exitHref` seam in the Blocks toolbar.
+
+## 2026-06-11 (Try Demo Mode — public /try/* demos)
+
+### Added
+- **Try Demo Mode** (`try-demo-mode-prd.md`): public, no-auth demo routes that render the **real,
+  unmodified studios** — `/try/playground` (Game Playground) and `/try/blocks` (Blocks Studio) —
+  mounted top-level like `/play/:shareId`. New demo layer in `src/pages/try/`:
+  - `DemoModeProvider`/`useDemoMode` context (null = off everywhere outside `/try/*`);
+  - in-memory demo adapters (D-DEMO-02): bundled fruit-catcher starter VFS behind
+    `resolveProjectFiles`, an in-memory Map behind ALL `projectPersistence` reads/writes (no
+    IndexedDB), an in-memory blocks adapter behind `loadBlocksProject`/`saveBlocksProject` serving
+    the bundled 3-page **"Cat's Day Out"** `BlocksProject` (validated by the real parser, played by
+    the real interpreter) — zero `/projects*`/`/llm/*` calls, pristine reset on every entry/reload;
+  - **scripted demo agent** (D-DEMO-04) behind the existing `gameAgentStub` `RunTurn` seam: locked
+    initial prompt + 3 canned turns (fall speed → score ×10 → bigger basket + "You win!") whose
+    diffs flow through the real store funnel (undo/history identical to production); any other
+    prompt — and everything after the script — gets the **contact-us gate** reply (D-DEMO-06,
+    airbotix.ai/book + /contact);
+  - `DemoTourOverlay` (D-DEMO-05; modal intro + floating step cards, progress dots,
+    Next/Back/Skip) and the `DemoBanner` "nothing is saved · Book a chat" strip (D-DEMO-08; cloud
+    share is hidden in the blocks demo).
+  Tiny behaviour-neutral injection points only (all default "off"): demo seams in
+  `playgroundApi`/`projectPersistence`/`gameAgentStub`/`blocksApi`, optional demo context reads in
+  `PlaygroundApp` (locked prompt → straight to build) and `Workspace` (tour drives the real chat
+  `send`), an optional `projectId` prop + share gate in `BlocksStudioPage`, and one scoped
+  `.bsx-demo-host` height rule in `blocks.css`.
+- **`AGENTS.md` demo-parity mandate** (D-DEMO-07): new repo-root `AGENTS.md` + scoped
+  `src/pages/try/AGENTS.md` — any studio behaviour/route/selector change must update the demo
+  script/story/overlay and re-run the demo tests in the same task.
+- Tests: scripted-agent sequence + gate (drift alarms on the starter/script anchors), blocks story
+  round-trip through `parseProject` + real-interpreter playthrough, in-memory adapter semantics
+  (no fetch, reset-on-reinstall), tour overlay flow, public-route + no-network page tests for both
+  demos, and a no-mock e2e smoke (`e2e/try-demo-smoke.spec.ts`: full tour → 3 scripted turns →
+  AI gate; blocks Go/run + page navigation + share hidden; zero forbidden requests).
+
 ## 2026-06-11 (Blocks Studio — stable fullscreen)
 
 ### Fixed

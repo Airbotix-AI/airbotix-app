@@ -23,8 +23,15 @@ import { Check, FileCode2, Gamepad2, Loader2, Sparkles, Wand2 } from 'lucide-rea
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import { ApiError } from '@/lib/api';
+import { useDemoMode } from '@/pages/try/demoMode';
 
-import { streamAgentTurn, type TurnEvent, type VfsFile } from '../code/codeApi';
+import {
+  streamAgentTurn,
+  type FileNote,
+  type NextStep,
+  type TurnEvent,
+  type VfsFile,
+} from '../code/codeApi';
 import type { FirstTurnSeed } from './panes/useGameAgent';
 import { resolveProjectFiles } from './panes/playgroundApi';
 import { SCAFFOLD_DELAY_MS } from './panes/starterProject';
@@ -54,8 +61,22 @@ const DONE_BEAT_MS = 850;
 // reveal them one-by-one on this cadence so the "building" phase reads as a live
 // build instead of an instant dump. Honest pacing, not fake progress.
 const REVEAL_MS = 260;
+// Try-demo only: the scripted build's honest "thinking" beat before its (bundled,
+// instantly-available) files start revealing — the same thinking → building →
+// done arc a real streamed first turn plays, just on a fixed clock.
+const DEMO_THINK_MS = 1100;
 
 type Status = 'thinking' | 'building' | 'done';
+
+/** What the reveal interval needs from a finished build — a real streamed turn,
+ *  or the try-demo's scripted equivalent — to play the done beat + hand off. */
+interface FinishedBuild {
+  files: VfsFile[];
+  summary: string;
+  tools_fired?: string[];
+  next_steps?: NextStep[];
+  file_notes?: FileNote[];
+}
 
 export function GeneratingScreen({
   prompt,
@@ -102,14 +123,21 @@ export function GeneratingScreen({
   // the kid watches every file build up before the "ready!" beat.
   const queueRef = useRef<string[]>([]);
   const seenRef = useRef<Set<string>>(new Set());
-  const resultRef = useRef<Awaited<ReturnType<typeof streamAgentTurn>> | null>(null);
+  const resultRef = useRef<FinishedBuild | null>(null);
   const phaseRef = useRef<Status>('thinking');
+
+  // Try-demo seam (try-demo-mode-prd §3 step 1→2): the public demo has no
+  // backend, so its scripted first build feeds the SAME reveal pipeline a real
+  // streamed turn drives. Null everywhere else — behaviour identical outside /try.
+  const demo = useDemoMode();
 
   // Building = a NEW game from a typed prompt → the full build experience.
   // Resuming an existing project has no prompt → load only, no build phase.
   const building = prompt.trim().length > 0;
   // A real new game → the AI generates it here (not a template load).
   const aiBuild = building && !!projectId;
+  // A demo build: the bundled starter "streams" through the real progress UI.
+  const demoBuild = building && !aiBuild && !!demo;
 
   useEffect(() => {
     let cancelled = false;
@@ -125,8 +153,10 @@ export function GeneratingScreen({
 
     // ── NEW GAME on a real project: the AI builds it HERE and we stream its
     //    progress. The turn auto-applies + persists the VFS server-side, so
-    //    `result.files` is the finished game and `result.summary` is the reply. ──
-    if (aiBuild) {
+    //    `result.files` is the finished game and `result.summary` is the reply.
+    //    A DEMO build shares the exact same reveal pipeline — only the source
+    //    differs (the bundled starter + canned reply instead of the stream). ──
+    if (aiBuild || demoBuild) {
       // Reveal queued files one-at-a-time, then (once drained AND the turn has
       // resolved) transition to the celebratory done beat. A single interval owns
       // both so the order is deterministic regardless of StrictMode re-mounts.
@@ -159,6 +189,38 @@ export function GeneratingScreen({
           );
         }
       }, REVEAL_MS);
+
+      // ── Demo build: after an honest thinking beat, queue the bundled starter's
+      //    files into the same reveal queue and hand the canned reply to the
+      //    interval — thinking → building (file-by-file) → done, like the real thing.
+      if (demoBuild) {
+        let demoTimer = 0;
+        void resolveProjectFiles({ prompt }).then((files) => {
+          if (cancelled) return;
+          demoTimer = window.setTimeout(() => {
+            for (const f of files) {
+              const label = fileLabel(f.path);
+              if (seenRef.current.has(label)) continue;
+              seenRef.current.add(label);
+              queueRef.current.push(label);
+            }
+            const summary = demo?.firstTurnReply ?? '';
+            setStreamed(summary);
+            resultRef.current = {
+              files,
+              summary,
+              tools_fired: files.map((f) => `write_file:${f.path}`),
+            };
+          }, DEMO_THINK_MS);
+        });
+        return () => {
+          cancelled = true;
+          window.clearInterval(reveal);
+          window.clearInterval(tipTimer);
+          window.clearTimeout(demoTimer);
+          if (doneTimer) window.clearTimeout(doneTimer);
+        };
+      }
 
       if (!turnRef.current) {
         turnRef.current = streamAgentTurn(
@@ -227,7 +289,7 @@ export function GeneratingScreen({
       window.clearInterval(tipTimer);
       if (doneTimer) window.clearTimeout(doneTimer);
     };
-  }, [prompt, name, projectId, building, aiBuild]);
+  }, [prompt, name, projectId, building, aiBuild, demoBuild, demo]);
 
   return (
     <div
@@ -246,7 +308,7 @@ export function GeneratingScreen({
       <div className="flex w-[min(440px,86vw)] flex-col gap-3">
         {status === 'done' ? (
           <ReadyReveal summary={streamed} />
-        ) : aiBuild ? (
+        ) : aiBuild || demoBuild ? (
           <ActivityList built={built} tip={BUILD_TIPS[tip]} status={status} />
         ) : (
           <SimpleLoading

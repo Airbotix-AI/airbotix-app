@@ -4,10 +4,11 @@
 // 'thinking' (no file yet) → 'building' (files reveal one-by-one as they stream)
 // → 'done' (the AI reply + a short beat, then handoff). This test holds the turn
 // promise open, feeds `file`/`summary` events, and asserts each phase.
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '@/lib/api';
+import { DemoModeProvider } from '@/pages/try/demoMode';
 import type { AgentTurnResult, TurnEvent, VfsFile } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
 import { resolveProjectFiles } from './panes/playgroundApi';
@@ -48,9 +49,11 @@ const RESULT: AgentTurnResult = {
 };
 
 afterEach(() => {
+  cleanup();
   capturedOnEvent = undefined;
   resolveTurn = undefined;
   rejectTurn = undefined;
+  streamArgs = undefined;
   vi.clearAllMocks();
 });
 
@@ -111,5 +114,48 @@ describe('GeneratingScreen (real streamed progress)', () => {
 
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
     expect(onDone).toHaveBeenCalledWith(FILES, undefined, true);
+  });
+
+  // Try-demo (try-demo-mode-prd §3 step 1→2): NO backend, NO streamed turn —
+  // the bundled starter plays through the SAME thinking → building (file-by-
+  // file) → done arc, and the canned reply seeds the chat like a real first turn.
+  it('a demo build streams the bundled starter through the real progress UI', async () => {
+    const DEMO_FILES: VfsFile[] = [
+      { path: 'main.js', content: 'x', kind: 'text', size: 1 },
+      { path: 'src/scenes/Game.js', content: 'y', kind: 'text', size: 1 },
+    ];
+    vi.mocked(resolveProjectFiles).mockResolvedValueOnce(DEMO_FILES);
+    const onDone = vi.fn();
+    render(
+      <DemoModeProvider value={{ surface: 'playground', firstTurnReply: 'Your catcher is ready!' }}>
+        <GeneratingScreen prompt="a fruit catcher" onDone={onDone} />
+      </DemoModeProvider>,
+    );
+
+    // No projectId → streamAgentTurn must NOT fire; the demo arc still shows
+    // the REAL activity UI: thinking first…
+    expect(streamArgs).toBeUndefined();
+    screen.getByText('Dreaming up your game…');
+
+    // …then the starter's files reveal one-by-one (after the thinking beat)…
+    await screen.findByText('Building your game', undefined, { timeout: 3000 });
+    await screen.findByText('main.js');
+    await screen.findByText('Game.js', undefined, { timeout: 2000 });
+
+    // …then the canned reply plays the done beat and seeds the first turn.
+    await screen.findByText('Your game is ready!', undefined, { timeout: 3000 });
+    expect(screen.getByTestId('generating-stream').textContent).toMatch(/catcher is ready/);
+    await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    expect(onDone).toHaveBeenCalledWith(
+      DEMO_FILES,
+      {
+        prompt: 'a fruit catcher',
+        reply: 'Your catcher is ready!',
+        toolsFired: ['write_file:main.js', 'write_file:src/scenes/Game.js'],
+        nextSteps: undefined,
+        fileNotes: undefined,
+      },
+      undefined,
+    );
   });
 });

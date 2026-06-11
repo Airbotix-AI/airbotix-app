@@ -12,8 +12,18 @@ import type { HelpBlock, HelpCorpus, HelpDoc, HelpResult, Tier } from './helpTyp
 
 export type { HelpBlock, HelpCorpus, HelpDoc, HelpResult, Tier } from './helpTypes';
 
+// ── Try-demo seam (try-demo-mode-prd §3 step 10) ──────────────────────────────
+// The public `/try/playground` demo serves a small bundled corpus through this
+// seam so the Guide renders offline (zero `GET /help/docs`). Installed/cleared
+// by `src/pages/try/demoAdapters.ts`; null (off) everywhere else.
+let demoHelpCorpus: HelpCorpus | null = null;
+export function setDemoHelpCorpus(corpus: HelpCorpus | null): void {
+  demoHelpCorpus = corpus;
+}
+
 /** Fetch the whole Game Guide corpus (pillars + docs) from the backend. */
 export async function loadHelpCorpus(): Promise<HelpCorpus> {
+  if (demoHelpCorpus) return demoHelpCorpus;
   return api<HelpCorpus>('/help/docs');
 }
 

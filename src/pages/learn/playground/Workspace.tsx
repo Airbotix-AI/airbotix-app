@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
+import { useDemoMode } from '@/pages/try/demoMode';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
 import type { LearningContext, VfsFile } from '../code/codeApi';
@@ -30,6 +31,7 @@ import { WINDOW_META } from './desktop/windowMeta';
 import { AssetViewerPane } from './panes/AssetViewerPane';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
+import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
@@ -73,20 +75,6 @@ interface Wallet {
 }
 
 type SplitTab = 'chat' | 'code' | 'assets' | 'help';
-
-/** Cap a selected snippet so the chat bubble + prompt stay reasonable — the
- *  backend already has the whole file as context, so the snippet only points the
- *  agent at WHICH code to explain. */
-const MAX_EXPLAIN_CHARS = 1200;
-
-/** Build the kid-friendly "explain this selection" prompt. Asks for a plain answer
- *  and tells the agent NOT to edit — an explain must never change the game. */
-function buildExplainPrompt(code: string): string {
-  const trimmed = code.trim();
-  const snippet =
-    trimmed.length > MAX_EXPLAIN_CHARS ? `${trimmed.slice(0, MAX_EXPLAIN_CHARS)}\n…` : trimmed;
-  return `Explain what this code does in simple words — don't change my game:\n\n${snippet}`;
-}
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
 // of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
@@ -177,11 +165,12 @@ export function Workspace({
     file: string;
     line: number;
     toLine?: number;
+    select?: boolean;
     nonce: number;
   } | null>(null);
   const jumpNonce = useRef(0);
-  const handleOpenLocation = (file: string, line: number, toLine?: number) => {
-    setLocationRequest({ file, line, toLine, nonce: (jumpNonce.current += 1) });
+  const handleOpenLocation = (file: string, line: number, toLine?: number, select?: boolean) => {
+    setLocationRequest({ file, line, toLine, select, nonce: (jumpNonce.current += 1) });
     // Bring the editor forward so the kid sees the jump.
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
@@ -249,6 +238,14 @@ export function Workspace({
         setLayout: (m) => usePlaygroundStore.getState().setLayoutMode(m),
       },
     });
+
+  // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
+  // overlay drives the canned turns through this REAL `send`. No-op outside the
+  // demo provider (`useDemoMode()` is null everywhere else).
+  const demo = useDemoMode();
+  useEffect(() => {
+    demo?.bindChatSend?.(send);
+  }, [demo, send]);
 
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
   // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).
@@ -319,6 +316,21 @@ export function Workspace({
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
     else setSplitTab('chat');
   };
+
+  // Try-demo seam (try-demo-mode-prd §3 v2): register the studio's REAL
+  // affordances so the tour can sequence them (auto-run, restart-after-change,
+  // diff jump, explain-this, asset generate, guide). Every handler is the same
+  // production one the studio's own UI calls. No-op outside the demo provider.
+  useEffect(() => {
+    demo?.bindStudioControls?.({
+      runGame: runFromEditor,
+      focusPanel,
+      openFileAt: handleOpenLocation,
+      explainSelection: handleExplainCode,
+      requestAssetGen: requestAssetGenFromViewer,
+      openGuide: openHelp,
+    });
+  });
 
   // Keep window rects inside the actual desktop surface (default rects are seeded
   // from window.innerHeight and over-shoot under the Learn nav). Clamping BEFORE a

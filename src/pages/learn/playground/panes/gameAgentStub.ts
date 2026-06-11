@@ -46,6 +46,14 @@ export type RunTurn = (prompt: string, files: VfsFile[]) => Promise<TurnResult>;
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ── Try-demo seam (try-demo-mode-prd D-DEMO-04) ───────────────────────────────
+// The public `/try/playground` demo swaps in a SCRIPTED agent through this seam
+// (installed by `src/pages/try/demoAdapters.ts`); null (off) = the plain stub.
+let demoRunTurn: RunTurn | null = null;
+export function setDemoRunTurn(turn: RunTurn | null): void {
+  demoRunTurn = turn;
+}
+
 /**
  * Local mock turn. Returns after a short simulated delay with a placeholder
  * summary and the VFS. If `game.js` exists and contains a 6-digit hex colour
@@ -53,7 +61,9 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
  * turn → VFS → run path is visibly exercised; otherwise it returns files
  * unchanged. Never touches the network.
  */
-export const runTurnStub: RunTurn = async (_prompt, files) => {
+export const runTurnStub: RunTurn = async (prompt, files) => {
+  // Demo mode: the scripted demo agent replays canned turns (D-DEMO-04).
+  if (demoRunTurn) return demoRunTurn(prompt, files);
   await delay(STUB_DELAY_MS);
 
   const gameFile = files.find((f) => f.path === GAME_FILE_PATH);

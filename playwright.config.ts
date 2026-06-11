@@ -4,6 +4,11 @@ import { defineConfig, devices } from '@playwright/test';
 // Tests live in e2e/ and run against the Vite dev server on the authed
 // `/learn/playground/:projectId` route via a route-mocked authed harness
 // (`e2e/helpers.ts`) — there is no separate no-auth route.
+//
+// `PW_PORT` overrides the dev-server port for ad-hoc runs (so an e2e pass never
+// reuses/steals a developer's already-running dev server on the default 4321).
+const PORT = Number(process.env.PW_PORT ?? 4321);
+
 export default defineConfig({
   testDir: './e2e',
   // Visual-regression baselines (toHaveScreenshot) live in one committed dir,
@@ -20,13 +25,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:4321',
+    baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev',
-    port: 4321,
+    command: `npm run dev -- --port ${PORT} --strictPort`,
+    port: PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

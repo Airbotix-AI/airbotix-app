@@ -31,6 +31,7 @@ import {
   blockDef,
   isTrigger,
 } from './blocksModel';
+import { useDemoMode } from '@/pages/try/demoMode';
 import { useBlocksStore } from './blocksStore';
 import { useBlocksTheme } from './blocksTheme';
 import { captureBlocksThumbnail } from './thumbnail';
@@ -65,8 +66,14 @@ function unlockTouchScroll() {
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
-export function BlocksStudioPage() {
-  const { projectId } = useParams<{ projectId: string }>();
+export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: string } = {}) {
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  // The public /try/blocks demo mounts this page directly (no route param) with
+  // a fixed demo id; everywhere else the authed route param wins (unchanged).
+  const projectId = projectIdProp ?? routeProjectId;
+  // Try-demo (try-demo-mode-prd D-DEMO-08): cloud share is hidden in the demo —
+  // sharing needs a real account; the demo banner explains nothing is saved.
+  const demo = useDemoMode();
   const project = useBlocksStore((s) => s.project);
   const pageId = useBlocksStore((s) => s.pageId);
   const charId = useBlocksStore((s) => s.charId);
@@ -673,13 +680,25 @@ export function BlocksStudioPage() {
     <div className={`bsx bsx-app${present ? ' present' : ''}`} data-theme={theme} data-testid="blocks-studio">
       {/* ── toolbar ── */}
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
-        <Link
-          to="/learn/create/blocks"
-          className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
-          title="Save & back"
-        >
-          🏠
-        </Link>
+        {/* Try-demo: Home exits to the marketing "Try it" page, not the authed hub. */}
+        {demo?.exitHref ? (
+          <a
+            href={demo.exitHref}
+            data-testid="demo-home"
+            className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
+            title="Back to Try it"
+          >
+            🏠
+          </a>
+        ) : (
+          <Link
+            to="/learn/create/blocks"
+            className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
+            title="Save & back"
+          >
+            🏠
+          </Link>
+        )}
         <button
           type="button"
           data-testid="undo"
@@ -718,7 +737,7 @@ export function BlocksStudioPage() {
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
+        {projectId && !demo && <BlocksSharePanel projectId={projectId} theme={theme} />}
         <button
           ref={moreBtnRef}
           type="button"
