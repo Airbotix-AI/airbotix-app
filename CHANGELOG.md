@@ -6,6 +6,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-11 (Blocks Studio — closer to ScratchJr)
 
+### Fixed
+- **The Page block (Go to Page) only lets you pick a page that exists.** Its number stepper was
+  capped at the generic 1–9; it now caps at the project's page count (and the editor reads
+  "Which page? (1–N)"). `setParam` gained an optional `max`.
+
 ### Added
 - **Four ScratchJr blocks that were missing** (`blocksModel.ts`, `interpreter.ts`):
   - **Set Speed** (🐢/🚶/🐇) — tap to cycle slow/normal/fast; scales that character's motion (slow 2×,

@@ -71,7 +71,7 @@ interface BlocksStore {
   /** Tap-to-cycle a block's value 1→max→1 (number tile, speed, or msg colour). */
   cycleParam: (scriptId: string, index: number, max?: number) => void;
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
-  setParam: (scriptId: string, index: number, n: number) => void;
+  setParam: (scriptId: string, index: number, n: number, max?: number) => void;
   setSayText: (scriptId: string, index: number, text: string) => void;
   /** Reorder a block within its script — drag to change execution order. The
    *  trigger (index 0) stays first; body blocks reorder among 1..n. */
@@ -371,8 +371,8 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     }));
   },
 
-  setParam(scriptId, index, n) {
-    const v = Math.min(MAX_PARAM, Math.max(1, Math.round(n)));
+  setParam(scriptId, index, n, max = MAX_PARAM) {
+    const v = Math.min(max, Math.max(1, Math.round(n)));
     get()._commit(
       (s) => ({
         project: patchChar(s.project, s.pageId, s.charId, (c) => ({

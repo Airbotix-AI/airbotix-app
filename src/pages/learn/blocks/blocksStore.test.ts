@@ -94,6 +94,16 @@ describe('blocksStore', () => {
     expect(char().scripts[0].blocks[1].n).toBe(1); // clamped low
   });
 
+  it('setParam honours a custom max (the Page block caps at the page count)', () => {
+    store().addBlock('when_flag');
+    store().addBlock('goto_page'); // index 1, default n 1
+    const id = char().scripts[0].id;
+    store().setParam(id, 1, 5, 2); // only 2 pages exist → cap at 2
+    expect(char().scripts[0].blocks[1].n).toBe(2);
+    store().setParam(id, 1, 2, 2);
+    expect(char().scripts[0].blocks[1].n).toBe(2);
+  });
+
   it('moveBlock reorders body blocks but keeps the trigger first', () => {
     store().addBlock('when_flag');
     store().addBlock('move_right'); // index 1

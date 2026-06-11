@@ -657,6 +657,9 @@ export function BlocksStudioPage() {
     const blk = script?.blocks[editBlk.index];
     return blk ? { ...editBlk, block: blk } : null;
   })();
+  // the Page block targets an existing page only, so its stepper caps at the page
+  // count; every other number tile uses the generic 1..MAX_PARAM range.
+  const editMax = editing?.block.op === 'goto_page' ? project.pages.length : MAX_PARAM;
   // the block under the pointer while dragging — rendered as a fixed clone
   const draggingBlock = (() => {
     if (!dragBlk) return null;
@@ -1146,7 +1149,9 @@ export function BlocksStudioPage() {
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
               {editing.block.op === 'say'
                 ? 'What should they say?'
-                : `How many? (${blockDef(editing.block.op).label})`}
+                : editing.block.op === 'goto_page'
+                  ? `Which page? (1–${project.pages.length})`
+                  : `How many? (${blockDef(editing.block.op).label})`}
             </div>
             {editing.block.op === 'say' ? (
               <input
@@ -1171,7 +1176,7 @@ export function BlocksStudioPage() {
                     sfx.numDown();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1);
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1, editMax);
                   }}
                 >
                   −
@@ -1187,9 +1192,9 @@ export function BlocksStudioPage() {
                     sfx.numUp();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1);
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1, editMax);
                   }}
-                  disabled={(editing.block.n ?? 1) >= MAX_PARAM}
+                  disabled={(editing.block.n ?? 1) >= editMax}
                 >
                   +
                 </button>
