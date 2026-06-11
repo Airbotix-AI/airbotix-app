@@ -11,12 +11,14 @@ import {
   type BlocksSaveResult,
   type LoadedBlocksProject,
 } from '../learn/blocks/blocksApi';
+import { setDemoAssetGen } from '../learn/playground/assetGen';
 import { setDemoRunTurn, type RunTurn } from '../learn/playground/panes/gameAgentStub';
 import { setDemoHelpCorpus } from '../learn/playground/panes/help/helpApi';
 import { setDemoProjectFiles } from '../learn/playground/panes/playgroundApi';
 import { setDemoMemoryPersistence } from '../learn/playground/projectPersistence';
 import { useHistoryStore } from '../learn/playground/historyStore';
 import { useProjectStore } from '../learn/playground/projectStore';
+import { demoAssetGen } from './demoAssets.playground';
 import { DEMO_HELP_CORPUS } from './demoHelp.playground';
 import { demoStarterFiles } from './demoStarter.playground';
 import { CATS_DAY_OUT } from './demoStory.blocks';
@@ -37,6 +39,7 @@ export function installPlaygroundDemo(agent: RunTurn): void {
   setDemoMemoryPersistence(true); // also covers thumbnails/UI/chat caches
   setDemoRunTurn(agent);
   setDemoHelpCorpus(DEMO_HELP_CORPUS);
+  setDemoAssetGen(demoAssetGen); // crafted offline art (§3 step 7)
   useProjectStore.getState().setFiles([]);
   useHistoryStore.getState().reset();
 }
@@ -46,6 +49,7 @@ export function uninstallPlaygroundDemo(): void {
   setDemoMemoryPersistence(false);
   setDemoRunTurn(null);
   setDemoHelpCorpus(null);
+  setDemoAssetGen(null);
 }
 
 // ── T2: Blocks Studio demo ────────────────────────────────────────────────────

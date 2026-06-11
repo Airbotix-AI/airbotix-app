@@ -69,9 +69,10 @@ interface CodeEditorPaneProps {
   /** Re-run the game (PlaygroundPage bumps runKey). */
   onRun: () => void;
   /** A request (from a console error, or the agent's open_file/highlight_code) to
-   *  open a file and reveal a line — `toLine` highlights a range. The `nonce` lets
-   *  a repeat request for the same file+line re-fire. */
-  openLocation?: { file: string; line: number; toLine?: number; nonce: number } | null;
+   *  open a file and reveal a line — `toLine` highlights a range (`select` selects
+   *  it instead, surfacing the real ✨ toolbar). The `nonce` lets a repeat request
+   *  for the same file+line re-fire. */
+  openLocation?: { file: string; line: number; toLine?: number; select?: boolean; nonce: number } | null;
   /** Hand a selected code snippet to the AI chat (the "✨ Explain this" toolbar). */
   onExplainSelection?: (code: string) => void;
 }
@@ -224,7 +225,12 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
     if (!openLocation) return;
     if (!files.some((f) => f.path === openLocation.file)) return;
     openTab(openLocation.file);
-    setJumpTo({ line: openLocation.line, toLine: openLocation.toLine, nonce: openLocation.nonce });
+    setJumpTo({
+      line: openLocation.line,
+      toLine: openLocation.toLine,
+      select: openLocation.select,
+      nonce: openLocation.nonce,
+    });
     // Only react to a new request (nonce) — not to `files`/`openTab` churn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openLocation]);

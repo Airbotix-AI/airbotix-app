@@ -48,10 +48,24 @@ export function applyScriptStep(
   return { files: next, changes };
 }
 
+/**
+ * Whether `prompt` is the console's "Ask AI to fix" request. The console builds
+ * it as `My game has an error[ (in <file>, line <n>)]: <text>\nCan you fix it?`
+ * (`fixPrompt` in GameRunnerPane — exported so `scriptedAgent.test.ts` asserts
+ * this matcher against the REAL builder; a console-copy change breaks loudly).
+ */
+export function isConsoleFixPrompt(prompt: string): boolean {
+  return /^My game has an error.*\nCan you fix it\?$/s.test(prompt);
+}
+
 /** Whether `prompt` is the canned trigger for `step` — an edit step's exact
- *  prompt, or the REAL explain-this prompt built from the step's snippet. */
+ *  prompt (or, for the fix step, the console's real "Ask AI to fix" request),
+ *  or the REAL explain-this prompt built from the step's snippet. */
 export function matchesStep(step: DemoScriptStep, prompt: string): boolean {
-  if (step.kind === 'edit') return prompt === step.prompt;
+  if (step.kind === 'edit') {
+    if (step.consoleFixTrigger && isConsoleFixPrompt(prompt)) return true;
+    return prompt === step.prompt;
+  }
   return prompt === buildExplainPrompt(step.snippet).trim();
 }
 

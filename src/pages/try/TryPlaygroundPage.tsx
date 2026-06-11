@@ -1,12 +1,14 @@
 // PUBLIC, no-auth Game Playground demo — `/try/playground` (try-demo-mode-prd
 // §3 T1 v2). Renders the REAL `PlaygroundApp` (unmodified) inside the demo
 // provider: it starts on the REAL landing phase (prompt pre-filled + locked),
-// and the tour sequences the studio's REAL affordances — landing submit, chat
-// sends (scripted agent behind the stub seam), run/restart, the editor's
-// jump+highlight, explain-this, the Asset Viewer's offline generate/remix, and
-// the Game Guide — through the seams the studio registers (`demoMode.tsx`).
-// After the tour: free explore — everything real except AI (gated to
-// contact-us) and cloud features. Reload = pristine demo (D-DEMO-02).
+// plays the REAL generating progress (the bundled starter "streams" file-by-file
+// through the same UI a real first turn drives), and the tour sequences the
+// studio's REAL affordances — landing submit, chat sends (scripted agent behind
+// the stub seam), run/restart, the editor's jump+highlight, the live selection →
+// "✨ Explain this" toolbar, the Asset Viewer's generate → remix → into-the-game
+// loop, and the Game Guide — through the seams the studio registers
+// (`demoMode.tsx`). After the tour: free explore — everything real except AI
+// (gated to contact-us) and cloud features. Reload = pristine demo (D-DEMO-02).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -17,13 +19,14 @@ import { DemoModeProvider, type DemoMode, type DemoStudioControls } from './demo
 import { DemoTourOverlay } from './DemoTourOverlay';
 import { installPlaygroundDemo, uninstallPlaygroundDemo } from './demoAdapters';
 import { createScriptedDemoAgent } from './scriptedAgent';
-import { locateLines, PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
+import { DEMO_GUIDE_TOUR_DOC } from './demoHelp.playground';
 import {
-  PLAYGROUND_TOUR,
+  locateLines,
+  PLAYGROUND_DEMO_SCRIPT,
   TOUR_ASSET_PROMPT,
   TOUR_REMIX_PROMPT,
-  type PlaygroundTourAction,
-} from './demoTour.playground';
+} from './demoScript.playground';
+import { PLAYGROUND_TOUR, type PlaygroundTourAction } from './demoTour.playground';
 
 /**
  * Re-enable the tour's Next if a fired action never lands (e.g. the kid typed
@@ -31,10 +34,14 @@ import {
  * scripted turn itself settles well inside a second; this is only a recovery.
  */
 const SEND_RECOVERY_MS = 6000;
-/** The asset step runs TWO stub generations (~1s each) — a roomier recovery. */
+/** Each asset step runs ONE stub generation (~1s) — a roomier recovery. */
 const ASSET_RECOVERY_MS = 15_000;
-/** Poll cadence for the asset step's generate → remix → done sequence. */
+/** Poll cadence for an asset step's generate-until-landed sequence. */
 const ASSET_TICK_MS = 250;
+/** §3 step 6: how long the real "✨ Explain this" toolbar stays visibly poised
+ *  over the selection before the tour fires it — long enough to SEE the real
+ *  affordance, short enough to keep the beat moving. */
+const EXPLAIN_TOOLBAR_MS = 1600;
 
 /** A generated Asset Viewer entry (the generation store's output directory). */
 const isGeneratedAsset = (path: string) => path.startsWith('assets/generated/');
@@ -63,6 +70,7 @@ export function TryPlaygroundPage() {
   const enteredRef = useRef(false);
   const recoveryTimer = useRef<ReturnType<typeof setTimeout>>();
   const assetTimer = useRef<ReturnType<typeof setInterval>>();
+  const explainTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const stopAssetWatch = () => {
     clearInterval(assetTimer.current);
@@ -103,6 +111,7 @@ export function TryPlaygroundPage() {
     return () => {
       clearTimeout(recoveryTimer.current);
       clearInterval(assetTimer.current);
+      clearTimeout(explainTimer.current);
       uninstallPlaygroundDemo();
     };
   }, []);
@@ -111,6 +120,7 @@ export function TryPlaygroundPage() {
     () => ({
       surface: 'playground',
       lockedPrompt: PLAYGROUND_DEMO_SCRIPT.lockedPrompt,
+      firstTurnReply: PLAYGROUND_DEMO_SCRIPT.firstTurnReply,
       bindLandingSubmit: (submit) => {
         landingSubmitRef.current = submit;
       },
@@ -134,29 +144,30 @@ export function TryPlaygroundPage() {
     [],
   );
 
-  /** §3 step 7: Asset Viewer beautify — generate, then remix the result, all via
-   *  the studio's REAL viewer entry (offline stubs; zero network). Driven by a
-   *  small poll so each call lands once the one-AI-at-a-time lock frees up. */
-  const runAssetMagic = (fromCard: number) => {
-    const baseline = useProjectStore.getState().files.filter((f) => isGeneratedAsset(f.path)).length;
+  /** The Asset Viewer's generated entries, newest last. */
+  const generatedAssets = () =>
+    useProjectStore.getState().files.filter((f) => isGeneratedAsset(f.path));
+
+  /**
+   * §3 step 7a/7b: run ONE generation through the studio's REAL viewer entry
+   * (crafted offline art; zero network) and advance when it lands. Driven by a
+   * small poll so the call retries until the one-AI-at-a-time lock frees up; the
+   * acting surface (Asset Viewer) is focused at start and again on the result —
+   * the generation itself plays in the chat, exactly like the real product.
+   */
+  const runAssetStep = (fromCard: number, fire: () => void) => {
+    const baseline = generatedAssets().length;
     setSending(true);
     armRecovery(ASSET_RECOVERY_MS);
     controlsRef.current?.focusPanel('assets');
     stopAssetWatch();
     assetTimer.current = setInterval(() => {
-      const generated = useProjectStore.getState().files.filter((f) => isGeneratedAsset(f.path));
-      if (generated.length >= baseline + 2) {
-        // Generate + remix both landed → show them off and move on.
+      if (generatedAssets().length >= baseline + 1) {
         stopAssetWatch();
         controlsRef.current?.focusPanel('assets');
         advanceTo(fromCard + 1);
-      } else if (generated.length === baseline + 1) {
-        // The sticker landed → remix it (no-ops while the chat lock is busy).
-        const newest = generated[generated.length - 1];
-        controlsRef.current?.requestAssetGen(TOUR_REMIX_PROMPT, { refAssetPath: newest.path });
       } else {
-        // Nothing yet → (re)try the first generation until the lock frees up.
-        controlsRef.current?.requestAssetGen(TOUR_ASSET_PROMPT);
+        fire(); // no-ops while the chat lock is busy → retried next tick
       }
     }, ASSET_TICK_MS);
   };
@@ -175,14 +186,23 @@ export function TryPlaygroundPage() {
         setSending(true);
         armRecovery(SEND_RECOVERY_MS);
         if (step.kind === 'explain') {
-          // Select the snippet through the editor's real jump+highlight path,
-          // then hand it to chat exactly like the "✨ Explain this" toolbar.
+          // §3 step 6: SELECT the snippet through the editor's real jump path —
+          // the real selection pipeline pops the "✨ Explain this" toolbar over
+          // it. Hold that beat so the user SEES the toolbar, then fire the same
+          // handler its click invokes (which surfaces the chat for the answer).
           const content =
             useProjectStore.getState().files.find((f) => f.path === step.path)?.content ?? '';
           const range = locateLines(content, step.snippet);
-          if (range) controlsRef.current?.openFileAt(step.path, range.from, range.to);
-          controlsRef.current?.explainSelection(step.snippet);
+          controlsRef.current?.focusPanel('code');
+          if (range) controlsRef.current?.openFileAt(step.path, range.from, range.to, true);
+          clearTimeout(explainTimer.current);
+          explainTimer.current = setTimeout(
+            () => controlsRef.current?.explainSelection(step.snippet),
+            EXPLAIN_TOOLBAR_MS,
+          );
         } else {
+          // §3 v2 (focus rule): the conversation must be on top while Airo works.
+          controlsRef.current?.focusPanel('chat');
           sendRef.current?.(step.prompt);
         }
         return; // `onStepApplied` advances when the canned turn settles
@@ -199,11 +219,20 @@ export function TryPlaygroundPage() {
         advanceTo(card + 1);
         return;
       }
-      case 'asset-magic':
-        runAssetMagic(card);
+      case 'asset-generate':
+        runAssetStep(card, () => controlsRef.current?.requestAssetGen(TOUR_ASSET_PROMPT));
         return;
+      case 'asset-remix': {
+        // Remix the just-generated sticker (the newest generated entry).
+        const ref = generatedAssets().at(-1);
+        runAssetStep(card, () =>
+          controlsRef.current?.requestAssetGen(TOUR_REMIX_PROMPT, { refAssetPath: ref?.path }),
+        );
+        return;
+      }
       case 'open-guide':
-        controlsRef.current?.focusPanel('help');
+        // §3 step 10: the Guide opens directly on its most diagram-rich page.
+        controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC);
         advanceTo(card + 1);
         return;
       case 'advance':

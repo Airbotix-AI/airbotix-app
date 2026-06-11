@@ -1,7 +1,8 @@
-// The T1 v2 tour data (try-demo-mode-prd §3 v0.5): 11 cards, the PRD's arc in
-// order, a mandatory (non-skippable) landing step beside the input, scripted
-// steps fired exactly once each, and short next-labels (the overlay's Next pill
-// must never overflow the card).
+// The T1 v2 tour data (try-demo-mode-prd §3 v0.6): 13 cards, the PRD's arc in
+// order (incl. the 3-card beautify loop: generate → remix → into the game), a
+// mandatory (non-skippable) landing step beside the input, scripted steps fired
+// exactly once each, and short next-labels (the overlay's Next pill must never
+// overflow the card).
 
 import { describe, expect, it } from 'vitest';
 
@@ -12,16 +13,18 @@ import { PLAYGROUND_TOUR } from './demoTour.playground';
 const MAX_NEXT_LABEL_CHARS = 24;
 
 describe('PLAYGROUND_TOUR (v2)', () => {
-  it('is the 11-step PRD arc, in order', () => {
-    expect(PLAYGROUND_TOUR).toHaveLength(11);
+  it('is the 13-card PRD arc, in order', () => {
+    expect(PLAYGROUND_TOUR).toHaveLength(13);
     expect(PLAYGROUND_TOUR.map((c) => c.action.kind)).toEqual([
       'landing-create', // 1 landing start
       'script', // 2 meet your game → ask 1
       'show-diff', // 3 one ask one change → diff jump
       'script', // 4 see the line → ask 2
       'script', // 5 keep score → explain-this
-      'asset-magic', // 6 explain card → beautify
-      'script', // 7 asset card → bug ask
+      'asset-generate', // 6 explain card → draw a sticker (7a)
+      'asset-remix', // 7a sticker card → remix it (7b)
+      'script', // 7b remix card → wire it into the game (7c)
+      'script', // 7c in-game card → bug ask
       'script', // 8 error card → fix ask
       'open-guide', // 9 fixed card → guide
       'advance', // 10 guide card

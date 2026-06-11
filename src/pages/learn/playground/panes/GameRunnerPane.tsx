@@ -31,8 +31,12 @@ function baseName(file: string): string {
   return file.split(/[\\/]/).pop() || file;
 }
 
-/** Kid-friendly prompt for the AI from a captured error line (with its location). */
-function fixPrompt(line: ConsoleLine): string {
+/** Kid-friendly prompt for the AI from a captured error line (with its location).
+ *  Exported: the try-demo scripted agent recognises this exact shape so the
+ *  console's "Ask AI to fix" continues the demo script (drift-alarmed in
+ *  `src/pages/try/scriptedAgent.test.ts` — keep them matching). */
+// eslint-disable-next-line react-refresh/only-export-components
+export function fixPrompt(line: ConsoleLine): string {
   const where = line.loc ? ` (in ${baseName(line.loc.file)}, line ${line.loc.line})` : '';
   return `My game has an error${where}: ${line.text}\nCan you fix it?`;
 }

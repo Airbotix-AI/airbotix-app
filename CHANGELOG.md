@@ -6,6 +6,36 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Changed
+- **`/try/playground` tour refinement pass (try-demo-mode-prd §3 v0.6, 8 tweaks).**
+  (1) Only the tour card creates the game: the landing's own send button is disabled and
+  Enter is inert while the demo locks the prompt (2-line conditional in `LandingScreen`).
+  (2) The generating phase now plays the REAL first-build progress UI: a `demoBuild` branch
+  in `GeneratingScreen` feeds the bundled starter's files through the same thinking →
+  building (file-by-file reveal) → done pipeline a real streamed turn drives, and the new
+  canned `firstTurnReply` seeds the workspace chat exactly like a real first turn (no more
+  generic loading screen + starter message). (3) The acting window always comes to front:
+  scripted chat asks focus the Chat window before sending (diff/explain/asset/guide/run
+  already focused theirs). (4) The explain step now SHOWS the real "✨ Explain this"
+  floating toolbar first: the editor jump gained an optional `select` mode
+  (`openFileAt(..., select)` → Monaco `setSelection` through the REAL selection pipeline,
+  so the toolbar pops over the snippet), holds the beat ~1.6s, then fires the toolbar's own
+  handler. (5) "Make it beautiful" is now a 3-card loop that closes: generate the apple
+  sticker → remix it golden → a new scripted edit wires the remixed asset in as the game's
+  apple (+ auto-restart, so the user sees THEIR art in-game). Demo generations serve
+  hand-crafted SVG art (gradient/shaded apple + golden sparkly remix + a glossy generic
+  fallback, `demoAssets.playground.ts`) via a new `setDemoAssetGen` seam — the real offline
+  stub's deterministic swatches are untouched. (7) The console's real "Ask AI to fix"
+  button continues the script: the scripted agent recognises the console's fix-request
+  prompt (`consoleFixTrigger` + `isConsoleFixPrompt`, drift-alarmed against the exported
+  `fixPrompt`) and replays the fix turn + advances the tour — no contact-us dead end.
+  (8) The demo Game Guide now bundles the REAL corpus (verbatim copy of
+  `platform-backend/src/help/help-content.ts`, drift-alarmed in tests against the sibling
+  source) and the guide step opens directly on the most diagram-rich page
+  (`engine/scenes-and-the-game-loop`, 2 diagrams) via a new `openGuide` studio control.
+  Tour is now 13 cards; script v3 (6 steps). e2e smoke updated (13-card walk + landing
+  inert + console-button path); unit tests cover every new seam.
+
 ### Fixed
 - **Game Runner console now auto-scrolls to the latest output.** The console's scroll
   container had no scroll management: it opened scrolled to the TOP, so the newest line —

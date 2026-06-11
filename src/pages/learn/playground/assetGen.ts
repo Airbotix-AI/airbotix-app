@@ -45,6 +45,15 @@ export interface AssetGenDeps {
 
 export const realAssetGenDeps: AssetGenDeps = { generate: generateAsset };
 
+// ── Try-demo seam (try-demo-mode-prd §3 step 7) ───────────────────────────────
+// The public `/try/playground` demo serves hand-crafted offline art through this
+// seam (the plain e2e/dev stub keeps its deterministic swatches untouched).
+// Installed/cleared by `src/pages/try/demoAdapters.ts`; null (off) everywhere else.
+let demoAssetGen: ((req: GenAssetRequest) => Promise<GenAssetResult>) | null = null;
+export function setDemoAssetGen(gen: ((req: GenAssetRequest) => Promise<GenAssetResult>) | null): void {
+  demoAssetGen = gen;
+}
+
 /**
  * Generate one asset. With a `projectId` (real studio) it routes through the
  * backend; without one (a project-less session) it falls back to the offline stub so the
@@ -56,6 +65,8 @@ export function runGen(
   deps: AssetGenDeps = realAssetGenDeps,
   signal?: AbortSignal,
 ): Promise<GenAssetResult> {
+  // Demo mode: the bundled demo art, no network (try-demo-mode-prd §3 step 7).
+  if (demoAssetGen) return demoAssetGen(req);
   if (req.projectId) return deps.generate(req, signal);
   return generateAssetStub(req);
 }

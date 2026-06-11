@@ -19,34 +19,52 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   `setDemoBlocksAdapter`);
 - `demoStarter.playground.ts` (emoji-art catcher starter — its sprites are real
   VFS assets surfaced in the Asset Viewer) + `demoScript.playground.ts`
-  (versioned 5-step script: edit ×2 → explain → deliberate-bug → fix) +
+  (versioned 6-step script: edit ×2 → explain → wire-remixed-asset →
+  deliberate-bug → fix; also carries the locked prompt, the canned first-build
+  reply, and the tour's asset/remix prompts + the remix output path) +
   `scriptedAgent.ts` — replayed through the real `RunTurn` seam and store funnel
-  (D-DEMO-04);
-- `demoTour.playground.ts` — the T1 v2 11-card tour DATA (copy + placement +
+  (D-DEMO-04). The fix step ALSO fires from the console's real "Ask AI to fix"
+  button (`consoleFixTrigger` + `isConsoleFixPrompt`, drift-alarmed against the
+  REAL `fixPrompt` in `GameRunnerPane`);
+- `demoTour.playground.ts` — the T1 v2 13-card tour DATA (copy + placement +
   action per card); `TryPlaygroundPage.tsx` is the engine that fires the actions;
-- `demoHelp.playground.ts` — the bundled offline Game Guide corpus
-  (served via `setDemoHelpCorpus` through the pane's real loader);
+- `demoHelp.playground.ts` — the REAL Game Guide corpus, bundled (a verbatim
+  copy of `platform-backend/src/help/help-content.ts`, served via
+  `setDemoHelpCorpus` through the pane's real loader; the copy is drift-alarmed
+  against the backend source in `demoHelp.playground.test.ts`);
+- `demoAssets.playground.ts` — hand-crafted offline asset art (the tour's apple
+  sticker + golden remix, and a glossy generic fallback) behind the
+  `setDemoAssetGen` seam, so the e2e/dev stub's swatches stay untouched;
 - `demoStory.blocks.ts` — the bundled 3-page "Cat's Day Out" `BlocksProject`;
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
   (D-DEMO-05, step-aware placements) + demo banner + public pages.
 
-## T1 v2 tour step map (PRD §3 v0.5 — keep in sync with `demoTour.playground.ts`)
+## T1 v2 tour step map (PRD §3 v0.6 — keep in sync with `demoTour.playground.ts`)
+
+The landing's own submit button/Enter are INERT in the demo (only card 0's
+"Create the game", bound to the same real `submit`, creates the game), and the
+generating phase plays the REAL progress UI (the bundled starter's files reveal
+one-by-one through GeneratingScreen's real thinking → building → done arc; the
+canned `firstTurnReply` seeds the chat like a real first turn).
 
 | Card | PRD step | Action (`Next` at the frontier) | Real affordance driven |
 |---|---|---|---|
 | 0 | 1 landing start | `landing-create` | REAL landing phase: locked prompt, card `beside-input`, **not skippable**, submit via `bindLandingSubmit` |
-| 1 | 2 meet your game | `script` step 0 (faster apples) | workspace entry auto-ran the game (`runGame` = editor ▶ Play path) |
+| 1 | 2 meet your game | `script` step 0 (faster apples) | workspace entry auto-ran the game (`runGame` = editor ▶ Play path); chat focused before every scripted send |
 | 2 | 3 one ask → one change | `show-diff` step 0 | `openFileAt` — the changed-file-row jump+highlight |
 | 3 | 4 see the line | `script` step 1 (score +10) | chat send via `bindChatSend` |
-| 4 | 5 keep score | `script` step 2 (explain) | editor highlight + `explainSelection` (the ✨ Explain-this path, prompt = `buildExplainPrompt`) |
-| 5 | 6 explain card | `asset-magic` | Asset Viewer generate → remix via the offline stubs (`requestAssetGen`) |
-| 6 | 7 beautify card | `script` step 3 (deliberate bug) | the diff calls an undefined method → REAL console error |
-| 7 | 8 error card | `script` step 4 (fix) | scripted fix turn repairs it |
-| 8 | 9 fixed card | `open-guide` | `focusPanel('help')` — offline corpus via `setDemoHelpCorpus` |
-| 9 | 10 guide card | `advance` | — |
-| 10 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
+| 4 | 5 keep score | `script` step 2 (explain) | `openFileAt(..., select)` runs the REAL selection pipeline → the live "✨ Explain this" toolbar appears over the snippet → after a beat the tour fires `explainSelection` (the toolbar's own handler; prompt = `buildExplainPrompt`) |
+| 5 | 6 explain card | `asset-generate` | Asset Viewer generate (`requestAssetGen`, crafted offline art) |
+| 6 | 7a sticker card | `asset-remix` | remix the generated sticker (`requestAssetGen` + `refAssetPath`) |
+| 7 | 7b remix card | `script` step 3 (wire asset) | the remixed sticker becomes the game's apple → auto-restart shows it live |
+| 8 | 7c in-game card | `script` step 4 (deliberate bug) | the diff calls an undefined method → REAL console error |
+| 9 | 8 error card | `script` step 5 (fix) | scripted fix turn repairs it — ALSO fires from the console's real "Ask AI to fix" button (`consoleFixTrigger`) |
+| 10 | 9 fixed card | `open-guide` | `openGuide('engine/scenes-and-the-game-loop')` — the REAL corpus's most diagram-rich page |
+| 11 | 10 guide card | `advance` | — |
+| 12 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
 
-Every `edit` script step auto-restarts the game (`runGame`) after its diff lands.
+Every `edit` script step auto-restarts the game (`runGame`) after its diff lands;
+every step focuses the window it acts on first (chat / code / assets / help / game).
 
 ## Non-negotiable rules (D-DEMO-01…08)
 

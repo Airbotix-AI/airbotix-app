@@ -165,11 +165,12 @@ export function Workspace({
     file: string;
     line: number;
     toLine?: number;
+    select?: boolean;
     nonce: number;
   } | null>(null);
   const jumpNonce = useRef(0);
-  const handleOpenLocation = (file: string, line: number, toLine?: number) => {
-    setLocationRequest({ file, line, toLine, nonce: (jumpNonce.current += 1) });
+  const handleOpenLocation = (file: string, line: number, toLine?: number, select?: boolean) => {
+    setLocationRequest({ file, line, toLine, select, nonce: (jumpNonce.current += 1) });
     // Bring the editor forward so the kid sees the jump.
     if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
     else setSplitTab('code');
@@ -327,6 +328,7 @@ export function Workspace({
       openFileAt: handleOpenLocation,
       explainSelection: handleExplainCode,
       requestAssetGen: requestAssetGenFromViewer,
+      openGuide: openHelp,
     });
   });
 

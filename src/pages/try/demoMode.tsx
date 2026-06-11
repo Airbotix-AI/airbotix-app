@@ -28,12 +28,16 @@ export interface DemoStudioControls {
   runGame: () => void;
   /** Open/focus a studio panel (window mode) or its split tab. */
   focusPanel: (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => void;
-  /** The changed-file-row jump: open the editor at a file + highlight lines. */
-  openFileAt: (path: string, line: number, toLine?: number) => void;
+  /** The changed-file-row jump: open the editor at a file + highlight lines.
+   *  `select` selects the range through the real selection pipeline instead,
+   *  surfacing the "✨ Explain this" floating toolbar. */
+  openFileAt: (path: string, line: number, toLine?: number, select?: boolean) => void;
   /** The "✨ Explain this" toolbar path: send a snippet to chat for explaining. */
   explainSelection: (code: string) => void;
   /** The Asset Viewer's Generate/Remix entry (offline stub in a demo session). */
   requestAssetGen: (prompt: string, ref?: { refAssetPath?: string }) => void;
+  /** The agent's `open_help` path: surface the Game Guide opened at a doc. */
+  openGuide: (docId: string, anchor?: string) => void;
 }
 
 export interface DemoMode {
@@ -50,6 +54,13 @@ export interface DemoMode {
    * it (chips / mic) — the demo starts on the real landing phase.
    */
   lockedPrompt?: string;
+  /**
+   * T1 only (§3 step 1→2): Airo's canned first-build reply. The REAL
+   * GeneratingScreen plays its scripted build through the real progress UI
+   * (thinking → file-by-file → done) and this reply seeds the workspace chat,
+   * exactly like a real streamed first turn.
+   */
+  firstTurnReply?: string;
   /**
    * T1 only (§3 step 1): the landing screen registers its real `submit` here so
    * the tour card's "Create the game" drives the REAL create flow.

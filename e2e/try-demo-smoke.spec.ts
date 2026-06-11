@@ -6,9 +6,9 @@
 // story/overlay, it fails here — update src/pages/try/ in the same task
 // (see AGENTS.md).
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
-function trackForbidden(page: import('@playwright/test').Page): string[] {
+function trackForbidden(page: Page): string[] {
   const forbidden: string[] = [];
   page.on('request', (req) => {
     const url = new URL(req.url());
@@ -20,13 +20,14 @@ function trackForbidden(page: import('@playwright/test').Page): string[] {
   return forbidden;
 }
 
-test('try/playground: the 11-step v2 tour → free explore → AI gate', async ({ page }) => {
-  test.setTimeout(120_000); // the tour walks the whole studio (Phaser + Monaco)
-  const forbidden = trackForbidden(page);
+/** Walk the tour from the landing through to the "Even pros hit errors" card
+ *  (the bug has landed and the REAL console shows the error). Shared by the
+ *  Next-button path and the console-button path below. */
+async function walkToErrorCard(page: Page) {
   await page.goto('/try/playground');
 
   // 1 — REAL landing phase: prompt pre-filled + locked, card beside the input,
-  //     NOT skippable; "Create the game" drives the real create flow.
+  //     NOT skippable; ONLY the tour card creates (the landing submit is inert).
   await expect(page.getByTestId('demo-banner')).toBeVisible();
   await expect(page.getByTestId('tour-title')).toHaveText('Every game starts with a sentence');
   await expect(page.getByTestId('tour-card')).toHaveAttribute('data-placement', 'beside-input');
@@ -34,10 +35,21 @@ test('try/playground: the 11-step v2 tour → free explore → AI gate', async (
   const prompt = page.getByLabel('Describe a game');
   await expect(prompt).toHaveValue(/fruit-catcher game/);
   await expect(prompt).toHaveAttribute('readonly', '');
+  await expect(page.getByLabel('Build game')).toBeDisabled(); // tweak: inert real submit
   await page.getByTestId('tour-next').click(); // Create the game
 
-  // 2 — workspace entry auto-opens the Game Runner and STARTS the game.
+  // 1→2 — the REAL generating progress plays: the starter's files reveal
+  //       one-by-one through the same thinking → building → done arc.
   await expect(page.getByTestId('generating-screen')).toBeVisible();
+  await expect(page.getByText('Building your game', { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByTestId('generating-screen').getByText('Game.js')).toBeVisible({
+    timeout: 10_000,
+  });
+
+  // 2 — workspace entry auto-opens the Game Runner and STARTS the game; the
+  //     canned first-turn reply seeded the chat like a real first build.
   await expect(page.getByTestId('tour-title')).toHaveText('Meet your game', { timeout: 20_000 });
   await expect(page.getByTestId('tour-skip')).toBeVisible(); // skippable from here on
   await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
@@ -56,23 +68,42 @@ test('try/playground: the 11-step v2 tour → free explore → AI gate', async (
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Keep score', { timeout: 15_000 });
 
-  // 6 — explain-this: the snippet flows through the real selection→chat path and
-  //     the scripted agent answers in plain words.
+  // 6 — explain-this: the REAL selection pipeline pops the live "✨ Explain
+  //     this" toolbar over the selected snippet FIRST, then the explain fires
+  //     and the scripted agent answers in plain words.
   await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('explain-selection')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId('tour-title')).toHaveText('Code that explains itself', { timeout: 15_000 });
   await expect(page.getByText(/runs every time an apple lands/)).toBeVisible();
 
-  // 7 — asset step: generate + remix through the Asset Viewer's offline stubs;
-  //     the generated entries join the emoji-art starter assets in the viewer.
+  // 7a — beautify, card 1: Airo draws the apple sticker (crafted offline art)
+  //      into the Asset Viewer (2 emoji starters + 1 generated).
   await page.getByTestId('tour-next').click();
-  await expect(page.getByTestId('tour-title')).toHaveText('Make it beautiful', { timeout: 30_000 });
-  await expect(page.getByTestId('asset-card')).toHaveCount(4, { timeout: 10_000 }); // 2 emoji + 2 generated
+  await expect(page.getByTestId('tour-title')).toHaveText('Airo can draw, too', { timeout: 30_000 });
+  await expect(page.getByTestId('asset-card')).toHaveCount(3, { timeout: 10_000 });
 
-  // 8 — scripted ask 3 deliberately lands a bug → the runner's REAL console
+  // 7b — beautify, card 2: remix the sticker (golden + sparkly) → 4 assets.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Remix until it sparkles', { timeout: 30_000 });
+  await expect(page.getByTestId('asset-card')).toHaveCount(4, { timeout: 10_000 });
+
+  // 7c — beautify, card 3: the remixed sticker is wired INTO the game (a
+  //      scripted edit) → auto-restart shows the new art live.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Your art, in your game', { timeout: 15_000 });
+  await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
+
+  // 8 — scripted ask deliberately lands a bug → the runner's REAL console
   //     auto-opens with the error at the right file.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Even pros hit errors', { timeout: 15_000 });
   await expect(page.getByText(/makeWinBanner is not a function/)).toBeVisible({ timeout: 20_000 });
+}
+
+test('try/playground: the 13-card v2 tour → free explore → AI gate', async ({ page }) => {
+  test.setTimeout(180_000); // the tour walks the whole studio (Phaser + Monaco)
+  const forbidden = trackForbidden(page);
+  await walkToErrorCard(page);
 
   // 9 — the fix turn repairs it → auto-restart → the game runs again.
   await page.getByTestId('tour-next').click();
@@ -81,10 +112,12 @@ test('try/playground: the 11-step v2 tour → free explore → AI gate', async (
   });
   await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
 
-  // 10 — the in-studio Game Guide opens with the bundled offline corpus.
+  // 10 — the in-studio Game Guide opens on the REAL corpus's most diagram-rich
+  //      page (the game-loop doc with its two diagrams).
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Stuck? The Guide knows');
   await expect(page.getByTestId('help-pane')).toBeVisible();
+  await expect(page.getByTestId('help-diagram-game-loop')).toBeVisible();
   await expect(page.getByTestId('help-nav-doc-engine/what-is-an-engine')).toBeVisible();
 
   // 11 — free explore: the applied diffs flowed through the real funnel (undo
@@ -99,6 +132,24 @@ test('try/playground: the 11-step v2 tour → free explore → AI gate', async (
   await page.getByTestId('chat-input').fill('make me a dragon game');
   await page.getByTestId('chat-input').press('Enter');
   await expect(page.getByText(/airbotix\.ai\/book/)).toBeVisible({ timeout: 10_000 });
+
+  expect(forbidden).toEqual([]);
+});
+
+test('try/playground: the console\'s real "Ask AI to fix" continues the script', async ({ page }) => {
+  test.setTimeout(180_000);
+  const forbidden = trackForbidden(page);
+  await walkToErrorCard(page);
+
+  // Instead of the tour's Next, click the REAL console affordance: the scripted
+  // agent recognises the console's fix-request prompt, replays the fix turn,
+  // restarts the game, and the tour advances to the fix card by itself.
+  await page.getByRole('button', { name: 'Ask AI to fix' }).click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Airo reads the console and fixes it', {
+    timeout: 15_000,
+  });
+  await expect(page.getByText(/Found it! 🔧/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
 
   expect(forbidden).toEqual([]);
 });

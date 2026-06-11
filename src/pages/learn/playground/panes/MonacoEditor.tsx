@@ -42,6 +42,10 @@ export interface JumpTarget {
   /** When set, highlight the inclusive [line, toLine] range (agent highlight_code). */
   toLine?: number
   column?: number
+  /** When set (with `toLine`), SELECT the range instead of decorating it — the
+   *  selection runs the real selection pipeline, so the "✨ Explain this"
+   *  floating toolbar appears exactly as if the kid dragged it. Default off. */
+  select?: boolean
   nonce: number
 }
 
@@ -166,29 +170,46 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
     })
   }
 
-  // Jump to a line on request. The model is already updated (the value-sync
-  // effect of the inner <Editor> is a child effect, so it runs before this
-  // parent effect), so revealing/positioning here lands on the new content.
-  useEffect(() => {
-    const ed = editorRef.current
-    if (!ed || !jumpTo) return
-    ed.revealLineInCenter(jumpTo.line)
-    ed.setPosition({ lineNumber: jumpTo.line, column: jumpTo.column ?? 1 })
-    // highlight_code: flag the [line, toLine] range so the kid sees exactly what
-    // the agent changed. A plain jump (no toLine) clears any prior highlight.
-    const end = jumpTo.toLine && jumpTo.toLine >= jumpTo.line ? jumpTo.toLine : null
+  // Apply a jump request: reveal, then either SELECT the range (runs the real
+  // selection pipeline, so the "✨ Explain this" toolbar appears exactly as for
+  // a hand-dragged selection — no decoration needed, the selection IS the
+  // highlight) or place the caret + decorate the [line, toLine] range so the
+  // kid sees exactly what the agent changed.
+  const applyJump = (ed: monaco.editor.IStandaloneCodeEditor, target: JumpTarget) => {
+    ed.revealLineInCenter(target.line)
+    const end = target.toLine && target.toLine >= target.line ? target.toLine : null
+    if (target.select && end) {
+      const endCol = ed.getModel()?.getLineMaxColumn(end) ?? 1
+      ed.setSelection(new monaco.Selection(target.line, 1, end, endCol))
+      highlightRef.current = ed.deltaDecorations(highlightRef.current, [])
+      ed.focus()
+      return
+    }
+    ed.setPosition({ lineNumber: target.line, column: target.column ?? 1 })
+    // A plain jump (no toLine) clears any prior highlight.
     highlightRef.current = ed.deltaDecorations(
       highlightRef.current,
       end
         ? [
             {
-              range: new monaco.Range(jumpTo.line, 1, end, 1),
+              range: new monaco.Range(target.line, 1, end, 1),
               options: { isWholeLine: true, className: 'pg-code-highlight' },
             },
           ]
         : [],
     )
     ed.focus()
+  }
+  const applyJumpRef = useRef(applyJump)
+  applyJumpRef.current = applyJump
+
+  // Jump to a line on request. The model is already updated (the value-sync
+  // effect of the inner <Editor> is a child effect, so it runs before this
+  // parent effect), so revealing/positioning here lands on the new content.
+  useEffect(() => {
+    const ed = editorRef.current
+    if (!ed || !jumpTo) return
+    applyJumpRef.current(ed, jumpTo)
   }, [jumpTo])
 
   return (
@@ -216,12 +237,11 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
             highlightRef.current = editor.deltaDecorations(highlightRef.current, [])
           }
         })
-        // A pending jump (requested before mount) lands once the editor exists.
-        if (jumpTo) {
-          editor.revealLineInCenter(jumpTo.line)
-          editor.setPosition({ lineNumber: jumpTo.line, column: jumpTo.column ?? 1 })
-        }
+        // The toolbar's selection listener must exist BEFORE a pending jump's
+        // select fires, so a programmatic selection surfaces it too.
         setupExplainToolbar(editor)
+        // A pending jump (requested before mount) lands once the editor exists.
+        if (jumpTo) applyJumpRef.current(editor, jumpTo)
       }}
       options={{
         // `showSlider: 'always'` keeps the viewport rectangle visible so it

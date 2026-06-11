@@ -74,7 +74,9 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      submit()
+      // Demo (§3 step 1): only the tour card creates the game — the read-only
+      // textarea must not submit on Enter.
+      if (!locked) submit()
     }
   }
 
@@ -169,11 +171,12 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             </button>
             )}
 
-            {/* Send button */}
+            {/* Send button — inert in the demo (§3 step 1: only the tour card's
+                "Create the game", bound to the same `submit`, fires it). */}
             <button
               type="button"
               onClick={submit}
-              disabled={!prompt.trim()}
+              disabled={locked || !prompt.trim()}
               aria-label="Build game"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sky text-xl text-canvas-pure transition-opacity disabled:opacity-40"
             >

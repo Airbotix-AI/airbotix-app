@@ -1,11 +1,11 @@
 // The T1 v2 full-product-tour cards for `/try/playground` (try-demo-mode-prd §3
-// v0.5 — the 11-step arc: create → play → change → understand → beautify →
-// break-and-fix → help → free explore). DATA ONLY: each card carries the overlay
-// copy (concise, adult-facing, journey-only — no technical/meta detail), the
-// PLACEMENT hint (a card never covers the surface it points at), and the ACTION
-// its "Next" fires; `TryPlaygroundPage` is the engine that runs the actions
-// through the studio's real affordances. Script-step indexes refer to
-// `PLAYGROUND_DEMO_SCRIPT.steps`.
+// v0.6 — the arc: create → play → change → understand → beautify (generate →
+// remix → into the game) → break-and-fix → help → free explore). DATA ONLY: each
+// card carries the overlay copy (concise, adult-facing, journey-only — no
+// technical/meta detail), the PLACEMENT hint (a card never covers the surface it
+// points at), and the ACTION its "Next" fires; `TryPlaygroundPage` is the engine
+// that runs the actions through the studio's real affordances. Script-step
+// indexes refer to `PLAYGROUND_DEMO_SCRIPT.steps`.
 
 import type { DemoTourStep } from './DemoTourOverlay';
 
@@ -14,18 +14,15 @@ export type PlaygroundTourAction =
   | { kind: 'landing-create' } // drive the real landing submit (locked prompt)
   | { kind: 'script'; step: number } // fire script step N through the real chat
   | { kind: 'show-diff'; step: number } // editor jump+highlight on step N's change
-  | { kind: 'asset-magic' } // Asset Viewer: generate + remix via the offline stubs
-  | { kind: 'open-guide' } // open the in-studio Game Guide
+  | { kind: 'asset-generate' } // Asset Viewer: generate the apple sticker (§3 7a)
+  | { kind: 'asset-remix' } // Asset Viewer: remix the generated sticker (§3 7b)
+  | { kind: 'open-guide' } // open the in-studio Game Guide at the diagram doc
   | { kind: 'advance' } // just move to the next card
   | { kind: 'finish' }; // drop into free explore
 
 export interface PlaygroundTourCard extends DemoTourStep {
   action: PlaygroundTourAction;
 }
-
-/** The Asset Viewer generation the tour runs (step 7), and its remix follow-up. */
-export const TOUR_ASSET_PROMPT = 'a shiny red apple sticker';
-export const TOUR_REMIX_PROMPT = 'make it golden and sparkly';
 
 export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   {
@@ -77,20 +74,38 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   {
     title: 'Code that explains itself',
     body:
-      'Select any code and ask Airo to explain it — plain words, no jargon. ' +
-      'Curiosity always gets an answer here.',
-    nextLabel: 'Make it beautiful',
+      'Watch: the scoring code gets selected, the ✨ Explain this button pops up ' +
+      'over it, and Airo answers in plain words. Curiosity always gets an answer.',
+    nextLabel: 'Draw a new apple',
     placement: 'bottom-left',
-    action: { kind: 'asset-magic' },
+    action: { kind: 'asset-generate' },
   },
   {
-    title: 'Make it beautiful',
+    title: 'Airo can draw, too',
     body:
       'The Asset Viewer holds the game’s art — the same apples and basket on ' +
-      'screen. Airo just drew a new sticker and remixed it until it sparkled.',
-    nextLabel: 'Ask: “You win!” at 100',
+      'screen. Airo just drew a brand-new apple sticker from one sentence.',
+    nextLabel: 'Remix it: gold ✨',
+    placement: 'bottom-right',
+    action: { kind: 'asset-remix' },
+  },
+  {
+    title: 'Remix until it sparkles',
+    body:
+      'Not quite right? Remix it — same sticker, new twist, as many times as it ' +
+      'takes. Golden and sparkly it is.',
+    nextLabel: 'Use it in the game',
     placement: 'bottom-right',
     action: { kind: 'script', step: 3 },
+  },
+  {
+    title: 'Your art, in your game',
+    body:
+      'The remixed sticker just became the real apple — look at the game: golden ' +
+      'apples are falling. Imagine, draw, play: the whole loop in one place.',
+    nextLabel: 'Ask: “You win!” at 100',
+    placement: 'bottom-left',
+    action: { kind: 'script', step: 4 },
   },
   {
     title: 'Even pros hit errors',
@@ -99,7 +114,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
       'line. Reading an error calmly is a superpower we teach early.',
     nextLabel: 'Ask Airo to fix it',
     placement: 'bottom-left',
-    action: { kind: 'script', step: 4 },
+    action: { kind: 'script', step: 5 },
   },
   {
     title: 'Airo reads the console and fixes it',
@@ -113,8 +128,8 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   {
     title: 'Stuck? The Guide knows',
     body:
-      'A built-in, kid-friendly guide to game-making — searchable, with a Simple ' +
-      'or More reading level. Help is always one tap away.',
+      'The same guide your child reads in lessons — searchable, diagram-rich, with ' +
+      'a Simple or More reading level. Help is always one tap away.',
     nextLabel: 'Last step',
     placement: 'bottom-right',
     action: { kind: 'advance' },

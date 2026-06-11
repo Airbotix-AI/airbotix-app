@@ -88,6 +88,22 @@ describe('playground demo adapters', () => {
     expect(plain.summary).not.toBe(step0.reply);
   });
 
+  it('serves crafted offline asset art through the gen seam while armed (§3 step 7)', async () => {
+    const { runGen } = await import('../learn/playground/assetGen');
+    const { TOUR_ASSET_PROMPT } = await import('./demoScript.playground');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    installPlaygroundDemo(agent());
+    const crafted = await runGen({ prompt: TOUR_ASSET_PROMPT });
+    expect(crafted.mime).toBe('image/svg+xml');
+    expect(atob(crafted.dataUrl.split(',')[1])).toContain('radialGradient'); // composed art
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Uninstalled → the plain stub's deterministic swatch again (untouched).
+    uninstallPlaygroundDemo();
+    const stub = await runGen({ prompt: TOUR_ASSET_PROMPT });
+    expect(stub.dataUrl).not.toBe(crafted.dataUrl);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('serves the bundled Game Guide corpus offline while armed (§3 step 10)', async () => {
     const { loadHelpCorpus } = await import('../learn/playground/panes/help/helpApi');
     const fetchSpy = vi.spyOn(globalThis, 'fetch');

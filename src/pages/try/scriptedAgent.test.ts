@@ -6,14 +6,21 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildExplainPrompt } from '../learn/playground/panes/explainPrompt';
+import { fixPrompt } from '../learn/playground/panes/GameRunnerPane';
 import {
   CONTACT_GATE_MESSAGE,
   locateLines,
   PLAYGROUND_DEMO_SCRIPT,
+  TOUR_REMIX_ASSET_PATH,
   type DemoEditStep,
 } from './demoScript.playground';
 import { DEMO_GAME_FILE, demoStarterFiles } from './demoStarter.playground';
-import { applyScriptStep, createScriptedDemoAgent, matchesStep } from './scriptedAgent';
+import {
+  applyScriptStep,
+  createScriptedDemoAgent,
+  isConsoleFixPrompt,
+  matchesStep,
+} from './scriptedAgent';
 
 /** The canned prompt that triggers step `i` (the explain step uses the REAL
  *  explain-this prompt, exactly as the selection toolbar builds it). */
@@ -28,17 +35,24 @@ const editStep = (i: number): DemoEditStep => {
   return step;
 };
 
-describe('PLAYGROUND_DEMO_SCRIPT (v2)', () => {
-  it('locks a non-empty initial prompt and ships the 5-step v2 arc', () => {
+describe('PLAYGROUND_DEMO_SCRIPT (v3)', () => {
+  it('locks a non-empty initial prompt + first-turn reply, and ships the 6-step arc', () => {
     expect(PLAYGROUND_DEMO_SCRIPT.lockedPrompt.length).toBeGreaterThan(0);
-    expect(PLAYGROUND_DEMO_SCRIPT.version).toBeGreaterThanOrEqual(2);
+    expect(PLAYGROUND_DEMO_SCRIPT.firstTurnReply.length).toBeGreaterThan(0);
+    expect(PLAYGROUND_DEMO_SCRIPT.version).toBeGreaterThanOrEqual(3);
     expect(PLAYGROUND_DEMO_SCRIPT.steps.map((s) => s.kind)).toEqual([
       'edit', // faster apples
       'edit', // score +10
       'explain', // explain-this
+      'edit', // wire the remixed sticker into the game (§3 step 7c)
       'edit', // deliberate bug ("You win!" calls an undefined method)
       'edit', // the fix turn
     ]);
+    // Only the fix step doubles as the console's "Ask AI to fix" trigger.
+    const fixTriggers = PLAYGROUND_DEMO_SCRIPT.steps.filter(
+      (s) => s.kind === 'edit' && s.consoleFixTrigger,
+    );
+    expect(fixTriggers).toEqual([PLAYGROUND_DEMO_SCRIPT.steps[5]]);
   });
 
   it('every anchor applies to the sequentially-evolved starter (no drift)', () => {
@@ -63,20 +77,30 @@ describe('PLAYGROUND_DEMO_SCRIPT (v2)', () => {
     const finalGame = files.find((f) => f.path === DEMO_GAME_FILE)!.content;
     expect(finalGame).toContain('const FALL_SPEED = 260;');
     expect(finalGame).toContain('const POINTS_PER_CATCH = 10;');
+    expect(finalGame).toContain(`'${TOUR_REMIX_ASSET_PATH}'`); // the remixed apple is wired in
     expect(finalGame).toContain('const WIN_SCORE = 100;');
     expect(finalGame).toMatch(/^ {2}makeWinBanner\(\) \{/m); // the fix defined it
     expect(finalGame).toContain("'You win! 🏆'");
   });
 
-  it('the bug step lands a REAL runtime error that the fix step repairs (§3 8–9)', () => {
+  it('the wire step swaps the apple art for the tour-remixed sticker (§3 step 7c)', () => {
     let files = demoStarterFiles();
     for (const i of [0, 1]) files = applyScriptStep(editStep(i), files).files;
-    const broken = applyScriptStep(editStep(3), files);
+    const wired = applyScriptStep(editStep(3), files);
+    const game = wired.files.find((f) => f.path === DEMO_GAME_FILE)!.content;
+    expect(game).toContain(`this.load.image('apple', '${TOUR_REMIX_ASSET_PATH}');`);
+    expect(game).not.toContain("'assets/apple.svg'");
+  });
+
+  it('the bug step lands a REAL runtime error that the fix step repairs (§3 8–9)', () => {
+    let files = demoStarterFiles();
+    for (const i of [0, 1, 3]) files = applyScriptStep(editStep(i), files).files;
+    const broken = applyScriptStep(editStep(4), files);
     const brokenGame = broken.files.find((f) => f.path === DEMO_GAME_FILE)!.content;
     // create() calls makeWinBanner() — which is NOT defined → reliable TypeError.
     expect(brokenGame).toContain('this.winBanner = this.makeWinBanner();');
     expect(brokenGame).not.toMatch(/^ {2}makeWinBanner\(\) \{/m);
-    const fixed = applyScriptStep(editStep(4), broken.files);
+    const fixed = applyScriptStep(editStep(5), broken.files);
     const fixedGame = fixed.files.find((f) => f.path === DEMO_GAME_FILE)!.content;
     expect(fixedGame).toMatch(/^ {2}makeWinBanner\(\) \{/m);
   });
@@ -124,6 +148,41 @@ describe('createScriptedDemoAgent', () => {
     if (explain.kind !== 'explain') return;
     expect(matchesStep(explain, buildExplainPrompt(explain.snippet).trim())).toBe(true);
     expect(matchesStep(explain, 'explain this please')).toBe(false);
+  });
+
+  // ── DRIFT ALARM (§3 step 9): the console's REAL "Ask AI to fix" prompt must
+  // keep triggering the scripted fix turn. `fixPrompt` is the actual builder the
+  // console button calls — if its copy/shape changes, this fails loudly here,
+  // never silently in the public demo.
+  it('the console\'s real "Ask AI to fix" prompt triggers the fix step (drift alarm)', async () => {
+    const consolePrompt = fixPrompt({
+      level: 'error',
+      text: 'TypeError: this.makeWinBanner is not a function',
+      loc: { file: DEMO_GAME_FILE, line: 31, col: 5 },
+    });
+    expect(isConsoleFixPrompt(consolePrompt.trim())).toBe(true);
+    // …with or without a source location.
+    expect(
+      isConsoleFixPrompt(fixPrompt({ level: 'error', text: 'ReferenceError: x' }).trim()),
+    ).toBe(true);
+
+    const fixStep = editStep(5);
+    expect(matchesStep(fixStep, consolePrompt.trim())).toBe(true);
+    // Only the flagged fix step accepts it — every other step stays exact-match.
+    expect(matchesStep(editStep(0), consolePrompt.trim())).toBe(false);
+
+    // End-to-end through the agent: clicking the console button mid-script (at
+    // the error step) continues the script with the fix turn + advances the tour.
+    const onStepApplied = vi.fn();
+    const agent = createScriptedDemoAgent({ onStepApplied, turnDelayMs: 0 });
+    let files = demoStarterFiles();
+    for (const i of [0, 1, 2, 3, 4]) files = (await agent(promptFor(i), files)).files;
+    const fixed = await agent(consolePrompt, files);
+    expect(fixed.summary).toBe(fixStep.reply);
+    expect(onStepApplied).toHaveBeenLastCalledWith(5);
+    expect(fixed.files.find((f) => f.path === DEMO_GAME_FILE)!.content).toMatch(
+      /^ {2}makeWinBanner\(\) \{/m,
+    );
   });
 
   it('gates an off-script prompt without touching files or advancing (D-DEMO-06)', async () => {

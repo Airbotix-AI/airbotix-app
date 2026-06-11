@@ -45,6 +45,17 @@ describe('TryPlaygroundPage', () => {
     expect(screen.getByTestId('demo-banner')).toBeInTheDocument();
   });
 
+  it('only the tour card creates the game — the landing submit + Enter are inert', () => {
+    renderPage();
+    // The landing's own send button is disabled in demo mode…
+    expect(screen.getByLabelText('Build game')).toBeDisabled();
+    // …and Enter in the (read-only) prompt box must not create either: the
+    // studio stays on the landing phase.
+    fireEvent.keyDown(screen.getByLabelText('Describe a game'), { key: 'Enter' });
+    expect(screen.queryByTestId('generating-screen')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tour-next')).toHaveTextContent('Create the game');
+  });
+
   it('step 1 sits beside the input, is not skippable, and reads "Create the game"', () => {
     renderPage();
     expect(screen.getByTestId('tour-title')).toHaveTextContent('Every game starts with a sentence');
