@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (responsive Learn nav)
+
+### Fixed
+- **The Learn top-nav items no longer vanish in portrait / narrow widths** (`LearnTopBar.tsx`).
+  The inline nav is `hidden md:flex`, so below 768px (portrait tablet / phone) it disappeared with
+  no replacement. Added a hamburger button (`< md`) that opens a stacked dropdown with all nav
+  items (big tap targets, active item highlighted); it closes on navigate and respects the
+  light/dark studio theme. The inline nav returns at `≥ md` (landscape).
+
 ## 2026-06-11 (dev LAN host)
 
 ### Fixed

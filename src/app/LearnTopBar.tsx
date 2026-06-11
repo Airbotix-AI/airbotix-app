@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
+import { Menu, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
@@ -10,12 +12,25 @@ import '@/pages/learn/playground/playground.css';
 
 const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 
+const NAV_ITEMS = [
+  { to: '/learn/workspace', label: '✨ AI Studio' },
+  { to: '/learn', label: 'Home', end: true },
+  { to: '/learn/projects', label: 'Projects' },
+  { to: '/learn/create', label: 'Create' },
+  { to: '/learn/missions', label: 'Missions' },
+  { to: '/learn/classroom', label: 'Class wall' },
+];
+
 export function LearnTopBar() {
   const me = useMe();
   const logout = useLogout();
   const nickname = me.data?.kind === 'kid' ? me.data.nickname : null;
   const { pathname } = useLocation();
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+  // The inline nav collapses below `md` (portrait tablet / phone) into this menu.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]); // close on navigate
 
   // On the game/blocks studios the nav SYNCS with the studio theme: we set
   // `data-theme` on the header so the `pg-*` tokens flip (light ⇄ dark) to match
@@ -32,7 +47,7 @@ export function LearnTopBar() {
     <header
       data-theme={themed ? themeValue : undefined}
       className={clsx(
-        'sticky top-0 z-10 border-b backdrop-blur px-6 py-4 md:px-10',
+        'sticky top-0 z-20 border-b backdrop-blur px-6 py-4 md:px-10',
         themed ? 'border-pg-border bg-pg-surface/95 text-pg-text' : 'border-hairline bg-canvas-pure/95',
       )}
     >
@@ -58,16 +73,16 @@ export function LearnTopBar() {
               </div>
             </div>
           </NavLink>
+          {/* inline nav (≥ md) */}
           <nav className="hidden gap-2 md:flex">
-            <TopLink to="/learn/workspace" themed={themed}>✨ AI Studio</TopLink>
-            <TopLink to="/learn" end themed={themed}>Home</TopLink>
-            <TopLink to="/learn/projects" themed={themed}>Projects</TopLink>
-            <TopLink to="/learn/create" themed={themed}>Create</TopLink>
-            <TopLink to="/learn/missions" themed={themed}>Missions</TopLink>
-            <TopLink to="/learn/classroom" themed={themed}>Class wall</TopLink>
+            {NAV_ITEMS.map((item) => (
+              <TopLink key={item.to} to={item.to} end={item.end} themed={themed}>
+                {item.label}
+              </TopLink>
+            ))}
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {nickname && (
             <div
               className={clsx(
@@ -89,8 +104,40 @@ export function LearnTopBar() {
           >
             Sign out
           </button>
+          {/* hamburger (< md) — opens the collapsed nav */}
+          <button
+            type="button"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+            className={clsx(
+              'grid h-10 w-10 place-items-center rounded-xl border md:hidden',
+              themed
+                ? 'border-pg-border text-pg-text hover:bg-pg-text/10'
+                : 'border-hairline text-ink hover:bg-surface',
+            )}
+          >
+            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
         </div>
       </div>
+
+      {/* collapsed nav menu (< md) */}
+      {menuOpen && (
+        <nav
+          className={clsx(
+            'mt-3 flex flex-col gap-1.5 border-t pt-3 md:hidden',
+            !fluid && 'mx-auto max-w-5xl',
+            themed ? 'border-pg-border' : 'border-hairline',
+          )}
+        >
+          {NAV_ITEMS.map((item) => (
+            <TopLink key={item.to} to={item.to} end={item.end} themed={themed} block>
+              {item.label}
+            </TopLink>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }
@@ -99,11 +146,14 @@ function TopLink({
   to,
   end,
   themed,
+  block,
   children,
 }: {
   to: string;
   end?: boolean;
   themed?: boolean;
+  /** Full-width stacked row for the collapsed (mobile) menu. */
+  block?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -112,7 +162,10 @@ function TopLink({
       end={end}
       className={({ isActive }) =>
         clsx(
-          'rounded-full px-4 py-1.5 text-[14px] font-semibold transition-colors',
+          'font-semibold transition-colors',
+          block
+            ? 'block w-full rounded-xl px-4 py-3 text-[16px]'
+            : 'rounded-full px-4 py-1.5 text-[14px]',
           themed
             ? isActive
               ? 'bg-brand-bubblegum/20 text-pg-text'
