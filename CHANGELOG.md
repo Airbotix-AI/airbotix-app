@@ -13,6 +13,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   message stays in the tour copy.
 - `/try/blocks` tour copy rewritten: concise, user-journey guidance only — dropped the
   meta/technical reassurances ("not a mock-up", "real product") from every card.
+- `/try/playground` tour copy given the same treatment (no "locks the prompt", "scripted",
+  "Monaco", persistence/reset talk); both tours' final card now ends with the contact-us
+  pointer and (blocks) a tablet/touch encouragement. "Nothing is saved" removed from all
+  guidance per product direction — the demo banner + PRD carry the persistence truth.
+- Tour overlay polish: buttons never wrap mid-label (single-line pills), controls row
+  wraps gracefully, all controls are ≥44px touch targets for tablets; final-step button
+  shortened to "Explore freely ✨".
+
+### Added
+- Demo Home exit (`/try/blocks`): the studio's 🏠 button leaves to the marketing "Try it"
+  page (`airbotix.ai/try`, env-overridable via `VITE_MARKETING_URL`) instead of the authed
+  hub — one `demo?.exitHref` seam in the Blocks toolbar.
 
 ## 2026-06-11 (Try Demo Mode — public /try/* demos)
 

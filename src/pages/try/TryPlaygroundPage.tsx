@@ -25,43 +25,39 @@ const TOUR: DemoTourStep[] = [
   {
     title: 'This is how a lesson starts',
     body:
-      'Your child describes a game in plain words — no syntax, no setup. The demo locks the ' +
-      `first prompt — “${PLAYGROUND_DEMO_SCRIPT.lockedPrompt}” — so it always builds the same ` +
-      'game. Airo (scripted in this demo) builds a small, working game they can run immediately.',
+      'Your child describes a game in plain words — no syntax, no setup. Airo builds a ' +
+      'small, working game they can run straight away.',
     nextLabel: '▶ Start the demo',
     modal: true,
   },
   {
     title: 'A real, playable game',
     body:
-      'This is the real studio, not a mock-up: real JavaScript files, a real editor, a real ' +
-      'game window. Run it, drag the windows, peek at the code. In class, this moment takes ' +
-      'about thirty seconds.',
+      'Run it, drag the windows, peek at the code. In class, this moment takes about ' +
+      'thirty seconds.',
     nextLabel: 'Ask: make the apples fall faster',
   },
   {
     title: 'One ask → one visible change',
     body:
-      'Each request maps to one small code change the child can SEE and TEST — Airo changed a ' +
-      'single speed constant. That tight loop (ask, change, play) is how the lesson teaches ' +
-      'cause and effect. The Undo button above the chat reverts it, free.',
+      'Each request makes one small change the child can see and test. That tight loop — ' +
+      'ask, change, play — is how the lesson teaches cause and effect. Undo reverts it ' +
+      'any time.',
     nextLabel: 'Ask: score +10 per catch',
   },
   {
     title: 'Real code, kid-sized steps',
     body:
-      'Behind the friendly chat is real JavaScript in a real editor (Monaco). Tap the changed-' +
-      'file row in the chat to jump to the exact lines. Every change is undoable — the same ' +
-      'history your child would use in class.',
+      'Behind the friendly chat is real JavaScript. Tap the changed-file row in the chat ' +
+      'to jump to the exact lines your child would read in class.',
     nextLabel: 'Ask: bigger basket + “You win!”',
   },
   {
     title: 'A finished game in 3 asks',
     body:
-      "That's the whole arc of a first lesson. Now explore freely — edit the code, run, undo, " +
-      'switch layout and theme. Only the AI is demo-locked (it will point you to a chat with ' +
-      'us); everything else is the real product. Nothing is saved.',
-    nextLabel: 'Finish & explore freely ✨',
+      "That's the whole arc of a first lesson. Explore freely — edit the code, run it, " +
+      'undo, switch layout and theme. Questions? Contact us from the banner above.',
+    nextLabel: 'Explore freely ✨',
   },
 ];
 

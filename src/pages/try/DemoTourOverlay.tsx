@@ -51,8 +51,10 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
         </h2>
         <p className="mt-2 text-[14px] leading-relaxed text-ink/70">{current.body}</p>
 
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5" aria-hidden>
+        {/* Wrap-friendly controls: labels never break mid-button (the pills kept
+            their shape), and every control is a ≥44px touch target for tablets. */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex shrink-0 items-center gap-1.5" aria-hidden>
             {steps.map((_, i) => (
               <span
                 key={i}
@@ -64,12 +66,12 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
               />
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               data-testid="tour-skip"
               onClick={onSkip}
-              className="rounded-full px-3 py-2 text-[13px] font-bold text-ink/60 transition-colors hover:text-ink"
+              className="min-h-11 whitespace-nowrap rounded-full px-3 text-[13px] font-bold text-ink/60 transition-colors hover:text-ink"
             >
               Skip tour
             </button>
@@ -78,7 +80,7 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
                 type="button"
                 data-testid="tour-back"
                 onClick={onBack}
-                className="rounded-full border-2 border-ink/15 px-4 py-2 text-[13px] font-extrabold transition-colors hover:bg-ink/5"
+                className="min-h-11 whitespace-nowrap rounded-full border-2 border-ink/15 px-4 text-[13px] font-extrabold transition-colors hover:bg-ink/5"
               >
                 Back
               </button>
@@ -88,7 +90,7 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
               data-testid="tour-next"
               onClick={onNext}
               disabled={busy}
-              className="rounded-full bg-brand-coral px-5 py-2 text-[13px] font-extrabold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              className="min-h-11 whitespace-nowrap rounded-full bg-brand-coral px-5 text-[13px] font-extrabold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
               {busy ? 'Airo is working…' : (current.nextLabel ?? 'Next →')}
             </button>
