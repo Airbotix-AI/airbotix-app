@@ -27,6 +27,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   viewport-anchored `fixed` coordinates (placed beside the ＋, flips above it when there's no
   room — e.g. portrait), with outside-click / Escape to dismiss.
 
+### Changed
+- **Blocks Studio now has the mockup's dark theme.** A 🌙/☀️ toggle in the studio toolbar flips
+  the immersive editor between day and night; it defaults to the system `prefers-color-scheme`
+  and persists the override (`localStorage`). The theme is scoped to the `.bsx` app root + the
+  portalled picker (not `<html>`), so the studio goes dark while the rest of the Learn surface
+  stays light. Studio chrome was migrated off the light-only K-12 Tailwind classes onto themeable
+  `--bsx-*` tokens (`blocks.css` gains the dark palette + `bsx-card`/`bsx-soft`/`bsx-muted`
+  helpers). The six block-category colours and the meadow/space stage scenes stay constant
+  (colour = meaning; the scene is page content, not chrome).
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

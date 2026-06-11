@@ -76,6 +76,29 @@ export function BlocksStudioPage() {
   const [category, setCategory] = useState<BlockCategory>('trigger');
   const [present, setPresent] = useState(false);
   const [running, setRunning] = useState(false);
+  // Theme follows the system by default; the toolbar 🌙/☀️ overrides + persists.
+  // Scoped to the .bsx app root + the portalled picker (NOT <html>), so the
+  // immersive studio flips dark while the rest of the Learn surface stays light.
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const stored = localStorage.getItem('bsx-theme');
+      if (stored === 'light' || stored === 'dark') return stored;
+    } catch {
+      // ignore
+    }
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => {
+      const next = t === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('bsx-theme', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
   // The friend picker floats in a portal (the character rail clips overflow +
   // has a backdrop-filter, which would otherwise trap/cut off an absolute popup).
   const [friendPos, setFriendPos] = useState<{ left: number; top: number } | null>(null);
@@ -265,7 +288,7 @@ export function BlocksStudioPage() {
 
   if (phase === 'loading') {
     return (
-      <div className="bsx flex h-[60vh] items-center justify-center text-[18px] font-bold text-slate2">
+      <div className="bsx flex h-[60vh] items-center justify-center text-[18px] font-bold bsx-muted">
         Opening your blocks… 🧩
       </div>
     );
@@ -284,20 +307,29 @@ export function BlocksStudioPage() {
   const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category);
 
   return (
-    <div className={`bsx bsx-app${present ? ' present' : ''}`} data-testid="blocks-studio">
+    <div className={`bsx bsx-app${present ? ' present' : ''}`} data-theme={theme} data-testid="blocks-studio">
       {/* ── toolbar ── */}
-      <header className="flex items-center gap-2 rounded-3xl border border-hairline bg-canvas-pure px-3 py-2">
+      <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
         <Link to="/learn/create/blocks" className="bsx-press grid h-11 w-11 place-items-center text-[20px]" title="Save & back">
           🏠
         </Link>
         <div className="min-w-0 px-1">
           <div className="truncate text-[15px] font-extrabold leading-tight">{project.name}</div>
-          <div className="text-[11px] font-semibold text-slate2" data-testid="save-status" data-status={saveStatus}>
+          <div className="bsx-muted text-[11px] font-semibold" data-testid="save-status" data-status={saveStatus}>
             Page {project.pages.indexOf(page) + 1} of {project.pages.length} ·{' '}
             {saveStatus === 'saved' ? '✓ saved' : saveStatus === 'saving' ? 'saving…' : 'saved on this device'}
           </div>
         </div>
         <div className="flex-1" />
+        <button
+          type="button"
+          className="bsx-press grid h-11 w-11 place-items-center text-[18px]"
+          onClick={toggleTheme}
+          data-testid="theme-toggle"
+          title={theme === 'dark' ? 'Day mode' : 'Night mode'}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <button type="button" className="bsx-press h-11 px-4 text-[13px]" onClick={reset} title="Everyone back to their start spots">
           ⤺ Reset
         </button>
@@ -415,12 +447,12 @@ export function BlocksStudioPage() {
             })}
           </div>
           <div className="bsx-stagefoot flex items-center gap-2">
-            <span className="rounded-full border border-hairline bg-canvas-pure px-3 py-1.5 text-[13px] font-extrabold">
+            <span className="bsx-card rounded-full px-3 py-1.5 text-[13px] font-extrabold">
               <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-brand-sky" />
               Coding: {selectedChar?.name}
             </span>
             <span className="flex-1" />
-            <span className="text-[12px] font-semibold text-slate2">
+            <span className="bsx-muted text-[12px] font-semibold">
               Tap a friend to run 👆 · drag to place
             </span>
           </div>
@@ -482,8 +514,8 @@ export function BlocksStudioPage() {
         </nav>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-2">
-          <div className="flex items-center gap-4 overflow-x-auto rounded-3xl border border-hairline bg-canvas-pure/70 px-4 pb-4 pt-3" data-testid="palette">
-            <span className="shrink-0 text-[12px] font-extrabold text-slate2">Tap a block ↓</span>
+          <div className="bsx-soft flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette">
+            <span className="bsx-muted shrink-0 text-[12px] font-extrabold">Tap a block ↓</span>
             {paletteBlocks.map((def) => (
               <BlockChip
                 key={def.op}
@@ -494,14 +526,14 @@ export function BlocksStudioPage() {
             ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-3xl border border-hairline bg-canvas-pure/70 p-4" data-testid="script-area">
+          <div className="bsx-soft min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area">
             {selectedChar?.scripts.length === 0 && (
-              <div className="grid h-full place-items-center text-[14px] font-bold text-slate2">
+              <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
                 Tap a 🚩 block to start {selectedChar.name}&apos;s program ✨
               </div>
             )}
             {selectedChar?.scripts.map((script) => (
-              <div key={script.id} className="mb-3 flex w-max items-center rounded-2xl bg-wash-mint/60 p-2.5 pr-4" data-testid={`script-${script.id}`}>
+              <div key={script.id} className="bsx-chainwrap mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4" data-testid={`script-${script.id}`}>
                 {script.blocks.map((b, i) => (
                   <BlockChip
                     key={`${script.id}-${i}`}
@@ -533,14 +565,15 @@ export function BlocksStudioPage() {
           <div
             ref={friendPopRef}
             data-testid="friend-picker"
-            className="fixed z-[60] grid grid-cols-4 gap-1.5 rounded-2xl border border-hairline bg-canvas-pure p-2 shadow-card-soft"
+            className="bsx bsx-card fixed z-[60] grid grid-cols-4 gap-1.5 rounded-2xl p-2 shadow-card-soft"
+            data-theme={theme}
             style={{ left: friendPos.left, top: friendPos.top, width: POP_W }}
           >
             {FRIEND_CHOICES.map((f) => (
               <button
                 key={f.emoji}
                 type="button"
-                className="grid h-10 w-10 place-items-center rounded-xl text-[24px] hover:bg-wash-sky"
+                className="bsx-friend grid h-10 w-10 place-items-center rounded-xl text-[24px]"
                 title={f.name}
                 onClick={() => {
                   useBlocksStore.getState().addCharacter(f.emoji, f.name);

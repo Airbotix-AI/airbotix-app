@@ -12,6 +12,7 @@
  */
 
 .bsx {
+  /* the six block-category colours are CONSTANT in both themes (colour = meaning) */
   --bsx-cat-trigger: #ffb400;
   --bsx-cat-motion: #3d9bf5;
   --bsx-cat-looks: #a964f7;
@@ -20,20 +21,66 @@
   --bsx-cat-end: #ff5677;
   --bsx-hit: 52px;
   --bsx-block-h: 62px;
+  /* ── LIGHT theme (default) ── */
   --bsx-bg: #f6f1ff;
   --bsx-surface: #ffffff;
+  --bsx-surface-2: #fbf5ff;
   --bsx-panel: rgba(255, 255, 255, 0.78);
   --bsx-rail: rgba(255, 255, 255, 0.66);
+  --bsx-pad: rgba(255, 255, 255, 0.6);
   --bsx-border: #e9e0f6;
   --bsx-text: #241e3a;
   --bsx-text-dim: #564e72;
   --bsx-text-muted: #a89fbf;
+  --bsx-chain: rgba(61, 217, 169, 0.16);
+  --bsx-shadow: rgba(60, 30, 110, 0.35);
+}
+/* ── DARK theme (mockup palette) — set on the .bsx app root + the portalled
+   picker, so the immersive studio flips while the surrounding Learn surface
+   stays light. ── */
+.bsx[data-theme='dark'] {
+  --bsx-bg: #151022;
+  --bsx-surface: #221b36;
+  --bsx-surface-2: #2a2242;
+  --bsx-panel: rgba(36, 28, 58, 0.82);
+  --bsx-rail: rgba(40, 34, 60, 0.6);
+  --bsx-pad: rgba(30, 24, 52, 0.6);
+  --bsx-border: #3b3158;
+  --bsx-text: #f4f0ff;
+  --bsx-text-dim: #c8c0e0;
+  --bsx-text-muted: #8e82ae;
+  --bsx-chain: rgba(61, 217, 169, 0.14);
+  --bsx-shadow: rgba(0, 0, 0, 0.5);
 }
 @media (pointer: coarse) {
   .bsx {
     --bsx-hit: 64px;
     --bsx-block-h: 72px;
   }
+}
+
+/* ── themeable chrome helpers (used by the studio JSX in place of the K-12
+   light-only Tailwind tokens, so the surface flips with the theme) ── */
+.bsx-card {
+  background: var(--bsx-surface);
+  border: 1px solid var(--bsx-border);
+  color: var(--bsx-text);
+}
+.bsx-soft {
+  background: var(--bsx-pad);
+  border: 1px solid var(--bsx-border);
+}
+.bsx-chainwrap {
+  background: var(--bsx-chain);
+}
+.bsx-muted {
+  color: var(--bsx-text-muted);
+}
+.bsx-dim {
+  color: var(--bsx-text-dim);
+}
+.bsx-friend:hover {
+  background: color-mix(in srgb, var(--bsx-cat-motion) 16%, transparent);
 }
 
 /* ── universal "pressable" — every touchable thing looks pushable ─────────── */
@@ -44,12 +91,12 @@
   color: var(--bsx-text-dim);
   background: var(--bsx-surface);
   border-radius: 16px;
-  box-shadow: 0 4px 0 var(--bsx-border), 0 10px 18px -12px rgba(60, 30, 110, 0.35);
+  box-shadow: 0 4px 0 var(--bsx-border), 0 10px 18px -12px var(--bsx-shadow);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .bsx-press:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--bsx-border), 0 14px 22px -12px rgba(60, 30, 110, 0.45);
+  box-shadow: 0 6px 0 var(--bsx-border), 0 14px 22px -12px var(--bsx-shadow);
 }
 .bsx-press:active {
   transform: translateY(2px);
