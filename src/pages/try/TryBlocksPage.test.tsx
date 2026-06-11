@@ -45,7 +45,8 @@ describe('TryBlocksPage', () => {
     renderPage();
     await screen.findByTestId('blocks-studio');
     expect(screen.queryByTestId('share-link-btn')).not.toBeInTheDocument();
-    expect(screen.getByTestId('demo-banner')).toHaveTextContent('Demo mode — nothing is saved');
+    expect(screen.getByTestId('demo-banner')).toHaveTextContent('Demo mode');
+    expect(screen.getByTestId('demo-banner')).toHaveTextContent('Contact us');
     expect(screen.getByTestId('demo-tour')).toBeInTheDocument();
     expect(screen.getByTestId('tour-title')).toHaveTextContent('A whole story, already built');
   });

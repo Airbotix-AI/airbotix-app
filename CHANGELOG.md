@@ -4,6 +4,14 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12
+
+### Changed
+- Demo banner (`/try/*`) copy made concise: "🎈 Demo mode · Questions? Contact us →", now
+  linking to the marketing site's contact page (`airbotix.ai/contact`) instead of `/book`;
+  blocks tour final step aligned ("Contact us from the banner above"). The nothing-is-saved
+  message stays in the tour copy.
+
 ## 2026-06-11 (Try Demo Mode — public /try/* demos)
 
 ### Added

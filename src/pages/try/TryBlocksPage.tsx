@@ -56,7 +56,7 @@ const TOUR: DemoTourStep[] = [
     body:
       'Explore freely — every block, character, scene, sound and page is the real product. ' +
       'Nothing is saved and nothing can break: reload and the demo starts fresh. Like what you ' +
-      'see? Book a chat from the banner above.',
+      'see? Contact us from the banner above.',
     nextLabel: 'Finish & explore freely ✨',
   },
 ];

@@ -1,7 +1,7 @@
 // The fixed demo-mode strip shown above both `/try/*` studios (try-demo-mode-prd
-// §2 D-DEMO-08): the honest "nothing is saved" notice + the book-a-chat CTA.
+// §2 D-DEMO-08): concise demo-mode notice + the marketing site's contact page.
 
-const BOOK_URL = 'https://airbotix.ai/book';
+const CONTACT_URL = 'https://airbotix.ai/contact';
 
 export function DemoBanner() {
   return (
@@ -10,14 +10,14 @@ export function DemoBanner() {
       className="flex h-10 shrink-0 items-center justify-center gap-2 bg-brand-coral px-4 text-[13px] font-bold text-white"
     >
       <span aria-hidden>🎈</span>
-      <span>Demo mode — nothing is saved, every visit starts fresh.</span>
+      <span>Demo mode</span>
       <a
-        href={BOOK_URL}
+        href={CONTACT_URL}
         target="_blank"
         rel="noreferrer"
         className="font-extrabold underline underline-offset-2"
       >
-        Liked it? Book a chat →
+        Questions? Contact us →
       </a>
     </div>
   );
