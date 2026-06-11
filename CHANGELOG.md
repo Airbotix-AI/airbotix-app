@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (dev LAN host)
+
+### Fixed
+- **Opening the dev app from a LAN device (phone/tablet) now reaches the backend.** The API/WS URLs
+  were hardcoded to `localhost`, so on another device `localhost` meant the device itself and login
+  failed ("Could not sign in"). New `sameHostInDev` (`lib/devHost.ts`): when the configured backend
+  URL is localhost but the page was opened from a different host (`http://192.168.x.x:4321`), the
+  API + WS calls follow that same host. No-op for real localhost and for production.
+
 ## 2026-06-11 (Blocks Studio — junior block coder, M1 + core editor)
 
 ### Added
