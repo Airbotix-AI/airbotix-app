@@ -25,15 +25,14 @@ describe('BlockChip', () => {
     expect(onDown).toHaveBeenCalledTimes(1);
   });
 
-  it('tapping the number tile cycles the param and does not bubble to onTap', () => {
+  it('the number tile is display-only; tapping anywhere (incl. the tile) fires onTap to edit', () => {
     const onTap = vi.fn();
-    const onTapNum = vi.fn();
-    render(
-      <BlockChip block={{ op: 'wait', n: 5 }} inChain onTap={onTap} onTapNum={onTapNum} />,
-    );
+    render(<BlockChip block={{ op: 'wait', n: 5 }} inChain onTap={onTap} />);
+    // the number is shown for reference…
+    expect(screen.getByTestId('block-num').textContent).toBe('5');
+    // …and a tap anywhere (the tile bubbles up to the block) opens the editor
     fireEvent.click(screen.getByTestId('block-num'));
-    expect(onTapNum).toHaveBeenCalledTimes(1);
-    expect(onTap).not.toHaveBeenCalled(); // stopPropagation — the block tap never fires
+    expect(onTap).toHaveBeenCalledTimes(1);
   });
 
   it('reflects the dragging / removing states as classes', () => {

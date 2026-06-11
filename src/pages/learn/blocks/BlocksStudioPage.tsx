@@ -18,11 +18,14 @@ import {
 } from './blocksApi';
 import {
   type BlockCategory,
+  type BlockOp,
   BLOCK_DEFS,
   CATEGORIES,
   GRID_H,
   GRID_W,
   MAX_PAGES,
+  MAX_PARAM,
+  blockDef,
 } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
@@ -260,39 +263,96 @@ export function BlocksStudioPage() {
     };
   }, [pickFriend]);
 
-  // ── stage drag (pointer events: touch + mouse + pen, D-BLK-7) ─────────────
+  // ── ONE shared trash bin: drag a character, a block, or a page onto it to
+  //    dump it. Always visible; grows while dragging; "opens" (red) when armed.
   const stageRef = useRef<HTMLDivElement>(null);
+  const binRef = useRef<HTMLDivElement>(null);
+  const [dragKind, setDragKind] = useState<'block' | 'char' | 'page' | null>(null);
+  const [binArmed, setBinArmed] = useState(false);
+  const overBin = (x: number, y: number) => {
+    const r = binRef.current?.getBoundingClientRect();
+    if (!r) return false;
+    const pad = 28; // generous hit area for little fingers
+    return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+  };
+
+  // ── character (object) drag on the stage: reposition, OR drop on the bin to remove
   const [dragging, setDragging] = useState<string | null>(null);
   const dragMoved = useRef(false);
-
   const onSpriteDown = (e: React.PointerEvent, id: string) => {
     if (running || present) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging(id);
+    setDragKind('char');
     dragMoved.current = false;
     useBlocksStore.getState().selectChar(id);
   };
   const onSpriteMove = (e: React.PointerEvent, id: string) => {
     if (dragging !== id || !stageRef.current) return;
+    dragMoved.current = true;
+    setBinArmed(overBin(e.clientX, e.clientY));
+    if (overBin(e.clientX, e.clientY)) return; // heading for the bin — don't reposition
     const rect = stageRef.current.getBoundingClientRect();
     const gx = ((e.clientX - rect.left) / rect.width) * GRID_W - 0.5;
     const gy = ((e.clientY - rect.top) / rect.height) * GRID_H - 0.5;
-    dragMoved.current = true;
     useBlocksStore.getState().moveCharacter(id, gx, gy);
   };
-  const onSpriteUp = (id: string) => {
+  const onSpriteUp = (e: React.PointerEvent, id: string) => {
     const wasDrag = dragMoved.current;
+    const onBin = wasDrag && overBin(e.clientX, e.clientY);
     setDragging(null);
-    if (!wasDrag) tapSprite(id); // a clean tap runs the 👆 scripts
+    setDragKind(null);
+    setBinArmed(false);
+    if (onBin) useBlocksStore.getState().removeCharacter(id);
+    else if (!wasDrag) tapSprite(id); // a clean tap runs the 👆 scripts
   };
 
-  // ── chained-block removal: ScratchJr-style "drag a block out to delete" (a
-  //    deliberate gesture). A plain tap never deletes — it only edits Say's
-  //    words / cycles a number tile. Removal arms once dragged past a threshold.
-  const REMOVE_DIST = 56;
+  // ── page drag: drop on the bin to remove a page (tap still selects) ───────
+  const pageDrag = useRef<{ id: string; x0: number; y0: number; pointerId: number } | null>(null);
+  const pageDidDrag = useRef(false);
+  const [dragPage, setDragPage] = useState<{ id: string; dx: number; dy: number } | null>(null);
+  const onPageDown = (e: React.PointerEvent, id: string) => {
+    pageDrag.current = { id, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
+    pageDidDrag.current = false;
+  };
+  const onPageMove = (e: React.PointerEvent) => {
+    const d = pageDrag.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (!pageDidDrag.current && Math.hypot(dx, dy) > 8) {
+      pageDidDrag.current = true;
+      setDragKind('page');
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    }
+    if (pageDidDrag.current) {
+      setBinArmed(overBin(e.clientX, e.clientY));
+      setDragPage({ id: d.id, dx, dy });
+    }
+  };
+  const onPageUp = (e: React.PointerEvent, id: string) => {
+    const onBin = pageDidDrag.current && overBin(e.clientX, e.clientY);
+    pageDrag.current = null;
+    setDragPage(null);
+    setDragKind(null);
+    setBinArmed(false);
+    if (onBin) useBlocksStore.getState().removePage(id);
+    else if (!pageDidDrag.current) useBlocksStore.getState().selectPage(id); // a clean tap selects
+    setTimeout(() => (pageDidDrag.current = false), 0);
+  };
+
+  // ── block drag: reorder within the script, OR drop on the bin to remove ──
   const blockDrag = useRef<{ scriptId: string; index: number; x0: number; y0: number; pointerId: number } | null>(null);
   const blockDidDrag = useRef(false);
-  const [dragBlk, setDragBlk] = useState<{ scriptId: string; index: number; dx: number; dy: number; armed: boolean } | null>(null);
+  const [dragBlk, setDragBlk] = useState<{
+    scriptId: string;
+    index: number;
+    dx: number;
+    dy: number;
+    onBin: boolean;
+    targetSlot: number | null;
+    dropX: number | null;
+  } | null>(null);
 
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
     blockDrag.current = { scriptId, index, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
@@ -303,33 +363,87 @@ export function BlocksStudioPage() {
     if (!d || e.pointerId !== d.pointerId) return;
     const dx = e.clientX - d.x0;
     const dy = e.clientY - d.y0;
-    const dist = Math.hypot(dx, dy);
-    if (!blockDidDrag.current && dist > 8) {
+    if (!blockDidDrag.current && Math.hypot(dx, dy) > 8) {
       blockDidDrag.current = true;
+      setDragKind('block');
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     }
-    if (blockDidDrag.current) setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, armed: dist > REMOVE_DIST });
+    if (!blockDidDrag.current) return;
+    const onBin = overBin(e.clientX, e.clientY);
+    setBinArmed(onBin);
+    // when not heading for the bin, compute the reorder drop slot (body blocks
+    // only — the trigger stays first). targetSlot is the destination index in
+    // the post-removal array; dropX positions the insertion bar.
+    let targetSlot: number | null = null;
+    let dropX: number | null = null;
+    if (!onBin && d.index > 0) {
+      const row = document.querySelector(`[data-testid="script-${d.scriptId}"]`);
+      if (row) {
+        const rowRect = row.getBoundingClientRect();
+        const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
+        let slot = 0;
+        let x = items[0] ? items[0].getBoundingClientRect().right - rowRect.left : 0;
+        items.forEach((el, i) => {
+          if (i === d.index) return;
+          const r = el.getBoundingClientRect();
+          if (e.clientX > r.left + r.width / 2) {
+            slot += 1;
+            x = r.right - rowRect.left + 2;
+          }
+        });
+        targetSlot = Math.max(1, slot);
+        dropX = x;
+      }
+    }
+    setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, onBin, targetSlot, dropX });
   };
   const onBlockUp = () => {
-    const armed = dragBlk?.armed;
+    const info = dragBlk;
     const d = blockDrag.current;
     blockDrag.current = null;
     setDragBlk(null);
-    if (blockDidDrag.current && armed && d) {
-      useBlocksStore.getState().removeBlock(d.scriptId, d.index);
+    setDragKind(null);
+    setBinArmed(false);
+    if (blockDidDrag.current && info && d) {
+      if (info.onBin) useBlocksStore.getState().removeBlock(d.scriptId, d.index);
+      else if (info.targetSlot !== null && info.targetSlot !== d.index) {
+        useBlocksStore.getState().moveBlock(d.scriptId, d.index, info.targetSlot);
+      }
     }
-    // keep the flag through the synthetic click that follows pointerup, so a
-    // drag-release doesn't also fire the tap (Say edit); clear next tick.
     setTimeout(() => (blockDidDrag.current = false), 0);
   };
-  const onBlockTap = (b: { op: string; text?: string }, scriptId: string, index: number) => {
+
+  // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
+  const [editBlk, setEditBlk] = useState<{ scriptId: string; index: number; left: number; top: number } | null>(null);
+  const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (blockDidDrag.current) return; // it was a drag, not a tap
-    if (b.op === 'say') {
-      const text = window.prompt('What should they say?', b.text ?? 'Hi!');
-      if (text !== null) useBlocksStore.getState().setSayText(scriptId, index, text);
-    }
-    // any other block: a tap does nothing (no accidental delete)
+    const def = blockDef(op as BlockOp);
+    if (!def.hasN && op !== 'say') return; // nothing to edit on this block
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const W = 230;
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - W / 2), window.innerWidth - W - 8);
+    setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
   };
+  useEffect(() => {
+    if (!editBlk) return;
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-testid="block-editor"]')) setEditBlk(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setEditBlk(null);
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [editBlk]);
+  // keep the editor anchored to a live block; close if the script/block vanished
+  const editing = (() => {
+    if (!editBlk) return null;
+    const script = selectedChar?.scripts.find((s) => s.id === editBlk.scriptId);
+    const blk = script?.blocks[editBlk.index];
+    return blk ? { ...editBlk, block: blk } : null;
+  })();
 
   if (phase === 'loading') {
     return (
@@ -474,7 +588,7 @@ export function BlocksStudioPage() {
                     className={`bsx-sprite${dragging === c.id ? ' dragging' : ''}`}
                     onPointerDown={(e) => onSpriteDown(e, c.id)}
                     onPointerMove={(e) => onSpriteMove(e, c.id)}
-                    onPointerUp={() => onSpriteUp(c.id)}
+                    onPointerUp={(e) => onSpriteUp(e, c.id)}
                     style={{
                       left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
                       top: `${((st.gy + 0.5) / GRID_H) * 100}%`,
@@ -483,7 +597,7 @@ export function BlocksStudioPage() {
                       transform: `translate(-50%,-50%) rotate(${st.rot}deg) scale(${st.size})`,
                       transition: dur > 0 ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease` : 'none',
                     }}
-                    title={`${c.name} — drag to set the start spot, tap to run 👆`}
+                    title={`${c.name} — drag to move, tap to run 👆, drag to the bin to remove`}
                   >
                     {c.emoji}
                   </div>
@@ -504,27 +618,41 @@ export function BlocksStudioPage() {
         </div>
 
         <aside className="bsx-railbox" style={{ gridArea: 'pages' }} aria-label="Pages">
-          {project.pages.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              data-testid={`page-thumb-${i}`}
-              onClick={() => useBlocksStore.getState().selectPage(p.id)}
-              className={`bsx-press relative grid w-full max-w-[96px] place-items-center rounded-xl text-[20px]`}
-              style={{
-                aspectRatio: '4/3',
-                background:
-                  p.background === 'space'
-                    ? 'linear-gradient(180deg,#101B3C,#3A1D55)'
-                    : 'linear-gradient(180deg,#9CD7FF,#F1FAFF)',
-                ...(p.id === page.id ? { boxShadow: '0 0 0 4px #FF7A66, 0 4px 0 var(--bsx-border)' } : {}),
-              }}
-              title={`Page ${i + 1}`}
-            >
-              <span className="absolute left-1.5 top-0.5 text-[10px] font-extrabold text-white drop-shadow">{i + 1}</span>
-              {p.characters[0]?.emoji ?? '🧩'}
-            </button>
-          ))}
+          {project.pages.map((p, i) => {
+            const pd = dragPage?.id === p.id ? dragPage : null;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                data-testid={`page-thumb-${i}`}
+                onPointerDown={(e) => onPageDown(e, p.id)}
+                onPointerMove={onPageMove}
+                onPointerUp={(e) => onPageUp(e, p.id)}
+                className={`bsx-press relative grid w-full max-w-[96px] place-items-center rounded-xl text-[20px]`}
+                style={{
+                  aspectRatio: '4/3',
+                  touchAction: 'none',
+                  background:
+                    p.background === 'space'
+                      ? 'linear-gradient(180deg,#101B3C,#3A1D55)'
+                      : 'linear-gradient(180deg,#9CD7FF,#F1FAFF)',
+                  ...(pd
+                    ? {
+                        transform: `translate(${pd.dx}px, ${pd.dy}px) scale(1.05)`,
+                        zIndex: 40,
+                        boxShadow: '0 14px 26px -8px rgba(0,0,0,.45)',
+                      }
+                    : p.id === page.id
+                      ? { boxShadow: '0 0 0 4px #FF7A66, 0 4px 0 var(--bsx-border)' }
+                      : {}),
+                }}
+                title={`Page ${i + 1} — tap to open, drag to the bin to remove`}
+              >
+                <span className="absolute left-1.5 top-0.5 text-[10px] font-extrabold text-white drop-shadow">{i + 1}</span>
+                {p.characters[0]?.emoji ?? '🧩'}
+              </button>
+            );
+          })}
           {project.pages.length < MAX_PAGES && (
             <button
               type="button"
@@ -577,47 +705,51 @@ export function BlocksStudioPage() {
                 Tap a 🚩 block to start {selectedChar.name}&apos;s program ✨
               </div>
             )}
-            {selectedChar?.scripts.map((script) => (
-              <div key={script.id} className="bsx-chainwrap mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4" data-testid={`script-${script.id}`}>
-                {script.blocks.map((b, i) => {
-                  const dr =
-                    dragBlk && dragBlk.scriptId === script.id && dragBlk.index === i ? dragBlk : null;
-                  return (
-                    <BlockChip
-                      key={`${script.id}-${i}`}
-                      block={b}
-                      inChain
-                      isLast={i === script.blocks.length - 1}
-                      dragging={!!dr}
-                      removing={!!dr?.armed}
-                      style={
-                        dr
-                          ? { transform: `translate(${dr.dx}px, ${dr.dy}px) scale(1.05)`, position: 'relative', zIndex: 30 }
-                          : undefined
-                      }
-                      onPointerDown={(e) => onBlockDown(e, script.id, i)}
-                      onPointerMove={onBlockMove}
-                      onPointerUp={onBlockUp}
-                      onTap={() => onBlockTap(b, script.id, i)}
-                      onTapNum={() => useBlocksStore.getState().cycleParam(script.id, i)}
-                      title={
-                        b.op === 'say'
-                          ? 'Tap to change the words · drag away to remove'
-                          : 'Drag away to remove'
-                      }
-                    />
-                  );
-                })}
-              </div>
-            ))}
-            {dragBlk && (
-              <div
-                className={`bsx-trash${dragBlk.armed ? ' armed' : ''}`}
-                data-testid="block-trash"
-              >
-                🗑 {dragBlk.armed ? 'Let go to remove' : 'Drag here to remove'}
-              </div>
-            )}
+            {selectedChar?.scripts.map((script) => {
+              const rowDrag = dragBlk && dragBlk.scriptId === script.id ? dragBlk : null;
+              return (
+                <div
+                  key={script.id}
+                  className="bsx-chainwrap relative mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4"
+                  data-testid={`script-${script.id}`}
+                >
+                  {script.blocks.map((b, i) => {
+                    const dr = rowDrag && rowDrag.index === i ? rowDrag : null;
+                    const def = blockDef(b.op);
+                    return (
+                      <BlockChip
+                        key={`${script.id}-${i}`}
+                        block={b}
+                        inChain
+                        isLast={i === script.blocks.length - 1}
+                        dragging={!!dr}
+                        removing={!!dr?.onBin}
+                        style={
+                          dr
+                            ? { transform: `translate(${dr.dx}px, ${dr.dy}px) scale(1.05)`, position: 'relative', zIndex: 30 }
+                            : undefined
+                        }
+                        onPointerDown={(e) => onBlockDown(e, script.id, i)}
+                        onPointerMove={onBlockMove}
+                        onPointerUp={onBlockUp}
+                        onTap={(e) => onBlockTap(e, script.id, i, b.op)}
+                        title={
+                          def.hasN
+                            ? 'Tap to change the number · drag to reorder · drag to the bin to remove'
+                            : b.op === 'say'
+                              ? 'Tap to change the words · drag to reorder · drag to the bin to remove'
+                              : 'Drag to reorder · drag to the bin to remove'
+                        }
+                      />
+                    );
+                  })}
+                  {/* reorder insertion bar */}
+                  {rowDrag && !rowDrag.onBin && rowDrag.dropX !== null && (
+                    <span className="bsx-dropbar" style={{ left: rowDrag.dropX }} />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -647,6 +779,86 @@ export function BlocksStudioPage() {
                 {f.emoji}
               </button>
             ))}
+          </div>,
+          document.body,
+        )}
+
+      {/* ── the shared trash bin — drag a character, block or page here to dump
+           it. Always visible; grows while dragging; opens (red) when armed. ── */}
+      {!present && (
+        <div
+          ref={binRef}
+          data-testid="trash-bin"
+          aria-hidden
+          className={`bsx-bin${dragKind ? ' active' : ''}${binArmed ? ' armed' : ''}`}
+        >
+          <div className="bsx-bin-can">
+            <span className="bsx-bin-lid" />
+            <span className="bsx-bin-body" />
+          </div>
+          <span className="bsx-bin-label">{binArmed ? 'Let go!' : 'Bin'}</span>
+        </div>
+      )}
+
+      {/* ── tap-to-edit popover: number stepper / Say text ── */}
+      {editing &&
+        createPortal(
+          <div
+            data-testid="block-editor"
+            className="bsx bsx-card fixed z-[70] rounded-2xl p-3 shadow-card-soft"
+            data-theme={theme}
+            style={{ left: editing.left, top: editing.top, width: 230 }}
+          >
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
+              <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
+              {editing.block.op === 'say'
+                ? 'What should they say?'
+                : `How many? (${blockDef(editing.block.op).label})`}
+            </div>
+            {editing.block.op === 'say' ? (
+              <input
+                data-testid="say-input"
+                autoFocus
+                maxLength={60}
+                defaultValue={editing.block.text ?? 'Hi!'}
+                onChange={(e) =>
+                  useBlocksStore.getState().setSayText(editing.scriptId, editing.index, e.target.value)
+                }
+                onKeyDown={(e) => e.key === 'Enter' && setEditBlk(null)}
+                className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
+              />
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  data-testid="num-minus"
+                  className="bsx-step"
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1)
+                  }
+                >
+                  −
+                </button>
+                <span data-testid="num-value" className="text-[30px] font-extrabold tabular-nums">
+                  {editing.block.n ?? 1}
+                </span>
+                <button
+                  type="button"
+                  data-testid="num-plus"
+                  className="bsx-step"
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1)
+                  }
+                  disabled={(editing.block.n ?? 1) >= MAX_PARAM}
+                >
+                  +
+                </button>
+              </div>
+            )}
           </div>,
           document.body,
         )}

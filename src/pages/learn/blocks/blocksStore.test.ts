@@ -85,4 +85,45 @@ describe('blocksStore', () => {
     store().moveCharacter(id, 99, -4);
     expect(char().start).toMatchObject({ gx: 19, gy: 0 });
   });
+
+  it('setParam sets an exact value, clamped to 1..9', () => {
+    store().addBlock('when_flag');
+    store().addBlock('wait');
+    const id = char().scripts[0].id;
+    store().setParam(id, 1, 7);
+    expect(char().scripts[0].blocks[1].n).toBe(7);
+    store().setParam(id, 1, 99);
+    expect(char().scripts[0].blocks[1].n).toBe(9); // clamped high
+    store().setParam(id, 1, 0);
+    expect(char().scripts[0].blocks[1].n).toBe(1); // clamped low
+  });
+
+  it('moveBlock reorders body blocks but keeps the trigger first', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right'); // index 1
+    store().addBlock('say'); // index 2
+    store().addBlock('hop'); // index 3
+    const id = char().scripts[0].id;
+    const ops = () => char().scripts[0].blocks.map((b) => b.op);
+
+    store().moveBlock(id, 3, 1); // hop → right after the trigger
+    expect(ops()).toEqual(['when_flag', 'hop', 'move_right', 'say']);
+
+    store().moveBlock(id, 1, 0); // refuse to move anything before the trigger
+    expect(ops()[0]).toBe('when_flag');
+  });
+
+  it('removePage keeps at least one page and reselects when the open page goes', () => {
+    store().addPage(); // now 2 pages, page 2 selected
+    const firstPage = store().project.pages[0].id;
+    const secondPage = store().project.pages[1].id;
+    expect(store().pageId).toBe(secondPage);
+
+    store().removePage(secondPage); // remove the open page
+    expect(store().project.pages).toHaveLength(1);
+    expect(store().pageId).toBe(firstPage); // reselected
+
+    store().removePage(firstPage); // refuse to drop the last page
+    expect(store().project.pages).toHaveLength(1);
+  });
 });

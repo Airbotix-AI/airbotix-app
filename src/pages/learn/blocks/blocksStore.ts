@@ -33,6 +33,7 @@ interface BlocksStore {
   selectPage: (pageId: string) => void;
   selectChar: (charId: string) => void;
   addPage: () => void;
+  removePage: (pageId: string) => void;
   addCharacter: (emoji: string, name: string) => void;
   removeCharacter: (charId: string) => void;
   /** Append a block: a trigger starts a NEW script; anything else extends the
@@ -42,7 +43,12 @@ interface BlocksStore {
   removeBlock: (scriptId: string, index: number) => void;
   /** Tap a number tile: cycle 1 → … → MAX_PARAM → 1. */
   cycleParam: (scriptId: string, index: number) => void;
+  /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
+  setParam: (scriptId: string, index: number, n: number) => void;
   setSayText: (scriptId: string, index: number, text: string) => void;
+  /** Reorder a block within its script — drag to change execution order. The
+   *  trigger (index 0) stays first; body blocks reorder among 1..n. */
+  moveBlock: (scriptId: string, from: number, to: number) => void;
   moveCharacter: (charId: string, gx: number, gy: number) => void;
 }
 
@@ -107,6 +113,23 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
       charId: char.id,
       dirty: s.dirty + 1,
     }));
+  },
+
+  removePage(pageId) {
+    set((s) => {
+      if (s.project.pages.length <= 1) return s; // a project always keeps one page
+      const idx = s.project.pages.findIndex((p) => p.id === pageId);
+      if (idx < 0) return s;
+      const pages = s.project.pages.filter((p) => p.id !== pageId);
+      const fallback = pages[Math.min(idx, pages.length - 1)];
+      const removingCurrent = s.pageId === pageId;
+      return {
+        project: { ...s.project, pages },
+        pageId: removingCurrent ? fallback.id : s.pageId,
+        charId: removingCurrent ? (fallback.characters[0]?.id ?? '') : s.charId,
+        dirty: s.dirty + 1,
+      };
+    });
   },
 
   addCharacter(emoji, name) {
@@ -214,6 +237,22 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     }));
   },
 
+  setParam(scriptId, index, n) {
+    const { pageId, charId } = get();
+    const v = Math.min(MAX_PARAM, Math.max(1, Math.round(n)));
+    set((s) => ({
+      project: patchChar(s.project, pageId, charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) =>
+          sc.id !== scriptId
+            ? sc
+            : { ...sc, blocks: sc.blocks.map((b, i) => (i !== index ? b : { ...b, n: v })) },
+        ),
+      })),
+      dirty: s.dirty + 1,
+    }));
+  },
+
   setSayText(scriptId, index, text) {
     const { pageId, charId } = get();
     set((s) => ({
@@ -224,6 +263,26 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             ? sc
             : { ...sc, blocks: sc.blocks.map((b, i) => (i !== index ? b : { ...b, text: text.slice(0, 60) })) },
         ),
+      })),
+      dirty: s.dirty + 1,
+    }));
+  },
+
+  moveBlock(scriptId, from, to) {
+    const { pageId, charId } = get();
+    set((s) => ({
+      project: patchChar(s.project, pageId, charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) => {
+          if (sc.id !== scriptId) return sc;
+          // the trigger (index 0) is fixed; only body blocks reorder among 1..n
+          if (from <= 0 || from >= sc.blocks.length) return sc;
+          const arr = [...sc.blocks];
+          const [moved] = arr.splice(from, 1);
+          const dest = Math.min(Math.max(1, to), arr.length);
+          arr.splice(dest, 0, moved);
+          return { ...sc, blocks: arr };
+        }),
       })),
       dirty: s.dirty + 1,
     }));

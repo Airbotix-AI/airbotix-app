@@ -48,6 +48,19 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   area) showed default browser scrollbars that clashed with the surface — most visibly in dark.
   They now use token-driven thin scrollbars that flip with the theme.
 
+### Changed
+- **Blocks: tap a whole block to edit + drag to reorder + one shared trash bin.** Several editing
+  upgrades:
+  - **Tap anywhere on a block to edit it** (not just the tiny number tile): a number block opens a
+    big +/− **stepper** popover; a Say block opens a text editor. The number tile is now
+    display-only.
+  - **Drag a block sideways to reorder** the execution order (the 🚩 trigger stays first); a glowing
+    insertion bar shows where it will drop.
+  - **One always-visible trash bin** (bottom-right of the studio) accepts **characters, blocks, AND
+    pages** — drag any of them onto it to delete. The bin is subtle when idle, grows while you drag,
+    and its lid lifts + everything glows red when a draggable is over it. Replaces the
+    block-only in-area trash strip. (Store gains `setParam` / `moveBlock` / `removePage`.)
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

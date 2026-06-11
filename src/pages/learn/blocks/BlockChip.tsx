@@ -2,7 +2,7 @@
 // construction (masked socket + glossy plug, validated in the PRD mockup)
 // lives in blocks.css; this maps a Block/BlockDef onto it.
 
-import type { CSSProperties, PointerEvent } from 'react';
+import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
 import clsx from 'clsx';
 
 import { type Block, blockDef, isTrigger } from './blocksModel';
@@ -16,7 +16,6 @@ export function BlockChip({
   removing,
   style,
   onTap,
-  onTapNum,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -32,8 +31,7 @@ export function BlockChip({
   /** Dragged far enough that letting go removes it (red "will delete" cue). */
   removing?: boolean;
   style?: CSSProperties;
-  onTap?: () => void;
-  onTapNum?: () => void;
+  onTap?: (e: MouseEvent) => void;
   onPointerDown?: (e: PointerEvent) => void;
   onPointerMove?: (e: PointerEvent) => void;
   onPointerUp?: (e: PointerEvent) => void;
@@ -68,16 +66,8 @@ export function BlockChip({
       <span className="ic">{def.icon}</span>
       {block.op === 'say' ? (block.text ?? 'Hi!').slice(0, 8) : def.label}
       {def.hasN && (
-        <span
-          className="num"
-          data-testid="block-num"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            if (!onTapNum) return;
-            e.stopPropagation();
-            onTapNum();
-          }}
-        >
+        // display-only — tapping anywhere on the block opens the editor
+        <span className="num" data-testid="block-num">
           {block.n ?? def.defaultN ?? 1}
         </span>
       )}

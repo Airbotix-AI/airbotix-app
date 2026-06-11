@@ -281,28 +281,137 @@
     grayscale(0.2);
   opacity: 0.85;
 }
-/* the "drag here to remove" hint that appears while dragging a chained block */
-.bsx-trash {
-  position: sticky;
-  bottom: 0;
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 48px;
-  border-radius: 16px;
-  border: 2px dashed var(--bsx-border);
-  background: var(--bsx-pad);
-  color: var(--bsx-text-muted);
-  font-family: var(--fun, inherit);
-  font-weight: 800;
-  font-size: 14px;
+/* the reorder insertion bar (where a dragged block will drop) */
+.bsx-dropbar {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--bsx-cat-motion);
+  box-shadow: 0 0 10px var(--bsx-cat-motion);
+  pointer-events: none;
+  z-index: 25;
 }
-.bsx-trash.armed {
+
+/* ── the ONE shared trash bin (drag a character / block / page onto it) ──
+   always visible (bottom-right of the studio); grows while dragging; the lid
+   lifts + everything glows red when a draggable is hovering over it. */
+.bsx-bin {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 14px 10px;
+  border-radius: 20px;
+  border: 2px dashed var(--bsx-border);
+  background: color-mix(in srgb, var(--bsx-surface) 70%, transparent);
+  backdrop-filter: blur(8px);
+  opacity: 0.6;
+  transform: scale(0.92);
+  transition: transform 0.18s, opacity 0.18s, border-color 0.18s, background 0.18s;
+  pointer-events: none; /* never blocks the canvas; drop is hit-tested by JS */
+}
+.bsx-bin.active {
+  opacity: 1;
+  transform: scale(1);
+  border-color: var(--bsx-cat-motion);
+}
+.bsx-bin.armed {
+  opacity: 1;
+  transform: scale(1.12);
   border-color: #ff5677;
-  background: color-mix(in srgb, #ff5677 14%, var(--bsx-surface));
+  border-style: solid;
+  background: color-mix(in srgb, #ff5677 18%, var(--bsx-surface));
+  box-shadow: 0 0 0 4px color-mix(in srgb, #ff5677 30%, transparent),
+    0 16px 30px -12px #ff5677;
+}
+.bsx-bin-can {
+  position: relative;
+  width: 38px;
+  height: 38px;
+}
+.bsx-bin-body {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 0;
+  top: 12px;
+  border-radius: 4px 4px 7px 7px;
+  background: var(--bsx-text-muted);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000),
+    inset -3px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000);
+}
+.bsx-bin-lid {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 8px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bsx-text-dim);
+  transform-origin: right center;
+  transition: transform 0.18s;
+}
+.bsx-bin-lid::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 12px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 3px 3px 0 0;
+  background: var(--bsx-text-dim);
+}
+.bsx-bin.armed .bsx-bin-lid {
+  transform: rotate(-22deg) translateY(-3px);
+  background: #ff5677;
+}
+.bsx-bin.armed .bsx-bin-lid::after {
+  background: #ff5677;
+}
+.bsx-bin.armed .bsx-bin-body {
+  background: #ff5677;
+}
+.bsx-bin-label {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--bsx-text-muted);
+}
+.bsx-bin.armed .bsx-bin-label {
   color: #ff5677;
+}
+
+/* number stepper buttons in the tap-to-edit popover */
+.bsx-step {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 16px;
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--bsx-cat-motion) 60%, #fff), var(--bsx-cat-motion));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--bsx-cat-motion) 60%, #201030);
+  transition: transform 0.12s;
+}
+.bsx-step:hover {
+  transform: translateY(-2px);
+}
+.bsx-step:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--bsx-cat-motion) 60%, #201030);
+}
+.bsx-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
 }
 
 /* ── category buttons ─────────────────────────────────────────────────────── */
