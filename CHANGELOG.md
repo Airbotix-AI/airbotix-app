@@ -82,6 +82,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (`/learn/blocks/:id`, "Resume blocks →"). And the studio captures a **canvas screenshot
   thumbnail** of the scene (sky + hill + characters at their start spots, `thumbnail.ts`) on open
   and on every save, stored device-local — so the card shows the project instead of a placeholder.
+- **Blocks (dark): toolbar/press buttons now have a clear top edge.** They used `--bsx-surface`,
+  the same colour as the toolbar, so only the bottom shadow read and the top blended in. They now
+  have a 1px border, a slightly-lighter face (`--bsx-surface-2`), and an inset top highlight
+  (`--bsx-top-edge`) so the whole button outline is visible in both themes.
 
 ## 2026-06-10 (Airo — named helper + avatar)
 

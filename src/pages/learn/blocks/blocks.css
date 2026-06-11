@@ -34,6 +34,7 @@
   --bsx-text-muted: #a89fbf;
   --bsx-chain: rgba(61, 217, 169, 0.16);
   --bsx-shadow: rgba(60, 30, 110, 0.35);
+  --bsx-top-edge: rgba(255, 255, 255, 0.7);
 }
 /* ── DARK theme (mockup palette) — set on the .bsx app root + the portalled
    picker, so the immersive studio flips while the surrounding Learn surface
@@ -51,6 +52,7 @@
   --bsx-text-muted: #8e82ae;
   --bsx-chain: rgba(61, 217, 169, 0.14);
   --bsx-shadow: rgba(0, 0, 0, 0.5);
+  --bsx-top-edge: rgba(255, 255, 255, 0.09);
 }
 @media (pointer: coarse) {
   .bsx {
@@ -117,24 +119,31 @@
   background: transparent;
 }
 
-/* ── universal "pressable" — every touchable thing looks pushable ─────────── */
+/* ── universal "pressable" — every touchable thing looks pushable ───────────
+   A 1px border + a top highlight define the WHOLE outline (incl. the top edge),
+   and a slightly-lighter face separates the button from the same-coloured
+   toolbar in dark theme — otherwise only the bottom shadow read and the top
+   blended into the bar. */
 .bsx-press {
-  border: 0;
+  border: 1px solid var(--bsx-border);
   cursor: pointer;
   font-weight: 700;
   color: var(--bsx-text-dim);
-  background: var(--bsx-surface);
+  background: var(--bsx-surface-2);
   border-radius: 16px;
-  box-shadow: 0 4px 0 var(--bsx-border), 0 10px 18px -12px var(--bsx-shadow);
+  box-shadow: 0 4px 0 var(--bsx-border), 0 10px 18px -12px var(--bsx-shadow),
+    inset 0 1px 0 var(--bsx-top-edge);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .bsx-press:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--bsx-border), 0 14px 22px -12px var(--bsx-shadow);
+  background: var(--bsx-surface);
+  box-shadow: 0 6px 0 var(--bsx-border), 0 14px 22px -12px var(--bsx-shadow),
+    inset 0 1px 0 var(--bsx-top-edge);
 }
 .bsx-press:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--bsx-border);
+  box-shadow: 0 1px 0 var(--bsx-border), inset 0 1px 0 var(--bsx-top-edge);
 }
 
 /* ── the puzzle block ─────────────────────────────────────────────────────── */
