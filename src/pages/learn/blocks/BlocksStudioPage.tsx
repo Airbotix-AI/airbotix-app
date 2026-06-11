@@ -29,6 +29,9 @@ import {
   blockDef,
 } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
+import { useBlocksTheme } from './blocksTheme';
+import { captureBlocksThumbnail } from './thumbnail';
+import { saveThumbnail } from '../playground/projectPersistence';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
 import './blocks.css';
@@ -83,28 +86,9 @@ export function BlocksStudioPage() {
   const [present, setPresent] = useState(false);
   const [running, setRunning] = useState(false);
   // Theme follows the system by default; the toolbar 🌙/☀️ overrides + persists.
-  // Scoped to the .bsx app root + the portalled picker (NOT <html>), so the
-  // immersive studio flips dark while the rest of the Learn surface stays light.
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    try {
-      const stored = localStorage.getItem('bsx-theme');
-      if (stored === 'light' || stored === 'dark') return stored;
-    } catch {
-      // ignore
-    }
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-  const toggleTheme = useCallback(() => {
-    setTheme((t) => {
-      const next = t === 'dark' ? 'light' : 'dark';
-      try {
-        localStorage.setItem('bsx-theme', next);
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, []);
+  // Shared via a store so the Learn top bar flips with the studio (blocksTheme).
+  const theme = useBlocksTheme((s) => s.theme);
+  const toggleTheme = useBlocksTheme((s) => s.toggle);
   // The friend picker floats in a portal (the character rail clips overflow +
   // has a backdrop-filter, which would otherwise trap/cut off an absolute popup).
   const [friendPos, setFriendPos] = useState<{ left: number; top: number } | null>(null);
@@ -138,6 +122,13 @@ export function BlocksStudioPage() {
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
         setPhase('ready');
+        // refresh the cover thumbnail on open (device-local; even without an edit)
+        try {
+          const cover = loaded.project.pages[0];
+          if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
+        } catch {
+          // best-effort
+        }
       })
       .catch(() => alive && setPhase('error'));
     return () => {
@@ -165,6 +156,13 @@ export function BlocksStudioPage() {
             useBlocksStore.getState().load(result.project);
           }
           setSaveStatus('saved');
+          // refresh the Projects/My Works cover thumbnail (device-local)
+          try {
+            const cover = useBlocksStore.getState().project.pages[0];
+            if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
+          } catch {
+            // thumbnail is best-effort
+          }
         } catch {
           setSaveStatus('offline');
         }

@@ -72,6 +72,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     drag-page-to-bin / drag-character-to-bin paths were removed; dragging a character only
     repositions it now.
 
+### Fixed (follow-up)
+- **Blocks: the Learn top bar now flips dark with the studio.** The studio is full-bleed under the
+  nav, so a light nav over a dark studio looked broken. The theme moved into a shared store
+  (`blocksTheme`); on `/learn/blocks/*` the top bar syncs to it (same mechanism the playground
+  uses). The toolbar 🌙/☀️ toggles both together.
+- **Blocks projects in Projects / My Works now open + show a cover.** They routed to the generic
+  project-detail page (so clicking didn't resume) — they now open in **Blocks Studio**
+  (`/learn/blocks/:id`, "Resume blocks →"). And the studio captures a **canvas screenshot
+  thumbnail** of the scene (sky + hill + characters at their start spots, `thumbnail.ts`) on open
+  and on every save, stored device-local — so the card shows the project instead of a placeholder.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added

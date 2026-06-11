@@ -3,6 +3,10 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 import { usePlaygroundStore } from '@/pages/learn/playground/playgroundStore';
+import { useBlocksTheme } from '@/pages/learn/blocks/blocksTheme';
+// the themed nav uses the pg-* tokens — ensure they're loaded on every Learn
+// route (not only when the playground itself is mounted).
+import '@/pages/learn/playground/playground.css';
 
 const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 
@@ -13,16 +17,20 @@ export function LearnTopBar() {
   const { pathname } = useLocation();
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  // On the game studio the nav SYNCS with the playground theme: we set
+  // On the game/blocks studios the nav SYNCS with the studio theme: we set
   // `data-theme` on the header so the `pg-*` tokens flip (light ⇄ dark) to match
-  // the studio. Every other /learn page keeps the constant K-12 light chrome.
+  // the immersive surface. Every other /learn page keeps the constant K-12 light
+  // chrome.
   const onPlayground = pathname.startsWith('/learn/playground');
+  const onBlocks = pathname.startsWith('/learn/blocks');
   const pgTheme = usePlaygroundStore((s) => s.theme);
-  const themed = onPlayground;
+  const blocksTheme = useBlocksTheme((s) => s.theme);
+  const themed = onPlayground || onBlocks;
+  const themeValue = onBlocks ? blocksTheme : pgTheme;
 
   return (
     <header
-      data-theme={themed ? pgTheme : undefined}
+      data-theme={themed ? themeValue : undefined}
       className={clsx(
         'sticky top-0 z-10 border-b backdrop-blur px-6 py-4 md:px-10',
         themed ? 'border-pg-border bg-pg-surface/95 text-pg-text' : 'border-hairline bg-canvas-pure/95',
