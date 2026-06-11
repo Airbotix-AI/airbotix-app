@@ -6,17 +6,14 @@ import { Link } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { describeAuditEvent, friendlyActor, type AuditTone } from '@/lib/auditCopy';
+// Shared cross-product contract (audit-event-schema-prd v0.2 §3.2) — the /types
+// subpath is type-only, so no Zod lands in the bundle.
+import type { AuditEventRecord as AuditEvent } from '@airbotix-ai/audit-schema/types';
 
-interface AuditEvent {
-  id: string;
-  family_id: string | null;
-  kid_id: string | null;
-  project_id: string | null;
-  actor: 'kid' | 'agent' | 'parent' | 'teacher' | 'admin' | 'super_admin' | 'system' | 'service';
-  actor_id: string | null;
-  event_type: string;
-  payload: Record<string, unknown>;
-  occurred_at: string;
+// occurred_at is the emitter's clock and optional on the wire; received_at
+// (server clock) is always present (§3.8).
+function eventTime(event: AuditEvent): string {
+  return new Date(event.occurred_at ?? event.received_at).toLocaleString();
 }
 
 // Tone → leading-bubble background. Tailwind can't see dynamic class names, so
@@ -125,7 +122,7 @@ function SafetyEscalatedRow({ event }: { event: AuditEvent }) {
             Multiple safety events in a short period — teacher was notified.
           </div>
           <div className="text-[12px] text-slate2 mt-1.5">
-            {friendlyActor(event.actor)} · {new Date(event.occurred_at).toLocaleString()}
+            {friendlyActor(event.actor)} · {eventTime(event)}
           </div>
           <button
             type="button"
@@ -206,7 +203,7 @@ function AuditRow({ event }: { event: AuditEvent }) {
           <div className="text-[12px] text-slate2 mt-1.5">
             {friendlyActor(event.actor)}
             {' · '}
-            {new Date(event.occurred_at).toLocaleString()}
+            {eventTime(event)}
             {event.project_id && (
               <>
                 {' · '}

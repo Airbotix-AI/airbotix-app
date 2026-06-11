@@ -2,6 +2,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
+# vendored @airbotix-ai/audit-schema tarball (interim until the npm publish)
+COPY vendor ./vendor
 RUN npm ci
 COPY . .
 # VITE_* are baked at build time; passed via --build-arg

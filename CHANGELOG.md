@@ -4,6 +4,28 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (audit v0.2 consumer)
+
+### Added
+- **Parent copy for all 20 kids-opencode pipeline events** (audit-event-schema-prd v0.2
+  §3.4/§8.4): new `auditCopyKids.ts` BUILDERS (`tool.execute.*`, `tool.blocked.*`,
+  `session.*`, `llm.request/response`, `prompt_injection.detected`,
+  `dangerous_topic.intercepted`, course-pack progress, `teacher.kill_switch.triggered`, …)
+  so the desktop coding tool's events render real copy in `/portal/audit` instead of
+  fallback humanization. New unit tests cover every frozen name.
+
+### Changed
+- **`/portal/audit` pages use the shared contract type**: inline `AuditEvent`
+  interfaces in `AuditPage.tsx` / `AuditProjectPage.tsx` replaced by
+  `AuditEventRecord` from `@airbotix-ai/audit-schema/types` (type-only subpath —
+  zero runtime added). Timestamps now fall back to `received_at` when the
+  emitter-clock `occurred_at` is absent (§3.8). Vendored as
+  `vendor/airbotix-ai-audit-schema-0.1.0.tgz` (+ `COPY vendor` in the Dockerfile)
+  until the package is on npm.
+- `auditCopy.ts` split: payload helpers → `auditCopy.helpers.ts`, kids builders →
+  `auditCopyKids.ts` (file-size rule); public API (`formatAud`, `formatStars`,
+  `describeAuditEvent`, types) unchanged.
+
 ## 2026-06-10 (guided chip loop)
 
 ### Changed

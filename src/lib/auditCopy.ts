@@ -9,6 +9,22 @@
 // Keep the mapping table here (not in the component) so the page stays small
 // and this is unit-testable.
 
+import {
+  asBool,
+  asNum,
+  asStr,
+  cardLabel,
+  formatAud,
+  formatStars,
+  humanize,
+  line,
+  type Payload,
+} from './auditCopy.helpers';
+import { KIDS_BUILDERS } from './auditCopyKids';
+
+// Formatting helpers are part of this module's public API (components + tests).
+export { formatAud, formatStars } from './auditCopy.helpers';
+
 export type AuditTone = 'coral' | 'bubblegum' | 'sunshine' | 'sky' | 'mint' | 'slate';
 
 export interface AuditCopy {
@@ -20,54 +36,6 @@ export interface AuditCopy {
   detail?: string;
   /** Color accent for the leading bubble. */
   tone: AuditTone;
-}
-
-type Payload = Record<string, unknown>;
-
-// ---- payload field helpers (defensive: payloads are untyped JSON) ----
-
-const asNum = (v: unknown): number | null => (typeof v === 'number' ? v : null);
-const asStr = (v: unknown): string | null =>
-  typeof v === 'string' && v.length > 0 ? v : null;
-const asBool = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : null);
-
-/** `1000` → `"$10.00 AUD"` */
-export function formatAud(cents: unknown): string | null {
-  const c = asNum(cents);
-  if (c == null) return null;
-  return `$${(c / 100).toFixed(2)} AUD`;
-}
-
-/** `10` → `"10 Stars"`, `1` → `"1 Star"` */
-export function formatStars(n: unknown): string | null {
-  const s = asNum(n);
-  if (s == null) return null;
-  return `${s} ${s === 1 ? 'Star' : 'Stars'}`;
-}
-
-/** `"first_visit"` → `"First visit"` */
-function humanize(raw: string): string {
-  const words = raw.replace(/[._-]+/g, ' ').trim().split(/\s+/);
-  if (words.length === 0) return raw;
-  const joined = words.join(' ');
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
-}
-
-/** Join non-empty fragments with a middot. */
-function line(...parts: Array<string | null | undefined>): string | undefined {
-  const kept = parts.filter((p): p is string => !!p);
-  return kept.length > 0 ? kept.join(' · ') : undefined;
-}
-
-/** `"VISA"` + `"4242"` → `"Visa ···· 4242"` */
-function cardLabel(p: Payload): string | undefined {
-  const brand = asStr(p.brand);
-  const last4 = asStr(p.last4);
-  const pretty = brand
-    ? brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase()
-    : null;
-  if (pretty && last4) return `${pretty} ···· ${last4}`;
-  return pretty ?? (last4 ? `···· ${last4}` : undefined);
 }
 
 // ---- friendly actor labels (parent's point of view) ----
@@ -271,6 +239,11 @@ const BUILDERS: Record<string, Builder> = {
     detail: asStr(p.title) ?? undefined,
   }),
   'incident.resolved': () => ({ icon: '✅', tone: 'mint', title: 'An issue was resolved' }),
+
+  // —— kids-opencode (desktop coding tool) ——
+  // Frozen pipeline taxonomy from audit-event-schema-prd v0.2 §3.4; builders
+  // live in auditCopyKids.ts.
+  ...KIDS_BUILDERS,
 };
 
 // LLM events share one shape: `llm.<media>.<completed|failed>`.

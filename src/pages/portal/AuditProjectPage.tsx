@@ -3,18 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { AuditTimeline } from './AuditPage';
-
-interface AuditEvent {
-  id: string;
-  family_id: string | null;
-  kid_id: string | null;
-  project_id: string | null;
-  actor: 'kid' | 'agent' | 'parent' | 'teacher' | 'admin' | 'super_admin' | 'system' | 'service';
-  actor_id: string | null;
-  event_type: string;
-  payload: Record<string, unknown>;
-  occurred_at: string;
-}
+// Shared cross-product contract (audit-event-schema-prd v0.2 §3.2), type-only import.
+import type { AuditEventRecord as AuditEvent } from '@airbotix-ai/audit-schema/types';
 
 export function AuditProjectPage() {
   const { id } = useParams<{ id: string }>();

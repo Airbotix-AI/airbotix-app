@@ -43,6 +43,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@airbotix-ai/audit-schema": "file:vendor/airbotix-ai-audit-schema-0.1.0.tgz",
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.1",

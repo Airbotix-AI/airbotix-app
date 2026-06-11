@@ -137,4 +137,91 @@ describe('describeAuditEvent', () => {
     expect(copy.title).not.toContain('_');
     expect(copy.title).toBe('Future event happened');
   });
+
+  // kids-opencode pipeline events (audit-event-schema-prd v0.2 §3.4) — real
+  // copy instead of fallback rendering.
+  describe('kids-opencode events', () => {
+    it('describes a finished AI tool step with title and Stars', () => {
+      const copy = describeAuditEvent({
+        event_type: 'tool.execute.after',
+        payload: { tool: 'write', title: 'Added a bouncing ball', stars_charged: 2 },
+      });
+      expect(copy.title).toBe('AI helper finished a step');
+      expect(copy.detail).toBe('Added a bouncing ball · 2 Stars');
+    });
+
+    it('explains blocked tools and blocked websites', () => {
+      expect(
+        describeAuditEvent({
+          event_type: 'tool.blocked.not_whitelisted',
+          payload: { tool: 'shell' },
+        }).detail,
+      ).toBe("Shell isn't on the allowed list");
+      expect(
+        describeAuditEvent({
+          event_type: 'tool.blocked.webfetch_host',
+          payload: { tool: 'webfetch', url: 'https://example.com' },
+        }).title,
+      ).toBe('A website was blocked');
+    });
+
+    it('maps the desktop safety events to alarmed-but-calm copy', () => {
+      expect(
+        describeAuditEvent({ event_type: 'prompt_injection.detected', payload: {} }).title,
+      ).toBe('Prompt injection blocked');
+      expect(
+        describeAuditEvent({ event_type: 'dangerous_topic.intercepted', payload: {} }).title,
+      ).toBe('Unsafe topic stopped');
+      expect(
+        describeAuditEvent({ event_type: 'teacher.kill_switch.triggered', payload: {} }).title,
+      ).toBe('Teacher paused the class tools');
+    });
+
+    it('covers session lifecycle and course progress', () => {
+      expect(describeAuditEvent({ event_type: 'session.started', payload: {} }).title)
+        .toBe('Coding session started');
+      expect(
+        describeAuditEvent({
+          event_type: 'course_pack.mission_advanced',
+          payload: { mission: 'pixel_pet' },
+        }).detail,
+      ).toBe('Pixel pet');
+      expect(
+        describeAuditEvent({
+          event_type: 'plugin.loaded',
+          payload: { version: '0.5.0', course_pack: 'ai-pet-lab', mission: null },
+        }).detail,
+      ).toBe('Course: Ai pet lab');
+    });
+
+    it('does not fall back to humanized machine strings for any frozen kids event name', () => {
+      const frozen = [
+        'plugin.loaded',
+        'plugin.failed',
+        'course_pack.loaded',
+        'course_pack.not_found',
+        'course_pack.mission_advanced',
+        'scaffold.render_error',
+        'tool.execute.before',
+        'tool.execute.after',
+        'tool.blocked.not_whitelisted',
+        'tool.blocked.webfetch_host',
+        'tool.blocked.path_guard',
+        'session.started',
+        'session.ended',
+        'session.aborted',
+        'llm.request',
+        'llm.response',
+        'prompt_injection.detected',
+        'dangerous_topic.intercepted',
+        'parent.audit_viewed',
+        'teacher.kill_switch.triggered',
+      ];
+      for (const event_type of frozen) {
+        const copy = describeAuditEvent({ event_type, payload: {} });
+        // fallback rendering uses the bullet icon — mapped events never do
+        expect(copy.icon, event_type).not.toBe('•');
+      }
+    });
+  });
 });
