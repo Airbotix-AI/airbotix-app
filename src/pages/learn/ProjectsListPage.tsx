@@ -9,7 +9,7 @@ import { loadThumbnail } from './playground/projectPersistence';
 interface Project {
   id: string;
   title: string;
-  kind?: 'creative' | 'code' | 'game';
+  kind?: 'creative' | 'code' | 'game' | 'blocks';
   product_line: 'line_a_creative' | 'line_b_coding';
   visibility: 'private' | 'class' | 'public';
   thumbnail_s3_key: string | null;
@@ -95,16 +95,18 @@ export function ProjectsListPage() {
   // Game thumbnails are captured + stored device-locally (no backend image upload
   // path yet — see playground/workspaceThumbnail). Load them for the listed games
   // and use them when the backend has no thumbnail_s3_key.
-  const gameIds = (projects.data ?? []).filter((p) => p.kind === 'game').map((p) => p.id);
+  const thumbIds = (projects.data ?? [])
+    .filter((p) => p.kind === 'game' || p.kind === 'blocks')
+    .map((p) => p.id);
   const localThumbs = useQuery<Record<string, string>>({
-    queryKey: ['playground-thumbs', gameIds.join(',')],
+    queryKey: ['playground-thumbs', thumbIds.join(',')],
     queryFn: async () => {
       const entries = await Promise.all(
-        gameIds.map(async (id) => [id, await loadThumbnail(id)] as const),
+        thumbIds.map(async (id) => [id, await loadThumbnail(id)] as const),
       );
       return Object.fromEntries(entries.filter(([, v]) => v)) as Record<string, string>;
     },
-    enabled: gameIds.length > 0,
+    enabled: thumbIds.length > 0,
   });
 
   const del = useMutation({
@@ -115,9 +117,14 @@ export function ProjectsListPage() {
     },
   });
 
-  // Resume opens a game in the studio (PRD J9); other kinds open their project detail.
+  // Resume opens a game in the playground / a blocks project in Blocks Studio
+  // (PRD J9); other kinds open their project detail.
   const resumeHref = (p: Project) =>
-    p.kind === 'game' ? `/learn/playground/${p.id}` : `/learn/projects/${p.id}`;
+    p.kind === 'game'
+      ? `/learn/playground/${p.id}`
+      : p.kind === 'blocks'
+        ? `/learn/blocks/${p.id}`
+        : `/learn/projects/${p.id}`;
 
   return (
     <div>
@@ -278,7 +285,7 @@ function ProjectCard({
       {/* Resume / Delete actions (delete opens a confirm dialog). */}
       <div className="flex items-center justify-between gap-2 border-t border-hairline px-3 py-2">
         <Link to={resumeHref} className="text-[12px] font-bold text-brand-sky">
-          {p.kind === 'game' ? 'Resume game →' : 'Open →'}
+          {p.kind === 'game' ? 'Resume game →' : p.kind === 'blocks' ? 'Resume blocks →' : 'Open →'}
         </Link>
         <button
           type="button"
