@@ -10,7 +10,10 @@
 export const BLOCKS_PROJECT_FILE = 'project.blocks.json';
 export const GRID_W = 20;
 export const GRID_H = 15;
-export const MAX_PAGES = 4;
+// Kids can add as many pages as they like; this is only a generous safety
+// bound (a saved doc / a runaway loop can't blow up memory), never a UX cap a
+// child will hit.
+export const MAX_PAGES = 50;
 export const MAX_PARAM = 9;
 
 // ── Block catalogue (v1 set — control `repeat` C-block lands with M3) ───────

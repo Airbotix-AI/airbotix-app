@@ -4,6 +4,47 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — refinement pass)
+
+### Added
+- **Share / view-only play** for Blocks Studio — the SAME parent-approval flow + play-count as
+  Game Studio (reuses the kind-agnostic share API: ask → grown-up approves → frozen snapshot →
+  live `/play/:shareId`). New `BlocksSharePanel` (theme-aware) in the toolbar; the public play page
+  renders a new **read-only `ReadOnlyBlocksPlayer`** (big stage + Play button, no editing chrome,
+  no auth) detected from `project.blocks.json` in the frozen snapshot.
+- **Drag a block across tracks.** With multiple 🚩 tracks, a body block can now be dragged from one
+  track into another (new `blocksStore.moveBlockAcross`); the insertion bar shows in the target track.
+- **Number +/− sound effects** (`sfx.numUp/numDown`) and a **mute/unmute toggle** in the toolbar
+  (persisted), plus an undo/redo cue.
+- **Bigger emoji library** — 8 clear, evenly-sized categories (~130 emoji): Animals, Critters, Sea,
+  People, Fantasy, Vehicles, Food, Fun. Category tabs are now a fixed equal size.
+
+### Changed
+- **Tablet block drag is hold-to-lift.** A quick swipe on a block now SCROLLS the palette / program;
+  a short hold lifts it to drag (then JS locks page-scroll). Fixes blocks getting stuck on tablets
+  and the scroll-vs-drag conflict. Mouse still drags on a small move.
+- **One generic starter.** The Create hub offers a single "New project" card; every new project opens
+  on a working scene — a cat that **chases a bouncing ball** (both loop forever) — to remix.
+- **Unlimited pages** (was capped at 4).
+- **Page thumbnails mirror each page's scene** (animated background), not a flat blue/space swatch.
+- **Reset** got a proper icon (`RotateCcw`) + a friendly confirmation card.
+- The stage **background button** is a themed glass chip with a clear picture icon (flips with the theme).
+- **Landscape coding band**: all six categories show in a compact 2×3 grid (no scroll) and the band is
+  taller so several tracks are visible at once.
+
+### Fixed
+- **Tapping a character no longer triggers the browser's text-selection / "Search" callout** (and no
+  double-tap zoom in the studio): `user-select`/`-webkit-touch-callout`/`touch-action` hardened, inputs
+  re-enable text.
+
+### Changed (toolbar + picker follow-ups)
+- **Toolbar redesigned to fewer buttons.** Secondary actions (Day/Night, Reset, Big screen) collapse
+  into a **⋯ More** menu so the bar no longer squashes in portrait; ▶ Go! never wraps to two lines.
+- **The currently-running block now lights up** as the program executes (live `lit` glow, wired from a
+  new interpreter `onStep` callback).
+- **Friend-picker categories all fit** (a 4-column wrapping grid) — no horizontal scroll.
+- **Mute button shows its state** with a distinct coral wash when sounds are off.
+
 ## 2026-06-10 (Magic card dark-theme fix)
 
 ### Fixed

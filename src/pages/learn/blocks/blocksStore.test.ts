@@ -58,14 +58,10 @@ describe('blocksStore', () => {
     expect(store().dirty).toBeGreaterThan(before);
   });
 
-  it('addPage caps at 4 pages and selects the new page', () => {
-    store().addPage();
-    store().addPage();
-    store().addPage();
-    expect(store().project.pages).toHaveLength(4);
-    expect(store().pageId).toBe(store().project.pages[3].id);
-    store().addPage(); // capped
-    expect(store().project.pages).toHaveLength(4);
+  it('addPage adds pages freely (no 4-page cap) and selects the new one', () => {
+    for (let i = 0; i < 8; i += 1) store().addPage();
+    expect(store().project.pages).toHaveLength(9); // 1 initial + 8
+    expect(store().pageId).toBe(store().project.pages[8].id);
   });
 
   it('addCharacter selects the new friend; removeCharacter keeps at least one', () => {
@@ -139,6 +135,35 @@ describe('blocksStore', () => {
     expect(char().scripts).toHaveLength(2);
     expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'move_right']);
     expect(char().scripts[1].blocks.map((b) => b.op)).toEqual(['when_tap']);
+  });
+
+  it('moveBlockAcross moves a body block into a different track at a slot', () => {
+    store().addBlock('when_flag'); // track A
+    store().addBlock('move_right');
+    store().addBlock('hop');
+    store().addBlock('when_tap'); // track B (new trigger)
+    store().addBlock('pop');
+    const a = char().scripts[0].id;
+    const b = char().scripts[1].id;
+    const ops = (sid: string) => char().scripts.find((s) => s.id === sid)!.blocks.map((x) => x.op);
+
+    // move 'move_right' (track A index 1) into track B at slot 1 (after its trigger)
+    store().moveBlockAcross(a, 1, b, 1);
+    expect(ops(a)).toEqual(['when_flag', 'hop']);
+    expect(ops(b)).toEqual(['when_tap', 'move_right', 'pop']);
+
+    // a trigger never moves across tracks
+    store().moveBlockAcross(b, 0, a, 1);
+    expect(ops(b)[0]).toBe('when_tap');
+  });
+
+  it('moveBlockAcross within the same track reorders (delegates correctly)', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right'); // 1
+    store().addBlock('hop'); // 2
+    const id = char().scripts[0].id;
+    store().moveBlockAcross(id, 2, id, 1); // hop before move_right
+    expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'hop', 'move_right']);
   });
 
   it('removePage keeps at least one page and reselects when the open page goes', () => {

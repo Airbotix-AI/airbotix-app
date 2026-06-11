@@ -16,9 +16,10 @@ import {
 } from './blocksApi';
 import './blocks.css';
 
+// One generic starter: every new project opens on a working scene (the cat
+// chasing a bouncing ball) the kid can press Go! on, then remix into anything.
 const STARTERS: Array<{ id: BlocksTemplateId; emoji: string; title: string; desc: string }> = [
-  { id: 'blocks_blank', emoji: '✨', title: 'Empty stage', desc: 'Start fresh with the Cat and a green meadow.' },
-  { id: 'blocks_story', emoji: '📖', title: 'Cat & Ball story', desc: 'A little two-page story that already works — remix it!' },
+  { id: 'blocks_story', emoji: '🐱', title: 'New project', desc: 'Press Go! to watch the cat chase a bouncing ball — then make it your own.' },
 ];
 
 export function BlocksHubPage() {
@@ -66,14 +67,14 @@ export function BlocksHubPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:max-w-md gap-6 mb-12">
         {STARTERS.map((s) => (
           <button
             key={s.id}
             type="button"
             data-testid={`blocks-starter-${s.id}`}
             disabled={busy !== null}
-            onClick={() => void start(s.id, s.id === 'blocks_story' ? 'The cat and the ball' : 'My blocks project')}
+            onClick={() => void start(s.id, 'My blocks project')}
             className="pack-card mint block text-left disabled:opacity-60"
           >
             <span className="pack-blob" />

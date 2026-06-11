@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { ReadOnlyGameFrame } from '../learn/playground/ReadOnlyGameFrame';
 import { ShareGoneError, readPublicSnapshot } from '../learn/playground/sharingApi';
+import { ReadOnlyBlocksPlayer } from '../learn/blocks/ReadOnlyBlocksPlayer';
+import { BLOCKS_PROJECT_FILE, parseProject } from '../learn/blocks/blocksModel';
 import type { VfsFile } from '../learn/code/codeApi';
 
 /**
@@ -51,18 +53,24 @@ export function PublicPlayPage() {
     );
   }
 
+  // A blocks project carries project.blocks.json; render the read-only blocks
+  // player. Otherwise it's a Phaser game → the sandboxed game frame.
+  const blocksFile = snapshot.data?.find((f) => f.path === BLOCKS_PROJECT_FILE);
+
   return (
     <div data-testid="play-root" className="h-screen w-screen bg-black">
       {snapshot.isLoading ? (
         <div className="flex h-full w-full items-center justify-center text-white opacity-70">
-          Loading game…
+          Loading…
         </div>
+      ) : blocksFile ? (
+        <ReadOnlyBlocksPlayer project={parseProject(blocksFile.content)} />
       ) : snapshot.data && snapshot.data.length > 0 ? (
-        // The ONLY thing rendered on a successful load: the bare game canvas.
+        // The ONLY thing rendered on a successful game load: the bare game canvas.
         <ReadOnlyGameFrame files={snapshot.data} testId="play-iframe" />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-white opacity-70">
-          This game couldn’t be loaded.
+          This couldn’t be loaded.
         </div>
       )}
     </div>
