@@ -2,8 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { WorkingCard, formatSecs } from './WorkingCard';
-import type { TurnProgress } from './turnProgress';
+import { WorkingCard } from './WorkingCard';
+import { formatSecs, type TurnProgress } from './turnProgress';
 
 afterEach(cleanup);
 

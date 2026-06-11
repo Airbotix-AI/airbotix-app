@@ -50,7 +50,7 @@ export function MagicGenerationCard({
           : 'linear-gradient(120deg,#FF6BA9,#9B7BFF 42%,#5DAEFF 72%,#3DD9A9)',
       }}
     >
-      <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-white via-[#FFF6FB] to-[#F3F0FF] p-4">
+      <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-pg-surface to-pg-surface-2 p-4">
         {!isError &&
           SPARKS.map((s, i) => (
             <Sparkles
@@ -68,7 +68,7 @@ export function MagicGenerationCard({
               src={refSrc}
               crossOrigin="anonymous"
               alt="reference"
-              className="h-[44px] w-[44px] shrink-0 rounded-xl bg-white object-contain p-1 shadow-[0_0_0_2px_#fff,0_6px_16px_-6px_rgba(155,123,255,.45)]"
+              className="h-[44px] w-[44px] shrink-0 rounded-xl bg-pg-surface object-contain p-1 shadow-[0_0_0_2px_rgb(var(--pg-surface)),0_6px_16px_-6px_rgba(155,123,255,.45)]"
             />
           )}
           {/* the magic orb */}
@@ -79,7 +79,7 @@ export function MagicGenerationCard({
                 background: isError
                   ? 'radial-gradient(circle at 50% 40%, #FFE2D9, #FF9A80)'
                   : 'conic-gradient(from 160deg,#FF6BA9,#FFD43B,#3DD9A9,#5DAEFF,#9B7BFF,#FF6BA9)',
-                boxShadow: '0 0 0 5px #fff, 0 8px 22px -6px rgba(155,123,255,.6)',
+                boxShadow: '0 0 0 5px rgb(var(--pg-surface)), 0 8px 22px -6px rgba(155,123,255,.6)',
               }}
             />
             <div className="absolute inset-0 flex items-center justify-center text-[24px]">
@@ -91,7 +91,7 @@ export function MagicGenerationCard({
             <div className="text-[15px] font-black text-pg-text">
               {isError ? 'That fizzled — let’s try again' : `${verb} your asset…`}
             </div>
-            <div className="mt-1.5 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-pg-border bg-white px-3 py-1 text-[12.5px] font-bold text-pg-text-dim">
+            <div className="mt-1.5 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-pg-border bg-pg-surface px-3 py-1 text-[12.5px] font-bold text-pg-text-dim">
               <Wand2 size={12} className="shrink-0 text-brand-bubblegum" />
               <span className="truncate">“{prompt}”</span>
             </div>
@@ -111,7 +111,7 @@ export function MagicGenerationCard({
                 <button
                   type="button"
                   onClick={onDismiss}
-                  className="rounded-xl border border-pg-border bg-white px-3 py-2 text-[12.5px] font-bold text-pg-text-dim"
+                  className="rounded-xl border border-pg-border bg-pg-surface px-3 py-2 text-[12.5px] font-bold text-pg-text-dim"
                 >
                   Dismiss
                 </button>
@@ -121,7 +121,7 @@ export function MagicGenerationCard({
                 type="button"
                 data-testid="asset-magic-cancel"
                 onClick={onCancel}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-pg-border bg-white px-3 py-2 text-[12.5px] font-bold text-pg-text-dim hover:bg-pg-text/5"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-pg-border bg-pg-surface px-3 py-2 text-[12.5px] font-bold text-pg-text-dim hover:bg-pg-text/5"
               >
                 <X size={14} /> Cancel
               </button>
@@ -131,7 +131,7 @@ export function MagicGenerationCard({
 
         {!isError && (
           <>
-            <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-[#EDE9F7]">
+            <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-pg-text/10">
               <div
                 className="pg-indeterminate absolute inset-y-0 w-1/3 rounded-full"
                 style={{ background: 'linear-gradient(90deg,#FF6BA9,#9B7BFF,#5DAEFF)' }}
