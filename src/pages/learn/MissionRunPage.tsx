@@ -99,8 +99,8 @@ const DRAWER_META: Record<string, { title: string; emoji: string; color: string 
   video_create: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },
 };
 
-// Pure helper — explicit params to avoid stale-closure issues in effects
-function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Artifact[]): boolean {
+// Pure helpers — exported for unit tests; explicit params avoid stale-closure issues in effects.
+export function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Artifact[]): boolean {
   if (s.completion.type === 'acknowledged') return acknowledged.has(s.id);
   if (s.completion.type === 'share_request_submitted') return acknowledged.has(s.id);
   if (s.completion.type === 'artifact_saved') {
@@ -109,12 +109,18 @@ function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Ar
   return false;
 }
 
+export function findInitialMissionIdx(missions: { id: string }[], initialMissionId?: string): number {
+  if (!initialMissionId) return 0;
+  const idx = missions.findIndex((m) => m.id === initialMissionId);
+  return Math.max(0, idx);
+}
+
 // ─── MissionRunPage ───────────────────────────────────────────────────────────
 
 export function MissionRunPage({ pack, missions, projectId, packSlug, initialMissionId }: MissionRunPageProps) {
   const initialIdx = useMemo(
-    () => (initialMissionId ? Math.max(0, missions.findIndex((m) => m.id === initialMissionId)) : 0),
-    // initialMissionId and missions are stable across the lifetime of this render
+    () => findInitialMissionIdx(missions, initialMissionId),
+    // initialMissionId and missions are stable props; safe to compute once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
