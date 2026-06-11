@@ -4,6 +4,22 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — tablet/immersive pass)
+
+### Changed
+- **Blocks Studio is now an immersive, tablet-first app.**
+  - **Fullscreen / no chrome.** Entering the studio (`/learn/blocks/:id`) hides the Learn top nav
+    (`LearnLayout` immersive route) and requests browser fullscreen on the first tap (hides the URL
+    bar where supported); the 🏠 button exits fullscreen + returns to the hub.
+  - **No whole-page scroll.** The studio fills the viewport (`100dvh`) and never scrolls/rubber-bands
+    as a page (`overflow:hidden` + `overscroll-behavior:none`, body scroll locked while mounted) —
+    only the inner panes scroll.
+  - **Redesigned portrait layout.** Stage on top; **Friends + Pages share one compact side-by-side
+    strip** below it; the coding band takes the tall lower half (full-width category row, palette,
+    program, bin). Strip thumbnails are fixed-size horizontal scrollers; Reset/Present collapse to
+    icons so **Go!** always fits on narrow tablets. Companion mockup:
+    `docs/product/prd/mockups/blocks-studio-mockup-portrait.html`.
+
 ## 2026-06-11 (responsive Learn nav)
 
 ### Fixed

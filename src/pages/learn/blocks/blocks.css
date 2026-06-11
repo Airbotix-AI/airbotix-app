@@ -530,10 +530,12 @@
 .bsx-app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  height: calc(100dvh - 64px); /* under the Learn top bar */
+  height: 100dvh; /* immersive — no Learn nav above it */
   gap: 8px;
   padding: 8px;
   background: var(--bsx-bg);
+  overflow: hidden; /* the studio never scrolls as a page */
+  overscroll-behavior: none;
 }
 .bsx-middle {
   display: grid;
@@ -570,24 +572,68 @@
   overflow: auto;
   justify-content: center;
 }
+/* ── PORTRAIT / narrow tablet: a clean vertical app ──────────────────────────
+   Stage on top (the focus); a single compact strip below it holds Friends (left)
+   + Pages (right) as horizontal scrollers; the coding band gets the tall lower
+   half — a full-width category row, the palette, then the program + bin. */
 @media (orientation: portrait), (max-width: 880px) {
-  .bsx-middle {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    grid-template-areas: 'stage' 'chars' 'pages';
+  .bsx-app {
+    gap: 7px;
+    padding: 7px;
   }
+  .bsx-middle {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(150px, 1fr) auto;
+    grid-template-areas: 'stage stage' 'chars pages';
+    gap: 7px;
+  }
+  /* Friends / Pages become horizontal scroller strips */
   .bsx-railbox {
     flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
+    gap: 9px;
+    padding: 8px 11px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .bsx-railbox h4 {
+    display: none; /* the strips are self-evident in portrait */
+  }
+  /* keep strip items a fixed height instead of stretching to the row (Tailwind
+     w-full would otherwise blow them up); aspect ratio sets the width */
+  .bsx-railbox > button,
+  .bsx-railbox > .relative {
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .bsx-railbox > button[data-testid^='char-thumb-'],
+  .bsx-railbox > button[data-testid='add-page'],
+  .bsx-railbox > .relative > button[data-testid='add-character'],
+  .bsx-railbox > .relative > button[data-testid^='page-thumb-'] {
+    height: 54px;
+    width: auto;
   }
   .bsx-coder {
     grid-template-columns: 1fr;
     grid-template-rows: auto minmax(0, 1fr);
-    height: clamp(250px, 34vh, 380px);
+    height: clamp(300px, 44vh, 500px);
   }
   .bsx-catbar {
     flex-direction: row;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+  }
+  .bsx-bin {
+    width: 70px;
+  }
+  .bsx-bin-can {
+    width: 42px;
+    height: 42px;
+  }
+  /* compact toolbar: Reset/Present become icon-only so Go always fits */
+  .bsx-tlabel {
+    display: none;
   }
 }
 

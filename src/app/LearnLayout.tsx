@@ -12,9 +12,16 @@ const HEARTBEAT_INTERVAL_MS = 10_000;
 // playground is the Phaser game-studio desktop (fills the area below the nav).
 const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground', '/learn/blocks'];
 
+// IMMERSIVE routes take over the whole viewport: NO nav bar, no page scroll —
+// the surface manages its own layout (Blocks Studio, a tablet-first app). The
+// hub `/learn/create/blocks` keeps the nav; only the studio `/learn/blocks/:id`
+// is immersive.
+const IMMERSIVE_ROUTES = ['/learn/blocks/'];
+
 export function LearnLayout() {
   const { pathname } = useLocation();
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const immersive = IMMERSIVE_ROUTES.some((p) => pathname.startsWith(p));
 
   useEffect(() => {
     const tick = () => sendWsEvent('class.heartbeat', { ts: Date.now() });
@@ -25,8 +32,8 @@ export function LearnLayout() {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
-      <LearnTopBar />
-      <main className="flex-1 overflow-y-auto">
+      {!immersive && <LearnTopBar />}
+      <main className={immersive ? 'h-full min-h-0 overflow-hidden' : 'flex-1 overflow-y-auto'}>
         {fluid ? (
           <Outlet />
         ) : (
