@@ -24,8 +24,10 @@ import {
   CATEGORIES,
   GRID_H,
   GRID_W,
+  MAX_COLOR,
   MAX_PAGES,
   MAX_PARAM,
+  MAX_SPEED,
   blockDef,
   isTrigger,
 } from './blocksModel';
@@ -255,11 +257,14 @@ export function BlocksStudioPage() {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
       },
-      onStep: (charId, scriptId, index) =>
+      // key the live highlight by SCRIPT, not character — a character can run
+      // several tracks at once, and each track's current block must glow
+      // simultaneously (ScratchJr highlights the running block in every thread).
+      onStep: (_charId, scriptId, index) =>
         setActiveBlocks((prev) => {
           const next = new Map(prev);
-          if (index < 0) next.delete(charId);
-          else next.set(charId, `${scriptId}:${index}`);
+          if (index < 0) next.delete(scriptId);
+          else next.set(scriptId, `${scriptId}:${index}`);
           return next;
         }),
     });
@@ -612,6 +617,17 @@ export function BlocksStudioPage() {
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (blockDidDrag.current) return; // it was a drag, not a tap
     const def = blockDef(op as BlockOp);
+    // speed / message-colour blocks cycle their value on tap (no number editor)
+    if (def.param === 'speed') {
+      sfx.numUp();
+      useBlocksStore.getState().cycleParam(scriptId, index, MAX_SPEED);
+      return;
+    }
+    if (def.param === 'color') {
+      sfx.tap();
+      useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
+      return;
+    }
     if (!def.hasN && op !== 'say') return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -641,6 +657,9 @@ export function BlocksStudioPage() {
     const blk = script?.blocks[editBlk.index];
     return blk ? { ...editBlk, block: blk } : null;
   })();
+  // the Page block targets an existing page only, so its stepper caps at the page
+  // count; every other number tile uses the generic 1..MAX_PARAM range.
+  const editMax = editing?.block.op === 'goto_page' ? project.pages.length : MAX_PARAM;
   // the block under the pointer while dragging — rendered as a fixed clone
   const draggingBlock = (() => {
     if (!dragBlk) return null;
@@ -1130,7 +1149,9 @@ export function BlocksStudioPage() {
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
               {editing.block.op === 'say'
                 ? 'What should they say?'
-                : `How many? (${blockDef(editing.block.op).label})`}
+                : editing.block.op === 'goto_page'
+                  ? `Which page? (1–${project.pages.length})`
+                  : `How many? (${blockDef(editing.block.op).label})`}
             </div>
             {editing.block.op === 'say' ? (
               <input
@@ -1155,7 +1176,7 @@ export function BlocksStudioPage() {
                     sfx.numDown();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1);
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1, editMax);
                   }}
                 >
                   −
@@ -1171,9 +1192,9 @@ export function BlocksStudioPage() {
                     sfx.numUp();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1);
+                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1, editMax);
                   }}
-                  disabled={(editing.block.n ?? 1) >= MAX_PARAM}
+                  disabled={(editing.block.n ?? 1) >= editMax}
                 >
                   +
                 </button>

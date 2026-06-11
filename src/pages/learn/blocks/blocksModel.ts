@@ -22,6 +22,8 @@ export type BlockCategory = 'trigger' | 'motion' | 'looks' | 'sound' | 'control'
 export type BlockOp =
   | 'when_flag'
   | 'when_tap'
+  | 'when_bump'
+  | 'when_message'
   | 'move_right'
   | 'move_left'
   | 'move_up'
@@ -37,11 +39,17 @@ export type BlockOp =
   | 'hide'
   | 'show'
   | 'pop'
+  | 'send_message'
   | 'wait'
+  | 'set_speed'
   | 'stop'
   | 'end'
   | 'forever'
   | 'goto_page';
+
+/** The editable parameter on a block: a number tile, a 3-state speed, a 6-colour
+ *  message tag, or none. (`hasN` stays for the number-tile blocks.) */
+export type BlockParam = 'speed' | 'color';
 
 export interface BlockDef {
   op: BlockOp;
@@ -51,11 +59,23 @@ export interface BlockDef {
   /** Has a tap-to-edit number tile (grid squares / tenths of a second / page). */
   hasN?: boolean;
   defaultN?: number;
+  /** A non-number tap-to-cycle parameter (speed level 1–3, or message colour 1–6). */
+  param?: BlockParam;
 }
+
+export const MAX_SPEED = 3; // 1 slow · 2 normal · 3 fast
+export const MAX_COLOR = 6; // ScratchJr-style six message colours
+/** Six message colours (index = block.n − 1). Used by Send / Get message blocks. */
+export const MESSAGE_COLORS = ['#ff5677', '#ff8a2b', '#ffb400', '#1fc983', '#3d9bf5', '#a964f7'] as const;
+/** Speed level → glyph + duration multiplier (slow runs 2×, fast runs 0.5×). */
+export const SPEED_ICONS = ['🐢', '🚶', '🐇'] as const;
+export const SPEED_FACTORS = [2, 1, 0.5] as const;
 
 export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'when_flag', category: 'trigger', icon: '🚩', label: 'Start' },
   { op: 'when_tap', category: 'trigger', icon: '👆', label: 'On tap' },
+  { op: 'when_bump', category: 'trigger', icon: '💥', label: 'On bump' },
+  { op: 'when_message', category: 'trigger', icon: '📥', label: 'Get', param: 'color' },
   { op: 'move_right', category: 'motion', icon: '➡️', label: 'Right', hasN: true, defaultN: 2 },
   { op: 'move_left', category: 'motion', icon: '⬅️', label: 'Left', hasN: true, defaultN: 2 },
   { op: 'move_up', category: 'motion', icon: '⬆️', label: 'Up', hasN: true, defaultN: 2 },
@@ -71,12 +91,23 @@ export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'hide', category: 'looks', icon: '🫥', label: 'Hide' },
   { op: 'show', category: 'looks', icon: '👁', label: 'Show' },
   { op: 'pop', category: 'sound', icon: '🔊', label: 'Pop' },
+  { op: 'send_message', category: 'control', icon: '📤', label: 'Send', param: 'color' },
   { op: 'wait', category: 'control', icon: '⏱', label: 'Wait', hasN: true, defaultN: 5 },
+  { op: 'set_speed', category: 'control', icon: '🐇', label: 'Speed', param: 'speed' },
   { op: 'stop', category: 'control', icon: '🛑', label: 'Stop' },
   { op: 'end', category: 'end', icon: '🏁', label: 'End' },
   { op: 'forever', category: 'end', icon: '♾️', label: 'Again' },
   { op: 'goto_page', category: 'end', icon: '📄', label: 'Page', hasN: true, defaultN: 1 },
 ] as const;
+
+/** The starting `n` for a freshly-added block (number tile / speed / colour). */
+export function defaultParam(op: BlockOp): number | undefined {
+  const def = blockDef(op);
+  if (def.hasN) return def.defaultN ?? 1;
+  if (def.param === 'speed') return 2; // normal
+  if (def.param === 'color') return 1; // first colour
+  return undefined;
+}
 
 const DEFS_BY_OP = new Map(BLOCK_DEFS.map((d) => [d.op, d]));
 export function blockDef(op: BlockOp): BlockDef {

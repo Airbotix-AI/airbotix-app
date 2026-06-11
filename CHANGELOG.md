@@ -4,6 +4,41 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — closer to ScratchJr)
+
+### Fixed
+- **The Page block (Go to Page) only lets you pick a page that exists.** Its number stepper was
+  capped at the generic 1–9; it now caps at the project's page count (and the editor reads
+  "Which page? (1–N)"). `setParam` gained an optional `max`.
+
+### Added
+- **Four ScratchJr blocks that were missing** (`blocksModel.ts`, `interpreter.ts`):
+  - **Set Speed** (🐢/🚶/🐇) — tap to cycle slow/normal/fast; scales that character's motion (slow 2×,
+    fast 0.5×).
+  - **On Bump** (💥) — a hat that fires when this character collides with another (grid-cell overlap,
+    once per contact).
+  - **Send Message** (📤) + **Get Message** (📥) — six colours; sending fires every Get-Message script
+    of the same colour across the page (ScratchJr-style broadcast). Tap to cycle the colour.
+  Message/bump-triggered scripts run concurrently and are awaited before the run ends (capped for
+  safety). Still missing vs ScratchJr (by request): Play Recorded Sound; and Repeat/Forever as true
+  nesting C-blocks (our ♾️ Again loops the whole track — the C-block needs the nestable-block model,
+  PRD M3).
+
+## 2026-06-11 (Blocks Studio — parallel tracks fix)
+
+### Fixed
+- **Multiple 🚩 tracks on one character now run in parallel without clobbering each other.**
+  The interpreter captured a sprite-state snapshot at the start of each step and re-emitted the
+  whole object after animating, so a second track (e.g. a Hop) snapped the first track's changes
+  (e.g. a Move) back — only the last script appeared to run. Each block now merges just its delta
+  onto the **latest** committed state (`interpreter.ts`), so concurrent tracks accumulate (matching
+  ScratchJr's green-flag behaviour). Hop only touches y; Go Home stays a full explicit reset.
+  Tests: 2 new parallel-track cases.
+- **The "currently running" glow now lights up every track at once.** The run-highlight map was keyed
+  by character, so two tracks on the same character overwrote each other's active block — only one lit
+  at a time, making parallel runs look sequential. It's now keyed per **script** (like ScratchJr, which
+  highlights the running block in every thread). Harness: `kid-blocks-parallel`.
+
 ## 2026-06-11 (Blocks Studio — refinement pass)
 
 ### Added

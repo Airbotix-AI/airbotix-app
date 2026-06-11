@@ -5,7 +5,9 @@
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
 import clsx from 'clsx';
 
-import { type Block, blockDef, isTrigger } from './blocksModel';
+import { type Block, MESSAGE_COLORS, SPEED_ICONS, blockDef, isTrigger } from './blocksModel';
+
+const clampIdx = (i: number, max: number) => Math.min(max, Math.max(0, i));
 
 export function BlockChip({
   block,
@@ -41,6 +43,9 @@ export function BlockChip({
 }) {
   const def = blockDef(block.op);
   const noPlug = def.category === 'end' || (inChain && isLast);
+  // Set Speed shows its current pace glyph; message blocks show their colour tag.
+  const icon = def.param === 'speed' ? SPEED_ICONS[clampIdx((block.n ?? 2) - 1, SPEED_ICONS.length - 1)] : def.icon;
+  const msgColor = def.param === 'color' ? MESSAGE_COLORS[clampIdx((block.n ?? 1) - 1, MESSAGE_COLORS.length - 1)] : null;
   return (
     <button
       type="button"
@@ -66,13 +71,17 @@ export function BlockChip({
     >
       <span className="bd" />
       {!noPlug && <span className="plug" />}
-      <span className="ic">{def.icon}</span>
+      <span className="ic">{icon}</span>
       {block.op === 'say' ? (block.text ?? 'Hi!').slice(0, 8) : def.label}
       {def.hasN && (
         // display-only — tapping anywhere on the block opens the editor
         <span className="num" data-testid="block-num">
           {block.n ?? def.defaultN ?? 1}
         </span>
+      )}
+      {msgColor && (
+        // tap the block to cycle the message colour
+        <span className="bsx-msgdot" data-testid="block-color" style={{ background: msgColor }} />
       )}
     </button>
   );
