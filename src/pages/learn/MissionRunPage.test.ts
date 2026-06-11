@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { isStepDone, findInitialMissionIdx } from './MissionRunPage';
+import { isStepDone, findInitialMissionIdx } from './missionHelpers';
 import type { MissionStep } from './MissionRunPage';
 
 // ─── fixtures ────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { isStepDone, findInitialMissionIdx } from './missionHelpers';
 import { StudioDrawer } from '@/pages/learn/create/shared/StudioDrawer';
 import { ImageStudioContent } from '@/pages/learn/create/shared/ImageStudioContent';
 import { StoryStudioContent } from '@/pages/learn/create/shared/StoryStudioContent';
@@ -99,21 +100,6 @@ const DRAWER_META: Record<string, { title: string; emoji: string; color: string 
   video_create: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },
 };
 
-// Pure helpers — exported for unit tests; explicit params avoid stale-closure issues in effects.
-export function isStepDone(s: MissionStep, acknowledged: Set<string>, artifactData?: Artifact[]): boolean {
-  if (s.completion.type === 'acknowledged') return acknowledged.has(s.id);
-  if (s.completion.type === 'share_request_submitted') return acknowledged.has(s.id);
-  if (s.completion.type === 'artifact_saved') {
-    return (artifactData ?? []).some((a) => a.kind === s.completion.kind);
-  }
-  return false;
-}
-
-export function findInitialMissionIdx(missions: { id: string }[], initialMissionId?: string): number {
-  if (!initialMissionId) return 0;
-  const idx = missions.findIndex((m) => m.id === initialMissionId);
-  return Math.max(0, idx);
-}
 
 // ─── MissionRunPage ───────────────────────────────────────────────────────────
 
