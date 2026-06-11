@@ -17,46 +17,42 @@ import { TRY_BLOCKS_PROJECT_ID, installBlocksDemo, uninstallBlocksDemo } from '.
 // instruct; the user drives the real studio between them.
 const TOUR: DemoTourStep[] = [
   {
-    title: 'A whole story, already built',
+    title: "Cat's Day Out — a story told in blocks",
     body:
-      "This 3-page animated story — Cat's Day Out — is written entirely in snap-together " +
-      'blocks, in the real Blocks Studio children aged 5–8 use in class. Nothing here is a ' +
-      'mock-up.',
+      'A 3-page animated story, built from snap-together blocks — how children aged 5–8 ' +
+      "learn to code. Let's play it, then change it.",
     nextLabel: '▶ Start the tour',
     modal: true,
   },
   {
     title: 'Press ▶ Go!',
     body:
-      'Tap the green Go button (top right) and watch page 1 play: the cat reads its track — ' +
-      'start, say, move, hop — and sends a message that wakes the butterfly. Each colour is a ' +
-      'meaning: yellow starts, blue moves, purple talks.',
+      'Tap the green Go button (top right) and watch the cat follow its blocks — start, move, ' +
+      'say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
   },
   {
     title: 'Tap a character',
     body:
-      "Everything is touch-first. Tap the cat on the stage to run its 👆 'on tap' script — and " +
-      'tap the sun to see a single block turn the page.',
+      "Tap the cat on the stage to run its 👆 'on tap' blocks. Then tap the sun — one block " +
+      'turns the page.',
   },
   {
-    title: "Change a number — now it's theirs",
+    title: 'Change a number',
     body:
-      'Tap any block in the track below to edit it: number tiles open a +/− stepper, blocks ' +
-      'drag between tracks or to the bin, and the palette adds new ones. Undo is always one ' +
-      'tap away.',
+      'Tap a number tile in the track below and make the cat hop further. Blocks drag between ' +
+      'tracks or to the bin — and undo is always one tap away.',
   },
   {
-    title: 'Stories turn the page by themselves',
+    title: 'Stories turn their own pages',
     body:
-      "Use the page thumbnails on the right to visit pages 2 and 3 — the sun and the boat jump " +
-      "pages with a 'go to page' block, like a picture book the child programs.",
+      'Visit pages 2 and 3 with the thumbnails on the right — a picture book your child ' +
+      'programs, page by page.',
   },
   {
     title: "Now it's all yours",
     body:
-      'Explore freely — every block, character, scene, sound and page is the real product. ' +
-      'Nothing is saved and nothing can break: reload and the demo starts fresh. Like what you ' +
-      'see? Contact us from the banner above.',
+      'Explore every block, character, scene and sound. Nothing is saved — reload to start ' +
+      'fresh. Questions? Contact us from the banner above.',
     nextLabel: 'Finish & explore freely ✨',
   },
 ];

@@ -11,6 +11,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   linking to the marketing site's contact page (`airbotix.ai/contact`) instead of `/book`;
   blocks tour final step aligned ("Contact us from the banner above"). The nothing-is-saved
   message stays in the tour copy.
+- `/try/blocks` tour copy rewritten: concise, user-journey guidance only — dropped the
+  meta/technical reassurances ("not a mock-up", "real product") from every card.
 
 ## 2026-06-11 (Try Demo Mode — public /try/* demos)
 

@@ -48,7 +48,7 @@ describe('TryBlocksPage', () => {
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Demo mode');
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Contact us');
     expect(screen.getByTestId('demo-tour')).toBeInTheDocument();
-    expect(screen.getByTestId('tour-title')).toHaveTextContent('A whole story, already built');
+    expect(screen.getByTestId('tour-title')).toHaveTextContent("Cat's Day Out — a story told in blocks");
   });
 
   it('the tour steps through to free explore and can be skipped', async () => {
