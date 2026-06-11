@@ -525,6 +525,19 @@
   white-space: nowrap;
   z-index: 5;
 }
+/* the "Coding: <name>" pill — hidden by default (it lives in the stage-foot in
+   landscape); the portrait media query below shows it riding on the stage. */
+.bsx-coding-overlay {
+  display: none;
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 4;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 800;
+  font-size: 12px;
+}
 
 /* ── studio layout (auto-adaptive) ────────────────────────────────────────── */
 .bsx-app {
@@ -633,6 +646,15 @@
   }
   /* compact toolbar: Reset/Present become icon-only so Go always fits */
   .bsx-tlabel {
+    display: none;
+  }
+  /* the "Coding:" pill rides on the stage (saves a row); hide the foot row.
+     (.bsx-app prefix outranks the Tailwind `flex` utility on the foot.) */
+  .bsx-coding-overlay {
+    display: inline-flex;
+    align-items: center;
+  }
+  .bsx-app .bsx-stagefoot {
     display: none;
   }
 }

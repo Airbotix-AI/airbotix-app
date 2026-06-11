@@ -603,6 +603,11 @@ export function BlocksStudioPage() {
             <div className="absolute right-[3%] top-[6%] text-[clamp(28px,4vw,44px)]">
               {page.background === 'space' ? '🌙' : '☀️'}
             </div>
+            {/* portrait-only: the "Coding:" pill rides on the stage to save a row */}
+            <div className="bsx-coding-overlay bsx-card">
+              <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-brand-sky" />
+              Coding: {selectedChar?.name}
+            </div>
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
               const st = run?.st ?? startState(c);
