@@ -127,13 +127,24 @@ export class BlocksRunner {
   }
 
   private async step(char: Character, block: Block): Promise<'ok' | 'goto'> {
-    const s = this.states.get(char.id)!;
     const n = block.n ?? 1;
-    const move = async (dx: number, dy: number) => {
-      const next = { ...s, gx: clamp(s.gx + dx, 0, GRID_W - 1), gy: clamp(s.gy + dy, 0, GRID_H - 1) };
+    // Merge a delta onto the LATEST committed state (re-read every mutation),
+    // never a snapshot captured at step entry. Two scripts running in parallel
+    // on the SAME character share one sprite; if a step wrote a whole snapshot it
+    // captured earlier, it would clobber the other track's changes (the bug:
+    // e.g. a hop snapping x back over a parallel move). patch() reads-merges-emits
+    // atomically (no await between read and write), so tracks accumulate.
+    const cur = () => this.states.get(char.id)!;
+    const patch = (delta: Partial<SpriteState>, dur: number) => {
+      const next = { ...cur(), ...delta };
       this.states.set(char.id, next);
-      const dur = STEP_MS * Math.max(1, Math.abs(dx) + Math.abs(dy));
       this.host.onSprite(char.id, next, dur);
+      return next;
+    };
+    const move = async (dx: number, dy: number) => {
+      const s = cur();
+      const dur = STEP_MS * Math.max(1, Math.abs(dx) + Math.abs(dy));
+      patch({ gx: clamp(s.gx + dx, 0, GRID_W - 1), gy: clamp(s.gy + dy, 0, GRID_H - 1) }, dur);
       await this.sleep(dur);
     };
     switch (block.op) {
@@ -151,21 +162,22 @@ export class BlocksRunner {
         break;
       case 'turn_right':
       case 'turn_left': {
-        const next = { ...s, rot: s.rot + (block.op === 'turn_right' ? 1 : -1) * n * 30 };
-        this.states.set(char.id, next);
-        this.host.onSprite(char.id, next, STEP_MS * n);
+        patch({ rot: cur().rot + (block.op === 'turn_right' ? 1 : -1) * n * 30 }, STEP_MS * n);
         await this.sleep(STEP_MS * n);
         break;
       }
       case 'hop': {
-        const up = { ...s, gy: clamp(s.gy - n, 0, GRID_H - 1) };
-        this.host.onSprite(char.id, up, STEP_MS * n);
+        // up then back to the y we started the hop at — but only ever touch gy,
+        // so a parallel track moving x keeps its progress through the hop.
+        const baseGy = cur().gy;
+        patch({ gy: clamp(baseGy - n, 0, GRID_H - 1) }, STEP_MS * n);
         await this.sleep(STEP_MS * n);
-        this.host.onSprite(char.id, s, STEP_MS * n);
+        patch({ gy: clamp(baseGy, 0, GRID_H - 1) }, STEP_MS * n);
         await this.sleep(STEP_MS * n);
         break;
       }
       case 'go_home': {
+        // an explicit "reset me" — overwrites the whole pose to the start.
         const home = startState(char);
         this.states.set(char.id, home);
         this.host.onSprite(char.id, home, STEP_MS * 2);
@@ -180,24 +192,18 @@ export class BlocksRunner {
       case 'grow':
       case 'shrink': {
         const factor = block.op === 'grow' ? 1 : -1;
-        const next = { ...s, size: clamp(s.size + factor * 0.1 * n, 0.3, 3) };
-        this.states.set(char.id, next);
-        this.host.onSprite(char.id, next, STEP_MS * n);
+        patch({ size: clamp(cur().size + factor * 0.1 * n, 0.3, 3) }, STEP_MS * n);
         await this.sleep(STEP_MS * n);
         break;
       }
       case 'reset_size': {
-        const next = { ...s, size: char.start.size };
-        this.states.set(char.id, next);
-        this.host.onSprite(char.id, next, STEP_MS);
+        patch({ size: char.start.size }, STEP_MS);
         await this.sleep(STEP_MS);
         break;
       }
       case 'hide':
       case 'show': {
-        const next = { ...s, visible: block.op === 'show' };
-        this.states.set(char.id, next);
-        this.host.onSprite(char.id, next, STEP_MS * 2);
+        patch({ visible: block.op === 'show' }, STEP_MS * 2);
         await this.sleep(STEP_MS * 2);
         break;
       }

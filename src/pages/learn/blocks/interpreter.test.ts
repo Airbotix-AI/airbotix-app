@@ -89,6 +89,40 @@ describe('BlocksRunner', () => {
     expect(r.pops()).toBeLessThanOrEqual(12);
   });
 
+  it('two 🚩 scripts on ONE character run in parallel without clobbering each other', async () => {
+    // one track walks the cat right twice; a second track hops it once. The hop
+    // must only touch y — it must not snap x back to where the hop began.
+    const page = makePage({
+      cat: [
+        [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }],
+        [{ op: 'when_flag' }, { op: 'hop', n: 1 }],
+      ],
+    });
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, instantSleep);
+    await runner.runFlag();
+
+    // logical state: the cat advanced two squares and is back on the ground
+    expect(runner.state('cat')).toMatchObject({ gx: 7, gy: 10 });
+    // AND the last frame the host rendered agrees (no stale-snapshot snap-back)
+    const lastCat = [...r.sprite].reverse().find((s) => s.charId === 'cat')!;
+    expect(lastCat.state.gx).toBe(7);
+  });
+
+  it('parallel motion + looks both take effect (move and grow on one character)', async () => {
+    const page = makePage({
+      cat: [
+        [{ op: 'when_flag' }, { op: 'move_right', n: 3 }],
+        [{ op: 'when_flag' }, { op: 'grow', n: 4 }],
+      ],
+    });
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, instantSleep);
+    await runner.runFlag();
+    expect(runner.state('cat')!.gx).toBe(8); // 5 + 3 — the move survived
+    expect(runner.state('cat')!.size).toBeCloseTo(1.4); // 1 + 0.1*4 — the grow survived
+  });
+
   it('hide/show + grow/shrink mutate state; go_home and resetAll restore the start pose', async () => {
     const page = makePage({
       cat: [[{ op: 'when_flag' }, { op: 'grow', n: 5 }, { op: 'hide' }, { op: 'move_right', n: 3 }, { op: 'go_home' }]],

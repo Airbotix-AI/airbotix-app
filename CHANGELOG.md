@@ -4,6 +4,17 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — parallel tracks fix)
+
+### Fixed
+- **Multiple 🚩 tracks on one character now run in parallel without clobbering each other.**
+  The interpreter captured a sprite-state snapshot at the start of each step and re-emitted the
+  whole object after animating, so a second track (e.g. a Hop) snapped the first track's changes
+  (e.g. a Move) back — only the last script appeared to run. Each block now merges just its delta
+  onto the **latest** committed state (`interpreter.ts`), so concurrent tracks accumulate (matching
+  ScratchJr's green-flag behaviour). Hop only touches y; Go Home stays a full explicit reset.
+  Tests: 2 new parallel-track cases.
+
 ## 2026-06-11 (Blocks Studio — refinement pass)
 
 ### Added
