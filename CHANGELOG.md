@@ -6,6 +6,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Fixed
+- **Game Runner console now auto-scrolls to the latest output.** The console's scroll
+  container had no scroll management: it opened scrolled to the TOP, so the newest line —
+  including the very error that auto-opened it — could sit out of view, and new output kept
+  appending below the fold. The line list is now a `ConsoleList` component on the chat's
+  `useStickToBottom` state machine: opening the panel starts pinned at the latest line, new
+  lines keep the view glued while the kid is at/near the bottom, and a deliberate scroll-up
+  releases the pin (no yanking). Component tests cover open-at-bottom, follow, and no-yank.
+
 ### Added
 - **`/try/playground` T1 v2 full product tour** (try-demo-mode-prd §3 v0.5, 11 steps): the demo
   now starts on the REAL landing phase (prompt pre-filled + locked, chips/mic hidden; the step-1
