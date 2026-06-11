@@ -113,6 +113,34 @@ describe('blocksStore', () => {
     expect(ops()[0]).toBe('when_flag');
   });
 
+  it('insertBlock drops a body block at an exact slot (clamped to 1..len)', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right'); // index 1
+    store().addBlock('hop'); // index 2
+    const id = char().scripts[0].id;
+    const ops = () => char().scripts[0].blocks.map((b) => b.op);
+
+    store().insertBlock('say', id, 1); // squeeze between trigger and move_right
+    expect(ops()).toEqual(['when_flag', 'say', 'move_right', 'hop']);
+
+    store().insertBlock('pop', id, 99); // clamp past the end → append
+    expect(ops()).toEqual(['when_flag', 'say', 'move_right', 'hop', 'pop']);
+
+    store().insertBlock('wait', id, 0); // clamp before the trigger → slot 1
+    expect(ops()[0]).toBe('when_flag');
+    expect(ops()[1]).toBe('wait');
+  });
+
+  it('insertBlock with a trigger op starts a fresh script (never mid-chain)', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right');
+    const id = char().scripts[0].id;
+    store().insertBlock('when_tap', id, 1); // a trigger can't go mid-script
+    expect(char().scripts).toHaveLength(2);
+    expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'move_right']);
+    expect(char().scripts[1].blocks.map((b) => b.op)).toEqual(['when_tap']);
+  });
+
   it('removePage keeps at least one page and reselects when the open page goes', () => {
     store().addPage(); // now 2 pages, page 2 selected
     const firstPage = store().project.pages[0].id;

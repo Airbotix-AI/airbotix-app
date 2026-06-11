@@ -56,11 +56,16 @@ interface BlocksStore {
   selectChar: (charId: string) => void;
   addPage: () => void;
   removePage: (pageId: string) => void;
+  /** Set the current page's scene background (the scene library, library.ts). */
+  setBackground: (bg: string) => void;
   addCharacter: (emoji: string, name: string) => void;
   removeCharacter: (charId: string) => void;
   /** Append a block: a trigger starts a NEW script; anything else extends the
    *  last script (auto-opening a 🚩 script so a lone "move" still runs). */
   addBlock: (op: BlockOp) => void;
+  /** Insert a body block at an exact position (drag-from-palette to a slot).
+   *  Triggers can't be inserted mid-script; index is clamped to 1..len. */
+  insertBlock: (op: BlockOp, scriptId: string, index: number) => void;
   /** Remove a block (the trigger removes its whole script). */
   removeBlock: (scriptId: string, index: number) => void;
   cycleParam: (scriptId: string, index: number) => void;
@@ -228,6 +233,15 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     });
   },
 
+  setBackground(bg) {
+    get()._commit((s) => ({
+      project: {
+        ...s.project,
+        pages: s.project.pages.map((pg) => (pg.id !== s.pageId ? pg : { ...pg, background: bg })),
+      },
+    }));
+  },
+
   addCharacter(emoji, name) {
     get()._commit((s) => {
       const page = currentPage(s.project, s.pageId);
@@ -288,6 +302,31 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             ),
           };
         }),
+      };
+    });
+  },
+
+  insertBlock(op, scriptId, index) {
+    if (isTrigger(op)) {
+      get().addBlock(op);
+      return;
+    }
+    get()._commit((s) => {
+      const def = blockDef(op);
+      const block: Block = { op };
+      if (def.hasN) block.n = def.defaultN ?? 1;
+      if (op === 'say') block.text = 'Hi!';
+      return {
+        project: patchChar(s.project, s.pageId, s.charId, (c) => ({
+          ...c,
+          scripts: c.scripts.map((sc) => {
+            if (sc.id !== scriptId) return sc;
+            const arr = [...sc.blocks];
+            const at = Math.min(Math.max(1, index), arr.length);
+            arr.splice(at, 0, block);
+            return { ...sc, blocks: arr };
+          }),
+        })),
       };
     });
   },

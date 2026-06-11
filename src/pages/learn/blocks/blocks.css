@@ -464,6 +464,66 @@
   --cc: var(--bsx-cat-end);
 }
 
+/* ── palette ↔ active category hint ──────────────────────────────────────────
+   The palette wears the colour of the selected category (top accent bar + a
+   pill naming it) so a child can SEE that the blocks shown belong to the
+   highlighted category button. --pc is the active category colour. */
+.bsx-palette {
+  --pc: var(--bsx-cat-trigger);
+  border-color: color-mix(in srgb, var(--pc) 45%, var(--bsx-border));
+  box-shadow: inset 0 4px 0 var(--pc);
+}
+.bsx-palette[data-cat='trigger'] {
+  --pc: var(--bsx-cat-trigger);
+}
+.bsx-palette[data-cat='motion'] {
+  --pc: var(--bsx-cat-motion);
+}
+.bsx-palette[data-cat='looks'] {
+  --pc: var(--bsx-cat-looks);
+}
+.bsx-palette[data-cat='sound'] {
+  --pc: var(--bsx-cat-sound);
+}
+.bsx-palette[data-cat='control'] {
+  --pc: var(--bsx-cat-control);
+}
+.bsx-palette[data-cat='end'] {
+  --pc: var(--bsx-cat-end);
+}
+.bsx-palette-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--pc) 78%, var(--bsx-text));
+  background: color-mix(in srgb, var(--pc) 16%, transparent);
+}
+.bsx-palette-tag > span {
+  font-size: 14px;
+}
+
+/* ── per-area visual identity ─────────────────────────────────────────────────
+   Each work area gets its own faint wash + accent edge so the four zones read as
+   distinct places, not one flat surface: Friends = sky, Pages = coral, the
+   program = mint. (The stage is already its own animated scene.) */
+.bsx-railbox[aria-label='Characters'] {
+  background: color-mix(in srgb, var(--bsx-cat-motion) 7%, var(--bsx-rail));
+  box-shadow: inset 0 4px 0 color-mix(in srgb, var(--bsx-cat-motion) 50%, transparent);
+}
+.bsx-railbox[aria-label='Pages'] {
+  background: color-mix(in srgb, var(--bsx-cat-end) 7%, var(--bsx-rail));
+  box-shadow: inset 0 4px 0 color-mix(in srgb, var(--bsx-cat-end) 50%, transparent);
+}
+[data-testid='script-area'] {
+  background: color-mix(in srgb, var(--bsx-cat-sound) 6%, var(--bsx-pad));
+  border-color: color-mix(in srgb, var(--bsx-cat-sound) 28%, var(--bsx-border));
+}
+
 /* ── stage scenes (constant brand-wash art, both themes) ──────────────────── */
 .bsx-stage {
   position: relative;
@@ -472,22 +532,12 @@
   border: 1px solid var(--bsx-border);
   box-shadow: inset 0 -36px 60px -36px rgba(40, 16, 80, 0.35);
 }
-.bsx-stage.scene-meadow {
-  background: linear-gradient(180deg, #9cd7ff, #c8e9ff 60%, #f1faff);
-}
-.bsx-stage.scene-space {
-  background: linear-gradient(180deg, #101b3c, #22184b 60%, #3a1d55);
-}
 .bsx-stage .bsx-grid {
   position: absolute;
   inset: 0;
   background-image: linear-gradient(rgba(20, 60, 120, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(20, 60, 120, 0.1) 1px, transparent 1px);
   background-size: calc(100% / 20) calc(100% / 15);
-}
-.bsx-stage.scene-space .bsx-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
 }
 .bsx-hill {
   position: absolute;
@@ -498,8 +548,268 @@
   border-radius: 50% 50% 0 0;
   background: linear-gradient(180deg, #8fe9c6, #3dd9a9);
 }
-.bsx-stage.scene-space .bsx-hill {
-  background: linear-gradient(180deg, #2a2058, #1a1438);
+.bsx-deco {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ════ SCENES — animated picture backgrounds (data-scene) ════════════════════ */
+.bsx-stage[data-scene='meadow'] { background: linear-gradient(180deg, #9cd7ff, #c8e9ff 60%, #f1faff); }
+.bsx-stage[data-scene='space'] { background: linear-gradient(180deg, #0b1130, #22184b 55%, #3a1d55); }
+.bsx-stage[data-scene='beach'] { background: linear-gradient(180deg, #7fd4ff, #bfeaff 52%, #66c6ee 54%, #2f9fd6); }
+.bsx-stage[data-scene='underwater'] { background: linear-gradient(180deg, #1da3d6, #0e6fb0 60%, #0a4f86); }
+.bsx-stage[data-scene='sunset'] { background: linear-gradient(180deg, #ff9a5a, #ff6f91 55%, #7a4fb0); }
+.bsx-stage[data-scene='snow'] { background: linear-gradient(180deg, #cfe6ff, #eaf4ff); }
+.bsx-stage[data-scene='city'] { background: linear-gradient(180deg, #8fb8ff, #d3e3ff); }
+.bsx-stage[data-scene='candy'] { background: linear-gradient(180deg, #ffd3ee, #ffe9c7 60%, #ffd0e6); }
+/* dark scenes get a light grid */
+.bsx-stage[data-scene='space'] .bsx-grid,
+.bsx-stage[data-scene='underwater'] .bsx-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+}
+/* ground per scene */
+.bsx-stage[data-scene='meadow'] .bsx-hill { background: linear-gradient(180deg, #8fe9c6, #3dd9a9); }
+.bsx-stage[data-scene='space'] .bsx-hill { background: linear-gradient(180deg, #2a2058, #1a1438); }
+.bsx-stage[data-scene='beach'] .bsx-hill { background: linear-gradient(180deg, #ffe7a8, #f3cd72); }
+.bsx-stage[data-scene='underwater'] .bsx-hill { background: linear-gradient(180deg, #c9a16a, #9a703f); }
+.bsx-stage[data-scene='sunset'] .bsx-hill { background: linear-gradient(180deg, #5a3a7a, #2e1d44); }
+.bsx-stage[data-scene='snow'] .bsx-hill { background: linear-gradient(180deg, #ffffff, #dbe9f7); }
+.bsx-stage[data-scene='city'] .bsx-hill { background: linear-gradient(180deg, #5b6b8c, #3a4663); }
+.bsx-stage[data-scene='candy'] .bsx-hill { background: linear-gradient(180deg, #ff9ed3, #ff6fb0); }
+
+/* sun / moon (deco-a) */
+.bsx-stage[data-scene='meadow'] .bsx-deco-a,
+.bsx-stage[data-scene='beach'] .bsx-deco-a,
+.bsx-stage[data-scene='city'] .bsx-deco-a {
+  right: 7%; top: 9%; width: 44px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 38%, #fff3a8, #ffd233);
+  box-shadow: 0 0 26px 8px rgba(255, 210, 70, 0.6);
+  animation: bsx-pulse 4s ease-in-out infinite;
+}
+.bsx-stage[data-scene='space'] .bsx-deco-a {
+  right: 8%; top: 10%; width: 38px; height: 38px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fff, #cdd6ff 70%, #a9b6e8);
+  box-shadow: 0 0 20px 4px rgba(200, 210, 255, 0.5);
+}
+.bsx-stage[data-scene='sunset'] .bsx-deco-a {
+  left: 50%; bottom: 16%; transform: translateX(-50%); width: 76px; height: 76px; border-radius: 50%;
+  background: radial-gradient(circle, #fff1c0, #ff9a3c);
+  box-shadow: 0 0 40px 14px rgba(255, 150, 60, 0.55);
+}
+/* drifting clouds (deco-b / deco-c) */
+.bsx-stage[data-scene='meadow'] .bsx-deco-b,
+.bsx-stage[data-scene='beach'] .bsx-deco-b,
+.bsx-stage[data-scene='city'] .bsx-deco-b,
+.bsx-stage[data-scene='snow'] .bsx-deco-b {
+  left: 8%; top: 20%; width: 58px; height: 18px; border-radius: 999px; background: rgba(255, 255, 255, 0.92);
+  box-shadow: 18px -8px 0 -2px rgba(255, 255, 255, 0.92), -16px -3px 0 -4px rgba(255, 255, 255, 0.92);
+  animation: bsx-drift 18s linear infinite;
+}
+.bsx-stage[data-scene='meadow'] .bsx-deco-c,
+.bsx-stage[data-scene='beach'] .bsx-deco-c,
+.bsx-stage[data-scene='city'] .bsx-deco-c {
+  left: 52%; top: 11%; width: 44px; height: 15px; border-radius: 999px; background: rgba(255, 255, 255, 0.82);
+  box-shadow: 14px -6px 0 -2px rgba(255, 255, 255, 0.82);
+  animation: bsx-drift 26s linear infinite reverse;
+}
+/* twinkling stars (space) */
+.bsx-stage[data-scene='space'] .bsx-deco-b,
+.bsx-stage[data-scene='space'] .bsx-deco-c {
+  inset: 0;
+  background-image: radial-gradient(2px 2px at 18% 28%, #fff, transparent),
+    radial-gradient(2px 2px at 68% 18%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 58%, #fff, transparent),
+    radial-gradient(2px 2px at 84% 46%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 58% 72%, #fff, transparent),
+    radial-gradient(2px 2px at 28% 78%, #fff, transparent);
+  animation: bsx-tw 3s ease-in-out infinite;
+}
+.bsx-stage[data-scene='space'] .bsx-deco-c { animation-delay: 1.5s; opacity: 0.55; }
+/* rising bubbles (underwater) */
+.bsx-stage[data-scene='underwater'] .bsx-deco-a,
+.bsx-stage[data-scene='underwater'] .bsx-deco-b,
+.bsx-stage[data-scene='underwater'] .bsx-deco-c {
+  bottom: -8%; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.18));
+  animation: bsx-rise 7s linear infinite;
+}
+.bsx-stage[data-scene='underwater'] .bsx-deco-a { left: 22%; }
+.bsx-stage[data-scene='underwater'] .bsx-deco-b { left: 54%; width: 10px; height: 10px; animation-duration: 5s; animation-delay: 1.2s; }
+.bsx-stage[data-scene='underwater'] .bsx-deco-c { left: 78%; width: 18px; height: 18px; animation-duration: 9s; animation-delay: 2.4s; }
+/* falling snow */
+.bsx-stage[data-scene='snow'] .bsx-deco-a,
+.bsx-stage[data-scene='snow'] .bsx-deco-c {
+  inset: 0;
+  background-image: radial-gradient(3px 3px at 15% 0, #fff, transparent),
+    radial-gradient(2px 2px at 45% 0, #fff, transparent),
+    radial-gradient(3px 3px at 72% 0, #fff, transparent),
+    radial-gradient(2px 2px at 90% 0, #fff, transparent);
+  background-size: 100% 64px;
+  animation: bsx-fall 5s linear infinite;
+}
+.bsx-stage[data-scene='snow'] .bsx-deco-c { animation-duration: 8s; animation-delay: -2s; opacity: 0.7; }
+/* candy sprinkles */
+.bsx-stage[data-scene='candy'] .bsx-deco-a,
+.bsx-stage[data-scene='candy'] .bsx-deco-b,
+.bsx-stage[data-scene='candy'] .bsx-deco-c {
+  inset: 0;
+  background-image: radial-gradient(4px 4px at 20% 25%, #ff5d9e, transparent),
+    radial-gradient(4px 4px at 70% 35%, #5dd0ff, transparent),
+    radial-gradient(4px 4px at 45% 55%, #ffd24d, transparent),
+    radial-gradient(4px 4px at 85% 62%, #8aff9e, transparent);
+  animation: bsx-floaty 6s ease-in-out infinite;
+}
+.bsx-stage[data-scene='candy'] .bsx-deco-b { animation-delay: 2s; opacity: 0.7; }
+.bsx-stage[data-scene='candy'] .bsx-deco-c { animation-delay: 4s; opacity: 0.5; }
+
+@keyframes bsx-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes bsx-drift { from { transform: translateX(-50px); } to { transform: translateX(420px); } }
+@keyframes bsx-tw { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes bsx-rise { from { transform: translateY(0); } to { transform: translateY(-420px); } }
+@keyframes bsx-fall { from { background-position: 0 -64px; } to { background-position: 0 110%; } }
+@keyframes bsx-floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@media (prefers-reduced-motion: reduce) {
+  .bsx-deco { animation: none !important; }
+}
+
+/* the 🏞 "change scene" button on the stage */
+.bsx-scene-btn {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 6;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.4);
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.12s;
+}
+.bsx-scene-btn:hover { transform: translateY(-2px); }
+.bsx-scene-btn:active { transform: translateY(2px); }
+
+/* ════ picker sheets (characters + scenes) ═══════════════════════════════════ */
+.bsx-sheet-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 12, 32, 0.55);
+  backdrop-filter: blur(4px);
+}
+.bsx-sheet {
+  width: min(94vw, 540px);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bsx-surface);
+  border: 1px solid var(--bsx-border);
+  border-radius: 26px;
+  box-shadow: 0 40px 80px -30px rgba(40, 20, 90, 0.6);
+  overflow: hidden;
+  color: var(--bsx-text);
+}
+.bsx-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  font-family: var(--fun, inherit);
+  font-weight: 800;
+  font-size: 18px;
+  border-bottom: 1px solid var(--bsx-border);
+}
+.bsx-sheet-x {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+}
+.bsx-sheet-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--bsx-border);
+}
+.bsx-tab {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 6px 14px;
+  border: 1px solid var(--bsx-border);
+  border-radius: 14px;
+  background: var(--bsx-surface-2);
+  color: var(--bsx-text-dim);
+  cursor: pointer;
+}
+.bsx-tab[aria-pressed='true'] {
+  background: linear-gradient(135deg, var(--bsx-cat-motion), var(--bsx-cat-looks));
+  color: #fff;
+  border-color: transparent;
+}
+.bsx-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.bsx-pick {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  border: 1px solid var(--bsx-border);
+  border-radius: 18px;
+  background: var(--bsx-surface-2);
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--bsx-border), inset 0 1px 0 var(--bsx-top-edge);
+  transition: transform 0.12s;
+}
+.bsx-pick:hover { transform: translateY(-3px); }
+.bsx-pick:active { transform: translateY(2px); }
+.bsx-scene-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.bsx-scene-tile {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--bsx-border);
+  transition: transform 0.12s;
+}
+.bsx-scene-tile:hover { transform: translateY(-3px); }
+.bsx-scene-tile.sel { box-shadow: 0 0 0 4px var(--bsx-cat-motion); }
+.bsx-scene-name {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 6;
+  font-family: var(--fun, inherit);
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 .bsx-sprite {
   position: absolute;
@@ -621,8 +931,8 @@
     flex: 0 0 auto;
   }
   .bsx-railbox > button[data-testid^='char-thumb-'],
+  .bsx-railbox > button[data-testid='add-character'],
   .bsx-railbox > button[data-testid='add-page'],
-  .bsx-railbox > .relative > button[data-testid='add-character'],
   .bsx-railbox > .relative > button[data-testid^='page-thumb-'] {
     height: 54px;
     width: auto;

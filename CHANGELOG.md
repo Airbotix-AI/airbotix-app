@@ -4,6 +4,37 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — tablet UX polish + drag-to-place)
+
+### Added
+- **Drag a palette block to any position** (not only tap-to-append). Tapping a palette block still
+  appends it to the bottom of the latest script; now you can also **drag** one into the program and
+  drop it into any gap — an insertion bar shows where it lands, a fixed clone follows the finger
+  (above everything, never clipped, no scrollbar). New `blocksStore.insertBlock(op, scriptId, index)`
+  (body blocks splice at the slot; triggers always start a fresh script).
+- **Bigger character + scene libraries** (`library.ts`). The friend picker is now a centered modal
+  with **4 categorized tabs** (Animals / People / Go! / Fun, ~60 characters). A new **scene picker**
+  (🏞 on the stage) offers **8 animated backgrounds** (Meadow, Space, Beach, Ocean, Sunset, Snow,
+  City, Candy) with live CSS-animated previews; the chosen scene animates on the stage.
+- **Gentle sound effects** for every kid action (`sounds.ts`, WebAudio — no assets): tap, pick-up,
+  snap, place, pop, add, whoosh-to-bin, Go! fanfare, page chime, undo/redo. Resumes on first gesture.
+
+### Changed
+- **Block categories now visibly own the palette.** The palette wears the selected category's colour
+  (top accent bar + a pill naming it) so a child can see which blocks belong to the highlighted
+  category. Each work area gets its own faint wash + accent edge (Friends = sky, Pages = coral,
+  program = mint) so the zones read as distinct places.
+- **Stage backgrounds are animated** (drifting clouds, twinkling stars, rising bubbles, falling snow,
+  candy sprinkles) via CSS `[data-scene]` keyframes, with a `prefers-reduced-motion` guard.
+- Removed the on-stage "Coding: Cat / Tap a friend to run" hint band (tap-to-run is discoverable;
+  drag-to-place there was redundant with the program area).
+
+### Fixed
+- **Portrait: the add-character ＋ button now matches the size of the character thumbnails** (the
+  sizing rule targeted a wrapper the button doesn't have).
+- **Dragging a block no longer slips behind the bin or spawns a horizontal scrollbar** — the dragged
+  block stays in place (dimmed) while a fixed-position clone follows the pointer above everything.
+
 ## 2026-06-11 (Blocks Studio — tablet/immersive pass)
 
 ### Changed

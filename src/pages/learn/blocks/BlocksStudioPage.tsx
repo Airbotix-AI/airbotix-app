@@ -27,6 +27,7 @@ import {
   MAX_PAGES,
   MAX_PARAM,
   blockDef,
+  isTrigger,
 } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { useBlocksTheme } from './blocksTheme';
@@ -34,42 +35,13 @@ import { captureBlocksThumbnail } from './thumbnail';
 import { saveThumbnail } from '../playground/projectPersistence';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
+import { CHARACTER_GROUPS, SCENES, sceneId } from './library';
+import { sfx } from './sounds';
 import './blocks.css';
 
 const SAVE_DEBOUNCE_MS = 800;
-const FRIEND_CHOICES = [
-  { emoji: '🐶', name: 'Dog' },
-  { emoji: '🐰', name: 'Bunny' },
-  { emoji: '🦊', name: 'Fox' },
-  { emoji: '🤖', name: 'Robot' },
-  { emoji: '🦄', name: 'Unicorn' },
-  { emoji: '🚀', name: 'Rocket' },
-  { emoji: '⚽', name: 'Ball' },
-  { emoji: '🐸', name: 'Frog' },
-];
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
-
-/** A short "pop" via WebAudio — no asset needed. */
-function usePop(): () => void {
-  const ctxRef = useRef<AudioContext | null>(null);
-  return useCallback(() => {
-    try {
-      ctxRef.current ??= new AudioContext();
-      const ctx = ctxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.13);
-    } catch {
-      // no audio — fine
-    }
-  }, []);
-}
 
 export function BlocksStudioPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -85,6 +57,8 @@ export function BlocksStudioPage() {
   const [category, setCategory] = useState<BlockCategory>('trigger');
   const [present, setPresent] = useState(false);
   const [running, setRunning] = useState(false);
+  const [scenePick, setScenePick] = useState(false);
+  const [charTab, setCharTab] = useState(0);
   // Theme follows the system by default; the toolbar 🌙/☀️ overrides + persists.
   // Shared via a store so the Learn top bar flips with the studio (blocksTheme).
   const theme = useBlocksTheme((s) => s.theme);
@@ -92,8 +66,6 @@ export function BlocksStudioPage() {
   // The friend picker floats in a portal (the character rail clips overflow +
   // has a backdrop-filter, which would otherwise trap/cut off an absolute popup).
   const [friendPos, setFriendPos] = useState<{ left: number; top: number } | null>(null);
-  const addBtnRef = useRef<HTMLButtonElement>(null);
-  const friendPopRef = useRef<HTMLDivElement>(null);
   const pickFriend = friendPos !== null;
   // live sprite states while/after a run (charId → state+duration); null = start poses
   const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(null);
@@ -102,7 +74,6 @@ export function BlocksStudioPage() {
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
   const runnerRef = useRef<BlocksRunner | null>(null);
-  const pop = usePop();
 
   const page = useMemo(
     () => project.pages.find((p) => p.id === pageId) ?? project.pages[0],
@@ -200,8 +171,14 @@ export function BlocksStudioPage() {
   }, [dirty, phase, projectId]);
 
   // ── undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ─────────────────
-  const undo = useCallback(() => useBlocksStore.getState().undo(), []);
-  const redo = useCallback(() => useBlocksStore.getState().redo(), []);
+  const undo = useCallback(() => {
+    sfx.snap();
+    useBlocksStore.getState().undo();
+  }, []);
+  const redo = useCallback(() => {
+    sfx.pop();
+    useBlocksStore.getState().redo();
+  }, []);
   useEffect(() => {
     if (phase !== 'ready') return;
     const onKey = (e: KeyboardEvent) => {
@@ -209,15 +186,15 @@ export function BlocksStudioPage() {
       const k = e.key.toLowerCase();
       if (k === 'z' && !e.shiftKey) {
         e.preventDefault();
-        useBlocksStore.getState().undo();
+        undo();
       } else if ((k === 'z' && e.shiftKey) || k === 'y') {
         e.preventDefault();
-        useBlocksStore.getState().redo();
+        redo();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase]);
+  }, [phase, undo, redo]);
 
   // edits & page switches invalidate the live run view
   useEffect(() => {
@@ -244,7 +221,7 @@ export function BlocksStudioPage() {
           else next.set(id, text);
           return next;
         }),
-      onPop: pop,
+      onPop: sfx.pop,
       onGotoPage: (idx) => {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
@@ -252,13 +229,14 @@ export function BlocksStudioPage() {
     });
     runnerRef.current = runner;
     return runner;
-  }, [page, pop]);
+  }, [page]);
 
   const go = useCallback(() => {
     if (running) return;
     setRunning(true);
     const runner = makeRunner();
     runner.resetAll();
+    sfx.go();
     void runner.runFlag().finally(() => setRunning(false));
   }, [running, makeRunner]);
 
@@ -278,42 +256,11 @@ export function BlocksStudioPage() {
     [makeRunner],
   );
 
-  // ── friend picker: anchor a floating panel to the ＋ button (viewport-fixed,
-  //    rendered via portal so the rail's overflow/backdrop-filter can't clip it).
-  const POP_W = 200;
-  const POP_H = 112;
-  const toggleFriendPicker = useCallback(() => {
-    setFriendPos((cur) => {
-      if (cur) return null; // already open → close
-      const r = addBtnRef.current?.getBoundingClientRect();
-      if (!r) return null;
-      let left = r.right + 8;
-      let top = r.top;
-      if (left + POP_W > window.innerWidth - 8) {
-        // no room to the right (e.g. portrait, rail at the bottom) → place above
-        left = Math.min(Math.max(8, r.left), window.innerWidth - POP_W - 8);
-        top = r.top - POP_H - 8;
-      }
-      top = Math.min(Math.max(8, top), window.innerHeight - POP_H - 8);
-      return { left, top };
-    });
+  // ── character picker: a centered modal sheet (big library, kid-friendly) ──
+  const openFriendPicker = useCallback(() => {
+    sfx.tap();
+    setFriendPos({ left: 0, top: 0 });
   }, []);
-  useEffect(() => {
-    if (!pickFriend) return;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (friendPopRef.current?.contains(t) || addBtnRef.current?.contains(t)) return;
-      setFriendPos(null);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFriendPos(null);
-    window.addEventListener('pointerdown', onDown);
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('resize', () => setFriendPos(null));
-    return () => {
-      window.removeEventListener('pointerdown', onDown);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [pickFriend]);
 
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -330,6 +277,7 @@ export function BlocksStudioPage() {
   };
   const onSpriteMove = (e: React.PointerEvent, id: string) => {
     if (dragging !== id || !stageRef.current) return;
+    if (!dragMoved.current) sfx.pickup();
     dragMoved.current = true;
     const rect = stageRef.current.getBoundingClientRect();
     const gx = ((e.clientX - rect.left) / rect.width) * GRID_W - 0.5;
@@ -360,6 +308,8 @@ export function BlocksStudioPage() {
     index: number;
     dx: number;
     dy: number;
+    cx: number;
+    cy: number;
     onBin: boolean;
     targetSlot: number | null;
     dropX: number | null;
@@ -376,6 +326,7 @@ export function BlocksStudioPage() {
     const dy = e.clientY - d.y0;
     if (!blockDidDrag.current && Math.hypot(dx, dy) > 8) {
       blockDidDrag.current = true;
+      sfx.pickup();
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     }
     if (!blockDidDrag.current) return;
@@ -405,7 +356,7 @@ export function BlocksStudioPage() {
         dropX = x;
       }
     }
-    setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, onBin, targetSlot, dropX });
+    setDragBlk({ scriptId: d.scriptId, index: d.index, dx, dy, cx: e.clientX, cy: e.clientY, onBin, targetSlot, dropX });
   };
   const onBlockUp = () => {
     const info = dragBlk;
@@ -414,12 +365,107 @@ export function BlocksStudioPage() {
     setDragBlk(null);
     setBinArmed(false);
     if (blockDidDrag.current && info && d) {
-      if (info.onBin) useBlocksStore.getState().removeBlock(d.scriptId, d.index);
-      else if (info.targetSlot !== null && info.targetSlot !== d.index) {
+      if (info.onBin) {
+        sfx.trash();
+        useBlocksStore.getState().removeBlock(d.scriptId, d.index);
+      } else if (info.targetSlot !== null && info.targetSlot !== d.index) {
+        sfx.snap();
         useBlocksStore.getState().moveBlock(d.scriptId, d.index, info.targetSlot);
       }
     }
     setTimeout(() => (blockDidDrag.current = false), 0);
+  };
+
+  // ── palette block: TAP adds to the bottom, DRAG drops it at any slot ───────
+  //    (drag into a script's gap to insert; drop anywhere else → append). The
+  //    source tile stays put; a fixed clone follows the pointer (same trick as
+  //    reorder, so it can't be clipped or spawn a scrollbar). ─────────────────
+  const palDrag = useRef<{ op: BlockOp; x0: number; y0: number; pointerId: number } | null>(null);
+  const palDidDrag = useRef(false);
+  const [palBlk, setPalBlk] = useState<{
+    op: BlockOp;
+    cx: number;
+    cy: number;
+    scriptId: string | null;
+    slot: number;
+    dropX: number | null;
+  } | null>(null);
+
+  // find the script row + insertion slot under the pointer (body ops only —
+  // triggers always start a fresh script, so they just append).
+  const palTarget = (x: number, y: number, op: BlockOp) => {
+    if (isTrigger(op)) return null;
+    // every script row is data-testid="script-<id>" — exclude the script-AREA
+    // wrapper, which also starts with "script-" and would swallow every hit.
+    const rows = [
+      ...document.querySelectorAll<HTMLElement>('[data-testid^="script-"]:not([data-testid="script-area"])'),
+    ];
+    for (const row of rows) {
+      const rr = row.getBoundingClientRect();
+      const pad = 16;
+      if (x < rr.left - pad || x > rr.right + pad || y < rr.top - pad || y > rr.bottom + pad) continue;
+      const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
+      let slot = items.length;
+      let dropX = items.length ? items[items.length - 1].getBoundingClientRect().right - rr.left + 2 : 0;
+      for (let i = 1; i < items.length; i += 1) {
+        const r = items[i].getBoundingClientRect();
+        if (x < r.left + r.width / 2) {
+          slot = i;
+          dropX = r.left - rr.left - 2;
+          break;
+        }
+      }
+      return { scriptId: row.getAttribute('data-testid')!.slice('script-'.length), slot: Math.max(1, slot), dropX };
+    }
+    return null;
+  };
+
+  const onPalDown = (e: React.PointerEvent, op: BlockOp) => {
+    if (running || present) return;
+    palDrag.current = { op, x0: e.clientX, y0: e.clientY, pointerId: e.pointerId };
+    palDidDrag.current = false;
+  };
+  const onPalMove = (e: React.PointerEvent) => {
+    const d = palDrag.current;
+    if (!d || e.pointerId !== d.pointerId) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (!palDidDrag.current && Math.hypot(dx, dy) > 8) {
+      palDidDrag.current = true;
+      sfx.pickup();
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    }
+    if (!palDidDrag.current) return;
+    const hit = palTarget(e.clientX, e.clientY, d.op);
+    setPalBlk({
+      op: d.op,
+      cx: e.clientX,
+      cy: e.clientY,
+      scriptId: hit?.scriptId ?? null,
+      slot: hit?.slot ?? 0,
+      dropX: hit?.dropX ?? null,
+    });
+  };
+  const onPalUp = (op: BlockOp) => {
+    const info = palBlk;
+    const d = palDrag.current;
+    palDrag.current = null;
+    setPalBlk(null);
+    const store = useBlocksStore.getState();
+    if (palDidDrag.current) {
+      if (info && info.scriptId) {
+        sfx.snap();
+        store.insertBlock(d?.op ?? op, info.scriptId, info.slot);
+      } else {
+        sfx.place();
+        store.addBlock(d?.op ?? op);
+      }
+    } else {
+      // a clean tap → add to the bottom of the latest script
+      sfx.place();
+      store.addBlock(op);
+    }
+    setTimeout(() => (palDidDrag.current = false), 0);
   };
 
   // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
@@ -428,6 +474,7 @@ export function BlocksStudioPage() {
     if (blockDidDrag.current) return; // it was a drag, not a tap
     const def = blockDef(op as BlockOp);
     if (!def.hasN && op !== 'say') return; // nothing to edit on this block
+    sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 230;
     const left = Math.min(Math.max(8, r.left + r.width / 2 - W / 2), window.innerWidth - W - 8);
@@ -455,6 +502,13 @@ export function BlocksStudioPage() {
     const blk = script?.blocks[editBlk.index];
     return blk ? { ...editBlk, block: blk } : null;
   })();
+  // the block under the pointer while dragging — rendered as a fixed clone
+  const draggingBlock = (() => {
+    if (!dragBlk) return null;
+    const script = selectedChar?.scripts.find((s) => s.id === dragBlk.scriptId);
+    const blk = script?.blocks[dragBlk.index];
+    return blk ? { block: blk } : null;
+  })();
 
   if (phase === 'loading') {
     return (
@@ -475,6 +529,7 @@ export function BlocksStudioPage() {
   }
 
   const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category);
+  const activeCat = CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0];
 
   return (
     <div className={`bsx bsx-app${present ? ' present' : ''}`} data-theme={theme} data-testid="blocks-studio">
@@ -572,6 +627,7 @@ export function BlocksStudioPage() {
                   title={`Remove ${c.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    sfx.trash();
                     useBlocksStore.getState().removeCharacter(c.id);
                   }}
                 >
@@ -581,10 +637,9 @@ export function BlocksStudioPage() {
             </button>
           ))}
           <button
-            ref={addBtnRef}
             type="button"
             data-testid="add-character"
-            onClick={toggleFriendPicker}
+            onClick={openFriendPicker}
             className="grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky"
             title="Add a character"
           >
@@ -596,18 +651,28 @@ export function BlocksStudioPage() {
           <div
             ref={stageRef}
             data-testid="blocks-stage"
-            className={`bsx-stage min-h-[180px] flex-1 scene-${page.background === 'space' ? 'space' : 'meadow'}`}
+            data-scene={sceneId(page.background)}
+            className="bsx-stage min-h-[180px] flex-1"
           >
             <div className="bsx-grid" />
+            {/* animated scene decorations (CSS draws the rest per [data-scene]) */}
+            <div className="bsx-deco bsx-deco-a" />
+            <div className="bsx-deco bsx-deco-b" />
+            <div className="bsx-deco bsx-deco-c" />
             <div className="bsx-hill" />
-            <div className="absolute right-[3%] top-[6%] text-[clamp(28px,4vw,44px)]">
-              {page.background === 'space' ? '🌙' : '☀️'}
-            </div>
-            {/* portrait-only: the "Coding:" pill rides on the stage to save a row */}
-            <div className="bsx-coding-overlay bsx-card">
-              <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-brand-sky" />
-              Coding: {selectedChar?.name}
-            </div>
+            {/* change the scene — a big picture library */}
+            <button
+              type="button"
+              data-testid="scene-btn"
+              className="bsx-scene-btn"
+              title="Change the scene"
+              onClick={() => {
+                sfx.tap();
+                setScenePick((v) => !v);
+              }}
+            >
+              🏞
+            </button>
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
               const st = run?.st ?? startState(c);
@@ -648,16 +713,6 @@ export function BlocksStudioPage() {
               );
             })}
           </div>
-          <div className="bsx-stagefoot flex items-center gap-2">
-            <span className="bsx-card rounded-full px-3 py-1.5 text-[13px] font-extrabold">
-              <span className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full bg-brand-sky" />
-              Coding: {selectedChar?.name}
-            </span>
-            <span className="flex-1" />
-            <span className="bsx-muted text-[12px] font-semibold">
-              Tap a friend to run 👆 · drag to place
-            </span>
-          </div>
         </div>
 
         <aside className="bsx-railbox" style={{ gridArea: 'pages' }} aria-label="Pages">
@@ -666,7 +721,7 @@ export function BlocksStudioPage() {
               <button
                 type="button"
                 data-testid={`page-thumb-${i}`}
-                onClick={() => useBlocksStore.getState().selectPage(p.id)}
+                onClick={() => { sfx.page(); useBlocksStore.getState().selectPage(p.id); }}
                 className="bsx-press relative grid w-full place-items-center rounded-xl text-[20px]"
                 style={{
                   aspectRatio: '4/3',
@@ -689,6 +744,7 @@ export function BlocksStudioPage() {
                   title={`Remove page ${i + 1}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    sfx.trash();
                     useBlocksStore.getState().removePage(p.id);
                   }}
                 >
@@ -701,7 +757,7 @@ export function BlocksStudioPage() {
             <button
               type="button"
               data-testid="add-page"
-              onClick={() => useBlocksStore.getState().addPage()}
+              onClick={() => { sfx.add(); useBlocksStore.getState().addPage(); }}
               className="grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral"
               style={{ aspectRatio: '4/3' }}
               title="Add a page (up to 4)"
@@ -722,7 +778,7 @@ export function BlocksStudioPage() {
               data-testid={`cat-${c.id}`}
               className={`bsx-cat c-${c.id}`}
               aria-pressed={category === c.id}
-              onClick={() => setCategory(c.id)}
+              onClick={() => { sfx.tap(); setCategory(c.id); }}
               title={`${c.label} blocks`}
             >
               <span>{c.icon}</span>
@@ -731,14 +787,20 @@ export function BlocksStudioPage() {
         </nav>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-2">
-          <div className="bsx-soft flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette">
-            <span className="bsx-muted shrink-0 text-[12px] font-extrabold">Tap a block ↓</span>
+          <div className="bsx-soft bsx-palette flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette" data-cat={category}>
+            <span className="bsx-palette-tag shrink-0">
+              <span aria-hidden>{activeCat.icon}</span>
+              {activeCat.label}
+            </span>
             {paletteBlocks.map((def) => (
               <BlockChip
                 key={def.op}
                 block={{ op: def.op, ...(def.hasN ? { n: def.defaultN } : {}) }}
-                onTap={() => useBlocksStore.getState().addBlock(def.op)}
-                title={`Add "${def.label}" to ${selectedChar?.name}'s program`}
+                style={palBlk?.op === def.op ? { opacity: 0.4 } : undefined}
+                onPointerDown={(e) => onPalDown(e, def.op)}
+                onPointerMove={onPalMove}
+                onPointerUp={() => onPalUp(def.op)}
+                title={`Tap to add "${def.label}" — or drag it into ${selectedChar?.name}'s program`}
               />
             ))}
           </div>
@@ -768,12 +830,11 @@ export function BlocksStudioPage() {
                         inChain
                         isLast={i === script.blocks.length - 1}
                         dragging={!!dr}
-                        removing={!!dr?.onBin}
-                        style={
-                          dr
-                            ? { transform: `translate(${dr.dx}px, ${dr.dy}px) scale(1.05)`, position: 'relative', zIndex: 30 }
-                            : undefined
-                        }
+                        // the original stays put (dimmed) while a fixed clone
+                        // follows the pointer — so it can't be clipped by the
+                        // script-area's overflow or pushed behind the bin, and
+                        // dragging never adds a horizontal scrollbar.
+                        style={dr ? { opacity: 0.28 } : undefined}
                         onPointerDown={(e) => onBlockDown(e, script.id, i)}
                         onPointerMove={onBlockMove}
                         onPointerUp={onBlockUp}
@@ -791,6 +852,10 @@ export function BlocksStudioPage() {
                   {/* reorder insertion bar */}
                   {rowDrag && !rowDrag.onBin && rowDrag.dropX !== null && (
                     <span className="bsx-dropbar" style={{ left: rowDrag.dropX }} />
+                  )}
+                  {/* palette-drop insertion bar */}
+                  {palBlk && palBlk.scriptId === script.id && palBlk.dropX !== null && (
+                    <span className="bsx-dropbar" style={{ left: palBlk.dropX }} />
                   )}
                 </div>
               );
@@ -816,29 +881,89 @@ export function BlocksStudioPage() {
 
       {/* floating friend picker — portalled to <body> so the rail can't clip it */}
       {pickFriend &&
-        friendPos &&
         createPortal(
-          <div
-            ref={friendPopRef}
-            data-testid="friend-picker"
-            className="bsx bsx-card fixed z-[60] grid grid-cols-4 gap-1.5 rounded-2xl p-2 shadow-card-soft"
-            data-theme={theme}
-            style={{ left: friendPos.left, top: friendPos.top, width: POP_W }}
-          >
-            {FRIEND_CHOICES.map((f) => (
-              <button
-                key={f.emoji}
-                type="button"
-                className="bsx-friend grid h-10 w-10 place-items-center rounded-xl text-[24px]"
-                title={f.name}
-                onClick={() => {
-                  useBlocksStore.getState().addCharacter(f.emoji, f.name);
-                  setFriendPos(null);
-                }}
-              >
-                {f.emoji}
-              </button>
-            ))}
+          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setFriendPos(null)}>
+            <div
+              data-testid="friend-picker"
+              className="bsx-sheet"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="bsx-sheet-head">
+                <span>Pick a friend ✨</span>
+                <button type="button" className="bsx-press bsx-sheet-x" onClick={() => setFriendPos(null)}>
+                  ✕
+                </button>
+              </div>
+              <div className="bsx-sheet-tabs">
+                {CHARACTER_GROUPS.map((g, i) => (
+                  <button
+                    key={g.label}
+                    type="button"
+                    className="bsx-tab"
+                    aria-pressed={charTab === i}
+                    onClick={() => {
+                      sfx.tap();
+                      setCharTab(i);
+                    }}
+                  >
+                    <span className="text-[20px]">{g.emoji}</span>
+                    <span className="text-[11px] font-bold">{g.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="bsx-sheet-grid">
+                {CHARACTER_GROUPS[charTab].items.map((f) => (
+                  <button
+                    key={f.emoji}
+                    type="button"
+                    className="bsx-pick"
+                    title={f.name}
+                    onClick={() => {
+                      sfx.add();
+                      useBlocksStore.getState().addCharacter(f.emoji, f.name);
+                      setFriendPos(null);
+                    }}
+                  >
+                    {f.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* scene / background picker — a big picture library */}
+      {scenePick &&
+        createPortal(
+          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setScenePick(false)}>
+            <div data-testid="scene-picker" className="bsx-sheet" onPointerDown={(e) => e.stopPropagation()}>
+              <div className="bsx-sheet-head">
+                <span>Pick a scene 🏞</span>
+                <button type="button" className="bsx-press bsx-sheet-x" onClick={() => setScenePick(false)}>
+                  ✕
+                </button>
+              </div>
+              <div className="bsx-scene-grid">
+                {SCENES.map((sc) => (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    data-testid={`scene-${sc.id}`}
+                    className={`bsx-scene-tile bsx-stage${sceneId(page.background) === sc.id ? ' sel' : ''}`}
+                    data-scene={sc.id}
+                    title={sc.label}
+                    onClick={() => {
+                      sfx.add();
+                      useBlocksStore.getState().setBackground(sc.id);
+                      setScenePick(false);
+                    }}
+                  >
+                    <span className="bsx-scene-name">{sc.emoji} {sc.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>,
           document.body,
         )}
@@ -902,6 +1027,51 @@ export function BlocksStudioPage() {
                 </button>
               </div>
             )}
+          </div>,
+          document.body,
+        )}
+
+      {/* drag clone — a fixed copy that follows the pointer, ABOVE everything
+          (incl. the bin) and never clipped by the script area's overflow */}
+      {dragBlk &&
+        draggingBlock &&
+        createPortal(
+          <div
+            className="bsx"
+            data-theme={theme}
+            style={{
+              position: 'fixed',
+              left: dragBlk.cx,
+              top: dragBlk.cy,
+              zIndex: 9999,
+              pointerEvents: 'none',
+              transform: 'translate(-50%,-50%) scale(1.08) rotate(-2deg)',
+            }}
+          >
+            <BlockChip block={draggingBlock.block} inChain removing={dragBlk.onBin} />
+          </div>,
+          document.body,
+        )}
+
+      {/* palette drag clone — same fixed-above-everything trick */}
+      {palBlk &&
+        createPortal(
+          <div
+            className="bsx"
+            data-theme={theme}
+            style={{
+              position: 'fixed',
+              left: palBlk.cx,
+              top: palBlk.cy,
+              zIndex: 9999,
+              pointerEvents: 'none',
+              transform: 'translate(-50%,-50%) scale(1.08) rotate(-2deg)',
+            }}
+          >
+            <BlockChip
+              block={{ op: palBlk.op, ...(blockDef(palBlk.op).hasN ? { n: blockDef(palBlk.op).defaultN } : {}) }}
+              inChain
+            />
           </div>,
           document.body,
         )}
