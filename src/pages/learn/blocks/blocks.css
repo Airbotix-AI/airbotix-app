@@ -294,65 +294,60 @@
   z-index: 25;
 }
 
-/* ── the ONE shared trash bin (drag a character / block / page onto it) ──
-   always visible (bottom-right of the studio); grows while dragging; the lid
-   lifts + everything glows red when a draggable is hovering over it. */
+/* ── the trash bin (block-only) — a tall drop column at the END of the block
+   area. Always visible; highlights blue while a block is being dragged; the lid
+   lifts + it glows red when a block is hovering over it. */
 .bsx-bin {
-  position: absolute;
-  right: 18px;
-  bottom: 16px;
-  z-index: 45;
+  flex: 0 0 auto;
+  width: clamp(78px, 9vw, 104px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 14px 10px;
-  border-radius: 20px;
-  border: 2px dashed var(--bsx-border);
-  background: color-mix(in srgb, var(--bsx-surface) 70%, transparent);
-  backdrop-filter: blur(8px);
-  opacity: 0.6;
-  transform: scale(0.92);
-  transition: transform 0.18s, opacity 0.18s, border-color 0.18s, background 0.18s;
-  pointer-events: none; /* never blocks the canvas; drop is hit-tested by JS */
+  justify-content: center;
+  gap: 8px;
+  border-radius: 22px;
+  border: 3px dashed var(--bsx-border);
+  background: var(--bsx-pad);
+  color: var(--bsx-text-muted);
+  transition: transform 0.18s, border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  pointer-events: none; /* drop is hit-tested by JS so it never eats other taps */
 }
 .bsx-bin.active {
-  opacity: 1;
-  transform: scale(1);
   border-color: var(--bsx-cat-motion);
+  color: var(--bsx-cat-motion);
 }
 .bsx-bin.armed {
-  opacity: 1;
-  transform: scale(1.12);
+  transform: scale(1.04);
   border-color: #ff5677;
   border-style: solid;
-  background: color-mix(in srgb, #ff5677 18%, var(--bsx-surface));
-  box-shadow: 0 0 0 4px color-mix(in srgb, #ff5677 30%, transparent),
+  color: #ff5677;
+  background: color-mix(in srgb, #ff5677 16%, var(--bsx-surface));
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, #ff5677 30%, transparent),
     0 16px 30px -12px #ff5677;
 }
 .bsx-bin-can {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
 }
 .bsx-bin-body {
   position: absolute;
-  left: 7px;
-  right: 7px;
+  left: 9px;
+  right: 9px;
   bottom: 0;
-  top: 12px;
-  border-radius: 4px 4px 7px 7px;
+  top: 16px;
+  border-radius: 5px 5px 9px 9px;
   background: var(--bsx-text-muted);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000),
-    inset -3px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000);
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000),
+    inset -4px 0 0 color-mix(in srgb, var(--bsx-text-muted) 60%, #000);
 }
 .bsx-bin-lid {
   position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 8px;
-  height: 6px;
-  border-radius: 3px;
+  left: 4px;
+  right: 4px;
+  top: 11px;
+  height: 8px;
+  border-radius: 4px;
   background: var(--bsx-text-dim);
   transform-origin: right center;
   transition: transform 0.18s;
@@ -361,15 +356,15 @@
   content: '';
   position: absolute;
   left: 50%;
-  top: -5px;
-  width: 12px;
-  height: 5px;
+  top: -6px;
+  width: 16px;
+  height: 6px;
   transform: translateX(-50%);
-  border-radius: 3px 3px 0 0;
+  border-radius: 4px 4px 0 0;
   background: var(--bsx-text-dim);
 }
 .bsx-bin.armed .bsx-bin-lid {
-  transform: rotate(-22deg) translateY(-3px);
+  transform: rotate(-26deg) translateY(-4px);
   background: #ff5677;
 }
 .bsx-bin.armed .bsx-bin-lid::after {
@@ -380,11 +375,8 @@
 }
 .bsx-bin-label {
   font-weight: 800;
-  font-size: 11px;
-  color: var(--bsx-text-muted);
-}
-.bsx-bin.armed .bsx-bin-label {
-  color: #ff5677;
+  font-size: 13px;
+  color: inherit;
 }
 
 /* number stepper buttons in the tap-to-edit popover */

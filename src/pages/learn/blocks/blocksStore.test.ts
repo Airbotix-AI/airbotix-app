@@ -126,4 +126,59 @@ describe('blocksStore', () => {
     store().removePage(firstPage); // refuse to drop the last page
     expect(store().project.pages).toHaveLength(1);
   });
+
+  it('undo / redo step through edits and restore the project', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right');
+    store().addBlock('hop');
+    const ops = () => char().scripts[0]?.blocks.map((b) => b.op) ?? [];
+    expect(ops()).toEqual(['when_flag', 'move_right', 'hop']);
+    expect(store().past.length).toBe(3);
+
+    store().undo(); // removes hop
+    expect(ops()).toEqual(['when_flag', 'move_right']);
+    store().undo(); // removes move_right
+    expect(ops()).toEqual(['when_flag']);
+    expect(store().future.length).toBe(2);
+
+    store().redo(); // move_right back
+    expect(ops()).toEqual(['when_flag', 'move_right']);
+
+    // a new edit after undo clears the redo stack
+    store().addBlock('pop');
+    expect(store().future.length).toBe(0);
+    expect(ops()).toEqual(['when_flag', 'move_right', 'pop']);
+  });
+
+  it('coalesces a stepper / drag session into ONE undo step', () => {
+    store().addBlock('when_flag');
+    store().addBlock('wait'); // defaultN 5
+    const id = char().scripts[0].id;
+    const baseline = store().past.length;
+    // a stepper session: several setParam in a row → ONE history entry
+    store().setParam(id, 1, 6);
+    store().setParam(id, 1, 7);
+    store().setParam(id, 1, 8);
+    expect(store().past.length).toBe(baseline + 1);
+    store().undo();
+    expect(char().scripts[0].blocks[1].n).toBe(5); // back to before the session
+    // ending the session means the next set is its own step
+    store().endCoalesce();
+    store().setParam(id, 1, 2);
+    store().endCoalesce();
+    store().setParam(id, 1, 3);
+    expect(store().past.length).toBe(baseline + 2);
+  });
+
+  it('load resets history; setHistory restores a persisted stack', () => {
+    store().addBlock('when_flag');
+    expect(store().past.length).toBe(1);
+    store().load(blankProject('Fresh'));
+    expect(store().past).toHaveLength(0);
+    expect(store().future).toHaveLength(0);
+
+    const entry = { project: blankProject('X'), pageId: 'p', charId: 'c' };
+    store().setHistory([entry], []);
+    expect(store().past).toHaveLength(1);
+  });
 });

@@ -61,6 +61,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     and its lid lifts + everything glows red when a draggable is over it. Replaces the
     block-only in-area trash strip. (Store gains `setParam` / `moveBlock` / `removePage`.)
 
+### Changed (follow-up)
+- **Blocks: undo/redo (persisted), a bigger block-only bin, and a ✕ to remove pages.**
+  - **Undo / redo** in the toolbar (↶ ↷) + ⌘Z / ⌘⇧Z (Ctrl+Z / Ctrl+Y). Every editing step is
+    recorded; a drag or stepper session coalesces into one undo step. The **history is persisted
+    with the project** (sidecar `project.blocks.history.json`), so undo still works after a reload.
+  - The **trash bin is now bigger and lives at the end of the block area**, and is **block-only** —
+    drag a block onto it to remove (idle "Bin" → red "Drop!" when armed).
+  - **Removing a page is now the ✕ cross button** on the page thumbnail (same as a character) — the
+    drag-page-to-bin / drag-character-to-bin paths were removed; dragging a character only
+    repositions it now.
+
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added
