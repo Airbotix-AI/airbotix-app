@@ -4,6 +4,17 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-11 (Blocks Studio — stable fullscreen)
+
+### Fixed
+- **Blocks Studio no longer flickers out of fullscreen and snaps back on the next tap.** The
+  immersive page-scroll lock + first-gesture `requestFullscreen` lived on the studio component, so
+  any transient remount (e.g. the periodic auth refresh briefly swapping the route through
+  `ProtectedRoute`) ran the unmount cleanup — exiting fullscreen — and re-armed the one-shot enter,
+  which the next tap re-triggered. Moved this lifecycle into **`LearnLayout`**, which stays mounted
+  across the studio's remounts and keys off the route, so a remount can't drop/re-request fullscreen.
+  Once the user (or browser) leaves fullscreen, we no longer auto-yank them back in.
+
 ## 2026-06-11 (Blocks Studio — closer to ScratchJr)
 
 ### Fixed
