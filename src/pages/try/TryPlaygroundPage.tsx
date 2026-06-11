@@ -34,10 +34,15 @@ import { PLAYGROUND_TOUR, type PlaygroundTourAction } from './demoTour.playgroun
  * scripted turn itself settles well inside a second; this is only a recovery.
  */
 const SEND_RECOVERY_MS = 6000;
+/** The landing build plays a multi-second reveal — its recovery must outlast it
+ *  comfortably (a premature recovery would invite a game-restarting re-submit). */
+const LANDING_RECOVERY_MS = 20_000;
 /** Each asset step runs ONE stub generation (~1s) — a roomier recovery. */
 const ASSET_RECOVERY_MS = 15_000;
 /** Poll cadence for an asset step's generate-until-landed sequence. */
 const ASSET_TICK_MS = 250;
+/** Retry an asset request only every Nth tick (~2s) — see runAssetStep. */
+const ASSET_RETRY_TICKS = 8;
 /** §3 step 6: how long the real "✨ Explain this" toolbar stays visibly poised
  *  over the selection before the tour fires it — long enough to SEE the real
  *  affordance, short enough to keep the beat moving. */
@@ -68,6 +73,8 @@ export function TryPlaygroundPage() {
   const controlsRef = useRef<DemoStudioControls | null>(null);
   // First controls bind = the workspace has mounted (§3 step 2 auto-run fires once).
   const enteredRef = useRef(false);
+  // The landing submit fired (cleared only by its recovery) — see 'landing-create'.
+  const landingFiredRef = useRef(false);
   const recoveryTimer = useRef<ReturnType<typeof setTimeout>>();
   const assetTimer = useRef<ReturnType<typeof setInterval>>();
   const explainTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -161,13 +168,18 @@ export function TryPlaygroundPage() {
     armRecovery(ASSET_RECOVERY_MS);
     controlsRef.current?.focusPanel('assets');
     stopAssetWatch();
+    let tick = 0;
     assetTimer.current = setInterval(() => {
+      tick += 1;
       if (generatedAssets().length >= baseline + 1) {
         stopAssetWatch();
         controlsRef.current?.focusPanel('assets');
         advanceTo(fromCard + 1);
-      } else {
-        fire(); // no-ops while the chat lock is busy → retried next tick
+      } else if (tick % ASSET_RETRY_TICKS === 1) {
+        // No-ops while the chat lock is busy. Retried SPARINGLY (every ~2s, not
+        // every tick): an accepted attempt appends chat bubbles, so a hot loop
+        // would spam the conversation if a generation ever failed.
+        fire();
       }
     }, ASSET_TICK_MS);
   };
@@ -177,8 +189,17 @@ export function TryPlaygroundPage() {
     switch (action.kind) {
       case 'landing-create':
         // Drive the REAL landing submit; the workspace-entry bind advances.
+        // Fires ONCE per recovery window: on a slow machine the recovery could
+        // re-enable Next mid-build, and a second submit would restart the
+        // generating screen. After the (long) recovery a genuine retry is open.
+        if (landingFiredRef.current) return;
+        landingFiredRef.current = true;
         setSending(true);
-        armRecovery(SEND_RECOVERY_MS);
+        clearTimeout(recoveryTimer.current);
+        recoveryTimer.current = setTimeout(() => {
+          landingFiredRef.current = false;
+          setSending(false);
+        }, LANDING_RECOVERY_MS);
         landingSubmitRef.current?.();
         return;
       case 'script': {

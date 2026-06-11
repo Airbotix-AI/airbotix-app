@@ -6,6 +6,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Fixed (review pass)
+- Tour robustness guards from the adversarial review: the landing "Create the game" fires
+  once per (long) recovery window — a slow build can no longer be double-submitted; asset
+  generate/remix retries are throttled to ~2s (was every 250ms) so a failed generation
+  can't spam the chat.
+
+
 ### Changed
 - **`/try/playground` tour refinement pass (try-demo-mode-prd §3 v0.6, 8 tweaks).**
   (1) Only the tour card creates the game: the landing's own send button is disabled and
