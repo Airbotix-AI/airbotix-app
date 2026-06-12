@@ -46,6 +46,10 @@ const TOUR: DemoTourStep[] = [
       'Tap a number tile in the track below and make the cat hop further. Blocks drag between ' +
       'tracks or to the bin — and undo is always one tap away.',
     spotlight: '[data-testid="script-area"]',
+    // This step is HANDS-ON across the whole coding band: anchoring above the
+    // track would cover the palette the card tells the user to drag from. Sides
+    // only; otherwise the static top-right placement keeps everything tappable.
+    anchorPrefer: ['right', 'left'],
     placement: 'top-right',
   },
   {

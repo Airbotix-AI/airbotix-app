@@ -6,6 +6,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12 
 ### Fixed (tour navigation & placement)
+- "Change a number" (blocks tour) anchors to the SIDES only — anchoring above the
+  track covered the palette the card tells the user to drag from (caught by the
+  harness journey's real palette click); falls back to its static top-right.
+
 - Blocks demo: the story plays only on the FIRST arrival at the Press-Go card —
   after browsing Back, going forward just navigates (frontier semantics, like the
   playground), and a user's own Go press on a revisit is plain exploration.
