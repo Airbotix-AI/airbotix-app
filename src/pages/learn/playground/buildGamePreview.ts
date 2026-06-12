@@ -22,7 +22,7 @@
 // of sprites/sounds); a dedicated preview origin is deferred to V1.
 
 import type { VfsFile } from '../code/codeApi';
-import { ASSET_MIME, CONSOLE_CAPTURE } from '../code/buildPreview';
+import { ASSET_MIME, CONSOLE_CAPTURE, EXTENSION_NOISE_GUARD } from '../code/buildPreview';
 
 // Re-export the console protocol so game components import it from one place.
 export { isConsoleMessage, type ConsoleLine } from '../code/buildPreview';
@@ -190,6 +190,7 @@ export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): 
   return [
     '<!doctype html>',
     '<html><head><meta charset="utf-8">',
+    EXTENSION_NOISE_GUARD,
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
     // Full-bleed black stage; the kid's optional .css files can override.
     `<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}` +
