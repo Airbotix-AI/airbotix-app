@@ -59,6 +59,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   shell in both layouts and asserts every panel spotlight resolves + live
   focusPanel routing through a pre-flip handler.
 
+## 2026-06-12 (Guide placement)
+
+### Fixed
+- **The Guide window no longer buries the conversation's latest messages.** Its
+  spawn rect is now chat-aware: beside the chat when a ≥480px reading column fits
+  to its right (wide screens), otherwise a shorter top-anchored column that leaves
+  the chat's input + newest replies visible below (laptops). Placement unit-tested
+  at both breakpoints.
+
 ## 2026-06-12 (clean demo console)
 
 ### Fixed

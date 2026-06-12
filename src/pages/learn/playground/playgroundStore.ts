@@ -90,7 +90,7 @@ function r(x: number, y: number, w: number, h: number): WinRect {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
 }
 
-function defaultWindows(): Record<PgWindowId, WinState> {
+export function defaultWindows(): Record<PgWindowId, WinState> {
   const W = typeof window !== 'undefined' ? window.innerWidth : 1440;
   const H = (typeof window !== 'undefined' ? window.innerHeight : 900) - TASKBAR_H;
   const base = (id: PgWindowId, zIndex: number, rect: WinRect): WinState => ({
@@ -114,14 +114,25 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     ...base(id, zIndex, rect),
     open: false,
   });
+  // Guide placement (see the `help:` note below): the chat rect here mirrors
+  // the `chat:` seed — keep them in lockstep.
+  const helpRect = (): WinRect => {
+    const chatRight = W * 0.29 + W * 0.42;
+    const sideW = Math.min(620, W - chatRight - 28);
+    if (sideW >= 480) return r(chatRight + 12, H * 0.06, sideW, H * 0.82);
+    return r(ICON_COL_PX + 40, H * 0.04, Math.min(620, (W - ICON_COL_PX - 24) * 0.55), H * 0.5);
+  };
   return {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: closed('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     // The Game Guide (help) — a comfortable reading column, closed by default
     // (opened from its desktop tile / the Split "Guide" tab, or — MH2 — when the
-    // agent emits `open_help`).
-    help: closed('help', 1, r(ICON_COL_PX + 40, H * 0.08, Math.min(620, (W - ICON_COL_PX - 24) * 0.55), H * 0.82)),
+    // agent emits `open_help`). It must NEVER bury the conversation's latest
+    // messages: beside the chat when a readable column fits to its right,
+    // otherwise a SHORTER top-anchored column that leaves the chat's input +
+    // newest replies visible below it.
+    help: closed('help', 1, helpRect()),
     // Open + focused + centered as the sole launch window.
     chat: base('chat', 4, r(W * 0.29, H * 0.06, W * 0.42, H * 0.82)),
   };
