@@ -4,6 +4,17 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12 (Guide pane dark-mode theming)
+
+### Fixed
+- **Game Guide dark mode:** the playground theme blocks now pin `color-scheme`
+  (`light`/`dark` per `data-theme`), so UA-rendered chrome — native scrollbars
+  on Windows / "always show" macOS, form-control internals — follows the
+  workspace theme instead of staying light over the dark UI. The Guide's two
+  scroll containers (nav + reader) also adopt the themed `.pg-scroll` slim bar
+  (the chat-log convention); the pane's chrome/doc body/search/diagrams were
+  already `pg-*`-tokened and verified readable in dark.
+
 ## 2026-06-12 (layout-proof demo tour)
 
 ### Fixed
