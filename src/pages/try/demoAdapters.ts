@@ -11,6 +11,7 @@ import {
   type BlocksSaveResult,
   type LoadedBlocksProject,
 } from '../learn/blocks/blocksApi';
+import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { setDemoAssetGen } from '../learn/playground/assetGen';
 import { setDemoRunTurn, type RunTurn } from '../learn/playground/panes/gameAgentStub';
 import { setDemoHelpCorpus } from '../learn/playground/panes/help/helpApi';
@@ -71,6 +72,10 @@ export function installBlocksDemo(): void {
     save: async (): Promise<BlocksSaveResult> => ({ status: 'saved', version: (version += 1) }),
   });
   setDemoMemoryPersistence(true); // the studio's cover-thumbnail cache
+  // The demo always opens LIGHT (the story art is daylight-first), regardless of
+  // the visitor's system preference or any stored studio override. setState only
+  // — never localStorage — so a real user's saved theme is untouched (D-DEMO-02).
+  useBlocksTheme.setState({ theme: 'light' });
 }
 
 export function uninstallBlocksDemo(): void {
