@@ -85,38 +85,66 @@
   background: color-mix(in srgb, var(--bsx-cat-motion) 16%, transparent);
 }
 
-/* ── themed scrollbars (every scroll area inside the studio: rails, category
-   bar, palette, script area) — default browser bars clashed with the theme,
-   especially in dark. Token-driven so they flip with light/dark. ── */
+/* ── scroll zones (FadeScroller.tsx) ────────────────────────────────────────
+   Native scrollbars are hidden inside the studio: always-on bars read as
+   clutter on tablets (and ::-webkit-scrollbar styling forces them persistent).
+   Each scrolling zone is a CARD (bg/border/radius, overflow:hidden) holding a
+   FadeScroller: the scroller's gradient mask fades an edge ONLY while content
+   hides beyond it (vars driven from scroll position — at a resting end nothing
+   looks cut off), and an overlay thumb hugging the card edge appears while
+   scrolling, then fades away. The mask sits on the SCROLLER, never the card:
+   on the card it would fade the card's own border away. */
 .bsx,
 .bsx * {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--bsx-text-muted) 55%, transparent) transparent;
+  scrollbar-width: none;
 }
 .bsx ::-webkit-scrollbar,
 .bsx::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  display: none;
+  width: 0;
+  height: 0;
 }
-.bsx ::-webkit-scrollbar-track,
-.bsx::-webkit-scrollbar-track {
-  background: transparent;
+.bsx-fwrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
-.bsx ::-webkit-scrollbar-thumb,
-.bsx::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--bsx-text-muted) 50%, transparent);
+.bsx-fscroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 0px)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--ft, 0px), #000 calc(100% - var(--fb, 0px)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 var(--fl, 0px), #000 calc(100% - var(--fr, 0px)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--ft, 0px), #000 calc(100% - var(--fb, 0px)), transparent);
+  mask-composite: intersect;
+}
+.bsx-thumb {
+  position: absolute;
   border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  background: color-mix(in srgb, var(--bsx-text-muted) 55%, transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 7;
 }
-.bsx ::-webkit-scrollbar-thumb:hover,
-.bsx::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--bsx-text-muted) 72%, transparent);
-  background-clip: padding-box;
+.bsx-thumb.on {
+  opacity: 1;
 }
-.bsx ::-webkit-scrollbar-corner,
-.bsx::-webkit-scrollbar-corner {
-  background: transparent;
+.bsx-thumb-x {
+  left: 10px;
+  bottom: 2px;
+  height: 4px;
+}
+.bsx-thumb-y {
+  top: 10px;
+  right: 2px;
+  width: 4px;
 }
 
 /* ── universal "pressable" — every touchable thing looks pushable ───────────
@@ -1151,6 +1179,12 @@
   -webkit-touch-callout: none;
   touch-action: manipulation;
 }
+/* grid items default to min-width:auto — on narrow portrait screens the
+   toolbar's min-content would widen the single column and clip Go! / the bin
+   off the right edge; let rows shrink to the track instead */
+.bsx-app > * {
+  min-width: 0;
+}
 .bsx-app input,
 .bsx-app textarea {
   user-select: text;
@@ -1168,12 +1202,17 @@
   background: var(--bsx-rail);
   border: 1px solid var(--bsx-border);
   border-radius: 22px;
-  padding: 10px 8px;
+  display: flex;
+  overflow: hidden;
+}
+.bsx-railscroll {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: auto;
   align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px 8px;
 }
 .bsx-coder {
   display: grid;
@@ -1183,14 +1222,20 @@
 }
 .bsx-catbar {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 8px;
   background: var(--bsx-rail);
   border: 1px solid var(--bsx-border);
   border-radius: 22px;
-  overflow: auto;
+  overflow: hidden;
+}
+.bsx-catscroll {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
   justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 8px;
 }
 /* ── PORTRAIT / narrow tablet: a clean vertical app ──────────────────────────
    Stage on top (the focus); a single compact strip below it holds Friends (left)
@@ -1208,7 +1253,7 @@
     gap: 7px;
   }
   /* Friends / Pages become horizontal scroller strips */
-  .bsx-railbox {
+  .bsx-railscroll {
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
@@ -1220,17 +1265,30 @@
   .bsx-railbox h4 {
     display: none; /* the strips are self-evident in portrait */
   }
+  /* zone tags follow the strips: the column-header style above (width:100%,
+     stacked) would fill the whole horizontal row and shove every thumb /
+     category button off-screen — here they are compact leading chips */
+  .bsx-zonetag.zt-chars,
+  .bsx-zonetag.zt-pages,
+  .bsx-zonetag.zt-cats {
+    flex-direction: row;
+    width: auto;
+    max-width: none;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
   /* keep strip items a fixed height instead of stretching to the row (Tailwind
      w-full would otherwise blow them up); aspect ratio sets the width */
-  .bsx-railbox > button,
-  .bsx-railbox > .relative {
+  .bsx-railscroll > button,
+  .bsx-railscroll > .relative {
     width: auto;
     flex: 0 0 auto;
   }
-  .bsx-railbox > button[data-testid^='char-thumb-'],
-  .bsx-railbox > button[data-testid='add-character'],
-  .bsx-railbox > button[data-testid='add-page'],
-  .bsx-railbox > .relative > button[data-testid^='page-thumb-'] {
+  .bsx-railscroll > button[data-testid^='char-thumb-'],
+  .bsx-railscroll > button[data-testid='add-character'],
+  .bsx-railscroll > button[data-testid='add-page'],
+  .bsx-railscroll > .relative > button[data-testid^='page-thumb-'] {
     height: 54px;
     width: auto;
   }
@@ -1239,10 +1297,13 @@
     grid-template-rows: auto minmax(0, 1fr);
     height: clamp(300px, 44vh, 500px);
   }
-  .bsx-catbar {
+  .bsx-catscroll {
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     padding: 8px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
   .bsx-bin {
     width: 70px;
@@ -1275,14 +1336,14 @@
   .bsx-coder {
     height: clamp(240px, 40vh, 460px);
   }
-  .bsx-catbar {
+  .bsx-catscroll {
     display: grid;
     grid-template-columns: repeat(2, auto);
     grid-auto-rows: min-content;
     align-content: center;
     justify-items: center;
     gap: 8px;
-    overflow: visible;
+    overflow: visible; /* all six visible — nothing scrolls, vars stay 0 */
   }
 }
 

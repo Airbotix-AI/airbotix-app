@@ -38,6 +38,7 @@ import { captureBlocksThumbnail } from './thumbnail';
 import { saveThumbnail } from '../playground/projectPersistence';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
+import { FadeScroller } from './FadeScroller';
 import { CHARACTER_GROUPS, SCENES, sceneId } from './library';
 import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
@@ -748,7 +749,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         </button>
         <div className="min-w-0 px-1">
           <div className="truncate text-[15px] font-extrabold leading-tight">{project.name}</div>
-          <div className="bsx-muted text-[11px] font-semibold" data-testid="save-status" data-status={saveStatus}>
+          <div className="bsx-muted truncate text-[11px] font-semibold" data-testid="save-status" data-status={saveStatus}>
             Page {project.pages.indexOf(page) + 1} of {project.pages.length} ·{' '}
             {saveStatus === 'saved' ? '✓ saved' : saveStatus === 'saving' ? 'saving…' : 'saved on this device'}
           </div>
@@ -798,6 +799,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
       {/* ── middle: characters · stage · pages ── */}
       <section className="bsx-middle">
         <aside className="bsx-railbox" style={{ gridArea: 'chars' }} aria-label="Characters">
+          <FadeScroller className="bsx-railscroll">
           <ZoneTag zone="chars" emoji="🐱" label="Characters" />
           {page.characters.map((c) => (
             <button
@@ -835,6 +837,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
           >
             ＋
           </button>
+          </FadeScroller>
         </aside>
 
         <div className="flex min-h-0 flex-col gap-2" style={{ gridArea: 'stage' }}>
@@ -910,6 +913,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         </div>
 
         <aside className="bsx-railbox" style={{ gridArea: 'pages' }} aria-label="Pages">
+          <FadeScroller className="bsx-railscroll">
           <ZoneTag zone="pages" emoji="📖" label="Pages" />
           {project.pages.map((p, i) => (
             <div key={p.id} className="relative w-full max-w-[96px]">
@@ -955,12 +959,14 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
               ＋
             </button>
           )}
+          </FadeScroller>
         </aside>
       </section>
 
       {/* ── coding band ── */}
       <section className="bsx-coder">
         <nav className="bsx-catbar" aria-label="Kinds of blocks">
+          <FadeScroller className="bsx-catscroll">
           <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
           {CATEGORIES.map((c) => (
             <button
@@ -975,12 +981,14 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
               <span>{c.icon}</span>
             </button>
           ))}
+          </FadeScroller>
         </nav>
 
         <div className="relative flex min-h-0 min-w-0 flex-col gap-2">
           {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
           <ZoneTag zone="palette" emoji="🧩" label="Blocks" />
-          <div className="bsx-soft bsx-palette flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette" data-cat={category} aria-label="Blocks">
+          <div className="bsx-soft bsx-palette flex min-w-0 overflow-hidden rounded-3xl" data-testid="palette" data-cat={category} aria-label="Blocks">
+            <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
             <span className="bsx-palette-tag shrink-0">
               <span aria-hidden>{activeCat.icon}</span>
               {activeCat.label}
@@ -997,12 +1005,14 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
                 title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
               />
             ))}
+            </FadeScroller>
           </div>
 
           <div className="relative flex min-h-0 flex-1 gap-2">
           {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
           <ZoneTag zone="script" emoji="✨" label="What they do" />
-          <div className="bsx-soft relative min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area" aria-label="What they do">
+          <div className="bsx-soft relative flex min-h-0 flex-1 overflow-hidden rounded-3xl" data-testid="script-area" aria-label="What they do">
+            <FadeScroller className="overflow-auto p-4">
             {selectedChar?.scripts.length === 0 && (
               <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
                 Tap a 🚩 block to pick what {selectedChar.name} does ✨
@@ -1060,6 +1070,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
                 </div>
               );
             })}
+            </FadeScroller>
           </div>
           {/* the trash bin — at the end of the block area; drag a block here to
               remove it. Bigger + glows red when armed. (Blocks only.) */}
