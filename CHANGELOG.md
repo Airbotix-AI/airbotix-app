@@ -6,6 +6,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Added
+- **Blocks Studio zone labels (clarity pass).** Every studio area now wears a small
+  emoji-first name tag for pre-readers (ages 5–8): 🎬 Stage, 🐱 Characters, 📖 Pages,
+  🧩 Blocks (palette), ✨ What they do (program area). Chips are decoration only
+  (`pointer-events: none`, `aria-hidden`; each zone carries a matching `aria-label`),
+  theme-aware via the existing `--bsx-*` tokens, tinted with the same category colour
+  as each zone's wash, hidden in present mode and while a block drag is live, and
+  shrink to emoji-only under 640px. The program empty-state copy now matches its label
+  ("Tap a 🚩 block to pick what ⟨name⟩ does ✨"). `/try/blocks` inherits via parity.
+
 ### Changed
 - `/try/blocks` always opens in the LIGHT theme (the story art is daylight-first),
   regardless of system preference or a stored studio override — store-only set on
