@@ -87,3 +87,12 @@ every step focuses the window it acts on first (chat / code / assets / help / ga
 5. AI gate (D-DEMO-06): after the script, every chat send gets the contact-us
    reply (`CONTACT_GATE_MESSAGE`) pointing to airbotix.ai/book + /contact.
    Keep those destinations in sync with marketing.
+
+## Marketing previews (airbotix.ai/try) — same parity rule
+
+The marketing `/try` page previews these demos with REAL captures
+(`airbotix/public/media/try/*.jpg`, played by `TryScenePlayer` with per-scene
+zoom origins). They are a derived artifact of this folder + the studios:
+**any visible UX change here or in the studios ⇒ recapture in the same task**
+via `node scripts/capture-try-scenes.mjs` (see repo-root `AGENTS.md` rule 3).
+Adding a demo? Extend the capture script AND the marketing page's scenes.

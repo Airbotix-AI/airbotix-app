@@ -6,6 +6,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Added (marketing-preview parity)
+- `scripts/capture-try-scenes.mjs` — one-command recapture of the marketing /try
+  preview scenes from the live demos (1600px JPEG q80 → `airbotix/public/media/try/`).
+  AGENTS.md (root rule 3 + `src/pages/try/`) now mandates recapturing whenever the
+  workspace UX changes (either studio or future demos); PRD D-DEMO-07 extended (v0.8).
+
+
 ### Added (tour spotlight)
 - `DemoTourOverlay` steps can carry a `spotlight` selector: everything except the
   area the step points at is dimmed — one ring div whose giant box-shadow is the
