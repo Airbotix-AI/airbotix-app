@@ -180,3 +180,74 @@ describe('DemoTourOverlay spotlight', () => {
     );
   });
 });
+
+describe('DemoTourOverlay spotlight override (in-flight chat focus)', () => {
+  const STEPS_NO_SPOT: DemoTourStep[] = [
+    { title: 'Intro', body: 'Welcome', modal: true },
+    { title: 'Game card', body: 'Look at the game', spotlight: '#game-target' },
+  ];
+
+  function addTarget(id: string) {
+    const el = document.createElement('div');
+    el.id = id;
+    el.getBoundingClientRect = () =>
+      ({ left: 10, top: 10, right: 110, bottom: 60, width: 100, height: 50 }) as DOMRect;
+    document.body.appendChild(el);
+    return el;
+  }
+
+  afterEach(() => {
+    document.getElementById('game-target')?.remove();
+    document.getElementById('chat-target')?.remove();
+  });
+
+  it('the override wins over the card spotlight while set, and releases cleanly', async () => {
+    addTarget('game-target');
+    addTarget('chat-target');
+    const { rerender } = render(
+      <DemoTourOverlay steps={STEPS_NO_SPOT} step={1} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    // engine sets the override the moment a chat-bound Next fires
+    rerender(
+      <DemoTourOverlay
+        steps={STEPS_NO_SPOT}
+        step={1}
+        spotlightOverride="#chat-target"
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => {
+      // chat-target rect (left 10 - pad 8 = 2px would equal game's… use width)
+      expect(screen.getByTestId('tour-spotlight-ring').style.width).toBe('116px');
+    });
+    // released (next card lands) → back to the card's own spotlight
+    rerender(
+      <DemoTourOverlay
+        steps={STEPS_NO_SPOT}
+        step={1}
+        spotlightOverride={null}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tour-spotlight')).toBeInTheDocument();
+  });
+
+  it('shows a spotlight even on a card without one while the override is set', async () => {
+    addTarget('chat-target');
+    render(
+      <DemoTourOverlay
+        steps={[{ title: 'No spot', body: 'plain' }]}
+        step={0}
+        spotlightOverride="#chat-target"
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    await screen.findByTestId('tour-spotlight');
+  });
+});

@@ -6,6 +6,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Fixed (spotlight timing)
+- In-flight tour steps spotlight the surface where the action is HAPPENING from
+  the moment Next is CLICKED, instead of jumping only when the result settled:
+  chat for the scripted asks + the explain fire (before the message even sends),
+  the Asset Viewer for generate and remix (while the art is being made). The
+  engine raises a spotlight override at fire-time; the following card spotlights
+  the same surface, so it lands with zero mask movement — killing the jank at
+  the busiest moment of the turn.
+
+
 ### Changed (playground tour v3 — 16 cards, real Asset Viewer UI, jank pass)
 - **Tour grows 13 → 16 cards** (`demoTour.playground.ts`, PRD §3 v0.9): the
   explain beat is two cards (select the snippet → the live "✨ Explain this"

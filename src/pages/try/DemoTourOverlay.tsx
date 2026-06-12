@@ -156,22 +156,38 @@ interface DemoTourOverlayProps {
   step: number;
   /** Disables Next while a scripted turn is in flight. */
   busy?: boolean;
+  /**
+   * While an action is in flight the engine can point the spotlight at the
+   * surface where the action is HAPPENING (e.g. the Chat window from the
+   * moment a scripted ask is clicked, before the message even sends) —
+   * overriding the current card's own spotlight until the next card lands.
+   */
+  spotlightOverride?: string | null;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
 }
 
-export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: DemoTourOverlayProps) {
+export function DemoTourOverlay({
+  steps,
+  step,
+  busy,
+  spotlightOverride,
+  onNext,
+  onBack,
+  onSkip,
+}: DemoTourOverlayProps) {
   const current = steps[step];
   if (!current) return null;
   const placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
+  const spotlight = spotlightOverride ?? current.spotlight;
 
   return (
     <div data-testid="demo-tour" className="pointer-events-none fixed inset-0 z-[120]">
       {current.modal && (
         <div data-testid="demo-tour-backdrop" className="pointer-events-auto absolute inset-0 bg-ink/60" />
       )}
-      {!current.modal && current.spotlight && <SpotlightMask selector={current.spotlight} />}
+      {!current.modal && spotlight && <SpotlightMask selector={spotlight} />}
       {/* Placement (absolute + translate) lives on the OUTER wrapper; the card
           itself remounts per step (key) with a short rise/fade entrance, so a
           placement jump reads as a new card arriving — not the old one teleporting.

@@ -9,8 +9,11 @@ import type { DemoStudioControls } from './demoMode';
 import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
 import { PLAYGROUND_TOUR } from './demoTour.playground';
 import {
+  ASSETS_SPOTLIGHT,
+  CHAT_SPOTLIGHT,
   afterPaint,
   cardForScriptStep,
+  pendingSpotlightFor,
   restartThenRefocus,
   spotlightPanel,
 } from './tourSequencing';
@@ -119,5 +122,39 @@ describe('restartThenRefocus (chat re-front after an auto-restart)', () => {
 
   it('no-ops without controls (workspace not mounted yet)', () => {
     expect(() => restartThenRefocus(null, '[data-window="chat"]')).not.toThrow();
+  });
+});
+
+describe('pendingSpotlightFor (chat-bound actions spotlight chat BEFORE the send)', () => {
+  it('returns the chat selector for scripted asks and the explain fire', () => {
+    expect(pendingSpotlightFor('script')).toBe(CHAT_SPOTLIGHT);
+    expect(pendingSpotlightFor('explain-fire')).toBe(CHAT_SPOTLIGHT);
+  });
+
+  it('returns the Asset Viewer for generate and remix (art in the making)', () => {
+    expect(pendingSpotlightFor('asset-generate')).toBe(ASSETS_SPOTLIGHT);
+    expect(pendingSpotlightFor('asset-remix')).toBe(ASSETS_SPOTLIGHT);
+  });
+
+  it('leaves every other action on its own card spotlight', () => {
+    for (const kind of [
+      'landing-create',
+      'show-diff',
+      'explain-select',
+      'asset-prompt',
+      'asset-details',
+      'open-guide',
+      'advance',
+      'finish',
+    ]) {
+      expect(pendingSpotlightFor(kind), kind).toBeNull();
+    }
+  });
+
+  it('matches the selector the chat-discussing cards use (zero movement on advance)', () => {
+    for (const card of PLAYGROUND_TOUR) {
+      if (card.spotlight === CHAT_SPOTLIGHT) return; // at least one chat card exists
+    }
+    throw new Error('no card spotlights the chat window');
   });
 });

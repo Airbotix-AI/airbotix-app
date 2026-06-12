@@ -33,6 +33,25 @@ export function spotlightPanel(selector: string | undefined): SpotlightPanelId |
   return null;
 }
 
+/** The selector of the Chat window — where every conversation turn plays. */
+export const CHAT_SPOTLIGHT = '[data-window="chat"]';
+/** The Asset Viewer window — where generation/remix progress plays. */
+export const ASSETS_SPOTLIGHT = '[data-window="assets"]';
+
+/**
+ * The spotlight to show WHILE a card's action is in flight: the surface where
+ * the action is HAPPENING, from the moment Next is clicked — chat for the
+ * scripted asks and the explain fire (before the message even sends), the
+ * Asset Viewer for generate/remix (while the art is being made). The following
+ * card spotlights the same surface, so it lands with zero further movement.
+ * Other actions keep the current card's spotlight.
+ */
+export function pendingSpotlightFor(kind: string): string | null {
+  if (kind === 'script' || kind === 'explain-fire') return CHAT_SPOTLIGHT;
+  if (kind === 'asset-generate' || kind === 'asset-remix') return ASSETS_SPOTLIGHT;
+  return null;
+}
+
 /** The tour card whose Next fires script step `index` — a chat-send card or the
  *  explain toolbar's fire card (both settle through `onStepApplied`). */
 export function cardForScriptStep(index: number): number {

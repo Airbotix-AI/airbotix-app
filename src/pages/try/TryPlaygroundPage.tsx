@@ -36,7 +36,7 @@ import {
   TOUR_REMIX_PROMPT,
 } from './demoScript.playground';
 import { PLAYGROUND_TOUR, type PlaygroundTourAction } from './demoTour.playground';
-import { afterPaint, cardForScriptStep, restartThenRefocus } from './tourSequencing';
+import { afterPaint, cardForScriptStep, pendingSpotlightFor, restartThenRefocus } from './tourSequencing';
 
 /**
  * Re-enable the tour's Next if a fired action never lands (e.g. the kid typed
@@ -69,6 +69,9 @@ export function TryPlaygroundPage() {
   const [view, setView] = useState(0);
   const [frontier, setFrontier] = useState(0);
   const [sending, setSending] = useState(false);
+  // While a chat-bound action is in flight: the spotlight sits on the Chat
+  // window from the CLICK (before the send), not from when the reply settles.
+  const [spotOverride, setSpotOverride] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const sendRef = useRef<((text: string) => void) | null>(null);
   const landingSubmitRef = useRef<(() => void) | null>(null);
@@ -96,6 +99,7 @@ export function TryPlaygroundPage() {
     recoveryTimer.current = setTimeout(() => {
       stopAssetWatch();
       setSending(false);
+      setSpotOverride(null); // the action never landed — restore the card's own
     }, ms);
   };
 
@@ -103,6 +107,9 @@ export function TryPlaygroundPage() {
   const advanceTo = (card: number) => {
     clearTimeout(recoveryTimer.current);
     setSending(false);
+    // The next card's own spotlight takes over. For chat-bound steps it IS the
+    // chat selector the override already points at — so zero mask movement.
+    setSpotOverride(null);
     setFrontier((f) => Math.max(f, card));
     setView(card);
   };
@@ -220,6 +227,9 @@ export function TryPlaygroundPage() {
    *  that advance immediately swap the card FIRST and run the heavy driving
    *  behind `afterPaint`, so the transition never stutters (§3 v3 jank rule). */
   const fireAction = (action: PlaygroundTourAction, card: number) => {
+    // Chat-bound actions: spotlight the conversation BEFORE the send fires.
+    const pending = pendingSpotlightFor(action.kind);
+    if (pending) setSpotOverride(pending);
     switch (action.kind) {
       case 'landing-create':
         // Drive the REAL landing submit; the workspace-entry bind advances.
@@ -368,6 +378,7 @@ export function TryPlaygroundPage() {
             steps={PLAYGROUND_TOUR}
             step={view}
             busy={sending}
+            spotlightOverride={spotOverride}
             onNext={handleNext}
             onBack={() => setView((v) => Math.max(0, v - 1))}
             onSkip={() => setDone(true)}
