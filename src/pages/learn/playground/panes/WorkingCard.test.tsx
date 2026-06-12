@@ -29,18 +29,41 @@ describe('WorkingCard', () => {
     };
   };
 
-  it('renders the working card with the heading, a clock, and one row per step', () => {
+  it('renders the ring, a clock, and ONLY the current state (no heading, no history)', () => {
     render(<WorkingCard progress={progress()} />);
     expect(screen.getByTestId('working-card')).toBeTruthy();
-    expect(screen.getByText('Working on it…')).toBeTruthy();
+    expect(screen.getByTestId('working-ring')).toBeTruthy();
     expect(screen.getByTestId('working-clock')).toBeTruthy();
-    expect(screen.getAllByTestId('working-step')).toHaveLength(3);
+    expect(screen.getAllByTestId('working-current')).toHaveLength(1);
+    // The current-state line IS the title — no redundant heading, no live badge.
+    expect(screen.queryByText('Working on it…')).toBeNull();
+    expect(screen.queryByText('live')).toBeNull();
+    // The latest step is the current state; finished/earlier steps are not shown.
+    expect(screen.getByText('Fixing a little glitch 🔧')).toBeTruthy();
+    expect(screen.queryByText('Looked at your game 👀')).toBeNull();
+    expect(screen.queryByText('Adding Aliens ✍️')).toBeNull();
   });
 
-  it('shows the honest step labels (real steps, not fake cycling copy)', () => {
-    render(<WorkingCard progress={progress()} />);
-    expect(screen.getByText('Looked at your game 👀')).toBeTruthy();
-    expect(screen.getByText('Adding Aliens ✍️')).toBeTruthy();
-    expect(screen.getByText('Fixing a little glitch 🔧')).toBeTruthy();
+  it('shows a rotating filler while still on the opening step (no real delta yet)', () => {
+    const now = Date.now();
+    render(
+      <WorkingCard
+        progress={{
+          startedAt: now - 5000,
+          steps: [{ id: 's1', key: '@looking', label: 'Looking at your game 👀', status: 'active', startedAt: now - 5000 }],
+        }}
+      />,
+    );
+    // ~5s elapsed → second filler in the rotation.
+    expect(screen.getByText('Thinking it through 🤔')).toBeTruthy();
+  });
+
+  it('the ring is the single indeterminate indicator (spin + arc-breathe, no % anywhere)', () => {
+    const { container } = render(<WorkingCard progress={progress()} />);
+    const ring = screen.getByTestId('working-ring');
+    expect(ring.getAttribute('class')).toContain('pg-orb-spin');
+    expect(container.querySelector('.pg-ring-arc')).toBeTruthy();
+    // No second indicator: no progress-bar element with an inline width.
+    expect(container.querySelector('[style*="width"]')).toBeNull();
   });
 });

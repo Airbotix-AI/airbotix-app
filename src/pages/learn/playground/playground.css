@@ -314,6 +314,22 @@
 .pg-file-in {
   animation: pg-file-in 0.34s ease-out both;
 }
+/* The WorkingCard's single combined indicator: the svg spins (pg-orb-spin) while
+ * the ring's arc length breathes via the dash (sums match the r=20 circumference
+ * ≈126). Calm by design — a separate progress bar read as too much movement. */
+@keyframes pg-ring-arc {
+  0%,
+  100% {
+    stroke-dasharray: 18 108;
+  }
+  50% {
+    stroke-dasharray: 88 38;
+  }
+}
+.pg-ring-arc {
+  animation: pg-ring-arc 2.4s ease-in-out infinite;
+}
+
 /* Indeterminate progress — a brand segment sweeps L→R while we wait (clearly
  * FORWARD; no determinate % to fake, since the build burst lands at the end). */
 @keyframes pg-indeterminate {
@@ -366,6 +382,7 @@
   .pg-twinkle,
   .pg-file-in,
   .pg-indeterminate,
+  .pg-ring-arc,
   .pg-pop {
     animation: none;
   }

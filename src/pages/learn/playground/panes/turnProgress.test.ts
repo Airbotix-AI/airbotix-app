@@ -8,6 +8,7 @@ import {
   applyFixingStep,
   stepElapsedSeconds,
   totalElapsedSeconds,
+  currentStateLabel,
   LOOKING_STEP,
   VERIFY_STEP,
   FIXING_STEP,
@@ -87,5 +88,24 @@ describe('turnProgress — honest per-turn progress model', () => {
     expect(stepElapsedSeconds(p.steps[0], now)).toBe(2); // frozen at 2s
     expect(stepElapsedSeconds(p.steps[1], now)).toBe(3); // active: 5-2 = 3s
     expect(totalElapsedSeconds(p, now)).toBe(5);
+  });
+
+  describe('currentStateLabel — the card\'s single status line', () => {
+    it('returns the real label for a tool-delta step', () => {
+      let p = startProgress(T0);
+      p = applyToolDelta(p, 'write_file:Aliens.js', T0 + 2000);
+      expect(currentStateLabel(p.steps.at(-1)!, T0 + 60_000)).toBe('Adding Aliens ✍️');
+    });
+
+    it('rotates generic fillers every 4s while still on the opening step', () => {
+      const p = startProgress(T0);
+      const step = p.steps[0];
+      expect(currentStateLabel(step, T0)).toBe(LOOKING_STEP);
+      expect(currentStateLabel(step, T0 + 3000)).toBe(LOOKING_STEP);
+      expect(currentStateLabel(step, T0 + 5000)).toBe('Thinking it through 🤔');
+      expect(currentStateLabel(step, T0 + 9000)).toBe('Trying some ideas 💡');
+      expect(currentStateLabel(step, T0 + 13_000)).toBe('Still working away 🛠️');
+      expect(currentStateLabel(step, T0 + 17_000)).toBe(LOOKING_STEP); // wraps
+    });
   });
 });

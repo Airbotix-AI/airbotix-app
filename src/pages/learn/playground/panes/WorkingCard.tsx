@@ -1,67 +1,59 @@
 // The in-flight "working" card for one chat turn (chat-ux: one turn → one message).
-// Replaces the old fake-cycling ThinkingBubble: it shows HONEST steps built from the
-// real tool/action deltas the agent fires (see turnProgress.ts), a header clock, and
-// a per-step timer. When the turn finishes this card is replaced by the single
-// settled message bubble — there is never a "responded, but still thinking" gap.
+// ONE indicator + ONE line: a spinning brand ring whose arc breathes (SVG dash
+// animation) next to the current-state label — the latest real tool/action delta
+// (see turnProgress.ts), or rotating generic fillers while no delta has landed yet.
+// The state line IS the title (no redundant "Working on it…" heading, no separate
+// bar). When the turn finishes this card is replaced by the single settled message
+// bubble — there is never a "responded, but still thinking" gap.
 
 import { useEffect, useState } from 'react';
-import { Check } from 'lucide-react';
 
 import {
+  currentStateLabel,
   formatSecs,
-  stepElapsedSeconds,
   totalElapsedSeconds,
-  type ProgressStep,
   type TurnProgress,
 } from './turnProgress';
 
 const TICK_MS = 1000;
 
-/** Brand spinning orb (same motion language as the ThinkingBubble / GeneratingScreen). */
-function Orb() {
+/** The single combined progress indicator: the svg spins (pg-orb-spin) while the
+ *  arc length breathes (pg-ring-arc) — amber tones during a "fixing" beat. The
+ *  static strokeDasharray is the reduced-motion frame. */
+function WorkingRing({ fixing }: { fixing: boolean }) {
   return (
-    <svg viewBox="0 0 160 160" className="pg-orb-spin h-5 w-5 shrink-0" aria-hidden="true">
+    <svg viewBox="0 0 48 48" data-testid="working-ring" className="pg-orb-spin h-6 w-6 shrink-0" aria-hidden="true">
       <defs>
-        <linearGradient id="pg-working-orb" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="pg-working-ring" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#FF7A66" />
           <stop offset="0.33" stopColor="#FF6BA9" />
           <stop offset="0.66" stopColor="#5DAEFF" />
           <stop offset="1" stopColor="#3DD9A9" />
         </linearGradient>
+        <linearGradient id="pg-working-ring-fix" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFE26B" />
+          <stop offset="1" stopColor="#FFB638" />
+        </linearGradient>
       </defs>
-      <circle cx="80" cy="80" r="64" fill="none" stroke="currentColor" className="text-pg-border" strokeWidth="12" />
-      <path d="M 80 16 A 64 64 0 1 1 16 80" fill="none" stroke="url(#pg-working-orb)" strokeWidth="12" strokeLinecap="round" />
+      <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" className="text-pg-border" strokeWidth="5" />
+      <circle
+        cx="24"
+        cy="24"
+        r="20"
+        fill="none"
+        stroke={fixing ? 'url(#pg-working-ring-fix)' : 'url(#pg-working-ring)'}
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeDasharray="80 46"
+        className="pg-ring-arc"
+      />
     </svg>
   );
 }
 
-function StepIcon({ status }: { status: ProgressStep['status'] }) {
-  if (status === 'done') {
-    return (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-mint">
-        <Check size={13} strokeWidth={3} className="text-pg-desktop" aria-hidden />
-      </span>
-    );
-  }
-  if (status === 'fixing') {
-    // A calm amber pulse — a glitch is being smoothed over, never an alarm.
-    return (
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden>
-        <span className="h-2.5 w-2.5 rounded-full bg-brand-sunshine animate-pulse" />
-      </span>
-    );
-  }
-  // active
-  return (
-    <span className="flex h-5 w-5 shrink-0 items-center justify-center" aria-hidden>
-      <span className="h-2.5 w-2.5 rounded-full bg-brand-sky animate-pulse" />
-    </span>
-  );
-}
-
 export function WorkingCard({ progress }: { progress: TurnProgress }) {
-  // A 1s clock so the header + active-step timers tick. The card is transient, so
-  // the interval lives only as long as it's mounted.
+  // A 1s clock so the header timer ticks (and the filler rotation advances). The
+  // card is transient, so the interval lives only as long as it's mounted.
   const [now, setNow] = useState<number>(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), TICK_MS);
@@ -69,10 +61,10 @@ export function WorkingCard({ progress }: { progress: TurnProgress }) {
   }, []);
 
   const total = totalElapsedSeconds(progress, now);
-  const done = progress.steps.filter((s) => s.status === 'done').length;
-  // Determinate-feeling bar that fills as steps complete but never reaches 100%
-  // until the card is replaced by the finished message.
-  const pct = Math.min(92, Math.max(10, Math.round((done / (progress.steps.length || 1)) * 100)));
+  // The single current state: the last step is always the live one (turnProgress
+  // settles earlier steps to 'done' whenever a new one starts).
+  const current = progress.steps[progress.steps.length - 1];
+  const label = currentStateLabel(current, now);
 
   return (
     <div className="flex justify-start">
@@ -83,53 +75,15 @@ export function WorkingCard({ progress }: { progress: TurnProgress }) {
         className="w-full max-w-[92%] rounded-2xl border border-pg-border bg-pg-surface px-4 py-3.5 shadow-lg"
       >
         <div className="flex items-center gap-2.5">
-          <Orb />
-          <span className="text-[15px] font-bold text-pg-text">Working on it…</span>
-          <span className="ml-auto flex items-center gap-2">
-            <span data-testid="working-clock" className="font-mono text-[12px] text-pg-text-muted">
-              {formatSecs(total)}
-            </span>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-brand-mint">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-mint" /> live
-            </span>
+          <WorkingRing fixing={current.status === 'fixing'} />
+          {/* The label keys a remount so the fade/rise plays on a state change. */}
+          <span key={label} data-testid="working-current" className="pg-thinking-line text-[15px] font-bold text-pg-text">
+            {label}
+          </span>
+          <span data-testid="working-clock" className="ml-auto font-mono text-[12px] text-pg-text-muted">
+            {formatSecs(total)}
           </span>
         </div>
-
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-pg-text/10">
-          <div className="h-full rounded-full bg-grad-sky transition-[width] duration-500" style={{ width: `${pct}%` }} />
-        </div>
-
-        <ul className="mt-3.5 space-y-2.5">
-          {progress.steps.map((step) => {
-            return (
-              <li key={step.id} data-testid="working-step" className="flex items-center gap-2.5">
-                <StepIcon status={step.status} />
-                <span
-                  className={
-                    'text-[15px] ' +
-                    (step.status === 'done'
-                      ? 'text-pg-text-dim'
-                      : 'font-semibold text-pg-text')
-                  }
-                >
-                  {step.label}
-                </span>
-                <span
-                  className={
-                    'ml-auto font-mono text-[12px] ' +
-                    (step.status === 'active'
-                      ? 'font-bold text-brand-sky'
-                      : step.status === 'fixing'
-                        ? 'font-bold text-brand-sunshine'
-                        : 'text-pg-text-muted')
-                  }
-                >
-                  {formatSecs(stepElapsedSeconds(step, now))}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
       </div>
     </div>
   );
