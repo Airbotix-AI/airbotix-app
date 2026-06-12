@@ -8,7 +8,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
-import { PLAYGROUND_TOUR } from './demoTour.playground';
+import { PLAYGROUND_TOUR, panelSpotlight } from './demoTour.playground';
+import { spotlightPanel } from './tourSequencing';
 
 /** Placement rules (§3 v0.5): keep labels short so the pill never overflows. */
 const MAX_NEXT_LABEL_CHARS = 24;
@@ -93,8 +94,33 @@ describe('PLAYGROUND_TOUR (v3)', () => {
     // the ask/answer — it must point at the chat, not the game.
     for (const title of ['One ask → one change', 'Keep score', 'Code that explains itself']) {
       const card = PLAYGROUND_TOUR.find((c) => c.title === title);
-      expect(card?.spotlight, title).toBe('[data-window="chat"]');
+      expect(card?.spotlight, title).toBe(panelSpotlight('chat'));
     }
+  });
+
+  it('every spotlight resolves in BOTH layouts (window AND split) by convention', () => {
+    // Panel-level spotlights MUST be the layout-proof pair (`panelSpotlight`):
+    // `[data-window=…]` exists only in Window mode, `[data-pane=…]` only in
+    // Split mode — a bare single form would go dark in the other layout.
+    // Element-level (`data-testid`) spotlights live inside a PANE that renders
+    // identically in both layouts; they must map to a host panel the engine can
+    // re-front (so the element is actually on screen) — except the landing
+    // card, which plays before the workspace (no layouts) exists.
+    PLAYGROUND_TOUR.forEach((card, i) => {
+      if (!card.spotlight) return; // the finale frees the whole studio
+      if (card.spotlight.includes('data-window') || card.spotlight.includes('data-pane')) {
+        const panel = spotlightPanel(card.spotlight);
+        expect(panel, `"${card.title}" panel selector`).not.toBeNull();
+        expect(card.spotlight, `"${card.title}" must use the layout-proof pair`).toBe(
+          panelSpotlight(panel!),
+        );
+      } else if (i > 0) {
+        expect(
+          spotlightPanel(card.spotlight),
+          `"${card.title}" element spotlight needs a host panel to re-front`,
+        ).not.toBeNull();
+      }
+    });
   });
 
   it('every card has a placement and a short next-label (overlay placement rules)', () => {

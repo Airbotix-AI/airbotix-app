@@ -4,6 +4,38 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12 (layout-proof demo tour)
+
+### Fixed
+- **The playground demo tour now works in BOTH workspace layouts** (Windows AND
+  Split), including a Windows↔Split flip at ANY tour step:
+  - Panel spotlights are layout-proof selector pairs
+    (`[data-window="…"], [data-pane="…"]` via `panelSpotlight`): the floating
+    window in Window mode, the split region in Split mode. New inert
+    `data-pane` seams mark the split layout's tab region + Game pane
+    (`Workspace.tsx`); `spotlightPanel` parses either form.
+  - `focusPanel` (and the chat/editor handlers built on it) reads the layout at
+    CALL time, so a handler the tour holds across a mid-tour flip routes through
+    the layout actually on screen (split → the real Chat/Code/Assets/Guide tab,
+    via the same setter the tab strip uses; `game` is a no-op there).
+  - A mid-tour layout flip re-fronts the surface the visible card (or in-flight
+    override) spotlights — same rule as back/forward browsing.
+  - Asset generate/remix land their details AFTER My Assets is re-surfaced (the
+    split layout unmounts the pane while the chat has the stage; the remount
+    must re-bind the seam before the details open).
+- **Pending editor jumps survive a fresh Monaco mount.** `@monaco-editor/react`
+  freezes `onMount` at first render, so the "pending jump lands once the editor
+  exists" fallback read a permanently-stale `jumpTo` — a changed-file tap /
+  explain-select that OPENED the editor (always in Split mode, first open in
+  Window mode) lost its jump+highlight/selection. Now read through a ref.
+
+### CI
+- e2e: `try-demo-smoke` gains a full 16-card SPLIT-layout tour walk with
+  mid-tour Windows↔Split flips (spotlight re-resolution asserted at the error
+  card); unit: `tourSpotlights.layout.test.tsx` renders the real Workspace
+  shell in both layouts and asserts every panel spotlight resolves + live
+  focusPanel routing through a pre-flip handler.
+
 ## 2026-06-12 (clean demo console)
 
 ### Fixed

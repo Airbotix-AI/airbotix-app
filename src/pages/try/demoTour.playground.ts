@@ -11,6 +11,17 @@
 
 import type { DemoTourStep } from './DemoTourOverlay';
 
+/**
+ * Layout-proof spotlight selector for a studio panel: the floating window
+ * (`data-window`, desktop/Window.tsx) OR the split-layout region (`data-pane`,
+ * Workspace's split PanelGroup). Only one form exists in the DOM per layout
+ * mode, and `querySelector` takes the first match of a selector list — so the
+ * same card resolves in BOTH layouts, including after a mid-tour Windows↔Split
+ * flip (the overlay's mask re-measures on its own poll).
+ */
+export const panelSpotlight = (id: 'chat' | 'code' | 'game' | 'assets' | 'help'): string =>
+  `[data-window="${id}"], [data-pane="${id}"]`;
+
 /** What a card's "Next" does (executed by TryPlaygroundPage at the frontier). */
 export type PlaygroundTourAction =
   | { kind: 'landing-create' } // drive the real landing submit (locked prompt)
@@ -44,7 +55,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Meet your game',
-    spotlight: '[data-window="game"]',
+    spotlight: panelSpotlight('game'),
     body:
       'Built and already running — move the basket, catch the apples. In a lesson, ' +
       'this first playable moment lands in under a minute.',
@@ -54,7 +65,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'One ask → one change',
-    spotlight: '[data-window="chat"]',
+    spotlight: panelSpotlight('chat'),
     body:
       'One request in the chat, one small visible change — the apples really do ' +
       'fall faster. Ask, play, repeat: that tight loop is the lesson.',
@@ -64,7 +75,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'See the line that changed',
-    spotlight: '[data-window="code"]',
+    spotlight: panelSpotlight('code'),
     body:
       'Behind the friendly chat is real JavaScript — and the exact line that just ' +
       'changed is highlighted. That is the code your child learns to read.',
@@ -74,7 +85,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Keep score',
-    spotlight: '[data-window="chat"]',
+    spotlight: panelSpotlight('chat'),
     body:
       'Airo confirmed it in the chat: ten points a catch, and the number in the ' +
       'corner climbs. Scores sneak real maths into every game.',
@@ -94,7 +105,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Code that explains itself',
-    spotlight: '[data-window="chat"]',
+    spotlight: panelSpotlight('chat'),
     body:
       'Airo explains the selected lines in plain words, right in the conversation — ' +
       'no jargon. Curiosity always gets an answer.',
@@ -114,7 +125,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Airo can draw, too',
-    spotlight: '[data-window="assets"]',
+    spotlight: panelSpotlight('assets'),
     body:
       'A brand-new apple sticker just landed next to the game’s own art. ' +
       'Let’s open it up and have a closer look.',
@@ -134,7 +145,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Remix until it sparkles',
-    spotlight: '[data-window="assets"]',
+    spotlight: panelSpotlight('assets'),
     body:
       'Golden and sparkly it is — same apple, new shine, saved beside the ' +
       'original. As many tries as it takes.',
@@ -144,7 +155,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Your art, in your game',
-    spotlight: '[data-window="game"]',
+    spotlight: panelSpotlight('game'),
     body:
       'The remixed sticker just became the real apple — look at the game: golden ' +
       'apples are falling. Imagine, draw, play: the whole loop in one place.',
@@ -164,7 +175,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Airo reads the console and fixes it',
-    spotlight: '[data-window="game"]',
+    spotlight: panelSpotlight('game'),
     body:
       'Airo found the missing piece, repaired the code, and the game restarted — ' +
       'now the win banner is ready and waiting. Debugging, demonstrated.',
@@ -174,7 +185,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Stuck? The Guide knows',
-    spotlight: '[data-window="help"]',
+    spotlight: panelSpotlight('help'),
     body:
       'The same guide your child reads in lessons — searchable, diagram-rich, with ' +
       'a Simple or More reading level. Help is always one tap away.',

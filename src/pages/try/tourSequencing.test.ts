@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DemoStudioControls } from './demoMode';
 import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
-import { PLAYGROUND_TOUR } from './demoTour.playground';
+import { PLAYGROUND_TOUR, panelSpotlight } from './demoTour.playground';
 import {
   CHAT_SPOTLIGHT,
   afterPaint,
@@ -67,6 +67,20 @@ describe('spotlightPanel', () => {
     expect(spotlightPanel('[data-window="help"]')).toBe('help');
   });
 
+  it('maps split-pane selectors to the same panel', () => {
+    expect(spotlightPanel('[data-pane="chat"]')).toBe('chat');
+    expect(spotlightPanel('[data-pane="code"]')).toBe('code');
+    expect(spotlightPanel('[data-pane="game"]')).toBe('game');
+    expect(spotlightPanel('[data-pane="assets"]')).toBe('assets');
+    expect(spotlightPanel('[data-pane="help"]')).toBe('help');
+  });
+
+  it('parses the layout-proof comma pair the tour cards use', () => {
+    for (const id of ['chat', 'code', 'game', 'assets', 'help'] as const) {
+      expect(spotlightPanel(panelSpotlight(id))).toBe(id);
+    }
+  });
+
   it('the runner console lives inside the Game window', () => {
     expect(spotlightPanel('[data-testid="console-list"]')).toBe('game');
   });
@@ -114,7 +128,7 @@ describe('restartThenRefocus (chat re-front after an auto-restart)', () => {
   });
 
   it('leaves the Game Runner fronted when the next card points at the game/console', () => {
-    for (const selector of ['[data-window="game"]', '[data-testid="console-list"]', undefined]) {
+    for (const selector of [panelSpotlight('game'), '[data-testid="console-list"]', undefined]) {
       const controls = mockControls();
       restartThenRefocus(controls, selector);
       expect(controls.runGame).toHaveBeenCalledTimes(1);

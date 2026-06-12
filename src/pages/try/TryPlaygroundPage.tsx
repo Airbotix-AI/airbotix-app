@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { PlaygroundApp } from '../learn/playground/PlaygroundApp';
+import { usePlaygroundStore } from '../learn/playground/playgroundStore';
 import { useProjectStore } from '../learn/playground/projectStore';
 import { DemoBanner } from './DemoBanner';
 import {
@@ -152,6 +153,31 @@ export function TryPlaygroundPage() {
     };
   }, []);
 
+  // A mid-tour Windows ↔ Split flip (the taskbar's real LayoutToggle) re-fronts
+  // the surface the current spotlight points at — same rule as browsing
+  // (`reveal`): the in-flight override (the chat, while Airo works) or the
+  // visible card's panel must stay resolvable in the new layout. `focusPanel`
+  // routes per the LIVE layout (open/focus the window, or switch the split
+  // tab); the overlay's mask re-measures on its own poll. After the tour the
+  // layout is the user's to rearrange — no re-fronting.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const spotOverrideRef = useRef(spotOverride);
+  spotOverrideRef.current = spotOverride;
+  const doneRef = useRef(done);
+  doneRef.current = done;
+  useEffect(() => {
+    let lastLayout = usePlaygroundStore.getState().layoutMode;
+    return usePlaygroundStore.subscribe((s) => {
+      if (s.layoutMode === lastLayout) return;
+      lastLayout = s.layoutMode;
+      if (doneRef.current) return;
+      const selector = spotOverrideRef.current ?? PLAYGROUND_TOUR[viewRef.current]?.spotlight;
+      const panel = spotlightPanel(selector);
+      if (panel) afterPaint(() => controlsRef.current?.focusPanel(panel));
+    });
+  }, []);
+
   const demoValue = useMemo<DemoMode>(
     () => ({
       surface: 'playground',
@@ -225,11 +251,16 @@ export function TryPlaygroundPage() {
         const path = landed[landed.length - 1].path;
         // Hold a beat on the chat so the new art is SEEN (stick-to-bottom
         // keeps the bubble in view), then surface My Assets with the swap.
+        // The details open AFTER the pane is back on screen: the split layout
+        // UNMOUNTS the Asset Viewer while the chat tab has the stage, so the
+        // remounted pane must re-bind its seam before `onLanded` drives it.
         clearTimeout(recoveryTimer.current);
         recoveryTimer.current = setTimeout(() => {
-          onLanded?.(path);
           controlsRef.current?.focusPanel('assets');
-          advanceTo(fromCard + 1);
+          afterPaint(() => {
+            onLanded?.(path);
+            advanceTo(fromCard + 1);
+          });
         }, ASSET_RESULT_BEAT_MS);
       } else if (tick % ASSET_RETRY_TICKS === 1) {
         // No-ops while the chat lock is busy. Retried SPARINGLY (every ~2s, not

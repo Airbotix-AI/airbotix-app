@@ -202,6 +202,13 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
   }
   const applyJumpRef = useRef(applyJump)
   applyJumpRef.current = applyJump
+  // The LATEST jump request, for the onMount fallback below: @monaco-editor/react
+  // stores `onMount` ONCE (first render), so reading the `jumpTo` prop from that
+  // closure would always see the mount-time value — null whenever the pane mounts
+  // and the jump lands in the same commit (a changed-file tap / explain-select
+  // while the editor was closed, e.g. the split layout switching to the Code tab).
+  const jumpToRef = useRef(jumpTo)
+  jumpToRef.current = jumpTo
 
   // Jump to a line on request. The model is already updated (the value-sync
   // effect of the inner <Editor> is a child effect, so it runs before this
@@ -241,7 +248,8 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
         // select fires, so a programmatic selection surfaces it too.
         setupExplainToolbar(editor)
         // A pending jump (requested before mount) lands once the editor exists.
-        if (jumpTo) applyJumpRef.current(editor, jumpTo)
+        // Via the ref — this closure is frozen at first render (see jumpToRef).
+        if (jumpToRef.current) applyJumpRef.current(editor, jumpToRef.current)
       }}
       options={{
         // `showSlider: 'always'` keeps the viewport rectangle visible so it
