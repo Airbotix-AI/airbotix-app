@@ -82,7 +82,9 @@ All turns run server-side via `../code/codeApi`:
 `Phaser` global; mount into `id="game"`; global classes, **no import/export**; entry
 `main.js` injected LAST. The agent uses the Phaser-3-style API (backward-compatible on
 the 4.x engine) and builds visuals from shapes. Each `<script>` carries
-`//# sourceURL=<path>` so errors report the kid's file/line (jump-to-error + Ask-AI-to-fix).
+`//# sourceURL=<path>` so errors report the kid's file/line (jump-to-error + Ask-AI-to-fix);
+SYNTAX errors never get sourceURL (the script doesn't parse), so `GameFrame` maps their
+srcdoc line back to file:line via `buildGamePreview`'s script ranges (`resolveErrorLoc`).
 Assets: image/audio/video; sibling `<path>.anim.json` = sprite strip. (The Game Guide's
 `phaser/runtime-contract` doc mirrors THIS — keep in sync, D‑HELP‑06.)
 

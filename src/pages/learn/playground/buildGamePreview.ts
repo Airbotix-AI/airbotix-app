@@ -161,7 +161,47 @@ export interface BuildGameOptions {
   debug?: boolean;
 }
 
+/** Where one kid script lives inside the assembled srcdoc (1-based lines). */
+export interface ScriptLineRange {
+  path: string;
+  /** srcdoc line of the script's FIRST source line (content starts on the `<script>` line). */
+  start: number;
+  /** srcdoc line of the script's LAST source line. */
+  end: number;
+}
+
+/**
+ * Resolve an uncaught error's location to the kid's file.
+ *
+ * Runtime errors already arrive as kid-file:line — `//# sourceURL` names each
+ * script. But a SYNTAX error means the script never parsed, browsers ignore
+ * `sourceURL` in a script that fails to parse, and the error reports against
+ * the srcdoc document (e.g. `about:srcdoc:57`). Without translation the
+ * console (and the AI self-fix round-trip) gets a syntax error with no usable
+ * location — the exact case where the location matters most. Map the document
+ * line back through the known script ranges; drop the loc when it points at
+ * nothing of the kid's (host chrome) rather than mislead.
+ */
+export function resolveErrorLoc(
+  loc: { file: string; line: number; col: number } | undefined,
+  ranges: ScriptLineRange[],
+): { file: string; line: number; col: number } | undefined {
+  if (!loc) return undefined;
+  if (ranges.some((r) => r.path === loc.file)) return loc; // already a kid file (sourceURL)
+  const hit = ranges.find((r) => loc.line >= r.start && loc.line <= r.end);
+  if (hit) return { file: hit.path, line: loc.line - hit.start + 1, col: loc.col };
+  return undefined;
+}
+
 export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): string {
+  return buildGamePreview(files, opts).srcDoc;
+}
+
+/** buildGameSrcDoc plus the per-script line map (for syntax-error resolution). */
+export function buildGamePreview(
+  files: VfsFile[],
+  opts: BuildGameOptions = {},
+): { srcDoc: string; scriptRanges: ScriptLineRange[] } {
   const assets = files.filter((f) => f.kind === 'asset');
 
   const jsFiles = files.filter((f) => f.kind === 'text' && f.path.endsWith('.js'));
@@ -178,6 +218,10 @@ export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): 
   const scriptTags = ordered.map(
     (f) => `<script>${inlineAssetRefs(f.content, assets)}\n//# sourceURL=${f.path}\n${'<'}/script>`,
   );
+  // Each script's content begins ON the `<script>` line (the no-leading-newline
+  // contract above), so kid-file line N = the tag's srcdoc line + (N - 1).
+  // inlineAssetRefs rewrites within lines and never changes line counts.
+  const lineCount = (s: string) => s.split('\n').length;
 
   // Set before the game scripts run so the constructor wrapper can read it.
   const debugFlag = `<script>window.__airbotixDebug=${opts.debug ? 'true' : 'false'};${'<'}/script>`;
@@ -187,7 +231,7 @@ export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): 
     .map((f) => f.content)
     .join('\n');
 
-  return [
+  const prefixParts = [
     '<!doctype html>',
     '<html><head><meta charset="utf-8">',
     EXTENSION_NOISE_GUARD,
@@ -202,9 +246,16 @@ export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): 
     PHASER_GUARD,
     debugFlag,
     GAME_CONTROL,
-    ...scriptTags,
-    '</body></html>',
-  ].join('\n');
+  ];
+  const scriptRanges: ScriptLineRange[] = [];
+  // Parts join with '\n', so part k starts at 1 + the line count of all parts before it.
+  let nextLine = prefixParts.reduce((n, p) => n + lineCount(p), 0) + 1;
+  ordered.forEach((f, i) => {
+    scriptRanges.push({ path: f.path, start: nextLine, end: nextLine + lineCount(f.content) - 1 });
+    nextLine += lineCount(scriptTags[i]);
+  });
+  const srcDoc = [...prefixParts, ...scriptTags, '</body></html>'].join('\n');
+  return { srcDoc, scriptRanges };
 }
 
 export interface StatMessage {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
-import { buildGameSrcDoc, isConsoleMessage, isStatMessage, type ConsoleLine } from './buildGamePreview';
+import { buildGamePreview, isConsoleMessage, isStatMessage, resolveErrorLoc, type ConsoleLine } from './buildGamePreview';
 
 interface GameFrameProps {
   files: VfsFile[];
@@ -52,7 +52,10 @@ export function GameFrame({
   debug = false,
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
-  const srcDoc = useMemo(() => buildGameSrcDoc(files, { debug }), [files, debug]);
+  const { srcDoc, scriptRanges } = useMemo(() => buildGamePreview(files, { debug }), [files, debug]);
+  // Read inside the (stable) message listener without re-subscribing.
+  const scriptRangesRef = useRef(scriptRanges);
+  scriptRangesRef.current = scriptRanges;
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /** Post a control message to the sandboxed frame (opaque origin → targetOrigin '*'). */
@@ -85,7 +88,10 @@ export function GameFrame({
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (isConsoleMessage(e.data)) {
-        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text, loc: e.data.loc }]);
+        // Map srcdoc-relative locations (syntax errors — sourceURL never applied)
+        // back to the kid's file:line; runtime locs pass through unchanged.
+        const loc = resolveErrorLoc(e.data.loc, scriptRangesRef.current);
+        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text, loc }]);
         return;
       }
       if (isStatMessage(e.data)) {
