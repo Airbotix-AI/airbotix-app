@@ -4,11 +4,12 @@
 // demo banner + tour overlay.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '@/auth/authStore';
+import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { TryBlocksPage } from './TryBlocksPage';
 
 afterEach(() => {
@@ -55,6 +56,18 @@ describe('TryBlocksPage', () => {
     );
     expect(screen.getByTestId('demo-tour')).toBeInTheDocument();
     expect(screen.getByTestId('tour-title')).toHaveTextContent("Cat's Day Out — a story told in blocks");
+  });
+
+  it('feeds the studio theme to the tour overlay, live (the demo opens light)', async () => {
+    renderPage();
+    await screen.findByTestId('blocks-studio');
+    // installBlocksDemo forces the light open; the studio's own toggle still
+    // works, and the overlay re-picks the scrim from the LIVE store.
+    expect(screen.getByTestId('demo-tour')).not.toHaveAttribute('data-dark-ui');
+    act(() => useBlocksTheme.setState({ theme: 'dark' }));
+    expect(screen.getByTestId('demo-tour')).toHaveAttribute('data-dark-ui', 'true');
+    act(() => useBlocksTheme.setState({ theme: 'light' }));
+    expect(screen.getByTestId('demo-tour')).not.toHaveAttribute('data-dark-ui');
   });
 
   it('the tour steps through to free explore and can be skipped', async () => {

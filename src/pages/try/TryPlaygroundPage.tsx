@@ -83,6 +83,10 @@ export function TryPlaygroundPage() {
   // window from the CLICK (before the send), not from when the reply settles.
   const [spotOverride, setSpotOverride] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // The studio's LIVE theme (store subscription, not a mount-time read): the
+  // overlay's scrim/backdrop re-pick the moment the kid flips the taskbar
+  // toggle mid-tour (ink@50% is imperceptible over the dark workspace).
+  const theme = usePlaygroundStore((s) => s.theme);
   const sendRef = useRef<((text: string) => void) | null>(null);
   const landingSubmitRef = useRef<(() => void) | null>(null);
   const controlsRef = useRef<DemoStudioControls | null>(null);
@@ -436,6 +440,7 @@ export function TryPlaygroundPage() {
             step={view}
             busy={sending}
             spotlightOverride={spotOverride}
+            darkUi={theme === 'dark'}
             onNext={handleNext}
             onBack={() => reveal(Math.max(0, view - 1))}
             onSkip={() => setDone(true)}

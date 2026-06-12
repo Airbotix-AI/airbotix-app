@@ -179,6 +179,40 @@ describe('DemoTourOverlay spotlight', () => {
       expect(screen.queryByTestId('tour-spotlight')).not.toBeInTheDocument(),
     );
   });
+
+  it('the scrim follows the studio theme: ink@50% on light, black@70% when darkUi', () => {
+    setupSpot(1);
+    expect(screen.getByTestId('tour-spotlight-ring').className).toContain('shadow-spotlight-scrim');
+    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain(
+      'shadow-spotlight-scrim-dark',
+    );
+    cleanup();
+    render(
+      <DemoTourOverlay
+        steps={SPOT_STEPS}
+        step={1}
+        darkUi
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tour-spotlight-ring').className).toContain(
+      'shadow-spotlight-scrim-dark',
+    );
+  });
+
+  it('the modal backdrop follows the studio theme too', () => {
+    const steps: DemoTourStep[] = [{ title: 'Intro', body: 'Welcome', modal: true }];
+    const { rerender } = render(
+      <DemoTourOverlay steps={steps} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('bg-ink/60');
+    rerender(
+      <DemoTourOverlay steps={steps} step={0} darkUi onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('bg-black/70');
+  });
 });
 
 describe('DemoTourOverlay spotlight override (in-flight chat focus)', () => {

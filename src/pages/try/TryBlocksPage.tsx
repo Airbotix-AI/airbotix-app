@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
+import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { DemoBanner } from './DemoBanner';
 import { DEMO_EXIT_URL, DemoModeProvider, type DemoMode } from './demoMode';
 import { DemoTourOverlay, type DemoTourStep } from './DemoTourOverlay';
@@ -69,6 +70,9 @@ export function TryBlocksPage() {
   const [armed, setArmed] = useState(false);
   const [view, setView] = useState(0);
   const [done, setDone] = useState(false);
+  // The studio's LIVE theme (the demo opens light, but the studio's own toggle
+  // works): the overlay's scrim/backdrop re-pick on a mid-tour flip.
+  const theme = useBlocksTheme((s) => s.theme);
 
   useEffect(() => {
     installBlocksDemo();
@@ -91,6 +95,7 @@ export function TryBlocksPage() {
           <DemoTourOverlay
             steps={TOUR}
             step={view}
+            darkUi={theme === 'dark'}
             onNext={() => (view >= TOUR.length - 1 ? setDone(true) : setView(view + 1))}
             onBack={() => setView((v) => Math.max(0, v - 1))}
             onSkip={() => setDone(true)}

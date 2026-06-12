@@ -40,7 +40,12 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   `setDemoAssetGen` seam, so the e2e/dev stub's swatches stay untouched;
 - `demoStory.blocks.ts` — the bundled 3-page "Cat's Day Out" `BlocksProject`;
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
-  (D-DEMO-05, step-aware placements) + demo banner + public pages.
+  (D-DEMO-05, step-aware placements) + demo banner + public pages. The overlay's
+  spotlight scrim + modal backdrop are THEME-AWARE: each page passes `darkUi`
+  from its studio's LIVE theme store (`usePlaygroundStore.theme` /
+  `useBlocksTheme`) — ink@50% is imperceptible over a dark UI, so dark gets the
+  `shadow-spotlight-scrim-dark` token (black@70%). Never read a media query for
+  this; the studio theme is a store toggle.
 
 ## T1 v3 tour step map (PRD §3 — keep in sync with `demoTour.playground.ts`)
 

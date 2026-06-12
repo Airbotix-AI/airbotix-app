@@ -65,7 +65,7 @@ const fullViewport = (): SpotRect => ({
  * (and between targets on step change); re-measures on resize and capture-phase
  * scroll; renders nothing if the selector matches nothing.
  */
-function SpotlightMask({ selector }: { selector: string }) {
+function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean }) {
   const [rect, setRect] = useState<SpotRect | null>(() =>
     typeof window === 'undefined' ? null : fullViewport(),
   );
@@ -124,8 +124,13 @@ function SpotlightMask({ selector }: { selector: string }) {
         data-testid="tour-spotlight-ring"
         // Transition ONLY the box geometry — including the giant scrim
         // box-shadow in the transition list makes every retarget repaint the
-        // whole shadow per frame (visible stutter on card swaps).
-        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 shadow-spotlight-scrim transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none"
+        // whole shadow per frame (visible stutter on card swaps). The scrim
+        // follows the STUDIO's live theme (`darkUi`): ink@50% over an
+        // already-dark UI is imperceptible, so dark themes get black@70%.
+        className={clsx(
+          'pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none',
+          dark ? 'shadow-spotlight-scrim-dark' : 'shadow-spotlight-scrim',
+        )}
         style={{
           left: rect.left,
           top: rect.top,
@@ -163,6 +168,13 @@ interface DemoTourOverlayProps {
    * overriding the current card's own spotlight until the next card lands.
    */
   spotlightOverride?: string | null;
+  /**
+   * The studio under the overlay is showing its DARK theme. Pages pass their
+   * studio's LIVE theme store value (never a media query — the workspace theme
+   * is a store toggle), so the scrim/backdrop stay visible over dark surfaces
+   * and a mid-tour theme flip re-picks them immediately.
+   */
+  darkUi?: boolean;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
@@ -173,6 +185,7 @@ export function DemoTourOverlay({
   step,
   busy,
   spotlightOverride,
+  darkUi,
   onNext,
   onBack,
   onSkip,
@@ -183,11 +196,21 @@ export function DemoTourOverlay({
   const spotlight = spotlightOverride ?? current.spotlight;
 
   return (
-    <div data-testid="demo-tour" className="pointer-events-none fixed inset-0 z-[120]">
+    <div
+      data-testid="demo-tour"
+      data-dark-ui={darkUi || undefined}
+      className="pointer-events-none fixed inset-0 z-[120]"
+    >
       {current.modal && (
-        <div data-testid="demo-tour-backdrop" className="pointer-events-auto absolute inset-0 bg-ink/60" />
+        <div
+          data-testid="demo-tour-backdrop"
+          className={clsx(
+            'pointer-events-auto absolute inset-0',
+            darkUi ? 'bg-black/70' : 'bg-ink/60', // same dark-legibility rule as the scrim
+          )}
+        />
       )}
-      {!current.modal && spotlight && <SpotlightMask selector={spotlight} />}
+      {!current.modal && spotlight && <SpotlightMask selector={spotlight} dark={darkUi} />}
       {/* Placement (absolute + translate) lives on the OUTER wrapper; the card
           itself remounts per step (key) with a short rise/fade entrance, so a
           placement jump reads as a new card arriving — not the old one teleporting.

@@ -4,6 +4,18 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12 (theme-aware demo tour scrim)
+
+### Fixed
+- **The demo tour's spotlight scrim now reads on dark UIs.** The scrim was
+  ink@50% (`shadow-spotlight-scrim`) — fine over the light studio, imperceptible
+  over dark panels, so a dark-mode tour appeared to highlight nothing. The demo
+  pages now pass `darkUi` from their studio's LIVE theme store
+  (`usePlaygroundStore.theme` / `useBlocksTheme`) and the overlay picks the new
+  `shadow-spotlight-scrim-dark` token (black@70%) — the modal backdrop follows
+  the same rule (`bg-black/70` on dark). Store subscription, so a mid-tour
+  theme flip re-picks the scrim immediately.
+
 ## 2026-06-12 (Guide pane dark-mode theming)
 
 ### Fixed

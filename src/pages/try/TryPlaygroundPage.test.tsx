@@ -6,17 +6,19 @@
 
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthStore } from '@/auth/authStore';
+import { usePlaygroundStore } from '../learn/playground/playgroundStore';
 import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
 import { TryPlaygroundPage } from './TryPlaygroundPage';
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  usePlaygroundStore.setState({ theme: 'light' });
 });
 
 function renderPage() {
@@ -62,6 +64,17 @@ describe('TryPlaygroundPage', () => {
     expect(screen.getByTestId('tour-card')).toHaveAttribute('data-placement', 'beside-input');
     expect(screen.queryByTestId('tour-skip')).not.toBeInTheDocument(); // §3 step 1
     expect(screen.getByTestId('tour-next')).toHaveTextContent('Create the game');
+  });
+
+  it('feeds the studio theme to the tour overlay, live (mid-tour toggles update)', () => {
+    renderPage();
+    expect(screen.getByTestId('demo-tour')).not.toHaveAttribute('data-dark-ui');
+    // The page reads the LIVE store (the taskbar toggle drives this in the
+    // studio), so a mid-tour flip re-picks the scrim immediately.
+    act(() => usePlaygroundStore.setState({ theme: 'dark' }));
+    expect(screen.getByTestId('demo-tour')).toHaveAttribute('data-dark-ui', 'true');
+    act(() => usePlaygroundStore.setState({ theme: 'light' }));
+    expect(screen.getByTestId('demo-tour')).not.toHaveAttribute('data-dark-ui');
   });
 
   it('"Create the game" drives the REAL create flow — no token, no network', async () => {

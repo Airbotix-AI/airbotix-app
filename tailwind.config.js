@@ -83,8 +83,11 @@ export default {
         'brand-mint':      '0 16px 40px -8px rgba(61, 217, 169, 0.40)',
         'card-soft':       '0 8px 24px -6px rgba(31, 27, 45, 0.10)',
         'sticker':         '4px 4px 0 0 rgba(31, 27, 45, 0.95)',
-        // demo tour spotlight: the cut-out div's shadow IS the scrim (ink @ 50%)
+        // demo tour spotlight: the cut-out div's shadow IS the scrim. Ink @ 50%
+        // reads on the light studio; dark UIs need the deeper black @ 70% (ink
+        // over near-ink surfaces is imperceptible) — picked via `darkUi`.
         'spotlight-scrim': '0 0 0 200vmax rgba(31, 27, 45, 0.50)',
+        'spotlight-scrim-dark': '0 0 0 200vmax rgba(0, 0, 0, 0.70)',
       },
       letterSpacing: {
         'hero': '-0.025em',
