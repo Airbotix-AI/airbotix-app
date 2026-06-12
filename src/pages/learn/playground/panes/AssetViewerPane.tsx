@@ -5,7 +5,7 @@
 // schema. Sidecar `.anim.json` files are hidden from the grid (they're metadata
 // for their sibling sprite).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import clsx from 'clsx';
 import {
@@ -22,6 +22,7 @@ import {
   Wand2,
 } from 'lucide-react';
 
+import { useDemoMode } from '@/pages/try/demoMode';
 import type { VfsFile } from '../../code/codeApi';
 import {
   ASSET_LIBRARY,
@@ -267,16 +268,37 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
   // Generate / remix go INTO THE CHAT (D-ASSET §3): post the request so it shares
   // the one-AI-at-a-time lock and shows in the conversation. The new asset lands in
   // My assets when the chat turn completes.
-  function onGenerate() {
+  const onGenerate = useCallback(() => {
     if (!genPrompt.trim()) return;
     onRequestAssetGen?.(genPrompt.trim());
     setGenPrompt('');
-  }
+  }, [genPrompt, onRequestAssetGen]);
 
   function onRemix(prompt: string, ref: { refAssetPath?: string; refUrl?: string }) {
     if (!prompt.trim()) return;
     onRequestAssetGen?.(prompt.trim(), ref);
   }
+
+  // Try-demo seam (try-demo-mode-prd §3 step 7a): register the pane's REAL
+  // affordances — the generate bar's prompt setter, the exact submit its
+  // "✨ Generate" button calls, and the open-details path an asset-card tap
+  // runs — so the tour drives this real UI. No-op outside the demo provider
+  // (`useDemoMode()` is null everywhere else).
+  const demo = useDemoMode();
+  useEffect(() => {
+    demo?.bindAssetPane?.({
+      setGeneratePrompt: setGenPrompt,
+      submitGenerate: onGenerate,
+      openAssetDetails: (path) => {
+        setSource('mine');
+        setCategory(ALL);
+        setSelectedLibId(null);
+        setSelectedPath(path);
+      },
+    });
+    // `onGenerate` is recreated per render, so this re-binds every render —
+    // the registered submit always closes over the current prompt state.
+  }, [demo, onGenerate]);
 
 
   return (
@@ -464,12 +486,19 @@ function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: A
 /** Remix an image with AI — a prompt describing the change → a new variation. */
 function RemixBar({ busy, onRemix }: { busy: boolean; onRemix: (prompt: string) => void }) {
   const [p, setP] = useState('');
-  const go = () => {
+  const go = useCallback(() => {
     if (p.trim()) {
       onRemix(p.trim());
       setP('');
     }
-  };
+  }, [p, onRemix]);
+  // Try-demo seam (try-demo-mode-prd §3 step 7b): hand the tour this bar's real
+  // input setter + submit. No-op outside the demo provider.
+  const demo = useDemoMode();
+  useEffect(() => {
+    // `go` is recreated per render → re-binds every render (fresh prompt closure).
+    demo?.bindAssetRemix?.({ setPrompt: setP, submit: go });
+  }, [demo, go]);
   return (
     <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
       <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-extrabold">

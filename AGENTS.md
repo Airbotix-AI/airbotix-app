@@ -25,7 +25,17 @@ task**:
    anything they replay or describe;
 2. run the demo unit tests (`npx vitest run src/pages/try`) and the demo
    harness journeys (`try-demo-playground` / `try-demo-blocks` in the umbrella
-   `harness/`, once landed) and keep them green.
+   `harness/`, once landed) and keep them green;
+3. **recapture the marketing previews.** The airbotix.ai `/try` page plays
+   REAL screenshots of these demos as animated scenes
+   (`airbotix/src/components/TryScenePlayer.tsx` → `airbotix/public/media/try/`).
+   Any visible workspace-UX change — Game Playground, Blocks Studio, or a
+   future demo — makes those captures stale. Run
+   `node scripts/capture-try-scenes.mjs` (app dev server running), review the
+   image diff, check the zoom origins/captions in the marketing `Try.tsx`
+   still point at the right UI, and commit the refreshed images in the
+   `airbotix` repo as part of the same task. New demos must be added to the
+   capture script and given scenes on the marketing page.
 
 Hard demo invariants (never weaken): demo routes are public (no auth), make
 **zero** `/projects*` / `/llm/*` network calls, persist **nothing** (in-memory

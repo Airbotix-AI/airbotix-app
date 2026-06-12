@@ -83,9 +83,22 @@ export default {
         'brand-mint':      '0 16px 40px -8px rgba(61, 217, 169, 0.40)',
         'card-soft':       '0 8px 24px -6px rgba(31, 27, 45, 0.10)',
         'sticker':         '4px 4px 0 0 rgba(31, 27, 45, 0.95)',
+        // demo tour spotlight: the cut-out div's shadow IS the scrim (ink @ 50%)
+        'spotlight-scrim': '0 0 0 200vmax rgba(31, 27, 45, 0.50)',
       },
       letterSpacing: {
         'hero': '-0.025em',
+      },
+      keyframes: {
+        // demo tour card entrance: a short rise/fade so per-step placement
+        // jumps read as a new card arriving (paired with motion-reduce:animate-none)
+        'tour-card-in': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'tour-card-in': 'tour-card-in 200ms ease-out',
       },
     },
   },

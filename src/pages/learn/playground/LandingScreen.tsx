@@ -127,7 +127,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
 
 
       {/* Prompt box with animated glow halo */}
-      <div className="pg-glow w-full max-w-3xl rounded-2xl">
+      <div className="pg-glow w-full max-w-3xl rounded-2xl" data-testid="landing-prompt-box">
         <div className="relative rounded-2xl bg-pg-surface p-5">
           <textarea
             value={prompt}

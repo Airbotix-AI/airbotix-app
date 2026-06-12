@@ -66,6 +66,20 @@ function unlockTouchScroll() {
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
+// ── zone label chip (clarity pass) ───────────────────────────────────────────
+// Kids 5–8 (many pre-readers) couldn't tell what each studio area was for, so
+// every zone wears a tiny emoji-first name tag. Chips are decoration only:
+// pointer-events:none, aria-hidden (the zones carry matching aria-labels), and
+// blocks.css hides them in present mode / while a block drag is live.
+function ZoneTag({ zone, emoji, label }: { zone: string; emoji: string; label: string }) {
+  return (
+    <span className={`bsx-zonetag zt-${zone}`} data-testid={`zone-${zone}`} aria-hidden>
+      <span className="zt-ic">{emoji}</span>
+      <span className="zt-txt">{label}</span>
+    </span>
+  );
+}
+
 export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: string } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   // The public /try/blocks demo mounts this page directly (no route param) with
@@ -677,7 +691,11 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   const activeCat = CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0];
 
   return (
-    <div className={`bsx bsx-app${present ? ' present' : ''}`} data-theme={theme} data-testid="blocks-studio">
+    <div
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}`}
+      data-theme={theme}
+      data-testid="blocks-studio"
+    >
       {/* ── toolbar ── */}
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
         {/* Try-demo: Home exits to the marketing "Try it" page, not the authed hub. */}
@@ -771,6 +789,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
       {/* ── middle: characters · stage · pages ── */}
       <section className="bsx-middle">
         <aside className="bsx-railbox" style={{ gridArea: 'chars' }} aria-label="Characters">
+          <ZoneTag zone="chars" emoji="🐱" label="Characters" />
           {page.characters.map((c) => (
             <button
               key={c.id}
@@ -815,6 +834,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             data-testid="blocks-stage"
             data-scene={sceneId(page.background)}
             className="bsx-stage min-h-[180px] flex-1"
+            aria-label="Stage"
           >
             <div className="bsx-grid" />
             {/* animated scene decorations (CSS draws the rest per [data-scene]) */}
@@ -835,6 +855,8 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             >
               <ImageIcon size={20} />
             </button>
+            {/* beside (never over) the scene button — the stage's name tag */}
+            <ZoneTag zone="stage" emoji="🎬" label="Stage" />
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
               const st = run?.st ?? startState(c);
@@ -879,6 +901,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         </div>
 
         <aside className="bsx-railbox" style={{ gridArea: 'pages' }} aria-label="Pages">
+          <ZoneTag zone="pages" emoji="📖" label="Pages" />
           {project.pages.map((p, i) => (
             <div key={p.id} className="relative w-full max-w-[96px]">
               <button
@@ -928,7 +951,8 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
 
       {/* ── coding band ── */}
       <section className="bsx-coder">
-        <nav className="bsx-catbar" aria-label="Block categories">
+        <nav className="bsx-catbar" aria-label="Kinds of blocks">
+          <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
           {CATEGORIES.map((c) => (
             <button
               key={c.id}
@@ -944,8 +968,10 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
           ))}
         </nav>
 
-        <div className="flex min-h-0 min-w-0 flex-col gap-2">
-          <div className="bsx-soft bsx-palette flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette" data-cat={category}>
+        <div className="relative flex min-h-0 min-w-0 flex-col gap-2">
+          {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
+          <ZoneTag zone="palette" emoji="🧩" label="Blocks" />
+          <div className="bsx-soft bsx-palette flex items-center gap-4 overflow-x-auto rounded-3xl px-4 pb-4 pt-3" data-testid="palette" data-cat={category} aria-label="Blocks">
             <span className="bsx-palette-tag shrink-0">
               <span aria-hidden>{activeCat.icon}</span>
               {activeCat.label}
@@ -964,11 +990,13 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             ))}
           </div>
 
-          <div className="flex min-h-0 flex-1 gap-2">
-          <div className="bsx-soft relative min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area">
+          <div className="relative flex min-h-0 flex-1 gap-2">
+          {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
+          <ZoneTag zone="script" emoji="✨" label="What they do" />
+          <div className="bsx-soft relative min-h-0 flex-1 overflow-auto rounded-3xl p-4" data-testid="script-area" aria-label="What they do">
             {selectedChar?.scripts.length === 0 && (
               <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
-                Tap a 🚩 block to start {selectedChar.name}&apos;s program ✨
+                Tap a 🚩 block to pick what {selectedChar.name} does ✨
               </div>
             )}
             {selectedChar?.scripts.map((script) => {

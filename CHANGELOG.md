@@ -6,6 +6,95 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Changed (tour pacing & navigation)
+- Back/forward browsing re-fronts the window each card's spotlight points at —
+  the discussed surface is always on top, not whatever the last action left focused.
+  Element-level spotlights map to their HOST window (✨ toolbar → Code Editor,
+  generate/remix prompts → Asset Viewer, console → Game Runner).
+- Scripted replies take a readable beat (700ms → 1.8s) so the "Airo is working…"
+  state is actually seen.
+- Asset generation/remix now plays fully in the chat (spotlit from the click):
+  the "Conjuring…" progress and the finished sticker bubble are seen scrolled
+  into view, held ~1.6s, and only then does My Assets surface with the card swap.
+
+
+### Fixed (spotlight timing)
+- In-flight tour steps spotlight the surface where the action is HAPPENING from
+  the moment Next is CLICKED, instead of jumping only when the result settled:
+  chat for the scripted asks + the explain fire (before the message even sends),
+  the Asset Viewer for generate and remix (while the art is being made). The
+  engine raises a spotlight override at fire-time; the following card spotlights
+  the same surface, so it lands with zero mask movement — killing the jank at
+  the busiest moment of the turn.
+
+
+### Changed (playground tour v3 — 16 cards, real Asset Viewer UI, jank pass)
+- **Tour grows 13 → 16 cards** (`demoTour.playground.ts`, PRD §3 v0.9): the
+  explain beat is two cards (select the snippet → the live "✨ Explain this"
+  toolbar pops + is spotlighted → fire its real handler), and the beautify loop
+  drives the Asset Viewer's REAL UI — the tour types the wish into the pane's
+  real generate box (new card, prompt-box spotlight), submits its real
+  ✨ Generate, opens the sticker's real details view with the remix wish typed
+  into the real Remix bar (new card), submits the real Remix, then opens the
+  landed remix's own details. New tiny default-off seams: `bindAssetPane` /
+  `bindAssetRemix` (`demoMode.tsx`; registered by `AssetViewerPane`/`RemixBar`
+  only under the demo provider).
+- **Conversation cards spotlight the chat** ("One ask → one change",
+  "Keep score", "Code that explains itself") and the after-edit auto-restart
+  re-fronts the panel the next card spotlights (`restartThenRefocus` — the
+  restart focuses the Game Runner, which used to bury the chat).
+- **Jank pass**: heavy actions (chat sends, Monaco jumps, focus changes) defer
+  behind a double-rAF so the card/spotlight transition paints first
+  (`tourSequencing.ts`); the spotlight ring transitions ONLY its box geometry
+  (not the giant scrim shadow) and ignores zero-size targets; cards remount per
+  step with a 200ms rise/fade entrance (`animate-tour-card-in`, reduced-motion
+  safe); two window focuses never land in the same frame.
+- `capture-try-scenes.mjs` walk is now title-driven (`nextUntil`) so card-count
+  changes don't break it; e2e smoke + umbrella harness journey updated to the
+  16-card flow; new unit tests (`tourSequencing.test.ts`,
+  `demoAssetPaneSeam.test.tsx`, tour-data v3 suite).
+
+### Added (marketing-preview parity)
+- `scripts/capture-try-scenes.mjs` — one-command recapture of the marketing /try
+  preview scenes from the live demos (1600px JPEG q80 → `airbotix/public/media/try/`).
+  AGENTS.md (root rule 3 + `src/pages/try/`) now mandates recapturing whenever the
+  workspace UX changes (either studio or future demos); PRD D-DEMO-07 extended (v0.8).
+
+
+### Added (tour spotlight)
+- `DemoTourOverlay` steps can carry a `spotlight` selector: everything except the
+  area the step points at is dimmed — one ring div whose giant box-shadow is the
+  scrim, so the cut-out has properly ROUNDED corners — purely visual (nothing is
+  blocked, the studio stays interactive). Every spotlight OPENS from the full
+  viewport and shrinks onto its target (500ms ease-out; animates between targets
+  on step change; reduced-motion safe); re-measures on resize/scroll. Wired into
+  the Cat's Day Out tour: Go button, stage, "What they do" tracks, Pages rail
+  (cards repositioned off their spotlights).
+- Spotlight wired across the **Game Playground tour** too: every card except the
+  free-explore finale highlights where to look (landing prompt box, Game Runner,
+  Code Editor, Asset Viewer, console, Guide — via a new `data-window` attribute on
+  the studio's floating windows + a `landing-prompt-box` testid, both inert).
+  The mask now also TRACKS moving targets (light 250ms poll with change-detection)
+  since playground windows are draggable.
+
+
+### Fixed (zone labels refinement)
+- Rail tags (Characters/Pages) no longer overflow their narrow columns — stacked
+  variant (emoji above one tiny word, spanning the column like a header) with
+  ellipsis as a safety net; the block-category bar gained its missing tag
+  ("🧰 Kinds", full-width header above the buttons; aria updated to match).
+
+
+### Added
+- **Blocks Studio zone labels (clarity pass).** Every studio area now wears a small
+  emoji-first name tag for pre-readers (ages 5–8): 🎬 Stage, 🐱 Characters, 📖 Pages,
+  🧩 Blocks (palette), ✨ What they do (program area). Chips are decoration only
+  (`pointer-events: none`, `aria-hidden`; each zone carries a matching `aria-label`),
+  theme-aware via the existing `--bsx-*` tokens, tinted with the same category colour
+  as each zone's wash, hidden in present mode and while a block drag is live, and
+  shrink to emoji-only under 640px. The program empty-state copy now matches its label
+  ("Tap a 🚩 block to pick what ⟨name⟩ does ✨"). `/try/blocks` inherits via parity.
+
 ### Changed
 - `/try/blocks` always opens in the LIGHT theme (the story art is daylight-first),
   regardless of system preference or a stored studio override — store-only set on

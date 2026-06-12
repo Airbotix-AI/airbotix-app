@@ -576,6 +576,115 @@
   border-color: color-mix(in srgb, var(--bsx-cat-sound) 28%, var(--bsx-border));
 }
 
+/* ── zone label chips (clarity pass) ──────────────────────────────────────────
+   Each zone wears an emoji-first name tag for pre-readers: 🎬 Stage,
+   🐱 Characters, 📖 Pages, 🧩 Blocks, ✨ What they do. Pure decoration —
+   pointer-events:none so they never eat a tap; tinted with the SAME category
+   colour as the zone's wash above (colour = meaning); hidden in present mode
+   and while a block drag is live (they'd hover near drop zones). */
+.bsx-zonetag {
+  --zc: var(--bsx-text-dim);
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--fun, inherit);
+  font-weight: 800;
+  font-size: 11.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--zc) 72%, var(--bsx-text));
+  background: color-mix(in srgb, var(--zc) 14%, var(--bsx-surface));
+  border: 1px solid color-mix(in srgb, var(--zc) 32%, var(--bsx-border));
+  box-shadow: 0 2px 8px -4px var(--bsx-shadow);
+  z-index: 6;
+  transition: opacity 0.15s;
+}
+.bsx-zonetag .zt-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+/* the stage tag rides ON the scene art, beside (never over) the scene button —
+   same glass treatment as .bsx-scene-btn so it stays legible on any scene */
+.bsx-zonetag.zt-stage {
+  position: absolute;
+  left: 56px;
+  top: 17px;
+  background: color-mix(in srgb, var(--bsx-surface) 84%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+/* narrow columns (rails + the category bar): an in-flow first item (these
+   scroll, so absolute would cover the first thumb or scroll away), STACKED —
+   emoji above one tiny word, spanning the column like a header — so the text
+   can never overflow the narrow column. Ellipsis is a safety net only. */
+.bsx-zonetag.zt-chars,
+.bsx-zonetag.zt-pages,
+.bsx-zonetag.zt-cats {
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  max-width: 100%;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 14px;
+  font-size: 10px;
+}
+.bsx-zonetag.zt-chars .zt-txt,
+.bsx-zonetag.zt-pages .zt-txt,
+.bsx-zonetag.zt-cats .zt-txt {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bsx-zonetag.zt-chars {
+  --zc: var(--bsx-cat-motion);
+}
+.bsx-zonetag.zt-pages {
+  --zc: var(--bsx-cat-end);
+}
+.bsx-zonetag.zt-cats {
+  --zc: var(--bsx-cat-trigger);
+  /* in the two-column catbar grid: a full-width header above the buttons */
+  grid-column: 1 / -1;
+  justify-self: stretch;
+}
+/* palette + program: pinned name tags straddling the zone's top-left border
+   (their wrappers are position:relative; the scrollers underneath move freely) */
+.bsx-zonetag.zt-palette,
+.bsx-zonetag.zt-script {
+  position: absolute;
+  left: 14px;
+  top: -10px;
+}
+.bsx-zonetag.zt-palette {
+  --zc: var(--bsx-cat-looks);
+}
+.bsx-zonetag.zt-script {
+  --zc: var(--bsx-cat-sound);
+}
+/* present mode = the stage IS the screen — no editing chrome, no name tags */
+.bsx-app.present .bsx-zonetag {
+  display: none;
+}
+/* while a block drag is live the tags fade out — the straddling palette/program
+   tags sit right where drop zones and the drag clone travel */
+.bsx-app.bsx-dragging .bsx-zonetag {
+  opacity: 0;
+}
+/* tight screens: shrink to emoji-only (the colour + emoji still carry meaning) */
+@media (max-width: 640px) {
+  .bsx-zonetag .zt-txt {
+    display: none;
+  }
+  .bsx-zonetag {
+    padding: 3px 7px;
+  }
+}
+
 /* ── stage scenes (constant brand-wash art, both themes) ──────────────────── */
 .bsx-stage {
   position: relative;

@@ -5,9 +5,15 @@
 // hint so the card never covers the surface it points at (landing input, runner,
 // editor, asset viewer). A `modal` step dims and blocks the studio behind it;
 // every other step floats so the REAL studio underneath stays fully interactive.
+// Steps that point at an area can carry a SPOTLIGHT selector: everything except
+// that area is dimmed — one ring div whose giant box-shadow is the scrim
+// (`shadow-spotlight-scrim`), so the rounded cut-out and the dim are a single
+// animatable box — purely visual (pointer-events: none), the studio stays
+// fully interactive, including inside the spotlight.
 // K-12 design-system tokens only — this layer never restyles the studio.
 
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 
 /** Where a step's card sits, chosen so it never covers the step's surface. */
 export type DemoTourPlacement =
@@ -30,6 +36,105 @@ export interface DemoTourStep {
   placement?: DemoTourPlacement;
   /** Hide "Skip tour" on this step (§3 step 1 — the landing step is mandatory). */
   hideSkip?: boolean;
+  /**
+   * CSS selector of the area this step points at. Everything else is dimmed
+   * (visual only — nothing is blocked) so the user knows where to look/act.
+   */
+  spotlight?: string;
+}
+
+/** Padding around the spotlighted element's rect. */
+const SPOT_PAD = 8;
+
+type SpotRect = { left: number; top: number; right: number; bottom: number };
+
+/** The whole viewport — every spotlight OPENS from here and shrinks onto its
+ *  target, so the dim visibly "closes in" on where the user should look. */
+const fullViewport = (): SpotRect => ({
+  left: 0,
+  top: 0,
+  right: window.innerWidth,
+  bottom: window.innerHeight,
+});
+
+/**
+ * Dim everything EXCEPT the spotlighted element. One div is both the cut-out
+ * and the scrim: its enormous box-shadow darkens everything around it and —
+ * unlike scrim panels — follows the border-radius, so the hole has properly
+ * ROUNDED corners. Mounts at full-viewport and animates down onto the target
+ * (and between targets on step change); re-measures on resize and capture-phase
+ * scroll; renders nothing if the selector matches nothing.
+ */
+function SpotlightMask({ selector }: { selector: string }) {
+  const [rect, setRect] = useState<SpotRect | null>(() =>
+    typeof window === 'undefined' ? null : fullViewport(),
+  );
+
+  useEffect(() => {
+    const measure = () => {
+      const el = document.querySelector(selector);
+      // A zero-size rect = the target isn't really on screen (e.g. a Monaco
+      // content widget that exists but is hidden) — treat it as not found.
+      const r = el?.getBoundingClientRect();
+      if (!el || !r || r.width <= 0 || r.height <= 0) {
+        setRect(null);
+        return;
+      }
+      const next: SpotRect = {
+        left: Math.max(0, r.left - SPOT_PAD),
+        top: Math.max(0, r.top - SPOT_PAD),
+        right: r.right + SPOT_PAD,
+        bottom: r.bottom + SPOT_PAD,
+      };
+      // Bail on no movement so the poll doesn't re-render every tick.
+      setRect((prev) =>
+        prev &&
+        prev.left === next.left &&
+        prev.top === next.top &&
+        prev.right === next.right &&
+        prev.bottom === next.bottom
+          ? prev
+          : next,
+      );
+    };
+    // First measure TWO frames out: the full-viewport mount state gets a
+    // painted frame (so the shrink onto the target actually transitions) AND
+    // any focus/window change the step's action fired has settled first.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(measure);
+    });
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    // Playground windows are DRAGGABLE (react-rnd) — no resize/scroll event
+    // fires while one moves, so poll lightly too. `setRect` bails on equal
+    // values (see measure), so the idle cost is one rect read per tick.
+    const tick = setInterval(measure, 250);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(tick);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [selector]);
+
+  if (!rect) return null;
+  return (
+    <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        data-testid="tour-spotlight-ring"
+        // Transition ONLY the box geometry — including the giant scrim
+        // box-shadow in the transition list makes every retarget repaint the
+        // whole shadow per frame (visible stutter on card swaps).
+        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 shadow-spotlight-scrim transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none"
+        style={{
+          left: rect.left,
+          top: rect.top,
+          width: rect.right - rect.left,
+          height: rect.bottom - rect.top,
+        }}
+      />
+    </div>
+  );
 }
 
 const PLACEMENT_CLASS: Record<DemoTourPlacement, string> = {
@@ -51,28 +156,54 @@ interface DemoTourOverlayProps {
   step: number;
   /** Disables Next while a scripted turn is in flight. */
   busy?: boolean;
+  /**
+   * While an action is in flight the engine can point the spotlight at the
+   * surface where the action is HAPPENING (e.g. the Chat window from the
+   * moment a scripted ask is clicked, before the message even sends) —
+   * overriding the current card's own spotlight until the next card lands.
+   */
+  spotlightOverride?: string | null;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
 }
 
-export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: DemoTourOverlayProps) {
+export function DemoTourOverlay({
+  steps,
+  step,
+  busy,
+  spotlightOverride,
+  onNext,
+  onBack,
+  onSkip,
+}: DemoTourOverlayProps) {
   const current = steps[step];
   if (!current) return null;
   const placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
+  const spotlight = spotlightOverride ?? current.spotlight;
 
   return (
     <div data-testid="demo-tour" className="pointer-events-none fixed inset-0 z-[120]">
       {current.modal && (
         <div data-testid="demo-tour-backdrop" className="pointer-events-auto absolute inset-0 bg-ink/60" />
       )}
+      {!current.modal && spotlight && <SpotlightMask selector={spotlight} />}
+      {/* Placement (absolute + translate) lives on the OUTER wrapper; the card
+          itself remounts per step (key) with a short rise/fade entrance, so a
+          placement jump reads as a new card arriving — not the old one teleporting.
+          The entrance transform can't clash with the placement translate because
+          they're on different elements. Reduced-motion: no animation. */}
       <div
-        data-testid="tour-card"
-        data-placement={placement}
         className={clsx(
-          'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))] rounded-3xl bg-white p-6 text-ink shadow-2xl',
+          'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))]',
           PLACEMENT_CLASS[placement],
         )}
+      >
+      <div
+        key={step}
+        data-testid="tour-card"
+        data-placement={placement}
+        className="animate-tour-card-in rounded-3xl bg-white p-6 text-ink shadow-2xl motion-reduce:animate-none"
       >
         <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-mint">
           Step {step + 1} of {steps.length}
@@ -130,6 +261,7 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

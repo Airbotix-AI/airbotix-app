@@ -104,6 +104,7 @@ export function Window({ id, title, icon, children, variant = 'default' }: Windo
       }}
     >
       <div
+        data-window={id}
         data-theme={isGame ? 'dark' : undefined}
         className={`flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-pg-surface text-pg-text shadow-[0_18px_40px_-8px_rgba(0,0,0,0.6)] ${
           focused ? 'border-brand-sky/60' : 'border-pg-border'

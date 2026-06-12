@@ -26,8 +26,11 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   (D-DEMO-04). The fix step ALSO fires from the console's real "Ask AI to fix"
   button (`consoleFixTrigger` + `isConsoleFixPrompt`, drift-alarmed against the
   REAL `fixPrompt` in `GameRunnerPane`);
-- `demoTour.playground.ts` — the T1 v2 13-card tour DATA (copy + placement +
-  action per card); `TryPlaygroundPage.tsx` is the engine that fires the actions;
+- `demoTour.playground.ts` — the T1 v3 16-card tour DATA (copy + placement +
+  spotlight + action per card); `TryPlaygroundPage.tsx` is the engine that fires
+  the actions, and `tourSequencing.ts` holds its timing rules (actions defer
+  behind a double-rAF so card/spotlight transitions paint first; an after-edit
+  restart re-fronts the panel the next card spotlights);
 - `demoHelp.playground.ts` — the REAL Game Guide corpus, bundled (a verbatim
   copy of `platform-backend/src/help/help-content.ts`, served via
   `setDemoHelpCorpus` through the pane's real loader; the copy is drift-alarmed
@@ -39,7 +42,7 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
   (D-DEMO-05, step-aware placements) + demo banner + public pages.
 
-## T1 v2 tour step map (PRD §3 v0.6 — keep in sync with `demoTour.playground.ts`)
+## T1 v3 tour step map (PRD §3 — keep in sync with `demoTour.playground.ts`)
 
 The landing's own submit button/Enter are INERT in the demo (only card 0's
 "Create the game", bound to the same real `submit`, creates the game), and the
@@ -51,20 +54,26 @@ canned `firstTurnReply` seeds the chat like a real first turn).
 |---|---|---|---|
 | 0 | 1 landing start | `landing-create` | REAL landing phase: locked prompt, card `beside-input`, **not skippable**, submit via `bindLandingSubmit` |
 | 1 | 2 meet your game | `script` step 0 (faster apples) | workspace entry auto-ran the game (`runGame` = editor ▶ Play path); chat focused before every scripted send |
-| 2 | 3 one ask → one change | `show-diff` step 0 | `openFileAt` — the changed-file-row jump+highlight |
+| 2 | 3 one ask → one change (spotlights CHAT) | `show-diff` step 0 | `openFileAt` — the changed-file-row jump+highlight |
 | 3 | 4 see the line | `script` step 1 (score +10) | chat send via `bindChatSend` |
-| 4 | 5 keep score | `script` step 2 (explain) | `openFileAt(..., select)` runs the REAL selection pipeline → the live "✨ Explain this" toolbar appears over the snippet → after a beat the tour fires `explainSelection` (the toolbar's own handler; prompt = `buildExplainPrompt`) |
-| 5 | 6 explain card | `asset-generate` | Asset Viewer generate (`requestAssetGen`, crafted offline art) |
-| 6 | 7a sticker card | `asset-remix` | remix the generated sticker (`requestAssetGen` + `refAssetPath`) |
-| 7 | 7b remix card | `script` step 3 (wire asset) | the remixed sticker becomes the game's apple → auto-restart shows it live |
-| 8 | 7c in-game card | `script` step 4 (deliberate bug) | the diff calls an undefined method → REAL console error |
-| 9 | 8 error card | `script` step 5 (fix) | scripted fix turn repairs it — ALSO fires from the console's real "Ask AI to fix" button (`consoleFixTrigger`) |
-| 10 | 9 fixed card | `open-guide` | `openGuide('engine/scenes-and-the-game-loop')` — the REAL corpus's most diagram-rich page |
-| 11 | 10 guide card | `advance` | — |
-| 12 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
+| 4 | 5 keep score (spotlights CHAT) | `explain-select` step 2 | `openFileAt(..., select)` runs the REAL selection pipeline → the live "✨ Explain this" toolbar pops over the snippet (no turn fires) |
+| 5 | 6a toolbar card (spotlights the toolbar) | `explain-fire` step 2 | `explainSelection` — the toolbar's own handler (prompt = `buildExplainPrompt`, byte-identical to a real tap) |
+| 6 | 6b explain card (spotlights CHAT) | `asset-prompt` | Asset Viewer focused; the tour types the wish into the pane's REAL generate box (`bindAssetPane.setGeneratePrompt`) |
+| 7 | 7a prompt-box card (spotlights the box) | `asset-generate` | the pane's REAL ✨ Generate submit (`bindAssetPane.submitGenerate`, crafted offline art) |
+| 8 | 7a sticker card | `asset-details` | the pane's REAL open-details path + the remix wish typed into the details' REAL Remix bar (`bindAssetRemix.setPrompt`) |
+| 9 | 7b details card (spotlights the remix box) | `asset-remix` | the Remix bar's REAL submit (`bindAssetRemix.submit`); the landed remix's own details open |
+| 10 | 7b remix card | `script` step 3 (wire asset) | the remixed sticker becomes the game's apple → auto-restart shows it live |
+| 11 | 7c in-game card | `script` step 4 (deliberate bug) | the diff calls an undefined method → REAL console error |
+| 12 | 8 error card | `script` step 5 (fix) | scripted fix turn repairs it — ALSO fires from the console's real "Ask AI to fix" button (`consoleFixTrigger`) |
+| 13 | 9 fixed card | `open-guide` | `openGuide('engine/scenes-and-the-game-loop')` — the REAL corpus's most diagram-rich page |
+| 14 | 10 guide card | `advance` | — |
+| 15 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
 
-Every `edit` script step auto-restarts the game (`runGame`) after its diff lands;
-every step focuses the window it acts on first (chat / code / assets / help / game).
+Every `edit` script step auto-restarts the game (`runGame`) after its diff lands,
+then re-fronts the panel the NEXT card spotlights (the restart focuses the Game
+Runner — `restartThenRefocus`, two frames apart, never the same frame); every
+step focuses the window it acts on first (chat / code / assets / help / game),
+deferred behind a double-rAF so the card/spotlight transition paints first.
 
 ## Non-negotiable rules (D-DEMO-01…08)
 
@@ -87,3 +96,12 @@ every step focuses the window it acts on first (chat / code / assets / help / ga
 5. AI gate (D-DEMO-06): after the script, every chat send gets the contact-us
    reply (`CONTACT_GATE_MESSAGE`) pointing to airbotix.ai/book + /contact.
    Keep those destinations in sync with marketing.
+
+## Marketing previews (airbotix.ai/try) — same parity rule
+
+The marketing `/try` page previews these demos with REAL captures
+(`airbotix/public/media/try/*.jpg`, played by `TryScenePlayer` with per-scene
+zoom origins). They are a derived artifact of this folder + the studios:
+**any visible UX change here or in the studios ⇒ recapture in the same task**
+via `node scripts/capture-try-scenes.mjs` (see repo-root `AGENTS.md` rule 3).
+Adding a demo? Extend the capture script AND the marketing page's scenes.
