@@ -50,6 +50,9 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
       'our teaching AI, builds it. This one is ready to go.',
     nextLabel: 'Create the game',
     placement: 'beside-input',
+    // LEFT of the prompt box when it fits; never 'above' — the studio logo
+    // sits right over the box and the card must not cover it.
+    anchorPrefer: ['left', 'below', 'right'],
     hideSkip: true,
     action: { kind: 'landing-create' },
   },

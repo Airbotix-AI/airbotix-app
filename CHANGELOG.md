@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grou
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
 ## 2026-06-12 
+### Changed (anchored tour cards)
+- **Tour cards now sit CLOSE to the spotlight area** (both demos): the card anchors
+  beside the spotlit rect like a popover — first side with room (below → above →
+  right → left), centred on the target, viewport-clamped — and FLIP-glides as the
+  spotlight moves (in-flight overrides, dragged windows, layout flips). Cards can
+  prefer/exclude sides (`anchorPrefer`): the landing card anchors LEFT of the
+  prompt box and never 'above' (the studio logo lives there). Static placements
+  remain only as fallback for no-spotlight cards (intro, finale), narrow-viewport
+  misses, and during the opening sweep.
+
+
 ### Changed (Cat's Day Out — the run owns the spotlight)
 - The "Press ▶ Go!" card now PLAYS the story properly: its Next presses the REAL
   Go button for the user (label "▶ Press Go!"), and whether Go was pressed by the

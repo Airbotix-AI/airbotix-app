@@ -308,3 +308,41 @@ describe('split-layout placement remap', () => {
     expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('bottom-left');
   });
 });
+
+describe('anchored placement (card close to the spotlight)', () => {
+  it('anchors beside the target and exposes the chosen side', async () => {
+    const target = document.createElement('button');
+    target.id = 'anchor-target';
+    target.getBoundingClientRect = () =>
+      ({ left: 300, top: 40, right: 420, bottom: 80, width: 120, height: 40 }) as DOMRect;
+    document.body.appendChild(target);
+    render(
+      <DemoTourOverlay
+        steps={[{ title: 'Anchored', body: 'b', placement: 'bottom-left', spotlight: '#anchor-target' }]}
+        step={0}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => {
+      const card = screen.getByTestId('tour-card');
+      expect(card.getAttribute('data-placement')).toBe('anchored');
+      expect(card.getAttribute('data-anchored')).toBe('below'); // room below the rect
+    });
+    target.remove();
+  });
+
+  it('cards without a spotlight keep their static fallback placement', () => {
+    render(
+      <DemoTourOverlay
+        steps={[{ title: 'Plain', body: 'b', placement: 'bottom-left' }]}
+        step={0}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('bottom-left');
+  });
+});

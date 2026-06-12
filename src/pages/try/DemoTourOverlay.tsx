@@ -42,7 +42,17 @@ export interface DemoTourStep {
    * (visual only — nothing is blocked) so the user knows where to look/act.
    */
   spotlight?: string;
+  /**
+   * Preferred anchor sides for THIS card, tried in order (default:
+   * below → above → right → left). Also an exclusion list: omitted sides are
+   * never used — e.g. the landing card omits 'above' so it can never sit on
+   * the studio logo above the prompt box.
+   */
+  anchorPrefer?: AnchorSide[];
 }
+
+export type AnchorSide = 'below' | 'above' | 'right' | 'left';
+const DEFAULT_ANCHOR_ORDER: AnchorSide[] = ['below', 'above', 'right', 'left'];
 
 /** Padding around the spotlighted element's rect. */
 const SPOT_PAD = 8;
@@ -66,12 +76,16 @@ const fullViewport = (): SpotRect => ({
  * (and between targets on step change); re-measures on resize and capture-phase
  * scroll; renders nothing if the selector matches nothing.
  */
-function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean }) {
+function useSpotRect(selector: string | undefined): SpotRect | null {
   const [rect, setRect] = useState<SpotRect | null>(() =>
-    typeof window === 'undefined' ? null : fullViewport(),
+    typeof window === 'undefined' || !selector ? null : fullViewport(),
   );
 
   useEffect(() => {
+    if (!selector) {
+      setRect(null);
+      return;
+    }
     const measure = () => {
       const el = document.querySelector(selector);
       // A zero-size rect = the target isn't really on screen (e.g. a Monaco
@@ -118,7 +132,10 @@ function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean })
     };
   }, [selector]);
 
-  if (!rect) return null;
+  return rect;
+}
+
+function SpotlightMask({ rect, dark }: { rect: SpotRect; dark?: boolean }) {
   return (
     <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* DE-EMPHASIS mask (both themes): everything outside the rounded
@@ -236,10 +253,12 @@ export function DemoTourOverlay({
   onSkip,
 }: DemoTourOverlayProps) {
   const current = steps[step];
+  const spotlight = current ? (spotlightOverride ?? current.spotlight) : undefined;
+  const spotRect = useSpotRect(current && !current.modal ? spotlight : undefined);
   // FLIP: when the card's resolved position changes (next step, layout flip,
-  // split remap), animate the move instead of teleporting. The transform lives
-  // on a dedicated middle wrapper — the OUTER placement wrapper may use class
-  // translates (center/beside-input) an inline transform would clobber.
+  // split remap, spotlight anchor move), animate the move instead of
+  // teleporting. The transform lives on a dedicated middle wrapper — the OUTER
+  // placement wrapper may use class translates an inline transform would clobber.
   const flipRef = useRef<HTMLDivElement>(null);
   const prevRectRef = useRef<{ left: number; top: number } | null>(null);
   useLayoutEffect(() => {
@@ -259,10 +278,55 @@ export function DemoTourOverlay({
       el.style.transform = '';
     });
   });
+  // ── anchored placement: the card sits CLOSE to the spotlight area ─────────
+  // Pick the first side with room (below → above → right → left), centred on
+  // the target and clamped to the viewport. Skipped while the mask is still
+  // ~viewport-sized (the opening sweep) and for modal/no-spotlight cards —
+  // those fall back to the static placement classes.
+  const [anchor, setAnchor] = useState<{ left: number; top: number; side: string } | null>(null);
+  useLayoutEffect(() => {
+    const el = flipRef.current;
+    if (!spotRect || !el) {
+      setAnchor(null);
+      return;
+    }
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    if (spotRect.right - spotRect.left > W * 0.85 && spotRect.bottom - spotRect.top > H * 0.85) {
+      setAnchor(null); // opening sweep / near-fullscreen target
+      return;
+    }
+    const GAP = 14;
+    const M = 12;
+    const cw = el.offsetWidth;
+    const ch = el.offsetHeight;
+    const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+    const cx = clamp((spotRect.left + spotRect.right) / 2 - cw / 2, M, W - cw - M);
+    const cy = clamp((spotRect.top + spotRect.bottom) / 2 - ch / 2, M, H - ch - M);
+    const candidates: Record<AnchorSide, { fits: boolean; left: number; top: number }> = {
+      below: { fits: spotRect.bottom + GAP + ch <= H - M, left: cx, top: spotRect.bottom + GAP },
+      above: { fits: spotRect.top - GAP - ch >= M, left: cx, top: spotRect.top - GAP - ch },
+      right: { fits: spotRect.right + GAP + cw <= W - M, left: spotRect.right + GAP, top: cy },
+      left: { fits: spotRect.left - GAP - cw >= M, left: spotRect.left - GAP - cw, top: cy },
+    };
+    let next: { left: number; top: number; side: string } | null = null;
+    for (const side of current?.anchorPrefer ?? DEFAULT_ANCHOR_ORDER) {
+      const c = candidates[side];
+      if (c.fits) {
+        next = { left: c.left, top: c.top, side };
+        break;
+      }
+    }
+    setAnchor((prev) =>
+      prev && next && prev.left === next.left && prev.top === next.top && prev.side === next.side
+        ? prev
+        : next,
+    );
+  }, [spotRect, step, current?.anchorPrefer]);
+
   if (!current) return null;
   let placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
   if (splitLayout && placement === 'bottom-left') placement = 'top-left';
-  const spotlight = spotlightOverride ?? current.spotlight;
 
   return (
     <div
@@ -283,7 +347,7 @@ export function DemoTourOverlay({
           )}
         />
       )}
-      {!current.modal && spotlight && <SpotlightMask selector={spotlight} dark={darkUi} />}
+      {!current.modal && spotRect && <SpotlightMask rect={spotRect} dark={darkUi} />}
       {/* Placement (absolute + translate) lives on the OUTER wrapper; the card
           itself remounts per step (key) with a short rise/fade entrance, so a
           placement jump reads as a new card arriving — not the old one teleporting.
@@ -292,15 +356,17 @@ export function DemoTourOverlay({
       <div
         className={clsx(
           'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))]',
-          PLACEMENT_CLASS[placement],
+          !anchor && PLACEMENT_CLASS[placement],
         )}
+        style={anchor ? { left: anchor.left, top: anchor.top } : undefined}
       >
       {/* FLIP element — transform-only, measured/animated by the hook above */}
       <div ref={flipRef}>
       <div
         key={step}
         data-testid="tour-card"
-        data-placement={placement}
+        data-placement={anchor ? 'anchored' : placement}
+        data-anchored={anchor?.side}
         className={clsx(
           'animate-tour-card-in rounded-3xl p-6 shadow-2xl motion-reduce:animate-none',
           // The card matches the studio's theme but stays HIGHLY visible:
