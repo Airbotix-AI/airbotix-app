@@ -19,6 +19,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   ring already signals liveness.
 
 ## 2026-06-12 
+### Fixed (playground syntax-error locations, D-PAP-30)
+- Syntax errors in a game now reach the console — and the AI self-fix
+  round-trip — with the kid's real **file:line**. A script that fails to parse
+  never gets its `//# sourceURL` applied, so the browser reported
+  `about:srcdoc:N` (or nothing); `buildGamePreview` now returns each script's
+  line range inside the srcdoc and `GameFrame` resolves error locations through
+  it (`resolveErrorLoc`), dropping untranslatable host-chrome locations rather
+  than misleading the fixer.
+
 ### Changed (blocks scroll polish)
 - Every scrolling studio zone (character/page rails, category bar, palette,
   program area) now uses `FadeScroller`: native scrollbars are hidden (the
