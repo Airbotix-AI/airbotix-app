@@ -15,6 +15,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   on step change; reduced-motion safe); re-measures on resize/scroll. Wired into
   the Cat's Day Out tour: Go button, stage, "What they do" tracks, Pages rail
   (cards repositioned off their spotlights).
+- Spotlight wired across the **Game Playground tour** too: every card except the
+  free-explore finale highlights where to look (landing prompt box, Game Runner,
+  Code Editor, Asset Viewer, console, Guide — via a new `data-window` attribute on
+  the studio's floating windows + a `landing-prompt-box` testid, both inert).
+  The mask now also TRACKS moving targets (light 250ms poll with change-detection)
+  since playground windows are draggable.
 
 
 ### Fixed (zone labels refinement)

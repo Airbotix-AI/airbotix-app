@@ -78,20 +78,35 @@ function SpotlightMask({ selector }: { selector: string }) {
         return;
       }
       const r = el.getBoundingClientRect();
-      setRect({
+      const next: SpotRect = {
         left: Math.max(0, r.left - SPOT_PAD),
         top: Math.max(0, r.top - SPOT_PAD),
         right: r.right + SPOT_PAD,
         bottom: r.bottom + SPOT_PAD,
-      });
+      };
+      // Bail on no movement so the poll doesn't re-render every tick.
+      setRect((prev) =>
+        prev &&
+        prev.left === next.left &&
+        prev.top === next.top &&
+        prev.right === next.right &&
+        prev.bottom === next.bottom
+          ? prev
+          : next,
+      );
     };
     // First measure on the NEXT frame: the full-viewport mount state gets one
     // painted frame, so the shrink onto the target actually transitions.
     const raf = requestAnimationFrame(measure);
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
+    // Playground windows are DRAGGABLE (react-rnd) — no resize/scroll event
+    // fires while one moves, so poll lightly too. `setRect` bails on equal
+    // values (see measure), so the idle cost is one rect read per tick.
+    const tick = setInterval(measure, 250);
     return () => {
       cancelAnimationFrame(raf);
+      clearInterval(tick);
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };

@@ -67,3 +67,12 @@ describe('PLAYGROUND_TOUR (v2)', () => {
     }
   });
 });
+
+  it('every card except the free-explore finale spotlights where to look', () => {
+    const last = PLAYGROUND_TOUR[PLAYGROUND_TOUR.length - 1];
+    expect(last.action.kind).toBe('finish');
+    expect(last.spotlight).toBeUndefined(); // the whole studio is theirs
+    for (const card of PLAYGROUND_TOUR.slice(0, -1)) {
+      expect(card.spotlight, `"${card.title}" needs a spotlight`).toMatch(/^\[data-/);
+    }
+  });

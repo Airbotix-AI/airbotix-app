@@ -27,6 +27,7 @@ export interface PlaygroundTourCard extends DemoTourStep {
 export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   {
     title: 'Every game starts with a sentence',
+    spotlight: '[data-testid="landing-prompt-box"]',
     body:
       'No syntax, no setup — your child describes a game in plain words and Airo, ' +
       'our teaching AI, builds it. This one is ready to go.',
@@ -37,6 +38,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Meet your game',
+    spotlight: '[data-window="game"]',
     body:
       'Built and already running — move the basket, catch the apples. In a lesson, ' +
       'this first playable moment lands in under a minute.',
@@ -46,6 +48,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'One ask → one change',
+    spotlight: '[data-window="game"]',
     body:
       'One request, one small visible change — the apples really do fall faster. ' +
       'Ask, play, repeat: that tight loop is the lesson.',
@@ -55,6 +58,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'See the line that changed',
+    spotlight: '[data-window="code"]',
     body:
       'Behind the friendly chat is real JavaScript — and the exact line that just ' +
       'changed is highlighted. That is the code your child learns to read.',
@@ -64,6 +68,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Keep score',
+    spotlight: '[data-window="game"]',
     body:
       'Ten points a catch — watch the number climb. Scores sneak real maths and ' +
       'cause-and-effect into every game.',
@@ -73,6 +78,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Code that explains itself',
+    spotlight: '[data-window="code"]',
     body:
       'Watch: the scoring code gets selected, the ✨ Explain this button pops up ' +
       'over it, and Airo answers in plain words. Curiosity always gets an answer.',
@@ -82,6 +88,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Airo can draw, too',
+    spotlight: '[data-window="assets"]',
     body:
       'The Asset Viewer holds the game’s art — the same apples and basket on ' +
       'screen. Airo just drew a brand-new apple sticker from one sentence.',
@@ -91,6 +98,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Remix until it sparkles',
+    spotlight: '[data-window="assets"]',
     body:
       'Not quite right? Remix it — same sticker, new twist, as many times as it ' +
       'takes. Golden and sparkly it is.',
@@ -100,6 +108,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Your art, in your game',
+    spotlight: '[data-window="game"]',
     body:
       'The remixed sticker just became the real apple — look at the game: golden ' +
       'apples are falling. Imagine, draw, play: the whole loop in one place.',
@@ -109,6 +118,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Even pros hit errors',
+    spotlight: '[data-testid="console-list"]',
     body:
       'That ask broke the game — and the console caught it, pointing at the exact ' +
       'line. Reading an error calmly is a superpower we teach early.',
@@ -118,6 +128,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Airo reads the console and fixes it',
+    spotlight: '[data-window="game"]',
     body:
       'Airo found the missing piece, repaired the code, and the game restarted — ' +
       'now the win banner is ready and waiting. Debugging, demonstrated.',
@@ -127,6 +138,7 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Stuck? The Guide knows',
+    spotlight: '[data-window="help"]',
     body:
       'The same guide your child reads in lessons — searchable, diagram-rich, with ' +
       'a Simple or More reading level. Help is always one tap away.',
