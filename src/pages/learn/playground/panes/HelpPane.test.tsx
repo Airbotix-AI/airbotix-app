@@ -11,7 +11,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
+// CI's jsdom (Node 20) has no Element.scrollTo — the reader calls the real one.
+beforeAll(() => {
+  if (!Element.prototype.scrollTo) {
+    Element.prototype.scrollTo = () => {};
+  }
+});
 
 import { setDemoHelpCorpus } from './help/helpApi';
 import type { HelpCorpus } from './help/helpTypes';
