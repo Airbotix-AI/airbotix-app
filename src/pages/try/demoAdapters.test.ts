@@ -159,9 +159,13 @@ describe('blocks demo adapter', () => {
 
   it('always opens in LIGHT theme without touching the stored preference', () => {
     useBlocksTheme.setState({ theme: 'dark' }); // e.g. system-pref dark
-    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    // Node-env safe (CI's Node 20 has no global Storage): stub a localStorage
+    // and assert the install never writes the theme key to it.
+    const setItem = vi.fn();
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem });
     installBlocksDemo();
     expect(useBlocksTheme.getState().theme).toBe('light');
-    expect(setItem).not.toHaveBeenCalledWith('bsx-theme', expect.anything());
+    expect(setItem).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
