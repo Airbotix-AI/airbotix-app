@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grou
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
 ## 2026-06-12 
+### Fixed (tour navigation & placement)
+- Blocks demo: the story plays only on the FIRST arrival at the Press-Go card —
+  after browsing Back, going forward just navigates (frontier semantics, like the
+  playground), and a user's own Go press on a revisit is plain exploration.
+- Tour cards no longer flash in from screen corners when a step's target is still
+  resolving (an opening window, a not-yet-popped toolbar): the card HOLDS its last
+  position until the new anchor lands ('pending' vs 'no-fit' anchor states).
+- Landing card never touches the prompt box: anchors LEFT only, with fit decisions
+  using the card's nominal width (a first-frame narrow measurement could approve a
+  side the full card then overflowed onto the target); narrow viewports use the
+  beside-input left column.
+
+
 ### Changed (anchored tour cards)
 - **Tour cards now sit CLOSE to the spotlight area** (both demos): the card anchors
   beside the spotlit rect like a popover — first side with room (below → above →

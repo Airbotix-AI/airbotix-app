@@ -284,21 +284,35 @@ export function DemoTourOverlay({
   // ~viewport-sized (the opening sweep) and for modal/no-spotlight cards —
   // those fall back to the static placement classes.
   const [anchor, setAnchor] = useState<{ left: number; top: number; side: string } | null>(null);
+  // Distinguish WHY there's no anchor: 'pending' (target still resolving — hold
+  // the last position for transition continuity) vs 'no-fit' (target known,
+  // no side fits — use the card's static fallback placement).
+  const [anchorStatus, setAnchorStatus] = useState<'anchored' | 'no-fit' | 'pending'>('pending');
+  // The card's last on-screen coordinates. While a spotlight card's target is
+  // still resolving (a toolbar that hasn't popped, a window that's opening),
+  // the card HOLDS this position instead of snapping to a fallback corner —
+  // so every transition starts from where the previous card actually was.
+  const lastPosRef = useRef<{ left: number; top: number } | null>(null);
   useLayoutEffect(() => {
     const el = flipRef.current;
     if (!spotRect || !el) {
       setAnchor(null);
+      setAnchorStatus('pending');
       return;
     }
     const W = window.innerWidth;
     const H = window.innerHeight;
     if (spotRect.right - spotRect.left > W * 0.85 && spotRect.bottom - spotRect.top > H * 0.85) {
       setAnchor(null); // opening sweep / near-fullscreen target
+      setAnchorStatus('pending');
       return;
     }
     const GAP = 14;
     const M = 12;
-    const cw = el.offsetWidth;
+    // Fit decisions use the card's NOMINAL anchored width — measuring the live
+    // element can catch a narrower fallback-class frame and approve a side the
+    // full-width card then overflows onto the target.
+    const cw = Math.min(420, W - 32);
     const ch = el.offsetHeight;
     const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
     const cx = clamp((spotRect.left + spotRect.right) / 2 - cw / 2, M, W - cw - M);
@@ -317,6 +331,8 @@ export function DemoTourOverlay({
         break;
       }
     }
+    if (next) lastPosRef.current = { left: next.left, top: next.top };
+    setAnchorStatus(next ? 'anchored' : 'no-fit');
     setAnchor((prev) =>
       prev && next && prev.left === next.left && prev.top === next.top && prev.side === next.side
         ? prev
@@ -327,6 +343,14 @@ export function DemoTourOverlay({
   if (!current) return null;
   let placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
   if (splitLayout && placement === 'bottom-left') placement = 'top-left';
+  // Hold the previous position ONLY while this spotlight card's target is
+  // still resolving ('pending'). A known target with no fitting side
+  // ('no-fit') uses the static fallback — its placement classes also carry
+  // per-card widths (e.g. the landing card's narrow left column).
+  const heldPos =
+    !anchor && anchorStatus === 'pending' && !current.modal && spotlight && lastPosRef.current
+      ? { left: lastPosRef.current.left, top: lastPosRef.current.top }
+      : null;
 
   return (
     <div
@@ -356,9 +380,9 @@ export function DemoTourOverlay({
       <div
         className={clsx(
           'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))]',
-          !anchor && PLACEMENT_CLASS[placement],
+          !anchor && !heldPos && PLACEMENT_CLASS[placement],
         )}
-        style={anchor ? { left: anchor.left, top: anchor.top } : undefined}
+        style={anchor ?? heldPos ?? undefined}
       >
       {/* FLIP element — transform-only, measured/animated by the hook above */}
       <div ref={flipRef}>

@@ -79,6 +79,9 @@ export function TryBlocksPage() {
   // spotlight sits on the stage and the tour waits for the animation to finish.
   const [playing, setPlaying] = useState(false);
   const [spotOverride, setSpotOverride] = useState<string | null>(null);
+  // Furthest card reached: Next PLAYS the story only on the first arrival at
+  // the Press-Go card — browsing Back and forward again just navigates.
+  const frontierRef = useRef(0);
   // The studio's LIVE theme (the demo opens light, but the studio's own toggle
   // works): the overlay's scrim/backdrop re-pick on a mid-tour flip.
   const theme = useBlocksTheme((s) => s.theme);
@@ -100,10 +103,11 @@ export function TryBlocksPage() {
         goRef.current = go;
       },
       onStoryRun: (phase) => {
+        // Only the FIRST run at the Press-Go card belongs to the tour —
+        // revisits (Back) and later runs are the user's own exploration.
+        const tourRun = viewRef.current === GO_CARD && frontierRef.current <= GO_CARD;
         if (phase === 'start') {
-          // Spotlight the SCENE for the whole run — only while the tour is on
-          // the Press-Go card (later runs are the user's own exploration).
-          if (viewRef.current === GO_CARD) {
+          if (tourRun) {
             setSpotOverride(STAGE_SPOTLIGHT);
             setPlaying(true);
           }
@@ -113,7 +117,10 @@ export function TryBlocksPage() {
         setPlaying(false);
         // The animation finished — move on. The next card spotlights the
         // stage too, so the handoff is zero-movement.
-        if (viewRef.current === GO_CARD) setView(GO_CARD + 1);
+        if (tourRun) {
+          frontierRef.current = GO_CARD + 1;
+          setView(GO_CARD + 1);
+        }
       },
     }),
     [],
@@ -137,15 +144,17 @@ export function TryBlocksPage() {
             spotlightOverride={spotOverride}
             darkUi={theme === 'dark'}
             onNext={() => {
-              // The Press-Go card's Next presses the REAL Go for the user; the
-              // run-finished callback advances. (Fallback: plain advance if the
-              // studio hasn't bound yet.)
-              if (view === GO_CARD && goRef.current) {
+              // The Press-Go card's Next presses the REAL Go for the user — but
+              // only on the FIRST arrival; after Back, forward just navigates.
+              if (view === GO_CARD && frontierRef.current <= GO_CARD && goRef.current) {
                 goRef.current();
                 return;
               }
               if (view >= TOUR.length - 1) setDone(true);
-              else setView(view + 1);
+              else {
+                frontierRef.current = Math.max(frontierRef.current, view + 1);
+                setView(view + 1);
+              }
             }}
             onBack={() => setView((v) => Math.max(0, v - 1))}
             onSkip={() => setDone(true)}
