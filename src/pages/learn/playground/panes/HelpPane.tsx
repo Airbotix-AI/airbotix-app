@@ -39,11 +39,29 @@ interface HelpSlice {
 
 const DEFAULT_DOC = 'engine/what-is-an-engine';
 
+/** Below this pane width the two-column layout reads badly — collapse to a
+ *  single column: the reader full-width, with a "Topics" toggle in the header
+ *  (mobile-docs style). The Guide can spawn in a narrow chat-respecting column
+ *  and users can resize it arbitrarily, so this must look good at any width. */
+const NARROW_PANE_PX = 480;
+
 export function HelpPane({ mode, request }: HelpPaneProps) {
   const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC, tier: mode });
   const [tier, setTier] = useState<Tier>(saved.tier);
   const [docId, setDocId] = useState<string>(saved.docId);
   const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const measure = () => setNarrow(el.clientWidth > 0 && el.clientWidth < NARROW_PANE_PX);
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, []);
 
   // The corpus is the backend's single source — fetched once via GET /help/docs
   // and rendered/searched client-side (the kid's query never leaves the device).
@@ -74,6 +92,7 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
   const open = (id: string, anchor?: string) => {
     setDocId(id);
     setQuery('');
+    setShowTopics(false); // narrow mode: picking a topic returns to the reader
     if (anchor) setPendingAnchor(anchor);
     else readerRef.current?.scrollTo({ top: 0 });
   };
@@ -90,9 +109,15 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
   }, [request]);
 
   return (
-    <div className="flex h-full min-h-0 bg-pg-bg text-pg-text" data-testid="help-pane">
-      {/* ── Left: search + nav ─────────────────────────────────────────────── */}
-      <nav className="flex w-48 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
+    <div ref={rootRef} className="flex h-full min-h-0 bg-pg-bg text-pg-text" data-testid="help-pane" data-narrow={narrow || undefined}>
+      {/* ── Left: search + nav (narrow mode: a full-width TOPICS view, toggled
+          from the reader header — two cramped columns read badly) ──────────── */}
+      <nav
+        className={clsx(
+          'flex shrink-0 flex-col bg-pg-surface',
+          narrow ? (showTopics ? 'w-full' : 'hidden') : 'w-48 border-r border-pg-border',
+        )}
+      >
         <div className="border-b border-pg-border p-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-pg-border bg-pg-bg px-2">
             <Search size={14} className="shrink-0 text-pg-text-muted" />
@@ -156,9 +181,19 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
       </nav>
 
       {/* ── Right: reader ──────────────────────────────────────────────────── */}
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <section className={clsx('flex min-h-0 min-w-0 flex-1 flex-col', narrow && showTopics && 'hidden')}>
         <header className="flex shrink-0 items-center justify-between gap-2 border-b border-pg-border bg-pg-surface px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
+            {narrow && (
+              <button
+                type="button"
+                data-testid="help-topics-toggle"
+                onClick={() => setShowTopics(true)}
+                className="flex shrink-0 items-center gap-1 rounded-full border border-pg-border px-2 py-1 text-[12px] font-bold text-pg-text-dim transition-colors hover:text-pg-text"
+              >
+                ☰ Topics
+              </button>
+            )}
             <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-brand-sunshine text-ink">
               <BookOpen size={14} />
             </span>

@@ -10,8 +10,8 @@ import '@testing-library/jest-dom/vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { setDemoHelpCorpus } from './help/helpApi';
 import type { HelpCorpus } from './help/helpTypes';
@@ -68,5 +68,56 @@ describe('playground theme tokens pin color-scheme', () => {
     ['dark', /\[data-theme='dark'\]\s*\{[^}]*color-scheme:\s*dark/],
   ])('the %s theme block declares color-scheme', (_theme, pattern) => {
     expect(css).toMatch(pattern);
+  });
+});
+
+describe('narrow pane: single-column reader with a Topics toggle', () => {
+  function stubNarrow(width: number) {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        cb: ResizeObserverCallback;
+        constructor(cb: ResizeObserverCallback) {
+          this.cb = cb;
+        }
+        observe(el: Element) {
+          Object.defineProperty(el, 'clientWidth', { configurable: true, value: width });
+          this.cb([] as never, this as never);
+        }
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+  }
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('collapses below the threshold: nav hidden, ☰ Topics opens it, picking a doc returns', async () => {
+    stubNarrow(300);
+    renderPane();
+    await screen.findByTestId('help-reader');
+    // nav is hidden; the reader owns the full width
+    expect(screen.getByTestId('help-pane').getAttribute('data-narrow')).toBe('true');
+    const nav = () => screen.getByTestId('help-search-input').closest('nav')!;
+    // (class assertions: jsdom loads no Tailwind stylesheet, so `hidden` is
+    // the contract, not computed visibility)
+    expect(nav().className).toContain('hidden');
+    // open topics, pick a doc, back to the reader
+    fireEvent.click(screen.getByTestId('help-topics-toggle'));
+    expect(nav().className).toContain('w-full');
+    expect(nav().className).not.toContain('hidden');
+    const docLink = screen.getAllByTestId(/help-nav-doc-/)[0];
+    fireEvent.click(docLink);
+    expect(nav().className).toContain('hidden');
+    expect(screen.getByTestId('help-reader')).toBeInTheDocument();
+  });
+
+  it('wide panes keep the two-column layout (no toggle)', async () => {
+    stubNarrow(600);
+    renderPane();
+    await screen.findByTestId('help-reader');
+    expect(screen.getByTestId('help-pane').getAttribute('data-narrow')).toBeNull();
+    expect(screen.queryByTestId('help-topics-toggle')).not.toBeInTheDocument();
+    expect(screen.getByTestId('help-search-input').closest('nav')!.className).toContain('w-48');
   });
 });

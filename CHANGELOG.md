@@ -108,6 +108,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   shell in both layouts and asserts every panel spotlight resolves + live
   focusPanel routing through a pre-flip handler.
 
+## 2026-06-12 (Guide pane — responsive)
+
+### Fixed
+- **The Guide reads well at ANY width.** Below 480px the two-column layout
+  collapsed text into a sliver; the pane now goes single-column — the reader
+  full-width, with a "☰ Topics" header chip flipping to the full-width topic
+  list + search (mobile-docs pattern). Applies wherever the Guide is narrow:
+  its chat-respecting spawn column, user resizes, the demo tour. Unit-tested
+  (collapse threshold, toggle round-trip, wide layout untouched).
+
 ## 2026-06-12 (Guide placement)
 
 ### Fixed
