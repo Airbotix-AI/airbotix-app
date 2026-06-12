@@ -49,6 +49,7 @@ describe('BlocksStudioPage zone labels', () => {
       ['zone-stage', '🎬Stage'],
       ['zone-chars', '🐱Characters'],
       ['zone-pages', '📖Pages'],
+      ['zone-cats', '🧰Kinds'],
       ['zone-palette', '🧩Blocks'],
       ['zone-script', '✨What they do'],
     ];
@@ -65,6 +66,7 @@ describe('BlocksStudioPage zone labels', () => {
     expect(screen.getByTestId('blocks-stage')).toHaveAttribute('aria-label', 'Stage');
     expect(screen.getByLabelText('Characters')).toBeInTheDocument();
     expect(screen.getByLabelText('Pages')).toBeInTheDocument();
+    expect(screen.getByLabelText('Kinds of blocks')).toBeInTheDocument();
     expect(screen.getByTestId('palette')).toHaveAttribute('aria-label', 'Blocks');
     expect(screen.getByTestId('script-area')).toHaveAttribute('aria-label', 'What they do');
   });

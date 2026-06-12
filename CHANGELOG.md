@@ -6,6 +6,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Fixed (zone labels refinement)
+- Rail tags (Characters/Pages) no longer overflow their narrow columns — stacked
+  variant (emoji above one tiny word, spanning the column like a header) with
+  ellipsis as a safety net; the block-category bar gained its missing tag
+  ("🧰 Kinds", full-width header above the buttons; aria updated to match).
+
+
 ### Added
 - **Blocks Studio zone labels (clarity pass).** Every studio area now wears a small
   emoji-first name tag for pre-readers (ages 5–8): 🎬 Stage, 🐱 Characters, 📖 Pages,

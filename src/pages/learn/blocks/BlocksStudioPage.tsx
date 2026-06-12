@@ -951,7 +951,8 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
 
       {/* ── coding band ── */}
       <section className="bsx-coder">
-        <nav className="bsx-catbar" aria-label="Block categories">
+        <nav className="bsx-catbar" aria-label="Kinds of blocks">
+          <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
           {CATEGORIES.map((c) => (
             <button
               key={c.id}

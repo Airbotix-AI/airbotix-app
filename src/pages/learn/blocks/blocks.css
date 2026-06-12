@@ -617,13 +617,40 @@
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
-/* rails: an in-flow first item (the rails scroll, so absolute would cover the
-   first thumb or scroll away) — zone colours match the rail washes above */
+/* narrow columns (rails + the category bar): an in-flow first item (these
+   scroll, so absolute would cover the first thumb or scroll away), STACKED —
+   emoji above one tiny word, spanning the column like a header — so the text
+   can never overflow the narrow column. Ellipsis is a safety net only. */
+.bsx-zonetag.zt-chars,
+.bsx-zonetag.zt-pages,
+.bsx-zonetag.zt-cats {
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  max-width: 100%;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 14px;
+  font-size: 10px;
+}
+.bsx-zonetag.zt-chars .zt-txt,
+.bsx-zonetag.zt-pages .zt-txt,
+.bsx-zonetag.zt-cats .zt-txt {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .bsx-zonetag.zt-chars {
   --zc: var(--bsx-cat-motion);
 }
 .bsx-zonetag.zt-pages {
   --zc: var(--bsx-cat-end);
+}
+.bsx-zonetag.zt-cats {
+  --zc: var(--bsx-cat-trigger);
+  /* in the two-column catbar grid: a full-width header above the buttons */
+  grid-column: 1 / -1;
+  justify-self: stretch;
 }
 /* palette + program: pinned name tags straddling the zone's top-left border
    (their wrappers are position:relative; the scrollers underneath move freely) */
