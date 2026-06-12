@@ -5,7 +5,7 @@
 // top and only instructs — every interaction (▶ Go, taps, number tiles, drags,
 // pages) is the real editor. No AI gate needed: Blocks Studio has no AI today.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
 import { useBlocksTheme } from '../learn/blocks/blocksTheme';
@@ -28,9 +28,10 @@ const TOUR: DemoTourStep[] = [
   {
     title: 'Press ▶ Go!',
     body:
-      'Tap the green Go button (top right) and watch the cat follow its blocks — start, move, ' +
-      'say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
+      'Tap the green Go button (top right) — or let me — and watch the cat follow its blocks: ' +
+      'start, move, say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
     spotlight: '[data-testid="go-button"]',
+    nextLabel: '▶ Press Go!',
   },
   {
     title: 'Tap a character',
@@ -64,15 +65,26 @@ const TOUR: DemoTourStep[] = [
   },
 ];
 
+/** The 'Press ▶ Go!' card — its Next presses the REAL Go for the user. */
+const GO_CARD = 1;
+const STAGE_SPOTLIGHT = '[data-testid="blocks-stage"]';
+
 export function TryBlocksPage() {
   // Seams armed (the studio must not mount before the adapter is installed —
   // its load effect would otherwise hit the real backend).
   const [armed, setArmed] = useState(false);
   const [view, setView] = useState(0);
   const [done, setDone] = useState(false);
+  // While the story PLAYS (Go pressed by the user OR by the tour's Next), the
+  // spotlight sits on the stage and the tour waits for the animation to finish.
+  const [playing, setPlaying] = useState(false);
+  const [spotOverride, setSpotOverride] = useState<string | null>(null);
   // The studio's LIVE theme (the demo opens light, but the studio's own toggle
   // works): the overlay's scrim/backdrop re-pick on a mid-tour flip.
   const theme = useBlocksTheme((s) => s.theme);
+  const goRef = useRef<(() => void) | null>(null);
+  const viewRef = useRef(0);
+  viewRef.current = view;
 
   useEffect(() => {
     installBlocksDemo();
@@ -80,7 +92,32 @@ export function TryBlocksPage() {
     return uninstallBlocksDemo;
   }, []);
 
-  const demoValue = useMemo<DemoMode>(() => ({ surface: 'blocks', exitHref: DEMO_EXIT_URL }), []);
+  const demoValue = useMemo<DemoMode>(
+    () => ({
+      surface: 'blocks',
+      exitHref: DEMO_EXIT_URL,
+      bindBlocksGo: (go) => {
+        goRef.current = go;
+      },
+      onStoryRun: (phase) => {
+        if (phase === 'start') {
+          // Spotlight the SCENE for the whole run — only while the tour is on
+          // the Press-Go card (later runs are the user's own exploration).
+          if (viewRef.current === GO_CARD) {
+            setSpotOverride(STAGE_SPOTLIGHT);
+            setPlaying(true);
+          }
+          return;
+        }
+        setSpotOverride(null);
+        setPlaying(false);
+        // The animation finished — move on. The next card spotlights the
+        // stage too, so the handoff is zero-movement.
+        if (viewRef.current === GO_CARD) setView(GO_CARD + 1);
+      },
+    }),
+    [],
+  );
 
   return (
     <DemoModeProvider value={demoValue}>
@@ -95,8 +132,21 @@ export function TryBlocksPage() {
           <DemoTourOverlay
             steps={TOUR}
             step={view}
+            busy={playing}
+            busyLabel="Playing… 🎬"
+            spotlightOverride={spotOverride}
             darkUi={theme === 'dark'}
-            onNext={() => (view >= TOUR.length - 1 ? setDone(true) : setView(view + 1))}
+            onNext={() => {
+              // The Press-Go card's Next presses the REAL Go for the user; the
+              // run-finished callback advances. (Fallback: plain advance if the
+              // studio hasn't bound yet.)
+              if (view === GO_CARD && goRef.current) {
+                goRef.current();
+                return;
+              }
+              if (view >= TOUR.length - 1) setDone(true);
+              else setView(view + 1);
+            }}
             onBack={() => setView((v) => Math.max(0, v - 1))}
             onSkip={() => setDone(true)}
           />

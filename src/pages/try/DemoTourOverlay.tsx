@@ -196,6 +196,8 @@ interface DemoTourOverlayProps {
   step: number;
   /** Disables Next while a scripted turn is in flight. */
   busy?: boolean;
+  /** What the disabled Next reads while busy (default: Airo at work). */
+  busyLabel?: string;
   /**
    * While an action is in flight the engine can point the spotlight at the
    * surface where the action is HAPPENING (e.g. the Chat window from the
@@ -225,6 +227,7 @@ export function DemoTourOverlay({
   steps,
   step,
   busy,
+  busyLabel,
   spotlightOverride,
   darkUi,
   splitLayout,
@@ -366,7 +369,7 @@ export function DemoTourOverlay({
               disabled={busy}
               className="min-h-11 max-w-full truncate rounded-full bg-brand-coral px-5 text-[13px] font-extrabold text-white transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
-              {busy ? 'Airo is working…' : (current.nextLabel ?? 'Next →')}
+              {busy ? (busyLabel ?? 'Airo is working…') : (current.nextLabel ?? 'Next →')}
             </button>
           </div>
         </div>

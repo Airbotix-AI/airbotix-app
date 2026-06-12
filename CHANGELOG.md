@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grou
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
 ## 2026-06-12 
+### Changed (Cat's Day Out — the run owns the spotlight)
+- The "Press ▶ Go!" card now PLAYS the story properly: its Next presses the REAL
+  Go button for the user (label "▶ Press Go!"), and whether Go was pressed by the
+  tour or by the user's own finger, the spotlight moves to the STAGE for the whole
+  run ("Playing… 🎬" while the animation lasts) and the tour advances itself when
+  the story finishes — onto a card that also spotlights the stage, so the handoff
+  is zero-movement. Two inert seams in the studio (`bindBlocksGo`, `onStoryRun`
+  around the real flag-run lifecycle).
+
+
 ### Changed (tour polish — motion & dark theme)
 - **Tour cards GLIDE between positions** (FLIP, 350ms) when a step or a
   Windows↔Split flip repositions them — no more teleporting; reduced-motion safe.
