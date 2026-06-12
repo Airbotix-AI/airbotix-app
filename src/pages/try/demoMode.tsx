@@ -40,6 +40,25 @@ export interface DemoStudioControls {
   openGuide: (docId: string, anchor?: string) => void;
 }
 
+/**
+ * The Asset Viewer pane's REAL affordances (T1 §3 step 7): the generate bar's
+ * prompt state setter (the same one its input edits), the exact submit its
+ * "✨ Generate" button calls, and the open-details path an asset-card tap runs.
+ * The tour types into / submits through the real pane UI — never a re-build.
+ */
+export interface DemoAssetPaneControls {
+  setGeneratePrompt: (prompt: string) => void;
+  submitGenerate: () => void;
+  openAssetDetails: (path: string) => void;
+}
+
+/** The asset details view's "Remix with AI" bar (same pattern): its real input
+ *  state setter + the exact submit its "Remix" button calls. */
+export interface DemoRemixControls {
+  setPrompt: (prompt: string) => void;
+  submit: () => void;
+}
+
 export interface DemoMode {
   /** Which demo experience this provider hosts. */
   surface: 'playground' | 'blocks';
@@ -78,6 +97,18 @@ export interface DemoMode {
    * tour can sequence them. First bind = the workspace has mounted.
    */
   bindStudioControls?: (controls: DemoStudioControls) => void;
+  /**
+   * T1 only (§3 step 7a): the Asset Viewer registers its real generate-bar +
+   * details affordances here so the tour can type the wish into the REAL prompt
+   * box and submit through the REAL Generate path. Re-bound on every render
+   * (last bind wins) — the handlers always close over current pane state.
+   */
+  bindAssetPane?: (controls: DemoAssetPaneControls) => void;
+  /**
+   * T1 only (§3 step 7b): the details view's "Remix with AI" bar registers its
+   * real input setter + submit here (it mounts with the details view).
+   */
+  bindAssetRemix?: (controls: DemoRemixControls) => void;
 }
 
 const DemoModeContext = createContext<DemoMode | null>(null);

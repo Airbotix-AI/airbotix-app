@@ -1,21 +1,27 @@
-// The T1 v2 full-product-tour cards for `/try/playground` (try-demo-mode-prd §3
-// v0.6 — the arc: create → play → change → understand → beautify (generate →
-// remix → into the game) → break-and-fix → help → free explore). DATA ONLY: each
-// card carries the overlay copy (concise, adult-facing, journey-only — no
-// technical/meta detail), the PLACEMENT hint (a card never covers the surface it
-// points at), and the ACTION its "Next" fires; `TryPlaygroundPage` is the engine
-// that runs the actions through the studio's real affordances. Script-step
-// indexes refer to `PLAYGROUND_DEMO_SCRIPT.steps`.
+// The T1 v3 full-product-tour cards for `/try/playground` (try-demo-mode-prd §3
+// — the arc: create → play → change → understand (select → explain) → beautify
+// (describe → generate → details → remix → into the game) → break-and-fix →
+// help → free explore). DATA ONLY: each card carries the overlay copy (concise,
+// adult-facing, journey-only — no technical/meta detail), the PLACEMENT hint (a
+// card never covers the surface it points at), the SPOTLIGHT selector (where to
+// look — every card except the finale has one), and the ACTION its "Next"
+// fires; `TryPlaygroundPage` is the engine that runs the actions through the
+// studio's real affordances. Script-step indexes refer to
+// `PLAYGROUND_DEMO_SCRIPT.steps`.
 
 import type { DemoTourStep } from './DemoTourOverlay';
 
 /** What a card's "Next" does (executed by TryPlaygroundPage at the frontier). */
 export type PlaygroundTourAction =
   | { kind: 'landing-create' } // drive the real landing submit (locked prompt)
-  | { kind: 'script'; step: number } // fire script step N through the real chat
+  | { kind: 'script'; step: number } // fire edit script step N through the real chat
   | { kind: 'show-diff'; step: number } // editor jump+highlight on step N's change
-  | { kind: 'asset-generate' } // Asset Viewer: generate the apple sticker (§3 7a)
-  | { kind: 'asset-remix' } // Asset Viewer: remix the generated sticker (§3 7b)
+  | { kind: 'explain-select'; step: number } // select step N's snippet → the real ✨ toolbar pops (§3 6a)
+  | { kind: 'explain-fire'; step: number } // fire the toolbar's real handler on step N (§3 6b)
+  | { kind: 'asset-prompt' } // Asset Viewer: type the wish into the real generate box (§3 7a)
+  | { kind: 'asset-generate' } // submit the pane's real ✨ Generate (§3 7a)
+  | { kind: 'asset-details' } // open the sticker's real details + type the remix wish (§3 7b)
+  | { kind: 'asset-remix' } // submit the details view's real Remix (§3 7b)
   | { kind: 'open-guide' } // open the in-studio Game Guide at the diagram doc
   | { kind: 'advance' } // just move to the next card
   | { kind: 'finish' }; // drop into free explore
@@ -48,10 +54,10 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'One ask → one change',
-    spotlight: '[data-window="game"]',
+    spotlight: '[data-window="chat"]',
     body:
-      'One request, one small visible change — the apples really do fall faster. ' +
-      'Ask, play, repeat: that tight loop is the lesson.',
+      'One request in the chat, one small visible change — the apples really do ' +
+      'fall faster. Ask, play, repeat: that tight loop is the lesson.',
     nextLabel: 'Show me the code',
     placement: 'bottom-left',
     action: { kind: 'show-diff', step: 0 },
@@ -68,30 +74,60 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
   },
   {
     title: 'Keep score',
-    spotlight: '[data-window="game"]',
+    spotlight: '[data-window="chat"]',
     body:
-      'Ten points a catch — watch the number climb. Scores sneak real maths and ' +
-      'cause-and-effect into every game.',
-    nextLabel: 'Explain this code',
+      'Airo confirmed it in the chat: ten points a catch, and the number in the ' +
+      'corner climbs. Scores sneak real maths into every game.',
+    nextLabel: 'Select the code',
     placement: 'bottom-left',
-    action: { kind: 'script', step: 2 },
+    action: { kind: 'explain-select', step: 2 },
+  },
+  {
+    title: 'A ✨ button appears',
+    spotlight: '[data-testid="explain-selection"]',
+    body:
+      'The scoring lines are selected, and the ✨ Explain this button pops up ' +
+      'right over them — your child can do this with any code that looks mysterious.',
+    nextLabel: 'Explain the code',
+    placement: 'top-right',
+    action: { kind: 'explain-fire', step: 2 },
   },
   {
     title: 'Code that explains itself',
-    spotlight: '[data-window="code"]',
+    spotlight: '[data-window="chat"]',
     body:
-      'Watch: the scoring code gets selected, the ✨ Explain this button pops up ' +
-      'over it, and Airo answers in plain words. Curiosity always gets an answer.',
+      'Airo explains the selected lines in plain words, right in the conversation — ' +
+      'no jargon. Curiosity always gets an answer.',
     nextLabel: 'Draw a new apple',
     placement: 'bottom-left',
+    action: { kind: 'asset-prompt' },
+  },
+  {
+    title: 'Describe it, Airo draws it',
+    spotlight: '[data-testid="asset-generate-prompt"]',
+    body:
+      'The Asset Viewer holds the game’s art, and its magic box already has the ' +
+      'wish typed in: a shiny red apple sticker. One sentence is all it takes.',
+    nextLabel: 'Generate ✨',
+    placement: 'bottom-right',
     action: { kind: 'asset-generate' },
   },
   {
     title: 'Airo can draw, too',
     spotlight: '[data-window="assets"]',
     body:
-      'The Asset Viewer holds the game’s art — the same apples and basket on ' +
-      'screen. Airo just drew a brand-new apple sticker from one sentence.',
+      'A brand-new apple sticker just landed next to the game’s own art. ' +
+      'Let’s open it up and have a closer look.',
+    nextLabel: 'Open the sticker',
+    placement: 'bottom-right',
+    action: { kind: 'asset-details' },
+  },
+  {
+    title: 'Same sticker, new twist',
+    spotlight: '[data-testid="asset-remix-prompt"]',
+    body:
+      'Every sticker has its own page — and a Remix box, already filled in: make ' +
+      'it golden and sparkly. Not quite right is never the end.',
     nextLabel: 'Remix it: gold ✨',
     placement: 'bottom-right',
     action: { kind: 'asset-remix' },
@@ -100,8 +136,8 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
     title: 'Remix until it sparkles',
     spotlight: '[data-window="assets"]',
     body:
-      'Not quite right? Remix it — same sticker, new twist, as many times as it ' +
-      'takes. Golden and sparkly it is.',
+      'Golden and sparkly it is — same apple, new shine, saved beside the ' +
+      'original. As many tries as it takes.',
     nextLabel: 'Use it in the game',
     placement: 'bottom-right',
     action: { kind: 'script', step: 3 },

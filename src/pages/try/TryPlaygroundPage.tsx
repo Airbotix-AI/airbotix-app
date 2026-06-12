@@ -1,21 +1,30 @@
 // PUBLIC, no-auth Game Playground demo — `/try/playground` (try-demo-mode-prd
-// §3 T1 v2). Renders the REAL `PlaygroundApp` (unmodified) inside the demo
+// §3 T1 v3). Renders the REAL `PlaygroundApp` (unmodified) inside the demo
 // provider: it starts on the REAL landing phase (prompt pre-filled + locked),
 // plays the REAL generating progress (the bundled starter "streams" file-by-file
 // through the same UI a real first turn drives), and the tour sequences the
 // studio's REAL affordances — landing submit, chat sends (scripted agent behind
 // the stub seam), run/restart, the editor's jump+highlight, the live selection →
-// "✨ Explain this" toolbar, the Asset Viewer's generate → remix → into-the-game
-// loop, and the Game Guide — through the seams the studio registers
-// (`demoMode.tsx`). After the tour: free explore — everything real except AI
-// (gated to contact-us) and cloud features. Reload = pristine demo (D-DEMO-02).
+// "✨ Explain this" toolbar (selected on one card, fired on the next), and the
+// Asset Viewer's own generate bar → details view → remix bar → into-the-game
+// loop — through the seams the studio registers (`demoMode.tsx`). Every action
+// runs AFTER the card/spotlight transition paints (`afterPaint`), and an
+// after-edit restart re-fronts the panel the next card discusses
+// (`restartThenRefocus`). After the tour: free explore — everything real except
+// AI (gated to contact-us) and cloud features. Reload = pristine (D-DEMO-02).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { PlaygroundApp } from '../learn/playground/PlaygroundApp';
 import { useProjectStore } from '../learn/playground/projectStore';
 import { DemoBanner } from './DemoBanner';
-import { DemoModeProvider, type DemoMode, type DemoStudioControls } from './demoMode';
+import {
+  DemoModeProvider,
+  type DemoAssetPaneControls,
+  type DemoMode,
+  type DemoRemixControls,
+  type DemoStudioControls,
+} from './demoMode';
 import { DemoTourOverlay } from './DemoTourOverlay';
 import { installPlaygroundDemo, uninstallPlaygroundDemo } from './demoAdapters';
 import { createScriptedDemoAgent } from './scriptedAgent';
@@ -27,6 +36,7 @@ import {
   TOUR_REMIX_PROMPT,
 } from './demoScript.playground';
 import { PLAYGROUND_TOUR, type PlaygroundTourAction } from './demoTour.playground';
+import { afterPaint, cardForScriptStep, restartThenRefocus } from './tourSequencing';
 
 /**
  * Re-enable the tour's Next if a fired action never lands (e.g. the kid typed
@@ -43,20 +53,12 @@ const ASSET_RECOVERY_MS = 15_000;
 const ASSET_TICK_MS = 250;
 /** Retry an asset request only every Nth tick (~2s) — see runAssetStep. */
 const ASSET_RETRY_TICKS = 8;
-/** §3 step 6: how long the real "✨ Explain this" toolbar stays visibly poised
- *  over the selection before the tour fires it — long enough to SEE the real
- *  affordance, short enough to keep the beat moving. */
-const EXPLAIN_TOOLBAR_MS = 1600;
+/** A retry refills the pane's prompt box first (a submit clears it), then
+ *  submits one beat later so the refill has rendered into the real handler. */
+const REFILL_SUBMIT_MS = 50;
 
 /** A generated Asset Viewer entry (the generation store's output directory). */
 const isGeneratedAsset = (path: string) => path.startsWith('assets/generated/');
-
-/** The tour card whose Next fires script step `index`. */
-function cardForScriptStep(index: number): number {
-  return PLAYGROUND_TOUR.findIndex(
-    (c) => c.action.kind === 'script' && c.action.step === index,
-  );
-}
 
 export function TryPlaygroundPage() {
   // Seams armed (the studio must not mount before the adapters are installed).
@@ -71,13 +73,18 @@ export function TryPlaygroundPage() {
   const sendRef = useRef<((text: string) => void) | null>(null);
   const landingSubmitRef = useRef<(() => void) | null>(null);
   const controlsRef = useRef<DemoStudioControls | null>(null);
+  const assetPaneRef = useRef<DemoAssetPaneControls | null>(null);
+  const remixRef = useRef<DemoRemixControls | null>(null);
+  // Wishes typed "into" a pane that hasn't mounted/bound yet — applied on bind
+  // (the assets window opens, the details view's remix bar mounts, then fills).
+  const pendingGenPromptRef = useRef<string | null>(null);
+  const pendingRemixPromptRef = useRef<string | null>(null);
   // First controls bind = the workspace has mounted (§3 step 2 auto-run fires once).
   const enteredRef = useRef(false);
   // The landing submit fired (cleared only by its recovery) — see 'landing-create'.
   const landingFiredRef = useRef(false);
   const recoveryTimer = useRef<ReturnType<typeof setTimeout>>();
   const assetTimer = useRef<ReturnType<typeof setInterval>>();
-  const explainTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const stopAssetWatch = () => {
     clearInterval(assetTimer.current);
@@ -104,12 +111,19 @@ export function TryPlaygroundPage() {
     installPlaygroundDemo(
       createScriptedDemoAgent({
         onStepApplied: (index) => {
-          advanceTo(cardForScriptStep(index) + 1);
-          // §3: after EVERY scripted change, restart the running game through the
-          // real restart path so the change visibly takes effect. setTimeout(0)
-          // lets the chat hook apply the turn's files first (explains don't edit).
+          const nextCard = cardForScriptStep(index) + 1;
+          advanceTo(nextCard);
+          // §3: after EVERY scripted change, restart the running game through
+          // the real restart path so the change visibly takes effect — then
+          // re-front the panel the next card spotlights (the restart focuses
+          // the Game Runner, which would bury e.g. the conversation).
+          // setTimeout(0) lets the chat hook apply the turn's files first
+          // (explains don't edit).
           if (PLAYGROUND_DEMO_SCRIPT.steps[index]?.kind === 'edit') {
-            setTimeout(() => controlsRef.current?.runGame(), 0);
+            setTimeout(
+              () => restartThenRefocus(controlsRef.current, PLAYGROUND_TOUR[nextCard]?.spotlight),
+              0,
+            );
           }
         },
       }),
@@ -118,7 +132,6 @@ export function TryPlaygroundPage() {
     return () => {
       clearTimeout(recoveryTimer.current);
       clearInterval(assetTimer.current);
-      clearTimeout(explainTimer.current);
       uninstallPlaygroundDemo();
     };
   }, []);
@@ -147,6 +160,20 @@ export function TryPlaygroundPage() {
           controls.runGame();
         }
       },
+      bindAssetPane: (controls) => {
+        assetPaneRef.current = controls;
+        if (pendingGenPromptRef.current) {
+          controls.setGeneratePrompt(pendingGenPromptRef.current);
+          pendingGenPromptRef.current = null;
+        }
+      },
+      bindAssetRemix: (controls) => {
+        remixRef.current = controls;
+        if (pendingRemixPromptRef.current) {
+          controls.setPrompt(pendingRemixPromptRef.current);
+          pendingRemixPromptRef.current = null;
+        }
+      },
     }),
     [],
   );
@@ -156,23 +183,28 @@ export function TryPlaygroundPage() {
     useProjectStore.getState().files.filter((f) => isGeneratedAsset(f.path));
 
   /**
-   * §3 step 7a/7b: run ONE generation through the studio's REAL viewer entry
-   * (crafted offline art; zero network) and advance when it lands. Driven by a
-   * small poll so the call retries until the one-AI-at-a-time lock frees up; the
-   * acting surface (Asset Viewer) is focused at start and again on the result —
-   * the generation itself plays in the chat, exactly like the real product.
+   * §3 step 7a/7b: run ONE generation through the Asset Viewer's REAL submit
+   * path (crafted offline art; zero network) and advance when it lands. Driven
+   * by a small poll so the call retries until the one-AI-at-a-time lock frees
+   * up; the generation itself plays in the chat, exactly like the real product.
    */
-  const runAssetStep = (fromCard: number, fire: () => void) => {
+  const runAssetStep = (
+    fromCard: number,
+    fire: () => void,
+    onLanded?: (path: string) => void,
+  ) => {
     const baseline = generatedAssets().length;
     setSending(true);
     armRecovery(ASSET_RECOVERY_MS);
-    controlsRef.current?.focusPanel('assets');
+    afterPaint(() => controlsRef.current?.focusPanel('assets'));
     stopAssetWatch();
     let tick = 0;
     assetTimer.current = setInterval(() => {
       tick += 1;
-      if (generatedAssets().length >= baseline + 1) {
+      const landed = generatedAssets();
+      if (landed.length >= baseline + 1) {
         stopAssetWatch();
+        onLanded?.(landed[landed.length - 1].path);
         controlsRef.current?.focusPanel('assets');
         advanceTo(fromCard + 1);
       } else if (tick % ASSET_RETRY_TICKS === 1) {
@@ -184,7 +216,9 @@ export function TryPlaygroundPage() {
     }, ASSET_TICK_MS);
   };
 
-  /** Run a frontier card's action through the studio's real affordances. */
+  /** Run a frontier card's action through the studio's real affordances. Cards
+   *  that advance immediately swap the card FIRST and run the heavy driving
+   *  behind `afterPaint`, so the transition never stutters (§3 v3 jank rule). */
   const fireAction = (action: PlaygroundTourAction, card: number) => {
     switch (action.kind) {
       case 'landing-create':
@@ -206,55 +240,103 @@ export function TryPlaygroundPage() {
         const step = PLAYGROUND_DEMO_SCRIPT.steps[action.step];
         setSending(true);
         armRecovery(SEND_RECOVERY_MS);
-        if (step.kind === 'explain') {
-          // §3 step 6: SELECT the snippet through the editor's real jump path —
-          // the real selection pipeline pops the "✨ Explain this" toolbar over
-          // it. Hold that beat so the user SEES the toolbar, then fire the same
-          // handler its click invokes (which surfaces the chat for the answer).
-          const content =
-            useProjectStore.getState().files.find((f) => f.path === step.path)?.content ?? '';
-          const range = locateLines(content, step.snippet);
-          controlsRef.current?.focusPanel('code');
-          if (range) controlsRef.current?.openFileAt(step.path, range.from, range.to, true);
-          clearTimeout(explainTimer.current);
-          explainTimer.current = setTimeout(
-            () => controlsRef.current?.explainSelection(step.snippet),
-            EXPLAIN_TOOLBAR_MS,
-          );
-        } else {
+        afterPaint(() => {
           // §3 v2 (focus rule): the conversation must be on top while Airo works.
           controlsRef.current?.focusPanel('chat');
-          sendRef.current?.(step.prompt);
-        }
+          if (step.kind === 'edit') sendRef.current?.(step.prompt);
+        });
         return; // `onStepApplied` advances when the canned turn settles
       }
       case 'show-diff': {
         // The changed-file-row jump: open the editor on the changed lines.
         const step = PLAYGROUND_DEMO_SCRIPT.steps[action.step];
-        if (step.kind === 'edit') {
+        advanceTo(card + 1);
+        afterPaint(() => {
+          if (step.kind !== 'edit') return;
           const content =
             useProjectStore.getState().files.find((f) => f.path === step.path)?.content ?? '';
           const range = locateLines(content, step.edits[0].replace);
           if (range) controlsRef.current?.openFileAt(step.path, range.from, range.to);
-        }
-        advanceTo(card + 1);
+        });
         return;
       }
-      case 'asset-generate':
-        runAssetStep(card, () => controlsRef.current?.requestAssetGen(TOUR_ASSET_PROMPT));
+      case 'explain-select': {
+        // §3 step 6, card A: SELECT the snippet through the editor's real jump
+        // path — the real selection pipeline pops the live "✨ Explain this"
+        // toolbar over it. No turn fires; the next card describes the toolbar.
+        const step = PLAYGROUND_DEMO_SCRIPT.steps[action.step];
+        advanceTo(card + 1);
+        afterPaint(() => {
+          if (step.kind !== 'explain') return;
+          const content =
+            useProjectStore.getState().files.find((f) => f.path === step.path)?.content ?? '';
+          const range = locateLines(content, step.snippet);
+          controlsRef.current?.focusPanel('code');
+          if (range) controlsRef.current?.openFileAt(step.path, range.from, range.to, true);
+        });
         return;
-      case 'asset-remix': {
-        // Remix the just-generated sticker (the newest generated entry).
-        const ref = generatedAssets().at(-1);
-        runAssetStep(card, () =>
-          controlsRef.current?.requestAssetGen(TOUR_REMIX_PROMPT, { refAssetPath: ref?.path }),
+      }
+      case 'explain-fire': {
+        // §3 step 6, card B: fire the toolbar's REAL handler (the same one its
+        // click invokes — the prompt is byte-identical to a real tap, which the
+        // scripted agent's matcher drift-alarms); the answer lands in the chat.
+        const step = PLAYGROUND_DEMO_SCRIPT.steps[action.step];
+        setSending(true);
+        armRecovery(SEND_RECOVERY_MS);
+        afterPaint(() => {
+          if (step.kind === 'explain') controlsRef.current?.explainSelection(step.snippet);
+        });
+        return; // `onStepApplied` advances when the canned turn settles
+      }
+      case 'asset-prompt':
+        // §3 step 7a, card A: surface the Asset Viewer and type the wish into
+        // the pane's REAL generate box (pending until the pane binds if its
+        // window hadn't been opened yet).
+        advanceTo(card + 1);
+        afterPaint(() => {
+          controlsRef.current?.focusPanel('assets');
+          if (assetPaneRef.current) assetPaneRef.current.setGeneratePrompt(TOUR_ASSET_PROMPT);
+          else pendingGenPromptRef.current = TOUR_ASSET_PROMPT;
+        });
+        return;
+      case 'asset-generate':
+        // §3 step 7a, card B: submit through the pane's REAL Generate path (the
+        // exact handler its ✨ button calls). Retries refill the box first (a
+        // submit clears it) and re-submit a beat later.
+        runAssetStep(card, () => {
+          assetPaneRef.current?.setGeneratePrompt(TOUR_ASSET_PROMPT);
+          setTimeout(() => assetPaneRef.current?.submitGenerate(), REFILL_SUBMIT_MS);
+        });
+        return;
+      case 'asset-details': {
+        // §3 step 7b, card A: open the generated sticker's REAL details view
+        // (the same path tapping its card runs) and pre-type the remix wish into
+        // the details view's real Remix bar (it binds when the view mounts).
+        const sticker = generatedAssets().at(-1);
+        advanceTo(card + 1);
+        afterPaint(() => {
+          controlsRef.current?.focusPanel('assets');
+          pendingRemixPromptRef.current = TOUR_REMIX_PROMPT;
+          if (sticker) assetPaneRef.current?.openAssetDetails(sticker.path);
+        });
+        return;
+      }
+      case 'asset-remix':
+        // §3 step 7b, card B: submit the details view's REAL Remix path. When
+        // the remix lands, open ITS details so the result is what's on screen.
+        runAssetStep(
+          card,
+          () => {
+            remixRef.current?.setPrompt(TOUR_REMIX_PROMPT);
+            setTimeout(() => remixRef.current?.submit(), REFILL_SUBMIT_MS);
+          },
+          (path) => assetPaneRef.current?.openAssetDetails(path),
         );
         return;
-      }
       case 'open-guide':
         // §3 step 10: the Guide opens directly on its most diagram-rich page.
-        controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC);
         advanceTo(card + 1);
+        afterPaint(() => controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC));
         return;
       case 'advance':
         advanceTo(card + 1);

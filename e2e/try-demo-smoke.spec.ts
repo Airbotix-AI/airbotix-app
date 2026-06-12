@@ -55,9 +55,11 @@ async function walkToErrorCard(page: Page) {
   await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('chat-starter')).toBeVisible();
 
-  // 3 — scripted ask 1 (faster apples), auto-restart keeps the game running.
+  // 3 — scripted ask 1 (faster apples), auto-restart keeps the game running;
+  //     the next card discusses the conversation, so it spotlights the chat.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('One ask → one change', { timeout: 15_000 });
+  await expect(page.getByTestId('tour-spotlight-ring')).toBeVisible();
 
   // 4 — diff step: the editor opens on the changed line (real jump+highlight path).
   await page.getByTestId('tour-next').click();
@@ -68,27 +70,48 @@ async function walkToErrorCard(page: Page) {
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Keep score', { timeout: 15_000 });
 
-  // 6 — explain-this: the REAL selection pipeline pops the live "✨ Explain
-  //     this" toolbar over the selected snippet FIRST, then the explain fires
-  //     and the scripted agent answers in plain words.
+  // 6a — select card: the REAL selection pipeline pops the live "✨ Explain
+  //      this" toolbar over the selected snippet; the next card spotlights it.
   await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('A ✨ button appears');
   await expect(page.getByTestId('explain-selection')).toBeVisible({ timeout: 15_000 });
+
+  // 6b — fire card: the toolbar's real handler fires and the scripted agent
+  //      answers in plain words, in the chat.
+  await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Code that explains itself', { timeout: 15_000 });
   await expect(page.getByText(/runs every time an apple lands/)).toBeVisible();
 
-  // 7a — beautify, card 1: Airo draws the apple sticker (crafted offline art)
-  //      into the Asset Viewer (2 emoji starters + 1 generated).
+  // 7a-A — beautify: the Asset Viewer opens with the wish typed into its REAL
+  //        generate box.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Describe it, Airo draws it');
+  await expect(page.getByTestId('asset-generate-prompt')).toHaveValue('a shiny red apple sticker', {
+    timeout: 10_000,
+  });
+
+  // 7a-B — submit through the pane's real ✨ Generate → the sticker lands
+  //        (2 emoji starters + 1 generated; crafted offline art).
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Airo can draw, too', { timeout: 30_000 });
   await expect(page.getByTestId('asset-card')).toHaveCount(3, { timeout: 10_000 });
 
-  // 7b — beautify, card 2: remix the sticker (golden + sparkly) → 4 assets.
+  // 7b-A — the sticker's REAL details view opens, remix wish pre-typed.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Same sticker, new twist');
+  await expect(page.getByTestId('asset-remix-prompt')).toHaveValue('make it golden and sparkly', {
+    timeout: 10_000,
+  });
+
+  // 7b-B — submit the real Remix → the golden sticker lands and ITS details open.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Remix until it sparkles', { timeout: 30_000 });
-  await expect(page.getByTestId('asset-card')).toHaveCount(4, { timeout: 10_000 });
+  await expect(page.getByTestId('asset-codeRef')).toContainText('make_it_golden_and_spark.svg', {
+    timeout: 10_000,
+  });
 
-  // 7c — beautify, card 3: the remixed sticker is wired INTO the game (a
-  //      scripted edit) → auto-restart shows the new art live.
+  // 7c — the remixed sticker is wired INTO the game (a scripted edit) →
+  //      auto-restart shows the new art live.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Your art, in your game', { timeout: 15_000 });
   await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
@@ -100,7 +123,7 @@ async function walkToErrorCard(page: Page) {
   await expect(page.getByText(/makeWinBanner is not a function/)).toBeVisible({ timeout: 20_000 });
 }
 
-test('try/playground: the 13-card v2 tour → free explore → AI gate', async ({ page }) => {
+test('try/playground: the 16-card v3 tour → free explore → AI gate', async ({ page }) => {
   test.setTimeout(180_000); // the tour walks the whole studio (Phaser + Monaco)
   const forbidden = trackForbidden(page);
   await walkToErrorCard(page);

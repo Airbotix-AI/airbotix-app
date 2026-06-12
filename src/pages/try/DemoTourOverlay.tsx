@@ -73,11 +73,13 @@ function SpotlightMask({ selector }: { selector: string }) {
   useEffect(() => {
     const measure = () => {
       const el = document.querySelector(selector);
-      if (!el) {
+      // A zero-size rect = the target isn't really on screen (e.g. a Monaco
+      // content widget that exists but is hidden) — treat it as not found.
+      const r = el?.getBoundingClientRect();
+      if (!el || !r || r.width <= 0 || r.height <= 0) {
         setRect(null);
         return;
       }
-      const r = el.getBoundingClientRect();
       const next: SpotRect = {
         left: Math.max(0, r.left - SPOT_PAD),
         top: Math.max(0, r.top - SPOT_PAD),
@@ -95,9 +97,12 @@ function SpotlightMask({ selector }: { selector: string }) {
           : next,
       );
     };
-    // First measure on the NEXT frame: the full-viewport mount state gets one
-    // painted frame, so the shrink onto the target actually transitions.
-    const raf = requestAnimationFrame(measure);
+    // First measure TWO frames out: the full-viewport mount state gets a
+    // painted frame (so the shrink onto the target actually transitions) AND
+    // any focus/window change the step's action fired has settled first.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(measure);
+    });
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', measure, true);
     // Playground windows are DRAGGABLE (react-rnd) — no resize/scroll event
@@ -117,7 +122,10 @@ function SpotlightMask({ selector }: { selector: string }) {
     <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
       <div
         data-testid="tour-spotlight-ring"
-        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 shadow-spotlight-scrim transition-all duration-500 ease-out motion-reduce:transition-none"
+        // Transition ONLY the box geometry — including the giant scrim
+        // box-shadow in the transition list makes every retarget repaint the
+        // whole shadow per frame (visible stutter on card swaps).
+        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 shadow-spotlight-scrim transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none"
         style={{
           left: rect.left,
           top: rect.top,
@@ -164,13 +172,22 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
         <div data-testid="demo-tour-backdrop" className="pointer-events-auto absolute inset-0 bg-ink/60" />
       )}
       {!current.modal && current.spotlight && <SpotlightMask selector={current.spotlight} />}
+      {/* Placement (absolute + translate) lives on the OUTER wrapper; the card
+          itself remounts per step (key) with a short rise/fade entrance, so a
+          placement jump reads as a new card arriving — not the old one teleporting.
+          The entrance transform can't clash with the placement translate because
+          they're on different elements. Reduced-motion: no animation. */}
       <div
-        data-testid="tour-card"
-        data-placement={placement}
         className={clsx(
-          'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))] rounded-3xl bg-white p-6 text-ink shadow-2xl',
+          'pointer-events-auto absolute w-[min(420px,calc(100vw-2rem))]',
           PLACEMENT_CLASS[placement],
         )}
+      >
+      <div
+        key={step}
+        data-testid="tour-card"
+        data-placement={placement}
+        className="animate-tour-card-in rounded-3xl bg-white p-6 text-ink shadow-2xl motion-reduce:animate-none"
       >
         <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-mint">
           Step {step + 1} of {steps.length}
@@ -228,6 +245,7 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

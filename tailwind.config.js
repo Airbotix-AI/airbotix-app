@@ -89,6 +89,17 @@ export default {
       letterSpacing: {
         'hero': '-0.025em',
       },
+      keyframes: {
+        // demo tour card entrance: a short rise/fade so per-step placement
+        // jumps read as a new card arriving (paired with motion-reduce:animate-none)
+        'tour-card-in': {
+          from: { opacity: '0', transform: 'translateY(10px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'tour-card-in': 'tour-card-in 200ms ease-out',
+      },
     },
   },
   plugins: [],

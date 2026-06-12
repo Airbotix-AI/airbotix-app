@@ -6,6 +6,32 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Changed (playground tour v3 — 16 cards, real Asset Viewer UI, jank pass)
+- **Tour grows 13 → 16 cards** (`demoTour.playground.ts`, PRD §3 v0.9): the
+  explain beat is two cards (select the snippet → the live "✨ Explain this"
+  toolbar pops + is spotlighted → fire its real handler), and the beautify loop
+  drives the Asset Viewer's REAL UI — the tour types the wish into the pane's
+  real generate box (new card, prompt-box spotlight), submits its real
+  ✨ Generate, opens the sticker's real details view with the remix wish typed
+  into the real Remix bar (new card), submits the real Remix, then opens the
+  landed remix's own details. New tiny default-off seams: `bindAssetPane` /
+  `bindAssetRemix` (`demoMode.tsx`; registered by `AssetViewerPane`/`RemixBar`
+  only under the demo provider).
+- **Conversation cards spotlight the chat** ("One ask → one change",
+  "Keep score", "Code that explains itself") and the after-edit auto-restart
+  re-fronts the panel the next card spotlights (`restartThenRefocus` — the
+  restart focuses the Game Runner, which used to bury the chat).
+- **Jank pass**: heavy actions (chat sends, Monaco jumps, focus changes) defer
+  behind a double-rAF so the card/spotlight transition paints first
+  (`tourSequencing.ts`); the spotlight ring transitions ONLY its box geometry
+  (not the giant scrim shadow) and ignores zero-size targets; cards remount per
+  step with a 200ms rise/fade entrance (`animate-tour-card-in`, reduced-motion
+  safe); two window focuses never land in the same frame.
+- `capture-try-scenes.mjs` walk is now title-driven (`nextUntil`) so card-count
+  changes don't break it; e2e smoke + umbrella harness journey updated to the
+  16-card flow; new unit tests (`tourSequencing.test.ts`,
+  `demoAssetPaneSeam.test.tsx`, tour-data v3 suite).
+
 ### Added (marketing-preview parity)
 - `scripts/capture-try-scenes.mjs` — one-command recapture of the marketing /try
   preview scenes from the live demos (1600px JPEG q80 → `airbotix/public/media/try/`).

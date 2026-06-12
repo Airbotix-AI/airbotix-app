@@ -46,6 +46,16 @@ async function next(pg, settleMs = 500) {
   await pg.waitForTimeout(settleMs);
 }
 
+/** Walk the tour (Next) until the card titled `title` shows — title-driven so a
+ *  card-count change in demoTour.playground.ts never breaks this script. */
+async function nextUntil(pg, title, cap = 20) {
+  for (let i = 0; i < cap; i += 1) {
+    await next(pg);
+    if ((await pg.getByTestId('tour-title').textContent()) === title) return;
+  }
+  throw new Error(`tour never reached "${title}" in ${cap} steps`);
+}
+
 const shot = async (pg, name) => {
   await hideTour(pg);
   await pg.screenshot({ path: `${OUT}/${name}.jpg`, ...JPEG });
@@ -65,7 +75,7 @@ await pg.waitForTimeout(1700);
 await shot(pg, 'pg-2-building'); // mid build-reveal
 await pg.waitForTimeout(6500); // workspace + auto-run settle
 await shot(pg, 'pg-3-playing'); // chat + running game
-for (let i = 0; i < 7; i += 1) await next(pg); // asks → diff → explain → assets → wire-in
+await nextUntil(pg, 'Your art, in your game'); // asks → diff → explain → assets → wire-in
 await pg.waitForTimeout(1200);
 await shot(pg, 'pg-4-beautify'); // golden apple in viewer + game
 
