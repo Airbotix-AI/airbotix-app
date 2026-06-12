@@ -126,6 +126,11 @@ export function TryPlaygroundPage() {
     setSpotOverride(null);
     setFrontier((f) => Math.max(f, card));
     setView(card);
+    // Universal visibility guarantee: whatever surface the revealed card
+    // spotlights is FRONTED (window mode: on top of all windows; split: its
+    // tab activated). Idempotent with the action/restart/flip refocus paths.
+    const panel = spotlightPanel(PLAYGROUND_TOUR[card]?.spotlight);
+    if (panel) afterPaint(() => controlsRef.current?.focusPanel(panel));
   };
 
   useEffect(() => {

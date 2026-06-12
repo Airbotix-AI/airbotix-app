@@ -62,11 +62,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (Guide placement)
 
 ### Fixed
-- **The Guide window no longer buries the conversation's latest messages.** Its
-  spawn rect is now chat-aware: beside the chat when a ≥480px reading column fits
-  to its right (wide screens), otherwise a shorter top-anchored column that leaves
-  the chat's input + newest replies visible below (laptops). Placement unit-tested
-  at both breakpoints.
+- **The Guide window never buries the conversation's latest messages.**
+  (1) Spawn: TOP-LEFT of the chat — a reading column fully beside it when ≥250px
+  fits (the chat launch x nudged 0.29→0.31W to make that true on common laptops),
+  else a short top strip that leaves the chat's input + newest replies clear.
+  (2) Layout flips: entering window mode with an open Guide overlapping the chat
+  (e.g. dragged there) relocates it to the no-overlap spot, computed against where
+  the chat ACTUALLY is. Placement + flip behaviour unit-tested.
+- **Tour spotlights are always visible**: every card advance fronts the surface its
+  spotlight points at (window mode: on top of all windows; split: its tab active) —
+  universal guarantee, idempotent with the action/restart/flip refocus paths.
 
 ## 2026-06-12 (clean demo console)
 
