@@ -21,7 +21,9 @@ import {
 } from './demoScript.playground';
 
 /** Simulated "thinking" beat so the pending → reply transition reads naturally. */
-const SCRIPTED_TURN_DELAY_MS = 700;
+// Long enough that the user SEES Airo working (chat typing beat + the tour's
+// "Airo is working…" button state) — a too-fast reply reads as nothing happened.
+const SCRIPTED_TURN_DELAY_MS = 1800;
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 

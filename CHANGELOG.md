@@ -6,6 +6,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Changed (tour pacing & navigation)
+- Back/forward browsing re-fronts the window each card's spotlight points at —
+  the discussed surface is always on top, not whatever the last action left focused.
+  Element-level spotlights map to their HOST window (✨ toolbar → Code Editor,
+  generate/remix prompts → Asset Viewer, console → Game Runner).
+- Scripted replies take a readable beat (700ms → 1.8s) so the "Airo is working…"
+  state is actually seen.
+- Asset generation/remix now plays fully in the chat (spotlit from the click):
+  the "Conjuring…" progress and the finished sticker bubble are seen scrolled
+  into view, held ~1.6s, and only then does My Assets surface with the card swap.
+
+
 ### Fixed (spotlight timing)
 - In-flight tour steps spotlight the surface where the action is HAPPENING from
   the moment Next is CLICKED, instead of jumping only when the result settled:

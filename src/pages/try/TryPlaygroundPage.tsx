@@ -36,7 +36,13 @@ import {
   TOUR_REMIX_PROMPT,
 } from './demoScript.playground';
 import { PLAYGROUND_TOUR, type PlaygroundTourAction } from './demoTour.playground';
-import { afterPaint, cardForScriptStep, pendingSpotlightFor, restartThenRefocus } from './tourSequencing';
+import {
+  afterPaint,
+  cardForScriptStep,
+  pendingSpotlightFor,
+  restartThenRefocus,
+  spotlightPanel,
+} from './tourSequencing';
 
 /**
  * Re-enable the tour's Next if a fired action never lands (e.g. the kid typed
@@ -56,6 +62,9 @@ const ASSET_RETRY_TICKS = 8;
 /** A retry refills the pane's prompt box first (a submit clears it), then
  *  submits one beat later so the refill has rendered into the real handler. */
 const REFILL_SUBMIT_MS = 50;
+/** After an asset lands: how long the chat keeps the stage so the finished
+ *  sticker bubble is SEEN before My Assets is surfaced with the card swap. */
+const ASSET_RESULT_BEAT_MS = 1600;
 
 /** A generated Asset Viewer entry (the generation store's output directory). */
 const isGeneratedAsset = (path: string) => path.startsWith('assets/generated/');
@@ -203,7 +212,9 @@ export function TryPlaygroundPage() {
     const baseline = generatedAssets().length;
     setSending(true);
     armRecovery(ASSET_RECOVERY_MS);
-    afterPaint(() => controlsRef.current?.focusPanel('assets'));
+    // The generation plays in the CHAT (progress + the finished sticker
+    // bubble, exactly like the real product) — front it for the wait.
+    afterPaint(() => controlsRef.current?.focusPanel('chat'));
     stopAssetWatch();
     let tick = 0;
     assetTimer.current = setInterval(() => {
@@ -211,9 +222,15 @@ export function TryPlaygroundPage() {
       const landed = generatedAssets();
       if (landed.length >= baseline + 1) {
         stopAssetWatch();
-        onLanded?.(landed[landed.length - 1].path);
-        controlsRef.current?.focusPanel('assets');
-        advanceTo(fromCard + 1);
+        const path = landed[landed.length - 1].path;
+        // Hold a beat on the chat so the new art is SEEN (stick-to-bottom
+        // keeps the bubble in view), then surface My Assets with the swap.
+        clearTimeout(recoveryTimer.current);
+        recoveryTimer.current = setTimeout(() => {
+          onLanded?.(path);
+          controlsRef.current?.focusPanel('assets');
+          advanceTo(fromCard + 1);
+        }, ASSET_RESULT_BEAT_MS);
       } else if (tick % ASSET_RETRY_TICKS === 1) {
         // No-ops while the chat lock is busy. Retried SPARINGLY (every ~2s, not
         // every tick): an accepted attempt appends chat bubbles, so a hot loop
@@ -356,10 +373,19 @@ export function TryPlaygroundPage() {
     }
   };
 
+  /** Show an already-visited card: move the view AND re-front the window its
+   *  spotlight points at — browsing back/forth must keep the surface each card
+   *  discusses on top, not whatever the last action left focused. */
+  const reveal = (card: number) => {
+    setView(card);
+    const panel = spotlightPanel(PLAYGROUND_TOUR[card]?.spotlight);
+    if (panel) afterPaint(() => controlsRef.current?.focusPanel(panel));
+  };
+
   const handleNext = () => {
     if (view < frontier) {
-      // Browsing back through earlier cards — move the view only.
-      setView(view + 1);
+      // Browsing forward through earlier cards — reveal only, never re-fire.
+      reveal(view + 1);
       return;
     }
     const card = PLAYGROUND_TOUR[view];
@@ -380,7 +406,7 @@ export function TryPlaygroundPage() {
             busy={sending}
             spotlightOverride={spotOverride}
             onNext={handleNext}
-            onBack={() => setView((v) => Math.max(0, v - 1))}
+            onBack={() => reveal(Math.max(0, view - 1))}
             onSkip={() => setDone(true)}
           />
         )}

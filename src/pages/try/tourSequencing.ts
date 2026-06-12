@@ -22,34 +22,36 @@ export function afterPaint(fn: () => void): void {
 }
 
 /** The studio panel a card's spotlight selector points at: `[data-window="…"]`
- *  → that window; the runner-console selector lives inside the Game window.
- *  Element-level selectors (toolbar, prompt boxes) map to no panel — the action
- *  that fired them already surfaced the right window. */
+ *  → that window; element-level selectors map to the window that HOSTS them
+ *  (console → Game, ✨ explain toolbar → Code Editor, generate/remix prompts →
+ *  Asset Viewer) so revealing a card — including browsing BACK to it — always
+ *  re-fronts the surface it discusses. Landing-phase selectors have no window. */
 export function spotlightPanel(selector: string | undefined): SpotlightPanelId | null {
   if (!selector) return null;
   const win = selector.match(/data-window="(chat|code|game|assets|help)"/)?.[1];
   if (win) return win as SpotlightPanelId;
   if (selector.includes('console')) return 'game';
+  if (selector.includes('explain-selection')) return 'code';
+  if (selector.includes('asset-generate-prompt') || selector.includes('asset-remix-prompt')) return 'assets';
   return null;
 }
 
 /** The selector of the Chat window — where every conversation turn plays. */
 export const CHAT_SPOTLIGHT = '[data-window="chat"]';
-/** The Asset Viewer window — where generation/remix progress plays. */
-export const ASSETS_SPOTLIGHT = '[data-window="assets"]';
 
 /**
  * The spotlight to show WHILE a card's action is in flight: the surface where
- * the action is HAPPENING, from the moment Next is clicked — chat for the
- * scripted asks and the explain fire (before the message even sends), the
- * Asset Viewer for generate/remix (while the art is being made). The following
- * card spotlights the same surface, so it lands with zero further movement.
- * Other actions keep the current card's spotlight.
+ * the action is HAPPENING, from the moment Next is clicked. Everything that
+ * talks — the scripted asks, the explain fire, AND asset generate/remix (the
+ * "Conjuring…" progress and the finished sticker bubble play in the chat) —
+ * spotlights the Chat window before the send. After an asset lands, the engine
+ * holds a beat on the chat (so the new art is SEEN) and only then surfaces
+ * My Assets with the card swap. Other actions keep the card's own spotlight.
  */
 export function pendingSpotlightFor(kind: string): string | null {
-  if (kind === 'script' || kind === 'explain-fire') return CHAT_SPOTLIGHT;
-  if (kind === 'asset-generate' || kind === 'asset-remix') return ASSETS_SPOTLIGHT;
-  return null;
+  return kind === 'script' || kind === 'explain-fire' || kind === 'asset-generate' || kind === 'asset-remix'
+    ? CHAT_SPOTLIGHT
+    : null;
 }
 
 /** The tour card whose Next fires script step `index` — a chat-send card or the

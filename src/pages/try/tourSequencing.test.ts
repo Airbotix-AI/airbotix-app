@@ -9,7 +9,6 @@ import type { DemoStudioControls } from './demoMode';
 import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
 import { PLAYGROUND_TOUR } from './demoTour.playground';
 import {
-  ASSETS_SPOTLIGHT,
   CHAT_SPOTLIGHT,
   afterPaint,
   cardForScriptStep,
@@ -72,9 +71,14 @@ describe('spotlightPanel', () => {
     expect(spotlightPanel('[data-testid="console-list"]')).toBe('game');
   });
 
-  it('element-level selectors (toolbar, prompt boxes) map to no panel', () => {
-    expect(spotlightPanel('[data-testid="explain-selection"]')).toBeNull();
-    expect(spotlightPanel('[data-testid="asset-generate-prompt"]')).toBeNull();
+  it('element-level selectors map to their HOST window (back-browsing re-fronts it)', () => {
+    expect(spotlightPanel('[data-testid="explain-selection"]')).toBe('code');
+    expect(spotlightPanel('[data-testid="asset-generate-prompt"]')).toBe('assets');
+    expect(spotlightPanel('[data-testid="asset-remix-prompt"]')).toBe('assets');
+  });
+
+  it('landing-phase selectors and undefined map to no window', () => {
+    expect(spotlightPanel('[data-testid="landing-prompt-box"]')).toBeNull();
     expect(spotlightPanel(undefined)).toBeNull();
   });
 });
@@ -131,9 +135,9 @@ describe('pendingSpotlightFor (chat-bound actions spotlight chat BEFORE the send
     expect(pendingSpotlightFor('explain-fire')).toBe(CHAT_SPOTLIGHT);
   });
 
-  it('returns the Asset Viewer for generate and remix (art in the making)', () => {
-    expect(pendingSpotlightFor('asset-generate')).toBe(ASSETS_SPOTLIGHT);
-    expect(pendingSpotlightFor('asset-remix')).toBe(ASSETS_SPOTLIGHT);
+  it('generate and remix also spotlight chat — the conjuring + result bubble play there', () => {
+    expect(pendingSpotlightFor('asset-generate')).toBe(CHAT_SPOTLIGHT);
+    expect(pendingSpotlightFor('asset-remix')).toBe(CHAT_SPOTLIGHT);
   });
 
   it('leaves every other action on its own card spotlight', () => {
