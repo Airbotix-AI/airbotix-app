@@ -6,10 +6,10 @@
 // editor, asset viewer). A `modal` step dims and blocks the studio behind it;
 // every other step floats so the REAL studio underneath stays fully interactive.
 // Steps that point at an area can carry a SPOTLIGHT selector: everything except
-// that area is dimmed — one ring div whose giant box-shadow is the scrim
-// (`shadow-spotlight-scrim`), so the rounded cut-out and the dim are a single
-// animatable box — purely visual (pointer-events: none), the studio stays
-// fully interactive, including inside the spotlight.
+// that area is DE-EMPHASIZED (backdrop grayscale + dim + slight blur outside a
+// rounded clip-path cut-out; dark = grayscale, light = desaturated) —
+// purely visual (pointer-events:
+// none), the studio stays fully interactive, including inside the spotlight.
 // K-12 design-system tokens only — this layer never restyles the studio.
 
 import clsx from 'clsx';
@@ -121,30 +121,31 @@ function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean })
   if (!rect) return null;
   return (
     <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
-      {dark && (
-        // Dark UIs can't be meaningfully dimmed darker — DE-EMPHASIZE instead:
-        // everything outside the rounded cut-out loses its color and sharpness
-        // (grayscale + dim + slight blur), so the spotlight area is the only
-        // place with full fidelity. The hole is a clip-path so the filter
-        // never touches the target; the path transitions with the rect in
-        // Chromium (same segment structure) and snaps gracefully elsewhere.
-        <div
-          data-testid="tour-spotlight-dim"
-          className="pointer-events-none absolute inset-0 backdrop-blur-[2px] backdrop-brightness-[0.45] backdrop-grayscale transition-[clip-path] duration-500 ease-out motion-reduce:transition-none"
-          style={{ clipPath: holePath(rect) }}
-        />
-      )}
+      {/* DE-EMPHASIS mask (both themes): everything outside the rounded
+          cut-out loses its color and sharpness (grayscale + dim + slight
+          blur), so the spotlight area is the only place with full fidelity.
+          Dark UIs need a deeper dim (a dark surface barely changes at 0.8);
+          light UIs keep their airiness at a gentler one. The hole is a
+          clip-path so the filter never touches the target; the path
+          transitions with the rect in Chromium (same segment structure) and
+          snaps gracefully elsewhere. */}
+      <div
+        data-testid="tour-spotlight-dim"
+        // 1px blur: de-emphasized text stays READABLE, just soft. Light keeps
+        // its hues (desaturated, not grayscale); dark drains them fully.
+        className={clsx(
+          'pointer-events-none absolute inset-0 backdrop-blur-[1px] transition-[clip-path] duration-500 ease-out motion-reduce:transition-none',
+          dark
+            ? 'backdrop-grayscale backdrop-brightness-[0.45]'
+            : 'backdrop-brightness-[0.8] backdrop-saturate-[0.35]',
+        )}
+        style={{ clipPath: holePath(rect) }}
+      />
       <div
         data-testid="tour-spotlight-ring"
-        // Transition ONLY the box geometry — including the giant scrim
-        // box-shadow in the transition list makes every retarget repaint the
-        // whole shadow per frame (visible stutter on card swaps). Light UIs
-        // keep the ink scrim; dark UIs use the de-emphasis layer above, so the
-        // ring carries no shadow there.
-        className={clsx(
-          'pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none',
-          !dark && 'shadow-spotlight-scrim',
-        )}
+        // Transition ONLY the box geometry; the de-emphasis layer above does
+        // all the dimming work in both themes — the ring carries no shadow.
+        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none"
         style={{
           left: rect.left,
           top: rect.top,
@@ -269,9 +270,13 @@ export function DemoTourOverlay({
       {current.modal && (
         <div
           data-testid="demo-tour-backdrop"
+          // the modal intro de-emphasizes the whole studio the same way the
+          // spotlight mask does (minus the hole) + a light tint for depth
           className={clsx(
-            'pointer-events-auto absolute inset-0',
-            darkUi ? 'bg-black/70' : 'bg-ink/60', // same dark-legibility rule as the scrim
+            'pointer-events-auto absolute inset-0 backdrop-blur-[1px]',
+            darkUi
+              ? 'bg-black/30 backdrop-grayscale backdrop-brightness-[0.45]'
+              : 'bg-ink/20 backdrop-brightness-[0.8] backdrop-saturate-[0.35]',
           )}
         />
       )}

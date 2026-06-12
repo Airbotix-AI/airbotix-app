@@ -148,13 +148,13 @@ describe('DemoTourOverlay spotlight', () => {
     document.getElementById('spot-target')?.remove();
   });
 
-  it('mounts at full viewport then shrinks onto the target (rounded, scrim via shadow)', async () => {
+  it('mounts at full viewport then shrinks onto the target (rounded de-emphasis cut-out)', async () => {
     setupSpot(1);
     const ring = screen.getByTestId('tour-spotlight-ring');
     // mount frame = full viewport (the dim closes in from the whole screen)
     expect(ring.style.left).toBe('0px');
     expect(ring.className).toContain('rounded-');
-    expect(ring.className).toContain('shadow-spotlight-scrim');
+    expect(screen.getByTestId('tour-spotlight-dim').className).toContain('backdrop-saturate-[0.35]');
     // after the first RAF measure: the padded target rect
     await screen.findByTestId('tour-spotlight');
     await vi.waitFor(() => expect(ring.style.left).toBe('92px')); // 100 - 8 pad
@@ -187,21 +187,24 @@ describe('DemoTourOverlay spotlight', () => {
     );
   });
 
-  it('dark UIs get the DE-EMPHASIS mask (grayscale+dim+blur outside a rounded hole)', async () => {
+  it('BOTH themes get the DE-EMPHASIS mask (grayscale+dim+blur outside a rounded hole)', async () => {
     setupSpot(1, { darkUi: true });
     const dim = await screen.findByTestId('tour-spotlight-dim');
     expect(dim.className).toContain('backdrop-grayscale');
-    expect(dim.className).toContain('backdrop-brightness');
+    expect(dim.className).toContain('backdrop-brightness-[0.45]'); // deep dim on dark
     expect(dim.className).toContain('backdrop-blur');
     expect(dim.style.clipPath).toContain('evenodd'); // the rounded cut-out
-    // the ring carries no scrim shadow in dark — the dim layer does the work
-    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain('shadow-spotlight-scrim');
-  });
-
-  it('light UIs keep the ink scrim shadow and no dim layer', () => {
-    setupSpot(1);
-    expect(screen.getByTestId('tour-spotlight-ring').className).toContain('shadow-spotlight-scrim');
-    expect(screen.queryByTestId('tour-spotlight-dim')).not.toBeInTheDocument();
+    // the ring carries no scrim shadow — the dim layer does all the work
+    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain('shadow-');
+    cleanup();
+    document.getElementById('spot-target')?.remove();
+    setupSpot(1); // light
+    const lightDim = await screen.findByTestId('tour-spotlight-dim');
+    // light keeps its hues: desaturated, NOT grayscale — and readable (1px blur)
+    expect(lightDim.className).not.toContain('backdrop-grayscale');
+    expect(lightDim.className).toContain('backdrop-saturate-[0.35]');
+    expect(lightDim.className).toContain('backdrop-brightness-[0.8]');
+    expect(lightDim.className).toContain('backdrop-blur-[1px]');
   });
 
   it('the modal backdrop follows the studio theme too', () => {
@@ -209,11 +212,11 @@ describe('DemoTourOverlay spotlight', () => {
     const { rerender } = render(
       <DemoTourOverlay steps={steps} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
     );
-    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('bg-ink/60');
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('backdrop-brightness-[0.8]');
     rerender(
       <DemoTourOverlay steps={steps} step={0} darkUi onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
     );
-    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('bg-black/70');
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('backdrop-brightness-[0.45]');
   });
 });
 

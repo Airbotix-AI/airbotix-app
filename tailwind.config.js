@@ -83,10 +83,6 @@ export default {
         'brand-mint':      '0 16px 40px -8px rgba(61, 217, 169, 0.40)',
         'card-soft':       '0 8px 24px -6px rgba(31, 27, 45, 0.10)',
         'sticker':         '4px 4px 0 0 rgba(31, 27, 45, 0.95)',
-        // demo tour spotlight (light UIs): the cut-out div's shadow IS the
-        // scrim. Dark UIs use the backdrop de-emphasis layer instead
-        // (grayscale + dim + blur outside a rounded clip-path hole).
-        'spotlight-scrim': '0 0 0 200vmax rgba(31, 27, 45, 0.50)',
       },
       letterSpacing: {
         'hero': '-0.025em',

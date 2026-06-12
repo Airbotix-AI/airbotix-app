@@ -8,11 +8,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ### Changed (tour polish — motion & dark theme)
 - **Tour cards GLIDE between positions** (FLIP, 350ms) when a step or a
   Windows↔Split flip repositions them — no more teleporting; reduced-motion safe.
-- **Dark-theme spotlight redesigned as DE-EMPHASIS**: a dim scrim can't read on an
-  already-dark UI, so everything outside the rounded cut-out now loses its color
-  and sharpness instead (backdrop grayscale + brightness 0.45 + 2px blur behind an
-  evenodd clip-path hole) — the spotlight area is the only place with full
-  fidelity. Light UIs keep the proven ink scrim.
+- **Spotlight redesigned as DE-EMPHASIS — both themes**: everything outside the
+  rounded cut-out is softened behind an evenodd clip-path hole — 1px blur (text
+  stays readable), theme-tuned dim, and dark = full grayscale while light keeps
+  its hues at saturate 0.35 ("less colorful", not gray). The spotlight area is
+  the only place with full fidelity. The ink box-shadow scrim is retired; the
+  modal intro backdrop uses the same treatment (plus a light tint). Both demos
+  share the effect.
 - **Tour cards match the studio theme**: dark workspaces get an ink card with light
   text + hairline ring (titles explicitly colored — a global heading rule was
   leaving them ink-on-ink), still highly visible over the de-emphasized backdrop.
