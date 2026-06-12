@@ -6,6 +6,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Added (tour spotlight)
+- `DemoTourOverlay` steps can carry a `spotlight` selector: everything except the
+  area the step points at is dimmed — one ring div whose giant box-shadow is the
+  scrim, so the cut-out has properly ROUNDED corners — purely visual (nothing is
+  blocked, the studio stays interactive). Every spotlight OPENS from the full
+  viewport and shrinks onto its target (500ms ease-out; animates between targets
+  on step change; reduced-motion safe); re-measures on resize/scroll. Wired into
+  the Cat's Day Out tour: Go button, stage, "What they do" tracks, Pages rail
+  (cards repositioned off their spotlights).
+
+
 ### Fixed (zone labels refinement)
 - Rail tags (Characters/Pages) no longer overflow their narrow columns — stacked
   variant (emoji above one tiny word, spanning the column like a header) with

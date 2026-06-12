@@ -29,24 +29,30 @@ const TOUR: DemoTourStep[] = [
     body:
       'Tap the green Go button (top right) and watch the cat follow its blocks — start, move, ' +
       'say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
+    spotlight: '[data-testid="go-button"]',
   },
   {
     title: 'Tap a character',
     body:
       "Tap the cat on the stage to run its 👆 'on tap' blocks. Then tap the sun — one block " +
       'turns the page.',
+    spotlight: '[data-testid="blocks-stage"]',
   },
   {
     title: 'Change a number',
     body:
       'Tap a number tile in the track below and make the cat hop further. Blocks drag between ' +
       'tracks or to the bin — and undo is always one tap away.',
+    spotlight: '[data-testid="script-area"]',
+    placement: 'top-right',
   },
   {
     title: 'Stories turn their own pages',
     body:
       'Visit pages 2 and 3 with the thumbnails on the right — a picture book your child ' +
       'programs, page by page.',
+    spotlight: '[aria-label="Pages"]',
+    placement: 'bottom-left',
   },
   {
     title: "Now it's all yours",

@@ -5,9 +5,15 @@
 // hint so the card never covers the surface it points at (landing input, runner,
 // editor, asset viewer). A `modal` step dims and blocks the studio behind it;
 // every other step floats so the REAL studio underneath stays fully interactive.
+// Steps that point at an area can carry a SPOTLIGHT selector: everything except
+// that area is dimmed — one ring div whose giant box-shadow is the scrim
+// (`shadow-spotlight-scrim`), so the rounded cut-out and the dim are a single
+// animatable box — purely visual (pointer-events: none), the studio stays
+// fully interactive, including inside the spotlight.
 // K-12 design-system tokens only — this layer never restyles the studio.
 
 import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 
 /** Where a step's card sits, chosen so it never covers the step's surface. */
 export type DemoTourPlacement =
@@ -30,6 +36,82 @@ export interface DemoTourStep {
   placement?: DemoTourPlacement;
   /** Hide "Skip tour" on this step (§3 step 1 — the landing step is mandatory). */
   hideSkip?: boolean;
+  /**
+   * CSS selector of the area this step points at. Everything else is dimmed
+   * (visual only — nothing is blocked) so the user knows where to look/act.
+   */
+  spotlight?: string;
+}
+
+/** Padding around the spotlighted element's rect. */
+const SPOT_PAD = 8;
+
+type SpotRect = { left: number; top: number; right: number; bottom: number };
+
+/** The whole viewport — every spotlight OPENS from here and shrinks onto its
+ *  target, so the dim visibly "closes in" on where the user should look. */
+const fullViewport = (): SpotRect => ({
+  left: 0,
+  top: 0,
+  right: window.innerWidth,
+  bottom: window.innerHeight,
+});
+
+/**
+ * Dim everything EXCEPT the spotlighted element. One div is both the cut-out
+ * and the scrim: its enormous box-shadow darkens everything around it and —
+ * unlike scrim panels — follows the border-radius, so the hole has properly
+ * ROUNDED corners. Mounts at full-viewport and animates down onto the target
+ * (and between targets on step change); re-measures on resize and capture-phase
+ * scroll; renders nothing if the selector matches nothing.
+ */
+function SpotlightMask({ selector }: { selector: string }) {
+  const [rect, setRect] = useState<SpotRect | null>(() =>
+    typeof window === 'undefined' ? null : fullViewport(),
+  );
+
+  useEffect(() => {
+    const measure = () => {
+      const el = document.querySelector(selector);
+      if (!el) {
+        setRect(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      setRect({
+        left: Math.max(0, r.left - SPOT_PAD),
+        top: Math.max(0, r.top - SPOT_PAD),
+        right: r.right + SPOT_PAD,
+        bottom: r.bottom + SPOT_PAD,
+      });
+    };
+    // First measure on the NEXT frame: the full-viewport mount state gets one
+    // painted frame, so the shrink onto the target actually transitions.
+    const raf = requestAnimationFrame(measure);
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [selector]);
+
+  if (!rect) return null;
+  return (
+    <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div
+        data-testid="tour-spotlight-ring"
+        className="pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 shadow-spotlight-scrim transition-all duration-500 ease-out motion-reduce:transition-none"
+        style={{
+          left: rect.left,
+          top: rect.top,
+          width: rect.right - rect.left,
+          height: rect.bottom - rect.top,
+        }}
+      />
+    </div>
+  );
 }
 
 const PLACEMENT_CLASS: Record<DemoTourPlacement, string> = {
@@ -66,6 +148,7 @@ export function DemoTourOverlay({ steps, step, busy, onNext, onBack, onSkip }: D
       {current.modal && (
         <div data-testid="demo-tour-backdrop" className="pointer-events-auto absolute inset-0 bg-ink/60" />
       )}
+      {!current.modal && current.spotlight && <SpotlightMask selector={current.spotlight} />}
       <div
         data-testid="tour-card"
         data-placement={placement}

@@ -117,3 +117,66 @@ describe('DemoTourOverlay', () => {
     expect(next.className).not.toContain('whitespace-nowrap'); // truncate covers it
   });
 });
+
+describe('DemoTourOverlay spotlight', () => {
+  const SPOT_STEPS: DemoTourStep[] = [
+    { title: 'Intro', body: 'Welcome', modal: true },
+    { title: 'Look here', body: 'Press the button', spotlight: '#spot-target' },
+    { title: 'No spot', body: 'Nothing highlighted' },
+  ];
+
+  function setupSpot(step: number) {
+    const target = document.createElement('button');
+    target.id = 'spot-target';
+    target.getBoundingClientRect = () =>
+      ({ left: 100, top: 50, right: 220, bottom: 90, width: 120, height: 40 }) as DOMRect;
+    document.body.appendChild(target);
+    render(
+      <DemoTourOverlay steps={SPOT_STEPS} step={step} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    return target;
+  }
+
+  afterEach(() => {
+    document.getElementById('spot-target')?.remove();
+  });
+
+  it('mounts at full viewport then shrinks onto the target (rounded, scrim via shadow)', async () => {
+    setupSpot(1);
+    const ring = screen.getByTestId('tour-spotlight-ring');
+    // mount frame = full viewport (the dim closes in from the whole screen)
+    expect(ring.style.left).toBe('0px');
+    expect(ring.className).toContain('rounded-');
+    expect(ring.className).toContain('shadow-spotlight-scrim');
+    // after the first RAF measure: the padded target rect
+    await screen.findByTestId('tour-spotlight');
+    await vi.waitFor(() => expect(ring.style.left).toBe('92px')); // 100 - 8 pad
+    expect(ring.style.top).toBe('42px');
+    expect(ring.style.width).toBe('136px'); // 120 + 2*8
+    expect(ring.style.height).toBe('56px');
+  });
+
+  it('is purely visual — every spotlight layer is pointer-events-none', () => {
+    setupSpot(1);
+    expect(screen.getByTestId('tour-spotlight').className).toContain('pointer-events-none');
+    expect(screen.getByTestId('tour-spotlight-ring').className).toContain('pointer-events-none');
+  });
+
+  it('renders no mask on steps without a spotlight or on modal steps', () => {
+    setupSpot(2);
+    expect(screen.queryByTestId('tour-spotlight')).not.toBeInTheDocument();
+    cleanup();
+    setupSpot(0);
+    expect(screen.queryByTestId('tour-spotlight')).not.toBeInTheDocument();
+  });
+
+  it('removes the mask when the selector matches nothing', async () => {
+    document.getElementById('spot-target')?.remove();
+    render(
+      <DemoTourOverlay steps={SPOT_STEPS} step={1} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    await vi.waitFor(() =>
+      expect(screen.queryByTestId('tour-spotlight')).not.toBeInTheDocument(),
+    );
+  });
+});
