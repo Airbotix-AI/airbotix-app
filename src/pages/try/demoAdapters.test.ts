@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadBlocksProject, saveBlocksProject } from '../learn/blocks/blocksApi';
+import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { resolveProjectFiles } from '../learn/playground/panes/playgroundApi';
 import {
   loadProject,
@@ -154,5 +155,13 @@ describe('blocks demo adapter', () => {
     const again = await loadBlocksProject(TRY_BLOCKS_PROJECT_ID);
     expect(again.version).toBe(1);
     expect(again.project).toEqual(first.project);
+  });
+
+  it('always opens in LIGHT theme without touching the stored preference', () => {
+    useBlocksTheme.setState({ theme: 'dark' }); // e.g. system-pref dark
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    installBlocksDemo();
+    expect(useBlocksTheme.getState().theme).toBe('light');
+    expect(setItem).not.toHaveBeenCalledWith('bsx-theme', expect.anything());
   });
 });

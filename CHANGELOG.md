@@ -6,6 +6,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-06-12
 
+### Changed
+- `/try/blocks` always opens in the LIGHT theme (the story art is daylight-first),
+  regardless of system preference or a stored studio override — store-only set on
+  demo install, never written to localStorage, so a real user's saved theme is
+  untouched.
+
+
 ### Fixed (review pass)
 - Tour robustness guards from the adversarial review: the landing "Create the game" fires
   once per (long) recovery window — a slow build can no longer be double-submitted; asset
