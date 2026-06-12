@@ -13,7 +13,7 @@
 // K-12 design-system tokens only — this layer never restyles the studio.
 
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /** Where a step's card sits, chosen so it never covers the step's surface. */
 export type DemoTourPlacement =
@@ -121,16 +121,29 @@ function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean })
   if (!rect) return null;
   return (
     <div data-testid="tour-spotlight" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {dark && (
+        // Dark UIs can't be meaningfully dimmed darker — DE-EMPHASIZE instead:
+        // everything outside the rounded cut-out loses its color and sharpness
+        // (grayscale + dim + slight blur), so the spotlight area is the only
+        // place with full fidelity. The hole is a clip-path so the filter
+        // never touches the target; the path transitions with the rect in
+        // Chromium (same segment structure) and snaps gracefully elsewhere.
+        <div
+          data-testid="tour-spotlight-dim"
+          className="pointer-events-none absolute inset-0 backdrop-blur-[2px] backdrop-brightness-[0.45] backdrop-grayscale transition-[clip-path] duration-500 ease-out motion-reduce:transition-none"
+          style={{ clipPath: holePath(rect) }}
+        />
+      )}
       <div
         data-testid="tour-spotlight-ring"
         // Transition ONLY the box geometry — including the giant scrim
         // box-shadow in the transition list makes every retarget repaint the
-        // whole shadow per frame (visible stutter on card swaps). The scrim
-        // follows the STUDIO's live theme (`darkUi`): ink@50% over an
-        // already-dark UI is imperceptible, so dark themes get black@70%.
+        // whole shadow per frame (visible stutter on card swaps). Light UIs
+        // keep the ink scrim; dark UIs use the de-emphasis layer above, so the
+        // ring carries no shadow there.
         className={clsx(
           'pointer-events-none absolute rounded-[22px] border-[3px] border-brand-coral/80 transition-[left,top,width,height] duration-500 ease-out motion-reduce:transition-none',
-          dark ? 'shadow-spotlight-scrim-dark' : 'shadow-spotlight-scrim',
+          !dark && 'shadow-spotlight-scrim',
         )}
         style={{
           left: rect.left,
@@ -140,6 +153,24 @@ function SpotlightMask({ selector, dark }: { selector: string; dark?: boolean })
         }}
       />
     </div>
+  );
+}
+
+/** Full-viewport region MINUS a rounded rect (the spotlight hole), as an
+ *  evenodd clip-path — the de-emphasis filter only paints OUTSIDE the hole. */
+function holePath(r: SpotRect): string {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const R = 22; // matches the ring's rounded-[22px]
+  const x = r.left;
+  const y = r.top;
+  const w = Math.max(r.right - r.left, 2 * R);
+  const h = Math.max(r.bottom - r.top, 2 * R);
+  return (
+    `path(evenodd, "M0 0 H${W} V${H} H0 Z ` +
+    `M${x + R} ${y} h${w - 2 * R} a${R} ${R} 0 0 1 ${R} ${R} v${h - 2 * R} ` +
+    `a${R} ${R} 0 0 1 -${R} ${R} h${-(w - 2 * R)} a${R} ${R} 0 0 1 -${R} -${R} ` +
+    `v${-(h - 2 * R)} a${R} ${R} 0 0 1 ${R} -${R} Z")`
   );
 }
 
@@ -201,6 +232,29 @@ export function DemoTourOverlay({
   onSkip,
 }: DemoTourOverlayProps) {
   const current = steps[step];
+  // FLIP: when the card's resolved position changes (next step, layout flip,
+  // split remap), animate the move instead of teleporting. The transform lives
+  // on a dedicated middle wrapper — the OUTER placement wrapper may use class
+  // translates (center/beside-input) an inline transform would clobber.
+  const flipRef = useRef<HTMLDivElement>(null);
+  const prevRectRef = useRef<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = flipRef.current;
+    if (!el) return;
+    const next = el.getBoundingClientRect();
+    const prev = prevRectRef.current;
+    prevRectRef.current = { left: next.left, top: next.top };
+    if (!prev) return;
+    const dx = prev.left - next.left;
+    const dy = prev.top - next.top;
+    if ((!dx && !dy) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = 'transform 350ms cubic-bezier(0.22, 1, 0.36, 1)';
+      el.style.transform = '';
+    });
+  });
   if (!current) return null;
   let placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
   if (splitLayout && placement === 'bottom-left') placement = 'top-left';
@@ -233,19 +287,35 @@ export function DemoTourOverlay({
           PLACEMENT_CLASS[placement],
         )}
       >
+      {/* FLIP element — transform-only, measured/animated by the hook above */}
+      <div ref={flipRef}>
       <div
         key={step}
         data-testid="tour-card"
         data-placement={placement}
-        className="animate-tour-card-in rounded-3xl bg-white p-6 text-ink shadow-2xl motion-reduce:animate-none"
+        className={clsx(
+          'animate-tour-card-in rounded-3xl p-6 shadow-2xl motion-reduce:animate-none',
+          // The card matches the studio's theme but stays HIGHLY visible:
+          // dark = ink surface + light text + a hairline ring lifting it off
+          // the de-emphasized backdrop.
+          darkUi ? 'bg-ink text-canvas ring-1 ring-white/15' : 'bg-white text-ink',
+        )}
       >
         <span className="text-[11px] font-extrabold uppercase tracking-widest text-brand-mint">
           Step {step + 1} of {steps.length}
         </span>
-        <h2 data-testid="tour-title" className="mt-1.5 text-[21px] font-extrabold leading-snug">
+        <h2
+          data-testid="tour-title"
+          // explicit color: a global heading rule would beat inheritance and
+          // leave the title ink-on-ink on the dark card
+          className={clsx(
+            'mt-1.5 text-[21px] font-extrabold leading-snug',
+            darkUi ? 'text-canvas' : 'text-ink',
+          )}
+        >
           {current.title}
         </h2>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink/70">{current.body}</p>
+        <p className={clsx('mt-2 text-[14px] leading-relaxed', darkUi ? 'text-canvas/75' : 'text-ink/70')}>{current.body}</p>
 
         {/* Wrap-friendly controls (≥44px touch targets): the action pills keep
             their single-line shape, the ROW wraps when they don't fit beside the
@@ -258,7 +328,7 @@ export function DemoTourOverlay({
                 data-testid="tour-dot"
                 className={clsx(
                   'h-2 rounded-full transition-all',
-                  i === step ? 'w-5 bg-brand-coral' : 'w-2 bg-ink/15',
+                  i === step ? 'w-5 bg-brand-coral' : darkUi ? 'w-2 bg-white/20' : 'w-2 bg-ink/15',
                 )}
               />
             ))}
@@ -269,7 +339,7 @@ export function DemoTourOverlay({
                 type="button"
                 data-testid="tour-skip"
                 onClick={onSkip}
-                className="min-h-11 whitespace-nowrap rounded-full px-3 text-[13px] font-bold text-ink/60 transition-colors hover:text-ink"
+                className={clsx('min-h-11 whitespace-nowrap rounded-full px-3 text-[13px] font-bold transition-colors', darkUi ? 'text-canvas/60 hover:text-canvas' : 'text-ink/60 hover:text-ink')}
               >
                 Skip tour
               </button>
@@ -279,7 +349,7 @@ export function DemoTourOverlay({
                 type="button"
                 data-testid="tour-back"
                 onClick={onBack}
-                className="min-h-11 whitespace-nowrap rounded-full border-2 border-ink/15 px-4 text-[13px] font-extrabold transition-colors hover:bg-ink/5"
+                className={clsx('min-h-11 whitespace-nowrap rounded-full border-2 px-4 text-[13px] font-extrabold transition-colors', darkUi ? 'border-white/20 hover:bg-white/10' : 'border-ink/15 hover:bg-ink/5')}
               >
                 Back
               </button>
@@ -295,6 +365,7 @@ export function DemoTourOverlay({
             </button>
           </div>
         </div>
+      </div>
       </div>
       </div>
     </div>

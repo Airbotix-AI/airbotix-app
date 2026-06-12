@@ -4,7 +4,20 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
-## 2026-06-12 (theme-aware demo tour scrim)
+## 2026-06-12 
+### Changed (tour polish — motion & dark theme)
+- **Tour cards GLIDE between positions** (FLIP, 350ms) when a step or a
+  Windows↔Split flip repositions them — no more teleporting; reduced-motion safe.
+- **Dark-theme spotlight redesigned as DE-EMPHASIS**: a dim scrim can't read on an
+  already-dark UI, so everything outside the rounded cut-out now loses its color
+  and sharpness instead (backdrop grayscale + brightness 0.45 + 2px blur behind an
+  evenodd clip-path hole) — the spotlight area is the only place with full
+  fidelity. Light UIs keep the proven ink scrim.
+- **Tour cards match the studio theme**: dark workspaces get an ink card with light
+  text + hairline ring (titles explicitly colored — a global heading rule was
+  leaving them ink-on-ink), still highly visible over the de-emphasized backdrop.
+
+(theme-aware demo tour scrim)
 
 ### Fixed
 - **The demo tour's spotlight scrim now reads on dark UIs.** The scrim was

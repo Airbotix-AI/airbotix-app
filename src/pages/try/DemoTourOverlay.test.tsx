@@ -125,14 +125,21 @@ describe('DemoTourOverlay spotlight', () => {
     { title: 'No spot', body: 'Nothing highlighted' },
   ];
 
-  function setupSpot(step: number) {
+  function setupSpot(step: number, extra: { darkUi?: boolean } = {}) {
     const target = document.createElement('button');
     target.id = 'spot-target';
     target.getBoundingClientRect = () =>
       ({ left: 100, top: 50, right: 220, bottom: 90, width: 120, height: 40 }) as DOMRect;
     document.body.appendChild(target);
     render(
-      <DemoTourOverlay steps={SPOT_STEPS} step={step} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+      <DemoTourOverlay
+        steps={SPOT_STEPS}
+        step={step}
+        darkUi={extra.darkUi}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
     );
     return target;
   }
@@ -180,26 +187,21 @@ describe('DemoTourOverlay spotlight', () => {
     );
   });
 
-  it('the scrim follows the studio theme: ink@50% on light, black@70% when darkUi', () => {
+  it('dark UIs get the DE-EMPHASIS mask (grayscale+dim+blur outside a rounded hole)', async () => {
+    setupSpot(1, { darkUi: true });
+    const dim = await screen.findByTestId('tour-spotlight-dim');
+    expect(dim.className).toContain('backdrop-grayscale');
+    expect(dim.className).toContain('backdrop-brightness');
+    expect(dim.className).toContain('backdrop-blur');
+    expect(dim.style.clipPath).toContain('evenodd'); // the rounded cut-out
+    // the ring carries no scrim shadow in dark — the dim layer does the work
+    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain('shadow-spotlight-scrim');
+  });
+
+  it('light UIs keep the ink scrim shadow and no dim layer', () => {
     setupSpot(1);
     expect(screen.getByTestId('tour-spotlight-ring').className).toContain('shadow-spotlight-scrim');
-    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain(
-      'shadow-spotlight-scrim-dark',
-    );
-    cleanup();
-    render(
-      <DemoTourOverlay
-        steps={SPOT_STEPS}
-        step={1}
-        darkUi
-        onNext={vi.fn()}
-        onBack={vi.fn()}
-        onSkip={vi.fn()}
-      />,
-    );
-    expect(screen.getByTestId('tour-spotlight-ring').className).toContain(
-      'shadow-spotlight-scrim-dark',
-    );
+    expect(screen.queryByTestId('tour-spotlight-dim')).not.toBeInTheDocument();
   });
 
   it('the modal backdrop follows the studio theme too', () => {
