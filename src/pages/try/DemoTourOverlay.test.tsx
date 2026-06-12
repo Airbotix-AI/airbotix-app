@@ -285,3 +285,21 @@ describe('DemoTourOverlay spotlight override (in-flight chat focus)', () => {
     await screen.findByTestId('tour-spotlight');
   });
 });
+
+describe('split-layout placement remap', () => {
+  const CARD: DemoTourStep[] = [{ title: 'Chat card', body: 'b', placement: 'bottom-left' }];
+
+  it('bottom-left cards move to top-left in split (never on the chat tail)', () => {
+    render(
+      <DemoTourOverlay steps={CARD} step={0} splitLayout onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('top-left');
+  });
+
+  it('window mode keeps bottom-left', () => {
+    render(
+      <DemoTourOverlay steps={CARD} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('bottom-left');
+  });
+});

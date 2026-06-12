@@ -87,6 +87,7 @@ export function TryPlaygroundPage() {
   // overlay's scrim/backdrop re-pick the moment the kid flips the taskbar
   // toggle mid-tour (ink@50% is imperceptible over the dark workspace).
   const theme = usePlaygroundStore((s) => s.theme);
+  const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const sendRef = useRef<((text: string) => void) | null>(null);
   const landingSubmitRef = useRef<(() => void) | null>(null);
   const controlsRef = useRef<DemoStudioControls | null>(null);
@@ -445,6 +446,7 @@ export function TryPlaygroundPage() {
             step={view}
             busy={sending}
             spotlightOverride={spotOverride}
+            splitLayout={layoutMode === 'split'}
             darkUi={theme === 'dark'}
             onNext={handleNext}
             onBack={() => reveal(Math.max(0, view - 1))}

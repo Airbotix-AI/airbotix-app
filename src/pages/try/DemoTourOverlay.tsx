@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 export type DemoTourPlacement =
   | 'center'
   | 'beside-input' // beside the landing prompt box (bottom-center on narrow screens)
+  | 'top-left' // split mode: over the conversation's OLD messages, never its tail
   | 'bottom-left' // clear of the Game Runner (right column)
   | 'bottom-right' // clear of the Code Editor (lower-left)
   | 'top-right'; // clear of the bottom half
@@ -150,6 +151,8 @@ const PLACEMENT_CLASS: Record<DemoTourPlacement, string> = {
   'beside-input':
     'max-xl:bottom-6 max-xl:left-1/2 max-xl:-translate-x-1/2 ' +
     'xl:left-4 xl:top-1/2 xl:-translate-y-1/2 xl:w-[min(20rem,calc(50vw-26rem))]',
+  // Below the split tab strip, over the OLDEST chat messages (its tail stays clear).
+  'top-left': 'left-4 top-28',
   'bottom-left': 'bottom-20 left-4',
   'bottom-right': 'bottom-20 right-4',
   'top-right': 'right-4 top-16',
@@ -175,6 +178,12 @@ interface DemoTourOverlayProps {
    * and a mid-tour theme flip re-picks them immediately.
    */
   darkUi?: boolean;
+  /**
+   * Workspace layout (playground only). In SPLIT mode the chat fills the left
+   * region, so `bottom-left` cards would sit on the conversation's latest
+   * message — they are remapped to `top-left` (over the oldest messages).
+   */
+  splitLayout?: boolean;
   onNext: () => void;
   onBack: () => void;
   onSkip: () => void;
@@ -186,13 +195,15 @@ export function DemoTourOverlay({
   busy,
   spotlightOverride,
   darkUi,
+  splitLayout,
   onNext,
   onBack,
   onSkip,
 }: DemoTourOverlayProps) {
   const current = steps[step];
   if (!current) return null;
-  const placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
+  let placement = current.placement ?? (current.modal ? 'center' : 'bottom-right');
+  if (splitLayout && placement === 'bottom-left') placement = 'top-left';
   const spotlight = spotlightOverride ?? current.spotlight;
 
   return (

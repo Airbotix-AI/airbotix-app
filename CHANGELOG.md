@@ -72,6 +72,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - **Tour spotlights are always visible**: every card advance fronts the surface its
   spotlight points at (window mode: on top of all windows; split: its tab active) —
   universal guarantee, idempotent with the action/restart/flip refocus paths.
+- **Split mode: tour cards never sit on the conversation's tail.** The chat fills
+  the left region in split, so `bottom-left` cards are remapped to a new `top-left`
+  placement (over the OLDEST messages) — the latest reply + input stay readable.
 
 ## 2026-06-12 (clean demo console)
 
