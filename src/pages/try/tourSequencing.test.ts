@@ -10,6 +10,7 @@ import { PLAYGROUND_DEMO_SCRIPT } from './demoScript.playground';
 import { PLAYGROUND_TOUR, panelSpotlight } from './demoTour.playground';
 import {
   CHAT_SPOTLIGHT,
+  demoGuideRect,
   afterPaint,
   cardForScriptStep,
   pendingSpotlightFor,
@@ -174,5 +175,20 @@ describe('pendingSpotlightFor (chat-bound actions spotlight chat BEFORE the send
       if (card.spotlight === CHAT_SPOTLIGHT) return; // at least one chat card exists
     }
     throw new Error('no card spotlights the chat window');
+  });
+});
+
+describe('demoGuideRect (the demo opens the Guide wide — two columns visible)', () => {
+  it('is always at least the two-column width (collapse threshold + nav)', () => {
+    for (const [w, h] of [
+      [1280, 800],
+      [1380, 880],
+      [1920, 1080],
+    ]) {
+      const r = demoGuideRect(w, h);
+      expect(r.w, `${w}px`).toBeGreaterThanOrEqual(560);
+      expect(r.w).toBeLessThanOrEqual(720);
+      expect(r.x + r.w).toBeLessThanOrEqual(w);
+    }
   });
 });

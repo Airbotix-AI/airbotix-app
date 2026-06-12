@@ -117,6 +117,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   list + search (mobile-docs pattern). Applies wherever the Guide is narrow:
   its chat-respecting spawn column, user resizes, the demo tour. Unit-tested
   (collapse threshold, toggle round-trip, wide layout untouched).
+- The DEMO tour opens the Guide WIDE (560–720px via the real window-resize
+  affordance, rect set pre-mount — react-rnd seeds geometry at mount only), so
+  the tour showcases the two-column layout: topics and content together. Real
+  users' own opens keep the chat-respecting spawn + responsive collapse.
 
 ## 2026-06-12 (Guide placement)
 

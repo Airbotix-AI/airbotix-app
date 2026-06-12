@@ -82,3 +82,16 @@ export function restartThenRefocus(
   const panel = spotlightPanel(nextSpotlight);
   if (panel && panel !== 'game') afterPaint(() => controls.focusPanel(panel));
 }
+
+/**
+ * The Guide rect the DEMO opens with (window mode): wide enough for the
+ * pane's TWO-COLUMN layout (topics + content together — its single-column
+ * collapse kicks in under 480px), placed right of the dock. Covering the
+ * chat is fine at this step: the tour has it de-emphasized, and this is the
+ * same resize a user could do by dragging.
+ */
+export function demoGuideRect(W: number, H: number): { x: number; y: number; w: number; h: number } {
+  const DOCK = 132;
+  const w = Math.max(560, Math.min(720, W - DOCK - 32));
+  return { x: DOCK, y: Math.round(H * 0.06), w, h: Math.round(H * 0.84) };
+}

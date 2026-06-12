@@ -41,6 +41,7 @@ import {
   afterPaint,
   cardForScriptStep,
   pendingSpotlightFor,
+  demoGuideRect,
   restartThenRefocus,
   spotlightPanel,
 } from './tourSequencing';
@@ -401,10 +402,20 @@ export function TryPlaygroundPage() {
           (path) => assetPaneRef.current?.openAssetDetails(path),
         );
         return;
-      case 'open-guide':
-        // §3 step 10: the Guide opens directly on its most diagram-rich page.
+      case 'open-guide': {
+        // §3 step 10: the Guide opens directly on its most diagram-rich page —
+        // sized WIDE so the demo shows the two-column layout (topics + content
+        // together). The rect MUST land before anything mounts the window:
+        // react-rnd is uncontrolled (geometry seeds at mount only) and
+        // advanceTo's visibility guarantee opens/fronts it a frame later.
+        const st = usePlaygroundStore.getState();
+        if (st.layoutMode === 'window' && !st.windows.help.open) {
+          st.setRect('help', demoGuideRect(window.innerWidth, window.innerHeight));
+        }
         advanceTo(card + 1);
         afterPaint(() => controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC));
+        return;
+      }
         return;
       case 'advance':
         advanceTo(card + 1);
