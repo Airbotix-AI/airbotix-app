@@ -69,9 +69,10 @@ All turns run server-side via `../code/codeApi`:
   `runTurn` (`…/code/turn`). The game agent **always auto-applies** (the kid's ask IS
   the go-ahead) — no agency beat, no plan→approve gate (those belong to the code studio).
 - **One turn → one message.** While a turn runs, the pending bubble is the **`WorkingCard`**
-  (`WorkingCard.tsx`): an honest step list + per-step/total timers built from the real
-  tool/action deltas (`turnProgress.ts`, fed via `streamTurn`'s `onDelta` — never fake
-  cycling copy). It resolves into exactly ONE settled message. A self-verify auto-fix
+  (`WorkingCard.tsx`): ONE spinning arc-breathing ring (SVG, `pg-ring-arc`) + ONE
+  current-state line — the latest real tool/action delta's label (`turnProgress.ts`, fed via
+  `streamTurn`'s `onDelta`); generic rotating fillers only before the first delta lands
+  (never falsely specific copy) — plus a clock. It resolves into exactly ONE settled message. A self-verify auto-fix
   (`/code/verify-fix`) runs as a **silent "fixing 🔧" beat** in the same card (apply silently
   on success; a single warm co-debug message only when it can't fix). Stars metered
   server-side; undo is local; `client_actions` run via `executeClientActions`.

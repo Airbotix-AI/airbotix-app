@@ -128,6 +128,20 @@ export function stepElapsedSeconds(step: ProgressStep, now: number): number {
   return Math.max(0, Math.round(((step.endedAt ?? now) - step.startedAt) / 1000));
 }
 
+// Rotating fillers for the opening stretch where no real tool delta has landed
+// yet — we genuinely don't know what the agent is doing, so the line stays alive
+// with generic (never falsely specific) copy instead of sitting frozen.
+const FILLERS = [LOOKING_STEP, 'Thinking it through 🤔', 'Trying some ideas 💡', 'Still working away 🛠️'];
+const FILLER_ROTATE_SECS = 4;
+
+/** The card's single current-state line: the step's real label, or — while we're
+ *  still on the opening "looking" step — a filler that rotates every few seconds.
+ *  Pure (`now` passed in) so the rotation is unit-testable. */
+export function currentStateLabel(step: ProgressStep, now: number): string {
+  if (step.key !== '@looking') return step.label;
+  return FILLERS[Math.floor(stepElapsedSeconds(step, now) / FILLER_ROTATE_SECS) % FILLERS.length];
+}
+
 /** Total whole-seconds the turn has run — the header clock. */
 export function totalElapsedSeconds(progress: TurnProgress, now: number): number {
   return Math.max(0, Math.round((now - progress.startedAt) / 1000));

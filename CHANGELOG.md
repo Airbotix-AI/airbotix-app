@@ -4,6 +4,20 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12 (Game Studio — WorkingCard simplified: one ring, one line)
+
+### Changed
+- **The in-chat WorkingCard is now ONE line with ONE indicator.** The old card stacked a
+  heading ("Working on it…"), a determinate progress bar (% from completed-step count,
+  capped at 92% — read as real progress a turn doesn't have), and a growing step list.
+  Now: a single spinning brand ring whose arc breathes (SVG `stroke-dasharray` animation,
+  new `pg-ring-arc`; amber tones during the silent "fixing" beat) next to the current-state
+  label — the latest real tool-delta label (e.g. "Adding Aliens ✍️"), or generic rotating
+  fillers (`currentStateLabel`, 4s cadence) before the first delta lands. The heading was
+  redundant with the state line; the bar was a second indicator with too much movement.
+  Header clock stays; the "live" badge and per-step timers are gone too — the animated
+  ring already signals liveness.
+
 ## 2026-06-12 
 ### Changed (blocks scroll polish)
 - Every scrolling studio zone (character/page rails, category bar, palette,
