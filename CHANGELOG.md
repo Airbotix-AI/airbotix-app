@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grou
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
 ## 2026-06-12 
+### Changed (blocks scroll polish)
+- Every scrolling studio zone (character/page rails, category bar, palette,
+  program area) now uses `FadeScroller`: native scrollbars are hidden (the
+  custom `::-webkit-scrollbar` theme rendered as permanent gray bars on
+  tablets); an iOS-style overlay thumb hugging the card edge (2px, inside the
+  rounded corners) appears while scrolling and fades away when idle; and the
+  edges fade ONLY towards hidden content (scroll-position-driven mask vars) —
+  at a resting end nothing looks cut off. Same only-where-hidden fade idea as
+  the playground HistoryPanel, generalised with the overlay thumb.
+
+### Fixed (blocks portrait layout)
+- Blocks Studio portrait/tablet layout no longer collapses: the zone-tag chips
+  (D-BLK-13) kept their landscape column-header style (`width: 100%`) inside the
+  portrait horizontal strips, so each tag swallowed its whole row and pushed the
+  character thumbs, page thumbs and all six category buttons off-screen. In
+  portrait the tags are now compact leading chips.
+- Narrow portrait screens (≲530px) no longer clip ▶ Go! / the bin off the right
+  edge: the studio's grid rows now shrink to the column (`min-width: 0`) and the
+  toolbar title block truncates instead of widening the app.
+
 ### Fixed (tour navigation & placement)
 - "Change a number" (blocks tour) anchors to the SIDES only — anchoring above the
   track covered the palette the card tells the user to drag from (caught by the
