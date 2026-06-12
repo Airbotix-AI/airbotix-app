@@ -882,6 +882,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   Covered by `GeneratingScreen.test.tsx` (thinking → progressive file reveal → ready
   → handoff).
 
+## 2026-06-11
+
+### Changed
+- `CLAUDE.md` rewritten for the `airbotix-ai` umbrella era: this repo is documented as
+  an umbrella submodule, product-context paths now point at the umbrella root `docs/`
+  (the old `~/Documents/sites/airbotix/docs/...` paths are gone), and the
+  same-commit `CHANGELOG.md` rule is stated up front. Docs only, no code change.
+
 ## 2026-06-08
 
 ### Fixed
