@@ -19,6 +19,33 @@
 
 import type { VfsFile } from './codeApi';
 
+/**
+ * Browser-extension noise guard — MUST be the first script in every preview /
+ * game srcdoc. Wallet extensions (Coinbase, MetaMask, …) inject provider
+ * scripts into every frame; inside our deliberately opaque-origin sandbox
+ * (no \`allow-same-origin\`) their first \`localStorage\` touch throws an
+ * uncaught SecurityError that scares anyone with DevTools open. Errors whose
+ * source is an extension URL are cancelled before the browser logs them and
+ * never reach the console relay. Page-world only: an extension's ISOLATED
+ * content-script errors are outside any page's reach (browser-level noise).
+ * NEVER "fix" this by adding allow-same-origin — that flag is load-bearing
+ * (the frame must not reach the app origin's storage/cookies/token).
+ */
+export const EXTENSION_NOISE_GUARD = `
+<script>
+(function () {
+  var isExtensionSource = function (src) {
+    return /^(chrome|moz|safari-web|ms-browser)-extension:/.test(src || '');
+  };
+  window.addEventListener('error', function (e) {
+    if (isExtensionSource(e.filename)) {
+      e.preventDefault();          // no "Uncaught …" console entry
+      e.stopImmediatePropagation(); // never reaches the console relay below
+    }
+  }, true);
+})();
+</script>`;
+
 export const CONSOLE_CAPTURE = `
 <script>
 (function () {
@@ -38,6 +65,7 @@ export const CONSOLE_CAPTURE = `
   // Uncaught errors carry a location — post it structured so the console can show
   // file:line and the editor can jump there (sourceURL makes filename = the file).
   window.addEventListener('error', function (e) {
+    if (/^(chrome|moz|safari-web|ms-browser)-extension:/.test(e.filename || '')) return;
     try {
       parent.postMessage({
         __airbotixConsole: true,
@@ -98,6 +126,7 @@ export function buildSrcDoc(files: VfsFile[]): string {
   return [
     '<!doctype html>',
     '<html><head><meta charset="utf-8">',
+    EXTENSION_NOISE_GUARD,
     `<style>${css}</style>`,
     '</head><body>',
     CONSOLE_CAPTURE,

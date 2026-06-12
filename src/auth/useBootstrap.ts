@@ -14,6 +14,13 @@ export function useBootstrap(): void {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Public demo routes (/try/*) are anonymous BY DESIGN (try-demo-mode-prd
+      // D-DEMO-01/02): skip the refresh attempts entirely — for the demo's
+      // audience the two guaranteed 401s are nothing but scary console noise.
+      if (window.location.pathname.startsWith('/try/')) {
+        useAuthStore.getState().setBootstrapped(true);
+        return;
+      }
       const [, kidToken] = await Promise.all([
         refreshAccessToken('user'),
         refreshAccessToken('kid'),

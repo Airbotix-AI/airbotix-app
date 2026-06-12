@@ -23,6 +23,10 @@
  * Light values come from DESIGN.md (canvas/ink/hairline/steel); dark values are
  * the studio chrome shades. */
 [data-theme='light'] {
+  /* `color-scheme` keeps UA-rendered chrome (native scrollbars on Windows /
+   * "always show" macOS, form-control internals) on the active theme — without
+   * it the dark workspace gets LIGHT native scrollbars in every scroll pane. */
+  color-scheme: light;
   --pg-bg: 255 254 247;          /* canvas      #FFFEF7 */
   --pg-desktop: 245 239 227;     /* hairline-sf #F5EFE3 */
   --pg-surface: 255 255 255;     /* canvas-pure #FFFFFF */
@@ -36,6 +40,7 @@
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --pg-bg: 31 27 45;             /* ink         #1F1B2D */
   --pg-desktop: 14 11 22;        /*             #0E0B16 */
   --pg-surface: 36 33 51;        /*             #242133 */

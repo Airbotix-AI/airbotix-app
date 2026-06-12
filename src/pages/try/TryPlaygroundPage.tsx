@@ -16,6 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { PlaygroundApp } from '../learn/playground/PlaygroundApp';
+import { usePlaygroundStore } from '../learn/playground/playgroundStore';
 import { useProjectStore } from '../learn/playground/projectStore';
 import { DemoBanner } from './DemoBanner';
 import {
@@ -40,6 +41,7 @@ import {
   afterPaint,
   cardForScriptStep,
   pendingSpotlightFor,
+  demoGuideRect,
   restartThenRefocus,
   spotlightPanel,
 } from './tourSequencing';
@@ -82,6 +84,11 @@ export function TryPlaygroundPage() {
   // window from the CLICK (before the send), not from when the reply settles.
   const [spotOverride, setSpotOverride] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // The studio's LIVE theme (store subscription, not a mount-time read): the
+  // overlay's scrim/backdrop re-pick the moment the kid flips the taskbar
+  // toggle mid-tour (ink@50% is imperceptible over the dark workspace).
+  const theme = usePlaygroundStore((s) => s.theme);
+  const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const sendRef = useRef<((text: string) => void) | null>(null);
   const landingSubmitRef = useRef<(() => void) | null>(null);
   const controlsRef = useRef<DemoStudioControls | null>(null);
@@ -121,6 +128,11 @@ export function TryPlaygroundPage() {
     setSpotOverride(null);
     setFrontier((f) => Math.max(f, card));
     setView(card);
+    // Universal visibility guarantee: whatever surface the revealed card
+    // spotlights is FRONTED (window mode: on top of all windows; split: its
+    // tab activated). Idempotent with the action/restart/flip refocus paths.
+    const panel = spotlightPanel(PLAYGROUND_TOUR[card]?.spotlight);
+    if (panel) afterPaint(() => controlsRef.current?.focusPanel(panel));
   };
 
   useEffect(() => {
@@ -150,6 +162,31 @@ export function TryPlaygroundPage() {
       clearInterval(assetTimer.current);
       uninstallPlaygroundDemo();
     };
+  }, []);
+
+  // A mid-tour Windows ↔ Split flip (the taskbar's real LayoutToggle) re-fronts
+  // the surface the current spotlight points at — same rule as browsing
+  // (`reveal`): the in-flight override (the chat, while Airo works) or the
+  // visible card's panel must stay resolvable in the new layout. `focusPanel`
+  // routes per the LIVE layout (open/focus the window, or switch the split
+  // tab); the overlay's mask re-measures on its own poll. After the tour the
+  // layout is the user's to rearrange — no re-fronting.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const spotOverrideRef = useRef(spotOverride);
+  spotOverrideRef.current = spotOverride;
+  const doneRef = useRef(done);
+  doneRef.current = done;
+  useEffect(() => {
+    let lastLayout = usePlaygroundStore.getState().layoutMode;
+    return usePlaygroundStore.subscribe((s) => {
+      if (s.layoutMode === lastLayout) return;
+      lastLayout = s.layoutMode;
+      if (doneRef.current) return;
+      const selector = spotOverrideRef.current ?? PLAYGROUND_TOUR[viewRef.current]?.spotlight;
+      const panel = spotlightPanel(selector);
+      if (panel) afterPaint(() => controlsRef.current?.focusPanel(panel));
+    });
   }, []);
 
   const demoValue = useMemo<DemoMode>(
@@ -225,11 +262,16 @@ export function TryPlaygroundPage() {
         const path = landed[landed.length - 1].path;
         // Hold a beat on the chat so the new art is SEEN (stick-to-bottom
         // keeps the bubble in view), then surface My Assets with the swap.
+        // The details open AFTER the pane is back on screen: the split layout
+        // UNMOUNTS the Asset Viewer while the chat tab has the stage, so the
+        // remounted pane must re-bind its seam before `onLanded` drives it.
         clearTimeout(recoveryTimer.current);
         recoveryTimer.current = setTimeout(() => {
-          onLanded?.(path);
           controlsRef.current?.focusPanel('assets');
-          advanceTo(fromCard + 1);
+          afterPaint(() => {
+            onLanded?.(path);
+            advanceTo(fromCard + 1);
+          });
         }, ASSET_RESULT_BEAT_MS);
       } else if (tick % ASSET_RETRY_TICKS === 1) {
         // No-ops while the chat lock is busy. Retried SPARINGLY (every ~2s, not
@@ -360,10 +402,20 @@ export function TryPlaygroundPage() {
           (path) => assetPaneRef.current?.openAssetDetails(path),
         );
         return;
-      case 'open-guide':
-        // §3 step 10: the Guide opens directly on its most diagram-rich page.
+      case 'open-guide': {
+        // §3 step 10: the Guide opens directly on its most diagram-rich page —
+        // sized WIDE so the demo shows the two-column layout (topics + content
+        // together). The rect MUST land before anything mounts the window:
+        // react-rnd is uncontrolled (geometry seeds at mount only) and
+        // advanceTo's visibility guarantee opens/fronts it a frame later.
+        const st = usePlaygroundStore.getState();
+        if (st.layoutMode === 'window' && !st.windows.help.open) {
+          st.setRect('help', demoGuideRect(window.innerWidth, window.innerHeight));
+        }
         advanceTo(card + 1);
         afterPaint(() => controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC));
+        return;
+      }
         return;
       case 'advance':
         advanceTo(card + 1);
@@ -405,6 +457,8 @@ export function TryPlaygroundPage() {
             step={view}
             busy={sending}
             spotlightOverride={spotOverride}
+            splitLayout={layoutMode === 'split'}
+            darkUi={theme === 'dark'}
             onNext={handleNext}
             onBack={() => reveal(Math.max(0, view - 1))}
             onSkip={() => setDone(true)}

@@ -40,7 +40,12 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   `setDemoAssetGen` seam, so the e2e/dev stub's swatches stay untouched;
 - `demoStory.blocks.ts` — the bundled 3-page "Cat's Day Out" `BlocksProject`;
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
-  (D-DEMO-05, step-aware placements) + demo banner + public pages.
+  (D-DEMO-05, step-aware placements) + demo banner + public pages. The overlay's
+  spotlight scrim + modal backdrop are THEME-AWARE: each page passes `darkUi`
+  from its studio's LIVE theme store (`usePlaygroundStore.theme` /
+  `useBlocksTheme`) — ink@50% is imperceptible over a dark UI, so dark gets the
+  `shadow-spotlight-scrim-dark` token (black@70%). Never read a media query for
+  this; the studio theme is a store toggle.
 
 ## T1 v3 tour step map (PRD §3 — keep in sync with `demoTour.playground.ts`)
 
@@ -74,6 +79,19 @@ then re-fronts the panel the NEXT card spotlights (the restart focuses the Game
 Runner — `restartThenRefocus`, two frames apart, never the same frame); every
 step focuses the window it acts on first (chat / code / assets / help / game),
 deferred behind a double-rAF so the card/spotlight transition paints first.
+
+**The tour is layout-proof — keep it that way.** The Workspace has TWO layouts
+(the taskbar's Windows ↔ Split toggle) and the user may flip at ANY step. Panel
+spotlights MUST be the `panelSpotlight(id)` pair (`[data-window="…"],
+[data-pane="…"]` — the floating window, or the split region marked by the inert
+`data-pane` seams in `Workspace.tsx`); `spotlightPanel` parses either form. The
+bound `focusPanel` routes per the LIVE layout (split → the real Chat / Code /
+Assets / Guide tab; `game` is a no-op there), and a mid-tour flip re-fronts the
+visible card's surface (`TryPlaygroundPage`'s layout subscription). Split mode
+REMOUNTS panes on tab switches — anything driven through a pane binding after a
+chat-focused wait must re-surface the pane first (see `runAssetStep`'s landed
+beat). Covered by `tourSpotlights.layout.test.tsx` + the split-layout walk in
+`e2e/try-demo-smoke.spec.ts`.
 
 ## Non-negotiable rules (D-DEMO-01…08)
 

@@ -81,6 +81,30 @@ const TASKBAR_H = 56;
 // Left margin that keeps the desktop shortcut icon column clear, so a closed
 // window can always be reopened from its icon (windows don't cover it by default).
 const ICON_COL_PX = 124;
+/** Chat launch x — nudged just far enough right that a readable Guide column
+ *  fits to its LEFT on common laptop widths (the Guide must never sit on the
+ *  conversation's latest messages). */
+const CHAT_X_FRAC = 0.31;
+
+export function rectsOverlap(a: WinRect, b: WinRect): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/** The Guide's no-overlap spawn, relative to where the chat ACTUALLY is (it may
+ *  have been dragged): a top-left column left of the chat when ≥250px fits,
+ *  else a short top strip that leaves the chat's input + newest replies clear. */
+export function guideRectClearOf(chat: WinRect, W: number, H: number): WinRect {
+  const leftW = Math.min(620, chat.x - ICON_COL_PX - 16);
+  if (leftW >= 250) {
+    return { x: ICON_COL_PX + 8, y: Math.round(H * 0.04), w: Math.round(leftW), h: Math.round(H * 0.86) };
+  }
+  return {
+    x: ICON_COL_PX + 40,
+    y: Math.round(H * 0.04),
+    w: Math.round(Math.min(620, (W - ICON_COL_PX - 24) * 0.55)),
+    h: Math.round(H * 0.5),
+  };
+}
 // Width of the Code Editor's fixed file column (keep in sync with
 // `FILES_DEFAULT_W` in `panes/CodeEditorPane.tsx`). Used to size the launch
 // window so the EDITOR area — window width minus this column — is what scales.
@@ -90,7 +114,7 @@ function r(x: number, y: number, w: number, h: number): WinRect {
   return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
 }
 
-function defaultWindows(): Record<PgWindowId, WinState> {
+export function defaultWindows(): Record<PgWindowId, WinState> {
   const W = typeof window !== 'undefined' ? window.innerWidth : 1440;
   const H = (typeof window !== 'undefined' ? window.innerHeight : 900) - TASKBAR_H;
   const base = (id: PgWindowId, zIndex: number, rect: WinRect): WinState => ({
@@ -114,16 +138,26 @@ function defaultWindows(): Record<PgWindowId, WinState> {
     ...base(id, zIndex, rect),
     open: false,
   });
+  // Guide placement (see the `help:` note below): TOP-LEFT, fully clear of the
+  // chat column (the chat rect here mirrors the `chat:` seed — keep them in
+  // lockstep) so it can never sit on the conversation's latest messages. Only
+  // on screens too narrow for any readable left column does it fall back to a
+  // SHORT top strip that still leaves the chat's input + newest replies clear.
+  const helpRect = (): WinRect =>
+    guideRectClearOf(r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82), W, H);
   return {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: closed('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
     // The Game Guide (help) — a comfortable reading column, closed by default
     // (opened from its desktop tile / the Split "Guide" tab, or — MH2 — when the
-    // agent emits `open_help`).
-    help: closed('help', 1, r(ICON_COL_PX + 40, H * 0.08, Math.min(620, (W - ICON_COL_PX - 24) * 0.55), H * 0.82)),
+    // agent emits `open_help`). It must NEVER bury the conversation's latest
+    // messages: beside the chat when a readable column fits to its right,
+    // otherwise a SHORTER top-anchored column that leaves the chat's input +
+    // newest replies visible below it.
+    help: closed('help', 1, helpRect()),
     // Open + focused + centered as the sole launch window.
-    chat: base('chat', 4, r(W * 0.29, H * 0.06, W * 0.42, H * 0.82)),
+    chat: base('chat', 4, r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82)),
   };
 }
 
@@ -135,7 +169,25 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
   setTheme: (t) => set({ theme: t }),
   toggleTheme: () => set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' })),
   layoutMode: 'window',
-  setLayoutMode: (m) => set({ layoutMode: m }),
+  setLayoutMode: (m) =>
+    set((state) => {
+      // Entering window mode: if the (open) Guide would sit on the chat — and
+      // its latest messages — relocate it to its no-overlap spot, computed
+      // against where the chat ACTUALLY is now.
+      if (m === 'window' && state.windows.help.open && state.windows.chat.open) {
+        const { help, chat } = state.windows;
+        if (rectsOverlap(help.rect, chat.rect)) {
+          return {
+            layoutMode: m,
+            windows: {
+              ...state.windows,
+              help: { ...help, rect: guideRectClearOf(chat.rect, window.innerWidth, window.innerHeight) },
+            },
+          };
+        }
+      }
+      return { layoutMode: m };
+    }),
   restore: (snap) =>
     set({
       theme: snap.theme,

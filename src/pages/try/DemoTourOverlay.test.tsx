@@ -125,14 +125,21 @@ describe('DemoTourOverlay spotlight', () => {
     { title: 'No spot', body: 'Nothing highlighted' },
   ];
 
-  function setupSpot(step: number) {
+  function setupSpot(step: number, extra: { darkUi?: boolean } = {}) {
     const target = document.createElement('button');
     target.id = 'spot-target';
     target.getBoundingClientRect = () =>
       ({ left: 100, top: 50, right: 220, bottom: 90, width: 120, height: 40 }) as DOMRect;
     document.body.appendChild(target);
     render(
-      <DemoTourOverlay steps={SPOT_STEPS} step={step} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+      <DemoTourOverlay
+        steps={SPOT_STEPS}
+        step={step}
+        darkUi={extra.darkUi}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
     );
     return target;
   }
@@ -141,13 +148,13 @@ describe('DemoTourOverlay spotlight', () => {
     document.getElementById('spot-target')?.remove();
   });
 
-  it('mounts at full viewport then shrinks onto the target (rounded, scrim via shadow)', async () => {
+  it('mounts at full viewport then shrinks onto the target (rounded de-emphasis cut-out)', async () => {
     setupSpot(1);
     const ring = screen.getByTestId('tour-spotlight-ring');
     // mount frame = full viewport (the dim closes in from the whole screen)
     expect(ring.style.left).toBe('0px');
     expect(ring.className).toContain('rounded-');
-    expect(ring.className).toContain('shadow-spotlight-scrim');
+    expect(screen.getByTestId('tour-spotlight-dim').className).toContain('backdrop-saturate-[0.35]');
     // after the first RAF measure: the padded target rect
     await screen.findByTestId('tour-spotlight');
     await vi.waitFor(() => expect(ring.style.left).toBe('92px')); // 100 - 8 pad
@@ -178,6 +185,38 @@ describe('DemoTourOverlay spotlight', () => {
     await vi.waitFor(() =>
       expect(screen.queryByTestId('tour-spotlight')).not.toBeInTheDocument(),
     );
+  });
+
+  it('BOTH themes get the DE-EMPHASIS mask (grayscale+dim+blur outside a rounded hole)', async () => {
+    setupSpot(1, { darkUi: true });
+    const dim = await screen.findByTestId('tour-spotlight-dim');
+    expect(dim.className).toContain('backdrop-grayscale');
+    expect(dim.className).toContain('backdrop-brightness-[0.45]'); // deep dim on dark
+    expect(dim.className).toContain('backdrop-blur');
+    expect(dim.style.clipPath).toContain('evenodd'); // the rounded cut-out
+    // the ring carries no scrim shadow — the dim layer does all the work
+    expect(screen.getByTestId('tour-spotlight-ring').className).not.toContain('shadow-');
+    cleanup();
+    document.getElementById('spot-target')?.remove();
+    setupSpot(1); // light
+    const lightDim = await screen.findByTestId('tour-spotlight-dim');
+    // light keeps its hues: desaturated, NOT grayscale — and readable (1px blur)
+    expect(lightDim.className).not.toContain('backdrop-grayscale');
+    expect(lightDim.className).toContain('backdrop-saturate-[0.35]');
+    expect(lightDim.className).toContain('backdrop-brightness-[0.8]');
+    expect(lightDim.className).toContain('backdrop-blur-[1px]');
+  });
+
+  it('the modal backdrop follows the studio theme too', () => {
+    const steps: DemoTourStep[] = [{ title: 'Intro', body: 'Welcome', modal: true }];
+    const { rerender } = render(
+      <DemoTourOverlay steps={steps} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('backdrop-brightness-[0.8]');
+    rerender(
+      <DemoTourOverlay steps={steps} step={0} darkUi onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('demo-tour-backdrop').className).toContain('backdrop-brightness-[0.45]');
   });
 });
 
@@ -249,5 +288,61 @@ describe('DemoTourOverlay spotlight override (in-flight chat focus)', () => {
       />,
     );
     await screen.findByTestId('tour-spotlight');
+  });
+});
+
+describe('split-layout placement remap', () => {
+  const CARD: DemoTourStep[] = [{ title: 'Chat card', body: 'b', placement: 'bottom-left' }];
+
+  it('bottom-left cards move to top-left in split (never on the chat tail)', () => {
+    render(
+      <DemoTourOverlay steps={CARD} step={0} splitLayout onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('top-left');
+  });
+
+  it('window mode keeps bottom-left', () => {
+    render(
+      <DemoTourOverlay steps={CARD} step={0} onNext={vi.fn()} onBack={vi.fn()} onSkip={vi.fn()} />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('bottom-left');
+  });
+});
+
+describe('anchored placement (card close to the spotlight)', () => {
+  it('anchors beside the target and exposes the chosen side', async () => {
+    const target = document.createElement('button');
+    target.id = 'anchor-target';
+    target.getBoundingClientRect = () =>
+      ({ left: 300, top: 40, right: 420, bottom: 80, width: 120, height: 40 }) as DOMRect;
+    document.body.appendChild(target);
+    render(
+      <DemoTourOverlay
+        steps={[{ title: 'Anchored', body: 'b', placement: 'bottom-left', spotlight: '#anchor-target' }]}
+        step={0}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => {
+      const card = screen.getByTestId('tour-card');
+      expect(card.getAttribute('data-placement')).toBe('anchored');
+      expect(card.getAttribute('data-anchored')).toBe('below'); // room below the rect
+    });
+    target.remove();
+  });
+
+  it('cards without a spotlight keep their static fallback placement', () => {
+    render(
+      <DemoTourOverlay
+        steps={[{ title: 'Plain', body: 'b', placement: 'bottom-left' }]}
+        step={0}
+        onNext={vi.fn()}
+        onBack={vi.fn()}
+        onSkip={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('tour-card').getAttribute('data-placement')).toBe('bottom-left');
   });
 });

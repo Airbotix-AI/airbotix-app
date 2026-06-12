@@ -86,6 +86,17 @@ export interface DemoMode {
    */
   bindLandingSubmit?: (submit: () => void) => void;
   /**
+   * T2 only: the Blocks Studio registers its REAL ▶ Go handler here, so the
+   * tour's "Press Go" card can press it for the user.
+   */
+  bindBlocksGo?: (go: () => void) => void;
+  /**
+   * T2 only: flag-run lifecycle. The tour spotlights the STAGE while the story
+   * plays (whether Go was pressed by the user or by the tour) and advances
+   * when the animation finishes.
+   */
+  onStoryRun?: (phase: 'start' | 'end') => void;
+  /**
    * T1 only (D-DEMO-05): the Workspace registers its real chat `send` here so
    * the tour overlay's "Next" can drive the canned scripted turns through the
    * REAL chat pipeline (store funnel, undo, history — identical to a typed ask).

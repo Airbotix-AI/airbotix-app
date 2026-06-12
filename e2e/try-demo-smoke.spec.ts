@@ -20,10 +20,19 @@ function trackForbidden(page: Page): string[] {
   return forbidden;
 }
 
+type WorkspaceLayout = 'window' | 'split';
+
+/** Flip the workspace layout through the taskbar's REAL LayoutToggle. */
+async function setLayout(page: Page, layout: WorkspaceLayout) {
+  await page.getByRole('button', { name: layout === 'split' ? 'Split' : 'Windows' }).click();
+}
+
 /** Walk the tour from the landing through to the "Even pros hit errors" card
  *  (the bug has landed and the REAL console shows the error). Shared by the
- *  Next-button path and the console-button path below. */
-async function walkToErrorCard(page: Page) {
+ *  Next-button path, the console-button path, and the split-layout walk below
+ *  (`layout: 'split'` flips the real taskbar toggle at "Meet your game" — a
+ *  mid-tour layout change — and the whole tour must keep working). */
+async function walkToErrorCard(page: Page, layout: WorkspaceLayout = 'window') {
   await page.goto('/try/playground');
 
   // 1 — REAL landing phase: prompt pre-filled + locked, card beside the input,
@@ -55,20 +64,32 @@ async function walkToErrorCard(page: Page) {
   await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('chat-starter')).toBeVisible();
 
+  if (layout === 'split') {
+    // Mid-tour layout flip through the REAL taskbar toggle: the Game pane is
+    // now the permanent right region and the card's spotlight re-resolves onto
+    // it (the layout-proof selector pair + the mask's poll).
+    await setLayout(page, 'split');
+    await expect(page.locator('[data-pane="game"]')).toBeVisible();
+    await expect(page.getByTestId('tour-spotlight-ring')).toBeVisible();
+    await page.screenshot({ path: '/tmp/split-meet-your-game.png' });
+  }
+
   // 3 — scripted ask 1 (faster apples), auto-restart keeps the game running;
   //     the next card discusses the conversation, so it spotlights the chat.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('One ask → one change', { timeout: 15_000 });
   await expect(page.getByTestId('tour-spotlight-ring')).toBeVisible();
 
-  // 4 — diff step: the editor opens on the changed line (real jump+highlight path).
+  // 4 — diff step: the editor opens on the changed line (real jump+highlight
+  //     path) — the floating Code window, or the split layout's Code tab.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('See the line that changed');
-  await expect(page.getByText('Code Editor').first()).toBeVisible();
+  await expect(page.locator('[data-window="code"], [data-pane="code"]')).toBeVisible();
 
   // 5 — scripted ask 2 (score +10) → auto-restart.
   await page.getByTestId('tour-next').click();
   await expect(page.getByTestId('tour-title')).toHaveText('Keep score', { timeout: 15_000 });
+  if (layout === 'split') await page.screenshot({ path: '/tmp/split-keep-score.png' });
 
   // 6a — select card: the REAL selection pipeline pops the live "✨ Explain
   //      this" toolbar over the selected snippet; the next card spotlights it.
@@ -89,6 +110,7 @@ async function walkToErrorCard(page: Page) {
   await expect(page.getByTestId('asset-generate-prompt')).toHaveValue('a shiny red apple sticker', {
     timeout: 10_000,
   });
+  if (layout === 'split') await page.screenshot({ path: '/tmp/split-asset-prompt.png' });
 
   // 7a-B — submit through the pane's real ✨ Generate → the sticker lands
   //        (2 emoji starters + 1 generated; crafted offline art).
@@ -152,6 +174,54 @@ test('try/playground: the 16-card v3 tour → free explore → AI gate', async (
   await expect(page.getByTestId('undo-turn')).toBeVisible();
   // The Guide window (step 10) may overlap the chat's send button — type into
   // the real input and send with Enter (the input's documented send path).
+  await page.getByTestId('chat-input').fill('make me a dragon game');
+  await page.getByTestId('chat-input').press('Enter');
+  await expect(page.getByText(/airbotix\.ai\/book/)).toBeVisible({ timeout: 10_000 });
+
+  expect(forbidden).toEqual([]);
+});
+
+test('try/playground: the full tour in the SPLIT layout, with mid-tour layout flips', async ({ page }) => {
+  test.setTimeout(180_000);
+  const forbidden = trackForbidden(page);
+  // The walk flips to Split at "Meet your game" (a mid-tour toggle in itself)
+  // and every card must keep working: chat/code/assets/help surface through
+  // the REAL tab strip, the Game pane is the permanent right region.
+  await walkToErrorCard(page, 'split');
+
+  // Mid-tour flips at the error card: the spotlight (the runner's console) must
+  // re-resolve in EACH layout — the mask re-measures on its own poll.
+  await setLayout(page, 'window');
+  await expect(page.getByText(/makeWinBanner is not a function/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('tour-spotlight-ring')).toBeVisible();
+  await setLayout(page, 'split');
+  await expect(page.getByText(/makeWinBanner is not a function/)).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('tour-spotlight-ring')).toBeVisible();
+  await page.screenshot({ path: '/tmp/split-error-card.png' });
+
+  // 9 — the fix turn repairs it → auto-restart → the game runs again.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Airo reads the console and fixes it', {
+    timeout: 15_000,
+  });
+  await expect(page.getByText('Running', { exact: true })).toBeVisible({ timeout: 20_000 });
+
+  // 10 — the Game Guide surfaces as the split layout's REAL Guide tab.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('tour-title')).toHaveText('Stuck? The Guide knows');
+  await expect(page.getByRole('tab', { name: 'Guide' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('help-pane')).toBeVisible();
+  await expect(page.getByTestId('help-diagram-game-loop')).toBeVisible();
+  await page.screenshot({ path: '/tmp/split-guide.png' });
+
+  // 11 — free explore: in split the conversation lives behind the Chat tab —
+  //      the same real affordance a user would click.
+  await page.getByTestId('tour-next').click(); // Last step
+  await expect(page.getByTestId('tour-title')).toHaveText('Now it’s all yours');
+  await page.getByTestId('tour-next').click(); // Explore freely ✨
+  await expect(page.getByTestId('demo-tour')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Chat' }).click();
+  await expect(page.getByTestId('undo-turn')).toBeVisible();
   await page.getByTestId('chat-input').fill('make me a dragon game');
   await page.getByTestId('chat-input').press('Enter');
   await expect(page.getByText(/airbotix\.ai\/book/)).toBeVisible({ timeout: 10_000 });

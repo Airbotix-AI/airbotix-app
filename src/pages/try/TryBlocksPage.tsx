@@ -5,9 +5,10 @@
 // top and only instructs — every interaction (▶ Go, taps, number tiles, drags,
 // pages) is the real editor. No AI gate needed: Blocks Studio has no AI today.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
+import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { DemoBanner } from './DemoBanner';
 import { DEMO_EXIT_URL, DemoModeProvider, type DemoMode } from './demoMode';
 import { DemoTourOverlay, type DemoTourStep } from './DemoTourOverlay';
@@ -27,9 +28,10 @@ const TOUR: DemoTourStep[] = [
   {
     title: 'Press ▶ Go!',
     body:
-      'Tap the green Go button (top right) and watch the cat follow its blocks — start, move, ' +
-      'say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
+      'Tap the green Go button (top right) — or let me — and watch the cat follow its blocks: ' +
+      'start, move, say, hop. Each colour means one thing: yellow starts, blue moves, purple talks.',
     spotlight: '[data-testid="go-button"]',
+    nextLabel: '▶ Press Go!',
   },
   {
     title: 'Tap a character',
@@ -44,6 +46,10 @@ const TOUR: DemoTourStep[] = [
       'Tap a number tile in the track below and make the cat hop further. Blocks drag between ' +
       'tracks or to the bin — and undo is always one tap away.',
     spotlight: '[data-testid="script-area"]',
+    // This step is HANDS-ON across the whole coding band: anchoring above the
+    // track would cover the palette the card tells the user to drag from. Sides
+    // only; otherwise the static top-right placement keeps everything tappable.
+    anchorPrefer: ['right', 'left'],
     placement: 'top-right',
   },
   {
@@ -63,12 +69,29 @@ const TOUR: DemoTourStep[] = [
   },
 ];
 
+/** The 'Press ▶ Go!' card — its Next presses the REAL Go for the user. */
+const GO_CARD = 1;
+const STAGE_SPOTLIGHT = '[data-testid="blocks-stage"]';
+
 export function TryBlocksPage() {
   // Seams armed (the studio must not mount before the adapter is installed —
   // its load effect would otherwise hit the real backend).
   const [armed, setArmed] = useState(false);
   const [view, setView] = useState(0);
   const [done, setDone] = useState(false);
+  // While the story PLAYS (Go pressed by the user OR by the tour's Next), the
+  // spotlight sits on the stage and the tour waits for the animation to finish.
+  const [playing, setPlaying] = useState(false);
+  const [spotOverride, setSpotOverride] = useState<string | null>(null);
+  // Furthest card reached: Next PLAYS the story only on the first arrival at
+  // the Press-Go card — browsing Back and forward again just navigates.
+  const frontierRef = useRef(0);
+  // The studio's LIVE theme (the demo opens light, but the studio's own toggle
+  // works): the overlay's scrim/backdrop re-pick on a mid-tour flip.
+  const theme = useBlocksTheme((s) => s.theme);
+  const goRef = useRef<(() => void) | null>(null);
+  const viewRef = useRef(0);
+  viewRef.current = view;
 
   useEffect(() => {
     installBlocksDemo();
@@ -76,7 +99,36 @@ export function TryBlocksPage() {
     return uninstallBlocksDemo;
   }, []);
 
-  const demoValue = useMemo<DemoMode>(() => ({ surface: 'blocks', exitHref: DEMO_EXIT_URL }), []);
+  const demoValue = useMemo<DemoMode>(
+    () => ({
+      surface: 'blocks',
+      exitHref: DEMO_EXIT_URL,
+      bindBlocksGo: (go) => {
+        goRef.current = go;
+      },
+      onStoryRun: (phase) => {
+        // Only the FIRST run at the Press-Go card belongs to the tour —
+        // revisits (Back) and later runs are the user's own exploration.
+        const tourRun = viewRef.current === GO_CARD && frontierRef.current <= GO_CARD;
+        if (phase === 'start') {
+          if (tourRun) {
+            setSpotOverride(STAGE_SPOTLIGHT);
+            setPlaying(true);
+          }
+          return;
+        }
+        setSpotOverride(null);
+        setPlaying(false);
+        // The animation finished — move on. The next card spotlights the
+        // stage too, so the handoff is zero-movement.
+        if (tourRun) {
+          frontierRef.current = GO_CARD + 1;
+          setView(GO_CARD + 1);
+        }
+      },
+    }),
+    [],
+  );
 
   return (
     <DemoModeProvider value={demoValue}>
@@ -91,7 +143,23 @@ export function TryBlocksPage() {
           <DemoTourOverlay
             steps={TOUR}
             step={view}
-            onNext={() => (view >= TOUR.length - 1 ? setDone(true) : setView(view + 1))}
+            busy={playing}
+            busyLabel="Playing… 🎬"
+            spotlightOverride={spotOverride}
+            darkUi={theme === 'dark'}
+            onNext={() => {
+              // The Press-Go card's Next presses the REAL Go for the user — but
+              // only on the FIRST arrival; after Back, forward just navigates.
+              if (view === GO_CARD && frontierRef.current <= GO_CARD && goRef.current) {
+                goRef.current();
+                return;
+              }
+              if (view >= TOUR.length - 1) setDone(true);
+              else {
+                frontierRef.current = Math.max(frontierRef.current, view + 1);
+                setView(view + 1);
+              }
+            }}
             onBack={() => setView((v) => Math.max(0, v - 1))}
             onSkip={() => setDone(true)}
           />

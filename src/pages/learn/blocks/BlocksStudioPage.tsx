@@ -276,11 +276,20 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   const go = useCallback(() => {
     if (running) return;
     setRunning(true);
+    demo?.onStoryRun?.('start'); // try-demo: tour spotlights the stage while it plays
     const runner = makeRunner();
     runner.resetAll();
     sfx.go();
-    void runner.runFlag().finally(() => setRunning(false));
-  }, [running, makeRunner]);
+    void runner.runFlag().finally(() => {
+      setRunning(false);
+      demo?.onStoryRun?.('end');
+    });
+  }, [running, makeRunner, demo]);
+
+  // try-demo seam: the tour's Next can press the REAL Go for the user
+  useEffect(() => {
+    demo?.bindBlocksGo?.(go);
+  }, [demo, go]);
 
   const reset = useCallback(() => {
     runnerRef.current?.stopAll();

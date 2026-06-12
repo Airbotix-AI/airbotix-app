@@ -4,6 +4,159 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-12 
+### Fixed (tour navigation & placement)
+- "Change a number" (blocks tour) anchors to the SIDES only — anchoring above the
+  track covered the palette the card tells the user to drag from (caught by the
+  harness journey's real palette click); falls back to its static top-right.
+
+- Blocks demo: the story plays only on the FIRST arrival at the Press-Go card —
+  after browsing Back, going forward just navigates (frontier semantics, like the
+  playground), and a user's own Go press on a revisit is plain exploration.
+- Tour cards no longer flash in from screen corners when a step's target is still
+  resolving (an opening window, a not-yet-popped toolbar): the card HOLDS its last
+  position until the new anchor lands ('pending' vs 'no-fit' anchor states).
+- Landing card never touches the prompt box: anchors LEFT only, with fit decisions
+  using the card's nominal width (a first-frame narrow measurement could approve a
+  side the full card then overflowed onto the target); narrow viewports use the
+  beside-input left column.
+
+
+### Changed (anchored tour cards)
+- **Tour cards now sit CLOSE to the spotlight area** (both demos): the card anchors
+  beside the spotlit rect like a popover — first side with room (below → above →
+  right → left), centred on the target, viewport-clamped — and FLIP-glides as the
+  spotlight moves (in-flight overrides, dragged windows, layout flips). Cards can
+  prefer/exclude sides (`anchorPrefer`): the landing card anchors LEFT of the
+  prompt box and never 'above' (the studio logo lives there). Static placements
+  remain only as fallback for no-spotlight cards (intro, finale), narrow-viewport
+  misses, and during the opening sweep.
+
+
+### Changed (Cat's Day Out — the run owns the spotlight)
+- The "Press ▶ Go!" card now PLAYS the story properly: its Next presses the REAL
+  Go button for the user (label "▶ Press Go!"), and whether Go was pressed by the
+  tour or by the user's own finger, the spotlight moves to the STAGE for the whole
+  run ("Playing… 🎬" while the animation lasts) and the tour advances itself when
+  the story finishes — onto a card that also spotlights the stage, so the handoff
+  is zero-movement. Two inert seams in the studio (`bindBlocksGo`, `onStoryRun`
+  around the real flag-run lifecycle).
+
+
+### Changed (tour polish — motion & dark theme)
+- **Tour cards GLIDE between positions** (FLIP, 350ms) when a step or a
+  Windows↔Split flip repositions them — no more teleporting; reduced-motion safe.
+- **Spotlight redesigned as DE-EMPHASIS — both themes**: everything outside the
+  rounded cut-out is softened behind an evenodd clip-path hole — 1px blur (text
+  stays readable), theme-tuned dim, and dark = full grayscale while light keeps
+  its hues at saturate 0.35 ("less colorful", not gray). The spotlight area is
+  the only place with full fidelity. The ink box-shadow scrim is retired; the
+  modal intro backdrop uses the same treatment (plus a light tint). Both demos
+  share the effect.
+- **Tour cards match the studio theme**: dark workspaces get an ink card with light
+  text + hairline ring (titles explicitly colored — a global heading rule was
+  leaving them ink-on-ink), still highly visible over the de-emphasized backdrop.
+
+(theme-aware demo tour scrim)
+
+### Fixed
+- **The demo tour's spotlight scrim now reads on dark UIs.** The scrim was
+  ink@50% (`shadow-spotlight-scrim`) — fine over the light studio, imperceptible
+  over dark panels, so a dark-mode tour appeared to highlight nothing. The demo
+  pages now pass `darkUi` from their studio's LIVE theme store
+  (`usePlaygroundStore.theme` / `useBlocksTheme`) and the overlay picks the new
+  `shadow-spotlight-scrim-dark` token (black@70%) — the modal backdrop follows
+  the same rule (`bg-black/70` on dark). Store subscription, so a mid-tour
+  theme flip re-picks the scrim immediately.
+
+## 2026-06-12 (Guide pane dark-mode theming)
+
+### Fixed
+- **Game Guide dark mode:** the playground theme blocks now pin `color-scheme`
+  (`light`/`dark` per `data-theme`), so UA-rendered chrome — native scrollbars
+  on Windows / "always show" macOS, form-control internals — follows the
+  workspace theme instead of staying light over the dark UI. The Guide's two
+  scroll containers (nav + reader) also adopt the themed `.pg-scroll` slim bar
+  (the chat-log convention); the pane's chrome/doc body/search/diagrams were
+  already `pg-*`-tokened and verified readable in dark.
+
+## 2026-06-12 (layout-proof demo tour)
+
+### Fixed
+- **The playground demo tour now works in BOTH workspace layouts** (Windows AND
+  Split), including a Windows↔Split flip at ANY tour step:
+  - Panel spotlights are layout-proof selector pairs
+    (`[data-window="…"], [data-pane="…"]` via `panelSpotlight`): the floating
+    window in Window mode, the split region in Split mode. New inert
+    `data-pane` seams mark the split layout's tab region + Game pane
+    (`Workspace.tsx`); `spotlightPanel` parses either form.
+  - `focusPanel` (and the chat/editor handlers built on it) reads the layout at
+    CALL time, so a handler the tour holds across a mid-tour flip routes through
+    the layout actually on screen (split → the real Chat/Code/Assets/Guide tab,
+    via the same setter the tab strip uses; `game` is a no-op there).
+  - A mid-tour layout flip re-fronts the surface the visible card (or in-flight
+    override) spotlights — same rule as back/forward browsing.
+  - Asset generate/remix land their details AFTER My Assets is re-surfaced (the
+    split layout unmounts the pane while the chat has the stage; the remount
+    must re-bind the seam before the details open).
+- **Pending editor jumps survive a fresh Monaco mount.** `@monaco-editor/react`
+  freezes `onMount` at first render, so the "pending jump lands once the editor
+  exists" fallback read a permanently-stale `jumpTo` — a changed-file tap /
+  explain-select that OPENED the editor (always in Split mode, first open in
+  Window mode) lost its jump+highlight/selection. Now read through a ref.
+
+### CI
+- e2e: `try-demo-smoke` gains a full 16-card SPLIT-layout tour walk with
+  mid-tour Windows↔Split flips (spotlight re-resolution asserted at the error
+  card); unit: `tourSpotlights.layout.test.tsx` renders the real Workspace
+  shell in both layouts and asserts every panel spotlight resolves + live
+  focusPanel routing through a pre-flip handler.
+
+## 2026-06-12 (Guide pane — responsive)
+
+### Fixed
+- **The Guide reads well at ANY width.** Below 480px the two-column layout
+  collapsed text into a sliver; the pane now goes single-column — the reader
+  full-width, with a "☰ Topics" header chip flipping to the full-width topic
+  list + search (mobile-docs pattern). Applies wherever the Guide is narrow:
+  its chat-respecting spawn column, user resizes, the demo tour. Unit-tested
+  (collapse threshold, toggle round-trip, wide layout untouched).
+- The DEMO tour opens the Guide WIDE (560–720px via the real window-resize
+  affordance, rect set pre-mount — react-rnd seeds geometry at mount only), so
+  the tour showcases the two-column layout: topics and content together. Real
+  users' own opens keep the chat-respecting spawn + responsive collapse.
+
+## 2026-06-12 (Guide placement)
+
+### Fixed
+- **The Guide window never buries the conversation's latest messages.**
+  (1) Spawn: TOP-LEFT of the chat — a reading column fully beside it when ≥250px
+  fits (the chat launch x nudged 0.29→0.31W to make that true on common laptops),
+  else a short top strip that leaves the chat's input + newest replies clear.
+  (2) Layout flips: entering window mode with an open Guide overlapping the chat
+  (e.g. dragged there) relocates it to the no-overlap spot, computed against where
+  the chat ACTUALLY is. Placement + flip behaviour unit-tested.
+- **Tour spotlights are always visible**: every card advance fronts the surface its
+  spotlight points at (window mode: on top of all windows; split: its tab active) —
+  universal guarantee, idempotent with the action/restart/flip refocus paths.
+- **Split mode: tour cards never sit on the conversation's tail.** The chat fills
+  the left region in split, so `bottom-left` cards are remapped to a new `top-left`
+  placement (over the OLDEST messages) — the latest reply + input stay readable.
+
+## 2026-06-12 (clean demo console)
+
+### Fixed
+- **No more scary DevTools noise on the public demos.** (1) Browser-extension
+  noise guard, first script in every game/preview srcdoc: wallet extensions
+  (Coinbase, MetaMask, …) inject providers into every frame, and inside our
+  deliberately opaque-origin sandbox their `localStorage` touch throws an
+  uncaught SecurityError — now cancelled before the browser logs it, and
+  filtered from the kid-facing runner console. Page-world only (isolated
+  content-script errors are browser-level and unreachable by any site). The
+  sandbox itself is untouched — never "fix" this with `allow-same-origin`.
+  (2) `/try/*` skips the app's `/auth/refresh` bootstrap — anonymous by design
+  (D-DEMO-01), so the two guaranteed 401s are gone from the demo console.
+
 ## 2026-06-12
 
 ### Changed (tour pacing & navigation)

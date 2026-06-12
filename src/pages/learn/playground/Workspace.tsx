@@ -141,20 +141,27 @@ export function Workspace({
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
 
-  // The editor's ▶ Play runs AND brings the Game Runner window to the front (in
-  // window mode). Chat turns and the runner's own Play use plain `onRun`, so a
-  // chat message never steals focus to the Game Runner.
-  const runFromEditor = () => {
-    onRun();
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('game');
-  };
-
   // Surface/focus a panel for a turn's workspace action: open+focus the window
   // (Window mode) or switch the split tab (Split mode; the Game pane is always
-  // visible there, so 'game' is a no-op).
+  // visible there, so 'game' is a no-op). Reads the layout at CALL time, not
+  // from the render closure: the demo tour (and deferred client actions) hold
+  // this handler across renders, and a Windows↔Split flip in between must route
+  // through the layout that is actually on screen.
   const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => {
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus(target);
-    else if (target !== 'game') setSplitTab(target);
+    if (usePlaygroundStore.getState().layoutMode === 'window') {
+      usePlaygroundStore.getState().openOrFocus(target);
+    } else if (target !== 'game') {
+      setSplitTab(target);
+    }
+  };
+
+  // The editor's ▶ Play runs AND brings the Game Runner window to the front (in
+  // window mode; the split Game pane is always visible). Chat turns and the
+  // runner's own Play use plain `onRun`, so a chat message never steals focus
+  // to the Game Runner.
+  const runFromEditor = () => {
+    onRun();
+    focusPanel('game');
   };
 
   // Open a file in the code view and (optionally) reveal/highlight a line range.
@@ -172,8 +179,7 @@ export function Workspace({
   const handleOpenLocation = (file: string, line: number, toLine?: number, select?: boolean) => {
     setLocationRequest({ file, line, toLine, select, nonce: (jumpNonce.current += 1) });
     // Bring the editor forward so the kid sees the jump.
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
-    else setSplitTab('code');
+    focusPanel('code');
   };
 
   // The agent's `open_help` — surface the Guide and jump it to a passage. A
@@ -250,8 +256,7 @@ export function Workspace({
   // "See code" CTA → surface the Code Editor (open/focus it in window mode, or
   // switch the split tab). "Run game" reuses runFromEditor (run + focus runner).
   const handleSeeCode = () => {
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('code');
-    else setSplitTab('code');
+    focusPanel('code');
   };
   // Tapping a finished asset in chat → bring the Asset Viewer to front and open
   // that asset there (the nonce re-fires even when reopening the same path).
@@ -303,8 +308,7 @@ export function Workspace({
   // is real.)
   const handleAskFix = (message: string) => {
     send(message);
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
-    else setSplitTab('chat');
+    focusPanel('chat');
   };
 
   // "✨ Explain this" on an editor selection → send the snippet to the chat agent
@@ -313,8 +317,7 @@ export function Workspace({
   // directly. Surface the chat so the answer is visible.
   const handleExplainCode = (code: string) => {
     send(buildExplainPrompt(code));
-    if (layoutMode === 'window') usePlaygroundStore.getState().openOrFocus('chat');
-    else setSplitTab('chat');
+    focusPanel('chat');
   };
 
   // Try-demo seam (try-demo-mode-prd §3 v2): register the studio's REAL
@@ -461,7 +464,10 @@ export function Workspace({
                   );
                 })}
               </div>
-              <div className="min-h-0 flex-1">
+              {/* Inert demo-tour seam: `data-pane` marks the split regions the
+                  way `data-window` marks the floating windows (desktop/Window),
+                  so the tour's layout-proof spotlight selectors resolve here. */}
+              <div data-pane={splitTab} className="min-h-0 flex-1">
                 {splitTab === 'chat' ? (
                   <ChatPane {...chatProps} />
                 ) : splitTab === 'code' ? (
@@ -483,17 +489,19 @@ export function Workspace({
 
           <ResizeHandle />
 
-          {/* Right: Game Runner */}
+          {/* Right: Game Runner (data-pane: same demo-tour seam as the left region) */}
           <Panel defaultSize={33} minSize={20} className="min-w-0">
-            <GameRunnerPane
-              files={files}
-              runKey={runKey}
-              running={running}
-              onRun={onRun}
-              onOpenLocation={handleOpenLocation}
-              onAskFix={handleAskFix}
-              onRuntimeErrors={autoFixFromErrors}
-            />
+            <div data-pane="game" className="h-full min-h-0">
+              <GameRunnerPane
+                files={files}
+                runKey={runKey}
+                running={running}
+                onRun={onRun}
+                onOpenLocation={handleOpenLocation}
+                onAskFix={handleAskFix}
+                onRuntimeErrors={autoFixFromErrors}
+              />
+            </div>
           </Panel>
         </PanelGroup>
       </div>

@@ -5,9 +5,9 @@
 // fronted over the surface the next card discusses (usually the chat).
 
 import type { DemoStudioControls } from './demoMode';
-import { PLAYGROUND_TOUR } from './demoTour.playground';
+import { PLAYGROUND_TOUR, panelSpotlight } from './demoTour.playground';
 
-/** Window-mode panels the tour can focus. */
+/** Studio panels the tour can focus (floating window OR split tab/region). */
 export type SpotlightPanelId = 'chat' | 'code' | 'game' | 'assets' | 'help';
 
 /**
@@ -21,14 +21,16 @@ export function afterPaint(fn: () => void): void {
   requestAnimationFrame(() => requestAnimationFrame(fn));
 }
 
-/** The studio panel a card's spotlight selector points at: `[data-window="…"]`
- *  → that window; element-level selectors map to the window that HOSTS them
- *  (console → Game, ✨ explain toolbar → Code Editor, generate/remix prompts →
- *  Asset Viewer) so revealing a card — including browsing BACK to it — always
- *  re-fronts the surface it discusses. Landing-phase selectors have no window. */
+/** The studio panel a card's spotlight selector points at: a `data-window`/
+ *  `data-pane` selector (either form, incl. the layout-proof comma pair from
+ *  `panelSpotlight`) → that panel; element-level selectors map to the panel
+ *  that HOSTS them (console → Game, ✨ explain toolbar → Code Editor,
+ *  generate/remix prompts → Asset Viewer) so revealing a card — including
+ *  browsing BACK to it — always re-fronts the surface it discusses.
+ *  Landing-phase selectors have no panel. */
 export function spotlightPanel(selector: string | undefined): SpotlightPanelId | null {
   if (!selector) return null;
-  const win = selector.match(/data-window="(chat|code|game|assets|help)"/)?.[1];
+  const win = selector.match(/data-(?:window|pane)="(chat|code|game|assets|help)"/)?.[1];
   if (win) return win as SpotlightPanelId;
   if (selector.includes('console')) return 'game';
   if (selector.includes('explain-selection')) return 'code';
@@ -36,8 +38,9 @@ export function spotlightPanel(selector: string | undefined): SpotlightPanelId |
   return null;
 }
 
-/** The selector of the Chat window — where every conversation turn plays. */
-export const CHAT_SPOTLIGHT = '[data-window="chat"]';
+/** The selector of the Chat panel — where every conversation turn plays.
+ *  Layout-proof (window OR split pane), same form the chat cards use. */
+export const CHAT_SPOTLIGHT = panelSpotlight('chat');
 
 /**
  * The spotlight to show WHILE a card's action is in flight: the surface where
@@ -78,4 +81,17 @@ export function restartThenRefocus(
   controls.runGame();
   const panel = spotlightPanel(nextSpotlight);
   if (panel && panel !== 'game') afterPaint(() => controls.focusPanel(panel));
+}
+
+/**
+ * The Guide rect the DEMO opens with (window mode): wide enough for the
+ * pane's TWO-COLUMN layout (topics + content together — its single-column
+ * collapse kicks in under 480px), placed right of the dock. Covering the
+ * chat is fine at this step: the tour has it de-emphasized, and this is the
+ * same resize a user could do by dragging.
+ */
+export function demoGuideRect(W: number, H: number): { x: number; y: number; w: number; h: number } {
+  const DOCK = 132;
+  const w = Math.max(560, Math.min(720, W - DOCK - 32));
+  return { x: DOCK, y: Math.round(H * 0.06), w, h: Math.round(H * 0.84) };
 }
