@@ -288,6 +288,15 @@ test('J8: a logged-out visitor plays /play/:shareId with NONE of the studio chro
     await expect(page.getByTestId(id)).toHaveCount(0);
   }
   await expect(page.getByText(KID.nickname)).toHaveCount(0);
+
+  // The ONLY chrome is the brand frame above the canvas (D-GAME10e): AirBotix
+  // attribution + a first-party "Make your own" link to marketing, both new-tab.
+  // It is a frame, not studio chrome — and carries no kid PII.
+  await expect(page.getByTestId('play-brand-bar')).toBeVisible();
+  await expect(page.getByTestId('play-brand-home')).toHaveAttribute('target', '_blank');
+  const makeOwn = page.getByTestId('play-make-own');
+  await expect(makeOwn).toHaveAttribute('target', '_blank');
+  await expect(makeOwn).toHaveAttribute('href', /\/try$/);
 });
 
 test('J8: a revoked/expired /play/:shareId shows the 410 gone state (no play-iframe)', async ({

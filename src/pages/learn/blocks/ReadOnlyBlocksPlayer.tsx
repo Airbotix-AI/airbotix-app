@@ -3,6 +3,10 @@
 // ReadOnlyGameFrame). It renders the frozen stage and lets a visitor press ▶
 // Play to run every 🚩 script or tap a character to run its 👆 scripts. NO
 // editing chrome, NO blocks palette, NO auth — just the playable stage.
+//
+// The public play container defaults to the DARK theme (matching the game
+// surface), so the bright scene art floats on a dark frame. Scene art is constant
+// in both themes; only the chrome (bg/border/text/dots) follows `data-theme`.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Play } from 'lucide-react';
@@ -73,7 +77,7 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
   };
 
   return (
-    <div className="bsx bsx-play" data-theme="light" data-testid="blocks-play-root">
+    <div className="bsx bsx-play" data-theme="dark" data-testid="blocks-play-root">
       <div className="bsx-play-stagewrap">
         <div data-testid="blocks-play-stage" data-scene={sceneId(page.background)} className="bsx-stage bsx-play-stage">
           <div className="bsx-grid" />

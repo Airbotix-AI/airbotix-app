@@ -16,6 +16,30 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `PlaygroundApp` adopts it into `versionRef` (new `applyTurnFiles`) so the post-turn save
   is no longer stale. Genuine multi-device conflicts still surface kept-newest. Covered by
   harness journey `kid-game-edit-after-turn` (red without the fix, green with it).
+## 2026-06-13 (Public play page — brand frame + dark container)
+
+### Added
+- **Brand frame on the public play page (`/play/:shareId`).** A slim `PlayBrandBar`
+  now sits ABOVE the play surface (never an overlay — it cannot intercept a game/sprite
+  tap): the AirBotix logo links back to the marketing site, and one soft, **first-party**
+  "Make your own" CTA links to `/try`. Both open a **new tab**, so a logged-out visitor
+  (e.g. grandma, or a friend the kid shared with) never loses the running game. No kid
+  PII, no auth, no LLM, no third-party ads (minors-compliance C14). New `src/lib/marketing.ts`
+  resolves the marketing origin (prod → airbotix.ai, dev → :3000, `VITE_MARKETING_URL`
+  override), mirroring the demo's exit URL. (learn-game-studio-prd D-GAME10e.)
+
+### Changed
+- **The public play container now defaults to the DARK theme on both surfaces.**
+  `ReadOnlyBlocksPlayer` was hard-pinned to `data-theme="light"`; the public player (its
+  only consumer) now renders dark, so the bright scene art floats on a dark frame and
+  matches the game canvas. Scene art is constant across themes; only the chrome follows
+  `data-theme`. The 410 gone state is deliberately left frame-less (a flat, PII-free dead end).
+
+### Tests
+- `PublicPlayPage.test.tsx` — the brand frame renders above the game canvas and the blocks
+  player, with the logo + first-party `/try` CTA both new-tab; the blocks player defaults to
+  dark; the gone state stays frame-less. `e2e/sharing-remix.spec.ts` J8 asserts the frame is
+  the only chrome (studio testids still absent).
 
 ## 2026-06-12 (Game Studio — WorkingCard simplified: one ring, one line)
 
