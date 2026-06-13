@@ -6,21 +6,25 @@ import { ShareGoneError, readPublicSnapshot } from '../learn/playground/sharingA
 import { ReadOnlyBlocksPlayer } from '../learn/blocks/ReadOnlyBlocksPlayer';
 import { BLOCKS_PROJECT_FILE, parseProject } from '../learn/blocks/blocksModel';
 import type { VfsFile } from '../learn/code/codeApi';
+import { PlayBrandBar } from './PlayBrandBar';
 
 /**
  * PUBLIC play host — `/play/:shareId` (learn-game-studio-prd.md §17.8 J8 /
  * D-GAME10). A logged-out visitor (e.g. grandma) opens the unlisted capability
  * URL and plays a kid's game with NO login.
  *
- * Hard constraints (D-GAME10d, NON-NEGOTIABLE):
- *   - The page is the BARE game canvas only — none of the Game Runner chrome
- *     (no toolbar: pause/mute/screen-size/restart/debug; no status bar; no
- *     console), no editor, no chat, no LLM, no share/remix controls.
+ * Hard constraints (D-GAME10d/e, NON-NEGOTIABLE):
+ *   - The play SURFACE is the bare game canvas / blocks player only — none of the
+ *     Game Runner chrome (no toolbar: pause/mute/screen-size/restart/debug; no
+ *     status bar; no console), no editor, no chat, no LLM, no share/remix controls.
+ *   - The only chrome is the `PlayBrandBar` frame ABOVE the surface (D-GAME10e):
+ *     AirBotix brand attribution + one first-party "Make your own" link to the
+ *     marketing site. No kid PII, no auth, no LLM, no third-party ads (C14).
  *   - No auth token: the snapshot is fetched with a bare `fetch` (see
  *     `readPublicSnapshot`), so no `Authorization` header is ever sent.
- *   - No kid PII/identity on the page.
  *   - The same opaque-origin sandbox as the studio (`ReadOnlyGameFrame`).
- *   - Revoked / expired → the public endpoint serves 410 → the gone state.
+ *   - Revoked / expired → the public endpoint serves 410 → the gone state (no
+ *     brand frame — a flat, PII-free dead end).
  *
  * NOT wrapped in any layout or `<ProtectedRoute>` — it must render with zero app
  * chrome for an anonymous visitor.
@@ -58,21 +62,24 @@ export function PublicPlayPage() {
   const blocksFile = snapshot.data?.find((f) => f.path === BLOCKS_PROJECT_FILE);
 
   return (
-    <div data-testid="play-root" className="h-screen w-screen bg-black">
-      {snapshot.isLoading ? (
-        <div className="flex h-full w-full items-center justify-center text-white opacity-70">
-          Loading…
-        </div>
-      ) : blocksFile ? (
-        <ReadOnlyBlocksPlayer project={parseProject(blocksFile.content)} />
-      ) : snapshot.data && snapshot.data.length > 0 ? (
-        // The ONLY thing rendered on a successful game load: the bare game canvas.
-        <ReadOnlyGameFrame files={snapshot.data} testId="play-iframe" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-white opacity-70">
-          This couldn’t be loaded.
-        </div>
-      )}
+    <div data-testid="play-root" className="flex h-screen w-screen flex-col bg-black">
+      <PlayBrandBar />
+      <div className="min-h-0 flex-1">
+        {snapshot.isLoading ? (
+          <div className="flex h-full w-full items-center justify-center text-white opacity-70">
+            Loading…
+          </div>
+        ) : blocksFile ? (
+          <ReadOnlyBlocksPlayer project={parseProject(blocksFile.content)} />
+        ) : snapshot.data && snapshot.data.length > 0 ? (
+          // The ONLY thing rendered on a successful game load: the bare game canvas.
+          <ReadOnlyGameFrame files={snapshot.data} testId="play-iframe" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-white opacity-70">
+            This couldn’t be loaded.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
