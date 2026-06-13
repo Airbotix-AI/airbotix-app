@@ -5,17 +5,19 @@
 // sheet, matching the character/scene pickers. The public play page renders the
 // read-only Blocks player from the same frozen snapshot.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Gamepad2, Hourglass, Link2, Share2 } from 'lucide-react';
 
 import {
+  approveShareLink,
   getShareLink,
   requestShareLink,
   revokeShareLink,
   type ShareLink,
 } from '../playground/sharingApi';
+import { useDemoMode } from '@/pages/try/demoMode';
 import type { BlocksTheme } from './blocksTheme';
 
 export function BlocksSharePanel({ projectId, theme }: { projectId: string; theme: BlocksTheme }) {
@@ -39,11 +41,33 @@ export function BlocksSharePanel({ projectId, theme }: { projectId: string; them
     mutationFn: (shareId: string) => revokeShareLink(shareId),
     onSuccess: () => set({ status: 'none' }),
   });
+  // Demo-only (D-DEMO-09): the tour fires the (preview-framed) grown-up approval.
+  const approve = useMutation({ mutationFn: () => approveShareLink(projectId), onSuccess: set });
 
   const status = share.data?.status ?? 'none';
   const shareId = share.data?.shareId;
   const plays = share.data?.plays ?? 0;
   const shareUrl = shareId ? `${window.location.origin}/play/${shareId}` : '';
+
+  // Try-demo (D-DEMO-09): hand the tour this real panel's affordances so it walks
+  // the share flow on the real UI. Re-bound each render (last bind wins).
+  const demo = useDemoMode();
+  useEffect(() => {
+    if (!demo?.bindShareControls) return;
+    demo.bindShareControls({
+      openPanel: () => {
+        share.refetch();
+        setOpen(true);
+      },
+      requestShare: () => request.mutate(),
+      approve: () => approve.mutate(),
+      openRecipient: () => {
+        if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer');
+      },
+      closePanel: () => setOpen(false),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, shareUrl]);
 
   const copy = async () => {
     if (!shareUrl) return;
@@ -90,7 +114,15 @@ export function BlocksSharePanel({ projectId, theme }: { projectId: string; them
 
       {open &&
         createPortal(
-          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setOpen(false)}>
+          <div
+            className="bsx bsx-sheet-bg"
+            data-theme={theme}
+            // Try-demo (D-DEMO-09): the tour owns the sheet lifecycle — a backdrop
+            // tap (e.g. the tour's Next) must NOT dismiss it mid-beat. ✕ still closes.
+            onPointerDown={() => {
+              if (!demo) setOpen(false);
+            }}
+          >
             <div
               className="bsx-confirm"
               data-testid="share-panel"

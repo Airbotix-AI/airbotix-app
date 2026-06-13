@@ -5,8 +5,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadBlocksProject, saveBlocksProject } from '../learn/blocks/blocksApi';
+import { BLOCKS_PROJECT_FILE, parseProject } from '../learn/blocks/blocksModel';
 import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { resolveProjectFiles } from '../learn/playground/panes/playgroundApi';
+import {
+  approveShareLink,
+  DEMO_BLOCKS_SHARE_ID,
+  DEMO_PLAYGROUND_SHARE_ID,
+  getShareLink,
+  readPublicSnapshot,
+  requestShareLink,
+  revokeShareLink,
+} from '../learn/playground/sharingApi';
 import {
   loadProject,
   saveProject,
@@ -167,5 +177,67 @@ describe('blocks demo adapter', () => {
     expect(useBlocksTheme.getState().theme).toBe('light');
     expect(setItem).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+});
+
+// ── Share beat (D-DEMO-09) ────────────────────────────────────────────────────
+
+describe('demo share adapter (D-DEMO-09)', () => {
+  it('walks none → pending → active → none through the real share API, zero network', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    installPlaygroundDemo(agent());
+    expect((await getShareLink('try-demo-playground')).status).toBe('none');
+
+    const pending = await requestShareLink('try-demo-playground');
+    expect(pending.status).toBe('pending');
+    expect(pending.shareId).toBe(DEMO_PLAYGROUND_SHARE_ID); // cancelable while pending
+
+    const active = await approveShareLink('try-demo-playground');
+    expect(active.status).toBe('active');
+    expect(active.shareId).toBe(DEMO_PLAYGROUND_SHARE_ID); // the /play link id
+
+    await revokeShareLink(DEMO_PLAYGROUND_SHARE_ID);
+    expect((await getShareLink('try-demo-playground')).status).toBe('none');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('resets the share lifecycle on re-entry (pristine on reload)', async () => {
+    installPlaygroundDemo(agent());
+    await requestShareLink('try-demo-playground');
+    await approveShareLink('try-demo-playground');
+    uninstallPlaygroundDemo();
+    installPlaygroundDemo(agent());
+    expect((await getShareLink('try-demo-playground')).status).toBe('none');
+  });
+
+  it('blocks demo shares through the same kind-agnostic adapter', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    installBlocksDemo();
+    expect((await getShareLink(TRY_BLOCKS_PROJECT_ID)).status).toBe('none');
+    const active = await approveShareLink(TRY_BLOCKS_PROJECT_ID);
+    expect(active.status).toBe('active');
+    expect(active.shareId).toBe(DEMO_BLOCKS_SHARE_ID);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('public play snapshot (D-DEMO-09) — bundled, offline, real new-tab safe', () => {
+  it('serves the playground game snapshot for the fixed demo shareId with ZERO network', async () => {
+    // No install: a fresh tab has none. The snapshot is a build-time constant.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const files = await readPublicSnapshot(DEMO_PLAYGROUND_SHARE_ID);
+    expect(files).toEqual(demoStarterFiles()); // the real, playable starter game
+    expect(files.map((f) => f.path)).toContain(DEMO_GAME_FILE);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('serves the blocks story snapshot (a real, parseable project) with ZERO network', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const files = await readPublicSnapshot(DEMO_BLOCKS_SHARE_ID);
+    const projectFile = files.find((f) => f.path === BLOCKS_PROJECT_FILE);
+    expect(projectFile).toBeTruthy();
+    // The real PublicPlayPage branch: parse → ReadOnlyBlocksPlayer.
+    expect(parseProject(projectFile!.content).name).toBe("Cat's Day Out");
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

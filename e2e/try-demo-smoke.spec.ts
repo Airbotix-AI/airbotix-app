@@ -12,7 +12,7 @@ function trackForbidden(page: Page): string[] {
   const forbidden: string[] = [];
   page.on('request', (req) => {
     const url = new URL(req.url());
-    if (/^\/(projects|llm|help)\b/.test(url.pathname)) forbidden.push(url.pathname);
+    if (/^\/(projects|llm|help|share)\b/.test(url.pathname)) forbidden.push(url.pathname);
     if (url.pathname.startsWith('/auth') && !url.pathname.startsWith('/auth/refresh')) {
       forbidden.push(url.pathname);
     }
@@ -145,7 +145,43 @@ async function walkToErrorCard(page: Page, layout: WorkspaceLayout = 'window') {
   await expect(page.getByText(/makeWinBanner is not a function/)).toBeVisible({ timeout: 20_000 });
 }
 
-test('try/playground: the 16-card v3 tour → free explore → AI gate', async ({ page }) => {
+/**
+ * Walk the share block (D-DEMO-09) — the caller must already be on the share-open
+ * card. Drives the REAL share panel (open → ask-a-grown-up `pending` → simulated
+ * approval → `active` link) then opens `/play/:shareId` in a REAL new tab: the
+ * unmodified PublicPlayPage on the bundled snapshot. Verifies the popup/overlay
+ * layering empirically (the tour's Next never dismisses the panel). Leaves the
+ * tour on the free-explore card.
+ */
+async function walkShareBeat(
+  page: Page,
+  panelTestId: 'share-popup' | 'share-panel',
+  shareId: 'try-demo-playground' | 'try-demo-blocks',
+) {
+  // share-open: its Next opens the REAL share panel (it stays open across the beat).
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId(panelTestId)).toBeVisible();
+  // share-request: the panel's real "ask a grown-up" → its genuine pending state.
+  await page.getByTestId('tour-next').click();
+  await expect(page.getByTestId('share-approval-pending')).toBeVisible();
+  // share-approve: the preview-framed simulated approval → the real active link.
+  await page.getByTestId('tour-next').click();
+  const url = page.getByTestId('share-url');
+  await expect(url).toBeVisible();
+  await expect(url).toHaveValue(new RegExp(`/play/${shareId}$`));
+  // share-recipient: opens a REAL new tab to the REAL public play page (offline).
+  const popupPromise = page.context().waitForEvent('page');
+  await page.getByTestId('tour-next').click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(new RegExp(`/play/${shareId}$`));
+  // Assert the REAL player actually mounted from the bundled snapshot — not just
+  // the always-present `play-root` shell (which also shows during loading/errors).
+  const playerTestId = shareId === 'try-demo-blocks' ? 'blocks-play-root' : 'play-iframe';
+  await expect(popup.getByTestId(playerTestId)).toBeVisible({ timeout: 15_000 });
+  await popup.close();
+}
+
+test('try/playground: the 20-card v3 tour → share beat → free explore → AI gate', async ({ page }) => {
   test.setTimeout(180_000); // the tour walks the whole studio (Phaser + Monaco)
   const forbidden = trackForbidden(page);
   await walkToErrorCard(page);
@@ -165,9 +201,14 @@ test('try/playground: the 16-card v3 tour → free explore → AI gate', async (
   await expect(page.getByTestId('help-diagram-game-loop')).toBeVisible();
   await expect(page.getByTestId('help-nav-doc-engine/what-is-an-engine')).toBeVisible();
 
-  // 11 — free explore: the applied diffs flowed through the real funnel (undo
+  // 11 — share beat (D-DEMO-09): the REAL share panel, then the REAL public play
+  //      page in a new tab. ZERO /projects*/share* network (the in-memory adapter).
+  await page.getByTestId('tour-next').click(); // guide → "Show it off — safely"
+  await expect(page.getByTestId('tour-title')).toHaveText('Show it off — safely');
+  await walkShareBeat(page, 'share-popup', 'try-demo-playground');
+
+  // 12 — free explore: the applied diffs flowed through the real funnel (undo
   //      offered) and a typed message hits the contact-us gate.
-  await page.getByTestId('tour-next').click(); // Last step
   await expect(page.getByTestId('tour-title')).toHaveText('Now it’s all yours');
   await page.getByTestId('tour-next').click(); // Explore freely ✨
   await expect(page.getByTestId('demo-tour')).toHaveCount(0);
@@ -214,9 +255,14 @@ test('try/playground: the full tour in the SPLIT layout, with mid-tour layout fl
   await expect(page.getByTestId('help-diagram-game-loop')).toBeVisible();
   await page.screenshot({ path: '/tmp/split-guide.png' });
 
-  // 11 — free explore: in split the conversation lives behind the Chat tab —
+  // 11 — share beat (D-DEMO-09): the taskbar Share button + portaled popup are
+  //      layout-independent — the same walk works in split.
+  await page.getByTestId('tour-next').click(); // guide → "Show it off — safely"
+  await expect(page.getByTestId('tour-title')).toHaveText('Show it off — safely');
+  await walkShareBeat(page, 'share-popup', 'try-demo-playground');
+
+  // 12 — free explore: in split the conversation lives behind the Chat tab —
   //      the same real affordance a user would click.
-  await page.getByTestId('tour-next').click(); // Last step
   await expect(page.getByTestId('tour-title')).toHaveText('Now it’s all yours');
   await page.getByTestId('tour-next').click(); // Explore freely ✨
   await expect(page.getByTestId('demo-tour')).toHaveCount(0);
@@ -247,14 +293,15 @@ test('try/playground: the console\'s real "Ask AI to fix" continues the script',
   expect(forbidden).toEqual([]);
 });
 
-test('try/blocks: story loads, Go runs, pages navigate, share hidden', async ({ page }) => {
+test('try/blocks: story loads, Go runs, pages navigate, share is demoed', async ({ page }) => {
   const forbidden = trackForbidden(page);
   await page.goto('/try/blocks');
 
   await expect(page.getByTestId('demo-banner')).toBeVisible();
   await expect(page.getByTestId('blocks-studio')).toBeVisible();
   await expect(page.getByTestId('blocks-studio').getByText("Cat's Day Out")).toBeVisible();
-  await expect(page.getByTestId('share-link-btn')).toHaveCount(0);
+  // Share is DEMOED, not hidden (D-DEMO-09): the REAL share button is present.
+  await expect(page.getByTestId('share-link-btn')).toBeVisible();
 
   // Skip the tour and drive the real studio: ▶ Go runs page 1's flag scripts.
   await page.getByTestId('tour-skip').click();
@@ -264,6 +311,18 @@ test('try/blocks: story loads, Go runs, pages navigate, share hidden', async ({ 
   // Page rail navigates the 3-page story.
   await page.getByTestId('page-thumb-2').click();
   await expect(page.getByText('Page 3 of 3')).toBeVisible();
+
+  // The REAL share panel opens with the parent-approval CTA (in-memory adapter):
+  // request → its genuine pending state, then the public play page in a new tab.
+  await page.getByTestId('share-link-btn').click();
+  await expect(page.getByTestId('share-panel')).toBeVisible();
+  await page.getByRole('button', { name: 'Ask my grown-up to share' }).click();
+  await expect(page.getByTestId('share-approval-pending')).toBeVisible();
+  // The REAL public play page renders the bundled story snapshot offline — the
+  // real ReadOnlyBlocksPlayer mounts (its root only renders when parseProject
+  // succeeds on the bundled project.blocks.json).
+  await page.goto('/play/try-demo-blocks');
+  await expect(page.getByTestId('blocks-play-root')).toBeVisible({ timeout: 15_000 });
 
   expect(forbidden).toEqual([]);
 });

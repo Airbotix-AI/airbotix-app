@@ -59,6 +59,24 @@ export interface DemoRemixControls {
   submit: () => void;
 }
 
+/**
+ * The share control's REAL affordances (T1 §3 step 11 / T2 §4 — D-DEMO-09). The
+ * `ShareLinkPanel` / `BlocksSharePanel` register these so the tour can walk the
+ * real share flow: open the popup, fire the real "ask a grown-up" request
+ * (→ pending), simulate the grown-up's approval (→ active — the ONE preview-
+ * framed beat), and open the recipient view (a real new tab to the real
+ * `/play/:shareId` page playing the bundled snapshot).
+ */
+export interface DemoShareControls {
+  openPanel: () => void;
+  requestShare: () => void;
+  approve: () => void;
+  openRecipient: () => void;
+  /** Close the panel as the tour leaves the share beat, so its (high-z) popup
+   *  no longer overlaps the free-explore card's controls. */
+  closePanel: () => void;
+}
+
 export interface DemoMode {
   /** Which demo experience this provider hosts. */
   surface: 'playground' | 'blocks';
@@ -120,6 +138,19 @@ export interface DemoMode {
    * real input setter + submit here (it mounts with the details view).
    */
   bindAssetRemix?: (controls: DemoRemixControls) => void;
+  /**
+   * §3 step 11 / §4 (D-DEMO-09): the real share panel registers its open /
+   * request / approve / open-recipient affordances so the tour can walk the
+   * share flow on the real UI. Re-bound each render (last bind wins) so the
+   * recipient opener always closes over the current share URL.
+   */
+  bindShareControls?: (controls: DemoShareControls) => void;
+  /**
+   * §3 step 11 / §4 (D-DEMO-09): the fixed project id the demo's share panel
+   * uses. Playground runs project-less, so the demo supplies this id to surface
+   * the real Share button (the in-memory share adapter intercepts its calls).
+   */
+  shareProjectId?: string;
 }
 
 const DemoModeContext = createContext<DemoMode | null>(null);

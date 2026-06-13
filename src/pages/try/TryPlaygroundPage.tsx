@@ -24,10 +24,15 @@ import {
   type DemoAssetPaneControls,
   type DemoMode,
   type DemoRemixControls,
+  type DemoShareControls,
   type DemoStudioControls,
 } from './demoMode';
 import { DemoTourOverlay } from './DemoTourOverlay';
-import { installPlaygroundDemo, uninstallPlaygroundDemo } from './demoAdapters';
+import {
+  installPlaygroundDemo,
+  TRY_PLAYGROUND_PROJECT_ID,
+  uninstallPlaygroundDemo,
+} from './demoAdapters';
 import { createScriptedDemoAgent } from './scriptedAgent';
 import { DEMO_GUIDE_TOUR_DOC } from './demoHelp.playground';
 import {
@@ -94,6 +99,7 @@ export function TryPlaygroundPage() {
   const controlsRef = useRef<DemoStudioControls | null>(null);
   const assetPaneRef = useRef<DemoAssetPaneControls | null>(null);
   const remixRef = useRef<DemoRemixControls | null>(null);
+  const shareRef = useRef<DemoShareControls | null>(null);
   // Wishes typed "into" a pane that hasn't mounted/bound yet — applied on bind
   // (the assets window opens, the details view's remix bar mounts, then fills).
   const pendingGenPromptRef = useRef<string | null>(null);
@@ -194,6 +200,12 @@ export function TryPlaygroundPage() {
       surface: 'playground',
       lockedPrompt: PLAYGROUND_DEMO_SCRIPT.lockedPrompt,
       firstTurnReply: PLAYGROUND_DEMO_SCRIPT.firstTurnReply,
+      // §3 step 11 (D-DEMO-09): the demo runs project-less, so supply a fixed id
+      // to surface the real Share button (the in-memory adapter intercepts it).
+      shareProjectId: TRY_PLAYGROUND_PROJECT_ID,
+      bindShareControls: (controls) => {
+        shareRef.current = controls;
+      },
       bindLandingSubmit: (submit) => {
         landingSubmitRef.current = submit;
       },
@@ -416,6 +428,29 @@ export function TryPlaygroundPage() {
         afterPaint(() => controlsRef.current?.openGuide(DEMO_GUIDE_TOUR_DOC));
         return;
       }
+      // ── Share block (§3 step 11 / D-DEMO-09) — drive the REAL share panel, then
+      // the REAL public play page. The popup stays open across these cards
+      // (auto-close is gated in demo); each action advances after the panel's new
+      // state has painted so the next card spotlights a present element.
+      case 'share-open':
+        shareRef.current?.openPanel();
+        afterPaint(() => advanceTo(card + 1));
+        return;
+      case 'share-request':
+        shareRef.current?.requestShare();
+        afterPaint(() => advanceTo(card + 1));
+        return;
+      case 'share-approve':
+        shareRef.current?.approve();
+        afterPaint(() => advanceTo(card + 1));
+        return;
+      case 'share-recipient':
+        // Opens /play/:shareId in a REAL new tab — the unmodified PublicPlayPage
+        // playing the bundled snapshot (zero network) — then closes the panel so
+        // its high-z popup no longer overlaps the free-explore card's controls.
+        shareRef.current?.openRecipient();
+        shareRef.current?.closePanel();
+        advanceTo(card + 1);
         return;
       case 'advance':
         advanceTo(card + 1);

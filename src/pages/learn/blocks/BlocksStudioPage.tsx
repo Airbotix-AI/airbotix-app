@@ -86,8 +86,8 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
   const projectId = projectIdProp ?? routeProjectId;
-  // Try-demo (try-demo-mode-prd D-DEMO-08): cloud share is hidden in the demo —
-  // sharing needs a real account; the demo banner explains nothing is saved.
+  // Try-demo (try-demo-mode-prd D-DEMO-09): share is DEMOED, not hidden — the
+  // real `BlocksSharePanel` rides an in-memory share adapter (the tour walks it).
   const demo = useDemoMode();
   const project = useBlocksStore((s) => s.project);
   const pageId = useBlocksStore((s) => s.pageId);
@@ -765,7 +765,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && !demo && <BlocksSharePanel projectId={projectId} theme={theme} />}
+        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
         <button
           ref={moreBtnRef}
           type="button"

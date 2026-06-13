@@ -1,4 +1,4 @@
-// The T1 v3 tour data (try-demo-mode-prd §3): 16 cards, the PRD's arc in order
+// The T1 v3 tour data (try-demo-mode-prd §3): 20 cards, the PRD's arc in order
 // (incl. the split explain pair: select → fire, and the 5-card beautify loop:
 // describe → generate → details → remix → into the game), a mandatory
 // (non-skippable) landing step beside the input, scripted steps fired exactly
@@ -15,8 +15,8 @@ import { spotlightPanel } from './tourSequencing';
 const MAX_NEXT_LABEL_CHARS = 24;
 
 describe('PLAYGROUND_TOUR (v3)', () => {
-  it('is the 16-card PRD arc, in order', () => {
-    expect(PLAYGROUND_TOUR).toHaveLength(16);
+  it('is the 20-card PRD arc, in order', () => {
+    expect(PLAYGROUND_TOUR).toHaveLength(20);
     expect(PLAYGROUND_TOUR.map((c) => c.action.kind)).toEqual([
       'landing-create', // 1 landing start
       'script', // 2 meet your game → ask 1
@@ -33,7 +33,11 @@ describe('PLAYGROUND_TOUR (v3)', () => {
       'script', // 8 error card → fix ask
       'open-guide', // 9 fixed card → guide
       'advance', // 10 guide card
-      'finish', // 11 free explore
+      'share-open', // 11a open the real share panel (D-DEMO-09)
+      'share-request', // 11b ask a grown-up → pending
+      'share-approve', // 11c simulated approval → active (preview-framed)
+      'share-recipient', // 11d open /play/:shareId in a real new tab
+      'finish', // 12 free explore
     ]);
   });
 
@@ -106,8 +110,18 @@ describe('PLAYGROUND_TOUR (v3)', () => {
     // identically in both layouts; they must map to a host panel the engine can
     // re-front (so the element is actually on screen) — except the landing
     // card, which plays before the workspace (no layouts) exists.
+    // Always-visible chrome (the taskbar Share button + its portaled popup,
+    // D-DEMO-09): present in BOTH layouts and never inside a pane, so they need
+    // no host panel to re-front.
+    const ALWAYS_VISIBLE_CHROME = [
+      '[data-testid="share-link-btn"]',
+      '[data-testid="share-popup"]',
+      '[data-testid="share-approval-pending"]',
+      '[data-testid="share-url"]',
+    ];
     PLAYGROUND_TOUR.forEach((card, i) => {
       if (!card.spotlight) return; // the finale frees the whole studio
+      if (ALWAYS_VISIBLE_CHROME.includes(card.spotlight)) return;
       if (card.spotlight.includes('data-window') || card.spotlight.includes('data-pane')) {
         const panel = spotlightPanel(card.spotlight);
         expect(panel, `"${card.title}" panel selector`).not.toBeNull();

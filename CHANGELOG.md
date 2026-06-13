@@ -4,6 +4,34 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-13 (Try demos — share is now a guided beat, D-DEMO-09)
+
+### Added
+- **The `/try/playground` and `/try/blocks` demos now WALK the share flow** instead of
+  hiding it (supersedes D-DEMO-08's share-hiding; PRD `try-demo-mode-prd.md` v0.10). The
+  tour opens the REAL `ShareLinkPanel` / `BlocksSharePanel`, fires the real "ask a grown-up"
+  request → genuine `pending` state, simulates the grown-up's approval (the one
+  preview-framed beat — "let's pretend they approved 👍", never a faked backend response)
+  → `active` link, then opens `/play/:shareId` in a REAL new tab: the unmodified
+  `PublicPlayPage` (now with the D-GAME10e brand frame). Playground gains a 4-card share
+  block (tour 16→20 cards); blocks a matching block before free explore.
+- **`setDemoShareAdapter` seam** (`sharingApi.ts`): an in-memory share lifecycle
+  (`none → pending → active`) so the real panels render their real states with ZERO network
+  to `/projects*`/`/share*`. Reset on entry, pristine on reload.
+- **Bundled public snapshots** (`demoSnapshot.playground.ts` + `demoSnapshot.blocks.ts`):
+  `readPublicSnapshot` resolves the two fixed demo shareIds (`try-demo-playground`,
+  `try-demo-blocks`) from build-time constants with ZERO network — so a real new tab (a
+  fresh JS context with no demo install) renders the real public play page offline. Reuses
+  the demo's own starter game / "Cat's Day Out" story — genuine product content, no PII.
+
+### Changed
+- The real share panels read `useDemoMode()` and hand the tour their open/request/approve/
+  open-recipient affordances via a new `bindShareControls` context seam; in demo the panel's
+  auto-close on outside-click/backdrop is suppressed so the tour's Next never dismisses it
+  mid-beat. All off-by-default — zero change to the authed product (demo context is `null`
+  there). `Taskbar` surfaces the Share button in the project-less playground demo via a
+  fixed demo share project id.
+
 ## 2026-06-13 (Public play page — brand frame polish)
 
 ### Fixed

@@ -13,6 +13,13 @@ import {
 } from '../learn/blocks/blocksApi';
 import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { setDemoAssetGen } from '../learn/playground/assetGen';
+import {
+  DEMO_BLOCKS_SHARE_ID,
+  DEMO_PLAYGROUND_SHARE_ID,
+  setDemoShareAdapter,
+  type DemoShareAdapter,
+  type ShareLink,
+} from '../learn/playground/sharingApi';
 import { setDemoRunTurn, type RunTurn } from '../learn/playground/panes/gameAgentStub';
 import { setDemoHelpCorpus } from '../learn/playground/panes/help/helpApi';
 import { setDemoProjectFiles } from '../learn/playground/panes/playgroundApi';
@@ -26,6 +33,46 @@ import { CATS_DAY_OUT } from './demoStory.blocks';
 
 /** The fixed project id the blocks demo mounts the real studio with. */
 export const TRY_BLOCKS_PROJECT_ID = 'try-demo-blocks';
+
+/** The fixed project id the playground demo uses for its share panel (D-DEMO-09). */
+export const TRY_PLAYGROUND_PROJECT_ID = 'try-demo-playground';
+
+// ── Share demo beat (D-DEMO-09) ───────────────────────────────────────────────
+
+/**
+ * A single-slot, in-memory share lifecycle for one demo surface (D-DEMO-09). The
+ * REAL `ShareLinkPanel` / `BlocksSharePanel` render unchanged off these states;
+ * the tour drives `request` (→ pending) then `approve` (the ONE simulated
+ * grown-up beat → active, surfacing `shareId` so the link points at the bundled
+ * `/play/:shareId` snapshot). Zero network, reset on (re)install.
+ */
+function makeDemoShareAdapter(shareId: string): DemoShareAdapter {
+  let status: ShareLink['status'] = 'none';
+  // A real `pending`/`active` link already carries its capability id; expose it
+  // from `pending` on so the panel's "Cancel request" + the active URL work.
+  const view = (): ShareLink => ({
+    status,
+    shareId: status === 'none' ? undefined : shareId,
+    expires_at: null,
+    show_handle: false,
+    plays: 0,
+  });
+  return {
+    get: () => view(),
+    request: () => {
+      status = 'pending';
+      return view();
+    },
+    approve: () => {
+      status = 'active';
+      return view();
+    },
+    revoke: () => {
+      status = 'none';
+      return view();
+    },
+  };
+}
 
 // ── T1: Game Playground demo ──────────────────────────────────────────────────
 
@@ -41,6 +88,7 @@ export function installPlaygroundDemo(agent: RunTurn): void {
   setDemoRunTurn(agent);
   setDemoHelpCorpus(DEMO_HELP_CORPUS);
   setDemoAssetGen(demoAssetGen); // crafted offline art (§3 step 7)
+  setDemoShareAdapter(makeDemoShareAdapter(DEMO_PLAYGROUND_SHARE_ID)); // §3 step 11
   useProjectStore.getState().setFiles([]);
   useHistoryStore.getState().reset();
 }
@@ -51,6 +99,7 @@ export function uninstallPlaygroundDemo(): void {
   setDemoRunTurn(null);
   setDemoHelpCorpus(null);
   setDemoAssetGen(null);
+  setDemoShareAdapter(null);
 }
 
 // ── T2: Blocks Studio demo ────────────────────────────────────────────────────
@@ -71,6 +120,7 @@ export function installBlocksDemo(): void {
     }),
     save: async (): Promise<BlocksSaveResult> => ({ status: 'saved', version: (version += 1) }),
   });
+  setDemoShareAdapter(makeDemoShareAdapter(DEMO_BLOCKS_SHARE_ID)); // §4 share beat
   setDemoMemoryPersistence(true); // the studio's cover-thumbnail cache
   // The demo always opens LIGHT (the story art is daylight-first), regardless of
   // the visitor's system preference or any stored studio override. setState only
@@ -81,4 +131,5 @@ export function installBlocksDemo(): void {
 export function uninstallBlocksDemo(): void {
   setDemoBlocksAdapter(null);
   setDemoMemoryPersistence(false);
+  setDemoShareAdapter(null);
 }

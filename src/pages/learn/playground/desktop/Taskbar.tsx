@@ -20,6 +20,7 @@ import { useSaveStatusStore, type SaveStatus } from '../saveStatusStore';
 import { ShareLinkPanel } from '../ShareLinkPanel';
 import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
+import { useDemoMode } from '@/pages/try/demoMode';
 
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
 
@@ -57,6 +58,11 @@ interface TaskbarProps {
 }
 
 export function Taskbar({ projectId }: TaskbarProps) {
+  // Try-demo (D-DEMO-09): the playground demo runs project-less, so it supplies a
+  // fixed share project id here to surface the REAL Share button (the in-memory
+  // share adapter intercepts its calls). `null` (off) everywhere else.
+  const demoShareProjectId = useDemoMode()?.shareProjectId;
+  const shareProjectId = projectId ?? demoShareProjectId;
   const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
@@ -146,7 +152,7 @@ export function Taskbar({ projectId }: TaskbarProps) {
           real backend project only). */}
       <div className="ml-auto flex items-center gap-3">
         <SaveStatusBadge />
-        {projectId && <ShareLinkPanel projectId={projectId} />}
+        {shareProjectId && <ShareLinkPanel projectId={shareProjectId} />}
       </div>
     </div>
   );

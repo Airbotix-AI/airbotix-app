@@ -61,13 +61,50 @@ const toShareLink = (r: RawShareView): ShareLink => ({
   plays: r.plays ?? 0,
 });
 
+// ── Try-demo seam (try-demo-mode-prd D-DEMO-09) ─────────────────────────────
+// The /try/* demos WALK the real share flow with ZERO network. An in-memory
+// share-lifecycle adapter (none → pending → active, the grown-up approval
+// simulated) intercepts the four share calls below when installed; the real
+// ShareLinkPanel / BlocksSharePanel render unchanged off its states. The public
+// play page resolves a build-time BUNDLED snapshot for the two fixed demo
+// shareIds — so a REAL new tab to /play/:shareId renders the unmodified
+// PublicPlayPage offline (a fresh tab has no demo install, hence a bundled
+// constant, not session state — same class as demoStarter/demoStory; no demo
+// project/session state is ever persisted, D-DEMO-02 intact).
+
+/** The fixed share ids whose /play snapshot is a bundled constant (D-DEMO-09). */
+export const DEMO_PLAYGROUND_SHARE_ID = 'try-demo-playground';
+export const DEMO_BLOCKS_SHARE_ID = 'try-demo-blocks';
+
+/** A single-slot in-memory share lifecycle for one demo surface. */
+export interface DemoShareAdapter {
+  get(): ShareLink;
+  request(): ShareLink; // → pending
+  approve(): ShareLink; // simulated grown-up approval → active
+  revoke(): ShareLink; // → none
+}
+let demoShareAdapter: DemoShareAdapter | null = null;
+export function setDemoShareAdapter(adapter: DemoShareAdapter | null): void {
+  demoShareAdapter = adapter;
+}
+
+/** Bundled, offline `/play/:shareId` snapshots for the two demos (D-DEMO-09). */
+const DEMO_SNAPSHOTS: Record<string, () => Promise<VfsFile[]>> = {
+  [DEMO_PLAYGROUND_SHARE_ID]: () =>
+    import('../../try/demoSnapshot.playground').then((m) => m.demoGameSnapshot()),
+  [DEMO_BLOCKS_SHARE_ID]: () =>
+    import('../../try/demoSnapshot.blocks').then((m) => m.demoBlocksSnapshot()),
+};
+
 /** Ask for a share-link (kid → parent approval, J8). Returns `pending` until approved. */
 export async function requestShareLink(projectId: string): Promise<ShareLink> {
+  if (demoShareAdapter) return demoShareAdapter.request();
   return toShareLink(await api<RawShareView>(`/projects/${projectId}/share`, { method: 'POST' }));
 }
 
 /** The current share-link state for a project (none/pending/active). */
 export async function getShareLink(projectId: string): Promise<ShareLink> {
+  if (demoShareAdapter) return demoShareAdapter.get();
   try {
     return toShareLink(await api<RawShareView>(`/projects/${projectId}/share`));
   } catch (e) {
@@ -94,6 +131,10 @@ export async function setShareHandle(args: {
 
 /** Revoke OR cancel a share-link (kid OR parent). Subsequent public GETs serve 410. */
 export async function revokeShareLink(shareId: string): Promise<void> {
+  if (demoShareAdapter) {
+    demoShareAdapter.revoke();
+    return;
+  }
   await api<void>(`/share/${shareId}`, { method: 'DELETE' });
 }
 
@@ -120,8 +161,11 @@ export async function listFamilyShareLinks(familyId: string): Promise<FamilyShar
   }
 }
 
-/** Parent approves a request → mints the link (freezes a PII-stripped snapshot). */
+/** Parent approves a request → mints the link (freezes a PII-stripped snapshot).
+ *  In the demo this is the ONE simulated beat (no real parent) — the tour fires
+ *  it behind preview-framed copy (D-DEMO-09). */
 export async function approveShareLink(projectId: string): Promise<ShareLink> {
+  if (demoShareAdapter) return demoShareAdapter.approve();
   return toShareLink(await api<RawShareView>(`/projects/${projectId}/share/approve`, { method: 'POST', body: {} }));
 }
 
@@ -140,6 +184,13 @@ export class ShareGoneError extends Error {
  * returns 410 → `ShareGoneError` so the host can show the gone state.
  */
 export async function readPublicSnapshot(shareId: string): Promise<VfsFile[]> {
+  // Demo shareIds (D-DEMO-09): a build-time bundled snapshot, ZERO network — so a
+  // real new tab to /play/try-demo-* renders this real page offline. Resolved
+  // unconditionally (no demo install needed in a fresh tab); the ids never
+  // collide with real capability tokens.
+  const demoSnapshot = DEMO_SNAPSHOTS[shareId];
+  if (demoSnapshot) return demoSnapshot();
+
   let res: Response;
   try {
     res = await fetch(`${BASE_URL}/play/${shareId}/files`, { method: 'GET' });

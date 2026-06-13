@@ -26,7 +26,7 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   (D-DEMO-04). The fix step ALSO fires from the console's real "Ask AI to fix"
   button (`consoleFixTrigger` + `isConsoleFixPrompt`, drift-alarmed against the
   REAL `fixPrompt` in `GameRunnerPane`);
-- `demoTour.playground.ts` — the T1 v3 16-card tour DATA (copy + placement +
+- `demoTour.playground.ts` — the T1 v3 20-card tour DATA (copy + placement +
   spotlight + action per card); `TryPlaygroundPage.tsx` is the engine that fires
   the actions, and `tourSequencing.ts` holds its timing rules (actions defer
   behind a double-rAF so card/spotlight transitions paint first; an after-edit
@@ -39,6 +39,17 @@ The **demo layer only**. The demos render the REAL `PlaygroundApp` and
   sticker + golden remix, and a glossy generic fallback) behind the
   `setDemoAssetGen` seam, so the e2e/dev stub's swatches stay untouched;
 - `demoStory.blocks.ts` — the bundled 3-page "Cat's Day Out" `BlocksProject`;
+- **Share beat (D-DEMO-09)** — the demos no longer hide share; they WALK it on
+  the real share UI. `demoSnapshot.playground.ts` is the bundled game VFS the
+  public page plays; the in-memory share lifecycle (`none → pending → active`)
+  rides the `setDemoShareAdapter` seam in `../learn/playground/sharingApi.ts`,
+  and `readPublicSnapshot` resolves a build-time bundled snapshot for the two
+  fixed demo shareIds (`try-demo-playground`/`try-demo-blocks`) with ZERO
+  network so a REAL new tab to `/play/:shareId` renders the unmodified
+  `PublicPlayPage`. The real `ShareLinkPanel`/`BlocksSharePanel` hand the tour
+  their open/request/approve/recipient affordances via the `bindShareControls`
+  context seam. The grown-up approval is the ONLY simulated beat — its card is
+  explicitly preview-framed (never a faked backend approval, D-DEMO-03);
 - `DemoTourOverlay.tsx` / `DemoBanner.tsx` / `Try*Page.tsx` — the guided tour
   (D-DEMO-05, step-aware placements) + demo banner + public pages. The overlay's
   spotlight scrim + modal backdrop are THEME-AWARE: each page passes `darkUi`
@@ -72,7 +83,11 @@ canned `firstTurnReply` seeds the chat like a real first turn).
 | 12 | 8 error card | `script` step 5 (fix) | scripted fix turn repairs it — ALSO fires from the console's real "Ask AI to fix" button (`consoleFixTrigger`) |
 | 13 | 9 fixed card | `open-guide` | `openGuide('engine/scenes-and-the-game-loop')` — the REAL corpus's most diagram-rich page |
 | 14 | 10 guide card | `advance` | — |
-| 15 | 11 free explore | `finish` | AI gate (D-DEMO-06) takes over |
+| 15 | 11a share-open | `share-open` | the REAL `ShareLinkPanel` opens (taskbar Share button), driven via `bindShareControls` |
+| 16 | 11b ask a grown-up | `share-request` | the panel's real "Ask my grown-up" path → its genuine `pending` state (in-memory, zero network) |
+| 17 | 11c approval | `share-approve` | preview-framed: the simulated grown-up approval → the real `active` link + copy |
+| 18 | 11d see what a friend sees | `share-recipient` | opens `/play/try-demo-playground` in a REAL new tab — the unmodified `PublicPlayPage` on the bundled snapshot |
+| 19 | 12 free explore | `finish` | AI gate (D-DEMO-06) takes over |
 
 Every `edit` script step auto-restarts the game (`runGame`) after its diff lands,
 then re-fronts the panel the NEXT card spotlights (the restart focuses the Game
@@ -114,6 +129,14 @@ beat). Covered by `tourSpotlights.layout.test.tsx` + the split-layout walk in
 5. AI gate (D-DEMO-06): after the script, every chat send gets the contact-us
    reply (`CONTACT_GATE_MESSAGE`) pointing to airbotix.ai/book + /contact.
    Keep those destinations in sync with marketing.
+6. **Share beat (D-DEMO-09).** Share is DEMOED, not hidden. Steps 1–3 MUST be
+   the real share panel and step 4 MUST be the real `PublicPlayPage` — never a
+   demo-built share/play surface. The in-memory share adapter makes `pending`/
+   `active` with zero network; the recipient snapshot is a bundled constant (so
+   a real new tab works offline). Only the grown-up approval is simulated, and
+   only behind preview-framed copy. If the real share UI or `PublicPlayPage`
+   changes (selectors, states, route), update the share cards + the bundled
+   snapshot in the same task and re-run `npx vitest run src/pages/try`.
 
 ## Marketing previews (airbotix.ai/try) — same parity rule
 
