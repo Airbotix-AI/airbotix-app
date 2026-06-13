@@ -296,7 +296,7 @@ test('J8: a logged-out visitor plays /play/:shareId with NONE of the studio chro
   await expect(page.getByTestId('play-brand-home')).toHaveAttribute('target', '_blank');
   const makeOwn = page.getByTestId('play-make-own');
   await expect(makeOwn).toHaveAttribute('target', '_blank');
-  await expect(makeOwn).toHaveAttribute('href', /\/try$/);
+  await expect(makeOwn).toHaveAttribute('href', /\/programs$/);
 });
 
 test('J8: a revoked/expired /play/:shareId shows the 410 gone state (no play-iframe)', async ({
