@@ -27,7 +27,10 @@ export function PlayBrandBar() {
         title="Made with AirBotix — visit airbotix.ai"
         className="inline-flex items-center gap-2.5 opacity-90 transition-opacity hover:opacity-100"
       >
-        <img src="/logo-white-horizontal.png" alt="AirBotix" className="block h-7 w-auto shrink-0" />
+        {/* Trimmed lockup (no padding) so `items-center` truly centres it — the
+            base logo-white-horizontal.png has ~99px of empty canvas below the
+            ink, which made an items-center logo sit visibly high. */}
+        <img src="/logo-white-horizontal-trim.png" alt="AirBotix" className="block h-7 w-auto shrink-0" />
         <span className="hidden text-[13px] font-medium leading-none text-white/45 sm:inline">· shared creation</span>
       </a>
 
