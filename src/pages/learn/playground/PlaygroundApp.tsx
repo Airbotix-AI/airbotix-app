@@ -5,7 +5,7 @@ import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 
-import { getProject, type LearningContext } from '../code/codeApi';
+import { getProject, type LearningContext, type VfsFile } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
@@ -120,6 +120,18 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   // The server save version we last reconciled against (PRD J3, last-write-wins).
   // A ref so the debounced save reads the latest without re-subscribing.
   const versionRef = useRef(0);
+  // Commit an AI turn's VFS AND adopt the new server version it reports. An applied
+  // turn bumps `vfs_version` server-side (recordAgentVersion); if we apply the files
+  // but keep the old version, the next manual save sends a stale expected_version,
+  // 409s, and the server's pre-edit copy wins — silently reverting the kid's hand
+  // edit. `version` is omitted for local-only applies (undo) that don't move it.
+  const applyTurnFiles = useCallback(
+    (next: VfsFile[], version?: number) => {
+      if (version != null) versionRef.current = version;
+      applyFiles(next);
+    },
+    [applyFiles],
+  );
   // Wraps the workspace so we can snapshot it (chrome + game) for the Projects
   // thumbnail when the kid leaves. Excludes the leave dialog (a sibling below).
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -393,7 +405,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           files={files}
           runKey={runKey}
           running={running}
-          onApplyFiles={applyFiles}
+          onApplyFiles={applyTurnFiles}
           onRun={run}
           prompt={prompt}
           firstTurn={firstTurn}

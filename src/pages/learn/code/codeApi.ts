@@ -185,6 +185,11 @@ export interface AgentTurnResult {
   // Full VFS after the turn (or after the plan would be applied) so the preview
   // can re-render deterministically without a second round-trip.
   files: VfsFile[];
+  // The project's server VFS version AFTER this turn's writes (PRD J3). An applied
+  // turn bumps `vfs_version` server-side, so the studio MUST adopt this as the base
+  // for its next manual save — otherwise that save sends a stale expected_version,
+  // 409s, and the kid's hand-edit is reverted ("we kept your newest copy").
+  version: number;
   summary: string;
   stars_charged: number;
   tools_fired: string[];

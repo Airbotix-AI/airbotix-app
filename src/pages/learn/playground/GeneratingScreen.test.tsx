@@ -43,6 +43,7 @@ const RESULT: AgentTurnResult = {
   plan: null,
   changes: [],
   files: FILES,
+  version: 1,
   summary: 'Your platformer is ready — jump across the platforms!',
   stars_charged: 0,
   tools_fired: ['write_file:main.js'],
