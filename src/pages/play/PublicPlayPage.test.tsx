@@ -70,11 +70,11 @@ describe('PublicPlayPage brand frame', () => {
     expect(home.getAttribute('href')).toMatch(/^https?:\/\//);
     expect(within(home).getByAltText('AirBotix')).toBeInTheDocument();
 
-    // First-party "Make your own" → the marketing /try page, new tab.
+    // First-party "Make your own" → the marketing /programs page, new tab.
     const cta = within(bar).getByTestId('play-make-own');
     expect(cta).toHaveTextContent('Make your own');
     expect(cta).toHaveAttribute('target', '_blank');
-    expect(cta.getAttribute('href')).toMatch(/\/try$/);
+    expect(cta.getAttribute('href')).toMatch(/\/programs$/);
   });
 
   it('shows the brand frame above the BLOCKS player, defaulted to the dark theme', async () => {

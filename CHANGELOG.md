@@ -4,6 +4,16 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-13 (Public play page — brand frame polish)
+
+### Fixed
+- **Public play brand frame: larger, aligned logo + correct "Make your own" target.**
+  The AirBotix logo in `PlayBrandBar` was too small (`h-4`) and read as misaligned next to
+  the "· shared creation" label; it's now `h-7` on a slightly taller (`h-14`) bar, vertically
+  centred and balanced. The "Make your own" CTA now points to the marketing **`/programs`**
+  page (was `/try`) — `marketingHref('/programs')`, so prod → `airbotix.ai/programs` and dev
+  → the marketing server's `/programs`. Test + e2e assertions updated to `/programs`.
+
 ## 2026-06-13
 
 ### Fixed
@@ -22,7 +32,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - **Brand frame on the public play page (`/play/:shareId`).** A slim `PlayBrandBar`
   now sits ABOVE the play surface (never an overlay — it cannot intercept a game/sprite
   tap): the AirBotix logo links back to the marketing site, and one soft, **first-party**
-  "Make your own" CTA links to `/try`. Both open a **new tab**, so a logged-out visitor
+  "Make your own" CTA links to `/programs`. Both open a **new tab**, so a logged-out visitor
   (e.g. grandma, or a friend the kid shared with) never loses the running game. No kid
   PII, no auth, no LLM, no third-party ads (minors-compliance C14). New `src/lib/marketing.ts`
   resolves the marketing origin (prod → airbotix.ai, dev → :3000, `VITE_MARKETING_URL`
