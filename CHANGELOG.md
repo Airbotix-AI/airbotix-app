@@ -7,6 +7,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-13 (Public play page — brand frame polish)
 
 ### Fixed
+- **Public play brand logo now vertically centred.** The base `logo-white-horizontal.png`
+  carries ~99px of empty canvas below the ink (artwork in y[3–200] of a 300px-tall image),
+  so an `items-center` logo sat visibly high. Added a tightly-trimmed asset
+  `logo-white-horizontal-trim.png` (888×201, no padding) used only by `PlayBrandBar`, so
+  centring is correct with no magic offset.
 - **Public play brand frame: larger, aligned logo + correct "Make your own" target.**
   The AirBotix logo in `PlayBrandBar` was too small (`h-4`) and read as misaligned next to
   the "· shared creation" label; it's now `h-7` on a slightly taller (`h-14`) bar, vertically
