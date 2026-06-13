@@ -4,6 +4,16 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-13 (Portal — tutoring page English localisation)
+
+### Changed
+- **Tutoring page (`/portal/tutoring`) fully localised to English.** All hardcoded Chinese
+  UI copy translated — bill intro, "Your classes", Private/Official badges, "Teachers:",
+  "Upcoming sessions" + empty state, course-outline toggle, "Amount due" / "Pay" / "Redirecting…"
+  / all-caught-up message, "Lesson charges" table (Class / Students / Rate/hour / Duration /
+  Amount / Status headers, Paid/Due badges). Session date formatting switched from `zh-CN`
+  to `en-AU` locale.
+
 ## 2026-06-13 (Try demos — share is now a guided beat, D-DEMO-09)
 
 ### Added
