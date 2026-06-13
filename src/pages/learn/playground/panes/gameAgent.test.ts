@@ -10,6 +10,7 @@ function makeResult(over: Partial<AgentTurnResult> = {}): AgentTurnResult {
     plan: null,
     changes: [],
     files: [],
+    version: 1,
     summary: 'I made the ball faster.',
     stars_charged: 2,
     tools_fired: ['edit_file:src/scenes/Game.js'],

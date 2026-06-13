@@ -23,6 +23,7 @@ const TURN: AgentTurnResult = {
   plan: null,
   changes: [],
   files: [{ path: 'main.js', content: 'x', kind: 'text', size: 1 }],
+  version: 1,
   summary: 'done',
   stars_charged: 2,
   tools_fired: [],

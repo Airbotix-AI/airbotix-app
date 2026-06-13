@@ -4,6 +4,19 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-13
+
+### Fixed
+- **Game Studio: a manual edit made right after an AI turn no longer reverts ("we kept
+  your newest copy").** An applied AI turn bumps `Project.vfs_version` server-side, but
+  the turn result carried no version, so the studio's save-version (`versionRef`) went
+  stale; the next autosave sent a stale `expected_version` → 409 → the server's pre-turn
+  copy won, silently reverting the kid's edit. The backend now returns `version` in the
+  turn result (`AgentTurnResult`), `useGameAgent` passes it to `onApplyFiles`, and
+  `PlaygroundApp` adopts it into `versionRef` (new `applyTurnFiles`) so the post-turn save
+  is no longer stale. Genuine multi-device conflicts still surface kept-newest. Covered by
+  harness journey `kid-game-edit-after-turn` (red without the fix, green with it).
+
 ## 2026-06-12 (Game Studio — WorkingCard simplified: one ring, one line)
 
 ### Changed
