@@ -40,7 +40,7 @@ new Phaser.Game({
   parent: 'game',
   width: 800,
   height: 600,
-  backgroundColor: '#0f172a',
+  backgroundColor: '#bfe9ff',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   physics: { default: 'arcade' },
   scene: [Game],
@@ -48,6 +48,8 @@ new Phaser.Game({
 `;
 
 const GAME_JS = `// Game scene: catch the falling apples! Move the basket with the mouse or ← →.
+// Look: "paper-cut on a layered scene" — a sky → hills → ground backdrop, with
+// objects lifted by soft offset shadows (depth from layers + shadows, not detail).
 const W = 800;
 const H = 600;
 const FALL_SPEED = 150; // how fast apples fall (pixels per second)
@@ -69,28 +71,52 @@ class Game extends Phaser.Scene {
 
   create() {
     this.score = 0;
+
+    // A layered orchard scene — sky, hills, and ground as separate depth layers.
+    this.paintScene();
+
+    // Title, lifted off the sky with a soft shadow (paper-cut depth).
+    this.add.text(W / 2, 42, 'Fruit Catcher', {
+      fontFamily: 'system-ui, "Segoe UI", sans-serif', fontSize: '34px', fontStyle: 'bold', color: '#33240f',
+    }).setOrigin(0.5).setShadow(2, 3, 'rgba(0,0,0,0.18)', 4).setDepth(10);
+
+    // A soft shadow keeps the basket sitting ON the ground, not floating.
+    this.basketShadow = this.add.ellipse(W / 2, H - 36, BASKET_WIDTH * 0.85, 20, 0x1f3d1f, 0.22).setDepth(4);
     this.basket = this.add.image(W / 2, H - 60, 'basket');
-    this.basket.setDisplaySize(BASKET_WIDTH, BASKET_WIDTH);
+    this.basket.setDisplaySize(BASKET_WIDTH, BASKET_WIDTH).setDepth(5);
     this.physics.add.existing(this.basket);
     this.basket.body.setImmovable(true);
 
     this.apples = this.add.group();
     this.time.addEvent({ delay: SPAWN_EVERY_MS, loop: true, callback: () => this.dropApple() });
 
-    this.scoreText = this.add.text(W / 2, 40, '0', {
-      fontFamily: 'monospace', fontSize: '48px', color: '#ffffff',
-    }).setOrigin(0.5);
+    // Score on a little paper-cut pill so it reads on the bright sky.
+    this.add.graphics().fillStyle(0x33240f, 0.85).fillRoundedRect(28, 26, 96, 56, 16).setDepth(10);
+    this.scoreText = this.add.text(76, 54, '0', {
+      fontFamily: 'system-ui, sans-serif', fontSize: '36px', fontStyle: 'bold', color: '#ffffff',
+    }).setOrigin(0.5).setDepth(11);
 
     this.add.text(W / 2, H - 16, 'Move the basket with the mouse or ← →', {
-      fontFamily: 'monospace', fontSize: '14px', color: '#94a3b8',
-    }).setOrigin(0.5);
+      fontFamily: 'system-ui, sans-serif', fontSize: '14px', color: '#33240f',
+    }).setOrigin(0.5).setDepth(11);
 
     this.cursors = this.input.keyboard.createCursorKeys();
   }
 
+  // The layered backdrop: sky gradient → sun → far hills → near hill → ground.
+  // Each layer is a flat shape at a low depth, so gameplay objects sit in front.
+  paintScene() {
+    this.add.graphics().fillGradientStyle(0xbfe9ff, 0xbfe9ff, 0xe9f8da, 0xe9f8da, 1).fillRect(0, 0, W, H).setDepth(-30);
+    this.add.circle(W - 96, 92, 46, 0xfff2a8).setDepth(-29);
+    this.add.ellipse(W * 0.26, H * 0.94, W * 0.95, H * 0.52, 0x9bd888).setDepth(-20);
+    this.add.ellipse(W * 0.82, H * 0.98, W * 0.8, H * 0.46, 0x8ad07a).setDepth(-20);
+    this.add.ellipse(W * 0.5, H * 1.08, W * 1.35, H * 0.6, 0x5cae57).setDepth(-10);
+    this.add.rectangle(W / 2, H, W, H * 0.16, 0x46883f).setOrigin(0.5, 1).setDepth(-5);
+  }
+
   dropApple() {
     const apple = this.add.image(Phaser.Math.Between(30, W - 30), -20, 'apple');
-    apple.setDisplaySize(APPLE_SIZE, APPLE_SIZE);
+    apple.setDisplaySize(APPLE_SIZE, APPLE_SIZE).setDepth(6);
     this.physics.add.existing(apple);
     apple.body.setVelocity(0, FALL_SPEED);
     this.apples.add(apple);
@@ -112,6 +138,7 @@ class Game extends Phaser.Scene {
     if (this.cursors.left.isDown) this.basket.x = Math.max(BASKET_WIDTH / 2, this.basket.x - 8);
     if (this.cursors.right.isDown) this.basket.x = Math.min(W - BASKET_WIDTH / 2, this.basket.x + 8);
     this.basket.body.updateFromGameObject();
+    this.basketShadow.x = this.basket.x;
 
     // Tidy up apples that fell past the bottom.
     for (const apple of this.apples.getChildren().slice()) {
@@ -121,7 +148,7 @@ class Game extends Phaser.Scene {
 }
 `;
 
-const STYLE_CSS = `html, body { margin: 0; background: #000; }
+const STYLE_CSS = `html, body { margin: 0; background: #bfe9ff; }
 `;
 
 /** The demo's initial project — fresh copies so demo edits never mutate it. */

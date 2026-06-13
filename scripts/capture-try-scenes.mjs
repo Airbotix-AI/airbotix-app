@@ -63,7 +63,11 @@ const shot = async (pg, name) => {
   console.log(`  ✓ ${name}.jpg`);
 };
 
-const b = await chromium.launch();
+// Force a software GL backend so Phaser's WebGL game canvas renders headless —
+// without this the game scenes (pg-3/pg-4) capture a blank black canvas.
+const b = await chromium.launch({
+  args: ['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'],
+});
 const pg = await b.newPage({ viewport: VIEWPORT, deviceScaleFactor: SCALE });
 
 console.log(`Capturing playground scenes from ${APP_URL}/try/playground → ${OUT}`);
