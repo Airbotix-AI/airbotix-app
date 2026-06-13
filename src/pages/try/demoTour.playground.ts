@@ -34,6 +34,10 @@ export type PlaygroundTourAction =
   | { kind: 'asset-details' } // open the sticker's real details + type the remix wish (§3 7b)
   | { kind: 'asset-remix' } // submit the details view's real Remix (§3 7b)
   | { kind: 'open-guide' } // open the in-studio Game Guide at the diagram doc
+  | { kind: 'share-open' } // open the real ShareLinkPanel (§3 step 11 / D-DEMO-09)
+  | { kind: 'share-request' } // fire the real "ask a grown-up" → pending
+  | { kind: 'share-approve' } // simulate the grown-up's approval → active (preview-framed)
+  | { kind: 'share-recipient' } // open /play/:shareId in a real new tab
   | { kind: 'advance' } // just move to the next card
   | { kind: 'finish' }; // drop into free explore
 
@@ -193,9 +197,56 @@ export const PLAYGROUND_TOUR: PlaygroundTourCard[] = [
     body:
       'The same guide your child reads in lessons — searchable, diagram-rich, with ' +
       'a Simple or More reading level. Help is always one tap away.',
-    nextLabel: 'Last step',
+    nextLabel: 'Share your game',
     placement: 'bottom-right',
     action: { kind: 'advance' },
+  },
+  // ── Share block (§3 step 11 / D-DEMO-09) — the REAL share panel, then the REAL
+  // public play page. Cards sit LEFT of the bottom-right panel so they never
+  // cover it; the in-memory share adapter makes pending/active with zero network.
+  {
+    title: 'Show it off — safely',
+    spotlight: '[data-testid="share-link-btn"]',
+    body:
+      'Proud of it? Share sends a play-only link to a friend or grandparent — ' +
+      'and it’s built to be safe. Watch how.',
+    nextLabel: 'Tap Share',
+    placement: 'bottom-left',
+    anchorPrefer: ['left', 'above'],
+    action: { kind: 'share-open' },
+  },
+  {
+    title: 'Kids never publish alone',
+    spotlight: '[data-testid="share-popup"]',
+    body:
+      'No link appears yet. First it asks a grown-up — a child can’t put a game ' +
+      'online on their own. Let’s send the request.',
+    nextLabel: 'Ask my grown-up',
+    placement: 'bottom-left',
+    anchorPrefer: ['left', 'above'],
+    action: { kind: 'share-request' },
+  },
+  {
+    title: 'A grown-up says yes',
+    spotlight: '[data-testid="share-approval-pending"]',
+    body:
+      'It waits for a grown-up’s OK (they approve in their own app, and the game ' +
+      'is safety-checked first). In this demo, let’s pretend they just tapped Approve 👍.',
+    nextLabel: 'Pretend: approved',
+    placement: 'bottom-left',
+    anchorPrefer: ['left', 'above'],
+    action: { kind: 'share-approve' },
+  },
+  {
+    title: 'A safe link to share',
+    spotlight: '[data-testid="share-url"]',
+    body:
+      'Here’s the link — copy it for a friend. It opens a play-only page: no editing, ' +
+      'no account, and a grown-up can switch it off anytime. Let’s see what they’d see.',
+    nextLabel: 'Open it in a new tab',
+    placement: 'bottom-left',
+    anchorPrefer: ['left', 'above'],
+    action: { kind: 'share-recipient' },
   },
   {
     title: 'Now it’s all yours',

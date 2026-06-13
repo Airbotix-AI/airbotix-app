@@ -5,12 +5,14 @@ import clsx from 'clsx';
 import { Check, Copy, Gamepad2, Hourglass, Link2, Share2 } from 'lucide-react';
 
 import {
+  approveShareLink,
   getShareLink,
   requestShareLink,
   revokeShareLink,
   type ShareLink,
 } from './sharingApi';
 import { usePlaygroundStore } from './playgroundStore';
+import { useDemoMode } from '@/pages/try/demoMode';
 
 interface ShareLinkPanelProps {
   /** The real backend project (no share UI for the DEV local scaffold). */
@@ -35,6 +37,9 @@ interface ShareLinkPanelProps {
  */
 export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
   const qc = useQueryClient();
+  // Try-demo (D-DEMO-09): `null` (off) outside a /try/* page. The tour drives this
+  // real panel through `bindShareControls` and owns its open/close lifecycle.
+  const demo = useDemoMode();
   // The popup portals into `document.body`, OUTSIDE the playground's `data-theme`
   // root, so the `--pg-*` CSS vars (scoped to `[data-theme]`) would be undefined
   // there — rendering the surface/border transparent and the text near-invisible.
@@ -82,6 +87,9 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
   useEffect(() => {
     if (!open) return undefined;
     const onPointer = (e: MouseEvent) => {
+      // Try-demo (D-DEMO-09): the tour owns the popup lifecycle — an outside
+      // click (e.g. the tour's Next button) must NOT dismiss it mid-beat.
+      if (demo) return;
       const t = e.target as Node;
       if (btnRef.current?.contains(t) || popRef.current?.contains(t)) return;
       setOpen(false);
@@ -100,7 +108,7 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
       window.removeEventListener('resize', reposition);
       window.removeEventListener('scroll', reposition, true);
     };
-  }, [open]);
+  }, [open, demo]);
 
   const set = (data: ShareLink) => qc.setQueryData(['share', projectId], data);
 
@@ -112,11 +120,38 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
     mutationFn: (shareId: string) => revokeShareLink(shareId),
     onSuccess: () => set({ status: 'none' }),
   });
+  // Demo-only (D-DEMO-09): the tour fires the (preview-framed) grown-up approval.
+  // No-ops outside the demo — nothing calls it there.
+  const approve = useMutation({
+    mutationFn: () => approveShareLink(projectId),
+    onSuccess: set,
+  });
 
   const status = share.data?.status ?? 'none';
   const shareId = share.data?.shareId;
   const plays = share.data?.plays ?? 0;
   const shareUrl = shareId ? `${window.location.origin}/play/${shareId}` : '';
+
+  // Try-demo (D-DEMO-09): hand the tour the panel's REAL affordances so it can
+  // walk the share flow on this real UI. Re-bound each render (last bind wins),
+  // so `openRecipient` always opens the current share URL.
+  useEffect(() => {
+    if (!demo?.bindShareControls) return;
+    demo.bindShareControls({
+      openPanel: () => {
+        setOpen(true);
+        share.refetch();
+        placePopup();
+      },
+      requestShare: () => request.mutate(),
+      approve: () => approve.mutate(),
+      openRecipient: () => {
+        if (shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer');
+      },
+      closePanel: () => setOpen(false),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo, shareUrl]);
 
   const copy = async () => {
     if (!shareUrl) return;
@@ -177,6 +212,7 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
           <div
             ref={popRef}
             data-theme={theme}
+            data-testid="share-popup"
             role="dialog"
             aria-label="Share link"
             style={{ position: 'fixed', right: anchor.right, bottom: anchor.bottom, zIndex: 1000 }}

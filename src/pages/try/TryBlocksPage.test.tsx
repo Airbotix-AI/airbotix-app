@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 // /try/blocks (try-demo-mode-prd §4 / acceptance 1+4): the REAL BlocksStudioPage
-// renders with the bundled story — no auth, no network, share hidden — under the
-// demo banner + tour overlay.
+// renders with the bundled story — no auth, no network — under the demo banner +
+// tour overlay. Share is DEMOED, not hidden (D-DEMO-09).
 
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,10 +19,14 @@ afterEach(() => {
 });
 
 function renderPage() {
+  // The real BlocksSharePanel uses react-query (the share beat, D-DEMO-09).
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter>
-      <TryBlocksPage />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <TryBlocksPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -42,10 +47,12 @@ describe('TryBlocksPage', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('gates cloud share (D-DEMO-08) and shows the demo banner + tour', async () => {
+  it('demos cloud share as a guided beat (D-DEMO-09) and shows the demo banner + tour', async () => {
     renderPage();
     await screen.findByTestId('blocks-studio');
-    expect(screen.queryByTestId('share-link-btn')).not.toBeInTheDocument();
+    // Share is no longer hidden — the real share button is present (the tour
+    // walks it; the in-memory adapter makes its states with zero network).
+    expect(screen.getByTestId('share-link-btn')).toBeInTheDocument();
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Demo mode');
     expect(screen.getByTestId('demo-banner')).toHaveTextContent('Contact us');
     // Home exits to the marketing "Try it" page — a usable absolute URL in EVERY

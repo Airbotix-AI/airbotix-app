@@ -10,7 +10,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
 import { useBlocksTheme } from '../learn/blocks/blocksTheme';
 import { DemoBanner } from './DemoBanner';
-import { DEMO_EXIT_URL, DemoModeProvider, type DemoMode } from './demoMode';
+import {
+  DEMO_EXIT_URL,
+  DemoModeProvider,
+  type DemoMode,
+  type DemoShareControls,
+} from './demoMode';
 import { DemoTourOverlay, type DemoTourStep } from './DemoTourOverlay';
 import { TRY_BLOCKS_PROJECT_ID, installBlocksDemo, uninstallBlocksDemo } from './demoAdapters';
 
@@ -60,6 +65,44 @@ const TOUR: DemoTourStep[] = [
     spotlight: '[aria-label="Pages"]',
     placement: 'bottom-left',
   },
+  // ── Share block (§4 / D-DEMO-09) — the REAL BlocksSharePanel, then the REAL
+  // public play page. Same kind-agnostic share + parent-approval flow as T1.
+  {
+    title: 'Show your story',
+    body:
+      'Want to show a friend or grandparent? Share makes a play-only link — and it ' +
+      'keeps things safe. Let’s see how.',
+    spotlight: '[data-testid="share-link-btn"]',
+    nextLabel: 'Tap Share',
+    placement: 'top-left',
+  },
+  {
+    title: 'A grown-up first',
+    body:
+      'No link yet — sharing always asks a grown-up. A child can’t put a story online ' +
+      'on their own. Let’s send the request.',
+    spotlight: '[data-testid="share-panel"]',
+    nextLabel: 'Ask my grown-up',
+    placement: 'top-left',
+  },
+  {
+    title: 'A grown-up says yes',
+    body:
+      'It’s waiting for a grown-up’s OK. In this demo, let’s pretend they just tapped ' +
+      'Approve 👍.',
+    spotlight: '[data-testid="share-approval-pending"]',
+    nextLabel: 'Pretend: approved',
+    placement: 'top-left',
+  },
+  {
+    title: 'A safe link to share',
+    body:
+      'Here’s the play-only link — copy it for a friend. No editing, no account, and a ' +
+      'grown-up can switch it off anytime. Let’s see what they’d see.',
+    spotlight: '[data-testid="share-url"]',
+    nextLabel: 'Open it in a new tab',
+    placement: 'top-left',
+  },
   {
     title: "Now it's all yours",
     body:
@@ -72,6 +115,13 @@ const TOUR: DemoTourStep[] = [
 /** The 'Press ▶ Go!' card — its Next presses the REAL Go for the user. */
 const GO_CARD = 1;
 const STAGE_SPOTLIGHT = '[data-testid="blocks-stage"]';
+
+// Share block cards (§4 / D-DEMO-09) — each Next drives the REAL share panel,
+// then the REAL public play page (the bundled story), via the bound controls.
+const SHARE_OPEN_CARD = 5;
+const SHARE_REQUEST_CARD = 6;
+const SHARE_APPROVE_CARD = 7;
+const SHARE_RECIPIENT_CARD = 8;
 
 export function TryBlocksPage() {
   // Seams armed (the studio must not mount before the adapter is installed —
@@ -90,6 +140,7 @@ export function TryBlocksPage() {
   // works): the overlay's scrim/backdrop re-pick on a mid-tour flip.
   const theme = useBlocksTheme((s) => s.theme);
   const goRef = useRef<(() => void) | null>(null);
+  const shareRef = useRef<DemoShareControls | null>(null);
   const viewRef = useRef(0);
   viewRef.current = view;
 
@@ -103,6 +154,10 @@ export function TryBlocksPage() {
     () => ({
       surface: 'blocks',
       exitHref: DEMO_EXIT_URL,
+      shareProjectId: TRY_BLOCKS_PROJECT_ID,
+      bindShareControls: (controls) => {
+        shareRef.current = controls;
+      },
       bindBlocksGo: (go) => {
         goRef.current = go;
       },
@@ -148,11 +203,23 @@ export function TryBlocksPage() {
             spotlightOverride={spotOverride}
             darkUi={theme === 'dark'}
             onNext={() => {
-              // The Press-Go card's Next presses the REAL Go for the user — but
-              // only on the FIRST arrival; after Back, forward just navigates.
-              if (view === GO_CARD && frontierRef.current <= GO_CARD && goRef.current) {
-                goRef.current();
-                return;
+              // First-arrival actions fire ONCE (after Back, forward just
+              // navigates): the Press-Go card presses the REAL Go, and the share
+              // cards drive the REAL share panel → public play page (D-DEMO-09).
+              const firstArrival = frontierRef.current <= view;
+              if (firstArrival) {
+                // Go advances on the story-end callback, so it returns here.
+                if (view === GO_CARD && goRef.current) {
+                  goRef.current();
+                  return;
+                }
+                if (view === SHARE_OPEN_CARD) shareRef.current?.openPanel();
+                else if (view === SHARE_REQUEST_CARD) shareRef.current?.requestShare();
+                else if (view === SHARE_APPROVE_CARD) shareRef.current?.approve();
+                else if (view === SHARE_RECIPIENT_CARD) {
+                  shareRef.current?.openRecipient();
+                  shareRef.current?.closePanel(); // unobstruct the free-explore card
+                }
               }
               if (view >= TOUR.length - 1) setDone(true);
               else {

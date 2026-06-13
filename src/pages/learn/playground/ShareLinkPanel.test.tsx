@@ -17,6 +17,7 @@ import { usePlaygroundStore } from './playgroundStore';
 vi.mock('./sharingApi', () => ({
   getShareLink: vi.fn(() => Promise.resolve({ status: 'none' })),
   requestShareLink: vi.fn(),
+  approveShareLink: vi.fn(),
   revokeShareLink: vi.fn(),
 }));
 
