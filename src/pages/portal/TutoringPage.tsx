@@ -27,7 +27,7 @@ interface FamilyClass {
 
 const aud = (cents: number) => `A$${(cents / 100).toFixed(0)}`;
 const sessionLabel = (iso: string, endIso: string) =>
-  `${new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' })}–${new Date(endIso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+  `${new Date(iso).toLocaleString('en-AU', { month: 'numeric', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' })}–${new Date(endIso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`;
 
 export function TutoringPage() {
   const me = useMe();
@@ -94,18 +94,19 @@ export function TutoringPage() {
         <div className="eyebrow">Private tutoring</div>
         <h1 className="section-heading">Tutoring bill</h1>
         <p className="lead-text mt-3">
-          每节私教课按当节人数定价(人越多越便宜),按节计费。下面是你的账单。
-        </p>
+            Private lessons are priced per session by headcount (the more students, the lower the
+            per-head rate). Below is your bill.
+          </p>
       </div>
 
       {error && (
         <div className="mb-6 rounded-2xl bg-coral/10 px-4 py-3 text-[14px] font-semibold text-coral">{error}</div>
       )}
 
-      {/* 班级卡：老师 / 课表 / 课程大纲 */}
+      {/* Class cards: teacher / schedule / course outline */}
       {classes.length > 0 && (
         <div className="mb-8 space-y-4">
-          <h2 className="text-[18px] font-bold">我们的班</h2>
+          <h2 className="text-[18px] font-bold">Our classes</h2>
           {classes.map((fc) => {
             const key = `${fc.class.id}:${fc.kid.id}`;
             return (
@@ -113,18 +114,18 @@ export function TutoringPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[17px] font-bold">{fc.class.name}</span>
                   <span className="rounded-full bg-mint/30 px-2 py-0.5 text-[11px] font-bold uppercase">
-                    {fc.class.delivery_mode === 'private_tutoring' ? '私教' : '官方课'}
+                    {fc.class.delivery_mode === 'private_tutoring' ? 'Private' : 'Official'}
                   </span>
-                  <span className="text-[13px] opacity-60">· {fc.kid.nickname} 的课</span>
+                  <span className="text-[13px] opacity-60">· {fc.kid.nickname}&apos;s class</span>
                 </div>
                 {fc.teachers.length > 0 && (
                   <p className="mt-2 text-[14px]">
-                    <span className="opacity-60">老师:</span>{' '}
-                    {fc.teachers.map((t) => t.display_name ?? t.email).join('、')}
+                    <span className="opacity-60">Teacher:</span>{' '}
+                    {fc.teachers.map((t) => t.display_name ?? t.email).join(', ')}
                   </p>
                 )}
                 <div className="mt-3">
-                  <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">接下来的课</div>
+                  <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">Upcoming sessions</div>
                   {fc.upcoming_sessions.length > 0 ? (
                     <ul className="mt-1 space-y-1 text-[14px]">
                       {fc.upcoming_sessions.slice(0, 5).map((s) => (
@@ -132,7 +133,7 @@ export function TutoringPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-1 text-[14px] opacity-60">暂无排课 — 老师排课后会显示在这里。</p>
+                    <p className="mt-1 text-[14px] opacity-60">No sessions yet — they&apos;ll appear here once scheduled.</p>
                   )}
                 </div>
                 {fc.outline_published && fc.lessons.length > 0 && (
@@ -141,7 +142,7 @@ export function TutoringPage() {
                       onClick={() => setOpenOutline(openOutline === key ? null : key)}
                       className="text-[14px] font-semibold text-coral"
                     >
-                      {openOutline === key ? '收起课程大纲 ▲' : `查看课程大纲（${fc.lessons.length} 节）▼`}
+                      {openOutline === key ? 'Hide outline ▲' : `View outline (${fc.lessons.length} lessons) ▼`}
                     </button>
                     {openOutline === key && (
                       <ol className="mt-2 space-y-1.5 text-[14px]">
@@ -165,32 +166,32 @@ export function TutoringPage() {
       )}
 
       <div className="mb-8 rounded-3xl bg-surface p-6 shadow-sm">
-        <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">待付金额</div>
+        <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">Outstanding</div>
         <div className="mt-1 text-[44px] font-extrabold leading-none">{aud(outstanding)}</div>
         {outstanding > 0 && (
           <button onClick={pay} disabled={busy} className="btn-pill-primary mt-4">
-            {busy ? '正在跳转…' : `去支付 ${aud(outstanding)}`}
+            {busy ? 'Redirecting…' : `Pay ${aud(outstanding)}`}
           </button>
         )}
-        {outstanding === 0 && !loading && <p className="lead-text mt-2">没有待付的课时,棒!</p>}
+        {outstanding === 0 && !loading && <p className="lead-text mt-2">Nothing to pay — all clear!</p>}
       </div>
 
-      <h2 className="mb-4 text-[18px] font-bold">课时明细</h2>
+      <h2 className="mb-4 text-[18px] font-bold">Lesson charges</h2>
       {loading ? (
         <p className="lead-text">Loading…</p>
       ) : charges.length === 0 ? (
-        <p className="lead-text">还没有私教课时记录。</p>
+        <p className="lead-text">No private tutoring charges yet.</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl bg-surface shadow-sm">
           <table className="w-full text-[14px]">
             <thead>
               <tr className="text-left opacity-60">
-                <th className="p-3">班</th>
-                <th className="p-3">人数</th>
-                <th className="p-3">单价/小时</th>
-                <th className="p-3">时长</th>
-                <th className="p-3">金额</th>
-                <th className="p-3">状态</th>
+                <th className="p-3">Class</th>
+                <th className="p-3">Students</th>
+                <th className="p-3">Rate/hr</th>
+                <th className="p-3">Hours</th>
+                <th className="p-3">Amount</th>
+                <th className="p-3">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -203,9 +204,9 @@ export function TutoringPage() {
                   <td className="p-3 font-semibold">{aud(c.amount_aud_cents)}</td>
                   <td className="p-3">
                     {c.paid_at ? (
-                      <span className="rounded-full bg-mint/30 px-2 py-0.5 text-[12px] font-bold">已付</span>
+                      <span className="rounded-full bg-mint/30 px-2 py-0.5 text-[12px] font-bold">Paid</span>
                     ) : (
-                      <span className="rounded-full bg-coral/20 px-2 py-0.5 text-[12px] font-bold text-coral">待付</span>
+                      <span className="rounded-full bg-coral/20 px-2 py-0.5 text-[12px] font-bold text-coral">Unpaid</span>
                     )}
                   </td>
                 </tr>

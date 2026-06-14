@@ -4,6 +4,13 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-14
+
+### Fixed
+- **TutoringPage now displays in English** instead of a mix of Chinese and English.
+  Replaced all hardcoded Chinese strings (labels, table headers, status badges,
+  description text, and the `zh-CN` locale in session time formatting) with English.
+
 ## 2026-06-11 (Blocks Studio — stable fullscreen)
 
 ### Fixed
