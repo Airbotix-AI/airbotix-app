@@ -78,7 +78,10 @@ export default defineConfig({
   // Vitest (unit) must NOT collect the Playwright specs in e2e/ — they use the
   // Playwright runner (`test.use`, fixtures) and aren't valid under vitest. Keep
   // the defaults and add e2e/ so `npm run test` runs only the real unit tests.
+  // Also exclude `.claude/worktrees/**`: a nested git worktree (gitignored) would
+  // otherwise leak its own e2e specs into the unit run (canvas/Playwright → jsdom
+  // failures) — `e2e/**` only matches the root, not nested worktree copies.
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    exclude: [...configDefaults.exclude, 'e2e/**', '**/.claude/**'],
   },
 });

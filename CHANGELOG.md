@@ -4,6 +4,16 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-15 (test infra)
+
+### Fixed
+- **Vitest no longer collects specs from nested `.claude/worktrees/`.** A gitignored
+  git worktree under `.claude/worktrees/` leaked its own copy of the unit tests (run
+  twice) and its Playwright `e2e/` specs into `npm run test`, where the e2e specs fail
+  under jsdom (`HTMLCanvasElement.getContext not implemented`). The existing `e2e/**`
+  exclude only matched the repo root, not nested worktree copies. Added `**/.claude/**`
+  to `test.exclude` in `vite.config.ts` so the unit run is the real specs only.
+
 ## 2026-06-13 (Portal — tutoring page English localisation)
 
 ### Changed
