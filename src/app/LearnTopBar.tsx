@@ -12,8 +12,9 @@ import '@/pages/learn/playground/playground.css';
 
 const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 
-// Exported for the copy-unity guard (D-LP-2: kids/parents never see "Mission",
-// only "Lesson"; `mission` survives solely as the internal route/code identifier).
+// Exported for the copy-split guard. This nav points at the course-CONTENT catalog
+// (课节), so its label is "Lessons"; the kid's TASK inside a lesson is a "Mission".
+// `missions` survives in the route path solely as the internal route/code identifier.
 export const NAV_ITEMS = [
   { to: '/learn/workspace', label: '✨ AI Studio' },
   { to: '/learn', label: 'Home', end: true },

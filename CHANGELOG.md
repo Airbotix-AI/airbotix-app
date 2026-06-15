@@ -4,28 +4,39 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
-## 2026-06-15 (Learn + Portal — "Mission" copy → "Lesson", D-LP-2)
+## 2026-06-16 (Learn + Portal — adopt the Lesson(content)/Mission(task) model split)
 
 ### Changed
-- **Kids Learn + parent Portal now say "Lesson", never "Mission".** Closing the last
-  open surface of D-LP-2 (lesson-plan-prd §5/§7: every human-facing surface uses ONE
-  word, "Lesson / 课节"; `Mission` survives only as an internal code/route identifier).
-  Updated user-visible copy only — no entity/field/route renames:
-  - Learn top-bar nav label `Missions → Lessons` (`LearnTopBar.tsx`; route path stays
-    `/learn/missions` as the internal identifier).
-  - Learn home card, lessons list (eyebrow + lead + empty state + "N lessons · ★"),
-    pack detail (eyebrow, back link, heading, count, empty state), classroom
-    "Browse lessons →", classroom step eyebrows ("Lesson step"), code-step
-    "meets the lesson" copy.
-  - Parent Portal courses card "N lessons · ★" and the growth-tracker studio label
-    (`kidGrowth.ts`: `Missions → Lessons` / noun `missions → lessons`; key `mission` kept).
-- Code entities, interfaces, API fields (`mission_count`, `mission_slug`, `mission_id`),
-  the `/learn/missions` route, and internal comments are intentionally unchanged (D-LP-2:
-  `Mission` is the internal identifier).
+- **Adopt the platform Mission/Lesson model split** (platform-backend
+  `refactor/mission-to-lesson`). A pack's course content is now an ordered list of
+  **Lessons (课节)** — `CoursePack → lessons[]` — and the kid's **Mission** is the TASK
+  inside a Lesson (`Lesson → missions[]`). This supersedes PR #77, which had bluntly
+  renamed **all** kid-facing "Mission" copy to "Lesson"; that was too broad under the new
+  model. Reconciled to the real semantics:
+  - **Content shape:** `course-packs` list & detail now consume `lessons[]` (each Lesson =
+    `{ id, slug, title, description, order_index, missions: [] }`) instead of a flat
+    `missions[]`. The pack content size = `lessons.length` (the numeric `mission_count` is
+    still the total task count, no longer surfaced in copy).
+  - **Catalog / 课节 = "Lesson":** Learn nav "Lessons", the catalog list, pack-detail
+    headings, and per-pack/per-course counts stay "Lesson(s)" and now count Lessons.
+  - **Task = "Mission" (restored):** in-classroom step eyebrows `Lesson step → Mission step`
+    (`MissionCodeStep`, `MissionShareStep`), the code-step "meets the lesson → meets the
+    mission" check, and the parent growth-tracker task studio (`kidGrowth.ts`: label
+    `Lessons → Missions`, noun `lessons → missions`; key `mission` unchanged).
+  - **Pack detail reworked** to `pack → Lessons (课节) → each Lesson's Mission task(s)`:
+    every Lesson renders its nested Mission tasks, each with its own "Start →".
+  - **Parent Portal course card** now shows `lessons.length` "lessons" (course-content
+    count) instead of `mission_count`.
+- **Renamed for clarity** (route id `/learn/missions` unchanged as the internal identifier):
+  `MissionsListPage → LessonsCatalogPage`, `MissionDetailPage → PackLessonsPage`.
 
 ### Added
-- `src/app/learnLessonCopy.test.tsx` — copy-unity guard asserting the Learn nav and the
-  parent growth tracker label lessons "Lessons" (not "Missions"), pinning D-LP-2.
+- `src/pages/learn/PackLessonsPage.test.tsx` — component test for the new
+  pack → Lessons → Mission-task shape (lesson-count headline + nested task rendering).
+
+### Changed (tests)
+- `src/app/learnLessonCopy.test.tsx` now asserts the **split**: the catalog nav says
+  "Lessons" (课节) while the kid TASK studio says "Missions".
 
 ## 2026-06-15 (test infra)
 

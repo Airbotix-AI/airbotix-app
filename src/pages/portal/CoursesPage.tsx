@@ -4,6 +4,12 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 
+// A pack's course content is its list of Lessons (课节). The card shows the lesson
+// count (= lessons.length), not the total Mission-task count (mission_count).
+interface Lesson {
+  id: string;
+}
+
 interface CoursePack {
   id: string;
   slug: string;
@@ -12,7 +18,7 @@ interface CoursePack {
   target_age_min: number;
   target_age_max: number;
   product_line: 'line_a_creative' | 'line_b_coding';
-  mission_count: number;
+  lessons: Lesson[];
   estimated_stars: number;
   owner_teacher: { id: string; display_name: string | null } | null;
 }
@@ -123,7 +129,8 @@ function EnrollCard({
         <div className="mt-3 text-[24px] font-bold leading-tight">{pack.title}</div>
         <div className="mt-2 text-[13px] opacity-90 line-clamp-3">{pack.description}</div>
         <div className="mt-4 text-[13px] font-semibold opacity-90">
-          {pack.mission_count} lessons · {pack.estimated_stars}★
+          {pack.lessons.length} {pack.lessons.length === 1 ? 'lesson' : 'lessons'} ·{' '}
+          {pack.estimated_stars}★
         </div>
         {pack.owner_teacher && (
           <div className="mt-1 text-[12px] opacity-80">
