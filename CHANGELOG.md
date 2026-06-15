@@ -4,6 +4,29 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-15 (Learn + Portal — "Mission" copy → "Lesson", D-LP-2)
+
+### Changed
+- **Kids Learn + parent Portal now say "Lesson", never "Mission".** Closing the last
+  open surface of D-LP-2 (lesson-plan-prd §5/§7: every human-facing surface uses ONE
+  word, "Lesson / 课节"; `Mission` survives only as an internal code/route identifier).
+  Updated user-visible copy only — no entity/field/route renames:
+  - Learn top-bar nav label `Missions → Lessons` (`LearnTopBar.tsx`; route path stays
+    `/learn/missions` as the internal identifier).
+  - Learn home card, lessons list (eyebrow + lead + empty state + "N lessons · ★"),
+    pack detail (eyebrow, back link, heading, count, empty state), classroom
+    "Browse lessons →", classroom step eyebrows ("Lesson step"), code-step
+    "meets the lesson" copy.
+  - Parent Portal courses card "N lessons · ★" and the growth-tracker studio label
+    (`kidGrowth.ts`: `Missions → Lessons` / noun `missions → lessons`; key `mission` kept).
+- Code entities, interfaces, API fields (`mission_count`, `mission_slug`, `mission_id`),
+  the `/learn/missions` route, and internal comments are intentionally unchanged (D-LP-2:
+  `Mission` is the internal identifier).
+
+### Added
+- `src/app/learnLessonCopy.test.tsx` — copy-unity guard asserting the Learn nav and the
+  parent growth tracker label lessons "Lessons" (not "Missions"), pinning D-LP-2.
+
 ## 2026-06-15 (test infra)
 
 ### Fixed

@@ -43,13 +43,13 @@ export function HomePage() {
           <span className="pack-blob" />
           <div className="relative">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
-              Missions
+              Lessons
             </div>
             <div className="mt-4 text-[24px] font-bold leading-tight">
               🚀 Guided lessons
             </div>
             <div className="mt-2 text-[14px] opacity-90">
-              Step-by-step missions sorted by your age. Earn Stars by finishing.
+              Step-by-step lessons sorted by your age. Earn Stars by finishing.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               Browse →

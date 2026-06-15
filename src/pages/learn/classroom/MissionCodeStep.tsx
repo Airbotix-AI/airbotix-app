@@ -87,7 +87,7 @@ export function MissionCodeStep({
   if (!projectId) {
     return (
       <div className="card-base">
-        <div className="eyebrow eyebrow-sky">Mission step</div>
+        <div className="eyebrow eyebrow-sky">Lesson step</div>
         <h3 className="text-[18px] font-bold text-ink mt-1">Build it with code</h3>
         <p className="lead-text mt-2" style={{ fontSize: '14px' }}>
           The AI writes the code, you tell it what you want. When it works, press “I’m done”.
@@ -145,7 +145,7 @@ export function MissionCodeStep({
               {submit.isPending ? 'Checking…' : "✓ I'm done"}
             </button>
             <span className="text-[12px] text-slate2">
-              We’ll check your code meets the mission.
+              We’ll check your code meets the lesson.
             </span>
           </div>
         </div>

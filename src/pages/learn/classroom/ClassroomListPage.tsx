@@ -59,7 +59,7 @@ export function ClassroomListPage() {
             Once you’re in a class, the work your friends share will show up here.
           </p>
           <div className="mt-7 flex gap-3 justify-center flex-wrap">
-            <Link to="/learn/missions" className="btn-pill-primary">Browse missions →</Link>
+            <Link to="/learn/missions" className="btn-pill-primary">Browse lessons →</Link>
             <Link to="/learn/create/code" className="btn-pill-secondary">Make something</Link>
           </div>
         </div>

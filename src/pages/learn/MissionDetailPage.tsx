@@ -40,7 +40,7 @@ export function MissionDetailPage() {
   if (!pack.data)
     return (
       <div>
-        <div className="eyebrow">Mission</div>
+        <div className="eyebrow">Lesson</div>
         <h1 className="section-heading">Not found</h1>
         <Link to="/learn/missions" className="btn-pill-secondary mt-6">← Back</Link>
       </div>
@@ -51,7 +51,7 @@ export function MissionDetailPage() {
 
   return (
     <div>
-      <Link to="/learn/missions" className="btn-pill-ghost mb-4 -ml-3">← Missions</Link>
+      <Link to="/learn/missions" className="btn-pill-ghost mb-4 -ml-3">← Lessons</Link>
 
       <div className={`pack-card ${color} mb-10 cursor-default`} style={{ minHeight: 'auto' }}>
         <span className="pack-blob" />
@@ -63,17 +63,17 @@ export function MissionDetailPage() {
           <h1 className="mt-3 text-[36px] font-bold leading-tight">{pack.data.title}</h1>
           <p className="mt-3 text-[16px] opacity-90 max-w-2xl">{pack.data.description}</p>
           <div className="mt-6 text-[14px] font-bold uppercase tracking-[0.10em] opacity-85">
-            {pack.data.mission_count} missions · {pack.data.estimated_stars}★ total
+            {pack.data.mission_count} lessons · {pack.data.estimated_stars}★ total
           </div>
         </div>
       </div>
 
-      <h2 className="section-heading mb-6" style={{ fontSize: '24px' }}>Missions</h2>
+      <h2 className="section-heading mb-6" style={{ fontSize: '24px' }}>Lessons</h2>
 
       {pack.data.missions.length === 0 ? (
         <div className="card-base text-center">
           <span className="sticker-sunshine">Coming soon</span>
-          <p className="lead-text mt-4">Missions for this pack are being added.</p>
+          <p className="lead-text mt-4">Lessons for this pack are being added.</p>
         </div>
       ) : (
         <div className="space-y-4">

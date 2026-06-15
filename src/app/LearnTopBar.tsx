@@ -12,12 +12,14 @@ import '@/pages/learn/playground/playground.css';
 
 const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 
-const NAV_ITEMS = [
+// Exported for the copy-unity guard (D-LP-2: kids/parents never see "Mission",
+// only "Lesson"; `mission` survives solely as the internal route/code identifier).
+export const NAV_ITEMS = [
   { to: '/learn/workspace', label: '✨ AI Studio' },
   { to: '/learn', label: 'Home', end: true },
   { to: '/learn/projects', label: 'Projects' },
   { to: '/learn/create', label: 'Create' },
-  { to: '/learn/missions', label: 'Missions' },
+  { to: '/learn/missions', label: 'Lessons' },
   { to: '/learn/classroom', label: 'Class wall' },
 ];
 
