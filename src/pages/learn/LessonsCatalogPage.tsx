@@ -5,12 +5,12 @@ import { Link } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 
-interface Mission {
+// A Lesson (课节) is the course-content unit inside a pack. Each Lesson carries the
+// kid's Mission task(s); the catalog only needs the count of Lessons per pack.
+interface Lesson {
   id: string;
   slug: string;
   title: string;
-  description: string;
-  estimated_stars: number;
   order_index: number;
 }
 
@@ -22,12 +22,12 @@ interface CoursePack {
   target_age_min: number;
   target_age_max: number;
   product_line: 'line_a_creative' | 'line_b_coding';
-  mission_count: number;
   estimated_stars: number;
-  missions: Mission[];
+  // The pack's content list is its Lessons (课节). Content size = lessons.length.
+  lessons: Lesson[];
 }
 
-export function MissionsListPage() {
+export function LessonsCatalogPage() {
   const me = useMe();
   const myAge = me.data?.kind === 'kid' && typeof me.data.age === 'number' ? me.data.age : 10;
 
@@ -136,6 +136,7 @@ function Section({
         {packs.map((p) => {
           const cardColor: 'coral' | 'sky' | 'mint' | 'bubblegum' =
             p.product_line === 'line_a_creative' ? 'coral' : 'sky';
+          const lessonCount = p.lessons.length;
           return (
             <Link
               key={p.id}
@@ -152,7 +153,7 @@ function Section({
                 <div className="mt-2 text-[13px] opacity-90 line-clamp-3">{p.description}</div>
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-[13px] font-semibold opacity-90">
-                    {p.mission_count} lessons · {p.estimated_stars}★
+                    {lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'} · {p.estimated_stars}★
                   </div>
                   <div className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
                     Open →

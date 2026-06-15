@@ -4,12 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { NAV_ITEMS } from './LearnTopBar';
 import { studioMeta } from '@/pages/portal/kidGrowth';
 
-// D-LP-2 (lesson-plan-prd §7): every human-facing surface — kids, parents, teachers,
-// ops — uses ONE word, "Lesson / 课节". "Mission" survives ONLY as an internal code /
-// route identifier and must never appear in copy a child or parent reads. These guards
-// keep the kids-Learn nav + the parent growth tracker on the right side of that line.
-describe('Lesson copy unity (D-LP-2)', () => {
-  it('the Learn top-bar nav labels the lessons section "Lessons", never "Missions"', () => {
+// Mission/Lesson split (platform model): "Lesson / 课节" is the course-CONTENT unit —
+// the catalog, the syllabus, what carries the plan. "Mission" is the kid's TASK inside a
+// Lesson. The two must never be swapped in copy: the catalog nav says "Lessons", but a
+// kid's task surface says "Mission". (PR #77 over-renamed all task copy to "Lesson";
+// this guard pins the corrected split.)
+describe('Lesson(content) / Mission(task) copy split', () => {
+  it('the Learn top-bar nav labels the catalog (课节) "Lessons", never "Missions"', () => {
     const labels = NAV_ITEMS.map((item) => item.label);
     expect(labels).toContain('Lessons');
     expect(labels).not.toContain('Missions');
@@ -17,9 +18,9 @@ describe('Lesson copy unity (D-LP-2)', () => {
     expect(NAV_ITEMS.find((i) => i.label === 'Lessons')?.to).toBe('/learn/missions');
   });
 
-  it('the parent growth tracker labels the lessons studio "Lessons" with the "lessons" noun', () => {
-    const meta = studioMeta('mission'); // `mission` is the internal studio key
-    expect(meta.label).toBe('Lessons');
-    expect(meta.noun).toBe('lessons');
+  it('the parent growth tracker labels the kid TASK studio "Missions", not "Lessons"', () => {
+    const meta = studioMeta('mission'); // `mission` is the task-level studio key
+    expect(meta.label).toBe('Missions');
+    expect(meta.noun).toBe('missions');
   });
 });

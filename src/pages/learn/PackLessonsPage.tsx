@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { api } from '@/lib/api';
 
+// A Mission is the kid's TASK inside a Lesson — what the child actually does to
+// earn Stars (links out to a Project).
 interface Mission {
   id: string;
   slug: string;
@@ -10,7 +12,17 @@ interface Mission {
   description: string;
   estimated_stars: number;
   order_index: number;
-  content_md: string;
+}
+
+// A Lesson (课节) is the course-content unit: an ordered step in the pack that
+// holds one or more Mission tasks.
+interface Lesson {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  order_index: number;
+  missions: Mission[];
 }
 
 interface CoursePack {
@@ -21,12 +33,11 @@ interface CoursePack {
   target_age_min: number;
   target_age_max: number;
   product_line: 'line_a_creative' | 'line_b_coding';
-  mission_count: number;
   estimated_stars: number;
-  missions: Mission[];
+  lessons: Lesson[];
 }
 
-export function MissionDetailPage() {
+export function PackLessonsPage() {
   const { id: slug } = useParams<{ id: string }>();
   const nav = useNavigate();
 
@@ -48,6 +59,7 @@ export function MissionDetailPage() {
 
   const isCreative = pack.data.product_line === 'line_a_creative';
   const color = isCreative ? 'coral' : 'sky';
+  const lessons = pack.data.lessons;
 
   return (
     <div>
@@ -63,43 +75,68 @@ export function MissionDetailPage() {
           <h1 className="mt-3 text-[36px] font-bold leading-tight">{pack.data.title}</h1>
           <p className="mt-3 text-[16px] opacity-90 max-w-2xl">{pack.data.description}</p>
           <div className="mt-6 text-[14px] font-bold uppercase tracking-[0.10em] opacity-85">
-            {pack.data.mission_count} lessons · {pack.data.estimated_stars}★ total
+            {lessons.length} {lessons.length === 1 ? 'lesson' : 'lessons'} ·{' '}
+            {pack.data.estimated_stars}★ total
           </div>
         </div>
       </div>
 
       <h2 className="section-heading mb-6" style={{ fontSize: '24px' }}>Lessons</h2>
 
-      {pack.data.missions.length === 0 ? (
+      {lessons.length === 0 ? (
         <div className="card-base text-center">
           <span className="sticker-sunshine">Coming soon</span>
           <p className="lead-text mt-4">Lessons for this pack are being added.</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {pack.data.missions.map((m, i) => (
-            <div key={m.id} className="card-base">
+          {lessons.map((lesson, i) => (
+            <div key={lesson.id} className="card-base">
               <div className="flex items-start gap-4">
                 <div className={`shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-grad-${color} text-white font-extrabold text-[20px] shadow-brand-${color}`}>
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[18px] font-bold text-ink">{m.title}</div>
-                  <p className="text-[14px] text-ink-soft mt-2">{m.description}</p>
-                  <div className="mt-3 text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
-                    {m.estimated_stars}★ to complete
-                  </div>
+                  <div className="text-[18px] font-bold text-ink">{lesson.title}</div>
+                  {lesson.description && (
+                    <p className="text-[14px] text-ink-soft mt-2">{lesson.description}</p>
+                  )}
+
+                  {/* The kid's Mission task(s) inside this Lesson. */}
+                  {lesson.missions.length === 0 ? (
+                    <p className="mt-3 text-[13px] text-slate2">Tasks coming soon.</p>
+                  ) : (
+                    <ul className="mt-4 space-y-3">
+                      {lesson.missions.map((m) => (
+                        <li
+                          key={m.id}
+                          className="flex items-start gap-3 rounded-2xl bg-surface px-4 py-3"
+                        >
+                          <span className="mt-0.5 shrink-0 text-[15px]">🚀</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[15px] font-semibold text-ink">{m.title}</div>
+                            {m.description && (
+                              <p className="text-[13px] text-ink-soft mt-1">{m.description}</p>
+                            )}
+                            <div className="mt-2 text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
+                              {m.estimated_stars}★ to complete
+                            </div>
+                          </div>
+                          <button
+                            onClick={() =>
+                              nav('/learn/projects/new', {
+                                state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
+                              })
+                            }
+                            className="btn-pill-primary shrink-0"
+                          >
+                            Start →
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <button
-                  onClick={() =>
-                    nav('/learn/projects/new', {
-                      state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
-                    })
-                  }
-                  className="btn-pill-primary shrink-0"
-                >
-                  Start →
-                </button>
               </div>
             </div>
           ))}

@@ -23,7 +23,7 @@ export function MissionShareStep({ projectId, onComplete }: MissionShareStepProp
 
   return (
     <div className="card-base">
-      <div className="eyebrow eyebrow-sky">Lesson step</div>
+      <div className="eyebrow eyebrow-sky">Mission step</div>
       <h3 className="text-[18px] font-bold text-ink mt-1">Share your work with the class</h3>
       <p className="lead-text mt-2" style={{ fontSize: '14px' }}>
         Show your classmates what you made. Your teacher checks it first.

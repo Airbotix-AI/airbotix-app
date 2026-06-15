@@ -40,8 +40,8 @@ import { KidUsagePage } from '@/pages/portal/KidUsagePage';
 import { ClassCodePage } from '@/pages/learn/ClassCodePage';
 import { HomePage as LearnHomePage } from '@/pages/learn/HomePage';
 import { LoginPage as LearnLoginPage } from '@/pages/learn/LoginPage';
-import { MissionDetailPage } from '@/pages/learn/MissionDetailPage';
-import { MissionsListPage } from '@/pages/learn/MissionsListPage';
+import { LessonsCatalogPage } from '@/pages/learn/LessonsCatalogPage';
+import { PackLessonsPage } from '@/pages/learn/PackLessonsPage';
 import { ProfilePage as LearnProfilePage } from '@/pages/learn/ProfilePage';
 import { ProjectDetailPage } from '@/pages/learn/ProjectDetailPage';
 import { ProjectNewPage } from '@/pages/learn/ProjectNewPage';
@@ -158,8 +158,10 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <ProjectsListPage /> },
       { path: 'projects/new', element: <ProjectNewPage /> },
       { path: 'projects/:id', element: <ProjectDetailPage /> },
-      { path: 'missions', element: <MissionsListPage /> },
-      { path: 'missions/:id', element: <MissionDetailPage /> },
+      // Internal route id stays `/learn/missions` (D-LP-2); the catalog & detail
+      // pages render the pack's Lessons (课节) → each Lesson's Mission tasks.
+      { path: 'missions', element: <LessonsCatalogPage /> },
+      { path: 'missions/:id', element: <PackLessonsPage /> },
       // Legacy alias: the class wall is `/learn/classroom` (ClassroomListPage).
       // The old `/learn/wall` was a "Coming soon" placeholder — redirect it.
       { path: 'wall', element: <Navigate to="/learn/classroom" replace /> },
