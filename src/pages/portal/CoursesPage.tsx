@@ -123,7 +123,7 @@ function EnrollCard({
         <div className="mt-3 text-[24px] font-bold leading-tight">{pack.title}</div>
         <div className="mt-2 text-[13px] opacity-90 line-clamp-3">{pack.description}</div>
         <div className="mt-4 text-[13px] font-semibold opacity-90">
-          {pack.mission_count} missions · {pack.estimated_stars}★
+          {pack.mission_count} lessons · {pack.estimated_stars}★
         </div>
         {pack.owner_teacher && (
           <div className="mt-1 text-[12px] opacity-80">

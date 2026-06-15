@@ -58,12 +58,12 @@ export function MissionsListPage() {
   return (
     <div>
       <div className="mb-10">
-        <div className="eyebrow eyebrow-bubblegum">Missions</div>
+        <div className="eyebrow eyebrow-bubblegum">Lessons</div>
         <h1 className="hero-display">
           Pick an <span className="squiggle-word">adventure</span>.
         </h1>
         <p className="lead-text mt-4">
-          Step-by-step missions, sorted by your age. Earn Stars by finishing.
+          Step-by-step lessons, sorted by your age. Earn Stars by finishing.
         </p>
       </div>
 
@@ -73,7 +73,7 @@ export function MissionsListPage() {
         <div className="card-base text-center">
           <span className="sticker-sunshine">Coming soon</span>
           <p className="lead-text mt-4">
-            New missions are being added. Check back soon!
+            New lessons are being added. Check back soon!
           </p>
           <Link to="/learn" className="btn-pill-primary mt-6">← Back home</Link>
         </div>
@@ -152,7 +152,7 @@ function Section({
                 <div className="mt-2 text-[13px] opacity-90 line-clamp-3">{p.description}</div>
                 <div className="mt-6 flex items-center justify-between">
                   <div className="text-[13px] font-semibold opacity-90">
-                    {p.mission_count} missions · {p.estimated_stars}★
+                    {p.mission_count} lessons · {p.estimated_stars}★
                   </div>
                   <div className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
                     Open →

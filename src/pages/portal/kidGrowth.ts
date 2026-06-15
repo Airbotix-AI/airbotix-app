@@ -29,7 +29,7 @@ const STUDIOS: Record<string, StudioMeta> = {
   code: { emoji: '💻', label: 'Code lab', noun: 'programs' },
   game: { emoji: '🎮', label: 'Game studio', noun: 'games' },
   chat: { emoji: '💬', label: 'Chat', noun: 'conversations' },
-  mission: { emoji: '🚀', label: 'Missions', noun: 'missions' },
+  mission: { emoji: '🚀', label: 'Lessons', noun: 'lessons' },
 };
 
 export function studioMeta(key: string): StudioMeta {
