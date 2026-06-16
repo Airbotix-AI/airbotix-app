@@ -4,6 +4,89 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-16 (Learn — "My Classes" kid surface + project placement lifecycle)
+
+### Added
+- **My Classes** kid surface (my-classes-prd §2–§4), translating the approved
+  `mocks/my-classes/` design to React + the K-12 design system (no raw hex):
+  - **My Classes list** (`ClassroomListPage`) — enriched cards from
+    `GET /classes/mine` (`ClassMineSummary`: cover, teacher + avatar, classmate
+    count, progress bar, live/next chip, stars). **Active** + **Finished**
+    sections; existing empty state preserved. `classCover.ts` gives each class a
+    stable K-12 gradient + emoji fallback when there's no `cover_image_url`.
+  - **Class hub** (`ClassHubPage`, replaces `ClassWallViewPage` at
+    `/learn/classroom/:classId`) — tabbed shell: **Wall** (existing wall +
+    6-emoji `ReactionBar`) · **My work** (the kid's projects for this class) ·
+    **Lessons** · **Next class** (NO Classmates tab, D-MC-12). Lessons / Next
+    class show a graceful "coming soon" until the kid sessions/progress reads
+    exist (deferred — see below). In-place **"Create for this class"** sheet
+    (`CreateForClassSheet`) — course-allowed tool gating is a TODO (backend
+    `allowed_kinds` not built); shows the kid's permitted Create tools, defaults
+    new work to **class work**.
+  - **My Works** (`ProjectsListPage`) regrouped (my-classes-prd §3.4): segmented
+    tabs **All · Personal · <each enrolled class>**; cards open the studio; a
+    **⋯** placement menu wired to `PATCH /projects/:id/placement`
+    (`WorkCard` + `usePlacement`): Personal → "Use for a class" (class picker);
+    Class work → "Share with the whole class" (existing wall path) + "Move to
+    Personal"; On the wall → "Take off the wall" + "Move to Personal". A `public`
+    (internet-visible) work is its own honest, **non-mutable** placement ("Shared
+    to the world" 🌐 badge, no ⋯ menu) — changing it stays behind the teacher+parent
+    double-consent gate, never the kid menu (my-classes-prd §11). Visibility badge
+    (Personal / Class work / On the wall / Public, Lucide icons) is separate from the
+    Working/Finished status tag. Destructive "Move to Personal" requires a confirm
+    (PRD §3.2); "Use for a class" shows the teacher-visibility consequence.
+
+### Changed
+- **Learn top-nav label** `Class wall` → **`My Classes`** (route
+  `/learn/classroom` unchanged).
+- **Create tab** (`CreateHubPage`) reframed as **personal-only** (default 🔒
+  private); the in-class create flow lives in the hub sheet (no jump to Create).
+  Tool list extracted to shared `create/createTools.ts` (reused by the sheet).
+- `classroomApi.ts` — added `ClassMineSummary` + `listMyClasses()`, the
+  `PATCH /projects/:id/placement` mover (`updatePlacement`, `PlacementAction`),
+  and the four-state `ProjectVisibility` (`private | class_work | class | public`).
+
+### Deferred / stubbed
+- **Lessons** + **Next class** hub tabs render "coming soon" — they need the kid
+  curriculum/progress + redacted sessions reads (my-classes-prd §6 V2). No
+  fabricated data.
+- **Course-allowed project kinds** in the "Create for this class" sheet (D-MC-11)
+  — `CoursePack.allowed_kinds` isn't built; the sheet shows the kid's full
+  permitted tool set with a code TODO.
+- **Class-association from the "Create for this class" sheet** — the tool links
+  still route to the bare studio route with no `class_id`, so work made there is
+  not yet auto-attached to the class. The sheet copy is intentionally framed as
+  intent ("can see it to help"), not a guarantee; flagged with a code TODO until
+  the studios accept class context.
+
+### Fixed
+- **Privacy (review blocker):** a `public` (internet-visible) project was
+  collapsed into the `on_wall` placement — it rendered the class-only "On the
+  wall" badge and offered `take_off_wall` / `move_to_personal` on a
+  double-consent project. `placementOf()` now maps `visibility:'public'` to a
+  distinct `public` placement with an honest "Shared to the world" badge and
+  **no** kid-mutable ⋯ menu (my-classes-prd §11; placement contract defines
+  `take_off_wall`/`move_to_personal` only for `class`/`class_work`). Covered by
+  new `WorkCard.test.tsx` cases.
+- **Design-system:** removed the last inline hex tints (`text-[#8A6A00]` /
+  `text-[#9A2861]`) from the placement badges (`WorkCard`) and the
+  "Create for this class" sheet icon — now `text-ink` on the wash background, the
+  established K-12 convention (DESIGN.md: no raw hex).
+
+### Tests
+- Component tests (vitest + Testing Library, `@/lib/api` mocked, no network):
+  `ClassroomListPage.test.tsx` (enriched cards + Active/Finished + empty),
+  `ProjectsListPage.test.tsx` (grouping + ⋯ placement menu asserting the PATCH
+  action/class_id + destructive confirm), `ClassHubPage.test.tsx` (tab switching,
+  no Classmates tab, coming-soon, create sheet), and a focused
+  `WorkCard.test.tsx` (empty class-picker state, delete-only personal menu,
+  outside-click close, class_work/on_wall menu actions, and the `public`
+  honest-badge / no-mutable-actions privacy cases).
+- **Harness:** the new frontend↔backend contracts (enriched `GET /classes/mine`
+  / `PATCH /projects/:id/placement`) are logged as a blocked L3 gap in the
+  umbrella `harness/COVERAGE.md` (backend endpoints not yet implemented — this is
+  a FE-only diff with mocks-as-contract).
+
 ## 2026-06-16 (Learn + Portal — adopt the Lesson(content)/Mission(task) model split)
 
 ### Changed

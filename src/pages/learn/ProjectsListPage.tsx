@@ -1,103 +1,50 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { listMyClasses, type ClassMineSummary } from './classroom/classroomApi';
+import { ShareToClassModal } from './classroom/ShareToClassModal';
 import { loadThumbnail } from './playground/projectPersistence';
+import { WorkCard } from './projects/WorkCard';
+import { ConfirmDialog } from './projects/ConfirmDialog';
+import { usePlacement } from './projects/usePlacement';
+import type { KidProject } from './projects/kidProject';
 
-interface Project {
-  id: string;
-  title: string;
-  kind?: 'creative' | 'code' | 'game' | 'blocks';
-  product_line: 'line_a_creative' | 'line_b_coding';
-  visibility: 'private' | 'class' | 'public';
-  thumbnail_s3_key: string | null;
-  star_cost_total: number;
-  artifact_count: number;
-  status: 'in_progress' | 'submitted' | 'accepted' | 'archived';
-  updated_at: string;
-}
+// "My Works" — `/learn/projects` (my-classes-prd §3.4). Segmented by
+// All · Personal · <each enrolled class>. Cards open the studio; the ⋯ menu
+// drives placement (PATCH /projects/:id/placement) and wall-sharing.
 
-type FilterTab = 'all' | 'in_progress' | 'finished' | 'shared';
-type StarterTile = 'image' | 'story' | 'music' | 'blank';
-
-const TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all',         label: 'All' },
-  { key: 'in_progress', label: 'In progress' },
-  { key: 'finished',    label: 'Finished' },
-  { key: 'shared',      label: 'Shared with class' },
-];
-
-// status → sticker color + label per DESIGN.md sticker system
-const STATUS_STICKER: Record<string, { color: string; label: string }> = {
-  in_progress: { color: 'sunshine', label: '🟡 working' },
-  submitted:   { color: 'sky',      label: '🕐 in review' },
-  accepted:    { color: 'mint',     label: '✓ finished' },
-  archived:    { color: 'coral',    label: '📦 archived' },
-};
-
-const VISIBILITY_STICKER: Record<string, { color: string; label: string }> = {
-  class:  { color: 'bubblegum', label: '🌟 in class' },
-  public: { color: 'coral',     label: '🌍 public' },
-};
-
-// thumbnail placeholder bg per product line
-const THUMB_BG: Record<string, string> = {
-  line_a_creative: 'bg-wash-bubblegum',
-  line_b_coding:   'bg-wash-sky',
-};
-
-const THUMB_ICON: Record<string, string> = {
-  line_a_creative: '🎨',
-  line_b_coding:   '💻',
-};
-
-function applyFilter(projects: Project[], tab: FilterTab): Project[] {
-  if (tab === 'in_progress') return projects.filter((p) => p.status === 'in_progress');
-  if (tab === 'finished')    return projects.filter((p) => ['submitted', 'accepted', 'archived'].includes(p.status));
-  if (tab === 'shared')      return projects.filter((p) => p.visibility !== 'private');
-  return projects;
-}
-
-function relativeDate(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 7)  return `${days} days ago`;
-  if (days < 14) return 'Last week';
-  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
-  return `${Math.floor(days / 30)} months ago`;
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+type Tab = 'all' | 'personal' | string; // string = a class id
 
 export function ProjectsListPage() {
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const qc = useQueryClient();
-  const [tab, setTab] = useState<FilterTab>('all');
+  const nav = useNavigate();
+  const [tab, setTab] = useState<Tab>('all');
   const [showNewModal, setShowNewModal] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(24);
-  // Inline delete confirmation: the id of the project awaiting a "Delete this?" confirm.
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [shareProject, setShareProject] = useState<KidProject | null>(null);
 
-  const projects = useQuery<Project[]>({
+  const projects = useQuery<KidProject[]>({
     queryKey: ['projects', 'kid', kidId],
-    queryFn: () => api<Project[]>(`/kids/${kidId}/projects`),
+    queryFn: () => api<KidProject[]>(`/kids/${kidId}/projects`),
     enabled: !!kidId,
   });
 
-  const filtered = applyFilter(projects.data ?? [], tab);
-  const atLimit = (projects.data?.length ?? 0) >= 50;
+  const classes = useQuery<ClassMineSummary[]>({
+    queryKey: ['kid', kidId, 'classes'],
+    queryFn: () => listMyClasses(),
+    enabled: !!kidId,
+  });
 
-  // Game thumbnails are captured + stored device-locally (no backend image upload
-  // path yet — see playground/workspaceThumbnail). Load them for the listed games
-  // and use them when the backend has no thumbnail_s3_key.
-  const thumbIds = (projects.data ?? [])
-    .filter((p) => p.kind === 'game' || p.kind === 'blocks')
-    .map((p) => p.id);
+  const placement = usePlacement({ kidId, onShareRequest: setShareProject });
+
+  // Local game/blocks thumbnails (captured device-side, no backend upload yet).
+  const all = useMemo(() => projects.data ?? [], [projects.data]);
+  const thumbIds = all.filter((p) => p.kind === 'game' || p.kind === 'blocks').map((p) => p.id);
   const localThumbs = useQuery<Record<string, string>>({
     queryKey: ['playground-thumbs', thumbIds.join(',')],
     queryFn: async () => {
@@ -112,25 +59,38 @@ export function ProjectsListPage() {
   const del = useMutation({
     mutationFn: (id: string) => api<void>(`/projects/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      setConfirmId(null);
+      setDeleteId(null);
       qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
     },
   });
 
-  // Resume opens a game in the playground / a blocks project in Blocks Studio
-  // (PRD J9); other kinds open their project detail.
-  const resumeHref = (p: Project) =>
-    p.kind === 'game'
-      ? `/learn/playground/${p.id}`
-      : p.kind === 'blocks'
-        ? `/learn/blocks/${p.id}`
-        : `/learn/projects/${p.id}`;
+  const classList = classes.data ?? [];
+  const personal = useMemo(() => all.filter((p) => !p.class_id), [all]);
+  const byClass = useMemo(() => {
+    const m = new Map<string, KidProject[]>();
+    for (const p of all) if (p.class_id) m.set(p.class_id, [...(m.get(p.class_id) ?? []), p]);
+    return m;
+  }, [all]);
+
+  const atLimit = all.length >= 50;
+
+  const renderCard = (p: KidProject) => (
+    <WorkCard
+      key={p.id}
+      project={p}
+      localThumb={localThumbs.data?.[p.id]}
+      classes={classList}
+      onDelete={() => setDeleteId(p.id)}
+      {...placement.handlers(p)}
+    />
+  );
 
   return (
     <div>
-      {/* ── Header row ── */}
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="hero-display" style={{ fontSize: '40px' }}>📂 My Works</h1>
+        <h1 className="hero-display" style={{ fontSize: '40px' }}>
+          📂 My Works
+        </h1>
         <button
           onClick={() => setShowNewModal(true)}
           disabled={atLimit}
@@ -142,37 +102,35 @@ export function ProjectsListPage() {
       </div>
 
       {atLimit && (
-        <div className="mb-4 rounded-2xl bg-wash-sunshine border border-brand-sunshine/40 px-4 py-3 text-[13px] font-medium text-ink">
+        <div className="mb-4 rounded-2xl border border-brand-sunshine/40 bg-wash-sunshine px-4 py-3 text-[13px] font-medium text-ink">
           You've reached the 50-project limit. Archive or delete a project to make room.
         </div>
       )}
 
-      {/* ── Filter row ── */}
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-semibold text-steel">Filter:</span>
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => { setTab(t.key); setVisibleCount(24); }}
-            className={`rounded-full px-3 py-1 text-[13px] font-semibold transition-colors ${
-              tab === t.key
-                ? 'bg-brand-coral text-white'
-                : 'bg-surface text-slate2 hover:bg-wash-coral hover:text-ink'
-            }`}
-          >
-            {t.label}
-          </button>
+      {/* Segmented tabs: All · Personal · <each class> */}
+      <div className="mb-6 flex flex-wrap items-center gap-2" data-testid="works-tabs">
+        <SegTab active={tab === 'all'} onClick={() => setTab('all')}>
+          All
+        </SegTab>
+        <SegTab active={tab === 'personal'} onClick={() => setTab('personal')}>
+          Personal
+        </SegTab>
+        {classList.map((c) => (
+          <SegTab key={c.id} active={tab === c.id} onClick={() => setTab(c.id)}>
+            {c.name}
+          </SegTab>
         ))}
       </div>
 
       {projects.isLoading && <p className="lead-text">Loading…</p>}
 
-      {/* ── Empty state ── */}
-      {!projects.isLoading && filtered.length === 0 && (
+      {!projects.isLoading && all.length === 0 && (
         <div className="card-base flex flex-col items-center py-12 text-center">
           <span className="sticker-sky">Empty</span>
           <p className="lead-text mt-4" style={{ fontSize: '16px' }}>
-            Your works will show up here.<br />Try making something on the home page!
+            Your works will show up here.
+            <br />
+            Try making something on the home page!
           </p>
           <Link to="/learn" className="btn-pill-primary mt-6 inline-block">
             Go make something →
@@ -180,190 +138,120 @@ export function ProjectsListPage() {
         </div>
       )}
 
-      {/* ── Grid — 24/page per PRD §4 ── */}
-      {filtered.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {filtered.slice(0, visibleCount).map((p) => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                localThumb={localThumbs.data?.[p.id]}
-                resumeHref={resumeHref(p)}
-                onAskDelete={() => setConfirmId(p.id)}
-              />
-            ))}
-          </div>
-          {filtered.length > visibleCount && (
-            <div className="mt-6 flex justify-center">
-              <button
-                onClick={() => setVisibleCount((n) => n + 24)}
-                className="btn-pill-secondary"
-              >
-                Load more ({filtered.length - visibleCount} remaining)
-              </button>
-            </div>
+      {/* ALL — grouped Personal + each class */}
+      {!projects.isLoading && all.length > 0 && tab === 'all' && (
+        <div className="space-y-8">
+          {personal.length > 0 && (
+            <Group label="Personal">{personal.map(renderCard)}</Group>
           )}
-        </>
+          {classList.map((c) => {
+            const items = byClass.get(c.id) ?? [];
+            if (items.length === 0) return null;
+            return (
+              <Group key={c.id} label={c.name}>
+                {items.map(renderCard)}
+              </Group>
+            );
+          })}
+        </div>
+      )}
+
+      {/* PERSONAL */}
+      {tab === 'personal' && (
+        <Grid>{personal.map(renderCard)}</Grid>
+      )}
+
+      {/* A single class */}
+      {tab !== 'all' && tab !== 'personal' && (
+        <Grid>{(byClass.get(tab) ?? []).map(renderCard)}</Grid>
       )}
 
       {showNewModal && kidId && (
-        <NewProjectModal kidId={kidId} onClose={() => setShowNewModal(false)} />
+        <NewProjectModal kidId={kidId} onClose={() => setShowNewModal(false)} nav={nav} />
       )}
 
-      {confirmId && (
-        <DeleteConfirmDialog
-          title={(projects.data ?? []).find((p) => p.id === confirmId)?.title ?? 'this project'}
-          deleting={del.isPending}
-          onConfirm={() => del.mutate(confirmId)}
-          onCancel={() => setConfirmId(null)}
+      {deleteId && (
+        <ConfirmDialog
+          title="Delete this project?"
+          body={`“${all.find((p) => p.id === deleteId)?.title ?? 'this project'}” will be removed for good. This can’t be undone.`}
+          confirmLabel="Delete"
+          busy={del.isPending}
+          onConfirm={() => del.mutate(deleteId)}
+          onCancel={() => setDeleteId(null)}
         />
       )}
+
+      {shareProject && (
+        <ShareToClassModal
+          projectId={shareProject.id}
+          onClose={() => setShareProject(null)}
+          onShared={() => qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] })}
+        />
+      )}
+
+      {placement.dialog}
     </div>
   );
 }
 
-// ─── Project card ─────────────────────────────────────────────────────────────
-
-function ProjectCard({
-  project: p,
-  localThumb,
-  resumeHref,
-  onAskDelete,
+function SegTab({
+  active,
+  onClick,
+  children,
 }: {
-  project: Project;
-  localThumb?: string;
-  resumeHref: string;
-  onAskDelete: () => void;
-}) {
-  const thumbSrc = p.thumbnail_s3_key ?? localThumb ?? null;
-  const badge = p.visibility !== 'private'
-    ? VISIBILITY_STICKER[p.visibility]
-    : STATUS_STICKER[p.status];
-  const thumbBg = THUMB_BG[p.product_line] ?? 'bg-wash-sky';
-  const thumbIcon = THUMB_ICON[p.product_line] ?? '🎨';
-
-  // Body is a Link (games resume in the playground, PRD J9); the action row holds
-  // the interactive Open / Delete controls — kept outside the <Link> so the
-  // delete buttons aren't nested in an anchor.
-  return (
-    <div className="card-base p-0 overflow-hidden" data-testid="project-card">
-      <Link
-        to={resumeHref}
-        className="block transition-transform hover:-translate-y-1"
-        data-testid="project-resume"
-      >
-        {/* Thumbnail — 4:3 ratio */}
-        <div className={`aspect-[4/3] ${thumbBg} flex items-center justify-center overflow-hidden`}>
-          {thumbSrc ? (
-            <img src={thumbSrc} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-[36px] opacity-25">{thumbIcon}</span>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="p-3 space-y-1">
-          {/* Fixed 2-line height so cards align regardless of name length. */}
-          <h3 className="text-[14px] font-bold text-ink leading-snug line-clamp-2 min-h-[2lh]">
-            {p.title}
-          </h3>
-          <p className="text-[12px] text-steel">
-            {p.artifact_count} {p.artifact_count === 1 ? 'item' : 'items'}
-          </p>
-          <div className="flex items-center justify-between gap-1 pt-0.5">
-            {badge && (
-              <span className={`sticker-${badge.color}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
-                {badge.label}
-              </span>
-            )}
-            <span className="text-[11px] text-steel ml-auto">{relativeDate(p.updated_at)}</span>
-          </div>
-        </div>
-      </Link>
-
-      {/* Resume / Delete actions (delete opens a confirm dialog). */}
-      <div className="flex items-center justify-between gap-2 border-t border-hairline px-3 py-2">
-        <Link to={resumeHref} className="text-[12px] font-bold text-brand-sky">
-          {p.kind === 'game' ? 'Resume game →' : p.kind === 'blocks' ? 'Resume blocks →' : 'Open →'}
-        </Link>
-        <button
-          type="button"
-          onClick={onAskDelete}
-          className="text-[12px] font-bold text-slate2 hover:text-brand-coral"
-          data-testid="project-delete"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Delete confirmation dialog ─────────────────────────────────────────────────
-
-function DeleteConfirmDialog({
-  title,
-  deleting,
-  onConfirm,
-  onCancel,
-}: {
-  title: string;
-  deleting: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-      onClick={onCancel}
+    <button
+      onClick={onClick}
+      className={`rounded-full px-4 py-1.5 text-[14px] font-bold transition-colors ${
+        active
+          ? 'bg-canvas-pure text-ink shadow-card-soft'
+          : 'bg-surface text-slate2 hover:bg-wash-coral hover:text-ink'
+      }`}
     >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="card-base w-full max-w-sm p-5 text-ink"
-      >
-        <h2 className="text-[17px] font-extrabold">Delete this project?</h2>
-        <p className="mt-2 text-[13.5px] text-steel">
-          “{title}” will be removed for good. This can’t be undone.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            autoFocus
-            disabled={deleting}
-            onClick={onCancel}
-            className="rounded-lg border border-hairline px-4 py-2 text-[13px] font-bold text-ink transition-colors hover:bg-ink/5 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={deleting}
-            onClick={onConfirm}
-            className="rounded-lg bg-brand-coral px-4 py-2 text-[13px] font-extrabold text-white disabled:opacity-70"
-            data-testid="project-delete-confirm"
-          >
-            {deleting ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
-      </div>
-    </div>
+      {children}
+    </button>
   );
 }
 
-// ─── New project modal ────────────────────────────────────────────────────────
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <p className="mb-3 text-[12px] font-bold uppercase tracking-[0.08em] text-steel">{label}</p>
+      <Grid>{children}</Grid>
+    </section>
+  );
+}
+
+function Grid({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{children}</div>
+  );
+}
+
+// ─── New project modal (personal project; unchanged from prior behaviour) ────
+
+type StarterTile = 'image' | 'story' | 'music' | 'blank';
 
 const STARTER_TILES: { key: StarterTile; emoji: string; label: string; color: string }[] = [
-  { key: 'image', emoji: '🖼',  label: 'Image',  color: 'bubblegum' },
-  { key: 'story', emoji: '📖', label: 'Story',  color: 'sky' },
-  { key: 'music', emoji: '🎵', label: 'Music',  color: 'mint' },
-  { key: 'blank', emoji: '✨', label: 'Blank',  color: 'sunshine' },
+  { key: 'image', emoji: '🖼', label: 'Image', color: 'bubblegum' },
+  { key: 'story', emoji: '📖', label: 'Story', color: 'sky' },
+  { key: 'music', emoji: '🎵', label: 'Music', color: 'mint' },
+  { key: 'blank', emoji: '✨', label: 'Blank', color: 'sunshine' },
 ];
 
-function NewProjectModal({ kidId, onClose }: { kidId: string; onClose: () => void }) {
-  const nav = useNavigate();
+function NewProjectModal({
+  kidId,
+  onClose,
+  nav,
+}: {
+  kidId: string;
+  onClose: () => void;
+  nav: ReturnType<typeof useNavigate>;
+}) {
   const qc = useQueryClient();
   const [title, setTitle] = useState('');
   const [starter, setStarter] = useState<StarterTile>('blank');
@@ -376,37 +264,37 @@ function NewProjectModal({ kidId, onClose }: { kidId: string; onClose: () => voi
       }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
-      const dest = starter !== 'blank'
-        ? `/learn/create/${starter}?project_id=${res.id}`
-        : `/learn/projects/${res.id}`;
+      const dest =
+        starter !== 'blank'
+          ? `/learn/create/${starter}?project_id=${res.id}`
+          : `/learn/projects/${res.id}`;
       nav(dest);
     },
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm p-4">
-      <div className="card-base max-w-sm w-full">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+      <div className="card-base w-full max-w-sm">
         <span className="sticker-bubblegum">New project</span>
+        <h2 className="mb-5 mt-4 text-[22px] font-bold text-ink">What are you making?</h2>
 
-        <h2 className="text-[22px] font-bold text-ink mt-4 mb-5">What are you making?</h2>
-
-        {/* Title input */}
-        <label className="block mb-5">
+        <label className="mb-5 block">
           <span className="label-k12">Give it a name</span>
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') create.mutate(); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') create.mutate();
+            }}
             placeholder="My awesome project"
             className="input-k12"
             maxLength={120}
           />
         </label>
 
-        {/* Starter tiles */}
         <div className="mb-6">
-          <span className="label-k12 block mb-3">Start with (optional)</span>
+          <span className="label-k12 mb-3 block">Start with (optional)</span>
           <div className="grid grid-cols-4 gap-2">
             {STARTER_TILES.map((t) => (
               <button
@@ -425,8 +313,12 @@ function NewProjectModal({ kidId, onClose }: { kidId: string; onClose: () => voi
           </div>
         </div>
 
+        <p className="mb-4 text-[12px] text-slate2">🔒 New projects here are Personal — only you can see them.</p>
+
         <div className="flex gap-3">
-          <button onClick={onClose} className="btn-pill-secondary flex-1">Cancel</button>
+          <button onClick={onClose} className="btn-pill-secondary flex-1">
+            Cancel
+          </button>
           <button
             onClick={() => create.mutate()}
             disabled={create.isPending}

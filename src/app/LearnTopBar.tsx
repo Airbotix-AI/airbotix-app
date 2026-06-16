@@ -21,7 +21,7 @@ export const NAV_ITEMS = [
   { to: '/learn/projects', label: 'Projects' },
   { to: '/learn/create', label: 'Create' },
   { to: '/learn/missions', label: 'Lessons' },
-  { to: '/learn/classroom', label: 'Class wall' },
+  { to: '/learn/classroom', label: 'My Classes' },
 ];
 
 export function LearnTopBar() {
