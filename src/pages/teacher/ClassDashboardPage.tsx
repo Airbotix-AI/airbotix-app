@@ -106,25 +106,28 @@ export function ClassDashboardPage() {
   });
 
   if (dash.isLoading) return <p className="lead-text">Loading class…</p>;
-  if (dash.isError || !dash.data)
-    return <p className="lead-text text-brand-coral">Could not load this class.</p>;
+  // The live-session endpoint may be unavailable; don't block the whole page —
+  // the Student-work tab reads its own endpoint and works independently. Only the
+  // Live tab needs `dash.data`.
+  const dashFailed = dash.isError || !dash.data;
 
   const ordered = sortTiles(tiles);
   const hands = raisedHands(tiles);
-  const frozen = dash.data.frozen;
+  const frozen = dash.data?.frozen ?? false;
 
   return (
     <div data-testid="class-dashboard">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-sky">Class session</div>
-          <h1 className="hero-display">{dash.data.className}</h1>
+          <h1 className="hero-display">{dash.data?.className ?? 'Class'}</h1>
         </div>
 
         {/* Pacing: timer · phase · freeze-all (§17.16 45-min pacing tools).
-            Live-only — these act on the running session. */}
+            Live-only — these act on the running session; only when live data loaded. */}
+        {dash.data && (
         <div className={clsx('flex flex-wrap items-center gap-2', tab !== 'live' && 'hidden')}>
-          {dash.data.timerSeconds != null && (
+          {dash.data?.timerSeconds != null && (
             <span data-testid="class-timer" className="sticker-sunshine">
               ⏱ {formatTimer(dash.data.timerSeconds)}
             </span>
@@ -156,6 +159,7 @@ export function ClassDashboardPage() {
             {frozen ? 'Unfreeze' : '🧊 Freeze all'}
           </button>
         </div>
+        )}
       </div>
 
       {/* Live ↔ Student-work views (teacher-class-work-prd.md §3). */}
@@ -192,6 +196,11 @@ export function ClassDashboardPage() {
       )}
 
       {tab === 'live' ? (
+        dashFailed ? (
+          <p data-testid="live-unavailable" className="lead-text text-brand-coral">
+            Live session data isn’t available right now.
+          </p>
+        ) : (
         <>
           {/* Raised hands, longest-waited first (§17.17). */}
           {hands.length > 0 && (
@@ -221,6 +230,7 @@ export function ClassDashboardPage() {
             ))}
           </div>
         </>
+        )
       ) : (
         <StudentWorkView classId={classId!} />
       )}
