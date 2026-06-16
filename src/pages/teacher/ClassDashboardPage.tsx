@@ -18,6 +18,9 @@ import {
 } from './classApi';
 import { applyFeedEvent, raisedHands, sortTiles, type ClassFeedEvent } from './classFeed';
 import { KidTileCard } from './KidTileCard';
+import { StudentWorkView } from './StudentWorkView';
+
+type DashboardTab = 'live' | 'student-work';
 
 const PHASES: LessonPhase[] = ['warm-up', 'build', 'share', 'pack-up'];
 
@@ -38,6 +41,9 @@ export function ClassDashboardPage() {
   const { classId } = useParams<{ classId: string }>();
   const qc = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
+  // Live (tiles + raised hands) vs the between-sessions Student-work review
+  // gallery (teacher-class-work-prd.md §3). Default = Live (unchanged behaviour).
+  const [tab, setTab] = useState<DashboardTab>('live');
 
   const dash = useQuery<ClassDashboard>({
     queryKey: ['teacher', 'dashboard', classId],
@@ -115,8 +121,9 @@ export function ClassDashboardPage() {
           <h1 className="hero-display">{dash.data.className}</h1>
         </div>
 
-        {/* Pacing: timer · phase · freeze-all (§17.16 45-min pacing tools). */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Pacing: timer · phase · freeze-all (§17.16 45-min pacing tools).
+            Live-only — these act on the running session. */}
+        <div className={clsx('flex flex-wrap items-center gap-2', tab !== 'live' && 'hidden')}>
           {dash.data.timerSeconds != null && (
             <span data-testid="class-timer" className="sticker-sunshine">
               ⏱ {formatTimer(dash.data.timerSeconds)}
@@ -151,39 +158,72 @@ export function ClassDashboardPage() {
         </div>
       </div>
 
-      {actionError && (
+      {/* Live ↔ Student-work views (teacher-class-work-prd.md §3). */}
+      <div className="mb-6 flex gap-1" data-testid="dashboard-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          data-testid="tab-live"
+          aria-selected={tab === 'live'}
+          className={clsx('btn-pill-ghost text-[13px]', tab === 'live' && 'bg-wash-sky font-bold')}
+          onClick={() => setTab('live')}
+        >
+          Live
+        </button>
+        <button
+          type="button"
+          role="tab"
+          data-testid="tab-student-work"
+          aria-selected={tab === 'student-work'}
+          className={clsx(
+            'btn-pill-ghost text-[13px]',
+            tab === 'student-work' && 'bg-wash-sky font-bold',
+          )}
+          onClick={() => setTab('student-work')}
+        >
+          Student work
+        </button>
+      </div>
+
+      {actionError && tab === 'live' && (
         <div className="mb-4 rounded-2xl bg-wash-coral px-4 py-3 text-[14px] font-medium text-ink">
           {actionError}
         </div>
       )}
 
-      {/* Raised hands, longest-waited first (§17.17). */}
-      {hands.length > 0 && (
-        <div data-testid="raised-hands" className="card-base mb-6 p-4">
-          <div className="mb-2 text-[13px] font-bold text-ink">
-            ✋ Raised hands ({hands.length}) — longest wait first
-          </div>
-          <ol className="flex flex-wrap gap-2">
-            {hands.map((t, i) => (
-              <li key={t.kidId} data-testid="hand-entry" className="sticker-coral">
-                {i + 1}. {t.nickname}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
+      {tab === 'live' ? (
+        <>
+          {/* Raised hands, longest-waited first (§17.17). */}
+          {hands.length > 0 && (
+            <div data-testid="raised-hands" className="card-base mb-6 p-4">
+              <div className="mb-2 text-[13px] font-bold text-ink">
+                ✋ Raised hands ({hands.length}) — longest wait first
+              </div>
+              <ol className="flex flex-wrap gap-2">
+                {hands.map((t, i) => (
+                  <li key={t.kidId} data-testid="hand-entry" className="sticker-coral">
+                    {i + 1}. {t.nickname}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {ordered.map((tile) => (
-          <KidTileCard
-            key={tile.kidId}
-            classId={classId!}
-            tile={tile}
-            onPushHint={(kidId) => hintMut.mutate(kidId)}
-            onToggleTakeOver={(t) => takeOverMut.mutate(t)}
-          />
-        ))}
-      </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {ordered.map((tile) => (
+              <KidTileCard
+                key={tile.kidId}
+                classId={classId!}
+                tile={tile}
+                onPushHint={(kidId) => hintMut.mutate(kidId)}
+                onToggleTakeOver={(t) => takeOverMut.mutate(t)}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <StudentWorkView classId={classId!} />
+      )}
     </div>
   );
 }

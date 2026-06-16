@@ -4,6 +4,23 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-16 (Teacher — "Student work" review view)
+
+### Added
+- **"Student work" view** in the teacher dashboard `ClassDashboardPage`
+  (`/teacher/classes/:classId`) — `teacher-class-work-prd.md` §3/§6. A
+  between-sessions REVIEW gallery: a `Live | Student work` tab; the Student-work
+  tab renders, per enrolled kid, that kid's **class-work + on-the-wall** projects
+  (thumbnail, title, kind, working/finished status, 🏫 on-wall badge) from the new
+  `GET /classes/:id/student-work` (`getStudentWork` in `classApi.ts`). Opening a
+  card reuses the EXISTING per-kid read-only route
+  (`/teacher/classes/:classId/kids/:kidId` → `LiveViewPage`) — no new viewer. The
+  live raised-hands queue is unchanged (the "who needs help" signal stays put,
+  D-TCW-2). Design-system classes only (no raw hex); nickname-only — never kid
+  PII; personal projects are never shown (server-enforced). New
+  `StudentWorkView.tsx` + `StudentWorkView.test.tsx` (renders per-kid cards,
+  asserts the GET call, opens a project via the existing route, empty state).
+
 ## 2026-06-16 (Learn — "My Classes" kid surface + project placement lifecycle)
 
 ### Added
