@@ -1,37 +1,72 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, X } from 'lucide-react';
 
+import { api, ApiError } from '@/lib/api';
 import { CREATE_TOOLS } from '../create/createTools';
 
 /**
  * In-place "Create for this class" sheet (my-classes-prd §3.3, D-MC-9). Opens
- * inside the class hub — NOT a jump to the Create tab. New work made here is
- * MEANT to default to 👩‍🏫 class work (teacher-visible). Picking a tool opens
- * its studio.
+ * inside the class hub — NOT a jump to the Create tab. Tapping a tool creates the
+ * project, attaches it to the class (visibility=class_work, via the placement
+ * endpoint) and opens it directly — so it lands in the studio AND shows under
+ * "My work", with no intermediate naming page.
  *
  * TODO(D-MC-11): show only course-allowed kinds ∩ kid topic_limits once the
  * backend `CoursePack.allowed_kinds` exists. For now it shows the kid's full
  * permitted tool set, framed for class context.
- *
- * TODO(my-classes class_id pass-through): the tool links currently route to the
- * bare studio route (e.g. `/learn/create/image`) with NO class context, so work
- * created here is NOT yet auto-attached to the class — the "default to class
- * work" promise is unwired until the studios accept a class_id (and the backend
- * `PATCH /projects/:id/placement` / project-create-with-class contract lands).
- * Deferred deliberately on this FE-only diff; the copy below is intentionally
- * framed as intent ("can see it to help"), not a guarantee.
  */
+const lineOf = (typeTag: string): string =>
+  typeTag === 'Creative' ? 'line_a_creative' : 'line_b_coding';
+
+// A friendly starting name per tool — the kid can rename it in the studio.
+const DEFAULT_TITLE: Record<string, string> = {
+  '/learn/create/image': 'My Picture',
+  '/learn/create/music': 'My Song',
+  '/learn/create/voice': 'My Voice',
+  '/learn/create/video': 'My Video',
+  '/learn/create/code': 'My Project',
+  '/learn/create/blocks': 'My Blocks',
+};
+
 export function CreateForClassSheet({
+  classId,
   className,
   onClose,
 }: {
+  classId: string;
   className: string;
   onClose: () => void;
 }) {
+  const nav = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function make(tool: (typeof CREATE_TOOLS)[number]) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const project = await api<{ id: string }>('/projects', {
+        method: 'POST',
+        body: { title: DEFAULT_TITLE[tool.to] ?? 'My Project', product_line: lineOf(tool.typeTag) },
+      });
+      // Attach to the class -> class work (teacher-visible), shows under "My work".
+      await api(`/projects/${project.id}/placement`, {
+        method: 'PATCH',
+        body: { action: 'use_for_class', class_id: classId },
+      });
+      nav(`/learn/projects/${project.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not start that. Try again.');
+      setBusy(false);
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center"
-      onClick={onClose}
+      onClick={busy ? undefined : onClose}
     >
       <div
         role="dialog"
@@ -61,13 +96,20 @@ export function CreateForClassSheet({
           </p>
         </div>
 
+        {error && (
+          <div className="mb-3 rounded-2xl bg-wash-coral px-4 py-2.5 text-[13px] font-medium text-ink">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2.5">
           {CREATE_TOOLS.map((t) => (
-            <Link
+            <button
               key={t.to}
-              to={t.to}
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-2xl border border-hairline bg-canvas-pure p-3.5 transition-transform hover:-translate-y-0.5 hover:shadow-card-soft"
+              type="button"
+              disabled={busy}
+              onClick={() => make(t)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-canvas-pure p-3.5 text-left transition-transform hover:-translate-y-0.5 hover:shadow-card-soft disabled:opacity-60"
               data-testid="create-tool"
             >
               <span className={`grid h-12 w-12 place-items-center rounded-xl bg-grad-${t.color} text-[24px]`}>
@@ -80,7 +122,7 @@ export function CreateForClassSheet({
               <span className="rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold text-slate2">
                 {t.cost === 0 ? 'Free' : `${t.cost}★`}
               </span>
-            </Link>
+            </button>
           ))}
         </div>
 

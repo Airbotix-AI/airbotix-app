@@ -113,6 +113,7 @@ export function ClassHubPage() {
 
       {sheetOpen && (
         <CreateForClassSheet
+          classId={classId!}
           className={enriched?.name ?? basic.data?.name ?? 'this class'}
           onClose={() => setSheetOpen(false)}
         />

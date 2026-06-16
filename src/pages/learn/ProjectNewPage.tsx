@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
@@ -28,6 +28,13 @@ export function ProjectNewPage() {
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
   const [error, setError] = useState<string | null>(null);
 
+  // Class context (from the class hub's "Create for this class" sheet): the new
+  // project is attached to this class after creation (visibility=class_work) so
+  // it shows under the class's "My work". Absent = a personal project.
+  const [sp] = useSearchParams();
+  const classId = sp.get('class');
+  const presetLine = sp.get('line') === 'line_b_coding' ? 'line_b_coding' : 'line_a_creative';
+
   const {
     register,
     handleSubmit,
@@ -37,7 +44,7 @@ export function ProjectNewPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       title: state.title ?? '',
-      product_line: 'line_a_creative',
+      product_line: classId ? presetLine : 'line_a_creative',
     },
   });
   const productLine = watch('product_line');
@@ -56,6 +63,14 @@ export function ProjectNewPage() {
           ...(familyId ? { family_id: familyId } : {}),
         },
       });
+      // Attach to the class so it becomes class work (teacher-visible) and shows
+      // under the class hub's "My work" (my-classes-prd §3.3, reuses placement).
+      if (classId) {
+        await api(`/projects/${project.id}/placement`, {
+          method: 'PATCH',
+          body: { action: 'use_for_class', class_id: classId },
+        });
+      }
       nav(`/learn/projects/${project.id}`, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not create.');
@@ -65,6 +80,15 @@ export function ProjectNewPage() {
   return (
     <div>
       <Link to="/learn/projects" className="btn-pill-ghost mb-4 -ml-3">← Projects</Link>
+
+      {classId && (
+        <div
+          data-testid="making-for-class"
+          className="mb-4 rounded-2xl bg-wash-sunshine px-4 py-3 text-[13px] font-semibold text-ink"
+        >
+          👩‍🏫 Making this for your class — your teacher will be able to see it.
+        </div>
+      )}
 
       <div className="mb-8">
         <div className={`eyebrow ${color === 'sky' ? 'eyebrow-sky' : ''}`}>
