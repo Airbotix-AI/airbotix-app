@@ -102,11 +102,7 @@ function StudentWorkCard({
     >
       <div className="aspect-video w-full overflow-hidden rounded-2xl bg-ink/90">
         {project.thumbnailS3Key ? (
-          <img
-            src={`/artifacts/${project.thumbnailS3Key}`}
-            alt=""
-            className="h-full w-full object-contain"
-          />
+          <img src={project.thumbnailS3Key} alt="" className="h-full w-full object-contain" />
         ) : (
           <div className="flex h-full items-center justify-center text-[12px] font-semibold text-white/50">
             no preview yet

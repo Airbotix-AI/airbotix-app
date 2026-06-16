@@ -21,6 +21,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `StudentWorkView.tsx` + `StudentWorkView.test.tsx` (renders per-kid cards,
   asserts the GET call, opens a project via the existing route, empty state).
 
+### Fixed
+- **Student-work thumbnail** rendered the project's `thumbnail_s3_key` through a
+  non-existent `/artifacts/:key` route (no such served path — the backend exposes
+  artifacts only via signed download URLs), so previews always 404'd to the "no
+  preview yet" fallback. Now renders the bare key as `<img src>`, matching the
+  sibling kid `WorkCard`.
+
 ## 2026-06-16 (Learn — "My Classes" kid surface + project placement lifecycle)
 
 ### Added
