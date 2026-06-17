@@ -21,7 +21,7 @@ interface Project {
   title: string;
   kind?: 'creative' | 'code';
   product_line: 'line_a_creative' | 'line_b_coding';
-  visibility: 'private' | 'class' | 'public';
+  visibility: 'private' | 'class_work' | 'class' | 'public';
   thumbnail_s3_key: string | null;
   star_cost_total: number;
   status: 'in_progress' | 'submitted' | 'accepted' | 'archived';
@@ -867,7 +867,7 @@ function ShareApprovalPanel({
   currentVisibility,
 }: {
   projectId: string;
-  currentVisibility: 'private' | 'class' | 'public';
+  currentVisibility: 'private' | 'class_work' | 'class' | 'public';
 }) {
   const [target, setTarget] = useState<'class' | 'public'>('class');
   const [submitted, setSubmitted] = useState(false);
@@ -882,6 +882,17 @@ function ShareApprovalPanel({
       setError(e instanceof ApiError ? e.message : 'Could not send request.');
     },
   });
+
+  if (currentVisibility === 'class_work') {
+    return (
+      <div className="card-base mb-6 flex items-center gap-4">
+        <span className="sticker-sunshine">Class work</span>
+        <p className="text-[13px] text-ink-soft">
+          Only your <span className="font-semibold text-ink">teacher</span> can see this — to help you. Classmates can’t, until you share it with the class.
+        </p>
+      </div>
+    );
+  }
 
   if (currentVisibility !== 'private') {
     return (

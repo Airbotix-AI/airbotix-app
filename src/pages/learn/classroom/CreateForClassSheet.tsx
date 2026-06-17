@@ -19,14 +19,17 @@ import { CREATE_TOOLS } from '../create/createTools';
 const lineOf = (typeTag: string): string =>
   typeTag === 'Creative' ? 'line_a_creative' : 'line_b_coding';
 
-// A friendly starting name per tool — the kid can rename it in the studio.
-const DEFAULT_TITLE: Record<string, string> = {
-  '/learn/create/image': 'My Picture',
-  '/learn/create/music': 'My Song',
-  '/learn/create/voice': 'My Voice',
-  '/learn/create/video': 'My Video',
-  '/learn/create/code': 'My Project',
-  '/learn/create/blocks': 'My Blocks',
+// Per-tool create config: kind + starter template + the EDITOR route to open
+// directly. Blocks/Code open their builder; creative tools open the project page
+// (where you add images/stories/voice/video).
+type ToolCfg = { title: string; line: string; kind?: string; template?: string; open: (id: string) => string };
+const TOOL_CONFIG: Record<string, ToolCfg> = {
+  '/learn/create/blocks': { title: 'My Blocks', line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank', open: (id) => `/learn/blocks/${id}` },
+  '/learn/create/code': { title: 'My Project', line: 'line_b_coding', kind: 'code', template: 'blank', open: (id) => `/learn/code/${id}` },
+  '/learn/create/image': { title: 'My Picture', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
+  '/learn/create/music': { title: 'My Song', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
+  '/learn/create/voice': { title: 'My Voice', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
+  '/learn/create/video': { title: 'My Video', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
 };
 
 export function CreateForClassSheet({
@@ -46,17 +49,27 @@ export function CreateForClassSheet({
     if (busy) return;
     setBusy(true);
     setError(null);
+    const cfg: ToolCfg = TOOL_CONFIG[tool.to] ?? {
+      title: 'My Project',
+      line: lineOf(tool.typeTag),
+      open: (id) => `/learn/projects/${id}`,
+    };
     try {
       const project = await api<{ id: string }>('/projects', {
         method: 'POST',
-        body: { title: DEFAULT_TITLE[tool.to] ?? 'My Project', product_line: lineOf(tool.typeTag) },
+        body: {
+          title: cfg.title,
+          product_line: cfg.line,
+          ...(cfg.kind ? { kind: cfg.kind } : {}),
+          ...(cfg.template ? { template: cfg.template } : {}),
+        },
       });
       // Attach to the class -> class work (teacher-visible), shows under "My work".
       await api(`/projects/${project.id}/placement`, {
         method: 'PATCH',
         body: { action: 'use_for_class', class_id: classId },
       });
-      nav(`/learn/projects/${project.id}`);
+      nav(cfg.open(project.id)); // Blocks/Code -> their builder; creative -> project page.
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start that. Try again.');
       setBusy(false);
