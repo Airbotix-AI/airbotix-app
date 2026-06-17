@@ -1,64 +1,99 @@
-// MIDI-style multi-instrument player rendered with Tone.js synths.
-// Backend `/llm/music-score` returns a JSON score; this component renders
-// each instrument as a channel strip + piano-roll lane, with synced
-// Tone.Transport playback (true multitrack — not sequential).
-//
-// V0 uses only Tone.js built-in synths so we have zero asset deps. V1 could
-// load real soundfont samples via smplr for higher fidelity.
-
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
+
+import { ChannelStrip } from './ChannelStrip';
+import { VersionBar } from './VersionBar';
 
 export interface ScoreNote {
   time: number;
   note: string;
   duration: string;
+  lyric?: string;
 }
 export interface ScoreTrack {
-  instrument: 'piano' | 'guitar' | 'bass' | 'drums' | 'strings' | 'synth' | 'flute';
+  instrument:
+    | 'lead_vocals' | 'backing_vocals' | 'drums' | 'bass' | 'guitar' | 'keyboard'
+    | 'percussion' | 'synth' | 'strings' | 'piano' | 'brass' | 'pad' | 'flute' | 'other';
+  role?: 'lead' | 'rhythm' | 'harmony' | 'percussion' | 'fx';
   notes: ScoreNote[];
 }
 export interface MusicScore {
   title: string;
   tempo: number;
   key: string;
+  genre?: string;
   tracks: ScoreTrack[];
 }
 
-const INSTRUMENT_META: Record<
-  ScoreTrack['instrument'],
-  { emoji: string; color: { hex: string; soft: string }; label: string }
-> = {
-  piano:   { emoji: '🎹', color: { hex: '#ef5b3d', soft: '#ffb3a7' }, label: 'Piano'   },
-  guitar:  { emoji: '🎸', color: { hex: '#ff5fa8', soft: '#ffb8d4' }, label: 'Guitar'  },
-  bass:    { emoji: '🎛',  color: { hex: '#4c8df8', soft: '#aac8fa' }, label: 'Bass'    },
-  drums:   { emoji: '🥁', color: { hex: '#2dc28d', soft: '#9ee5cb' }, label: 'Drums'   },
-  strings: { emoji: '🎻', color: { hex: '#f5b524', soft: '#ffe0a0' }, label: 'Strings' },
-  synth:   { emoji: '🎚',  color: { hex: '#9d6bff', soft: '#d6c2ff' }, label: 'Synth'   },
-  flute:   { emoji: '🪈', color: { hex: '#67d4ff', soft: '#bdeaff' }, label: 'Flute'   },
+export interface InstrumentMeta {
+  emoji: string;
+  color: { hex: string; soft: string };
+  label: string;
+}
+
+export const INSTRUMENT_META: Record<ScoreTrack['instrument'], InstrumentMeta> = {
+  lead_vocals:    { emoji: '🎤', color: { hex: '#ef5b3d', soft: '#ffb3a7' }, label: 'Lead Vocals'    },
+  backing_vocals: { emoji: '🎵', color: { hex: '#ff5fa8', soft: '#ffb8d4' }, label: 'Backing Vocals' },
+  drums:          { emoji: '🥁', color: { hex: '#2dc28d', soft: '#9ee5cb' }, label: 'Drums'          },
+  bass:           { emoji: '🎸', color: { hex: '#4c8df8', soft: '#aac8fa' }, label: 'Bass'           },
+  guitar:         { emoji: '🎸', color: { hex: '#f5b524', soft: '#ffe0a0' }, label: 'Guitar'         },
+  keyboard:       { emoji: '🎹', color: { hex: '#ef5b3d', soft: '#ffb3a7' }, label: 'Keyboard'       },
+  percussion:     { emoji: '🪘', color: { hex: '#2dc28d', soft: '#9ee5cb' }, label: 'Percussion'     },
+  synth:          { emoji: '🎚', color: { hex: '#9d6bff', soft: '#d6c2ff' }, label: 'Synth'          },
+  strings:        { emoji: '🎻', color: { hex: '#f5b524', soft: '#ffe0a0' }, label: 'Strings'        },
+  piano:          { emoji: '🎹', color: { hex: '#ef5b3d', soft: '#ffb3a7' }, label: 'Piano'          },
+  brass:          { emoji: '🎺', color: { hex: '#ff5fa8', soft: '#ffb8d4' }, label: 'Brass'          },
+  pad:            { emoji: '🌊', color: { hex: '#67d4ff', soft: '#bdeaff' }, label: 'Pad'            },
+  flute:          { emoji: '🪈', color: { hex: '#67d4ff', soft: '#bdeaff' }, label: 'Flute'          },
+  other:          { emoji: '🎶', color: { hex: '#9d6bff', soft: '#d6c2ff' }, label: 'Other'          },
 };
 
 export function MusicScorePlayer({
   score,
+  scoreVersions = [],
+  activeVersionIdx = 0,
+  onSelectVersion,
   onAddTrack,
   onImportTrack,
+  onReroll,
+  onDownloadTrack,
+  onSaveTrack,
+  onDownloadMix,
+  onSaveMix,
+  savingState,
 }: {
   score: MusicScore;
+  scoreVersions?: MusicScore[];
+  activeVersionIdx?: number;
+  onSelectVersion?: (i: number) => void;
   onAddTrack?: () => void;
   onImportTrack?: () => void;
+  onReroll?: (idx: number) => void;
+  onDownloadTrack?: (idx: number) => void;
+  onSaveTrack?: (idx: number) => void;
+  onDownloadMix?: () => void;
+  onSaveMix?: () => void;
+  savingState?: Record<string, boolean>;
 }) {
-  // Synth voices kept generic — they all expose triggerAttackRelease + connect + dispose.
-  const synthsRef = useRef<Record<number, Tone.PolySynth | Tone.MembraneSynth | Tone.MonoSynth | Tone.PluckSynth>>({});
+  type SynthVoice =
+    | Tone.PolySynth
+    | Tone.MembraneSynth
+    | Tone.MonoSynth
+    | Tone.PluckSynth
+    | Tone.MetalSynth;
+
+  const synthsRef = useRef<Record<number, SynthVoice>>({});
   const channelsRef = useRef<Record<number, Tone.Channel>>({});
   const partsRef = useRef<Tone.Part[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0); // seconds
+  const [position, setPosition] = useState(0);
   const [muted, setMuted] = useState<Record<number, boolean>>({});
   const [soloIdx, setSoloIdx] = useState<number | null>(null);
   const [volumes, setVolumes] = useState<Record<number, number>>({});
+  const [isSavingMix, setIsSavingMix] = useState(false);
+  const [savedMix, setSavedMix] = useState(false);
 
   const totalDuration = useMemo(() => {
-    // Length in seconds: max note end time across all tracks, converted from beats
     let maxBeat = 0;
     for (const t of score.tracks) {
       for (const n of t.notes) {
@@ -69,16 +104,13 @@ export function MusicScorePlayer({
     return (maxBeat * 60) / score.tempo;
   }, [score]);
 
-  // Build synths + schedule parts on mount / score change
   useEffect(() => {
     Tone.getTransport().bpm.value = score.tempo;
 
-    // Tear down old
     for (const part of partsRef.current) part.dispose();
     partsRef.current = [];
     for (const k of Object.keys(synthsRef.current)) {
-      const s = synthsRef.current[Number(k)] as { dispose: () => void };
-      s.dispose();
+      (synthsRef.current[Number(k)] as { dispose: () => void }).dispose();
     }
     for (const k of Object.keys(channelsRef.current)) channelsRef.current[Number(k)].dispose();
     synthsRef.current = {};
@@ -91,7 +123,8 @@ export function MusicScorePlayer({
       synth.connect(channel);
       synthsRef.current[idx] = synth;
 
-      if (t.instrument === 'drums') {
+      const isDrum = t.instrument === 'drums' || t.instrument === 'percussion';
+      if (isDrum) {
         const part = new Tone.Part(
           (time, value) => {
             const v = value as { drum: string; duration: string };
@@ -118,8 +151,7 @@ export function MusicScorePlayer({
       for (const part of partsRef.current) part.dispose();
       partsRef.current = [];
       for (const k of Object.keys(synthsRef.current)) {
-        const s = synthsRef.current[Number(k)] as { dispose: () => void };
-        s.dispose();
+        (synthsRef.current[Number(k)] as { dispose: () => void }).dispose();
       }
       for (const k of Object.keys(channelsRef.current)) channelsRef.current[Number(k)].dispose();
       synthsRef.current = {};
@@ -129,27 +161,22 @@ export function MusicScorePlayer({
     };
   }, [score]);
 
-  // Push mute / solo state into channels
   useEffect(() => {
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
-      const isMuted = !!muted[idx] || (soloIdx !== null && soloIdx !== idx);
-      ch.mute = isMuted;
+      ch.mute = !!muted[idx] || (soloIdx !== null && soloIdx !== idx);
     });
   }, [muted, soloIdx, score.tracks]);
 
-  // Push volume
   useEffect(() => {
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
-      const v = volumes[idx] ?? 0.85;
-      ch.volume.value = Tone.gainToDb(v);
+      ch.volume.value = Tone.gainToDb(volumes[idx] ?? 0.85);
     });
   }, [volumes, score.tracks]);
 
-  // Position ticker
   useEffect(() => {
     if (!isPlaying) return;
     const id = window.setInterval(() => {
@@ -166,7 +193,7 @@ export function MusicScorePlayer({
   }, [isPlaying, totalDuration]);
 
   const play = async () => {
-    await Tone.start(); // user-gesture handshake required by browsers
+    await Tone.start();
     Tone.getTransport().start();
     setIsPlaying(true);
   };
@@ -177,52 +204,97 @@ export function MusicScorePlayer({
     setIsPlaying(false);
   };
 
+  const handleDownloadMix = async () => {
+    if (onDownloadMix) { onDownloadMix(); return; }
+    await renderAndDownload(score, muted, null);
+  };
+
+  const handleSaveMix = async () => {
+    if (onSaveMix) {
+      setIsSavingMix(true);
+      try {
+        await onSaveMix();
+        setSavedMix(true);
+        setTimeout(() => setSavedMix(false), 3000);
+      } finally {
+        setIsSavingMix(false);
+      }
+    }
+  };
+
+  const handleDownloadTrack = async (idx: number) => {
+    if (onDownloadTrack) { onDownloadTrack(idx); return; }
+    await renderAndDownload(score, muted, idx);
+  };
+
   const seekFrac = totalDuration > 0 ? Math.min(1, position / totalDuration) : 0;
 
   return (
-    <aside className="hidden lg:flex w-[560px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800">
-      {/* ─── Transport bar ─── */}
+    <aside className="hidden lg:flex w-[580px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800">
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/60 backdrop-blur">
         <div className="flex items-center justify-between mb-2">
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-[10px] uppercase tracking-[0.14em] text-slate-400 font-bold">
               🎛 Music Studio · MIDI
             </div>
-            <div className="text-[14px] font-bold text-slate-100 mt-0.5 truncate">
-              {score.title}
-            </div>
+            <div className="text-[14px] font-bold text-slate-100 mt-0.5 truncate">{score.title}</div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {score.tempo} BPM · {score.key} · {score.tracks.length} instruments
+              {score.tempo} BPM · {score.key}{score.genre ? ` · ${score.genre}` : ''} · {score.tracks.length} tracks
             </div>
+            {scoreVersions.length >= 2 && onSelectVersion && (
+              <div className="mt-1.5">
+                <VersionBar
+                  scoreVersions={scoreVersions}
+                  activeVersionIdx={activeVersionIdx}
+                  onSelectVersion={onSelectVersion}
+                />
+              </div>
+            )}
           </div>
-          <div className="font-mono text-[18px] tabular-nums text-slate-100">
+          <div className="font-mono text-[18px] tabular-nums text-slate-100 shrink-0 ml-3">
             {fmtTime(position)} <span className="text-slate-500">/ {fmtTime(totalDuration)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {isPlaying ? (
             <TransportBtn primary onClick={stop} label="Stop">⏹</TransportBtn>
           ) : (
             <TransportBtn primary onClick={play} label="Play">▶</TransportBtn>
           )}
           <TransportBtn onClick={stop} label="Rewind">⏮</TransportBtn>
-          <div className="ml-3 flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div className="ml-1 flex-1 min-w-[60px] h-2 rounded-full bg-slate-800 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-brand-coral to-brand-bubblegum transition-[width] ease-linear"
               style={{ width: `${seekFrac * 100}%` }}
             />
           </div>
+          <button
+            onClick={handleDownloadMix}
+            className="rounded-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 text-[10px] font-semibold shrink-0"
+            title="Download mix as WAV"
+          >
+            ↓ WAV
+          </button>
+          {onSaveMix && (
+            <button
+              onClick={handleSaveMix}
+              disabled={isSavingMix}
+              className="rounded-full bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-slate-200 px-2.5 py-1.5 text-[10px] font-semibold shrink-0"
+              title="Save to My Works"
+            >
+              {savedMix ? '✅ Saved' : isSavingMix ? '…' : '💾 Save'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* ─── Per-instrument channel strips ─── */}
       <div className="flex-1 overflow-y-auto">
         {score.tracks.map((t, idx) => (
           <ChannelStrip
             key={idx}
             index={idx}
             track={t}
-            meta={INSTRUMENT_META[t.instrument]}
+            meta={INSTRUMENT_META[t.instrument] ?? INSTRUMENT_META['other']}
             position={position}
             totalDuration={totalDuration}
             isMuted={!!muted[idx]}
@@ -232,6 +304,10 @@ export function MusicScorePlayer({
             onToggleMute={() => setMuted((m) => ({ ...m, [idx]: !m[idx] }))}
             onToggleSolo={() => setSoloIdx((s) => (s === idx ? null : idx))}
             onVolume={(v) => setVolumes((m) => ({ ...m, [idx]: v }))}
+            onReroll={onReroll}
+            onDownloadTrack={handleDownloadTrack}
+            onSaveTrack={onSaveTrack}
+            savingState={savingState}
           />
         ))}
 
@@ -253,181 +329,10 @@ export function MusicScorePlayer({
   );
 }
 
-function ChannelStrip({
-  index,
-  track,
-  meta,
-  position,
-  totalDuration,
-  isMuted,
-  isSolo,
-  volume,
-  tempo,
-  onToggleMute,
-  onToggleSolo,
-  onVolume,
-}: {
-  index: number;
-  track: ScoreTrack;
-  meta: (typeof INSTRUMENT_META)[ScoreTrack['instrument']];
-  position: number;
-  totalDuration: number;
-  isMuted: boolean;
-  isSolo: boolean;
-  volume: number;
-  tempo: number;
-  onToggleMute: () => void;
-  onToggleSolo: () => void;
-  onVolume: (v: number) => void;
-}) {
-  const effectivelyMuted = isMuted;
-  return (
-    <div className="flex border-b border-slate-800 hover:bg-slate-900/40 transition-colors">
-      {/* Channel strip */}
-      <div className="w-44 shrink-0 p-3 border-r border-slate-800 bg-slate-900/30">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[18px]">{meta.emoji}</span>
-          <span
-            className="inline-block w-2 h-2 rounded-full"
-            style={{ backgroundColor: meta.color.hex }}
-          />
-          <div className="text-[10px] font-bold tracking-[0.10em] text-slate-400">
-            TRACK {index + 1}
-          </div>
-        </div>
-        <div className="text-[13px] font-bold text-slate-100 mb-2">{meta.label}</div>
-        <div className="text-[10px] text-slate-500 mb-2">{track.notes.length} notes</div>
-
-        <div className="flex items-center gap-1 mb-2">
-          <button
-            onClick={onToggleMute}
-            className={
-              isMuted
-                ? 'rounded-md bg-brand-coral text-white w-7 h-7 text-[10px] font-bold inline-flex items-center justify-center'
-                : 'rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 w-7 h-7 text-[10px] font-bold inline-flex items-center justify-center'
-            }
-            title="Mute"
-          >
-            M
-          </button>
-          <button
-            onClick={onToggleSolo}
-            className={
-              isSolo
-                ? 'rounded-md bg-brand-sunshine text-ink w-7 h-7 text-[10px] font-bold inline-flex items-center justify-center'
-                : 'rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 w-7 h-7 text-[10px] font-bold inline-flex items-center justify-center'
-            }
-            title="Solo"
-          >
-            S
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 font-bold">VOL</span>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={volume}
-            onChange={(e) => onVolume(Number(e.target.value))}
-            className="flex-1 accent-brand-coral"
-          />
-        </div>
-      </div>
-
-      {/* Piano-roll lane */}
-      <div className="flex-1 min-w-0 p-3 relative">
-        <PianoRoll
-          notes={track.notes}
-          totalDuration={totalDuration}
-          tempo={tempo}
-          color={meta.color}
-          muted={effectivelyMuted}
-        />
-        <div
-          className="absolute top-3 bottom-3 w-px bg-slate-100/80"
-          style={{
-            left: `calc(0.75rem + (100% - 1.5rem) * ${totalDuration > 0 ? Math.min(1, position / totalDuration) : 0})`,
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function PianoRoll({
-  notes,
-  totalDuration,
-  tempo,
-  color,
-  muted,
-}: {
-  notes: ScoreNote[];
-  totalDuration: number;
-  tempo: number;
-  color: { hex: string; soft: string };
-  muted: boolean;
-}) {
-  if (notes.length === 0 || totalDuration === 0) {
-    return <div className="h-16 rounded-md bg-slate-800/40" />;
-  }
-  // Pitch range for normalisation (drums use fixed lanes)
-  const isDrums = notes[0].note === 'kick' || notes[0].note === 'snare' || notes[0].note === 'hat';
-  const pitches = isDrums ? null : notes.map((n) => noteToMidi(n.note));
-  const lo = pitches ? Math.min(...pitches) : 0;
-  const hi = pitches ? Math.max(...pitches) : 0;
-  const range = Math.max(1, hi - lo);
-
-  return (
-    <div className="relative h-16 rounded-md bg-slate-800/30 overflow-hidden">
-      {notes.map((n, i) => {
-        const startSec = n.time * (60 / tempo);
-        const widthSec = parseDurationBeats(n.duration) * (60 / tempo);
-        const leftPct = (startSec / totalDuration) * 100;
-        const widthPct = Math.max(0.6, (widthSec / totalDuration) * 100);
-        let topPct: number;
-        let heightPct: number;
-        if (isDrums) {
-          const lane = n.note === 'kick' ? 0 : n.note === 'snare' ? 1 : 2;
-          topPct = 10 + lane * 30;
-          heightPct = 18;
-        } else {
-          const midi = noteToMidi(n.note);
-          topPct = 5 + (1 - (midi - lo) / range) * 80;
-          heightPct = 10;
-        }
-        return (
-          <div
-            key={i}
-            className="absolute rounded-sm"
-            style={{
-              left: `${leftPct}%`,
-              width: `${widthPct}%`,
-              top: `${topPct}%`,
-              height: `${heightPct}%`,
-              backgroundColor: muted ? '#475569' : color.soft,
-              border: `1px solid ${muted ? '#64748b' : color.hex}`,
-              opacity: muted ? 0.4 : 1,
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 function ActionCard({
-  icon,
-  title,
-  hint,
-  onClick,
+  icon, title, hint, onClick,
 }: {
-  icon: string;
-  title: string;
-  hint: string;
-  onClick: () => void;
+  icon: string; title: string; hint: string; onClick: () => void;
 }) {
   return (
     <button
@@ -442,17 +347,9 @@ function ActionCard({
 }
 
 function TransportBtn({
-  children,
-  label,
-  onClick,
-  primary,
-  disabled,
+  children, label, onClick, primary, disabled,
 }: {
-  children: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  primary?: boolean;
-  disabled?: boolean;
+  children: React.ReactNode; label: string; onClick: () => void; primary?: boolean; disabled?: boolean;
 }) {
   return (
     <button
@@ -470,9 +367,9 @@ function TransportBtn({
   );
 }
 
-// ── helpers ─────────────────────────────────────────────────────────────────
+// ── Synth factory ───────────────────────────────────────────────────────────
 
-function makeSynthFor(instrument: ScoreTrack['instrument']) {
+export function makeSynthFor(instrument: ScoreTrack['instrument']) {
   switch (instrument) {
     case 'piano':
       return new Tone.PolySynth(Tone.Synth, {
@@ -500,52 +397,176 @@ function makeSynthFor(instrument: ScoreTrack['instrument']) {
         envelope: { attack: 0.15, decay: 0.1, sustain: 0.6, release: 0.8 },
       });
     case 'drums':
-      // We use a MembraneSynth as a generic drum voice; triggerDrum handles
-      // kick/snare/hat via pitch + envelope tweaks below.
       return new Tone.MembraneSynth({
         pitchDecay: 0.05,
         octaves: 6,
         envelope: { attack: 0.001, decay: 0.4, sustain: 0.0, release: 0.4 },
       });
+    case 'lead_vocals':
+      return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 1,
+        detune: 0,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.05, decay: 0.1, sustain: 0.6, release: 0.5 },
+      });
+    case 'backing_vocals':
+      return new Tone.PolySynth(Tone.AMSynth, {
+        harmonicity: 2,
+        detune: 0,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.05, decay: 0.1, sustain: 0.6, release: 0.5 },
+      });
+    case 'keyboard':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.02, decay: 0.1, sustain: 0.5, release: 0.8 },
+      });
+    case 'percussion':
+      return new Tone.MetalSynth({
+        envelope: { attack: 0.001, decay: 0.1, release: 0.1 },
+        harmonicity: 5.1,
+        modulationIndex: 32,
+        resonance: 4000,
+        octaves: 1.5,
+      });
+    case 'brass':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'square' },
+        envelope: { attack: 0.05, decay: 0.1, sustain: 0.6, release: 0.4 },
+      });
+    case 'pad':
+      return new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.8, decay: 0.3, sustain: 0.9, release: 2.0 },
+      });
+    case 'other':
+    default:
+      return new Tone.PolySynth(Tone.Synth);
   }
 }
 
 function triggerDrum(synth: unknown, drum: string, time: number) {
-  // synth is a MembraneSynth here; for snare/hat we'd ideally have separate
-  // NoiseSynths, but to keep dep count low we map all to a percussive envelope.
   if (drum === 'kick') {
-    // @ts-expect-error triggerAttackRelease on MembraneSynth
+    // @ts-expect-error triggerAttackRelease on MembraneSynth/MetalSynth
     synth.triggerAttackRelease('C1', '8n', time);
-  } else if (drum === 'snare') {
-    // @ts-expect-error triggerAttackRelease on NoiseSynth/MembraneSynth
+  } else if (drum === 'snare' || drum === 'clap') {
+    // @ts-expect-error triggerAttackRelease on MembraneSynth/MetalSynth
     synth.triggerAttackRelease('A1', '16n', time);
+  } else if (drum === 'tom') {
+    // @ts-expect-error triggerAttackRelease on MembraneSynth
+    synth.triggerAttackRelease('E1', '8n', time);
   } else {
-    // hat
-    // @ts-expect-error triggerAttackRelease on MetalSynth
+    // hat, ride
+    // @ts-expect-error triggerAttackRelease on MembraneSynth/MetalSynth
     synth.triggerAttackRelease('A4', '32n', time, 0.3);
   }
 }
 
+// ── WAV export ──────────────────────────────────────────────────────────────
+
+async function renderAndDownload(
+  score: MusicScore,
+  muted: Record<number, boolean>,
+  singleTrackIdx: number | null,
+) {
+  const duration = (() => {
+    let maxBeat = 0;
+    for (const t of score.tracks) {
+      for (const n of t.notes) {
+        const end = n.time + parseDurationBeats(n.duration);
+        if (end > maxBeat) maxBeat = end;
+      }
+    }
+    return (maxBeat * 60) / score.tempo;
+  })();
+
+  if (duration <= 0) return;
+
+  const audioBuffer = await Tone.Offline(({ transport }) => {
+    transport.bpm.value = score.tempo;
+    score.tracks.forEach((t, idx) => {
+      if (singleTrackIdx !== null && idx !== singleTrackIdx) return;
+      if (singleTrackIdx === null && muted[idx]) return;
+      const synth = makeSynthFor(t.instrument);
+      synth.toDestination();
+      const isDrum = t.instrument === 'drums' || t.instrument === 'percussion';
+      if (isDrum) {
+        const part = new Tone.Part(
+          (time, value) => {
+            const v = value as { drum: string };
+            triggerDrum(synth, v.drum, time);
+          },
+          t.notes.map((n) => ({ time: n.time * (60 / score.tempo), drum: n.note, duration: n.duration })),
+        );
+        part.start(0);
+      } else {
+        const part = new Tone.Part(
+          (time, value) => {
+            const v = value as { note: string; duration: string };
+            (synth as Tone.PolySynth).triggerAttackRelease(v.note, v.duration, time);
+          },
+          t.notes.map((n) => ({ time: n.time * (60 / score.tempo), note: n.note, duration: n.duration })),
+        );
+        part.start(0);
+      }
+    });
+    transport.start();
+  }, duration + 1);
+
+  const blob = encodeWav(audioBuffer);
+  const slug = score.title.toLowerCase().replace(/\s+/g, '-').slice(0, 30);
+  const trackName = singleTrackIdx !== null ? `-${score.tracks[singleTrackIdx].instrument}` : '';
+  triggerDownload(blob, `${slug}${trackName}.wav`);
+}
+
+function encodeWav(audioBuffer: Tone.ToneAudioBuffer | AudioBuffer): Blob {
+  const raw = audioBuffer instanceof AudioBuffer ? audioBuffer : audioBuffer.get();
+  if (!raw) return new Blob([], { type: 'audio/wav' });
+
+  const numChannels = 1;
+  const sampleRate = raw.sampleRate;
+  const samples = raw.getChannelData(0);
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeStr = (offset: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++, offset += 2) {
+    view.setInt16(offset, Math.max(-1, Math.min(1, samples[i])) * 0x7fff, true);
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
 function parseDurationBeats(d: string): number {
-  // Tone.js notation: "1n"=4, "2n"=2, "4n"=1, "8n"=0.5, "16n"=0.25
   const m = d.match(/^(\d+)n$/);
   if (m) return 4 / Number(m[1]);
   const f = parseFloat(d);
   return isNaN(f) ? 0.5 : f;
-}
-
-function noteToMidi(note: string): number {
-  // "C4" → 60, "C#4" → 61
-  const m = note.match(/^([A-Ga-g])([#b]?)(\d+)$/);
-  if (!m) return 60;
-  const letter = m[1].toUpperCase();
-  const acc = m[2];
-  const octave = Number(m[3]);
-  const semis: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-  let n = semis[letter] + 12 * (octave + 1);
-  if (acc === '#') n += 1;
-  if (acc === 'b') n -= 1;
-  return n;
 }
 
 function fmtTime(s: number): string {

@@ -14,6 +14,10 @@ import { MusicTrackList } from './MusicTrackList';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
 import { buildPromptPrefix, STUDIO_BY_ID, type Studio } from './studios';
+import { GenreTagCloud } from './GenreTagCloud';
+import { LyricsPanel, type LyricsInput } from './LyricsPanel';
+import { AudioReferenceUploader, type AudioMeta } from './AudioReferenceUploader';
+import { useMusicUpload } from './useMusicUpload';
 
 export interface Message {
   id: string;
@@ -39,19 +43,22 @@ export function WorkspacePage() {
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
   const qc = useQueryClient();
 
-  // activeSessionId = pinned chat; null + autoSelect=true → auto-pick most recent.
-  // When the kid clicks "Make something" we set autoSelect=false to surface the picker.
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [autoSelect, setAutoSelect] = useState(true);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Two-step "Make something" flow: pick a studio, then fill its setup form,
-  // then create the session and switch to chat.
   const [pendingStudio, setPendingStudio] = useState<Studio | null>(null);
-  // Session-scoped setup values keyed by sessionId.
   const [setupValues, setSetupValues] = useState<Record<string, Record<string, string | string[]>>>({});
   const [showImport, setShowImport] = useState(false);
+
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [lyrics, setLyrics] = useState<LyricsInput>({});
+  const [referenceAudio, setReferenceAudio] = useState<{ filename: string; meta: AudioMeta } | null>(null);
+  const [musicProjectId, setMusicProjectId] = useState<string | null>(null);
+  const [activeVersionIdx, setActiveVersionIdx] = useState(0);
+
+  const { save: saveAudio, saving: savingAudio } = useMusicUpload(musicProjectId);
 
   const sessions = useQuery<SessionRow[]>({
     queryKey: ['kid', kidId, 'sessions'],
@@ -72,14 +79,12 @@ export function WorkspacePage() {
     enabled: !!familyId,
   });
 
-  // Auto-select most recent session on first load only.
   useEffect(() => {
     if (autoSelect && !activeSessionId && (sessions.data?.length ?? 0) > 0) {
       setActiveSessionId(sessions.data![0].id);
     }
   }, [autoSelect, activeSessionId, sessions.data]);
 
-  // Studio is derived from the active session — locked once picked, never switched mid-chat.
   const activeSession = useMemo(
     () => sessions.data?.find((s) => s.id === activeSessionId) ?? null,
     [sessions.data, activeSessionId],
@@ -93,15 +98,28 @@ export function WorkspacePage() {
         method: 'POST',
         body: { studio: args.studio },
       });
-      return { id: created.id, values: args.values };
+      return { id: created.id, values: args.values, studio: args.studio };
     },
-    onSuccess: async ({ id, values }) => {
+    onSuccess: async ({ id, values, studio: createdStudio }) => {
       setSetupValues((s) => ({ ...s, [id]: values }));
       await qc.invalidateQueries({ queryKey: ['kid', kidId, 'sessions'] });
       setActiveSessionId(id);
       setPendingStudio(null);
       setInput('');
       setError(null);
+      setActiveVersionIdx(0);
+
+      if (createdStudio === 'music' && !musicProjectId && kidId) {
+        try {
+          const proj = await api<{ id: string }>('/projects', {
+            method: 'POST',
+            body: { kind: 'creative', title: 'My Song', kid_id: kidId },
+          });
+          setMusicProjectId(proj.id);
+        } catch {
+          // Project creation failure is non-blocking — save feature degrades gracefully
+        }
+      }
     },
   });
 
@@ -139,9 +157,6 @@ export function WorkspacePage() {
         });
       }
       if (studio === 'code') {
-        // Code studio reuses text-completion with a kid-coding system prompt.
-        // The assistant must reply with one ```html, one ```css, and one ```js
-        // fence so CodePane can lift them into LiveCodes deterministically.
         const sys =
           'You are a friendly coding tutor for kids age 8-11. ' +
           'Build a single-page web project using ONLY vanilla HTML, CSS, and JavaScript — no frameworks, no external links, no remote fetches. ' +
@@ -157,15 +172,28 @@ export function WorkspacePage() {
           },
         });
       }
-      // Music studio uses the structured MIDI-score endpoint instead of raw audio,
-      // so the frontend Tone.js player can render per-instrument layered playback.
       if (studio === 'music') {
-        // Free-play workspace session: no project_id (backend treats it as
-        // free-play, like the sibling studios). The generated artifact is linked
-        // to the Learning Session via append-artifact, not a project.
+        const rerollMatch = text.match(/^\[Re-roll:\s*([^\]]+)\]/i);
+        const rerollTrack = rerollMatch ? rerollMatch[1].trim() : undefined;
+
+        const allScores = (messages.data ?? [])
+          .filter((m) => m.artifact?.metadata?.score?.tracks)
+          .map((m) => m.artifact!.metadata!.score!);
+        const latestScore = allScores[allScores.length - 1];
+
+        const lyricsPayload = Object.values(lyrics).some(Boolean) ? lyrics : undefined;
+
         return api('/llm/music-score', {
           method: 'POST',
-          body: { prompt: fullPrompt },
+          body: {
+            prompt: fullPrompt,
+            project_id: musicProjectId ?? undefined,
+            options: selectedGenres.length ? { genre: selectedGenres.join(' + ') } : undefined,
+            referenceAudioMeta: referenceAudio?.meta,
+            lyrics: lyricsPayload,
+            existingScore: rerollTrack && latestScore ? latestScore : undefined,
+            rerollTrack,
+          },
         });
       }
       const endpoint = studio === 'voice' ? 'tts' : studio;
@@ -195,9 +223,56 @@ export function WorkspacePage() {
     return null;
   }, [messages.data]);
 
+  const scoreVersions = useMemo((): MusicScore[] => {
+    if (!messages.data) return [];
+    return messages.data
+      .filter((m) => m.artifact?.metadata?.score?.tracks)
+      .map((m) => m.artifact!.metadata!.score!);
+  }, [messages.data]);
+
+  const displayScore = scoreVersions[activeVersionIdx] ?? scoreVersions[scoreVersions.length - 1] ?? null;
+
+  const suggestions = useMemo(() => {
+    if (!displayScore) return [];
+    return buildSuggestions(displayScore, Object.values(lyrics).some(Boolean) ? lyrics : undefined);
+  }, [displayScore, lyrics]);
+
   const balance = wallet.data?.stars_balance ?? 0;
   const cost = studioMeta?.cost ?? 0;
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleReroll = (trackIdx: number) => {
+    if (!displayScore) return;
+    const instrument = displayScore.tracks[trackIdx]?.instrument;
+    if (!instrument) return;
+    const prefix = `[Re-roll: ${instrument}] Keep everything the same. Change only the ${instrument} — `;
+    setInput(prefix);
+    inputRef.current?.focus();
+  };
+
+  const handleSaveMix = async () => {
+    if (!displayScore || !musicProjectId) return;
+    const { encodeWavFromScore } = await import('./musicExportUtils');
+    const blob = await encodeWavFromScore(displayScore, {});
+    await saveAudio(blob, `${slugify(displayScore.title)}.wav`, {
+      source: 'mix',
+      title: displayScore.title,
+      score_version: activeVersionIdx,
+    });
+  };
+
+  const handleSaveTrack = async (trackIdx: number) => {
+    if (!displayScore || !musicProjectId) return;
+    const { encodeWavFromScore } = await import('./musicExportUtils');
+    const instrument = displayScore.tracks[trackIdx]?.instrument ?? 'track';
+    const blob = await encodeWavFromScore(displayScore, {}, trackIdx);
+    await saveAudio(blob, `${slugify(displayScore.title)}-${instrument}.wav`, {
+      source: 'track',
+      title: displayScore.title,
+      track: instrument,
+      score_version: activeVersionIdx,
+    });
+  };
 
   return (
     <div className="h-full flex bg-canvas">
@@ -266,7 +341,40 @@ export function WorkspacePage() {
               empty={false}
             />
 
+            {studio === 'music' && suggestions.length > 0 && !send.isPending && (
+              <div className="px-4 py-2 flex gap-1.5 flex-wrap border-t border-hairline bg-wash-mint">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setInput(s); inputRef.current?.focus(); }}
+                    className="rounded-full bg-canvas-pure border border-hairline px-3 py-1 text-[11px] font-semibold text-ink-soft hover:border-brand-mint hover:text-ink transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="border-t border-hairline bg-canvas-pure p-4 shrink-0">
+              {studio === 'music' && (
+                <div className="mb-3 space-y-2.5">
+                  <GenreTagCloud
+                    selected={selectedGenres}
+                    onToggle={(g) =>
+                      setSelectedGenres((prev) =>
+                        prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g].slice(0, 2),
+                      )
+                    }
+                  />
+                  <LyricsPanel value={lyrics} onChange={setLyrics} />
+                  <AudioReferenceUploader
+                    value={referenceAudio}
+                    onAnalyzed={(filename, meta) => setReferenceAudio({ filename, meta })}
+                    onRemove={() => setReferenceAudio(null)}
+                  />
+                </div>
+              )}
               {error && (
                 <div className="mb-3 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-2 text-[12px] font-medium text-ink">
                   {error}
@@ -310,35 +418,29 @@ export function WorkspacePage() {
       {studio === 'code' ? (
         <CodePane messages={messages.data ?? []} />
       ) : studio === 'music' ? (
-        (() => {
-          // Find the most recent music score (text artifact with metadata.score)
-          const list = messages.data ?? [];
-          let latestScore: MusicScore | null = null;
-          for (let i = list.length - 1; i >= 0; i--) {
-            const m = list[i];
-            const s = m.artifact?.metadata?.score;
-            if (s && s.tracks) {
-              latestScore = s;
-              break;
+        displayScore ? (
+          <MusicScorePlayer
+            score={displayScore}
+            scoreVersions={scoreVersions}
+            activeVersionIdx={activeVersionIdx}
+            onSelectVersion={(i) => setActiveVersionIdx(i)}
+            onAddTrack={() => inputRef.current?.focus()}
+            onImportTrack={() => setShowImport(true)}
+            onReroll={handleReroll}
+            onSaveMix={musicProjectId ? handleSaveMix : undefined}
+            onSaveTrack={musicProjectId ? handleSaveTrack : undefined}
+            savingState={savingAudio}
+          />
+        ) : (
+          <MusicTrackList
+            messages={messages.data ?? []}
+            onGenerateTrack={() => inputRef.current?.focus()}
+            onImportTrack={() => setShowImport(true)}
+            onUploadTrack={() =>
+              setError('Upload your own coming next — for now Generate or Import a track.')
             }
-          }
-          return latestScore ? (
-            <MusicScorePlayer
-              score={latestScore}
-              onAddTrack={() => inputRef.current?.focus()}
-              onImportTrack={() => setShowImport(true)}
-            />
-          ) : (
-            <MusicTrackList
-              messages={list}
-              onGenerateTrack={() => inputRef.current?.focus()}
-              onImportTrack={() => setShowImport(true)}
-              onUploadTrack={() =>
-                setError('Upload your own coming next — for now Generate or Import a track.')
-              }
-            />
-          );
-        })()
+          />
+        )
       ) : (
         <PreviewPane artifact={latestArtifact} tool={studio ?? 'chat'} />
       )}
@@ -362,4 +464,20 @@ export function WorkspacePage() {
       )}
     </div>
   );
+}
+
+function buildSuggestions(score: MusicScore, lyrics?: LyricsInput): string[] {
+  const instruments = score.tracks.map((t) => t.instrument);
+  const s: string[] = [];
+  if (instruments.includes('drums'))       s.push('🥁 Bigger kick drum');
+  if (instruments.includes('lead_vocals')) s.push('🎤 Smoother vocal melody');
+  if (!instruments.includes('guitar'))     s.push('🎸 Add guitar');
+  if (!lyrics || !Object.values(lyrics).some(Boolean)) s.push('📝 Add lyrics');
+  s.push('⚡ More energetic');
+  s.push('🎲 Surprise me');
+  return s.slice(0, 5);
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 40) || 'track';
 }

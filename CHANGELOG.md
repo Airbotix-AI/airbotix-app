@@ -4,6 +4,43 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-17 (music-workspace V1 — full composer panel + 14-instrument player)
+
+### Added
+- **`GenreTagCloud`**: controlled pill component; 12 primary + 7 extended genres; max 2 selected;
+  `+ More` toggle; K-12 tokens throughout.
+- **`LyricsPanel`**: collapsible component with Verse / Pre-Chorus / Chorus / Bridge / Outro
+  section tabs; textarea per section; shows check when any section has content.
+- **`AudioReferenceUploader`**: drop zone for mp3/wav/m4a ≤ 5 MB; uses Web Audio API to extract
+  duration + simple RMS-onset BPM estimate; stubs key as `'C major'` (OQ-1); displays detected
+  metadata inline.
+- **`useMusicUpload`**: hook that POSTs to `upload-buffer` as multipart/form-data using auth
+  token from `useAuthStore`; tracks per-filename saving state.
+- **`VersionBar`**: pill row showing v1/v2/v3 ← (latest) — rendered only when ≥ 2 score
+  versions exist.
+- **`ChannelStrip`** (split from `MusicScorePlayer`): per-track strip with `[M][S][✏][🔄][↓][💾]`
+  buttons; inline edit drawer (display name / octave shift / pan / role); octave shift applied to
+  piano-roll display.
+- **`PianoRoll`** (split from `MusicScorePlayer`): accepts notes + supports all 14 instrument
+  types including percussion drum lanes.
+- **`musicExportUtils.ts`**: `encodeWavFromScore()` — offline Tone.js render → WAV blob;
+  used by save-to-S3 flow.
+- **`MusicScorePlayer`** expanded: 14-instrument synth factory (`lead_vocals`, `backing_vocals`,
+  `keyboard`, `percussion`, `brass`, `pad`, `other` are new); `[↓ WAV]` download + `[💾 Save]`
+  transport buttons; `scoreVersions` / `activeVersionIdx` / version selection props;
+  `onReroll` / `onDownloadTrack` / `onSaveTrack` / `onDownloadMix` / `onSaveMix` / `savingState`
+  prop surface.
+- **`WorkspacePage`**: genre / lyrics / audio reference state; auto-creates a Project when music
+  session starts (non-blocking); sends full request body to `/llm/music-score` including
+  `project_id`, `options.genre`, `referenceAudioMeta`, `lyrics`, `existingScore`, `rerollTrack`;
+  aggregates `scoreVersions` from message artifacts; suggestion chips after last AI music message;
+  wires `onReroll` → pre-fills `[Re-roll: X]` input; wires save callbacks via `useMusicUpload`.
+
+### Changed
+- `MusicScorePlayer` split into four sibling files (`MusicScorePlayer`, `ChannelStrip`,
+  `PianoRoll`, `VersionBar`) to stay under the 1000-line limit.
+- `ScoreTrack['instrument']` type expanded from 7 to 14 values to match backend.
+
 ## 2026-06-16 (Learn + Portal — adopt the Lesson(content)/Mission(task) model split)
 
 ### Changed
