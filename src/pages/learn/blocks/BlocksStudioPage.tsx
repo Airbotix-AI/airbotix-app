@@ -36,6 +36,7 @@ import { useBlocksStore } from './blocksStore';
 import { useBlocksTheme } from './blocksTheme';
 import { captureBlocksThumbnail } from './thumbnail';
 import { saveThumbnail } from '../playground/projectPersistence';
+import { useProjectBackTo } from '../projects/useProjectBackTo';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
 import { FadeScroller } from './FadeScroller';
@@ -86,6 +87,8 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
   const projectId = projectIdProp ?? routeProjectId;
+  // Home/back returns to the class's "My work" if this is class work (§3.4).
+  const homeHref = useProjectBackTo(projectId, '/learn/create/blocks');
   // Try-demo (try-demo-mode-prd D-DEMO-09): share is DEMOED, not hidden — the
   // real `BlocksSharePanel` rides an in-memory share adapter (the tour walks it).
   const demo = useDemoMode();
@@ -720,7 +723,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
           </a>
         ) : (
           <Link
-            to="/learn/create/blocks"
+            to={homeHref}
             className="bsx-press grid h-11 w-11 place-items-center text-[20px]"
             title="Save & back"
           >

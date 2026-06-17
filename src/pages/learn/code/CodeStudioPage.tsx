@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useProjectBackTo } from '../projects/useProjectBackTo';
 
 import { CodeChat } from './CodeChat';
 import { FileTree } from './FileTree';
@@ -88,11 +89,13 @@ function StudioHeader({
   /** Embedded in Mission chrome — hide nav away from the Studio (§7). */
   embedded?: boolean;
 }) {
+  // Class work returns to the class's "My work"; else the code hub (§3.4).
+  const homeHref = useProjectBackTo(projectId, '/learn/create/code');
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-canvas-pure px-4 py-2.5">
       <div className="flex items-center gap-3 min-w-0">
         {!embedded && (
-          <Link to="/learn/create/code" className="btn-pill-ghost -ml-2 text-[13px]">
+          <Link to={homeHref} className="btn-pill-ghost -ml-2 text-[13px]">
             ← My code
           </Link>
         )}
