@@ -231,7 +231,7 @@ function WallTab({ classId }: { classId: string }) {
         <div className="card-base text-center">
           <span className="sticker-sunshine">Nothing yet</span>
           <p className="lead-text mt-4">No one has shared anything yet. Be the first!</p>
-          <Link to="/learn/projects" className="btn-pill-primary mt-6">
+          <Link to={`/learn/projects?tab=${classId}`} className="btn-pill-primary mt-6">
             Share something of mine →
           </Link>
         </div>
@@ -269,7 +269,7 @@ function MyWorkTab({
     <section>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[20px] font-bold text-ink">My work for this class</h2>
-        <Link to="/learn/projects" className="text-[13px] font-semibold text-brand-coral">
+        <Link to={`/learn/projects?tab=${classId}`} className="text-[13px] font-semibold text-brand-coral">
           See in My Works →
         </Link>
       </div>

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
@@ -23,7 +23,10 @@ export function ProjectsListPage() {
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const qc = useQueryClient();
   const nav = useNavigate();
-  const [tab, setTab] = useState<Tab>('all');
+  // ?tab=<classId> (e.g. from the class wall's "Share something of mine") opens
+  // that class pre-filtered; falls back to All if it has no projects (effect below).
+  const [sp] = useSearchParams();
+  const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'all');
   const [showNewModal, setShowNewModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [shareProject, setShareProject] = useState<KidProject | null>(null);
@@ -71,6 +74,13 @@ export function ProjectsListPage() {
     for (const p of all) if (p.class_id) m.set(p.class_id, [...(m.get(p.class_id) ?? []), p]);
     return m;
   }, [all]);
+
+  // If we were sent to a class tab that has no projects, fall back to All (§3.4).
+  useEffect(() => {
+    if (tab !== 'all' && tab !== 'personal' && all.length > 0 && (byClass.get(tab)?.length ?? 0) === 0) {
+      setTab('all');
+    }
+  }, [tab, all.length, byClass]);
 
   const atLimit = all.length >= 50;
 
