@@ -71,10 +71,78 @@ export interface ClassDashboard {
   tiles: KidTile[];
 }
 
+/** One project in a kid's "Student work" review gallery (teacher-class-work-prd.md §6).
+ *  Class-work + on-the-wall projects ONLY — never personal/private. Artifact
+ *  pointers + nickname only; no parent contact / wallet / age / family PII. */
+export interface StudentWorkProject {
+  id: string;
+  title: string;
+  /** ProjectKind discriminator (creative | code | game | blocks). */
+  kind: string;
+  /** ProjectStatus (in_progress | accepted …). */
+  status: string;
+  /** 'class_work' (teacher can see) | 'class' (on the wall) — never 'private'. */
+  visibility: string;
+  /** This project has a live WallPost in the class (shared to the wall). */
+  onWall: boolean;
+  /** Thumbnail S3 key (display-only artifact pointer; may be absent). */
+  thumbnailS3Key: string | null;
+  /** ISO last-activity time (updated_at). */
+  lastActivityAt: string;
+}
+
+/** One enrolled kid's class-work projects, grouped for the Student-work view. */
+export interface StudentWorkRow {
+  kidId: string;
+  /** Class nickname only — never real-name PII (compliance §11). */
+  nickname: string;
+  projects: StudentWorkProject[];
+}
+
+/** Raw server shape of GET /classes/:id/student-work (snake_case). */
+interface StudentWorkRowDto {
+  kid_id: string;
+  nickname: string;
+  projects: {
+    id: string;
+    title: string;
+    kind: string;
+    status: string;
+    visibility: string;
+    on_wall: boolean;
+    thumbnail_s3_key: string | null;
+    last_activity_at: string;
+  }[];
+}
+
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 export function getClassDashboard(classId: string): Promise<ClassDashboard> {
   return api<ClassDashboard>(`/teacher/classes/${classId}/dashboard`);
+}
+
+/**
+ * The between-sessions "Student work" review gallery (teacher-class-work-prd.md
+ * §6): every enrolled kid's class-work + on-the-wall projects for this class,
+ * grouped by kid. The backend redacts to nickname-only and EXCLUDES personal
+ * projects (client gates are UX-only — the server is the authz boundary).
+ */
+export async function getStudentWork(classId: string): Promise<StudentWorkRow[]> {
+  const rows = await api<StudentWorkRowDto[]>(`/classes/${classId}/student-work`);
+  return rows.map((r) => ({
+    kidId: r.kid_id,
+    nickname: r.nickname,
+    projects: r.projects.map((p) => ({
+      id: p.id,
+      title: p.title,
+      kind: p.kind,
+      status: p.status,
+      visibility: p.visibility,
+      onWall: p.on_wall,
+      thumbnailS3Key: p.thumbnail_s3_key,
+      lastActivityAt: p.last_activity_at,
+    })),
+  }));
 }
 
 export function getKidAssessment(classId: string, kidId: string): Promise<KidAssessment> {

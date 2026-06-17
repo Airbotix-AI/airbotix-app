@@ -53,7 +53,7 @@ import { BlocksStudioPage } from '@/pages/learn/blocks/BlocksStudioPage';
 import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
 import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
 import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
-import { ClassWallViewPage } from '@/pages/learn/classroom/ClassWallViewPage';
+import { ClassHubPage } from '@/pages/learn/classroom/ClassHubPage';
 import { ClassGamesWallPage } from '@/pages/learn/classroom/ClassGamesWallPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
@@ -166,7 +166,7 @@ export const router = createBrowserRouter([
       // The old `/learn/wall` was a "Coming soon" placeholder — redirect it.
       { path: 'wall', element: <Navigate to="/learn/classroom" replace /> },
       { path: 'classroom', element: <ClassroomListPage /> },
-      { path: 'classroom/:classId', element: <ClassWallViewPage /> },
+      { path: 'classroom/:classId', element: <ClassHubPage /> },
       { path: 'classroom/:classId/games', element: <ClassGamesWallPage /> },
       { path: 'classroom/:classId/post/:projectId', element: <ClassPostPage /> },
       { path: 'profile', element: <LearnProfilePage /> },

@@ -1,22 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { useKidWallet } from './shared/useStudio';
-
-const STUDIOS: Array<{
-  to: string;
-  emoji: string;
-  title: string;
-  desc: string;
-  color: 'bubblegum' | 'mint' | 'sky' | 'sunshine';
-  cost: number;
-}> = [
-  { to: '/learn/create/image', emoji: '🎨', title: 'Image Maker', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', cost: 4 },
-  { to: '/learn/create/music', emoji: '🎵', title: 'Music Maker', desc: 'Compose a tune. Pick mood, tempo, vibe.', color: 'mint', cost: 3 },
-  { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', cost: 1 },
-  { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', cost: 5 },
-  { to: '/learn/create/code', emoji: '💻', title: 'Code Studio', desc: 'Make a website, game, or tool. AI writes the code.', color: 'sky', cost: 1 },
-  { to: '/learn/create/blocks', emoji: '🧩', title: 'Blocks', desc: 'Snap puzzle blocks to make characters move & talk. No typing!', color: 'mint', cost: 0 },
-];
+import { CREATE_TOOLS as STUDIOS } from './createTools';
 
 export function CreateHubPage() {
   const wallet = useKidWallet();
@@ -30,6 +15,10 @@ export function CreateHubPage() {
             What do you want to <span className="squiggle-word">make</span>?
           </h1>
           <p className="lead-text mt-4">Pick a tool. Each AI helper has its own studio.</p>
+          <p className="mt-2 text-[13px] font-semibold text-slate2">
+            🔒 Personal — only you can see what you make here. To make work for a class, open the
+            class and tap “Create for this class”.
+          </p>
         </div>
         {wallet.data && (
           <div className="text-right shrink-0">

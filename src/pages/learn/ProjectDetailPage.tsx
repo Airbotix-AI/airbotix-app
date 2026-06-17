@@ -7,6 +7,7 @@ import { api, ApiError } from '@/lib/api';
 import { onWsEvent } from '@/lib/ws';
 import { ShareToClassModal } from '@/pages/learn/classroom/ShareToClassModal';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { projectBackTo } from './projects/useProjectBackTo';
 import { StudioDrawer } from '@/pages/learn/create/shared/StudioDrawer';
 import { ImageStudioContent } from '@/pages/learn/create/shared/ImageStudioContent';
 import { VoiceStudioContent } from '@/pages/learn/create/shared/VoiceStudioContent';
@@ -21,7 +22,8 @@ interface Project {
   title: string;
   kind?: 'creative' | 'code';
   product_line: 'line_a_creative' | 'line_b_coding';
-  visibility: 'private' | 'class' | 'public';
+  visibility: 'private' | 'class_work' | 'class' | 'public';
+  class_id: string | null;
   thumbnail_s3_key: string | null;
   star_cost_total: number;
   status: 'in_progress' | 'submitted' | 'accepted' | 'archived';
@@ -187,7 +189,7 @@ export function ProjectDetailPage() {
     mutationFn: () => api(`/projects/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['projects'] });
-      window.location.href = '/learn/projects';
+      window.location.href = projectBackTo(project.data?.class_id);
     },
   });
 
@@ -261,8 +263,10 @@ export function ProjectDetailPage() {
 
   return (
     <div>
-      {/* ── ← My Works ── */}
-      <Link to="/learn/projects" className="btn-pill-ghost mb-6 -ml-3">← My Works</Link>
+      {/* ── back: class "My work" for class projects, else My Works ── */}
+      <Link to={projectBackTo(p.class_id)} className="btn-pill-ghost mb-6 -ml-3">
+        {p.class_id ? '← Back to class' : '← My Works'}
+      </Link>
 
       {/* ── Title row: title left + ⭐ spent right (PRD §5) ── */}
       <div className="mb-2 flex items-start justify-between gap-4">
@@ -867,7 +871,7 @@ function ShareApprovalPanel({
   currentVisibility,
 }: {
   projectId: string;
-  currentVisibility: 'private' | 'class' | 'public';
+  currentVisibility: 'private' | 'class_work' | 'class' | 'public';
 }) {
   const [target, setTarget] = useState<'class' | 'public'>('class');
   const [submitted, setSubmitted] = useState(false);
@@ -882,6 +886,17 @@ function ShareApprovalPanel({
       setError(e instanceof ApiError ? e.message : 'Could not send request.');
     },
   });
+
+  if (currentVisibility === 'class_work') {
+    return (
+      <div className="card-base mb-6 flex items-center gap-4">
+        <span className="sticker-sunshine">Class work</span>
+        <p className="text-[13px] text-ink-soft">
+          Only your <span className="font-semibold text-ink">teacher</span> can see this — to help you. Classmates can’t, until you share it with the class.
+        </p>
+      </div>
+    );
+  }
 
   if (currentVisibility !== 'private') {
     return (

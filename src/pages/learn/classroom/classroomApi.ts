@@ -26,6 +26,42 @@ export interface ClassSummary {
   is_live?: boolean;
 }
 
+// ── Enriched "My Classes" card (my-classes-prd §4 + §6, D-MC-3) ─────────────
+// `GET /classes/mine` is enriched server-side (no per-card N+1): one query
+// returns everything the My Classes cards render. Kid-facing + redacted (D-MC-4
+// — teacher NAME + avatar only, classmate COUNT only, no roster/PII/pricing).
+
+export interface ClassMineSummary {
+  id: string;
+  name: string;
+  status: 'active' | 'completed';
+  course_title: string | null;
+  cover_image_url: string | null;
+  teacher_name: string | null;
+  teacher_avatar_url: string | null;
+  classmate_count: number;
+  is_live: boolean;
+  /** ISO timestamp of the next session, if any. */
+  next_session_at: string | null;
+  lessons_total: number;
+  lessons_done: number;
+  stars_earned: number;
+}
+
+/**
+ * The signed-in kid's enriched classes (my-classes-prd §4). Degrades to an
+ * empty list on 404/501 so the page renders its friendly empty state while the
+ * enriched endpoint is rolling out, instead of erroring.
+ */
+export async function listMyClasses(): Promise<ClassMineSummary[]> {
+  try {
+    return await api<ClassMineSummary[]>(`/classes/mine`);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
+    throw e;
+  }
+}
+
 // ── Reactions (class-wall-moderation-prd §2 — fixed 6-emoji set) ────────────
 
 export const WALL_REACTIONS = ['🌟', '🎉', '💡', '🥰', '🦄', '🎨'] as const;
@@ -150,5 +186,33 @@ export async function shareToClass(args: {
   await api<void>(`/classes/${args.classId}/wall/posts`, {
     method: 'POST',
     body: { project_id: args.projectId, caption: args.caption ?? '' },
+  });
+}
+
+// ── Project placement (my-classes-prd §3.2 lifecycle) ───────────────────────
+// The kid moves a project between its three "who can see it" states with
+// single-purpose, reversible actions. `PATCH /projects/:id/placement` is the
+// canonical mover for everything EXCEPT putting a project on the wall (that
+// stays the existing wall-post path — `shareToClass` above):
+//   - use_for_class   Personal → Class work (attach to a class)
+//   - take_off_wall   On the wall → Class work
+//   - move_to_personal Class work / On the wall → Personal (detaches, private)
+
+export type PlacementAction = 'use_for_class' | 'take_off_wall' | 'move_to_personal';
+
+/** Project visibility / placement (my-classes-prd §3.2). */
+export type ProjectVisibility = 'private' | 'class_work' | 'class' | 'public';
+
+export async function updatePlacement(args: {
+  projectId: string;
+  action: PlacementAction;
+  classId?: string;
+}): Promise<void> {
+  await api<void>(`/projects/${args.projectId}/placement`, {
+    method: 'PATCH',
+    body: {
+      action: args.action,
+      ...(args.classId ? { class_id: args.classId } : {}),
+    },
   });
 }
