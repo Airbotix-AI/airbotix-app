@@ -18,6 +18,7 @@ import { GenreTagCloud } from './GenreTagCloud';
 import { LyricsPanel, type LyricsInput } from './LyricsPanel';
 import { AudioReferenceUploader, type AudioMeta } from './AudioReferenceUploader';
 import { useMusicUpload } from './useMusicUpload';
+import { DurationPicker, musicCostFor } from './DurationPicker';
 
 export interface Message {
   id: string;
@@ -57,6 +58,7 @@ export function WorkspacePage() {
   const [referenceAudio, setReferenceAudio] = useState<{ filename: string; meta: AudioMeta } | null>(null);
   const [musicProjectId, setMusicProjectId] = useState<string | null>(null);
   const [activeVersionIdx, setActiveVersionIdx] = useState(0);
+  const [selectedDuration, setSelectedDuration] = useState(30);
 
   const { save: saveAudio, saving: savingAudio } = useMusicUpload(musicProjectId);
 
@@ -188,7 +190,10 @@ export function WorkspacePage() {
           body: {
             prompt: fullPrompt,
             project_id: musicProjectId ?? undefined,
-            options: selectedGenres.length ? { genre: selectedGenres.join(' + ') } : undefined,
+            options: {
+              ...(selectedGenres.length ? { genre: selectedGenres.join(' + ') } : {}),
+              duration: selectedDuration,
+            },
             referenceAudioMeta: referenceAudio?.meta,
             lyrics: lyricsPayload,
             existingScore: rerollTrack && latestScore ? latestScore : undefined,
@@ -210,6 +215,28 @@ export function WorkspacePage() {
       qc.invalidateQueries({ queryKey: ['wallet', familyId] });
     },
     onError: (e: unknown) => setError(friendlyError(e)),
+  });
+
+  const generateLyrics = useMutation({
+    mutationFn: async () => {
+      const desc = input.trim() || 'a fun upbeat song for kids';
+      const sys =
+        'You are a lyricist writing age-appropriate songs for children aged 8–14. ' +
+        'Given a song description, write complete lyrics. ' +
+        'Return ONLY valid JSON with this shape (no markdown, no extra text): ' +
+        '{"verse":"...","preChorus":"...","chorus":"...","bridge":"...","outro":"..."}. ' +
+        'Each section 4–8 lines. Keep it positive, fun, and child-safe.';
+      const result = await api<{ reply: string }>('/llm/text-completion', {
+        method: 'POST',
+        body: { messages: [{ role: 'system', content: sys }, { role: 'user', content: desc }] },
+      });
+      return JSON.parse(result.reply) as LyricsInput;
+    },
+    onSuccess: (generated) => {
+      setLyrics(generated);
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+    },
+    onError: () => setError('Could not generate lyrics. Please try again.'),
   });
 
   const latestArtifact = useMemo(() => {
@@ -238,7 +265,7 @@ export function WorkspacePage() {
   }, [displayScore, lyrics]);
 
   const balance = wallet.data?.stars_balance ?? 0;
-  const cost = studioMeta?.cost ?? 0;
+  const cost = studio === 'music' ? musicCostFor(selectedDuration) : (studioMeta?.cost ?? 0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleReroll = (trackIdx: number) => {
@@ -319,7 +346,7 @@ export function WorkspacePage() {
               <div className={`inline-flex items-center gap-2 rounded-full bg-${studioMeta!.wash} px-3 py-1 text-[12px] font-bold`}>
                 <span className="text-[14px]">{studioMeta!.emoji}</span>
                 <span className="text-ink">{studioMeta!.label}</span>
-                <span className="text-ink-soft">−{studioMeta!.cost}★</span>
+                <span className="text-ink-soft">−{cost}★</span>
               </div>
               {activeSessionId && Object.entries(setupValues[activeSessionId] ?? {}).map(([k, v]) => {
                 const display = Array.isArray(v) ? v.join(', ') : v;
@@ -359,6 +386,7 @@ export function WorkspacePage() {
             <div className="border-t border-hairline bg-canvas-pure p-4 shrink-0">
               {studio === 'music' && (
                 <div className="mb-3 space-y-2.5">
+                  <DurationPicker value={selectedDuration} onChange={setSelectedDuration} />
                   <GenreTagCloud
                     selected={selectedGenres}
                     onToggle={(g) =>
@@ -367,7 +395,12 @@ export function WorkspacePage() {
                       )
                     }
                   />
-                  <LyricsPanel value={lyrics} onChange={setLyrics} />
+                  <LyricsPanel
+                    value={lyrics}
+                    onChange={setLyrics}
+                    onGenerate={() => generateLyrics.mutate()}
+                    generating={generateLyrics.isPending}
+                  />
                   <AudioReferenceUploader
                     value={referenceAudio}
                     onAnalyzed={(filename, meta) => setReferenceAudio({ filename, meta })}

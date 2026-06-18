@@ -19,9 +19,13 @@ const SECTIONS: Array<{ key: keyof LyricsInput; label: string }> = [
 export function LyricsPanel({
   value,
   onChange,
+  onGenerate,
+  generating = false,
 }: {
   value: LyricsInput;
   onChange: (v: LyricsInput) => void;
+  onGenerate?: () => void;
+  generating?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<keyof LyricsInput>('verse');
@@ -30,16 +34,28 @@ export function LyricsPanel({
 
   return (
     <div className="rounded-xl border border-hairline bg-canvas-pure overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-left"
-      >
-        <span className="text-[12px] font-semibold text-ink-soft">
-          Lyrics (optional){hasAny ? ' ✓' : ''}
-        </span>
-        <span className="text-[11px] text-steel">{open ? '▲' : '▼'}</span>
-      </button>
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 text-left"
+        >
+          <span className="text-[12px] font-semibold text-ink-soft">
+            Lyrics (optional){hasAny ? ' ✓' : ''}
+          </span>
+          <span className="text-[11px] text-steel">{open ? '▲' : '▼'}</span>
+        </button>
+        {onGenerate && (
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating}
+            className="rounded-full px-2.5 py-1 text-[11px] font-semibold bg-wash-mint text-ink hover:brightness-95 disabled:opacity-50 transition-all"
+          >
+            {generating ? '…' : '✨ Generate'}
+          </button>
+        )}
+      </div>
 
       {open && (
         <div className="border-t border-hairline px-4 pb-4 pt-3">
