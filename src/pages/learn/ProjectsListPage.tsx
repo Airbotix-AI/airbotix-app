@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { useWsEvent } from '@/lib/useWsEvent';
 import { listMyClasses, type ClassMineSummary } from './classroom/classroomApi';
 import { ShareToClassModal } from './classroom/ShareToClassModal';
 import { loadThumbnail } from './playground/projectPersistence';
@@ -44,6 +45,16 @@ export function ProjectsListPage() {
   });
 
   const placement = usePlacement({ kidId, onShareRequest: setShareProject });
+
+  // A teacher putting our project on / taking it off the class wall flips its
+  // visibility server-side and emits `wall.placement_changed` to the kid socket
+  // (platform-backend wall.service teacherPublish/teacherRemove). Refetch so the
+  // placement badge here updates live (teacher-class-work-prd §12.3, acceptance #5).
+  useWsEvent(
+    'wall.placement_changed',
+    () => qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] }),
+    [kidId],
+  );
 
   // Local game/blocks thumbnails (captured device-side, no backend upload yet).
   const all = useMemo(() => projects.data ?? [], [projects.data]);

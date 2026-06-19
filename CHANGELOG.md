@@ -4,6 +4,19 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-19 (Learn — live wall-placement refresh)
+
+### Fixed
+- **Kid "My Works" now reacts to teacher wall placement live** —
+  `ProjectsListPage` (`/learn/projects`) subscribes to the `wall.placement_changed`
+  WS event (emitted to the kid socket by platform-backend `wall.service`
+  `teacherPublish`/`teacherRemove`) and invalidates the kid projects query
+  (`['projects','kid',kidId]`) so the placement badge updates without a manual
+  refresh when a teacher publishes/removes a project to/from the class wall
+  (`teacher-class-work-prd.md` §12.3, acceptance #5). Uses the standard
+  `useWsEvent` idiom. New component test fires the event and asserts My Works
+  refetches.
+
 ## 2026-06-16 (Teacher — "Student work" review view)
 
 ### Added
