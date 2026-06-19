@@ -24,6 +24,14 @@ vi.mock('@/auth/useAuth', () => ({
 // Local thumbnail loader hits IndexedDB — stub it out.
 vi.mock('./playground/projectPersistence', () => ({ loadThumbnail: vi.fn(async () => null) }));
 
+// Capture each WS subscription by event name so a test can fire its handler.
+const { wsHandlers } = vi.hoisted(() => ({ wsHandlers: new Map<string, (p: unknown) => void>() }));
+vi.mock('@/lib/useWsEvent', () => ({
+  useWsEvent: (event: string, handler: (p: unknown) => void) => {
+    wsHandlers.set(event, handler);
+  },
+}));
+
 import { ProjectsListPage } from './ProjectsListPage';
 
 const CLASSES = [
@@ -109,6 +117,7 @@ function renderPage() {
 
 afterEach(() => {
   cleanup();
+  wsHandlers.clear();
   vi.clearAllMocks();
 });
 
@@ -136,6 +145,30 @@ describe('ProjectsListPage — grouping', () => {
     // class_work badge + on_wall badge both present.
     expect(screen.getByText('Class work')).toBeInTheDocument();
     expect(screen.getByText('On the wall')).toBeInTheDocument();
+  });
+});
+
+describe('ProjectsListPage — live wall placement', () => {
+  it('refetches My Works when the backend emits wall.placement_changed', async () => {
+    wireApi();
+    renderPage();
+    await screen.findByText('Maze Game');
+
+    // Initial mount fetched the kid projects exactly once.
+    const projectFetches = () =>
+      api.mock.calls.filter(([path]) => path === '/kids/kid-1/projects').length;
+    expect(projectFetches()).toBe(1);
+
+    // The teacher published/removed our project → backend pushes the event.
+    expect(wsHandlers.has('wall.placement_changed')).toBe(true);
+    wsHandlers.get('wall.placement_changed')!({
+      project_id: 'p-classwork',
+      class_id: 'class-1',
+      visibility: 'class',
+    });
+
+    // Query invalidated → My Works refetches.
+    await waitFor(() => expect(projectFetches()).toBeGreaterThan(1));
   });
 });
 
