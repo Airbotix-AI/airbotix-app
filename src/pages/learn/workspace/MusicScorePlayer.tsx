@@ -62,7 +62,7 @@ export function MusicScorePlayer({
   onSaveMix,
   savingState,
 }: {
-  score: MusicScore | null;
+  score: MusicScore;
   scoreVersions?: MusicScore[];
   activeVersionIdx?: number;
   onSelectVersion?: (i: number) => void;
@@ -120,7 +120,6 @@ export function MusicScorePlayer({
   }, [isFullscreen]);
 
   useEffect(() => {
-    if (!score) return;
     Tone.getTransport().bpm.value = score.tempo;
 
     for (const part of partsRef.current) part.dispose();
@@ -178,7 +177,6 @@ export function MusicScorePlayer({
   }, [score]);
 
   useEffect(() => {
-    if (!score) return;
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
@@ -187,13 +185,12 @@ export function MusicScorePlayer({
   }, [muted, soloIdx, deletedIndices, score]);
 
   useEffect(() => {
-    if (!score) return;
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
       ch.volume.value = Tone.gainToDb(volumes[idx] ?? 0.85);
     });
-  }, [volumes, score]);
+  }, [volumes, score.tracks]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -224,7 +221,7 @@ export function MusicScorePlayer({
 
   const handleDownloadMix = async () => {
     if (onDownloadMix) { onDownloadMix(); return; }
-    await renderAndDownload(score!, muted, null);
+    await renderAndDownload(score, muted, null);
   };
 
   const handleSaveMix = async () => {
@@ -242,29 +239,10 @@ export function MusicScorePlayer({
 
   const handleDownloadTrack = async (idx: number) => {
     if (onDownloadTrack) { onDownloadTrack(idx); return; }
-    await renderAndDownload(score!, muted, idx);
+    await renderAndDownload(score, muted, idx);
   };
 
   const seekFrac = totalDuration > 0 ? Math.min(1, position / totalDuration) : 0;
-
-  if (!score) {
-    return (
-      <aside className="hidden lg:flex w-[580px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800 items-center justify-center text-center px-8">
-        <div className="text-[48px] mb-4 opacity-40">🎵</div>
-        <p className="text-[13px] text-slate-400 leading-relaxed mb-6">
-          Describe a song below and hit Send — your multi-track score will appear here.
-        </p>
-        {onAddTrack && (
-          <button
-            onClick={onAddTrack}
-            className="rounded-full bg-brand-coral text-white px-5 py-2 text-[12px] font-bold hover:brightness-110"
-          >
-            + Start composing
-          </button>
-        )}
-      </aside>
-    );
-  }
 
   return (
     <aside className={

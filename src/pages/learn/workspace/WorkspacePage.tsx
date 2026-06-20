@@ -10,6 +10,7 @@ import { CodePane } from './CodePane';
 import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
 import { MusicScorePlayer, type MusicScore } from './MusicScorePlayer';
+import { MusicTrackList } from './MusicTrackList';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
 import { buildPromptPrefix, STUDIO_BY_ID, type Studio } from './studios';
@@ -449,18 +450,29 @@ export function WorkspacePage() {
       {studio === 'code' ? (
         <CodePane messages={messages.data ?? []} />
       ) : studio === 'music' ? (
-        <MusicScorePlayer
-          score={displayScore}
-          scoreVersions={scoreVersions}
-          activeVersionIdx={activeVersionIdx}
-          onSelectVersion={(i) => setActiveVersionIdx(i)}
-          onAddTrack={() => inputRef.current?.focus()}
-          onImportTrack={() => setShowImport(true)}
-          onReroll={handleReroll}
-          onSaveMix={musicProjectId ? handleSaveMix : undefined}
-          onSaveTrack={musicProjectId ? handleSaveTrack : undefined}
-          savingState={savingAudio}
-        />
+        displayScore ? (
+          <MusicScorePlayer
+            score={displayScore}
+            scoreVersions={scoreVersions}
+            activeVersionIdx={activeVersionIdx}
+            onSelectVersion={(i) => setActiveVersionIdx(i)}
+            onAddTrack={() => inputRef.current?.focus()}
+            onImportTrack={() => setShowImport(true)}
+            onReroll={handleReroll}
+            onSaveMix={musicProjectId ? handleSaveMix : undefined}
+            onSaveTrack={musicProjectId ? handleSaveTrack : undefined}
+            savingState={savingAudio}
+          />
+        ) : (
+          <MusicTrackList
+            messages={messages.data ?? []}
+            onGenerateTrack={() => inputRef.current?.focus()}
+            onImportTrack={() => setShowImport(true)}
+            onUploadTrack={() =>
+              setError('Upload your own coming next — for now Generate or Import a track.')
+            }
+          />
+        )
       ) : (
         <PreviewPane artifact={latestArtifact} tool={studio ?? 'chat'} />
       )}
