@@ -62,7 +62,7 @@ export function MusicScorePlayer({
   onSaveMix,
   savingState,
 }: {
-  score: MusicScore;
+  score: MusicScore | null;
   scoreVersions?: MusicScore[];
   activeVersionIdx?: number;
   onSelectVersion?: (i: number) => void;
@@ -97,6 +97,7 @@ export function MusicScorePlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const totalDuration = useMemo(() => {
+    if (!score) return 0;
     let maxBeat = 0;
     for (const t of score.tracks) {
       for (const n of t.notes) {
@@ -119,6 +120,7 @@ export function MusicScorePlayer({
   }, [isFullscreen]);
 
   useEffect(() => {
+    if (!score) return;
     Tone.getTransport().bpm.value = score.tempo;
 
     for (const part of partsRef.current) part.dispose();
@@ -176,20 +178,22 @@ export function MusicScorePlayer({
   }, [score]);
 
   useEffect(() => {
+    if (!score) return;
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
       ch.mute = deletedIndices.has(idx) || !!muted[idx] || (soloIdx !== null && soloIdx !== idx);
     });
-  }, [muted, soloIdx, deletedIndices, score.tracks]);
+  }, [muted, soloIdx, deletedIndices, score]);
 
   useEffect(() => {
+    if (!score) return;
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
       ch.volume.value = Tone.gainToDb(volumes[idx] ?? 0.85);
     });
-  }, [volumes, score.tracks]);
+  }, [volumes, score]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -220,7 +224,7 @@ export function MusicScorePlayer({
 
   const handleDownloadMix = async () => {
     if (onDownloadMix) { onDownloadMix(); return; }
-    await renderAndDownload(score, muted, null);
+    await renderAndDownload(score!, muted, null);
   };
 
   const handleSaveMix = async () => {
@@ -238,10 +242,29 @@ export function MusicScorePlayer({
 
   const handleDownloadTrack = async (idx: number) => {
     if (onDownloadTrack) { onDownloadTrack(idx); return; }
-    await renderAndDownload(score, muted, idx);
+    await renderAndDownload(score!, muted, idx);
   };
 
   const seekFrac = totalDuration > 0 ? Math.min(1, position / totalDuration) : 0;
+
+  if (!score) {
+    return (
+      <aside className="hidden lg:flex w-[580px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800 items-center justify-center text-center px-8">
+        <div className="text-[48px] mb-4 opacity-40">🎵</div>
+        <p className="text-[13px] text-slate-400 leading-relaxed mb-6">
+          Describe a song below and hit Send — your multi-track score will appear here.
+        </p>
+        {onAddTrack && (
+          <button
+            onClick={onAddTrack}
+            className="rounded-full bg-brand-coral text-white px-5 py-2 text-[12px] font-bold hover:brightness-110"
+          >
+            + Start composing
+          </button>
+        )}
+      </aside>
+    );
+  }
 
   return (
     <aside className={
@@ -257,7 +280,7 @@ export function MusicScorePlayer({
             </div>
             <div className="text-[14px] font-bold text-slate-100 mt-0.5 truncate">{score.title}</div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {score.tempo} BPM · {score.key}{score.genre ? ` · ${score.genre}` : ''} · {score.tracks.length - deletedIndices.size} tracks
+              {score.tempo} BPM · {score.key}{score.genre ? ` · ${score.genre}` : ''} · {score.tracks.length - deletedIndices.size} track{score.tracks.length - deletedIndices.size !== 1 ? 's' : ''}
             </div>
             {scoreVersions.length >= 2 && onSelectVersion && (
               <div className="mt-1.5">
@@ -275,10 +298,18 @@ export function MusicScorePlayer({
             </div>
             <button
               onClick={() => setIsFullscreen((v) => !v)}
-              className="rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 w-7 h-7 inline-flex items-center justify-center text-[13px] transition-colors"
+              className="rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 w-7 h-7 inline-flex items-center justify-center transition-colors"
               title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
             >
-              {isFullscreen ? '⊠' : '⛶'}
+              {isFullscreen ? (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M5 1H1v4M9 1h4v4M5 13H1V9M9 13h4V9"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/>
+                </svg>
+              )}
             </button>
           </div>
         </div>
