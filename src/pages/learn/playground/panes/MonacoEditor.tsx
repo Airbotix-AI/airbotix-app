@@ -60,9 +60,12 @@ interface MonacoEditorProps {
   /** Hand the selected code to the AI chat ("✨ Explain this" floating toolbar).
    *  When unset the toolbar never shows. */
   onExplainSelection?: (code: string) => void
+  /** Teacher live read-only viewer (D-LV-6): make the editor non-editable. Maps to
+   *  Monaco's `readOnly` option — the teacher can read + scroll but never type. */
+  readOnly?: boolean
 }
 
-function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange, jumpTo, onExplainSelection }: MonacoEditorProps) {
+function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange, jumpTo, onExplainSelection, readOnly }: MonacoEditorProps) {
   // Follow the playground theme: light editor in light mode, vs-dark in dark.
   const theme = usePlaygroundStore((s) => s.theme)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -100,7 +103,11 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
   // non-empty selection. Built as a content widget (not a React overlay) so Monaco
   // anchors it to the selection and flips it above/below near the top edge for us.
   // Clicking it hands the selected code to the chat agent (onExplainSelection).
+  // In the teacher read-only viewer (D-LV-6) the toolbar never appears — its only
+  // action runs a (gated) AI turn, so showing a dead chip a teacher can click is
+  // wrong; we never register the widget or its selection listener.
   const setupExplainToolbar = (editor: monaco.editor.IStandaloneCodeEditor) => {
+    if (readOnly) return;
     let selection: monaco.Selection | null = null
     let visible = false
 
@@ -252,6 +259,9 @@ function MonacoEditor({ value, onChange, language = 'javascript', onCursorChange
         if (jumpToRef.current) applyJumpRef.current(editor, jumpToRef.current)
       }}
       options={{
+        // Teacher live read-only viewer (D-LV-6): the editor is non-editable —
+        // the teacher reads + scrolls but can't type.
+        readOnly: readOnly ?? false,
         // `showSlider: 'always'` keeps the viewport rectangle visible so it
         // tracks scrolling (the default 'mouseover' only shows it on hover).
         minimap: { enabled: true, showSlider: 'always' },

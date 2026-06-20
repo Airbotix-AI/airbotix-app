@@ -31,6 +31,8 @@ interface ChatPaneProps {
   assetSrc?: (path: string) => string | undefined;
   onStop?: () => void;
   onRetry?: () => void;
+  /** Teacher live viewer (D-LV-6) — render chat history only; no composer / actions. */
+  readOnly?: boolean;
 }
 
 // Presentational. The chat state (`useGameAgent`) is owned by `Workspace` so it

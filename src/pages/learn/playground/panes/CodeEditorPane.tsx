@@ -75,6 +75,11 @@ interface CodeEditorPaneProps {
   openLocation?: { file: string; line: number; toLine?: number; select?: boolean; nonce: number } | null;
   /** Hand a selected code snippet to the AI chat (the "✨ Explain this" toolbar). */
   onExplainSelection?: (code: string) => void;
+  /** Teacher live read-only viewer (D-LV-6): make Monaco non-editable, gate every
+   *  write path (commit / idle-autosave), and hide all FileTree CRUD. ▶ Play may
+   *  still RUN the game (it can't commit drafts since none can form). The backend
+   *  write-guard is the data backstop; this is the UX + defence-in-depth layer. */
+  readOnly?: boolean;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -102,7 +107,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExplainSelection }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExplainSelection, readOnly }: CodeEditorPaneProps) {
   // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
   // filtered to files that still exist; the `[files]` effect fills their drafts on
   // mount. Read once (useRef) so it's stable across renders.
@@ -264,7 +269,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
 
   // Commit ALL dirty drafts back into the VFS and advance their baselines, then
   // return the merged files. Shared by ▶ Play and the idle autosave.
+  // In the read-only viewer (D-LV-6) this is a no-op — the editor is non-editable so
+  // no drafts can form, but we hard-gate the write path as defence-in-depth.
   const commitDrafts = (): VfsFile[] => {
+    if (readOnly) return files;
     const next = files.map((f) =>
       isDirty(f.path) ? { ...f, content: drafts[f.path], size: drafts[f.path].length } : f,
     );
@@ -291,6 +299,9 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
   // change); fires once the dust settles. Does NOT run the game.
   const record = useHistoryStore((s) => s.record);
   useEffect(() => {
+    // Read-only viewer (D-LV-6): never autosave/commit — the teacher's view must
+    // never write to the kid's project.
+    if (readOnly) return;
     if (!openTabs.some((p) => isDirty(p))) return;
     const t = setTimeout(() => {
       const next = commitDrafts();
@@ -521,7 +532,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {sidebarView === 'files' ? (
-                <FileTree files={files} activePath={activeTab} onSelect={openTab} />
+                <FileTree files={files} activePath={activeTab} onSelect={openTab} readOnly={readOnly} />
               ) : sidebarView === 'history' ? (
                 <HistoryPanel
                   onRevert={revertTo}
@@ -664,6 +675,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
                   onCursorChange={setCursor}
                   jumpTo={jumpTo}
                   onExplainSelection={onExplainSelection}
+                  readOnly={readOnly}
                 />
               </Suspense>
             )}

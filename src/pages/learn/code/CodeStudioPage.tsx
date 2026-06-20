@@ -8,9 +8,24 @@ import { PreviewFrame } from './PreviewFrame';
 import { useCodeStudio } from './useCodeStudio';
 import type { VfsFile } from './codeApi';
 
-export function CodeStudioPage() {
-  const { projectId } = useParams<{ projectId: string }>();
-  const studio = useCodeStudio(projectId ?? '');
+/**
+ * The Code Studio.
+ *
+ * Normally opened by the kid at `/learn/code/:projectId` (the route param). The
+ * teacher live viewer (teacher-live-project-view-prd D-LV-6) reuses this SAME
+ * component to watch a kid's project read-only: it passes `projectId` + `readOnly`
+ * directly (the teacher route has no `:projectId` param), so the teacher sees the
+ * EXACT editor layout — FileTree / CodeChat / PreviewFrame — with every mutation
+ * affordance disabled (chat input, send, approve/reject) and running (Run anew /
+ * preview) still live.
+ */
+export function CodeStudioPage({
+  projectId: projectIdProp,
+  readOnly = false,
+}: { projectId?: string; readOnly?: boolean } = {}) {
+  const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  const projectId = projectIdProp ?? routeProjectId;
+  const studio = useCodeStudio(projectId ?? '', { readOnly });
 
   if (!projectId) return <NotFound />;
   if (studio.loading) {
@@ -80,39 +95,47 @@ function StudioHeader({
   visibility,
   onRunAnew,
   embedded,
+  readOnly,
 }: {
   projectId: string;
   title: string;
-  balance: number;
+  /** Null = no wallet (teacher viewer) → hidden. */
+  balance: number | null;
   visibility: string;
   onRunAnew: () => void;
   /** Embedded in Mission chrome — hide nav away from the Studio (§7). */
   embedded?: boolean;
+  /** Teacher live viewer — hide save/wallet chrome (D-LV-6). */
+  readOnly?: boolean;
 }) {
   // Class work returns to the class's "My work"; else the code hub (§3.4).
   const homeHref = useProjectBackTo(projectId, '/learn/create/code');
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 border-b border-hairline bg-canvas-pure px-4 py-2.5">
       <div className="flex items-center gap-3 min-w-0">
-        {!embedded && (
+        {!embedded && !readOnly && (
           <Link to={homeHref} className="btn-pill-ghost -ml-2 text-[13px]">
             ← My code
           </Link>
         )}
         <span className="text-[15px] font-bold text-ink truncate">{title}</span>
-        <span className="hidden sm:inline rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
-          💾 Auto-saved
-        </span>
+        {!readOnly && (
+          <span className="hidden sm:inline rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
+            💾 Auto-saved
+          </span>
+        )}
         {visibility !== 'private' && (
           <span className="rounded-full bg-wash-sky px-2.5 py-0.5 text-[11px] font-bold text-ink">{visibility}</span>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-[13px] font-bold tabular-nums text-ink">⭐ {balance}</span>
+        {balance !== null && (
+          <span className="text-[13px] font-bold tabular-nums text-ink">⭐ {balance}</span>
+        )}
         <button onClick={onRunAnew} className="btn-pill-secondary text-[12px]">
           ▶ Run anew
         </button>
-        {!embedded && (
+        {!embedded && !readOnly && (
           <Link to={`/learn/code/${projectId}/run`} target="_blank" className="btn-pill-ghost text-[12px]">
             ⤢ Full screen
           </Link>
@@ -146,6 +169,7 @@ function ProLayout({
         visibility={studio.visibility}
         onRunAnew={studio.runAnew}
         embedded={embedded}
+        readOnly={studio.readOnly}
       />
       <div className="flex flex-1 min-h-0">
         {/* Files */}
@@ -161,6 +185,7 @@ function ProLayout({
             balance={studio.balance}
             error={studio.error}
             awaitingApproval={awaitingApproval}
+            readOnly={studio.readOnly}
             onSend={(t) => studio.send(t)}
             onApprove={studio.approvePlan}
             onReject={studio.rejectPlan}
@@ -203,6 +228,7 @@ function LiteLayout({
         balance={studio.balance}
         visibility={studio.visibility}
         onRunAnew={studio.runAnew}
+        readOnly={studio.readOnly}
       />
       <div className="flex flex-1 min-h-0 flex-col">
         {/* Big preview */}
@@ -219,6 +245,7 @@ function LiteLayout({
             error={studio.error}
             awaitingApproval={awaitingApproval}
             lite
+            readOnly={studio.readOnly}
             onSend={(t) => studio.send(t)}
             onApprove={studio.approvePlan}
             onReject={studio.rejectPlan}

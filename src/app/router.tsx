@@ -62,6 +62,7 @@ import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 // this is the in-app class dashboard + live view + assessment FE.
 import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
 import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
+import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
@@ -139,6 +140,8 @@ export const router = createBrowserRouter([
       { path: 'classes/:classId', element: <ClassDashboardPage /> },
       { path: 'classes/:classId/kids/:kidId', element: <LiveViewPage /> },
       { path: 'classes/:classId/kids/:kidId/assessment', element: <AssessmentPage /> },
+      // Teacher read-only LIVE project viewer (teacher-live-project-view-prd D-LV-1).
+      { path: 'projects/:projectId/live', element: <TeacherProjectLivePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

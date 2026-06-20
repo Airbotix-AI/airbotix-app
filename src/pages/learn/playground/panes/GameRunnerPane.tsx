@@ -24,6 +24,10 @@ interface GameRunnerPaneProps {
   onAskFix?: (message: string) => void;
   /** Self-verify (MP3): report the captured runtime errors so the agent auto-fixes. */
   onRuntimeErrors?: (errors: string[]) => void;
+  /** Teacher live read-only viewer (D-LV-6): the game still RUNS (non-destructive),
+   *  but "Ask AI to fix" — whose only action is a (gated) AI turn — is hidden so a
+   *  teacher never sees a dead control. */
+  readOnly?: boolean;
 }
 
 /** Short file name for a console location (the basename of the sourceURL path). */
@@ -146,6 +150,7 @@ export function GameRunnerPane({
   onOpenLocation,
   onAskFix,
   onRuntimeErrors,
+  readOnly,
 }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -347,7 +352,9 @@ export function GameRunnerPane({
           <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
             <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-pg-text-muted">Console</span>
             <span className="text-[11px] text-pg-text-dim">{logCount}</span>
-            {lastError && onAskFix && (
+            {/* "Ask AI to fix" runs a (gated) AI turn — hidden in the teacher
+                read-only viewer so no dead control shows (D-LV-6). */}
+            {!readOnly && lastError && onAskFix && (
               <button
                 type="button"
                 onClick={() => onAskFix(fixPrompt(lastError))}
@@ -359,7 +366,7 @@ export function GameRunnerPane({
             <button
               type="button"
               onClick={() => setLines([])}
-              className={`${lastError && onAskFix ? 'ml-1.5' : 'ml-auto'} rounded-md px-2 py-0.5 text-[11px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text`}
+              className={`${!readOnly && lastError && onAskFix ? 'ml-1.5' : 'ml-auto'} rounded-md px-2 py-0.5 text-[11px] font-semibold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text`}
             >
               Clear
             </button>

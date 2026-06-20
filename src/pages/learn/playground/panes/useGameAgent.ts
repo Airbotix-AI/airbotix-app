@@ -162,6 +162,16 @@ export interface UseGameAgentOptions {
   /** The first-turn build was refused by the safety check (D-PAP-20). Seed the chat
    *  with a friendly explanation + gentler suggestion chips instead of an empty log. */
   blockedSeed?: boolean;
+  /**
+   * Teacher live viewer (D-LV-6) — read-only. EVERY turn entry point
+   * (`send`, `requestAssetGen`, `confirmPending`, `cancelPending`, `raiseHand`,
+   * `lowerHand`, `retryLast`, `autoFixFromErrors`) early-returns when set, so a
+   * teacher can never run an AI turn (which would be kid-only anyway) or mutate
+   * the VFS. (`cancelPending`/`lowerHand`/`retryLast` are already inert because
+   * the state they act on is only ever created by a gated entry point — the
+   * explicit guard just makes that uniform and obvious.)
+   */
+  readOnly?: boolean;
 }
 
 const PENDING_TEXT = 'Thinking…';
@@ -305,6 +315,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     initialChat,
     onChatChange,
     blockedSeed,
+    readOnly = false,
   } = opts;
 
   const isReal = !!projectId;
@@ -515,6 +526,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    */
   const autoFixFromErrors = useCallback(
     async (errors: string[]) => {
+      if (readOnly) return; // teacher viewer — no auto-fix turn (D-LV-6)
       if (!isReal || busy || pending || streaming || errors.length === 0) return;
       autofixAttempt.current += 1;
       const attempt = autofixAttempt.current;
@@ -562,7 +574,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [isReal, busy, pending, streaming, nextId, deps, projectId, mode, files, onApplyFiles, onStarsCharged, clientActions],
+    [readOnly, isReal, busy, pending, streaming, nextId, deps, projectId, mode, files, onApplyFiles, onStarsCharged, clientActions],
   );
 
   /**
@@ -630,6 +642,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
 
   const send = useCallback(
     async (text: string, opts?: { guided?: boolean }) => {
+      if (readOnly) return; // teacher viewer — no AI turns (D-LV-6)
       const trimmed = text.trim();
       if (!trimmed || busy || pending) return;
       const guided = !!opts?.guided;
@@ -747,7 +760,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn],
+    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn],
   );
 
   // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
@@ -755,6 +768,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   // shares the one-AI-at-a-time lock and shows in the conversation like a typed ask.
   const requestAssetGen = useCallback(
     (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => {
+      if (readOnly) return; // teacher viewer — no asset generation (D-LV-6)
       const trimmed = prompt.trim();
       if (!trimmed || busy || pending) return;
       if (isReal && isOffline()) {
@@ -772,7 +786,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       ]);
       void runAssetTurn(trimmed, bubbleId, ref).finally(() => setBusy(false));
     },
-    [busy, pending, isReal, nextId, runAssetTurn],
+    [readOnly, busy, pending, isReal, nextId, runAssetTurn],
   );
 
   /**
@@ -782,19 +796,21 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * while already raised is a no-op (the kid just sees the calm waiting copy).
    */
   const raiseHand = useCallback(() => {
+    if (readOnly) return; // teacher viewer — no raise-hand signal (D-LV-6)
     if (handRaised) return;
     setHandRaised(true);
     // Best-effort notify; the calm waiting state never depends on it succeeding.
     if (isReal && projectId) {
       void deps.raiseHand?.({ projectId }).catch(() => {});
     }
-  }, [handRaised, isReal, projectId, deps]);
+  }, [readOnly, handRaised, isReal, projectId, deps]);
 
   /** Put the "Ask my teacher" hand back down (cancel the raise). Local toggle —
    *  the backend raise/lower wiring lands with the teacher-WS work (I‑6/I‑7). */
   const lowerHand = useCallback(() => {
+    if (readOnly) return; // teacher viewer — no hand to lower (D-LV-6)
     setHandRaised(false);
-  }, []);
+  }, [readOnly]);
 
   /**
    * Confirm a staged turn (Lite "Do it" OR Pro "✓ Approve"). For a Pro plan we ask
@@ -804,6 +820,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * result. Either way Stars debit once, only after the kid commits.
    */
   const confirmPending = useCallback(async () => {
+    if (readOnly) return; // teacher viewer — cannot confirm a kid's turn (D-LV-6)
     const p = pending;
     if (!p || busy) return;
     setBusy(true);
@@ -825,7 +842,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [pending, busy, nextId, deps, projectId, mode, applyResult]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the
@@ -835,6 +852,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * discard them (`reject`). Either way: no Stars leak, no persisted VFS change.
    */
   const cancelPending = useCallback(async () => {
+    if (readOnly) return; // teacher viewer — no pending turn to cancel (D-LV-6)
     const p = pending;
     if (!p) return;
     setPending(null);
@@ -849,7 +867,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       ...prev,
       { id: nextId(), role: 'agent', text: 'No problem — nothing changed. Tell me what to do instead.' },
     ]);
-  }, [pending, deps, projectId, nextId]);
+  }, [readOnly, pending, deps, projectId, nextId]);
 
   /**
    * FREE local undo (OD-3): revert the VFS to the snapshot before the last applied
@@ -883,11 +901,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * gates the Try-again button on that.
    */
   const retryLast = useCallback(() => {
+    if (readOnly) return; // teacher viewer — no prompt to retry (D-LV-6)
     if (busy || pending) return;
     if (!lastPromptRef.current) return;
     setError(null);
     void send(lastPromptRef.current, { guided: lastGuidedRef.current });
-  }, [busy, pending, send]);
+  }, [readOnly, busy, pending, send]);
 
   const confirmWarn = useCallback(async () => {
     if (!warnPending || busy) return;

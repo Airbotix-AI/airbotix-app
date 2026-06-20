@@ -6,12 +6,20 @@ import type { ChatItem } from './useCodeStudio';
 interface CodeChatProps {
   chat: ChatItem[];
   busy: boolean;
-  balance: number;
+  /** Null = no wallet (teacher viewer) → the cost/balance hints are hidden. */
+  balance: number | null;
   error: string | null;
   /** When set, the latest agent item is a plan awaiting approval. */
   awaitingApproval: boolean;
   /** Lite mode hides diffs and shows only the plain summary (PRD §2.4). */
   lite?: boolean;
+  /**
+   * Teacher live viewer (D-LV-6) — render the chat HISTORY only, with NO composer
+   * and NO approve/reject controls, so a teacher can never type a prompt, send a
+   * turn, or approve a kid's plan. The send/approve/reject handlers are already
+   * gated in `useCodeStudio`; this removes the affordances too (defence-in-depth).
+   */
+  readOnly?: boolean;
   onSend: (text: string) => void;
   onApprove: () => void;
   onReject: () => void;
@@ -26,6 +34,7 @@ export function CodeChat({
   error,
   awaitingApproval,
   lite = false,
+  readOnly = false,
   onSend,
   onApprove,
   onReject,
@@ -33,11 +42,16 @@ export function CodeChat({
   const [input, setInput] = useState('');
 
   const submit = () => {
+    if (readOnly) return;
     const t = input.trim();
     if (!t || busy || awaitingApproval) return;
     setInput('');
     onSend(t);
   };
+
+  // A teacher viewer has no wallet — treat as "enough stars" so the (hidden)
+  // composer logic never gates on a misleading 0.
+  const stars = balance ?? ESTIMATED_COST;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -46,7 +60,9 @@ export function CodeChat({
           <div className="text-center py-8">
             <span className="sticker-sky alt">Code Critter 🤖</span>
             <p className="lead-text mt-4" style={{ fontSize: '14px' }}>
-              Tell me what to build or change. I write the code, you watch it run.
+              {readOnly
+                ? "You're watching this project live. The chat shows up here as the student builds."
+                : 'Tell me what to build or change. I write the code, you watch it run.'}
             </p>
           </div>
         )}
@@ -54,7 +70,8 @@ export function CodeChat({
           <ChatRow key={item.id} item={item} lite={lite} />
         ))}
 
-        {awaitingApproval && (
+        {/* Approve/reject is a kid-only mutation — never shown to a teacher viewer. */}
+        {!readOnly && awaitingApproval && (
           <div className="flex gap-2">
             <button onClick={onApprove} className="btn-pill-primary text-[13px]">
               ✓ Yes, do it
@@ -72,6 +89,13 @@ export function CodeChat({
         </div>
       )}
 
+      {/* Composer: removed entirely in the teacher viewer so there is no input or
+          send button to type into / press (D-LV-6). */}
+      {readOnly ? (
+        <div className="shrink-0 border-t border-hairline bg-canvas-pure px-3 py-2.5 text-center text-[12px] font-bold text-slate2">
+          👁 Read-only — watching the student build
+        </div>
+      ) : (
       <div className="shrink-0 border-t border-hairline bg-canvas-pure p-3">
         <div className="flex items-end gap-2">
           <textarea
@@ -90,18 +114,19 @@ export function CodeChat({
           />
           <button
             onClick={submit}
-            disabled={busy || awaitingApproval || !input.trim() || balance < ESTIMATED_COST}
+            disabled={busy || awaitingApproval || !input.trim() || stars < ESTIMATED_COST}
             className="btn-pill-primary shrink-0 self-stretch"
-            title={balance < ESTIMATED_COST ? `Need ${ESTIMATED_COST}★, have ${balance}★` : ''}
+            title={stars < ESTIMATED_COST ? `Need ${ESTIMATED_COST}★, have ${stars}★` : ''}
           >
             {busy ? '…' : `✨ Ask −${ESTIMATED_COST}★`}
           </button>
         </div>
         <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate2">
           <span>Enter to send</span>
-          <span className={balance < ESTIMATED_COST ? 'text-brand-coral font-bold' : ''}>{balance}★ left</span>
+          <span className={stars < ESTIMATED_COST ? 'text-brand-coral font-bold' : ''}>{stars}★ left</span>
         </div>
       </div>
+      )}
     </div>
   );
 }
