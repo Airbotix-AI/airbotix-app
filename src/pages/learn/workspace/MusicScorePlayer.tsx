@@ -94,6 +94,7 @@ export function MusicScorePlayer({
   const [deletedIndices, setDeletedIndices] = useState<Set<number>>(new Set());
   const [isSavingMix, setIsSavingMix] = useState(false);
   const [savedMix, setSavedMix] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const totalDuration = useMemo(() => {
     let maxBeat = 0;
@@ -109,6 +110,13 @@ export function MusicScorePlayer({
   useEffect(() => {
     setDeletedIndices(new Set());
   }, [score]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsFullscreen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isFullscreen]);
 
   useEffect(() => {
     Tone.getTransport().bpm.value = score.tempo;
@@ -236,7 +244,11 @@ export function MusicScorePlayer({
   const seekFrac = totalDuration > 0 ? Math.min(1, position / totalDuration) : 0;
 
   return (
-    <aside className="hidden lg:flex w-[580px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800">
+    <aside className={
+      isFullscreen
+        ? 'fixed inset-0 z-50 flex flex-col bg-slate-950 text-slate-100'
+        : 'hidden lg:flex w-[580px] shrink-0 flex-col bg-slate-950 text-slate-100 border-l border-slate-800'
+    }>
       <div className="px-4 py-3 border-b border-slate-800 bg-slate-900/60 backdrop-blur">
         <div className="flex items-center justify-between mb-2">
           <div className="flex-1 min-w-0">
@@ -257,8 +269,17 @@ export function MusicScorePlayer({
               </div>
             )}
           </div>
-          <div className="font-mono text-[18px] tabular-nums text-slate-100 shrink-0 ml-3">
-            {fmtTime(position)} <span className="text-slate-500">/ {fmtTime(totalDuration)}</span>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            <div className="font-mono text-[18px] tabular-nums text-slate-100">
+              {fmtTime(position)} <span className="text-slate-500">/ {fmtTime(totalDuration)}</span>
+            </div>
+            <button
+              onClick={() => setIsFullscreen((v) => !v)}
+              className="rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-100 w-7 h-7 inline-flex items-center justify-center text-[13px] transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? '⊠' : '⛶'}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
