@@ -4,6 +4,22 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-20 (Blocks Studio — autosave no longer reverts edits)
+
+### Fixed
+- **Blocks Studio: added/edited blocks no longer silently revert a few seconds later.**
+  Autosaves weren't serialized. The save-version (`versionRef`) only advances when a save
+  *returns*, so an edit made while a save was still in flight scheduled a second save that
+  reused the same stale base `version` → the backend 409'd → the conflict handler reloaded
+  the server's older snapshot via `load()`, discarding the in-flight edits (the canvas
+  "travelled back in time"). Intermittent because it only triggered when an edit landed
+  during an in-flight save (network-latency dependent). `BlocksStudioPage` now serializes
+  autosaves with an in-flight mutex (`savingRef`) plus a trailing re-save (`pendingRef`):
+  only one save runs at a time, and edits that arrive mid-save are persisted in a follow-up
+  round using the version the previous save returned — eliminating the self-conflict.
+  Genuine multi-device conflicts still surface kept-newest. Covered by a new
+  `BlocksStudioPage` autosave-serialization test (red without the fix, green with it).
+
 ## 2026-06-19 (Learn — live wall-placement refresh)
 
 ### Fixed
