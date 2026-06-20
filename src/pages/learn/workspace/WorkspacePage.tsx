@@ -346,7 +346,6 @@ export function WorkspacePage() {
               <div className={`inline-flex items-center gap-2 rounded-full bg-${studioMeta!.wash} px-3 py-1 text-[12px] font-bold`}>
                 <span className="text-[14px]">{studioMeta!.emoji}</span>
                 <span className="text-ink">{studioMeta!.label}</span>
-                <span className="text-ink-soft">−{cost}★</span>
               </div>
               {activeSessionId && Object.entries(setupValues[activeSessionId] ?? {}).map(([k, v]) => {
                 const display = Array.isArray(v) ? v.join(', ') : v;

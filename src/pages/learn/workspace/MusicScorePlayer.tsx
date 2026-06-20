@@ -74,6 +74,7 @@ export function MusicScorePlayer({
   onDownloadMix?: () => void;
   onSaveMix?: () => void;
   savingState?: Record<string, boolean>;
+
 }) {
   type SynthVoice =
     | Tone.PolySynth
@@ -90,6 +91,7 @@ export function MusicScorePlayer({
   const [muted, setMuted] = useState<Record<number, boolean>>({});
   const [soloIdx, setSoloIdx] = useState<number | null>(null);
   const [volumes, setVolumes] = useState<Record<number, number>>({});
+  const [deletedIndices, setDeletedIndices] = useState<Set<number>>(new Set());
   const [isSavingMix, setIsSavingMix] = useState(false);
   const [savedMix, setSavedMix] = useState(false);
 
@@ -102,6 +104,10 @@ export function MusicScorePlayer({
       }
     }
     return (maxBeat * 60) / score.tempo;
+  }, [score]);
+
+  useEffect(() => {
+    setDeletedIndices(new Set());
   }, [score]);
 
   useEffect(() => {
@@ -165,9 +171,9 @@ export function MusicScorePlayer({
     score.tracks.forEach((_, idx) => {
       const ch = channelsRef.current[idx];
       if (!ch) return;
-      ch.mute = !!muted[idx] || (soloIdx !== null && soloIdx !== idx);
+      ch.mute = deletedIndices.has(idx) || !!muted[idx] || (soloIdx !== null && soloIdx !== idx);
     });
-  }, [muted, soloIdx, score.tracks]);
+  }, [muted, soloIdx, deletedIndices, score.tracks]);
 
   useEffect(() => {
     score.tracks.forEach((_, idx) => {
@@ -239,7 +245,7 @@ export function MusicScorePlayer({
             </div>
             <div className="text-[14px] font-bold text-slate-100 mt-0.5 truncate">{score.title}</div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {score.tempo} BPM · {score.key}{score.genre ? ` · ${score.genre}` : ''} · {score.tracks.length} tracks
+              {score.tempo} BPM · {score.key}{score.genre ? ` · ${score.genre}` : ''} · {score.tracks.length - deletedIndices.size} tracks
             </div>
             {scoreVersions.length >= 2 && onSelectVersion && (
               <div className="mt-1.5">
@@ -289,27 +295,31 @@ export function MusicScorePlayer({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {score.tracks.map((t, idx) => (
-          <ChannelStrip
-            key={idx}
-            index={idx}
-            track={t}
-            meta={INSTRUMENT_META[t.instrument] ?? INSTRUMENT_META['other']}
-            position={position}
-            totalDuration={totalDuration}
-            isMuted={!!muted[idx]}
-            isSolo={soloIdx === idx}
-            volume={volumes[idx] ?? 0.85}
-            tempo={score.tempo}
-            onToggleMute={() => setMuted((m) => ({ ...m, [idx]: !m[idx] }))}
-            onToggleSolo={() => setSoloIdx((s) => (s === idx ? null : idx))}
-            onVolume={(v) => setVolumes((m) => ({ ...m, [idx]: v }))}
-            onReroll={onReroll}
-            onDownloadTrack={handleDownloadTrack}
-            onSaveTrack={onSaveTrack}
-            savingState={savingState}
-          />
-        ))}
+        {score.tracks.map((t, idx) => {
+          if (deletedIndices.has(idx)) return null;
+          return (
+            <ChannelStrip
+              key={idx}
+              index={idx}
+              track={t}
+              meta={INSTRUMENT_META[t.instrument] ?? INSTRUMENT_META['other']}
+              position={position}
+              totalDuration={totalDuration}
+              isMuted={!!muted[idx]}
+              isSolo={soloIdx === idx}
+              volume={volumes[idx] ?? 0.85}
+              tempo={score.tempo}
+              onToggleMute={() => setMuted((m) => ({ ...m, [idx]: !m[idx] }))}
+              onToggleSolo={() => setSoloIdx((s) => (s === idx ? null : idx))}
+              onVolume={(v) => setVolumes((m) => ({ ...m, [idx]: v }))}
+              onReroll={onReroll}
+              onDownloadTrack={handleDownloadTrack}
+              onSaveTrack={onSaveTrack}
+              onDeleteTrack={(i) => setDeletedIndices((prev) => new Set([...prev, i]))}
+              savingState={savingState}
+            />
+          );
+        })}
 
         {(onAddTrack || onImportTrack) && (
           <div className="m-3 grid grid-cols-2 gap-2">

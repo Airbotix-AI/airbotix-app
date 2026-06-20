@@ -26,6 +26,7 @@ export function ChannelStrip({
   onReroll,
   onDownloadTrack,
   onSaveTrack,
+  onDeleteTrack,
   savingState,
 }: {
   index: number;
@@ -43,6 +44,7 @@ export function ChannelStrip({
   onReroll?: (idx: number) => void;
   onDownloadTrack?: (idx: number) => void;
   onSaveTrack?: (idx: number) => void;
+  onDeleteTrack?: (idx: number) => void;
   savingState?: Record<string, boolean>;
 }) {
   const [editOpen, setEditOpen] = useState(false);
@@ -96,11 +98,24 @@ export function ChannelStrip({
           </button>
           <button
             onClick={() => setEditOpen((v) => !v)}
-            className="rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 w-7 h-7 text-[10px] inline-flex items-center justify-center"
+            className={
+              editOpen
+                ? 'rounded-md bg-brand-coral text-white w-7 h-7 text-[10px] inline-flex items-center justify-center'
+                : 'rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 w-7 h-7 text-[10px] inline-flex items-center justify-center'
+            }
             title="Edit track"
           >
             ✏
           </button>
+          {onDeleteTrack && (
+            <button
+              onClick={() => onDeleteTrack(index)}
+              className="rounded-md bg-slate-800 hover:bg-red-900 text-slate-400 hover:text-red-300 w-7 h-7 text-[11px] inline-flex items-center justify-center transition-colors"
+              title="Delete track"
+            >
+              ✕
+            </button>
+          )}
           {hovered && (
             <>
               {onReroll && (
