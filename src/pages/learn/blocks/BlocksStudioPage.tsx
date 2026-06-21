@@ -68,6 +68,13 @@ function unlockTouchScroll() {
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
+// Teacher read-only viewer (D-LV-6): edit controls are RENDERED-but-DISABLED, not
+// hidden, so the read-only layout is byte-for-byte the kid's (no empty bands, no
+// missing palette). Edit controls get this consistent inert + dimmed treatment;
+// the CONTENT the teacher is viewing (stage, characters, script chain, page
+// thumbnails) stays full-opacity. Mutation handlers are already store-gated.
+const READONLY_EDIT_DISABLED = 'pointer-events-none cursor-default opacity-60';
+
 // ── zone label chip (clarity pass) ───────────────────────────────────────────
 // Kids 5–8 (many pre-readers) couldn't tell what each studio area was for, so
 // every zone wears a tiny emoji-first name tag. Chips are decoration only:
@@ -176,19 +183,23 @@ export function BlocksStudioPage({
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
         setPhase('ready');
-        // refresh the cover thumbnail on open (device-local; even without an edit)
-        try {
-          const cover = loaded.project.pages[0];
-          if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
-        } catch {
-          // best-effort
+        // refresh the cover thumbnail on open (device-local; even without an edit).
+        // Never in the teacher viewer (D-LV-6): saveThumbnail is a kid-scoped write,
+        // so a teacher would 403 — read-only means a teacher can never write.
+        if (!readOnly) {
+          try {
+            const cover = loaded.project.pages[0];
+            if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
+          } catch {
+            // best-effort
+          }
         }
       })
       .catch(() => alive && setPhase('error'));
     return () => {
       alive = false;
     };
-  }, [projectId]);
+  }, [projectId, readOnly]);
 
   // Immersive tablet mode (page-scroll lock + browser fullscreen) is owned by
   // LearnLayout, keyed on the route — so it survives this page's remounts and
@@ -763,31 +774,30 @@ export function BlocksStudioPage({
             🏠
           </Link>
         )}
-        {/* Undo/redo are kid-only edit affordances — hidden in the teacher viewer (D-LV-6). */}
-        {!readOnly && (
-          <>
-            <button
-              type="button"
-              data-testid="undo"
-              className="bsx-press grid h-11 w-11 place-items-center disabled:opacity-40"
-              onClick={undo}
-              disabled={!canUndo}
-              title="Undo (⌘Z)"
-            >
-              <Undo2 size={20} />
-            </button>
-            <button
-              type="button"
-              data-testid="redo"
-              className="bsx-press grid h-11 w-11 place-items-center disabled:opacity-40"
-              onClick={redo}
-              disabled={!canRedo}
-              title="Redo (⌘⇧Z)"
-            >
-              <Redo2 size={20} />
-            </button>
-          </>
-        )}
+        {/* Undo/redo are kid-only edit affordances — rendered but inert + dimmed in
+            the teacher viewer so the read-only layout matches the kid's (D-LV-6). */}
+        <button
+          type="button"
+          data-testid="undo"
+          className={`bsx-press grid h-11 w-11 place-items-center disabled:opacity-40${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+          onClick={undo}
+          disabled={readOnly || !canUndo}
+          aria-disabled={readOnly || undefined}
+          title="Undo (⌘Z)"
+        >
+          <Undo2 size={20} />
+        </button>
+        <button
+          type="button"
+          data-testid="redo"
+          className={`bsx-press grid h-11 w-11 place-items-center disabled:opacity-40${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+          onClick={redo}
+          disabled={readOnly || !canRedo}
+          aria-disabled={readOnly || undefined}
+          title="Redo (⌘⇧Z)"
+        >
+          <Redo2 size={20} />
+        </button>
         <div className="min-w-0 px-1">
           <div className="truncate text-[15px] font-extrabold leading-tight">{project.name}</div>
           <div className="bsx-muted truncate text-[11px] font-semibold" data-testid="save-status" data-status={saveStatus}>
@@ -806,7 +816,7 @@ export function BlocksStudioPage({
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
+        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} readOnly={readOnly} />}
         <button
           ref={moreBtnRef}
           type="button"
@@ -853,13 +863,16 @@ export function BlocksStudioPage({
               title={c.name}
             >
               {c.emoji}
-              {!readOnly && c.id === selectedChar?.id && page.characters.length > 1 && (
+              {c.id === selectedChar?.id && page.characters.length > 1 && (
                 <span
                   role="button"
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white"
+                  data-testid={`remove-character-${c.id}`}
+                  aria-disabled={readOnly || undefined}
+                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
                   title={`Remove ${c.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (readOnly) return;
                     sfx.trash();
                     useBlocksStore.getState().removeCharacter(c.id);
                   }}
@@ -869,17 +882,17 @@ export function BlocksStudioPage({
               )}
             </button>
           ))}
-          {!readOnly && (
-            <button
-              type="button"
-              data-testid="add-character"
-              onClick={openFriendPicker}
-              className="grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky"
-              title="Add a character"
-            >
-              ＋
-            </button>
-          )}
+          <button
+            type="button"
+            data-testid="add-character"
+            onClick={openFriendPicker}
+            disabled={readOnly}
+            aria-disabled={readOnly || undefined}
+            className={`grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+            title="Add a character"
+          >
+            ＋
+          </button>
           </FadeScroller>
         </aside>
 
@@ -897,21 +910,23 @@ export function BlocksStudioPage({
             <div className="bsx-deco bsx-deco-b" />
             <div className="bsx-deco bsx-deco-c" />
             <div className="bsx-hill" />
-            {/* change the scene — a big picture library (kid-only edit; D-LV-6) */}
-            {!readOnly && (
-              <button
-                type="button"
-                data-testid="scene-btn"
-                className="bsx-scene-btn"
-                title="Change the background"
-                onClick={() => {
-                  sfx.tap();
-                  setScenePick((v) => !v);
-                }}
-              >
-                <ImageIcon size={20} />
-              </button>
-            )}
+            {/* change the scene — a big picture library. Rendered but inert + dimmed
+                in the teacher viewer so the stage layout matches the kid's (D-LV-6). */}
+            <button
+              type="button"
+              data-testid="scene-btn"
+              className={`bsx-scene-btn${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+              title="Change the background"
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              onClick={() => {
+                if (readOnly) return;
+                sfx.tap();
+                setScenePick((v) => !v);
+              }}
+            >
+              <ImageIcon size={20} />
+            </button>
             {/* beside (never over) the scene button — the stage's name tag */}
             <ZoneTag zone="stage" emoji="🎬" label="Stage" />
             {page.characters.map((c) => {
@@ -975,14 +990,17 @@ export function BlocksStudioPage({
                 <span className="bsx-pagethumb-n">{i + 1}</span>
                 <span className="bsx-pagethumb-emoji">{p.characters[0]?.emoji ?? '🧩'}</span>
               </button>
-              {!readOnly && project.pages.length > 1 && (
+              {project.pages.length > 1 && (
                 <button
                   type="button"
                   data-testid={`remove-page-${i}`}
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow"
+                  disabled={readOnly}
+                  aria-disabled={readOnly || undefined}
+                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
                   title={`Remove page ${i + 1}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (readOnly) return;
                     sfx.trash();
                     useBlocksStore.getState().removePage(p.id);
                   }}
@@ -992,12 +1010,14 @@ export function BlocksStudioPage({
               )}
             </div>
           ))}
-          {!readOnly && project.pages.length < MAX_PAGES && (
+          {project.pages.length < MAX_PAGES && (
             <button
               type="button"
               data-testid="add-page"
-              onClick={() => { sfx.add(); useBlocksStore.getState().addPage(); }}
-              className="grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral"
+              onClick={() => { if (readOnly) return; sfx.add(); useBlocksStore.getState().addPage(); }}
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              className={`grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
               style={{ aspectRatio: '4/3' }}
               title="Add a page"
             >
@@ -1010,58 +1030,64 @@ export function BlocksStudioPage({
 
       {/* ── coding band ── */}
       <section className="bsx-coder">
-        {/* The category bar only drives the (hidden) palette — hidden in the
-            teacher viewer; the program below still renders read-only (D-LV-6). */}
-        {!readOnly && (
-          <nav className="bsx-catbar" aria-label="Kinds of blocks">
-            <FadeScroller className="bsx-catscroll">
-            <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                data-testid={`cat-${c.id}`}
-                className={`bsx-cat c-${c.id}`}
-                aria-pressed={category === c.id}
-                onClick={() => { sfx.tap(); setCategory(c.id); }}
-                title={`${c.label} blocks`}
-              >
-                <span>{c.icon}</span>
-              </button>
-            ))}
-            </FadeScroller>
-          </nav>
-        )}
+        {/* The category bar drives the palette. Rendered but inert + dimmed in the
+            teacher viewer so the coding band matches the kid's layout (D-LV-6). */}
+        <nav
+          className={`bsx-catbar${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+          aria-label="Kinds of blocks"
+          aria-disabled={readOnly || undefined}
+        >
+          <FadeScroller className="bsx-catscroll">
+          <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
+          {CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              data-testid={`cat-${c.id}`}
+              className={`bsx-cat c-${c.id}`}
+              aria-pressed={category === c.id}
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              onClick={() => { if (readOnly) return; sfx.tap(); setCategory(c.id); }}
+              title={`${c.label} blocks`}
+            >
+              <span>{c.icon}</span>
+            </button>
+          ))}
+          </FadeScroller>
+        </nav>
 
         <div className="relative flex min-h-0 min-w-0 flex-col gap-2">
           {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
-          {/* The palette ADDS blocks — a mutation, so it's hidden in the teacher
-              viewer (the program below still renders read-only; D-LV-6). */}
-          {!readOnly && (
-            <>
-              <ZoneTag zone="palette" emoji="🧩" label="Blocks" />
-              <div className="bsx-soft bsx-palette flex min-w-0 overflow-hidden rounded-3xl" data-testid="palette" data-cat={category} aria-label="Blocks">
-                <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
-                <span className="bsx-palette-tag shrink-0">
-                  <span aria-hidden>{activeCat.icon}</span>
-                  {activeCat.label}
-                </span>
-                {paletteBlocks.map((def) => (
-                  <BlockChip
-                    key={def.op}
-                    block={{ op: def.op, ...(def.hasN ? { n: def.defaultN } : {}) }}
-                    style={palBlk?.op === def.op ? { opacity: 0.4 } : undefined}
-                    onPointerDown={(e) => onPalDown(e, def.op)}
-                    onPointerMove={onPalMove}
-                    onPointerUp={() => onPalUp(def.op)}
-                    onPointerCancel={() => onPalCancel(def.op)}
-                    title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
-                  />
-                ))}
-                </FadeScroller>
-              </div>
-            </>
-          )}
+          {/* The palette ADDS blocks — a mutation. Rendered but inert + dimmed in the
+              teacher viewer so the coding band keeps the kid's layout (D-LV-6). */}
+          <ZoneTag zone="palette" emoji="🧩" label="Blocks" />
+          <div
+            className={`bsx-soft bsx-palette flex min-w-0 overflow-hidden rounded-3xl${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+            data-testid="palette"
+            data-cat={category}
+            aria-label="Blocks"
+            aria-disabled={readOnly || undefined}
+          >
+            <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
+            <span className="bsx-palette-tag shrink-0">
+              <span aria-hidden>{activeCat.icon}</span>
+              {activeCat.label}
+            </span>
+            {paletteBlocks.map((def) => (
+              <BlockChip
+                key={def.op}
+                block={{ op: def.op, ...(def.hasN ? { n: def.defaultN } : {}) }}
+                style={palBlk?.op === def.op ? { opacity: 0.4 } : undefined}
+                onPointerDown={(e) => onPalDown(e, def.op)}
+                onPointerMove={onPalMove}
+                onPointerUp={() => onPalUp(def.op)}
+                onPointerCancel={() => onPalCancel(def.op)}
+                title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
+              />
+            ))}
+            </FadeScroller>
+          </div>
 
           <div className="relative flex min-h-0 flex-1 gap-2">
           {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
@@ -1128,22 +1154,22 @@ export function BlocksStudioPage({
             </FadeScroller>
           </div>
           {/* the trash bin — at the end of the block area; drag a block here to
-              remove it. Bigger + glows red when armed. (Blocks only.) Hidden in
-              the teacher viewer — there's no block dragging to remove (D-LV-6). */}
-          {!readOnly && (
-            <div
-              ref={binRef}
-              data-testid="trash-bin"
-              aria-label="Trash"
-              className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}`}
-            >
-              <div className="bsx-bin-can">
-                <span className="bsx-bin-lid" />
-                <span className="bsx-bin-body" />
-              </div>
-              <span className="bsx-bin-label">{binArmed ? 'Drop!' : 'Bin'}</span>
+              remove it. Bigger + glows red when armed. (Blocks only.) Rendered but
+              inert + dimmed in the teacher viewer so the band matches the kid's
+              layout — there's no block dragging to feed it (D-LV-6). */}
+          <div
+            ref={binRef}
+            data-testid="trash-bin"
+            aria-label="Trash"
+            aria-disabled={readOnly || undefined}
+            className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+          >
+            <div className="bsx-bin-can">
+              <span className="bsx-bin-lid" />
+              <span className="bsx-bin-body" />
             </div>
-          )}
+            <span className="bsx-bin-label">{binArmed ? 'Drop!' : 'Bin'}</span>
+          </div>
           </div>
         </div>
       </section>

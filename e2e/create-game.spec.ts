@@ -13,13 +13,13 @@ import { mockBackendAsKid, openStudio, openLanding, STUDIO_PROJECT_ID } from './
 // These specs now run on the AUTHED route (the DEV `/playground-sandbox` is going
 // away): the J1 hub→studio flow via `openStudio`, and the LandingScreen UDL/voice
 // surface via `openLanding` (the authed `/learn/playground/new` prompt-first
-// entry). Asserts the J1 flow (Tiny Game card → studio on the real mocked VFS,
+// entry). Asserts the J1 flow (Game Playground card → studio on the real mocked VFS,
 // chat-first) plus the UDL accessibility surface (picture starter chips +
 // read-aloud + voice) and a stable landing screenshot.
 
 const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
 
-test('J1: Tiny Game card creates a real game project and opens the studio on its VFS', async ({ page }) => {
+test('J1: Game Playground card creates a real game project and opens the studio on its VFS', async ({ page }) => {
   await mockBackendAsKid(page);
   // `openStudio` drives the real authed J1 hub → prompt-first landing → create
   // flow into the chat-first workspace on `game-77` (the mocked create id), and

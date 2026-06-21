@@ -433,7 +433,7 @@ export function Workspace({
         </div>
 
         {/* Docked taskbar (brand + LayoutToggle + window buttons + share link) */}
-        <Taskbar projectId={projectId} />
+        <Taskbar projectId={projectId} readOnly={readOnly} />
       </div>
     );
   }
@@ -523,7 +523,7 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} />
+      <Taskbar projectId={projectId} readOnly={readOnly} />
     </div>
   );
 }

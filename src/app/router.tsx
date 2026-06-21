@@ -9,7 +9,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
 // The Phaser game studio. `/learn/playground/:projectId` (LearnPlaygroundPage)
-// is the authed kid entry the Tiny Game card opens; `/learn/playground/new`
+// is the authed kid entry the Game Playground card opens; `/learn/playground/new`
 // drives the create/landing flow. Phase 1 runs on the local scaffold (no backend
 // `game` kind yet — see LearnPlaygroundPage).
 import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
@@ -185,7 +185,7 @@ export const router = createBrowserRouter([
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
-      // -bleed via FLUID_ROUTES in LearnLayout. The Tiny Game card routes here.
+      // -bleed via FLUID_ROUTES in LearnLayout. The Game Playground card routes here.
       // Phase 1: local Phaser scaffold (no backend game kind yet). This authed
       // route is the only entry — `/learn/playground/:projectId` opens a game and
       // `/learn/playground/new` drives the create/landing flow. (Dev/e2e testing

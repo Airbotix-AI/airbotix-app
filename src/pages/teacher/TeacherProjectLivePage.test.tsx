@@ -9,7 +9,7 @@
 // error. FE-only — `api` and the WS subscription are mocked (no network / socket).
 
 import '@testing-library/jest-dom/vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -108,6 +108,17 @@ describe('TeacherProjectLivePage', () => {
     expect(screen.getByTestId('teacher-live-owner')).toHaveTextContent('Mia');
     expect(banner).toHaveTextContent(/live/i);
     expect(banner).toHaveTextContent(/read-only/i);
+  });
+
+  it('Back closes the tab when opened fresh (no in-app history) — not a no-op', async () => {
+    apiMock.mockResolvedValue({ id: 'proj_1', title: 'My Game', kind: 'game', kid_nickname: 'Mia' });
+    // The viewer opens in a new tab (window.open from teacher-console) → window
+    // history is length 1, so Back must close the tab rather than no-op navigate(-1).
+    const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => undefined);
+    renderViewer();
+    await screen.findByTestId('stub-game');
+    fireEvent.click(screen.getByRole('button', { name: /back to student work/i }));
+    expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
   it('renders the CODE studio in read-only for a code project', async () => {

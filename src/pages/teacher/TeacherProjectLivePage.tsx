@@ -143,6 +143,14 @@ function LiveStudio({ kind, projectId }: { kind: LiveKind; projectId: string }) 
 // read-only state — distinct from the studio's own (read-only) chrome below it.
 function LiveBanner({ title, nickname }: { title: string; nickname?: string }) {
   const navigate = useNavigate();
+  // The viewer opens in its OWN tab (teacher-console deep-links it via window.open).
+  // So "Back" closes this tab to reveal teacher-console behind it. A fresh tab has
+  // no in-app history (history.length === 1) — `navigate(-1)` would be a no-op — so
+  // we only use it as a fallback when this page WAS reached by in-app navigation.
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else window.close();
+  };
   return (
     <div
       data-testid="teacher-live-banner"
@@ -151,8 +159,8 @@ function LiveBanner({ title, nickname }: { title: string; nickname?: string }) {
     >
       <button
         type="button"
-        onClick={() => navigate(-1)}
-        aria-label="Back to Student work"
+        onClick={handleBack}
+        aria-label="Close — back to Student work"
         className="grid h-8 w-8 place-items-center rounded-full text-[16px] transition-colors hover:bg-white/10"
       >
         ←

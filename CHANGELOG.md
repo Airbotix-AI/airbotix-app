@@ -4,6 +4,47 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-21 (Blocks read-only viewer — edit controls DISABLED, not hidden — D-LV-6)
+
+### Fixed
+- **Teacher read-only Blocks studio now mirrors the kid's layout.** Read-only (`readOnly`) mode
+  previously **HID** the edit-area controls (block palette, category bar, trash bin, add/remove
+  character, add/remove page, scene/background picker, undo/redo), which broke the layout — an empty
+  coding band and missing palette that no longer matched what the kid sees. These controls are now
+  **RENDERED-but-DISABLED**: visible, inert (`pointer-events-none cursor-default`, `disabled` /
+  `aria-disabled`), and subtly dimmed (`opacity-60`) via the shared `READONLY_EDIT_DISABLED` treatment.
+  The viewed CONTENT (stage, characters, script chain, page thumbnails) stays full-opacity. The Home/back
+  button stays HIDDEN (the viewer banner provides Back; a second back is wrong). Mutation handlers were
+  already store-gated, so this is purely a stop-hiding + disable-visual change. `BlocksStudioPage.tsx`,
+  `BlocksStudioPage.test.tsx` (read-only asserts controls PRESENT but non-interactive; kid mode stays
+  interactive + Home present; mutation/autosave no-op proofs kept).
+- **No more teacher 403s in the read-only Blocks viewer (kid-scoped write/read leaks).** Two calls fired
+  for a teacher that only a kid may make: (1) the **on-load cover-thumbnail refresh** (`saveThumbnail`, a
+  kid-scoped write) ran unconditionally — now gated behind `!readOnly`; (2) the **Share panel** ran its
+  kid-scoped `getShareLink` query on mount — `BlocksSharePanel` now takes a `readOnly` prop that disables
+  the query (`enabled: !readOnly`) and renders the Share button disabled + dimmed (visible for layout
+  parity, never opens the sheet). Verified in a real browser: the teacher read-only Blocks viewer now
+  loads with **zero 403s** and a layout identical to the kid's. `BlocksStudioPage.tsx`, `BlocksSharePanel.tsx`.
+
+## 2026-06-20 (Class create sheet — second-level menu + Game Playground; "Tiny Game" rename)
+
+### Added
+- **"Create for this class" sheet now has a second-level menu (my-classes-prd §3.3).** Tapping the
+  **Code Studio** tool no longer creates a blank `code` project directly — it opens an in-sheet sub-menu
+  (with a `← Back`) offering **Web Code** (`{ kind:'code', template:'blank' }` → `/learn/code/:id`,
+  today's behaviour) and **Game Playground** (`{ kind:'game', template:'phaser_blank' }` →
+  `/learn/playground/:id`, matching `createGameProject` in `PlaygroundApp`). A game is now creatable
+  directly from a class. All other tools (Blocks / Image / Music / Voice / Video) still create directly.
+  Sub-types modelled via `CODE_SUBTYPES` / `SUBTYPES_BY_TOOL` in `CreateForClassSheet`; leaf create
+  buttons keep `data-testid="create-tool"`, the sub-menu opener is `create-tool-submenu`, the back affordance
+  `create-subtool-back`. New `CreateForClassSheet.test.tsx`.
+
+### Changed
+- **"Tiny Game" → "Game Playground" (display only).** The Code hub starter and all user-facing copy now
+  read **Game Playground**; the internal template id `tiny_game` (routing / testids / template lookup) is
+  unchanged. `codeApi.ts` starter `title`, plus clarifying comments in `router.tsx`,
+  `LearnPlaygroundPage.tsx`, `CodeHubPage.tsx`. `codeApi.test.ts` asserts the renamed starter title.
+
 ## 2026-06-20 (Teacher LIVE viewer — render the kid's STUDIO EDITOR read-only — D-LV-6)
 
 ### Changed

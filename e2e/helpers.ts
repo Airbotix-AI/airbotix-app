@@ -261,8 +261,8 @@ export async function installGameSignalRecorder(page: Page): Promise<void> {
 }
 
 /**
- * Drive the authed J1 flow → the chat-first workspace on `game-77`. The Tiny Game
- * hub card now opens PROMPT-FIRST (`/learn/playground/new` → LandingScreen); the
+ * Drive the authed J1 flow → the chat-first workspace on `game-77`. The Game
+ * Playground hub card now opens PROMPT-FIRST (`/learn/playground/new` → LandingScreen); the
  * real `kind='game'` project is created on prompt submit (mocked → `game-77`).
  * With `openCode`, also opens the Code editor and awaits the seeded `main.js`.
  */
@@ -286,7 +286,7 @@ export async function openStudio(page: Page, opts: { openCode?: boolean } = {}):
 
 /**
  * Open the authed new-project LandingScreen (the prompt-first entry). The hub
- * routes a new Tiny Game to `/learn/playground/new`, whose `isNew` sentinel makes
+ * routes a new Game Playground to `/learn/playground/new`, whose `isNew` sentinel makes
  * `PlaygroundApp` open on the landing phase (see PlaygroundApp.tsx `isNew`). This
  * replaces `goto('/playground-sandbox')` for the landing/generating-flow specs.
  */
