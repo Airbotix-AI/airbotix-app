@@ -34,11 +34,13 @@ export function MusicTrackList({
   onGenerateTrack,
   onImportTrack,
   onUploadTrack,
+  onDemo,
 }: {
   messages: Message[];
   onGenerateTrack?: () => void;
   onImportTrack?: () => void;
   onUploadTrack?: () => void;
+  onDemo?: () => void;
 }) {
   const tracks = useMemo<TrackPair[]>(() => {
     // Walk messages, pair each audio assistant with its preceding user prompt.
@@ -190,7 +192,7 @@ export function MusicTrackList({
       {/* ─── Tracks ─── */}
       <div className="flex-1 overflow-y-auto">
         {tracks.length === 0 ? (
-          <EmptyState onAddTrack={onGenerateTrack} />
+          <EmptyState onAddTrack={onGenerateTrack} onDemo={onDemo} />
         ) : (
           <div>
             {tracks.map((t, i) => (
@@ -255,21 +257,31 @@ export function MusicTrackList({
   );
 }
 
-function EmptyState({ onAddTrack }: { onAddTrack?: () => void }) {
+function EmptyState({ onAddTrack, onDemo }: { onAddTrack?: () => void; onDemo?: () => void }) {
   return (
     <div className="text-center py-12 px-6">
       <div className="text-[48px] opacity-50">🎵</div>
       <p className="text-[13px] text-slate-400 mt-3 leading-relaxed">
         Describe a song below — each one becomes a track here so you can layer them like a real producer.
       </p>
-      {onAddTrack && (
-        <button
-          onClick={onAddTrack}
-          className="mt-4 rounded-full bg-brand-coral text-white px-4 py-2 text-[12px] font-bold"
-        >
-          + Add first track
-        </button>
-      )}
+      <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+        {onAddTrack && (
+          <button
+            onClick={onAddTrack}
+            className="rounded-full bg-brand-coral text-white px-4 py-2 text-[12px] font-bold hover:brightness-110"
+          >
+            + Add first track
+          </button>
+        )}
+        {onDemo && (
+          <button
+            onClick={onDemo}
+            className="rounded-full bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 text-[12px] font-semibold"
+          >
+            🎹 Try Demo
+          </button>
+        )}
+      </div>
     </div>
   );
 }

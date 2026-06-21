@@ -11,6 +11,7 @@ import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
 import { MusicScorePlayer, type MusicScore } from './MusicScorePlayer';
 import { MusicTrackList } from './MusicTrackList';
+import { DEMO_SCORE } from './demoScore';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
 import { buildPromptPrefix, STUDIO_BY_ID, type Studio } from './studios';
@@ -59,6 +60,7 @@ export function WorkspacePage() {
   const [musicProjectId, setMusicProjectId] = useState<string | null>(null);
   const [activeVersionIdx, setActiveVersionIdx] = useState(0);
   const [selectedDuration, setSelectedDuration] = useState(30);
+  const [mockScore, setMockScore] = useState<MusicScore | null>(null);
 
   const { save: saveAudio, saving: savingAudio } = useMusicUpload(musicProjectId);
 
@@ -257,7 +259,7 @@ export function WorkspacePage() {
       .map((m) => m.artifact!.metadata!.score!);
   }, [messages.data]);
 
-  const displayScore = scoreVersions[activeVersionIdx] ?? scoreVersions[scoreVersions.length - 1] ?? null;
+  const displayScore = scoreVersions[activeVersionIdx] ?? scoreVersions[scoreVersions.length - 1] ?? mockScore;
 
   const suggestions = useMemo(() => {
     if (!displayScore) return [];
@@ -471,6 +473,7 @@ export function WorkspacePage() {
             onUploadTrack={() =>
               setError('Upload your own coming next — for now Generate or Import a track.')
             }
+            onDemo={() => setMockScore(DEMO_SCORE)}
           />
         )
       ) : (
