@@ -19,7 +19,7 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
-import { saveVfs } from './codeApi';
+import { saveVfs, CODE_TEMPLATES } from './codeApi';
 
 const file = (path: string, content = 'x') => ({ path, content, kind: 'text' as const, size: content.length });
 
@@ -47,5 +47,12 @@ describe('saveVfs — PUT /projects/:id/code/files', () => {
     api.mockResolvedValue({ version: 9, files: [file('main.js', 'saved')] });
     const snap = await saveVfs({ projectId: 'p1', files: [file('main.js', 'saved')], version: 8 });
     expect(snap).toEqual({ version: 9, files: [file('main.js', 'saved')] });
+  });
+});
+
+describe('CODE_TEMPLATES — starter labels', () => {
+  it('renders the game starter as "Game Playground" (display rename; id stays tiny_game)', () => {
+    const game = CODE_TEMPLATES.find((t) => t.id === 'tiny_game');
+    expect(game?.title).toBe('Game Playground');
   });
 });

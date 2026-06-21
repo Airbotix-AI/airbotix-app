@@ -68,6 +68,10 @@ interface AssetViewerPaneProps {
   onRequestAssetGen?: (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => void;
   /** A request to open a specific asset's detail (from a chat "done" card tap). */
   openAsset?: { path: string; nonce: number } | null;
+  /** Teacher live read-only viewer (D-LV-6): hide every mutation affordance —
+   *  import/upload (file input + drag-drop/paste), Generate, Remix, rename, delete.
+   *  Viewing / opening / previewing assets stays enabled. */
+  readOnly?: boolean;
 }
 
 const ALL = '__all__';
@@ -130,7 +134,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetViewerPaneProps) {
+export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly }: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
@@ -304,15 +308,25 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
   return (
     <div
       className="flex h-full w-full bg-pg-bg text-pg-text"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        if (e.dataTransfer.files.length) void importFiles(e.dataTransfer.files);
-      }}
-      onPaste={(e) => {
-        const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
-        if (imgs.length) void importFiles(imgs);
-      }}
+      // Drop / paste to import are gated in the read-only viewer (D-LV-6) — a
+      // teacher must never add assets to the kid's project.
+      onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
+      onDrop={
+        readOnly
+          ? undefined
+          : (e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files.length) void importFiles(e.dataTransfer.files);
+            }
+      }
+      onPaste={
+        readOnly
+          ? undefined
+          : (e) => {
+              const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+              if (imgs.length) void importFiles(imgs);
+            }
+      }
     >
       {/* Left rail: source tabs + categories + actions */}
       <aside className="flex w-56 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
@@ -349,7 +363,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
             />
           ))}
         </nav>
-        {source === 'mine' && (
+        {source === 'mine' && !readOnly && (
           <div className="flex gap-2 border-t border-pg-border p-2">
             <button
               type="button"
@@ -385,6 +399,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
             <LibraryDetailView
               asset={selectedLib}
               busy={false}
+              readOnly={readOnly}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
               onCopyRef={(snippet) => {
@@ -400,6 +415,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
             asset={selected}
             files={files}
             busy={false}
+            readOnly={readOnly}
             onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
@@ -417,7 +433,10 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset }: AssetVi
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
+            {/* Generate is hidden in the read-only viewer (D-LV-6). */}
+            {!readOnly && (
+              <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
+            )}
             <div className="min-h-0 flex-1 overflow-auto p-4">
               {visible.length === 0 ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
@@ -573,12 +592,14 @@ function LibraryGrid({ items, onSelect }: { items: LibraryAsset[]; onSelect: (id
 function LibraryDetailView({
   asset,
   busy,
+  readOnly,
   onRemix,
   onBack,
   onCopyRef,
 }: {
   asset: LibraryAsset;
   busy: boolean;
+  readOnly?: boolean;
   onRemix: (prompt: string) => void;
   onBack: () => void;
   onCopyRef: (snippet: string) => void;
@@ -620,7 +641,7 @@ function LibraryDetailView({
             <Row k="Source" v="Shared library (read-only)" />
           </dl>
 
-          {asset.kind === 'image' && <RemixBar busy={busy} onRemix={onRemix} />}
+          {asset.kind === 'image' && !readOnly && <RemixBar busy={busy} onRemix={onRemix} />}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -715,6 +736,7 @@ function DetailView({
   asset,
   files,
   busy,
+  readOnly,
   onRemix,
   onBack,
   onRename,
@@ -724,6 +746,7 @@ function DetailView({
   asset: VfsFile;
   files: VfsFile[];
   busy: boolean;
+  readOnly?: boolean;
   onRemix: (prompt: string) => void;
   onBack: () => void;
   onRename: (to: string) => void;
@@ -773,7 +796,10 @@ function DetailView({
         >
           <ArrowLeft size={15} /> Back
         </button>
-        {renaming ? (
+        {readOnly ? (
+          // Read-only viewer (D-LV-6): the name is plain text — no rename.
+          <span className="truncate text-[14px] font-extrabold">{basename(asset.path)}</span>
+        ) : renaming ? (
           <input
             autoFocus
             value={nameDraft}
@@ -817,7 +843,7 @@ function DetailView({
             <Row k="Size" v={formatBytes(asset.size || asset.content.length)} />
           </dl>
 
-          {(kind === 'image' || kind === 'sprite') && <RemixBar busy={busy} onRemix={onRemix} />}
+          {(kind === 'image' || kind === 'sprite') && !readOnly && <RemixBar busy={busy} onRemix={onRemix} />}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -838,25 +864,27 @@ function DetailView({
             </pre>
           </div>
 
-          {confirmDelete ? (
-            <div className="flex items-center gap-2 rounded-xl border border-brand-coral/50 bg-brand-coral/10 p-3 text-[12.5px]">
-              <span className="font-semibold">Delete this asset?</span>
-              <button type="button" onClick={onDelete} className="ml-auto rounded-lg bg-brand-coral px-3 py-1 font-bold text-white">
-                Delete
+          {/* Delete is hidden in the read-only viewer (D-LV-6). */}
+          {!readOnly &&
+            (confirmDelete ? (
+              <div className="flex items-center gap-2 rounded-xl border border-brand-coral/50 bg-brand-coral/10 p-3 text-[12.5px]">
+                <span className="font-semibold">Delete this asset?</span>
+                <button type="button" onClick={onDelete} className="ml-auto rounded-lg bg-brand-coral px-3 py-1 font-bold text-white">
+                  Delete
+                </button>
+                <button type="button" onClick={() => setConfirmDelete(false)} className="rounded-lg border border-pg-border px-3 py-1 font-semibold">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-brand-coral/50 px-3 py-1.5 text-[12.5px] font-bold text-brand-coral hover:bg-brand-coral/10"
+              >
+                <Trash2 size={15} /> Delete
               </button>
-              <button type="button" onClick={() => setConfirmDelete(false)} className="rounded-lg border border-pg-border px-3 py-1 font-semibold">
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-brand-coral/50 px-3 py-1.5 text-[12.5px] font-bold text-brand-coral hover:bg-brand-coral/10"
-            >
-              <Trash2 size={15} /> Delete
-            </button>
-          )}
+            ))}
         </div>
       </div>
     </div>

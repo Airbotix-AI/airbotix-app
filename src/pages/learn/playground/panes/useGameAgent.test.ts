@@ -186,6 +186,39 @@ describe('useGameAgent streamed apply (H1)', () => {
   });
 });
 
+// Teacher live read-only viewer (teacher-live-project-view-prd D-LV-6): every AI
+// turn entry point is a hard no-op so a teacher can never run a turn or mutate the
+// kid's VFS.
+describe('useGameAgent read-only (teacher viewer)', () => {
+  function setupReadOnly() {
+    const deps = makeDeps();
+    const onApplyFiles = vi.fn();
+    const view = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles, projectId: 'p1', mode: 'pro', deps, readOnly: true }),
+    );
+    return { ...view, deps, onApplyFiles };
+  }
+
+  it('send / requestAssetGen / raiseHand are no-ops — no turn runs, nothing applies', async () => {
+    const { result, deps, onApplyFiles } = setupReadOnly();
+
+    await act(async () => {
+      void result.current.send('make it blue');
+      void result.current.requestAssetGen('a dragon');
+      result.current.raiseHand();
+    });
+
+    expect(deps.runTurn).not.toHaveBeenCalled();
+    expect(deps.classify).not.toHaveBeenCalled();
+    expect(deps.raiseHand).not.toHaveBeenCalled();
+    expect(onApplyFiles).not.toHaveBeenCalled();
+    expect(result.current.busy).toBe(false);
+    expect(result.current.handRaised).toBe(false);
+    // No kid bubble was ever appended — the chat stays empty.
+    expect(result.current.chat).toHaveLength(0);
+  });
+});
+
 describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => {
   it('a guided send (chip tap) forwards guided:true to the backend turn (#1)', async () => {
     resolveStream = null;

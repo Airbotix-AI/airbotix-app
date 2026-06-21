@@ -34,13 +34,26 @@ export interface CodeStudioOptions {
    * in Pro mode — Mission authoring decided the right scaffold (code-studio-prd §7).
    */
   forcePro?: boolean;
+  /**
+   * Read-only viewing mode (teacher-live-project-view-prd D-LV-6). A teacher
+   * watches a kid's project live: the SAME studio layout renders from the loaded
+   * VFS, but EVERY mutation entry point is gated (send / approve / reject are
+   * no-ops) and the kid-only wallet query is skipped (a teacher has no family —
+   * balance shows "—"). The hard backstop is the backend write-guard; this is the
+   * UX layer over it. `runAnew` / preview stay live (non-destructive viewing).
+   */
+  readOnly?: boolean;
 }
 
 /** Shared controller for both Pro and Lite Code Studio layouts. */
 export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
+  const readOnly = opts.readOnly ?? false;
   const me = useMe();
   const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
-  const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
+  // In read-only mode the principal is a teacher (`user`), not a kid — there is no
+  // family/wallet. Force `familyId` null so the kid-only wallet query never fires
+  // (it would 403/404 for a teacher) and the balance renders as hidden ("—").
+  const familyId = !readOnly && me.data?.kind === 'kid' ? me.data.family_id : null;
 
   // Mode: 8-11 → Lite, 12-17 → Pro. Default to Lite when age is unknown (safest
   // UX). Mission code steps force Pro (code-studio-prd §7).
@@ -120,6 +133,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
    */
   const send = useCallback(
     async (prompt: string, opts: { piiWarnAcknowledged?: boolean } = {}) => {
+      if (readOnly) return; // teacher viewer — no AI turns (D-LV-6)
       const text = prompt.trim();
       if (!text || busy) return;
       setError(null);
@@ -163,7 +177,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
         setBusy(false);
       }
     },
-    [busy, projectId, mode, applyTurn],
+    [readOnly, busy, projectId, mode, applyTurn],
   );
 
   const confirmWarn = useCallback(async () => {
@@ -186,6 +200,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
 
   /** Approve a staged plan ("✓ yes") — asks the backend to persist the turn. */
   const approvePlan = useCallback(async () => {
+    if (readOnly) return; // teacher viewer — cannot approve a kid's plan (D-LV-6)
     const turnId = stagedTurnId.current;
     if (!turnId || busy) return;
     setError(null);
@@ -200,10 +215,11 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
     } finally {
       setBusy(false);
     }
-  }, [busy, projectId, applyTurn]);
+  }, [readOnly, busy, projectId, applyTurn]);
 
   /** Reject a staged plan — tells the backend to discard the turn. */
   const rejectPlan = useCallback(async () => {
+    if (readOnly) return; // teacher viewer — no plan to reject (D-LV-6)
     const turnId = stagedTurnId.current;
     if (!turnId || busy) return;
     setError(null);
@@ -222,7 +238,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
         { id: `r${Date.now()}`, role: 'agent', text: 'No problem — nothing changed. Tell me what to do instead.' },
       ]);
     }
-  }, [busy, projectId]);
+  }, [readOnly, busy, projectId]);
 
   const runAnew = useCallback(() => setRunKey((k) => k + 1), []);
 
@@ -233,13 +249,16 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       mode,
       age,
       title,
+      readOnly,
       files: liveFiles,
       loading: vfs.isLoading || project.isLoading,
       chat,
       busy,
       error,
       warnPending,
-      balance,
+      // A teacher viewer has no wallet — surface null so the UI hides the balance
+      // ("—") rather than showing the kid a misleading 0★ (D-LV-6).
+      balance: readOnly ? null : balance,
       runKey,
       pendingPlan,
       send,
@@ -251,7 +270,7 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       visibility: project.data?.visibility ?? 'private',
     }),
     [
-      mode, age, title, liveFiles, vfs.isLoading, project.isLoading, project.data,
+      mode, age, title, readOnly, liveFiles, vfs.isLoading, project.isLoading, project.data,
       chat, busy, error, warnPending, balance, runKey, pendingPlan, send, approvePlan, rejectPlan, runAnew, confirmWarn, dismissWarn,
     ],
   );

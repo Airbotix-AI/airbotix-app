@@ -12,8 +12,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { saveBlocksProject } from './blocksApi';
 import { blankProject } from './blocksModel';
-import { BlocksStudioPage } from './BlocksStudioPage';
 import { useBlocksStore } from './blocksStore';
+import { BlocksStudioPage } from './BlocksStudioPage';
 
 vi.mock('./blocksApi', () => ({
   loadBlocksProject: vi.fn(async () => ({
@@ -31,13 +31,15 @@ vi.mock('../playground/projectPersistence', () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  // the store is a shared singleton — reset the read-only flag between tests
+  useBlocksStore.getState().setReadOnly(false);
 });
 
-async function renderStudio() {
+async function renderStudio(readOnly = false) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <BlocksStudioPage projectId="p1" />
+        <BlocksStudioPage projectId="p1" readOnly={readOnly} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -87,6 +89,108 @@ describe('BlocksStudioPage zone labels', () => {
     expect(screen.getByTestId('script-area')).toHaveTextContent(
       /Tap a 🚩 block to pick what .+ does ✨/,
     );
+  });
+});
+
+// Teacher live read-only viewer (teacher-live-project-view-prd D-LV-6): the kid's
+// blocks EDITOR renders from the VFS with the SAME regions/layout the kid sees —
+// every edit affordance is RENDERED-but-DISABLED (visible, inert, dimmed), not
+// hidden, so there's no empty coding band / missing palette. No mutation /
+// autosave can happen.
+describe('BlocksStudioPage read-only (teacher viewer)', () => {
+  it('renders the full kid layout but with every edit affordance disabled (not hidden)', async () => {
+    await renderStudio(true);
+    // The editor layout is present (the teacher sees what the kid built).
+    expect(screen.getByTestId('blocks-stage')).toBeInTheDocument();
+    expect(screen.getByTestId('script-area')).toBeInTheDocument();
+    expect(screen.getByLabelText('Characters')).toBeInTheDocument();
+    expect(screen.getByLabelText('Pages')).toBeInTheDocument();
+    // Running stays enabled (non-destructive viewing).
+    expect(screen.getByTestId('go-button')).toBeInTheDocument();
+
+    // Every edit affordance is now PRESENT but non-interactive (inert + dimmed) —
+    // the read-only layout mirrors the kid's, with no empty bands.
+    const realButtons: Array<[string, string]> = [
+      ['palette', 'palette'],
+      ['add-character', 'add character'],
+      ['add-page', 'add page'],
+      ['scene-btn', 'scene picker'],
+      ['trash-bin', 'trash bin'],
+      ['undo', 'undo'],
+      ['redo', 'redo'],
+    ];
+    for (const [testId] of realButtons) {
+      const el = screen.getByTestId(testId);
+      expect(el).toBeInTheDocument();
+      expect(el).toHaveClass('pointer-events-none');
+      expect(el).toHaveClass('opacity-60');
+    }
+    // The category bar is present + disabled (drives the palette).
+    expect(screen.getByLabelText('Kinds of blocks')).toHaveClass('pointer-events-none');
+    expect(screen.getByTestId('cat-trigger')).toBeDisabled();
+    // The <button> edit controls are also natively disabled / aria-disabled.
+    for (const testId of ['undo', 'redo', 'add-character', 'add-page', 'scene-btn']) {
+      expect(screen.getByTestId(testId)).toBeDisabled();
+    }
+    // Share is a kid-only action — present (layout parity) but disabled + dimmed,
+    // and its kid-scoped getShareLink query never fires (no teacher 403).
+    const shareBtn = screen.getByTestId('share-link-btn');
+    expect(shareBtn).toBeDisabled();
+    expect(shareBtn).toHaveClass('pointer-events-none');
+    expect(shareBtn).toHaveClass('opacity-60');
+
+    // The CONTENT being viewed (stage, script chain, page thumbs) stays
+    // full-opacity — only the EDIT controls get dimmed.
+    expect(screen.getByTestId('script-area')).not.toHaveClass('opacity-60');
+    expect(screen.getByTestId('blocks-stage')).not.toHaveClass('opacity-60');
+
+    // Selecting a character/page (read-only navigation) stays available.
+    const page0 = screen.queryByTestId('page-thumb-0');
+    if (page0) fireEvent.click(page0); // never throws / mutates
+
+    // The Home/back button STAYS hidden (the teacher viewer's banner provides
+    // Back; a second back would be wrong — the one exception to render-but-disable).
+    expect(screen.queryByTitle('Save & back')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('demo-home')).not.toBeInTheDocument();
+  });
+
+  it('kid mode (editable) renders the same controls interactive + Home present', async () => {
+    await renderStudio(false);
+    // Edit controls are present and NOT given the disabled treatment.
+    for (const testId of ['palette', 'add-character', 'add-page', 'scene-btn', 'trash-bin', 'undo', 'redo']) {
+      const el = screen.getByTestId(testId);
+      expect(el).toBeInTheDocument();
+      expect(el).not.toHaveClass('pointer-events-none');
+      expect(el).not.toHaveClass('opacity-60');
+    }
+    // add-character is a real interactive button (undo/redo can be natively
+    // disabled by empty history — they're interactive by virtue of not being
+    // aria-disabled for read-only).
+    expect(screen.getByTestId('add-character')).not.toBeDisabled();
+    expect(screen.getByTestId('add-character')).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByTestId('cat-trigger')).not.toBeDisabled();
+    // Share is interactive for the kid.
+    expect(screen.getByTestId('share-link-btn')).not.toBeDisabled();
+    // The kid's Home/back button is present.
+    expect(screen.getByTitle('Save & back')).toBeInTheDocument();
+  });
+
+  it('the store gate makes every mutation a no-op and never autosaves', async () => {
+    await renderStudio(true);
+    const before = useBlocksStore.getState().dirty;
+
+    // Attempt mutations directly through the store — all must be blocked.
+    act(() => {
+      useBlocksStore.getState().addCharacter('🐶', 'Dog');
+      useBlocksStore.getState().addPage();
+      useBlocksStore.getState().addBlock('move_right');
+      useBlocksStore.getState().undo();
+      useBlocksStore.getState().redo();
+    });
+
+    expect(useBlocksStore.getState().dirty).toBe(before); // no mutation landed
+    // dirty never advanced → the debounced autosave can never have fired.
+    expect(saveBlocksProject).not.toHaveBeenCalled();
   });
 });
 

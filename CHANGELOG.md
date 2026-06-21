@@ -4,6 +4,113 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-21 (Blocks read-only viewer — edit controls DISABLED, not hidden — D-LV-6)
+
+### Fixed
+- **Teacher read-only Blocks studio now mirrors the kid's layout.** Read-only (`readOnly`) mode
+  previously **HID** the edit-area controls (block palette, category bar, trash bin, add/remove
+  character, add/remove page, scene/background picker, undo/redo), which broke the layout — an empty
+  coding band and missing palette that no longer matched what the kid sees. These controls are now
+  **RENDERED-but-DISABLED**: visible, inert (`pointer-events-none cursor-default`, `disabled` /
+  `aria-disabled`), and subtly dimmed (`opacity-60`) via the shared `READONLY_EDIT_DISABLED` treatment.
+  The viewed CONTENT (stage, characters, script chain, page thumbnails) stays full-opacity. The Home/back
+  button stays HIDDEN (the viewer banner provides Back; a second back is wrong). Mutation handlers were
+  already store-gated, so this is purely a stop-hiding + disable-visual change. `BlocksStudioPage.tsx`,
+  `BlocksStudioPage.test.tsx` (read-only asserts controls PRESENT but non-interactive; kid mode stays
+  interactive + Home present; mutation/autosave no-op proofs kept).
+- **No more teacher 403s in the read-only Blocks viewer (kid-scoped write/read leaks).** Two calls fired
+  for a teacher that only a kid may make: (1) the **on-load cover-thumbnail refresh** (`saveThumbnail`, a
+  kid-scoped write) ran unconditionally — now gated behind `!readOnly`; (2) the **Share panel** ran its
+  kid-scoped `getShareLink` query on mount — `BlocksSharePanel` now takes a `readOnly` prop that disables
+  the query (`enabled: !readOnly`) and renders the Share button disabled + dimmed (visible for layout
+  parity, never opens the sheet). Verified in a real browser: the teacher read-only Blocks viewer now
+  loads with **zero 403s** and a layout identical to the kid's. `BlocksStudioPage.tsx`, `BlocksSharePanel.tsx`.
+
+## 2026-06-20 (Class create sheet — second-level menu + Game Playground; "Tiny Game" rename)
+
+### Added
+- **"Create for this class" sheet now has a second-level menu (my-classes-prd §3.3).** Tapping the
+  **Code Studio** tool no longer creates a blank `code` project directly — it opens an in-sheet sub-menu
+  (with a `← Back`) offering **Web Code** (`{ kind:'code', template:'blank' }` → `/learn/code/:id`,
+  today's behaviour) and **Game Playground** (`{ kind:'game', template:'phaser_blank' }` →
+  `/learn/playground/:id`, matching `createGameProject` in `PlaygroundApp`). A game is now creatable
+  directly from a class. All other tools (Blocks / Image / Music / Voice / Video) still create directly.
+  Sub-types modelled via `CODE_SUBTYPES` / `SUBTYPES_BY_TOOL` in `CreateForClassSheet`; leaf create
+  buttons keep `data-testid="create-tool"`, the sub-menu opener is `create-tool-submenu`, the back affordance
+  `create-subtool-back`. New `CreateForClassSheet.test.tsx`.
+
+### Changed
+- **"Tiny Game" → "Game Playground" (display only).** The Code hub starter and all user-facing copy now
+  read **Game Playground**; the internal template id `tiny_game` (routing / testids / template lookup) is
+  unchanged. `codeApi.ts` starter `title`, plus clarifying comments in `router.tsx`,
+  `LearnPlaygroundPage.tsx`, `CodeHubPage.tsx`. `codeApi.test.ts` asserts the renamed starter title.
+
+## 2026-06-20 (Teacher LIVE viewer — render the kid's STUDIO EDITOR read-only — D-LV-6)
+
+### Changed
+- **Teacher LIVE viewer chrome → full-bleed "Style B" banner.** Dropped the bolted-on header + the
+  bordered card frame around the studio. `TeacherProjectLivePage` is now **full-bleed** (`fixed inset-0`,
+  breaking out of the centered TeacherLayout container) with a slim dark **"← · ● LIVE · You're watching
+  <kid>'s project — <title> · 🔒 Read-only"** banner above the kid's own studio bar — so the teacher sees
+  the studio exactly as the student does, with the live/read-only context on top. The studio's own
+  **Home/back is hidden in `readOnly`** (blocks 🏠 now gated; code already gated) so the banner's Back is
+  the only navigation (no bouncing a teacher into the kid Learn hub). `TeacherProjectLivePage.test` updated
+  for the banner.
+
+- **Teacher LIVE viewer now renders the kid's STUDIO EDITOR read-only**, not the read-only player
+  (teacher-live-project-view-prd D-LV-6, supersedes the "render the player" part of v0.2). The teacher sees
+  EXACTLY what the student sees while **building**: `game`→`PlaygroundApp`, `code`→`CodeStudioPage`,
+  `blocks`→`BlocksStudioPage` — each with a new `readOnly` mode. `TeacherProjectLivePage` loads
+  `GET /projects/:id` and renders the matching studio with `readOnly` + the projectId; it **remounts the
+  studio** on each `project.vfs.changed` for this project so the kid's latest VFS re-loads live.
+- Added a `readOnly?: boolean` prop to **`PlaygroundApp` / `Workspace` / `useGameAgent`**,
+  **`CodeStudioPage` / `useCodeStudio` / `CodeChat`**, and **`BlocksStudioPage` / `blocksStore`**. In read-only:
+  - **Every mutation entry point is gated.** Game: AI turns (send / confirm / reject / asset-gen / raise-hand /
+    auto-fix), file create/rename/delete/move (FileTree), Monaco edits (editor `readOnly`), idle-autosave +
+    all VFS/UI/chat persistence, asset upload / add-to-game / generate/remix. Code: chat composer + send +
+    approve/reject (no-op + composer removed). Blocks: a single store gate on `_commit`/`undo`/`redo` makes
+    every program mutation a no-op so `dirty` never advances (autosave can never fire), plus the palette,
+    category bar, trash bin, add/remove character, add/remove page, scene picker, friend picker, undo/redo,
+    block drag/tap-to-edit, and sprite drag are all disabled/hidden.
+  - **Running stays live** (▶ Go! / Run anew / Play / tap-sprite-to-run / mute / theme) — non-destructive viewing.
+  - **The kid-only wallet query is skipped** for a teacher (`user`) principal (game + code) — no family, no crash;
+    balance is hidden ("—").
+- The hard data backstop is unchanged: `PUT …/code/files` excludes `teacher`, so a teacher literally cannot save;
+  the read-only client gating is the UX + defence-in-depth layer over it.
+- The teacher-console deep-link (`…/teacher/projects/:id/live`) is unchanged and still works.
+
+### Fixed
+- **No dead edit affordances in the game read-only viewer (D-LV-6).** Two controls still rendered for a teacher
+  even though their handlers were already gated (they call a no-op `send`), so a click did nothing — now they are
+  hidden in `readOnly`: the Monaco **"✨ Explain this"** selection toolbar (its content widget + selection
+  listener are no longer registered) and the Game Runner's **"Ask AI to fix"** console button.
+- `useGameAgent` `cancelPending` / `lowerHand` / `retryLast` now early-return in `readOnly` (matching the other
+  entry points) so the read-only contract is uniform and obvious, not merely inert-by-consequence.
+
+### Tests
+- `PlaygroundApp.readOnly.test.tsx` (new): a teacher (`user` principal, `family_id:null`) renders the game studio
+  read-only without crashing and the kid-only **wallet + class** queries never fire; Monaco is non-editable, the
+  FileTree CRUD buttons are absent + rows not draggable, and **no persist request is issued on mount**. Asserts the
+  kid path is unchanged (editable Monaco, CRUD present, wallet/class queries fire).
+- `GameRunnerPane.test.tsx`: asserts "Ask AI to fix" is hidden in `readOnly` (console still opens) and present for the kid.
+
+## 2026-06-20 (Teacher — read-only LIVE project viewer — D-LV-1…5)
+
+### Added
+- **Teacher read-only LIVE project viewer** at `/teacher/projects/:projectId/live` (under `TeacherLayout`,
+  `<ProtectedRoute kind="user">`). A teacher opens an enrolled kid's **class** project and watches it render
+  **live, read-only** — no editor, no co-edit. Reuses the existing per-kind read-only renderers:
+  `game`→`ReadOnlyGameFrame`, `code`→`PreviewFrame`, `blocks`→`ReadOnlyBlocksPlayer` (same wiring as
+  `PublicPlayPage`; no duplication). Loads `GET /projects/:id` (kind/title/owner nickname) +
+  `GET /projects/:id/code/files`, subscribes to the generalized **`project.vfs.changed`** WS event on the
+  teacher socket and **refetches the VFS** so the renderer re-renders live for all three kinds. A small
+  "👁 Watching live — read-only" header. `creative`/unknown kind → an honest "Live view isn't available for
+  this project type yet" message (no crash); a 403/404 (server-enforced class-scope, D-LV-5) → a friendly error.
+
+### Changed
+- `useWsEvent` takes an optional `kind` (default `'kid'`) so the teacher (`user`) viewer can subscribe on
+  the teacher socket.
+
 ## 2026-06-20 (Blocks Studio — autosave no longer reverts edits)
 
 ### Fixed

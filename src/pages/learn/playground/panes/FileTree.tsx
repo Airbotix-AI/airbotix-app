@@ -27,6 +27,10 @@ interface FileTreeProps {
   files: VfsFile[];
   activePath: string;
   onSelect: (path: string) => void;
+  /** Teacher live read-only viewer (D-LV-6): hide every CRUD affordance — new
+   *  file/folder, rename, delete, and drag-to-move. Selecting a file to VIEW it
+   *  stays enabled. */
+  readOnly?: boolean;
 }
 
 const FILE_ICON: Record<string, LucideIcon> = {
@@ -167,6 +171,8 @@ interface RowProps {
   confirming: string | null;
   creatingIn: string | null;
   createKind: 'file' | 'folder';
+  /** Read-only viewer (D-LV-6): no action buttons, no drag. */
+  readOnly: boolean;
   dragOver: string | null;
   canDrop: (target: string) => boolean;
   onDragStart: (path: string) => void;
@@ -186,7 +192,7 @@ interface RowProps {
 }
 
 function TreeRow(props: RowProps) {
-  const { node, depth, activePath, expanded, renaming, confirming, creatingIn, createKind } = props;
+  const { node, depth, activePath, expanded, renaming, confirming, creatingIn, createKind, readOnly } = props;
   const indent = { paddingLeft: `${depth * 14 + 4}px` };
 
   if (renaming === node.path) {
@@ -279,15 +285,19 @@ function TreeRow(props: RowProps) {
       <li>
         <div
           data-path={node.path}
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            props.onDragStart(node.path);
-          }}
-          onDragEnd={props.onDragEnd}
-          onDragOver={(e) => props.onDragOverFolder(node.path, e)}
-          onDragLeave={() => props.onDragLeaveFolder(node.path)}
-          onDrop={(e) => props.onDropOnFolder(node.path, e)}
+          draggable={!readOnly}
+          onDragStart={
+            readOnly
+              ? undefined
+              : (e) => {
+                  e.stopPropagation();
+                  props.onDragStart(node.path);
+                }
+          }
+          onDragEnd={readOnly ? undefined : props.onDragEnd}
+          onDragOver={readOnly ? undefined : (e) => props.onDragOverFolder(node.path, e)}
+          onDragLeave={readOnly ? undefined : () => props.onDragLeaveFolder(node.path)}
+          onDrop={readOnly ? undefined : (e) => props.onDropOnFolder(node.path, e)}
           className={`group flex items-center rounded-lg pr-2 transition-colors ${
             dropping ? 'bg-brand-sky/20 ring-1 ring-brand-sky' : 'hover:bg-pg-text/5'
           }`}
@@ -302,7 +312,7 @@ function TreeRow(props: RowProps) {
             <Folder size={14} className="shrink-0 text-pg-text-muted" aria-hidden />
             <span className="truncate">{node.name}</span>
           </button>
-          {confirming === node.path ? DeleteConfirm : ActionButtons}
+          {!readOnly && (confirming === node.path ? DeleteConfirm : ActionButtons)}
         </div>
         {isOpen && (
           <ul className="space-y-0.5">
@@ -332,12 +342,16 @@ function TreeRow(props: RowProps) {
     <li>
       <div
         data-path={node.path}
-        draggable
-        onDragStart={(e) => {
-          e.stopPropagation();
-          props.onDragStart(node.path);
-        }}
-        onDragEnd={props.onDragEnd}
+        draggable={!readOnly}
+        onDragStart={
+          readOnly
+            ? undefined
+            : (e) => {
+                e.stopPropagation();
+                props.onDragStart(node.path);
+              }
+        }
+        onDragEnd={readOnly ? undefined : props.onDragEnd}
         className={`group flex items-center rounded-lg pr-2 transition-colors ${
           isActive ? 'bg-brand-sky/15' : 'hover:bg-pg-text/5'
         }`}
@@ -354,13 +368,13 @@ function TreeRow(props: RowProps) {
           <Icon size={14} className="shrink-0" aria-hidden />
           <span className="truncate">{node.name}</span>
         </button>
-        {confirming === node.path ? DeleteConfirm : ActionButtons}
+        {!readOnly && (confirming === node.path ? DeleteConfirm : ActionButtons)}
       </div>
     </li>
   );
 }
 
-export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
+export function FileTree({ files, activePath, onSelect, readOnly = false }: FileTreeProps) {
   const folders = useProjectStore((s) => s.folders);
   const createFile = useProjectStore((s) => s.createFile);
   const createFolder = useProjectStore((s) => s.createFolder);
@@ -499,6 +513,7 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
 
   const rowProps = {
     ...dnd,
+    readOnly,
     activePath,
     expanded,
     renaming,
@@ -528,26 +543,29 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
       <div className="flex items-center gap-1.5 px-3 pt-3 pb-1">
         <Folder size={14} aria-hidden className="text-brand-sky" />
         <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-sky">Project</span>
-        <span className="ml-auto flex items-center gap-0.5">
-          <button
-            type="button"
-            aria-label="New file"
-            title="New file"
-            onClick={() => startCreate(baseDir, 'file')}
-            className="rounded p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
-          >
-            <FilePlus2 size={14} />
-          </button>
-          <button
-            type="button"
-            aria-label="New folder"
-            title="New folder"
-            onClick={() => startCreate(baseDir, 'folder')}
-            className="rounded p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
-          >
-            <FolderPlus size={14} />
-          </button>
-        </span>
+        {/* New file / folder are hidden in the read-only viewer (D-LV-6). */}
+        {!readOnly && (
+          <span className="ml-auto flex items-center gap-0.5">
+            <button
+              type="button"
+              aria-label="New file"
+              title="New file"
+              onClick={() => startCreate(baseDir, 'file')}
+              className="rounded p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+            >
+              <FilePlus2 size={14} />
+            </button>
+            <button
+              type="button"
+              aria-label="New folder"
+              title="New folder"
+              onClick={() => startCreate(baseDir, 'folder')}
+              className="rounded p-1 text-pg-text-muted transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+            >
+              <FolderPlus size={14} />
+            </button>
+          </span>
+        )}
       </div>
 
       {error && (
@@ -558,20 +576,32 @@ export function FileTree({ files, activePath, onSelect }: FileTreeProps) {
 
       {/* Nested tree — the empty area is a drop target for moving to the root. */}
       <div
-        onDragOver={(e) => {
-          if (dragPath && dirname(dragPath) !== '') {
-            e.preventDefault();
-            setDragOver('');
-          }
-        }}
-        onDragLeave={(e) => {
-          // Only clear when leaving the container itself, not a child row.
-          if (e.currentTarget === e.target) setDragOver((d) => (d === '' ? null : d));
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          doMove('');
-        }}
+        onDragOver={
+          readOnly
+            ? undefined
+            : (e) => {
+                if (dragPath && dirname(dragPath) !== '') {
+                  e.preventDefault();
+                  setDragOver('');
+                }
+              }
+        }
+        onDragLeave={
+          readOnly
+            ? undefined
+            : (e) => {
+                // Only clear when leaving the container itself, not a child row.
+                if (e.currentTarget === e.target) setDragOver((d) => (d === '' ? null : d));
+              }
+        }
+        onDrop={
+          readOnly
+            ? undefined
+            : (e) => {
+                e.preventDefault();
+                doMove('');
+              }
+        }
         className={`flex-1 overflow-auto px-2 pb-3 ${
           dragOver === '' ? 'rounded-lg ring-1 ring-inset ring-brand-sky' : ''
         }`}

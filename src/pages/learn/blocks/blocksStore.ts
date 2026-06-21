@@ -43,6 +43,16 @@ interface BlocksStore {
   future: HistoryEntry[];
   /** Internal: coalescing tag so consecutive same-session edits = one undo step. */
   _lastTag: string | null;
+  /**
+   * Read-only viewing mode (teacher-live-project-view-prd D-LV-6). When true,
+   * EVERY mutation (`_commit`, `undo`, `redo`) is a hard no-op — so a teacher
+   * watching a kid's blocks project live can never change the program and, since
+   * `dirty` never advances, the studio's debounced autosave never fires. This is
+   * the single defence-in-depth funnel under the disabled UI affordances; the
+   * hard backstop remains the backend write-guard (a teacher can't PUT the VFS).
+   */
+  readOnly: boolean;
+  setReadOnly: (readOnly: boolean) => void;
 
   load: (project: BlocksProject) => void;
   /** Restore a persisted undo/redo stack (on project open). */
@@ -129,6 +139,11 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
   past: [],
   future: [],
   _lastTag: null,
+  readOnly: false,
+
+  setReadOnly(readOnly) {
+    set({ readOnly });
+  },
 
   load(project) {
     const page = project.pages[0];
@@ -149,6 +164,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
 
   _commit(producer, coalesce) {
     set((s) => {
+      if (s.readOnly) return s; // teacher viewer — no mutations (D-LV-6)
       const patch = producer(s);
       if (!patch) return s; // no-op → no history entry
       const merge = coalesce != null && coalesce === s._lastTag;
@@ -164,6 +180,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
 
   undo() {
     set((s) => {
+      if (s.readOnly) return s; // teacher viewer — no mutations (D-LV-6)
       if (s.past.length === 0) return s;
       const prev = s.past[s.past.length - 1];
       return {
@@ -180,6 +197,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
 
   redo() {
     set((s) => {
+      if (s.readOnly) return s; // teacher viewer — no mutations (D-LV-6)
       if (s.future.length === 0) return s;
       const next = s.future[0];
       return {

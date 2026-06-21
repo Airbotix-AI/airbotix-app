@@ -52,6 +52,20 @@ describe('AIChatPanel — next-step option chips', () => {
     render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />);
     expect(screen.getByRole('log').className).toContain('pg-scroll');
   });
+
+  // Teacher live read-only viewer (D-LV-6): the chat history shows but there is no
+  // composer / send and no next-step chips (they would fire a turn).
+  it('read-only: hides the composer + next-step chips and shows the read-only note', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={chat} busy={false} error={null} onSend={onSend} readOnly />);
+    // The conversation still renders.
+    expect(screen.getByText('Your player can jump now! 🦘')).toBeTruthy();
+    // No composer, no chips → a teacher can never type, send, or fire a turn.
+    expect(screen.queryByTestId('chat-input')).toBeNull();
+    expect(screen.queryByTestId('chat-send')).toBeNull();
+    expect(screen.queryByTestId('next-steps')).toBeNull();
+    expect(screen.getByTestId('chat-readonly-note')).toBeTruthy();
+  });
 });
 
 // §11.4 — per-file "what changed" rows: ONE clickable row per file (consolidate

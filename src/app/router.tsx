@@ -9,7 +9,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage';
 import { RootPage } from '@/pages/RootPage';
 
 // The Phaser game studio. `/learn/playground/:projectId` (LearnPlaygroundPage)
-// is the authed kid entry the Tiny Game card opens; `/learn/playground/new`
+// is the authed kid entry the Game Playground card opens; `/learn/playground/new`
 // drives the create/landing flow. Phase 1 runs on the local scaffold (no backend
 // `game` kind yet — see LearnPlaygroundPage).
 import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
@@ -62,6 +62,7 @@ import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 // this is the in-app class dashboard + live view + assessment FE.
 import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
 import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
+import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
@@ -139,6 +140,8 @@ export const router = createBrowserRouter([
       { path: 'classes/:classId', element: <ClassDashboardPage /> },
       { path: 'classes/:classId/kids/:kidId', element: <LiveViewPage /> },
       { path: 'classes/:classId/kids/:kidId/assessment', element: <AssessmentPage /> },
+      // Teacher read-only LIVE project viewer (teacher-live-project-view-prd D-LV-1).
+      { path: 'projects/:projectId/live', element: <TeacherProjectLivePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
@@ -182,7 +185,7 @@ export const router = createBrowserRouter([
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
-      // -bleed via FLUID_ROUTES in LearnLayout. The Tiny Game card routes here.
+      // -bleed via FLUID_ROUTES in LearnLayout. The Game Playground card routes here.
       // Phase 1: local Phaser scaffold (no backend game kind yet). This authed
       // route is the only entry — `/learn/playground/:projectId` opens a game and
       // `/learn/playground/new` drives the create/landing flow. (Dev/e2e testing

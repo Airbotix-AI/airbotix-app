@@ -13,13 +13,15 @@
 // game=coral — `WINDOW_ACCENT`), matching the desktop tiles and the mockup.
 
 import clsx from 'clsx';
-import { Check, CloudOff, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Check, CloudOff, Home, Loader2 } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
 import { useSaveStatusStore, type SaveStatus } from '../saveStatusStore';
 import { ShareLinkPanel } from '../ShareLinkPanel';
 import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
+import { useProjectBackTo } from '../../projects/useProjectBackTo';
 import { useDemoMode } from '@/pages/try/demoMode';
 
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
@@ -55,9 +57,16 @@ function SaveStatusBadge() {
 interface TaskbarProps {
   /** The real backend project — gates the share-link control (J8). */
   projectId?: string;
+  /** Teacher live viewer (D-LV-6): hide the kid's Home/back nav (the viewer's
+      banner provides the only Back). */
+  readOnly?: boolean;
 }
 
-export function Taskbar({ projectId }: TaskbarProps) {
+export function Taskbar({ projectId, readOnly = false }: TaskbarProps) {
+  // Home/back: a game has no other way out of the immersive desktop. For a class
+  // project this returns to the class's "My work" tab; otherwise to My Works
+  // (useProjectBackTo). Navigating runs the playground's leave/save guard.
+  const homeHref = useProjectBackTo(projectId);
   // Try-demo (D-DEMO-09): the playground demo runs project-less, so it supplies a
   // fixed share project id here to surface the REAL Share button (the in-memory
   // share adapter intercepts its calls). `null` (off) everywhere else.
@@ -93,6 +102,17 @@ export function Taskbar({ projectId }: TaskbarProps) {
 
   return (
     <div className="flex h-14 items-center gap-2 border-t border-pg-border bg-pg-surface px-4">
+      {/* Home/back — the only way out of the game playground (kid view only). */}
+      {!readOnly && (
+        <Link
+          to={homeHref}
+          data-testid="pg-home"
+          aria-label="Back to my work"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-pg-border bg-pg-surface-2 px-3 text-sm font-semibold text-pg-text-dim transition-colors hover:text-pg-text"
+        >
+          <Home size={16} aria-hidden /> Home
+        </Link>
+      )}
       {/* Airbotix brand mark (the logo used across the site) + surface name.
           Theme-aware: black on light, white on dark. */}
       <div className="flex items-center gap-2.5 pr-2">

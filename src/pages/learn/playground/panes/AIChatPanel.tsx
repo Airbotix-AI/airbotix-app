@@ -11,6 +11,7 @@ import {
   Bot,
   ChevronRight,
   Code2,
+  Eye,
   Hand,
   Heart,
   Loader2,
@@ -157,6 +158,11 @@ interface AIChatPanelProps {
   safeguard?: SafeguardingVerdict | null;
   /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
   handRaised?: boolean;
+  /** Teacher live read-only viewer (D-LV-6): hide every mutation affordance —
+   *  composer, confirm/reject, raise-hand, undo, retry — leaving only the chat
+   *  history + non-destructive run/view CTAs. The backend write-guard is the data
+   *  backstop; this is the UX + defence-in-depth layer. */
+  readOnly?: boolean;
   /** Only show "Ask my teacher" when the kid is in a class (else there's no
    *  teacher to ask). */
   inClass?: boolean;
@@ -195,6 +201,7 @@ export function AIChatPanel({
   safeguard,
   handRaised,
   inClass,
+  readOnly,
   onSend,
   onConfirm,
   onCancel,
@@ -232,7 +239,7 @@ export function AIChatPanel({
           Airo
         </span>
         <div className="ml-auto flex items-center gap-2">
-          {inClass && (
+          {inClass && !readOnly && (
             <button
               type="button"
               data-testid="raise-hand"
@@ -248,7 +255,7 @@ export function AIChatPanel({
               <Hand size={12} /> {handRaised ? 'Hand up — tap to lower' : 'Ask my teacher'}
             </button>
           )}
-          {canUndo && (
+          {canUndo && !readOnly && (
             <button
               type="button"
               data-testid="undo-turn"
@@ -334,6 +341,7 @@ export function AIChatPanel({
               <ChatRow
                 key={item.id}
                 item={item}
+                readOnly={readOnly}
                 onRunGame={onRunGame}
                 onSeeCode={onSeeCode}
                 onSend={onSend}
@@ -344,7 +352,7 @@ export function AIChatPanel({
             ),
           )}
 
-          {pending && (
+          {pending && !readOnly && (
             <PendingCard pending={pending} busy={!!busy} onConfirm={onConfirm} onCancel={onCancel} />
           )}
         </div>
@@ -371,7 +379,7 @@ export function AIChatPanel({
           <span className="min-w-0 flex-1">{error}</span>
           {/* The cap message is not retryable (the kid needs a grown-up to add
               Stars), so only offer Try-again on a transient failure. */}
-          {onRetry && !isCapMessage(error) && (
+          {onRetry && !isCapMessage(error) && !readOnly && (
             <button
               type="button"
               data-testid="chat-retry"
@@ -385,46 +393,61 @@ export function AIChatPanel({
         </div>
       )}
 
-      <div className="shrink-0 border-t border-pg-border p-3">
-        <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pr-1.5 focus-within:border-brand-sky">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            data-testid="chat-input"
-            placeholder="What should we build?"
-            rows={2}
-            className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-pg-text placeholder:text-pg-text-muted focus:outline-none"
-          />
-          {streaming ? (
-            <button
-              type="button"
-              onClick={onStop}
-              data-testid="chat-stop"
-              aria-label="Stop"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5"
-            >
-              <X size={16} />
-            </button>
-          ) : (
-            <button
-              onClick={submit}
-              disabled={busy || !!pending || !input.trim()}
-              data-testid="chat-send"
-              aria-label="Send"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
-            >
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            </button>
-          )}
+      {/* Teacher live read-only viewer (D-LV-6): the composer (type / send / stop)
+          is replaced by a calm, subtle note — a teacher can watch but never type a
+          prompt, send a turn, or interrupt a stream. */}
+      {readOnly ? (
+        <div
+          data-testid="chat-readonly-note"
+          className="shrink-0 border-t border-pg-border px-4 py-3 text-center text-[12px] font-semibold text-pg-text-dim"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Eye size={14} aria-hidden className="text-pg-text-muted" />
+            Read-only — watching the student build
+          </span>
         </div>
-        <div className="mt-1.5 text-[11px] text-pg-text-muted">Enter to send · Shift+Enter for a new line</div>
-      </div>
+      ) : (
+        <div className="shrink-0 border-t border-pg-border p-3">
+          <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pr-1.5 focus-within:border-brand-sky">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              data-testid="chat-input"
+              placeholder="What should we build?"
+              rows={2}
+              className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-pg-text placeholder:text-pg-text-muted focus:outline-none"
+            />
+            {streaming ? (
+              <button
+                type="button"
+                onClick={onStop}
+                data-testid="chat-stop"
+                aria-label="Stop"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5"
+              >
+                <X size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={submit}
+                disabled={busy || !!pending || !input.trim()}
+                data-testid="chat-send"
+                aria-label="Send"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
+              >
+                {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              </button>
+            )}
+          </div>
+          <div className="mt-1.5 text-[11px] text-pg-text-muted">Enter to send · Shift+Enter for a new line</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -504,6 +527,7 @@ function PendingCard({
 
 function ChatRow({
   item,
+  readOnly,
   onRunGame,
   onSeeCode,
   onSend,
@@ -512,6 +536,8 @@ function ChatRow({
   assetSrc,
 }: {
   item: ChatItem;
+  /** Read-only viewer (D-LV-6): hide the next-step chips (they send a turn). */
+  readOnly?: boolean;
   onRunGame?: () => void;
   onSeeCode?: () => void;
   onSend?: (text: string, opts?: { guided?: boolean }) => void;
@@ -705,8 +731,9 @@ function ChatRow({
         )}
 
         {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06).
-            Tapping one sends its prompt as the next turn. */}
-        {item.nextSteps && item.nextSteps.length > 0 && (
+            Tapping one sends its prompt as the next turn — so they're hidden in the
+            read-only viewer (D-LV-6), which must never trigger a turn. */}
+        {!readOnly && item.nextSteps && item.nextSteps.length > 0 && (
           <div className="mt-3.5 border-t border-pg-border pt-3">
             <div className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted">
               What next?

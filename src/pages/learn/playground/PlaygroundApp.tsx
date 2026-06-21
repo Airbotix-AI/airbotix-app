@@ -5,7 +5,7 @@ import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 
-import { getProject, type LearningContext, type VfsFile } from '../code/codeApi';
+import { getProject, readVfs, type LearningContext, type VfsFile } from '../code/codeApi';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
@@ -55,9 +55,19 @@ interface PlaygroundAppProps {
    * effectively dead (kept out of scope; see the follow-up note).
    */
   projectId?: string;
+  /**
+   * Read-only viewing mode (teacher-live-project-view-prd D-LV-6). A teacher
+   * watches a kid's game project live: the studio loads the backend VFS
+   * (`readVfs`) STRAIGHT into the workspace (no landing/generating flow, no
+   * IndexedDB persistence) and renders the SAME Workspace with EVERY mutation
+   * entry point gated — AI turns, file CRUD, Monaco edits, asset uploads, and
+   * all autosave/persistence. Running the game (▶ Play / Run anew) stays live
+   * (non-destructive viewing). The kid (editable) flow is untouched when false.
+   */
+  readOnly?: boolean;
 }
 
-export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps = {}) {
+export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: PlaygroundAppProps = {}) {
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
   // Highest window z-index — floating windows climb past any static z-index as the
@@ -105,7 +115,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   const persistKey = projectId ?? 'dev-sandbox';
   // A real owned route project (re)opens straight into loading its seeded VFS; a
   // NEW game (project-less session — including the demo) starts on the landing prompt.
-  const [phase, setPhase] = useState<Phase>(projectIdProp && !isNew ? 'generating' : 'landing');
+  // The teacher viewer (readOnly) skips the landing/generating flow entirely and
+  // mounts straight into the workspace once `readVfs` resolves below.
+  const [phase, setPhase] = useState<Phase>(
+    readOnly ? 'workspace' : projectIdProp && !isNew ? 'generating' : 'landing',
+  );
+  const [readOnlyReady, setReadOnlyReady] = useState(false);
   const [prompt, setPrompt] = useState(demo?.lockedPrompt ?? '');
   // The VFS lives in the project store (single funnel for editor saves, AI
   // turns, file CRUD, drag moves — and the seam for history + persistence).
@@ -146,10 +161,32 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
     setRunKey((k) => k + 1);
   }, []);
 
+  // Read-only (teacher viewer, D-LV-6): load the kid's current VFS straight from
+  // the backend into the project store and open the workspace — no landing flow,
+  // no IndexedDB, no persistence. The teacher page remounts this component (keyed
+  // on the VFS version) when the kid saves/turns, so a fresh mount re-loads here.
+  useEffect(() => {
+    if (!readOnly || !projectId) return;
+    let alive = true;
+    void readVfs(projectId)
+      .then((vfsFiles) => {
+        if (!alive) return;
+        useProjectStore.getState().setFiles(vfsFiles);
+        setReadOnlyReady(true);
+      })
+      .catch(() => {
+        if (alive) setLoadError(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [readOnly, projectId]);
+
   // Record file-tree operations (create/rename/move/delete) in history. Typing is
   // snapshotted by the editor's idle autosave; this covers structural changes so
   // they're in the timeline and revertable too.
   useEffect(() => {
+    if (readOnly) return undefined; // teacher viewer — no history recording (D-LV-6)
     return useProjectStore.subscribe((state) => {
       const c = state.change;
       if (!c) return;
@@ -157,7 +194,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
         useHistoryStore.getState().record(state.files, Date.now(), changeSummary(c));
       }
     });
-  }, []);
+  }, [readOnly]);
 
   // Persist the project (VFS + history) on change, debounced, while in the
   // workspace. The backend is the source of truth (PRD J3): we PUT the VFS and
@@ -219,7 +256,7 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
   );
 
   useEffect(() => {
-    if (phase !== 'workspace') return;
+    if (readOnly || phase !== 'workspace') return; // teacher viewer never saves (D-LV-6)
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       setSaveStatus('saving');
@@ -233,14 +270,15 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       unsubProject();
       unsubHistory();
     };
-  }, [phase, flushSave, setSaveStatus]);
+  }, [readOnly, phase, flushSave, setSaveStatus]);
 
   // Persist the workspace UI ("resume where I left off") — debounced, while in the
   // workspace. Single place: snapshot the whole namespaced bag + the playground
   // store's slice. FUTURE-PROOF — any new pane that registers a slice via
   // `usePersistedWorkspaceState` is captured here automatically, no edits needed.
   useEffect(() => {
-    if (phase !== 'workspace' || !projectId) return; // a project-less session is transient
+    // teacher viewer (readOnly) never persists workspace UI (D-LV-6).
+    if (readOnly || phase !== 'workspace' || !projectId) return; // a project-less session is transient
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       clearTimeout(timer);
@@ -264,11 +302,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
       unsubUi();
       unsubPg();
     };
-  }, [phase, persistKey, projectId]);
+  }, [readOnly, phase, persistKey, projectId]);
 
   // Guard against accidentally leaving the studio (the Learn nav now sits above
   // it): block in-app navigation away while in the workspace and confirm first.
-  const blocker = useBlocker(phase === 'workspace');
+  // The teacher viewer (readOnly) has nothing to save → never blocks navigation.
+  const blocker = useBlocker(!readOnly && phase === 'workspace');
 
   // Capture a workspace thumbnail (real projects only — a project-less session is
   // transient), persist it locally, then leave. Best-effort: never blocks exit.
@@ -399,7 +438,12 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           onError={() => setLoadError(true)}
         />
       )}
-      {phase === 'workspace' && (
+      {readOnly && !readOnlyReady && (
+        <div className="pg-canvas flex h-full items-center justify-center text-pg-text-dim">
+          <span className="text-[15px] font-bold">Loading…</span>
+        </div>
+      )}
+      {phase === 'workspace' && (readOnly ? readOnlyReady : true) && (
         <div ref={workspaceRef} className="h-full min-h-0 w-full">
         <Workspace
           files={files}
@@ -418,6 +462,8 @@ export function PlaygroundApp({ projectId: projectIdProp }: PlaygroundAppProps =
           // offline stub turn so the debug/warn specs stay deterministic and
           // LLM-free.
           projectId={ownedProjectId}
+          // Teacher live viewer — gate every mutation entry point (D-LV-6).
+          readOnly={readOnly}
         />
         </div>
       )}

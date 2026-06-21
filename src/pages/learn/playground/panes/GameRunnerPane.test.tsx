@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
@@ -108,5 +109,42 @@ describe('GameRunnerPane — the console pins to the latest output', () => {
     fireEvent.scroll(list);
     act(() => latestOnConsole?.([line('first'), line('second')]));
     expect(list.scrollTop).toBe(0); // stays where the kid put it
+  });
+
+  // Teacher live read-only viewer (D-LV-6): "Ask AI to fix" runs a (gated) AI turn,
+  // so it must be hidden — a teacher never sees a dead control. The game still runs
+  // and the console still shows; only the AI affordance is gone.
+  it('hides "Ask AI to fix" in the read-only viewer but shows it for the kid', () => {
+    const errs = [line('TypeError: boom')];
+
+    const { rerender } = render(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={noop}
+        readOnly
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    // The console panel still opens on the error; only the AI fix chip is absent.
+    expect(screen.getByTestId('console-list')).toBeInTheDocument();
+    expect(screen.queryByText(/Ask AI to fix/i)).not.toBeInTheDocument();
+
+    // Kid mode (readOnly absent): the chip is present.
+    rerender(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={noop}
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    expect(screen.getByText(/Ask AI to fix/i)).toBeInTheDocument();
   });
 });

@@ -68,6 +68,13 @@ function unlockTouchScroll() {
 
 type SaveStatus = 'saved' | 'saving' | 'offline';
 
+// Teacher read-only viewer (D-LV-6): edit controls are RENDERED-but-DISABLED, not
+// hidden, so the read-only layout is byte-for-byte the kid's (no empty bands, no
+// missing palette). Edit controls get this consistent inert + dimmed treatment;
+// the CONTENT the teacher is viewing (stage, characters, script chain, page
+// thumbnails) stays full-opacity. Mutation handlers are already store-gated.
+const READONLY_EDIT_DISABLED = 'pointer-events-none cursor-default opacity-60';
+
 // ── zone label chip (clarity pass) ───────────────────────────────────────────
 // Kids 5–8 (many pre-readers) couldn't tell what each studio area was for, so
 // every zone wears a tiny emoji-first name tag. Chips are decoration only:
@@ -82,10 +89,15 @@ function ZoneTag({ zone, emoji, label }: { zone: string; emoji: string; label: s
   );
 }
 
-export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: string } = {}) {
+export function BlocksStudioPage({
+  projectId: projectIdProp,
+  readOnly = false,
+}: { projectId?: string; readOnly?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
+  // The teacher live viewer (D-LV-6) mounts it with `projectId` + `readOnly` so a
+  // teacher watches the kid's blocks editor with every edit affordance disabled.
   const projectId = projectIdProp ?? routeProjectId;
   // Home/back returns to the class's "My work" if this is class work (§3.4).
   const homeHref = useProjectBackTo(projectId, '/learn/create/blocks');
@@ -144,6 +156,29 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
 
+  // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
+  // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
+  // below therefore never fires for a teacher viewer (D-LV-6).
+  //
+  // This write is DELIBERATELY in render (not a layout/passive effect): the load
+  // effect below can resolve and the autosave subscription can fire in the SAME
+  // commit the component first mounts, so the flag MUST be set before that commit —
+  // a useLayoutEffect runs only AFTER the commit, leaving an editable window where
+  // a mutation/autosave could slip through. It is a guarded, idempotent write to an
+  // EXTERNAL Zustand store (not a setState of THIS component), so it is not the
+  // "update a component while rendering" anti-pattern React warns about.
+  if (useBlocksStore.getState().readOnly !== readOnly) {
+    useBlocksStore.getState().setReadOnly(readOnly);
+  }
+  useEffect(() => {
+    useBlocksStore.getState().setReadOnly(readOnly);
+    return () => {
+      // Leaving the viewer must restore the editable default for the kid studio
+      // (the store is a shared singleton).
+      if (readOnly) useBlocksStore.getState().setReadOnly(false);
+    };
+  }, [readOnly]);
+
   // ── load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!projectId) return;
@@ -156,19 +191,23 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
         setPhase('ready');
-        // refresh the cover thumbnail on open (device-local; even without an edit)
-        try {
-          const cover = loaded.project.pages[0];
-          if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
-        } catch {
-          // best-effort
+        // refresh the cover thumbnail on open (device-local; even without an edit).
+        // Never in the teacher viewer (D-LV-6): saveThumbnail is a kid-scoped write,
+        // so a teacher would 403 — read-only means a teacher can never write.
+        if (!readOnly) {
+          try {
+            const cover = loaded.project.pages[0];
+            if (cover) void saveThumbnail(projectId, captureBlocksThumbnail(cover));
+          } catch {
+            // best-effort
+          }
         }
       })
       .catch(() => alive && setPhase('error'));
     return () => {
       alive = false;
     };
-  }, [projectId]);
+  }, [projectId, readOnly]);
 
   // Immersive tablet mode (page-scroll lock + browser fullscreen) is owned by
   // LearnLayout, keyed on the route — so it survives this page's remounts and
@@ -176,8 +215,10 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   // restores normal browsing.
 
   // ── debounced autosave on any program change (server wins on conflict) ────
+  // Never autosave in the teacher viewer (D-LV-6): the store gate keeps `dirty`
+  // at 0 so this can't fire, but guard explicitly so a teacher can never write.
   useEffect(() => {
-    if (phase !== 'ready' || dirty === 0 || !projectId) return;
+    if (readOnly || phase !== 'ready' || dirty === 0 || !projectId) return;
     setSaveStatus('saving');
     const t = setTimeout(() => {
       // Serialize: if a save is already running, just flag that there's more to
@@ -222,7 +263,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
       })();
     }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [dirty, phase, projectId]);
+  }, [dirty, phase, projectId, readOnly]);
 
   // ── undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ─────────────────
   const undo = useCallback(() => {
@@ -371,7 +412,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   const [dragging, setDragging] = useState<string | null>(null);
   const dragMoved = useRef(false);
   const onSpriteDown = (e: React.PointerEvent, id: string) => {
-    if (running || present) return;
+    if (running || present || readOnly) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging(id);
     dragMoved.current = false;
@@ -481,7 +522,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
     setDragBlk({ scriptId: d.scriptId, index: d.index, cx: x, cy: y, onBin, targetScriptId, targetSlot, dropX });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present) return;
+    if (running || present || readOnly) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -576,7 +617,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
     setPalBlk({ op: d.op, cx: x, cy: y, scriptId: hit?.scriptId ?? null, slot: hit?.slot ?? 0, dropX: hit?.dropX ?? null });
   };
   const onPalDown = (e: React.PointerEvent, op: BlockOp) => {
-    if (running || present) return;
+    if (running || present || readOnly) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -648,6 +689,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
   // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
   const [editBlk, setEditBlk] = useState<{ scriptId: string; index: number; left: number; top: number } | null>(null);
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
+    if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
     const def = blockDef(op as BlockOp);
     // speed / message-colour blocks cycle their value on tap (no number editor)
@@ -733,8 +775,10 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
     >
       {/* ── toolbar ── */}
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
-        {/* Try-demo: Home exits to the marketing "Try it" page, not the authed hub. */}
-        {demo?.exitHref ? (
+        {/* Home/back is the kid's own navigation — hidden in the teacher live viewer
+            (D-LV-6); the viewer's banner provides the only Back. Try-demo: Home
+            exits to the marketing "Try it" page, not the authed hub. */}
+        {readOnly ? null : demo?.exitHref ? (
           <a
             href={demo.exitHref}
             data-testid="demo-home"
@@ -752,12 +796,15 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             🏠
           </Link>
         )}
+        {/* Undo/redo are kid-only edit affordances — rendered but inert + dimmed in
+            the teacher viewer so the read-only layout matches the kid's (D-LV-6). */}
         <button
           type="button"
           data-testid="undo"
-          className="bsx-press grid h-11 w-11 place-items-center disabled:opacity-40"
+          className={`bsx-press grid h-11 w-11 place-items-center disabled:opacity-40${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
           onClick={undo}
-          disabled={!canUndo}
+          disabled={readOnly || !canUndo}
+          aria-disabled={readOnly || undefined}
           title="Undo (⌘Z)"
         >
           <Undo2 size={20} />
@@ -765,9 +812,10 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         <button
           type="button"
           data-testid="redo"
-          className="bsx-press grid h-11 w-11 place-items-center disabled:opacity-40"
+          className={`bsx-press grid h-11 w-11 place-items-center disabled:opacity-40${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
           onClick={redo}
-          disabled={!canRedo}
+          disabled={readOnly || !canRedo}
+          aria-disabled={readOnly || undefined}
           title="Redo (⌘⇧Z)"
         >
           <Redo2 size={20} />
@@ -790,7 +838,7 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} />}
+        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} readOnly={readOnly} />}
         <button
           ref={moreBtnRef}
           type="button"
@@ -840,10 +888,13 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
               {c.id === selectedChar?.id && page.characters.length > 1 && (
                 <span
                   role="button"
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white"
+                  data-testid={`remove-character-${c.id}`}
+                  aria-disabled={readOnly || undefined}
+                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
                   title={`Remove ${c.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (readOnly) return;
                     sfx.trash();
                     useBlocksStore.getState().removeCharacter(c.id);
                   }}
@@ -857,7 +908,9 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             type="button"
             data-testid="add-character"
             onClick={openFriendPicker}
-            className="grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky"
+            disabled={readOnly}
+            aria-disabled={readOnly || undefined}
+            className={`grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
             title="Add a character"
           >
             ＋
@@ -879,13 +932,17 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             <div className="bsx-deco bsx-deco-b" />
             <div className="bsx-deco bsx-deco-c" />
             <div className="bsx-hill" />
-            {/* change the scene — a big picture library */}
+            {/* change the scene — a big picture library. Rendered but inert + dimmed
+                in the teacher viewer so the stage layout matches the kid's (D-LV-6). */}
             <button
               type="button"
               data-testid="scene-btn"
-              className="bsx-scene-btn"
+              className={`bsx-scene-btn${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
               title="Change the background"
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
               onClick={() => {
+                if (readOnly) return;
                 sfx.tap();
                 setScenePick((v) => !v);
               }}
@@ -959,10 +1016,13 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
                 <button
                   type="button"
                   data-testid={`remove-page-${i}`}
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow"
+                  disabled={readOnly}
+                  aria-disabled={readOnly || undefined}
+                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
                   title={`Remove page ${i + 1}`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (readOnly) return;
                     sfx.trash();
                     useBlocksStore.getState().removePage(p.id);
                   }}
@@ -976,8 +1036,10 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             <button
               type="button"
               data-testid="add-page"
-              onClick={() => { sfx.add(); useBlocksStore.getState().addPage(); }}
-              className="grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral"
+              onClick={() => { if (readOnly) return; sfx.add(); useBlocksStore.getState().addPage(); }}
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              className={`grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
               style={{ aspectRatio: '4/3' }}
               title="Add a page"
             >
@@ -990,7 +1052,13 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
 
       {/* ── coding band ── */}
       <section className="bsx-coder">
-        <nav className="bsx-catbar" aria-label="Kinds of blocks">
+        {/* The category bar drives the palette. Rendered but inert + dimmed in the
+            teacher viewer so the coding band matches the kid's layout (D-LV-6). */}
+        <nav
+          className={`bsx-catbar${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+          aria-label="Kinds of blocks"
+          aria-disabled={readOnly || undefined}
+        >
           <FadeScroller className="bsx-catscroll">
           <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
           {CATEGORIES.map((c) => (
@@ -1000,7 +1068,9 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
               data-testid={`cat-${c.id}`}
               className={`bsx-cat c-${c.id}`}
               aria-pressed={category === c.id}
-              onClick={() => { sfx.tap(); setCategory(c.id); }}
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              onClick={() => { if (readOnly) return; sfx.tap(); setCategory(c.id); }}
               title={`${c.label} blocks`}
             >
               <span>{c.icon}</span>
@@ -1011,8 +1081,16 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
 
         <div className="relative flex min-h-0 min-w-0 flex-col gap-2">
           {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
+          {/* The palette ADDS blocks — a mutation. Rendered but inert + dimmed in the
+              teacher viewer so the coding band keeps the kid's layout (D-LV-6). */}
           <ZoneTag zone="palette" emoji="🧩" label="Blocks" />
-          <div className="bsx-soft bsx-palette flex min-w-0 overflow-hidden rounded-3xl" data-testid="palette" data-cat={category} aria-label="Blocks">
+          <div
+            className={`bsx-soft bsx-palette flex min-w-0 overflow-hidden rounded-3xl${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+            data-testid="palette"
+            data-cat={category}
+            aria-label="Blocks"
+            aria-disabled={readOnly || undefined}
+          >
             <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
             <span className="bsx-palette-tag shrink-0">
               <span aria-hidden>{activeCat.icon}</span>
@@ -1098,12 +1176,15 @@ export function BlocksStudioPage({ projectId: projectIdProp }: { projectId?: str
             </FadeScroller>
           </div>
           {/* the trash bin — at the end of the block area; drag a block here to
-              remove it. Bigger + glows red when armed. (Blocks only.) */}
+              remove it. Bigger + glows red when armed. (Blocks only.) Rendered but
+              inert + dimmed in the teacher viewer so the band matches the kid's
+              layout — there's no block dragging to feed it (D-LV-6). */}
           <div
             ref={binRef}
             data-testid="trash-bin"
             aria-label="Trash"
-            className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}`}
+            aria-disabled={readOnly || undefined}
+            className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
           >
             <div className="bsx-bin-can">
               <span className="bsx-bin-lid" />

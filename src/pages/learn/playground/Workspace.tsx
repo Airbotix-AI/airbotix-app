@@ -68,6 +68,13 @@ interface WorkspaceProps {
   onChatChange?: (chat: ChatItem[]) => void;
   /** The first-turn build was safety-refused → seed an explanation + gentler ideas. */
   blockedSeed?: boolean;
+  /**
+   * Teacher live viewer (D-LV-6) — render the SAME workspace but gate EVERY
+   * mutation: AI turns (chat send / confirm / reject / asset-gen / raise-hand),
+   * file CRUD + Monaco edits, and asset uploads. Running the game stays live.
+   * The kid-only wallet query is skipped (a teacher has no family).
+   */
+  readOnly?: boolean;
 }
 
 interface Wallet {
@@ -98,6 +105,7 @@ export function Workspace({
   initialChat,
   onChatChange,
   blockedSeed,
+  readOnly = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
@@ -118,12 +126,14 @@ export function Workspace({
   // Default Lite when age is unknown (the safest, simplest UX).
   const me = useMe();
   const age = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
-  const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
-  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  // In the teacher viewer the principal is a `user` (no family/wallet); force the
+  // kid-derived ids null so the kid-only wallet/class queries never fire (D-LV-6).
+  const familyId = !readOnly && me.data?.kind === 'kid' ? me.data.family_id : null;
+  const kidId = !readOnly && me.data?.kind === 'kid' ? me.data.sub : null;
   const mode: 'lite' | 'pro' = age != null && age >= 12 ? 'pro' : 'lite';
 
   // Family Stars balance for the metered display (real path). Refetched after a
-  // turn debits (OD-3 "meter every turn").
+  // turn debits (OD-3 "meter every turn"). Skipped for a teacher viewer.
   const wallet = useQuery<Wallet>({
     queryKey: ['wallet', familyId],
     queryFn: () => api<Wallet>(`/families/${familyId}/wallet`),
@@ -229,6 +239,7 @@ export function Workspace({
       initialChat,
       onChatChange,
       blockedSeed,
+      readOnly,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
       clientActions: {
@@ -284,6 +295,7 @@ export function Workspace({
     safeguard,
     handRaised,
     inClass,
+    readOnly,
     onSend: send,
     onConfirm: confirmPending,
     onCancel: cancelPending,
@@ -377,6 +389,7 @@ export function Workspace({
               onRun={runFromEditor}
               openLocation={locationRequest}
               onExplainSelection={handleExplainCode}
+              readOnly={readOnly}
             />
           </Window>
           <Window
@@ -400,6 +413,7 @@ export function Workspace({
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
               onRuntimeErrors={autoFixFromErrors}
+              readOnly={readOnly}
             />
           </Window>
           <Window
@@ -407,7 +421,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} />
           </Window>
           <Window
             id="help"
@@ -419,7 +433,7 @@ export function Workspace({
         </div>
 
         {/* Docked taskbar (brand + LayoutToggle + window buttons + share link) */}
-        <Taskbar projectId={projectId} />
+        <Taskbar projectId={projectId} readOnly={readOnly} />
       </div>
     );
   }
@@ -477,11 +491,12 @@ export function Workspace({
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                     onExplainSelection={handleExplainCode}
+                    readOnly={readOnly}
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} />
                 )}
               </div>
             </section>
@@ -500,6 +515,7 @@ export function Workspace({
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}
                 onRuntimeErrors={autoFixFromErrors}
+                readOnly={readOnly}
               />
             </div>
           </Panel>
@@ -507,7 +523,7 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} />
+      <Taskbar projectId={projectId} readOnly={readOnly} />
     </div>
   );
 }

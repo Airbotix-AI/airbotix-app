@@ -20,7 +20,15 @@ import {
 import { useDemoMode } from '@/pages/try/demoMode';
 import type { BlocksTheme } from './blocksTheme';
 
-export function BlocksSharePanel({ projectId, theme }: { projectId: string; theme: BlocksTheme }) {
+export function BlocksSharePanel({
+  projectId,
+  theme,
+  readOnly = false,
+}: {
+  projectId: string;
+  theme: BlocksTheme;
+  readOnly?: boolean;
+}) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -28,6 +36,10 @@ export function BlocksSharePanel({ projectId, theme }: { projectId: string; them
   const share = useQuery<ShareLink>({
     queryKey: ['share', projectId],
     queryFn: () => getShareLink(projectId),
+    // Teacher viewer (D-LV-6): sharing is a kid-only action — getShareLink is
+    // kid-scoped, so a teacher would 403. Don't fetch in read-only; the button is
+    // rendered disabled below (visible for layout parity, never opens the sheet).
+    enabled: !readOnly,
     refetchOnMount: 'always',
     staleTime: 0,
     // poll while pending (the minted link appears on its own) / active (play count)
@@ -93,9 +105,11 @@ export function BlocksSharePanel({ projectId, theme }: { projectId: string; them
         type="button"
         data-testid="share-link-btn"
         data-share-status={status}
-        className="bsx-press grid h-11 place-items-center px-3 text-[13px]"
-        onClick={open$}
-        title="Share your project"
+        className={`bsx-press grid h-11 place-items-center px-3 text-[13px]${readOnly ? ' pointer-events-none cursor-default opacity-60' : ''}`}
+        onClick={readOnly ? undefined : open$}
+        disabled={readOnly}
+        aria-disabled={readOnly}
+        title={readOnly ? 'Share is the kid’s to use' : 'Share your project'}
       >
         <span className="flex items-center gap-1.5">
           <Icon size={18} className={status === 'pending' ? 'animate-pulse' : undefined} />
