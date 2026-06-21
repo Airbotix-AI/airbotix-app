@@ -13,6 +13,7 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Workspace } from '../learn/playground/Workspace';
@@ -100,7 +101,9 @@ function renderWorkspace(demo?: DemoMode) {
   );
   return render(
     <QueryClientProvider client={qc}>
-      {demo ? <DemoModeProvider value={demo}>{ws}</DemoModeProvider> : ws}
+      <MemoryRouter>
+        {demo ? <DemoModeProvider value={demo}>{ws}</DemoModeProvider> : ws}
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
