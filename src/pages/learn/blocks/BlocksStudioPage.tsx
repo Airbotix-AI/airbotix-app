@@ -141,6 +141,14 @@ export function BlocksStudioPage({
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
   const runnerRef = useRef<BlocksRunner | null>(null);
+  // Autosave is serialized: only one save may be in flight. Overlapping saves
+  // would share the same base `versionRef` (it only advances when a save
+  // RETURNS), so the second would PUT a stale `expected_version`, 409, and the
+  // conflict handler would reload the server's older snapshot — silently
+  // reverting in-flight edits. `savingRef` is the mutex; `pendingRef` records
+  // that edits landed mid-save so we re-save once with the fresh version.
+  const savingRef = useRef(false);
+  const pendingRef = useRef(false);
 
   const page = useMemo(
     () => project.pages.find((p) => p.id === pageId) ?? project.pages[0],
@@ -213,20 +221,32 @@ export function BlocksStudioPage({
     if (readOnly || phase !== 'ready' || dirty === 0 || !projectId) return;
     setSaveStatus('saving');
     const t = setTimeout(() => {
+      // Serialize: if a save is already running, just flag that there's more to
+      // persist — the running save will pick it up before it finishes (below).
+      if (savingRef.current) {
+        pendingRef.current = true;
+        return;
+      }
       void (async () => {
+        savingRef.current = true;
         try {
-          const st = useBlocksStore.getState();
-          const result = await saveBlocksProject({
-            projectId,
-            project: st.project,
-            version: versionRef.current,
-            otherFiles: otherFilesRef.current,
-            history: { past: st.past, future: st.future },
-          });
-          versionRef.current = result.version;
-          if (result.status === 'kept-newest') {
-            useBlocksStore.getState().load(result.project);
-          }
+          // Loop so any edit that lands mid-save is saved with the version
+          // returned by the previous round — never a stale base version.
+          do {
+            pendingRef.current = false;
+            const st = useBlocksStore.getState();
+            const result = await saveBlocksProject({
+              projectId,
+              project: st.project,
+              version: versionRef.current,
+              otherFiles: otherFilesRef.current,
+              history: { past: st.past, future: st.future },
+            });
+            versionRef.current = result.version;
+            if (result.status === 'kept-newest') {
+              useBlocksStore.getState().load(result.project);
+            }
+          } while (pendingRef.current);
           setSaveStatus('saved');
           // refresh the Projects/My Works cover thumbnail (device-local)
           try {
@@ -237,6 +257,8 @@ export function BlocksStudioPage({
           }
         } catch {
           setSaveStatus('offline');
+        } finally {
+          savingRef.current = false;
         }
       })();
     }, SAVE_DEBOUNCE_MS);

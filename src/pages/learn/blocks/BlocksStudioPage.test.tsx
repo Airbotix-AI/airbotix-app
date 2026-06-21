@@ -6,14 +6,14 @@
 
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { saveBlocksProject } from './blocksApi';
 import { blankProject } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksStudioPage } from './BlocksStudioPage';
-import { saveBlocksProject } from './blocksApi';
 
 vi.mock('./blocksApi', () => ({
   loadBlocksProject: vi.fn(async () => ({
@@ -191,5 +191,54 @@ describe('BlocksStudioPage read-only (teacher viewer)', () => {
     expect(useBlocksStore.getState().dirty).toBe(before); // no mutation landed
     // dirty never advanced → the debounced autosave can never have fired.
     expect(saveBlocksProject).not.toHaveBeenCalled();
+  });
+});
+
+// Regression: local edits silently reverted a couple seconds after being made.
+// Cause — autosaves weren't serialized: a save firing while another was still
+// in flight reused the same base `version` (it only advances when a save
+// RETURNS), so the second PUT sent a stale `expected_version`, 409'd, and the
+// conflict handler reloaded the server's older snapshot, dropping the edits.
+describe('BlocksStudioPage autosave serialization', () => {
+  const mockedSave = vi.mocked(saveBlocksProject);
+
+  afterEach(() => {
+    // afterEach's clearAllMocks keeps mockImplementation — reset to the default.
+    mockedSave.mockReset();
+    mockedSave.mockResolvedValue({ status: 'saved', version: 2 });
+  });
+
+  it('never has two saves in flight and the follow-up uses the fresh version', async () => {
+    // Make the FIRST save block (deferred) so a second edit can land mid-flight.
+    let resolveFirst: ((v: { status: 'saved'; version: number }) => void) | null = null;
+    mockedSave
+      .mockImplementationOnce(
+        () =>
+          new Promise((res) => {
+            resolveFirst = res;
+          }),
+      )
+      .mockResolvedValue({ status: 'saved', version: 3 });
+
+    await renderStudio(); // loads with version: 1
+
+    // Edit #1 → after the 800ms debounce, save #1 fires and stays in flight.
+    act(() => useBlocksStore.getState().addBlock('when_flag'));
+    await waitFor(() => expect(mockedSave).toHaveBeenCalledTimes(1));
+    expect(mockedSave.mock.calls[0][0].version).toBe(1);
+
+    // Edit #2 while save #1 is still in flight. Its debounce must NOT launch a
+    // concurrent save — it's queued behind the running one.
+    act(() => useBlocksStore.getState().addBlock('move_right'));
+    await new Promise((r) => setTimeout(r, 1000)); // > SAVE_DEBOUNCE_MS
+    expect(mockedSave).toHaveBeenCalledTimes(1);
+
+    // Resolving save #1 (version 1→2) must trigger the queued follow-up, and it
+    // must carry the FRESH version 2 — not a stale 1 that would 409 and revert.
+    await act(async () => {
+      resolveFirst?.({ status: 'saved', version: 2 });
+    });
+    await waitFor(() => expect(mockedSave).toHaveBeenCalledTimes(2));
+    expect(mockedSave.mock.calls[1][0].version).toBe(2);
   });
 });
