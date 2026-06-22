@@ -37,6 +37,8 @@ import { useBlocksTheme } from './blocksTheme';
 import { captureBlocksThumbnail } from './thumbnail';
 import { saveThumbnail } from '../playground/projectPersistence';
 import { useProjectBackTo } from '../projects/useProjectBackTo';
+import { RaiseHandButton } from '../liveClass/RaiseHandButton';
+import { useReportFocus } from '../liveClass/reportFocus';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { BlockChip } from './BlockChip';
 import { FadeScroller } from './FadeScroller';
@@ -105,6 +107,9 @@ export function BlocksStudioPage({
   // real `BlocksSharePanel` rides an in-memory share adapter (the tour walks it).
   const demo = useDemoMode();
   const project = useBlocksStore((s) => s.project);
+  // Live focus presence (D-LIVE-3): tell the teacher this is the kid's open
+  // project. No-op in readOnly (teacher viewer) or outside a live class.
+  useReportFocus(projectId, 'blocks', project.name, readOnly);
   const pageId = useBlocksStore((s) => s.pageId);
   const charId = useBlocksStore((s) => s.charId);
   const dirty = useBlocksStore((s) => s.dirty);
@@ -839,6 +844,7 @@ export function BlocksStudioPage({
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
         {projectId && <BlocksSharePanel projectId={projectId} theme={theme} readOnly={readOnly} />}
+        <RaiseHandButton readOnly={readOnly} />
         <button
           ref={moreBtnRef}
           type="button"

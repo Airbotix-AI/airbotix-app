@@ -4,6 +4,44 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-22 (Live Mode — live focus presence, D-LIVE-3)
+
+### Added
+- **Report the kid's currently-open project to the teacher (D-LIVE-3).** New
+  `src/pages/learn/liveClass/reportFocus.ts`: `useReportFocus(projectId, kind, title?, readOnly?)` emits
+  `class.kid_focus { project_id, kind, title }` on the **kid** socket on mount and clears it (`project_id:null`)
+  on unmount; **no-op outside a live class (`useKidClassId()` falsy) or in the teacher read-only viewer
+  (`readOnly`)**. A module-level shared focus ref is re-emitted on the existing 10s heartbeat in `LearnLayout`
+  so a teacher who opens Live Mode mid-session syncs within ~10s. Wired into the three VFS studios:
+  `BlocksStudioPage` (kind `blocks`, project name as title), `code/CodeStudioPage` (kind `code`, `studio.title`),
+  `playground/PlaygroundApp` (kind `game`). Compliance: ids + kind + title only, never file contents (C5).
+
+### Tests
+- `reportFocus.test.tsx`: emits on mount with project + kind + title; clears on unmount; no-op when not in a
+  class / in readOnly / no projectId; the heartbeat re-emit (`reEmitFocus`) replays the current focus.
+
+## 2026-06-22 (Live Mode — raise-hand + teacher nudge banner)
+
+### Added
+- **One-tap raise-hand in the Blocks + Game studios (D-LIVE-1, learn-game-studio J4).** New shared store/hook
+  `src/pages/learn/liveClass/raiseHand.ts` (Zustand) — `raise()` / `lowerOwn()` emit `class.raise_hand` /
+  `class.lower_hand` on the **kid** socket (no payload — the server takes class+kid from the JWT), and a
+  `class.hand_lowered` listener syncs the button back to idle when the **teacher** lowers it. New
+  `RaiseHandButton` (testids `ask-teacher` → `raise-hand-waiting`; a calm persistent "✋ Hand up · tap to
+  lower" cue, not an alarm) wired into the Blocks studio top bar (`BlocksStudioPage`) and the Game studio
+  taskbar (`desktop/Taskbar`, covers both Window + Split layouts). **Hidden in the teacher read-only viewer
+  and when the kid is not in a class.**
+- **In-class signal via the JWT `class_id` claim.** New `getKidClassId()` / `useKidClassId()` selectors in
+  `authStore` decode the (unverified, UX-only) kid token to know whether the kid is in a live class — the
+  same claim the WS gateway auto-joins on. Server remains authz source of truth.
+- **Transient teacher→kid nudge banner (D-LIVE-2).** New `NudgeBanner` (hosted once in `LearnLayout`, like
+  the heartbeat, so it shows across every studio) listens for `kid.nudge` and shows "✋ coming to help!"
+  (canned) or the teacher's short note with an [OK] dismiss + auto-dismiss. **One-way only** — there is no
+  reply control / text input (not a chat, no DMs).
+- Tests: `raiseHand`/`RaiseHandButton` (visibility gating + raise/lower emits + teacher-lowered sync),
+  `NudgeBanner` (canned vs note copy, no-reply one-way shape, dismiss), `authStore` (`class_id` claim decode,
+  malformed-token safety).
+
 ## 2026-06-21 (Blocks read-only viewer — edit controls DISABLED, not hidden — D-LV-6)
 
 ### Fixed

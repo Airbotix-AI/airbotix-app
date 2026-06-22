@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
+import { useKidToken } from '@/auth/authStore';
 import { sendWsEvent } from '@/lib/ws';
+import { NudgeBanner } from '@/pages/learn/liveClass/NudgeBanner';
+import { reEmitFocus } from '@/pages/learn/liveClass/reportFocus';
 
 import { LearnTopBar } from './LearnTopBar';
 
@@ -23,12 +26,22 @@ export function LearnLayout() {
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const immersive = IMMERSIVE_ROUTES.some((p) => pathname.startsWith(p));
 
+  // Depend on the kid token so the FIRST heartbeat (which lazily creates + connects
+  // the kid socket via getSocket) fires the moment auth lands — not up to 10s later
+  // — and reconnects on token rotation. Without this, the bootstrap refresh resolves
+  // after mount and the socket stays down until the next interval tick.
+  const kidToken = useKidToken();
   useEffect(() => {
-    const tick = () => sendWsEvent('class.heartbeat', { ts: Date.now() });
+    const tick = () => {
+      sendWsEvent('class.heartbeat', { ts: Date.now() });
+      // Re-emit the kid's currently-open project (D-LIVE-3) so a teacher who
+      // opens Live Mode mid-session syncs within ~10s. No-op when nothing open.
+      reEmitFocus();
+    };
     tick();
     const id = window.setInterval(tick, HEARTBEAT_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [kidToken]);
 
   // Immersive surfaces (Blocks Studio) own the whole viewport: lock page scroll
   // and request browser fullscreen on the first gesture. This lives in the LAYOUT
@@ -70,6 +83,9 @@ export function LearnLayout() {
 
   return (
     <div className="flex h-full flex-col bg-canvas">
+      {/* One-way teacher nudge banner (D-LIVE-2) — hosted here (like the heartbeat)
+          so it surfaces across every Learn surface, including immersive studios. */}
+      <NudgeBanner />
       {!immersive && <LearnTopBar />}
       <main className={immersive ? 'h-full min-h-0 overflow-hidden' : 'flex-1 overflow-y-auto'}>
         {fluid ? (

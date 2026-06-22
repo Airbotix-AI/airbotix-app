@@ -26,6 +26,7 @@ import { type ProjectChange, useProjectStore } from './projectStore';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 import type { ChatItem, FirstTurnSeed } from './panes/useGameAgent';
+import { useReportFocus } from '../liveClass/reportFocus';
 
 type Phase = 'landing' | 'generating' | 'workspace';
 
@@ -96,6 +97,11 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // The `?projectId` query fallback was only used by the removed DEV sandbox
   // route — now effectively dead (see the prop doc / follow-up note).
   const projectId = ownedProjectId ?? searchParams.get('projectId') ?? undefined;
+
+  // Live focus presence (D-LIVE-3): report the kid's open game to the teacher.
+  // No-op in readOnly (teacher viewer) or outside a live class. Title is omitted
+  // (the teacher falls back to the live-state `current_project_title`).
+  useReportFocus(projectId, 'game', undefined, readOnly);
 
   // Age tier (OD-1) for the first-turn generation: Lite 8–11 / Pro 12–17.
   const kidAge = me.data?.kind === 'kid' ? (me.data.age ?? null) : null;
