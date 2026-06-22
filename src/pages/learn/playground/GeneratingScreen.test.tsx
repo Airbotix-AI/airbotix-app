@@ -117,6 +117,32 @@ describe('GeneratingScreen (real streamed progress)', () => {
     expect(onDone).toHaveBeenCalledWith(FILES, undefined, true);
   });
 
+  it('an unavailable safety/AI service → general error page (not the safety deflection)', async () => {
+    // SAFETY_UNAVAILABLE means the gate could NOT run (outage / unconfigured LLM),
+    // not that the idea was unsafe. The screen must surface a general error
+    // (onError('service')) — NOT open the workspace with the "too rough" block.
+    const onDone = vi.fn();
+    const onError = vi.fn();
+    render(
+      <GeneratingScreen
+        prompt="a calm garden game"
+        projectId="p1"
+        mode="lite"
+        onDone={onDone}
+        onError={onError}
+      />,
+    );
+
+    await act(async () => {
+      rejectTurn?.(new ApiError(503, 'SAFETY_UNAVAILABLE', 'Something went wrong on our end.'));
+    });
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('service'), { timeout: 3000 });
+    expect(onDone).not.toHaveBeenCalled();
+    // The fallback scaffold loader must NOT run on this path (it would open the studio).
+    expect(vi.mocked(resolveProjectFiles)).not.toHaveBeenCalled();
+  });
+
   // Try-demo (try-demo-mode-prd §3 step 1→2): NO backend, NO streamed turn —
   // the bundled starter plays through the SAME thinking → building (file-by-
   // file) → done arc, and the canned reply seeds the chat like a real first turn.

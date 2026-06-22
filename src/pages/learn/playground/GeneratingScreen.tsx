@@ -97,8 +97,15 @@ export function GeneratingScreen({
    *  `blocked` is set when the build was refused by the safety check (the kid lands
    *  in the empty scaffold with a friendly explanation + gentler suggestions). */
   onDone: (files: VfsFile[], firstTurn?: FirstTurnSeed, blocked?: boolean) => void;
-  /** Loading the real project failed — no scaffold fallback; the caller errors out. */
-  onError?: (err: unknown) => void;
+  /**
+   * The build couldn't complete and there's no usable fallback — the caller shows
+   * an error page. `kind` distinguishes WHY: `'load'` = the real project's files
+   * couldn't be loaded; `'service'` = the AI/safety service was unavailable (an
+   * outage or an unconfigured LLM provider — `SAFETY_UNAVAILABLE`), which is a
+   * general "try again later" error, NOT a content refusal (those open the
+   * workspace with a gentle deflection via `onDone(..., blocked)`).
+   */
+  onError?: (kind: 'load' | 'service') => void;
 }) {
   const [status, setStatus] = useState<Status>('thinking');
   // Live activity from the stream — the files the AI is writing, in order.
@@ -251,13 +258,21 @@ export function GeneratingScreen({
           // can explain it + offer gentler ideas instead of a silent empty project.
           if (cancelled) return;
           window.clearInterval(reveal);
+          // The safety/AI service couldn't run (outage or unconfigured LLM,
+          // SAFETY_UNAVAILABLE) — this is NOT a content refusal, so don't open the
+          // workspace with the "too rough" deflection; show a general error page.
+          if (turnErr instanceof ApiError && turnErr.code === 'SAFETY_UNAVAILABLE') {
+            window.clearInterval(tipTimer);
+            onErrorRef.current?.('service');
+            return;
+          }
           const blocked = turnErr instanceof ApiError && turnErr.code === 'MODERATION_REJECTED';
           try {
             finish(await resolveProjectFiles({ projectId, prompt, name }), undefined, blocked);
-          } catch (err) {
+          } catch {
             if (cancelled) return;
             window.clearInterval(tipTimer);
-            onErrorRef.current?.(err);
+            onErrorRef.current?.('load');
           }
         });
 
