@@ -7,6 +7,7 @@ import { FileTree } from './FileTree';
 import { PreviewFrame } from './PreviewFrame';
 import { useCodeStudio } from './useCodeStudio';
 import type { VfsFile } from './codeApi';
+import { useReportFocus } from '../liveClass/reportFocus';
 
 /**
  * The Code Studio.
@@ -26,6 +27,11 @@ export function CodeStudioPage({
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const projectId = projectIdProp ?? routeProjectId;
   const studio = useCodeStudio(projectId ?? '', { readOnly });
+
+  // Live focus presence (D-LIVE-3): report the kid's open code project to the
+  // teacher. No-op in readOnly (teacher viewer) or outside a live class. The
+  // title is omitted while still loading (the teacher falls back to live-state).
+  useReportFocus(projectId, 'code', studio.loading ? undefined : studio.title, readOnly);
 
   if (!projectId) return <NotFound />;
   if (studio.loading) {

@@ -12,11 +12,19 @@ import { getToken } from '@/auth/authStore';
 import type { PrincipalKind } from '@/auth/types';
 import { sameHostInDev } from '@/lib/devHost';
 
-// Origin only — the gateway path ('/ws') must be the socket.io `path` option,
-// not a URL suffix (a suffix is parsed as a namespace and leaves path at the
-// default '/socket.io', breaking the handshake). In dev, follow the page's host
-// so a LAN device connects to the dev machine, not its own localhost.
-const WS_URL = sameHostInDev(import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030');
+// Origin ONLY (scheme+host+port) — the gateway path ('/ws') must be the socket.io
+// `path` option, NOT a URL suffix: socket.io parses a path as a NAMESPACE, which
+// breaks the handshake. VITE_WS_URL commonly carries a `/ws` suffix (the prod env
+// + examples do), so strip any path defensively here rather than trusting the env.
+// In dev, follow the page's host so a LAN device connects to the dev machine.
+function wsOrigin(configuredUrl: string): string {
+  try {
+    return new URL(configuredUrl).origin;
+  } catch {
+    return configuredUrl;
+  }
+}
+const WS_URL = wsOrigin(sameHostInDev(import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030'));
 const WS_PATH = '/ws';
 
 const sockets: Record<PrincipalKind, Socket | null> = { user: null, kid: null };

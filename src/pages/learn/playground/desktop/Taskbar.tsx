@@ -22,6 +22,7 @@ import { ShareLinkPanel } from '../ShareLinkPanel';
 import { ThemeToggle } from '../ThemeToggle';
 import { usePlaygroundStore, type PgWindowId } from '../playgroundStore';
 import { useProjectBackTo } from '../../projects/useProjectBackTo';
+import { RaiseHandButton } from '../../liveClass/RaiseHandButton';
 import { useDemoMode } from '@/pages/try/demoMode';
 
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
@@ -172,6 +173,7 @@ export function Taskbar({ projectId, readOnly = false }: TaskbarProps) {
           real backend project only). */}
       <div className="ml-auto flex items-center gap-3">
         <SaveStatusBadge />
+        <RaiseHandButton readOnly={readOnly} />
         {shareProjectId && <ShareLinkPanel projectId={shareProjectId} />}
       </div>
     </div>

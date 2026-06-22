@@ -42,6 +42,59 @@ export function getToken(kind: PrincipalKind): string | null {
   return useAuthStore.getState().tokens[kind];
 }
 
+// Decode the (unverified) JWT body to read a claim. Client-side this is for UX
+// only — the server is authz source of truth (CLAUDE.md §4), so a tampered claim
+// can never grant access; it only decides whether to *show* a control. Returns
+// null on any malformed/absent token.
+function decodeJwtClaims(token: string | null): Record<string, unknown> | null {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = atob(b64);
+    const parsed: unknown = JSON.parse(json);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Non-reactive read of the kid's `class_id` JWT claim — null when the kid is not
+// in a live class. Used to gate the raise-hand control (it only makes sense in a
+// class). See ws.gateway: the same claim auto-joins the kid to `class:{id}`.
+export function getKidClassId(): string | null {
+  const claims = decodeJwtClaims(useAuthStore.getState().tokens.kid);
+  const classId = claims?.class_id;
+  return typeof classId === 'string' && classId.length > 0 ? classId : null;
+}
+
+// Non-reactive read of the kid's own subject id (`sub`) from the kid token, so a
+// class-room broadcast can be matched to "this is about ME". null when no token.
+export function getKidSub(): string | null {
+  const claims = decodeJwtClaims(useAuthStore.getState().tokens.kid);
+  const sub = claims?.sub;
+  return typeof sub === 'string' && sub.length > 0 ? sub : null;
+}
+
+// Reactive selector for components: re-derives `class_id` whenever the kid token
+// changes (login / class-code login / logout). Decoding is cheap and the token
+// rarely changes, so deriving on each render is fine.
+export function useKidClassId(): string | null {
+  const token = useAuthStore((s) => s.tokens.kid);
+  const claims = decodeJwtClaims(token);
+  const classId = claims?.class_id;
+  return typeof classId === 'string' && classId.length > 0 ? classId : null;
+}
+
+// Reactive selector for the kid access token. WS subscribers depend on this so
+// they (re)attach to the kid socket the moment auth lands (the bootstrap refresh
+// resolves AFTER the layout mounts) and again when the token rotates — otherwise
+// a listener attached at mount (when the socket didn't exist yet) never fires.
+export function useKidToken(): string | null {
+  return useAuthStore((s) => s.tokens.kid);
+}
+
 // The principal that owns the surface currently in the URL. The two surfaces are
 // route-segregated (`/learn/*` = kid, everything else = parent), so a component
 // or request inherits the principal of the surface it runs under. Single source
