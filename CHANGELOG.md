@@ -41,6 +41,21 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - Tests: `raiseHand`/`RaiseHandButton` (visibility gating + raise/lower emits + teacher-lowered sync),
   `NudgeBanner` (canned vs note copy, no-reply one-way shape, dismiss), `authStore` (`class_id` claim decode,
   malformed-token safety).
+## 2026-06-22
+
+### Fixed
+- **Game Studio: an unavailable AI/safety service now shows a general error page, not the
+  "your idea was a bit too rough" safety deflection.** When the input safety gate could not
+  run (a classifier outage, or — common in local dev — the LLM provider not configured),
+  the backend used to fail closed with `MODERATION_REJECTED`, indistinguishable from a real
+  content block. So *every* prompt, however gentle, opened the workspace with the "too rough"
+  message. The backend now returns a distinct `SAFETY_UNAVAILABLE` (503) for the
+  service-can't-run case; `GeneratingScreen` routes it to `onError('service')` and
+  `PlaygroundApp`'s `LoadErrorScreen` shows a general "something went wrong, try again"
+  page (a real content refusal still opens the studio with the gentle deflection). The
+  chat-edit path already maps 503 → a general "couldn't reach the AI" message. Covered by
+  `GeneratingScreen.test.tsx` (`SAFETY_UNAVAILABLE` → error page, no workspace) and the
+  umbrella harness journey `kid-playground-safety-unavailable`.
 
 ## 2026-06-21 (Blocks read-only viewer — edit controls DISABLED, not hidden — D-LV-6)
 
