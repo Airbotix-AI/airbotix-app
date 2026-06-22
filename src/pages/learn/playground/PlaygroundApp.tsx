@@ -151,10 +151,12 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // thumbnail when the kid leaves. Excludes the leave dialog (a sibling below).
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [leaving, setLeaving] = useState(false);
-  // A real project couldn't be opened (load failed / create failed). The backend
-  // is the source of truth — there's no scaffold fallback — so we show an error
-  // and the kid heads back to project creation.
-  const [loadError, setLoadError] = useState(false);
+  // A real project couldn't be opened, so we show an error page instead of the
+  // studio. `null` = no error; `'load'` = the project's files couldn't be loaded
+  // /created (backend is the source of truth, no scaffold fallback); `'service'`
+  // = the AI/safety service was unavailable (outage or unconfigured LLM) — a
+  // general "try again" error, NOT a content refusal.
+  const [loadError, setLoadError] = useState<'load' | 'service' | null>(null);
 
   const run = useCallback(() => {
     setRunning(true);
@@ -175,7 +177,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
         setReadOnlyReady(true);
       })
       .catch(() => {
-        if (alive) setLoadError(true);
+        if (alive) setLoadError('load');
       });
     return () => {
       alive = false;
@@ -335,7 +337,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {loadError ? (
-        <LoadErrorScreen onBack={() => navigate('/learn/create')} />
+        <LoadErrorScreen variant={loadError} onBack={() => navigate('/learn/create')} />
       ) : (
         <>
       {phase === 'landing' && (
@@ -359,7 +361,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
               } catch {
                 // Can't create the project on the backend → no local fallback;
                 // show the error and send the kid back to project creation.
-                setLoadError(true);
+                setLoadError('load');
                 return;
               }
             }
@@ -435,7 +437,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
             }
             setPhase('workspace');
           }}
-          onError={() => setLoadError(true)}
+          onError={(kind) => setLoadError(kind)}
         />
       )}
       {readOnly && !readOnlyReady && (
@@ -511,27 +513,50 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   );
 }
 
-// Shown when a real project can't be opened — the backend is the source of truth
-// and there is no scaffold fallback, so the kid heads back to project creation.
-function LoadErrorScreen({ onBack }: { onBack: () => void }) {
+// Shown when a real project can't be opened — there is no scaffold fallback, so
+// the kid heads back to project creation. `variant` picks the copy: `'load'` =
+// the project's files couldn't be loaded/created; `'service'` = the AI/safety
+// service was unavailable (outage or unconfigured LLM) — a general, content-blind
+// "try again later" error, never implying the kid's idea was the problem.
+function LoadErrorScreen({
+  variant,
+  onBack,
+}: {
+  variant: 'load' | 'service';
+  onBack: () => void;
+}) {
+  const copy =
+    variant === 'service'
+      ? {
+          title: 'Something went wrong',
+          body:
+            "We couldn't start your game just now — our game studio is having a moment. " +
+            'Please try again in a little while.',
+        }
+      : {
+          title: "We couldn't open this game",
+          body:
+            'It may have been removed, or there was a problem loading it. ' +
+            "Let's head back so you can make or pick another one.",
+        };
   return (
-    <div className="pg-canvas flex h-full flex-col items-center justify-center gap-5 px-6 text-center text-pg-text">
+    <div
+      data-testid={`playground-error-${variant}`}
+      className="pg-canvas flex h-full flex-col items-center justify-center gap-5 px-6 text-center text-pg-text"
+    >
       <div className="grid h-16 w-16 place-items-center rounded-2xl bg-wash-coral text-brand-coral">
         <AlertTriangle size={30} />
       </div>
       <div className="space-y-1.5">
-        <h1 className="text-[20px] font-extrabold">We couldn&apos;t open this game</h1>
-        <p className="max-w-sm text-[14px] text-pg-text-dim">
-          It may have been removed, or there was a problem loading it. Let&apos;s head back so
-          you can make or pick another one.
-        </p>
+        <h1 className="text-[20px] font-extrabold">{copy.title}</h1>
+        <p className="max-w-sm text-[14px] text-pg-text-dim">{copy.body}</p>
       </div>
       <button
         type="button"
         onClick={onBack}
         className="rounded-xl bg-brand-coral px-5 py-2.5 text-[14px] font-extrabold text-white"
       >
-        Make something new
+        {variant === 'service' ? 'Try again' : 'Make something new'}
       </button>
     </div>
   );
