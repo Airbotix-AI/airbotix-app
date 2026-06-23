@@ -1,743 +1,1034 @@
-// The bundled Game Guide corpus for `/try/playground` (try-demo-mode-prd §3
-// step 10). The REAL `HelpPane` renders + searches it through its normal path
+// The bundled Game Guide corpus for `/try/playground` (try-demo-mode-prd §3).
+// The REAL `HelpPane` renders + searches it through its normal path
 // (`loadHelpCorpus` → the demo seam in `panes/help/helpApi.ts`) — same shape as
 // `GET /help/docs`, just shipped client-side so the demo stays offline.
 //
-// ⚠️ THIS IS A VERBATIM COPY of the REAL corpus — the single source of truth in
-// `platform-backend/src/help/help-content.ts` (D-HELP-02). Nothing here is
-// invented: the demo guide is the product guide. The drift alarm in
-// `demoHelp.playground.test.ts` compares every doc/pillar/block against the
-// backend source file (when the sibling checkout is present) — if the backend
-// corpus changes, that test fails loudly: re-copy the content here.
+// ⚠️ VERBATIM COPY of the single source of truth in
+// `platform-backend/src/help/help-content.ts` (D-HELP-02). Do NOT hand-edit — it is
+// generated from that file; the drift alarm in `demoHelp.playground.test.ts` fails
+// if it diverges. To refresh: re-run the backend generator and commit the result.
 
 import type { HelpCorpus } from '../learn/playground/panes/help/helpTypes';
 
-/** The doc the tour's Guide step opens — the most diagram-rich page (two
- *  diagrams: the game loop + the scene flow), so evaluators land on visuals. */
-export const DEMO_GUIDE_TOUR_DOC = 'engine/scenes-and-the-game-loop';
+/** The doc the tour's Guide step opens — the most diagram-rich page. */
+export const DEMO_GUIDE_TOUR_DOC = 'motion/game-loop';
 
 export const DEMO_HELP_CORPUS: HelpCorpus = {
-  pillars: [
-    { id: 'engine', title: 'How games work', blurb: 'The big ideas behind every game.' },
-    { id: 'basics', title: 'Game basics', blurb: 'Sprites, moving, scoring, winning.' },
-    { id: 'phaser', title: 'Phaser 4', blurb: 'The engine your game runs on.' },
+  "pillars": [
+    {
+      "id": "start",
+      "title": "Start here",
+      "blurb": "What a game is and how yours runs.",
+      "order": 1
+    },
+    {
+      "id": "world",
+      "title": "The world & objects",
+      "blurb": "Space, things, the camera, style.",
+      "order": 2
+    },
+    {
+      "id": "motion",
+      "title": "Making it move",
+      "blurb": "The loop, input, movement, animation.",
+      "order": 3
+    },
+    {
+      "id": "rules",
+      "title": "Rules & play",
+      "blurb": "Collisions, score, winning, levels.",
+      "order": 4
+    },
+    {
+      "id": "polish",
+      "title": "Polish & share",
+      "blurb": "Juice, speed, sharing your game.",
+      "order": 5
+    }
   ],
-  docs: [
-    // ══════════════════════════════════════════════════════════════════════════
-    // engine/ — how games work (the big ideas)
-    // ══════════════════════════════════════════════════════════════════════════
+  "docs": [
     {
-      id: 'engine/what-is-an-engine',
-      pillar: 'engine',
-      title: 'What is a game engine?',
-      tags: ['engine', 'phaser', 'library', 'what is', 'basics', 'framework'],
-      blocks: [
-        { kind: 'heading', text: 'A helper that does the hard parts', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Imagine building a LEGO castle. A game engine is like a giant box of LEGO that already has wheels, doors and windows made for you — so instead of cutting every brick yourself, you just snap the ready-made pieces together to build your game.',
-        },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'The engine already knows how to draw pictures on the screen, move them around, play sounds, and notice when two things bump into each other. You tell it WHAT you want to happen, and it takes care of the tricky how.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'It draws your game many times every second so things look like they move.',
-            'It listens to the keyboard and mouse for you.',
-            'It checks when things touch (like a player grabbing a coin).',
-            'It can add gravity so things fall, just like in real life.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'A game engine is a runtime + library that handles the cross-cutting work every game needs: a render loop, a scene graph, an input system, physics/collision, audio, asset loading and timing. Your studio uses Phaser, a 2D HTML5 engine that runs in the browser on a Canvas/WebGL surface.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Without an engine you would hand-write the requestAnimationFrame loop, track delta time, manage a draw order, do AABB collision maths and wire raw DOM input events. The engine gives you Scenes, Game Objects, an Arcade physics world and an input manager out of the box, so your code is about YOUR game, not the plumbing.',
-        },
-        {
-          kind: 'callout',
-          text: 'You bring the idea; the engine does the drawing and the maths.',
-        },
+      "id": "start/what-is-a-game",
+      "pillar": "start",
+      "order": 1,
+      "title": "What a game is",
+      "tags": [
+        "game",
+        "loop",
+        "start",
+        "begin",
+        "basics",
+        "what is",
+        "player",
+        "overview"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Every game is a loop",
+          "anchor": "loop"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "game-loop",
+          "alt": "A loop: read the input, update the world, draw the picture — over and over, many times a second."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "A game does three things again and again, super fast: it LOOKS at what you press, it CHANGES the world a tiny bit, then it DRAWS the new picture. Do that ~60 times a second and things look like they move!"
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "A game is a loop running ~60 times/second: read input → update state (positions, score, timers) → render a frame. Each pass is one \"frame\"; smooth motion is just many small changes drawn quickly. Everything else you learn here hangs off this loop."
+        },
+        {
+          "kind": "para",
+          "text": "A game also has THINGS in it (a player, enemies, coins) and RULES (what happens when they touch). That is the whole idea — things in a world, changed by a loop, following rules."
+        },
+        {
+          "kind": "callout",
+          "text": "Input → Update → Draw, over and over. That loop is the heart of every game — 2D or 3D."
+        }
+      ]
     },
     {
-      id: 'engine/scenes-and-the-game-loop',
-      pillar: 'engine',
-      title: 'Scenes and the game loop',
-      tags: ['scene', 'loop', 'update', 'create', 'preload', 'frame', 'tick', 'fps', 'delta'],
-      blocks: [
-        { kind: 'heading', text: 'A game runs in a loop', anchor: 'the-loop' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A movie is lots of pictures shown quickly so it looks like things move. A game is the same — but the game DRAWS each new picture itself, about 60 times every second. Each picture is called a frame.',
-        },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Every frame the game does three things, over and over: look at what changed (did you press a key?), move things a tiny bit, then draw the new picture. Doing it 60 times a second makes everything look smooth.',
-        },
-        {
-          kind: 'diagram',
-          diagram: 'game-loop',
-          alt: 'The game loop as a circle: read input, then update (move things), then draw, then repeat — about 60 times a second.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'The engine drives a fixed-ish loop on requestAnimationFrame (~60fps). Each tick it samples input, steps the physics world, runs your update(time, delta), then renders. `delta` is the milliseconds since the last frame — multiply movement by it (or use velocities) so speed is the same on a fast or slow device.',
-        },
-        { kind: 'heading', text: 'A scene is one screen', anchor: 'scenes' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A scene is one screen of your game — like the title screen, the main game, or the "Game Over" screen. Each scene has its own stuff and its own rules. You switch scenes to move between screens.',
-        },
-        {
-          kind: 'diagram',
-          diagram: 'scene-flow',
-          alt: 'Three scenes in a row — Title, Game, Game Over — with arrows showing you move from one screen to the next, and back to Game to play again.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'preload — get your pictures and sounds ready before the screen starts.',
-            'create — set everything up once, when the screen opens.',
-            'update — runs again and again to move things and check the keys.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'A Phaser Scene is a class with lifecycle hooks: init(data) → preload() (queue asset loads) → create(data) (build the world once) → update(time, delta) (per-frame). One-time setup goes in create(); anything that must react every frame goes in update(). Move between scenes with this.scene.start("Key", data).',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "class Game extends Phaser.Scene {\n  constructor() { super('Game'); }\n  create() { this.player = this.add.rectangle(200, 100, 40, 40, 0x44ff88); }\n  update(time, delta) { this.player.y += 0.1 * delta; } // delta-scaled\n}",
-        },
+      "id": "start/2d-vs-3d",
+      "pillar": "start",
+      "order": 2,
+      "title": "2D, 3D, and our tools",
+      "tags": [
+        "2d",
+        "3d",
+        "phaser",
+        "three",
+        "threejs",
+        "engine",
+        "choose",
+        "flat",
+        "depth",
+        "difference"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Flat vs deep",
+          "anchor": "flat-vs-deep"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "sprite-vs-mesh",
+          "alt": "The same character as a flat 2D sprite and as a 3D mesh you can turn around."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "2D games are FLAT — like a cartoon. Things have a left/right and an up/down. 3D games have DEPTH too — you can go closer and further away, and turn things around to see the other side."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "2D works in two directions (x, y) and draws flat pictures; 3D adds a third (z) for depth, places shapes in a real space, and a camera looks into it. Same concepts (loop, objects, input, rules) — just an extra dimension and a camera you aim."
+        },
+        {
+          "kind": "heading",
+          "text": "The tools your studio uses",
+          "anchor": "tools"
+        },
+        {
+          "kind": "para",
+          "text": "Your studio builds 2D games with Phaser 4 and 3D games with three.js. You do not install them — they are already loaded and ready. This Guide teaches the idea first, then shows the Phaser 4 way and the three.js way side by side."
+        },
+        {
+          "kind": "list",
+          "items": [
+            "Pick 2D (Phaser 4) for platformers, top-down, puzzle, arcade — quick to make, easy to read.",
+            "Pick 3D (three.js) for worlds you move through, fly around, or look at from any angle."
+          ]
+        }
+      ]
     },
     {
-      id: 'engine/coordinates-and-the-canvas',
-      pillar: 'engine',
-      title: 'Coordinates and the canvas',
-      tags: ['coordinates', 'x', 'y', 'canvas', 'position', 'screen', 'pixels', 'origin'],
-      blocks: [
-        { kind: 'heading', text: 'x goes right, y goes DOWN', anchor: 'xy' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Every spot on the screen has two numbers. The first is x — how far ACROSS (to the right). The second is y — how far DOWN. The very top-left corner is 0, 0.',
-        },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Here is the surprising part: bigger y means LOWER on the screen, not higher. So to move something UP, you make its y number SMALLER. To move it down, make y bigger.',
-        },
-        {
-          kind: 'diagram',
-          diagram: 'xy-coordinates',
-          alt: 'The screen with 0,0 in the top-left corner; x increases to the right, y increases downward, and a dot marks a point at its x and y.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'The canvas uses screen coordinates: origin (0,0) at the top-left, +x right, +y down. The game has a fixed width/height (the config size); the studio scales the canvas to fit the stage but the coordinate space stays the same. Most Game Objects default to an origin of (0.5, 0.5) — their x/y is their CENTRE — except text/images where you may want setOrigin(0).',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "// centre of an 800x600 game:\nconst cx = this.scale.width / 2;   // 400\nconst cy = this.scale.height / 2;  // 300\nthis.add.text(cx, cy, 'Hi!').setOrigin(0.5); // centred on that point",
-        },
-        { kind: 'callout', text: 'To move something up, make its y SMALLER.' },
+      "id": "start/what-an-engine-does",
+      "pillar": "start",
+      "order": 3,
+      "title": "What a game engine does",
+      "tags": [
+        "engine",
+        "library",
+        "framework",
+        "render",
+        "physics",
+        "what is",
+        "runtime",
+        "tools"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "The engine does the hard parts",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "engine-parts",
+          "alt": "A game engine bundles the render loop, drawing, input, physics, sound and asset loading so you just describe your game."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "An engine is a big helper. It runs the loop, draws your shapes, listens to the keyboard, checks when things bump, and plays sounds — so YOU just say what your game is, not how every little thing works."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "A game engine is a runtime + library handling the cross-cutting work every game needs: the frame loop, a render pipeline, input, collision/physics, audio, asset loading and timing. You describe objects + rules; it does the plumbing. Phaser 4 is a 2D engine; three.js is a 3D render engine."
+        }
+      ]
     },
     {
-      id: 'engine/why-its-sandboxed',
-      pillar: 'engine',
-      title: 'Why your game runs in a safe box',
-      tags: ['sandbox', 'safe', 'iframe', 'security', 'privacy'],
-      blocks: [
-        { kind: 'heading', text: 'A safe play area', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Your game runs inside a locked box on the page. It can draw, play sounds and read your key presses — but it cannot reach the rest of the app or the internet. That means you can experiment as much as you like and never break anything outside your game.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'The game is assembled into a sandboxed <iframe> with an OPAQUE origin (no allow-same-origin), so your code cannot read the app, cookies or the login token, and cannot call the network. The only way it talks to the studio is by posting messages out (that is how the console, fps and screenshots reach the toolbar). It is a real security boundary, not just a setting.',
-        },
-        {
-          kind: 'list',
-          tier: 'pro',
-          items: [
-            'No network: fetch/XHR/WebSocket are unavailable — keep all logic self-contained.',
-            'No modules: scripts share one global scope (see the runtime-contract doc).',
-            'Errors and console.log are forwarded out so the studio can show them with file + line.',
-          ],
-        },
+      "id": "start/how-it-runs",
+      "pillar": "start",
+      "order": 4,
+      "title": "How your game runs here",
+      "tags": [
+        "import",
+        "export",
+        "module",
+        "global",
+        "main.js",
+        "rules",
+        "mount",
+        "game",
+        "setup",
+        "sandbox",
+        "phaser",
+        "three"
       ],
-    },
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // basics/ — game basics
-    // ══════════════════════════════════════════════════════════════════════════
-    {
-      id: 'basics/sprites-and-objects',
-      pillar: 'basics',
-      title: 'Sprites and game objects',
-      tags: [
-        'sprite',
-        'object',
-        'player',
-        'guy',
-        'character',
-        'image',
-        'shape',
-        'rectangle',
-        'circle',
-      ],
-      blocks: [
-        { kind: 'heading', text: 'The things in your game', anchor: 'overview' },
+      "blocks": [
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A sprite is any THING in your game that you can see and move — your player, an enemy, a coin, a cloud. Think of each sprite as a sticker you can place on the screen and then slide around.',
+          "kind": "heading",
+          "text": "The rules your game must follow",
+          "anchor": "overview"
         },
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A sprite can be a picture, OR a simple shape like a rectangle, circle or star. Shapes are great because you do not need any artwork — you just pick a size and a colour and it appears.',
+          "kind": "para",
+          "text": "Your game runs in a safe box (a sandbox) right on the page. A few rules really matter — break them and the game will not start at all. They are the same idea for 2D and 3D."
         },
         {
-          kind: 'diagram',
-          diagram: 'sprite-shapes',
-          alt: 'Examples of sprites made from shapes: a rectangle player, a circle coin, and a star — all built from shapes with no artwork.',
+          "kind": "heading",
+          "text": "No import or export",
+          "anchor": "no-imports"
         },
         {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Give each sprite a spot (its x and y).',
-            'Give it a size and a colour.',
-            'Keep it in a variable so you can move it later.',
-          ],
+          "kind": "para",
+          "tier": "lite",
+          "text": "Do NOT write \"import\" and do NOT write \"export\". The engine is already here as a word you can use: Phaser for 2D, THREE for 3D. Every file shares everything — just use it, no import lines."
         },
         {
-          kind: 'heading',
-          text: 'Making them in code',
-          anchor: 'making-them',
-          tier: 'pro',
+          "kind": "para",
+          "tier": "pro",
+          "text": "There is no module system in the sandbox — every file shares ONE global scope. So no import / export / require. The engine is a GLOBAL: `Phaser` (window.Phaser) in 2D, `THREE` (window.THREE) in 3D. Adding an import line throws and the game never boots."
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Build visuals from shapes with this.add.rectangle / circle / star / triangle, or from loaded art with this.add.image / this.add.sprite. Keep a reference on `this` so update() can reach it. To move or collide it under physics, give it a body with this.physics.add.existing(obj).',
+          "kind": "callout",
+          "text": "The engine is a global (Phaser / THREE). Never import or export — it stops your game from running."
         },
         {
-          kind: 'code',
-          tier: 'pro',
-          code: "// a shape sprite with physics\nthis.player = this.add.rectangle(120, 300, 40, 40, 0x44ff88);\nthis.physics.add.existing(this.player);\nthis.player.body.setCollideWorldBounds(true);\n\n// an image sprite (needs a loaded 'hero' key)\nthis.hero = this.physics.add.sprite(200, 300, 'hero').setScale(1.5);",
+          "kind": "heading",
+          "text": "main.js runs last",
+          "anchor": "entry-last"
         },
-      ],
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Your other files load first; main.js runs LAST and starts the game. Your game shows up inside the box on the page called \"game\"."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): main.js builds `new Phaser.Game({ parent: \"game\", scene: [...] })`; mount into the #game element and turn on Arcade physics if you need gravity/collisions."
+        },
+        {
+          "kind": "code",
+          "tier": "pro",
+          "code": "// main.js (runs LAST) — 2D / Phaser 4\nnew Phaser.Game({\n  type: Phaser.AUTO,\n  parent: 'game',                 // mount into <div id=\"game\">\n  physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },\n  scene: [Boot, Game, GameOver],\n});"
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): make a Scene, a Camera and a WebGLRenderer (with preserveDrawingBuffer:true so the studio can snapshot it), append `renderer.domElement` to #game, run your own requestAnimationFrame loop, and publish `window.__game = { renderer, pause, resume }` so the studio can pause/snapshot it."
+        },
+        {
+          "kind": "code",
+          "tier": "pro",
+          "code": "// main.js (runs LAST) — 3D / three.js\nconst mount = document.getElementById('game');\nconst scene = new THREE.Scene();\nconst camera = new THREE.PerspectiveCamera(60, mount.clientWidth / mount.clientHeight, 0.1, 100);\ncamera.position.set(3, 3, 5);\nconst renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });\nrenderer.setSize(mount.clientWidth, mount.clientHeight);\nmount.appendChild(renderer.domElement);\nlet running = true, id = 0;\nfunction loop() { id = requestAnimationFrame(loop); renderer.render(scene, camera); }\nloop();\nwindow.__game = { renderer, pause: () => { running = false; cancelAnimationFrame(id); }, resume: () => { if (!running) { running = true; loop(); } } };"
+        }
+      ]
     },
     {
-      id: 'basics/moving-with-input',
-      pillar: 'basics',
-      title: 'Moving your player',
-      tags: [
-        'move',
-        'input',
-        'keyboard',
-        'arrow',
-        'keys',
-        'mouse',
-        'pointer',
-        'control',
-        'go',
-        'walk',
-        'wasd',
+      "id": "world/coordinates",
+      "pillar": "world",
+      "section": "Space",
+      "order": 1,
+      "title": "Coordinates & space",
+      "tags": [
+        "coordinates",
+        "xy",
+        "xyz",
+        "position",
+        "x",
+        "y",
+        "z",
+        "space",
+        "place",
+        "where",
+        "axis"
       ],
-      blocks: [
-        { kind: 'heading', text: 'Listen for keys, then move', anchor: 'overview' },
+      "blocks": [
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Moving your player is two steps: (1) find out which key is being held down, and (2) move the player a little in that direction. You check this every single frame, so while you HOLD an arrow key the player keeps moving.',
+          "kind": "heading",
+          "text": "Every spot has numbers",
+          "anchor": "xy"
         },
         {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Holding ← (left arrow)? Move the player a little to the left.',
-            'Holding → (right arrow)? Move it a little to the right.',
-            'Holding nothing? Stand still.',
-          ],
+          "kind": "diagram",
+          "diagram": "coords-explorer",
+          "alt": "Drag a point to read its position: x and y in 2D, plus z for depth in 3D."
         },
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Tip: remember up is a SMALLER y. So "move up" means take a little OFF the y number.',
+          "kind": "para",
+          "tier": "lite",
+          "text": "To put something somewhere, you give it numbers. In 2D you give x (left↔right) and y (up↔down). In 3D you add z (near↔far) — how close it is to you."
         },
         {
-          kind: 'heading',
-          text: 'Reading the keys in code',
-          anchor: 'in-code',
-          tier: 'pro',
+          "kind": "para",
+          "tier": "pro",
+          "text": "A position is a set of numbers. 2D = (x, y); 3D = (x, y, z). Heads-up: in 2D screen space y usually grows DOWNWARD, while in 3D y grows UPWARD and z is depth. Drag the point above to feel it."
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Create cursor keys once in create(), then poll .isDown each frame in update(). For physics bodies set a velocity (it keeps moving smoothly and respects collisions); for plain objects nudge x/y directly. Set velocity back to 0 when no key is held so the player stops.',
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): place at `this.add.sprite(x, y, key)`; read/move with `obj.x` / `obj.y`."
         },
         {
-          kind: 'code',
-          tier: 'pro',
-          code: '// create():\nthis.cursors = this.input.keyboard.createCursorKeys();\n\n// update():\nconst speed = 200;\nif (this.cursors.left.isDown) this.player.body.setVelocityX(-speed);\nelse if (this.cursors.right.isDown) this.player.body.setVelocityX(speed);\nelse this.player.body.setVelocityX(0);',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'For tap/click control instead, use this.input.on("pointerdown", (p) => { ... }) or make an object interactive (see the input doc).',
-        },
-      ],
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): place with `mesh.position.set(x, y, z)`; read/move `mesh.position.x/y/z`."
+        }
+      ]
     },
     {
-      id: 'basics/collisions',
-      pillar: 'basics',
-      title: 'Bumping and collecting',
-      tags: ['collision', 'overlap', 'hit', 'touch', 'collect', 'bump', 'crash', 'coin', 'enemy'],
-      blocks: [
-        { kind: 'heading', text: 'When two things touch', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Lots of games need to know when two things touch — the player grabs a coin, or an enemy bumps into you. The engine watches for this and runs your code the moment it happens, so you do not have to check every position yourself.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Overlap = they pass through each other but you get told (great for collecting coins).',
-            'Collide = they bounce off / block each other (great for walls and floors).',
-          ],
-        },
-        {
-          kind: 'diagram',
-          diagram: 'collision-overlap',
-          alt: 'Two pictures: on the left two shapes overlap with a sparkle (overlap — you get told); on the right two shapes meet a wall and stop (collide — they block each other).',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Both objects need physics bodies. Use this.physics.add.overlap(a, b, cb) for "they touched, do something" and this.physics.add.collider(a, b, cb) for "they push each other". The callback receives the two objects so you can destroy one, add score, etc. Groups work too — pass a group as a or b to test many objects at once.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "// collect coins on overlap\nthis.physics.add.overlap(this.player, this.coins, (player, coin) => {\n  coin.destroy();\n  this.score += 1;\n  this.scoreText.setText('Score: ' + this.score);\n});\n\n// block the player with walls\nthis.physics.add.collider(this.player, this.walls);",
-        },
+      "id": "world/objects",
+      "pillar": "world",
+      "section": "Objects",
+      "order": 2,
+      "title": "Objects: sprites & meshes",
+      "tags": [
+        "object",
+        "sprite",
+        "mesh",
+        "guy",
+        "player",
+        "thing",
+        "shape",
+        "character",
+        "add",
+        "create"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Things you put in the world",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "sprite-vs-mesh",
+          "alt": "A 2D sprite is a flat picture; a 3D mesh is a shape made of a geometry plus a material."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Everything in your game — your guy, a coin, a wall — is an OBJECT you place in the world. In 2D an object is a flat picture or shape (a \"sprite\"). In 3D it is a real shape you can turn around (a \"mesh\")."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "An object has a position, a size and a look. In 2D it is a sprite/shape; in 3D a mesh = a geometry (the shape) + a material (the surface). You add it to the world, then move/scale/rotate it each frame."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `const player = this.add.rectangle(x, y, 40, 40, 0x6ee7b7)` (or `this.add.sprite(x, y, \"hero\")`)."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `const player = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshStandardMaterial({ color: 0x6ee7b7 })); scene.add(player)`."
+        }
+      ]
     },
     {
-      id: 'basics/score-and-lives',
-      pillar: 'basics',
-      title: 'Score and lives',
-      tags: ['score', 'points', 'lives', 'health', 'text', 'counter', 'hud'],
-      blocks: [
-        { kind: 'heading', text: 'Keeping count', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A score is just a number you keep. It starts at 0, and you ADD to it when something good happens (like grabbing a coin). Lives work the same way but you take 1 AWAY when something bad happens.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Make a number and start it at 0.',
-            'Show it on the screen with text.',
-            'Every time it changes, update the text so the player sees the new number.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Keep the value on `this` (so every method can reach it) and a Text object to display it. Update the text only when the value changes. Text added in create() stays fixed on screen — perfect for a HUD.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "// create():\nthis.score = 0;\nthis.scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '20px', color: '#fff' });\n\n// when you score:\nthis.score += 1;\nthis.scoreText.setText('Score: ' + this.score);",
-        },
+      "id": "world/camera",
+      "pillar": "world",
+      "section": "Seeing",
+      "order": 3,
+      "title": "The camera",
+      "tags": [
+        "camera",
+        "view",
+        "see",
+        "follow",
+        "scroll",
+        "orbit",
+        "zoom",
+        "look"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "What the player sees",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "camera-view",
+          "alt": "The camera is the window into your world: in 2D it pans across the scene; in 3D it can orbit around things."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "The camera is your window into the game. It does not change the world — it changes what part of the world you SEE. Move the camera to follow your player, or to look at things from a new spot."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "The camera decides the view. 2D: it pans/zooms across a flat scene and can follow a target. 3D: it sits at a position and looks at a point, so moving it orbits/zooms around your objects."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.cameras.main.startFollow(player)` to track the hero; `.setZoom(2)` to zoom."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `camera.position.set(x,y,z); camera.lookAt(target)`. Drag-to-orbit comes free from `new THREE.OrbitControls(camera, renderer.domElement)`."
+        }
+      ]
     },
     {
-      id: 'basics/win-and-lose',
-      pillar: 'basics',
-      title: 'Winning and losing',
-      tags: ['win', 'lose', 'game over', 'end', 'restart', 'goal'],
-      blocks: [
-        { kind: 'heading', text: 'Ending the game', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Every game needs a way to WIN and a way to LOSE — otherwise it never ends! Decide what winning means (reach 10 points, get to the door) and what losing means (run out of lives, fall off the screen).',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'When the win thing happens → show "You win!" and let them play again.',
-            'When the lose thing happens → show "Game Over" and let them try again.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Check your win/lose condition in update() (or in a collision callback) and switch to a result scene. A separate GameOver scene keeps things tidy — pass data in, and start the main scene again to restart.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "// in update():\nif (this.score >= 10) this.scene.start('GameOver', { won: true, score: this.score });\nif (this.lives <= 0) this.scene.start('GameOver', { won: false, score: this.score });\n\n// in GameOver create(): press SPACE to retry\nthis.input.keyboard.once('keydown-SPACE', () => this.scene.start('Game'));",
-        },
+      "id": "world/look-and-style",
+      "pillar": "world",
+      "section": "Style",
+      "order": 4,
+      "title": "Look & style",
+      "tags": [
+        "style",
+        "colour",
+        "color",
+        "material",
+        "light",
+        "texture",
+        "look",
+        "shape",
+        "paint"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Making it look good",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "materials-lights",
+          "alt": "In 2D you pick shapes and colours; in 3D a material plus lights decide how a surface looks."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Give your game a style with colour and shape. In 2D you pick colours and draw shapes. In 3D you also need LIGHTS — without a light, 3D shapes look black!"
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Look = colour + shape (+ in 3D, light). 2D: choose shapes and hex colours, or load a picture. 3D: a material sets the surface, and lights make it visible — a sun-like DirectionalLight plus a soft AmbientLight is a good default."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.add.star(x, y, 5, 12, 26, 0xffd43b)`; tint a sprite with `.setTint(0xff7a66)`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `scene.add(new THREE.DirectionalLight(0xffffff, 2)); scene.add(new THREE.AmbientLight(0x8899ff, 0.6))` so MeshStandardMaterial shows up."
+        }
+      ]
     },
     {
-      id: 'basics/levels-and-difficulty',
-      pillar: 'basics',
-      title: 'Levels and making it harder',
-      tags: ['level', 'difficulty', 'speed', 'harder', 'waves', 'spawn', 'timer'],
-      blocks: [
-        { kind: 'heading', text: 'Keep it exciting', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A fun game gets a little harder as you go, so it never feels boring or impossible. Easy ways to do that: make things move faster over time, or add more enemies, or shrink the time you have.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Speed up: add a tiny bit to the enemy speed each time you score.',
-            'More stuff: add a new enemy every few seconds.',
-            'Levels: when the score hits a number, jump to a harder round.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Drive difficulty from a variable you ramp over time or score (e.g. this.speed += 5 on each point). Spawn waves with a repeating timer and clean up off-screen objects so the object count stays bounded. Store per-level config (spawn rate, speed) in an array and index it by level.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: '// spawn an enemy every second, faster each level\nthis.time.addEvent({\n  delay: 1000,\n  loop: true,\n  callback: () => {\n    const e = this.add.rectangle(800, Phaser.Math.Between(50, 550), 30, 30, 0xff5566);\n    this.physics.add.existing(e);\n    e.body.setVelocityX(-(150 + this.level * 40));\n    this.enemies.add(e);\n  },\n});',
-        },
+      "id": "motion/game-loop",
+      "pillar": "motion",
+      "order": 1,
+      "title": "The loop & time",
+      "tags": [
+        "loop",
+        "update",
+        "frame",
+        "time",
+        "delta",
+        "fps",
+        "tick",
+        "per frame",
+        "speed"
       ],
-    },
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // phaser/ — Phaser 4 specifics
-    // ══════════════════════════════════════════════════════════════════════════
-    {
-      id: 'phaser/runtime-contract',
-      pillar: 'phaser',
-      title: 'How your code runs here',
-      tags: [
-        'import',
-        'export',
-        'module',
-        'global',
-        'main.js',
-        'rules',
-        'phaser',
-        'mount',
-        'game',
-        'setup',
-      ],
-      blocks: [
-        { kind: 'heading', text: 'The rules your game must follow', anchor: 'overview' },
+      "blocks": [
         {
-          kind: 'para',
-          text: 'Your game runs a little differently from a normal web project. A few rules really matter — if you break them, the game will not start at all. They are easy once you know them.',
-        },
-        { kind: 'heading', text: 'No import or export', anchor: 'no-imports' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Do NOT write things like "import Phaser" and do NOT use "export". Phaser is already here for you as a word you can use directly: Phaser. Your scene classes are shared too — every file can see them. So just use them, with no import lines.',
+          "kind": "heading",
+          "text": "One step per frame",
+          "anchor": "overview"
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'There is no module system in the sandbox — every file shares ONE global scope. So no import / export / require. `Phaser` is a global (window.Phaser), and your Scene classes are globals across files. Adding an import line throws and the game never boots.',
+          "kind": "diagram",
+          "diagram": "game-loop-stepper",
+          "alt": "Press Step to advance one frame: read input, update the world, draw — the cycle that makes a game."
         },
         {
-          kind: 'callout',
-          text: 'Phaser is a global. Never import or export — it stops your game from running.',
-        },
-        { kind: 'heading', text: 'main.js runs last', anchor: 'entry-last' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Your scene files load first, and main.js runs LAST. That is where you actually start the game. Your game shows up inside the box on the page that is called "game".',
+          "kind": "diagram",
+          "diagram": "game-loop",
+          "alt": "The loop again, at a glance: input then update then draw, repeating about sixty times a second.",
+          "tier": "lite"
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Files load in order with main.js injected last; it constructs new Phaser.Game(config). Mount into the element id "game" via parent:"game", set the scene list, and turn on Arcade physics if you need gravity/collisions. Build visuals from shapes unless an asset already exists under assets/.',
+          "kind": "para",
+          "tier": "lite",
+          "text": "Your update code runs once every frame — about 60 times a second. Each time, move things a tiny bit. Many tiny moves look like smooth motion. Press Step in the picture to watch one frame happen."
         },
         {
-          kind: 'code',
-          tier: 'pro',
-          code: '// main.js (runs LAST)\nnew Phaser.Game({\n  type: Phaser.AUTO,\n  parent: \'game\',           // mount into <div id="game">\n  backgroundColor: \'#1a1a2e\',\n  physics: { default: \'arcade\', arcade: { gravity: { y: 0 } } },\n  scene: [Boot, Game, GameOver],\n});',
+          "kind": "para",
+          "tier": "pro",
+          "text": "Per-frame code runs ~60×/sec, but slower devices skip frames — so multiply movement by delta (time since the last frame) to move at the same SPEED everywhere, not the same amount per frame."
         },
-      ],
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `update(time, delta) { this.player.x += 0.2 * delta; }` (delta in ms)."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): compute your own delta from the rAF timestamp: `function loop(now){ const dt=(now-last)/1000; last=now; cube.rotation.y += dt; renderer.render(scene,camera); requestAnimationFrame(loop); }`."
+        }
+      ]
     },
     {
-      id: 'phaser/scenes',
-      pillar: 'phaser',
-      title: 'Phaser scenes',
-      tags: ['scene', 'class', 'preload', 'create', 'update', 'extends', 'switch', 'start'],
-      blocks: [
-        { kind: 'heading', text: 'A scene is a class', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Each screen of your game is a "class" — a named box that holds that screen\'s stuff and its rules. You give it three jobs: get ready (preload), set up (create), and keep going (update).',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'A scene extends Phaser.Scene and registers a string key in its constructor (super("Game")). That key is how you start it. Lifecycle: init(data) → preload() → create(data) → update(time, delta). Use this.scene.start / launch / pause / resume / stop to manage screens; launch runs a scene IN PARALLEL (handy for a HUD overlay).',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "class Game extends Phaser.Scene {\n  constructor() { super('Game'); }\n  create(data) {\n    this.add.text(20, 20, 'Level ' + (data.level ?? 1));\n  }\n  update(time, delta) { /* per-frame logic */ }\n}\n// elsewhere: this.scene.start('Game', { level: 2 });",
-        },
+      "id": "motion/input",
+      "pillar": "motion",
+      "order": 2,
+      "title": "Input: keys & pointer",
+      "tags": [
+        "input",
+        "keyboard",
+        "keys",
+        "arrow",
+        "mouse",
+        "pointer",
+        "touch",
+        "press",
+        "control"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Reading the player",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "input-keys",
+          "alt": "Each frame you check which keys are held and where the pointer is, then act on it."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "To control the game you check the keyboard and the mouse/finger every frame: \"is the left arrow held down? then move left.\" Same idea in 2D and 3D."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Input is state you sample each frame (held keys, pointer position) plus one-shot events (key pressed, clicked). Read it in update and turn it into movement."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.cursors = this.input.keyboard.createCursorKeys()` then `if (this.cursors.left.isDown) ...`; pointer via `this.input.activePointer`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `const keys = {}; addEventListener(\"keydown\", e => keys[e.key]=true); addEventListener(\"keyup\", e => keys[e.key]=false)` then `if (keys.ArrowLeft) ...`."
+        }
+      ]
     },
     {
-      id: 'phaser/arcade-physics',
-      pillar: 'phaser',
-      title: 'Arcade physics (gravity, jumping)',
-      tags: [
-        'physics',
-        'gravity',
-        'jump',
-        'velocity',
-        'fall',
-        'bounce',
-        'go up',
-        'platformer',
-        'collide',
+      "id": "motion/movement",
+      "pillar": "motion",
+      "order": 3,
+      "title": "Movement",
+      "tags": [
+        "move",
+        "movement",
+        "velocity",
+        "speed",
+        "position",
+        "walk",
+        "run",
+        "fly"
       ],
-      blocks: [
-        { kind: 'heading', text: 'Make things fall and jump', anchor: 'gravity' },
+      "blocks": [
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Arcade physics is the part of the engine that makes things move like in real life. Turn on gravity and your player will FALL down on its own. To jump, you give the player a quick push UPWARD — and remember, up means a smaller y, so a jump push is a negative number.',
+          "kind": "heading",
+          "text": "Position vs velocity",
+          "anchor": "overview"
         },
         {
-          kind: 'diagram',
-          diagram: 'gravity-and-jump',
-          alt: 'A player on the ground with a down arrow labelled gravity (pulls it down) and an up arrow labelled jump (a negative-y push that sends it up).',
+          "kind": "diagram",
+          "diagram": "velocity",
+          "alt": "Velocity is a direction and speed; each frame it nudges the position."
         },
         {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Gravity pulls your player down toward the ground.',
-            'A jump is a sudden push up (only when you are standing on something).',
-            'Velocity is just "how fast and which way" something is moving.',
-          ],
+          "kind": "para",
+          "tier": "lite",
+          "text": "Two ways to move a thing: set where it IS (its position), or give it a SPEED so it keeps drifting on its own each frame. Speed is great for balls, bullets and anything that flies."
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Give a body gravity with setGravityY, and move it with setVelocityX / setVelocityY (negative y = up). For a platformer jump, only fire when the body is grounded (body.blocked.down or body.touching.down). Add a collider with the ground so the player lands. setBounce, setCollideWorldBounds and setDrag tune the feel.',
+          "kind": "para",
+          "tier": "pro",
+          "text": "Position is where it is now; velocity is how fast + which way it moves each frame. Set position for instant placement; set velocity for continuous motion (then the engine, or your loop, adds it every frame)."
         },
         {
-          kind: 'code',
-          tier: 'pro',
-          code: '// create(): gravity + ground collision\nthis.player.body.setGravityY(800);\nthis.physics.add.collider(this.player, this.ground);\n\n// update(): jump only when standing on something\nif (this.cursors.up.isDown && this.player.body.blocked.down) {\n  this.player.body.setVelocityY(-450);   // negative = up\n}',
+          "kind": "code",
+          "tier": "pro",
+          "code": "// 2D / Phaser 4 — give it a body, then a velocity\nthis.physics.add.existing(ball);\nball.body.setVelocityX(200); // drifts right on its own"
         },
         {
-          kind: 'callout',
-          tier: 'pro',
-          text: 'Set the world gravity once in the game config (arcade.gravity.y), or per-body with setGravityY for finer control.',
-        },
-      ],
+          "kind": "code",
+          "tier": "pro",
+          "code": "// 3D / three.js — keep a velocity, add it each frame\nball.userData.vx = 0.05;\n// in the loop:\nball.position.x += ball.userData.vx;"
+        }
+      ]
     },
     {
-      id: 'phaser/input',
-      pillar: 'phaser',
-      title: 'Keyboard and pointer input',
-      tags: ['input', 'keyboard', 'keys', 'pointer', 'mouse', 'tap', 'click', 'space', 'wasd'],
-      blocks: [
-        { kind: 'heading', text: 'Reading keys and taps', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Your game can listen to the keyboard and the mouse. For arrow keys you check if a key "is down" every frame. For a click or tap, you tell the game "when someone clicks, do this".',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Held keys (move while holding): check isDown every frame in update.',
-            'One-shot keys (jump on press): listen for a keydown event.',
-            'Clicks/taps: listen for pointerdown.',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'createCursorKeys() gives arrows + space + shift; poll .isDown in update for held movement. For a single press use this.input.keyboard.on("keydown-SPACE", cb) or once(). Add custom keys with this.input.keyboard.addKey("W"). Pointer: this.input.on("pointerdown", p => p.worldX/worldY), or make an object clickable with setInteractive() + obj.on("pointerdown", cb).',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "this.cursors = this.input.keyboard.createCursorKeys();\nthis.keyW = this.input.keyboard.addKey('W');\nthis.input.keyboard.on('keydown-SPACE', () => this.shoot());\nthis.input.on('pointerdown', (p) => this.moveTo(p.worldX, p.worldY));",
-        },
+      "id": "motion/animation",
+      "pillar": "motion",
+      "order": 4,
+      "title": "Animation & tweens",
+      "tags": [
+        "animation",
+        "animate",
+        "tween",
+        "spin",
+        "grow",
+        "fade",
+        "smooth",
+        "ease",
+        "move to"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Smooth, automatic motion",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "tween-curve",
+          "alt": "A tween smoothly changes a value from start to end over time, with easing for a natural feel."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "A tween is an easy way to make something move, grow, spin or fade SMOOTHLY all by itself — you say \"go from here to there over half a second\" and it does the in-between."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "A tween animates a property from A to B over a duration with an easing curve (so it speeds up/slows down naturally). Great for pop-ins, pulses and moving between spots without hand-coding each frame."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.tweens.add({ targets: coin, scale: 1.4, yoyo: true, repeat: -1, duration: 400 })`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): tween by hand in the loop (`mesh.rotation.y += dt`) or animate values yourself; no built-in tweener, so step the property toward its target each frame."
+        }
+      ]
     },
     {
-      id: 'phaser/loading-assets',
-      pillar: 'phaser',
-      title: 'Loading images and sounds',
-      tags: ['assets', 'image', 'sound', 'audio', 'load', 'preload', 'key', 'sprite', 'music'],
-      blocks: [
-        { kind: 'heading', text: 'Add it, then load it by name', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'To use a picture or a sound, first add it to your project as an asset. Then "load" it in preload and give it a short nickname (a key). After that you use the nickname whenever you want that picture or sound.',
-        },
-        {
-          kind: 'callout',
-          tier: 'lite',
-          text: 'No pictures yet? No problem — build everything from shapes (rectangles, circles, stars). They need no files at all.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Queue loads in preload() with a key + path; the engine fetches them before create() runs. Only reference files that actually exist under assets/ (otherwise you get broken textures). Use this.load.image / spritesheet / audio, then refer to assets by key in add.image / physics.add.sprite / sound.add.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "// preload():\nthis.load.image('hero', 'assets/hero.png');\nthis.load.audio('coin', 'assets/coin.mp3');\n\n// create():\nthis.player = this.physics.add.sprite(100, 100, 'hero');\nthis.sound.add('coin');  // later: this.sound.play('coin');",
-        },
+      "id": "rules/collisions",
+      "pillar": "rules",
+      "order": 1,
+      "title": "Collisions & overlap",
+      "tags": [
+        "collision",
+        "collide",
+        "overlap",
+        "touch",
+        "hit",
+        "bump",
+        "catch",
+        "pickup",
+        "sparkle"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "When two things touch",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "collision-overlap",
+          "alt": "Drag two shapes together and they sparkle when they overlap — that overlap is how the game knows you caught the coin."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Lots of game rules are really \"did these two things touch?\" Touch a coin → collect it. Touch a spike → lose. The game checks for overlap, then does something. Drag the shapes together to see it."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Collision = detecting that two objects intersect, then reacting. 2D engines do it for you with colliders/overlap callbacks; in 3D you often check it yourself with distances or bounding boxes."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.physics.add.overlap(player, coins, (p, c) => c.destroy())` — fires when they touch."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `if (player.position.distanceTo(coin.position) < 0.8) coin.visible = false` — or use `new THREE.Box3().setFromObject(a).intersectsBox(boxB)`."
+        }
+      ]
     },
     {
-      id: 'phaser/groups-and-many-objects',
-      pillar: 'phaser',
-      title: 'Many objects at once (groups)',
-      tags: ['group', 'many', 'enemies', 'bullets', 'coins', 'spawn', 'pool'],
-      blocks: [
-        { kind: 'heading', text: 'When you have lots of the same thing', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'Some games have LOTS of the same thing — many coins, many enemies, many bullets. Instead of naming each one, you put them all in a "group". Then you can check the whole group for collisions at once, which is much easier.',
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Create a group with this.add.group(), add shape-or-sprite members to it, and pass the group to physics.add.overlap/collider to test every member in one call. In this sandbox build members as shapes + physics.add.existing and group.add(obj) — do NOT use group.create(x,y,"key") with an asset key that does not exist. Destroy members when done to keep the count bounded.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: 'this.coins = this.add.group();\nfor (let i = 0; i < 8; i++) {\n  const c = this.add.circle(100 + i * 80, 200, 12, 0xffd43b);\n  this.physics.add.existing(c);\n  this.coins.add(c);\n}\nthis.physics.add.overlap(this.player, this.coins, (_p, c) => c.destroy());',
-        },
+      "id": "rules/physics-and-gravity",
+      "pillar": "rules",
+      "order": 2,
+      "title": "Gravity & jumping",
+      "tags": [
+        "gravity",
+        "jump",
+        "fall",
+        "physics",
+        "bounce",
+        "platformer",
+        "velocity",
+        "ground"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Pulling things down",
+          "anchor": "gravity"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "gravity-jump",
+          "alt": "Gravity pulls down every frame; a jump gives a quick push up, then gravity wins and you arc back down."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Gravity pulls things DOWN a little every frame. A jump is a quick push UP — then gravity slows it, stops it, and pulls it back down. That up-then-down curve is the jump arc!"
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Gravity adds downward velocity each frame; a jump sets a one-time upward velocity (only when on the ground). Gravity then decelerates and reverses it — the classic arc. Tune gravity + jump strength to get the feel."
+        },
+        {
+          "kind": "code",
+          "tier": "pro",
+          "code": "// 2D / Phaser 4 — Arcade gravity + jump\n// config: physics: { default:'arcade', arcade:{ gravity:{ y: 800 } } }\nif (cursors.up.isDown && player.body.blocked.down) player.body.setVelocityY(-450);"
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): no built-in gravity — keep a vy: `vy -= 9.8 * dt; player.position.y += vy * dt;` and zero it when you land (a jump sets vy to a positive push)."
+        }
+      ]
     },
     {
-      id: 'phaser/tweens-and-timers',
-      pillar: 'phaser',
-      title: 'Smooth motion and timers',
-      tags: ['tween', 'timer', 'animation', 'move', 'delay', 'wait', 'repeat', 'ease', 'pulse'],
-      blocks: [
-        { kind: 'heading', text: 'Make things glide and wait', anchor: 'overview' },
-        {
-          kind: 'para',
-          tier: 'lite',
-          text: 'A tween is a smooth move — it slides a thing from here to there (or makes it grow, shrink, or fade) all by itself. A timer lets you wait a bit and then do something, or do something over and over.',
-        },
-        {
-          kind: 'list',
-          tier: 'lite',
-          items: [
-            'Tween: "float this cloud across the screen and back, forever".',
-            'Timer: "every 2 seconds, drop a new star".',
-          ],
-        },
-        {
-          kind: 'para',
-          tier: 'pro',
-          text: 'this.tweens.add({ targets, ...props, duration, ease, yoyo, repeat }) animates any numeric property (x, y, scale, alpha, angle). this.time.addEvent({ delay, loop, callback }) repeats on an interval; this.time.delayedCall(ms, cb) runs once. Tweens and timers are frame-rate independent.',
-        },
-        {
-          kind: 'code',
-          tier: 'pro',
-          code: "this.tweens.add({ targets: this.coin, scale: 1.4, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut' });\nthis.time.addEvent({ delay: 2000, loop: true, callback: () => this.dropStar() });",
-        },
+      "id": "rules/score-and-state",
+      "pillar": "rules",
+      "order": 3,
+      "title": "Score, lives & state",
+      "tags": [
+        "score",
+        "points",
+        "lives",
+        "state",
+        "variable",
+        "counter",
+        "health",
+        "remember",
+        "hud"
       ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Remembering numbers",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "hud-score",
+          "alt": "Keep numbers like score and lives in variables, then show them on screen and update the text when they change."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Your game remembers things in variables — like score and lives. When something happens (you grab a coin), change the number, then update the words on screen so the player sees it."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Game state is just variables you keep and read: score, lives, level, \"is the game over\". Change them on events; reflect them in on-screen text (the HUD). Keep state in one place so rules stay simple."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.score = 0; this.label = this.add.text(10,10,\"0\")` then `this.label.setText(this.score)`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): keep `let score = 0` and show it in an HTML overlay or a canvas-texture label; `console.log(score)` while you build."
+        }
+      ]
     },
     {
-      id: 'phaser/text-and-shapes',
-      pillar: 'phaser',
-      title: 'Text, shapes and colour',
-      tags: [
-        'text',
-        'shapes',
-        'rectangle',
-        'circle',
-        'star',
-        'colour',
-        'color',
-        'font',
-        'ui',
-        'title',
+      "id": "rules/win-and-lose",
+      "pillar": "rules",
+      "order": 4,
+      "title": "Winning & losing",
+      "tags": [
+        "win",
+        "lose",
+        "game over",
+        "end",
+        "goal",
+        "victory",
+        "restart",
+        "condition"
       ],
-      blocks: [
-        { kind: 'heading', text: 'Build a look with no artwork', anchor: 'overview' },
+      "blocks": [
         {
-          kind: 'para',
-          tier: 'lite',
-          text: 'You can make a whole game look great using only shapes and text — no drawings needed. Rectangles, circles and stars in fun colours, plus big text for titles and the score. Pick colours you like and arrange them on the screen.',
+          "kind": "heading",
+          "text": "How a game ends",
+          "anchor": "overview"
         },
         {
-          kind: 'para',
-          tier: 'pro',
-          text: 'Colours are hex numbers like 0xff7a66 (note 0x, not "#"). Shapes: add.rectangle/circle/star/triangle/line. Text: add.text(x, y, str, { fontFamily, fontSize, color }) — here color IS a "#rrggbb" string. setOrigin(0.5) centres a Game Object on its x/y; setDepth controls draw order; setAlpha fades.',
+          "kind": "diagram",
+          "diagram": "win-lose",
+          "alt": "Each frame, check the win condition and the lose condition; when one is true, end the round."
         },
         {
-          kind: 'code',
-          tier: 'pro',
-          code: "this.add.star(400, 120, 5, 30, 60, 0xffd43b);\nthis.add.text(400, 220, 'SUPER GAME', {\n  fontFamily: 'Arial', fontSize: '48px', color: '#ffffff',\n}).setOrigin(0.5);",
+          "kind": "para",
+          "tier": "lite",
+          "text": "A game needs a way to WIN (reach the goal, get 10 points) and a way to LOSE (run out of lives, fall off). Each frame, check: did I win? did I lose? If yes, show a message and let the player try again."
         },
-      ],
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Win/lose are just conditions you test each frame against your state (score ≥ target, lives ≤ 0). When one fires, stop play and switch to an end state — then offer a restart."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): switch screens with `this.scene.start(\"GameOver\", { score })`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): set a `gameOver = true` flag your loop checks (skip updates, show an overlay), and rebuild to restart."
+        }
+      ]
     },
-  ],
+    {
+      "id": "rules/levels",
+      "pillar": "rules",
+      "order": 5,
+      "title": "Levels & difficulty",
+      "tags": [
+        "level",
+        "levels",
+        "difficulty",
+        "harder",
+        "waves",
+        "spawn",
+        "progress",
+        "stage"
+      ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Making it harder",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "levels",
+          "alt": "As the level number rises, dial up speed, spawn rate or count to keep it challenging."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Games get fun when they get harder slowly. Keep a \"level\" number and use it to speed enemies up or add more of them as the player does well."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Difficulty is a number (level/time/score) you feed into your spawn and speed values. Raise it on a timer or milestone; tie enemy speed, spawn rate and count to it for a smooth ramp."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Same in 2D and 3D: `const speed = 150 + level * 40;` and spawn on a timer (`this.time.addEvent` in Phaser, or a time check in your three.js loop)."
+        }
+      ]
+    },
+    {
+      "id": "polish/juice",
+      "pillar": "polish",
+      "order": 1,
+      "title": "Juice: making it feel great",
+      "tags": [
+        "juice",
+        "feel",
+        "sound",
+        "shake",
+        "particle",
+        "feedback",
+        "pop",
+        "effect",
+        "polish"
+      ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Small touches, big feel",
+          "anchor": "overview"
+        },
+        {
+          "kind": "diagram",
+          "diagram": "juice",
+          "alt": "On a hit: a quick scale pop, a screen shake and a sound make the moment feel great."
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "\"Juice\" is the little extras that make a game feel alive: a pop when you grab a coin, a tiny screen shake on a hit, a sound. They are easy to add and make a huge difference."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Juice = immediate feedback on events: scale pops/flashes, camera shake, sound, particles. Add it on the same line you change state (collect, hit, win) — small, cheap, and it sells the moment."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `this.cameras.main.shake(120)`, a scale tween, and `this.sound.add(\"pop\").play()`."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): nudge the camera a few frames for a shake, scale the mesh up then back, and play an HTML `<audio>` for the sound."
+        }
+      ]
+    },
+    {
+      "id": "polish/performance",
+      "pillar": "polish",
+      "order": 2,
+      "title": "Keeping it smooth",
+      "tags": [
+        "performance",
+        "fps",
+        "slow",
+        "lag",
+        "smooth",
+        "speed",
+        "optimise",
+        "cleanup",
+        "destroy"
+      ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Why games slow down",
+          "anchor": "overview"
+        },
+        {
+          "kind": "para",
+          "tier": "lite",
+          "text": "Games slow down when there is too much to draw or too many things alive. The fix is tidy-up: remove things that flew off screen, and do not make new things every single frame."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "Frame budget is ~16ms. Watch for: unbounded object counts, work every frame that could be cached, and never cleaning up. Destroy/recycle off-screen objects; reuse instead of recreating; move heavy setup out of update."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 2D (Phaser 4): `obj.destroy()` off-screen objects; reuse a group/pool instead of creating new ones each frame."
+        },
+        {
+          "kind": "para",
+          "tier": "pro",
+          "text": "In 3D (three.js): `scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose()` to free what you no longer show."
+        }
+      ]
+    },
+    {
+      "id": "polish/sharing",
+      "pillar": "polish",
+      "order": 3,
+      "title": "Sharing your game",
+      "tags": [
+        "share",
+        "play",
+        "publish",
+        "link",
+        "class",
+        "show",
+        "wall"
+      ],
+      "blocks": [
+        {
+          "kind": "heading",
+          "text": "Let people play it",
+          "anchor": "overview"
+        },
+        {
+          "kind": "para",
+          "text": "When your game runs the way you want, you can share it so others can play — on your class wall, or with a safe play-link a grown-up approves. Sharing freezes a copy, so you can keep editing without changing what people are playing."
+        },
+        {
+          "kind": "callout",
+          "text": "Tip: give your game a clear title and make the very first thing the player does obvious — a good first 10 seconds is what makes people want to play more."
+        }
+      ]
+    }
+  ]
 };
