@@ -64,3 +64,45 @@ describe('resolveErrorLoc', () => {
     expect(resolveErrorLoc(undefined, scriptRanges)).toBeUndefined();
   });
 });
+
+describe('engine profiles (2D Phaser / 3D three.js)', () => {
+  it('defaults to Phaser: loads the Phaser global + wraps Phaser.Game (back-compat)', () => {
+    const def = buildGamePreview(FILES).srcDoc;
+    const phaser = buildGamePreview(FILES, { engine: 'phaser' }).srcDoc;
+    // Omitting engine is byte-identical to engine:'phaser' (no behaviour change for 2D games).
+    expect(def).toBe(phaser);
+    expect(def).toContain('/vendor/phaser-4.1.0.min.js');
+    expect(def).toContain('window.Phaser.Game'); // the constructor-wrap control shim
+    expect(def).not.toContain('/vendor/three-');
+  });
+
+  it('engine:three loads the three.js global + the three control shim, not Phaser', () => {
+    const doc = buildGamePreview(FILES, { engine: 'three' }).srcDoc;
+    expect(doc).toContain('/vendor/three-0.184.0.global.js');
+    expect(doc).toContain('if (!window.THREE)'); // the three load guard
+    expect(doc).toContain('window.__game'); // the three control contract
+    expect(doc).not.toContain('/vendor/phaser-');
+    expect(doc).not.toContain('window.Phaser.Game');
+  });
+
+  it('keeps the engine-agnostic pieces identical across engines (kid script ranges + sandbox shell)', () => {
+    const phaser = buildGamePreview(FILES, { engine: 'phaser' });
+    const three = buildGamePreview(FILES, { engine: 'three' });
+    // The kid's own scripts are injected the same way regardless of engine: the entry
+    // (main.js) still goes LAST and every script keeps its //# sourceURL attribution.
+    expect(three.scriptRanges.map((r) => r.path)).toEqual(['src/scenes/Game.js', 'main.js']);
+    for (const doc of [phaser.srcDoc, three.srcDoc]) {
+      expect(doc).toContain('//# sourceURL=main.js');
+      expect(doc).toContain('<div id="game"></div>');
+    }
+  });
+
+  it('both engines speak the same control wire protocol (pause/snapshot/stat)', () => {
+    for (const engine of ['phaser', 'three'] as const) {
+      const doc = buildGamePreview(FILES, { engine }).srcDoc;
+      expect(doc).toContain('__airbotixControl');
+      expect(doc).toContain('__airbotixSnapshot');
+      expect(doc).toContain('__airbotixStat');
+    }
+  });
+});

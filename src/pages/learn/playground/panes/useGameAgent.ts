@@ -17,6 +17,7 @@
 // call. Offline mid-turn surfaces a calm banner (J2), not a frozen screen.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import type {
   AgentTurnResult,
@@ -38,6 +39,10 @@ import {
   type GameAgentDeps,
 } from './gameAgent';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
+import { detectEngineSwitch } from './engineSwitch';
+import type { GameEngine } from '../buildGamePreview';
+import { STARTER_GAME } from '../starterGame';
+import { STARTER_GAME_3D } from '../threeStarter';
 import { useGenerationStore, type StartGenArgs } from '../generationStore';
 import {
   startProgress,
@@ -97,7 +102,9 @@ export interface ChatItem {
  * thinks before spending a metered turn.
  */
 export interface PendingTurn {
-  kind: 'agency' | 'plan';
+  kind: 'agency' | 'plan' | 'engine-switch';
+  /** For an 'engine-switch' confirm: the target engine to rebuild in (D-3D-08). */
+  engine?: GameEngine;
   turnId: string;
   prompt: string;
   summary: string;
@@ -172,6 +179,12 @@ export interface UseGameAgentOptions {
    * explicit guard just makes that uniform and obvious.)
    */
   readOnly?: boolean;
+  /** The project's current game engine (2D phaser / 3D three) — drives switch
+   *  detection (D-3D-08). Defaults to phaser. */
+  engine?: GameEngine;
+  /** Called when a confirmed 2D⇄3D switch flips the engine, so the runner re-renders
+   *  with the new vendored global + control shim (D-3D-08). */
+  onEngineChange?: (engine: GameEngine) => void;
 }
 
 const PENDING_TEXT = 'Thinking…';
@@ -316,9 +329,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     onChatChange,
     blockedSeed,
     readOnly = false,
+    engine = 'phaser',
+    onEngineChange,
   } = opts;
 
   const isReal = !!projectId;
+  // Set while a confirmed engine switch re-runs send() to rebuild — makes that
+  // rebuild skip switch detection so it doesn't re-trigger the confirm (D-3D-08).
+  const switchBypassRef = useRef(false);
 
   const [chat, setChat] = useState<ChatItem[]>(() =>
     // Restored history (resume) wins; then a real first turn; then a safety-refused
@@ -658,6 +676,32 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         return;
       }
 
+      // ── Engine SWITCH intent (D-3D-08): "make it 3D" / "turn it back to 2D"
+      //    rebuilds the WHOLE game in a different engine, so we CONFIRM first and
+      //    never auto-apply it (the one exception to the playground's auto-apply
+      //    model). The post-confirm rebuild re-enters send() with switchBypassRef
+      //    set, so it skips this check and runs as a normal turn in the new engine. ──
+      if (isReal && !switchBypassRef.current) {
+        const target = detectEngineSwitch(trimmed, engine);
+        if (target) {
+          setChat((prev) => [...prev, { id: nextId(), role: 'kid', text: trimmed }]);
+          setPending({
+            kind: 'engine-switch',
+            engine: target,
+            turnId: '',
+            prompt: trimmed,
+            summary:
+              target === 'three'
+                ? "Making this 3D means I'll rebuild your whole game from scratch with a 3D engine (three.js) — your current 2D game will be replaced. Want me to go ahead?"
+                : "Making this 2D means I'll rebuild your whole game from scratch with the 2D engine — your current 3D game will be replaced. Want me to go ahead?",
+            changes: [],
+            result: null,
+            prediction: '',
+          });
+          return;
+        }
+      }
+
       const pendingId = nextId();
       setError(null);
       setBusy(true);
@@ -760,7 +804,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn],
+    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine],
   );
 
   // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
@@ -823,6 +867,52 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     if (readOnly) return; // teacher viewer — cannot confirm a kid's turn (D-LV-6)
     const p = pending;
     if (!p || busy) return;
+
+    // Engine switch (D-3D-08): (1) flip the engine AND replace the VFS with the
+    // target engine's CLEAN starter — so the old 2D files never run under the new 3D
+    // global ("Phaser is not defined") and the agent rebuilds from a clean scaffold,
+    // not by editing leftover 2D scenes; (2) re-run the agent to rebuild the game's
+    // idea in the new engine.
+    if (p.kind === 'engine-switch' && p.engine && projectId) {
+      const target = p.engine;
+      const starter = target === 'three' ? STARTER_GAME_3D : STARTER_GAME;
+      setPending(null);
+      setBusy(true);
+      setError(null);
+      const pendingId = nextId();
+      setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
+      try {
+        const { version } = await deps.resetEngine({ projectId, engine: target, files: starter });
+        // Flip the runner engine (React state) AND the VFS (Zustand store) in ONE
+        // commit, so the runner never renders the old 2D files under the new 3D
+        // global ("Phaser is not defined") — the two stores would otherwise update
+        // in separate ticks and flash a mismatched pair.
+        flushSync(() => {
+          onEngineChange?.(target);
+          onApplyFiles(starter, version);
+        });
+        // Rebuild the game's idea in the new engine, on the clean starter. Use the
+        // original game idea (the landing prompt) so the port keeps what the kid made.
+        switchBypassRef.current = true;
+        const idea = (introPrompt && introPrompt.trim()) || p.prompt;
+        const portPrompt =
+          target === 'three'
+            ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`
+            : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`;
+        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode });
+        await applyResult(result, pendingId);
+      } catch (e) {
+        const msg = friendlyError(e);
+        if (msg === OFFLINE_TEXT) setOffline(true);
+        setError(msg);
+        setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)));
+      } finally {
+        switchBypassRef.current = false;
+        setBusy(false);
+      }
+      return;
+    }
+
     setBusy(true);
     setError(null);
     const pendingId = nextId();
@@ -842,7 +932,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the

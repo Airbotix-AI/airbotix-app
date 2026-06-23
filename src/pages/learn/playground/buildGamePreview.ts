@@ -1,4 +1,9 @@
-// Sandboxed Phaser game preview builder — game studio runtime (learn-game-studio-prd.md §5).
+// Sandboxed game preview builder — game studio runtime (learn-game-studio-prd.md §5).
+//
+// Two engines (learn-game-studio-3d-prd.md D‑3D‑03): Phaser (2D, default) and three.js (3D).
+// Each is a vendored GLOBAL loaded via a classic `<script src="/vendor/…">`; only the engine
+// global, the load guard, and the control shim differ (see `ENGINE_PROFILES`). The rest of the
+// srcdoc — asset inlining, `//# sourceURL` line-mapping, the opaque-origin iframe — is shared.
 //
 // Mirrors the code studio's `buildPreview.ts` sandbox model: a single `srcdoc`
 // loaded into an opaque-origin `<iframe sandbox="allow-scripts">` (NO
@@ -109,6 +114,106 @@ const GAME_CONTROL = `
 })();
 </script>`;
 
+/** Self-hosted three.js global build (esbuild IIFE → `window.THREE`). Version-pinned in `public/vendor/`. */
+const THREE_SRC = '/vendor/three-0.184.0.global.js';
+
+/** Friendly guard shown if the vendored three.js file fails to load (network/CSP). */
+const THREE_GUARD = `
+<script>
+if (!window.THREE) {
+  console.error('Could not load the 3D game engine (three.js). Check your connection and try again.');
+}
+</script>`;
+
+/**
+ * three.js control shim (parity with `GAME_CONTROL` for Phaser; same wire protocol).
+ *
+ * three has no `Phaser.Game` to wrap, so control rides a small documented contract
+ * (learn-game-studio-3d-prd.md D‑3D‑04): the game publishes `window.__game = { pause(),
+ * resume(), renderer, setMuted? }`. The shim drives pause/resume/mute through it, takes a
+ * snapshot from the renderer's WebGL canvas (`preserveDrawingBuffer:true` is required by the
+ * runtime contract), and reports FPS from the renderer's own frame counter — a stalled or
+ * crashed game reads 0, which is exactly the signal the game-run oracle checks.
+ *
+ * Parent → frame:  { __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute'|'snapshot' }
+ * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean }   // every ~500ms
+ */
+const THREE_CONTROL = `
+<script>
+(function () {
+  var paused = false;
+  var prevFrame = null, prevT = null;
+  function now() { return (window.performance && performance.now) ? performance.now() : +new Date(); }
+  function canvasEl() {
+    var g = window.__game;
+    if (g && g.renderer && g.renderer.domElement) return g.renderer.domElement;
+    return document.querySelector('#game canvas');
+  }
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixControl !== true) return;
+    var g = window.__game;
+    try {
+      if (m.action === 'pause')  { paused = true;  if (g && g.pause)  g.pause(); }
+      if (m.action === 'resume') { paused = false; if (g && g.resume) g.resume(); }
+      if (m.action === 'mute'    && g && g.setMuted) g.setMuted(true);
+      if (m.action === 'unmute'  && g && g.setMuted) g.setMuted(false);
+      if (m.action === 'snapshot') {
+        var url = null;
+        try { var c = canvasEl(); if (c && c.toDataURL) url = c.toDataURL(); } catch (er) {}
+        parent.postMessage({ __airbotixSnapshot: true, dataUrl: url }, '*');
+      }
+    } catch (er) {
+      try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: null }, '*'); } catch (e2) {}
+    }
+  });
+  setInterval(function () {
+    var g = window.__game, fps = 0;
+    try {
+      var rf = (g && g.renderer && g.renderer.info && g.renderer.info.render)
+        ? g.renderer.info.render.frame : null;
+      var t = now();
+      if (typeof rf === 'number' && prevFrame !== null && prevT !== null && t > prevT) {
+        fps = Math.round((rf - prevFrame) * 1000 / (t - prevT));
+      }
+      if (typeof rf === 'number') { prevFrame = rf; prevT = t; }
+    } catch (e) {}
+    try { parent.postMessage({ __airbotixStat: true, fps: fps, paused: paused }, '*'); } catch (e) {}
+  }, 500);
+})();
+</script>`;
+
+/** Which 2D/3D engine a game project runs on (mirrors backend `Project.engine`; null ⇒ phaser). */
+export type GameEngine = 'phaser' | 'three';
+
+/**
+ * Engine-coupled pieces of the sandbox srcdoc (learn-game-studio-3d-prd.md D‑3D‑03). Everything
+ * else in the builder — asset inlining, `//# sourceURL` line-mapping, CSS, the opaque-origin
+ * iframe — is engine-agnostic. The Phaser profile is the verbatim extraction of the original
+ * constants, so a `phaser` build is byte-identical to before.
+ */
+interface EngineProfile {
+  /** Classic `<script src>` tag that loads the vendored global engine. */
+  vendorTag: string;
+  /** Guard that warns to the console if the global failed to load. */
+  guard: string;
+  /** Control shim (pause/resume/mute/snapshot/fps over postMessage). */
+  control: string;
+}
+
+const ENGINE_PROFILES: Record<GameEngine, EngineProfile> = {
+  phaser: {
+    vendorTag: `<script src="${PHASER_SRC}"></script>`,
+    guard: PHASER_GUARD,
+    control: GAME_CONTROL,
+  },
+  three: {
+    vendorTag: `<script src="${THREE_SRC}"></script>`,
+    guard: THREE_GUARD,
+    control: THREE_CONTROL,
+  },
+};
+
 function toDataUrl(asset: VfsFile): string {
   if (asset.content.startsWith('data:')) return asset.content;
   const ext = asset.path.split('.').pop()?.toLowerCase() ?? '';
@@ -159,6 +264,8 @@ function entryIndex(jsFiles: VfsFile[]): number {
 export interface BuildGameOptions {
   /** Force Phaser arcade physics debug draw (hitboxes/velocities). */
   debug?: boolean;
+  /** Which engine global + control shim to inject. Defaults to `phaser` (back-compat). */
+  engine?: GameEngine;
 }
 
 /** Where one kid script lives inside the assembled srcdoc (1-based lines). */
@@ -226,6 +333,9 @@ export function buildGamePreview(
   // Set before the game scripts run so the constructor wrapper can read it.
   const debugFlag = `<script>window.__airbotixDebug=${opts.debug ? 'true' : 'false'};${'<'}/script>`;
 
+  // Engine-coupled srcdoc pieces (vendored global + guard + control shim).
+  const profile = ENGINE_PROFILES[opts.engine ?? 'phaser'];
+
   const css = files
     .filter((f) => f.kind === 'text' && f.path.endsWith('.css'))
     .map((f) => f.content)
@@ -242,10 +352,10 @@ export function buildGamePreview(
     '</head><body>',
     '<div id="game"></div>',
     CONSOLE_CAPTURE,
-    `<script src="${PHASER_SRC}"></script>`,
-    PHASER_GUARD,
+    profile.vendorTag,
+    profile.guard,
     debugFlag,
-    GAME_CONTROL,
+    profile.control,
   ];
   const scriptRanges: ScriptLineRange[] = [];
   // Parts join with '\n', so part k starts at 1 + the line count of all parts before it.

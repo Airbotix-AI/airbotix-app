@@ -42,23 +42,35 @@ The kid's / AI's game is **untrusted code** in an **opaque-origin** iframe:
 `allow-same-origin`** (load-bearing — the frame can't read the auth token, cookies, or
 `parent.document`; only channel out is `postMessage`). Never add it / `allow-forms` / `allow-top-navigation`.
 
-## How Phaser loads (non-obvious)
+## How the engines load (non-obvious) — Phaser (2D) + three.js (3D)
 
-Phaser **4.1.0**, self-hosted (no CDN), **not bundled / not committed**. The
-`vendor-phaser` Vite plugin (`vite.config.ts`, `buildStart`) materializes the engine
-`public/vendor/phaser-<v>.min.js` + `phaser-<v>.d.ts` on every dev/build, injected as a
-classic `<script src="/vendor/…">` → `window.Phaser` global. Missing file → "Phaser is
-not defined". **Upgrade:** `npm i phaser@<new>`, then bump `PHASER_VERSION`
-(`vite.config.ts`) + the `/vendor/phaser-<v>…` constants in `buildGamePreview.ts` +
-`panes/MonacoEditor.tsx` (the plugin throws on mismatch).
+Two engines, both **self-hosted globals** (no CDN), **not committed**, materialized by the
+`vendor-engines` Vite plugin (`vite.config.ts`, `buildStart`) on every dev/build, injected as a
+classic `<script src="/vendor/…">`. `BuildGameOptions.engine` (`'phaser'`|`'three'`, default
+`phaser`) picks the `EngineProfile` in `buildGamePreview.ts`; everything else in the srcdoc is
+engine-agnostic.
+- **Phaser 4.1.0** — UMD copied verbatim → `public/vendor/phaser-<v>.min.js` + `.d.ts` →
+  `window.Phaser`. Missing → "Phaser is not defined".
+- **three.js 0.184.0** — ESM-only since r160, so it's **esbuild-bundled into a `window.THREE`
+  global IIFE** (+ curated addons, currently `OrbitControls`) → `public/vendor/three-<v>.global.js`.
+  Missing → "Could not load the 3D game engine". (D-3D-02; idiomatic ESM/import-map is deferred,
+  OQ-3D-5.)
+- **Upgrade:** `npm i <engine>@<new>`, then bump its `*_VERSION` (`vite.config.ts`) + the
+  `/vendor/<engine>-<v>…` constants in `buildGamePreview.ts` (+ `panes/MonacoEditor.tsx` for Phaser
+  types) — the plugin throws on mismatch.
 
 ## Control channel (pause / mute / stats) — `postMessage` only
 
-`buildGamePreview.ts` injects a `GAME_CONTROL` shim that **wraps the `Phaser.Game`
-constructor** (no `Phaser.GAMES` registry in the vendored build) to grab the instance.
+`buildGamePreview.ts` injects a per-engine control shim — **same wire protocol for both engines**:
 - Parent→frame: `{__airbotixControl, action:'pause'|'resume'|'mute'|'unmute'|'snapshot'}`.
 - Frame→parent: `{__airbotixStat, fps, paused}` ~500 ms; `{__airbotixSnapshot, dataUrl}` on request.
-- Physics-debug: `window.__airbotixDebug` injected before scripts run (`BuildGameOptions.debug`).
+- **Phaser** (`GAME_CONTROL`): **wraps the `Phaser.Game` constructor** (no `Phaser.GAMES` registry
+  in the vendored build) to grab the instance; physics-debug via `window.__airbotixDebug`
+  (`BuildGameOptions.debug`).
+- **three.js** (`THREE_CONTROL`): no `Phaser.Game` to wrap — the game publishes
+  `window.__game = { pause(), resume(), renderer, setMuted? }`; snapshot reads the WebGL canvas
+  (`preserveDrawingBuffer:true` required) and FPS is derived from `renderer.info.render.frame`
+  (a stalled game reads 0 — the game-run oracle's signal). (D-3D-04.)
 
 ## AI turn flow (the kid surface NEVER calls an LLM — platform §5)
 

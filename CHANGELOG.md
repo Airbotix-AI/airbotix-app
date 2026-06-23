@@ -4,6 +4,90 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Studio 3D — fix the real switch root cause: runner snapshot, D-3D-08)
+
+### Fixed
+- **The actual cause of "Phaser/THREE is not defined" on a 2D⇄3D switch (both directions).**
+  `GameRunnerPane` runs a `runKey`-gated SNAPSHOT of the VFS, but the `engine` prop is live — so
+  on a switch the engine flipped while the runner kept the OLD engine's snapshot files, running
+  them under the new global. Now the runner **re-snapshots when `engine` changes** too (not only
+  on a runKey bump), so the iframe reloads the clean target-engine files together with the new
+  global. (Earlier `flushSync`/reset fixes were necessary but insufficient — the runner ignored
+  the live files.) Verified end-to-end in a real browser: toggling phaser→3D→2D on the **mounted**
+  runner renders a canvas each time with zero "is not defined" errors. The DEV `/playground-sandbox`
+  now drives `GameRunnerPane` (engine as a prop, no remount) so it reproduces the studio switch.
+
+## 2026-06-23 (Game Studio 3D — fix switch crash + atomic engine flip, D-3D-08)
+
+### Fixed
+- **Full-screen crash on the switch rebuild** (`Cannot read properties of null (reading 'split')`
+  in `AIChatPanel.changedLineRange`). A whole-game rebuild creates NEW files whose diff `before`
+  is null; `changedLineRange`/`buildChangedFiles` now coerce null `before`/`after` to `''` instead
+  of `.split(null)`. (Regression test added.)
+- **"Phaser is not defined" still flashed on confirm** — the switch updated the engine (React
+  state) and the VFS (Zustand store) in separate ticks, so the runner briefly rendered the old 2D
+  files under the new 3D global. The engine flip + clean-starter apply now run inside a single
+  `flushSync`, so the runner only ever renders a consistent (engine, files) pair.
+
+## 2026-06-23 (Game Studio 3D — fix the 2D⇄3D switch runtime + rebuild, D-3D-08)
+
+### Fixed
+- **Switch confirm emitted "Phaser is not defined" + restarted the old game; the rebuild
+  then failed (twice).** The switch flipped the runner to three.js while the VFS still held
+  the 2D Phaser files, so they ran under the 3D global; and the rebuild agent saw those 2D
+  files and tried to edit them. Now confirming a switch **resets the VFS to the target engine's
+  clean starter** (`resetEngine` = PATCH engine + `saveVfs` the starter) and flips the runner +
+  shows that starter together — so no old files run under the new engine — then the agent
+  rebuilds from the clean scaffold using a **port prompt** that carries the original game idea
+  (the landing prompt), not the raw "make it 3D".
+
+## 2026-06-23 (Game Studio 3D — wire engine end-to-end + 2D⇄3D switch, D-3D-07/08)
+
+### Fixed
+- **"Create a 3D game" was broken** — the create call hardcoded `template: 'phaser_blank'`, so a
+  3D project was seeded with the 2D Phaser scaffold (stray `src/scenes/`), and the runtime never
+  knew the engine so it loaded the Phaser global → the agent's three.js code threw "THREE is not
+  available". Now `createGameProject` omits the template (the backend infers 2D/3D from the prompt
+  and seeds the matching blank starter, D-3D-07), and the project's `engine` is loaded and threaded
+  PlaygroundApp → Workspace → GameRunnerPane → GameFrame so the runner injects the right vendored
+  global + control shim.
+
+### Added
+- **Kid-confirmed 2D⇄3D engine switch (D-3D-08).** Saying "make it 3D" / "turn it back to 2D" on an
+  existing game is detected as a switch intent (`panes/engineSwitch.ts`: needs a switch verb + a
+  clear other-engine cue, so "add 3D shadows" stays a normal edit) and — unlike every other game
+  turn — is NOT auto-applied. It stages a **confirm card** ("Rebuild your whole game?") via the
+  existing `pending`/`PendingCard` gate; on confirm it flips the engine (`PATCH /projects/:id`),
+  re-points the runner, and rebuilds by re-running the request through the now-3D agent; on cancel
+  nothing changes. `CodeProject.engine` + `setProjectEngine` added to the API client.
+- **Second game engine — three.js (3D) runtime foundation** (`learn-game-studio-3d-prd.md`
+  M3D-1/M3D-2, frontend slice). Phaser (2D) stays the default and is byte-identical.
+  - `vite.config.ts`: generalized the `vendor-phaser` plugin → **`vendor-engines`**. Phaser's UMD
+    global is still copied verbatim; **three.js (ESM-only since r160) is esbuild-bundled into a
+    `window.THREE` global IIFE** (+ a curated addon set, currently `OrbitControls`) at
+    `public/vendor/three-<v>.global.js` on every dev/build. Version-pinned (`THREE_VERSION`,
+    throws on drift) — **no CDN** (platform rule), same contract as Phaser.
+  - `buildGamePreview.ts`: introduced an **`EngineProfile`** (D-3D-03) that parameterizes only the
+    engine-coupled srcdoc pieces — the vendored `<script src>`, the load guard, and the control
+    shim. `BuildGameOptions.engine?: 'phaser' | 'three'` (default `phaser`, back-compat). Added the
+    **three.js control shim** (D-3D-04): no `Phaser.Game` to wrap, so pause/resume/mute/snapshot
+    ride a documented `window.__game` contract and FPS is read from the renderer's own frame
+    counter (a stalled game reads 0) — **same `postMessage` wire protocol** as Phaser.
+  - Installed `three@0.184.0` + `@types/three`.
+  - `GameFrame` accepts an `engine` prop (default `phaser`) threaded into the builder; added
+    `threeStarter.ts` (a lit, orbit-able spinning-cube three.js starter that follows the
+    `window.__game` runtime contract — basis for the future `three_spin` template).
+  - **DEV-only `/playground-sandbox`** route (`EngineSandboxDevPage`, `import.meta.env.DEV`-gated,
+    excluded from prod) — a no-auth harness that runs the REAL `GameFrame` for either engine via a
+    2D/3D toggle (`?engine=phaser|three`). Verified in headless Chromium: both engines render a
+    canvas with positive FPS (Phaser 60, three.js 119) and zero game console errors.
+
+### Tests
+- `buildGamePreview.test.ts`: engine-profile suite — `engine` omitted ≡ `phaser` (byte-identical),
+  `three` loads the three global + three control shim and not Phaser, kid script ranges +
+  `//# sourceURL` + sandbox shell stay engine-agnostic, and both engines speak the same control
+  wire protocol. (9/9 green; typecheck + production build green with the three global vendored.)
+
 ## 2026-06-22 (Live Mode — live focus presence, D-LIVE-3)
 
 ### Added

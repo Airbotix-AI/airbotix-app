@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
-import { buildGamePreview, isConsoleMessage, isStatMessage, resolveErrorLoc, type ConsoleLine } from './buildGamePreview';
+import { buildGamePreview, isConsoleMessage, isStatMessage, resolveErrorLoc, type ConsoleLine, type GameEngine } from './buildGamePreview';
 
 interface GameFrameProps {
   files: VfsFile[];
@@ -24,6 +24,8 @@ interface GameFrameProps {
   onConsole?: (lines: ConsoleLine[]) => void;
   /** Force Phaser arcade physics debug draw (hitboxes/velocities). */
   debug?: boolean;
+  /** Which engine global + control shim to inject. Defaults to `phaser`. */
+  engine?: GameEngine;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -50,9 +52,13 @@ export function GameFrame({
   onConsoleCount,
   onConsole,
   debug = false,
+  engine = 'phaser',
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
-  const { srcDoc, scriptRanges } = useMemo(() => buildGamePreview(files, { debug }), [files, debug]);
+  const { srcDoc, scriptRanges } = useMemo(
+    () => buildGamePreview(files, { debug, engine }),
+    [files, debug, engine],
+  );
   // Read inside the (stable) message listener without re-subscribing.
   const scriptRangesRef = useRef(scriptRanges);
   scriptRangesRef.current = scriptRanges;

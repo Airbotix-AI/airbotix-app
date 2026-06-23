@@ -33,6 +33,7 @@ import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
+import type { GameEngine } from './buildGamePreview';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
@@ -46,6 +47,11 @@ interface WorkspaceProps {
   runKey: number;
   /** Whether the game is currently running. Owned by PlaygroundApp. */
   running: boolean;
+  /** The project's game engine (2D phaser / 3D three) — picks the runner's vendored
+   *  global + control shim (learn-game-studio-3d-prd.md D-3D-01). Defaults to phaser. */
+  engine?: GameEngine;
+  /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
+  onEngineChange?: (engine: GameEngine) => void;
   /** Commit edits back to the page-level source of truth. */
   onApplyFiles: (f: VfsFile[]) => void;
   /** Re-run the game (PlaygroundApp bumps runKey). */
@@ -96,6 +102,8 @@ export function Workspace({
   files,
   runKey,
   running,
+  engine = 'phaser',
+  onEngineChange,
   onApplyFiles,
   onRun,
   prompt,
@@ -235,6 +243,8 @@ export function Workspace({
       introPrompt: prompt,
       projectId,
       mode,
+      engine,
+      onEngineChange,
       firstTurn,
       initialChat,
       onChatChange,
@@ -409,6 +419,7 @@ export function Workspace({
               files={files}
               runKey={runKey}
               running={running}
+              engine={engine}
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
@@ -511,6 +522,7 @@ export function Workspace({
                 files={files}
                 runKey={runKey}
                 running={running}
+                engine={engine}
                 onRun={onRun}
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}

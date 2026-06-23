@@ -16,8 +16,11 @@ import {
   approveTurn as apiApproveTurn,
   classifyMessage as apiClassifyMessage,
   raiseHand as apiRaiseHand,
+  readVfsSnapshot as apiReadVfsSnapshot,
   reportRuntimeErrors as apiReportRuntimeErrors,
   runAgentTurn as apiRunAgentTurn,
+  saveVfs as apiSaveVfs,
+  setProjectEngine as apiSetProjectEngine,
   type AgentTurnResult,
   type ClassifyResult,
   type SafeguardingVerdict,
@@ -78,6 +81,20 @@ export type ReportRuntimeErrors = (args: {
   mode: 'lite' | 'pro';
 }) => Promise<VerifyFixResult>;
 
+/**
+ * Switch a game project's engine (D-3D-08): flip `engine` AND replace the whole
+ * VFS with the target engine's clean starter, atomically, BEFORE the rebuild. This
+ * is what stops the old 2D Phaser files from running under the freshly-loaded 3D
+ * global ("Phaser is not defined") and gives the agent a clean target-engine
+ * scaffold to rebuild on instead of editing leftover 2D scenes. Returns the new
+ * VFS version so the caller keeps its save version in sync.
+ */
+export type ResetEngine = (args: {
+  projectId: string;
+  engine: 'phaser' | 'three';
+  files: VfsFile[];
+}) => Promise<{ version: number }>;
+
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface GameAgentDeps {
   runTurn: RunAgentTurn;
@@ -85,6 +102,7 @@ export interface GameAgentDeps {
   classify: ClassifyMessage;
   raiseHand?: RaiseHand;
   reportRuntimeErrors: ReportRuntimeErrors;
+  resetEngine: ResetEngine;
 }
 
 export const realGameAgentDeps: GameAgentDeps = {
@@ -93,6 +111,14 @@ export const realGameAgentDeps: GameAgentDeps = {
   classify: apiClassifyMessage,
   raiseHand: apiRaiseHand,
   reportRuntimeErrors: apiReportRuntimeErrors,
+  resetEngine: async ({ projectId, engine, files }) => {
+    await apiSetProjectEngine({ projectId, engine });
+    // Replace the VFS with the target engine's clean starter (read the fresh
+    // version first so the PUT isn't stale).
+    const snap = await apiReadVfsSnapshot(projectId);
+    const saved = await apiSaveVfs({ projectId, files, version: snap.version });
+    return { version: saved.version };
+  },
 };
 
 /** Per-token reveal cadence (ms). Kept short so a turn never feels laggy. */

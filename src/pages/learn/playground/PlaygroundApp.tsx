@@ -6,6 +6,7 @@ import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 
 import { getProject, readVfs, type LearningContext, type VfsFile } from '../code/codeApi';
+import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
@@ -111,6 +112,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // Resume recap (D-PAP-19,22): the teacher's persisted "where we left off", shown
   // as a welcome-back card on a resumed game (no fresh first turn).
   const [resumeRecap, setResumeRecap] = useState<LearningContext | null>(null);
+  // The project's game engine (2D phaser / 3D three) — drives which vendored global
+  // + control shim the runner injects (learn-game-studio-3d-prd.md D-3D-01). Loaded
+  // from the project below; defaults to phaser for a project-less local scaffold.
+  const [engine, setEngine] = useState<GameEngine>('phaser');
   // Restored chat history (J9): the saved conversation, loaded on resume and passed
   // to the workspace so it reopens with the real log (not a fresh starter seed).
   const [initialChat, setInitialChat] = useState<ChatItem[] | undefined>(undefined);
@@ -189,6 +194,25 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
       alive = false;
     };
   }, [readOnly, projectId]);
+
+  // Load the project's game ENGINE (2D phaser / 3D three) so the runner injects the
+  // right vendored global + control shim (D-3D-01). Real projects only; a project-
+  // less local scaffold keeps the default (phaser). An in-studio 2D⇄3D switch updates
+  // it via onEngineChange (D-3D-08), so the effect only needs the initial load.
+  useEffect(() => {
+    if (!projectId || projectId.startsWith('local-')) return;
+    let alive = true;
+    void getProject(projectId)
+      .then((p) => {
+        if (alive && (p.engine === 'three' || p.engine === 'phaser')) setEngine(p.engine);
+      })
+      .catch(() => {
+        /* fall back to the phaser default */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
 
   // Record file-tree operations (create/rename/move/delete) in history. Typing is
   // snapshotted by the editor's idle autosave; this covers structural changes so
@@ -359,8 +383,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
                 const game = await createGameProject({
                   kidId,
                   familyId,
+                  // The prompt IS the title; the backend infers 2D/3D from it and
+                  // seeds the matching blank starter (no hardcoded template — that
+                  // forced every game, incl. "make a 3D …", into Phaser/2D).
                   title: p.trim().slice(0, 80) || 'My game',
-                  template: 'phaser_blank',
                 });
                 setCreatedId(game.id);
                 window.history.replaceState(null, '', `/learn/playground/${game.id}`);
@@ -457,6 +483,8 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
           files={files}
           runKey={runKey}
           running={running}
+          engine={engine}
+          onEngineChange={setEngine}
           onApplyFiles={applyTurnFiles}
           onRun={run}
           prompt={prompt}

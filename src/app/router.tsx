@@ -13,6 +13,8 @@ import { RootPage } from '@/pages/RootPage';
 // drives the create/landing flow. Phase 1 runs on the local scaffold (no backend
 // `game` kind yet — see LearnPlaygroundPage).
 import { LearnPlaygroundPage } from '@/pages/learn/playground/LearnPlaygroundPage';
+// DEV-only engine sandbox (2D Phaser / 3D three.js) — verification harness, gated below.
+import { EngineSandboxDevPage } from '@/pages/learn/playground/EngineSandboxDevPage';
 
 // Portal pages (parent surface — parent-portal-prd.md §2)
 import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
@@ -93,6 +95,12 @@ export const router = createBrowserRouter([
   // marketing site's "Try it free" entry points. No token, no redirect.
   { path: '/try/playground', element: <TryPlaygroundPage /> },
   { path: '/try/blocks', element: <TryBlocksPage /> },
+
+  // DEV-only engine sandbox — verify the real 2D/3D runtime in a browser. Excluded
+  // from the route table in production builds (learn-game-studio-3d-prd.md M3D-2).
+  ...(import.meta.env.DEV
+    ? [{ path: '/playground-sandbox', element: <EngineSandboxDevPage /> }]
+    : []),
 
   // Portal — parent surface
   { path: '/portal/login', element: <PortalLoginPage /> },

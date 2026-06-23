@@ -41,9 +41,11 @@ coverage
 /blob-report/
 /playwright/.cache/
 
-# Vendored Phaser — materialized from the `phaser` npm dep by the vendor-phaser
-# Vite plugin (vite.config.ts, runs on every dev/build), served from our own
-# origin (no CDN). Tracked via the package.json version pin, not as binaries.
+# Vendored game engines (Phaser 2D + three.js 3D) — materialized from the `phaser`
+# and `three` npm deps by the vendor-engines Vite plugin (vite.config.ts, runs on
+# every dev/build), served from our own origin (no CDN). Tracked via the
+# package.json version pins, not as binaries.
 /public/vendor/phaser-*.min.js
 /public/vendor/phaser-*.d.ts
+/public/vendor/three-*.global.js
 .claude/worktrees/
