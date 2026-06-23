@@ -40,6 +40,8 @@ import {
 import { runTurnStub, type RunTurn } from './gameAgentStub';
 import { detectEngineSwitch } from './engineSwitch';
 import type { GameEngine } from '../buildGamePreview';
+import { STARTER_GAME } from '../starterGame';
+import { STARTER_GAME_3D } from '../threeStarter';
 import { useGenerationStore, type StartGenArgs } from '../generationStore';
 import {
   startProgress,
@@ -865,20 +867,33 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     const p = pending;
     if (!p || busy) return;
 
-    // Engine switch (D-3D-08): flip the backend engine, tell the runner, then rebuild
-    // by re-running the kid's request through the agent — now the NEW engine's prompt.
+    // Engine switch (D-3D-08): (1) flip the engine AND replace the VFS with the
+    // target engine's CLEAN starter — so the old 2D files never run under the new 3D
+    // global ("Phaser is not defined") and the agent rebuilds from a clean scaffold,
+    // not by editing leftover 2D scenes; (2) re-run the agent to rebuild the game's
+    // idea in the new engine.
     if (p.kind === 'engine-switch' && p.engine && projectId) {
       const target = p.engine;
+      const starter = target === 'three' ? STARTER_GAME_3D : STARTER_GAME;
       setPending(null);
       setBusy(true);
       setError(null);
       const pendingId = nextId();
       setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
       try {
-        await deps.setEngine({ projectId, engine: target });
+        const { version } = await deps.resetEngine({ projectId, engine: target, files: starter });
+        // Flip the runner + show the clean target-engine starter together.
         onEngineChange?.(target);
+        onApplyFiles(starter, version);
+        // Rebuild the game's idea in the new engine, on the clean starter. Use the
+        // original game idea (the landing prompt) so the port keeps what the kid made.
         switchBypassRef.current = true;
-        const result = await deps.runTurn({ projectId, prompt: p.prompt, mode });
+        const idea = (introPrompt && introPrompt.trim()) || p.prompt;
+        const portPrompt =
+          target === 'three'
+            ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`
+            : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`;
+        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode });
         await applyResult(result, pendingId);
       } catch (e) {
         const msg = friendlyError(e);
@@ -911,7 +926,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the

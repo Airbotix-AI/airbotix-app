@@ -60,7 +60,7 @@ function makeDeps(): GameAgentDeps {
     classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
-    setEngine: vi.fn(async () => {}),
+    resetEngine: vi.fn(async () => ({ version: 2 })),
   };
 }
 
@@ -89,7 +89,7 @@ function setupFailing(error: unknown) {
     classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
-    setEngine: vi.fn(async () => {}),
+    resetEngine: vi.fn(async () => ({ version: 2 })),
   };
   const view = renderHook(() =>
     useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
@@ -437,20 +437,27 @@ describe('engine switch (D-3D-08 — confirm before rebuilding 2D⇄3D)', () => 
     });
     expect(result.current.pending?.kind).toBe('engine-switch');
     expect(result.current.pending?.engine).toBe('three');
-    expect(deps.setEngine).not.toHaveBeenCalled();
+    expect(deps.resetEngine).not.toHaveBeenCalled();
     expect(deps.runTurn).not.toHaveBeenCalled();
 
-    // Confirm → flip engine on the backend, notify the runner, rebuild via the agent.
+    // Confirm → reset to the clean 3D starter (engine flip + VFS replace), notify the
+    // runner, then rebuild via the agent.
     await act(async () => {
       void result.current.confirmPending();
-      await waitFor(() => expect(deps.setEngine).toHaveBeenCalledWith({ projectId: 'p1', engine: 'three' }));
+      await waitFor(() =>
+        expect(deps.resetEngine).toHaveBeenCalledWith(
+          expect.objectContaining({ projectId: 'p1', engine: 'three' }),
+        ),
+      );
     });
     expect(onEngineChange).toHaveBeenCalledWith('three');
-    await waitFor(() =>
-      expect(deps.runTurn).toHaveBeenCalledWith(
-        expect.objectContaining({ projectId: 'p1', prompt: 'make the game 3D' }),
-      ),
-    );
+    // The clean 3D starter is shown immediately (no old 2D files under the 3D engine).
+    expect(onApplyFiles).toHaveBeenCalled();
+    // The rebuild prompt is a port instruction, NOT the raw "make it 3D".
+    await waitFor(() => expect(deps.runTurn).toHaveBeenCalled());
+    const runArg = (deps.runTurn as ReturnType<typeof vi.fn>).mock.calls[0][0] as { prompt: string };
+    expect(runArg.prompt).toMatch(/3D/);
+    expect(runArg.prompt).not.toBe('make the game 3D');
     await act(async () => {
       resolveStream?.();
     });
@@ -478,7 +485,7 @@ describe('engine switch (D-3D-08 — confirm before rebuilding 2D⇄3D)', () => 
       await result.current.cancelPending();
     });
     expect(result.current.pending).toBeNull();
-    expect(deps.setEngine).not.toHaveBeenCalled();
+    expect(deps.resetEngine).not.toHaveBeenCalled();
     expect(onEngineChange).not.toHaveBeenCalled();
     expect(deps.runTurn).not.toHaveBeenCalled();
   });

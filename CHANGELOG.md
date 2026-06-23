@@ -4,6 +4,18 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Studio 3D — fix the 2D⇄3D switch runtime + rebuild, D-3D-08)
+
+### Fixed
+- **Switch confirm emitted "Phaser is not defined" + restarted the old game; the rebuild
+  then failed (twice).** The switch flipped the runner to three.js while the VFS still held
+  the 2D Phaser files, so they ran under the 3D global; and the rebuild agent saw those 2D
+  files and tried to edit them. Now confirming a switch **resets the VFS to the target engine's
+  clean starter** (`resetEngine` = PATCH engine + `saveVfs` the starter) and flips the runner +
+  shows that starter together — so no old files run under the new engine — then the agent
+  rebuilds from the clean scaffold using a **port prompt** that carries the original game idea
+  (the landing prompt), not the raw "make it 3D".
+
 ## 2026-06-23 (Game Studio 3D — wire engine end-to-end + 2D⇄3D switch, D-3D-07/08)
 
 ### Fixed
