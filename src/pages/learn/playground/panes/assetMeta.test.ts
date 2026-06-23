@@ -6,7 +6,10 @@ import {
   animSidecarPath,
   parseAnimSidecar,
   slugifyKey,
-  codeRefFor,
+  assetChatRef,
+  libraryChatRef,
+  classAssetChatRef,
+  referenceLabel,
   formatBytes,
   dataUrlToText,
 } from './assetMeta';
@@ -64,14 +67,41 @@ describe('slugifyKey', () => {
   });
 });
 
-describe('codeRefFor', () => {
-  it('image / audio / video / spritesheet', () => {
-    expect(codeRefFor(asset('assets/ui/btn.png'))).toBe("this.load.image('btn', 'assets/ui/btn.png')");
-    expect(codeRefFor(asset('assets/audio/ding.mp3'))).toBe("this.load.audio('ding', 'assets/audio/ding.mp3')");
-    expect(codeRefFor(asset('assets/video/intro.mp4'))).toBe("this.load.video('intro', 'assets/video/intro.mp4')");
+describe('assetChatRef (bare reference, not code)', () => {
+  it('is the asset’s VFS path (any kind)', () => {
+    expect(assetChatRef(asset('assets/ui/btn.png'))).toBe('assets/ui/btn.png');
+    expect(assetChatRef(asset('assets/audio/ding.mp3'))).toBe('assets/audio/ding.mp3');
+    expect(assetChatRef(asset('assets/video/intro.mp4'))).toBe('assets/video/intro.mp4');
     expect(
-      codeRefFor(asset('assets/characters/walk.png'), { frameWidth: 96, frameHeight: 128, frames: 4, fps: 8 }),
-    ).toBe("this.load.spritesheet('walk', 'assets/characters/walk.png', { frameWidth: 96, frameHeight: 128 })");
+      assetChatRef(asset('assets/characters/walk.png'), { frameWidth: 96, frameHeight: 128, frames: 4, fps: 8 }),
+    ).toBe('assets/characters/walk.png');
+  });
+
+  it('libraryChatRef is the stable URL', () => {
+    expect(libraryChatRef('Coin', 'image', 'https://cdn/coin.png')).toBe('https://cdn/coin.png');
+    expect(libraryChatRef('Boing', 'audio', 'https://cdn/boing.mp3')).toBe('https://cdn/boing.mp3');
+  });
+
+  it('classAssetChatRef is the assets/class path it lands at', () => {
+    expect(
+      classAssetChatRef({
+        id: 'a',
+        class_id: 'c',
+        name: 'hero.png',
+        kind: 'image',
+        mime_type: 'image/png',
+        size_bytes: 1,
+        created_at: '',
+        download_url: '',
+      }),
+    ).toBe('assets/class/hero.png');
+  });
+
+  it('referenceLabel is kind-aware', () => {
+    expect(referenceLabel('image')).toBe('Copy image reference');
+    expect(referenceLabel('audio')).toBe('Copy sound reference');
+    expect(referenceLabel('video')).toBe('Copy video reference');
+    expect(referenceLabel('sprite')).toBe('Copy sprite sheet reference');
   });
 });
 

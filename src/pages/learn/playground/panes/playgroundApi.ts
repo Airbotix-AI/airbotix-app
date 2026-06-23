@@ -97,6 +97,61 @@ export async function loadGameFiles(projectId: string): Promise<VfsFile[]> {
   return readVfs(projectId);
 }
 
+// ── Class shared asset library (class-shared-assets-prd) ─────────────────────
+// A teacher prepares media assets on a class; a kid whose game project belongs
+// to that class can browse them in the Asset Viewer's "Class" tab and pull a
+// copy into their own VFS. The backend gates access: it returns `[]` unless the
+// project is `class_work`/`class` for a class the kid is enrolled in — so the
+// frontend simply hides the Class tab when the list is empty (server is the
+// source of truth for authz, airbotix-app CLAUDE.md #4).
+
+/** A class-shared asset the teacher prepared (backend `ClassAssetView`). */
+export interface ClassAssetView {
+  id: string;
+  class_id: string;
+  name: string;
+  kind: 'image' | 'audio' | 'video';
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+  /** A short-lived signed GET URL — used only to PREVIEW and to COPY bytes into
+   *  the VFS. It is NEVER referenced directly inside the sandboxed game (the game
+   *  loads only VFS-resident assets, exactly like imports — playground CLAUDE.md
+   *  security model). */
+  download_url: string;
+}
+
+/**
+ * List the class-shared assets visible to this project (class-shared-assets-prd).
+ * `GET /projects/:id/class-assets` returns `[]` unless the project is class work
+ * for a class the kid is enrolled in — the backend gate is the source of truth,
+ * so the caller hides the Class tab when the list is empty.
+ */
+export async function listClassAssets(projectId: string): Promise<ClassAssetView[]> {
+  return api<ClassAssetView[]>(`/projects/${projectId}/class-assets`);
+}
+
+/**
+ * Fetch a class asset's bytes from its short-lived signed `download_url` and
+ * convert them to a `data:` URL — the uniform VFS shape for a binary asset (the
+ * same representation imports use). Copying the bytes into the VFS (rather than
+ * referencing the signed URL) keeps the game self-contained and the sandbox
+ * intact: a signed S3 URL would expire and would mean the untrusted game holds a
+ * live credential-bearing URL. SSRF/safety is moot — the URL is one the backend
+ * itself just minted for this kid.
+ */
+export async function fetchAssetDataUrl(downloadUrl: string): Promise<string> {
+  const res = await fetch(downloadUrl);
+  if (!res.ok) throw new Error(`Failed to download asset (${res.status})`);
+  const blob = await res.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read asset bytes'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 export interface ResolveFilesOptions {
   /** When present, load the real project files from the backend (S3-backed). */
   projectId?: string;

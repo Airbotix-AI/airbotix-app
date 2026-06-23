@@ -34,9 +34,15 @@ export function getSocket(kind: PrincipalKind = 'kid'): Socket | null {
   if (!token) return null;
 
   const existing = sockets[kind];
-  if (existing && existing.connected) return existing;
   if (existing) {
-    // Token may have changed — recreate
+    // Reuse the socket whenever the token is unchanged — INCLUDING while it is
+    // still mid-handshake (not yet `connected`) or auto-reconnecting. Tearing a
+    // connecting socket down here is what caused a connect/disconnect storm when
+    // several subscribers (e.g. IncidentBanner + the playground Asset Viewer) each
+    // called getSocket during the connect window, leaving their listeners bound to
+    // a discarded instance. Only a genuine token change (a new login) replaces it.
+    const existingToken = (existing.auth as { token?: string } | undefined)?.token;
+    if (existingToken === token) return existing;
     existing.disconnect();
     sockets[kind] = null;
   }
