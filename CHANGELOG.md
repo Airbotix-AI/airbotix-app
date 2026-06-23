@@ -4,9 +4,25 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
-## 2026-06-23 (Game Studio 3D — three.js engine foundation, D-GAME12 / D-3D-*)
+## 2026-06-23 (Game Studio 3D — wire engine end-to-end + 2D⇄3D switch, D-3D-07/08)
+
+### Fixed
+- **"Create a 3D game" was broken** — the create call hardcoded `template: 'phaser_blank'`, so a
+  3D project was seeded with the 2D Phaser scaffold (stray `src/scenes/`), and the runtime never
+  knew the engine so it loaded the Phaser global → the agent's three.js code threw "THREE is not
+  available". Now `createGameProject` omits the template (the backend infers 2D/3D from the prompt
+  and seeds the matching blank starter, D-3D-07), and the project's `engine` is loaded and threaded
+  PlaygroundApp → Workspace → GameRunnerPane → GameFrame so the runner injects the right vendored
+  global + control shim.
 
 ### Added
+- **Kid-confirmed 2D⇄3D engine switch (D-3D-08).** Saying "make it 3D" / "turn it back to 2D" on an
+  existing game is detected as a switch intent (`panes/engineSwitch.ts`: needs a switch verb + a
+  clear other-engine cue, so "add 3D shadows" stays a normal edit) and — unlike every other game
+  turn — is NOT auto-applied. It stages a **confirm card** ("Rebuild your whole game?") via the
+  existing `pending`/`PendingCard` gate; on confirm it flips the engine (`PATCH /projects/:id`),
+  re-points the runner, and rebuilds by re-running the request through the now-3D agent; on cancel
+  nothing changes. `CodeProject.engine` + `setProjectEngine` added to the API client.
 - **Second game engine — three.js (3D) runtime foundation** (`learn-game-studio-3d-prd.md`
   M3D-1/M3D-2, frontend slice). Phaser (2D) stays the default and is byte-identical.
   - `vite.config.ts`: generalized the `vendor-phaser` plugin → **`vendor-engines`**. Phaser's UMD

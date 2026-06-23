@@ -473,17 +473,19 @@ function PendingCard({
   onCancel?: () => void;
 }) {
   const isPlan = pending.kind === 'plan';
+  const isSwitch = pending.kind === 'engine-switch';
   return (
     <div
-      data-testid={isPlan ? 'plan-card' : 'agency-card'}
+      data-testid={isSwitch ? 'engine-switch-card' : isPlan ? 'plan-card' : 'agency-card'}
       className="rounded-2xl border-2 border-brand-sky/50 bg-brand-sky/5 px-4 py-3 text-[14px] text-pg-text"
     >
       <div className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-brand-sky">
-        <Sparkles size={14} /> {isPlan ? "Here's my plan" : "Here's what I'll do"}
+        <Sparkles size={14} />{' '}
+        {isSwitch ? 'Rebuild your whole game?' : isPlan ? "Here's my plan" : "Here's what I'll do"}
       </div>
       <p className="mt-1.5 whitespace-pre-wrap">{pending.summary}</p>
 
-      {pending.changes.length > 0 && (
+      {!isSwitch && pending.changes.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5" data-testid="turn-diff-kidview">
           {pending.changes.map((c, i) => (
             <span key={i} className="rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-bold text-ink">
@@ -493,32 +495,34 @@ function PendingCard({
         </div>
       )}
 
-      <div
-        data-testid="predict-beat"
-        className="mt-3 rounded-xl bg-pg-text/5 px-3 py-2 text-[12.5px] font-semibold text-pg-text-dim"
-      >
-        🤔 {pending.prediction}
-        <span className="ml-1 font-normal">Make a guess, then see if you're right!</span>
-      </div>
+      {!isSwitch && (
+        <div
+          data-testid="predict-beat"
+          className="mt-3 rounded-xl bg-pg-text/5 px-3 py-2 text-[12.5px] font-semibold text-pg-text-dim"
+        >
+          🤔 {pending.prediction}
+          <span className="ml-1 font-normal">Make a guess, then see if you're right!</span>
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          data-testid={isPlan ? 'plan-approve' : 'show-me-first'}
+          data-testid={isSwitch ? 'engine-switch-confirm' : isPlan ? 'plan-approve' : 'show-me-first'}
           disabled={busy}
           onClick={onConfirm}
           className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-4 py-2 text-[13px] font-extrabold text-ink shadow-brand-mint transition-transform hover:-translate-y-0.5 disabled:opacity-40"
         >
-          {isPlan ? '✓ Yes, do it' : 'Do it'}
+          {isSwitch ? '✓ Yes, rebuild it' : isPlan ? '✓ Yes, do it' : 'Do it'}
         </button>
         <button
           type="button"
-          data-testid={isPlan ? 'plan-reject' : 'show-diff-first'}
+          data-testid={isSwitch ? 'engine-switch-cancel' : isPlan ? 'plan-reject' : 'show-diff-first'}
           disabled={busy}
           onClick={onCancel}
           className="inline-flex items-center gap-1.5 rounded-full border-2 border-pg-border px-4 py-2 text-[13px] font-extrabold text-pg-text transition-colors hover:bg-pg-text/5 disabled:opacity-40"
         >
-          {isPlan ? 'Not yet' : 'Show me first'}
+          {isSwitch ? 'No, keep it' : isPlan ? 'Not yet' : 'Show me first'}
         </button>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
-import type { ConsoleLine } from '../buildGamePreview';
+import type { ConsoleLine, GameEngine } from '../buildGamePreview';
 import { SCREEN_PRESETS } from '../screenPresets';
 import { useStickToBottom } from './useStickToBottom';
 import { extractRuntimeErrors } from '../verifyRoundtrip';
@@ -16,6 +16,9 @@ interface GameRunnerPaneProps {
   runKey: number;
   /** Whether the game is currently running. Owned by PlaygroundApp; ▶ → onRun(). */
   running: boolean;
+  /** Which engine global + control shim the runner injects (2D phaser / 3D three).
+   *  learn-game-studio-3d-prd.md D-3D-01. Defaults to phaser. */
+  engine?: GameEngine;
   /** Launch / re-run the game (PlaygroundApp flips `running` + bumps runKey). */
   onRun: () => void;
   /** Open a console error's source location in the editor (jump to file+line). */
@@ -146,6 +149,7 @@ export function GameRunnerPane({
   files,
   runKey,
   running,
+  engine = 'phaser',
   onRun,
   onOpenLocation,
   onAskFix,
@@ -320,6 +324,7 @@ export function GameRunnerPane({
           >
             <GameFrame
               files={runFiles}
+              engine={engine}
               runKey={runKey}
               paused={paused}
               muted={muted}

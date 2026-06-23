@@ -29,25 +29,37 @@ export function setDemoProjectFiles(provider: (() => VfsFile[]) | null): void {
 }
 
 /**
- * The three Phaser starter templates the backend seeds at create time (PRD §3
- * OQ-2 / §12 — `phaser_pong` paddle/physics, `phaser_catcher` click/collect,
- * `phaser_blank` freeform). The hub's picture chips map onto these.
+ * The starter templates the backend seeds at create time (PRD §3 OQ-2 / §12 +
+ * learn-game-studio-3d-prd.md D-3D-06c). Phaser (2D): `phaser_pong`,
+ * `phaser_catcher`, `phaser_blank`. three.js (3D): `three_spin`, `three_collect`,
+ * `three_blank`. The hub's picture chips map onto these.
  */
-export type GameTemplateId = 'phaser_pong' | 'phaser_catcher' | 'phaser_blank';
+export type GameTemplateId =
+  | 'phaser_pong'
+  | 'phaser_catcher'
+  | 'phaser_blank'
+  | 'three_spin'
+  | 'three_collect'
+  | 'three_blank';
 
 /**
- * Create a REAL `kind='game'` backend project (PRD J1 / §4.2). Mirrors the code
- * studio's `createCodeProject`: the backend seeds the Phaser template into the
- * S3-backed VFS at create time and returns the project id; the studio then opens
- * on the real files via `readVfs` (`GET /projects/:id/code/files`). This replaces
- * the throwaway `local-<uuid>` scaffold path.
+ * Create a REAL `kind='game'` backend project (PRD J1 / §4.2). The backend seeds
+ * the starter template into the S3-backed VFS and returns the project id; the
+ * studio then opens on the real files via `readVfs`.
+ *
+ * `template` is OPTIONAL: when omitted (the free-prompt landing path), the backend
+ * INFERS the engine (2D Phaser vs 3D three.js) from the prompt/title and seeds the
+ * matching blank starter (learn-game-studio-3d-prd.md D-3D-07). Pass `template`
+ * only when the kid explicitly picked a starter chip. Do NOT hardcode a Phaser
+ * template here — that would force every game (incl. "make a 3D …") into 2D.
  */
 export async function createGameProject(args: {
   kidId: string | null;
   familyId: string | null;
-  /** The kid-chosen game name (PRD J1 "Name your game", e.g. "SUPERCAT"). */
+  /** The kid's prompt / chosen game name — the backend infers the engine from it. */
   title: string;
-  template: GameTemplateId;
+  /** Only set when a specific starter chip was chosen; omit to let the backend infer. */
+  template?: GameTemplateId;
 }): Promise<{ id: string }> {
   return api<{ id: string }>(`/projects`, {
     method: 'POST',
@@ -55,7 +67,7 @@ export async function createGameProject(args: {
       title: args.title,
       product_line: 'line_b_coding',
       kind: GAME_PROJECT_KIND,
-      template: args.template,
+      ...(args.template ? { template: args.template } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),
     },

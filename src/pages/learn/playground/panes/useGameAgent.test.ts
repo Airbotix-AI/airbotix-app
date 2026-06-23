@@ -60,6 +60,7 @@ function makeDeps(): GameAgentDeps {
     classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
+    setEngine: vi.fn(async () => {}),
   };
 }
 
@@ -88,6 +89,7 @@ function setupFailing(error: unknown) {
     classify: vi.fn(async () => ({ safeguarding: null, intent: 'code' as const })),
     raiseHand: vi.fn(async () => {}),
     reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
+    setEngine: vi.fn(async () => {}),
   };
   const view = renderHook(() =>
     useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
@@ -408,5 +410,92 @@ describe('useGameAgent chat seed + restore (J9 resume)', () => {
     );
     expect(ft.result.current.chat.some((c) => c.text === 'Made a maze.')).toBe(true);
     expect(ft.result.current.chat.some((c) => c.text.toLowerCase().includes('safety helper'))).toBe(false);
+  });
+});
+
+describe('engine switch (D-3D-08 — confirm before rebuilding 2D⇄3D)', () => {
+  it('stages a confirm (no turn) then flips the engine + rebuilds on confirm', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    const onEngineChange = vi.fn();
+    const onApplyFiles = vi.fn();
+    const { result } = renderHook(() =>
+      useGameAgent({
+        files: [],
+        onApplyFiles,
+        projectId: 'p1',
+        mode: 'lite',
+        engine: 'phaser',
+        onEngineChange,
+        deps,
+      }),
+    );
+
+    // A switch request must NOT auto-run a turn — it stages an engine-switch confirm.
+    await act(async () => {
+      await result.current.send('make the game 3D');
+    });
+    expect(result.current.pending?.kind).toBe('engine-switch');
+    expect(result.current.pending?.engine).toBe('three');
+    expect(deps.setEngine).not.toHaveBeenCalled();
+    expect(deps.runTurn).not.toHaveBeenCalled();
+
+    // Confirm → flip engine on the backend, notify the runner, rebuild via the agent.
+    await act(async () => {
+      void result.current.confirmPending();
+      await waitFor(() => expect(deps.setEngine).toHaveBeenCalledWith({ projectId: 'p1', engine: 'three' }));
+    });
+    expect(onEngineChange).toHaveBeenCalledWith('three');
+    await waitFor(() =>
+      expect(deps.runTurn).toHaveBeenCalledWith(
+        expect.objectContaining({ projectId: 'p1', prompt: 'make the game 3D' }),
+      ),
+    );
+    await act(async () => {
+      resolveStream?.();
+    });
+  });
+
+  it('cancel keeps the current engine and changes nothing', async () => {
+    const deps = makeDeps();
+    const onEngineChange = vi.fn();
+    const { result } = renderHook(() =>
+      useGameAgent({
+        files: [],
+        onApplyFiles: vi.fn(),
+        projectId: 'p1',
+        mode: 'lite',
+        engine: 'phaser',
+        onEngineChange,
+        deps,
+      }),
+    );
+    await act(async () => {
+      await result.current.send('switch to 3d');
+    });
+    expect(result.current.pending?.kind).toBe('engine-switch');
+    await act(async () => {
+      await result.current.cancelPending();
+    });
+    expect(result.current.pending).toBeNull();
+    expect(deps.setEngine).not.toHaveBeenCalled();
+    expect(onEngineChange).not.toHaveBeenCalled();
+    expect(deps.runTurn).not.toHaveBeenCalled();
+  });
+
+  it('an ordinary edit on a 2D game does NOT trigger the switch confirm', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'lite', engine: 'phaser', deps }),
+    );
+    await act(async () => {
+      void result.current.send('add 3D-looking shadows');
+      await waitFor(() => expect(deps.runTurn).toHaveBeenCalled());
+    });
+    expect(result.current.pending?.kind).not.toBe('engine-switch');
+    await act(async () => {
+      resolveStream?.();
+    });
   });
 });

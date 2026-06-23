@@ -52,6 +52,12 @@ export interface CodeProject {
   created_at: string;
   /** The teacher's "where we left off" (D-PAP-19,22); present on resumed games. */
   learning_context?: LearningContext | null;
+  /**
+   * Game engine for kind='game' projects (learn-game-studio-3d-prd.md D-3D-01):
+   * 'phaser' (2D) | 'three' (3D). Absent/null on non-game projects and on games
+   * created before 3D — treat absent as 'phaser'.
+   */
+  engine?: 'phaser' | 'three' | null;
 }
 
 // ── Agent turn model (PRD §4 / §4.5 — server-side loop) ────────────────────
@@ -291,6 +297,18 @@ export async function submitMission(args: {
 
 export async function getProject(projectId: string): Promise<CodeProject> {
   return api<CodeProject>(`/projects/${projectId}`);
+}
+
+/**
+ * Set a game project's engine (learn-game-studio-3d-prd.md D-3D-08) — the
+ * backend half of a kid-confirmed 2D⇄3D switch. PATCH /projects/:id { engine };
+ * the caller then re-runs the agent to rebuild the game in the new engine.
+ */
+export async function setProjectEngine(args: {
+  projectId: string;
+  engine: 'phaser' | 'three';
+}): Promise<void> {
+  await api(`/projects/${args.projectId}`, { method: 'PATCH', body: { engine: args.engine } });
 }
 
 // ── Asset content representation (studio data: URL ↔ backend raw base64) ─────

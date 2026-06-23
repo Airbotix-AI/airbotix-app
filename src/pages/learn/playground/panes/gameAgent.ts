@@ -18,6 +18,7 @@ import {
   raiseHand as apiRaiseHand,
   reportRuntimeErrors as apiReportRuntimeErrors,
   runAgentTurn as apiRunAgentTurn,
+  setProjectEngine as apiSetProjectEngine,
   type AgentTurnResult,
   type ClassifyResult,
   type SafeguardingVerdict,
@@ -78,6 +79,9 @@ export type ReportRuntimeErrors = (args: {
   mode: 'lite' | 'pro';
 }) => Promise<VerifyFixResult>;
 
+/** Flip a game project's engine (D-3D-08), then the hook re-runs the agent to rebuild. */
+export type SetEngine = (args: { projectId: string; engine: 'phaser' | 'three' }) => Promise<void>;
+
 /** Injectable backend seam (real by default; swapped in unit tests). */
 export interface GameAgentDeps {
   runTurn: RunAgentTurn;
@@ -85,6 +89,7 @@ export interface GameAgentDeps {
   classify: ClassifyMessage;
   raiseHand?: RaiseHand;
   reportRuntimeErrors: ReportRuntimeErrors;
+  setEngine: SetEngine;
 }
 
 export const realGameAgentDeps: GameAgentDeps = {
@@ -93,6 +98,7 @@ export const realGameAgentDeps: GameAgentDeps = {
   classify: apiClassifyMessage,
   raiseHand: apiRaiseHand,
   reportRuntimeErrors: apiReportRuntimeErrors,
+  setEngine: apiSetProjectEngine,
 };
 
 /** Per-token reveal cadence (ms). Kept short so a turn never feels laggy. */
