@@ -4,6 +4,30 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Studio 3D — three.js engine foundation, D-GAME12 / D-3D-*)
+
+### Added
+- **Second game engine — three.js (3D) runtime foundation** (`learn-game-studio-3d-prd.md`
+  M3D-1/M3D-2, frontend slice). Phaser (2D) stays the default and is byte-identical.
+  - `vite.config.ts`: generalized the `vendor-phaser` plugin → **`vendor-engines`**. Phaser's UMD
+    global is still copied verbatim; **three.js (ESM-only since r160) is esbuild-bundled into a
+    `window.THREE` global IIFE** (+ a curated addon set, currently `OrbitControls`) at
+    `public/vendor/three-<v>.global.js` on every dev/build. Version-pinned (`THREE_VERSION`,
+    throws on drift) — **no CDN** (platform rule), same contract as Phaser.
+  - `buildGamePreview.ts`: introduced an **`EngineProfile`** (D-3D-03) that parameterizes only the
+    engine-coupled srcdoc pieces — the vendored `<script src>`, the load guard, and the control
+    shim. `BuildGameOptions.engine?: 'phaser' | 'three'` (default `phaser`, back-compat). Added the
+    **three.js control shim** (D-3D-04): no `Phaser.Game` to wrap, so pause/resume/mute/snapshot
+    ride a documented `window.__game` contract and FPS is read from the renderer's own frame
+    counter (a stalled game reads 0) — **same `postMessage` wire protocol** as Phaser.
+  - Installed `three@0.184.0` + `@types/three`.
+
+### Tests
+- `buildGamePreview.test.ts`: engine-profile suite — `engine` omitted ≡ `phaser` (byte-identical),
+  `three` loads the three global + three control shim and not Phaser, kid script ranges +
+  `//# sourceURL` + sandbox shell stay engine-agnostic, and both engines speak the same control
+  wire protocol. (9/9 green; typecheck + production build green with the three global vendored.)
+
 ## 2026-06-22 (Live Mode — live focus presence, D-LIVE-3)
 
 ### Added
