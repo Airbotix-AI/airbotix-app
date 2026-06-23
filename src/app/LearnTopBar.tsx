@@ -15,6 +15,9 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 // Exported for the copy-split guard. This nav points at the course-CONTENT catalog
 // (课节), so its label is "Lessons"; the kid's TASK inside a lesson is a "Mission".
 // `missions` survives in the route path solely as the internal route/code identifier.
+// (Pre-existing data export beside the component; the fast-refresh warning is benign
+// here and would otherwise fail the deploy's --max-warnings 0 lint.)
+// eslint-disable-next-line react-refresh/only-export-components
 export const NAV_ITEMS = [
   { to: '/learn/workspace', label: '✨ AI Studio' },
   { to: '/learn', label: 'Home', end: true },
