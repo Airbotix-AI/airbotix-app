@@ -176,10 +176,18 @@ export function GameRunnerPane({
   // reload the game mid-edit. A real run (▶ Play / restart / AI turn) bumps runKey
   // and re-snapshots. Updated synchronously during render so the first Play already
   // uses the latest code (no double-load).
+  //
+  // ALSO re-snapshot when the ENGINE changes (a 2D⇄3D switch, D-3D-08): the engine
+  // prop is live, so without this the runner would render the new engine's global
+  // against the OLD engine's snapshot files → "Phaser/THREE is not defined". The
+  // switch flips engine + replaces the VFS in one commit (flushSync), so `files`
+  // here is already the clean target-engine starter when `engine` changes.
   const lastRunKey = useRef(runKey);
+  const lastEngine = useRef(engine);
   const runFilesRef = useRef(files);
-  if (runKey !== lastRunKey.current) {
+  if (runKey !== lastRunKey.current || engine !== lastEngine.current) {
     lastRunKey.current = runKey;
+    lastEngine.current = engine;
     runFilesRef.current = files;
   }
   const runFiles = runFilesRef.current;

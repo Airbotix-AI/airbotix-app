@@ -4,6 +4,19 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Studio 3D — fix the real switch root cause: runner snapshot, D-3D-08)
+
+### Fixed
+- **The actual cause of "Phaser/THREE is not defined" on a 2D⇄3D switch (both directions).**
+  `GameRunnerPane` runs a `runKey`-gated SNAPSHOT of the VFS, but the `engine` prop is live — so
+  on a switch the engine flipped while the runner kept the OLD engine's snapshot files, running
+  them under the new global. Now the runner **re-snapshots when `engine` changes** too (not only
+  on a runKey bump), so the iframe reloads the clean target-engine files together with the new
+  global. (Earlier `flushSync`/reset fixes were necessary but insufficient — the runner ignored
+  the live files.) Verified end-to-end in a real browser: toggling phaser→3D→2D on the **mounted**
+  runner renders a canvas each time with zero "is not defined" errors. The DEV `/playground-sandbox`
+  now drives `GameRunnerPane` (engine as a prop, no remount) so it reproduces the studio switch.
+
 ## 2026-06-23 (Game Studio 3D — fix switch crash + atomic engine flip, D-3D-08)
 
 ### Fixed

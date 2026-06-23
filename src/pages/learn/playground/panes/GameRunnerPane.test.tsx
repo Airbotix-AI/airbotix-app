@@ -51,6 +51,24 @@ describe('GameRunnerPane — the running game uses a launch snapshot of the VFS'
     rerender(<GameRunnerPane files={c} runKey={2} running onRun={noop} onOpenLocation={noop} onAskFix={noop} />);
     expect(seen.at(-1)).toBe(c);
   });
+
+  it('re-snapshots when the ENGINE changes (2D⇄3D switch) — even without a runKey bump (D-3D-08)', () => {
+    // Otherwise the live `engine` prop would render the new engine's global against
+    // the OLD engine's snapshot files → "Phaser/THREE is not defined".
+    const twoD = F('main.js');
+    const { rerender } = render(
+      <GameRunnerPane files={twoD} runKey={1} running engine="phaser" onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    expect(seen.at(-1)).toBe(twoD);
+
+    // Switch confirmed: engine flips to three + the VFS is replaced (same commit),
+    // runKey unchanged. The runner MUST re-snapshot to the new (three) files.
+    const threeD = F('main.js', 'src/scene.js');
+    rerender(
+      <GameRunnerPane files={threeD} runKey={1} running engine="three" onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    expect(seen.at(-1)).toBe(threeD);
+  });
 });
 
 describe('GameRunnerPane — the console pins to the latest output', () => {
