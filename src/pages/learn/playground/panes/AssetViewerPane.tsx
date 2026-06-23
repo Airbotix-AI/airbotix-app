@@ -33,15 +33,20 @@ import {
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
+import { EnlargeButton, ImageLightbox } from './ImageLightbox';
+import { ClassAssetDetailView, ClassAssetsGrid } from './ClassAssets';
+import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
 import {
   animSidecarPath,
+  assetChatRef,
   assetKindOf,
   categoryOf,
-  codeRefFor,
+  CLASS_ASSET_DIR,
   decodeImageMeta,
   formatBytes,
-  libraryCodeRef,
+  libraryChatRef,
   parseAnimSidecar,
+  referenceLabel,
   type AssetKind,
   type ImageMeta,
 } from './assetMeta';
@@ -68,6 +73,13 @@ interface AssetViewerPaneProps {
   onRequestAssetGen?: (prompt: string, ref?: { refAssetPath?: string; refUrl?: string }) => void;
   /** A request to open a specific asset's detail (from a chat "done" card tap). */
   openAsset?: { path: string; nonce: number } | null;
+  /**
+   * The class-shared assets a teacher prepared for this project's class
+   * (class-shared-assets-prd). The backend gate returns these ONLY when the
+   * project is class work for a class the kid is enrolled in (else `[]`), so the
+   * "Class" source tab is shown ONLY when this is non-empty.
+   */
+  classAssets?: ClassAssetView[];
   /** Teacher live read-only viewer (D-LV-6): hide every mutation affordance —
    *  import/upload (file input + drag-drop/paste), Generate, Remix, rename, delete.
    *  Viewing / opening / previewing assets stays enabled. */
@@ -75,8 +87,8 @@ interface AssetViewerPaneProps {
 }
 
 const ALL = '__all__';
-/** Which source the Asset Viewer is browsing (D-ASSET-6). */
-type AssetSource = 'mine' | 'library';
+/** Which source the Asset Viewer is browsing (D-ASSET-6 + class-shared-assets). */
+type AssetSource = 'mine' | 'library' | 'class';
 const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
 const ANIM_SUFFIX = '.anim.json';
 
@@ -134,10 +146,23 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   );
 }
 
-export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly }: AssetViewerPaneProps) {
+export function AssetViewerPane({
+  files,
+  onRequestAssetGen,
+  openAsset,
+  readOnly,
+  classAssets,
+}: AssetViewerPaneProps) {
   const createFile = useProjectStore((s) => s.createFile);
   const rename = useProjectStore((s) => s.rename);
   const remove = useProjectStore((s) => s.remove);
+
+  // The Class source exists only when the backend gate returned class assets
+  // (class-shared-assets-prd): the project is class work for a class the kid is
+  // enrolled in. Otherwise the tab is hidden entirely. Memoised so the empty-list
+  // fallback keeps a stable identity across renders (downstream useMemo deps).
+  const classList = useMemo(() => classAssets ?? [], [classAssets]);
+  const hasClassAssets = classList.length > 0;
 
   // Persisted Asset Viewer selections (J9 "resume where I left off").
   const assetSeed = useRef(
@@ -148,14 +173,29 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
       assetSelectedPath: null as string | null,
     }),
   ).current;
-  // Which source the pane is browsing: the kid's own VFS assets, or the shared
-  // read-only Library (D-ASSET-6). Library assets are referenced by URL and never
-  // enter the VFS.
-  const [source, setSource] = useState<AssetSource>(() => assetSeed.assetSource);
+  // Which source the pane is browsing: the kid's own VFS assets, the shared
+  // read-only Library (D-ASSET-6), or the per-class shared assets. Library + class
+  // assets are read-only sources; only "mine" lives in the VFS. Never restore to
+  // `class` when no class assets exist (the tab wouldn't be rendered).
+  const [source, setSource] = useState<AssetSource>(() =>
+    assetSeed.assetSource === 'class' && !hasClassAssets ? 'mine' : assetSeed.assetSource,
+  );
+  // If class assets disappear while we're on the Class source (e.g. a refetch
+  // emptied them), fall back to My assets so we never render an orphaned source.
+  useEffect(() => {
+    if (source === 'class' && !hasClassAssets) {
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedClassId(null);
+    }
+  }, [source, hasClassAssets]);
   const [category, setCategory] = useState<string>(() => assetSeed.assetCategory);
   const [query, setQuery] = useState(() => assetSeed.assetQuery);
   const [selectedPath, setSelectedPath] = useState<string | null>(() => assetSeed.assetSelectedPath);
   const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  // An "Add to my game" is in flight (fetching the signed bytes) — gates the button.
+  const [classAdding, setClassAdding] = useState(false);
   useEffect(() => {
     writeWorkspaceSlice('asset-viewer', {
       assetSource: source,
@@ -171,6 +211,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
     setSource('mine');
     setCategory(ALL);
     setSelectedLibId(null);
+    setSelectedClassId(null);
     setSelectedPath(openAsset.path);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAsset?.nonce]);
@@ -218,7 +259,18 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
     ? (ASSET_LIBRARY.find((a) => a.id === selectedLibId) ?? null)
     : null;
 
-  // Switching source resets category + clears any open detail so the two sources
+  // ── Class (shared, read-only) browse state ────────────────────────────────
+  // The Class source has no categories (a flat per-class list); only the search
+  // box filters it (by name).
+  const classVisible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? classList.filter((a) => a.name.toLowerCase().includes(q)) : classList;
+  }, [classList, query]);
+  const selectedClass = selectedClassId
+    ? (classList.find((a) => a.id === selectedClassId) ?? null)
+    : null;
+
+  // Switching source resets category + clears any open detail so the sources
   // (whose categories differ) never show a mismatched selection.
   function switchSource(next: AssetSource) {
     setSource(next);
@@ -226,6 +278,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
     setQuery('');
     setSelectedPath(null);
     setSelectedLibId(null);
+    setSelectedClassId(null);
   }
 
   // Browsing a category (or searching) always returns to the grid — never leaves
@@ -234,6 +287,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
     setCategory(c);
     setSelectedPath(null);
     setSelectedLibId(null);
+    setSelectedClassId(null);
   }
 
   const takenPaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
@@ -267,6 +321,32 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
         ? 'Imported. Heads-up: a file is large (>4 MB) — big assets bloat the project.'
         : 'Imported.',
     );
+  }
+
+  // "Add to my game" for a class asset (class-shared-assets-prd): download the
+  // bytes from the short-lived signed URL, convert to a data URL, and copy into
+  // the kid's VFS at `assets/class/<name>` (deduped like an import). The class
+  // asset thereby becomes a normal "My asset" — the signed URL is NEVER referenced
+  // inside the sandboxed game (playground/CLAUDE.md security model). After adding
+  // we switch to My assets so the kid sees their new copy.
+  async function addClassAssetToMine(asset: ClassAssetView) {
+    setClassAdding(true);
+    try {
+      const dataUrl = await fetchAssetDataUrl(asset.download_url);
+      const path = uniquePath(`${CLASS_ASSET_DIR}/${asset.name}`, takenPaths);
+      takenPaths.add(path);
+      createFile(path, 'asset', dataUrl);
+      setSource('mine');
+      setCategory(ALL);
+      setSelectedLibId(null);
+      setSelectedClassId(null);
+      setSelectedPath(path);
+      setNotice('Added to your game — find it under My assets ✨');
+    } catch {
+      setNotice("Couldn't add that class asset — please try again.");
+    } finally {
+      setClassAdding(false);
+    }
   }
 
   // Generate / remix go INTO THE CHAT (D-ASSET §3): post the request so it shares
@@ -331,7 +411,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
       {/* Left rail: source tabs + categories + actions */}
       <aside className="flex w-56 shrink-0 flex-col border-r border-pg-border bg-pg-surface">
         <div className="flex flex-col gap-3 p-3">
-          <SourceTabs source={source} onSource={switchSource} />
+          <SourceTabs source={source} onSource={switchSource} hasClassAssets={hasClassAssets} />
           <div className="flex items-center gap-2 rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1.5">
             <Search size={15} className="text-pg-text-muted" />
             <input
@@ -340,28 +420,43 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
                 setQuery(e.target.value);
                 setSelectedPath(null);
                 setSelectedLibId(null);
+                setSelectedClassId(null);
               }}
-              placeholder={source === 'library' ? 'Search the library…' : 'Search assets…'}
+              placeholder={
+                source === 'library'
+                  ? 'Search the library…'
+                  : source === 'class'
+                    ? 'Search class assets…'
+                    : 'Search assets…'
+              }
               className="w-full bg-transparent text-[13px] outline-none placeholder:text-pg-text-muted"
             />
           </div>
         </div>
         <nav className="min-h-0 flex-1 overflow-auto px-2 text-[13px]">
           <CategoryRow
-            label={source === 'library' ? 'All' : 'All assets'}
-            count={source === 'library' ? ASSET_LIBRARY.length : assets.length}
+            label={source === 'class' ? 'Class assets' : source === 'library' ? 'All' : 'All assets'}
+            count={
+              source === 'class'
+                ? classList.length
+                : source === 'library'
+                  ? ASSET_LIBRARY.length
+                  : assets.length
+            }
             active={category === ALL}
             onClick={() => showCategory(ALL)}
           />
-          {(source === 'library' ? libCategories : categories).map(([c, n]) => (
-            <CategoryRow
-              key={c}
-              label={c}
-              count={n}
-              active={category === c}
-              onClick={() => showCategory(c)}
-            />
-          ))}
+          {/* The Class source is a flat per-class list — no sub-categories. */}
+          {source !== 'class' &&
+            (source === 'library' ? libCategories : categories).map(([c, n]) => (
+              <CategoryRow
+                key={c}
+                label={c}
+                count={n}
+                active={category === c}
+                onClick={() => showCategory(c)}
+              />
+            ))}
         </nav>
         {source === 'mine' && !readOnly && (
           <div className="flex gap-2 border-t border-pg-border p-2">
@@ -394,7 +489,23 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
             {notice}
           </div>
         )}
-        {source === 'library' ? (
+        {source === 'class' ? (
+          selectedClass ? (
+            <ClassAssetDetailView
+              asset={selectedClass}
+              busy={classAdding}
+              readOnly={readOnly}
+              onAdd={() => void addClassAssetToMine(selectedClass)}
+              onBack={() => setSelectedClassId(null)}
+              onCopyRef={(snippet) => {
+                void navigator.clipboard?.writeText(snippet);
+                setNotice('Reference copied — paste it into the chat with the AI.');
+              }}
+            />
+          ) : (
+            <ClassAssetsGrid items={classVisible} onSelect={setSelectedClassId} />
+          )
+        ) : source === 'library' ? (
           selectedLib ? (
             <LibraryDetailView
               asset={selectedLib}
@@ -404,7 +515,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
               onBack={() => setSelectedLibId(null)}
               onCopyRef={(snippet) => {
                 void navigator.clipboard?.writeText(snippet);
-                setNotice('Code copied — paste it into your game.');
+                setNotice('Reference copied — paste it into the chat with the AI.');
               }}
             />
           ) : (
@@ -428,7 +539,7 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
             }}
             onCopyRef={(snippet) => {
               void navigator.clipboard?.writeText(snippet);
-              setNotice('Code copied — paste it into your game.');
+              setNotice('Reference copied — paste it into the chat with the AI.');
             }}
           />
         ) : (
@@ -478,8 +589,19 @@ export function AssetViewerPane({ files, onRequestAssetGen, openAsset, readOnly 
 }
 
 
-/** The Library | My assets source switch (D-ASSET-6). */
-function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: AssetSource) => void }) {
+/**
+ * The source switch: Library | My assets, plus a Class tab that appears ONLY
+ * when the project's class shared assets exist (class-shared-assets-prd).
+ */
+function SourceTabs({
+  source,
+  onSource,
+  hasClassAssets,
+}: {
+  source: AssetSource;
+  onSource: (s: AssetSource) => void;
+  hasClassAssets: boolean;
+}) {
   const tab = (id: AssetSource, label: string) => (
     <button
       type="button"
@@ -487,17 +609,20 @@ function SourceTabs({ source, onSource }: { source: AssetSource; onSource: (s: A
       aria-pressed={source === id}
       onClick={() => onSource(id)}
       className={clsx(
-        'flex-1 rounded-lg px-2 py-1.5 text-[12.5px] font-extrabold transition-colors',
+        'min-w-0 flex-1 truncate whitespace-nowrap rounded-lg px-1.5 py-1.5 text-center text-[12.5px] font-extrabold transition-colors',
         source === id ? 'bg-brand-bubblegum text-white' : 'text-pg-text-dim hover:bg-pg-text/5',
       )}
     >
       {label}
     </button>
   );
+  // Labels stay short ("Mine", not "My assets") so all three fit one line in the
+  // narrow (w-56) rail without wrapping when the Class tab is present.
   return (
     <div className="flex items-center gap-1 rounded-xl border border-pg-border bg-pg-surface-2 p-1">
       {tab('library', 'Library')}
-      {tab('mine', 'My assets')}
+      {tab('mine', 'Mine')}
+      {hasClassAssets && tab('class', 'Class')}
     </div>
   );
 }
@@ -604,9 +729,14 @@ function LibraryDetailView({
   onBack: () => void;
   onCopyRef: (snippet: string) => void;
 }) {
-  const snippet = libraryCodeRef(asset.name, asset.kind, asset.url);
+  const snippet = libraryChatRef(asset.name, asset.kind, asset.url);
+  const [lightbox, setLightbox] = useState(false);
+  const isImage = asset.kind === 'image' || asset.kind === 'sprite';
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+      {lightbox && isImage && (
+        <ImageLightbox src={asset.url} alt={asset.name} onClose={() => setLightbox(false)} />
+      )}
       <div className="flex items-center gap-2 border-b border-pg-border px-3 py-2">
         <button
           type="button"
@@ -624,13 +754,19 @@ function LibraryDetailView({
       </div>
 
       <div className="grid gap-4 p-4 lg:grid-cols-2">
-        <div className="flex items-center justify-center rounded-xl border border-pg-border bg-pg-surface-2 p-6">
+        <div className="relative flex items-center justify-center rounded-xl border border-pg-border bg-pg-surface-2 p-6">
           <img
             src={asset.url}
             alt={asset.name}
             crossOrigin="anonymous"
-            className="h-28 w-28 object-contain"
+            onClick={isImage ? () => setLightbox(true) : undefined}
+            className={clsx('h-28 w-28 object-contain', isImage && 'cursor-zoom-in')}
           />
+          {isImage && (
+            <span className="absolute right-2 top-2">
+              <EnlargeButton onClick={() => setLightbox(true)} />
+            </span>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
@@ -645,7 +781,7 @@ function LibraryDetailView({
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12.5px] font-extrabold">Use it in your code</span>
+              <span className="text-[12.5px] font-extrabold">{referenceLabel(asset.kind)}</span>
               <button
                 type="button"
                 onClick={() => onCopyRef(snippet)}
@@ -654,9 +790,12 @@ function LibraryDetailView({
                 <Copy size={14} /> Copy
               </button>
             </div>
+            <p className="mb-2 text-[11.5px] text-pg-text-muted">
+              Paste this into the chat to ask the AI to use it.
+            </p>
             <pre
               data-testid="library-codeRef"
-              className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text"
+              className="whitespace-pre-wrap break-words rounded-lg bg-pg-surface-2 p-2 text-[12px] leading-relaxed text-pg-text"
             >
               {snippet}
             </pre>
@@ -760,7 +899,7 @@ function DetailView({
 
   const kind = assetKindOf(asset.path, files);
   const anim = kind === 'sprite' ? parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path))) : null;
-  const snippet = codeRefFor(asset, anim);
+  const snippet = assetChatRef(asset, anim);
 
   useEffect(() => {
     setDims(null);
@@ -847,7 +986,7 @@ function DetailView({
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12.5px] font-extrabold">Use it in your code</span>
+              <span className="text-[12.5px] font-extrabold">{referenceLabel(kind)}</span>
               <button
                 type="button"
                 onClick={() => onCopyRef(snippet)}
@@ -856,9 +995,12 @@ function DetailView({
                 <Copy size={14} /> Copy
               </button>
             </div>
+            <p className="mb-2 text-[11.5px] text-pg-text-muted">
+              Paste this into the chat to ask the AI to use it.
+            </p>
             <pre
               data-testid="asset-codeRef"
-              className="whitespace-pre-wrap break-all rounded-lg bg-pg-surface-2 p-2 font-mono text-[12px] leading-relaxed text-pg-text"
+              className="whitespace-pre-wrap break-words rounded-lg bg-pg-surface-2 p-2 text-[12px] leading-relaxed text-pg-text"
             >
               {snippet}
             </pre>

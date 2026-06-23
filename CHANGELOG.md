@@ -125,6 +125,63 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - Tests: `raiseHand`/`RaiseHandButton` (visibility gating + raise/lower emits + teacher-lowered sync),
   `NudgeBanner` (canned vs note copy, no-reply one-way shape, dismiss), `authStore` (`class_id` claim decode,
   malformed-token safety).
+## 2026-06-23
+
+### Added
+- **Game Studio Asset Viewer: a "Class" tab for the teacher's class shared asset library**
+  (class-shared-assets-prd). When a kid's game project belongs to a class, the Asset Viewer
+  shows a new **Class** source tab alongside Library / My assets, listing the media a teacher
+  prepared for that class (`GET /projects/:id/class-assets` → `ClassAssetView[]`, via the
+  shared `api` client). The tab appears **only** when the backend returns assets — the gate
+  returns `[]` unless the project is class work for a class the kid is enrolled in (server is
+  the source of truth for authz), so the frontend simply hides the tab when the list is empty
+  (and never restores a persisted `class` source when none exist). Each asset previews by its
+  short-lived signed `download_url`; **"Add to my game"** downloads those bytes, converts them
+  to a `data:` URL, and copies them into the VFS at `assets/class/<name>` (deduped like an
+  import) so the asset becomes a normal "My asset" — the signed URL is **never** referenced
+  inside the sandboxed game (playground security model: a class asset enters the game only as
+  a VFS file, exactly like an import). Copy-code-ref is offered too. In the teacher live
+  read-only viewer (D-LV-6) "Add to my game" is hidden; preview/copy stay. New
+  `panes/ClassAssets.tsx` (grid + detail), `listClassAssets` / `fetchAssetDataUrl` /
+  `ClassAssetView` in `panes/playgroundApi.ts`, and `CLASS_ASSET_DIR` / `classAssetCodeRef`
+  in `panes/assetMeta.ts`. Covered by `AssetViewerPane.classAssets.test.tsx`,
+  `playgroundApi.test.ts`, and the umbrella harness journey `kid-class-asset`.
+- **Class tab auto-refreshes live when the teacher changes the library** (class-shared-assets-prd):
+  `Workspace` subscribes (via `useWsEvent`) to `class.asset_added` / `class.asset_removed` /
+  `class.assets_copied` and invalidates the `['project', id, 'class-assets']` query, so a kid
+  with the Asset Viewer open sees a newly-uploaded asset appear (or a removed one disappear)
+  without reloading. The backend pushes a `class_id`-only signal to the enrolled kid's private
+  socket room. Proven by the `kid-class-asset` journey (teacher uploads while the kid views →
+  grid grows, no reload).
+
+### Added
+- **Full-screen image lightbox in the Asset Viewer** — image previews (My assets, Library, and
+  Class) gain an **Enlarge** affordance (also click the image) that opens a zoomable full-screen
+  overlay: zoom via +/− buttons, the mouse wheel, or the +/− keys; drag to pan; reset; close on
+  ✕ / backdrop / Esc. New `panes/ImageLightbox.tsx` (rendered through a portal to `<body>` so the
+  playground's transformed `react-rnd` window can't clip it). Covered by `ImageLightbox.test.tsx`,
+  a wiring case in `AssetViewerPane.classAssets.test.tsx`, and the `kid-class-asset` journey.
+
+### Changed
+- **"Use it in your code" → "Copy {image/sound/video} reference"** in the Asset Viewer detail
+  (all sources). Kids vibe-code through the chat, not by hand-pasting Phaser code, so the copied
+  payload is now just the asset's **bare reference** — its VFS path (e.g. `assets/class/hero.png`),
+  or the stable URL for a shared-library asset — instead of a `this.load.image(...)` snippet. The
+  kid pastes it into the chat and the agent reads/loads it. Heading is kind-aware (`referenceLabel`);
+  helpers renamed `codeRefFor`/`libraryCodeRef`/`classAssetCodeRef` →
+  `assetChatRef`/`libraryChatRef`/`classAssetChatRef` in `assetMeta.ts`; a hint line tells the kid
+  to paste it into the chat. ("Add to my game" still injects real loader code via `assetInsert.ts`.)
+- **Asset Viewer source tabs fit one line with the Class tab present** — labels shortened
+  ("My assets" → **"Mine"**) and made `whitespace-nowrap`/`truncate` so Library / Mine / Class
+  no longer wrap in the narrow rail (testids unchanged: `asset-source-mine` etc.).
+
+### Fixed
+- **WS socket reuse (`lib/ws.ts`)**: `getSocket` no longer tears down a still-connecting socket
+  on every call — it reuses the existing socket unless the token genuinely changed (a new
+  login). Several concurrent subscribers (IncidentBanner + the playground Class-asset listeners)
+  calling `getSocket` during the connect window caused a connect/disconnect storm that left
+  listeners bound to discarded socket instances (so live events never arrived). New `ws.test.ts`.
+
 ## 2026-06-22
 
 ### Fixed

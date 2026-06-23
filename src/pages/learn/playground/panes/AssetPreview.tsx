@@ -15,6 +15,7 @@ import WaveSurfer from 'wavesurfer.js';
 
 import type { VfsFile } from '../../code/codeApi';
 import { animSidecarPath, assetKindOf, dataUrlToText, parseAnimSidecar, type AnimMeta } from './assetMeta';
+import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 
 interface AssetPreviewProps {
   asset: VfsFile;
@@ -146,6 +147,7 @@ function AudioStage({ dataUrl }: { dataUrl: string }) {
 
 export function AssetPreview({ asset, files }: AssetPreviewProps) {
   const [bg, setBg] = useState<PreviewBg>('checker');
+  const [lightbox, setLightbox] = useState(false);
   const kind = assetKindOf(asset.path, files);
   const anim = useMemo(
     () =>
@@ -180,7 +182,7 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
   // image / sprite / other → a background-toggleable stage
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {BG_OPTIONS.map(({ id, label }) => (
           <button
             key={id}
@@ -196,6 +198,13 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
             {label}
           </button>
         ))}
+        {/* A still image enlarges to a zoomable full-screen view (sprites animate
+            in-place, so the strip isn't enlargeable). */}
+        {!anim && (
+          <span className="ml-auto">
+            <EnlargeButton onClick={() => setLightbox(true)} />
+          </span>
+        )}
       </div>
       <div
         style={bgStyle(bg)}
@@ -207,10 +216,14 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
           <img
             src={asset.content}
             alt={asset.path}
-            className="max-h-[360px] max-w-full object-contain"
+            onClick={() => setLightbox(true)}
+            className="max-h-[360px] max-w-full cursor-zoom-in object-contain"
           />
         )}
       </div>
+      {lightbox && !anim && (
+        <ImageLightbox src={asset.content} alt={asset.path} onClose={() => setLightbox(false)} />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@
 // URL (binary) or plain text, living under `assets/`.
 
 import type { VfsFile } from '../../code/codeApi';
+import type { ClassAssetView } from './playgroundApi';
 
 export type AssetKind = 'image' | 'sprite' | 'audio' | 'video' | 'text' | 'other';
 
@@ -101,33 +102,54 @@ export function slugifyKey(path: string): string {
   return slug || FALLBACK_KEY;
 }
 
-/**
- * The copy-able Phaser loader snippet for an asset (design §6). The path string
- * is the contract — `buildGamePreview.inlineAssetRefs` rewrites it to a data URL
- * at build time.
- */
-export function codeRefFor(asset: VfsFile, anim?: AnimMeta | null): string {
-  const { path } = asset;
-  const key = slugifyKey(path);
-  const ext = extOf(path);
-  if (VIDEO_EXTS.includes(ext)) return `this.load.video('${key}', '${path}')`;
-  if (AUDIO_EXTS.includes(ext)) return `this.load.audio('${key}', '${path}')`;
-  if (IMAGE_EXTS.includes(ext) && anim) {
-    return `this.load.spritesheet('${key}', '${path}', { frameWidth: ${anim.frameWidth}, frameHeight: ${anim.frameHeight} })`;
-  }
-  return `this.load.image('${key}', '${path}')`;
+// ── Asset references for the AI chat ─────────────────────────────────────────
+// Kids vibe-code through the chat, not by hand-editing loader code, so the
+// "Copy … reference" affordance copies the asset's bare REFERENCE — its VFS path
+// (e.g. `assets/class/hero.png`) or, for the shared library, its URL. The kid
+// pastes that into the chat ("make the player look like assets/class/hero.png")
+// and the agent reads/loads it. (The loader wiring is the agent's / `assetInsert`'s
+// job — never hand-pasted Phaser code.)
+
+const KIND_NOUN: Record<AssetKind, string> = {
+  image: 'image',
+  sprite: 'sprite sheet',
+  audio: 'sound',
+  video: 'video',
+  text: 'file',
+  other: 'file',
+};
+
+/** Heading/label for the reference block, e.g. "Copy image reference". */
+export function referenceLabel(kind: AssetKind): string {
+  return `Copy ${KIND_NOUN[kind] ?? 'asset'} reference`;
+}
+
+/** The chat reference for one of the kid's own (VFS) assets — its bare path. */
+export function assetChatRef(asset: VfsFile, _anim?: AnimMeta | null): string {
+  return asset.path;
 }
 
 /**
- * The copy-able Phaser loader for a shared **Library** asset (D-ASSET-2): it is
- * referenced by its stable URL, not a VFS path. Images set `crossOrigin` so the
- * cross-origin texture doesn't taint the canvas (D-ASSET-7). Mirrors what
- * `assetInsert.addLibraryAssetToGame` injects.
+ * The chat reference for a shared **Library** asset (D-ASSET-2): its stable URL
+ * (not a VFS path), so the agent loads it from there.
  */
-export function libraryCodeRef(name: string, kind: AssetKind, url: string): string {
-  const key = slugifyKey(name);
-  if (kind === 'audio') return `this.load.audio('${key}', '${url}')`;
-  return `this.load.setCORS('anonymous');\nthis.load.image('${key}', '${url}')`;
+export function libraryChatRef(_name: string, _kind: AssetKind, url: string): string {
+  return url;
+}
+
+// ── Class shared assets (class-shared-assets-prd) ────────────────────────────
+
+/** The VFS directory a copied class asset lands in ("Add to my game"). */
+export const CLASS_ASSET_DIR = 'assets/class';
+
+/**
+ * The chat reference for a class asset — the `assets/class/<name>` VFS path it
+ * lands at after "Add to my game" (never the signed URL — playground/CLAUDE.md:
+ * a class asset enters the game only as a VFS file). Pair with "Add to my game"
+ * so the file actually exists when used.
+ */
+export function classAssetChatRef(asset: ClassAssetView): string {
+  return `${CLASS_ASSET_DIR}/${asset.name}`;
 }
 
 export function formatBytes(n: number): string {

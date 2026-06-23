@@ -13,9 +13,9 @@
 // Dark-themed throughout (design-system tokens only; no raw hex / Tailwind
 // defaults beyond the desktop bg). Matches docs/mockup-workspace-v2.png.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import clsx from 'clsx';
 
@@ -28,7 +28,9 @@ import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
 import { WINDOW_META } from './desktop/windowMeta';
+import { useWsEvent } from '@/lib/useWsEvent';
 import { AssetViewerPane } from './panes/AssetViewerPane';
+import { listClassAssets } from './panes/playgroundApi';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { buildExplainPrompt } from './panes/explainPrompt';
@@ -155,6 +157,31 @@ export function Workspace({
     enabled: !!kidId,
   });
   const inClass = (classes.data?.length ?? 0) > 0;
+  // Class shared assets (class-shared-assets-prd): the teacher's prepared media
+  // for THIS project's class. The backend gate returns `[]` unless the project is
+  // class work for a class the kid is enrolled in, so the Asset Viewer's "Class"
+  // tab is shown only when this resolves non-empty. Real owned projects only (a
+  // project-less session / teacher-viewer principal has no class membership).
+  const classAssetsQuery = useQuery({
+    queryKey: ['project', projectId, 'class-assets'],
+    queryFn: () => listClassAssets(projectId!),
+    enabled: !!projectId,
+  });
+  const classAssets = classAssetsQuery.data ?? [];
+
+  // Live-refresh the Class tab when the teacher changes the class library
+  // (class-shared-assets-prd): the backend pushes a class_id-only signal to the
+  // enrolled kid's private socket; we just refetch the access-gated endpoint, so
+  // a newly-uploaded asset appears (or a removed one disappears) without a reload.
+  const qc = useQueryClient();
+  const refetchClassAssets = useCallback(() => {
+    if (projectId) {
+      void qc.invalidateQueries({ queryKey: ['project', projectId, 'class-assets'] });
+    }
+  }, [qc, projectId]);
+  useWsEvent('class.asset_added', refetchClassAssets, [projectId]);
+  useWsEvent('class.asset_removed', refetchClassAssets, [projectId]);
+  useWsEvent('class.assets_copied', refetchClassAssets, [projectId]);
   // Default window placement (Code lower-left & wide, Chat center-top & front,
   // Game right) is seeded in the store from the viewport — `Window` is an
   // uncontrolled react-rnd, so the rects must be set before mount.
@@ -432,7 +459,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
           </Window>
           <Window
             id="help"
@@ -507,7 +534,7 @@ export function Workspace({
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
                 )}
               </div>
             </section>

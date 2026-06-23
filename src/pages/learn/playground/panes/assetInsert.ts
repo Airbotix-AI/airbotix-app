@@ -46,7 +46,7 @@ function pickSceneFile(files: VfsFile[]): VfsFile | null {
   return js.find((f) => f.path === 'main.js') ?? js[0] ?? null;
 }
 
-/** The `this.load.*` loader line for an asset (mirrors `codeRefFor`). */
+/** The `this.load.*` loader line injected for an asset by "Add to my game". */
 function loaderLine(path: string, key: string, anim: AnimMeta | null): string {
   const ext = extOf(path);
   if (VIDEO_EXTS.includes(ext)) return `this.load.video('${key}', '${path}');`;

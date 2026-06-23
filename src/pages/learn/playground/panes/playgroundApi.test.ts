@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// jsdom gives FileReader/Blob for fetchAssetDataUrl; the rest is pure request-shape.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the shared api client so we assert the request shape without a network.
@@ -6,7 +8,7 @@ vi.mock('@/lib/api', () => ({ api: (...args: unknown[]) => apiMock(...args) }));
 // Mock the readVfs the resolver delegates to (its own module is tested elsewhere).
 vi.mock('../../code/codeApi', () => ({ readVfs: vi.fn() }));
 
-import { createGameProject, transcribeVoice } from './playgroundApi';
+import { createGameProject, fetchAssetDataUrl, listClassAssets, transcribeVoice } from './playgroundApi';
 
 describe('createGameProject (PRD J1)', () => {
   beforeEach(() => apiMock.mockReset());
@@ -39,6 +41,47 @@ describe('createGameProject (PRD J1)', () => {
     const [, opts] = apiMock.mock.calls[0];
     expect(opts.body).not.toHaveProperty('kid_id');
     expect(opts.body).not.toHaveProperty('family_id');
+  });
+});
+
+describe('listClassAssets (class-shared-assets-prd)', () => {
+  beforeEach(() => apiMock.mockReset());
+
+  it('GETs the project class-assets endpoint via the shared api client', async () => {
+    const assets = [
+      {
+        id: 'ca-1',
+        class_id: 'class-1',
+        name: 'hero.png',
+        kind: 'image',
+        mime_type: 'image/png',
+        size_bytes: 2048,
+        created_at: '2026-06-23T00:00:00Z',
+        download_url: 'https://signed.example/hero.png?sig=abc',
+      },
+    ];
+    apiMock.mockResolvedValue(assets);
+    const res = await listClassAssets('proj-1');
+    expect(res).toEqual(assets);
+    expect(apiMock).toHaveBeenCalledWith('/projects/proj-1/class-assets');
+  });
+});
+
+describe('fetchAssetDataUrl (class asset → VFS data URL)', () => {
+  it('downloads the signed URL and reads the bytes as a data URL', async () => {
+    const blob = new Blob(['hello'], { type: 'image/png' });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, blob: () => Promise.resolve(blob) });
+    vi.stubGlobal('fetch', fetchMock);
+    const dataUrl = await fetchAssetDataUrl('https://signed.example/x.png?sig=z');
+    expect(fetchMock).toHaveBeenCalledWith('https://signed.example/x.png?sig=z');
+    expect(dataUrl.startsWith('data:image/png;base64,')).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('throws when the signed URL responds non-OK', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
+    await expect(fetchAssetDataUrl('https://signed.example/x.png')).rejects.toThrow(/403/);
+    vi.unstubAllGlobals();
   });
 });
 
