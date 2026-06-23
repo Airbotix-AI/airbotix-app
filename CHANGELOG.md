@@ -21,6 +21,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     ride a documented `window.__game` contract and FPS is read from the renderer's own frame
     counter (a stalled game reads 0) — **same `postMessage` wire protocol** as Phaser.
   - Installed `three@0.184.0` + `@types/three`.
+  - `GameFrame` accepts an `engine` prop (default `phaser`) threaded into the builder; added
+    `threeStarter.ts` (a lit, orbit-able spinning-cube three.js starter that follows the
+    `window.__game` runtime contract — basis for the future `three_spin` template).
+  - **DEV-only `/playground-sandbox`** route (`EngineSandboxDevPage`, `import.meta.env.DEV`-gated,
+    excluded from prod) — a no-auth harness that runs the REAL `GameFrame` for either engine via a
+    2D/3D toggle (`?engine=phaser|three`). Verified in headless Chromium: both engines render a
+    canvas with positive FPS (Phaser 60, three.js 119) and zero game console errors.
 
 ### Tests
 - `buildGamePreview.test.ts`: engine-profile suite — `engine` omitted ≡ `phaser` (byte-identical),
