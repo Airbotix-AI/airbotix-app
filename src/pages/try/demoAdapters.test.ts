@@ -121,7 +121,7 @@ describe('playground demo adapters', () => {
     installPlaygroundDemo(agent());
     const corpus = await loadHelpCorpus();
     // The pane's default doc must exist, and the corpus must be searchable.
-    expect(corpus.docs.map((d) => d.id)).toContain('engine/what-is-an-engine');
+    expect(corpus.docs.map((d) => d.id)).toContain('start/what-is-a-game');
     expect(corpus.pillars.length).toBeGreaterThan(0);
     expect(fetchSpy).not.toHaveBeenCalled();
     // Uninstalled → the seam is off; the loader goes back to the real backend.

@@ -4,6 +4,28 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Guide → full concept-first KB with interactive diagrams, D-HELP-08)
+
+### Added
+- **Interactive diagrams** (`panes/help/helpDiagrams.tsx`): a curated set of pokeable widgets on
+  the existing `diagram` block — `coords-explorer` (drag x/y, toggle 2D/3D for z), `sprite-vs-mesh`,
+  `camera-view` (pan vs orbit), `game-loop-stepper`, `collision-overlap`, `gravity-jump`,
+  `scene-tree` — plus new static concept SVGs (engine-parts, materials-lights, input-keys, velocity,
+  tween-curve, hud-score, win-lose, levels, juice). Theme-aware, keyboard-accessible, caption fallback.
+
+### Changed
+- **Help pane is now a 3-level tree** (branch → section → doc) sorted by `order` (`HelpPane.tsx`);
+  `helpTypes.ts` gains `section?`/`order?` + the concept-branch `Pillar` union. The corpus is
+  fetched as before; both 2D + 3D content always shows (engine-agnostic, D-HELP-08).
+- Regenerated the bundled demo corpus (`pages/try/demoHelp.playground.ts`) as a verbatim copy of the
+  new backend corpus (drift alarm green).
+
+### Tests
+- `helpDiagrams.test.tsx` (new): diagrams render + respond (toggle 3D, Step, expand tree, unknown-key
+  fallback). `helpApi.test.ts` / `HelpPane.test.tsx` / `demoHelp.playground.test.ts` /
+  `demoAdapters.test.ts` migrated to the new ids/structure. (Pre-existing `TryBlocksPage` zero-network
+  flake unaffected.)
+
 ## 2026-06-23 (Game Studio 3D — fix the real switch root cause: runner snapshot, D-3D-08)
 
 ### Fixed

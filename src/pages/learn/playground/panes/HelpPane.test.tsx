@@ -25,13 +25,14 @@ import type { HelpCorpus } from './help/helpTypes';
 import { HelpPane } from './HelpPane';
 
 const CORPUS: HelpCorpus = {
-  pillars: [{ id: 'engine', title: 'How games work', blurb: '' }],
+  pillars: [{ id: 'start', title: 'Start here', blurb: '', order: 1 }],
   docs: [
     {
-      id: 'engine/what-is-an-engine',
-      pillar: 'engine',
-      title: 'What is a game engine?',
-      tags: ['engine'],
+      id: 'start/what-is-a-game',
+      pillar: 'start',
+      order: 1,
+      title: 'What a game is',
+      tags: ['game'],
       blocks: [{ kind: 'para', text: 'A helper that does the hard parts.' }],
     },
   ],
@@ -59,7 +60,7 @@ describe('HelpPane themed scrollbars (dark-mode compatibility)', () => {
     const reader = screen.getByTestId('help-reader');
     expect(reader.className).toContain('pg-scroll');
     // The nav list is the scroll container wrapping the pillar groups.
-    const nav = screen.getByTestId('help-nav-engine').closest('.overflow-y-auto');
+    const nav = screen.getByTestId('help-nav-start').closest('.overflow-y-auto');
     expect(nav?.className).toContain('pg-scroll');
   });
 });

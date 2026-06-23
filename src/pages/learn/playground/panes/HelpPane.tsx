@@ -18,7 +18,22 @@ import { BookOpen, Loader2, Search } from 'lucide-react';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { getDoc, loadHelpCorpus, searchDocs } from './help/helpApi';
 import { HelpDiagram } from './help/helpDiagrams';
-import type { HelpBlock, HelpResult, Tier } from './help/helpTypes';
+import type { HelpBlock, HelpDoc, HelpResult, Tier } from './help/helpTypes';
+
+/**
+ * Order a branch's docs by `order` and group consecutive docs by `section` (the
+ * 3-level tree: branch → section → doc). Docs with no section render directly.
+ */
+function groupBySection(docs: HelpDoc[]): { section?: string; docs: HelpDoc[] }[] {
+  const sorted = [...docs].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  const groups: { section?: string; docs: HelpDoc[] }[] = [];
+  for (const d of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.section === d.section) last.docs.push(d);
+    else groups.push({ section: d.section, docs: [d] });
+  }
+  return groups;
+}
 
 interface HelpPaneProps {
   /** The kid's studio mode → the default reading tier (Lite 8–11 / Pro 12–17). */
@@ -37,7 +52,7 @@ interface HelpSlice {
   tier: Tier;
 }
 
-const DEFAULT_DOC = 'engine/what-is-an-engine';
+const DEFAULT_DOC = 'start/what-is-a-game';
 
 /** Below this pane width the two-column layout reads badly — collapse to a
  *  single column: the reader full-width, with a "Topics" toggle in the header
@@ -144,38 +159,47 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
           ) : searching ? (
             <SearchResults results={results} onOpen={open} />
           ) : (
-            pillars.map((p) => (
-              <div key={p.id} className="mb-3">
-                <div
-                  data-testid={`help-nav-${p.id}`}
-                  className="px-1.5 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted"
-                >
-                  {p.title}
+            [...pillars]
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+              .map((p) => (
+                <div key={p.id} className="mb-3">
+                  <div
+                    data-testid={`help-nav-${p.id}`}
+                    className="px-1.5 pb-1 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted"
+                  >
+                    {p.title}
+                  </div>
+                  {groupBySection(docs.filter((d) => d.pillar === p.id)).map((group) => (
+                    <div key={group.section ?? '_'}>
+                      {group.section && (
+                        <div className="px-1.5 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-pg-text-muted/70">
+                          {group.section}
+                        </div>
+                      )}
+                      <ul className="flex flex-col gap-0.5">
+                        {group.docs.map((d) => (
+                          <li key={d.id}>
+                            <button
+                              type="button"
+                              data-testid={`help-nav-doc-${d.id}`}
+                              aria-current={d.id === docId}
+                              onClick={() => open(d.id)}
+                              className={clsx(
+                                'w-full rounded-md px-1.5 py-1 text-left text-[13px] transition-colors',
+                                d.id === docId
+                                  ? 'bg-brand-sunshine/20 font-bold text-pg-text'
+                                  : 'font-medium text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text',
+                              )}
+                            >
+                              {d.title}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-                <ul className="flex flex-col gap-0.5">
-                  {docs
-                    .filter((d) => d.pillar === p.id)
-                    .map((d) => (
-                      <li key={d.id}>
-                        <button
-                          type="button"
-                          data-testid={`help-nav-doc-${d.id}`}
-                          aria-current={d.id === docId}
-                          onClick={() => open(d.id)}
-                          className={clsx(
-                            'w-full rounded-md px-1.5 py-1 text-left text-[13px] transition-colors',
-                            d.id === docId
-                              ? 'bg-brand-sunshine/20 font-bold text-pg-text'
-                              : 'font-medium text-pg-text-dim hover:bg-pg-text/5 hover:text-pg-text',
-                          )}
-                        >
-                          {d.title}
-                        </button>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))
+              ))
           )}
         </div>
       </nav>
