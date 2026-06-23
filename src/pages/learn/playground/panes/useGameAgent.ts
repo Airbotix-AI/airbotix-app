@@ -17,6 +17,7 @@
 // call. Offline mid-turn surfaces a calm banner (J2), not a frozen screen.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import type {
   AgentTurnResult,
@@ -882,9 +883,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
       try {
         const { version } = await deps.resetEngine({ projectId, engine: target, files: starter });
-        // Flip the runner + show the clean target-engine starter together.
-        onEngineChange?.(target);
-        onApplyFiles(starter, version);
+        // Flip the runner engine (React state) AND the VFS (Zustand store) in ONE
+        // commit, so the runner never renders the old 2D files under the new 3D
+        // global ("Phaser is not defined") — the two stores would otherwise update
+        // in separate ticks and flash a mismatched pair.
+        flushSync(() => {
+          onEngineChange?.(target);
+          onApplyFiles(starter, version);
+        });
         // Rebuild the game's idea in the new engine, on the clean starter. Use the
         // original game idea (the landing prompt) so the port keeps what the kid made.
         switchBypassRef.current = true;

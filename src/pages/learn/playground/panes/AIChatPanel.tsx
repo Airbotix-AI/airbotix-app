@@ -55,10 +55,18 @@ interface ChangedFile {
  * (1-based, in the AFTER file), or null when unchanged — so a click can highlight
  * exactly what changed in the editor.
  */
-function changedLineRange(before: string, after: string): { from: number; to: number } | null {
-  if (before === after) return null;
-  const a = before.split('\n');
-  const b = after.split('\n');
+function changedLineRange(
+  before: string | null | undefined,
+  after: string | null | undefined,
+): { from: number; to: number } | null {
+  // A new file has no `before`, a deleted file no `after` — coerce to '' so the diff
+  // still computes (and never crashes on null, which a whole-game rebuild produces
+  // for every new file).
+  const beforeStr = before ?? '';
+  const afterStr = after ?? '';
+  if (beforeStr === afterStr) return null;
+  const a = beforeStr.split('\n');
+  const b = afterStr.split('\n');
   let from = 0;
   while (from < a.length && from < b.length && a[from] === b[from]) from += 1;
   let endA = a.length - 1;

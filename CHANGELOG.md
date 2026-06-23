@@ -4,6 +4,18 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-23 (Game Studio 3D — fix switch crash + atomic engine flip, D-3D-08)
+
+### Fixed
+- **Full-screen crash on the switch rebuild** (`Cannot read properties of null (reading 'split')`
+  in `AIChatPanel.changedLineRange`). A whole-game rebuild creates NEW files whose diff `before`
+  is null; `changedLineRange`/`buildChangedFiles` now coerce null `before`/`after` to `''` instead
+  of `.split(null)`. (Regression test added.)
+- **"Phaser is not defined" still flashed on confirm** — the switch updated the engine (React
+  state) and the VFS (Zustand store) in separate ticks, so the runner briefly rendered the old 2D
+  files under the new 3D global. The engine flip + clean-starter apply now run inside a single
+  `flushSync`, so the runner only ever renders a consistent (engine, files) pair.
+
 ## 2026-06-23 (Game Studio 3D — fix the 2D⇄3D switch runtime + rebuild, D-3D-08)
 
 ### Fixed

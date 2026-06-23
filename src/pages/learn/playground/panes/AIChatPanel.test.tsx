@@ -168,3 +168,26 @@ describe('AIChatPanel — Airo branding', () => {
     expect(screen.getByText(/I'm Airo, a robot helper/)).toBeTruthy();
   });
 });
+
+describe('AIChatPanel — changed-file rows with new files (null before)', () => {
+  it('renders a bubble whose changes include a NEW file (before=null) without crashing', () => {
+    // A whole-game rebuild (e.g. the 2D→3D switch) creates files with no `before`.
+    // changedLineRange must not .split(null). (Regression: full-screen crash.)
+    const chat: ChatItem[] = [
+      {
+        id: 'r1',
+        role: 'agent',
+        text: 'Rebuilt your game in 3D! 🎲',
+        changes: [
+          { path: 'main.js', before: null as unknown as string, after: 'const x = 1;\n' },
+          { path: 'src/scene.js', before: null as unknown as string, after: 'a\nb\n' },
+        ],
+      },
+    ];
+    expect(() =>
+      render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />),
+    ).not.toThrow();
+    // getByText throws if missing — proves the bubble rendered.
+    expect(screen.getByText('Rebuilt your game in 3D! 🎲')).toBeTruthy();
+  });
+});
