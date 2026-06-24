@@ -28,7 +28,6 @@ export function ProjectsListPage() {
   // that class pre-filtered; falls back to All if it has no projects (effect below).
   const [sp] = useSearchParams();
   const [tab, setTab] = useState<Tab>((sp.get('tab') as Tab) || 'all');
-  const [showNewModal, setShowNewModal] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [shareProject, setShareProject] = useState<KidProject | null>(null);
 
@@ -108,12 +107,12 @@ export function ProjectsListPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="hero-display" style={{ fontSize: '40px' }}>
-          📂 My Works
-        </h1>
+      <div className="mb-4 flex items-center justify-end gap-4">
+        {/* "+ New project" is just a shortcut to the Create tab — the single
+            create surface (my-classes-prd §3.3). No bespoke new-project modal:
+            one shared tool registry (CREATE_TOOLS), zero drift. */}
         <button
-          onClick={() => setShowNewModal(true)}
+          onClick={() => nav('/learn/create')}
           disabled={atLimit}
           className="btn-pill-primary shrink-0"
           title={atLimit ? 'You have 50 projects — archive some to make room' : undefined}
@@ -187,10 +186,6 @@ export function ProjectsListPage() {
         <Grid>{(byClass.get(tab) ?? []).map(renderCard)}</Grid>
       )}
 
-      {showNewModal && kidId && (
-        <NewProjectModal kidId={kidId} onClose={() => setShowNewModal(false)} nav={nav} />
-      )}
-
       {deleteId && (
         <ConfirmDialog
           title="Delete this project?"
@@ -250,105 +245,5 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 function Grid({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{children}</div>
-  );
-}
-
-// ─── New project modal (personal project; unchanged from prior behaviour) ────
-
-type StarterTile = 'image' | 'story' | 'music' | 'blank';
-
-const STARTER_TILES: { key: StarterTile; emoji: string; label: string; color: string }[] = [
-  { key: 'image', emoji: '🖼', label: 'Image', color: 'bubblegum' },
-  { key: 'story', emoji: '📖', label: 'Story', color: 'sky' },
-  { key: 'music', emoji: '🎵', label: 'Music', color: 'mint' },
-  { key: 'blank', emoji: '✨', label: 'Blank', color: 'sunshine' },
-];
-
-function NewProjectModal({
-  kidId,
-  onClose,
-  nav,
-}: {
-  kidId: string;
-  onClose: () => void;
-  nav: ReturnType<typeof useNavigate>;
-}) {
-  const qc = useQueryClient();
-  const [title, setTitle] = useState('');
-  const [starter, setStarter] = useState<StarterTile>('blank');
-
-  const create = useMutation({
-    mutationFn: () =>
-      api<{ id: string }>('/projects', {
-        method: 'POST',
-        body: { title: title.trim() || 'Untitled', product_line: 'line_a_creative' },
-      }),
-    onSuccess: (res) => {
-      qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
-      const dest =
-        starter !== 'blank'
-          ? `/learn/create/${starter}?project_id=${res.id}`
-          : `/learn/projects/${res.id}`;
-      nav(dest);
-    },
-  });
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
-      <div className="card-base w-full max-w-sm">
-        <span className="sticker-bubblegum">New project</span>
-        <h2 className="mb-5 mt-4 text-[22px] font-bold text-ink">What are you making?</h2>
-
-        <label className="mb-5 block">
-          <span className="label-k12">Give it a name</span>
-          <input
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') create.mutate();
-            }}
-            placeholder="My awesome project"
-            className="input-k12"
-            maxLength={120}
-          />
-        </label>
-
-        <div className="mb-6">
-          <span className="label-k12 mb-3 block">Start with (optional)</span>
-          <div className="grid grid-cols-4 gap-2">
-            {STARTER_TILES.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setStarter(t.key)}
-                className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 py-3 text-[11px] font-bold uppercase tracking-wide transition-colors ${
-                  starter === t.key
-                    ? `border-brand-${t.color} bg-wash-${t.color} text-ink`
-                    : 'border-hairline bg-surface text-steel hover:border-brand-coral'
-                }`}
-              >
-                <span className="text-[22px]">{t.emoji}</span>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="mb-4 text-[12px] text-slate2">🔒 New projects here are Personal — only you can see them.</p>
-
-        <div className="flex gap-3">
-          <button onClick={onClose} className="btn-pill-secondary flex-1">
-            Cancel
-          </button>
-          <button
-            onClick={() => create.mutate()}
-            disabled={create.isPending}
-            className="btn-pill-primary flex-1"
-          >
-            {create.isPending ? 'Creating…' : 'Create →'}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

@@ -4,6 +4,26 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-24 (Learn: unify the kid create entry points, D-MC-14)
+
+### Fixed
+- **"My Works" → "+ New project" no longer opens a drifted, partly-broken modal.** The
+  `ProjectsListPage` `NewProjectModal` had its own `Image/Story/Music/Blank` starter list that had
+  diverged from the Create tab's shared `CREATE_TOOLS` registry — it omitted Voice/Video/Code/Blocks,
+  and its **"Story" tile routed to `/learn/create/story`, which is not a registered route**: it POSTed
+  an orphan `line_a_creative` project and then dead-ended on `NotFoundPage`.
+
+### Changed
+- **"+ New project" now navigates to the Create tab (`/learn/create`)** — the single create surface
+  (rendered from `CREATE_TOOLS`, shared with the in-class "Create for this class" sheet), so the tool
+  list can no longer drift between entry points. Deleted the bespoke `NewProjectModal` + `STARTER_TILES`.
+- Removed the redundant **"📂 My Works" page heading** from `ProjectsListPage`.
+
+### Tests
+- `ProjectsListPage.test.tsx`: asserts "+ New project" routes to `/learn/create` (no `/projects` POST,
+  no "What are you making?" modal) and that the "My Works" heading is gone. Existing grouping / ⋯
+  placement / wall-event tests unchanged and green.
+
 ## 2026-06-23 (Game Guide → full concept-first KB with interactive diagrams, D-HELP-08)
 
 ### Added
