@@ -6,7 +6,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { api } = vi.hoisted(() => ({ api: vi.fn() }));
@@ -104,12 +104,17 @@ function wireApi() {
   });
 }
 
+function LocationProbe() {
+  return <div data-testid="location">{useLocation().pathname}</div>;
+}
+
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/learn/projects']}>
         <ProjectsListPage />
+        <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -145,6 +150,31 @@ describe('ProjectsListPage — grouping', () => {
     // class_work badge + on_wall badge both present.
     expect(screen.getByText('Class work')).toBeInTheDocument();
     expect(screen.getByText('On the wall')).toBeInTheDocument();
+  });
+});
+
+describe('ProjectsListPage — "+ New project" is a shortcut to the Create tab', () => {
+  it('navigates to /learn/create instead of opening a bespoke modal', async () => {
+    wireApi();
+    renderPage();
+    await screen.findByText('My Dragon Story');
+
+    fireEvent.click(screen.getByRole('button', { name: '+ New project' }));
+
+    // Single create surface: it routes to the Create tab — no project POSTed here,
+    // no in-place "What are you making?" starter modal (the old drifted surface).
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('/learn/create'),
+    );
+    expect(api).not.toHaveBeenCalledWith('/projects', expect.objectContaining({ method: 'POST' }));
+    expect(screen.queryByText('What are you making?')).not.toBeInTheDocument();
+  });
+
+  it('no longer renders the "My Works" page heading', async () => {
+    wireApi();
+    renderPage();
+    await screen.findByText('My Dragon Story');
+    expect(screen.queryByRole('heading', { name: /My Works/i })).not.toBeInTheDocument();
   });
 });
 
