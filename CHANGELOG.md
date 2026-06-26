@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-26 (Fix: /try blocks demo broke network isolation → red CI)
+
+### Fixed
+- **The `/try/blocks` demo fired a real `GET /projects/:id`**, breaking its "zero network" contract
+  (try-demo-mode-prd D-DEMO-02) and turning `TryBlocksPage.test.tsx` red on `main`. `useProjectBackTo`
+  (the Blocks/Code studios' class-aware Home link) ran its react-query fetch even under the demo, which
+  has no class and overrides Home itself. It now **disables the query in demo mode** (`useDemoMode()`),
+  so the demo makes no network call and the back-link falls back correctly. Restores green CI for the repo.
+
 ## 2026-06-26 (Game Studio: modern "AI is thinking" indicator)
 
 ### Changed
