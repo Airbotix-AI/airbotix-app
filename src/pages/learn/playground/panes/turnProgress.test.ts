@@ -27,15 +27,15 @@ describe('turnProgress — honest per-turn progress model', () => {
     it('humanises a new file write with "Adding"', () => {
       expect(describeToolStep('write_file:src/scenes/Aliens.js')).toEqual({
         key: 'src/scenes/Aliens.js',
-        label: 'Adding Aliens ✍️',
+        label: 'Adding Aliens',
       });
     });
     it('uses "Updating" for an edit, and splits CamelCase', () => {
-      expect(describeToolStep('edit_file:PlayerShip.js')?.label).toBe('Updating Player Ship ✍️');
+      expect(describeToolStep('edit_file:PlayerShip.js')?.label).toBe('Updating Player Ship');
     });
     it('gives structural files a feature-y label', () => {
-      expect(describeToolStep('edit_file:main.js')?.label).toBe('Wiring it together 🔌');
-      expect(describeToolStep('write_file:style.css')?.label).toBe('Making it look nice 🎨');
+      expect(describeToolStep('edit_file:main.js')?.label).toBe('Wiring it together');
+      expect(describeToolStep('write_file:style.css')?.label).toBe('Making it look nice');
     });
     it('ignores non-file tools (search/help/etc.)', () => {
       expect(describeToolStep('search_assets:rocket')).toBeNull();
@@ -48,7 +48,7 @@ describe('turnProgress — honest per-turn progress model', () => {
     p = applyToolDelta(p, 'write_file:Aliens.js', T0 + 2000);
     expect(p.steps).toHaveLength(2);
     expect(p.steps[0]).toMatchObject({ status: 'done', endedAt: T0 + 2000 });
-    expect(p.steps[1]).toMatchObject({ label: 'Adding Aliens ✍️', status: 'active' });
+    expect(p.steps[1]).toMatchObject({ label: 'Adding Aliens', status: 'active' });
   });
 
   it('dedupes by file — writing the same file again does not add a row', () => {
@@ -94,7 +94,7 @@ describe('turnProgress — honest per-turn progress model', () => {
     it('returns the real label for a tool-delta step', () => {
       let p = startProgress(T0);
       p = applyToolDelta(p, 'write_file:Aliens.js', T0 + 2000);
-      expect(currentStateLabel(p.steps.at(-1)!, T0 + 60_000)).toBe('Adding Aliens ✍️');
+      expect(currentStateLabel(p.steps.at(-1)!, T0 + 60_000)).toBe('Adding Aliens');
     });
 
     it('rotates generic fillers every 4s while still on the opening step', () => {
@@ -102,9 +102,9 @@ describe('turnProgress — honest per-turn progress model', () => {
       const step = p.steps[0];
       expect(currentStateLabel(step, T0)).toBe(LOOKING_STEP);
       expect(currentStateLabel(step, T0 + 3000)).toBe(LOOKING_STEP);
-      expect(currentStateLabel(step, T0 + 5000)).toBe('Thinking it through 🤔');
-      expect(currentStateLabel(step, T0 + 9000)).toBe('Trying some ideas 💡');
-      expect(currentStateLabel(step, T0 + 13_000)).toBe('Still working away 🛠️');
+      expect(currentStateLabel(step, T0 + 5000)).toBe('Thinking it through');
+      expect(currentStateLabel(step, T0 + 9000)).toBe('Trying some ideas');
+      expect(currentStateLabel(step, T0 + 13_000)).toBe('Still working away');
       expect(currentStateLabel(step, T0 + 17_000)).toBe(LOOKING_STEP); // wraps
     });
   });

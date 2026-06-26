@@ -28,18 +28,18 @@ export interface TurnProgress {
 
 // The opening step, shown immediately while the request is in flight (before any
 // tool fires) so the card is never empty — honest: it IS looking at the game.
-export const LOOKING_STEP = 'Looking at your game 👀';
-export const VERIFY_STEP = 'Making sure it works 🚀';
-export const FIXING_STEP = 'Fixing a little glitch 🔧';
+export const LOOKING_STEP = 'Looking at your game';
+export const VERIFY_STEP = 'Making sure it works';
+export const FIXING_STEP = 'Fixing a little glitch';
 
 // Structural files get a friendly, feature-y label instead of "Updating main.js".
 const KNOWN_FILE_LABELS: Record<string, string> = {
-  main: 'Wiring it together 🔌',
-  Game: 'Building the game 🎮',
-  Boot: 'Getting things ready ✨',
-  GameOver: 'Setting up the ending 🏁',
-  style: 'Making it look nice 🎨',
-  index: 'Setting up the page 📄',
+  main: 'Wiring it together',
+  Game: 'Building the game',
+  Boot: 'Getting things ready',
+  GameOver: 'Setting up the ending',
+  style: 'Making it look nice',
+  index: 'Setting up the page',
 };
 
 /** A kid-friendly step label + dedupe key for a write/edit tool, or null if the
@@ -53,7 +53,7 @@ export function describeToolStep(tool: string): { key: string; label: string } |
   if (KNOWN_FILE_LABELS[base]) return { key: path, label: KNOWN_FILE_LABELS[base] };
   const human = base.replace(/[_-]+/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
   const verb = m[1] === 'write_file' ? 'Adding' : 'Updating';
-  return { key: path, label: `${verb} ${human} ✍️` };
+  return { key: path, label: `${verb} ${human}` };
 }
 
 let seq = 0;
@@ -131,7 +131,7 @@ export function stepElapsedSeconds(step: ProgressStep, now: number): number {
 // Rotating fillers for the opening stretch where no real tool delta has landed
 // yet — we genuinely don't know what the agent is doing, so the line stays alive
 // with generic (never falsely specific) copy instead of sitting frozen.
-const FILLERS = [LOOKING_STEP, 'Thinking it through 🤔', 'Trying some ideas 💡', 'Still working away 🛠️'];
+const FILLERS = [LOOKING_STEP, 'Thinking it through', 'Trying some ideas', 'Still working away'];
 const FILLER_ROTATE_SECS = 4;
 
 /** The card's single current-state line: the step's real label, or — while we're

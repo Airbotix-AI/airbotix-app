@@ -138,14 +138,14 @@ describe('AIChatPanel — in-flight WorkingCard', () => {
   const progress = {
     startedAt: Date.now() - 2000,
     steps: [
-      { id: 's1', key: 'Aliens.js', label: 'Adding Aliens ✍️', status: 'active' as const, startedAt: Date.now() - 2000 },
+      { id: 's1', key: 'Aliens.js', label: 'Adding Aliens', status: 'active' as const, startedAt: Date.now() - 2000 },
     ],
   };
 
   it('renders the WorkingCard (with the real step) for a pending turn when progress is set', () => {
     render(<AIChatPanel chat={pendingChat} busy progress={progress} error={null} onSend={vi.fn()} />);
     expect(screen.getByTestId('working-card')).toBeTruthy();
-    expect(screen.getByText('Adding Aliens ✍️')).toBeTruthy();
+    expect(screen.getByText('Adding Aliens')).toBeTruthy();
     expect(screen.queryByTestId('thinking-bubble')).toBeNull();
   });
 
