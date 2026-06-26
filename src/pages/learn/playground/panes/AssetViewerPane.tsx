@@ -89,8 +89,28 @@ interface AssetViewerPaneProps {
 const ALL = '__all__';
 /** Which source the Asset Viewer is browsing (D-ASSET-6 + class-shared-assets). */
 type AssetSource = 'mine' | 'library' | 'class';
-const SOFT_SIZE_CAP = 4 * 1024 * 1024; // 4 MB — warn (esp. video) but still import
+// Hard per-file import cap. MUST match the backend MAX_FILE_BYTES
+// (platform-backend/src/tools/vfs.constants.ts, 16 MB): the save rejects anything
+// larger, so we block it HERE with a clear message rather than importing it,
+// showing it in "Mine", then silently losing it on the next reload (the server
+// never stored it). Interim on the base64-in-VFS path; true 50 MB sprites/video
+// needs the presigned direct-to-S3 upload follow-up.
+const MAX_ASSET_BYTES = 16 * 1024 * 1024;
+const MAX_ASSET_LABEL = '16 MB';
 const ANIM_SUFFIX = '.anim.json';
+
+/** The notice after an import: confirms what landed and names anything blocked
+ *  for being over the {@link MAX_ASSET_LABEL} per-file cap. */
+function importNotice(okCount: number, tooBig: File[]): string {
+  if (tooBig.length === 0) return 'Imported.';
+  const names = tooBig.map((f) => `“${f.name}”`).join(', ');
+  if (okCount === 0) {
+    return tooBig.length === 1
+      ? `${names} is too big to save (max ${MAX_ASSET_LABEL}). Try a smaller file.`
+      : `Those files are too big to save (max ${MAX_ASSET_LABEL} each). Try smaller files.`;
+  }
+  return `Imported ${okCount}. ${tooBig.length} too big to save (max ${MAX_ASSET_LABEL}): ${names}.`;
+}
 
 function isAsset(f: VfsFile): boolean {
   return f.kind === 'asset' || f.path.startsWith('assets/');
@@ -296,10 +316,13 @@ export function AssetViewerPane({
     // Imports always go to MY assets. Land in the selected VFS category when one
     // is open, else `imported`. (The Library is read-only — D-ASSET-6.)
     const targetDir = source === 'mine' && category !== ALL ? category : 'imported';
-    let warned = false;
+    // Hard-block over-cap files: the backend rejects them, so importing here would
+    // only "save on this device" and vanish on reload. Block with a clear message.
+    const incoming = Array.from(list);
+    const tooBig = incoming.filter((f) => f.size > MAX_ASSET_BYTES);
+    const accepted = incoming.filter((f) => f.size <= MAX_ASSET_BYTES);
     try {
-      for (const file of Array.from(list)) {
-        if (file.size > SOFT_SIZE_CAP) warned = true;
+      for (const file of accepted) {
         const dataUrl = await fileToDataUrl(file);
         const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
         takenPaths.add(path);
@@ -310,17 +333,13 @@ export function AssetViewerPane({
       return;
     }
     // A drop/paste while browsing the Library shouldn't hide the result: surface
-    // it under My assets.
-    if (source !== 'mine') {
+    // it under My assets (only when something was actually imported).
+    if (accepted.length > 0 && source !== 'mine') {
       setSource('mine');
       setCategory(ALL);
       setSelectedLibId(null);
     }
-    setNotice(
-      warned
-        ? 'Imported. Heads-up: a file is large (>4 MB) — big assets bloat the project.'
-        : 'Imported.',
-    );
+    setNotice(importNotice(accepted.length, tooBig));
   }
 
   // "Add to my game" for a class asset (class-shared-assets-prd): download the

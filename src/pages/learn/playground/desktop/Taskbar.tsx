@@ -14,7 +14,7 @@
 
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
-import { Check, CloudOff, Home, Loader2 } from 'lucide-react';
+import { AlertTriangle, Check, CloudOff, Home, Loader2 } from 'lucide-react';
 
 import { LayoutToggle } from '../LayoutToggle';
 import { useSaveStatusStore, type SaveStatus } from '../saveStatusStore';
@@ -34,6 +34,7 @@ const SAVE_LABEL: Record<Exclude<SaveStatus, 'idle'>, string> = {
   saved: 'All saved ✓',
   queued: 'Saved on this device',
   'kept-newest': 'We kept your newest copy',
+  error: 'Couldn’t save',
 };
 
 function SaveStatusBadge() {
@@ -50,6 +51,7 @@ function SaveStatusBadge() {
       {(status === 'queued' || status === 'kept-newest') && (
         <CloudOff size={13} aria-hidden className="text-pg-text-muted" />
       )}
+      {status === 'error' && <AlertTriangle size={13} aria-hidden className="text-brand-coral" />}
       {SAVE_LABEL[status]}
     </span>
   );

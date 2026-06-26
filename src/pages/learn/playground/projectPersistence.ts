@@ -15,6 +15,7 @@
 // before a project exists) has no project id, so it stays cache-only — the same
 // IndexedDB store, no backend round-trip.
 
+import { ApiError } from '@/lib/api';
 import { readVfsSnapshot, saveVfs, SaveConflictError, type VfsFile, type VfsSnapshot } from '../code/codeApi';
 import { type WorkspaceUiBlob } from './workspaceUiStore';
 import type { Checkpoint } from './historyStore';
@@ -223,6 +224,7 @@ export async function loadProject(
 export type SaveResult =
   | { status: 'saved'; version: number }
   | { status: 'queued' } // offline — cached + outboxed, will flush on reconnect
+  | { status: 'rejected'; reason: string } // permanent server rejection (4xx) — NOT retryable
   | {
       // A newer copy existed server-side; we kept it (server wins). The caller
       // surfaces "we kept your newest copy" and drops the superseded build into
@@ -266,6 +268,13 @@ export async function saveProject(
         savedAt: Date.now(),
       });
       return { status: 'kept-newest', server: e.current, superseded: data.files };
+    }
+    // A permanent client error (4xx — e.g. file too large, disallowed extension,
+    // project over budget) will NEVER succeed on retry, so don't pretend we saved
+    // on-device ('queued'): surface it so the UI shows the save FAILED and the kid
+    // knows the change won't survive a reload (the original asset-vanish bug).
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+      return { status: 'rejected', reason: e.message };
     }
     // Network / backend down — the cache holds the newest state (the outbox);
     // a later successful save with the same version flushes it.
