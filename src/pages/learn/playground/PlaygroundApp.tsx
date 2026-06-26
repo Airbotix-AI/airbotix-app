@@ -20,6 +20,7 @@ import {
   loadChatHistory,
   saveChatHistory,
   saveThumbnail,
+  type SaveResult,
 } from './projectPersistence';
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
@@ -236,7 +237,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // Persist the live project NOW (bypassing the debounce). Used by the debounced
   // autosave AND on exit (handleLeave) so a just-created asset/import that's still
   // within the debounce window isn't lost when the workspace unmounts.
-  const flushSave = useCallback(async () => {
+  const flushSave = useCallback(async (): Promise<SaveResult> => {
     const ps = useProjectStore.getState();
     const result = await savePersisted(
       persistKey,
@@ -268,6 +269,9 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
       useProjectStore.getState().apply(result.server.files);
       setSaveStatus('kept-newest');
     }
+    // Returned so a caller (e.g. an asset import) can confirm the save before
+    // revealing its result; the status side-effects above are unchanged.
+    return result;
   }, [persistKey, projectId, setSaveStatus]);
 
   // Persist the chat conversation (J9 resume), debounced. The agent hook hands us
@@ -490,6 +494,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
           engine={engine}
           onEngineChange={setEngine}
           onApplyFiles={applyTurnFiles}
+          onSaveNow={flushSave}
           onRun={run}
           prompt={prompt}
           firstTurn={firstTurn}

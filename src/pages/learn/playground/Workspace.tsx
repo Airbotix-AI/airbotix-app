@@ -24,6 +24,7 @@ import { useDemoMode } from '@/pages/try/demoMode';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
 import type { LearningContext, VfsFile } from '../code/codeApi';
+import type { SaveResult } from './projectPersistence';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
@@ -56,6 +57,9 @@ interface WorkspaceProps {
   onEngineChange?: (engine: GameEngine) => void;
   /** Commit edits back to the page-level source of truth. */
   onApplyFiles: (f: VfsFile[]) => void;
+  /** Save the project now + report the result — lets an asset import confirm the
+   *  upload before revealing the asset (see AssetViewerPane). */
+  onSaveNow?: () => Promise<SaveResult>;
   /** Re-run the game (PlaygroundApp bumps runKey). */
   onRun: () => void;
   /** The kid's landing-screen prompt — seeds the launch hand-off chat message. */
@@ -107,6 +111,7 @@ export function Workspace({
   engine = 'phaser',
   onEngineChange,
   onApplyFiles,
+  onSaveNow,
   onRun,
   prompt,
   projectId,
@@ -459,7 +464,7 @@ export function Workspace({
             title={WINDOW_META.assets.title}
             icon={<WINDOW_META.assets.Icon size={16} />}
           >
-            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
+            <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onSaveNow={onSaveNow} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
           </Window>
           <Window
             id="help"
@@ -534,7 +539,7 @@ export function Workspace({
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : (
-                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
+                  <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onSaveNow={onSaveNow} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
                 )}
               </div>
             </section>

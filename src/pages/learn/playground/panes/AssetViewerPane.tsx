@@ -24,6 +24,7 @@ import {
 
 import { useDemoMode } from '@/pages/try/demoMode';
 import type { VfsFile } from '../../code/codeApi';
+import { type SaveResult } from '../projectPersistence';
 import {
   ASSET_LIBRARY,
   LIBRARY_CATEGORIES,
@@ -65,6 +66,14 @@ interface AssetViewerPaneProps {
    * (read-only contexts), the add-to-game button is hidden.
    */
   onApplyFiles?: (files: VfsFile[]) => void;
+  /**
+   * Save the project NOW and report the result (the page-level flushSave). A local
+   * import adds the asset to the VFS, then awaits this; the asset is REVEALED only
+   * on `saved`, and rolled back (removed) on any other result — so an asset never
+   * shows as available unless the backend actually stored it. Absent in contexts
+   * with no backend save (the asset reveals immediately, the prior behaviour).
+   */
+  onSaveNow?: () => Promise<SaveResult>;
   /**
    * Generate / remix into the CHAT (D-ASSET §3 "both entry points → one place
    * out"). The Generate prompt + Remix buttons post the request into the chat so
@@ -168,6 +177,7 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
 
 export function AssetViewerPane({
   files,
+  onSaveNow,
   onRequestAssetGen,
   openAsset,
   readOnly,
@@ -236,13 +246,27 @@ export function AssetViewerPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAsset?.nonce]);
   const [notice, setNotice] = useState<string | null>(null);
+  // The file name(s) currently being read + uploaded (null when idle). Drives the
+  // "Uploading …" indicator + disables the Import button. The asset only appears
+  // in the grid once its upload is CONFIRMED (see `importFiles`).
+  const [uploading, setUploading] = useState<string[] | null>(null);
+  // VFS paths that are imported-but-not-yet-confirmed: held in the VFS so they're
+  // in the save payload, but HIDDEN from the grid until the backend stores them
+  // (removed entirely on a failed save). So an asset never shows as available
+  // unless it actually uploaded.
+  const [pendingPaths, setPendingPaths] = useState<Set<string>>(() => new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // AI generate form — one prompt box; the AI decides image vs audio (D-ASSET-4).
   // The in-flight generation itself is GLOBAL (generationStore) so it survives
   // this pane closing/reopening (§3 "Magic Generation").
   const [genPrompt, setGenPrompt] = useState('');
-  const assets = useMemo(() => files.filter(isDisplayable), [files]);
+  // Hide imports whose upload hasn't confirmed yet — they're in the VFS (so the
+  // save includes them) but mustn't show as available until the backend stores them.
+  const assets = useMemo(
+    () => files.filter((f) => isDisplayable(f) && !pendingPaths.has(f.path)),
+    [files, pendingPaths],
+  );
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
@@ -316,30 +340,69 @@ export function AssetViewerPane({
     // Imports always go to MY assets. Land in the selected VFS category when one
     // is open, else `imported`. (The Library is read-only — D-ASSET-6.)
     const targetDir = source === 'mine' && category !== ALL ? category : 'imported';
-    // Hard-block over-cap files: the backend rejects them, so importing here would
-    // only "save on this device" and vanish on reload. Block with a clear message.
+    // Hard-block over-cap files: the backend rejects them, so importing them would
+    // only fail the save. Block with a clear message before reading anything.
     const incoming = Array.from(list);
     const tooBig = incoming.filter((f) => f.size > MAX_ASSET_BYTES);
     const accepted = incoming.filter((f) => f.size <= MAX_ASSET_BYTES);
+    if (accepted.length === 0) {
+      setNotice(importNotice(0, tooBig));
+      return;
+    }
+
+    // 1) Read + add each file to the VFS. Mark the path PENDING *before* createFile
+    //    so it's hidden from the grid the instant it enters the VFS (no flash of an
+    //    unconfirmed asset) — the two updates batch into one render.
+    setUploading(accepted.map((f) => f.name));
+    const added: string[] = [];
     try {
       for (const file of accepted) {
         const dataUrl = await fileToDataUrl(file);
         const path = uniquePath(`assets/${targetDir}/${file.name}`, takenPaths);
         takenPaths.add(path);
+        added.push(path);
+        setPendingPaths((prev) => new Set([...prev, path]));
         createFile(path, 'asset', dataUrl);
       }
     } catch {
+      added.forEach(remove); // roll back anything already added
+      setPendingPaths((prev) => {
+        const next = new Set(prev);
+        added.forEach((p) => next.delete(p));
+        return next;
+      });
+      setUploading(null);
       setNotice("Couldn't import that file — please try a different one.");
       return;
     }
-    // A drop/paste while browsing the Library shouldn't hide the result: surface
-    // it under My assets (only when something was actually imported).
-    if (accepted.length > 0 && source !== 'mine') {
-      setSource('mine');
-      setCategory(ALL);
-      setSelectedLibId(null);
+
+    // 2) Confirm with the backend. The asset is REVEALED only if the save actually
+    //    stored it; on any other result it's removed entirely (never shown as a
+    //    fake-available asset). With no save seam (e.g. a project-less session) the
+    //    upload is implicitly confirmed.
+    const result: SaveResult = onSaveNow ? await onSaveNow() : { status: 'saved', version: 0 };
+    setUploading(null);
+    setPendingPaths((prev) => {
+      const next = new Set(prev);
+      added.forEach((p) => next.delete(p));
+      return next;
+    });
+
+    if (result.status === 'saved') {
+      if (source !== 'mine') {
+        setSource('mine');
+        setCategory(ALL);
+        setSelectedLibId(null);
+      }
+      setNotice(importNotice(accepted.length, tooBig));
+    } else {
+      added.forEach(remove); // rollback — nothing reaches the grid unless stored
+      setNotice(
+        result.status === 'rejected'
+          ? "Couldn't upload that file — it may be too big or unsupported."
+          : "Couldn't upload — check your connection and try again.",
+      );
     }
-    setNotice(importNotice(accepted.length, tooBig));
   }
 
   // "Add to my game" for a class asset (class-shared-assets-prd): download the
@@ -478,25 +541,48 @@ export function AssetViewerPane({
             ))}
         </nav>
         {source === 'mine' && !readOnly && (
-          <div className="flex gap-2 border-t border-pg-border p-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5"
-            >
-              <Upload size={15} /> Import
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,audio/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.length) void importFiles(e.target.files);
-                e.target.value = '';
-              }}
-            />
+          <div className="border-t border-pg-border p-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!!uploading}
+                aria-busy={!!uploading}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-pg-border py-2 text-[12px] font-bold hover:bg-pg-text/5 disabled:opacity-70"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" /> Uploading…
+                  </>
+                ) : (
+                  <>
+                    <Upload size={15} /> Import
+                  </>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,audio/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.length) void importFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+            {/* The asset isn't in the grid yet — show the upload in progress here so
+                it's clear something's happening until the backend confirms it. */}
+            {uploading && (
+              <div
+                data-testid="asset-uploading"
+                className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] font-bold text-pg-text-dim"
+              >
+                <Loader2 size={12} className="animate-spin text-brand-sky" />
+                Uploading {uploading.join(', ')}…
+              </div>
+            )}
           </div>
         )}
       </aside>
