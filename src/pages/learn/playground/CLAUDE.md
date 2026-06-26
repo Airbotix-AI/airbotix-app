@@ -81,8 +81,8 @@ All turns run server-side via `../code/codeApi`:
   `runTurn` (`…/code/turn`). The game agent **always auto-applies** (the kid's ask IS
   the go-ahead) — no agency beat, no plan→approve gate (those belong to the code studio).
 - **One turn → one message.** While a turn runs, the pending bubble is the **`WorkingCard`**
-  (`WorkingCard.tsx`): ONE spinning arc-breathing ring (SVG, `pg-ring-arc`) + ONE
-  current-state line — the latest real tool/action delta's label (`turnProgress.ts`, fed via
+  (`WorkingCard.tsx`): ONE breathing brand-gradient dot (`pg-breathe-dot`, no spin) + ONE
+  shimmering current-state line (`pg-shimmer-text`) — the latest real tool/action delta's label (`turnProgress.ts`, fed via
   `streamTurn`'s `onDelta`); generic rotating fillers only before the first delta lands
   (never falsely specific copy) — plus a clock. It resolves into exactly ONE settled message. A self-verify auto-fix
   (`/code/verify-fix`) runs as a **silent "fixing 🔧" beat** in the same card (apply silently

@@ -4,6 +4,26 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-26 (Game Studio: modern "AI is thinking" indicator)
+
+### Changed
+- **Replaced the spinning brand orb in the game-studio chat with a modern treatment.** While an AI
+  turn runs, the `WorkingCard` (and its `ThinkingBubble` fallback) now show a **breathing
+  brand-gradient dot** (`.pg-breathe-dot` — scale + soft glow, no rotation) beside a **shimmering
+  status line** (`.pg-shimmer-text` — a brand-tinted highlight band sweeps across the dim copy via
+  `background-clip:text`). The "fixing 🔧" beat tints the dot warm amber. Both animations are held
+  still under `prefers-reduced-motion` (the shimmer falls back to solid dim text). Removes the old
+  `pg-orb-spin` / `pg-ring-arc` SVG ring from these two components.
+- **Dropped the trailing emoji from every status line** in the indicator (`turnProgress.ts` step /
+  filler / file labels + `ThinkingBubble` `THINKING_LINES`) — e.g. "Thinking it through 🤔" → "Thinking
+  it through", "Adding Aliens ✍️" → "Adding Aliens". Cleaner copy alongside the new shimmer. (The
+  *leading* file-row icons in the settled message's change list, `fileEmoji`, are unrelated and unchanged.)
+
+### Tests
+- `WorkingCard.test.tsx`: asserts the breathing dot (`pg-breathe-dot`, `working-dot` test id)
+  replaces the spinning ring (no `pg-orb-spin` / `pg-ring-arc`), the label shimmers (`pg-shimmer-text`),
+  and the fixing beat switches the dot to `pg-breathe-dot--fixing`. `AIChatPanel.test.tsx` unchanged + green.
+
 ## 2026-06-24 (Learn: unify the kid create entry points, D-MC-14)
 
 ### Fixed

@@ -371,12 +371,72 @@
   border-left: 3px solid #7c5cff;
 }
 
+/* =========================================================================
+ * Modern "AI is thinking" indicator — breathing gradient dot + shimmer text.
+ * Replaces the old spinning brand orb (pg-orb-spin) in WorkingCard /
+ * ThinkingBubble: the dot breathes (scale + soft glow, NO rotation) while a
+ * brand-tinted highlight band sweeps L→R across the dim status copy. Both are
+ * held still under prefers-reduced-motion (the guard block below).
+ * =========================================================================
+ */
+@keyframes pg-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(93 174 255 / 0);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow: 0 0 10px 2px rgb(93 174 255 / 0.45);
+  }
+}
+.pg-breathe-dot {
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ff7a66, #ff6ba9 35%, #5daeff 70%, #3dd9a9);
+  animation: pg-breathe 1.8s ease-in-out infinite;
+}
+.pg-breathe-dot--fixing {
+  background: linear-gradient(135deg, #ffe26b, #ffb638);
+}
+
+@keyframes pg-text-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+/* The dim base IS the resting text colour; the bright brand band is the sweep.
+ * background-clip:text makes the moving gradient the glyph fill. Includes the
+ * one-shot pg-thinking-line rise so a remounted status line still fades up. */
+.pg-shimmer-text {
+  background: linear-gradient(
+    100deg,
+    rgb(var(--pg-text-dim)) 42%,
+    #ff6ba9 47%,
+    #5daeff 50%,
+    #3dd9a9 53%,
+    rgb(var(--pg-text-dim)) 58%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation:
+    pg-thinking-line 0.34s ease-out,
+    pg-text-shimmer 2.6s linear infinite;
+}
+
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .pg-glow::before,
   .pg-orb-spin,
   .pg-shimmer,
   .pg-thinking-line,
+  .pg-breathe-dot,
+  .pg-shimmer-text,
   .pg-hero,
   .pg-bob,
   .pg-twinkle,
@@ -385,5 +445,11 @@
   .pg-ring-arc,
   .pg-pop {
     animation: none;
+  }
+  /* Shimmer clips a transparent fill — restore a solid colour when held still. */
+  .pg-shimmer-text {
+    background: none;
+    -webkit-text-fill-color: rgb(var(--pg-text-dim));
+    color: rgb(var(--pg-text-dim));
   }
 }

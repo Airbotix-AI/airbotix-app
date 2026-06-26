@@ -194,7 +194,7 @@ No change to the `ChatItem` / `PendingTurn` / `AgentTurnResult` contracts is req
 | # | Decision | Options | Lean |
 |---|---|---|---|
 | D1 | **Markdown / code formatting in agent text** (M1) | (a) keep plain text — simplest, most kid-safe; (b) light inline code spans + copy-able code chip. | Defer — ship A & B first; decide M1 with product. |
-| D2 | **Thinking visual** | (a) reuse `.pg-orb-spin` orb; (b) three bouncing brand dots; (c) a mascot. | (a) — consistency with `GeneratingScreen`, zero new art. |
+| D2 | **Thinking visual** | (a) reuse `.pg-orb-spin` orb; (b) three bouncing brand dots; (c) a mascot. | ~~(a)~~ → **SUPERSEDED (2026-06-26):** the spinner read as dated. Now a **breathing brand-gradient dot** (`.pg-breathe-dot`, no rotation) + **shimmering status text** (`.pg-shimmer-text`) in both `WorkingCard` + `ThinkingBubble` — a modern "AI is thinking" treatment, still reduced-motion-guarded. |
 | D3 | **Jump-pill copy** | "↓ New stuff!" vs "↓ Jump to newest". | "↓ New stuff!" (kid voice). |
 
 ---

@@ -22,26 +22,26 @@ describe('WorkingCard', () => {
     return {
       startedAt: now - 5000,
       steps: [
-        { id: 's1', key: '@looking', label: 'Looked at your game 👀', status: 'done', startedAt: now - 5000, endedAt: now - 3000 },
-        { id: 's2', key: 'Aliens.js', label: 'Adding Aliens ✍️', status: 'active', startedAt: now - 3000 },
-        { id: 's3', key: '@fix', label: 'Fixing a little glitch 🔧', status: 'fixing', startedAt: now - 1000 },
+        { id: 's1', key: '@looking', label: 'Looked at your game', status: 'done', startedAt: now - 5000, endedAt: now - 3000 },
+        { id: 's2', key: 'Aliens.js', label: 'Adding Aliens', status: 'active', startedAt: now - 3000 },
+        { id: 's3', key: '@fix', label: 'Fixing a little glitch', status: 'fixing', startedAt: now - 1000 },
       ],
     };
   };
 
-  it('renders the ring, a clock, and ONLY the current state (no heading, no history)', () => {
+  it('renders the breathing dot, a clock, and ONLY the current state (no heading, no history)', () => {
     render(<WorkingCard progress={progress()} />);
     expect(screen.getByTestId('working-card')).toBeTruthy();
-    expect(screen.getByTestId('working-ring')).toBeTruthy();
+    expect(screen.getByTestId('working-dot')).toBeTruthy();
     expect(screen.getByTestId('working-clock')).toBeTruthy();
     expect(screen.getAllByTestId('working-current')).toHaveLength(1);
     // The current-state line IS the title — no redundant heading, no live badge.
     expect(screen.queryByText('Working on it…')).toBeNull();
     expect(screen.queryByText('live')).toBeNull();
     // The latest step is the current state; finished/earlier steps are not shown.
-    expect(screen.getByText('Fixing a little glitch 🔧')).toBeTruthy();
-    expect(screen.queryByText('Looked at your game 👀')).toBeNull();
-    expect(screen.queryByText('Adding Aliens ✍️')).toBeNull();
+    expect(screen.getByText('Fixing a little glitch')).toBeTruthy();
+    expect(screen.queryByText('Looked at your game')).toBeNull();
+    expect(screen.queryByText('Adding Aliens')).toBeNull();
   });
 
   it('shows a rotating filler while still on the opening step (no real delta yet)', () => {
@@ -50,20 +50,30 @@ describe('WorkingCard', () => {
       <WorkingCard
         progress={{
           startedAt: now - 5000,
-          steps: [{ id: 's1', key: '@looking', label: 'Looking at your game 👀', status: 'active', startedAt: now - 5000 }],
+          steps: [{ id: 's1', key: '@looking', label: 'Looking at your game', status: 'active', startedAt: now - 5000 }],
         }}
       />,
     );
     // ~5s elapsed → second filler in the rotation.
-    expect(screen.getByText('Thinking it through 🤔')).toBeTruthy();
+    expect(screen.getByText('Thinking it through')).toBeTruthy();
   });
 
-  it('the ring is the single indeterminate indicator (spin + arc-breathe, no % anywhere)', () => {
+  it('the breathing dot is the single indeterminate indicator (no spin, no % anywhere)', () => {
     const { container } = render(<WorkingCard progress={progress()} />);
-    const ring = screen.getByTestId('working-ring');
-    expect(ring.getAttribute('class')).toContain('pg-orb-spin');
-    expect(container.querySelector('.pg-ring-arc')).toBeTruthy();
+    const dot = screen.getByTestId('working-dot');
+    // Modern indicator: a breathing gradient dot — NOT the old spinning ring/arc.
+    expect(dot.getAttribute('class')).toContain('pg-breathe-dot');
+    expect(container.querySelector('.pg-orb-spin')).toBeNull();
+    expect(container.querySelector('.pg-ring-arc')).toBeNull();
+    // The current-state label shimmers rather than sitting static.
+    expect(screen.getByTestId('working-current').getAttribute('class')).toContain('pg-shimmer-text');
     // No second indicator: no progress-bar element with an inline width.
     expect(container.querySelector('[style*="width"]')).toBeNull();
+  });
+
+  it('switches the dot to the warm "fixing" gradient during a fixing beat', () => {
+    // progress()'s last step has status 'fixing'.
+    render(<WorkingCard progress={progress()} />);
+    expect(screen.getByTestId('working-dot').getAttribute('class')).toContain('pg-breathe-dot--fixing');
   });
 });
