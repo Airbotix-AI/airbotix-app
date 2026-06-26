@@ -4,6 +4,25 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-26 (Asset import: confirmed-upload model + "Uploading…" indicator)
+
+### Changed
+- **An imported local asset now appears in "Mine" only AFTER its upload is confirmed.** Previously
+  `importFiles` added the file to the VFS optimistically (it showed instantly, then the debounced save
+  ran later — so a failed save left a phantom asset that vanished on reload). Now the import:
+  1. reads the file and adds it to the VFS but keeps it **hidden** (`pendingPaths`) until confirmed;
+  2. **awaits the backend save** via a new `onSaveNow` seam (`PlaygroundApp.flushSave`, threaded through
+     `Workspace`); 3. **reveals** the asset on `saved`, or **rolls it back** (removes it) with a clear
+     error on any other result. So an asset is never shown as available unless the backend stored it.
+- **Added a clear "Uploading …" indicator**: the Import button shows a spinner + "Uploading…" and is
+  disabled, with an "Uploading <name>…" line below, for the whole read+upload — no more silent freeze
+  on a large (up to 16 MB) file.
+
+### Tests
+- `AssetViewerPane.classAssets.test.tsx`: a confirmed (`saved`) import is hidden during upload then
+  revealed + persisted; a failed (`rejected`) upload shows an error and leaves nothing in the grid or
+  the VFS (rolled back). `PlaygroundApp.flushSave` now returns its `SaveResult`.
+
 ## 2026-06-26 (Fix: imported assets vanished on reload — size cap + honest save, D-CODE-Q6)
 
 ### Fixed

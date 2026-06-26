@@ -5,13 +5,21 @@
 // its grid renders when class assets are provided, (c) "Add to my game" fetches
 // the signed bytes and funnels them through createFile into the VFS, and (d) the
 // read-only (teacher-live) viewer hides "Add to my game" but still previews.
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AssetViewerPane } from './AssetViewerPane';
 import type { ClassAssetView } from './playgroundApi';
 import { useProjectStore } from '../projectStore';
+import type { SaveResult } from '../projectPersistence';
 import { useWorkspaceUiStore } from '../workspaceUiStore';
+
+// Live-store harness: mirrors how PlaygroundApp feeds the pane the subscribed VFS,
+// so a createFile() shows up in the grid (a static `files` prop snapshot wouldn't).
+function LiveAssetViewer({ onSaveNow }: { onSaveNow?: () => Promise<SaveResult> }) {
+  const files = useProjectStore((s) => s.files);
+  return <AssetViewerPane files={files} classAssets={[]} onSaveNow={onSaveNow} />;
+}
 
 // Mock the bytes-fetch so "Add to my game" needs no network; we assert the data
 // URL it returns is what lands in the VFS.
@@ -43,7 +51,23 @@ const CLASS_ASSETS: ClassAssetView[] = [
   },
 ];
 
-afterEach(cleanup);
+// A deterministic FileReader so `fileToDataUrl` resolves predictably regardless of
+// jsdom timing (the real one can stall in a full-file run).
+class SyncFileReader {
+  result: string | null = null;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  readAsDataURL() {
+    this.result = 'data:image/png;base64,aGVsbG8=';
+    queueMicrotask(() => this.onload?.());
+  }
+}
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks(); // a test spies on the store's createFile — don't leak it
+  vi.unstubAllGlobals();
+});
 beforeEach(() => {
   fetchAssetDataUrl.mockReset();
   // Fresh stores so persisted source/selection never leaks between tests.
@@ -133,6 +157,48 @@ describe('AssetViewerPane — import size cap (16 MB)', () => {
     Object.defineProperty(f, 'size', { value: bytes }); // avoid allocating real MBs
     return f;
   };
+
+  const smallPng = () => new File(['hello'], 'sprite.png', { type: 'image/png' });
+  // Scope EVERYTHING to this render's container — `document`/`screen` would see any
+  // leftover DOM from a prior test (a stale file input → fireEvent hits nothing).
+  const pickFile = (container: HTMLElement, f: File) => {
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [f] } });
+  };
+
+  it('reveals an imported asset only AFTER its upload is confirmed (saved)', async () => {
+    vi.stubGlobal('FileReader', SyncFileReader);
+    let resolveSave!: (r: SaveResult) => void;
+    const onSaveNow = vi.fn(() => new Promise<SaveResult>((res) => (resolveSave = res)));
+    const { container } = render(<LiveAssetViewer onSaveNow={onSaveNow} />);
+    const q = within(container);
+
+    pickFile(container, smallPng());
+    // While uploading: the indicator shows and the asset is NOT in the grid yet.
+    expect(await q.findByTestId('asset-uploading')).toBeTruthy();
+    expect(q.queryAllByTestId('asset-card')).toHaveLength(0);
+
+    // Wait until the upload actually started (onSaveNow called) before resolving it.
+    await waitFor(() => expect(onSaveNow).toHaveBeenCalled());
+    await act(async () => resolveSave({ status: 'saved', version: 1 }));
+    // Confirmed: indicator clears and the asset now appears + lives in the VFS.
+    await waitFor(() => expect(q.queryByTestId('asset-uploading')).toBeNull());
+    expect(q.queryAllByTestId('asset-card')).toHaveLength(1);
+    expect(useProjectStore.getState().files.some((f) => f.path.startsWith('assets/'))).toBe(true);
+  });
+
+  it('does NOT reveal the asset if the upload fails — rolled back, error shown', async () => {
+    vi.stubGlobal('FileReader', SyncFileReader);
+    const onSaveNow = vi.fn(async (): Promise<SaveResult> => ({ status: 'rejected', reason: 'nope' }));
+    const { container } = render(<LiveAssetViewer onSaveNow={onSaveNow} />);
+    const q = within(container);
+
+    pickFile(container, smallPng());
+    expect(await q.findByText(/Couldn.t upload/)).toBeTruthy();
+    // Nothing reaches the grid AND nothing lingers in the VFS (rolled back).
+    expect(q.queryAllByTestId('asset-card')).toHaveLength(0);
+    expect(useProjectStore.getState().files.some((f) => f.path.startsWith('assets/'))).toBe(false);
+  });
 
   it('blocks an over-cap (>16 MB) import with a clear message and adds nothing to the VFS', async () => {
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={[]} />);
