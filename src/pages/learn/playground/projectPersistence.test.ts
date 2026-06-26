@@ -21,6 +21,7 @@ vi.mock('../code/codeApi', () => {
   };
 });
 
+import { ApiError } from '@/lib/api';
 import { SaveConflictError } from '../code/codeApi';
 import { loadProject, saveProject, type PersistedProject } from './projectPersistence';
 
@@ -85,6 +86,17 @@ describe('projectPersistence — backend save/load + outbox (PRD J3)', () => {
       saveVfs.mockRejectedValue(new Error('network down'));
       const res = await saveProject('game-1', snapshot([file('main.js', 'x')], 3), 'game-1');
       expect(res).toEqual({ status: 'queued' });
+    });
+
+    it('REJECTS (not queued) on a permanent 4xx — e.g. an asset over the size cap', async () => {
+      // The original asset-vanish bug: the backend rejected the oversized save (400)
+      // but it was mislabelled "queued" (saved on device), so the next load read the
+      // image-less server VFS. A 4xx must surface as a real failure, never as queued.
+      saveVfs.mockRejectedValue(
+        new ApiError(400, 'VFS_FILE_TOO_LARGE', 'assets/huge.png exceeds the 16 MB per-file limit.'),
+      );
+      const res = await saveProject('game-1', snapshot([file('assets/huge.png', 'x')], 3), 'game-1');
+      expect(res).toEqual({ status: 'rejected', reason: 'assets/huge.png exceeds the 16 MB per-file limit.' });
     });
 
     it('is cache-only with no projectId (reports saved without a backend call)', async () => {

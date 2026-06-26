@@ -4,6 +4,31 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-26 (Fix: imported assets vanished on reload — size cap + honest save, D-CODE-Q6)
+
+### Fixed
+- **An imported image showed in "Mine" but disappeared after refreshing the project.** The Asset
+  Viewer only *warned* at 4 MB and imported anything, but the backend rejected any file over its
+  500 KB cap (`VFS_FILE_TOO_LARGE`, HTTP 400) — and `saveProject` mislabelled that permanent 400 as a
+  transient **"queued"** ("Saved on this device"). The next load read the server VFS (which never
+  stored the asset) and overwrote the local cache, so the image was gone. Two fixes:
+  - **`AssetViewerPane` now hard-blocks over-cap imports** (`MAX_ASSET_BYTES`, 16 MB to match the
+    backend) with a clear message naming the file(s) and the limit — instead of importing then losing them.
+  - **`saveProject` distinguishes a permanent 4xx from a transient network failure**: a 4xx returns a
+    new `rejected` result (was lumped into `queued`). `PlaygroundApp` maps it to a new **`error`** save
+    status and the Taskbar shows "Couldn't save" (⚠) — never a false "Saved on this device".
+
+### Changed
+- Raised the import cap from a 4 MB *soft warning* to a **16 MB hard block** so kids can import large
+  sprite sheets / short audio (paired with the backend cap raise to 16 MB / 48 MB-project). INTERIM —
+  true 50 MB sprites/video is a presigned direct-to-S3 upload follow-up (the whole VFS is re-sent as
+  base64 on every save, so 50 MB doesn't fit the current path).
+
+### Tests
+- `AssetViewerPane.classAssets.test.tsx`: an over-cap (>16 MB) import is blocked with a clear message
+  and adds nothing to the VFS. `projectPersistence.test.ts`: a permanent 4xx save returns `rejected`
+  (not `queued`).
+
 ## 2026-06-26 (Fix: /try blocks demo broke network isolation → red CI)
 
 ### Fixed

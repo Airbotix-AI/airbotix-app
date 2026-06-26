@@ -254,6 +254,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
       setSaveStatus('saved');
     } else if (result.status === 'queued') {
       setSaveStatus('queued');
+    } else if (result.status === 'rejected') {
+      // Permanent backend rejection (e.g. an asset over the size cap). Surface it
+      // honestly — the change won't survive a reload — instead of a false "saved".
+      setSaveStatus('error');
     } else {
       // kept-newest: adopt the server's snapshot, record the superseded build
       // in History (recoverable), and reassure the kid we kept their newest.
