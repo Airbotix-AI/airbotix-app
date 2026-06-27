@@ -340,11 +340,42 @@ function toStudioContent(f: VfsFile): VfsFile {
   if (!mime || f.content.startsWith('data:')) return f;
   return { ...f, content: `data:${mime};base64,${f.content}` };
 }
-/** Studio `data:` URL → backend raw base64 (binary assets only). */
-function toBackendContent(f: VfsFile): VfsFile {
-  if (!binaryAssetMime(f.path) || !f.content.startsWith('data:')) return f;
-  const comma = f.content.indexOf(',');
-  return comma === -1 ? f : { ...f, content: f.content.slice(comma + 1) };
+// Studio asset `data:` URLs no longer go inline in the save — `saveVfs` uploads
+// their bytes straight to S3 and sends a reference. `toBackendContent` (the old
+// data-URL→base64 stripper) is gone with it; `toStudioContent` still wraps the
+// base64 the GET returns back into a `data:` URL for the runtime.
+
+/** Decode a studio asset `data:` URL → Blob for a direct browser→S3 PUT. */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(',');
+  const mime = dataUrl.slice(5, comma).split(';')[0] || 'application/octet-stream';
+  const bin = atob(dataUrl.slice(comma + 1));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+/**
+ * Upload one asset's bytes STRAIGHT to S3 via a presigned PUT, so they never go
+ * through nginx (1 MB cap) or the JSON save. The save then references it
+ * (`uploaded:true`). Throws an `ApiError` on failure so the save reports it.
+ */
+async function uploadAssetToS3(projectId: string, file: VfsFile): Promise<void> {
+  const blob = dataUrlToBlob(file.content);
+  const signed = await api<{ url: string; headers?: Record<string, string>; s3_key: string }>(
+    `/projects/${projectId}/vfs/assets/sign-upload`,
+    { method: 'POST', body: { path: file.path, content_type: blob.type, size_bytes: blob.size } },
+  );
+  // The presigned URL is absolute + self-authorising (the signature IS the auth) —
+  // a raw fetch, NOT the `api` client (no bearer token to S3).
+  const res = await fetch(signed.url, {
+    method: 'PUT',
+    headers: signed.headers ?? { 'Content-Type': blob.type },
+    body: blob,
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, 'ASSET_UPLOAD_FAILED', `Couldn't upload ${file.path} (${res.status}).`);
+  }
 }
 
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
@@ -402,14 +433,31 @@ export async function saveVfs(args: {
   files: VfsFile[];
   version: number;
   idempotencyKey?: string;
+  /**
+   * Asset paths whose bytes are NOT yet in S3 at that path (newly imported /
+   * renamed). Each is uploaded straight to S3 before the save; the rest are
+   * already there (loaded or previously saved) and are sent as references.
+   */
+  dirtyAssetPaths?: Set<string>;
 }): Promise<VfsSnapshot> {
+  // 1) Upload dirty asset bytes directly to S3 (bypassing nginx + the JSON body).
+  const dirty = args.dirtyAssetPaths ?? new Set<string>();
+  for (const f of args.files) {
+    if (f.kind === 'asset' && dirty.has(f.path) && f.content.startsWith('data:')) {
+      await uploadAssetToS3(args.projectId, f);
+    }
+  }
+  // 2) Save the manifest: text inline (stays server-scanned), assets as references.
+  const body = args.files.map((f) =>
+    f.kind === 'asset' ? { path: f.path, uploaded: true } : { path: f.path, content: f.content },
+  );
   try {
     const res = await api<{ files?: VfsFile[]; version: number }>(
       `/projects/${args.projectId}/code/files`,
       {
         method: 'PUT',
         body: {
-          files: args.files.map(toBackendContent),
+          files: body,
           // Backend DTO field is `expected_version` (optimistic concurrency); a
           // plain `version` is dropped → validation 400 → every save fell back to
           // "Saved on this device" (queued) and never synced.
