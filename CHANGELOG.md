@@ -4,6 +4,26 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-29 (Game studio: import data files — JSON, fonts, shaders — as assets)
+
+### Added
+- The asset importer now accepts **non-executable data files** alongside media: `.json` (sprite
+  atlas / tilemap / level data), `.xml`, `.csv`, fonts (`.ttf/.otf/.woff/.woff2`), `.fnt`, shaders
+  (`.glsl/.frag/.vert`), `.atlas`. They import + upload like images and inline as data: URLs at
+  runtime (Phaser `load.json`/`load.atlas`/`load.bitmapFont` accept data: URLs). MIME maps
+  (`binaryAssetMime`, `ASSET_MIME`) extended so they round-trip across reload.
+- Import **type guard** (`IMPORTABLE_EXTENSIONS`) + a broadened `accept` filter: unsupported /
+  executable files (`.js/.html/.css/…`) are blocked at import with a clear "not a supported file
+  type" message (also covers drag-drop, which ignores `accept`).
+
+### Fixed
+- `toStudioContent` now gates the base64→data: URL conversion on `kind === 'asset'`, so a `.anim.json`
+  **text** sidecar (whose extension matches the JSON MIME) is no longer mis-wrapped as a data URL.
+
+### Tests
+- `AssetViewerPane.classAssets.test.tsx`: a `.json` import is accepted (kind `asset`); a `.js` import
+  is blocked with the type message and nothing reaches the VFS.
+
 ## 2026-06-28 (Game studio: raise the asset import cap to 50 MB)
 
 ### Changed

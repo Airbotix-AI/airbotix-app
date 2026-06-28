@@ -91,6 +91,20 @@ export const ASSET_MIME: Record<string, string> = {
   webp: 'image/webp',
   mp4: 'video/mp4',
   webm: 'video/webm',
+  // Non-executable DATA assets (game data, fonts, shaders) — inlined as data: URLs
+  // for the loader (Phaser load.json/atlas/bitmapFont accept data: URLs directly).
+  json: 'application/json',
+  xml: 'application/xml',
+  csv: 'text/csv',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  fnt: 'application/octet-stream',
+  glsl: 'text/plain',
+  frag: 'text/plain',
+  vert: 'text/plain',
+  atlas: 'text/plain',
 };
 
 function file(files: VfsFile[], path: string): string {
