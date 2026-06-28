@@ -37,6 +37,10 @@ const SAVE_DEBOUNCE_MS = 600;
 
 const base = (p: string) => p.split('/').pop() || p;
 
+/** The set of asset paths in a VFS — bytes that live as S3 objects. */
+const assetPathSet = (files: VfsFile[]): Set<string> =>
+  new Set(files.filter((f) => f.kind === 'asset').map((f) => f.path));
+
 /** History label for a file-tree mutation (create/rename/move/delete). */
 function changeSummary(c: ProjectChange): string | undefined {
   if (c.kind === 'create-file' && c.added.length) return `created ${base(c.added[0])}`;
@@ -147,6 +151,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // The server save version we last reconciled against (PRD J3, last-write-wins).
   // A ref so the debounced save reads the latest without re-subscribing.
   const versionRef = useRef(0);
+  // Asset paths whose bytes are CONFIRMED in S3 at that path (set on load + after a
+  // successful save). On save, an asset NOT in here is "dirty" (newly imported /
+  // renamed) and uploaded straight to S3 first; the rest are sent as references.
+  const syncedAssetsRef = useRef<Set<string>>(new Set());
   // Commit an AI turn's VFS AND adopt the new server version it reports. An applied
   // turn bumps `vfs_version` server-side (recordAgentVersion); if we apply the files
   // but keep the old version, the next manual save sends a stale expected_version,
@@ -155,6 +163,9 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   const applyTurnFiles = useCallback(
     (next: VfsFile[], version?: number) => {
       if (version != null) versionRef.current = version;
+      // Turn files come from the backend (already written to S3), so the next save
+      // references their assets instead of re-uploading.
+      for (const p of assetPathSet(next)) syncedAssetsRef.current.add(p);
       applyFiles(next);
     },
     [applyFiles],
@@ -239,6 +250,13 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // within the debounce window isn't lost when the workspace unmounts.
   const flushSave = useCallback(async (): Promise<SaveResult> => {
     const ps = useProjectStore.getState();
+    // Assets not yet confirmed in S3 at their path (new import / rename) → uploaded
+    // straight to S3 by the save; the rest are referenced.
+    const dirtyAssetPaths = new Set(
+      ps.files
+        .filter((f) => f.kind === 'asset' && !syncedAssetsRef.current.has(f.path))
+        .map((f) => f.path),
+    );
     const result = await savePersisted(
       persistKey,
       {
@@ -249,9 +267,12 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
         version: versionRef.current,
       },
       projectId,
+      { dirtyAssetPaths },
     );
     if (result.status === 'saved') {
       versionRef.current = result.version;
+      // Everything in the saved VFS now lives in S3 at its path.
+      syncedAssetsRef.current = assetPathSet(ps.files);
       setSaveStatus('saved');
     } else if (result.status === 'queued') {
       setSaveStatus('queued');
@@ -430,6 +451,8 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
             const history = useHistoryStore.getState();
             if (persisted && persisted.files.length > 0) {
               versionRef.current = persisted.version;
+              // Loaded assets already live in S3 at their path → reference, don't re-upload.
+              syncedAssetsRef.current = assetPathSet(persisted.files);
               project.hydrate(persisted.files, persisted.folders);
               if (persisted.checkpoints.length > 0) {
                 history.hydrate(persisted.checkpoints);
@@ -440,6 +463,7 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
               setSaveStatus('saved');
             } else {
               versionRef.current = 0;
+              syncedAssetsRef.current = assetPathSet(f);
               project.setFiles(f);
               history.reset();
               history.record(f, Date.now(), 'Initial version');

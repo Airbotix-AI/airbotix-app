@@ -99,13 +99,12 @@ const ALL = '__all__';
 /** Which source the Asset Viewer is browsing (D-ASSET-6 + class-shared-assets). */
 type AssetSource = 'mine' | 'library' | 'class';
 // Hard per-file import cap. MUST match the backend MAX_FILE_BYTES
-// (platform-backend/src/tools/vfs.constants.ts, 16 MB): the save rejects anything
-// larger, so we block it HERE with a clear message rather than importing it,
-// showing it in "Mine", then silently losing it on the next reload (the server
-// never stored it). Interim on the base64-in-VFS path; true 50 MB sprites/video
-// needs the presigned direct-to-S3 upload follow-up.
-const MAX_ASSET_BYTES = 16 * 1024 * 1024;
-const MAX_ASSET_LABEL = '16 MB';
+// (platform-backend/src/tools/vfs.constants.ts, 50 MB): the save rejects anything
+// larger (the presigned sign-upload declares the size, and the save HEAD-verifies
+// the uploaded object), so we block it HERE with a clear message rather than
+// importing it, showing it in "Mine", then losing it when the save is rejected.
+const MAX_ASSET_BYTES = 50 * 1024 * 1024;
+const MAX_ASSET_LABEL = '50 MB';
 const ANIM_SUFFIX = '.anim.json';
 
 /** The notice after an import: confirms what landed and names anything blocked

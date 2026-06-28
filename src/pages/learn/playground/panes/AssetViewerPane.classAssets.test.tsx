@@ -151,7 +151,7 @@ describe('AssetViewerPane — read-only viewer (D-LV-6)', () => {
 
 // The import-persist fix: an over-cap file must be BLOCKED at import with a clear
 // message — not added to the VFS, "saved on device", then lost on reload.
-describe('AssetViewerPane — import size cap (16 MB)', () => {
+describe('AssetViewerPane — import size cap (50 MB)', () => {
   const fileOfSize = (name: string, bytes: number): File => {
     const f = new File(['x'], name, { type: 'image/png' });
     Object.defineProperty(f, 'size', { value: bytes }); // avoid allocating real MBs
@@ -200,12 +200,12 @@ describe('AssetViewerPane — import size cap (16 MB)', () => {
     expect(useProjectStore.getState().files.some((f) => f.path.startsWith('assets/'))).toBe(false);
   });
 
-  it('blocks an over-cap (>16 MB) import with a clear message and adds nothing to the VFS', async () => {
+  it('blocks an over-cap (>50 MB) import with a clear message and adds nothing to the VFS', async () => {
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={[]} />);
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [fileOfSize('huge.png', 17 * 1024 * 1024)] } });
+    fireEvent.change(input, { target: { files: [fileOfSize('huge.png', 51 * 1024 * 1024)] } });
 
-    expect(await screen.findByText(/too big to save \(max 16 MB\)/)).toBeTruthy();
+    expect(await screen.findByText(/too big to save \(max 50 MB\)/)).toBeTruthy();
     // Nothing under assets/ was created — the over-cap file was never imported.
     const paths = useProjectStore.getState().files.map((f) => f.path);
     expect(paths.some((p) => p.startsWith('assets/'))).toBe(false);

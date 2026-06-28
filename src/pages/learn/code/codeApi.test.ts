@@ -40,13 +40,78 @@ describe('saveVfs — PUT /projects/:id/code/files', () => {
     expect(opts.body).toHaveProperty('expected_version', 5);
     expect(opts.body).not.toHaveProperty('version');
     expect(typeof opts.body.idempotency_key).toBe('string');
-    expect(opts.body.files).toEqual([file('main.js', 'edited')]);
+    // The manifest sends text inline as {path, content} (no kind/size on the wire).
+    expect(opts.body.files).toEqual([{ path: 'main.js', content: 'edited' }]);
   });
 
   it('returns the server snapshot (files + bumped version) on success', async () => {
     api.mockResolvedValue({ version: 9, files: [file('main.js', 'saved')] });
     const snap = await saveVfs({ projectId: 'p1', files: [file('main.js', 'saved')], version: 8 });
     expect(snap).toEqual({ version: 9, files: [file('main.js', 'saved')] });
+  });
+
+  const asset = (path: string) => ({
+    path,
+    content: 'data:image/png;base64,aGVsbG8=',
+    kind: 'asset' as const,
+    size: 5,
+  });
+
+  it('uploads a DIRTY asset straight to S3, then sends it as a reference (no base64 in the save)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    api
+      .mockResolvedValueOnce({ url: 'https://s3.test/mock/assets/cat.png', s3_key: 'k' }) // sign-upload
+      .mockResolvedValueOnce({ version: 2, files: [] }); // save manifest
+
+    await saveVfs({
+      projectId: 'p1',
+      files: [file('main.js', 'x'), asset('assets/cat.png')],
+      version: 1,
+      dirtyAssetPaths: new Set(['assets/cat.png']),
+    });
+
+    // 1) presign + 2) direct browser→S3 PUT (raw fetch, NOT the api client)
+    expect(api).toHaveBeenNthCalledWith(
+      1,
+      '/projects/p1/vfs/assets/sign-upload',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ path: 'assets/cat.png', content_type: 'image/png' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://s3.test/mock/assets/cat.png',
+      expect.objectContaining({ method: 'PUT' }),
+    );
+    // 3) the manifest: text inline, asset as a reference
+    const saveCall = api.mock.calls[1] as [string, { body: { files: unknown[] } }];
+    expect(saveCall[0]).toBe('/projects/p1/code/files');
+    expect(saveCall[1].body.files).toEqual([
+      { path: 'main.js', content: 'x' },
+      { path: 'assets/cat.png', uploaded: true },
+    ]);
+    vi.unstubAllGlobals();
+  });
+
+  it('does NOT re-upload a CLEAN asset (not dirty) — references it directly', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    api.mockResolvedValueOnce({ version: 2, files: [] });
+
+    await saveVfs({
+      projectId: 'p1',
+      files: [asset('assets/cat.png')],
+      version: 1,
+      dirtyAssetPaths: new Set(), // already in S3
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled(); // no S3 upload
+    expect(api).toHaveBeenCalledTimes(1); // only the save PUT, no sign-upload
+    expect((api.mock.calls[0][1] as { body: { files: unknown[] } }).body.files).toEqual([
+      { path: 'assets/cat.png', uploaded: true },
+    ]);
+    vi.unstubAllGlobals();
   });
 });
 

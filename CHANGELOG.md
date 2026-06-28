@@ -4,6 +4,40 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-28 (Game studio: raise the asset import cap to 50 MB)
+
+### Changed
+- **`AssetViewerPane` import cap 16 MB → 50 MB** (`MAX_ASSET_BYTES` / `MAX_ASSET_LABEL`), matching the
+  backend `MAX_FILE_BYTES` raise. Over-cap files are still hard-blocked at import with a clear
+  "max 50 MB" message (never imported then lost). Feasible now that asset bytes upload direct-to-S3
+  rather than as base64 in the save body.
+
+### Tests
+- `AssetViewerPane.classAssets.test.tsx`: the over-cap block boundary updated to >50 MB / "max 50 MB".
+
+## 2026-06-27 (Game studio: assets upload direct to S3, not via nginx)
+
+### Changed
+- **Asset bytes now upload straight to S3 (presigned PUT); the VFS save sends a reference.** Previously a
+  save serialised every asset as base64 in the JSON body and re-sent the whole VFS — so a >1 MB asset hit
+  nginx's 1 MB request cap (413). Now `saveVfs` uploads any **dirty** asset (newly imported / renamed)
+  to S3 via a presigned PUT (`POST …/vfs/assets/sign-upload` → raw `fetch` PUT, bypassing nginx + the
+  JSON body), then saves a manifest of **text inline + assets as references** (`{path, uploaded:true}`).
+  Clean assets (already in S3 at their path) are referenced, not re-uploaded.
+- **`PlaygroundApp` tracks which asset paths are confirmed in S3** (`syncedAssetsRef`, seeded on load +
+  after each successful save). On save it computes the dirty set; rename/move is handled automatically
+  (the new path isn't synced → uploaded). AI-turn assets are marked synced (the backend already wrote
+  them). `importFiles` is unchanged — the confirmed-upload seam reveals the asset only once the save
+  (incl. its upload) succeeds, and rolls back on failure.
+- The load path + runtime are **unchanged**: the GET still returns assets as base64 (responses aren't
+  body-limited), `toStudioContent` wraps them back into `data:` URLs, and the sandbox still inlines those
+  URLs — so the security model (no S3/signed URL inside the iframe) holds by construction. Removed the now
+  unused `toBackendContent` (data-URL→base64 stripper).
+
+### Tests
+- `codeApi.test.ts`: a dirty asset is presigned + PUT to S3 then sent as a reference (no base64 in the
+  save); a clean asset is referenced without re-uploading; text saves inline as `{path, content}`.
+
 ## 2026-06-26 (Asset import: confirmed-upload model + "Uploading…" indicator)
 
 ### Changed

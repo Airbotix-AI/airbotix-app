@@ -248,12 +248,18 @@ export async function saveProject(
   key: string,
   data: PersistedProject,
   projectId?: string,
+  opts?: { dirtyAssetPaths?: Set<string> },
 ): Promise<SaveResult> {
   await writeCache(key, data);
   if (!projectId) return { status: 'saved', version: data.version };
 
   try {
-    const snap = await saveVfs({ projectId, files: data.files, version: data.version });
+    const snap = await saveVfs({
+      projectId,
+      files: data.files,
+      version: data.version,
+      dirtyAssetPaths: opts?.dirtyAssetPaths,
+    });
     await writeCache(key, { ...data, version: snap.version, savedAt: Date.now() });
     return { status: 'saved', version: snap.version };
   } catch (e) {
