@@ -107,17 +107,31 @@ const MAX_ASSET_BYTES = 50 * 1024 * 1024;
 const MAX_ASSET_LABEL = '50 MB';
 const ANIM_SUFFIX = '.anim.json';
 
-/** The notice after an import: confirms what landed and names anything blocked
- *  for being over the {@link MAX_ASSET_LABEL} per-file cap. */
-function importNotice(okCount: number, tooBig: File[]): string {
-  if (tooBig.length === 0) return 'Imported.';
-  const names = tooBig.map((f) => `“${f.name}”`).join(', ');
-  if (okCount === 0) {
-    return tooBig.length === 1
-      ? `${names} is too big to save (max ${MAX_ASSET_LABEL}). Try a smaller file.`
-      : `Those files are too big to save (max ${MAX_ASSET_LABEL} each). Try smaller files.`;
-  }
-  return `Imported ${okCount}. ${tooBig.length} too big to save (max ${MAX_ASSET_LABEL}): ${names}.`;
+// Importable asset file types: media + non-executable DATA (game data, fonts,
+// shaders). Code/text (.js/.html/.css/.md/.txt) is NOT importable — it's authored
+// in the editor and runs through the kid-safety scan. Mirrors the backend's
+// uploadable set (ALLOWED_EXTENSIONS minus the scanned-text ones). `accept` gates
+// the file picker; this set re-checks drag-drop (which ignores `accept`).
+const IMPORTABLE_EXTENSIONS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp',
+  'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm',
+  'json', 'xml', 'csv', 'ttf', 'otf', 'woff', 'woff2', 'fnt', 'glsl', 'frag', 'vert', 'atlas',
+]);
+const ACCEPT_ATTR =
+  'image/*,audio/*,video/*,.json,.xml,.csv,.ttf,.otf,.woff,.woff2,.fnt,.glsl,.frag,.vert,.atlas';
+const extensionOf = (name: string): string => name.split('.').pop()?.toLowerCase() ?? '';
+const isImportable = (f: File): boolean => IMPORTABLE_EXTENSIONS.has(extensionOf(f.name));
+
+/** The notice after an import: confirms what landed and names anything blocked for
+ *  being over the {@link MAX_ASSET_LABEL} cap or an unsupported file type. */
+function importNotice(okCount: number, tooBig: File[], badType: File[] = []): string {
+  const reasons: string[] = [];
+  if (tooBig.length) reasons.push(`${tooBig.length} too big (max ${MAX_ASSET_LABEL})`);
+  if (badType.length) reasons.push(`${badType.length} not a supported file type`);
+  if (reasons.length === 0) return 'Imported.';
+  const blocked = [...tooBig, ...badType].map((f) => `“${f.name}”`).join(', ');
+  if (okCount === 0) return `Couldn't import ${blocked}: ${reasons.join(', ')}.`;
+  return `Imported ${okCount}. Skipped ${blocked}: ${reasons.join(', ')}.`;
 }
 
 function isAsset(f: VfsFile): boolean {
@@ -339,13 +353,16 @@ export function AssetViewerPane({
     // Imports always go to MY assets. Land in the selected VFS category when one
     // is open, else `imported`. (The Library is read-only — D-ASSET-6.)
     const targetDir = source === 'mine' && category !== ALL ? category : 'imported';
-    // Hard-block over-cap files: the backend rejects them, so importing them would
-    // only fail the save. Block with a clear message before reading anything.
+    // Hard-block unsupported types + over-cap files: the backend rejects both, so
+    // importing them would only fail the save. Block with a clear message before
+    // reading anything. (Type guard also covers drag-drop, which ignores `accept`.)
     const incoming = Array.from(list);
-    const tooBig = incoming.filter((f) => f.size > MAX_ASSET_BYTES);
-    const accepted = incoming.filter((f) => f.size <= MAX_ASSET_BYTES);
+    const badType = incoming.filter((f) => !isImportable(f));
+    const importable = incoming.filter(isImportable);
+    const tooBig = importable.filter((f) => f.size > MAX_ASSET_BYTES);
+    const accepted = importable.filter((f) => f.size <= MAX_ASSET_BYTES);
     if (accepted.length === 0) {
-      setNotice(importNotice(0, tooBig));
+      setNotice(importNotice(0, tooBig, badType));
       return;
     }
 
@@ -393,7 +410,7 @@ export function AssetViewerPane({
         setCategory(ALL);
         setSelectedLibId(null);
       }
-      setNotice(importNotice(accepted.length, tooBig));
+      setNotice(importNotice(accepted.length, tooBig, badType));
     } else {
       added.forEach(remove); // rollback — nothing reaches the grid unless stored
       setNotice(
@@ -563,7 +580,7 @@ export function AssetViewerPane({
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*,audio/*,video/*"
+                accept={ACCEPT_ATTR}
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files?.length) void importFiles(e.target.files);

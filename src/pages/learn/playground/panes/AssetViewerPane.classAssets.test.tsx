@@ -205,9 +205,40 @@ describe('AssetViewerPane — import size cap (50 MB)', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [fileOfSize('huge.png', 51 * 1024 * 1024)] } });
 
-    expect(await screen.findByText(/too big to save \(max 50 MB\)/)).toBeTruthy();
+    expect(await screen.findByText(/too big \(max 50 MB\)/)).toBeTruthy();
     // Nothing under assets/ was created — the over-cap file was never imported.
     const paths = useProjectStore.getState().files.map((f) => f.path);
     expect(paths.some((p) => p.startsWith('assets/'))).toBe(false);
+  });
+
+  it('blocks an unsupported/executable type (.js) with a clear message and adds nothing', async () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={[]} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const js = new File(['alert(1)'], 'hack.js', { type: 'text/javascript' });
+    fireEvent.change(input, { target: { files: [js] } });
+
+    expect(await screen.findByText(/not a supported file type/)).toBeTruthy();
+    const paths = useProjectStore.getState().files.map((f) => f.path);
+    expect(paths.some((p) => p.startsWith('assets/'))).toBe(false);
+  });
+
+  it('accepts a .json DATA asset import (game data uploads like an image)', async () => {
+    vi.stubGlobal('FileReader', SyncFileReader);
+    let resolveSave!: (r: SaveResult) => void;
+    const onSaveNow = vi.fn(() => new Promise<SaveResult>((res) => (resolveSave = res)));
+    const { container } = render(<LiveAssetViewer onSaveNow={onSaveNow} />);
+    const q = within(container);
+
+    pickFile(container, new File(['{"hp":3}'], 'level.json', { type: 'application/json' }));
+    await waitFor(() => expect(onSaveNow).toHaveBeenCalled());
+    await act(async () => resolveSave({ status: 'saved', version: 1 }));
+
+    await waitFor(() => expect(q.queryByTestId('asset-uploading')).toBeNull());
+    expect(
+      useProjectStore
+        .getState()
+        .files.some((f) => f.path.endsWith('level.json') && f.kind === 'asset'),
+    ).toBe(true);
+    vi.unstubAllGlobals();
   });
 });

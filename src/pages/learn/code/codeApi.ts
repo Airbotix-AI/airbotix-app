@@ -330,12 +330,33 @@ const BINARY_ASSET_MIME: Record<string, string> = {
   m4a: 'audio/mp4',
   mp4: 'video/mp4',
   webm: 'video/webm',
+  // Non-executable DATA assets a kid can import (game data, fonts, shaders). They
+  // round-trip as `data:` URLs like binary assets — the backend returns them as
+  // base64 (kind:'asset') and the runtime inlines them. Mirror the backend
+  // DATA_ASSET_EXTENSIONS. NOTE: `.anim.json` is a TEXT sidecar (backend keeps it
+  // text), so `binaryAssetMime` matching `json` here never applies to it.
+  json: 'application/json',
+  xml: 'application/xml',
+  csv: 'text/csv',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  fnt: 'application/octet-stream',
+  glsl: 'text/plain',
+  frag: 'text/plain',
+  vert: 'text/plain',
+  atlas: 'text/plain',
 };
 function binaryAssetMime(path: string): string | undefined {
   return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
 }
-/** Backend raw base64 → studio `data:` URL (binary assets only). */
+/** Backend raw base64 → studio `data:` URL (assets only). */
 function toStudioContent(f: VfsFile): VfsFile {
+  // Only ASSETS get the data: URL treatment — the backend `kind` is authoritative.
+  // This guards TEXT files whose extension also appears in BINARY_ASSET_MIME (e.g.
+  // a `.anim.json` sidecar is text, not a data asset) from being wrongly wrapped.
+  if (f.kind !== 'asset') return f;
   const mime = binaryAssetMime(f.path);
   if (!mime || f.content.startsWith('data:')) return f;
   return { ...f, content: `data:${mime};base64,${f.content}` };
