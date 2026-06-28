@@ -112,15 +112,20 @@ const ANIM_SUFFIX = '.anim.json';
 // in the editor and runs through the kid-safety scan. Mirrors the backend's
 // uploadable set (ALLOWED_EXTENSIONS minus the scanned-text ones). `accept` gates
 // the file picker; this set re-checks drag-drop (which ignores `accept`).
-const IMPORTABLE_EXTENSIONS = new Set([
-  'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp',
+// Importable asset file types: media + non-executable DATA. EXCLUDES executable
+// text (.js/.html/.css) AND script-capable `.svg` — the backend rejects those as
+// assets (they're scanned text), so offering them in the picker would only let a
+// file be chosen that then fails the save. `accept` is derived from this one list
+// (no `image/*` wildcard, which would re-admit svg).
+const IMPORTABLE_EXTENSIONS = [
+  'png', 'jpg', 'jpeg', 'gif', 'webp',
   'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm',
   'json', 'xml', 'csv', 'ttf', 'otf', 'woff', 'woff2', 'fnt', 'glsl', 'frag', 'vert', 'atlas',
-]);
-const ACCEPT_ATTR =
-  'image/*,audio/*,video/*,.json,.xml,.csv,.ttf,.otf,.woff,.woff2,.fnt,.glsl,.frag,.vert,.atlas';
+] as const;
+const IMPORTABLE_SET = new Set<string>(IMPORTABLE_EXTENSIONS);
+const ACCEPT_ATTR = IMPORTABLE_EXTENSIONS.map((e) => `.${e}`).join(',');
 const extensionOf = (name: string): string => name.split('.').pop()?.toLowerCase() ?? '';
-const isImportable = (f: File): boolean => IMPORTABLE_EXTENSIONS.has(extensionOf(f.name));
+const isImportable = (f: File): boolean => IMPORTABLE_SET.has(extensionOf(f.name));
 
 /** The notice after an import: confirms what landed and names anything blocked for
  *  being over the {@link MAX_ASSET_LABEL} cap or an unsupported file type. */
