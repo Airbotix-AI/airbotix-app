@@ -4,6 +4,15 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-29 (Game studio: tighten the asset importer to supported types only)
+
+### Changed
+- The import file picker now offers **only the types that can actually be saved** — its `accept` is
+  derived from the single `IMPORTABLE_EXTENSIONS` list (no `image/*` wildcard). **`.svg` is excluded**
+  (it's script-capable + the backend treats it as scanned text, so it was never uploadable as an asset);
+  previously the picker offered it and the import then failed the save. Executable text (`.js/.html/.css`)
+  stays blocked with a clear message (also covers drag-drop).
+
 ## 2026-06-29 (Game studio: import data files — JSON, fonts, shaders — as assets)
 
 ### Added
