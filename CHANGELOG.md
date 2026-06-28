@@ -4,6 +4,17 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-28 (Game studio: raise the asset import cap to 50 MB)
+
+### Changed
+- **`AssetViewerPane` import cap 16 MB → 50 MB** (`MAX_ASSET_BYTES` / `MAX_ASSET_LABEL`), matching the
+  backend `MAX_FILE_BYTES` raise. Over-cap files are still hard-blocked at import with a clear
+  "max 50 MB" message (never imported then lost). Feasible now that asset bytes upload direct-to-S3
+  rather than as base64 in the save body.
+
+### Tests
+- `AssetViewerPane.classAssets.test.tsx`: the over-cap block boundary updated to >50 MB / "max 50 MB".
+
 ## 2026-06-27 (Game studio: assets upload direct to S3, not via nginx)
 
 ### Changed
