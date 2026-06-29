@@ -366,8 +366,9 @@ function toStudioContent(f: VfsFile): VfsFile {
 // data-URL→base64 stripper) is gone with it; `toStudioContent` still wraps the
 // base64 the GET returns back into a `data:` URL for the runtime.
 
-/** Decode a studio asset `data:` URL → Blob for a direct browser→S3 PUT. */
-function dataUrlToBlob(dataUrl: string): Blob {
+/** Decode a studio asset `data:` URL → Blob (for a direct browser→S3 PUT, or a
+ *  `blob:` object URL so the DOM can render large assets — see `useObjectUrl`). */
+export function dataUrlToBlob(dataUrl: string): Blob {
   const comma = dataUrl.indexOf(',');
   const mime = dataUrl.slice(5, comma).split(';')[0] || 'application/octet-stream';
   const bin = atob(dataUrl.slice(comma + 1));

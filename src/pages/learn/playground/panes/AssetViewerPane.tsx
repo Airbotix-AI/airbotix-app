@@ -34,6 +34,7 @@ import {
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
+import { useObjectUrl } from './useObjectUrl';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 import { ClassAssetDetailView, ClassAssetsGrid } from './ClassAssets';
 import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
@@ -179,11 +180,14 @@ const KIND_ICON: Record<AssetKind, typeof ImageIcon> = {
 };
 
 function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
+  // Render from a blob: URL — a large `data:` URL is refused by the DOM <img>
+  // (Chrome: blocked:other), even though the game's loader handles it. See useObjectUrl.
+  const src = useObjectUrl(asset.content);
   if (kind === 'image' || kind === 'sprite') {
-    return <img src={asset.content} alt="" className="h-full w-full object-contain" />;
+    return <img src={src} alt="" className="h-full w-full object-contain" />;
   }
   if (kind === 'video') {
-    return <video src={asset.content} className="h-full w-full object-contain" muted />;
+    return <video src={src} className="h-full w-full object-contain" muted />;
   }
   const Icon = KIND_ICON[kind];
   return (
@@ -1026,12 +1030,14 @@ function DetailView({
   const kind = assetKindOf(asset.path, files);
   const anim = kind === 'sprite' ? parseAnimSidecar(files.find((f) => f.path === animSidecarPath(asset.path))) : null;
   const snippet = assetChatRef(asset, anim);
+  // Decode dimensions from a blob: URL — Image() also chokes on a huge data: URL.
+  const previewUrl = useObjectUrl(asset.content);
 
   useEffect(() => {
     setDims(null);
-    if ((kind === 'image' || kind === 'sprite') && asset.content.startsWith('data:')) {
+    if (kind === 'image' || kind === 'sprite') {
       let live = true;
-      decodeImageMeta(asset.content)
+      decodeImageMeta(previewUrl)
         .then((m) => {
           if (live) setDims(m);
         })
@@ -1041,7 +1047,7 @@ function DetailView({
       };
     }
     return undefined;
-  }, [asset.content, kind]);
+  }, [previewUrl, kind]);
 
   function commitRename() {
     const next = nameDraft.trim();
