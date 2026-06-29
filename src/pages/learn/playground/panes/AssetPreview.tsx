@@ -16,6 +16,7 @@ import WaveSurfer from 'wavesurfer.js';
 import type { VfsFile } from '../../code/codeApi';
 import { animSidecarPath, assetKindOf, dataUrlToText, parseAnimSidecar, type AnimMeta } from './assetMeta';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
+import { useObjectUrl } from './useObjectUrl';
 
 interface AssetPreviewProps {
   asset: VfsFile;
@@ -149,6 +150,9 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
   const [bg, setBg] = useState<PreviewBg>('checker');
   const [lightbox, setLightbox] = useState(false);
   const kind = assetKindOf(asset.path, files);
+  // Render media from a blob: URL — a large `data:` URL is refused by the DOM
+  // <img>/<video>/<audio> (blocked:other). Text keeps the data URL (decoded directly).
+  const src = useObjectUrl(asset.content);
   const anim = useMemo(
     () =>
       kind === 'sprite'
@@ -158,16 +162,12 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
   );
 
   if (kind === 'audio') {
-    return <AudioStage dataUrl={asset.content} />;
+    return <AudioStage dataUrl={src} />;
   }
 
   if (kind === 'video') {
     return (
-      <video
-        src={asset.content}
-        controls
-        className="max-h-[420px] w-full rounded-xl bg-black"
-      />
+      <video src={src} controls className="max-h-[420px] w-full rounded-xl bg-black" />
     );
   }
 
@@ -211,10 +211,10 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
         className="flex min-h-[260px] items-center justify-center overflow-auto rounded-xl p-6"
       >
         {anim ? (
-          <SpriteStage dataUrl={asset.content} anim={anim} />
+          <SpriteStage dataUrl={src} anim={anim} />
         ) : (
           <img
-            src={asset.content}
+            src={src}
             alt={asset.path}
             onClick={() => setLightbox(true)}
             className="max-h-[360px] max-w-full cursor-zoom-in object-contain"
@@ -222,7 +222,7 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
         )}
       </div>
       {lightbox && !anim && (
-        <ImageLightbox src={asset.content} alt={asset.path} onClose={() => setLightbox(false)} />
+        <ImageLightbox src={src} alt={asset.path} onClose={() => setLightbox(false)} />
       )}
     </div>
   );

@@ -4,6 +4,23 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-06-29 (Fix: large asset thumbnails/previews broke in the asset viewer)
+
+### Fixed
+- **A large uploaded image rendered in the game but its asset-viewer thumbnail + detail preview were
+  broken** (Chrome `blocked:other`). Cause: a multi-MB asset's `data:` URL is refused by the DOM
+  `<img>`/`<video>`/`<audio>`, even though the sandboxed game's Phaser loader tolerates it — so the same
+  asset worked in-game but not in the viewer. Now the asset viewer renders media from a short-lived
+  `blob:` URL (`useObjectUrl` → `URL.createObjectURL`), which the DOM loads reliably and far more cheaply
+  (no re-decode of a megabytes-long attribute each render); the object URL is revoked on unmount. The
+  runtime/game is unchanged (still inlines `data:` URLs). Applied to the grid thumbnail (`Thumb`), the
+  detail preview (`AssetPreview`: image/sprite/video/audio/lightbox), and dimension decoding. Library
+  assets (CloudFront URLs) pass through unchanged.
+
+### Tests
+- `useObjectUrl.test.ts`: data: → blob: + revoke-on-unmount; non-data URL passthrough; throw → safe
+  fallback to the data URL.
+
 ## 2026-06-29 (Game studio: tighten the asset importer to supported types only)
 
 ### Changed
