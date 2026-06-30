@@ -8,8 +8,11 @@ const api = vi.fn();
 vi.mock('@/lib/api', () => ({
   api: (...a: unknown[]) => api(...a),
   ApiError: class ApiError extends Error {
+    // Mirror the real 4-arg signature (status, code, message, details) so tests can
+    // assert on `code` exactly as production does.
     constructor(
       public status: number,
+      public code: string,
       message: string,
       public details?: unknown,
     ) {
@@ -19,7 +22,14 @@ vi.mock('@/lib/api', () => ({
   },
 }));
 
-import { saveVfs, CODE_TEMPLATES } from './codeApi';
+import {
+  saveVfs,
+  CODE_TEMPLATES,
+  runAgentTurn,
+  signChatImageUpload,
+  uploadChatImage,
+  type ChatImageRef,
+} from './codeApi';
 
 const file = (path: string, content = 'x') => ({ path, content, kind: 'text' as const, size: content.length });
 
@@ -111,6 +121,103 @@ describe('saveVfs — PUT /projects/:id/code/files', () => {
     expect((api.mock.calls[0][1] as { body: { files: unknown[] } }).body.files).toEqual([
       { path: 'assets/cat.png', uploaded: true },
     ]);
+    vi.unstubAllGlobals();
+  });
+});
+
+// ── Chat-input images (D-PAP-33..37) ───────────────────────────────────────
+
+describe('runAgentTurn — images in the body only when present', () => {
+  beforeEach(() => api.mockReset());
+
+  const images: ChatImageRef[] = [{ s3_key: 'chat-input/p1/abc', mime: 'image/png' }];
+
+  it('includes `images` only when a non-empty list is passed', async () => {
+    api.mockResolvedValue({ turn_id: 't', changes: [], files: [], stars_charged: 0 });
+    await runAgentTurn({ projectId: 'p1', prompt: 'use this', mode: 'lite', images });
+    const [path, opts] = api.mock.calls[0] as [string, { body: Record<string, unknown> }];
+    expect(path).toBe('/projects/p1/code/turn');
+    expect(opts.body.images).toEqual(images);
+  });
+
+  it('omits `images` for a plain text turn (no key on the wire)', async () => {
+    api.mockResolvedValue({ turn_id: 't', changes: [], files: [], stars_charged: 0 });
+    await runAgentTurn({ projectId: 'p1', prompt: 'just text', mode: 'lite' });
+    const opts = api.mock.calls[0][1] as { body: Record<string, unknown> };
+    expect(opts.body).not.toHaveProperty('images');
+  });
+
+  it('omits `images` when an EMPTY list is passed (never sends `images: []`)', async () => {
+    api.mockResolvedValue({ turn_id: 't', changes: [], files: [], stars_charged: 0 });
+    await runAgentTurn({ projectId: 'p1', prompt: 'x', mode: 'lite', images: [] });
+    const opts = api.mock.calls[0][1] as { body: Record<string, unknown> };
+    expect(opts.body).not.toHaveProperty('images');
+  });
+});
+
+describe('signChatImageUpload + uploadChatImage — presign then S3 PUT', () => {
+  beforeEach(() => api.mockReset());
+
+  it('signChatImageUpload POSTs the chat-image presign with content_type + size_bytes', async () => {
+    api.mockResolvedValue({ url: 'https://s3.test/k', method: 'PUT', s3_key: 'chat-input/p1/u' });
+    const signed = await signChatImageUpload('p1', { contentType: 'image/jpeg', sizeBytes: 1234 });
+    expect(api).toHaveBeenCalledWith(
+      '/projects/p1/code/chat-image/sign-upload',
+      expect.objectContaining({
+        method: 'POST',
+        body: { content_type: 'image/jpeg', size_bytes: 1234 },
+      }),
+    );
+    expect(signed.s3_key).toBe('chat-input/p1/u');
+  });
+
+  it('uploadChatImage presigns then PUTs the bytes to S3 and returns the ref', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    api.mockResolvedValue({ url: 'https://s3.test/up', s3_key: 'chat-input/p1/img', method: 'PUT' });
+    // A tiny PNG blob (GIFs/canvas downscale are skipped in jsdom; createImageBitmap
+    // is absent here, so the bytes upload verbatim).
+    const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+
+    const ref = await uploadChatImage('p1', blob);
+
+    expect(api).toHaveBeenCalledWith(
+      '/projects/p1/code/chat-image/sign-upload',
+      expect.objectContaining({ method: 'POST', body: expect.objectContaining({ content_type: 'image/png' }) }),
+    );
+    // Raw browser→S3 PUT (NOT the api client).
+    expect(fetchMock).toHaveBeenCalledWith('https://s3.test/up', expect.objectContaining({ method: 'PUT' }));
+    expect(ref).toEqual({ s3_key: 'chat-input/p1/img', mime: 'image/png' });
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects a non-allow-listed MIME BEFORE any network call', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const bad = new Blob(['x'], { type: 'image/svg+xml' });
+    await expect(uploadChatImage('p1', bad)).rejects.toMatchObject({ code: 'IMAGE_TYPE_UNSUPPORTED' });
+    expect(api).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects an oversized image (>5MB) BEFORE any network call', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    // 5MB + 1 byte of png-typed data.
+    const big = new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' });
+    await expect(uploadChatImage('p1', big)).rejects.toMatchObject({ code: 'IMAGE_TOO_LARGE' });
+    expect(api).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('surfaces an ApiError when the S3 PUT fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403 } as Response);
+    vi.stubGlobal('fetch', fetchMock);
+    api.mockResolvedValue({ url: 'https://s3.test/up', s3_key: 'k', method: 'PUT' });
+    const blob = new Blob([new Uint8Array([1])], { type: 'image/png' });
+    await expect(uploadChatImage('p1', blob)).rejects.toMatchObject({ code: 'UPLOAD_FAILED' });
     vi.unstubAllGlobals();
   });
 });
