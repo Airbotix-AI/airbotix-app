@@ -7,10 +7,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-03
 
 ### Fixed
-- **Login mode toggle restyled to match the Learn design language.** The "👪 Family code / 🏫 At
-  class" tabs were a heavy ink-filled pill next to a flat sky wash — off-style for the kid surface.
+- **Login mode toggle restyled to match the Learn design language.** The "Family code / At class"
+  tabs were a heavy ink-filled pill next to a flat sky wash — off-style for the kid surface.
   Now a proper segmented control: warm `surface` track with a white active pill (`bg-canvas-pure` +
   `shadow-card-soft`), same recipe as the My Works segment chips.
+- **Login toggle uses Lucide icons, not emoji.** The 👪 / 🏫 emoji became line icons (`Users` /
+  `School` from `lucide-react`, 16px, matching the app's icon set) for a cleaner, on-brand look.
 
 ## 2026-07-02
 

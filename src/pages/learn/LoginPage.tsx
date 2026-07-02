@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import clsx from 'clsx';
+import { School, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -98,9 +99,15 @@ export function LoginPage() {
           <ModeTab
             active={mode === 'family'}
             onClick={() => setMode('family')}
-            label="👪 Family code"
+            icon={<Users size={16} strokeWidth={2.5} />}
+            label="Family code"
           />
-          <ModeTab active={mode === 'class'} onClick={() => setMode('class')} label="🏫 At class" />
+          <ModeTab
+            active={mode === 'class'}
+            onClick={() => setMode('class')}
+            icon={<School size={16} strokeWidth={2.5} />}
+            label="At class"
+          />
         </div>
 
         {mode === 'family' ? (
@@ -187,10 +194,12 @@ export function LoginPage() {
 function ModeTab({
   active,
   onClick,
+  icon,
   label,
 }: {
   active: boolean;
   onClick: () => void;
+  icon: React.ReactNode;
   label: string;
 }) {
   // Segmented control matching the Learn surface (same recipe as the My Works
@@ -202,12 +211,13 @@ function ModeTab({
       aria-selected={active}
       onClick={onClick}
       className={clsx(
-        'flex-1 rounded-full px-4 py-2.5 text-[14px] font-bold transition-colors',
+        'flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[14px] font-bold transition-colors',
         active
           ? 'bg-canvas-pure text-ink shadow-card-soft'
           : 'text-slate2 hover:text-ink hover:bg-wash-coral',
       )}
     >
+      {icon}
       {label}
     </button>
   );
