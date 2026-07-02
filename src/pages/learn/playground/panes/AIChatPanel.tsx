@@ -14,6 +14,7 @@ import {
   Eye,
   Hand,
   Heart,
+  ImagePlus,
   Loader2,
   Phone,
   Play,
@@ -26,9 +27,15 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { SafeguardingVerdict } from '../../code/codeApi';
+import {
+  CHAT_IMAGE_MAX_COUNT,
+  CHAT_IMAGE_MIMES,
+  isChatImageMime,
+  type ChatImageRef,
+  type SafeguardingVerdict,
+} from '../../code/codeApi';
 import { useGenerationStore } from '../generationStore';
 import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
@@ -37,10 +44,33 @@ import { WorkingCard } from './WorkingCard';
 import { AiroAvatar } from './AiroAvatar';
 import type { TurnProgress } from './turnProgress';
 import { useStickToBottom } from './useStickToBottom';
-import { CAP_MESSAGE, type ChatItem, type PendingTurn } from './useGameAgent';
+import { CAP_MESSAGE, type ChatItem, type PendingTurn, type SendImage, type SendOptions } from './useGameAgent';
 
 /** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
 const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
+
+/**
+ * One staged composer attachment (D-PAP-33). Created the moment a picture is
+ * pasted/picked: it shows a thumbnail immediately (`previewUrl`) while it uploads
+ * in the background, then flips to `ready` (carries its S3 `ref`) or `rejected`.
+ * Send is blocked until every attachment is past `uploading`.
+ */
+interface Attachment {
+  id: string;
+  /** Local object URL for the thumbnail (revoked on remove). */
+  previewUrl: string;
+  status: 'uploading' | 'ready' | 'rejected';
+  /** The uploaded S3 ref — present once `ready`. */
+  ref?: ChatImageRef;
+}
+
+const newAttachmentId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `att-${Math.random().toString(36).slice(2)}`;
+
+/** The `accept` attribute for the file picker — the allow-listed image MIMEs. */
+const IMAGE_ACCEPT = CHAT_IMAGE_MIMES.join(',');
 
 /** One clickable "what changed" row for the chat bubble (§11.4). */
 interface ChangedFile {
@@ -174,7 +204,19 @@ interface AIChatPanelProps {
   /** Only show "Ask my teacher" when the kid is in a class (else there's no
    *  teacher to ask). */
   inClass?: boolean;
-  onSend: (text: string, opts?: { guided?: boolean }) => void;
+  onSend: (text: string, opts?: SendOptions) => void;
+  /**
+   * Upload one attached image to S3 (presign + PUT) and return its turn-body ref
+   * (D-PAP-33). Bound to the project by the consumer (`uploadChatImage`). Throws on
+   * a client-guard miss / network failure so the thumbnail can show a rejected
+   * state. Absent in a project-less / read-only context → the picture button hides.
+   */
+  onUploadImage?: (file: File) => Promise<ChatImageRef>;
+  /** The image-input flag is off (D-PAP-37) — hide the picture affordance entirely. */
+  imagesDisabled?: boolean;
+  /** Bumps when an attached image was rejected by moderation (D-PAP-34) — clear the
+   *  staged thumbnails so the kid isn't stuck with a picture that can't be sent. */
+  imageRejectNonce?: number;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
@@ -211,6 +253,9 @@ export function AIChatPanel({
   inClass,
   readOnly,
   onSend,
+  onUploadImage,
+  imagesDisabled,
+  imageRejectNonce,
   onConfirm,
   onCancel,
   onUndo,
@@ -225,6 +270,14 @@ export function AIChatPanel({
   onRetry,
 }: AIChatPanelProps) {
   const [input, setInput] = useState('');
+  // Staged image attachments for the next turn (D-PAP-33). Empty for a text turn.
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // The picture affordance is available only when the consumer wired an uploader,
+  // we're not a read-only viewer, and the dark-launch flag isn't off (D-PAP-37).
+  const canAttach = !!onUploadImage && !readOnly && !imagesDisabled;
+  const uploading = attachments.some((a) => a.status === 'uploading');
 
   // Stick-to-bottom + "new messages" pill (Gap A). The dep changes on every
   // append AND every streamed token so the hook re-glues / re-arms the pill.
@@ -232,11 +285,96 @@ export function AIChatPanel({
   const dep = `${chat.length}:${last?.text.length ?? 0}:${last?.streaming ? 's' : ''}${last?.pending ? 'p' : ''}:${pending ? 1 : 0}`;
   const { listRef, showJump, jumpToBottom } = useStickToBottom(dep);
 
+  // Revoke any object URLs on unmount so a session of attaching pictures never
+  // leaks blobs (the previews are short-lived local URLs).
+  const attachmentsRef = useRef(attachments);
+  attachmentsRef.current = attachments;
+  useEffect(
+    () => () => {
+      for (const a of attachmentsRef.current) {
+        if (a.previewUrl.startsWith('blob:')) URL.revokeObjectURL(a.previewUrl);
+      }
+    },
+    [],
+  );
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => {
+      const gone = prev.find((a) => a.id === id);
+      if (gone?.previewUrl.startsWith('blob:')) URL.revokeObjectURL(gone.previewUrl);
+      return prev.filter((a) => a.id !== id);
+    });
+  }, []);
+
+  // Stage + background-upload one or more picked/pasted image files (D-PAP-33).
+  // Each shows a thumbnail immediately (a local object URL) while it uploads, then
+  // flips to ready (carrying its S3 ref) or rejected. Non-image files and any over
+  // the ≤4 cap are ignored — the kid never sees a confusing failure.
+  const addFiles = useCallback(
+    (files: File[]) => {
+      if (!onUploadImage) return;
+      const images = files.filter((f) => isChatImageMime(f.type));
+      if (images.length === 0) return;
+      setAttachments((prev) => {
+        const room = CHAT_IMAGE_MAX_COUNT - prev.length;
+        const accepted = images.slice(0, Math.max(0, room));
+        const staged: Attachment[] = accepted.map((file) => {
+          const id = newAttachmentId();
+          const previewUrl = URL.createObjectURL(file);
+          // Upload in the background; reflect the outcome onto THIS attachment.
+          void onUploadImage(file)
+            .then((ref) =>
+              setAttachments((cur) =>
+                cur.map((a) => (a.id === id ? { ...a, status: 'ready' as const, ref } : a)),
+              ),
+            )
+            .catch(() =>
+              setAttachments((cur) =>
+                cur.map((a) => (a.id === id ? { ...a, status: 'rejected' as const } : a)),
+              ),
+            );
+          return { id, previewUrl, status: 'uploading' as const };
+        });
+        return [...prev, ...staged];
+      });
+    },
+    [onUploadImage],
+  );
+
+  const onPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!canAttach) return;
+      const files = Array.from(e.clipboardData?.files ?? []).filter((f) => isChatImageMime(f.type));
+      if (files.length === 0) return;
+      // A pasted image is an attachment, not text — don't also drop a data URL /
+      // filename into the textarea.
+      e.preventDefault();
+      addFiles(files);
+    },
+    [canAttach, addFiles],
+  );
+
+  // When the backend rejects an attached image (moderation / flag-off), the hook
+  // bumps `imageRejectNonce` — clear the staged thumbnails so the kid isn't stuck
+  // re-sending a picture that can't go through.
+  useEffect(() => {
+    if (imageRejectNonce === undefined || imageRejectNonce === 0) return;
+    setAttachments((prev) => {
+      for (const a of prev) if (a.previewUrl.startsWith('blob:')) URL.revokeObjectURL(a.previewUrl);
+      return [];
+    });
+  }, [imageRejectNonce]);
+
   const submit = () => {
     const t = input.trim();
-    if (!t || busy || pending) return;
+    // A turn needs text OR ready pictures, and never sends while one is still
+    // uploading (or a confirm is pending / a turn is busy).
+    const ready = attachments.filter((a): a is Attachment & { ref: ChatImageRef } => a.status === 'ready' && !!a.ref);
+    if ((!t && ready.length === 0) || busy || pending || uploading) return;
+    const images: SendImage[] = ready.map((a) => ({ ...a.ref, previewUrl: a.previewUrl }));
     setInput('');
-    onSend(t);
+    setAttachments([]);
+    onSend(t, images.length > 0 ? { images } : undefined);
   };
 
   return (
@@ -416,10 +554,80 @@ export function AIChatPanel({
         </div>
       ) : (
         <div className="shrink-0 border-t border-pg-border p-3">
-          <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pr-1.5 focus-within:border-brand-sky">
+          {/* Staged-attachment strip (D-PAP-33) — sits ABOVE the textarea; each thumb
+              shows a spinner while uploading, a red ring if moderation/upload failed,
+              and a remove button. Hidden when nothing is attached. */}
+          {attachments.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2" data-testid="chat-attachments">
+              {attachments.map((a) => (
+                <div
+                  key={a.id}
+                  data-testid="chat-attachment"
+                  data-status={a.status}
+                  className={`relative h-14 w-14 overflow-hidden rounded-xl border-2 ${
+                    a.status === 'rejected' ? 'border-brand-coral' : 'border-pg-border'
+                  }`}
+                >
+                  <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
+                  {a.status === 'uploading' && (
+                    <div
+                      data-testid="chat-attachment-spinner"
+                      className="absolute inset-0 grid place-items-center bg-pg-text/40"
+                    >
+                      <Loader2 size={16} className="animate-spin text-white" />
+                    </div>
+                  )}
+                  {a.status === 'rejected' && (
+                    <div className="absolute inset-0 grid place-items-center bg-brand-coral/40" aria-hidden />
+                  )}
+                  <button
+                    type="button"
+                    data-testid="chat-attachment-remove"
+                    aria-label="Remove picture"
+                    onClick={() => removeAttachment(a.id)}
+                    className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-pg-text/70 text-white"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pl-1.5 pr-1.5 focus-within:border-brand-sky">
+            {/* Attach-a-picture (D-PAP-33) — only when the uploader is wired and the
+                dark-launch flag isn't off. A hidden multi-file input does the picking. */}
+            {canAttach && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={IMAGE_ACCEPT}
+                  multiple
+                  data-testid="chat-attach-input"
+                  className="hidden"
+                  onChange={(e) => {
+                    addFiles(Array.from(e.target.files ?? []));
+                    // Reset so re-picking the SAME file fires onChange again.
+                    e.target.value = '';
+                  }}
+                />
+                <button
+                  type="button"
+                  data-testid="chat-attach-btn"
+                  aria-label="Add a picture"
+                  title="Add a picture"
+                  disabled={attachments.length >= CHAT_IMAGE_MAX_COUNT}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-pg-border bg-pg-surface text-pg-text-dim transition-colors hover:border-brand-sky/60 hover:bg-brand-sky/10 hover:text-brand-sky disabled:opacity-40"
+                >
+                  <ImagePlus size={18} />
+                </button>
+              </>
+            )}
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={onPaste}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -444,7 +652,14 @@ export function AIChatPanel({
             ) : (
               <button
                 onClick={submit}
-                disabled={busy || !!pending || !input.trim()}
+                // Send needs text OR a ready picture, and is blocked while any
+                // attachment is still uploading (D-PAP-33).
+                disabled={
+                  busy ||
+                  !!pending ||
+                  uploading ||
+                  (!input.trim() && !attachments.some((a) => a.status === 'ready'))
+                }
                 data-testid="chat-send"
                 aria-label="Send"
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
@@ -552,7 +767,7 @@ function ChatRow({
   readOnly?: boolean;
   onRunGame?: () => void;
   onSeeCode?: () => void;
-  onSend?: (text: string, opts?: { guided?: boolean }) => void;
+  onSend?: (text: string, opts?: SendOptions) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;
@@ -561,6 +776,21 @@ function ChatRow({
     return (
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-2xl bg-grad-sky text-white px-4 py-2.5 text-[14px] leading-relaxed shadow-brand-sky">
+          {/* Pictures the kid attached (D-PAP-33), rendered from the LOCAL preview
+              URL — the S3 key never reaches the bubble. */}
+          {item.images && item.images.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-1.5" data-testid="kid-bubble-images">
+              {item.images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.previewUrl}
+                  alt=""
+                  data-testid="kid-bubble-image"
+                  className="h-20 w-20 rounded-xl object-cover"
+                />
+              ))}
+            </div>
+          )}
           {item.text}
         </div>
       </div>

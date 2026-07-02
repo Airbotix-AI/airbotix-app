@@ -378,26 +378,148 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
- * Upload one asset's bytes STRAIGHT to S3 via a presigned PUT, so they never go
- * through nginx (1 MB cap) or the JSON save. The save then references it
- * (`uploaded:true`). Throws an `ApiError` on failure so the save reports it.
+ * A presigned S3 upload, as returned by every `sign-upload` endpoint (asset save
+ * AND chat-image input). The browser PUTs the bytes straight to `url` (the
+ * signature IS the auth — no bearer token to S3), then references `s3_key`.
  */
-async function uploadAssetToS3(projectId: string, file: VfsFile): Promise<void> {
-  const blob = dataUrlToBlob(file.content);
-  const signed = await api<{ url: string; headers?: Record<string, string>; s3_key: string }>(
-    `/projects/${projectId}/vfs/assets/sign-upload`,
-    { method: 'POST', body: { path: file.path, content_type: blob.type, size_bytes: blob.size } },
-  );
-  // The presigned URL is absolute + self-authorising (the signature IS the auth) —
-  // a raw fetch, NOT the `api` client (no bearer token to S3).
+export interface SignedUpload {
+  url: string;
+  /** Always a PUT for our presigned uploads; present so the caller never guesses. */
+  method?: 'PUT';
+  headers?: Record<string, string>;
+  /** Seconds the URL stays valid (informational; the PUT must beat it). */
+  expires_in?: number;
+  s3_key: string;
+}
+
+/**
+ * PUT a blob straight to a presigned S3 URL (shared by `uploadAssetToS3` and the
+ * chat-image upload). The presigned URL is absolute + self-authorising, so this is
+ * a RAW fetch — never the `api` client (which would attach our bearer token to
+ * S3). Throws an `ApiError` on a non-2xx so the caller can surface it.
+ */
+async function putToSignedUrl(signed: SignedUpload, blob: Blob, what: string): Promise<void> {
   const res = await fetch(signed.url, {
     method: 'PUT',
     headers: signed.headers ?? { 'Content-Type': blob.type },
     body: blob,
   });
   if (!res.ok) {
-    throw new ApiError(res.status, 'ASSET_UPLOAD_FAILED', `Couldn't upload ${file.path} (${res.status}).`);
+    throw new ApiError(res.status, 'UPLOAD_FAILED', `Couldn't upload ${what} (${res.status}).`);
   }
+}
+
+/**
+ * Upload one asset's bytes STRAIGHT to S3 via a presigned PUT, so they never go
+ * through nginx (1 MB cap) or the JSON save. The save then references it
+ * (`uploaded:true`). Throws an `ApiError` on failure so the save reports it.
+ */
+async function uploadAssetToS3(projectId: string, file: VfsFile): Promise<void> {
+  const blob = dataUrlToBlob(file.content);
+  const signed = await api<SignedUpload>(`/projects/${projectId}/vfs/assets/sign-upload`, {
+    method: 'POST',
+    body: { path: file.path, content_type: blob.type, size_bytes: blob.size },
+  });
+  await putToSignedUrl(signed, blob, file.path);
+}
+
+// ── Chat-input images (playground-ai-prompt-prd.md D-PAP-33..37) ───────────
+// A kid can attach pictures to a chat turn so the agent "sees" them. The bytes
+// go STRAIGHT to S3 via a presigned PUT (chat-input prefix, OUTSIDE the project
+// VFS — these are turn context, not project assets); the turn body then carries
+// only `{ s3_key, mime }`. Mandatory pre-model moderation is enforced server-side
+// (fail-closed); the client guards below are UX-only first-line checks. The kid
+// NEVER calls an LLM directly (CLAUDE.md #5).
+
+/** The allow-listed image MIME types (mirror the backend `CodeTurnSchema`). */
+export const CHAT_IMAGE_MIMES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
+export type ChatImageMime = (typeof CHAT_IMAGE_MIMES)[number];
+/** Max bytes per attached image (mirror the backend presign bound — 5 MB). */
+export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+/** Max images per message (mirror the backend `images` max). */
+export const CHAT_IMAGE_MAX_COUNT = 4;
+/** Optional client downscale target — longest edge, in px. */
+const CHAT_IMAGE_MAX_EDGE = 1536;
+
+/** A reference to an uploaded chat-input image — what a turn body carries. */
+export interface ChatImageRef {
+  s3_key: string;
+  mime: ChatImageMime;
+}
+
+/** True when `mime` is an allow-listed chat-image type (narrow + guard). */
+export function isChatImageMime(mime: string): mime is ChatImageMime {
+  return (CHAT_IMAGE_MIMES as readonly string[]).includes(mime);
+}
+
+/**
+ * Presign a chat-input image upload (POST /projects/:id/code/chat-image/sign-upload).
+ * The backend generates the (kid-uninfluenceable) `chat-input/<projectId>/<uuid>`
+ * key and returns the same {@link SignedUpload} shape the asset save uses.
+ */
+export async function signChatImageUpload(
+  projectId: string,
+  args: { contentType: ChatImageMime; sizeBytes: number },
+): Promise<SignedUpload> {
+  return api<SignedUpload>(`/projects/${projectId}/code/chat-image/sign-upload`, {
+    method: 'POST',
+    body: { content_type: args.contentType, size_bytes: args.sizeBytes },
+  });
+}
+
+/**
+ * Optionally downscale an image blob so its longest edge is ≤ {@link CHAT_IMAGE_MAX_EDGE}px,
+ * re-encoding to the same MIME. Smaller-or-equal images (and any encode/canvas
+ * failure, or a GIF — re-encoding would drop its animation) are returned verbatim,
+ * so this NEVER blocks an upload; it just trims bandwidth + token cost when it can.
+ */
+async function downscaleImage(blob: Blob, mime: ChatImageMime): Promise<Blob> {
+  // GIFs are passed through (canvas re-encode would flatten the animation), and a
+  // missing DOM (test/SSR) means no canvas — keep the original bytes either way.
+  if (mime === 'image/gif' || typeof document === 'undefined' || typeof createImageBitmap !== 'function') {
+    return blob;
+  }
+  try {
+    const bitmap = await createImageBitmap(blob);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    if (longest <= CHAT_IMAGE_MAX_EDGE) {
+      bitmap.close?.();
+      return blob;
+    }
+    const scale = CHAT_IMAGE_MAX_EDGE / longest;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return blob;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    const out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime));
+    return out ?? blob;
+  } catch {
+    return blob; // any decode/encode failure → upload the original
+  }
+}
+
+/**
+ * Validate + (optionally) downscale + upload one chat-input image, returning the
+ * {@link ChatImageRef} the turn body carries. Throws an `ApiError` with a kid-safe
+ * code on a client-guard miss (bad MIME / oversize) BEFORE any network call, and
+ * propagates a presign / S3 PUT failure as an `ApiError` so the caller can show a
+ * friendly "couldn't add that picture" state.
+ */
+export async function uploadChatImage(projectId: string, file: File | Blob): Promise<ChatImageRef> {
+  const mime = file.type;
+  if (!isChatImageMime(mime)) {
+    throw new ApiError(415, 'IMAGE_TYPE_UNSUPPORTED', "That kind of picture isn't supported.");
+  }
+  if (file.size > CHAT_IMAGE_MAX_BYTES) {
+    throw new ApiError(413, 'IMAGE_TOO_LARGE', 'That picture is too big (max 5 MB).');
+  }
+  const blob = await downscaleImage(file, mime);
+  const signed = await signChatImageUpload(projectId, { contentType: mime, sizeBytes: blob.size });
+  await putToSignedUrl(signed, blob, 'your picture');
+  return { s3_key: signed.s3_key, mime };
 }
 
 // ── VFS read (D-CODE1d: GET /projects/:id/code/files) ──────────────────────
@@ -520,6 +642,8 @@ export async function runAgentTurn(args: {
   piiWarnAcknowledged?: boolean;
   /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
   guided?: boolean;
+  /** Attached input images (D-PAP-33) — sent ONLY when non-empty. */
+  images?: ChatImageRef[];
 }): Promise<AgentTurnResult> {
   return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
@@ -529,6 +653,7 @@ export async function runAgentTurn(args: {
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
       ...(args.piiWarnAcknowledged ? { pii_warn_acknowledged: true } : {}),
       ...(args.guided ? { guided: true } : {}),
+      ...(args.images && args.images.length > 0 ? { images: args.images } : {}),
     },
   });
 }
@@ -589,7 +714,7 @@ const STREAM_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
  * with the final AgentTurnResult — used by the streaming loading screen.
  */
 export async function streamAgentTurn(
-  args: { projectId: string; prompt: string; mode: 'lite' | 'pro' },
+  args: { projectId: string; prompt: string; mode: 'lite' | 'pro'; images?: ChatImageRef[] },
   onEvent: (e: TurnEvent) => void,
 ): Promise<AgentTurnResult> {
   const token = useAuthStore.getState().tokens[surfacePrincipal()];
@@ -604,6 +729,7 @@ export async function streamAgentTurn(
       prompt: args.prompt,
       mode: args.mode,
       idempotency_key: crypto.randomUUID(),
+      ...(args.images && args.images.length > 0 ? { images: args.images } : {}),
     }),
   });
   if (!res.ok || !res.body) {

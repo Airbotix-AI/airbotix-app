@@ -22,6 +22,7 @@ import {
   saveVfs as apiSaveVfs,
   setProjectEngine as apiSetProjectEngine,
   type AgentTurnResult,
+  type ChatImageRef,
   type ClassifyResult,
   type SafeguardingVerdict,
   type VerifyFixResult,
@@ -41,6 +42,8 @@ export type RunAgentTurn = (args: {
   piiWarnAcknowledged?: boolean;
   /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
   guided?: boolean;
+  /** Attached input images (D-PAP-33) — carried so the mock seam forwards them too. */
+  images?: ChatImageRef[];
 }) => Promise<AgentTurnResult>;
 
 /** Approve / reject a staged (Pro) plan. */
@@ -174,4 +177,4 @@ export function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
-export type { AgentTurnResult, SafeguardingVerdict, VfsFile };
+export type { AgentTurnResult, ChatImageRef, SafeguardingVerdict, VfsFile };

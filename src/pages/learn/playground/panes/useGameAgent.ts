@@ -21,6 +21,7 @@ import { flushSync } from 'react-dom';
 
 import type {
   AgentTurnResult,
+  ChatImageRef,
   FileNote,
   NextStep,
   SafeguardingVerdict,
@@ -59,6 +60,13 @@ export interface ChatItem {
   id: string;
   role: 'kid' | 'agent';
   text: string;
+  /**
+   * Pictures the kid attached to THIS message (D-PAP-33), shown as thumbnails in
+   * the kid bubble. `previewUrl` is the LOCAL object/data URL (never the S3 key) so
+   * the bubble renders instantly without a round-trip and we never echo the upload
+   * path. Kid-role bubbles only.
+   */
+  images?: { previewUrl: string }[];
   pending?: boolean;
   /** Streaming in progress — the text is being revealed token-by-token (J2). */
   streaming?: boolean;
@@ -215,6 +223,22 @@ const OFFLINE_TEXT = 'Internet hiccup — your work is safe. Try again in a mome
  */
 export const CAP_MESSAGE = 'You used all the Stars for now. Ask your grown-up to add more. ⭐';
 
+/**
+ * Image-specific reject copy (D-PAP-34) — a picture failed pre-model moderation
+ * (`MODERATION_REJECTED`, `details.modality:'image'`). Distinct from the text
+ * reject so the kid knows it was the PICTURE, not their words, and charges no
+ * Stars. The rejected image(s) are cleared by the composer (the panel watches
+ * `lastImageRejected`).
+ */
+export const IMAGE_REJECT_MESSAGE =
+  "I can't use that picture here — let's keep it kind and safe. Try a different one, or just tell me with words.";
+/**
+ * "Pictures aren't available right now" copy (D-PAP-37) — the dark-launch feature
+ * flag is OFF, so the backend rejected the turn's images (`IMAGE_INPUT_DISABLED`).
+ * No Stars charged. The composer also hides the picture button once it sees this.
+ */
+export const IMAGE_DISABLED_MESSAGE = "Pictures aren't available right now — tell me with words and I'll help! ✏️";
+
 const STARTER_MESSAGE =
   'Your game starter is ready to play 🎮\n\n' +
   'I put together a runnable starter for your idea — it already works out of the ' +
@@ -294,8 +318,16 @@ function friendlyError(e: unknown): string {
     if (e.code === 'WALLET_INSUFFICIENT' || e.code === 'DAILY_CAP_EXCEEDED' || e.status === 402)
       return CAP_MESSAGE;
     if (e.code === 'FAMILY_PAUSED') return 'Your family paused AI. Ask a grown-up.';
-    if (e.code === 'MODERATION_REJECTED')
+    // The dark-launch image flag is off → "pictures aren't available right now"
+    // (no Stars). Distinct from a moderation reject (the picture itself was bad).
+    if (e.code === 'IMAGE_INPUT_DISABLED') return IMAGE_DISABLED_MESSAGE;
+    if (e.code === 'MODERATION_REJECTED') {
+      // An IMAGE was rejected pre-model (D-PAP-34) reads differently from a text
+      // reject, so the kid knows it was the PICTURE, not their words.
+      const details = e.details as { modality?: string } | undefined;
+      if (details?.modality === 'image') return IMAGE_REJECT_MESSAGE;
       return "Let's keep it kind and safe — try asking for something else.";
+    }
     if (e.code === 'MODERATION_WARN')
       return 'That message looked a bit off. Try saying it a different way.';
     // A gateway is down (the backend itself is unreachable behind a proxy) → keep
@@ -311,6 +343,28 @@ function friendlyError(e: unknown): string {
 
 const toChanges = (r: AgentTurnResult) =>
   r.changes.map((c) => ({ path: c.path, before: c.before, after: c.after }));
+
+/**
+ * One attached input image as passed to `send` (D-PAP-33): the composer has
+ * ALREADY uploaded it, so this carries the S3 ref the turn body needs PLUS a local
+ * `previewUrl` (object/data URL) the kid bubble renders — the S3 key never reaches
+ * the bubble.
+ */
+export interface SendImage extends ChatImageRef {
+  previewUrl: string;
+}
+
+/** Options for `send` — a guided (chip) flag and any attached input images. */
+export interface SendOptions {
+  guided?: boolean;
+  images?: SendImage[];
+}
+
+/** Map send-images → the kid bubble's `images` (preview-only), or {} when none —
+ *  spread into a ChatItem so a text-only message stays unchanged. */
+function kidImages(images: SendImage[]): { images?: { previewUrl: string }[] } {
+  return images.length > 0 ? { images: images.map((im) => ({ previewUrl: im.previewUrl })) } : {};
+}
 
 export function useGameAgent(opts: UseGameAgentOptions) {
   const {
@@ -374,6 +428,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const safeguardTier = useRef(0);
   // The "Ask my teacher" raise-hand (J4): a calm waiting state once raised.
   const [handRaised, setHandRaised] = useState(false);
+  // Image-input dark-launch (D-PAP-37): flips true once the backend tells us the
+  // feature flag is off (IMAGE_INPUT_DISABLED), so the composer hides the picture
+  // affordance for the rest of the session instead of letting the kid try again.
+  const [imagesDisabled, setImagesDisabled] = useState(false);
+  // A monotonic counter the composer watches to know its attached image(s) were
+  // REJECTED by moderation (D-PAP-34) and must clear — bumped on each image reject.
+  const [imageRejectNonce, setImageRejectNonce] = useState(0);
   // A pending MODERATION_WARN ack — kid must confirm before the prompt is retried.
   const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
@@ -659,10 +720,17 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   );
 
   const send = useCallback(
-    async (text: string, opts?: { guided?: boolean }) => {
+    async (text: string, opts?: SendOptions) => {
       if (readOnly) return; // teacher viewer — no AI turns (D-LV-6)
       const trimmed = text.trim();
-      if (!trimmed || busy || pending) return;
+      // Attached pictures (D-PAP-33), already uploaded by the composer — each
+      // carries its S3 ref (for the turn body) + a LOCAL preview URL (for the kid
+      // bubble; we never echo the S3 key). Empty list when it's a plain text turn.
+      const images = opts?.images ?? [];
+      const hasImages = images.length > 0;
+      // A turn needs TEXT or PICTURES — relax the empty-text guard for an image-only
+      // ask (D-PAP-33). Still gated on not-busy / no pending confirm.
+      if ((!trimmed && !hasImages) || busy || pending) return;
       const guided = !!opts?.guided;
       lastPromptRef.current = trimmed;
       lastGuidedRef.current = guided;
@@ -684,7 +752,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       if (isReal && !switchBypassRef.current) {
         const target = detectEngineSwitch(trimmed, engine);
         if (target) {
-          setChat((prev) => [...prev, { id: nextId(), role: 'kid', text: trimmed }]);
+          setChat((prev) => [...prev, { id: nextId(), role: 'kid', text: trimmed, ...kidImages(images) }]);
           setPending({
             kind: 'engine-switch',
             engine: target,
@@ -710,7 +778,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       setProgress(startProgress(Date.now()));
       setChat((prev) => [
         ...prev,
-        { id: nextId(), role: 'kid', text: trimmed },
+        { id: nextId(), role: 'kid', text: trimmed, ...kidImages(images) },
         { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
       ]);
 
@@ -753,19 +821,24 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // beat below). The classifier is free and recall-favouring (§11g). On a
       // classify failure we fall through to the normal flow (fail-open to game-help
       // is acceptable — the backend turn firewall is a second line of defence).
+      // Skip the TEXT classify entirely for an image-only ask (no words to screen,
+      // D-PAP-33): it routes as a normal code turn, and the image's OWN mandatory
+      // pre-model moderation runs server-side inside the turn (fail-closed).
       let routedIntent: 'asset' | 'code' = 'code';
-      try {
-        const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
-        if (safeguarding) {
-          setProgress(null);
-          applySafeguard(safeguarding, pendingId);
-          setBusy(false);
-          return;
+      if (trimmed) {
+        try {
+          const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
+          if (safeguarding) {
+            setProgress(null);
+            applySafeguard(safeguarding, pendingId);
+            setBusy(false);
+            return;
+          }
+          routedIntent = intent;
+        } catch {
+          // Classifier unreachable — proceed as a code turn; the turn-level firewall
+          // still applies. (Asset routing simply falls back to a normal game turn.)
         }
-        routedIntent = intent;
-      } catch {
-        // Classifier unreachable — proceed as a code turn; the turn-level firewall
-        // still applies. (Asset routing simply falls back to a normal game turn.)
       }
 
       // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
@@ -783,7 +856,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the turn server-side (Stars-metered + applied inside POST /code/turn) and
       // stream the result straight into the chat.
       try {
-        const result = await deps.runTurn({ projectId: projectId!, prompt: trimmed, mode, piiWarnAcknowledged: false, guided });
+        const result = await deps.runTurn({
+          projectId: projectId!,
+          prompt: trimmed,
+          mode,
+          piiWarnAcknowledged: false,
+          guided,
+          // Only the S3 refs go to the backend — never the local preview URLs.
+          ...(hasImages ? { images: images.map((im) => ({ s3_key: im.s3_key, mime: im.mime })) } : {}),
+        });
         await applyResult(result, pendingId);
       } catch (e) {
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
@@ -792,6 +873,20 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           setWarnPending({ message: e.message, prompt: trimmed, stage });
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
         } else {
+          // Image-specific failures (D-PAP-34/37): a rejected picture OR the flag
+          // being off charges NO Stars (the throw is BEFORE propose server-side), so
+          // we just surface the friendly copy. Clear the rejected/attempted picture
+          // from the composer, and on a flag-off latch the affordance hidden.
+          if (e instanceof ApiError && e.code === 'IMAGE_INPUT_DISABLED') setImagesDisabled(true);
+          if (
+            hasImages &&
+            e instanceof ApiError &&
+            (e.code === 'IMAGE_INPUT_DISABLED' ||
+              (e.code === 'MODERATION_REJECTED' &&
+                (e.details as { modality?: string } | undefined)?.modality === 'image'))
+          ) {
+            setImageRejectNonce((n) => n + 1);
+          }
           const msg = friendlyError(e);
           if (msg === OFFLINE_TEXT) setOffline(true);
           setError(msg);
@@ -1065,6 +1160,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     safeguard,
     /** Whether the "Ask my teacher" hand is up (calm waiting state, J4). */
     handRaised,
+    /** The image-input flag is off (D-PAP-37) — the composer hides the picture button. */
+    imagesDisabled,
+    /** Bumps when an attached image was rejected/blocked — the composer clears it (D-PAP-34). */
+    imageRejectNonce,
     send,
     /** Generate an asset INTO the chat (Asset Viewer Generate/Remix buttons, §3). */
     requestAssetGen,
