@@ -6,6 +6,8 @@ import { surfacePrincipal, useAuthStore } from './authStore';
 import type {
   AuthPrincipal,
   ClassCodeLoginResponse,
+  ClassLoginPollResponse,
+  ClassLoginRequestCreateResponse,
   KidLoginResponse,
   MeResponse,
   PrincipalKind,
@@ -106,6 +108,41 @@ export async function classCodeLogin(
   useAuthStore.getState().setBootstrapped(true);
   // Trigger WS connect with the new kid token
   setTimeout(() => getSocket('kid'), 0);
+  return res;
+}
+
+// ── Kid class login with teacher approval (auth-system-prd §5.3) ────────────
+
+// Creates a pending login request; the kid is unauthenticated until the teacher
+// approves, so the returned `secret` is the only credential for polling.
+export async function createClassLoginRequest(
+  classCode: string,
+  typedName: string,
+): Promise<ClassLoginRequestCreateResponse> {
+  return api<ClassLoginRequestCreateResponse>('/class-login/requests', {
+    method: 'POST',
+    body: { class_code: classCode.toUpperCase(), typed_name: typedName },
+    skipAuthRefresh: true,
+  });
+}
+
+// One poll tick. On `approved` the response carries the tokens (and the backend
+// set the kid refresh cookie on this response) — store them and open the socket,
+// exactly like the other kid logins.
+export async function pollClassLoginRequest(
+  requestId: string,
+  secret: string,
+): Promise<ClassLoginPollResponse> {
+  const res = await api<ClassLoginPollResponse>(`/class-login/requests/${requestId}/poll`, {
+    method: 'POST',
+    body: { secret },
+    skipAuthRefresh: true,
+  });
+  if (res.status === 'approved') {
+    useAuthStore.getState().setToken('kid', res.access_token);
+    useAuthStore.getState().setBootstrapped(true);
+    setTimeout(() => getSocket('kid'), 0);
+  }
   return res;
 }
 
