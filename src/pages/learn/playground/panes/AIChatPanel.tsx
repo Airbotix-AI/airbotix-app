@@ -593,7 +593,7 @@ export function AIChatPanel({
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pr-1.5 focus-within:border-brand-sky">
+          <div className="flex items-center gap-2 rounded-2xl border-2 border-pg-border bg-pg-text/5 pl-1.5 pr-1.5 focus-within:border-brand-sky">
             {/* Attach-a-picture (D-PAP-33) — only when the uploader is wired and the
                 dark-launch flag isn't off. A hidden multi-file input does the picking. */}
             {canAttach && (
@@ -618,7 +618,7 @@ export function AIChatPanel({
                   title="Add a picture"
                   disabled={attachments.length >= CHAT_IMAGE_MAX_COUNT}
                   onClick={() => fileInputRef.current?.click()}
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-pg-text-dim transition-colors hover:bg-pg-text/10 disabled:opacity-40"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-pg-border bg-pg-surface text-pg-text-dim transition-colors hover:border-brand-sky/60 hover:bg-brand-sky/10 hover:text-brand-sky disabled:opacity-40"
                 >
                   <ImagePlus size={18} />
                 </button>

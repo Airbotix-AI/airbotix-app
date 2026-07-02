@@ -4,6 +4,13 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-02 (Playground chat composer: attach-button polish)
+
+### Changed
+- The chat composer's attach-a-picture button is now a proper round chip (bordered, surface
+  background, sky accent on hover) instead of a bare icon, and the composer row gained symmetric
+  left padding — so it visually pairs with the round send button instead of hugging the border.
+
 ## 2026-06-30 (Playground AI chat: image input — upload + clipboard paste, FE half)
 
 ### Added
