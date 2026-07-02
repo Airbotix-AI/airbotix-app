@@ -90,7 +90,11 @@ export function LoginPage() {
           Let's <span className="squiggle-word">make</span> something.
         </h1>
 
-        <div className="mt-6 flex gap-2" role="tablist" aria-label="How do you want to sign in?">
+        <div
+          className="mt-6 flex gap-1 rounded-full bg-surface p-1.5"
+          role="tablist"
+          aria-label="How do you want to sign in?"
+        >
           <ModeTab
             active={mode === 'family'}
             onClick={() => setMode('family')}
@@ -189,6 +193,8 @@ function ModeTab({
   onClick: () => void;
   label: string;
 }) {
+  // Segmented control matching the Learn surface (same recipe as the My Works
+  // chips): white active pill on a warm `surface` track — never heavy ink fills.
   return (
     <button
       type="button"
@@ -198,8 +204,8 @@ function ModeTab({
       className={clsx(
         'flex-1 rounded-full px-4 py-2.5 text-[14px] font-bold transition-colors',
         active
-          ? 'bg-ink text-white shadow-sm'
-          : 'bg-wash-sky text-ink hover:bg-brand-sky/30',
+          ? 'bg-canvas-pure text-ink shadow-card-soft'
+          : 'text-slate2 hover:text-ink hover:bg-wash-coral',
       )}
     >
       {label}
