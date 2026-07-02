@@ -1,7 +1,7 @@
-import type { LearningContext, SafeguardingVerdict } from '../../code/codeApi';
+import type { ChatImageRef, LearningContext, SafeguardingVerdict } from '../../code/codeApi';
 import { ResumeRecap } from '../ResumeRecap';
 import { AIChatPanel } from './AIChatPanel';
-import type { ChatItem, PendingTurn } from './useGameAgent';
+import type { ChatItem, PendingTurn, SendOptions } from './useGameAgent';
 
 interface ChatPaneProps {
   chat: ChatItem[];
@@ -18,7 +18,13 @@ interface ChatPaneProps {
   safeguard?: SafeguardingVerdict | null;
   handRaised?: boolean;
   inClass?: boolean;
-  onSend: (text: string, opts?: { guided?: boolean }) => void;
+  onSend: (text: string, opts?: SendOptions) => void;
+  /** Upload an attached chat image to S3 (D-PAP-33), bound to the project. */
+  onUploadImage?: (file: File) => Promise<ChatImageRef>;
+  /** The image-input flag is off (D-PAP-37) — hide the picture affordance. */
+  imagesDisabled?: boolean;
+  /** Bumps when an attached image was rejected (D-PAP-34) — clear staged thumbnails. */
+  imageRejectNonce?: number;
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;

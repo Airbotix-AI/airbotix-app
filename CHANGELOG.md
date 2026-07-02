@@ -30,6 +30,51 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `auth/types.ts`, and a 7-case component test (`ClassLoginFlow.test.tsx`). The one-shot workshop
   flow at `/learn/class-code` is unchanged.
 
+## 2026-07-02 (Playground chat composer: attach-button polish)
+
+### Changed
+- The chat composer's attach-a-picture button is now a proper round chip (bordered, surface
+  background, sky accent on hover) instead of a bare icon, and the composer row gained symmetric
+  left padding — so it visually pairs with the round send button instead of hugging the border.
+
+## 2026-06-30 (Playground AI chat: image input — upload + clipboard paste, FE half)
+
+### Added
+- **Kids can attach pictures to a playground chat turn so Airo "sees" them** (playground-ai-prompt-prd
+  D-PAP-33..37, dark-launch). The composer (`AIChatPanel`) gains a picture button (`chat-attach-btn`) +
+  hidden multi-file `<input accept=image/png,image/jpeg,image/webp,image/gif multiple>` and an `onPaste`
+  handler that pulls image files off the clipboard. Each attachment shows a thumbnail strip above the
+  textarea (`chat-attachment`, remove via `chat-attachment-remove`) — a spinner while it uploads, a red
+  rejected state on failure. Send allows **text OR images**, is blocked while any attachment is still
+  uploading, and clears both on send. The attached pictures render in the kid bubble from a **local
+  preview URL** (the S3 key never reaches the bubble). All image affordances are hidden under `readOnly`
+  (teacher viewer) and when the dark-launch flag is off.
+- `codeApi`: `ChatImageRef = { s3_key; mime }`; `signChatImageUpload(projectId, { contentType, sizeBytes })`
+  (POST `…/code/chat-image/sign-upload`, same `SignedUpload` shape the asset save uses); `uploadChatImage`
+  (client MIME allow-list + ≤5 MB + optional canvas downscale to ≤1536px, presign, then a raw browser→S3
+  PUT via the new shared `putToSignedUrl` — also reused by `uploadAssetToS3`). `runAgentTurn` /
+  `streamAgentTurn` carry `images?` in the body **only when non-empty** (max 4). The kid still NEVER calls
+  an LLM directly — only `platform-backend` (CLAUDE.md #5).
+- `useGameAgent`: `send(text, opts?: { guided?; images? })` — relaxes the empty-text guard for an
+  image-only ask, **skips the text classify** when there are no words, threads the S3 refs into
+  `deps.runTurn`, and renders the local previews in the kid bubble. A `MODERATION_REJECTED` error with
+  `details.modality:'image'` maps to an image-specific friendly message (`IMAGE_REJECT_MESSAGE`);
+  `IMAGE_INPUT_DISABLED` (flag off) maps to the "pictures aren't available right now" message
+  (`IMAGE_DISABLED_MESSAGE`) and latches the affordance hidden. Both paths charge **0 Stars**, leave no
+  broken pending bubble, and clear the staged image(s).
+
+### Tests
+- `codeApi.test.ts`: `images` in the turn body only when present (omitted for text / empty list);
+  `signChatImageUpload` + `uploadChatImage` presign→PUT path; MIME / oversize client-guards reject before
+  any network call; S3 PUT failure surfaces an `ApiError`.
+- `useGameAgent.test.ts`: image refs (not preview URLs) forwarded to `deps.runTurn`; image-only send skips
+  classify; image reject → image copy + 0 Stars + staged image cleared; text reject keeps the generic
+  copy; `IMAGE_INPUT_DISABLED` → not-available copy + affordance hidden.
+- `AIChatPanel.test.tsx`: paste → thumbnail (uploading → ready); remove; send disabled while uploading;
+  image-only send forwards refs + preview and clears the strip; picker via the hidden input; `readOnly`
+  and flag-off hide the picture button; non-image paste ignored; reject-nonce clears the strip; kid bubble
+  renders attached previews.
+
 ## 2026-06-29 (Fix: large asset thumbnails/previews broke in the asset viewer)
 
 ### Fixed

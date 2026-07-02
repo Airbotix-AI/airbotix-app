@@ -3,10 +3,11 @@
 // FE1 — the teacher's "what shall we do next?" option chips (§11.4 / D-PAP-06):
 // a settled agent bubble carrying `nextSteps` renders tappable chips, and tapping
 // one sends its prompt as the next turn.
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AIChatPanel } from './AIChatPanel';
+import type { ChatImageRef } from '../../code/codeApi';
 import type { ChatItem } from './useGameAgent';
 
 afterEach(cleanup);
@@ -189,5 +190,152 @@ describe('AIChatPanel — changed-file rows with new files (null before)', () =>
     ).not.toThrow();
     // getByText throws if missing — proves the bubble rendered.
     expect(screen.getByText('Rebuilt your game in 3D! 🎲')).toBeTruthy();
+  });
+});
+
+// Image input composer (D-PAP-33..37): paste/pick → upload → thumbnail strip;
+// send allows text-OR-images and is blocked while uploading; readOnly + flag-off
+// hide the affordance entirely.
+describe('AIChatPanel — image attachments', () => {
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:thumb-1');
+    URL.revokeObjectURL = vi.fn();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  const pngFile = (name = 'cat.png') => new File([new Uint8Array([1, 2, 3])], name, { type: 'image/png' });
+
+  /** A defer-able uploader: the test resolves it when it wants the upload to finish. */
+  function deferredUploader() {
+    let resolve!: (ref: ChatImageRef) => void;
+    const promise = new Promise<ChatImageRef>((r) => (resolve = r));
+    const fn = vi.fn(() => promise);
+    return { fn, resolve };
+  }
+
+  function pasteImage(textarea: HTMLElement, file: File) {
+    fireEvent.paste(textarea, { clipboardData: { files: [file] } });
+  }
+
+  it('pasting an image stages a thumbnail (uploading → ready)', async () => {
+    const { fn, resolve } = deferredUploader();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} />);
+
+    pasteImage(screen.getByTestId('chat-input'), pngFile());
+
+    // Thumbnail appears immediately, spinning while it uploads.
+    const thumb = await screen.findByTestId('chat-attachment');
+    expect(thumb.getAttribute('data-status')).toBe('uploading');
+    expect(screen.getByTestId('chat-attachment-spinner')).toBeTruthy();
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    // Upload resolves → ready.
+    resolve({ s3_key: 'chat-input/p/1', mime: 'image/png' });
+    await waitFor(() => expect(screen.getByTestId('chat-attachment').getAttribute('data-status')).toBe('ready'));
+  });
+
+  it('the remove button clears a staged thumbnail', async () => {
+    const { fn, resolve } = deferredUploader();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} />);
+    pasteImage(screen.getByTestId('chat-input'), pngFile());
+    resolve({ s3_key: 'k', mime: 'image/png' });
+    await screen.findByTestId('chat-attachment');
+
+    fireEvent.click(screen.getByTestId('chat-attachment-remove'));
+    expect(screen.queryByTestId('chat-attachment')).toBeNull();
+  });
+
+  it('Send is DISABLED while an image is uploading, then enabled when ready', async () => {
+    const { fn, resolve } = deferredUploader();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} />);
+    pasteImage(screen.getByTestId('chat-input'), pngFile());
+    await screen.findByTestId('chat-attachment');
+
+    // Mid-upload: even with no text, send is blocked.
+    expect((screen.getByTestId('chat-send') as HTMLButtonElement).disabled).toBe(true);
+
+    resolve({ s3_key: 'k', mime: 'image/png' });
+    await waitFor(() => expect((screen.getByTestId('chat-send') as HTMLButtonElement).disabled).toBe(false));
+  });
+
+  it('an image-only send (no text) forwards the uploaded image refs + preview to onSend', async () => {
+    const onSend = vi.fn();
+    const { fn, resolve } = deferredUploader();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={onSend} onUploadImage={fn} />);
+    pasteImage(screen.getByTestId('chat-input'), pngFile());
+    resolve({ s3_key: 'chat-input/p/9', mime: 'image/png' });
+    await waitFor(() => expect((screen.getByTestId('chat-send') as HTMLButtonElement).disabled).toBe(false));
+
+    fireEvent.click(screen.getByTestId('chat-send'));
+    expect(onSend).toHaveBeenCalledTimes(1);
+    expect(onSend).toHaveBeenCalledWith('', {
+      images: [{ s3_key: 'chat-input/p/9', mime: 'image/png', previewUrl: 'blob:thumb-1' }],
+    });
+    // The strip clears on send.
+    expect(screen.queryByTestId('chat-attachment')).toBeNull();
+  });
+
+  it('renders the picture button + attaches via the hidden file input', async () => {
+    const { fn, resolve } = deferredUploader();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} />);
+    expect(screen.getByTestId('chat-attach-btn')).toBeTruthy();
+    const input = screen.getByTestId('chat-attach-input') as HTMLInputElement;
+    expect(input.accept).toContain('image/png');
+    expect(input.multiple).toBe(true);
+
+    fireEvent.change(input, { target: { files: [pngFile()] } });
+    resolve({ s3_key: 'k', mime: 'image/png' });
+    await screen.findByTestId('chat-attachment');
+  });
+
+  it('read-only viewer hides the picture button + input (a teacher can never attach)', () => {
+    render(
+      <AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={vi.fn()} readOnly />,
+    );
+    expect(screen.queryByTestId('chat-attach-btn')).toBeNull();
+    expect(screen.queryByTestId('chat-attach-input')).toBeNull();
+  });
+
+  it('hides the picture affordance when image input is disabled (flag off, D-PAP-37)', () => {
+    render(
+      <AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={vi.fn()} imagesDisabled />,
+    );
+    expect(screen.queryByTestId('chat-attach-btn')).toBeNull();
+  });
+
+  it('a non-image paste is ignored (no thumbnail)', () => {
+    const onUploadImage = vi.fn();
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={onUploadImage} />);
+    fireEvent.paste(screen.getByTestId('chat-input'), {
+      clipboardData: { files: [new File(['x'], 'a.txt', { type: 'text/plain' })] },
+    });
+    expect(screen.queryByTestId('chat-attachment')).toBeNull();
+    expect(onUploadImage).not.toHaveBeenCalled();
+  });
+
+  it('clears staged thumbnails when imageRejectNonce bumps (moderation rejected)', async () => {
+    const { fn, resolve } = deferredUploader();
+    const { rerender } = render(
+      <AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} imageRejectNonce={0} />,
+    );
+    pasteImage(screen.getByTestId('chat-input'), pngFile());
+    resolve({ s3_key: 'k', mime: 'image/png' });
+    await screen.findByTestId('chat-attachment');
+
+    // The hook bumps the nonce after a MODERATION_REJECTED image → the strip clears.
+    rerender(
+      <AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} onUploadImage={fn} imageRejectNonce={1} />,
+    );
+    await waitFor(() => expect(screen.queryByTestId('chat-attachment')).toBeNull());
+  });
+
+  it('renders attached pictures in the kid bubble from the local preview URL', () => {
+    const chat: ChatItem[] = [
+      { id: 'k1', role: 'kid', text: 'use this', images: [{ previewUrl: 'blob:kid-1' }] },
+    ];
+    render(<AIChatPanel chat={chat} busy={false} error={null} onSend={vi.fn()} />);
+    const imgs = screen.getAllByTestId('kid-bubble-image');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0].getAttribute('src')).toBe('blob:kid-1');
   });
 });

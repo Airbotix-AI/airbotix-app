@@ -11,7 +11,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api';
 import type { AgentTurnResult } from '../../code/codeApi';
 import type { GameAgentDeps } from './gameAgent';
-import { useGameAgent, type ChatItem } from './useGameAgent';
+import {
+  useGameAgent,
+  IMAGE_REJECT_MESSAGE,
+  IMAGE_DISABLED_MESSAGE,
+  type ChatItem,
+  type SendImage,
+} from './useGameAgent';
 
 // A handle a test can resolve on demand, so `streamTurn` stays pending while we
 // press Stop (which flips the `sig.aborted` flag the hook owns).
@@ -410,6 +416,115 @@ describe('useGameAgent chat seed + restore (J9 resume)', () => {
     );
     expect(ft.result.current.chat.some((c) => c.text === 'Made a maze.')).toBe(true);
     expect(ft.result.current.chat.some((c) => c.text.toLowerCase().includes('safety helper'))).toBe(false);
+  });
+});
+
+// Image input for the playground chat (D-PAP-33..37). Images are uploaded by the
+// composer, then passed to `send`; only the S3 refs reach the backend turn body,
+// the local preview rides into the kid bubble.
+describe('useGameAgent image input (D-PAP-33..37)', () => {
+  const IMG: SendImage = { s3_key: 'chat-input/p1/abc', mime: 'image/png', previewUrl: 'blob:preview-1' };
+
+  it('forwards the S3 refs (NOT the preview URLs) to deps.runTurn', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('use this picture', { images: [IMG] });
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'use this picture',
+        images: [{ s3_key: 'chat-input/p1/abc', mime: 'image/png' }],
+      }),
+    );
+    // The kid bubble carries the LOCAL preview (never the S3 key).
+    const kid = result.current.chat.find((c) => c.role === 'kid');
+    expect(kid?.images).toEqual([{ previewUrl: 'blob:preview-1' }]);
+    await act(async () => {
+      resolveStream?.();
+    });
+  });
+
+  it('an image-only message (no text) still sends and SKIPS the text classify', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+
+    await act(async () => {
+      void result.current.send('', { images: [IMG] });
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    // No words to screen → classify never runs; the turn still fires with the image.
+    expect(deps.classify).not.toHaveBeenCalled();
+    expect(deps.runTurn).toHaveBeenCalledWith(
+      expect.objectContaining({ images: [{ s3_key: 'chat-input/p1/abc', mime: 'image/png' }] }),
+    );
+    await act(async () => {
+      resolveStream?.();
+    });
+  });
+
+  it('a rejected image shows image-specific copy, charges 0 Stars, and clears the staged image', async () => {
+    const onStarsCharged = vi.fn();
+    const onApplyFiles = vi.fn();
+    const deps = makeDeps();
+    deps.runTurn = vi.fn(async () => {
+      throw new ApiError(422, 'MODERATION_REJECTED', 'nope', {
+        modality: 'image',
+        reason: 'image_nsfw',
+        stage: 'input',
+      });
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles, onStarsCharged, projectId: 'p1', mode: 'pro', deps }),
+    );
+    const nonceBefore = result.current.imageRejectNonce;
+
+    await act(async () => {
+      await result.current.send('here', { images: [IMG] });
+    });
+
+    await waitFor(() => expect(result.current.error).toBe(IMAGE_REJECT_MESSAGE));
+    // 0 Stars (the throw is before propose) and nothing applied to the VFS.
+    expect(onStarsCharged).not.toHaveBeenCalled();
+    expect(onApplyFiles).not.toHaveBeenCalled();
+    // The composer is told to clear the rejected image (nonce bumped).
+    expect(result.current.imageRejectNonce).toBeGreaterThan(nonceBefore);
+    // The flag is NOT disabled (a reject ≠ feature-off).
+    expect(result.current.imagesDisabled).toBe(false);
+  });
+
+  it('a TEXT moderation reject keeps the generic copy (not the image copy)', async () => {
+    const { result } = setupFailing(new ApiError(422, 'MODERATION_REJECTED', 'nope', { modality: 'text' }));
+    await act(async () => {
+      await result.current.send('something');
+    });
+    await waitFor(() => expect(result.current.error).not.toBe(IMAGE_REJECT_MESSAGE));
+    expect(result.current.error).toContain('kind and safe');
+  });
+
+  it('IMAGE_INPUT_DISABLED (flag off) shows the "not available" copy, charges 0 Stars, and hides the affordance', async () => {
+    const onStarsCharged = vi.fn();
+    const deps = makeDeps();
+    deps.runTurn = vi.fn(async () => {
+      throw new ApiError(400, 'IMAGE_INPUT_DISABLED', 'off');
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), onStarsCharged, projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    await act(async () => {
+      await result.current.send('look', { images: [IMG] });
+    });
+
+    await waitFor(() => expect(result.current.error).toBe(IMAGE_DISABLED_MESSAGE));
+    expect(onStarsCharged).not.toHaveBeenCalled();
+    // Latched off for the session so the composer hides the picture button.
+    expect(result.current.imagesDisabled).toBe(true);
+    expect(result.current.imageRejectNonce).toBeGreaterThan(0);
   });
 });
 
