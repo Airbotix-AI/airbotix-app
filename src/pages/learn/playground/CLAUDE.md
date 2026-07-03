@@ -52,7 +52,7 @@ engine-agnostic.
 - **Phaser 4.1.0** — UMD copied verbatim → `public/vendor/phaser-<v>.min.js` + `.d.ts` →
   `window.Phaser`. Missing → "Phaser is not defined".
 - **three.js 0.184.0** — ESM-only since r160, so it's **esbuild-bundled into a `window.THREE`
-  global IIFE** (+ curated addons, currently `OrbitControls`) → `public/vendor/three-<v>.global.js`.
+  global IIFE** (+ curated addons: `OrbitControls`, `GLTFLoader`) → `public/vendor/three-<v>.global.js`.
   Missing → "Could not load the 3D game engine". (D-3D-02; idiomatic ESM/import-map is deferred,
   OQ-3D-5.)
 - **Upgrade:** `npm i <engine>@<new>`, then bump its `*_VERSION` (`vite.config.ts`) + the
@@ -97,7 +97,8 @@ the 4.x engine) and builds visuals from shapes. Each `<script>` carries
 `//# sourceURL=<path>` so errors report the kid's file/line (jump-to-error + Ask-AI-to-fix);
 SYNTAX errors never get sourceURL (the script doesn't parse), so `GameFrame` maps their
 srcdoc line back to file:line via `buildGamePreview`'s script ranges (`resolveErrorLoc`).
-Assets: image/audio/video; sibling `<path>.anim.json` = sprite strip. (The Game Guide's
+Assets: image/audio/video + `.glb` 3D models (three engine only — `THREE.GLTFLoader`, D-3D-09);
+sibling `<path>.anim.json` = sprite strip. (The Game Guide's
 `phaser/runtime-contract` doc mirrors THIS — keep in sync, D‑HELP‑06.)
 
 ## Editor IntelliSense

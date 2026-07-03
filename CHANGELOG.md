@@ -6,6 +6,64 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-03
 
+### Added
+- **GLB 3D-model assets in the Game Studio Asset Viewer (learn-game-studio-3d-prd D-3D-09,
+  resolves OQ-3D-2).** Kids can now (1) **import** animated `.glb` models from local
+  (file picker / drag-drop — `glb` joins `IMPORTABLE_EXTENSIONS`, same ≤50 MB confirmed-upload
+  reveal), (2) **preview** them in a new lazy-loaded three.js stage (`panes/ModelPreview.tsx`:
+  lit scene, orbit controls, auto-framing) with **every animation clip listed as a switchable
+  chip** (first clip autoplays, crossfade on switch, play/pause; own chunk — three.js stays out
+  of the main bundle), and (3) **reference** them in the AI chat — new `AssetKind 'model'` with a
+  kind-aware "Copy 3D model reference" (bare VFS path, D-ASSET-15 contract). The sandbox chain:
+  `GLTFLoader` is now bundled into the vendored `window.THREE` global (`vite.config.ts`
+  `THREE_ADDONS`), and `.glb` is inlined as `model/gltf-binary` data URLs (`ASSET_MIME` +
+  `BINARY_ASSET_MIME`) so a three game loads a referenced model with `THREE.GLTFLoader`.
+  Tests: `assetMeta.test.ts` (model kind + label), `buildGamePreview.test.ts` (glb inlining),
+  a new Asset Viewer GLB import e2e (upload → clips switch → chat ref) and a 3D game-smoke e2e
+  (a three game loads the animated `.glb` via the global, plays a clip, runs clean); fixture
+  `e2e/fixtures/spin.glb` (+ its deterministic generator `make-spin-glb.mjs`).
+  Preview polish (user feedback): animation chips show the **short kid-facing label** — the last
+  `|` segment of rig-namespaced exporter names ("CharacterArmature|Death" → "Death"; full name on
+  the tooltip, collisions keep full names — `clipLabels` in `assetMeta.ts`); clips live in their
+  own **Animations panel** (count + play/pause + scrollable chips + hint) instead of a loose chip
+  row; the stage gains **zoom in / zoom out / reset-view** buttons; and a **"Copy name"** button
+  copies the active clip's FULL name (what `AnimationClip.findByName` needs) for the AI chat.
+  Fixture clips renamed to `CharacterArmature|Spin`/`|Bob` so the e2e proves shortening + full-name
+  copy against realistic exporter output.
+
+### Changed
+- **One inline Copy behaviour everywhere in the Asset Viewer (user feedback).** The reference
+  blocks (My assets / Library / Class) now use the same "Copied!"-on-the-button pattern as the
+  Animations "Copy name" — a shared `CopyButton` component (clipboard write + 1.5 s check-icon
+  confirmation) replaces the three hand-rolled Copy buttons and the copy-ref snackbar; the
+  snackbar stays for import/upload/class-add outcomes. e2e assert the inline `Copied!` state and
+  read the clipboard for the exact reference.
+- **3D model grid cards show the actual model (user feedback).** The Asset Viewer card for a
+  `.glb` renders a real framed still of the model (new lazily-imported `modelThumbnail.ts`: one
+  shared offscreen WebGL renderer, serialised renders, cached by content, icon fallback for
+  unparsable files) instead of the generic box icon. Shared scene plumbing (guarded loading
+  manager, stage lights, auto-framing) extracted to `modelScene.ts`, now used by both
+  `ModelPreview` and the thumbnailer — three.js remains a lazy chunk, out of the main bundle.
+- **Asset Viewer feedback is a snackbar, never a banner (user feedback).** Every Asset Viewer
+  operation notice ("Reference copied…", import results/blocks, upload failures, class-asset
+  add/errors) previously rendered as a layout-shifting banner strip across the top of the pane;
+  it is now a floating, auto-dismissing (3 s) snackbar pill at the bottom of the pane
+  (`role="status"`, `aria-live="polite"`, success/error tone icons, `pg-snack-in` slide-up honoring
+  `prefers-reduced-motion`). e2e assertions pinned to the `asset-snackbar` testid so a banner
+  regression fails the suite.
+
+### Fixed
+- **e2e mock harness caught up with the direct-to-S3 asset save + chat-ref copy.** The
+  route-mocked backend (`e2e/helpers.ts`) never mocked `vfs/assets/sign-upload`/the S3 PUT, so
+  every Asset Viewer import e2e silently failed since the presigned-upload save shipped; it now
+  mirrors the real sign → PUT bytes → save-with-references flow (CORS included) and rebuilds
+  asset content from the uploaded bytes. Also updated three stale specs: copy-ref expectations
+  (loader snippet → bare chat reference + new notice, PR #86 behaviour) and the `.txt` import
+  test (text files are BLOCKED from import by design — asserts the block notice). Added a
+  GET `/projects/:id` mock (regex-scoped so Vite module URLs under `…/projects/…` aren't
+  swallowed) with a new `engine` option for three-engine specs, and the game-signal recorder now
+  captures info logs (`__smokeLogs`).
+
 ### Changed
 - **Class-code login (`/learn/class-code`) now requires a display name.** The "What do you want
   to be called?" field was labelled `(optional)`; a kid could join with no name. It is now

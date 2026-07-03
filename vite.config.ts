@@ -27,8 +27,11 @@ import { configDefaults } from 'vitest/config';
 const PHASER_VERSION = '4.1.0';
 const THREE_VERSION = '0.184.0';
 // three.js addons bundled into the global (kid/agent reach them as `THREE.<name>`).
-// Keep this curated; add (e.g. GLTFLoader) when 3D model assets land (OQ‑3D‑2).
-const THREE_ADDONS = [['OrbitControls', 'three/addons/controls/OrbitControls.js']] as const;
+// Keep this curated. GLTFLoader powers `.glb` 3D-model assets (D-3D-09).
+const THREE_ADDONS = [
+  ['OrbitControls', 'three/addons/controls/OrbitControls.js'],
+  ['GLTFLoader', 'three/addons/loaders/GLTFLoader.js'],
+] as const;
 
 function pinnedVersion(pkgDir: string, expected: string, engine: string): void {
   const installed = JSON.parse(readFileSync(path.join(pkgDir, 'package.json'), 'utf8'))

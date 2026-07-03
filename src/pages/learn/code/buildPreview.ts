@@ -105,6 +105,8 @@ export const ASSET_MIME: Record<string, string> = {
   frag: 'text/plain',
   vert: 'text/plain',
   atlas: 'text/plain',
+  // 3D model (binary glTF) — THREE.GLTFLoader's FileLoader accepts data: URLs.
+  glb: 'model/gltf-binary',
 };
 
 function file(files: VfsFile[], path: string): string {

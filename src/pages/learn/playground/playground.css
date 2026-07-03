@@ -363,6 +363,21 @@
   animation: pg-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Asset Viewer snackbar: slides up + fades in at the bottom of the pane. */
+@keyframes pg-snack-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.pg-snack {
+  animation: pg-snack-in 0.18s ease-out both;
+}
+
 /* Agent highlight_code (D-PAP-08): a soft brand-purple wash on the line range the
    agent points at, so the kid sees exactly what changed. Monaco whole-line
    decoration; brand purple #7C5CFF matches the Game Runner title bar above. */
@@ -443,7 +458,8 @@
   .pg-file-in,
   .pg-indeterminate,
   .pg-ring-arc,
-  .pg-pop {
+  .pg-pop,
+  .pg-snack {
     animation: none;
   }
   /* Shimmer clips a transparent fill — restore a solid colour when held still. */

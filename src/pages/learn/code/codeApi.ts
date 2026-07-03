@@ -347,6 +347,8 @@ const BINARY_ASSET_MIME: Record<string, string> = {
   frag: 'text/plain',
   vert: 'text/plain',
   atlas: 'text/plain',
+  // 3D model (binary glTF, D-3D-09) — round-trips like any other binary asset.
+  glb: 'model/gltf-binary',
 };
 function binaryAssetMime(path: string): string | undefined {
   return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
