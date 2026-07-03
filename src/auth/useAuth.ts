@@ -97,7 +97,7 @@ export async function kidLogin(
 
 export async function classCodeLogin(
   classCode: string,
-  displayNickname?: string,
+  displayNickname: string,
 ): Promise<ClassCodeLoginResponse> {
   const res = await api<ClassCodeLoginResponse>('/auth/class-code-login', {
     method: 'POST',

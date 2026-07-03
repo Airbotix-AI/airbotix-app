@@ -6,6 +6,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-03
 
+### Changed
+- **Class-code login (`/learn/class-code`) now requires a display name.** The "What do you want
+  to be called?" field was labelled `(optional)`; a kid could join with no name. It is now
+  required (trimmed, 1–40 chars) with an inline validation error ("Please tell us your name."),
+  matching the "At class" request form which already required a typed name. Added
+  `ClassCodePage.test.tsx` covering the empty-name block, the removed `(optional)` label, and a
+  successful submit.
+
 ### Fixed
 - **Login mode toggle restyled to match the Learn design language.** The "Family code / At class"
   tabs were a heavy ink-filled pill next to a flat sky wash — off-style for the kid surface.
