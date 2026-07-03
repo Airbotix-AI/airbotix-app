@@ -578,6 +578,58 @@ describe('engine switch (D-3D-08 — confirm before rebuilding 2D⇄3D)', () => 
     });
   });
 
+  it('preserves the kid uploaded assets (e.g. an imported .glb) across the rebuild', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    const onApplyFiles = vi.fn();
+    // A 2D game with an imported 3D model + a sound the kid uploaded, alongside code.
+    const glb = { path: 'assets/imported/spin.glb', content: 'data:model/gltf-binary;base64,AA==', kind: 'asset' as const, size: 2 };
+    const sfx = { path: 'assets/imported/boing.wav', content: 'data:audio/wav;base64,BB==', kind: 'asset' as const, size: 2 };
+    const code = { path: 'main.js', content: 'phaser code', kind: 'text' as const, size: 11 };
+    const { result } = renderHook(() =>
+      useGameAgent({
+        files: [code, glb, sfx],
+        onApplyFiles,
+        projectId: 'p1',
+        mode: 'lite',
+        engine: 'phaser',
+        onEngineChange: vi.fn(),
+        deps,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.send('make the game 3D');
+    });
+    await act(async () => {
+      void result.current.confirmPending();
+      await waitFor(() => expect(deps.resetEngine).toHaveBeenCalled());
+    });
+
+    // The reset VFS = the clean 3D starter PLUS the carried-over assets, and NOT the
+    // old 2D code (main.js is the starter's, replaced — never the phaser one).
+    const resetArg = (deps.resetEngine as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+      files: { path: string; content: string }[];
+    };
+    const paths = resetArg.files.map((f) => f.path);
+    expect(paths).toContain('assets/imported/spin.glb');
+    expect(paths).toContain('assets/imported/boing.wav');
+    expect(paths).toContain('main.js'); // the 3D starter's main.js
+    expect(resetArg.files.find((f) => f.path === 'main.js')?.content).not.toBe('phaser code');
+    // The clean apply shows the same preserved-assets VFS (no lost uploads).
+    expect((onApplyFiles.mock.calls[0][0] as { path: string }[]).map((f) => f.path)).toEqual(
+      expect.arrayContaining(['assets/imported/spin.glb', 'assets/imported/boing.wav']),
+    );
+
+    // The rebuild prompt names the preserved assets so the agent can wire the model in.
+    await waitFor(() => expect(deps.runTurn).toHaveBeenCalled());
+    const runArg = (deps.runTurn as ReturnType<typeof vi.fn>).mock.calls[0][0] as { prompt: string };
+    expect(runArg.prompt).toContain('assets/imported/spin.glb');
+    await act(async () => {
+      resolveStream?.();
+    });
+  });
+
   it('cancel keeps the current engine and changes nothing', async () => {
     const deps = makeDeps();
     const onEngineChange = vi.fn();

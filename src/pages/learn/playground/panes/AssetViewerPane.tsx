@@ -49,6 +49,7 @@ import {
   CLASS_ASSET_DIR,
   decodeImageMeta,
   formatBytes,
+  isAssetFile,
   libraryChatRef,
   parseAnimSidecar,
   referenceLabel,
@@ -148,11 +149,8 @@ function importNotice(okCount: number, tooBig: File[], badType: File[] = []): st
   return `Imported ${okCount}. Skipped ${blocked}: ${reasons.join(', ')}.`;
 }
 
-function isAsset(f: VfsFile): boolean {
-  return f.kind === 'asset' || f.path.startsWith('assets/');
-}
 function isDisplayable(f: VfsFile): boolean {
-  return isAsset(f) && !f.path.endsWith(ANIM_SUFFIX);
+  return isAssetFile(f) && !f.path.endsWith(ANIM_SUFFIX);
 }
 
 function basename(path: string): string {

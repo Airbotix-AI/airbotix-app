@@ -153,6 +153,34 @@ describe('runAgentTurn — images in the body only when present', () => {
     const opts = api.mock.calls[0][1] as { body: Record<string, unknown> };
     expect(opts.body).not.toHaveProperty('images');
   });
+
+  it('normalizes turn-result asset content to a studio data: URL (raw base64 → data:)', async () => {
+    // The backend turn result carries the FULL post-turn VFS with binary assets as
+    // RAW base64 (readAllFiles). Without normalization, an imported .glb / image that
+    // rides along in the VFS lands in the studio store as bare base64 and can't render
+    // ("Couldn't open this 3D model"). This bites hardest on the 2D→3D engine switch,
+    // whose rebuild turn re-applies the whole VFS incl. the preserved model.
+    api.mockResolvedValue({
+      turn_id: 't',
+      changes: [{ path: 'assets/imported/spin.glb', before: null, after: 'QUJD', kind: 'asset' }],
+      files: [
+        { path: 'main.js', content: 'const scene = new THREE.Scene();', kind: 'text', size: 10 },
+        { path: 'assets/imported/spin.glb', content: 'QUJD', kind: 'asset', size: 3 },
+        { path: 'assets/hero.png', content: 'aGVsbG8=', kind: 'asset', size: 5 },
+      ],
+      version: 3,
+      stars_charged: 0,
+    });
+    const res = await runAgentTurn({ projectId: 'p1', prompt: 'make it 3D', mode: 'lite' });
+    const glb = res.files.find((f) => f.path === 'assets/imported/spin.glb');
+    const png = res.files.find((f) => f.path === 'assets/hero.png');
+    const code = res.files.find((f) => f.path === 'main.js');
+    expect(glb?.content).toBe('data:model/gltf-binary;base64,QUJD');
+    expect(png?.content).toBe('data:image/png;base64,aGVsbG8=');
+    // Text files pass through untouched; the diff `changes[].after` stays raw base64.
+    expect(code?.content).toBe('const scene = new THREE.Scene();');
+    expect(res.changes[0].after).toBe('QUJD');
+  });
 });
 
 describe('signChatImageUpload + uploadChatImage — presign then S3 PUT', () => {
