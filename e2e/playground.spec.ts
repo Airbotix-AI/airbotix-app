@@ -483,10 +483,11 @@ test('editor lazy-loads the vendored Phaser .d.ts for IntelliSense', async ({ pa
   await mockBackendAsKid(page);
   // Arm the wait BEFORE the editor mounts (Monaco onMount triggers the fetch).
   // Assert the RESPONSE (not just the request) is 200 — the .d.ts is now
-  // materialized from the `phaser` npm dep by the vendor-phaser Vite plugin, so
-  // this also guards that the build-time copy actually served the file.
+  // materialized from the `phaser` npm dep by the vendor-engines Vite plugin, so
+  // this also guards that the build-time copy actually served the file. The
+  // filename is CONTENT-HASHED (phaser-4.1.0-<hash>.d.ts), so match by pattern.
   const dtsResponse = page.waitForResponse(
-    (r) => r.url().includes('/vendor/phaser-4.1.0.d.ts'),
+    (r) => /\/vendor\/phaser-4\.1\.0[.-][\w.]*\.d\.ts/.test(r.url()),
     { timeout: 15_000 },
   );
   await openStudio(page);

@@ -71,14 +71,17 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     const phaser = buildGamePreview(FILES, { engine: 'phaser' }).srcDoc;
     // Omitting engine is byte-identical to engine:'phaser' (no behaviour change for 2D games).
     expect(def).toBe(phaser);
-    expect(def).toContain('/vendor/phaser-4.1.0.min.js');
+    // The vendored URL is version-pinned but CONTENT-HASHED in a real build
+    // (three-0.184.0-<hash>.global.js); under vitest the plugin serves the
+    // unhashed fallback. Match either so the assertion holds in both.
+    expect(def).toMatch(/\/vendor\/phaser-4\.1\.0[.\w-]*\.min\.js/);
     expect(def).toContain('window.Phaser.Game'); // the constructor-wrap control shim
     expect(def).not.toContain('/vendor/three-');
   });
 
   it('engine:three loads the three.js global + the three control shim, not Phaser', () => {
     const doc = buildGamePreview(FILES, { engine: 'three' }).srcDoc;
-    expect(doc).toContain('/vendor/three-0.184.0.global.js');
+    expect(doc).toMatch(/\/vendor\/three-0\.184\.0[.\w-]*\.global\.js/);
     expect(doc).toContain('if (!window.THREE)'); // the three load guard
     expect(doc).toContain('window.__game'); // the three control contract
     expect(doc).not.toContain('/vendor/phaser-');
@@ -120,5 +123,24 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     const doc = buildGamePreview([game, glb], { engine: 'three' }).srcDoc;
     expect(doc).toContain("load('data:model/gltf-binary;base64,Z2xURg==',");
     expect(doc).not.toContain("'assets/imported/robot.glb'");
+  });
+
+  it('inlines a .glb whose path contains SPACES (real imported filenames, D-3D-09)', () => {
+    // Imported models keep their original names, which routinely contain spaces
+    // ("Cube Guy Character.glb"). The path must still be matched + inlined so the
+    // sandbox never falls back to fetching a relative URL that 404s.
+    const glb: VfsFile = {
+      path: 'assets/imported/Cube Guy Character.glb',
+      content: 'Z2xURg==',
+      kind: 'asset',
+      size: 4,
+    };
+    const game = text(
+      'main.js',
+      "new THREE.GLTFLoader().load('assets/imported/Cube Guy Character.glb', (g) => scene.add(g.scene));",
+    );
+    const doc = buildGamePreview([game, glb], { engine: 'three' }).srcDoc;
+    expect(doc).toContain("load('data:model/gltf-binary;base64,Z2xURg==',");
+    expect(doc).not.toContain("'assets/imported/Cube Guy Character.glb'");
   });
 });

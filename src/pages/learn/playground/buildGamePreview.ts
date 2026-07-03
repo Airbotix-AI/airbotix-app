@@ -26,14 +26,16 @@
 // code studio defers in `buildPreview.ts`. Robust for the common case (a handful
 // of sprites/sounds); a dedicated preview origin is deferred to V1.
 
+import { PHASER_VENDOR_URL, THREE_VENDOR_URL } from 'virtual:engine-vendors';
+
 import type { VfsFile } from '../code/codeApi';
 import { ASSET_MIME, CONSOLE_CAPTURE, EXTENSION_NOISE_GUARD } from '../code/buildPreview';
 
 // Re-export the console protocol so game components import it from one place.
 export { isConsoleMessage, type ConsoleLine } from '../code/buildPreview';
 
-/** Self-hosted Phaser build. Version-pinned; vendored in `public/vendor/`. */
-const PHASER_SRC = '/vendor/phaser-4.1.0.min.js';
+/** Self-hosted Phaser build (content-hashed `/vendor/…` URL from the engine plugin). */
+const PHASER_SRC = PHASER_VENDOR_URL;
 
 /** Friendly guard shown if the vendored Phaser file fails to load (network/CSP). */
 const PHASER_GUARD = `
@@ -114,8 +116,8 @@ const GAME_CONTROL = `
 })();
 </script>`;
 
-/** Self-hosted three.js global build (esbuild IIFE → `window.THREE`). Version-pinned in `public/vendor/`. */
-const THREE_SRC = '/vendor/three-0.184.0.global.js';
+/** Self-hosted three.js global build (esbuild IIFE → `window.THREE`; content-hashed `/vendor/…` URL). */
+const THREE_SRC = THREE_VENDOR_URL;
 
 /** Friendly guard shown if the vendored three.js file fails to load (network/CSP). */
 const THREE_GUARD = `

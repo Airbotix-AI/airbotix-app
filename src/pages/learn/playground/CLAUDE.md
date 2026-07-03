@@ -48,16 +48,21 @@ Two engines, both **self-hosted globals** (no CDN), **not committed**, materiali
 `vendor-engines` Vite plugin (`vite.config.ts`, `buildStart`) on every dev/build, injected as a
 classic `<script src="/vendor/…">`. `BuildGameOptions.engine` (`'phaser'`|`'three'`, default
 `phaser`) picks the `EngineProfile` in `buildGamePreview.ts`; everything else in the srcdoc is
-engine-agnostic.
-- **Phaser 4.1.0** — UMD copied verbatim → `public/vendor/phaser-<v>.min.js` + `.d.ts` →
+engine-agnostic. Filenames are **content-hashed** (`three-<v>-<hash>.global.js`) — the app never
+hardcodes them; `buildGamePreview.ts` + `MonacoEditor.tsx` import the resolved URLs from
+`virtual:engine-vendors`. Hashing is **load-bearing for cache-busting**: the files ship
+`immutable, max-age=1yr`, so a fixed name would let a browser/CDN serve a STALE engine (e.g. a
+pre-GLTFLoader `THREE` → "GLTFLoader is not available") after a deploy; the hash changes the URL
+iff the bytes do.
+- **Phaser 4.1.0** — UMD copied verbatim → `public/vendor/phaser-<v>-<hash>.min.js` + `.d.ts` →
   `window.Phaser`. Missing → "Phaser is not defined".
 - **three.js 0.184.0** — ESM-only since r160, so it's **esbuild-bundled into a `window.THREE`
-  global IIFE** (+ curated addons: `OrbitControls`, `GLTFLoader`) → `public/vendor/three-<v>.global.js`.
+  global IIFE** (+ curated addons: `OrbitControls`, `GLTFLoader`) → `public/vendor/three-<v>-<hash>.global.js`.
   Missing → "Could not load the 3D game engine". (D-3D-02; idiomatic ESM/import-map is deferred,
   OQ-3D-5.)
-- **Upgrade:** `npm i <engine>@<new>`, then bump its `*_VERSION` (`vite.config.ts`) + the
-  `/vendor/<engine>-<v>…` constants in `buildGamePreview.ts` (+ `panes/MonacoEditor.tsx` for Phaser
-  types) — the plugin throws on mismatch.
+- **Upgrade:** `npm i <engine>@<new>`, then bump its `*_VERSION` (`vite.config.ts`) — the hashed
+  URLs flow through `virtual:engine-vendors`, so there are no path constants to update. The plugin
+  throws on version drift.
 
 ## Control channel (pause / mute / stats) — `postMessage` only
 

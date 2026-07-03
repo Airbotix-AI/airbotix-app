@@ -93,8 +93,9 @@ playground/
     └── gameAgentStub.ts      # the local stub AI turn (no network)
 ```
 
-Phaser itself is vendored (self-hosted, not a CDN) at
-`public/vendor/phaser-4.1.0.min.js`. Monaco is an npm dep but lazy-loaded with
+Phaser itself is vendored (self-hosted, not a CDN) at a content-hashed
+`public/vendor/phaser-4.1.0-<hash>.min.js` (the app reads the URL from
+`virtual:engine-vendors`). Monaco is an npm dep but lazy-loaded with
 self-hosted workers (also no CDN). Windows mode uses `react-rnd@^10`; Split mode
 + the editor split use `react-resizable-panels@^2`.
 

@@ -53,6 +53,26 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   regression fails the suite.
 
 ### Fixed
+- **`GLTFLoader is not available` / 3D models not loading — stale immutable cache of the vendored
+  engine (learn-game-studio-3d-prd D-3D-09).** The self-hosted `/vendor/` engine globals had a
+  FIXED, version-only filename yet shipped `immutable, max-age=1yr` (deploy.yml) with CloudFront
+  invalidation covering only `/index.html` — so the D-3D-09 deploy that added `GLTFLoader` to the
+  `window.THREE` bundle overwrote the same URL, and any browser/edge that had cached the pre-GLTFLoader
+  bytes kept serving them for a year (a `THREE` with no `GLTFLoader` → the sandbox game threw; the
+  model never loaded). Refreshing flipped it because different caches were hit. Fix: the
+  `vendor-engines` plugin now emits **content-hashed** filenames (`three-<v>-<hash>.global.js`,
+  `phaser-<v>-<hash>.min.js`/`.d.ts`) so the URL changes iff the bytes do — `immutable` becomes
+  correct and a stale cache can never mask an engine change. The app reads the resolved URLs from a
+  new `virtual:engine-vendors` module (`buildGamePreview.ts` + `MonacoEditor.tsx`) instead of
+  hardcoding paths; no engine-path constants remain. Guarded by the 3D game-smoke e2e (asserts the
+  srcdoc loads a `three-<v>-<8hex>.global.js` URL) + the `.d.ts` lazy-load e2e (hash-tolerant).
+- **Detail-view 3D preview intermittently showed "Couldn't open this 3D model" while the list
+  thumbnail rendered fine.** `ModelPreview` loaded the model with `GLTFLoader.load(blobURL)` — a
+  real `fetch()` of an object URL, with a blob lifecycle that could race StrictMode/cleanup and that
+  a strict `connect-src` CSP can block — whereas the working grid thumbnail parses the raw bytes.
+  `ModelPreview` now uses the same `GLTFLoader.parse(arrayBuffer)` path (no blob URL, no network
+  fetch, same sub-resource guard), so the detail stage is as robust as the thumbnail. Covered by the
+  cross-repo `kid-playground-model` journey (the stage renders + clips switch after a real reload).
 - **e2e mock harness caught up with the direct-to-S3 asset save + chat-ref copy.** The
   route-mocked backend (`e2e/helpers.ts`) never mocked `vfs/assets/sign-upload`/the S3 PUT, so
   every Asset Viewer import e2e silently failed since the presigned-upload save shipped; it now

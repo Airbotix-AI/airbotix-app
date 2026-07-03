@@ -1,5 +1,6 @@
 import { default as Editor } from '@monaco-editor/react'
 import { useEffect, useRef } from 'react'
+import { PHASER_DTS_URL } from 'virtual:engine-vendors'
 
 import { usePlaygroundStore } from '../playgroundStore'
 import { jsDefaults, monaco } from './monacoSetup'
@@ -10,11 +11,11 @@ import { jsDefaults, monaco } from './monacoSetup'
 // (above) so completion/hover/definition work WITHOUT nagging red squiggles.
 //
 // Self-hosted + lazy: fetched from `/vendor/` (no CDN, platform rule) the first
-// time any editor mounts, never bundled into the app JS. The ~6 MB file is
-// parsed by the TS worker on its own thread. We strip the leading
+// time any editor mounts, never bundled into the app JS. The URL is the
+// content-hashed one the engine plugin resolved (`virtual:engine-vendors`). The
+// ~6 MB file is parsed by the TS worker on its own thread. We strip the leading
 // `/// <reference types="./matter" />` — it points at Matter physics types we
 // don't vendor, and a dangling reference would fail to resolve.
-const PHASER_DTS_URL = '/vendor/phaser-4.1.0.d.ts'
 let phaserTypesLoaded = false
 async function loadPhaserTypes(): Promise<void> {
   if (phaserTypesLoaded) return

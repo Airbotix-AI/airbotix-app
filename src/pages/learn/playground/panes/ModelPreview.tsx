@@ -22,12 +22,12 @@ import { addStageLights, frameCamera, guardedLoadingManager, STAGE_BG } from './
 
 interface ModelPreviewProps {
   /**
-   * The asset's VFS `content` (a `data:` URL). NOT a shared blob: URL — the
-   * effect below derives its own object URL per run and revokes it on cleanup,
-   * so StrictMode's dev double-mount can never hand GLTFLoader a revoked URL
-   * (useObjectUrl memoises one URL across the double-mount but revokes it in the
-   * first cleanup — fine for an <img> that fetched at render, fatal for a loader
-   * that fetches in the SECOND effect run).
+   * The asset's VFS `content` (a `data:` URL). Parsed from its raw BYTES — the
+   * same path the grid thumbnail (`modelThumbnail.ts`) uses — NOT fetched as a
+   * blob: URL via `GLTFLoader.load()`. That means: no object-URL lifecycle to
+   * race against StrictMode's dev double-mount (a URL revoked in the first
+   * cleanup would poison the second effect run), and no network fetch at all — a
+   * strict `connect-src` CSP can't block an in-memory `.parse()`.
    */
   src: string;
 }
@@ -114,54 +114,53 @@ export default function ModelPreview({ src }: ModelPreviewProps) {
     };
     handlesRef.current = handles;
 
-    // Own object URL per effect run (see the prop doc — StrictMode safety).
-    let url = src;
-    let ownedUrl: string | null = null;
-    if (src.startsWith('data:')) {
-      try {
-        ownedUrl = URL.createObjectURL(dataUrlToBlob(src));
-        url = ownedUrl;
-      } catch {
-        // malformed data URL — let GLTFLoader fail on it and show the error state
-      }
-    }
-
-    // Sub-resource guard (see modelScene.guardedLoadingManager — a crafted GLB
-    // must never fetch external URLs from the trusted pane).
-    new GLTFLoader(guardedLoadingManager()).load(
-      url,
-      (gltf) => {
+    // Parse from the model's raw BYTES (identical to the grid thumbnail), not
+    // GLTFLoader.load()'s fetch of a blob: URL: no blob lifecycle to race against
+    // StrictMode/cleanup and no network fetch in the trusted pane (a strict
+    // connect-src CSP would block a blob fetch — parse never touches the network).
+    // The sub-resource guard (modelScene.guardedLoadingManager) still blocks any
+    // external URIs a crafted GLB might reference.
+    const fail = () => {
+      // Guarded like the success path: a stale load (model switched away) must
+      // not poison the NEXT model's state.
+      if (disposed) return;
+      cancelAnimationFrame(rafId); // the error view has no stage — stop the loop
+      setError(true);
+    };
+    void dataUrlToBlob(src)
+      .arrayBuffer()
+      .then((bytes) => {
         if (disposed) return;
-        scene.add(gltf.scene);
+        new GLTFLoader(guardedLoadingManager()).parse(
+          bytes,
+          '',
+          (gltf) => {
+            if (disposed) return;
+            scene.add(gltf.scene);
 
-        frameCamera(camera, gltf.scene, controls.target);
-        handles.home = { position: camera.position.clone(), target: controls.target.clone() };
+            frameCamera(camera, gltf.scene, controls.target);
+            handles.home = { position: camera.position.clone(), target: controls.target.clone() };
 
-        if (gltf.animations.length > 0) {
-          const mixer = new THREE.AnimationMixer(gltf.scene);
-          handles.mixer = mixer;
-          for (const clip of gltf.animations) {
-            handles.actions.set(clip.name, mixer.clipAction(clip));
-          }
-          const first = gltf.animations[0].name;
-          const action = handles.actions.get(first);
-          if (action) {
-            action.play();
-            handles.current = action;
-          }
-          setClips(gltf.animations.map((c) => c.name));
-          setActiveClip(first);
-        }
-      },
-      undefined,
-      () => {
-        // Guarded like the success path: a stale load (model switched away, its
-        // blob URL revoked by cleanup) must not poison the NEXT model's state.
-        if (disposed) return;
-        cancelAnimationFrame(rafId); // the error view has no stage — stop the loop
-        setError(true);
-      },
-    );
+            if (gltf.animations.length > 0) {
+              const mixer = new THREE.AnimationMixer(gltf.scene);
+              handles.mixer = mixer;
+              for (const clip of gltf.animations) {
+                handles.actions.set(clip.name, mixer.clipAction(clip));
+              }
+              const first = gltf.animations[0].name;
+              const action = handles.actions.get(first);
+              if (action) {
+                action.play();
+                handles.current = action;
+              }
+              setClips(gltf.animations.map((c) => c.name));
+              setActiveClip(first);
+            }
+          },
+          fail,
+        );
+      })
+      .catch(fail); // malformed content (bad data URL) — same error state
 
     const clock = new THREE.Clock();
     const loop = () => {
@@ -184,7 +183,6 @@ export default function ModelPreview({ src }: ModelPreviewProps) {
       // then evicts the OLDEST context — potentially the running game's).
       renderer.forceContextLoss();
       mount.removeChild(renderer.domElement);
-      if (ownedUrl) URL.revokeObjectURL(ownedUrl);
       handlesRef.current = null;
     };
   }, [src]);
