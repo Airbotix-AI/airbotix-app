@@ -9,7 +9,7 @@ import { ApiError } from '@/lib/api';
 
 const schema = z.object({
   class_code: z.string().min(4).max(12),
-  display_nickname: z.string().min(1).max(40).optional(),
+  display_nickname: z.string().trim().min(1, 'Please tell us your name.').max(40),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -61,7 +61,7 @@ export function ClassCodePage() {
           </label>
 
           <label className="block">
-            <span className="label-k12">What do you want to be called? (optional)</span>
+            <span className="label-k12">What do you want to be called?</span>
             <input
               type="text"
               autoComplete="off"
@@ -69,6 +69,9 @@ export function ClassCodePage() {
               placeholder="Mia"
               {...register('display_nickname')}
             />
+            {errors.display_nickname && (
+              <span className="field-error">{errors.display_nickname.message}</span>
+            )}
           </label>
 
           {error && (
