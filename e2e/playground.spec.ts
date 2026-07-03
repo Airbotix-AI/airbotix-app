@@ -545,15 +545,16 @@ test('asset viewer: AI-generates an asset and shows its code-ref (split tab)', a
   await page.getByRole('button', { name: 'Generate', exact: true }).click();
 
   // Generation runs in the chat (one AI turn at a time) and finishes as a
-  // tappable asset card; tapping it opens the asset back in the viewer with a
-  // copy-able Phaser loader snippet.
+  // tappable asset card; tapping it opens the asset back in the viewer with its
+  // copy-able chat reference (the bare VFS path — the kid pastes it to the AI).
   await page.getByTestId('chat-asset-open').click({ timeout: 8_000 });
-  await expect(
-    page.getByText("this.load.image('a_happy_coin', 'assets/generated/a_happy_coin.svg')"),
-  ).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByTestId('asset-codeRef')).toHaveText(
+    'assets/generated/a_happy_coin.svg',
+    { timeout: 5_000 },
+  );
 });
 
-test('asset viewer: import an image → grid card + code-ref + Copy', async ({ page }) => {
+test('asset viewer: import an image → grid card + chat ref + Copy', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: /Split/ }).click();
   await page.getByRole('tab', { name: /Assets/ }).click();
@@ -564,25 +565,87 @@ test('asset viewer: import an image → grid card + code-ref + Copy', async ({ p
     buffer: TINY_PNG,
   });
 
-  // Card appears in the grid; open it → exact loader snippet → Copy confirms.
+  // Card appears in the grid (upload confirmed); open it → the bare-path chat
+  // reference → Copy confirms inline on the button (the "Copy name" pattern).
   await page.getByText('hero.png').click({ timeout: 5_000 });
-  await expect(page.getByText("this.load.image('hero', 'assets/imported/hero.png')")).toBeVisible();
-  await page.getByRole('button', { name: 'Copy' }).click();
-  await expect(page.getByText('Code copied — paste it into your game.')).toBeVisible();
+  await expect(page.getByTestId('asset-codeRef')).toHaveText('assets/imported/hero.png');
+  await page.getByTestId('asset-copy-ref').click();
+  await expect(page.getByTestId('asset-copy-ref')).toHaveText(/Copied!/);
 });
 
-test('asset viewer: a text asset previews as plain text', async ({ page }) => {
+test('asset viewer: import a .glb → animated 3D preview with switchable clips + chat ref (D-3D-09)', async ({ page }) => {
   await reachWorkspace(page);
   await page.getByRole('button', { name: /Split/ }).click();
   await page.getByRole('tab', { name: /Assets/ }).click();
-  // Import a text file → opening it shows its text content in the preview.
+
+  // Upload from local: the fixture is a real animated GLB with TWO clips.
+  await page.setInputFiles('input[type="file"]', 'e2e/fixtures/spin.glb');
+
+  // Card lands under My assets, classified as a 3D model, with a rendered
+  // thumbnail of the actual model (not a generic icon).
+  const card = page.locator('[data-testid="asset-card"]', { hasText: 'spin.glb' });
+  await expect(card).toBeVisible({ timeout: 5_000 });
+  await expect(card.getByText('model')).toBeVisible();
+  await expect(card.getByTestId('model-thumb')).toBeVisible({ timeout: 10_000 });
+
+  // Open it → the three.js stage renders and lists EVERY animation clip. The
+  // fixture's clips are rig-namespaced ("CharacterArmature|Spin") — the chips
+  // show the SHORT kid-facing labels, with the full name kept on the tooltip.
+  await card.click();
+  const stage = page.getByTestId('model-stage');
+  await expect(stage).toBeVisible();
+  await expect(stage.locator('canvas')).toBeVisible({ timeout: 10_000 });
+  const chips = page.getByTestId('model-anim-chip');
+  await expect(chips).toHaveText(['Spin', 'Bob'], { timeout: 10_000 });
+  await expect(chips.first()).toHaveAttribute('title', 'CharacterArmature|Spin');
+
+  // Clips are switchable: the first autoplays; picking another activates it.
+  await expect(chips.filter({ hasText: 'Spin' })).toHaveAttribute('aria-pressed', 'true');
+  await chips.filter({ hasText: 'Bob' }).click();
+  await expect(chips.filter({ hasText: 'Bob' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(chips.filter({ hasText: 'Spin' })).toHaveAttribute('aria-pressed', 'false');
+
+  // "Copy name" copies the ACTIVE clip's FULL name — the exact string game code
+  // needs — even though the chip shows the short label.
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByTestId('model-copy-anim').click();
+  await expect(page.getByTestId('model-copy-anim')).toHaveText(/Copied!/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'CharacterArmature|Bob',
+  );
+
+  // View controls: zoom in/out + reset live on the stage.
+  await page.getByTestId('model-zoom-in').click();
+  await page.getByTestId('model-zoom-out').click();
+  await page.getByTestId('model-reset-view').click();
+  await expect(stage.locator('canvas')).toBeVisible();
+
+  // Chat reference: kind-aware label + the bare VFS path to paste to the AI.
+  // Same inline-feedback Copy behaviour as "Copy name" (Copied! on the button).
+  await expect(page.getByText('Copy 3D model reference')).toBeVisible();
+  await expect(page.getByTestId('asset-codeRef')).toHaveText('assets/imported/spin.glb');
+  await page.getByTestId('asset-copy-ref').click();
+  await expect(page.getByTestId('asset-copy-ref')).toHaveText(/Copied!/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'assets/imported/spin.glb',
+  );
+});
+
+test('asset viewer: a text file is blocked from import (authored in the editor instead)', async ({ page }) => {
+  await reachWorkspace(page);
+  await page.getByRole('button', { name: /Split/ }).click();
+  await page.getByRole('tab', { name: /Assets/ }).click();
+  // Code/text is NOT importable (it's authored in the editor and runs through the
+  // kid-safety scan) — the import is blocked with a clear message, no card appears.
   await page.setInputFiles('input[type="file"]', {
     name: 'notes.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from('Drop sprites/sounds here.'),
   });
-  await page.getByText('notes.txt').click({ timeout: 5_000 });
-  await expect(page.getByText(/Drop sprites\/sounds here/)).toBeVisible();
+  await expect(page.getByTestId('asset-snackbar')).toContainText('not a supported file type', {
+    timeout: 5_000,
+  });
+  await expect(page.getByText('notes.txt', { exact: true })).toHaveCount(0);
 });
 
 // ── Chat-first launch ────────────────────────────────────────────────────────

@@ -6,7 +6,7 @@
 import type { VfsFile } from '../../code/codeApi';
 import type { ClassAssetView } from './playgroundApi';
 
-export type AssetKind = 'image' | 'sprite' | 'audio' | 'video' | 'text' | 'other';
+export type AssetKind = 'image' | 'sprite' | 'audio' | 'video' | 'model' | 'text' | 'other';
 
 /** Frame grid for a sprite-strip animation, from a `<path>.anim.json` sidecar. */
 export interface AnimMeta {
@@ -24,6 +24,8 @@ export interface ImageMeta {
 export const IMAGE_EXTS: readonly string[] = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
 export const AUDIO_EXTS: readonly string[] = ['mp3', 'wav', 'ogg', 'm4a'];
 export const VIDEO_EXTS: readonly string[] = ['mp4', 'webm'];
+/** 3D model assets (GLB = binary glTF), rendered by the three engine (D-3D-09). */
+export const MODEL_EXTS: readonly string[] = ['glb'];
 const TEXT_EXTS: readonly string[] = ['css', 'txt', 'json', 'md'];
 
 const ASSETS_PREFIX = 'assets/';
@@ -56,6 +58,7 @@ export function animSidecarPath(path: string): string {
  */
 export function assetKindOf(path: string, files?: VfsFile[]): AssetKind {
   const ext = extOf(path);
+  if (MODEL_EXTS.includes(ext)) return 'model';
   if (VIDEO_EXTS.includes(ext)) return 'video';
   if (AUDIO_EXTS.includes(ext)) return 'audio';
   if (IMAGE_EXTS.includes(ext)) {
@@ -115,6 +118,7 @@ const KIND_NOUN: Record<AssetKind, string> = {
   sprite: 'sprite sheet',
   audio: 'sound',
   video: 'video',
+  model: '3D model',
   text: 'file',
   other: 'file',
 };
@@ -150,6 +154,30 @@ export const CLASS_ASSET_DIR = 'assets/class';
  */
 export function classAssetChatRef(asset: ClassAssetView): string {
   return `${CLASS_ASSET_DIR}/${asset.name}`;
+}
+
+// ── 3D model animation clips (D-3D-09c) ─────────────────────────────────────
+
+/**
+ * Kid-facing labels for a model's animation clips. Exported GLBs commonly
+ * namespace clip names with the rig ("CharacterArmature|Death") — the label is
+ * the LAST `|` segment ("Death"), while the FULL name stays the playback/copy
+ * key (game code needs the exact clip name). When shortening two clips to the
+ * same label, both keep their full names so the chips stay distinguishable.
+ */
+export function clipLabels(names: readonly string[]): Map<string, string> {
+  const short = (n: string) => n.split('|').pop()?.trim() || n;
+  const counts = new Map<string, number>();
+  for (const n of names) {
+    const s = short(n);
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  return new Map(
+    names.map((n) => {
+      const s = short(n);
+      return [n, (counts.get(s) ?? 0) > 1 ? n : s];
+    }),
+  );
 }
 
 export function formatBytes(n: number): string {

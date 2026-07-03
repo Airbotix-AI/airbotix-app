@@ -4,10 +4,11 @@
 //   - sprite → same, plus a frame animation player (from the .anim.json sidecar)
 //   - audio  → wavesurfer.js waveform + play/pause (existing dep, no DOM hack)
 //   - video  → inline <video> player
+//   - model  → lazy three.js GLB stage with switchable animation clips (D-3D-09)
 // Backgrounds use inline styles (a QA tool surface, not themeable chrome), so no
 // raw hex leaks into Tailwind classes.
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
 import clsx from 'clsx';
 import { Pause, Play, SkipForward } from 'lucide-react';
@@ -17,6 +18,9 @@ import type { VfsFile } from '../../code/codeApi';
 import { animSidecarPath, assetKindOf, dataUrlToText, parseAnimSidecar, type AnimMeta } from './assetMeta';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 import { useObjectUrl } from './useObjectUrl';
+
+// three.js enters the app bundle ONLY when a kid actually opens a 3D model.
+const ModelPreview = lazy(() => import('./ModelPreview'));
 
 interface AssetPreviewProps {
   asset: VfsFile;
@@ -168,6 +172,22 @@ export function AssetPreview({ asset, files }: AssetPreviewProps) {
   if (kind === 'video') {
     return (
       <video src={src} controls className="max-h-[420px] w-full rounded-xl bg-black" />
+    );
+  }
+
+  if (kind === 'model') {
+    // Pass the raw VFS content, not the shared blob URL — ModelPreview owns its
+    // object-URL lifecycle (see its prop doc; StrictMode safety).
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-[300px] items-center justify-center rounded-xl bg-pg-surface-2 text-[13px] text-pg-text-dim">
+            Opening 3D model…
+          </div>
+        }
+      >
+        <ModelPreview src={asset.content} />
+      </Suspense>
     );
   }
 

@@ -110,6 +110,8 @@ interface MockBackendOpts {
   pro?: boolean;
   /** Override the seeded VFS the GET /code/files serves. Default STARTER_PROJECT. */
   files?: VfsFile[];
+  /** Game engine served by GET /projects/:id (D-3D-01). Default 'phaser'. */
+  engine?: 'phaser' | 'three';
 }
 
 /**
@@ -138,6 +140,18 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
   await page.route('**/families/*/wallet*', (route) =>
     route.fulfill(json({ stars_balance: stars, daily_used: 0, daily_cap: 100, paused: false })),
   );
+
+  // ── The project record (GET /projects/:id — engine, D-3D-01) ─────────────────
+  // A REGEX, not the `**/projects/*` glob: the glob would also match Vite's dev
+  // module URLs under `src/pages/learn/projects/…` and JSON-fulfill the app's own
+  // source files (the studio never boots). Anchor to the API's `/projects/<id>`
+  // (nothing after the id) and skip anything from the Vite module graph.
+  await page.route(/^https?:\/\/[^/]+\/projects\/[^/?#]+$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill(
+      json({ id: STUDIO_PROJECT_ID, kind: 'game', engine: opts.engine ?? 'phaser', visibility: 'private' }),
+    );
+  });
 
   // ── Hub queries (kept deterministic) ─────────────────────────────────────────
   await page.route('**/kids/*/projects*', (route) => route.fulfill(json([])));
@@ -205,14 +219,69 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
     return route.fulfill(json(turnResult()));
   });
 
+  // ── Direct-to-S3 asset upload (saveVfs: sign-upload → PUT bytes → save refs) ──
+  // Mirrors the real flow: the presign returns an absolute (mock) S3 URL, the PUT
+  // stores the bytes here, and the manifest save below rebuilds each `uploaded`
+  // reference from them — so an imported asset round-trips with its real content.
+  const uploadedAssets = new Map<string, { mime: string; base64: string }>();
+  const S3_MOCK_ORIGIN = 'https://s3.e2e.mock';
+  await page.route('**/projects/*/vfs/assets/sign-upload', (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const { path, content_type } = route.request().postDataJSON() as {
+      path: string;
+      content_type: string;
+    };
+    return route.fulfill(
+      json({
+        url: `${S3_MOCK_ORIGIN}/${STUDIO_PROJECT_ID}/${path}`,
+        method: 'PUT',
+        // The real presign returns the headers the PUT must carry (the client
+        // prefers these over blob.type) — mirror that branch, not the fallback.
+        headers: { 'Content-Type': content_type },
+        s3_key: `vfs/${STUDIO_PROJECT_ID}/${path}`,
+      }),
+    );
+  });
+  await page.route(`${S3_MOCK_ORIGIN}/**`, (route) => {
+    // The presigned PUT is cross-origin from the app, so the mock must speak CORS
+    // (preflight + response headers) exactly like real S3 with a CORS policy.
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'PUT, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+    };
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    if (req.method() !== 'PUT') return route.continue();
+    const path = new URL(req.url()).pathname.split('/').slice(2).join('/');
+    const buf = req.postDataBuffer();
+    uploadedAssets.set(path, {
+      mime: req.headers()['content-type'] ?? 'application/octet-stream',
+      base64: buf ? buf.toString('base64') : '',
+    });
+    return route.fulfill({ status: 200, headers: cors, body: '' });
+  });
+
   // ── The STATEFUL VFS (GET seeded from the scaffold; PUT bumps the version) ────
   await page.route('**/projects/*/code/files', (route) => {
     if (route.request().method() === 'GET') {
       return route.fulfill(json({ files: persistedFiles, version }));
     }
-    // PUT autosave — adopt the saved files, bump the version, echo it back.
-    const body = route.request().postDataJSON() as { files: VfsFile[]; version: number };
-    persistedFiles = body.files;
+    // PUT autosave — adopt the saved manifest, bump the version, echo it back.
+    // Text arrives inline; an asset arrives as `{ path, uploaded: true }` — rebuild
+    // its content from the S3-mock bytes (or keep the previously persisted copy).
+    const body = route.request().postDataJSON() as {
+      files: Array<{ path: string; content?: string; uploaded?: boolean }>;
+    };
+    persistedFiles = body.files.map((f): VfsFile => {
+      if (f.uploaded) {
+        const up = uploadedAssets.get(f.path);
+        const prev = persistedFiles.find((p) => p.path === f.path);
+        const content = up ? `data:${up.mime};base64,${up.base64}` : (prev?.content ?? '');
+        return { path: f.path, kind: 'asset', content, size: content.length };
+      }
+      return { path: f.path, kind: 'text', content: f.content ?? '', size: (f.content ?? '').length };
+    });
     version += 1;
     return route.fulfill(json({ files: persistedFiles, version }));
   });
@@ -239,11 +308,16 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
   });
 }
 
-/** Record the runner's game signals (errors + fps) — the game-smoke oracle. */
+/** Record the runner's game signals (errors + logs + fps) — the game-smoke oracle. */
 export async function installGameSignalRecorder(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    const w = window as unknown as { __smokeErrors: string[]; __smokeMaxFps: number };
+    const w = window as unknown as {
+      __smokeErrors: string[];
+      __smokeLogs: string[];
+      __smokeMaxFps: number;
+    };
     w.__smokeErrors = [];
+    w.__smokeLogs = [];
     w.__smokeMaxFps = 0;
     window.addEventListener('message', (e: MessageEvent) => {
       const m = e.data as
@@ -252,6 +326,7 @@ export async function installGameSignalRecorder(page: Page): Promise<void> {
       if (!m || typeof m !== 'object') return;
       if (m.__airbotixConsole === true) {
         if (m.level === 'error') w.__smokeErrors.push(String(m.text));
+        else w.__smokeLogs.push(String(m.text));
       } else if (m.__airbotixStat === true) {
         const fps = m.fps ?? 0;
         if (fps > w.__smokeMaxFps) w.__smokeMaxFps = fps;

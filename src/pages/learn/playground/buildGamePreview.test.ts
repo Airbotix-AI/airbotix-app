@@ -105,4 +105,20 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
       expect(doc).toContain('__airbotixStat');
     }
   });
+
+  it('inlines a referenced .glb asset as a model/gltf-binary data URL (D-3D-09)', () => {
+    const glb: VfsFile = {
+      path: 'assets/imported/robot.glb',
+      content: 'Z2xURg==', // backend shape: raw base64, no data: prefix
+      kind: 'asset',
+      size: 4,
+    };
+    const game = text(
+      'main.js',
+      "new THREE.GLTFLoader().load('assets/imported/robot.glb', (gltf) => scene.add(gltf.scene));",
+    );
+    const doc = buildGamePreview([game, glb], { engine: 'three' }).srcDoc;
+    expect(doc).toContain("load('data:model/gltf-binary;base64,Z2xURg==',");
+    expect(doc).not.toContain("'assets/imported/robot.glb'");
+  });
 });

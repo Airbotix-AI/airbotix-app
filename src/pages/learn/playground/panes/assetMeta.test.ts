@@ -9,6 +9,7 @@ import {
   assetChatRef,
   libraryChatRef,
   classAssetChatRef,
+  clipLabels,
   referenceLabel,
   formatBytes,
   dataUrlToText,
@@ -34,6 +35,7 @@ describe('assetKindOf', () => {
     expect(assetKindOf('assets/audio/ding.mp3')).toBe('audio');
     expect(assetKindOf('assets/video/intro.mp4')).toBe('video');
     expect(assetKindOf('assets/ui/btn.png')).toBe('image');
+    expect(assetKindOf('assets/imported/robot.glb')).toBe('model');
     expect(assetKindOf('assets/readme.txt')).toBe('text');
     expect(assetKindOf('assets/data.bin')).toBe('other');
   });
@@ -102,6 +104,29 @@ describe('assetChatRef (bare reference, not code)', () => {
     expect(referenceLabel('audio')).toBe('Copy sound reference');
     expect(referenceLabel('video')).toBe('Copy video reference');
     expect(referenceLabel('sprite')).toBe('Copy sprite sheet reference');
+    expect(referenceLabel('model')).toBe('Copy 3D model reference');
+  });
+});
+
+describe('clipLabels', () => {
+  it('shows the last | segment, keeping the full name as the key', () => {
+    const m = clipLabels(['CharacterArmature|Death', 'CharacterArmature|HitReact', 'Wave']);
+    expect(m.get('CharacterArmature|Death')).toBe('Death');
+    expect(m.get('CharacterArmature|HitReact')).toBe('HitReact');
+    expect(m.get('Wave')).toBe('Wave'); // un-namespaced name unchanged
+  });
+
+  it('falls back to the full names when shortening would collide', () => {
+    const m = clipLabels(['RigA|Run', 'RigB|Run', 'RigA|Idle']);
+    expect(m.get('RigA|Run')).toBe('RigA|Run');
+    expect(m.get('RigB|Run')).toBe('RigB|Run');
+    expect(m.get('RigA|Idle')).toBe('Idle'); // no collision — still shortened
+  });
+
+  it('never yields an empty label (trailing pipe / whitespace)', () => {
+    const m = clipLabels(['Rig|', '  ']);
+    expect(m.get('Rig|')).toBe('Rig|');
+    expect(m.get('  ')).toBe('  ');
   });
 });
 

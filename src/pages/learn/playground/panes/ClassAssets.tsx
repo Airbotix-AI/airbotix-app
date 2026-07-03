@@ -12,10 +12,11 @@
 
 import { useState } from 'react';
 
-import { ArrowLeft, Copy, Film, Image as ImageIcon, Loader2, Music, Plus } from 'lucide-react';
+import { ArrowLeft, Film, Image as ImageIcon, Loader2, Music, Plus } from 'lucide-react';
 
 import type { ClassAssetView } from './playgroundApi';
 import { classAssetChatRef, formatBytes, referenceLabel, type AssetKind } from './assetMeta';
+import { CopyButton } from './CopyButton';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 
 const KIND_ICON: Record<ClassAssetView['kind'], typeof ImageIcon> = {
@@ -87,7 +88,6 @@ export function ClassAssetDetailView({
   readOnly,
   onAdd,
   onBack,
-  onCopyRef,
 }: {
   asset: ClassAssetView;
   /** An add is in flight (fetching the signed bytes) — disable the button. */
@@ -96,7 +96,6 @@ export function ClassAssetDetailView({
   readOnly?: boolean;
   onAdd: () => void;
   onBack: () => void;
-  onCopyRef: (snippet: string) => void;
 }) {
   const snippet = classAssetChatRef(asset);
   const kind: AssetKind = asset.kind;
@@ -165,13 +164,7 @@ export function ClassAssetDetailView({
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12.5px] font-extrabold">{referenceLabel(kind)}</span>
-              <button
-                type="button"
-                onClick={() => onCopyRef(snippet)}
-                className="inline-flex items-center gap-1 rounded-lg border border-pg-border px-2 py-1 text-[11.5px] font-bold hover:bg-pg-text/5"
-              >
-                <Copy size={14} /> Copy
-              </button>
+              <CopyButton text={snippet} testId="class-asset-copy-ref" />
             </div>
             <p className="mb-2 text-[11.5px] text-pg-text-muted">
               Add it to your game, then paste this into the chat to ask the AI to use it.

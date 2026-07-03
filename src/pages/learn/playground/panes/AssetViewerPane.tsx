@@ -9,8 +9,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import clsx from 'clsx';
 import {
+  AlertTriangle,
   ArrowLeft,
-  Copy,
+  Box,
+  CheckCircle2,
   Film,
   Image as ImageIcon,
   Loader2,
@@ -34,6 +36,7 @@ import {
 import { useProjectStore } from '../projectStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { AssetPreview } from './AssetPreview';
+import { CopyButton } from './CopyButton';
 import { useObjectUrl } from './useObjectUrl';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 import { ClassAssetDetailView, ClassAssetsGrid } from './ClassAssets';
@@ -99,6 +102,10 @@ interface AssetViewerPaneProps {
 const ALL = '__all__';
 /** Which source the Asset Viewer is browsing (D-ASSET-6 + class-shared-assets). */
 type AssetSource = 'mine' | 'library' | 'class';
+/** Snackbar tone — success (confirmations) vs error (blocked/failed operations). */
+type SnackTone = 'success' | 'error';
+/** How long a snackbar stays up before auto-dismissing. */
+const SNACK_MS = 3000;
 // Hard per-file import cap. MUST match the backend MAX_FILE_BYTES
 // (platform-backend/src/tools/vfs.constants.ts, 50 MB): the save rejects anything
 // larger (the presigned sign-upload declares the size, and the save HEAD-verifies
@@ -121,6 +128,7 @@ const ANIM_SUFFIX = '.anim.json';
 const IMPORTABLE_EXTENSIONS = [
   'png', 'jpg', 'jpeg', 'gif', 'webp',
   'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm',
+  'glb', // 3D model (binary glTF) — previewed + loaded by the three engine (D-3D-09)
   'json', 'xml', 'csv', 'ttf', 'otf', 'woff', 'woff2', 'fnt', 'glsl', 'frag', 'vert', 'atlas',
 ] as const;
 const IMPORTABLE_SET = new Set<string>(IMPORTABLE_EXTENSIONS);
@@ -175,6 +183,7 @@ const KIND_ICON: Record<AssetKind, typeof ImageIcon> = {
   sprite: ImageIcon,
   audio: Music,
   video: Film,
+  model: Box,
   text: ImageIcon,
   other: ImageIcon,
 };
@@ -189,12 +198,44 @@ function Thumb({ asset, kind }: { asset: VfsFile; kind: AssetKind }) {
   if (kind === 'video') {
     return <video src={src} className="h-full w-full object-contain" muted />;
   }
+  if (kind === 'model') {
+    return <ModelThumb content={asset.content} />;
+  }
   const Icon = KIND_ICON[kind];
   return (
     <div className="flex h-full w-full items-center justify-center text-brand-sky">
       <Icon size={40} />
     </div>
   );
+}
+
+/**
+ * A 3D model's grid thumbnail: a rendered still of the actual model (D-3D-09c),
+ * produced by the lazily-imported `modelThumbnail` renderer (three stays out of
+ * the main bundle) and cached by content. Falls back to the kind icon while
+ * rendering and for unparsable models.
+ */
+function ModelThumb({ content }: { content: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void import('./modelThumbnail').then(({ modelThumbnail }) =>
+      modelThumbnail(content).then((u) => {
+        if (live) setUrl(u);
+      }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [content]);
+  if (!url) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-brand-sky">
+        <Box size={40} />
+      </div>
+    );
+  }
+  return <img src={url} alt="" data-testid="model-thumb" className="h-full w-full object-contain" />;
 }
 
 export function AssetViewerPane({
@@ -267,7 +308,17 @@ export function AssetViewerPane({
     setSelectedPath(openAsset.path);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAsset?.nonce]);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback for every Asset Viewer operation (import / copy-ref / add / delete
+  // errors) is a SNACKBAR floating inside the pane — never a layout-shifting
+  // banner. Auto-dismisses; a new message replaces the current one.
+  const [snack, setSnack] = useState<{ text: string; tone: SnackTone } | null>(null);
+  const snackTimer = useRef<number | undefined>(undefined);
+  const showSnack = useCallback((text: string, tone: SnackTone = 'success') => {
+    setSnack({ text, tone });
+    window.clearTimeout(snackTimer.current);
+    snackTimer.current = window.setTimeout(() => setSnack(null), SNACK_MS);
+  }, []);
+  useEffect(() => () => window.clearTimeout(snackTimer.current), []);
   // The file name(s) currently being read + uploaded (null when idle). Drives the
   // "Uploading …" indicator + disables the Import button. The asset only appears
   // in the grid once its upload is CONFIRMED (see `importFiles`).
@@ -371,7 +422,7 @@ export function AssetViewerPane({
     const tooBig = importable.filter((f) => f.size > MAX_ASSET_BYTES);
     const accepted = importable.filter((f) => f.size <= MAX_ASSET_BYTES);
     if (accepted.length === 0) {
-      setNotice(importNotice(0, tooBig, badType));
+      showSnack(importNotice(0, tooBig, badType), 'error');
       return;
     }
 
@@ -397,7 +448,7 @@ export function AssetViewerPane({
         return next;
       });
       setUploading(null);
-      setNotice("Couldn't import that file — please try a different one.");
+      showSnack("Couldn't import that file — please try a different one.", 'error');
       return;
     }
 
@@ -419,13 +470,18 @@ export function AssetViewerPane({
         setCategory(ALL);
         setSelectedLibId(null);
       }
-      setNotice(importNotice(accepted.length, tooBig, badType));
+      // Partial imports (some files skipped) read as a problem to fix → error tone.
+      showSnack(
+        importNotice(accepted.length, tooBig, badType),
+        tooBig.length || badType.length ? 'error' : 'success',
+      );
     } else {
       added.forEach(remove); // rollback — nothing reaches the grid unless stored
-      setNotice(
+      showSnack(
         result.status === 'rejected'
           ? "Couldn't upload that file — it may be too big or unsupported."
           : "Couldn't upload — check your connection and try again.",
+        'error',
       );
     }
   }
@@ -448,9 +504,9 @@ export function AssetViewerPane({
       setSelectedLibId(null);
       setSelectedClassId(null);
       setSelectedPath(path);
-      setNotice('Added to your game — find it under My assets ✨');
+      showSnack('Added to your game — find it under My assets ✨');
     } catch {
-      setNotice("Couldn't add that class asset — please try again.");
+      showSnack("Couldn't add that class asset — please try again.", 'error');
     } finally {
       setClassAdding(false);
     }
@@ -494,7 +550,7 @@ export function AssetViewerPane({
 
   return (
     <div
-      className="flex h-full w-full bg-pg-bg text-pg-text"
+      className="relative flex h-full w-full bg-pg-bg text-pg-text"
       // Drop / paste to import are gated in the read-only viewer (D-LV-6) — a
       // teacher must never add assets to the kid's project.
       onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
@@ -612,13 +668,27 @@ export function AssetViewerPane({
         )}
       </aside>
 
+      {/* Snackbar — floats at the bottom of the PANE (not a layout banner). */}
+      {snack && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+          <div
+            data-testid="asset-snackbar"
+            role="status"
+            aria-live="polite"
+            className="pg-snack pointer-events-auto flex max-w-full items-center gap-2 rounded-full bg-pg-text px-4 py-2 text-[12.5px] font-bold text-pg-bg shadow-lg"
+          >
+            {snack.tone === 'success' ? (
+              <CheckCircle2 size={15} className="shrink-0 text-brand-mint" />
+            ) : (
+              <AlertTriangle size={15} className="shrink-0 text-brand-sunshine" />
+            )}
+            <span className="truncate">{snack.text}</span>
+          </div>
+        </div>
+      )}
+
       {/* Main: grid OR detail */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {notice && (
-          <div className="border-b border-pg-border bg-brand-bubblegum/10 px-4 py-1.5 text-[12px] text-pg-text-dim">
-            {notice}
-          </div>
-        )}
         {source === 'class' ? (
           selectedClass ? (
             <ClassAssetDetailView
@@ -627,10 +697,6 @@ export function AssetViewerPane({
               readOnly={readOnly}
               onAdd={() => void addClassAssetToMine(selectedClass)}
               onBack={() => setSelectedClassId(null)}
-              onCopyRef={(snippet) => {
-                void navigator.clipboard?.writeText(snippet);
-                setNotice('Reference copied — paste it into the chat with the AI.');
-              }}
             />
           ) : (
             <ClassAssetsGrid items={classVisible} onSelect={setSelectedClassId} />
@@ -643,10 +709,6 @@ export function AssetViewerPane({
               readOnly={readOnly}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
-              onCopyRef={(snippet) => {
-                void navigator.clipboard?.writeText(snippet);
-                setNotice('Reference copied — paste it into the chat with the AI.');
-              }}
             />
           ) : (
             <LibraryGrid items={libVisible} onSelect={setSelectedLibId} />
@@ -666,10 +728,6 @@ export function AssetViewerPane({
             onDelete={() => {
               remove(selected.path);
               setSelectedPath(null);
-            }}
-            onCopyRef={(snippet) => {
-              void navigator.clipboard?.writeText(snippet);
-              setNotice('Reference copied — paste it into the chat with the AI.');
             }}
           />
         ) : (
@@ -850,14 +908,12 @@ function LibraryDetailView({
   readOnly,
   onRemix,
   onBack,
-  onCopyRef,
 }: {
   asset: LibraryAsset;
   busy: boolean;
   readOnly?: boolean;
   onRemix: (prompt: string) => void;
   onBack: () => void;
-  onCopyRef: (snippet: string) => void;
 }) {
   const snippet = libraryChatRef(asset.name, asset.kind, asset.url);
   const [lightbox, setLightbox] = useState(false);
@@ -912,13 +968,7 @@ function LibraryDetailView({
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12.5px] font-extrabold">{referenceLabel(asset.kind)}</span>
-              <button
-                type="button"
-                onClick={() => onCopyRef(snippet)}
-                className="inline-flex items-center gap-1 rounded-lg border border-pg-border px-2 py-1 text-[11.5px] font-bold hover:bg-pg-text/5"
-              >
-                <Copy size={14} /> Copy
-              </button>
+              <CopyButton text={snippet} />
             </div>
             <p className="mb-2 text-[11.5px] text-pg-text-muted">
               Paste this into the chat to ask the AI to use it.
@@ -1010,7 +1060,6 @@ function DetailView({
   onBack,
   onRename,
   onDelete,
-  onCopyRef,
 }: {
   asset: VfsFile;
   files: VfsFile[];
@@ -1020,7 +1069,6 @@ function DetailView({
   onBack: () => void;
   onRename: (to: string) => void;
   onDelete: () => void;
-  onCopyRef: (snippet: string) => void;
 }) {
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState(basename(asset.path));
@@ -1119,13 +1167,7 @@ function DetailView({
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12.5px] font-extrabold">{referenceLabel(kind)}</span>
-              <button
-                type="button"
-                onClick={() => onCopyRef(snippet)}
-                className="inline-flex items-center gap-1 rounded-lg border border-pg-border px-2 py-1 text-[11.5px] font-bold hover:bg-pg-text/5"
-              >
-                <Copy size={14} /> Copy
-              </button>
+              <CopyButton text={snippet} testId="asset-copy-ref" />
             </div>
             <p className="mb-2 text-[11.5px] text-pg-text-muted">
               Paste this into the chat to ask the AI to use it.
