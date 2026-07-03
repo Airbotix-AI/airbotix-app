@@ -4,6 +4,32 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-03
+
+### Fixed
+- **Login mode toggle restyled to match the Learn design language.** The "Family code / At class"
+  tabs were a heavy ink-filled pill next to a flat sky wash — off-style for the kid surface.
+  Now a proper segmented control: warm `surface` track with a white active pill (`bg-canvas-pure` +
+  `shadow-card-soft`), same recipe as the My Works segment chips.
+- **Login toggle uses Lucide icons, not emoji.** The 👪 / 🏫 emoji became line icons (`Users` /
+  `School` from `lucide-react`, 16px, matching the app's icon set) for a cleaner, on-brand look.
+
+## 2026-07-02
+
+### Added
+- **"At class" login mode on `/learn/login` (auth-system-prd §5.3).** The kid login page now has
+  a two-tab toggle: "👪 Family code" (unchanged) and "🏫 At class" — for enrolled kids who forgot
+  their family code/PIN while at class. The kid types the class code from the board + their name
+  (free text), which creates a pending login request; a friendly waiting screen ("✋ Ask your
+  teacher to let you in!") polls every 3s until the teacher approves from teacher-console, then
+  the kid lands in `/learn` on their REAL account (own projects/stars, short 4h session). Denied /
+  expired / offline states get kid-friendly copy; the pending request survives reloads via
+  sessionStorage; a `consumed` poll (tokens already taken by another tab / pre-reload poll)
+  recovers through silent `/auth/refresh?kind=kid`. New `ClassLoginForm` + `ClassLoginWaiting`
+  components, `createClassLoginRequest` / `pollClassLoginRequest` in `useAuth`, response types in
+  `auth/types.ts`, and a 7-case component test (`ClassLoginFlow.test.tsx`). The one-shot workshop
+  flow at `/learn/class-code` is unchanged.
+
 ## 2026-07-02 (Playground chat composer: attach-button polish)
 
 ### Changed

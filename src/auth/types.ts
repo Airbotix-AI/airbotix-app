@@ -70,3 +70,38 @@ export interface ClassCodeLoginResponse {
     is_ephemeral: boolean;
   };
 }
+
+// Class login with teacher approval (auth-system-prd §5.3) — an enrolled kid
+// requests to sign into their REAL account with the class code + their name,
+// then polls until the teacher approves from teacher-console.
+
+export interface ClassLoginRequestCreateResponse {
+  request_id: string;
+  secret: string; // returned exactly once; kept in sessionStorage for polling
+  status: 'pending';
+  expires_at: string;
+  class_name: string;
+}
+
+export type ClassLoginPollResponse =
+  | { status: 'pending' | 'denied' | 'expired' | 'consumed' }
+  | {
+      status: 'approved';
+      access_token: string;
+      expires_in: number;
+      kid: {
+        id: string;
+        nickname: string;
+        age: number;
+        family_id: string | null;
+        class_id: string;
+      };
+    };
+
+// What the waiting screen persists so a reload can resume polling.
+export interface StoredClassLoginRequest {
+  request_id: string;
+  secret: string;
+  expires_at: string;
+  class_name: string;
+}
