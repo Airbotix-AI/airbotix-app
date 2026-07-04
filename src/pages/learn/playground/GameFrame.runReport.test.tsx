@@ -20,6 +20,8 @@ const FILES: VfsFile[] = [
 const RUN_OBSERVE_MS = 4000;
 const PROBE_REPLY_TIMEOUT_MS = 1500;
 
+// GameFrame drops messages from OTHER frames (source check) but accepts
+// sourceless synthetic events — which is what jsdom dispatch produces here.
 function post(data: unknown) {
   act(() => {
     window.dispatchEvent(new MessageEvent('message', { data }));

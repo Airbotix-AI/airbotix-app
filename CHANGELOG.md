@@ -6,6 +6,22 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-04
 
+### Fixed
+- **Stale-verdict guard + frame-source check (adversarial review findings).** (1) A run-report
+  POST is held open for the whole server-side fix turn; if the kid sent a chat turn meanwhile,
+  the late `fixing` verdict used to apply the fix turn's OLDER files over the kid's newer turn
+  and hijack the armed chain — `useVerification` now discards any verdict whose chain is no
+  longer armed. (2) `GameFrame` ignores messages from any window other than its own iframe
+  (cross-frame report pollution guard; sourceless synthetic events — jsdom — still pass).
+- **Verification restarts now guarantee a live GameFrame (D-PAP-40).** In the default Window
+  layout the Game window launches CLOSED (chat-first), and a closed/minimized window mounts no
+  `GameFrame` — so the verification loop's restart (resume-verify on workspace mount, i.e. the
+  initial build's auto-run) observed nothing and no RunReport ever posted: the first turn's
+  `verify_status` stayed `pending` forever. `useVerification`'s `restartGame` now goes through
+  `ensureGameRunnerVisible()` (new `playgroundStore` helper): it opens the Game window only when
+  it is NOT on screen, and no-ops in split mode and on an already-visible window — so a silent
+  fix beat still never yanks the window forward.
+
 ### Added
 - **Playground post-apply verification loop — FE half (playground-ai-prompt-prd D-PAP-40/41/44).**
   After an applied game turn (`verification: 'pending'` on the turn result), the studio now runs

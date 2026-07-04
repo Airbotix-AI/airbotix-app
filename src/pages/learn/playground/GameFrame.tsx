@@ -163,6 +163,14 @@ export function GameFrame({
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
+      // Only THIS frame may feed the console/collector — another frame on the
+      // page (or a torn-down previous run) must not pollute the run report
+      // (cheap defence-in-depth on top of the client-attested posture,
+      // D-PAP-41). Real browser messages always carry a source window; a
+      // null/undefined side (jsdom tests, synthetic events) is not the
+      // cross-frame case this guards against.
+      const frameWindow = iframeRef.current?.contentWindow;
+      if (e.source != null && frameWindow != null && e.source !== frameWindow) return;
       if (isConsoleMessage(e.data)) {
         // Map srcdoc-relative locations (syntax errors — sourceURL never applied)
         // back to the kid's file:line; runtime locs pass through unchanged.

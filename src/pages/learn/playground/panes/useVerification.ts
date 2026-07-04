@@ -114,6 +114,11 @@ export function useVerification(opts: UseVerificationOptions): Verification {
       void deps
         .postRunReport({ projectId, turnId: armed.turnId, report, mode })
         .then((res) => {
+          // The POST is held open for the whole server-side fix turn — if the
+          // kid sent a chat turn meanwhile, a NEW chain owns the loop and this
+          // verdict is stale evidence: applying its files would clobber the
+          // kid's newer turn. Discard unless we are still the armed chain.
+          if (armedRef.current !== armed) return;
           const cb = callbacksRef.current;
           if (res.verdict === 'fixing') {
             // Silent fix beat: apply exactly like a chat turn (files + version),
@@ -134,8 +139,9 @@ export function useVerification(opts: UseVerificationOptions): Verification {
         })
         .catch(() => {
           // Verification must never nag: a failed post ends the chain quietly
-          // (resume-verify picks a still-pending turn back up on next open).
-          arm(null);
+          // (resume-verify picks a still-pending turn back up on next open) —
+          // but only if this chain still owns the loop.
+          if (armedRef.current === armed) arm(null);
         })
         .finally(() => {
           if (inFlightRef.current === key) inFlightRef.current = null;
