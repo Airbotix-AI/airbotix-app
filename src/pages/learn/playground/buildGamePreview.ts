@@ -54,7 +54,11 @@ if (!window.Phaser) {
  * (and statics) so `instanceof Phaser.Game` and `Phaser.Game.*` still work.
  *
  * Parent → frame:  { __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute' }
- * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean }   // every ~500ms
+ * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean, frames: number }   // every ~500ms
+ *
+ * `frames` is the ENGINE's cumulative frame counter (Phaser's TimeStep frame) —
+ * never rAF, which keeps ticking while a frozen game renders nothing. It feeds
+ * the run-report collector's booted/framesAdvanced evidence (D-PAP-41).
  *
  * All control access is wrapped in try/catch (the game may not exist yet, or
  * Phaser internals may differ); communication stays on `postMessage` only, so
@@ -109,7 +113,8 @@ const GAME_CONTROL = `
       parent.postMessage({
         __airbotixStat: true,
         fps: Math.round(__game.loop.actualFps || 0),
-        paused: !__game.loop.running
+        paused: !__game.loop.running,
+        frames: (__game.loop && typeof __game.loop.frame === 'number') ? __game.loop.frame : 0
       }, '*');
     } catch (e) {}
   }, 500);
@@ -138,7 +143,10 @@ if (!window.THREE) {
  * crashed game reads 0, which is exactly the signal the game-run oracle checks.
  *
  * Parent → frame:  { __airbotixControl: true, action: 'pause'|'resume'|'mute'|'unmute'|'snapshot' }
- * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean }   // every ~500ms
+ * Frame → parent:  { __airbotixStat: true, fps: number, paused: boolean, frames: number }   // every ~500ms
+ *
+ * `frames` is the renderer's cumulative `info.render.frame` — the same engine
+ * counter the FPS derives from (rAF is NOT a substitute; it ticks while frozen).
  */
 const THREE_CONTROL = `
 <script>
@@ -170,7 +178,7 @@ const THREE_CONTROL = `
     }
   });
   setInterval(function () {
-    var g = window.__game, fps = 0;
+    var g = window.__game, fps = 0, frames = 0;
     try {
       var rf = (g && g.renderer && g.renderer.info && g.renderer.info.render)
         ? g.renderer.info.render.frame : null;
@@ -178,10 +186,112 @@ const THREE_CONTROL = `
       if (typeof rf === 'number' && prevFrame !== null && prevT !== null && t > prevT) {
         fps = Math.round((rf - prevFrame) * 1000 / (t - prevT));
       }
-      if (typeof rf === 'number') { prevFrame = rf; prevT = t; }
+      if (typeof rf === 'number') { prevFrame = rf; prevT = t; frames = rf || 0; }
     } catch (e) {}
-    try { parent.postMessage({ __airbotixStat: true, fps: fps, paused: paused }, '*'); } catch (e) {}
+    try { parent.postMessage({ __airbotixStat: true, fps: fps, paused: paused, frames: frames }, '*'); } catch (e) {}
   }, 500);
+})();
+</script>`;
+
+/**
+ * How many leading data:-URL chars the asset manifest (and the loader guard's
+ * truncated `url`) carry — prefix + total length identify an inlined asset
+ * without ever shipping the whole payload back over postMessage.
+ */
+export const ASSET_MANIFEST_PREFIX_CHARS = 256;
+
+/**
+ * Engine-agnostic run probe (post-apply verification, D-PAP-40/41). On the
+ * parent's `{ action: 'report' }` request it samples the game canvas and replies
+ * `{ __airbotixRunReport: true, canvas: { present, nonBlank, sampled } }` — the
+ * "did anything actually draw?" evidence in the RunReport. Sampling draws the
+ * canvas into an 8×8 2D canvas and counts pixels that are neither transparent
+ * nor pure black; ANY failure (WebGL without preserveDrawingBuffer can read
+ * black, getImageData can throw) degrades to `nonBlank: null` — a probe bug must
+ * NEVER break (or fail) a kid's game, so every line is wrapped in try/catch.
+ */
+const RUN_PROBE = `
+<script>
+(function () {
+  try {
+    window.addEventListener('message', function (e) {
+      var m = e.data;
+      if (!m || m.__airbotixControl !== true || m.action !== 'report') return;
+      var canvas = null, present = false, nonBlank = null, sampled = 0;
+      try {
+        canvas = document.querySelector('#game canvas');
+        present = !!canvas;
+      } catch (err) {}
+      try {
+        if (canvas) {
+          var sample = document.createElement('canvas');
+          sample.width = 8; sample.height = 8;
+          var ctx = sample.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(canvas, 0, 0, 8, 8);
+            var px = ctx.getImageData(0, 0, 8, 8).data;
+            var lit = 0;
+            for (var i = 0; i < px.length; i += 4) {
+              if (px[i + 3] > 0 && (px[i] > 0 || px[i + 1] > 0 || px[i + 2] > 0)) lit++;
+            }
+            nonBlank = lit > 0;
+            sampled = 64;
+          }
+        }
+      } catch (err) { nonBlank = null; sampled = 0; }
+      try {
+        parent.postMessage({ __airbotixRunReport: true, canvas: { present: present, nonBlank: nonBlank, sampled: sampled } }, '*');
+      } catch (err) {}
+    });
+  } catch (err) {}
+})();
+</script>`;
+
+/**
+ * three.js loader guard (D-PAP-41) — makes SILENT asset failures loud. Kid/AI
+ * code routinely passes its own `onError` that swallows the failure (the exact
+ * broken-GLB signature this loop exists to catch), so the guard wraps
+ * `GLTFLoader.prototype.load` + `TextureLoader.prototype.load` to (a) post an
+ * `{ __airbotixAsset }` outcome (url truncated to the manifest prefix + total
+ * length, so the parent can map a data: URL back to the kid's path) and (b)
+ * `console.error('[airbotix] …')` BEFORE the app's own callbacks run. Success
+ * posts the same message with ok:true before onLoad. Behaviour is otherwise
+ * preserved exactly. Phaser needs no equivalent: its loader already
+ * console.warns failures (covered by the curated warn allowlist).
+ */
+const THREE_LOADER_GUARD = `
+<script>
+(function () {
+  try {
+    if (!window.THREE) return;
+    function post(url, ok, err) {
+      try {
+        var u = String(url);
+        var m = { __airbotixAsset: true, url: u.slice(0, ${ASSET_MANIFEST_PREFIX_CHARS}), len: u.length, ok: ok };
+        if (!ok) m.error = String(err && (err.message || err)).slice(0, 200);
+        parent.postMessage(m, '*');
+      } catch (e) {}
+    }
+    function wrap(Loader, label) {
+      try {
+        if (!Loader || !Loader.prototype || typeof Loader.prototype.load !== 'function') return;
+        var orig = Loader.prototype.load;
+        Loader.prototype.load = function (url, onLoad, onProgress, onError) {
+          return orig.call(this, url, function (result) {
+            post(url, true);
+            if (onLoad) onLoad(result);
+          }, onProgress, function (err) {
+            var msg = String(err && (err.message || err)).slice(0, 200);
+            post(url, false, err);
+            try { console.error('[airbotix] ' + label + ' failed to load: ' + String(url).slice(0, 200) + ' — ' + msg); } catch (e) {}
+            if (onError) onError(err);
+          });
+        };
+      } catch (e) {}
+    }
+    wrap(window.THREE.GLTFLoader, '3D model');
+    wrap(window.THREE.TextureLoader, 'Texture');
+  } catch (e) {}
 })();
 </script>`;
 
@@ -201,6 +311,9 @@ interface EngineProfile {
   guard: string;
   /** Control shim (pause/resume/mute/snapshot/fps over postMessage). */
   control: string;
+  /** Optional loader instrumentation (asset-outcome reporting) — three only;
+   *  OMITTED (not an empty part) for phaser so its srcdoc gains no extra line. */
+  loaderGuard?: string;
 }
 
 const ENGINE_PROFILES: Record<GameEngine, EngineProfile> = {
@@ -213,6 +326,7 @@ const ENGINE_PROFILES: Record<GameEngine, EngineProfile> = {
     vendorTag: `<script src="${THREE_SRC}"></script>`,
     guard: THREE_GUARD,
     control: THREE_CONTROL,
+    loaderGuard: THREE_LOADER_GUARD,
   },
 };
 
@@ -306,12 +420,28 @@ export function buildGameSrcDoc(files: VfsFile[], opts: BuildGameOptions = {}): 
   return buildGamePreview(files, opts).srcDoc;
 }
 
+/**
+ * One inlined VFS asset's identity inside the running frame (D-PAP-41): the
+ * loader guard reports a data: URL only as its first
+ * {@link ASSET_MANIFEST_PREFIX_CHARS} chars + total length; prefix+length match
+ * maps it back to the kid's path in the run-report collector.
+ */
+export interface AssetManifestEntry {
+  path: string;
+  prefix: string;
+  length: number;
+}
+
 /** buildGameSrcDoc plus the per-script line map (for syntax-error resolution). */
 export function buildGamePreview(
   files: VfsFile[],
   opts: BuildGameOptions = {},
-): { srcDoc: string; scriptRanges: ScriptLineRange[] } {
+): { srcDoc: string; scriptRanges: ScriptLineRange[]; assetManifest: AssetManifestEntry[] } {
   const assets = files.filter((f) => f.kind === 'asset');
+  const assetManifest: AssetManifestEntry[] = assets.map((a) => {
+    const dataUrl = toDataUrl(a);
+    return { path: a.path, prefix: dataUrl.slice(0, ASSET_MANIFEST_PREFIX_CHARS), length: dataUrl.length };
+  });
 
   const jsFiles = files.filter((f) => f.kind === 'text' && f.path.endsWith('.js'));
   const entry = entryIndex(jsFiles);
@@ -356,8 +486,13 @@ export function buildGamePreview(
     CONSOLE_CAPTURE,
     profile.vendorTag,
     profile.guard,
+    // Loader instrumentation must sit AFTER the vendored global (it wraps its
+    // prototypes) and BEFORE any kid script. Spread — never an empty part — so
+    // the phaser srcdoc's line count is untouched.
+    ...(profile.loaderGuard ? [profile.loaderGuard] : []),
     debugFlag,
     profile.control,
+    RUN_PROBE,
   ];
   const scriptRanges: ScriptLineRange[] = [];
   // Parts join with '\n', so part k starts at 1 + the line count of all parts before it.
@@ -367,12 +502,15 @@ export function buildGamePreview(
     nextLine += lineCount(scriptTags[i]);
   });
   const srcDoc = [...prefixParts, ...scriptTags, '</body></html>'].join('\n');
-  return { srcDoc, scriptRanges };
+  return { srcDoc, scriptRanges, assetManifest };
 }
 
 export interface StatMessage {
   fps: number;
   paused: boolean;
+  /** Cumulative ENGINE frame counter (0 when the game hasn't rendered).
+   *  Optional on the parent side: any frame could post a stat-shaped message. */
+  frames?: number;
 }
 
 export function isStatMessage(data: unknown): data is { __airbotixStat: true } & StatMessage {

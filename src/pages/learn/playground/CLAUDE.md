@@ -20,8 +20,9 @@ a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="k
 
 - **`LandingScreen`** — prompt box (`.pg-glow` halo) + starter chips → submit.
 - **`GeneratingScreen`** — fires the **streaming** first turn (`streamAgentTurn`, SSE
-  `POST …/code/turn/stream`); phases **thinking → building → done** reveal files as they
-  stream; a stream failure falls back to `resolveProjectFiles` so the kid is never trapped.
+  `POST …/code/turn/stream`); thinking → building → done reveal files as they stream; a stream
+  failure falls back to `resolveProjectFiles` (never trapped). Entering the workspace
+  **auto-runs** the game, so the first build plays and gets verified (D-PAP-40).
 - **`Workspace`** — two layout modes (`LayoutToggle`, default **Window**): floating
   `react-rnd` windows (`desktop/`) OR a `react-resizable-panels` split. Panes:
   `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane`.
@@ -48,27 +49,29 @@ Two engines, both **self-hosted globals** (no CDN), **not committed**, materiali
 `vendor-engines` Vite plugin (`vite.config.ts`, `buildStart`) on every dev/build, injected as a
 classic `<script src="/vendor/…">`. `BuildGameOptions.engine` (`'phaser'`|`'three'`, default
 `phaser`) picks the `EngineProfile` in `buildGamePreview.ts`; everything else in the srcdoc is
-engine-agnostic. Filenames are **content-hashed** (`three-<v>-<hash>.global.js`) — the app never
-hardcodes them; `buildGamePreview.ts` + `MonacoEditor.tsx` import the resolved URLs from
-`virtual:engine-vendors`. Hashing is **load-bearing for cache-busting**: the files ship
-`immutable, max-age=1yr`, so a fixed name would let a browser/CDN serve a STALE engine (e.g. a
-pre-GLTFLoader `THREE` → "GLTFLoader is not available") after a deploy; the hash changes the URL
-iff the bytes do.
+engine-agnostic. Filenames are **content-hashed** (`three-<v>-<hash>.global.js`), resolved via
+`virtual:engine-vendors` (imported by `buildGamePreview.ts` + `MonacoEditor.tsx`) — hashing is
+**load-bearing for cache-busting** (files ship `immutable, max-age=1yr`; a fixed name would serve
+a STALE engine after a deploy, e.g. a pre-GLTFLoader `THREE`).
 - **Phaser 4.1.0** — UMD copied verbatim → `public/vendor/phaser-<v>-<hash>.min.js` + `.d.ts` →
   `window.Phaser`. Missing → "Phaser is not defined".
-- **three.js 0.184.0** — ESM-only since r160, so it's **esbuild-bundled into a `window.THREE`
-  global IIFE** (+ curated addons: `OrbitControls`, `GLTFLoader`) → `public/vendor/three-<v>-<hash>.global.js`.
-  Missing → "Could not load the 3D game engine". (D-3D-02; idiomatic ESM/import-map is deferred,
-  OQ-3D-5.)
-- **Upgrade:** `npm i <engine>@<new>`, then bump its `*_VERSION` (`vite.config.ts`) — the hashed
-  URLs flow through `virtual:engine-vendors`, so there are no path constants to update. The plugin
-  throws on version drift.
+- **three.js 0.184.0** — ESM-only since r160, so **esbuild-bundled into a `window.THREE` global
+  IIFE** (+ addons `OrbitControls`, `GLTFLoader`) → `public/vendor/three-<v>-<hash>.global.js`.
+  Missing → "Could not load the 3D game engine". (D-3D-02; idiomatic ESM deferred, OQ-3D-5.)
+- **Upgrade:** `npm i <engine>@<new>` + bump its `*_VERSION` (`vite.config.ts`); no path constants
+  to update (the plugin throws on version drift).
 
-## Control channel (pause / mute / stats) — `postMessage` only
+## Control channel (pause / mute / stats / run report) — `postMessage` only
 
 `buildGamePreview.ts` injects a per-engine control shim — **same wire protocol for both engines**:
-- Parent→frame: `{__airbotixControl, action:'pause'|'resume'|'mute'|'unmute'|'snapshot'}`.
-- Frame→parent: `{__airbotixStat, fps, paused}` ~500 ms; `{__airbotixSnapshot, dataUrl}` on request.
+- Parent→frame: `{__airbotixControl, action:'pause'|'resume'|'mute'|'unmute'|'snapshot'|'report'}`.
+- Frame→parent: `{__airbotixStat, fps, paused, frames}` ~500 ms (`frames` = the ENGINE's cumulative
+  frame counter — never rAF, which ticks while frozen); `{__airbotixSnapshot, dataUrl}` on request;
+  `{__airbotixRunReport, canvas:{present,nonBlank,sampled}}` answering `report` (engine-agnostic
+  `RUN_PROBE`, 8×8 canvas sample; probe failure degrades, never breaks the game); **three only**
+  `{__airbotixAsset, url, len, ok, error?}` per GLTF/Texture load (`THREE_LOADER_GUARD` — posts +
+  `console.error('[airbotix]…')` BEFORE the app's onError can swallow it; the truncated data: url
+  maps back to the kid path via `buildGamePreview`'s `assetManifest` prefix+length).
 - **Phaser** (`GAME_CONTROL`): **wraps the `Phaser.Game` constructor** (no `Phaser.GAMES` registry
   in the vendored build) to grab the instance; physics-debug via `window.__airbotixDebug`
   (`BuildGameOptions.debug`).
@@ -85,14 +88,20 @@ All turns run server-side via `../code/codeApi`:
 - **Chat edits:** `useGameAgent` → classify (`…/turn/classify`, safeguarding) →
   `runTurn` (`…/code/turn`). The game agent **always auto-applies** (the kid's ask IS
   the go-ahead) — no agency beat, no plan→approve gate (those belong to the code studio).
-- **One turn → one message.** While a turn runs, the pending bubble is the **`WorkingCard`**
-  (`WorkingCard.tsx`): ONE breathing brand-gradient dot (`pg-breathe-dot`, no spin) + ONE
-  shimmering current-state line (`pg-shimmer-text`) — the latest real tool/action delta's label (`turnProgress.ts`, fed via
-  `streamTurn`'s `onDelta`); generic rotating fillers only before the first delta lands
-  (never falsely specific copy) — plus a clock. It resolves into exactly ONE settled message. A self-verify auto-fix
-  (`/code/verify-fix`) runs as a **silent "fixing 🔧" beat** in the same card (apply silently
-  on success; a single warm co-debug message only when it can't fix). Stars metered
-  server-side; undo is local; `client_actions` run via `executeClientActions`.
+- **One turn → one message.** The pending bubble is the **`WorkingCard`** (`WorkingCard.tsx`):
+  ONE breathing brand-gradient dot (`pg-breathe-dot`, no spin) + ONE shimmering current-state line
+  (`pg-shimmer-text`) — the latest real tool/action delta's label (`turnProgress.ts`, via
+  `streamTurn` `onDelta`; generic fillers only before the first delta — never falsely specific
+  copy) + a clock. It resolves into exactly ONE settled message.
+- **Post-apply verification (D-PAP-40/44):** an applied turn with `verification:'pending'`
+  makes the studio run the game instrumented and POST a structured **RunReport**
+  (`runReport.ts` collector → `…/turn/:turnId/run-report`); the **server adjudicates**.
+  Silent on success AND on auto-fix (a `fixing` verdict applies files quietly, restarts,
+  reports `attempt+1`); the **co-debug hand-off is the ONLY visible surface** (one warm
+  bubble, server copy). Resume-verify: `GET …/code/verify-state` on workspace mount; loop
+  driver `panes/useVerification.ts`. The raw `/code/verify-fix` console-error path is
+  RETIRED for games. Stars metered server-side; undo is local; `client_actions` run via
+  `executeClientActions`.
 
 ## Runtime contract (what the agent/kid writes)
 
@@ -108,9 +117,8 @@ sibling `<path>.anim.json` = sprite strip. (The Game Guide's
 
 ## Editor IntelliSense
 
-`MonacoEditor` lazy-`fetch`es the vendored `phaser-<v>.d.ts` (~7 MB) once, strips the
-`/// <reference types="./matter" />`, `addExtraLib` → hover/go-to-def/autocomplete; never
-bundled; semantic validation off (no red squiggles for kids).
+`MonacoEditor` lazy-`fetch`es the vendored `phaser-<v>.d.ts` (~7 MB) once, strips its matter
+reference, `addExtraLib` → hover/autocomplete; semantic validation off (no red squiggles for kids).
 
 ## Route & naming
 

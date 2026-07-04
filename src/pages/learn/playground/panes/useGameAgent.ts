@@ -194,6 +194,12 @@ export interface UseGameAgentOptions {
   /** Called when a confirmed 2D⇄3D switch flips the engine, so the runner re-renders
    *  with the new vendored global + control shim (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
+  /**
+   * Fired after a turn's result fully applies (files + version adopted, chat
+   * settled). The workspace uses it to arm the post-apply verification loop for
+   * a `verification: 'pending'` turn (D-PAP-40 / useVerification).
+   */
+  onTurnApplied?: (result: AgentTurnResult) => void;
 }
 
 const PENDING_TEXT = 'Thinking…';
@@ -386,6 +392,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     readOnly = false,
     engine = 'phaser',
     onEngineChange,
+    onTurnApplied,
   } = opts;
 
   const isReal = !!projectId;
@@ -594,8 +601,25 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         (a) => a.action === 'run_game' || a.action === 'restart_game',
       );
       if (changed && !alreadyRan) clientActions?.restartGame();
+      // The turn is fully applied (and the game re-running) — let the workspace
+      // arm post-apply verification for a `verification: 'pending'` turn.
+      onTurnApplied?.(result);
     },
-    [files, onApplyFiles, onStarsCharged, clientActions],
+    [files, onApplyFiles, onStarsCharged, clientActions, onTurnApplied],
+  );
+
+  /**
+   * Post a standalone agent bubble into the chat (no turn, no Stars). Used by
+   * the post-apply verification loop for its ONE visible surface — the warm
+   * co-debug hand-off message (D-PAP-40/44).
+   */
+  const pushAgentMessage = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setChat((prev) => [...prev, { id: nextId(), role: 'agent', text: trimmed }]);
+    },
+    [nextId],
   );
 
   /**
@@ -603,6 +627,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * game and the sandbox caught runtime errors; report them so the backend
    * auto-fixes (≤2 attempts) or hands off to "let's debug together". Idempotent
    * while busy; a no-op off the real path or with no errors.
+   *
+   * ⚠️ RETIRED for game verification (D-PAP-40): the workspace now drives the
+   * server-adjudicated run-report loop (`useVerification` + POST …/run-report)
+   * instead of wiring this to the runner's console errors. Kept compiling for
+   * any remaining caller; do not wire it back up for games.
    */
   const autoFixFromErrors = useCallback(
     async (errors: string[]) => {
@@ -1196,8 +1225,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     abort,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
-    /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23). */
+    /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23).
+     *  RETIRED for game verification — see the run-report loop (useVerification). */
     autoFixFromErrors,
+    /** Post a standalone agent bubble (the verification loop's co-debug surface). */
+    pushAgentMessage,
     /** A pending MODERATION_WARN the kid must ack before the prompt retries. */
     warnPending,
     /** Retry the last prompt with pii_warn_acknowledged (ack the MODERATION_WARN). */

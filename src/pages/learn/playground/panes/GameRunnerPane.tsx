@@ -5,6 +5,7 @@ import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine, GameEngine } from '../buildGamePreview';
+import type { RunReport } from '../runReport';
 import { SCREEN_PRESETS } from '../screenPresets';
 import { useStickToBottom } from './useStickToBottom';
 import { extractRuntimeErrors } from '../verifyRoundtrip';
@@ -25,8 +26,14 @@ interface GameRunnerPaneProps {
   onOpenLocation?: (file: string, line: number) => void;
   /** Send a console error to the AI chat to fix ("Ask AI to fix"). */
   onAskFix?: (message: string) => void;
-  /** Self-verify (MP3): report the captured runtime errors so the agent auto-fixes. */
+  /** Legacy self-verify (MP3): report captured runtime errors for a raw fix turn.
+   *  RETIRED for game projects — verification now rides `onRunReport` (D-PAP-40). */
   onRuntimeErrors?: (errors: string[]) => void;
+  /** Post-apply verification (D-PAP-40): pass-through to GameFrame — emits one
+   *  structured RunReport per run for the loop driver (useVerification). */
+  onRunReport?: (report: RunReport) => void;
+  /** 1-based chain attempt stamped into the emitted RunReport (default 1). */
+  reportAttempt?: number;
   /** Teacher live read-only viewer (D-LV-6): the game still RUNS (non-destructive),
    *  but "Ask AI to fix" — whose only action is a (gated) AI turn — is hidden so a
    *  teacher never sees a dead control. */
@@ -154,6 +161,8 @@ export function GameRunnerPane({
   onOpenLocation,
   onAskFix,
   onRuntimeErrors,
+  onRunReport,
+  reportAttempt,
   readOnly,
 }: GameRunnerPaneProps) {
   const [paused, setPaused] = useState(false);
@@ -339,6 +348,8 @@ export function GameRunnerPane({
               debug={debug}
               onFps={setFps}
               onConsole={setLines}
+              onRunReport={onRunReport}
+              reportAttempt={reportAttempt}
             />
           </div>
         ) : (

@@ -10,6 +10,7 @@
 
 import { api, ApiError } from '@/lib/api';
 import { surfacePrincipal, useAuthStore } from '@/auth/authStore';
+import type { RunReport } from '../playground/runReport';
 
 export const CODE_PROJECT_KIND = 'code' as const;
 
@@ -215,6 +216,11 @@ export interface AgentTurnResult {
   // The teacher's updated "where we left off" (playground §11 / D-PAP-19,22),
   // persisted on the project and used for the resume recap.
   learning_context?: LearningContext | null;
+  // Post-apply verification (D-PAP-40): 'pending' = this applied game turn is
+  // awaiting a run report — the studio runs the game instrumented and POSTs a
+  // RunReport for it (see useVerification). 'none' = never verifiable (no file
+  // changes / not a game). Optional: absent on older backends ⇒ treat as 'none'.
+  verification?: 'pending' | 'none';
 }
 
 /** One next-step option the teacher offers on `done` (rendered as a chip). */
@@ -719,6 +725,62 @@ export async function reportRuntimeErrors(args: {
   // The fix turn (when present) carries the full post-turn VFS too — normalize its
   // assets to studio `data:` URLs like every other turn-result path.
   return res.turn ? { ...res, turn: toStudioTurnResult(res.turn) } : res;
+}
+
+// ── Post-apply verification (D-PAP-40/41: POST …/turn/:turnId/run-report) ───
+
+/**
+ * The server's answer to a posted RunReport (mirror the backend
+ * `RunReportVerdict`). `recorded` = intake-only (log mode) — do nothing;
+ * `verified` = clean run; `fixing` = a fix turn ran — apply its files silently,
+ * run again, report `attempt + 1`; `co_debug` = attempts exhausted — surface
+ * `message` as ONE warm chat bubble (the only visible surface of the loop);
+ * `inconclusive` = no evidence either way (probe failure / nothing pending).
+ */
+export type RunReportVerdict =
+  | { verdict: 'recorded' }
+  | { verdict: 'verified' }
+  | { verdict: 'fixing'; attempt: number; turn: AgentTurnResult }
+  | { verdict: 'co_debug'; message: string }
+  | { verdict: 'inconclusive' };
+
+/**
+ * Report what ACTUALLY happened when the studio ran an applied turn's game
+ * instrumented (the RunReport built by `playground/runReport`). The backend
+ * adjudicates: silent on success and on auto-fix; only co-debug surfaces.
+ */
+export async function postRunReport(args: {
+  projectId: string;
+  turnId: string;
+  report: RunReport;
+  mode: 'lite' | 'pro';
+}): Promise<RunReportVerdict> {
+  const res = await api<RunReportVerdict>(
+    `/projects/${args.projectId}/code/turn/${args.turnId}/run-report`,
+    {
+      method: 'POST',
+      body: { ...args.report, mode: args.mode },
+    },
+  );
+  // A fix turn carries the full post-turn VFS — normalize its assets to studio
+  // `data:` URLs like every other turn-result path.
+  return res.verdict === 'fixing' ? { ...res, turn: toStudioTurnResult(res.turn) } : res;
+}
+
+/** The newest applied turn's verification state (GET …/code/verify-state). */
+export interface VerifyState {
+  turn_id: string | null;
+  verify_status: 'none' | 'pending' | 'verified' | 'failed_fixed' | 'failed_codebug' | 'expired';
+  attempts: number;
+}
+
+/**
+ * Resume-verify (D-PAP-40): on project open, a `pending` state means the last
+ * applied turn was never verified (closed tab) — run the game and report
+ * `attempts + 1`.
+ */
+export async function getVerifyState(projectId: string): Promise<VerifyState> {
+  return api<VerifyState>(`/projects/${projectId}/code/verify-state`);
 }
 
 /** Live progress from a streaming turn (SSE) — what the agent is doing right now. */

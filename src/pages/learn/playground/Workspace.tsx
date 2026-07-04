@@ -41,6 +41,7 @@ import type { GameEngine } from './buildGamePreview';
 import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
+import { useVerification } from './panes/useVerification';
 import { usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
@@ -56,8 +57,9 @@ interface WorkspaceProps {
   engine?: GameEngine;
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
-  /** Commit edits back to the page-level source of truth. */
-  onApplyFiles: (f: VfsFile[]) => void;
+  /** Commit edits back to the page-level source of truth. An applied AI/fix
+   *  turn passes the new server VFS `version` so the save flow adopts it. */
+  onApplyFiles: (f: VfsFile[], version?: number) => void;
   /** Save the project now + report the result — lets an asset import confirm the
    *  upload before revealing the asset (see AssetViewerPane). */
   onSaveNow?: () => Promise<SaveResult>;
@@ -245,6 +247,11 @@ export function Workspace({
     setHelpRequest({ docId, anchor, nonce: (helpNonce.current += 1) });
   };
 
+  // Post-apply verification (D-PAP-40): the loop driver is created BELOW the
+  // agent hook (it surfaces its co-debug bubble through the agent's chat), so
+  // the agent's onTurnApplied reaches beginVerification through this ref.
+  const beginVerificationRef = useRef<(turnId: string) => void>(() => {});
+
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
   // component does not. Chat applies edits to the VFS but never runs the game.
@@ -271,7 +278,7 @@ export function Workspace({
     lowerHand,
     abort,
     retryLast,
-    autoFixFromErrors,
+    pushAgentMessage,
   } = useGameAgent({
       files,
       onApplyFiles,
@@ -287,6 +294,10 @@ export function Workspace({
       readOnly,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
+      // Arm the run-report loop for an applied turn awaiting verification.
+      onTurnApplied: (r) => {
+        if (r.verification === 'pending' && r.turn_id) beginVerificationRef.current(r.turn_id);
+      },
       clientActions: {
         runGame: runFromEditor,
         restartGame: runFromEditor,
@@ -300,6 +311,24 @@ export function Workspace({
         setLayout: (m) => usePlaygroundStore.getState().setLayoutMode(m),
       },
     });
+
+  // Post-apply verification loop (D-PAP-40/44): runs the game instrumented
+  // after an applied turn and posts the RunReport; the server adjudicates.
+  // Silent on success and on auto-fix — only the co-debug hand-off surfaces
+  // (one warm bubble via pushAgentMessage). Real, kid-owned projects only.
+  const verifyEnabled = !!projectId && !readOnly;
+  const verification = useVerification({
+    projectId,
+    mode,
+    enabled: verifyEnabled,
+    // The same funnel a chat turn's apply uses: files + server-version adoption.
+    applyFixTurn: (turn) => onApplyFiles(turn.files, turn.version),
+    // Plain onRun — a silent fix beat must not yank the Game window forward.
+    restartGame: onRun,
+    pushCoDebugMessage: pushAgentMessage,
+    onStarsCharged: () => wallet.refetch(),
+  });
+  beginVerificationRef.current = verification.beginVerification;
 
   // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
   // overlay drives the canned turns through this REAL `send`. No-op outside the
@@ -465,7 +494,8 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
-              onRuntimeErrors={autoFixFromErrors}
+              onRunReport={verifyEnabled ? verification.onRunReport : undefined}
+              reportAttempt={verification.reportAttempt}
               readOnly={readOnly}
             />
           </Window>
@@ -568,7 +598,8 @@ export function Workspace({
                 onRun={onRun}
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}
-                onRuntimeErrors={autoFixFromErrors}
+                onRunReport={verifyEnabled ? verification.onRunReport : undefined}
+                reportAttempt={verification.reportAttempt}
                 readOnly={readOnly}
               />
             </div>

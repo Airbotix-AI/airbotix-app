@@ -4,6 +4,55 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-04
+
+### Added
+- **Playground post-apply verification loop — FE half (playground-ai-prompt-prd D-PAP-40/41/44).**
+  After an applied game turn (`verification: 'pending'` on the turn result), the studio now runs
+  the game **instrumented**, builds a structured **RunReport** (v1, mirrored from
+  `platform-backend/src/code-sessions/run-report.ts`), and POSTs it to
+  `…/code/turn/:turnId/run-report`; the **server adjudicates**. Product behaviour is locked:
+  verification is **SILENT on success and on auto-fix** — a `fixing` verdict applies the fix
+  turn's files quietly (same files+version funnel as chat turns), restarts the game, and reports
+  `attempt+1`; only the **co-debug** hand-off surfaces (one warm bubble carrying the server's
+  message). Resume-verify: on workspace mount, `GET …/code/verify-state` picks up a still-pending
+  turn (closed tab) and re-runs at `attempts+1`. Pieces:
+  - `buildGamePreview.ts`: both control shims' `__airbotixStat` now carries the **engine's
+    cumulative `frames`** counter (Phaser `loop.frame` / three `renderer.info.render.frame` —
+    never rAF, which ticks while frozen); a new engine-agnostic **RUN_PROBE** answers
+    `{action:'report'}` with an 8×8 canvas sample (`{__airbotixRunReport, canvas}` — any probe
+    failure degrades, never breaks the game); a three-only **THREE_LOADER_GUARD** wraps
+    `GLTFLoader`/`TextureLoader.load` to post `{__airbotixAsset, url, len, ok, error?}` and
+    `console.error('[airbotix] …')` BEFORE the app's own onError can swallow the failure;
+    `buildGamePreview()` returns an **assetManifest** (data:-URL prefix+length per inlined asset)
+    so a reported data: URL maps back to the kid's path. Phaser srcdoc unchanged beyond
+    `frames` + RUN_PROBE; scriptRanges (kid file:line resolution) regression-tested with the new
+    parts.
+  - NEW `runReport.ts`: the FE RunReport mirror + pure `createRunCollector` (console
+    classification incl. rejection/window-error routing, caps 6/4/3/3×300 chars with transparent
+    `dropped` counts, de-dupe, asset-outcome mapping — raw un-inlined paths → `missing-ref`).
+    Curated failure **warns are PROMOTED to `consoleErrors`** (Phaser reports missing
+    textures/scenes via `console.warn`, and the backend's clean-run predicate treats warns as
+    advisory — a broken game must not verify clean).
+  - `GameFrame.tsx`: optional `onRunReport`/`reportAttempt` — per run it feeds the collector,
+    asks the probe after a 4 s observation window, and emits the finalized report exactly once
+    (probe silent ≥1.5 s → `probeError: 'no-response'`).
+  - NEW `panes/useVerification.ts`: the loop driver (arm per applied turn, post per attempt,
+    in-flight + stale-attempt guards, client-side 3-reports-per-chain cap, resume-verify).
+  - `code/codeApi.ts`: `postRunReport` + `getVerifyState` + the `verification` field on the
+    turn-result mirror.
+  - `PlaygroundApp.tsx`: entering the workspace after generation now **auto-runs** the game, so
+    the first build plays (and gets verified via resume-verify) without pressing ▶.
+
+### Changed
+- **`verifyRoundtrip.extractRuntimeErrors` accepts curated failure warns** (`/^\[airbotix\]/`,
+  `Failed to load|process`, `Texture … missing|not found`, `Scene … not found`) — generic kid
+  `console.warn` still never triggers a Stars-charged fix.
+- **The raw console-error auto-fix path (`/code/verify-fix`) is retired for game projects**: the
+  runner no longer wires `onRuntimeErrors` → `autoFixFromErrors`; game verification goes through
+  the server-adjudicated run-report loop. The code path stays compiling (and the co-debug bubble
+  copy now comes from the server).
+
 ## 2026-07-03
 
 ### Fixed

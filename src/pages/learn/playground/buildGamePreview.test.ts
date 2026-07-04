@@ -125,6 +125,68 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     expect(doc).not.toContain("'assets/imported/robot.glb'");
   });
 
+  it('injects the run probe in BOTH engines, the loader guard in three only (D-PAP-41)', () => {
+    const phaser = buildGamePreview(FILES, { engine: 'phaser' }).srcDoc;
+    const three = buildGamePreview(FILES, { engine: 'three' }).srcDoc;
+    for (const doc of [phaser, three]) {
+      expect(doc).toContain('__airbotixRunReport'); // the run probe's reply tag
+      expect(doc).toContain("m.action !== 'report'"); // listens for the report request
+      expect(doc).toContain('frames:'); // engine frame counter in the stat message
+    }
+    // The loader guard (asset-outcome instrumentation) is three-only.
+    expect(three).toContain('__airbotixAsset');
+    expect(three).toContain('GLTFLoader');
+    expect(three).toContain('TextureLoader');
+    expect(phaser).not.toContain('__airbotixAsset');
+  });
+
+  it('loader guard sits after the vendored global and before every kid script', () => {
+    const { srcDoc, scriptRanges } = buildGamePreview(FILES, { engine: 'three' });
+    const guardAt = srcDoc.indexOf('__airbotixAsset');
+    const vendorAt = srcDoc.indexOf('/vendor/three-');
+    const firstKidLine = scriptRanges[0].start;
+    const guardLine = srcDoc.slice(0, guardAt).split('\n').length;
+    expect(guardAt).toBeGreaterThan(vendorAt);
+    expect(guardLine).toBeLessThan(firstKidLine);
+  });
+
+  it('returns an assetManifest of prefix+length identities for every inlined asset', () => {
+    const glb: VfsFile = {
+      path: 'assets/imported/robot.glb',
+      content: 'Z2xURg==',
+      kind: 'asset',
+      size: 4,
+    };
+    const { assetManifest } = buildGamePreview([...FILES, glb], { engine: 'three' });
+    const dataUrl = 'data:model/gltf-binary;base64,Z2xURg==';
+    expect(assetManifest).toEqual([
+      { path: 'assets/imported/robot.glb', prefix: dataUrl.slice(0, 256), length: dataUrl.length },
+    ]);
+  });
+
+  it('regression: kid file:line still resolves exactly with the probe + guard parts present', () => {
+    // The probe (both engines) and the loader guard (three) add prefix parts —
+    // scriptRanges are computed by reducing over the parts, so an error on line
+    // N of a kid file must STILL resolve to that file:line.
+    for (const engine of ['phaser', 'three'] as const) {
+      const { srcDoc, scriptRanges } = buildGamePreview(FILES, { engine });
+      const docLines = srcDoc.split('\n');
+      for (const range of scriptRanges) {
+        const file = FILES.find((f) => f.path === range.path)!;
+        const fileLines = file.content.split('\n');
+        expect(docLines[range.start - 1].endsWith(fileLines[0])).toBe(true);
+        for (let i = 1; i < fileLines.length; i++) {
+          expect(docLines[range.start - 1 + i]).toBe(fileLines[i]);
+        }
+      }
+      // A syntax error reported against srcdoc line (main.js line 2) maps back.
+      const main = scriptRanges.find((r) => r.path === 'main.js')!;
+      expect(
+        resolveErrorLoc({ file: 'about:srcdoc', line: main.start + 1, col: 3 }, scriptRanges),
+      ).toEqual({ file: 'main.js', line: 2, col: 3 });
+    }
+  });
+
   it('inlines a .glb whose path contains SPACES (real imported filenames, D-3D-09)', () => {
     // Imported models keep their original names, which routinely contain spaces
     // ("Cube Guy Character.glb"). The path must still be matched + inlined so the
