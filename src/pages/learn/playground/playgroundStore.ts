@@ -275,3 +275,31 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
       return changed ? { windows } : {};
     }),
 }));
+
+/**
+ * Open the Game Runner window when it is NOT on screen (window mode only). A
+ * verification run must observe a LIVE GameFrame (D-PAP-40), but the game
+ * window launches CLOSED (chat-first) and a closed/minimized window renders
+ * nothing — so a resume-verify or fix-beat restart would otherwise run into an
+ * unmounted runner and no report would ever post. No-op in split mode (the
+ * Game pane is always visible) and when the window is already visible.
+ *
+ * Deliberately opens WITHOUT raising (never `openOrFocus`): verification needs
+ * a MOUNTED runner, not focus. The default game rect overlaps the chat's right
+ * edge — raising it on top used to sit the game stage OVER the chat's send
+ * button (the kid literally couldn't click Send; caught by the harness's
+ * chat-send-clicking journeys). The seeded z keeps the chat above where they
+ * overlap, and a silent fix beat never yanks the window forward.
+ */
+export function ensureGameRunnerVisible(): void {
+  const s = usePlaygroundStore.getState();
+  if (s.layoutMode !== 'window') return;
+  const game = s.windows.game;
+  if (game.open && !game.minimized) return;
+  usePlaygroundStore.setState((state) => ({
+    windows: {
+      ...state.windows,
+      game: { ...state.windows.game, open: true, minimized: false },
+    },
+  }));
+}

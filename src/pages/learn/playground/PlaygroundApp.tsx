@@ -499,6 +499,12 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
                 setResumeRecap(null);
               }
             }
+            // Auto-run on entering the workspace so the FIRST build plays (and
+            // gets verified) without the kid pressing ▶ (D-PAP-40). The initial
+            // turn's id isn't threaded through the generating flow — the
+            // verification hook's resume-verify (GET …/code/verify-state) picks
+            // the pending turn up on workspace mount instead.
+            run();
             setPhase('workspace');
           }}
           onError={(kind) => setLoadError(kind)}

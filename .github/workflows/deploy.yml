@@ -43,6 +43,12 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Sync hashed assets (immutable, long cache)
+        # INVARIANT: everything synced here MUST be content-hashed (so a byte change
+        # yields a new URL) — the only cache-busted entry point is index.html below.
+        # This includes the vendored game engines under /vendor/ (three-<v>-<hash>.
+        # global.js etc., hashed by the vendor-engines Vite plugin). Never ship a
+        # FIXED vendored name here: `immutable` would then let a stale cache serve an
+        # old engine after a deploy (the D-3D-02a "GLTFLoader is not available" bug).
         run: |
           aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
             --delete \

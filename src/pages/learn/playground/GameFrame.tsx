@@ -2,6 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
 import { buildGamePreview, isConsoleMessage, isStatMessage, resolveErrorLoc, type ConsoleLine, type GameEngine } from './buildGamePreview';
+import {
+  createRunCollector,
+  isAssetMessage,
+  isRunReportMessage,
+  type RunReport,
+} from './runReport';
+
+/** How long a run is observed before the probe is asked for its report (ms). */
+const RUN_OBSERVE_MS = 4000;
+/** How long to wait for the probe's reply before finalizing without it (ms). */
+const PROBE_REPLY_TIMEOUT_MS = 1500;
 
 interface GameFrameProps {
   files: VfsFile[];
@@ -26,6 +37,15 @@ interface GameFrameProps {
   debug?: boolean;
   /** Which engine global + control shim to inject. Defaults to `phaser`. */
   engine?: GameEngine;
+  /**
+   * Post-apply verification (D-PAP-40/41): when set, each run (runKey/srcDoc
+   * mount) is observed for RUN_OBSERVE_MS, the in-frame probe is asked to
+   * report, and the finalized RunReport is emitted EXACTLY ONCE per run —
+   * with `probeError: 'no-response'` if the probe never answers.
+   */
+  onRunReport?: (report: RunReport) => void;
+  /** 1-based chain attempt stamped into the emitted RunReport (default 1). */
+  reportAttempt?: number;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -53,9 +73,11 @@ export function GameFrame({
   onConsole,
   debug = false,
   engine = 'phaser',
+  onRunReport,
+  reportAttempt = 1,
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
-  const { srcDoc, scriptRanges } = useMemo(
+  const { srcDoc, scriptRanges, assetManifest } = useMemo(
     () => buildGamePreview(files, { debug, engine }),
     [files, debug, engine],
   );
@@ -91,16 +113,83 @@ export function GameFrame({
   // Last runKey for which we've re-asserted control after seeing a fresh stat.
   const reassertedRunKey = useRef<number | null>(null);
 
+  // ── Run-report collection (D-PAP-40/41) ──────────────────────────────────
+  // One collector per (runKey, srcDoc) run, read by the message listener via a
+  // ref. Latest callback/attempt in refs so the arm effect never re-fires on a
+  // parent re-render mid-observation.
+  const onRunReportRef = useRef(onRunReport);
+  onRunReportRef.current = onRunReport;
+  const reportAttemptRef = useRef(reportAttempt);
+  reportAttemptRef.current = reportAttempt;
+  const collectorRef = useRef<ReturnType<typeof createRunCollector> | null>(null);
+  // Finalize-and-emit for the CURRENT run (null once emitted / between runs).
+  const emitReportRef = useRef<(() => void) | null>(null);
+  const collectReports = !!onRunReport;
+
+  useEffect(() => {
+    if (!collectReports) return undefined;
+    const collector = createRunCollector({
+      engine,
+      attempt: reportAttemptRef.current,
+      assetManifest,
+    });
+    collectorRef.current = collector;
+    const startedAt = Date.now();
+    let emitted = false;
+    const emit = () => {
+      if (emitted) return; // at most once per run
+      emitted = true;
+      emitReportRef.current = null;
+      onRunReportRef.current?.(collector.finalize(Date.now() - startedAt));
+    };
+    emitReportRef.current = emit;
+    // Observe, then ask the in-frame probe for its canvas sample; if it never
+    // answers (probe broke / game hung the frame), finalize as inconclusive.
+    let replyTimer: ReturnType<typeof setTimeout> | undefined;
+    const probeTimer = setTimeout(() => {
+      iframeRef.current?.contentWindow?.postMessage({ __airbotixControl: true, action: 'report' }, '*');
+      replyTimer = setTimeout(() => {
+        collector.setProbeError('no-response');
+        emit();
+      }, PROBE_REPLY_TIMEOUT_MS);
+    }, RUN_OBSERVE_MS);
+    return () => {
+      clearTimeout(probeTimer);
+      clearTimeout(replyTimer);
+      collectorRef.current = null;
+      emitReportRef.current = null;
+    };
+  }, [collectReports, runKey, srcDoc, engine, assetManifest]);
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
+      // Only THIS frame may feed the console/collector — another frame on the
+      // page (or a torn-down previous run) must not pollute the run report
+      // (cheap defence-in-depth on top of the client-attested posture,
+      // D-PAP-41). Real browser messages always carry a source window; a
+      // null/undefined side (jsdom tests, synthetic events) is not the
+      // cross-frame case this guards against.
+      const frameWindow = iframeRef.current?.contentWindow;
+      if (e.source != null && frameWindow != null && e.source !== frameWindow) return;
       if (isConsoleMessage(e.data)) {
         // Map srcdoc-relative locations (syntax errors — sourceURL never applied)
         // back to the kid's file:line; runtime locs pass through unchanged.
         const loc = resolveErrorLoc(e.data.loc, scriptRangesRef.current);
+        collectorRef.current?.feedConsole({ level: e.data.level, text: e.data.text, loc });
         setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text, loc }]);
         return;
       }
+      if (isAssetMessage(e.data)) {
+        collectorRef.current?.feedAsset(e.data);
+        return;
+      }
+      if (isRunReportMessage(e.data)) {
+        collectorRef.current?.feedProbe(e.data.canvas);
+        emitReportRef.current?.();
+        return;
+      }
       if (isStatMessage(e.data)) {
+        collectorRef.current?.feedFrames(e.data.frames ?? 0, e.data.fps);
         onFps?.(e.data.fps);
         // Remount race: the control effects fire before the new game instance
         // exists, so the first stat of a fresh run re-asserts current state.

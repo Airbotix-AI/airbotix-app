@@ -4,6 +4,75 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-04
+
+### Fixed
+- **Stale-verdict guard + frame-source check (adversarial review findings).** (1) A run-report
+  POST is held open for the whole server-side fix turn; if the kid sent a chat turn meanwhile,
+  the late `fixing` verdict used to apply the fix turn's OLDER files over the kid's newer turn
+  and hijack the armed chain — `useVerification` now discards any verdict whose chain is no
+  longer armed. (2) `GameFrame` ignores messages from any window other than its own iframe
+  (cross-frame report pollution guard; sourceless synthetic events — jsdom — still pass).
+- **Verification restarts now guarantee a live GameFrame (D-PAP-40).** In the default Window
+  layout the Game window launches CLOSED (chat-first), and a closed/minimized window mounts no
+  `GameFrame` — so the verification loop's restart (resume-verify on workspace mount, i.e. the
+  initial build's auto-run) observed nothing and no RunReport ever posted: the first turn's
+  `verify_status` stayed `pending` forever. `useVerification`'s `restartGame` now goes through
+  `ensureGameRunnerVisible()` (new `playgroundStore` helper): it opens the Game window only when
+  it is NOT on screen, and no-ops in split mode and on an already-visible window — so a silent
+  fix beat still never yanks the window forward. The open is deliberately **without raising**
+  (never `openOrFocus`): the default game rect overlaps the chat's right edge, and raising it
+  sat the game stage OVER the chat's send button — the kid literally couldn't click Send
+  (caught by the harness's chat-send-clicking journeys: `safeguarding`, `sharing-remix`,
+  `teacher-kid-classroom`). The seeded z-order keeps the chat on top where they overlap.
+
+### Added
+- **Playground post-apply verification loop — FE half (playground-ai-prompt-prd D-PAP-40/41/44).**
+  After an applied game turn (`verification: 'pending'` on the turn result), the studio now runs
+  the game **instrumented**, builds a structured **RunReport** (v1, mirrored from
+  `platform-backend/src/code-sessions/run-report.ts`), and POSTs it to
+  `…/code/turn/:turnId/run-report`; the **server adjudicates**. Product behaviour is locked:
+  verification is **SILENT on success and on auto-fix** — a `fixing` verdict applies the fix
+  turn's files quietly (same files+version funnel as chat turns), restarts the game, and reports
+  `attempt+1`; only the **co-debug** hand-off surfaces (one warm bubble carrying the server's
+  message). Resume-verify: on workspace mount, `GET …/code/verify-state` picks up a still-pending
+  turn (closed tab) and re-runs at `attempts+1`. Pieces:
+  - `buildGamePreview.ts`: both control shims' `__airbotixStat` now carries the **engine's
+    cumulative `frames`** counter (Phaser `loop.frame` / three `renderer.info.render.frame` —
+    never rAF, which ticks while frozen); a new engine-agnostic **RUN_PROBE** answers
+    `{action:'report'}` with an 8×8 canvas sample (`{__airbotixRunReport, canvas}` — any probe
+    failure degrades, never breaks the game); a three-only **THREE_LOADER_GUARD** wraps
+    `GLTFLoader`/`TextureLoader.load` to post `{__airbotixAsset, url, len, ok, error?}` and
+    `console.error('[airbotix] …')` BEFORE the app's own onError can swallow the failure;
+    `buildGamePreview()` returns an **assetManifest** (data:-URL prefix+length per inlined asset)
+    so a reported data: URL maps back to the kid's path. Phaser srcdoc unchanged beyond
+    `frames` + RUN_PROBE; scriptRanges (kid file:line resolution) regression-tested with the new
+    parts.
+  - NEW `runReport.ts`: the FE RunReport mirror + pure `createRunCollector` (console
+    classification incl. rejection/window-error routing, caps 6/4/3/3×300 chars with transparent
+    `dropped` counts, de-dupe, asset-outcome mapping — raw un-inlined paths → `missing-ref`).
+    Curated failure **warns are PROMOTED to `consoleErrors`** (Phaser reports missing
+    textures/scenes via `console.warn`, and the backend's clean-run predicate treats warns as
+    advisory — a broken game must not verify clean).
+  - `GameFrame.tsx`: optional `onRunReport`/`reportAttempt` — per run it feeds the collector,
+    asks the probe after a 4 s observation window, and emits the finalized report exactly once
+    (probe silent ≥1.5 s → `probeError: 'no-response'`).
+  - NEW `panes/useVerification.ts`: the loop driver (arm per applied turn, post per attempt,
+    in-flight + stale-attempt guards, client-side 3-reports-per-chain cap, resume-verify).
+  - `code/codeApi.ts`: `postRunReport` + `getVerifyState` + the `verification` field on the
+    turn-result mirror.
+  - `PlaygroundApp.tsx`: entering the workspace after generation now **auto-runs** the game, so
+    the first build plays (and gets verified via resume-verify) without pressing ▶.
+
+### Changed
+- **`verifyRoundtrip.extractRuntimeErrors` accepts curated failure warns** (`/^\[airbotix\]/`,
+  `Failed to load|process`, `Texture … missing|not found`, `Scene … not found`) — generic kid
+  `console.warn` still never triggers a Stars-charged fix.
+- **The raw console-error auto-fix path (`/code/verify-fix`) is retired for game projects**: the
+  runner no longer wires `onRuntimeErrors` → `autoFixFromErrors`; game verification goes through
+  the server-adjudicated run-report loop. The code path stays compiling (and the co-debug bubble
+  copy now comes from the server).
+
 ## 2026-07-03
 
 ### Fixed
@@ -79,6 +148,26 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   regression fails the suite.
 
 ### Fixed
+- **`GLTFLoader is not available` / 3D models not loading — stale immutable cache of the vendored
+  engine (learn-game-studio-3d-prd D-3D-09).** The self-hosted `/vendor/` engine globals had a
+  FIXED, version-only filename yet shipped `immutable, max-age=1yr` (deploy.yml) with CloudFront
+  invalidation covering only `/index.html` — so the D-3D-09 deploy that added `GLTFLoader` to the
+  `window.THREE` bundle overwrote the same URL, and any browser/edge that had cached the pre-GLTFLoader
+  bytes kept serving them for a year (a `THREE` with no `GLTFLoader` → the sandbox game threw; the
+  model never loaded). Refreshing flipped it because different caches were hit. Fix: the
+  `vendor-engines` plugin now emits **content-hashed** filenames (`three-<v>-<hash>.global.js`,
+  `phaser-<v>-<hash>.min.js`/`.d.ts`) so the URL changes iff the bytes do — `immutable` becomes
+  correct and a stale cache can never mask an engine change. The app reads the resolved URLs from a
+  new `virtual:engine-vendors` module (`buildGamePreview.ts` + `MonacoEditor.tsx`) instead of
+  hardcoding paths; no engine-path constants remain. Guarded by the 3D game-smoke e2e (asserts the
+  srcdoc loads a `three-<v>-<8hex>.global.js` URL) + the `.d.ts` lazy-load e2e (hash-tolerant).
+- **Detail-view 3D preview intermittently showed "Couldn't open this 3D model" while the list
+  thumbnail rendered fine.** `ModelPreview` loaded the model with `GLTFLoader.load(blobURL)` — a
+  real `fetch()` of an object URL, with a blob lifecycle that could race StrictMode/cleanup and that
+  a strict `connect-src` CSP can block — whereas the working grid thumbnail parses the raw bytes.
+  `ModelPreview` now uses the same `GLTFLoader.parse(arrayBuffer)` path (no blob URL, no network
+  fetch, same sub-resource guard), so the detail stage is as robust as the thumbnail. Covered by the
+  cross-repo `kid-playground-model` journey (the stage renders + clips switch after a real reload).
 - **e2e mock harness caught up with the direct-to-S3 asset save + chat-ref copy.** The
   route-mocked backend (`e2e/helpers.ts`) never mocked `vfs/assets/sign-upload`/the S3 PUT, so
   every Asset Viewer import e2e silently failed since the presigned-upload save shipped; it now

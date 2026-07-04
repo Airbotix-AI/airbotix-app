@@ -129,7 +129,16 @@ test('game-smoke (3D): a three game loads an animated .glb via THREE.GLTFLoader 
   await openStudio(page);
 
   await page.getByRole('button', { name: 'Run game' }).click();
-  await expect(page.locator('iframe[title="Game"]')).toBeVisible({ timeout: 6_000 });
+  const gameFrame = page.locator('iframe[title="Game"]');
+  await expect(gameFrame).toBeVisible({ timeout: 6_000 });
+
+  // Cache-bust guard: the vendored three.js global is loaded from a CONTENT-HASHED
+  // URL (three-0.184.0-<8hex>.global.js), never the bare fixed name — so a deploy
+  // that changes the engine (e.g. adding the GLTFLoader addon) can't be masked by
+  // a stale `immutable` cache serving a THREE with no GLTFLoader. Regression guard
+  // for "GLTFLoader is not available" (learn-game-studio-3d-prd D-3D-09).
+  const srcdoc = (await gameFrame.getAttribute('srcdoc')) ?? '';
+  expect(srcdoc).toMatch(/<script src="\/vendor\/three-0\.184\.0-[0-9a-f]{8}\.global\.js"><\/script>/);
 
   // The model + its clips actually loaded inside the sandbox.
   await expect

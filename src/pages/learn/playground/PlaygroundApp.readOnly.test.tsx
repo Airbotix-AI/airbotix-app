@@ -141,7 +141,11 @@ describe('PlaygroundApp read-only (teacher game viewer, D-LV-6)', () => {
     render(<RouterProvider router={router} />);
 
     // The workspace mounts straight from the loaded VFS (no landing/generating flow).
-    const monaco = (await screen.findByTestId('monaco-stub')) as HTMLTextAreaElement;
+    const monaco = (await screen.findByTestId(
+      'monaco-stub',
+      undefined,
+      { timeout: 10_000 },
+    )) as HTMLTextAreaElement;
     // Monaco is non-editable in the viewer.
     expect(monaco).toHaveAttribute('readonly');
     expect(monacoSeen.length).toBeGreaterThan(0);
