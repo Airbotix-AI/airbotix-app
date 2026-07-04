@@ -20,7 +20,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `verify_status` stayed `pending` forever. `useVerification`'s `restartGame` now goes through
   `ensureGameRunnerVisible()` (new `playgroundStore` helper): it opens the Game window only when
   it is NOT on screen, and no-ops in split mode and on an already-visible window — so a silent
-  fix beat still never yanks the window forward.
+  fix beat still never yanks the window forward. The open is deliberately **without raising**
+  (never `openOrFocus`): the default game rect overlaps the chat's right edge, and raising it
+  sat the game stage OVER the chat's send button — the kid literally couldn't click Send
+  (caught by the harness's chat-send-clicking journeys: `safeguarding`, `sharing-remix`,
+  `teacher-kid-classroom`). The seeded z-order keeps the chat on top where they overlap.
 
 ### Added
 - **Playground post-apply verification loop — FE half (playground-ai-prompt-prd D-PAP-40/41/44).**

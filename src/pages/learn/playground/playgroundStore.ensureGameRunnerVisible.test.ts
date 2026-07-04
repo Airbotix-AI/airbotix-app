@@ -21,6 +21,18 @@ describe('ensureGameRunnerVisible (verification restart, D-PAP-40)', () => {
     expect(game.minimized).toBe(false);
   });
 
+  it('opens WITHOUT raising: the chat stays on top where the two windows overlap', () => {
+    // The default game rect overlaps the chat's right edge — raising the game
+    // on open used to sit its stage OVER the chat's send button (the kid could
+    // not click Send). Verification needs a MOUNTED runner, never focus.
+    const chatZ = usePlaygroundStore.getState().windows.chat.zIndex;
+    const gameZBefore = usePlaygroundStore.getState().windows.game.zIndex;
+    ensureGameRunnerVisible();
+    const game = usePlaygroundStore.getState().windows.game;
+    expect(game.zIndex).toBe(gameZBefore);
+    expect(game.zIndex).toBeLessThan(chatZ);
+  });
+
   it('restores a MINIMIZED game window (it renders nothing while minimized)', () => {
     usePlaygroundStore.getState().openOrFocus('game');
     usePlaygroundStore.getState().minimize('game');
