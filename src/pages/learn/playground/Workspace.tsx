@@ -42,7 +42,7 @@ import { HelpPane } from './panes/HelpPane';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { useVerification } from './panes/useVerification';
-import { usePlaygroundStore } from './playgroundStore';
+import { ensureGameRunnerVisible, usePlaygroundStore } from './playgroundStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
 interface WorkspaceProps {
@@ -317,14 +317,22 @@ export function Workspace({
   // Silent on success and on auto-fix — only the co-debug hand-off surfaces
   // (one warm bubble via pushAgentMessage). Real, kid-owned projects only.
   const verifyEnabled = !!projectId && !readOnly;
+  // A report needs a LIVE GameFrame: in window mode the Game window launches
+  // CLOSED (chat-first), so a resume-verify restart would otherwise run into an
+  // unmounted runner and never report. Open it only when it isn't on screen —
+  // a silent fix beat must not yank a visible Game window forward (no focus
+  // steal; ensureGameRunnerVisible no-ops when the window is already showing).
+  const runForVerification = () => {
+    ensureGameRunnerVisible();
+    onRun();
+  };
   const verification = useVerification({
     projectId,
     mode,
     enabled: verifyEnabled,
     // The same funnel a chat turn's apply uses: files + server-version adoption.
     applyFixTurn: (turn) => onApplyFiles(turn.files, turn.version),
-    // Plain onRun — a silent fix beat must not yank the Game window forward.
-    restartGame: onRun,
+    restartGame: runForVerification,
     pushCoDebugMessage: pushAgentMessage,
     onStarsCharged: () => wallet.refetch(),
   });
