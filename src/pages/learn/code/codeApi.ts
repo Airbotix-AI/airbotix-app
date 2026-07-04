@@ -368,6 +368,21 @@ function toStudioContent(f: VfsFile): VfsFile {
 // data-URL→base64 stripper) is gone with it; `toStudioContent` still wraps the
 // base64 the GET returns back into a `data:` URL for the runtime.
 
+/**
+ * Normalize a turn result's `files` into studio form (asset base64 → `data:` URL).
+ * A turn result carries the FULL post-turn VFS (`readAllFiles`), and the backend
+ * returns binary assets as RAW base64 — exactly like the snapshot/save reads, which
+ * already `map(toStudioContent)`. The turn-result paths must do the same, or an
+ * imported asset (image / audio / `.glb`) that rides along in the VFS lands in the
+ * studio store as bare base64 and can't render ("Couldn't open this 3D model"). The
+ * clearest place this bites is the 2D→3D engine switch: its rebuild turn re-applies
+ * the whole VFS, so a just-preserved model would show as damaged until a reload.
+ * `changes[].after` is intentionally NOT touched — the diff view expects raw base64.
+ */
+function toStudioTurnResult(r: AgentTurnResult): AgentTurnResult {
+  return { ...r, files: (r.files ?? []).map(toStudioContent) };
+}
+
 /** Decode a studio asset `data:` URL → Blob (for a direct browser→S3 PUT, or a
  *  `blob:` object URL so the DOM can render large assets — see `useObjectUrl`). */
 export function dataUrlToBlob(dataUrl: string): Blob {
@@ -647,7 +662,7 @@ export async function runAgentTurn(args: {
   /** Attached input images (D-PAP-33) — sent ONLY when non-empty. */
   images?: ChatImageRef[];
 }): Promise<AgentTurnResult> {
-  return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
+  const res = await api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
     body: {
       prompt: args.prompt,
@@ -658,6 +673,7 @@ export async function runAgentTurn(args: {
       ...(args.images && args.images.length > 0 ? { images: args.images } : {}),
     },
   });
+  return toStudioTurnResult(res);
 }
 
 /**
@@ -691,7 +707,7 @@ export async function reportRuntimeErrors(args: {
   mode: 'lite' | 'pro';
   idempotencyKey?: string;
 }): Promise<VerifyFixResult> {
-  return api<VerifyFixResult>(`/projects/${args.projectId}/code/verify-fix`, {
+  const res = await api<VerifyFixResult>(`/projects/${args.projectId}/code/verify-fix`, {
     method: 'POST',
     body: {
       errors: args.errors,
@@ -700,6 +716,9 @@ export async function reportRuntimeErrors(args: {
       idempotency_key: args.idempotencyKey ?? crypto.randomUUID(),
     },
   });
+  // The fix turn (when present) carries the full post-turn VFS too — normalize its
+  // assets to studio `data:` URLs like every other turn-result path.
+  return res.turn ? { ...res, turn: toStudioTurnResult(res.turn) } : res;
 }
 
 /** Live progress from a streaming turn (SSE) — what the agent is doing right now. */
@@ -770,7 +789,7 @@ export async function streamAgentTurn(
 
   if (failure) throw new ApiError(400, failure.code, failure.message);
   if (!result) throw new ApiError(500, 'TURN_FAILED', 'The build did not finish.');
-  return result;
+  return toStudioTurnResult(result);
 }
 
 // ── Safeguarding classify (J13 / §11g: POST …/code/turn/classify) ───────────
@@ -824,8 +843,12 @@ export async function approveTurn(args: {
   turnId: string;
   decision: 'approve' | 'reject';
 }): Promise<AgentTurnResult> {
-  return api<AgentTurnResult>(`/projects/${args.projectId}/code/turn/${args.turnId}/approve`, {
-    method: 'POST',
-    body: { decision: args.decision },
-  });
+  const res = await api<AgentTurnResult>(
+    `/projects/${args.projectId}/code/turn/${args.turnId}/approve`,
+    {
+      method: 'POST',
+      body: { decision: args.decision },
+    },
+  );
+  return toStudioTurnResult(res);
 }

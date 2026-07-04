@@ -53,6 +53,18 @@ export function animSidecarPath(path: string): string {
 }
 
 /**
+ * Whether a VFS file is a media ASSET (image/audio/video/3D-model/imported file)
+ * rather than game CODE. An asset is either flagged `kind: 'asset'` by the backend
+ * or lives under `assets/`. Load-bearing for the engine switch (D-3D-08): a 2D⇄3D
+ * rebuild drops the old engine's CODE but must PRESERVE the kid's uploaded assets
+ * (e.g. a just-imported `.glb`), so this is the single definition of "is an asset"
+ * shared by the Asset Viewer and the engine-switch preservation.
+ */
+export function isAssetFile(f: VfsFile): boolean {
+  return f.kind === 'asset' || f.path.startsWith(ASSETS_PREFIX);
+}
+
+/**
  * Classify an asset by extension. An image is a `sprite` when `files` contains a
  * sibling `<path>.anim.json` sidecar.
  */

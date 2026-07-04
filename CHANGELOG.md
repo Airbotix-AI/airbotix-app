@@ -6,6 +6,32 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-03
 
+### Fixed
+- **2D→3D conversion no longer deletes the kid's imported assets (Game Studio, D-3D-08 ×
+  D-3D-09).** Converting a game between engines ("make it 3D") rebuilds it on a clean
+  starter, and `resetEngine` was replacing the *entire* VFS with just that starter — so a
+  `.glb` (or any image/audio) the kid had just imported vanished the moment they went 3D to
+  use it. The engine switch now drops only the old engine's **code** and carries the kid's
+  uploaded **assets** (anything `kind:'asset'` or under `assets/`) across the rebuild; the
+  port prompt also names the preserved assets so the agent can wire the model into the new
+  3D game. New shared `isAssetFile` helper (`panes/assetMeta.ts`) is the single definition of
+  "is an asset" (the Asset Viewer's local `isAsset` now delegates to it). Tests:
+  `useGameAgent.test.ts` (engine switch preserves `assets/` files + drops old code + names
+  them in the port prompt); harness `kid-playground-model` extended to prove a just-imported
+  `.glb` survives the 2D→3D switch end-to-end (real `PATCH engine` + saveVfs, DB `vfs_version`
+  bump, authed `GET …/code/files` still lists the model, card still in the Assets pane).
+- **Turn-result assets no longer come back as un-renderable raw base64 (`code/codeApi.ts`).** A
+  turn result carries the FULL post-turn VFS (`readAllFiles`), and the backend returns binary
+  assets as raw base64 — but only the snapshot/save reads mapped `toStudioContent` (which wraps
+  them back into the `data:` URLs the `VfsFile` contract requires); the four turn-result paths
+  (`runAgentTurn`, `streamAgentTurn`, `approveTurn`, `reportRuntimeErrors`) returned them raw. So
+  after any AI turn, an imported image/audio/`.glb` that rode along in the VFS landed in the
+  studio store as bare base64 and failed to render ("Couldn't open this 3D model"). This was most
+  visible right after the 2D→3D switch (its rebuild turn re-applies the whole VFS incl. the
+  just-preserved model). All four paths now normalize via a shared `toStudioTurnResult`
+  (`changes[].after` left as raw base64 — the diff view expects that). Test: `codeApi.test.ts`
+  (turn-result asset base64 → `data:` URL; text + `changes[].after` untouched).
+
 ### Added
 - **GLB 3D-model assets in the Game Studio Asset Viewer (learn-game-studio-3d-prd D-3D-09,
   resolves OQ-3D-2).** Kids can now (1) **import** animated `.glb` models from local

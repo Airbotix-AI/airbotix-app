@@ -41,6 +41,7 @@ import {
 } from './gameAgent';
 import { runTurnStub, type RunTurn } from './gameAgentStub';
 import { detectEngineSwitch } from './engineSwitch';
+import { isAssetFile } from './assetMeta';
 import type { GameEngine } from '../buildGamePreview';
 import { STARTER_GAME } from '../starterGame';
 import { STARTER_GAME_3D } from '../threeStarter';
@@ -968,9 +969,19 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     // global ("Phaser is not defined") and the agent rebuilds from a clean scaffold,
     // not by editing leftover 2D scenes; (2) re-run the agent to rebuild the game's
     // idea in the new engine.
+    //
+    // But CODE is all we drop: the kid's uploaded ASSETS (images/audio/video and —
+    // the whole point of converting to 3D — imported `.glb` models) are engine-
+    // agnostic media, not old-engine code, so we carry them across the rebuild.
+    // Without this a just-imported GLB would vanish the moment the kid made the game
+    // 3D to use it (D-3D-09). Starter files (`main.js`) never collide with `assets/`,
+    // but we drop any starter-path clash defensively so the clean scaffold wins.
     if (p.kind === 'engine-switch' && p.engine && projectId) {
       const target = p.engine;
-      const starter = target === 'three' ? STARTER_GAME_3D : STARTER_GAME;
+      const clean = target === 'three' ? STARTER_GAME_3D : STARTER_GAME;
+      const starterPaths = new Set(clean.map((f) => f.path));
+      const preservedAssets = files.filter((f) => isAssetFile(f) && !starterPaths.has(f.path));
+      const starter = [...clean, ...preservedAssets];
       setPending(null);
       setBusy(true);
       setError(null);
@@ -990,10 +1001,19 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         // original game idea (the landing prompt) so the port keeps what the kid made.
         switchBypassRef.current = true;
         const idea = (introPrompt && introPrompt.trim()) || p.prompt;
+        // Tell the agent about the assets we carried over so the rebuild can wire
+        // them in — especially the GLB models a kid converts to 3D specifically to
+        // use (D-3D-09). Listing the paths turns "my model vanished" into "my model
+        // is in the new game".
+        const preservedPaths = preservedAssets.map((f) => f.path);
+        const assetsNote =
+          preservedPaths.length > 0
+            ? ` Your uploaded assets are still here — use them where they fit: ${preservedPaths.join(', ')}.`
+            : '';
         const portPrompt =
           target === 'three'
-            ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`
-            : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.`;
+            ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`
+            : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`;
         const result = await deps.runTurn({ projectId, prompt: portPrompt, mode });
         await applyResult(result, pendingId);
       } catch (e) {
@@ -1027,7 +1047,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt, files]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the
