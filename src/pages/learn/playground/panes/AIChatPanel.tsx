@@ -217,6 +217,9 @@ interface AIChatPanelProps {
   /** Bumps when an attached image was rejected by moderation (D-PAP-34) — clear the
    *  staged thumbnails so the kid isn't stuck with a picture that can't be sent. */
   imageRejectNonce?: number;
+  /** Bumps when a screen OUTAGE withheld the pictures UNJUDGED (D-PAP-46) — re-stage
+   *  the SAME already-uploaded refs so one tap retries (submit cleared them). */
+  imageRestore?: { nonce: number; images: SendImage[] };
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;
@@ -256,6 +259,7 @@ export function AIChatPanel({
   onUploadImage,
   imagesDisabled,
   imageRejectNonce,
+  imageRestore,
   onConfirm,
   onCancel,
   onUndo,
@@ -364,6 +368,24 @@ export function AIChatPanel({
       return [];
     });
   }, [imageRejectNonce]);
+
+  // A screen OUTAGE (D-PAP-46) withheld the pictures UNJUDGED — `submit` already
+  // cleared the composer, so re-stage the SAME uploaded refs (`ready`, no
+  // re-upload) for a one-tap retry. Contrast with the reject clear above: a
+  // picture that FAILED moderation must never be re-stageable this way.
+  useEffect(() => {
+    if (!imageRestore || imageRestore.nonce === 0) return;
+    setAttachments(
+      imageRestore.images.map((im) => ({
+        id: newAttachmentId(),
+        previewUrl: im.previewUrl,
+        status: 'ready' as const,
+        ref: { s3_key: im.s3_key, mime: im.mime },
+      })),
+    );
+    // Only the nonce drives re-staging (the array identity changes with it).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageRestore?.nonce]);
 
   const submit = () => {
     const t = input.trim();

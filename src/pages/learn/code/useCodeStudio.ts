@@ -99,6 +99,10 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       if (e.code === 'FAMILY_PAUSED') return 'Your family paused AI. Ask a parent.';
       if (e.code === 'MODERATION_REJECTED')
         return "Let's keep it kind and safe — try asking for something else.";
+      // The safety checker itself errored (fail-closed server-side, D-PAP-46) —
+      // the content was never judged, so don't imply it was.
+      if (e.code === 'MODERATION_UNAVAILABLE')
+        return 'The safety check had a hiccup — try again in a moment.';
       if (e.code === 'MODERATION_WARN')
         return 'That message looked a bit off. Try saying it a different way.';
       return e.message;
