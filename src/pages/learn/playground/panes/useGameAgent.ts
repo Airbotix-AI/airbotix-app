@@ -245,6 +245,16 @@ export const IMAGE_REJECT_MESSAGE =
  * No Stars charged. The composer also hides the picture button once it sees this.
  */
 export const IMAGE_DISABLED_MESSAGE = "Pictures aren't available right now — tell me with words and I'll help! ✏️";
+/**
+ * The picture CHECKER errored copy (D-PAP-46) — the backend's fail-closed input
+ * screen hit a classifier outage/timeout (`MODERATION_UNAVAILABLE`), so the
+ * picture was withheld WITHOUT being judged. Distinct from IMAGE_REJECT_MESSAGE:
+ * the kid's picture wasn't "unkind", so we don't say it was — and instead of the
+ * reject clear (`imageRejectNonce`), the already-uploaded refs are RE-STAGED via
+ * `imageRestore` so one tap retries without a re-upload. No Stars.
+ */
+export const IMAGE_CHECK_HICCUP_MESSAGE =
+  'Our picture checker had a hiccup — nothing wrong with your picture! Try again in a moment. 🛠️';
 
 const STARTER_MESSAGE =
   'Your game starter is ready to play 🎮\n\n' +
@@ -334,6 +344,14 @@ function friendlyError(e: unknown): string {
       const details = e.details as { modality?: string } | undefined;
       if (details?.modality === 'image') return IMAGE_REJECT_MESSAGE;
       return "Let's keep it kind and safe — try asking for something else.";
+    }
+    if (e.code === 'MODERATION_UNAVAILABLE') {
+      // The safety checker itself errored (D-PAP-46) — fail-closed server-side,
+      // but the content was never judged, so don't imply it was. For a picture
+      // the composer keeps it staged (no reject nonce) so the kid just retries.
+      const details = e.details as { modality?: string } | undefined;
+      if (details?.modality === 'image') return IMAGE_CHECK_HICCUP_MESSAGE;
+      return 'The safety check had a hiccup — try again in a moment.';
     }
     if (e.code === 'MODERATION_WARN')
       return 'That message looked a bit off. Try saying it a different way.';
@@ -443,6 +461,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   // A monotonic counter the composer watches to know its attached image(s) were
   // REJECTED by moderation (D-PAP-34) and must clear — bumped on each image reject.
   const [imageRejectNonce, setImageRejectNonce] = useState(0);
+  // A screen OUTAGE (MODERATION_UNAVAILABLE, D-PAP-46) withheld the pictures
+  // UNJUDGED — the composer clears on submit, so re-stage the SAME already-
+  // uploaded refs (nonce bump → AIChatPanel effect) for a one-tap retry.
+  const [imageRestore, setImageRestore] = useState<{ nonce: number; images: SendImage[] }>({
+    nonce: 0,
+    images: [],
+  });
   // A pending MODERATION_WARN ack — kid must confirm before the prompt is retried.
   const [warnPending, setWarnPending] = useState<{ message: string; prompt: string; stage: string } | null>(null);
   // The VFS snapshot BEFORE the last applied turn — the free local undo target.
@@ -917,6 +942,17 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           ) {
             setImageRejectNonce((n) => n + 1);
           }
+          // A screen OUTAGE (D-PAP-46): the pictures were never judged — re-stage
+          // the SAME uploaded refs so the kid retries with one tap (vs. the reject
+          // paths above, which clear so a blocked picture can't be re-sent).
+          if (
+            hasImages &&
+            e instanceof ApiError &&
+            e.code === 'MODERATION_UNAVAILABLE' &&
+            (e.details as { modality?: string } | undefined)?.modality === 'image'
+          ) {
+            setImageRestore((prev) => ({ nonce: prev.nonce + 1, images }));
+          }
           const msg = friendlyError(e);
           if (msg === OFFLINE_TEXT) setOffline(true);
           setError(msg);
@@ -1213,6 +1249,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     imagesDisabled,
     /** Bumps when an attached image was rejected/blocked — the composer clears it (D-PAP-34). */
     imageRejectNonce,
+    /** Bumps on a screen OUTAGE — the composer RE-STAGES these unjudged pictures (D-PAP-46). */
+    imageRestore,
     send,
     /** Generate an asset INTO the chat (Asset Viewer Generate/Remix buttons, §3). */
     requestAssetGen,

@@ -4,6 +4,20 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-05
+
+### Fixed
+- **Playground/code chat: a safety-screen OUTAGE no longer blames the kid's picture (D-PAP-46).**
+  The backend now distinguishes a classifier outage (`422 MODERATION_UNAVAILABLE`) from a real
+  content reject. `useGameAgent` maps it to the new `IMAGE_CHECK_HICCUP_MESSAGE` ("Our picture
+  checker had a hiccup — nothing wrong with your picture! Try again in a moment. 🛠️") and — unlike
+  a real reject (which clears via `imageRejectNonce`) — hands the unjudged, already-uploaded refs
+  back through the new `imageRestore` nonce: `AIChatPanel` RE-STAGES them `ready` (submit had
+  cleared the composer), so one tap retries with no re-upload (text-only turns get a generic
+  "safety check had a hiccup" line; `useCodeStudio` maps the code too). Covered by
+  `useGameAgent.test.ts` (hiccup copy, reject nonce untouched, `imageRestore` carries the refs,
+  0 Stars) and `AIChatPanel.test.tsx` (restore re-stages `ready` + resend carries the same S3 ref).
+
 ## 2026-07-04
 
 ### Fixed

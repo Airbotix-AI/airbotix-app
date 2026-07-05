@@ -1,7 +1,7 @@
 import type { ChatImageRef, LearningContext, SafeguardingVerdict } from '../../code/codeApi';
 import { ResumeRecap } from '../ResumeRecap';
 import { AIChatPanel } from './AIChatPanel';
-import type { ChatItem, PendingTurn, SendOptions } from './useGameAgent';
+import type { ChatItem, PendingTurn, SendImage, SendOptions } from './useGameAgent';
 
 interface ChatPaneProps {
   chat: ChatItem[];
@@ -25,6 +25,8 @@ interface ChatPaneProps {
   imagesDisabled?: boolean;
   /** Bumps when an attached image was rejected (D-PAP-34) — clear staged thumbnails. */
   imageRejectNonce?: number;
+  /** Bumps on a screen OUTAGE (D-PAP-46) — RE-STAGE these unjudged, already-uploaded pictures. */
+  imageRestore?: { nonce: number; images: SendImage[] };
   onConfirm?: () => void;
   onCancel?: () => void;
   onUndo?: () => void;

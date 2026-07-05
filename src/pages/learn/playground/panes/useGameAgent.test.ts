@@ -15,6 +15,7 @@ import {
   useGameAgent,
   IMAGE_REJECT_MESSAGE,
   IMAGE_DISABLED_MESSAGE,
+  IMAGE_CHECK_HICCUP_MESSAGE,
   type ChatItem,
   type SendImage,
 } from './useGameAgent';
@@ -495,6 +496,39 @@ describe('useGameAgent image input (D-PAP-33..37)', () => {
     expect(result.current.imageRejectNonce).toBeGreaterThan(nonceBefore);
     // The flag is NOT disabled (a reject ≠ feature-off).
     expect(result.current.imagesDisabled).toBe(false);
+  });
+
+  it('a screen OUTAGE (MODERATION_UNAVAILABLE) shows the hiccup copy and KEEPS the staged image (D-PAP-46)', async () => {
+    const onStarsCharged = vi.fn();
+    const onApplyFiles = vi.fn();
+    const deps = makeDeps();
+    deps.runTurn = vi.fn(async () => {
+      throw new ApiError(422, 'MODERATION_UNAVAILABLE', 'try again', {
+        modality: 'image',
+        stage: 'input',
+        system_error: true,
+      });
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles, onStarsCharged, projectId: 'p1', mode: 'pro', deps }),
+    );
+    const nonceBefore = result.current.imageRejectNonce;
+
+    await act(async () => {
+      await result.current.send('here', { images: [IMG] });
+    });
+
+    // The picture was never judged — the copy must NOT blame it …
+    await waitFor(() => expect(result.current.error).toBe(IMAGE_CHECK_HICCUP_MESSAGE));
+    expect(onStarsCharged).not.toHaveBeenCalled();
+    expect(onApplyFiles).not.toHaveBeenCalled();
+    // … no reject-clear fires, the affordance stays available …
+    expect(result.current.imageRejectNonce).toBe(nonceBefore);
+    expect(result.current.imagesDisabled).toBe(false);
+    // … and the SAME uploaded refs are handed back for re-staging (submit had
+    // cleared the composer), so one tap retries without a re-upload.
+    expect(result.current.imageRestore.nonce).toBeGreaterThan(0);
+    expect(result.current.imageRestore.images).toEqual([IMG]);
   });
 
   it('a TEXT moderation reject keeps the generic copy (not the image copy)', async () => {

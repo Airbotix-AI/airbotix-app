@@ -329,6 +329,47 @@ describe('AIChatPanel — image attachments', () => {
     await waitFor(() => expect(screen.queryByTestId('chat-attachment')).toBeNull());
   });
 
+  it('RE-STAGES the same uploaded refs when imageRestore bumps (screen outage, D-PAP-46)', async () => {
+    // Submit clears the composer; on MODERATION_UNAVAILABLE the hook hands the
+    // unjudged, already-uploaded pictures back — they must reappear `ready`
+    // (send enabled with no re-upload) so one tap retries.
+    const onSend = vi.fn();
+    const { rerender } = render(
+      <AIChatPanel
+        chat={[]}
+        busy={false}
+        error={null}
+        onSend={onSend}
+        onUploadImage={vi.fn()}
+        imageRestore={{ nonce: 0, images: [] }}
+      />,
+    );
+    expect(screen.queryByTestId('chat-attachment')).toBeNull();
+
+    rerender(
+      <AIChatPanel
+        chat={[]}
+        busy={false}
+        error={null}
+        onSend={onSend}
+        onUploadImage={vi.fn()}
+        imageRestore={{
+          nonce: 1,
+          images: [{ s3_key: 'chat-input/p1/abc', mime: 'image/png', previewUrl: 'blob:restored-1' }],
+        }}
+      />,
+    );
+    const thumb = await screen.findByTestId('chat-attachment');
+    expect(thumb.getAttribute('data-status')).toBe('ready');
+
+    // One tap re-sends the SAME S3 ref (no re-upload happened).
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'try again' } });
+    fireEvent.click(screen.getByTestId('chat-send'));
+    expect(onSend).toHaveBeenCalledWith('try again', {
+      images: [{ s3_key: 'chat-input/p1/abc', mime: 'image/png', previewUrl: 'blob:restored-1' }],
+    });
+  });
+
   it('renders attached pictures in the kid bubble from the local preview URL', () => {
     const chat: ChatItem[] = [
       { id: 'k1', role: 'kid', text: 'use this', images: [{ previewUrl: 'blob:kid-1' }] },
