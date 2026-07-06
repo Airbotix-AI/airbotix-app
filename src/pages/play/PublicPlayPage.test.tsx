@@ -56,7 +56,10 @@ describe('PublicPlayPage brand frame', () => {
   });
 
   it('shows the brand frame above a GAME canvas — logo + first-party CTA, both new-tab', async () => {
-    readPublicSnapshot.mockResolvedValue([text('main.js', 'new Phaser.Game({});')]);
+    readPublicSnapshot.mockResolvedValue({
+      files: [text('main.js', 'new Phaser.Game({});')],
+      engine: 'phaser',
+    });
     renderPlay();
 
     expect(await screen.findByTestId('play-iframe')).toBeInTheDocument();
@@ -77,10 +80,26 @@ describe('PublicPlayPage brand frame', () => {
     expect(cta.getAttribute('href')).toMatch(/\/programs$/);
   });
 
+  it('builds the shared game on the engine it was published under — a 3D game loads three.js, not Phaser (D-3D-01)', async () => {
+    // The regression: the play host ignored the engine and always built Phaser, so a
+    // three.js game rendered NOTHING. The iframe must now carry the three vendor global.
+    readPublicSnapshot.mockResolvedValue({
+      files: [text('main.js', 'window.__game = {}; new THREE.Scene();')],
+      engine: 'three',
+    });
+    renderPlay();
+
+    const iframe = await screen.findByTestId('play-iframe');
+    const srcDoc = iframe.getAttribute('srcdoc') ?? '';
+    expect(srcDoc).toMatch(/\/vendor\/three-/); // the three.js global, not Phaser
+    expect(srcDoc).not.toContain('/vendor/phaser-');
+  });
+
   it('shows the brand frame above the BLOCKS player, defaulted to the dark theme', async () => {
-    readPublicSnapshot.mockResolvedValue([
-      text(BLOCKS_PROJECT_FILE, JSON.stringify(blankProject('Shared project'))),
-    ]);
+    readPublicSnapshot.mockResolvedValue({
+      files: [text(BLOCKS_PROJECT_FILE, JSON.stringify(blankProject('Shared project')))],
+      engine: 'phaser',
+    });
     renderPlay();
 
     const blocks = await screen.findByTestId('blocks-play-root');

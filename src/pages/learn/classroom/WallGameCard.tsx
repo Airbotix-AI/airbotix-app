@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
-import type { VfsFile } from '../code/codeApi';
 import { ReadOnlyGameFrame } from '../playground/ReadOnlyGameFrame';
 import {
   CLAP_CAP,
   clapWallGame,
   readPublicSnapshot,
   remixWallGame,
+  type PublicSnapshot,
   type WallGame,
 } from '../playground/sharingApi';
 
@@ -39,7 +39,7 @@ export function WallGameCard({ game, classId }: WallGameCardProps) {
 
   // The same frozen, read-only snapshot the public play route serves (D-GAME8) —
   // fetched only once the kid clicks Play so the wall doesn't load every game.
-  const snapshot = useQuery<VfsFile[]>({
+  const snapshot = useQuery<PublicSnapshot>({
     queryKey: ['play', game.shareId],
     queryFn: () => readPublicSnapshot(game.shareId),
     enabled: playing,
@@ -67,8 +67,13 @@ export function WallGameCard({ game, classId }: WallGameCardProps) {
         className="aspect-square rounded-2xl bg-black overflow-hidden mb-3 relative block w-full"
         aria-label={`Play ${game.title}`}
       >
-        {playing && snapshot.data && snapshot.data.length > 0 ? (
-          <ReadOnlyGameFrame files={snapshot.data} testId="wall-game-iframe" title={game.title} />
+        {playing && snapshot.data && snapshot.data.files.length > 0 ? (
+          <ReadOnlyGameFrame
+            files={snapshot.data.files}
+            engine={snapshot.data.engine}
+            testId="wall-game-iframe"
+            title={game.title}
+          />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-white text-[28px]">
             {playing ? '…' : '▶'}
