@@ -28,7 +28,20 @@ vi.mock('./playgroundApi', () => ({
   fetchAssetDataUrl: (...a: unknown[]) => fetchAssetDataUrl(...a),
 }));
 
+// The merged endpoint (D-CSA-3) puts course-pack defaults (source:'course', no
+// class_id) FIRST, then class (teacher) assets. `default-tile.png` is a course
+// default; the rest are class assets.
 const CLASS_ASSETS: ClassAssetView[] = [
+  {
+    id: 'ca-0',
+    name: 'default-tile.png',
+    kind: 'image',
+    mime_type: 'image/png',
+    size_bytes: 1024,
+    created_at: '2026-06-20T00:00:00Z',
+    download_url: 'https://signed.example/default-tile.png?sig=zzz',
+    source: 'course',
+  },
   {
     id: 'ca-1',
     class_id: 'class-1',
@@ -38,6 +51,7 @@ const CLASS_ASSETS: ClassAssetView[] = [
     size_bytes: 2048,
     created_at: '2026-06-23T00:00:00Z',
     download_url: 'https://signed.example/hero.png?sig=abc',
+    source: 'class',
   },
   {
     id: 'ca-2',
@@ -48,6 +62,57 @@ const CLASS_ASSETS: ClassAssetView[] = [
     size_bytes: 4096,
     created_at: '2026-06-23T00:00:00Z',
     download_url: 'https://signed.example/jump.mp3?sig=def',
+    source: 'class',
+  },
+];
+
+// Full-parity fixtures (D-3D-09 + data assets): a 3D `model` (glb), an `other`
+// data file, and a sprite = an `image` PLUS its sibling `<name>.anim.json`
+// `other` sidecar in the same list.
+const PARITY_ASSETS: ClassAssetView[] = [
+  {
+    id: 'ca-model',
+    class_id: 'class-1',
+    name: 'robot.glb',
+    kind: 'model',
+    mime_type: 'model/gltf-binary',
+    size_bytes: 8192,
+    created_at: '2026-06-24T00:00:00Z',
+    download_url: 'https://signed.example/robot.glb?sig=mmm',
+    source: 'class',
+  },
+  {
+    id: 'ca-other',
+    class_id: 'class-1',
+    name: 'level.json',
+    kind: 'other',
+    mime_type: 'application/json',
+    size_bytes: 256,
+    created_at: '2026-06-24T00:00:00Z',
+    download_url: 'https://signed.example/level.json?sig=ooo',
+    source: 'class',
+  },
+  {
+    id: 'ca-sprite',
+    class_id: 'class-1',
+    name: 'run.png',
+    kind: 'image',
+    mime_type: 'image/png',
+    size_bytes: 3072,
+    created_at: '2026-06-24T00:00:00Z',
+    download_url: 'https://signed.example/run.png?sig=sss',
+    source: 'class',
+  },
+  {
+    id: 'ca-sprite-anim',
+    class_id: 'class-1',
+    name: 'run.png.anim.json',
+    kind: 'other',
+    mime_type: 'application/json',
+    size_bytes: 128,
+    created_at: '2026-06-24T00:00:00Z',
+    download_url: 'https://signed.example/run.png.anim.json?sig=aaa',
+    source: 'class',
   },
 ];
 
@@ -89,15 +154,38 @@ describe('AssetViewerPane — Class tab gating (class-shared-assets-prd)', () =>
     expect(screen.queryByTestId('asset-source-class')).toBeNull();
   });
 
-  it('shows the Class tab and renders the grid when class assets are provided', () => {
+  it('shows the Class tab and renders the merged grid (course defaults first) when assets are provided', () => {
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
     const tab = screen.getByTestId('asset-source-class');
     expect(tab).toBeTruthy();
     fireEvent.click(tab);
     const cards = screen.getAllByTestId('class-asset-card');
-    expect(cards).toHaveLength(2);
-    expect(cards[0].textContent).toContain('hero.png');
-    expect(cards[1].textContent).toContain('jump.mp3');
+    // Course default first (D-CSA-3), then the two class assets.
+    expect(cards).toHaveLength(3);
+    expect(cards[0].textContent).toContain('default-tile.png');
+    expect(cards[1].textContent).toContain('hero.png');
+    expect(cards[2].textContent).toContain('jump.mp3');
+  });
+
+  it('labels each card with its origin — course default vs class asset (D-CSA-3)', () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const badges = screen.getAllByTestId('class-asset-source');
+    expect(badges.map((b) => b.textContent)).toEqual(['Course', 'Class', 'Class']);
+  });
+
+  it('shows the course-library source in the detail view for a course default', () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    fireEvent.click(screen.getAllByTestId('class-asset-card')[0]); // default-tile.png (course)
+    expect(screen.getByText('Course library (set by Airbotix)')).toBeTruthy();
+  });
+
+  it('shows the class-library source in the detail view for a class asset', () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    fireEvent.click(screen.getAllByTestId('class-asset-card')[1]); // hero.png (class)
+    expect(screen.getByText('Class library (from your teacher)')).toBeTruthy();
   });
 });
 
@@ -109,7 +197,7 @@ describe('AssetViewerPane — Add to my game (class-shared-assets-prd)', () => {
 
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
     fireEvent.click(screen.getByTestId('asset-source-class'));
-    fireEvent.click(screen.getAllByTestId('class-asset-card')[0]); // open hero.png detail
+    fireEvent.click(screen.getAllByTestId('class-asset-card')[1]); // open hero.png detail (class asset)
     fireEvent.click(screen.getByTestId('class-asset-add'));
 
     await waitFor(() => expect(createSpy).toHaveBeenCalled());
@@ -124,7 +212,7 @@ describe('AssetViewerPane — enlarge a class image (image lightbox)', () => {
   it('opens the full-screen lightbox from the class image detail and closes it', () => {
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
     fireEvent.click(screen.getByTestId('asset-source-class'));
-    fireEvent.click(screen.getAllByTestId('class-asset-card')[0]); // hero.png (image)
+    fireEvent.click(screen.getAllByTestId('class-asset-card')[1]); // hero.png (class image)
     expect(screen.queryByTestId('image-lightbox')).toBeNull();
     fireEvent.click(screen.getByTestId('asset-enlarge'));
     expect(screen.getByTestId('image-lightbox')).toBeTruthy();
@@ -146,6 +234,83 @@ describe('AssetViewerPane — read-only viewer (D-LV-6)', () => {
     // Detail (preview + code-ref) renders, but no add affordance.
     expect(screen.getByTestId('class-asset-codeRef')).toBeTruthy();
     expect(screen.queryByTestId('class-asset-add')).toBeNull();
+  });
+});
+
+describe('AssetViewerPane — full-parity kinds (model / other / sprite)', () => {
+  it('renders a 3D model card without crashing and labels it "model"', () => {
+    // The model thumbnail fetches its bytes lazily; the card shows the 3D-cube
+    // fallback synchronously (never crashes for a glb) and reads "model".
+    fetchAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const cards = screen.getAllByTestId('class-asset-card');
+    const modelCard = cards.find((c) => c.textContent?.includes('robot.glb'));
+    expect(modelCard).toBeTruthy();
+    expect(modelCard!.textContent).toContain('model');
+  });
+
+  it('renders an "other" data file card with a name and no player', () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const cards = screen.getAllByTestId('class-asset-card');
+    const otherCard = cards.find((c) => c.textContent?.includes('level.json'));
+    expect(otherCard).toBeTruthy();
+    expect(otherCard!.textContent).toContain('other');
+  });
+
+  it('hides the `.anim.json` sidecar card and labels the image "sprite sheet"', () => {
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const cards = screen.getAllByTestId('class-asset-card');
+    // 4 items in → 3 cards (the .anim.json sidecar is hidden as its own card).
+    expect(cards).toHaveLength(3);
+    expect(cards.some((c) => c.textContent?.includes('run.png.anim.json'))).toBe(false);
+    const spriteCard = cards.find((c) => c.textContent?.includes('run.png'));
+    expect(spriteCard!.textContent).toContain('sprite sheet');
+  });
+
+  it('opening a model detail renders without crashing (no glb throw)', () => {
+    fetchAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const modelCard = screen
+      .getAllByTestId('class-asset-card')
+      .find((c) => c.textContent?.includes('robot.glb'))!;
+    fireEvent.click(modelCard);
+    // The detail shows the model kind + copy-ref (3D model reference), never throws.
+    expect(screen.getByTestId('class-asset-codeRef')).toBeTruthy();
+    expect(screen.getByText('Copy 3D model reference')).toBeTruthy();
+  });
+
+  it('adding a sprite copies BOTH the image and its `.anim.json` sidecar into the VFS', async () => {
+    // Distinct data URLs per signed URL so we can assert each file's bytes land.
+    fetchAssetDataUrl.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes('anim.json') ? 'data:application/json;base64,ANIM' : 'data:image/png;base64,IMG',
+      ),
+    );
+    const createSpy = vi.spyOn(useProjectStore.getState(), 'createFile');
+
+    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
+    fireEvent.click(screen.getByTestId('asset-source-class'));
+    const spriteCard = screen
+      .getAllByTestId('class-asset-card')
+      .find((c) => c.textContent?.includes('run.png'))!;
+    fireEvent.click(spriteCard);
+    fireEvent.click(screen.getByTestId('class-asset-add'));
+
+    // Both the image and its sidecar are fetched from their OWN signed URLs and
+    // land at the fixed sibling VFS paths so the sprite pairing holds.
+    await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(2));
+    expect(fetchAssetDataUrl).toHaveBeenCalledWith('https://signed.example/run.png?sig=sss');
+    expect(fetchAssetDataUrl).toHaveBeenCalledWith('https://signed.example/run.png.anim.json?sig=aaa');
+    expect(createSpy).toHaveBeenCalledWith('assets/class/run.png', 'asset', 'data:image/png;base64,IMG');
+    expect(createSpy).toHaveBeenCalledWith(
+      'assets/class/run.png.anim.json',
+      'asset',
+      'data:application/json;base64,ANIM',
+    );
   });
 });
 

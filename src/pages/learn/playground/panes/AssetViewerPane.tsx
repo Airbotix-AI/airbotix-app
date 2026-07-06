@@ -486,10 +486,16 @@ export function AssetViewerPane({
 
   // "Add to my game" for a class asset (class-shared-assets-prd): download the
   // bytes from the short-lived signed URL, convert to a data URL, and copy into
-  // the kid's VFS at `assets/class/<name>` (deduped like an import). The class
-  // asset thereby becomes a normal "My asset" — the signed URL is NEVER referenced
-  // inside the sandboxed game (playground/CLAUDE.md security model). After adding
-  // we switch to My assets so the kid sees their new copy.
+  // the kid's VFS at `assets/class/<name>` (deduped like an import). Works for
+  // EVERY kind — a glb model copies exactly like an image (the game loads it from
+  // the VFS via THREE.GLTFLoader). The signed URL is NEVER referenced inside the
+  // sandboxed game (playground/CLAUDE.md security model). After adding we switch
+  // to My assets so the kid sees their new copy.
+  //
+  // Sprite sheets: when the added image has a sibling `<name>.anim.json` sidecar
+  // in the class list, we ALSO fetch + copy the sidecar to `assets/class/<name>.anim.json`
+  // (its own signed `download_url`), so the sprite animates exactly like a My-assets
+  // sprite (assetKindOf derives "sprite" from the sidecar's presence in the VFS).
   async function addClassAssetToMine(asset: ClassAssetView) {
     setClassAdding(true);
     try {
@@ -497,6 +503,17 @@ export function AssetViewerPane({
       const path = uniquePath(`${CLASS_ASSET_DIR}/${asset.name}`, takenPaths);
       takenPaths.add(path);
       createFile(path, 'asset', dataUrl);
+      // Copy the sprite sidecar alongside the image (fixed sibling path so the
+      // VFS pairing that makes it a sprite holds — never deduped away from it).
+      if (asset.kind === 'image') {
+        const sidecar = classList.find((a) => a.name === animSidecarPath(asset.name));
+        if (sidecar) {
+          const sidecarData = await fetchAssetDataUrl(sidecar.download_url);
+          const sidecarPath = animSidecarPath(path);
+          takenPaths.add(sidecarPath);
+          createFile(sidecarPath, 'asset', sidecarData);
+        }
+      }
       setSource('mine');
       setCategory(ALL);
       setSelectedLibId(null);
@@ -691,6 +708,7 @@ export function AssetViewerPane({
           selectedClass ? (
             <ClassAssetDetailView
               asset={selectedClass}
+              items={classList}
               busy={classAdding}
               readOnly={readOnly}
               onAdd={() => void addClassAssetToMine(selectedClass)}
