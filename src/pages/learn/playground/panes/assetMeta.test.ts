@@ -95,6 +95,7 @@ describe('assetChatRef (bare reference, not code)', () => {
         size_bytes: 1,
         created_at: '',
         download_url: '',
+        source: 'class',
       }),
     ).toBe('assets/class/hero.png');
   });

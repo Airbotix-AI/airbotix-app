@@ -105,12 +105,27 @@ export async function loadGameFiles(projectId: string): Promise<VfsFile[]> {
 // frontend simply hides the Class tab when the list is empty (server is the
 // source of truth for authz, airbotix-app CLAUDE.md #4).
 
-/** A class-shared asset the teacher prepared (backend `ClassAssetView`). */
+/**
+ * A class-shared asset the kid can browse (backend `ClassAssetView`). The
+ * endpoint now MERGES two sources into one flat list (D-CSA-3): the bound course
+ * pack's admin-curated DEFAULTS (`source:'course'`, no `class_id`) come first,
+ * then the class's own teacher assets (`source:'class'`). The kid consumes both
+ * identically (the "Add to my game" copy-into-VFS flow is unchanged); `source`
+ * only labels the origin in the UI.
+ */
 export interface ClassAssetView {
   id: string;
-  class_id: string;
+  /** Absent for course-pack defaults (they have no owning class). */
+  class_id?: string;
   name: string;
-  kind: 'image' | 'audio' | 'video';
+  /**
+   * Full parity with the playground's own importable set (D-3D-09 + data assets):
+   * media plus 3D `model` (glb) and non-executable `other` data (game data, fonts,
+   * shaders). A sprite strip arrives as an `image` item PLUS a sibling `other`-kind
+   * item named `<image-basename>.anim.json` (the sidecar) in the same list — the UI
+   * derives "sprite" from that pairing, never from a distinct backend kind.
+   */
+  kind: 'image' | 'audio' | 'video' | 'model' | 'other';
   mime_type: string;
   size_bytes: number;
   created_at: string;
@@ -119,11 +134,15 @@ export interface ClassAssetView {
    *  loads only VFS-resident assets, exactly like imports — playground CLAUDE.md
    *  security model). */
   download_url: string;
+  /** Where this asset comes from — course-pack default vs class (teacher) asset. */
+  source: 'class' | 'course';
 }
 
 /**
- * List the class-shared assets visible to this project (class-shared-assets-prd).
- * `GET /projects/:id/class-assets` returns `[]` unless the project is class work
+ * List the shared assets visible to this project (class-shared-assets-prd).
+ * `GET /projects/:id/class-assets` MERGES the bound course pack's defaults
+ * (`source:'course'`, first) and the class's teacher assets (`source:'class'`)
+ * into one flat list (D-CSA-3). It returns `[]` unless the project is class work
  * for a class the kid is enrolled in — the backend gate is the source of truth,
  * so the caller hides the Class tab when the list is empty.
  */

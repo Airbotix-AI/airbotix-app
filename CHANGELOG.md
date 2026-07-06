@@ -6,6 +6,31 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-06
 
+### Changed
+- **Playground Class asset tab reaches full parity with My-assets — renders `model` (glb 3D), `other` (data/fonts/shaders) + sprite sheets.**
+  The backend asset libraries were widened to the playground's full importable set, so `GET /projects/:id/class-assets`
+  can now include `kind: 'model' | 'other'` (a sprite arrives as an `image` PLUS a sibling `<name>.anim.json` `other`
+  item). `ClassAssetView.kind` widens to `'image'|'audio'|'video'|'model'|'other'`. The Class grid now HIDES `.anim.json`
+  sidecar cards, labels an image-with-sidecar as a "sprite sheet", renders `model` via the same lazy `modelThumbnail`
+  three renderer My-assets uses (3D-cube icon fallback while it loads / on failure), and gives `other` a `File` icon;
+  `KIND_ICON` gains `model`/`other`. The detail view renders a glb through the same lazy `ModelPreview` three stage
+  (never crashes for glb) and `other` as a file icon + name + size. "Add to my game" copies bytes into
+  `assets/class/<name>` for EVERY kind (a glb copies like an image, loaded from the VFS via THREE.GLTFLoader); for a
+  sprite it ALSO fetches + copies the sibling `.anim.json` sidecar to `assets/class/<name>.anim.json` (from the sidecar
+  item's own signed URL) so the sprite animates exactly like a My-assets sprite. Covered by
+  `AssetViewerPane.classAssets.test.tsx` (model/other render, sidecar hidden + "sprite sheet" label, model detail no
+  crash, sprite add copies BOTH files) and `playgroundApi.test.ts` (widened kinds pass through).
+- **Playground Class asset tab now shows merged course-pack defaults + class assets, labelled by origin (D-CSA-3).**
+  `GET /projects/:id/class-assets` now returns one flat list that merges the bound course pack's
+  admin-curated DEFAULTS (`source:'course'`, first — no `class_id`) with the class's own teacher
+  assets (`source:'class'`). `ClassAssetView` gains a required `source: 'class' | 'course'` and
+  makes `class_id` optional. The Asset Viewer's Class tab labels each grid card with a tiny origin
+  badge (`data-testid="class-asset-source"` → "Course" / "Class") and the detail "Source" row now
+  reflects the origin ("Course library (set by Airbotix)" vs "Class library (from your teacher)").
+  The "Add to my game" copy-into-VFS flow is unchanged (the merge is transparent to it); the
+  existing `class.asset_added/removed/assets_copied` WS refetch already covers course-default
+  changes (backend fans the same events out). Covered by `AssetViewerPane.classAssets.test.tsx`
+  (course-first ordering, per-card origin badges, detail source labels) and `playgroundApi.test.ts`.
 ### Fixed
 - **A shared 3D game rendered NOTHING; a shared 2D game was fine (D-3D-01).** The read-only play
   surface — `ReadOnlyGameFrame`, used by the public play host (`/play/:shareId`) AND the class wall

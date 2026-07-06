@@ -181,6 +181,9 @@ export function Workspace({
   // (class-shared-assets-prd): the backend pushes a class_id-only signal to the
   // enrolled kid's private socket; we just refetch the access-gated endpoint, so
   // a newly-uploaded asset appears (or a removed one disappears) without a reload.
+  // The endpoint now merges course-pack defaults too (D-CSA-3); the backend fans
+  // these same signals out on course-default changes, so this refetch already
+  // covers them — no extra WS wiring needed.
   const qc = useQueryClient();
   const refetchClassAssets = useCallback(() => {
     if (projectId) {

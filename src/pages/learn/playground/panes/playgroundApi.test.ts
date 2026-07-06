@@ -47,8 +47,20 @@ describe('createGameProject (PRD J1)', () => {
 describe('listClassAssets (class-shared-assets-prd)', () => {
   beforeEach(() => apiMock.mockReset());
 
-  it('GETs the project class-assets endpoint via the shared api client', async () => {
+  it('GETs the project class-assets endpoint via the shared api client (merged course + class list)', async () => {
+    // The merged response (D-CSA-3): a course-pack default (no class_id) first,
+    // then a class (teacher) asset. listClassAssets passes both through verbatim.
     const assets = [
+      {
+        id: 'ca-0',
+        name: 'default-tile.png',
+        kind: 'image',
+        mime_type: 'image/png',
+        size_bytes: 1024,
+        created_at: '2026-06-20T00:00:00Z',
+        download_url: 'https://signed.example/default-tile.png?sig=zzz',
+        source: 'course',
+      },
       {
         id: 'ca-1',
         class_id: 'class-1',
@@ -58,12 +70,44 @@ describe('listClassAssets (class-shared-assets-prd)', () => {
         size_bytes: 2048,
         created_at: '2026-06-23T00:00:00Z',
         download_url: 'https://signed.example/hero.png?sig=abc',
+        source: 'class',
       },
     ];
     apiMock.mockResolvedValue(assets);
     const res = await listClassAssets('proj-1');
     expect(res).toEqual(assets);
     expect(apiMock).toHaveBeenCalledWith('/projects/proj-1/class-assets');
+  });
+
+  it('passes the widened kinds through verbatim (model / other sprite sidecar)', async () => {
+    // Full parity with the importable set: a glb `model`, and a sprite = an `image`
+    // plus its `<name>.anim.json` `other` sidecar — all pass through unchanged.
+    const assets = [
+      {
+        id: 'ca-model',
+        class_id: 'class-1',
+        name: 'robot.glb',
+        kind: 'model',
+        mime_type: 'model/gltf-binary',
+        size_bytes: 8192,
+        created_at: '2026-06-24T00:00:00Z',
+        download_url: 'https://signed.example/robot.glb?sig=mmm',
+        source: 'class',
+      },
+      {
+        id: 'ca-sprite-anim',
+        class_id: 'class-1',
+        name: 'run.png.anim.json',
+        kind: 'other',
+        mime_type: 'application/json',
+        size_bytes: 128,
+        created_at: '2026-06-24T00:00:00Z',
+        download_url: 'https://signed.example/run.png.anim.json?sig=aaa',
+        source: 'class',
+      },
+    ];
+    apiMock.mockResolvedValue(assets);
+    expect(await listClassAssets('proj-2')).toEqual(assets);
   });
 });
 
