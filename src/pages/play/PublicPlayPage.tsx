@@ -2,10 +2,9 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { ReadOnlyGameFrame } from '../learn/playground/ReadOnlyGameFrame';
-import { ShareGoneError, readPublicSnapshot } from '../learn/playground/sharingApi';
+import { ShareGoneError, readPublicSnapshot, type PublicSnapshot } from '../learn/playground/sharingApi';
 import { ReadOnlyBlocksPlayer } from '../learn/blocks/ReadOnlyBlocksPlayer';
 import { BLOCKS_PROJECT_FILE, parseProject } from '../learn/blocks/blocksModel';
-import type { VfsFile } from '../learn/code/codeApi';
 import { PlayBrandBar } from './PlayBrandBar';
 
 /**
@@ -32,7 +31,7 @@ import { PlayBrandBar } from './PlayBrandBar';
 export function PublicPlayPage() {
   const { shareId } = useParams<{ shareId: string }>();
 
-  const snapshot = useQuery<VfsFile[]>({
+  const snapshot = useQuery<PublicSnapshot>({
     queryKey: ['play', shareId],
     queryFn: () => readPublicSnapshot(shareId!),
     enabled: !!shareId,
@@ -58,8 +57,9 @@ export function PublicPlayPage() {
   }
 
   // A blocks project carries project.blocks.json; render the read-only blocks
-  // player. Otherwise it's a Phaser game → the sandboxed game frame.
-  const blocksFile = snapshot.data?.find((f) => f.path === BLOCKS_PROJECT_FILE);
+  // player. Otherwise it's a game → the sandboxed game frame (Phaser or three.js).
+  const files = snapshot.data?.files;
+  const blocksFile = files?.find((f) => f.path === BLOCKS_PROJECT_FILE);
 
   return (
     <div data-testid="play-root" className="flex h-screen w-screen flex-col bg-black">
@@ -71,9 +71,10 @@ export function PublicPlayPage() {
           </div>
         ) : blocksFile ? (
           <ReadOnlyBlocksPlayer project={parseProject(blocksFile.content)} />
-        ) : snapshot.data && snapshot.data.length > 0 ? (
-          // The ONLY thing rendered on a successful game load: the bare game canvas.
-          <ReadOnlyGameFrame files={snapshot.data} testId="play-iframe" />
+        ) : files && files.length > 0 ? (
+          // The ONLY thing rendered on a successful game load: the bare game canvas,
+          // built on the engine the game was published under (2D Phaser / 3D three).
+          <ReadOnlyGameFrame files={files} engine={snapshot.data!.engine} testId="play-iframe" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-white opacity-70">
             This couldn’t be loaded.

@@ -18,6 +18,7 @@
 
 import { ApiError, api } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
+import type { GameEngine } from './buildGamePreview';
 import { GAME_PROJECT_KIND } from './panes/playgroundApi';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
@@ -86,6 +87,17 @@ export interface DemoShareAdapter {
 let demoShareAdapter: DemoShareAdapter | null = null;
 export function setDemoShareAdapter(adapter: DemoShareAdapter | null): void {
   demoShareAdapter = adapter;
+}
+
+/**
+ * A frozen, read-only game snapshot for the public play page / class wall. Carries
+ * the {@link GameEngine} it was published under (learn-game-studio-3d-prd.md
+ * D-3D-01) so the bare-canvas frame loads the RIGHT engine — Phaser (2D) vs
+ * three.js (3D). Without it a 3D game silently renders nothing (defaults to Phaser).
+ */
+export interface PublicSnapshot {
+  files: VfsFile[];
+  engine: GameEngine;
 }
 
 /** Bundled, offline `/play/:shareId` snapshots for the two demos (D-DEMO-09). */
@@ -183,13 +195,13 @@ export class ShareGoneError extends Error {
  * carries no auth and no `/llm/*` access (D-GAME10d). A revoked/expired link
  * returns 410 → `ShareGoneError` so the host can show the gone state.
  */
-export async function readPublicSnapshot(shareId: string): Promise<VfsFile[]> {
+export async function readPublicSnapshot(shareId: string): Promise<PublicSnapshot> {
   // Demo shareIds (D-DEMO-09): a build-time bundled snapshot, ZERO network — so a
   // real new tab to /play/try-demo-* renders this real page offline. Resolved
   // unconditionally (no demo install needed in a fresh tab); the ids never
-  // collide with real capability tokens.
+  // collide with real capability tokens. Both demos are 2D (phaser).
   const demoSnapshot = DEMO_SNAPSHOTS[shareId];
-  if (demoSnapshot) return demoSnapshot();
+  if (demoSnapshot) return { files: await demoSnapshot(), engine: 'phaser' };
 
   let res: Response;
   try {
@@ -199,8 +211,9 @@ export async function readPublicSnapshot(shareId: string): Promise<VfsFile[]> {
   }
   if (res.status === 410) throw new ShareGoneError();
   if (!res.ok) throw new Error(`play_${res.status}`);
-  const body = (await res.json()) as { files?: VfsFile[] };
-  return body.files ?? [];
+  const body = (await res.json()) as { files?: VfsFile[]; engine?: GameEngine };
+  // A pre-fix backend (or a snapshot with no engine) means the 2D Phaser default.
+  return { files: body.files ?? [], engine: body.engine === 'three' ? 'three' : 'phaser' };
 }
 
 // ── Interactive class wall (J7 / D-GAME8) ───────────────────────────────────
