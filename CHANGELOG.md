@@ -31,6 +31,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   existing `class.asset_added/removed/assets_copied` WS refetch already covers course-default
   changes (backend fans the same events out). Covered by `AssetViewerPane.classAssets.test.tsx`
   (course-first ordering, per-card origin badges, detail source labels) and `playgroundApi.test.ts`.
+### Fixed
+- **A shared 3D game rendered NOTHING; a shared 2D game was fine (D-3D-01).** The read-only play
+  surface — `ReadOnlyGameFrame`, used by the public play host (`/play/:shareId`) AND the class wall
+  (`WallGameCard`) — always built its sandbox srcdoc with the default Phaser (2D) engine, so a
+  three.js (3D) game loaded the wrong engine global and silently failed to render. `ReadOnlyGameFrame`
+  now takes an `engine` prop and passes it to `buildGameSrcDoc`; `readPublicSnapshot` returns
+  `{ files, engine }` (the new `PublicSnapshot`) from the backend's engine-carrying public payload
+  (null/missing ⇒ `phaser`, back-compat); `PublicPlayPage` + `WallGameCard` thread it through. Covered
+  by `ReadOnlyGameFrame.test.tsx` (three vs phaser vendor + strict sandbox), `PublicPlayPage.test.tsx`
+  (a 3D share builds three.js), and `demoAdapters.test.ts` (demo snapshots are 2D `phaser`).
 
 ## 2026-07-05
 

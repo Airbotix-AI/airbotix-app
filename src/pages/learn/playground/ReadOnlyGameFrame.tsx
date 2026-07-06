@@ -1,11 +1,16 @@
 import { useMemo } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
-import { buildGameSrcDoc } from './buildGamePreview';
+import { buildGameSrcDoc, type GameEngine } from './buildGamePreview';
 
 interface ReadOnlyGameFrameProps {
   /** The frozen, read-only VFS snapshot to play (class-wall or public play). */
   files: VfsFile[];
+  /** Which engine the frozen game runs on — Phaser (2D) vs three.js (3D). MUST
+   *  match how the game was authored, or the wrong engine global loads and the
+   *  canvas renders nothing (learn-game-studio-3d-prd.md D-3D-01). Defaults to
+   *  `phaser` for back-compat with 2D games / pre-fix snapshots. */
+  engine?: GameEngine;
   /** Stable label for the iframe (a11y); the visitor never sees kid PII. */
   title?: string;
   /** testid for the iframe so the wall (`wall-game-iframe`) and the public play
@@ -28,8 +33,8 @@ interface ReadOnlyGameFrameProps {
  * srcdoc's own stat/console postMessages still flow out unchanged — which is what
  * the game-smoke oracle asserts against.
  */
-export function ReadOnlyGameFrame({ files, title = 'Game', testId }: ReadOnlyGameFrameProps) {
-  const srcDoc = useMemo(() => buildGameSrcDoc(files), [files]);
+export function ReadOnlyGameFrame({ files, engine = 'phaser', title = 'Game', testId }: ReadOnlyGameFrameProps) {
+  const srcDoc = useMemo(() => buildGameSrcDoc(files, { engine }), [files, engine]);
 
   return (
     <iframe

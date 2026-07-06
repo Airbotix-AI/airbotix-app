@@ -225,15 +225,16 @@ describe('public play snapshot (D-DEMO-09) — bundled, offline, real new-tab sa
   it('serves the playground game snapshot for the fixed demo shareId with ZERO network', async () => {
     // No install: a fresh tab has none. The snapshot is a build-time constant.
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const files = await readPublicSnapshot(DEMO_PLAYGROUND_SHARE_ID);
+    const { files, engine } = await readPublicSnapshot(DEMO_PLAYGROUND_SHARE_ID);
     expect(files).toEqual(demoStarterFiles()); // the real, playable starter game
     expect(files.map((f) => f.path)).toContain(DEMO_GAME_FILE);
+    expect(engine).toBe('phaser'); // the demo game is 2D
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('serves the blocks story snapshot (a real, parseable project) with ZERO network', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const files = await readPublicSnapshot(DEMO_BLOCKS_SHARE_ID);
+    const { files } = await readPublicSnapshot(DEMO_BLOCKS_SHARE_ID);
     const projectFile = files.find((f) => f.path === BLOCKS_PROJECT_FILE);
     expect(projectFile).toBeTruthy();
     // The real PublicPlayPage branch: parse → ReadOnlyBlocksPlayer.
