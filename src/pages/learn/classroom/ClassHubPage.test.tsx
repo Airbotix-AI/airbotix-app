@@ -65,6 +65,7 @@ function wireApi() {
     if (path === '/classes/mine') return Promise.resolve(ENRICHED);
     if (path === '/classes/class-1') return Promise.resolve({ id: 'class-1', name: 'Year 5 AI Lab' });
     if (path === '/classes/class-1/wall') return Promise.resolve([]);
+    if (path === '/classes/class-1/teacher-demos/pinned') return Promise.resolve([]);
     if (path === '/kids/kid-1/projects') return Promise.resolve(PROJECTS);
     return Promise.resolve(undefined);
   });
@@ -105,6 +106,39 @@ describe('ClassHubPage', () => {
     expect(await screen.findByText(/What your/)).toBeInTheDocument();
   });
 
+  it('shows teacher-pinned demos separately from classmates work', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/classes/mine') return Promise.resolve(ENRICHED);
+      if (path === '/classes/class-1') return Promise.resolve({ id: 'class-1', name: 'Year 5 AI Lab' });
+      if (path === '/classes/class-1/wall') return Promise.resolve([]);
+      if (path === '/classes/class-1/teacher-demos/pinned') {
+        return Promise.resolve([
+          {
+            id: 'demo-1',
+            class_id: 'class-1',
+            lesson_id: 'les-1',
+            title: 'Teacher loop demo',
+            description: null,
+            kind: 'game',
+            engine: 'phaser',
+            mode: 'read_only',
+            files: [{ path: 'main.js', content: 'console.log("teacher")' }],
+            pinned_to_wall: true,
+            updated_at: '2026-07-07T00:00:00Z',
+          },
+        ]);
+      }
+      if (path === '/kids/kid-1/projects') return Promise.resolve(PROJECTS);
+      return Promise.resolve(undefined);
+    });
+    renderHub();
+
+    expect(await screen.findByText('Teacher loop demo')).toBeInTheDocument();
+    expect(screen.getByTestId('teacher-demo-wall-card')).toHaveTextContent('From your teacher');
+    expect(screen.getByTestId('teacher-demo-wall-card')).toHaveTextContent('Read-only demo');
+    expect(screen.getByText('No classmates have shared anything yet.')).toBeInTheDocument();
+  });
+
   it('falls back to the generated header cover when the course image is missing', async () => {
     api.mockImplementation((path: string) => {
       if (path === '/classes/mine') {
@@ -116,6 +150,7 @@ describe('ClassHubPage', () => {
         return Promise.resolve({ id: 'class-1', name: 'Year 5 AI Lab' });
       }
       if (path === '/classes/class-1/wall') return Promise.resolve([]);
+      if (path === '/classes/class-1/teacher-demos/pinned') return Promise.resolve([]);
       if (path === '/kids/kid-1/projects') return Promise.resolve(PROJECTS);
       return Promise.resolve(undefined);
     });

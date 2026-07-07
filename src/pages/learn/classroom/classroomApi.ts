@@ -92,6 +92,25 @@ export interface WallPost {
   shared_at: string;
 }
 
+export interface TeacherDemoFile {
+  path: string;
+  content: string;
+}
+
+export interface PinnedTeacherDemo {
+  id: string;
+  class_id: string;
+  lesson_id: string | null;
+  title: string;
+  description: string | null;
+  kind: ProjectKind;
+  engine: 'phaser' | 'three' | null;
+  mode: 'read_only' | 'remix_allowed';
+  files: TeacherDemoFile[];
+  pinned_to_wall: boolean;
+  updated_at: string;
+}
+
 // ── Reports (class-wall-moderation-prd §4.4 — fixed kid-friendly reasons) ───
 
 export type ReportReason =
@@ -127,6 +146,16 @@ export async function getWall(classId: string): Promise<WallPost[]> {
   try {
     const res = await api<WallPost[] | { posts: WallPost[] }>(`/classes/${classId}/wall`);
     return Array.isArray(res) ? res : (res.posts ?? []);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
+    throw e;
+  }
+}
+
+/** Teacher-owned read-only demos pinned into the class wall. */
+export async function getPinnedTeacherDemos(classId: string): Promise<PinnedTeacherDemo[]> {
+  try {
+    return await api<PinnedTeacherDemo[]>(`/classes/${classId}/teacher-demos/pinned`);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 501)) return [];
     throw e;
