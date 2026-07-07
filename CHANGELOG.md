@@ -4,6 +4,14 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-07
+
+### Changed
+- **In-class Create now respects the course's enabled project types (my-classes D-MC-11).**
+  `ClassMineSummary.allowed_kinds` feeds `CreateForClassSheet`; top-level creative/blocks tools
+  and Code Studio's Web Code/Game Playground subtypes are filtered separately. Personal
+  `/learn/create` remains unchanged.
+
 ## 2026-07-06
 
 ### Changed

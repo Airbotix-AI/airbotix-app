@@ -16,6 +16,7 @@
 // its friendly empty state instead of erroring.
 
 import { api, ApiError } from '@/lib/api';
+import type { ProjectKind } from '../create/createTools';
 
 export interface ClassSummary {
   id: string;
@@ -37,6 +38,7 @@ export interface ClassMineSummary {
   status: 'active' | 'completed';
   course_title: string | null;
   cover_image_url: string | null;
+  allowed_kinds: ProjectKind[];
   teacher_name: string | null;
   teacher_avatar_url: string | null;
   classmate_count: number;

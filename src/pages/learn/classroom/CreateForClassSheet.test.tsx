@@ -25,10 +25,15 @@ vi.mock('react-router-dom', async () => {
 
 import { CreateForClassSheet } from './CreateForClassSheet';
 
-function renderSheet() {
+function renderSheet(allowedKinds?: Array<'creative' | 'code' | 'game' | 'blocks'>) {
   return render(
     <MemoryRouter>
-      <CreateForClassSheet classId="class-1" className="Year 5 AI Lab" onClose={() => {}} />
+      <CreateForClassSheet
+        classId="class-1"
+        className="Year 5 AI Lab"
+        allowedKinds={allowedKinds}
+        onClose={() => {}}
+      />
     </MemoryRouter>,
   );
 }
@@ -106,5 +111,19 @@ describe('CreateForClassSheet — second-level menu', () => {
       method: 'POST',
       body: { title: 'My Blocks', product_line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank' },
     });
+  });
+
+  it('shows only the course-allowed project kinds', async () => {
+    renderSheet(['game', 'blocks']);
+
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Music Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
+    expect(screen.getByText('Code Studio')).toBeInTheDocument();
+    expect(screen.getByText('Blocks')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('create-tool-submenu'));
+    expect(screen.getByText('Game Playground')).toBeInTheDocument();
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
   });
 });

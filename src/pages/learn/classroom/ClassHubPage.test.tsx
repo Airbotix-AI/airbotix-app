@@ -32,6 +32,7 @@ const ENRICHED = [
     status: 'active',
     course_title: 'AI Creative Coding',
     cover_image_url: null,
+    allowed_kinds: ['game', 'blocks'],
     teacher_name: 'Ms. Chen',
     teacher_avatar_url: null,
     classmate_count: 5,

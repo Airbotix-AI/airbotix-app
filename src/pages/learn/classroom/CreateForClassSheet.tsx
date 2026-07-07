@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Users, X } from 'lucide-react';
 
 import { api, ApiError } from '@/lib/api';
-import { CREATE_TOOLS } from '../create/createTools';
+import { CREATE_TOOLS, type ProjectKind } from '../create/createTools';
 
 /**
  * In-place "Create for this class" sheet (my-classes-prd §3.3, D-MC-9). Opens
@@ -12,9 +12,9 @@ import { CREATE_TOOLS } from '../create/createTools';
  * endpoint) and opens it directly — so it lands in the studio AND shows under
  * "My work", with no intermediate naming page.
  *
- * TODO(D-MC-11): show only course-allowed kinds ∩ kid topic_limits once the
- * backend `CoursePack.allowed_kinds` exists. For now it shows the kid's full
- * permitted tool set, framed for class context.
+ * The sheet filters the shared create-tool registry by the course's
+ * `CoursePack.allowed_kinds` (D-MC-11). The personal Create tab remains
+ * unfiltered.
  */
 const lineOf = (typeTag: string): string =>
   typeTag === 'Creative' ? 'line_a_creative' : 'line_b_coding';
@@ -44,6 +44,7 @@ interface SubType {
   title: string;
   desc: string;
   cfg: ToolCfg;
+  projectKind: ProjectKind;
 }
 const CODE_SUBTYPES: SubType[] = [
   {
@@ -54,6 +55,7 @@ const CODE_SUBTYPES: SubType[] = [
     // Same shape as the Code tool's direct-create config (TOOL_CONFIG) — the
     // sub-menu just makes it an explicit sibling of Game Playground.
     cfg: TOOL_CONFIG['/learn/create/code'],
+    projectKind: 'code',
   },
   {
     id: 'game',
@@ -61,6 +63,7 @@ const CODE_SUBTYPES: SubType[] = [
     title: 'Game Playground',
     desc: 'Vibe-code a 2D game and keep adding to it.',
     cfg: { title: 'My Game', line: 'line_b_coding', kind: 'game', template: 'phaser_blank', open: (id) => `/learn/playground/${id}` },
+    projectKind: 'game',
   },
 ];
 
@@ -72,10 +75,12 @@ const SUBTYPES_BY_TOOL: Record<string, SubType[]> = {
 export function CreateForClassSheet({
   classId,
   className,
+  allowedKinds,
   onClose,
 }: {
   classId: string;
   className: string;
+  allowedKinds?: ProjectKind[];
   onClose: () => void;
 }) {
   const nav = useNavigate();
@@ -84,13 +89,23 @@ export function CreateForClassSheet({
   // When set, the sheet shows the chosen tool's second-level menu (its sub-types)
   // instead of the tool list. `null` = the top-level tool list.
   const [subMenu, setSubMenu] = useState<(typeof CREATE_TOOLS)[number] | null>(null);
+  const allowedSet = new Set<ProjectKind>(allowedKinds?.length ? allowedKinds : ['creative', 'code', 'game', 'blocks']);
+  const allowedTools = CREATE_TOOLS.filter((tool) => {
+    const subtypes = SUBTYPES_BY_TOOL[tool.to];
+    if (subtypes) return subtypes.some((subtype) => allowedSet.has(subtype.projectKind));
+    return allowedSet.has(tool.projectKind);
+  });
+
+  function allowedSubtypes(tool: (typeof CREATE_TOOLS)[number]) {
+    return (SUBTYPES_BY_TOOL[tool.to] ?? []).filter((subtype) => allowedSet.has(subtype.projectKind));
+  }
 
   // Tapping a tool with sub-types opens its second-level menu; a plain tool
   // creates directly with its default config.
   function pick(tool: (typeof CREATE_TOOLS)[number]) {
     if (busy) return;
-    const subs = SUBTYPES_BY_TOOL[tool.to];
-    if (subs) {
+    const subs = allowedSubtypes(tool);
+    if (subs.length > 0) {
       setError(null);
       setSubMenu(tool);
       return;
@@ -184,7 +199,7 @@ export function CreateForClassSheet({
             >
               <ChevronLeft size={16} /> Back
             </button>
-            {(SUBTYPES_BY_TOOL[subMenu.to] ?? []).map((s) => (
+            {allowedSubtypes(subMenu).map((s) => (
               <button
                 key={s.id}
                 type="button"
@@ -206,14 +221,14 @@ export function CreateForClassSheet({
           </div>
         ) : (
           <div className="space-y-2.5">
-            {CREATE_TOOLS.map((t) => (
+            {allowedTools.map((t) => (
               <button
                 key={t.to}
                 type="button"
                 disabled={busy}
                 onClick={() => pick(t)}
                 className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-canvas-pure p-3.5 text-left transition-transform hover:-translate-y-0.5 hover:shadow-card-soft disabled:opacity-60"
-                data-testid={SUBTYPES_BY_TOOL[t.to] ? 'create-tool-submenu' : 'create-tool'}
+                data-testid={allowedSubtypes(t).length > 0 ? 'create-tool-submenu' : 'create-tool'}
               >
                 <span className={`grid h-12 w-12 place-items-center rounded-xl bg-grad-${t.color} text-[24px]`}>
                   {t.emoji}
@@ -223,7 +238,7 @@ export function CreateForClassSheet({
                   <div className="text-[12px] text-slate2">{t.desc}</div>
                 </div>
                 <span className="rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold text-slate2">
-                  {SUBTYPES_BY_TOOL[t.to] ? '›' : t.cost === 0 ? 'Free' : `${t.cost}★`}
+                  {allowedSubtypes(t).length > 0 ? '›' : t.cost === 0 ? 'Free' : `${t.cost}★`}
                 </span>
               </button>
             ))}
