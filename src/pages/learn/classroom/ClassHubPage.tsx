@@ -150,12 +150,15 @@ function ClassHeader({
   const pct = total > 0 ? Math.round((doneN / total) * 100) : 0;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft">
+    <div
+      className="mt-3 overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft sm:flex"
+      data-testid="class-header-card"
+    >
       <ClassCoverImage
         src={enriched?.cover_image_url ?? null}
         emoji={emoji}
         color={color}
-        className="relative flex h-24 items-center px-7 text-[40px]"
+        className="relative flex aspect-[4/3] min-h-[180px] items-center justify-center text-[52px] sm:w-[280px] sm:flex-none md:w-[320px]"
       >
         {enriched?.is_live && (
           <span className="sticker-coral absolute right-5 top-4" style={{ fontSize: '10px' }}>
@@ -163,7 +166,7 @@ function ClassHeader({
           </span>
         )}
       </ClassCoverImage>
-      <div className="px-7 pb-6 pt-4">
+      <div className="flex flex-1 flex-col justify-between px-7 py-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="section-heading" style={{ fontSize: '28px' }}>

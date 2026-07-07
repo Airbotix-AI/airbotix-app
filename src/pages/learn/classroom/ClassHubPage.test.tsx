@@ -129,6 +129,29 @@ describe('ClassHubPage', () => {
     expect(container.querySelector('img[src="/media/courses/missing.png"]')).toBeNull();
   });
 
+  it('uses a left media panel for the course cover on the class header', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/classes/mine') {
+        return Promise.resolve([
+          { ...ENRICHED[0], cover_image_url: '/media/courses/dance-battle.png' },
+        ]);
+      }
+      if (path === '/classes/class-1') {
+        return Promise.resolve({ id: 'class-1', name: 'Year 5 AI Lab' });
+      }
+      if (path === '/classes/class-1/wall') return Promise.resolve([]);
+      if (path === '/kids/kid-1/projects') return Promise.resolve(PROJECTS);
+      return Promise.resolve(undefined);
+    });
+    const { container } = renderHub();
+
+    expect(await screen.findByText('Year 5 AI Lab')).toBeInTheDocument();
+    expect(screen.getByTestId('class-header-card')).toHaveClass('sm:flex');
+    const img = container.querySelector('img[src="/media/courses/dance-battle.png"]')!;
+    expect(img.parentElement).toHaveClass('aspect-[4/3]', 'sm:w-[280px]', 'md:w-[320px]');
+    expect(img).toHaveClass('absolute', 'inset-0', 'object-cover');
+  });
+
   it('switches to My work and shows this class’s projects', async () => {
     wireApi();
     renderHub();
