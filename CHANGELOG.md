@@ -12,6 +12,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   and Code Studio's Web Code/Game Playground subtypes are filtered separately. Personal
   `/learn/create` remains unchanged.
 
+### Fixed
+- **Class Create → Code Studio → Game Playground now lands on the initial prompt screen.**
+  The class sheet no longer pre-creates a blank `phaser_blank` game and opens `/learn/playground/:id`.
+  It routes to `/learn/playground/new?class=<classId>` so the kid enters the first game prompt;
+  `PlaygroundApp` then creates the real game from that prompt and attaches it to the class via
+  `PATCH /projects/:id/placement` before generation starts. Covered by `CreateForClassSheet.test.tsx`,
+  `PlaygroundApp.classCreate.test.tsx`, and `playgroundApi.test.ts`.
+
 ## 2026-07-06
 
 ### Changed

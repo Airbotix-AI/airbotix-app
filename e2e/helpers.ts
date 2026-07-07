@@ -306,6 +306,10 @@ export async function mockBackendAsKid(page: Page, opts: MockBackendOpts = {}): 
     if (route.request().method() !== 'POST') return route.continue();
     return route.fulfill(json({ id: STUDIO_PROJECT_ID }, 201));
   });
+  await page.route('**/projects/*/placement', (route) => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    return route.fulfill(json({ ok: true }));
+  });
 }
 
 /** Record the runner's game signals (errors + logs + fps) — the game-smoke oracle. */
