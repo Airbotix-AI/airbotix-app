@@ -8,7 +8,7 @@ import { useDemoMode } from '@/pages/try/demoMode';
 import { getProject, readVfs, type LearningContext, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
-import { createGameProject } from './panes/playgroundApi';
+import { createGameProject, placeGameProjectForClass } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
@@ -103,6 +103,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   // The `?projectId` query fallback was only used by the removed DEV sandbox
   // route — now effectively dead (see the prop doc / follow-up note).
   const projectId = ownedProjectId ?? searchParams.get('projectId') ?? undefined;
+  // Class "Create for this class" opens `/learn/playground/new?class=<id>` so the
+  // kid still sees the initial prompt. After the prompt creates the real game, we
+  // attach it to this class via the placement endpoint before entering the studio.
+  const createForClassId = isNew ? searchParams.get('class') : null;
 
   // Live focus presence (D-LIVE-3): report the kid's open game to the teacher.
   // No-op in readOnly (teacher viewer) or outside a live class. Title is omitted
@@ -417,6 +421,9 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
                   // forced every game, incl. "make a 3D …", into Phaser/2D).
                   title: p.trim().slice(0, 80) || 'My game',
                 });
+                if (createForClassId) {
+                  await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
+                }
                 setCreatedId(game.id);
                 window.history.replaceState(null, '', `/learn/playground/${game.id}`);
               } catch {

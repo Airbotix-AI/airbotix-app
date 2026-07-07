@@ -31,6 +31,7 @@ function makeClass(o: Partial<ClassMineSummary>): ClassMineSummary {
     status: 'active',
     course_title: 'AI Creative Coding · Term 2',
     cover_image_url: null,
+    allowed_kinds: ['creative', 'code', 'game', 'blocks'],
     teacher_name: 'Ms. Chen',
     teacher_avatar_url: null,
     classmate_count: 12,

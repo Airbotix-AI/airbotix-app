@@ -26,12 +26,17 @@ export function ClassCoverImage({
 
   return (
     <div
-      className={`${className} ${showImage ? '' : COVER_GRAD[color]} ${
+      className={`${className} relative overflow-hidden ${showImage ? '' : COVER_GRAD[color]} ${
         done ? 'saturate-50' : ''
       }`}
     >
       {showImage ? (
-        <img src={src} alt="" className={imageClassName} onError={() => setFailed(true)} />
+        <img
+          src={src}
+          alt=""
+          className={`absolute inset-0 ${imageClassName}`}
+          onError={() => setFailed(true)}
+        />
       ) : (
         <span>{emoji}</span>
       )}

@@ -9,10 +9,12 @@ import { useWsEvent } from '@/lib/useWsEvent';
 import { ClassCoverImage } from './ClassCoverImage';
 import {
   getClass,
+  getPinnedTeacherDemos,
   getWall,
   listMyClasses,
   type ClassMineSummary,
   type ClassSummary,
+  type PinnedTeacherDemo,
   type WallPost,
 } from './classroomApi';
 import { coverColor, coverEmoji } from './classCover';
@@ -116,6 +118,7 @@ export function ClassHubPage() {
         <CreateForClassSheet
           classId={classId!}
           className={enriched?.name ?? basic.data?.name ?? 'this class'}
+          allowedKinds={enriched?.allowed_kinds}
           onClose={() => setSheetOpen(false)}
         />
       )}
@@ -149,12 +152,15 @@ function ClassHeader({
   const pct = total > 0 ? Math.round((doneN / total) * 100) : 0;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft">
+    <div
+      className="mt-3 overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft sm:flex"
+      data-testid="class-header-card"
+    >
       <ClassCoverImage
         src={enriched?.cover_image_url ?? null}
         emoji={emoji}
         color={color}
-        className="relative flex h-24 items-center px-7 text-[40px]"
+        className="relative flex aspect-[4/3] min-h-[180px] items-center justify-center text-[52px] sm:w-[280px] sm:flex-none md:w-[320px]"
       >
         {enriched?.is_live && (
           <span className="sticker-coral absolute right-5 top-4" style={{ fontSize: '10px' }}>
@@ -162,7 +168,7 @@ function ClassHeader({
           </span>
         )}
       </ClassCoverImage>
-      <div className="px-7 pb-6 pt-4">
+      <div className="flex flex-1 flex-col justify-between px-7 py-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="section-heading" style={{ fontSize: '28px' }}>
@@ -198,8 +204,16 @@ function WallTab({ classId }: { classId: string }) {
     queryFn: () => getWall(classId),
     enabled: !!classId,
   });
+  const teacherDemos = useQuery<PinnedTeacherDemo[]>({
+    queryKey: ['class', classId, 'teacher-demos', 'pinned'],
+    queryFn: () => getPinnedTeacherDemos(classId),
+    enabled: !!classId,
+  });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ['class', classId, 'wall'] });
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['class', classId, 'wall'] });
+    void qc.invalidateQueries({ queryKey: ['class', classId, 'teacher-demos', 'pinned'] });
+  };
   useWsEvent('wall.post.published', invalidate, [classId]);
   useWsEvent('wall.post.hidden', invalidate, [classId]);
   useWsEvent('wall.reaction', invalidate, [classId]);
@@ -207,16 +221,31 @@ function WallTab({ classId }: { classId: string }) {
   useWsEvent('share.revoked', invalidate, [classId]);
 
   const posts = wall.data ?? [];
+  const demos = teacherDemos.data ?? [];
 
   return (
     <section>
+      {demos.length > 0 && (
+        <div className="mb-6">
+          <div className="mb-3">
+            <h2 className="text-[20px] font-bold text-ink">From your teacher</h2>
+            <p className="mt-1 text-[13px] text-slate2">Class demos your teacher prepared.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {demos.map((demo) => (
+              <TeacherDemoWallCard key={demo.id} demo={demo} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-4">
         <h2 className="text-[20px] font-bold text-ink">
           What your <span className="squiggle-word">classmates</span> made
         </h2>
         <p className="mt-1 text-[13px] text-slate2">Like it. Get inspired. Share your own.</p>
       </div>
-      {wall.isLoading ? (
+      {wall.isLoading || teacherDemos.isLoading ? (
         <p className="lead-text">Loading…</p>
       ) : posts.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -227,13 +256,46 @@ function WallTab({ classId }: { classId: string }) {
       ) : (
         <div className="card-base text-center">
           <span className="sticker-sunshine">Nothing yet</span>
-          <p className="lead-text mt-4">No one has shared anything yet. Be the first!</p>
+          <p className="lead-text mt-4">
+            {demos.length > 0
+              ? 'No classmates have shared anything yet.'
+              : 'No one has shared anything yet. Be the first!'}
+          </p>
           <Link to={`/learn/projects?tab=${classId}`} className="btn-pill-primary mt-6">
             Share something of mine →
           </Link>
         </div>
       )}
     </section>
+  );
+}
+
+function TeacherDemoWallCard({ demo }: { demo: PinnedTeacherDemo }) {
+  const firstFile = demo.files[0];
+  return (
+    <article className="card-base" data-testid="teacher-demo-wall-card">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="eyebrow eyebrow-sky">From your teacher</div>
+          <h3 className="mt-1 text-[17px] font-bold text-ink">{demo.title}</h3>
+          {demo.description && (
+            <p className="mt-2 text-[13px] leading-5 text-slate2">{demo.description}</p>
+          )}
+        </div>
+        <span className="sticker-mint">
+          {demo.mode === 'remix_allowed' ? 'Remix allowed' : 'Read-only demo'}
+        </span>
+      </div>
+      {firstFile && (
+        <pre className="mt-4 max-h-[120px] overflow-hidden rounded-2xl bg-ink p-3 font-mono text-[11px] leading-5 text-canvas">
+          {firstFile.content.slice(0, 500)}
+        </pre>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="sticker-sky">{demo.kind}</span>
+        <span className="sticker-sunshine">Teacher-owned</span>
+      </div>
+    </article>
   );
 }
 

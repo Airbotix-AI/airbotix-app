@@ -8,7 +8,13 @@ vi.mock('@/lib/api', () => ({ api: (...args: unknown[]) => apiMock(...args) }));
 // Mock the readVfs the resolver delegates to (its own module is tested elsewhere).
 vi.mock('../../code/codeApi', () => ({ readVfs: vi.fn() }));
 
-import { createGameProject, fetchAssetDataUrl, listClassAssets, transcribeVoice } from './playgroundApi';
+import {
+  createGameProject,
+  fetchAssetDataUrl,
+  listClassAssets,
+  placeGameProjectForClass,
+  transcribeVoice,
+} from './playgroundApi';
 
 describe('createGameProject (PRD J1)', () => {
   beforeEach(() => apiMock.mockReset());
@@ -41,6 +47,19 @@ describe('createGameProject (PRD J1)', () => {
     const [, opts] = apiMock.mock.calls[0];
     expect(opts.body).not.toHaveProperty('kid_id');
     expect(opts.body).not.toHaveProperty('family_id');
+  });
+});
+
+describe('placeGameProjectForClass (My Classes create flow)', () => {
+  beforeEach(() => apiMock.mockReset());
+
+  it('PATCHes the placement endpoint to mark the created game as class work', async () => {
+    apiMock.mockResolvedValue(undefined);
+    await placeGameProjectForClass({ projectId: 'game-1', classId: 'class-1' });
+    expect(apiMock).toHaveBeenCalledWith('/projects/game-1/placement', {
+      method: 'PATCH',
+      body: { action: 'use_for_class', class_id: 'class-1' },
+    });
   });
 });
 

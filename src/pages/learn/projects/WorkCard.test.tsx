@@ -19,6 +19,7 @@ const CLASS: ClassMineSummary = {
   status: 'active',
   course_title: null,
   cover_image_url: null,
+  allowed_kinds: ['creative', 'code', 'game', 'blocks'],
   teacher_name: 'Ms. Chen',
   teacher_avatar_url: null,
   classmate_count: 5,

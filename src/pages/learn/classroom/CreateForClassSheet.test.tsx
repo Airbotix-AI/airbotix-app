@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 // "Create for this class" sheet (my-classes-prd §3.3): a tool with sub-types
 // (Code Studio → Web Code / Game Playground) opens a second-level menu; a plain
-// tool (Blocks) creates directly. Every create POSTs /projects, attaches via the
-// placement endpoint, and navigates to the right editor.
+// tool (Blocks) creates directly. Direct creates POST /projects, attach via the
+// placement endpoint, and navigate to the right editor. Game Playground is
+// prompt-first: it navigates to `/learn/playground/new?class=...` and lets the
+// playground create + attach the game after the initial prompt.
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -25,10 +27,15 @@ vi.mock('react-router-dom', async () => {
 
 import { CreateForClassSheet } from './CreateForClassSheet';
 
-function renderSheet() {
+function renderSheet(allowedKinds?: Array<'creative' | 'code' | 'game' | 'blocks'>) {
   return render(
     <MemoryRouter>
-      <CreateForClassSheet classId="class-1" className="Year 5 AI Lab" onClose={() => {}} />
+      <CreateForClassSheet
+        classId="class-1"
+        className="Year 5 AI Lab"
+        allowedKinds={allowedKinds}
+        onClose={() => {}}
+      />
     </MemoryRouter>,
   );
 }
@@ -65,21 +72,14 @@ describe('CreateForClassSheet — second-level menu', () => {
     expect(screen.getByText(/pick a tool/)).toBeInTheDocument();
   });
 
-  it('Game Playground creates a phaser_blank game and opens the playground', async () => {
+  it('Game Playground opens the prompt-first playground with class context', async () => {
     renderSheet();
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
     const game = screen.getByText('Game Playground').closest('button')!;
     fireEvent.click(game);
 
-    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/learn/playground/new-proj'));
-    expect(api).toHaveBeenCalledWith('/projects', {
-      method: 'POST',
-      body: { title: 'My Game', product_line: 'line_b_coding', kind: 'game', template: 'phaser_blank' },
-    });
-    expect(api).toHaveBeenCalledWith('/projects/new-proj/placement', {
-      method: 'PATCH',
-      body: { action: 'use_for_class', class_id: 'class-1' },
-    });
+    expect(navigate).toHaveBeenCalledWith('/learn/playground/new?class=class-1');
+    expect(api).not.toHaveBeenCalled();
   });
 
   it('Web Code creates a blank code project and opens the code studio', async () => {
@@ -106,5 +106,19 @@ describe('CreateForClassSheet — second-level menu', () => {
       method: 'POST',
       body: { title: 'My Blocks', product_line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank' },
     });
+  });
+
+  it('shows only the course-allowed project kinds', async () => {
+    renderSheet(['game', 'blocks']);
+
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Music Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
+    expect(screen.getByText('Code Studio')).toBeInTheDocument();
+    expect(screen.getByText('Blocks')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('create-tool-submenu'));
+    expect(screen.getByText('Game Playground')).toBeInTheDocument();
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
   });
 });
