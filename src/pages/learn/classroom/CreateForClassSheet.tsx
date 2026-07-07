@@ -10,7 +10,9 @@ import { CREATE_TOOLS } from '../create/createTools';
  * inside the class hub — NOT a jump to the Create tab. Tapping a tool creates the
  * project, attaches it to the class (visibility=class_work, via the placement
  * endpoint) and opens it directly — so it lands in the studio AND shows under
- * "My work", with no intermediate naming page.
+ * "My work", with no intermediate naming page. Game Playground is the exception:
+ * it opens the prompt-first `/learn/playground/new?class=...` flow, and the
+ * playground creates + attaches the game after the kid submits the initial prompt.
  *
  * TODO(D-MC-11): show only course-allowed kinds ∩ kid topic_limits once the
  * backend `CoursePack.allowed_kinds` exists. For now it shows the kid's full
@@ -21,8 +23,16 @@ const lineOf = (typeTag: string): string =>
 
 // Per-tool create config: kind + starter template + the EDITOR route to open
 // directly. Blocks/Code open their builder; creative tools open the project page
-// (where you add images/stories/voice/video).
-type ToolCfg = { title: string; line: string; kind?: string; template?: string; open: (id: string) => string };
+// (where you add images/stories/voice/video). Game Playground is prompt-first:
+// the class id travels in the URL and the game project is created on prompt submit.
+type ToolCfg = {
+  title: string;
+  line: string;
+  kind?: string;
+  template?: string;
+  open: (id: string) => string;
+  promptFirstGame?: boolean;
+};
 const TOOL_CONFIG: Record<string, ToolCfg> = {
   '/learn/create/blocks': { title: 'My Blocks', line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank', open: (id) => `/learn/blocks/${id}` },
   '/learn/create/code': { title: 'My Project', line: 'line_b_coding', kind: 'code', template: 'blank', open: (id) => `/learn/code/${id}` },
@@ -35,8 +45,8 @@ const TOOL_CONFIG: Record<string, ToolCfg> = {
 // A second-level menu: a tool that owns sub-types (a `›` affordance in the sheet)
 // shows them in-place instead of creating directly. The Code Studio tool splits
 // into **Web Code** (today's blank `code` project → /learn/code/:id) and **Game
-// Playground** (a `phaser_blank` `game` project → /learn/playground/:id, matching
-// `createGameProject` in PlaygroundApp). Tools without sub-types create as before.
+// Playground** (prompt-first `/learn/playground/new?class=...`; create +
+// placement happen after the initial prompt). Tools without sub-types create as before.
 interface SubType {
   /** Stable key for testids/keys (NOT user-facing). */
   id: string;
@@ -60,7 +70,13 @@ const CODE_SUBTYPES: SubType[] = [
     emoji: '🎮',
     title: 'Game Playground',
     desc: 'Vibe-code a 2D game and keep adding to it.',
-    cfg: { title: 'My Game', line: 'line_b_coding', kind: 'game', template: 'phaser_blank', open: (id) => `/learn/playground/${id}` },
+    cfg: {
+      title: 'My Game',
+      line: 'line_b_coding',
+      kind: 'game',
+      open: () => '/learn/playground/new',
+      promptFirstGame: true,
+    },
   },
 ];
 
@@ -108,6 +124,11 @@ export function CreateForClassSheet({
   // the same flow whether `cfg` comes from a plain tool or a chosen sub-type.
   async function make(cfg: ToolCfg) {
     if (busy) return;
+    if (cfg.promptFirstGame) {
+      setError(null);
+      nav(`${cfg.open('new')}?class=${encodeURIComponent(classId)}`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

@@ -75,6 +75,18 @@ export async function createGameProject(args: {
 }
 
 /**
+ * Attach a just-created game to the class it was launched from. This mirrors the
+ * My Works placement contract instead of overloading project creation, so the
+ * game still gets created only after the kid submits the first prompt.
+ */
+export async function placeGameProjectForClass(args: { projectId: string; classId: string }): Promise<void> {
+  await api<void>(`/projects/${args.projectId}/placement`, {
+    method: 'PATCH',
+    body: { action: 'use_for_class', class_id: args.classId },
+  });
+}
+
+/**
  * Transcribe a voice idea to text for the prompt box (UDL / OD-6 voice input).
  * STT runs SERVER-SIDE via `platform-backend /llm/transcribe` — the kid surface
  * NEVER calls an LLM/STT provider directly (airbotix-app CLAUDE.md #5). The mic
