@@ -6,13 +6,19 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-07
 
+### Fixed
+- **My Classes course covers now use a larger left media panel on the class hub.**
+  `ClassHeader` keeps the existing class title / CTA / progress layout but moves it to the right
+  of a near-square course image, matching portrait-ish course artwork better than the old narrow
+  top strip. `ClassCoverImage` renders images as an absolute `inset-0 object-cover` layer so the
+  media panel has no gutters. Covered by `ClassCoverImage.test.tsx` and `ClassHubPage.test.tsx`.
+
 ### Changed
 - **In-class Create now respects the course's enabled project types (my-classes D-MC-11).**
   `ClassMineSummary.allowed_kinds` feeds `CreateForClassSheet`; top-level creative/blocks tools
   and Code Studio's Web Code/Game Playground subtypes are filtered separately. Personal
   `/learn/create` remains unchanged.
 
-### Fixed
 - **Class Create → Code Studio → Game Playground now lands on the initial prompt screen.**
   The class sheet no longer pre-creates a blank `phaser_blank` game and opens `/learn/playground/:id`.
   It routes to `/learn/playground/new?class=<classId>` so the kid enters the first game prompt;
