@@ -3,7 +3,7 @@
 // sections, empty state. FE-only: `@/lib/api` + `@/auth/useAuth` mocked.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -93,6 +93,20 @@ describe('ClassroomListPage', () => {
     expect(await screen.findByText('12')).toBeInTheDocument();
     const card = screen.getByTestId('class-card');
     expect(card).toHaveAttribute('href', '/learn/classroom/c1');
+  });
+
+  it('falls back to the generated cover when the course image is missing', async () => {
+    api.mockResolvedValue([
+      makeClass({ id: 'c1', cover_image_url: '/media/courses/missing.png' }),
+    ]);
+    const { container } = renderPage();
+
+    expect(await screen.findByText('Year 5 AI Lab')).toBeInTheDocument();
+    const img = container.querySelector('img[src="/media/courses/missing.png"]');
+    expect(img).toBeInTheDocument();
+
+    fireEvent.error(img as Element);
+    expect(container.querySelector('img[src="/media/courses/missing.png"]')).toBeNull();
   });
 
   it('renders the empty state when the kid has no classes', async () => {

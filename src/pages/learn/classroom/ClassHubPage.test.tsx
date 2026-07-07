@@ -104,6 +104,30 @@ describe('ClassHubPage', () => {
     expect(await screen.findByText(/What your/)).toBeInTheDocument();
   });
 
+  it('falls back to the generated header cover when the course image is missing', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/classes/mine') {
+        return Promise.resolve([
+          { ...ENRICHED[0], cover_image_url: '/media/courses/missing.png' },
+        ]);
+      }
+      if (path === '/classes/class-1') {
+        return Promise.resolve({ id: 'class-1', name: 'Year 5 AI Lab' });
+      }
+      if (path === '/classes/class-1/wall') return Promise.resolve([]);
+      if (path === '/kids/kid-1/projects') return Promise.resolve(PROJECTS);
+      return Promise.resolve(undefined);
+    });
+    const { container } = renderHub();
+
+    expect(await screen.findByText('Year 5 AI Lab')).toBeInTheDocument();
+    const img = container.querySelector('img[src="/media/courses/missing.png"]');
+    expect(img).toBeInTheDocument();
+
+    fireEvent.error(img as Element);
+    expect(container.querySelector('img[src="/media/courses/missing.png"]')).toBeNull();
+  });
+
   it('switches to My work and shows this class’s projects', async () => {
     wireApi();
     renderHub();

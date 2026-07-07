@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 
 import { useMe } from '@/auth/useAuth';
+import { ClassCoverImage } from './ClassCoverImage';
 import { listMyClasses, type ClassMineSummary } from './classroomApi';
-import { COVER_GRAD, coverColor, coverEmoji } from './classCover';
+import { coverColor, coverEmoji } from './classCover';
 
 /** My Classes — `/learn/classroom` (my-classes-prd §2 + §4). */
 export function ClassroomListPage() {
@@ -104,18 +105,13 @@ function ClassCard({ klass: c }: { klass: ClassMineSummary }) {
       className="block overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft transition-transform hover:-translate-y-1"
       data-testid="class-card"
     >
-      {/* Cover */}
-      <div
-        className={`relative flex h-28 items-center justify-center text-[48px] ${
-          c.cover_image_url ? '' : COVER_GRAD[color]
-        } ${done ? 'saturate-50' : ''}`}
-      >
-        {c.cover_image_url ? (
-          <img src={c.cover_image_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span>{emoji}</span>
-        )}
-      </div>
+      <ClassCoverImage
+        src={c.cover_image_url}
+        emoji={emoji}
+        color={color}
+        done={done}
+        className="relative flex h-28 items-center justify-center text-[48px]"
+      />
 
       <div className="p-5">
         <div className="flex items-center justify-between">
