@@ -6,6 +6,7 @@ import { BookOpen, Calendar, FolderOpen, Image as ImageIcon } from 'lucide-react
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { ClassCoverImage } from './ClassCoverImage';
 import {
   getClass,
   getWall,
@@ -14,7 +15,7 @@ import {
   type ClassSummary,
   type WallPost,
 } from './classroomApi';
-import { COVER_GRAD, coverColor, coverEmoji } from './classCover';
+import { coverColor, coverEmoji } from './classCover';
 import { WallCard } from './WallCard';
 import { CreateForClassSheet } from './CreateForClassSheet';
 import { WorkCard } from '../projects/WorkCard';
@@ -150,22 +151,18 @@ function ClassHeader({
 
   return (
     <div className="mt-3 overflow-hidden rounded-3xl bg-canvas-pure shadow-card-soft">
-      <div
-        className={`relative flex h-24 items-center px-7 text-[40px] ${
-          enriched?.cover_image_url ? '' : COVER_GRAD[color]
-        }`}
+      <ClassCoverImage
+        src={enriched?.cover_image_url ?? null}
+        emoji={emoji}
+        color={color}
+        className="relative flex h-24 items-center px-7 text-[40px]"
       >
-        {enriched?.cover_image_url ? (
-          <img src={enriched.cover_image_url} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span>{emoji}</span>
-        )}
         {enriched?.is_live && (
           <span className="sticker-coral absolute right-5 top-4" style={{ fontSize: '10px' }}>
             ● LIVE NOW
           </span>
         )}
-      </div>
+      </ClassCoverImage>
       <div className="px-7 pb-6 pt-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
