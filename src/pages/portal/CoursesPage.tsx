@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
@@ -28,6 +29,27 @@ interface Kid {
   nickname: string;
   age: number;
 }
+
+// Per-class row from the public marketing endpoint `GET /courses/:slug/classes`
+// (only the fields the pay-now CTA needs). `purchasable` is computed server-side
+// (sellable total + seats + venue); rows without it stay reserve-only.
+interface MarketingClass {
+  id: string;
+  name: string;
+  starts_at: string;
+  seats_remaining: number;
+  venue: { name: string; suburb: string } | null;
+  course_total_aud_cents: number | null;
+  purchasable?: boolean;
+}
+
+const classDateLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
 export function CoursesPage() {
   const me = useMe();
@@ -94,9 +116,22 @@ function EnrollCard({
   contactEmail?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [showTimes, setShowTimes] = useState(false);
   const [kidId, setKidId] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Pay-now CTA (class-seat-checkout-prd.md D-CSC-1): classes are fetched
+  // lazily when the parent asks for times — the reserve flow above stays
+  // untouched for families who want a human first.
+  const classes = useQuery<MarketingClass[]>({
+    queryKey: ['courses', pack.slug, 'classes'],
+    queryFn: () => api<MarketingClass[]>(`/courses/${pack.slug}/classes`),
+    enabled: showTimes,
+  });
+  const purchasable = (classes.data ?? []).filter(
+    (c) => c.purchasable && c.course_total_aud_cents != null,
+  );
 
   const enroll = useMutation({
     mutationFn: () =>
@@ -201,6 +236,52 @@ function EnrollCard({
             Request a seat →
           </button>
         )}
+
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setShowTimes((v) => !v)}
+            className="text-[12px] font-bold uppercase tracking-[0.10em] underline underline-offset-2 opacity-90"
+          >
+            {showTimes ? 'Hide class times' : 'See class times'}
+          </button>
+
+          {showTimes && classes.isLoading && (
+            <div className="mt-2 text-[13px] opacity-90">Loading class times…</div>
+          )}
+          {showTimes && !classes.isLoading && purchasable.length === 0 && (
+            <div className="mt-2 text-[13px] opacity-90">
+              No classes are open for online purchase yet — request a seat and we'll be in touch.
+            </div>
+          )}
+          {showTimes && purchasable.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {purchasable.map((c) => (
+                <div key={c.id} className="rounded-2xl bg-canvas-pure/20 backdrop-blur px-4 py-3">
+                  <div className="text-[13px] font-semibold">
+                    {c.name} · starts {classDateLabel(c.starts_at)}
+                  </div>
+                  {c.venue && (
+                    <div className="text-[12px] opacity-85">
+                      {c.venue.name}, {c.venue.suburb}
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="text-[15px] font-bold">
+                      A${(c.course_total_aud_cents ?? 0) / 100}
+                    </span>
+                    <Link
+                      to={`/portal/checkout/class/${c.id}`}
+                      className="rounded-full bg-canvas-pure/90 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em] text-ink"
+                    >
+                      Pay now &amp; lock a seat
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

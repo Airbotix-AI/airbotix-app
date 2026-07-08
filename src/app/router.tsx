@@ -21,6 +21,7 @@ import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
 import { AuditPage } from '@/pages/portal/AuditPage';
 import { AuditProjectPage } from '@/pages/portal/AuditProjectPage';
 import { BillingPage } from '@/pages/portal/BillingPage';
+import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
@@ -116,6 +117,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'courses', element: <CoursesPage /> },
+      // Pay-now seat checkout — deep-link target for marketing + Portal Courses
+      // (class-seat-checkout-prd.md D-CSC-8).
+      { path: 'checkout/class/:classId', element: <ClassCheckoutPage /> },
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
       { path: 'family/:kidId', element: <KidGrowthPage /> },

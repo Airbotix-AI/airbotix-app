@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
@@ -58,12 +58,25 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamily | null>(null);
 
-  // If user already has a family, skip — they shouldn't be on this page.
+  // Deep-link return-to (class-seat-checkout-prd.md D-CSC-8): a page that
+  // bounced the parent here (e.g. /portal/checkout/class/:id) stashes itself
+  // as `from` — after the family exists we land them back there instead of
+  // the dashboard. Default behaviour is unchanged when no `from` is present.
+  const from = (location.state as { from?: Location } | undefined)?.from;
+  const afterCreateDest = from
+    ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
+    : '/portal';
+
+  // If user ARRIVES with a family, skip — they shouldn't be on this page.
+  // Gated on !created: onSubmit's `me` invalidation flips family_id to
+  // non-null mid-creation, and this effect must not hard-redirect over the
+  // success screen (which shows the family code and honours `from`).
   useEffect(() => {
+    if (created) return;
     if (me.data?.kind === 'user' && me.data.family_id) {
-      nav('/portal', { replace: true });
+      nav(afterCreateDest, { replace: true });
     }
-  }, [me.data, nav]);
+  }, [created, me.data, nav, afterCreateDest]);
 
   const {
     register,
@@ -161,12 +174,16 @@ export function RegisterPage() {
           pin: values.kid_pin,
         },
       });
-      await qc.invalidateQueries({ queryKey: ['auth', 'me'] });
+      // Show the success screen BEFORE invalidating `me`: the refetch makes
+      // family_id non-null, and the arrive-with-family redirect above must
+      // already see `created` set — otherwise it navs away, dropping the
+      // family code and the threaded `from`.
       setCreated(family);
+      await qc.invalidateQueries({ queryKey: ['auth', 'me'] });
     } catch (e) {
       if (e instanceof ApiError && e.code === 'CONFLICT') {
-        setError('You already have a family. Going to your dashboard…');
-        setTimeout(() => nav('/portal', { replace: true }), 1500);
+        setError('You already have a family. Taking you back…');
+        setTimeout(() => nav(afterCreateDest, { replace: true }), 1500);
         return;
       }
       setError(e instanceof ApiError ? e.message : 'Registration failed.');
@@ -198,10 +215,10 @@ export function RegisterPage() {
           </div>
 
           <button
-            onClick={() => nav('/portal', { replace: true })}
+            onClick={() => nav(afterCreateDest, { replace: true })}
             className="btn-pill-primary w-full mt-8"
           >
-            Go to dashboard →
+            {from ? 'Continue →' : 'Go to dashboard →'}
           </button>
         </div>
       </div>

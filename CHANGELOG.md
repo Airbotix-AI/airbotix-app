@@ -4,6 +4,37 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-08
+
+### Added
+- **Pay-now class seat checkout** (`class-seat-checkout-prd.md` D-CSC-8): new
+  `/portal/checkout/class/:classId` route + `ClassCheckoutPage` — class summary
+  (name, date, venue, whole-course price from `GET /class-seats/classes/:classId`),
+  pick-an-existing-kid or new-kid (nickname + age) step, Pay button that POSTs
+  `/class-seats/checkout` and hands off to the Airwallex hosted page, and a
+  return-trip poll of `GET /class-seats/orders/:id` that renders "Seat locked",
+  payment-failed retry (only `failed` re-offers Pay, after clearing the stored
+  intent), or a paid-but-full refund notice. Poll timeout shows a dedicated
+  screen that hides the Pay button (double-charge guard) with a "Check again"
+  that resumes polling the same stored intent plus a contact-support hint.
+  Parents without a family are bounced to `/portal/register` first (D-CSC-3).
+  Covered by `ClassCheckoutPage.test.tsx`.
+- **Portal Courses dual CTA** (D-CSC-1): each course card gains a lazy
+  "See class times" toggle (`GET /courses/:slug/classes`) listing purchasable
+  classes with date / venue / price and a "Pay now & lock a seat" link to the
+  checkout route. The existing "Request a seat" reserve flow is unchanged.
+  Covered by `CoursesPage.test.tsx`.
+
+### Changed
+- **OTP return-to now survives new-user registration**: `VerifyOtpPage` threads
+  the stashed `from` location through to `/portal/register` as router state, and
+  `RegisterPage` sends the parent back to `from` (e.g. a marketing pay-now
+  deep-link) after the family is created — dashboard default unchanged when no
+  `from`. The has-family redirect only fires for parents who *arrive* with a
+  family (and now honours `from` too); the mid-creation `me` refetch no longer
+  hijacks the family-code success screen. Covered by `VerifyOtpPage.test.tsx`
+  and `RegisterPage.test.tsx`.
+
 ## 2026-07-07
 
 ### Fixed

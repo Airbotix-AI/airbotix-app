@@ -41,14 +41,16 @@ export function VerifyOtpPage() {
     try {
       const res = await verifyOtp(email, code);
       // New users always go through register first — they can't land on
-      // wallet without a family anyway. Returning users go to wherever
-      // ProtectedRoute caught them (preserving query string), defaulting
-      // to /portal if no return URL was stashed.
-      const dest = res.user.is_new_user
-        ? '/portal/register'
-        : from
-          ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
-          : '/portal';
+      // wallet without a family anyway. The return URL threads through as
+      // state so register can land them back (e.g. a marketing pay-now
+      // deep-link, class-seat-checkout-prd.md D-CSC-8). Returning users go
+      // to wherever ProtectedRoute caught them (preserving query string),
+      // defaulting to /portal if no return URL was stashed.
+      if (res.user.is_new_user) {
+        nav('/portal/register', { replace: true, state: from ? { from } : undefined });
+        return;
+      }
+      const dest = from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/portal';
       nav(dest, { replace: true });
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Verification failed.');
