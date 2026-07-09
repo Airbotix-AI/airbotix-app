@@ -203,6 +203,23 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     }
   });
 
+  it('injects the engine-agnostic audio control BEFORE the vendored engine, for BOTH engines', () => {
+    // The pause/mute buttons must silence the game's AUDIO, not just freeze its
+    // loop — so an AudioContext-patching shim ships for every engine and MUST run
+    // ahead of the engine (which creates its AudioContext at boot).
+    for (const engine of ['phaser', 'three'] as const) {
+      const doc = buildGamePreview(FILES, { engine }).srcDoc;
+      const audioAt = doc.indexOf('__airbotixTracked'); // AUDIO_CONTROL fingerprint
+      expect(audioAt).toBeGreaterThan(-1);
+      const vendorAt = doc.search(/\/vendor\/(phaser|three)-/);
+      expect(audioAt).toBeLessThan(vendorAt);
+      // It patches the AudioContext constructor and reacts to pause + mute.
+      expect(doc).toContain('window.AudioContext = Patched');
+      expect(doc).toContain("msg.action === 'pause'");
+      expect(doc).toContain("msg.action === 'mute'");
+    }
+  });
+
   it('inlines a .glb whose path contains SPACES (real imported filenames, D-3D-09)', () => {
     // Imported models keep their original names, which routinely contain spaces
     // ("Cube Guy Character.glb"). The path must still be matched + inlined so the
