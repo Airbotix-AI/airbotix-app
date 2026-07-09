@@ -23,7 +23,6 @@ import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
-import { uploadChatImage } from '../code/codeApi';
 import type { LearningContext, VfsFile } from '../code/codeApi';
 import type { SaveResult } from './projectPersistence';
 import { DesktopIcon } from './desktop/DesktopIcon';
@@ -383,11 +382,10 @@ export function Workspace({
     inClass,
     readOnly,
     onSend: send,
-    // Attach-a-picture (D-PAP-33): wired only on the real (authed, project-backed)
-    // path — the project-less demo + read-only viewer have no uploader, so the
-    // composer hides the affordance.
-    onUploadImage:
-      projectId && !readOnly ? (file: File) => uploadChatImage(projectId, file) : undefined,
+    // Chat image attachments are temporarily disabled at the workspace boundary.
+    // Keeping the upload seam unwired hides the composer affordance while leaving
+    // the backend/API path intact for a controlled re-enable.
+    onUploadImage: undefined,
     imagesDisabled,
     imageRejectNonce,
     imageRestore,
