@@ -30,7 +30,7 @@ interface WorkCardProps {
   onShareWithClass: () => void;
   /** Class work / On the wall → Personal (destructive — detaches + privates). */
   onMoveToPersonal: () => void;
-  /** Personal only — delete the project. */
+  /** Kid-mutable placements — delete the project. */
   onDelete?: () => void;
 }
 
@@ -182,6 +182,21 @@ export function WorkCard(props: WorkCardProps) {
                   props.onMoveToPersonal();
                 }}
               />
+              {props.onDelete && (
+                <>
+                  <div className="my-1 h-px bg-hairline" />
+                  <MenuItem
+                    icon={Trash2}
+                    label="Delete"
+                    testid="action-delete"
+                    danger
+                    onClick={() => {
+                      setMenuOpen(false);
+                      props.onDelete?.();
+                    }}
+                  />
+                </>
+              )}
             </>
           )}
 
@@ -205,6 +220,21 @@ export function WorkCard(props: WorkCardProps) {
                   props.onMoveToPersonal();
                 }}
               />
+              {props.onDelete && (
+                <>
+                  <div className="my-1 h-px bg-hairline" />
+                  <MenuItem
+                    icon={Trash2}
+                    label="Delete"
+                    testid="action-delete"
+                    danger
+                    onClick={() => {
+                      setMenuOpen(false);
+                      props.onDelete?.();
+                    }}
+                  />
+                </>
+              )}
             </>
           )}
         </div>

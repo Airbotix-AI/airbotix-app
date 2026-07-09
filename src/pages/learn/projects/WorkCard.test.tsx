@@ -140,11 +140,25 @@ describe('WorkCard — class_work / on_wall menus', () => {
     expect(h.onShareWithClass).toHaveBeenCalledTimes(1);
   });
 
+  it('class_work can be deleted directly', () => {
+    const h = renderCard({ project: project({ visibility: 'class_work', class_id: 'class-1' }) });
+    fireEvent.click(screen.getByTestId('work-kebab'));
+    fireEvent.click(screen.getByTestId('action-delete'));
+    expect(h.onDelete).toHaveBeenCalledTimes(1);
+  });
+
   it('on_wall shows take-off-wall', () => {
     const h = renderCard({ project: project({ visibility: 'class', class_id: 'class-1' }) });
     fireEvent.click(screen.getByTestId('work-kebab'));
     fireEvent.click(screen.getByTestId('action-take-off-wall'));
     expect(h.onTakeOffWall).toHaveBeenCalledTimes(1);
+  });
+
+  it('on_wall can be deleted directly', () => {
+    const h = renderCard({ project: project({ visibility: 'class', class_id: 'class-1' }) });
+    fireEvent.click(screen.getByTestId('work-kebab'));
+    fireEvent.click(screen.getByTestId('action-delete'));
+    expect(h.onDelete).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -7,6 +7,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-09
 
 ### Fixed
+- **My Works can now delete class projects directly.** Class work and on-wall cards expose the
+  same Delete action as personal cards, so kids no longer have to move a class project to
+  Personal before deleting it. Covered by `WorkCard.test.tsx` and `ProjectsListPage.test.tsx`.
 - **Find a class: "All cities" is now selectable (B3).** `readStoredCity()` returns
   `null` when the parent has made no choice (distinct from an explicit "All cities"),
   and the Family.city default now seeds the city select only on first visit — an
