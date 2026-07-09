@@ -214,6 +214,13 @@ export interface UseGameAgentOptions {
 }
 
 const PENDING_TEXT = 'Thinking…';
+/**
+ * Calm "you stopped the AI" copy (D-PAP-48). Shown when the kid taps "Stop" while
+ * the agent is thinking (BEFORE any reply streams): the in-flight classify/runTurn
+ * fetch is aborted, the backend treats the disconnect as a clean cancel (no Stars),
+ * and the pending bubble becomes this — NOT an error (the game is untouched).
+ */
+export const STOPPED_TEXT = 'Okay, I stopped — your game is unchanged. Tell me what to do, or try again.';
 /** Client actions that pull the code editor to the front — NOT auto-run on turn
  *  finish; the kid opens the editor by tapping a changed-file row instead. */
 const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
@@ -377,6 +384,16 @@ function friendlyError(e: unknown): string {
   return ERROR_TEXT;
 }
 
+/**
+ * True when a rejection is an aborted fetch (the kid pressed "Stop waiting",
+ * D-PAP-48). `AbortController.abort()` rejects `fetch` with a `DOMException` whose
+ * `.name === 'AbortError'` — NOT an `ApiError`, so it must be handled BEFORE the
+ * generic friendlyError path (an abort is a clean cancel, never an error).
+ */
+function isAbortError(e: unknown): boolean {
+  return typeof e === 'object' && e !== null && (e as { name?: string }).name === 'AbortError';
+}
+
 const toChanges = (r: AgentTurnResult) =>
   r.changes.map((c) => ({ path: c.path, before: c.before, after: c.after }));
 
@@ -490,6 +507,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   const [canUndo, setCanUndo] = useState(false);
   // Abort the in-flight stream replay on unmount / a new turn.
   const streamAbort = useRef<{ aborted: boolean }>({ aborted: false });
+  // Abort the in-flight AI TURN's network round-trip (classify + runTurn) when the
+  // kid taps "Stop waiting" (D-PAP-48). Distinct from `streamAbort` (which only
+  // skips the client-side typing replay AFTER the reply has arrived): this aborts
+  // the fetch itself so the backend cleanly cancels the turn (no Stars).
+  const turnAbortRef = useRef<AbortController | null>(null);
   // True only once the component has actually unmounted — lets us tell a
   // user-initiated "skip the animation" abort (still finalize) apart from an
   // unmount abort (bail, the component is gone).
@@ -530,6 +552,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     return () => {
       streamAbort.current.aborted = true;
       unmountedRef.current = true;
+      // Cancel an in-flight turn's fetch if the workspace closes mid-turn (D-PAP-48)
+      // — the disconnect is a clean server-side cancel (no Stars).
+      turnAbortRef.current?.abort();
     };
   }, []);
 
@@ -908,18 +933,43 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // Skip the TEXT classify entirely for an image-only ask (no words to screen,
       // D-PAP-33): it routes as a normal code turn, and the image's OWN mandatory
       // pre-model moderation runs server-side inside the turn (fail-closed).
+      // One controller aborts BOTH the classify and the runTurn fetch when the kid
+      // taps "Stop waiting" (D-PAP-48). `finalizeStopped` re-enables the composer and
+      // turns the pending bubble into the calm STOPPED_TEXT — never an error, because
+      // the disconnect is a clean server-side cancel (no Stars, game unchanged).
+      const ac = new AbortController();
+      turnAbortRef.current = ac;
+      const finalizeStopped = () => {
+        setProgress(null);
+        setBusy(false);
+        setChat((prev) =>
+          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
+        );
+      };
+
       let routedIntent: 'asset' | 'code' = 'code';
       if (trimmed) {
         try {
-          const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed });
+          const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed, signal: ac.signal });
           if (safeguarding) {
             setProgress(null);
             applySafeguard(safeguarding, pendingId);
             setBusy(false);
             return;
           }
+          // The kid may have hit Stop AFTER classify resolved but BEFORE the turn
+          // POSTs — finalize now so we never fire a turn the kid cancelled.
+          if (ac.signal.aborted) {
+            finalizeStopped();
+            return;
+          }
           routedIntent = intent;
-        } catch {
+        } catch (e) {
+          // The kid stopped mid-classify → calm cancel, no fall-through to a turn.
+          if (isAbortError(e)) {
+            finalizeStopped();
+            return;
+          }
           // Classifier unreachable — proceed as a code turn; the turn-level firewall
           // still applies. (Asset routing simply falls back to a normal game turn.)
         }
@@ -949,11 +999,22 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           mode,
           piiWarnAcknowledged: false,
           guided,
+          signal: ac.signal,
           // Only the S3 refs go to the backend — never the local preview URLs.
           ...(hasImages ? { images: images.map((im) => ({ s3_key: im.s3_key, mime: im.mime })) } : {}),
         });
         await applyResult(result, pendingId);
       } catch (e) {
+        // The kid tapped "Stop waiting" (D-PAP-48): the fetch aborted, so the
+        // backend cleanly cancels the turn (no Stars). Settle the pending bubble to
+        // the calm STOPPED_TEXT — NOT an error — and let the `finally` re-enable the
+        // composer. Must precede every error branch (an abort isn't an ApiError).
+        if (isAbortError(e)) {
+          setChat((prev) =>
+            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
+          );
+          return;
+        }
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
           const details = e.details as { kind?: string } | undefined;
           const stage = details?.kind === 'pii_warn' ? 'pii_detector' : 'topic_classifier';
@@ -1083,6 +1144,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       setBusy(true);
       setError(null);
       const pendingId = nextId();
+      // Let "Stop waiting" (D-PAP-48) abort this rebuild's turn too.
+      const ac = new AbortController();
+      turnAbortRef.current = ac;
       setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
       try {
         const { version } = await deps.resetEngine({ projectId, engine: target, files: starter });
@@ -1111,9 +1175,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           target === 'three'
             ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`
             : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`;
-        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode });
+        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode, signal: ac.signal });
         await applyResult(result, pendingId);
       } catch (e) {
+        // Kid stopped the rebuild (D-PAP-48) → calm cancel, not an error.
+        if (isAbortError(e)) {
+          setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)));
+          return;
+        }
         const msg = friendlyError(e);
         if (msg === OFFLINE_TEXT) setOffline(true);
         setError(msg);
@@ -1128,6 +1197,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     setBusy(true);
     setError(null);
     const pendingId = nextId();
+    // Let "Stop waiting" (D-PAP-48) abort a fresh (agency) turn's fetch.
+    const ac = new AbortController();
+    turnAbortRef.current = ac;
     setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
     try {
       // A fresh (agency) turn reads the live VFS — persist pending edits first.
@@ -1135,10 +1207,15 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const result =
         p.kind === 'plan'
           ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve' })
-          : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode });
+          : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode, signal: ac.signal });
       setPending(null);
       await applyResult(result, pendingId);
     } catch (e) {
+      // Kid stopped waiting (D-PAP-48) → calm cancel, not an error.
+      if (isAbortError(e)) {
+        setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)));
+        return;
+      }
       const msg = friendlyError(e);
       if (msg === OFFLINE_TEXT) setOffline(true);
       setError(msg);
@@ -1200,6 +1277,16 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   }, []);
 
   /**
+   * Stop waiting for the in-flight AI turn (D-PAP-48). Aborts the classify/runTurn
+   * fetch; the backend treats the disconnect as a clean cancel (no Stars). The
+   * pending bubble becomes STOPPED_TEXT and the composer re-enables. Distinct from
+   * `abort`, which only skips the typing animation once the reply has arrived.
+   */
+  const cancelTurn = useCallback(() => {
+    turnAbortRef.current?.abort();
+  }, []);
+
+  /**
    * Retry the last prompt after an error (H2). Resends the exact prompt verbatim
    * (the kid never has to retype). The cap message is not retryable — the panel
    * gates the Try-again button on that.
@@ -1220,6 +1307,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     const pendingId = nextId();
     setError(null);
     setBusy(true);
+    // Let "Stop waiting" (D-PAP-48) abort the acknowledged-warn turn's fetch.
+    const ac = new AbortController();
+    turnAbortRef.current = ac;
     setChat((prev) => [
       ...prev,
       { id: nextId(), role: 'kid', text: prompt },
@@ -1227,7 +1317,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     ]);
     try {
       await flushBeforeTurn();
-      const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true });
+      const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true, signal: ac.signal });
       if (result.requires_approval) {
         setChat((prev) => prev.filter((it) => it.id !== pendingId));
         setPending({
@@ -1243,6 +1333,13 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
       await applyResult(result, pendingId);
     } catch (e) {
+      // Kid stopped waiting (D-PAP-48) → calm cancel, not an error.
+      if (isAbortError(e)) {
+        setChat((prev) =>
+          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
+        );
+        return;
+      }
       const msg = friendlyError(e);
       if (msg === OFFLINE_TEXT) setOffline(true);
       setError(msg);
@@ -1296,6 +1393,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     lowerHand,
     /** Stop / skip the typing animation (H1) — finalizes, never wastes Stars. */
     abort,
+    /**
+     * Stop waiting for the in-flight AI turn (D-PAP-48). Aborts the classify/runTurn
+     * fetch; the backend treats the disconnect as a clean cancel (no Stars). The
+     * pending bubble becomes STOPPED_TEXT and the composer re-enables.
+     */
+    cancelTurn,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
     /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23).

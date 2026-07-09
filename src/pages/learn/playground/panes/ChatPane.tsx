@@ -38,6 +38,8 @@ interface ChatPaneProps {
   onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;
   onStop?: () => void;
+  /** Stop waiting for the in-flight AI response — D-PAP-48. Forwarded to AIChatPanel. */
+  onCancelTurn?: () => void;
   onRetry?: () => void;
   /** Teacher live viewer (D-LV-6) — render chat history only; no composer / actions. */
   readOnly?: boolean;

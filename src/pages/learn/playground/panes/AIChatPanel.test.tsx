@@ -69,6 +69,37 @@ describe('AIChatPanel — next-step option chips', () => {
   });
 });
 
+// D-PAP-48 — "Stop waiting" while the agent is thinking. When `busy` and NOT yet
+// `streaming` (no reply arrived), the composer shows the stop-waiting button; tapping
+// it aborts the in-flight turn. It is distinct from the H1 animation-skip Stop
+// (`chat-stop`), which only shows once the reply is replaying.
+describe('AIChatPanel — stop waiting for the AI turn (D-PAP-48)', () => {
+  const chat: ChatItem[] = [
+    { id: 'k1', role: 'kid', text: 'make it blue' },
+    { id: 'a1', role: 'agent', text: 'Thinking…', pending: true },
+  ];
+
+  it('shows the stop-waiting button while busy (not streaming) and taps call onCancelTurn', () => {
+    const onCancelTurn = vi.fn();
+    render(
+      <AIChatPanel chat={chat} busy streaming={false} error={null} onSend={vi.fn()} onCancelTurn={onCancelTurn} />,
+    );
+    const stop = screen.getByTestId('chat-stop-waiting');
+    // The animation-skip Stop (H1) must NOT show — the reply hasn't started streaming.
+    expect(screen.queryByTestId('chat-stop')).toBeNull();
+    // Nor the Send button (the composer is busy).
+    expect(screen.queryByTestId('chat-send')).toBeNull();
+    fireEvent.click(stop);
+    expect(onCancelTurn).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the animation-skip Stop (not stop-waiting) once the reply is streaming', () => {
+    render(<AIChatPanel chat={chat} busy streaming error={null} onSend={vi.fn()} onCancelTurn={vi.fn()} />);
+    expect(screen.getByTestId('chat-stop')).toBeTruthy();
+    expect(screen.queryByTestId('chat-stop-waiting')).toBeNull();
+  });
+});
+
 // §11.4 — per-file "what changed" rows: ONE clickable row per file (consolidate
 // multiple edits), with the teacher's note; tapping opens the editor + highlights.
 describe('AIChatPanel — changed-file rows', () => {

@@ -237,6 +237,11 @@ interface AIChatPanelProps {
   assetSrc?: (path: string) => string | undefined;
   /** Stop / skip the typing animation (H1) — finalizes the message immediately. */
   onStop?: () => void;
+  /** Stop waiting for the in-flight AI response — D-PAP-48. Distinct from `onStop`,
+   *  which only skips the typing animation. Aborts the classify/runTurn fetch so the
+   *  backend cleanly cancels the turn; the pending bubble becomes a calm "stopped"
+   *  message and the composer re-enables. */
+  onCancelTurn?: () => void;
   /** Retry the last prompt after a (non-cap) error (H2). */
   onRetry?: () => void;
 }
@@ -271,6 +276,7 @@ export function AIChatPanel({
   onOpenAsset,
   assetSrc,
   onStop,
+  onCancelTurn,
   onRetry,
 }: AIChatPanelProps) {
   const [input, setInput] = useState('');
@@ -662,10 +668,24 @@ export function AIChatPanel({
               className="min-w-0 flex-1 resize-none bg-transparent px-3.5 py-2.5 text-[14px] text-pg-text placeholder:text-pg-text-muted focus:outline-none"
             />
             {streaming ? (
+              // H1: the reply arrived and is replaying token-by-token → Stop skips
+              // the animation to the finished message (never wastes Stars).
               <button
                 type="button"
                 onClick={onStop}
                 data-testid="chat-stop"
+                aria-label="Stop"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5"
+              >
+                <X size={16} />
+              </button>
+            ) : busy ? (
+              // D-PAP-48: the agent is still THINKING (no reply yet) → Stop waiting
+              // aborts the in-flight fetch; the backend cleanly cancels (no Stars).
+              <button
+                type="button"
+                onClick={onCancelTurn}
+                data-testid="chat-stop-waiting"
                 aria-label="Stop"
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5"
               >
@@ -677,7 +697,6 @@ export function AIChatPanel({
                 // Send needs text OR a ready picture, and is blocked while any
                 // attachment is still uploading (D-PAP-33).
                 disabled={
-                  busy ||
                   !!pending ||
                   uploading ||
                   (!input.trim() && !attachments.some((a) => a.status === 'ready'))
@@ -686,7 +705,7 @@ export function AIChatPanel({
                 aria-label="Send"
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-grad-sky text-white shadow-brand-sky transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:shadow-none"
               >
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                <Send size={16} />
               </button>
             )}
           </div>
