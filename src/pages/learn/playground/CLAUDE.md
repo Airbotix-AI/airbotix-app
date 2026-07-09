@@ -79,6 +79,10 @@ a STALE engine after a deploy, e.g. a pre-GLTFLoader `THREE`).
   `window.__game = { pause(), resume(), renderer, setMuted? }`; snapshot reads the WebGL canvas
   (`preserveDrawingBuffer:true` required) and FPS is derived from `renderer.info.render.frame`
   (a stalled game reads 0 — the game-run oracle's signal). (D-3D-04.)
+- **Audio** (`AUDIO_CONTROL`, engine-agnostic, injected BEFORE the engine): the engine shims only
+  freeze the game LOOP — Web Audio runs on the AudioContext clock, so pause/mute must silence audio
+  separately. This patches `AudioContext` (master gain + tracking) so `pause`→`suspend()`+pause media,
+  `mute`→gain 0 + `media.muted`, catching Phaser WebAudio, three.js `AudioListener` & raw audio alike.
 
 ## AI turn flow (the kid surface NEVER calls an LLM — platform §5)
 
