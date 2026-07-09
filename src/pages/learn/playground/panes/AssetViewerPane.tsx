@@ -40,13 +40,12 @@ import { CopyButton } from './CopyButton';
 import { useObjectUrl } from './useObjectUrl';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
 import { ClassAssetDetailView, ClassAssetsGrid } from './ClassAssets';
-import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
+import { type ClassAssetView } from './playgroundApi';
 import {
   animSidecarPath,
   assetChatRef,
   assetKindOf,
   categoryOf,
-  CLASS_ASSET_DIR,
   decodeImageMeta,
   formatBytes,
   isAssetFile,
@@ -285,8 +284,6 @@ export function AssetViewerPane({
   const [selectedPath, setSelectedPath] = useState<string | null>(() => assetSeed.assetSelectedPath);
   const [selectedLibId, setSelectedLibId] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  // An "Add to my game" is in flight (fetching the signed bytes) — gates the button.
-  const [classAdding, setClassAdding] = useState(false);
   useEffect(() => {
     writeWorkspaceSlice('asset-viewer', {
       assetSource: source,
@@ -484,49 +481,6 @@ export function AssetViewerPane({
     }
   }
 
-  // "Add to my game" for a class asset (class-shared-assets-prd): download the
-  // bytes from the short-lived signed URL, convert to a data URL, and copy into
-  // the kid's VFS at `assets/class/<name>` (deduped like an import). Works for
-  // EVERY kind — a glb model copies exactly like an image (the game loads it from
-  // the VFS via THREE.GLTFLoader). The signed URL is NEVER referenced inside the
-  // sandboxed game (playground/CLAUDE.md security model). After adding we switch
-  // to My assets so the kid sees their new copy.
-  //
-  // Sprite sheets: when the added image has a sibling `<name>.anim.json` sidecar
-  // in the class list, we ALSO fetch + copy the sidecar to `assets/class/<name>.anim.json`
-  // (its own signed `download_url`), so the sprite animates exactly like a My-assets
-  // sprite (assetKindOf derives "sprite" from the sidecar's presence in the VFS).
-  async function addClassAssetToMine(asset: ClassAssetView) {
-    setClassAdding(true);
-    try {
-      const dataUrl = await fetchAssetDataUrl(asset.download_url);
-      const path = uniquePath(`${CLASS_ASSET_DIR}/${asset.name}`, takenPaths);
-      takenPaths.add(path);
-      createFile(path, 'asset', dataUrl);
-      // Copy the sprite sidecar alongside the image (fixed sibling path so the
-      // VFS pairing that makes it a sprite holds — never deduped away from it).
-      if (asset.kind === 'image') {
-        const sidecar = classList.find((a) => a.name === animSidecarPath(asset.name));
-        if (sidecar) {
-          const sidecarData = await fetchAssetDataUrl(sidecar.download_url);
-          const sidecarPath = animSidecarPath(path);
-          takenPaths.add(sidecarPath);
-          createFile(sidecarPath, 'asset', sidecarData);
-        }
-      }
-      setSource('mine');
-      setCategory(ALL);
-      setSelectedLibId(null);
-      setSelectedClassId(null);
-      setSelectedPath(path);
-      showSnack('Added to your game — find it under My assets ✨');
-    } catch {
-      showSnack("Couldn't add that class asset — please try again.", 'error');
-    } finally {
-      setClassAdding(false);
-    }
-  }
-
   // Generate / remix go INTO THE CHAT (D-ASSET §3): post the request so it shares
   // the one-AI-at-a-time lock and shows in the conversation. The new asset lands in
   // My assets when the chat turn completes.
@@ -709,9 +663,6 @@ export function AssetViewerPane({
             <ClassAssetDetailView
               asset={selectedClass}
               items={classList}
-              busy={classAdding}
-              readOnly={readOnly}
-              onAdd={() => void addClassAssetToMine(selectedClass)}
               onBack={() => setSelectedClassId(null)}
             />
           ) : (

@@ -382,6 +382,17 @@ export interface BuildGameOptions {
   debug?: boolean;
   /** Which engine global + control shim to inject. Defaults to `phaser` (back-compat). */
   engine?: GameEngine;
+  /**
+   * Extra assets to inline that are NOT in the project VFS — the class shared
+   * assets a game references at `assets/class/<name>` (class-shared-assets-prd,
+   * Model A). They are resolved from the shared class library at build time (their
+   * `content` is a ready `data:` URL) and inlined exactly like a real VFS asset, so
+   * the game loads them WITHOUT the kid copying them into their project. Persisted
+   * copies only happen when a game is SHARED (the backend bakes referenced class
+   * assets into the frozen public snapshot). Empty/omitted for a game that
+   * references none.
+   */
+  virtualAssets?: VfsFile[];
 }
 
 /** Where one kid script lives inside the assembled srcdoc (1-based lines). */
@@ -437,7 +448,10 @@ export function buildGamePreview(
   files: VfsFile[],
   opts: BuildGameOptions = {},
 ): { srcDoc: string; scriptRanges: ScriptLineRange[]; assetManifest: AssetManifestEntry[] } {
-  const assets = files.filter((f) => f.kind === 'asset');
+  // Real VFS assets PLUS any virtual class-shared assets referenced at
+  // `assets/class/<name>` — both inline identically (a data: URL rewritten into
+  // the quoted path). A virtual asset never enters the persisted VFS (Model A).
+  const assets = [...files.filter((f) => f.kind === 'asset'), ...(opts.virtualAssets ?? [])];
   const assetManifest: AssetManifestEntry[] = assets.map((a) => {
     const dataUrl = toDataUrl(a);
     return { path: a.path, prefix: dataUrl.slice(0, ASSET_MANIFEST_PREFIX_CHARS), length: dataUrl.length };

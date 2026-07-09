@@ -43,6 +43,7 @@ import { runTurnStub, type RunTurn } from './gameAgentStub';
 import { detectEngineSwitch } from './engineSwitch';
 import { isAssetFile } from './assetMeta';
 import type { GameEngine } from '../buildGamePreview';
+import type { SaveResult } from '../projectPersistence';
 import { STARTER_GAME } from '../starterGame';
 import { STARTER_GAME_3D } from '../threeStarter';
 import { useGenerationStore, type StartGenArgs } from '../generationStore';
@@ -200,6 +201,16 @@ export interface UseGameAgentOptions {
    * a `verification: 'pending'` turn (D-PAP-40 / useVerification).
    */
   onTurnApplied?: (result: AgentTurnResult) => void;
+  /**
+   * Flush any pending (debounced) local VFS save to the backend BEFORE a turn
+   * runs. A turn reads the SERVER-persisted VFS (the request body carries only the
+   * prompt — see `codeApi.runAgentTurn`), so any edit still inside the ~600 ms
+   * autosave window — a code change the kid just typed, a freshly imported asset —
+   * is invisible to the agent unless we persist first. Awaiting the flush makes the
+   * agent read exactly what the kid sees. Wired to the workspace's `onSaveNow`
+   * (PlaygroundApp `flushSave`); absent off the real path (the stub never persists).
+   */
+  flushSave?: () => Promise<SaveResult>;
 }
 
 const PENDING_TEXT = 'Thinking…';
@@ -411,6 +422,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     engine = 'phaser',
     onEngineChange,
     onTurnApplied,
+    flushSave,
   } = opts;
 
   const isReal = !!projectId;
@@ -774,6 +786,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     [projectId, files],
   );
 
+  /**
+   * Persist any debounced local VFS change to the backend BEFORE running a turn,
+   * so the agent reads the SAME files the kid sees (a turn body carries only the
+   * prompt; the backend reads the server-persisted VFS). Without it, an edit still
+   * inside the ~600 ms autosave window is invisible to the agent. Best-effort: a
+   * save hiccup must NEVER block the kid's (paid) turn — the pre-flush behaviour
+   * ran on the stale VFS anyway.
+   */
+  const flushBeforeTurn = useCallback(async () => {
+    if (!flushSave) return;
+    try {
+      await flushSave();
+    } catch {
+      // Proceed with whatever the backend already has — never trap the turn on a save.
+    }
+  }, [flushSave]);
+
   const send = useCallback(
     async (text: string, opts?: SendOptions) => {
       if (readOnly) return; // teacher viewer — no AI turns (D-LV-6)
@@ -911,6 +940,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the turn server-side (Stars-metered + applied inside POST /code/turn) and
       // stream the result straight into the chat.
       try {
+        // Make the agent read the kid's LIVE files (persist edits still in the
+        // autosave window) before the turn — see flushBeforeTurn.
+        await flushBeforeTurn();
         const result = await deps.runTurn({
           projectId: projectId!,
           prompt: trimmed,
@@ -965,7 +997,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine],
+    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine, flushBeforeTurn],
   );
 
   // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
@@ -1098,6 +1130,8 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     const pendingId = nextId();
     setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
     try {
+      // A fresh (agency) turn reads the live VFS — persist pending edits first.
+      await flushBeforeTurn();
       const result =
         p.kind === 'plan'
           ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve' })
@@ -1112,7 +1146,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt, files]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt, files, flushBeforeTurn]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the
@@ -1192,6 +1226,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
     ]);
     try {
+      await flushBeforeTurn();
       const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true });
       if (result.requires_approval) {
         setChat((prev) => prev.filter((it) => it.id !== pendingId));
@@ -1217,7 +1252,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     } finally {
       setBusy(false);
     }
-  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult]);
+  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult, flushBeforeTurn]);
 
   const dismissWarn = useCallback(() => {
     if (warnPending) {

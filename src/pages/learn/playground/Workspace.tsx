@@ -32,6 +32,7 @@ import { WINDOW_META } from './desktop/windowMeta';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { AssetViewerPane } from './panes/AssetViewerPane';
 import { listClassAssets } from './panes/playgroundApi';
+import { useReferencedClassAssets } from './panes/classAssetResolver';
 import { ChatPane } from './panes/ChatPane';
 import { CodeEditorPane } from './panes/CodeEditorPane';
 import { buildExplainPrompt } from './panes/explainPrompt';
@@ -175,6 +176,10 @@ export function Workspace({
     enabled: !!projectId,
   });
   const classAssets = classAssetsQuery.data ?? [];
+  // Class assets the game REFERENCES (`assets/class/<name>`), resolved to inline-
+  // ready data URLs so the runner loads them without copying anything into the VFS
+  // (class-shared-assets-prd, Model A). Passed live to the runner as virtualAssets.
+  const virtualClassAssets = useReferencedClassAssets(files, classAssets);
 
   // Live-refresh the Class tab when the teacher changes the class library
   // (class-shared-assets-prd): the backend pushes a class_id-only signal to the
@@ -285,6 +290,9 @@ export function Workspace({
   } = useGameAgent({
       files,
       onApplyFiles,
+      // Persist edits still in the autosave debounce before a turn, so the agent
+      // reads the kid's latest files, not a stale server VFS.
+      flushSave: onSaveNow,
       introPrompt: prompt,
       projectId,
       mode,
@@ -499,6 +507,7 @@ export function Workspace({
           >
             <GameRunnerPane
               files={files}
+              virtualAssets={virtualClassAssets}
               runKey={runKey}
               running={running}
               engine={engine}
@@ -603,6 +612,7 @@ export function Workspace({
             <div data-pane="game" className="h-full min-h-0">
               <GameRunnerPane
                 files={files}
+                virtualAssets={virtualClassAssets}
                 runKey={runKey}
                 running={running}
                 engine={engine}

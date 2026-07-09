@@ -13,6 +13,13 @@ import { extractRuntimeErrors } from '../verifyRoundtrip';
 interface GameRunnerPaneProps {
   /** The lifted VFS — owned by PlaygroundApp. */
   files: VfsFile[];
+  /**
+   * Class shared assets the game references at `assets/class/<name>`, resolved to
+   * `data:` URLs (class-shared-assets-prd, Model A). Passed LIVE (not through the
+   * runKey freeze that keeps code edits from restarting the game): a class asset
+   * resolving is a legitimate reason to re-run once so it appears.
+   */
+  virtualAssets?: VfsFile[];
   /** Bump (via onRun) forces GameFrame to re-run. Owned by PlaygroundApp. */
   runKey: number;
   /** Whether the game is currently running. Owned by PlaygroundApp; ▶ → onRun(). */
@@ -154,6 +161,7 @@ function ToolButton({
  */
 export function GameRunnerPane({
   files,
+  virtualAssets,
   runKey,
   running,
   engine = 'phaser',
@@ -341,6 +349,7 @@ export function GameRunnerPane({
           >
             <GameFrame
               files={runFiles}
+              virtualAssets={virtualAssets}
               engine={engine}
               runKey={runKey}
               paused={paused}

@@ -228,6 +228,53 @@ describe('useGameAgent read-only (teacher viewer)', () => {
   });
 });
 
+describe('useGameAgent flushes the save before a turn (agent reads the kid latest VFS)', () => {
+  it('awaits flushSave BEFORE runTurn so the agent reads the kid latest edits', async () => {
+    resolveStream = null;
+    const order: string[] = [];
+    const deps = makeDeps();
+    deps.runTurn = vi.fn(async () => {
+      order.push('runTurn');
+      return TURN;
+    });
+    const flushSave = vi.fn(async () => {
+      order.push('flushSave');
+      return { status: 'saved' as const, version: 3 };
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps, flushSave }),
+    );
+
+    await act(async () => {
+      void result.current.send('make the background blue');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(flushSave).toHaveBeenCalledTimes(1);
+    // The persist MUST complete before the turn reads the server VFS.
+    expect(order).toEqual(['flushSave', 'runTurn']);
+  });
+
+  it('still runs the turn when flushSave throws (best-effort — never trap a paid turn)', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    const flushSave = vi.fn(async () => {
+      throw new Error('save hiccup');
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps, flushSave }),
+    );
+
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    expect(flushSave).toHaveBeenCalledTimes(1);
+    expect(deps.runTurn).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => {
   it('a guided send (chip tap) forwards guided:true to the backend turn (#1)', async () => {
     resolveStream = null;

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 //
-// Class shared asset library (class-shared-assets-prd): the Asset Viewer's
-// "Class" tab. Covers (a) the tab is hidden with no class assets, (b) it shows +
-// its grid renders when class assets are provided, (c) "Add to my game" fetches
-// the signed bytes and funnels them through createFile into the VFS, and (d) the
-// read-only (teacher-live) viewer hides "Add to my game" but still previews.
+// Class shared asset library (class-shared-assets-prd, Model A): the Asset
+// Viewer's "Class" tab. Covers (a) the tab is hidden with no class assets, (b) it
+// shows + its grid renders when class assets are provided, (c) a class asset is
+// REFERENCED directly at assets/class/<name> — no "Add to my game" copy button,
+// nothing written into the VFS — and (d) the read-only (teacher-live) viewer
+// still previews the asset + its copy-reference.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,8 +22,7 @@ function LiveAssetViewer({ onSaveNow }: { onSaveNow?: () => Promise<SaveResult> 
   return <AssetViewerPane files={files} classAssets={[]} onSaveNow={onSaveNow} />;
 }
 
-// Mock the bytes-fetch so "Add to my game" needs no network; we assert the data
-// URL it returns is what lands in the VFS.
+// Mock the bytes-fetch so a class model/thumbnail preview needs no network.
 const fetchAssetDataUrl = vi.fn();
 vi.mock('./playgroundApi', () => ({
   fetchAssetDataUrl: (...a: unknown[]) => fetchAssetDataUrl(...a),
@@ -189,22 +189,22 @@ describe('AssetViewerPane — Class tab gating (class-shared-assets-prd)', () =>
   });
 });
 
-describe('AssetViewerPane — Add to my game (class-shared-assets-prd)', () => {
-  it('downloads the signed bytes and copies them into the VFS via createFile', async () => {
-    const dataUrl = 'data:image/png;base64,AAA';
-    fetchAssetDataUrl.mockResolvedValue(dataUrl);
+describe('AssetViewerPane — reference a class asset (Model A: no copy)', () => {
+  it('shows the copy-reference `assets/class/<name>` and NO "Add to my game" button', () => {
+    // Model A: a class asset is referenced directly at assets/class/<name>; there
+    // is no copy-into-VFS step, so the "Add to my game" button no longer exists.
     const createSpy = vi.spyOn(useProjectStore.getState(), 'createFile');
 
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} />);
     fireEvent.click(screen.getByTestId('asset-source-class'));
     fireEvent.click(screen.getAllByTestId('class-asset-card')[1]); // open hero.png detail (class asset)
-    fireEvent.click(screen.getByTestId('class-asset-add'));
 
-    await waitFor(() => expect(createSpy).toHaveBeenCalled());
-    // The signed URL is fetched (never referenced inside the game), and the bytes
-    // land at assets/class/<name> as a VFS asset.
-    expect(fetchAssetDataUrl).toHaveBeenCalledWith('https://signed.example/hero.png?sig=abc');
-    expect(createSpy).toHaveBeenCalledWith('assets/class/hero.png', 'asset', dataUrl);
+    // The reference the kid copies into the chat is the virtual path.
+    expect(screen.getByTestId('class-asset-codeRef').textContent).toContain('assets/class/hero.png');
+    expect(screen.getByTestId('class-asset-copy-ref')).toBeTruthy();
+    // No add affordance, and nothing is ever copied into the kid's VFS.
+    expect(screen.queryByTestId('class-asset-add')).toBeNull();
+    expect(createSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -225,13 +225,13 @@ describe('AssetViewerPane — enlarge a class image (image lightbox)', () => {
 });
 
 describe('AssetViewerPane — read-only viewer (D-LV-6)', () => {
-  it('hides "Add to my game" but still previews the asset', () => {
+  it('still previews the asset + its copy-reference', () => {
     render(
       <AssetViewerPane files={useProjectStore.getState().files} classAssets={CLASS_ASSETS} readOnly />,
     );
     fireEvent.click(screen.getByTestId('asset-source-class'));
     fireEvent.click(screen.getAllByTestId('class-asset-card')[0]);
-    // Detail (preview + code-ref) renders, but no add affordance.
+    // Detail (preview + code-ref) renders; there's no add affordance anywhere now.
     expect(screen.getByTestId('class-asset-codeRef')).toBeTruthy();
     expect(screen.queryByTestId('class-asset-add')).toBeNull();
   });
@@ -281,36 +281,6 @@ describe('AssetViewerPane — full-parity kinds (model / other / sprite)', () =>
     // The detail shows the model kind + copy-ref (3D model reference), never throws.
     expect(screen.getByTestId('class-asset-codeRef')).toBeTruthy();
     expect(screen.getByText('Copy 3D model reference')).toBeTruthy();
-  });
-
-  it('adding a sprite copies BOTH the image and its `.anim.json` sidecar into the VFS', async () => {
-    // Distinct data URLs per signed URL so we can assert each file's bytes land.
-    fetchAssetDataUrl.mockImplementation((url: string) =>
-      Promise.resolve(
-        url.includes('anim.json') ? 'data:application/json;base64,ANIM' : 'data:image/png;base64,IMG',
-      ),
-    );
-    const createSpy = vi.spyOn(useProjectStore.getState(), 'createFile');
-
-    render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
-    fireEvent.click(screen.getByTestId('asset-source-class'));
-    const spriteCard = screen
-      .getAllByTestId('class-asset-card')
-      .find((c) => c.textContent?.includes('run.png'))!;
-    fireEvent.click(spriteCard);
-    fireEvent.click(screen.getByTestId('class-asset-add'));
-
-    // Both the image and its sidecar are fetched from their OWN signed URLs and
-    // land at the fixed sibling VFS paths so the sprite pairing holds.
-    await waitFor(() => expect(createSpy).toHaveBeenCalledTimes(2));
-    expect(fetchAssetDataUrl).toHaveBeenCalledWith('https://signed.example/run.png?sig=sss');
-    expect(fetchAssetDataUrl).toHaveBeenCalledWith('https://signed.example/run.png.anim.json?sig=aaa');
-    expect(createSpy).toHaveBeenCalledWith('assets/class/run.png', 'asset', 'data:image/png;base64,IMG');
-    expect(createSpy).toHaveBeenCalledWith(
-      'assets/class/run.png.anim.json',
-      'asset',
-      'data:application/json;base64,ANIM',
-    );
   });
 });
 

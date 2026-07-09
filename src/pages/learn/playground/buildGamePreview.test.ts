@@ -125,6 +125,22 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     expect(doc).not.toContain("'assets/imported/robot.glb'");
   });
 
+  it('inlines a VIRTUAL class asset (Model A) the game references, without it being in files', () => {
+    // A class asset lives at assets/class/<name> but is NOT in the project VFS —
+    // it's passed as a virtualAssets data URL and must inline exactly like a real
+    // VFS asset so the game loads it with no copy.
+    const game = text('main.js', "this.load.image('stage', 'assets/class/game_stage.png');");
+    const virtual: VfsFile = {
+      path: 'assets/class/game_stage.png',
+      content: 'data:image/png;base64,STAGE',
+      kind: 'asset',
+      size: 5,
+    };
+    const doc = buildGamePreview([game], { virtualAssets: [virtual] }).srcDoc;
+    expect(doc).toContain("this.load.image('stage', 'data:image/png;base64,STAGE');");
+    expect(doc).not.toContain("'assets/class/game_stage.png'");
+  });
+
   it('injects the run probe in BOTH engines, the loader guard in three only (D-PAP-41)', () => {
     const phaser = buildGamePreview(FILES, { engine: 'phaser' }).srcDoc;
     const three = buildGamePreview(FILES, { engine: 'three' }).srcDoc;
