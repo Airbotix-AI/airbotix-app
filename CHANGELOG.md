@@ -28,6 +28,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   purchase (no duplicate "we'll contact you" card).
 
 ### Changed
+- **Playground AI chat image attachments are temporarily disabled.** The workspace no longer wires the
+  chat-image upload seam into the composer, hiding the picture button/input while leaving the backend
+  upload and moderation path intact for a controlled re-enable. Covered by `PlaygroundApp.readOnly.test.tsx`.
 - **Shared AUD formatter.** New `src/lib/money.ts` `formatAud(cents)` renders whole
   dollars as `A$39` and cents as `A$39.50` (was `A$39.5`). Replaces the three local
   `aud()` helpers in `FindClassesPage`, `ClassCheckoutPage`, and `TutoringPage`.

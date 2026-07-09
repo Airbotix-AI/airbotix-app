@@ -15,7 +15,7 @@
 // is caught.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom';
 // MemoryRouter renders the Workspace-level kid test; createMemoryRouter (a data
@@ -209,5 +209,17 @@ describe('Workspace kid mode is unchanged (no read-only regression)', () => {
     // The kid-only wallet + class-roster queries fire (real path).
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/families/fam1/wallet'));
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/classes/mine'));
+  });
+
+  it('a kid: playground chat image attachment controls are hidden while disabled', async () => {
+    useMeMock.mockReturnValue({ data: { kind: 'kid', sub: 'k1', age: 10, family_id: 'fam1' } });
+
+    renderWorkspace();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Chat/ }));
+
+    expect(await screen.findByTestId('chat-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-attach-btn')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('chat-attach-input')).not.toBeInTheDocument();
   });
 });
