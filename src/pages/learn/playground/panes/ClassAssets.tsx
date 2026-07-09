@@ -1,18 +1,20 @@
 // The "Class" source of the Asset Viewer (class-shared-assets-prd): a read-only
-// grid + detail of the media a teacher prepared for the kid's class, with a
-// one-tap "Add to my game" that COPIES the bytes into the kid's VFS (exactly
-// like an import). Modelled on the Library source (LibraryGrid /
-// LibraryDetailView) — same chrome, same copy-code-ref affordance — but its
-// items are real, per-class backend assets (ClassAssetView), not the shared
-// emoji library.
+// grid + detail of the media a teacher prepared for the kid's class. The kid
+// copies the asset's REFERENCE (`assets/class/<name>`) and pastes it into the
+// chat — the AI + runtime resolve it directly (Model A), with NO copy into the
+// kid's VFS. Modelled on the Library source (LibraryGrid / LibraryDetailView) —
+// same chrome, same copy-code-ref affordance — but its items are real, per-class
+// backend assets (ClassAssetView), not the shared emoji library.
 //
-// Security (playground/CLAUDE.md): a class asset enters the game ONLY by being
-// copied into the VFS. The signed `download_url` is used to preview and to fetch
-// the bytes once; it is NEVER referenced directly inside the sandboxed game.
+// Security (playground/CLAUDE.md): the signed `download_url` is used only to
+// PREVIEW here and (at build time, on the parent origin) to resolve the bytes to
+// an inlined `data:` URL; it is NEVER referenced directly inside the sandboxed
+// game. Persisted copies happen only in the frozen public share snapshot (baked
+// server-side at share-mint).
 
 import { lazy, Suspense, useEffect, useState } from 'react';
 
-import { ArrowLeft, Box, File, Film, Image as ImageIcon, Loader2, Music, Plus } from 'lucide-react';
+import { ArrowLeft, Box, File, Film, Image as ImageIcon, Music } from 'lucide-react';
 
 import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
 import { animSidecarPath, classAssetChatRef, formatBytes, referenceLabel, type AssetKind } from './assetMeta';
@@ -152,7 +154,7 @@ function ClassModelStage({ downloadUrl }: { downloadUrl: string }) {
 
 // The merged endpoint (D-CSA-3) labels each asset's origin: a course-pack default
 // (set by Airbotix) vs a class asset the teacher added. Keep the copy tiny + kid-
-// friendly; the "Add to my game" flow is identical for both.
+// friendly; both are referenced identically at `assets/class/<name>`.
 const SOURCE_BADGE: Record<ClassAssetView['source'], string> = {
   course: 'Course',
   class: 'Class',
@@ -248,23 +250,17 @@ function ClassThumb({ asset, kind }: { asset: ClassAssetView; kind: ClassDisplay
   );
 }
 
-/** The read-only Class asset detail: preview + metadata + Add to my game + copy-ref. */
+/** The read-only Class asset detail: preview + metadata + copy-ref. A class asset
+ *  is referenced directly at `assets/class/<name>` — there is no copy step
+ *  (class-shared-assets-prd, Model A), so the kid just copies the reference. */
 export function ClassAssetDetailView({
   asset,
   items,
-  busy,
-  readOnly,
-  onAdd,
   onBack,
 }: {
   asset: ClassAssetView;
   /** The full merged list — used to detect a sprite (its `.anim.json` sidecar). */
   items: readonly ClassAssetView[];
-  /** An add is in flight (fetching the signed bytes) — disable the button. */
-  busy: boolean;
-  /** Teacher live viewer (D-LV-6) — hide "Add to my game"; preview stays. */
-  readOnly?: boolean;
-  onAdd: () => void;
   onBack: () => void;
 }) {
   const kind: AssetKind = displayKindOf(asset, items);
@@ -292,8 +288,8 @@ export function ClassAssetDetailView({
       <div className="grid gap-4 p-4 lg:grid-cols-2">
         <div className="relative flex items-center justify-center rounded-xl border border-pg-border bg-pg-surface-2 p-6">
           {isImage ? (
-            // A sprite strip shows its still (the animation player belongs to the
-            // kid's own copy after "Add to my game"); still images enlarge.
+            // A sprite strip shows its still (its frames animate in-game); still
+            // images enlarge on click.
             <>
               <img
                 src={asset.download_url}
@@ -332,27 +328,13 @@ export function ClassAssetDetailView({
             <Row k="Source" v={SOURCE_DETAIL[asset.source]} />
           </dl>
 
-          {/* Add to my game is hidden in the read-only viewer (D-LV-6). */}
-          {!readOnly && (
-            <button
-              type="button"
-              data-testid="class-asset-add"
-              onClick={onAdd}
-              disabled={busy}
-              className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-bubblegum px-3 py-1.5 text-[12.5px] font-extrabold text-white disabled:opacity-60"
-            >
-              {busy ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-              Add to my game
-            </button>
-          )}
-
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[12.5px] font-extrabold">{referenceLabel(kind)}</span>
               <CopyButton text={snippet} testId="class-asset-copy-ref" />
             </div>
             <p className="mb-2 text-[11.5px] text-pg-text-muted">
-              Add it to your game, then paste this into the chat to ask the AI to use it.
+              Paste this into the chat to ask the AI to use it in your game.
             </p>
             <pre
               data-testid="class-asset-codeRef"

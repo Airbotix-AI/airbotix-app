@@ -16,6 +16,13 @@ const PROBE_REPLY_TIMEOUT_MS = 1500;
 
 interface GameFrameProps {
   files: VfsFile[];
+  /**
+   * Class shared assets the game references at `assets/class/<name>`, resolved to
+   * ready `data:` URLs (class-shared-assets-prd, Model A). Inlined into the srcdoc
+   * exactly like a VFS asset, so the game loads them without a copy into the VFS.
+   * Omitted/empty when the game references no class asset.
+   */
+  virtualAssets?: VfsFile[];
   /** Bump to force a fresh re-run ("Play again" button). */
   runKey: number;
   /** Show the captured console panel under the stage (Pro mode). */
@@ -63,6 +70,7 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
  */
 export function GameFrame({
   files,
+  virtualAssets,
   runKey,
   showConsole = false,
   onFixError,
@@ -78,8 +86,8 @@ export function GameFrame({
 }: GameFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const { srcDoc, scriptRanges, assetManifest } = useMemo(
-    () => buildGamePreview(files, { debug, engine }),
-    [files, debug, engine],
+    () => buildGamePreview(files, { debug, engine, virtualAssets }),
+    [files, debug, engine, virtualAssets],
   );
   // Read inside the (stable) message listener without re-subscribing.
   const scriptRangesRef = useRef(scriptRanges);

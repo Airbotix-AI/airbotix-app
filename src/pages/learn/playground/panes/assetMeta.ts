@@ -155,14 +155,16 @@ export function libraryChatRef(_name: string, _kind: AssetKind, url: string): st
 
 // ── Class shared assets (class-shared-assets-prd) ────────────────────────────
 
-/** The VFS directory a copied class asset lands in ("Add to my game"). */
+/** The virtual directory a class asset is referenced under (`assets/class/<name>`). */
 export const CLASS_ASSET_DIR = 'assets/class';
 
 /**
- * The chat reference for a class asset — the `assets/class/<name>` VFS path it
- * lands at after "Add to my game" (never the signed URL — playground/CLAUDE.md:
- * a class asset enters the game only as a VFS file). Pair with "Add to my game"
- * so the file actually exists when used.
+ * The chat reference for a class asset — its VIRTUAL path `assets/class/<name>`
+ * (class-shared-assets-prd, Model A). The kid pastes this into the chat and the AI
+ * + runtime resolve it from the shared class library directly — NO copy into the
+ * VFS (never the signed URL inside the game). Persisted copies happen only when a
+ * game is shared (the backend bakes referenced class assets into the frozen public
+ * snapshot).
  */
 export function classAssetChatRef(asset: ClassAssetView): string {
   return `${CLASS_ASSET_DIR}/${asset.name}`;

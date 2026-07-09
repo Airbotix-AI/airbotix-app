@@ -122,8 +122,8 @@ export async function loadGameFiles(projectId: string): Promise<VfsFile[]> {
  * endpoint now MERGES two sources into one flat list (D-CSA-3): the bound course
  * pack's admin-curated DEFAULTS (`source:'course'`, no `class_id`) come first,
  * then the class's own teacher assets (`source:'class'`). The kid consumes both
- * identically (the "Add to my game" copy-into-VFS flow is unchanged); `source`
- * only labels the origin in the UI.
+ * identically — referenced directly by `assets/class/<name>` (Model A, no copy);
+ * `source` only labels the origin in the UI.
  */
 export interface ClassAssetView {
   id: string;

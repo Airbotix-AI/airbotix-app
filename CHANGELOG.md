@@ -28,6 +28,22 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   purchase (no duplicate "we'll contact you" card).
 
 ### Changed
+- **Game Studio: class assets are now DIRECTLY referable — no "Add to my game" button
+  (class-shared-assets-prd Model A).** A class shared asset is used straight from the chat
+  by its virtual path `assets/class/<name>` — the AI and the runtime resolve it from the
+  shared class library, with NO copy into the kid's project VFS. Removed the "Add to my game"
+  copy affordance (`ClassAssets`/`AssetViewerPane`); the Class tab is now browse + copy-reference.
+  - New `classAssetResolver` (`useReferencedClassAssets`) resolves only the class assets a game
+    references to inline-ready `data:` URLs; `buildGamePreview` accepts `virtualAssets` and
+    inlines them exactly like a VFS asset, threaded through `GameFrame`/`GameRunnerPane` (passed
+    live so a class asset resolving re-runs once without restarting on code edits).
+  - Persisted copies now happen only when a game is SHARED — the backend bakes referenced class
+    assets into the frozen public `/play/:shareId` snapshot (platform-backend).
+  - Also: `useGameAgent` flushes the debounced save before every turn (`flushSave`), so the agent
+    always reads the kid's latest files (not just class assets — any in-flight edit).
+  - Covered by `classAssetResolver.test.ts`, `buildGamePreview.test.ts` (virtual inline),
+    `AssetViewerPane.classAssets.test.tsx` (reference, no copy button), and `useGameAgent.test.ts`
+    (flush-before-turn ordering + best-effort on save failure).
 - **Playground AI chat image attachments are temporarily disabled.** The workspace no longer wires the
   chat-image upload seam into the composer, hiding the picture button/input while leaving the backend
   upload and moderation path intact for a controlled re-enable. Covered by `PlaygroundApp.readOnly.test.tsx`.
