@@ -194,6 +194,93 @@ const THREE_CONTROL = `
 </script>`;
 
 /**
+ * Engine-AGNOSTIC audio control (the pause/mute buttons actually silencing the game).
+ *
+ * The engine control shims freeze the game LOOP (`loop.sleep()` / `cancelAnimationFrame`),
+ * but Web Audio runs on the AudioContext's own hardware clock — independent of any game
+ * loop — so looping background music kept playing through a "pause", and three.js games
+ * (which rarely wire the optional `setMuted`) ignored "mute" entirely. This shim fixes both
+ * for BOTH engines by controlling the audio at the browser level, no matter how the game
+ * produced it (Phaser's WebAudio sound manager, a three.js `AudioListener`, a raw
+ * `AudioContext`, or an `<audio>`/`<video>` element).
+ *
+ * Mechanism: patch the `AudioContext` constructor BEFORE any engine boots so every context
+ * the game creates is (a) tracked (for suspend/resume) and (b) re-routed through an injected
+ * master GainNode (for mute). `pause` → `context.suspend()` + pause playing media; `mute` →
+ * master gain 0 + `media.muted`. Mute and pause are INDEPENDENT states (a muted-then-paused
+ * game stays silent on unmute until resumed). This must be injected ahead of `vendorTag`, and
+ * every access is wrapped in try/catch — an audio-control bug must NEVER break a kid's game.
+ */
+const AUDIO_CONTROL = `
+<script>
+(function () {
+  try {
+    var Native = window.AudioContext || window.webkitAudioContext;
+    var contexts = [];
+    function attach(ctx) {
+      try {
+        if (!ctx || ctx.__airbotixTracked) return;
+        ctx.__airbotixTracked = true;
+        contexts.push(ctx);
+        // Re-route the graph through a master gain we can zero out for mute. If
+        // this fails, the context is still tracked so pause (suspend) works.
+        var realDest = ctx.destination;
+        var gain = ctx.createGain();
+        gain.connect(realDest);
+        Object.defineProperty(ctx, 'destination', { configurable: true, get: function () { return gain; } });
+        ctx.__airbotixGain = gain;
+      } catch (e) {}
+    }
+    if (Native) {
+      function Patched(options) {
+        var ctx = new Native(options);
+        attach(ctx);
+        return ctx;
+      }
+      Patched.prototype = Native.prototype;
+      for (var k in Native) { try { Patched[k] = Native[k]; } catch (e) {} }
+      window.AudioContext = Patched;
+      if (window.webkitAudioContext) window.webkitAudioContext = Patched;
+    }
+    function media() { try { return document.querySelectorAll('audio,video'); } catch (e) { return []; } }
+    var mediaPaused = [];
+    function setMuted(on) {
+      for (var i = 0; i < contexts.length; i++) {
+        try { if (contexts[i].__airbotixGain) contexts[i].__airbotixGain.gain.value = on ? 0 : 1; } catch (e) {}
+      }
+      var els = media();
+      for (var j = 0; j < els.length; j++) { try { els[j].muted = on; } catch (e) {} }
+    }
+    function setPaused(on) {
+      for (var i = 0; i < contexts.length; i++) {
+        try { if (on) contexts[i].suspend(); else contexts[i].resume(); } catch (e) {}
+      }
+      var els = media();
+      if (on) {
+        mediaPaused = [];
+        for (var j = 0; j < els.length; j++) {
+          try { if (!els[j].paused) { mediaPaused.push(els[j]); els[j].pause(); } } catch (e) {}
+        }
+      } else {
+        for (var m = 0; m < mediaPaused.length; m++) { try { mediaPaused[m].play(); } catch (e) {} }
+        mediaPaused = [];
+      }
+    }
+    window.addEventListener('message', function (e) {
+      var msg = e.data;
+      if (!msg || msg.__airbotixControl !== true) return;
+      try {
+        if (msg.action === 'pause')  setPaused(true);
+        if (msg.action === 'resume') setPaused(false);
+        if (msg.action === 'mute')   setMuted(true);
+        if (msg.action === 'unmute') setMuted(false);
+      } catch (e) {}
+    });
+  } catch (e) {}
+})();
+</script>`;
+
+/**
  * How many leading data:-URL chars the asset manifest (and the loader guard's
  * truncated `url`) carry — prefix + total length identify an inlined asset
  * without ever shipping the whole payload back over postMessage.
@@ -498,6 +585,10 @@ export function buildGamePreview(
     '</head><body>',
     '<div id="game"></div>',
     CONSOLE_CAPTURE,
+    // Engine-agnostic audio control — MUST precede the engine so its AudioContext
+    // patch is installed before Phaser/three ever create a context (so the pause
+    // and mute buttons actually silence the game's audio, not just its loop).
+    AUDIO_CONTROL,
     profile.vendorTag,
     profile.guard,
     // Loader instrumentation must sit AFTER the vendored global (it wraps its

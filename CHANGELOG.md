@@ -7,6 +7,16 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-09
 
 ### Fixed
+- **Game studio: pause & mute now actually stop the background music.** The engine control shims
+  only froze the game LOOP (`loop.sleep()` / `cancelAnimationFrame`), but Web Audio runs on the
+  AudioContext hardware clock — so looping BGM kept playing through a "pause", and three.js games
+  (which rarely wire the optional `setMuted`) ignored "mute" entirely. A new engine-agnostic
+  `AUDIO_CONTROL` shim in `buildGamePreview.ts` patches the `AudioContext` constructor (before any
+  engine boots) to track every context and route it through a master gain, then reacts to the
+  control messages — `pause`→`suspend()` + pause playing media, `mute`→gain 0 + `media.muted`. Works
+  for Phaser WebAudio, three.js `AudioListener`, and raw `<audio>`/`AudioContext` alike. Covered by
+  `buildGamePreview.audioControl.test.ts` (executes the shim against a mocked AudioContext + media
+  element) and structural assertions in `buildGamePreview.test.ts`.
 - **My Works can now delete class projects directly.** Class work and on-wall cards expose the
   same Delete action as personal cards, so kids no longer have to move a class project to
   Personal before deleting it. Covered by `WorkCard.test.tsx` and `ProjectsListPage.test.tsx`.
