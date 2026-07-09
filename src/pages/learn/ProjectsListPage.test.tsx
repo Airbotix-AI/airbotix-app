@@ -281,4 +281,25 @@ describe('ProjectsListPage — ⋯ placement menu', () => {
       expect.objectContaining({ method: 'PATCH' }),
     );
   });
+
+  it('Class work → "Delete" deletes directly without moving to Personal first', async () => {
+    wireApi();
+    renderPage();
+    await screen.findByText('Maze Game');
+
+    const card = screen.getByText('Maze Game').closest('[data-testid="work-card"]')!;
+    fireEvent.click(within(card as HTMLElement).getByTestId('work-kebab'));
+    fireEvent.click(within(card as HTMLElement).getByTestId('action-delete'));
+
+    expect(await screen.findByTestId('confirm-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-ok'));
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/projects/p-classwork', { method: 'DELETE' }),
+    );
+    expect(api).not.toHaveBeenCalledWith(
+      '/projects/p-classwork/placement',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+  });
 });
