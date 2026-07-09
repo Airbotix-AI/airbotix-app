@@ -7,6 +7,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-09
 
 ### Fixed
+- **Class assets with spaces in their filename now load in the game (Model A).** The
+  game-runtime class-asset resolver's `assets/class/<name>` regex stopped at the first
+  whitespace, so a model like `Animated Platformer Character.glb` captured only
+  `Animated`, never matched the shared library, and was never inlined — the sandboxed
+  game then fetched the bare path against its opaque origin and failed with
+  `3D model failed to load … — Failed to fetch`. The resolver now uses the same
+  quote-anchored match as the srcdoc inliner (`buildGamePreview.inlineAssetRefs`),
+  capturing the full filename (spaces included) up to the closing quote. Regression
+  tests in `classAssetResolver.test.ts`.
 - **My Works can now delete class projects directly.** Class work and on-wall cards expose the
   same Delete action as personal cards, so kids no longer have to move a class project to
   Personal before deleting it. Covered by `WorkCard.test.tsx` and `ProjectsListPage.test.tsx`.

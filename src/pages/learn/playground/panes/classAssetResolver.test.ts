@@ -46,6 +46,18 @@ describe('referencedClassAssetNames', () => {
     ];
     expect(referencedClassAssetNames(files)).toEqual(new Set(['a.png', 'b.mp3', 'c.glb']));
   });
+
+  it('captures a full filename with SPACES up to the closing quote (regression)', () => {
+    // A .glb model named with spaces must resolve whole — a whitespace-stopping regex
+    // would capture only "Animated", never match the library, and the game would fetch
+    // the bare path against the opaque-origin frame → "Failed to fetch".
+    const files = [
+      text('g.js', `loader.load('assets/class/Animated Platformer Character.glb', onLoad);`),
+    ];
+    expect(referencedClassAssetNames(files)).toEqual(
+      new Set(['Animated Platformer Character.glb']),
+    );
+  });
 });
 
 describe('referencedClassAssets', () => {
@@ -53,6 +65,14 @@ describe('referencedClassAssets', () => {
     const lib = [classAsset('game_stage.png'), classAsset('unused.png')];
     const files = [text('g.js', `this.load.image('s', 'assets/class/game_stage.png')`)];
     expect(referencedClassAssets(files, lib).map((a) => a.name)).toEqual(['game_stage.png']);
+  });
+
+  it('resolves a spaced .glb model name against the library (regression)', () => {
+    const lib = [classAsset('Animated Platformer Character.glb', { kind: 'model', mime_type: 'model/gltf-binary' })];
+    const files = [text('g.js', `loader.load('assets/class/Animated Platformer Character.glb', cb)`)];
+    expect(referencedClassAssets(files, lib).map((a) => a.name)).toEqual([
+      'Animated Platformer Character.glb',
+    ]);
   });
 });
 

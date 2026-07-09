@@ -17,10 +17,14 @@ import type { VfsFile } from '../../code/codeApi';
 import { CLASS_ASSET_DIR } from './assetMeta';
 import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
 
-// A `assets/class/<name>` reference inside quotes or bare, up to the next quote,
-// paren, or whitespace. `<name>` is captured (class assets are flat — a name, no
-// nested dirs), so it matches a class asset by `asset.name`.
-const CLASS_REF = /assets\/class\/([^"'`)\s]+)/g;
+// A quoted `assets/class/<name>` reference — the SAME quote-anchored form the srcdoc
+// inliner rewrites (`buildGamePreview.ts` `inlineAssetRefs`), so a name we resolve is a
+// name that actually gets inlined. `<name>` runs to the matching closing quote and MAY
+// contain spaces (e.g. "Animated Platformer Character.glb") — a naïve `\S+`/`\s`-stopping
+// class truncates at the first space and the asset never resolves → the game fetches the
+// bare path against the opaque-origin frame → "Failed to fetch". Class assets are flat (a
+// name, no nested dirs), so the captured name matches a class asset by `asset.name`.
+const CLASS_REF = /(["'`])assets\/class\/([^"'`]+)\1/g;
 
 /** The class-asset names a game's TEXT files reference at `assets/class/<name>`. */
 export function referencedClassAssetNames(files: VfsFile[]): Set<string> {
@@ -28,7 +32,7 @@ export function referencedClassAssetNames(files: VfsFile[]): Set<string> {
   if (!Array.isArray(files)) return names;
   for (const f of files) {
     if (f.kind !== 'text') continue;
-    for (const m of f.content.matchAll(CLASS_REF)) names.add(m[1]);
+    for (const m of f.content.matchAll(CLASS_REF)) names.add(m[2]);
   }
   return names;
 }
