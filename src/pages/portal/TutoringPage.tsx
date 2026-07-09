@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { formatAud } from '@/lib/money';
 
 interface LessonCharge {
   id: string;
@@ -25,7 +26,6 @@ interface FamilyClass {
   outline_published: boolean;
 }
 
-const aud = (cents: number) => `A$${(cents / 100).toFixed(0)}`;
 const sessionLabel = (iso: string, endIso: string) =>
   `${new Date(iso).toLocaleString('en-AU', { month: 'short', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit' })}–${new Date(endIso).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}`;
 
@@ -166,10 +166,10 @@ export function TutoringPage() {
 
       <div className="mb-8 rounded-3xl bg-surface p-6 shadow-sm">
         <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">Amount due</div>
-        <div className="mt-1 text-[44px] font-extrabold leading-none">{aud(outstanding)}</div>
+        <div className="mt-1 text-[44px] font-extrabold leading-none">{formatAud(outstanding)}</div>
         {outstanding > 0 && (
           <button onClick={pay} disabled={busy} className="btn-pill-primary mt-4">
-            {busy ? 'Redirecting…' : `Pay ${aud(outstanding)}`}
+            {busy ? 'Redirecting…' : `Pay ${formatAud(outstanding)}`}
           </button>
         )}
         {outstanding === 0 && !loading && <p className="lead-text mt-2">You're all caught up — nothing due!</p>}
@@ -198,9 +198,9 @@ export function TutoringPage() {
                 <tr key={c.id} className="border-t border-hairline">
                   <td className="p-3 font-semibold">{c.class?.name ?? c.class_id}</td>
                   <td className="p-3">{c.headcount}</td>
-                  <td className="p-3">{aud(c.per_head_aud_cents)}</td>
+                  <td className="p-3">{formatAud(c.per_head_aud_cents)}</td>
                   <td className="p-3">{c.hours}h</td>
-                  <td className="p-3 font-semibold">{aud(c.amount_aud_cents)}</td>
+                  <td className="p-3 font-semibold">{formatAud(c.amount_aud_cents)}</td>
                   <td className="p-3">
                     {c.paid_at ? (
                       <span className="rounded-full bg-mint/30 px-2 py-0.5 text-[12px] font-bold">Paid</span>

@@ -24,6 +24,7 @@ import { BillingPage } from '@/pages/portal/BillingPage';
 import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
+import { FindClassesPage } from '@/pages/portal/FindClassesPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
 import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
@@ -115,7 +116,9 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
+      { index: true, element: <FindClassesPage /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
       // (class-seat-checkout-prd.md D-CSC-8).

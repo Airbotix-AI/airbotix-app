@@ -4,9 +4,40 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-09
+
+### Fixed
+- **Find a class: "All cities" is now selectable (B3).** `readStoredCity()` returns
+  `null` when the parent has made no choice (distinct from an explicit "All cities"),
+  and the Family.city default now seeds the city select only on first visit — an
+  explicit choice (including "All cities") is never overridden by a later
+  `families` refetch. A Gold Coast parent can browse other cities and stay there.
+- **Find a class: Online filter wiring.** Selecting "Online" now queries
+  `?online=true` (was `?city=Online`) and is never written to `Family.city` or PATCHed
+  to the family profile.
+- **Distinct error states.** `MyClassesPanel` and `FindClassesPage` now show a
+  dedicated error card with a retry action when their query fails, instead of the
+  "No bookings yet." / "No open seats" empty state — a transient 500 no longer tells a
+  paid parent they have nothing booked.
+- **My Classes: no phantom reserve card (B2, frontend half).** Backend excludes
+  pay-now class-seat leads from `booking_requests`; the panel is covered by a spec
+  asserting a bucket of only enrollments + pending orders renders exactly one card per
+  purchase (no duplicate "we'll contact you" card).
+
+### Changed
+- **Shared AUD formatter.** New `src/lib/money.ts` `formatAud(cents)` renders whole
+  dollars as `A$39` and cents as `A$39.50` (was `A$39.5`). Replaces the three local
+  `aud()` helpers in `FindClassesPage`, `ClassCheckoutPage`, and `TutoringPage`.
+
 ## 2026-07-08
 
 ### Added
+- **Portal class discovery (`portal-class-discovery-prd.md` v0.3).** `/portal`
+  now defaults to Find a class, with `/portal/dashboard` preserving the old dashboard.
+  Parents can filter upcoming purchasable classes by city, persist their city to the
+  family profile, jump straight to class-seat checkout, and see a My Classes panel for
+  locked enrollments, pending payments, and reserve requests. The same My Classes panel
+  is also shown at the top of Courses.
 - **Pay-now class seat checkout** (`class-seat-checkout-prd.md` D-CSC-8): new
   `/portal/checkout/class/:classId` route + `ClassCheckoutPage` — class summary
   (name, date, venue, whole-course price from `GET /class-seats/classes/:classId`),

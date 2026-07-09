@@ -71,6 +71,9 @@ function wireApi(classes: unknown = CLASSES) {
   api.mockImplementation((path: string) => {
     if (path === '/course-packs') return Promise.resolve(PACKS);
     if (path === '/families/fam-1/kids') return Promise.resolve([]);
+    if (path === '/families/fam-1/my-classes') {
+      return Promise.resolve({ enrollments: [], pending_orders: [], booking_requests: [] });
+    }
     if (path === '/courses/robotics-101/classes') return Promise.resolve(classes);
     return Promise.resolve(undefined);
   });

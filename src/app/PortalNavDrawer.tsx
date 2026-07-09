@@ -9,7 +9,8 @@ import { listFamilyShareLinks, type FamilyShareLink } from '@/pages/learn/playgr
 
 // Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
-  { to: '/portal', label: 'Dashboard', end: true },
+  { to: '/portal', label: 'Find a class', end: true },
+  { to: '/portal/dashboard', label: 'Dashboard' },
   { to: '/portal/courses', label: 'Courses' },
   { to: '/portal/tutoring', label: 'Tutoring' },
   { to: '/portal/family', label: 'My Family' },

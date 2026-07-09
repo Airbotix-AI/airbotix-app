@@ -13,6 +13,7 @@ import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { formatAud } from '@/lib/money';
 
 interface CheckoutVenue {
   name: string;
@@ -69,7 +70,6 @@ const kidNameKey = (classId: string) => `class_seat:${classId}:kid`;
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX_ATTEMPTS = 40; // ~2 minutes
 
-const aud = (cents: number) => `A$${cents / 100}`;
 const dateLabel = (iso: string) =>
   new Date(iso).toLocaleString('en-AU', {
     weekday: 'short',
@@ -204,8 +204,8 @@ export function ClassCheckoutPage() {
               ? "This class isn't open for online purchase."
               : 'We could not load this class right now.'}
           </p>
-          <Link to="/portal/courses" className="btn-pill-secondary mt-6 inline-block">
-            Browse courses →
+          <Link to="/portal/classes" className="btn-pill-secondary mt-6 inline-block">
+            Browse classes →
           </Link>
         </div>
       </div>
@@ -237,8 +237,8 @@ export function ClassCheckoutPage() {
             Payment received — {kidName ?? 'your kid'} is enrolled in {c.name}. A receipt is on
             its way to your inbox.
           </p>
-          <Link to="/portal/courses" className="btn-pill-primary mt-6 inline-block">
-            Back to courses →
+          <Link to="/portal/classes" className="btn-pill-primary mt-6 inline-block">
+            Find another class →
           </Link>
         </div>
       </div>
@@ -302,7 +302,7 @@ export function ClassCheckoutPage() {
             Your payment went through, but the last seat in {c.name} was taken while you were
             paying. Our team will refund you in full — no action needed.
           </p>
-          <Link to="/portal/courses" className="btn-pill-secondary mt-6 inline-block">
+          <Link to="/portal/classes" className="btn-pill-secondary mt-6 inline-block">
             Browse other classes →
           </Link>
         </div>
@@ -401,7 +401,7 @@ export function ClassCheckoutPage() {
           <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
             {isSubmitting
               ? 'Starting checkout…'
-              : `Pay ${c.course_total_aud_cents != null ? aud(c.course_total_aud_cents) : ''} & lock the seat`}
+              : `Pay ${c.course_total_aud_cents != null ? formatAud(c.course_total_aud_cents) : ''} & lock the seat`}
           </button>
           <p className="text-[12px] leading-relaxed text-slate2">
             You'll pay securely on our payment page (Airwallex). The seat is locked the moment
@@ -447,7 +447,7 @@ function ClassSummaryCard({ c }: { c: CheckoutClass }) {
       </div>
       {c.course_total_aud_cents != null && (
         <div className="mt-4 text-[24px] font-extrabold">
-          {aud(c.course_total_aud_cents)}
+          {formatAud(c.course_total_aud_cents)}
           <span className="ml-2 text-[13px] font-semibold text-slate2">whole course</span>
         </div>
       )}

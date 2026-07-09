@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { MyClassesPanel } from './MyClassesPanel';
 
 // A pack's course content is its list of Lessons (课节). The card shows the lesson
 // count (= lessons.length), not the total Mission-task count (mission_count).
@@ -69,6 +70,8 @@ export function CoursesPage() {
 
   return (
     <div>
+      <MyClassesPanel compact />
+
       <div className="mb-10">
         <div className="eyebrow eyebrow-bubblegum">Courses</div>
         <h1 className="hero-display">
