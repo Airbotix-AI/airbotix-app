@@ -6,6 +6,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-09
 
+### Added
+- **Playground: "Stop waiting" while the AI is thinking (D-PAP-48).** During the WorkingCard
+  "busy" phase (before the reply streams), the chat composer shows a Stop button
+  (`chat-stop-waiting`). Tapping it aborts the in-flight `classify` + `runTurn` fetch via an
+  `AbortController`; the backend treats the client disconnect as a clean cancel (no Stars). The
+  pending agent bubble becomes a calm "your game is unchanged" message (no error styling) and the
+  composer re-enables. Distinct from the existing streaming Stop (`chat-stop`), which only skips
+  the typing animation. An in-flight turn is also aborted if the workspace unmounts mid-turn.
+  Covered by `AIChatPanel.test.tsx` (three-way composer button) and `useGameAgent.test.ts`
+  (cancelTurn settles the turn calmly, no Stars, both fetches receive the signal).
+
 ### Fixed
 - **My Works can now delete class projects directly.** Class work and on-wall cards expose the
   same Delete action as personal cards, so kids no longer have to move a class project to

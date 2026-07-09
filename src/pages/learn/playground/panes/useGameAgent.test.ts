@@ -16,6 +16,7 @@ import {
   IMAGE_REJECT_MESSAGE,
   IMAGE_DISABLED_MESSAGE,
   IMAGE_CHECK_HICCUP_MESSAGE,
+  STOPPED_TEXT,
   type ChatItem,
   type SendImage,
 } from './useGameAgent';
@@ -192,6 +193,70 @@ describe('useGameAgent streamed apply (H1)', () => {
     expect(agentBubbles).toHaveLength(2);
     expect(agentBubbles[0].nextSteps).toBeUndefined();
     expect(agentBubbles[1].nextSteps).toEqual(TURN.next_steps);
+  });
+});
+
+// D-PAP-48 — "Stop waiting" while the agent is thinking (BEFORE any reply streams).
+// cancelTurn aborts the in-flight classify/runTurn fetch; the disconnect is a clean
+// server-side cancel (no Stars), so the pending bubble becomes the calm STOPPED_TEXT
+// (never an error) and the composer re-enables.
+describe('useGameAgent stop waiting (D-PAP-48)', () => {
+  it('cancelTurn aborts the in-flight turn → busy false, no error, calm stopped bubble', async () => {
+    let runSignal: AbortSignal | undefined;
+    let classifySignal: AbortSignal | undefined;
+    // runTurn hangs until its passed signal aborts, then rejects like a real aborted
+    // fetch (a DOMException named 'AbortError' — NOT an ApiError).
+    const deps: GameAgentDeps = {
+      runTurn: vi.fn((args: { signal?: AbortSignal }) => {
+        runSignal = args.signal;
+        return new Promise<AgentTurnResult>((_resolve, reject) => {
+          args.signal?.addEventListener('abort', () =>
+            reject(new DOMException('The user aborted a request.', 'AbortError')),
+          );
+        });
+      }),
+      approve: vi.fn(async () => TURN),
+      classify: vi.fn(async (args: { signal?: AbortSignal }) => {
+        classifySignal = args.signal;
+        return { safeguarding: null, intent: 'code' as const };
+      }),
+      raiseHand: vi.fn(async () => {}),
+      reportRuntimeErrors: vi.fn(async () => ({ attempted: false, co_debug: false, attempt: 1 })),
+      resetEngine: vi.fn(async () => ({ version: 2 })),
+    };
+    const onApplyFiles = vi.fn();
+    const onStarsCharged = vi.fn();
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles, onStarsCharged, projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    // Fire the turn: classify resolves, runTurn is called and hangs → busy true.
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(deps.runTurn).toHaveBeenCalled());
+    });
+    expect(result.current.busy).toBe(true);
+    // Both fetches received the SAME controller's abort signal.
+    expect(classifySignal).toBeInstanceOf(AbortSignal);
+    expect(runSignal).toBeInstanceOf(AbortSignal);
+
+    // Kid taps "Stop waiting": the fetch aborts and the turn settles calmly. The
+    // rejected-fetch → state-settle chain flushes as `act` exits (asserting the
+    // condition INSIDE the act would deadlock against that flush), so we assert
+    // once it returns.
+    await act(async () => {
+      result.current.cancelTurn();
+    });
+
+    // The composer re-enabled — no error styling, calm cancel, not a failure.
+    expect(result.current.busy).toBe(false);
+    expect(result.current.error).toBeNull();
+    const agentBubble = result.current.chat.find((c) => c.role === 'agent');
+    expect(agentBubble?.text).toBe(STOPPED_TEXT);
+    expect(agentBubble?.pending).toBeFalsy();
+    // Nothing was applied and no Stars were charged — the game is unchanged.
+    expect(onApplyFiles).not.toHaveBeenCalled();
+    expect(onStarsCharged).not.toHaveBeenCalled();
   });
 });
 
