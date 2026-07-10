@@ -4,6 +4,19 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-10 (feat: registration legal-consent checkbox)
+
+### Added
+- **Required legal-consent checkbox on `RegisterPage`.** Family setup is now
+  blocked until the parent ticks "I am the parent or legal guardian … and I
+  agree to the Terms of Service, Privacy Policy, and Parental Consent" (each
+  linked to airbotix.ai, opening in a new tab); the form sends
+  `accept_terms: true` to `POST /families`, which the backend also enforces and
+  records (`terms_accepted_at` + `terms_version`). Replaces the previous
+  passive "by continuing you agree…" footnote. Covered in
+  `RegisterPage.test.tsx` (blocked submit without consent + consent flag in the
+  POST body).
+
 ## 2026-07-10
 
 ### Added

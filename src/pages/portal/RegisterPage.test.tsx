@@ -86,12 +86,19 @@ function renderPage(from?: typeof FROM) {
   );
 }
 
-function fillAndSubmit() {
+function fill({ consent = true }: { consent?: boolean } = {}) {
   fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Lightman' } });
   fireEvent.change(screen.getByLabelText('Family name'), { target: { value: 'The Wangs' } });
   fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Mia' } });
   fireEvent.change(screen.getByLabelText('Age'), { target: { value: '9' } });
   fireEvent.change(screen.getByLabelText('4-digit PIN'), { target: { value: '1234' } });
+  if (consent) {
+    fireEvent.click(screen.getByRole('checkbox', { name: /Terms of Service/ }));
+  }
+}
+
+function fillAndSubmit() {
+  fill();
   fireEvent.click(screen.getByRole('button', { name: 'Create family →' }));
 }
 
@@ -106,6 +113,31 @@ afterEach(() => {
 });
 
 describe('RegisterPage', () => {
+  it('blocks submission until the legal-consent box is ticked, then sends accept_terms', async () => {
+    wireApi();
+    renderPage();
+
+    // Submit with everything filled EXCEPT the consent checkbox → client-side block.
+    fill({ consent: false });
+    fireEvent.click(screen.getByRole('button', { name: 'Create family →' }));
+    expect(
+      await screen.findByText('You need to agree before we can set up your family.'),
+    ).toBeInTheDocument();
+    expect(api).not.toHaveBeenCalledWith('/families', expect.anything());
+
+    // Tick the box → the POST goes out and records the consent flag.
+    fireEvent.click(screen.getByRole('checkbox', { name: /Terms of Service/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create family →' }));
+    expect(await screen.findByText('MINT')).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith(
+      '/families',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ accept_terms: true }),
+      }),
+    );
+  });
+
   it('honours the threaded `from` after family creation (Continue → deep-link)', async () => {
     wireApi();
     renderPage(FROM);

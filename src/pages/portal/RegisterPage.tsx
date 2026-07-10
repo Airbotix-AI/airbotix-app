@@ -37,6 +37,11 @@ const schema = z.object({
   kid_nickname: z.string().min(1).max(40),
   kid_age: z.coerce.number().int().min(4).max(17),
   kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
+  // Registration consent (terms-of-service.md §2.1): must be affirmatively
+  // ticked; the backend rejects POST /families without accept_terms: true.
+  accept_terms: z.literal(true, {
+    errorMap: () => ({ message: 'You need to agree before we can set up your family.' }),
+  }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -160,6 +165,7 @@ export function RegisterPage() {
           ...(values.acquisition_source ? { acquisition_source: values.acquisition_source } : {}),
           preferred_language: values.preferred_language,
           ...(values.marketing_opt_in ? { marketing_opt_in: true } : {}),
+          accept_terms: values.accept_terms,
         },
       });
       // The OTP-login token was minted before the family existed, so it carries
@@ -353,6 +359,50 @@ export function RegisterPage() {
             </div>
           </section>
 
+          <section className="space-y-2">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 accent-brand-coral"
+                {...register('accept_terms')}
+              />
+              <span className="text-[13px] text-ink-soft">
+                I am the parent or legal guardian of the kids on this account, and I agree to
+                the{' '}
+                <a
+                  href="https://airbotix.ai/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  Terms of Service
+                </a>
+                , the{' '}
+                <a
+                  href="https://airbotix.ai/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  Privacy Policy
+                </a>
+                , and the{' '}
+                <a
+                  href="https://airbotix.ai/parental-consent"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline"
+                >
+                  Parental Consent
+                </a>{' '}
+                terms.
+              </span>
+            </label>
+            {errors.accept_terms && (
+              <span className="field-error">{errors.accept_terms.message}</span>
+            )}
+          </section>
+
           {error && (
             <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
               {error}
@@ -364,9 +414,8 @@ export function RegisterPage() {
           </button>
 
           <p className="text-[12px] leading-relaxed text-slate2">
-            By continuing you agree to Airbotix processing your family's data per our Privacy
-            Policy and Parental Consent terms. You can export or delete all data anytime from
-            Settings.
+            We record the date and document version of your agreement. You can export or delete
+            all your family's data anytime from Settings.
           </p>
         </form>
       </div>
