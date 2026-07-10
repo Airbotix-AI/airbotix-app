@@ -53,8 +53,26 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   uses it so its banner carries the only Back; `PlaygroundApp` needs no prop (it has no
   in-studio home link — its home is the Learn nav, not mounted here). Kid/readOnly behaviour is
   unchanged. Covered by `CodeStudioPage.readOnly.test.tsx` + `BlocksStudioPage.test.tsx`.
+- **Playground: "Stop waiting" while the AI is thinking (D-PAP-48).** During the WorkingCard
+  "busy" phase (before the reply streams), the chat composer shows a Stop button
+  (`chat-stop-waiting`). Tapping it aborts the in-flight `classify` + `runTurn` fetch via an
+  `AbortController`; the backend treats the client disconnect as a clean cancel (no Stars). The
+  pending agent bubble becomes a calm "your game is unchanged" message (no error styling) and the
+  composer re-enables. Distinct from the existing streaming Stop (`chat-stop`), which only skips
+  the typing animation. An in-flight turn is also aborted if the workspace unmounts mid-turn.
+  Covered by `AIChatPanel.test.tsx` (three-way composer button) and `useGameAgent.test.ts`
+  (cancelTurn settles the turn calmly, no Stars, both fetches receive the signal).
 
 ### Fixed
+- **Class assets with spaces in their filename now load in the game (Model A).** The
+  game-runtime class-asset resolver's `assets/class/<name>` regex stopped at the first
+  whitespace, so a model like `Animated Platformer Character.glb` captured only
+  `Animated`, never matched the shared library, and was never inlined — the sandboxed
+  game then fetched the bare path against its opaque origin and failed with
+  `3D model failed to load … — Failed to fetch`. The resolver now uses the same
+  quote-anchored match as the srcdoc inliner (`buildGamePreview.inlineAssetRefs`),
+  capturing the full filename (spaces included) up to the closing quote. Regression
+  tests in `classAssetResolver.test.ts`.
 - **Game studio: pause & mute now actually stop the background music.** The engine control shims
   only froze the game LOOP (`loop.sleep()` / `cancelAnimationFrame`), but Web Audio runs on the
   AudioContext hardware clock — so looping BGM kept playing through a "pause", and three.js games

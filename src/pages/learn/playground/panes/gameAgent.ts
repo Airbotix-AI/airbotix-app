@@ -44,6 +44,9 @@ export type RunAgentTurn = (args: {
   guided?: boolean;
   /** Attached input images (D-PAP-33) — carried so the mock seam forwards them too. */
   images?: ChatImageRef[];
+  /** Abort the in-flight turn (kid "Stop waiting", D-PAP-48) — the disconnect is a
+   *  clean server-side cancel (no Stars). */
+  signal?: AbortSignal;
 }) => Promise<AgentTurnResult>;
 
 /** Approve / reject a staged (Pro) plan. */
@@ -63,6 +66,8 @@ export type ApproveAgentTurn = (args: {
 export type ClassifyMessage = (args: {
   projectId: string;
   prompt: string;
+  /** Abort the in-flight classify (kid "Stop waiting", D-PAP-48). */
+  signal?: AbortSignal;
 }) => Promise<ClassifyResult>;
 
 /**

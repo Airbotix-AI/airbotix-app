@@ -667,9 +667,13 @@ export async function runAgentTurn(args: {
   guided?: boolean;
   /** Attached input images (D-PAP-33) — sent ONLY when non-empty. */
   images?: ChatImageRef[];
+  /** Abort the in-flight turn (kid "Stop waiting", D-PAP-48) — the disconnect is a
+   *  clean server-side cancel (no Stars). Aborting rejects with an AbortError. */
+  signal?: AbortSignal;
 }): Promise<AgentTurnResult> {
   const res = await api<AgentTurnResult>(`/projects/${args.projectId}/code/turn`, {
     method: 'POST',
+    signal: args.signal,
     body: {
       prompt: args.prompt,
       mode: args.mode,
@@ -874,10 +878,13 @@ export interface ClassifyResult {
 export async function classifyMessage(args: {
   projectId: string;
   prompt: string;
+  /** Abort the in-flight classify (kid "Stop waiting", D-PAP-48). Aborting rejects
+   *  with an AbortError; the caller treats it as a clean cancel. */
+  signal?: AbortSignal;
 }): Promise<ClassifyResult> {
   const res = await api<{ safeguarding: SafeguardingVerdict | null; intent?: AssetIntent }>(
     `/projects/${args.projectId}/code/turn/classify`,
-    { method: 'POST', body: { prompt: args.prompt } },
+    { method: 'POST', body: { prompt: args.prompt }, signal: args.signal },
   );
   return { safeguarding: res.safeguarding, intent: res.intent ?? 'code' };
 }

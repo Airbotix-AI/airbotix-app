@@ -285,6 +285,7 @@ export function Workspace({
     raiseHand,
     lowerHand,
     abort,
+    cancelTurn,
     retryLast,
     pushAgentMessage,
   } = useGameAgent({
@@ -410,6 +411,7 @@ export function Workspace({
     onOpenAsset: openAssetInViewer,
     assetSrc: assetSrcFromChat,
     onStop: abort,
+    onCancelTurn: cancelTurn,
     onRetry: retryLast,
     recap: showRecap ? resumeRecap : null,
     onContinueRecap: () => setRecapDismissed(true),
