@@ -71,6 +71,56 @@ describe('GameRunnerPane — the running game uses a launch snapshot of the VFS'
   });
 });
 
+// D-HARN-03 — "Ask AI to fix" is a send-path button: while an AI turn is busy it
+// renders DISABLED so a tap never silently vanishes into an in-flight turn.
+describe('GameRunnerPane — "Ask AI to fix" disabled while a turn is busy (D-HARN-03)', () => {
+  // The earlier describe doesn't clean up between tests — start (and stay) clean
+  // so `getByTestId` never matches a stale pane.
+  beforeEach(cleanup);
+  afterEach(cleanup);
+  const errs: ConsoleLine[] = [{ level: 'error', text: 'TypeError: boom' }];
+
+  it('renders disabled while busy and does not fire onAskFix', () => {
+    const onAskFix = vi.fn();
+    render(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        busy
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={onAskFix}
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    const btn = screen.getByTestId('ask-ai-fix') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    fireEvent.click(btn);
+    expect(onAskFix).not.toHaveBeenCalled();
+  });
+
+  it('is enabled when no turn is busy and sends the fix prompt', () => {
+    const onAskFix = vi.fn();
+    render(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={onAskFix}
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    const btn = screen.getByTestId('ask-ai-fix') as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    fireEvent.click(btn);
+    expect(onAskFix).toHaveBeenCalledTimes(1);
+    expect(onAskFix.mock.calls[0][0]).toContain('TypeError: boom');
+  });
+});
+
 describe('GameRunnerPane — the console pins to the latest output', () => {
   // jsdom does no layout, so give every element fixed scroll metrics: content
   // is 1000px tall in a 200px viewport. "Bottom" = scrollTop 800 (within the

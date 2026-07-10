@@ -33,6 +33,9 @@ interface GameRunnerPaneProps {
   onOpenLocation?: (file: string, line: number) => void;
   /** Send a console error to the AI chat to fix ("Ask AI to fix"). */
   onAskFix?: (message: string) => void;
+  /** An AI turn is in flight (D-HARN-03): "Ask AI to fix" — a send-path button —
+   *  renders disabled so a tap never silently vanishes into a busy turn. */
+  busy?: boolean;
   /** Legacy self-verify (MP3): report captured runtime errors for a raw fix turn.
    *  RETIRED for game projects — verification now rides `onRunReport` (D-PAP-40). */
   onRuntimeErrors?: (errors: string[]) => void;
@@ -168,6 +171,7 @@ export function GameRunnerPane({
   onRun,
   onOpenLocation,
   onAskFix,
+  busy,
   onRuntimeErrors,
   onRunReport,
   reportAttempt,
@@ -390,8 +394,12 @@ export function GameRunnerPane({
             {!readOnly && lastError && onAskFix && (
               <button
                 type="button"
+                data-testid="ask-ai-fix"
+                // Disabled while a turn is busy (D-HARN-03) — a tap must never
+                // silently vanish; the chat queue is the one "next message" slot.
+                disabled={busy}
                 onClick={() => onAskFix(fixPrompt(lastError))}
-                className="ml-auto flex items-center gap-1 rounded-md bg-brand-sky/20 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-brand-sky/30"
+                className="ml-auto flex items-center gap-1 rounded-md bg-brand-sky/20 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors enabled:hover:bg-brand-sky/30 disabled:opacity-40"
               >
                 <Sparkles size={12} aria-hidden /> Ask AI to fix
               </button>

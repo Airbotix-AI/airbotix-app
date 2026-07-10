@@ -53,6 +53,46 @@ import {
   applyFixingStep,
   type TurnProgress,
 } from './turnProgress';
+import {
+  AI_UNAVAILABLE_TEXT,
+  FLUSH_FAILED_TEXT,
+  mintTurnKey,
+  settleBubble,
+  TURN_TIMEOUT_TEXT,
+  TURN_WATCHDOG_MS,
+  useTurnHygiene,
+  type QueuedItem,
+  type RetryPayload,
+} from './useTurnHygiene';
+import {
+  ERROR_TEXT,
+  friendlyError,
+  isAbortError,
+  OFFLINE_TEXT,
+  PENDING_TEXT,
+  STOPPED_TEXT,
+} from './chatCopy';
+import { buildBlockedSeed, buildFirstTurn, buildIntro, type FirstTurnSeed } from './chatSeeds';
+
+// Turn-hygiene state/copy (D-HARN-02/03/05 → `useTurnHygiene`), the kid-facing
+// failure copy (→ `chatCopy`) and the opening-chat seeds (→ `chatSeeds`) are
+// extracted siblings, but stay part of this hook's PUBLIC API — the panel, the
+// workspace and the tests import them from here.
+export {
+  AI_UNAVAILABLE_TEXT,
+  FLUSH_FAILED_TEXT,
+  TURN_TIMEOUT_TEXT,
+  TURN_WATCHDOG_MS,
+} from './useTurnHygiene';
+export type { RetryPayload } from './useTurnHygiene';
+export {
+  CAP_MESSAGE,
+  IMAGE_CHECK_HICCUP_MESSAGE,
+  IMAGE_DISABLED_MESSAGE,
+  IMAGE_REJECT_MESSAGE,
+  STOPPED_TEXT,
+} from './chatCopy';
+export type { FirstTurnSeed } from './chatSeeds';
 
 /** In-chat call-to-action buttons (rendered on the message that carries them). */
 export type ChatAction = 'run' | 'code';
@@ -84,6 +124,14 @@ export interface ChatItem {
   safeguard?: boolean;
   /** Teacher "what next?" option chips (§11.4 / D-PAP-06) — tap to send `prompt`. */
   nextSteps?: NextStep[];
+  /**
+   * A retryable failed/timed-out turn (D-HARN-02/03/05): the bubble carries a
+   * calm "Try again" chip that replays THIS bubble's own turn — the payload's
+   * exact prompt with its SAME idempotency key (`retryTurn`), so the backend
+   * replays the turn instead of charging a second one, and a stale chip can
+   * never replay a LATER turn's prompt/key.
+   */
+  retry?: RetryPayload;
   /**
    * An AI asset-generation message (D-ASSET §3): the magic card while it runs,
    * then the finished asset with Add-to-game / Remix. `path` is the new VFS asset.
@@ -211,188 +259,16 @@ export interface UseGameAgentOptions {
    * (PlaygroundApp `flushSave`); absent off the real path (the stub never persists).
    */
   flushSave?: () => Promise<SaveResult>;
+  /** Test seam: override the 180 s silent-turn watchdog window (D-HARN-03). */
+  turnWatchdogMs?: number;
 }
 
-const PENDING_TEXT = 'Thinking…';
-/**
- * Calm "you stopped the AI" copy (D-PAP-48). Shown when the kid taps "Stop" while
- * the agent is thinking (BEFORE any reply streams): the in-flight classify/runTurn
- * fetch is aborted, the backend treats the disconnect as a clean cancel (no Stars),
- * and the pending bubble becomes this — NOT an error (the game is untouched).
- */
-export const STOPPED_TEXT = 'Okay, I stopped — your game is unchanged. Tell me what to do, or try again.';
+/** The ONE next message queued while a turn is busy (D-HARN-03) — never a drop. */
+export type QueuedMessage = QueuedItem<SendOptions>;
+
 /** Client actions that pull the code editor to the front — NOT auto-run on turn
  *  finish; the kid opens the editor by tapping a changed-file row instead. */
 const EDITOR_FOCUS_ACTIONS = new Set(['open_file', 'highlight_code', 'jump_to_line', 'show_code', 'open_diff']);
-/**
- * "Can't get to the server" copy — used when the request never reached the
- * backend: `fetch` itself rejected (connection refused / DNS / CORS) so no
- * `ApiError` was produced, OR a gateway is down (502/503/504). Distinct from
- * SERVER_ERROR_TEXT so a connectivity problem reads differently from a backend
- * that WAS reached but errored (the common dev-mode "backend restarting" case).
- */
-const ERROR_TEXT = 'Could not reach the AI. Try again.';
-/**
- * "The backend was reached but errored" copy (an unexpected 5xx / unhandled
- * status). The AI server answered with a failure rather than being unreachable,
- * so we don't claim we "couldn't reach" it — that misdirects debugging.
- */
-const SERVER_ERROR_TEXT = 'The AI ran into a problem. Try again in a moment.';
-/** Calm, kid-framed offline copy (PRD J2 — never a frozen screen). */
-const OFFLINE_TEXT = 'Internet hiccup — your work is safe. Try again in a moment.';
-/**
- * The cap-reached "ask your grown-up" copy (J11 / §11g(e)). When the parent
- * spending cap (or wallet) is hit, the backend blocks AI turns BEFORE any LLM
- * call; the kid sees this — never a dead end. Exported so the panel can tag it
- * with the `cap-message` testid without substring-matching the wording.
- */
-export const CAP_MESSAGE = 'You used all the Stars for now. Ask your grown-up to add more. ⭐';
-
-/**
- * Image-specific reject copy (D-PAP-34) — a picture failed pre-model moderation
- * (`MODERATION_REJECTED`, `details.modality:'image'`). Distinct from the text
- * reject so the kid knows it was the PICTURE, not their words, and charges no
- * Stars. The rejected image(s) are cleared by the composer (the panel watches
- * `lastImageRejected`).
- */
-export const IMAGE_REJECT_MESSAGE =
-  "I can't use that picture here — let's keep it kind and safe. Try a different one, or just tell me with words.";
-/**
- * "Pictures aren't available right now" copy (D-PAP-37) — the dark-launch feature
- * flag is OFF, so the backend rejected the turn's images (`IMAGE_INPUT_DISABLED`).
- * No Stars charged. The composer also hides the picture button once it sees this.
- */
-export const IMAGE_DISABLED_MESSAGE = "Pictures aren't available right now — tell me with words and I'll help! ✏️";
-/**
- * The picture CHECKER errored copy (D-PAP-46) — the backend's fail-closed input
- * screen hit a classifier outage/timeout (`MODERATION_UNAVAILABLE`), so the
- * picture was withheld WITHOUT being judged. Distinct from IMAGE_REJECT_MESSAGE:
- * the kid's picture wasn't "unkind", so we don't say it was — and instead of the
- * reject clear (`imageRejectNonce`), the already-uploaded refs are RE-STAGED via
- * `imageRestore` so one tap retries without a re-upload. No Stars.
- */
-export const IMAGE_CHECK_HICCUP_MESSAGE =
-  'Our picture checker had a hiccup — nothing wrong with your picture! Try again in a moment. 🛠️';
-
-const STARTER_MESSAGE =
-  'Your game starter is ready to play 🎮\n\n' +
-  'I put together a runnable starter for your idea — it already works out of the ' +
-  'box. Take it for a spin now, or open the code whenever you want to start ' +
-  'changing things.';
-
-function buildIntro(prompt: string | undefined): ChatItem[] {
-  const items: ChatItem[] = [];
-  const p = prompt?.trim();
-  if (p) items.push({ id: 'intro-kid', role: 'kid', text: p });
-  items.push({ id: 'intro-agent', role: 'agent', text: STARTER_MESSAGE, actions: ['run', 'code'] });
-  return items;
-}
-
-/** The AI's first turn (run on the loading screen) replayed into the chat so the
- *  workspace opens with the real opening exchange, not a canned starter. */
-export interface FirstTurnSeed {
-  prompt: string;
-  reply: string;
-  toolsFired?: string[];
-  /** The teacher's 2–3 next-step options from the first turn (§11.4 / D-PAP-06). */
-  nextSteps?: NextStep[];
-  /** Per-file "what changed" notes from the first turn — descriptions for the file rows. */
-  fileNotes?: FileNote[];
-}
-
-// The safety check refused the opening idea (D-PAP-20). Instead of dropping the kid
-// into a silent empty project, explain what happened and offer gentle, ready-to-tap
-// ideas that will pass — tapping a chip sends its prompt and builds that game.
-const BLOCKED_MESSAGE =
-  "I couldn't start that one — our safety helper thought the idea sounded a bit too rough for here. 🛡️ " +
-  "No worries, your project is open and ready (it's just empty for now). " +
-  'Try describing your game in a gentler way, or tap one of these to get going:';
-const BLOCKED_SUGGESTIONS: NextStep[] = [
-  {
-    label: '🚀 Spaceship dodging asteroids',
-    prompt: 'a spaceship flying through space, dodging asteroids and collecting stars',
-    tag: 'concept',
-  },
-  {
-    label: '✈️ Plane racing through rings',
-    prompt: 'an airplane racing through floating rings in the sky to score points',
-    tag: 'concept',
-  },
-  {
-    label: '🐱 Catch the falling treats',
-    prompt: 'a cat moving left and right to catch yummy treats falling from the top',
-    tag: 'fun',
-  },
-];
-
-function buildBlockedSeed(): ChatItem[] {
-  return [
-    { id: 'blocked-agent', role: 'agent', text: BLOCKED_MESSAGE, nextSteps: BLOCKED_SUGGESTIONS },
-  ];
-}
-
-function buildFirstTurn(seed: FirstTurnSeed): ChatItem[] {
-  return [
-    { id: 'first-kid', role: 'kid', text: seed.prompt },
-    {
-      id: 'first-agent',
-      role: 'agent',
-      text: seed.reply,
-      toolsFired: seed.toolsFired,
-      fileNotes: seed.fileNotes,
-      nextSteps: seed.nextSteps,
-      actions: ['run', 'code'],
-    },
-  ];
-}
-
-/** Kid-framed error copy for the known backend failure envelopes (mirror code). */
-function friendlyError(e: unknown): string {
-  if (isOffline()) return OFFLINE_TEXT;
-  if (e instanceof ApiError) {
-    if (e.code === 'WALLET_INSUFFICIENT' || e.code === 'DAILY_CAP_EXCEEDED' || e.status === 402)
-      return CAP_MESSAGE;
-    if (e.code === 'FAMILY_PAUSED') return 'Your family paused AI. Ask a grown-up.';
-    // The dark-launch image flag is off → "pictures aren't available right now"
-    // (no Stars). Distinct from a moderation reject (the picture itself was bad).
-    if (e.code === 'IMAGE_INPUT_DISABLED') return IMAGE_DISABLED_MESSAGE;
-    if (e.code === 'MODERATION_REJECTED') {
-      // An IMAGE was rejected pre-model (D-PAP-34) reads differently from a text
-      // reject, so the kid knows it was the PICTURE, not their words.
-      const details = e.details as { modality?: string } | undefined;
-      if (details?.modality === 'image') return IMAGE_REJECT_MESSAGE;
-      return "Let's keep it kind and safe — try asking for something else.";
-    }
-    if (e.code === 'MODERATION_UNAVAILABLE') {
-      // The safety checker itself errored (D-PAP-46) — fail-closed server-side,
-      // but the content was never judged, so don't imply it was. For a picture
-      // the composer keeps it staged (no reject nonce) so the kid just retries.
-      const details = e.details as { modality?: string } | undefined;
-      if (details?.modality === 'image') return IMAGE_CHECK_HICCUP_MESSAGE;
-      return 'The safety check had a hiccup — try again in a moment.';
-    }
-    if (e.code === 'MODERATION_WARN')
-      return 'That message looked a bit off. Try saying it a different way.';
-    // A gateway is down (the backend itself is unreachable behind a proxy) → keep
-    // the "can't reach" copy; any other status means the server answered with a
-    // failure → it WAS reached, so surface the distinct server-error copy.
-    if (e.status === 502 || e.status === 503 || e.status === 504) return ERROR_TEXT;
-    return SERVER_ERROR_TEXT;
-  }
-  // Not an ApiError → `fetch` rejected before any response (connection refused /
-  // DNS / CORS): the backend was never reached.
-  return ERROR_TEXT;
-}
-
-/**
- * True when a rejection is an aborted fetch (the kid pressed "Stop waiting",
- * D-PAP-48). `AbortController.abort()` rejects `fetch` with a `DOMException` whose
- * `.name === 'AbortError'` — NOT an `ApiError`, so it must be handled BEFORE the
- * generic friendlyError path (an abort is a clean cancel, never an error).
- */
-function isAbortError(e: unknown): boolean {
-  return typeof e === 'object' && e !== null && (e as { name?: string }).name === 'AbortError';
-}
 
 const toChanges = (r: AgentTurnResult) =>
   r.changes.map((c) => ({ path: c.path, before: c.before, after: c.after }));
@@ -440,6 +316,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     onEngineChange,
     onTurnApplied,
     flushSave,
+    turnWatchdogMs = TURN_WATCHDOG_MS,
   } = opts;
 
   const isReal = !!projectId;
@@ -521,6 +398,27 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   // Whether the last prompt came from tapping a next-step chip (a guided step), so a
   // retry preserves the guided flag and the teacher keeps offering the loop (D-PAP-26).
   const lastGuidedRef = useRef<boolean>(false);
+  // Turn hygiene (D-HARN-02/03, `useTurnHygiene`): the per-logical-turn
+  // idempotency keys, the ONE-message busy queue, and the silent-turn watchdog.
+  // On timeout the watchdog aborts the in-flight fetch via the SAME clean-cancel
+  // mechanism as "Stop waiting" (backend charges 0 Stars); the abort handlers
+  // read `consumeTimedOut()` to settle calm timeout copy instead of STOPPED_TEXT.
+  const {
+    queuedMessage,
+    queueMessage,
+    takeQueued,
+    cancelQueued,
+    beginWatchdog,
+    bumpWatchdog,
+    clearWatchdog,
+    consumeTimedOut,
+    beginTurnKey,
+    reuseKeyNext,
+    lastTurnKey,
+  } = useTurnHygiene<SendOptions>({
+    watchdogMs: turnWatchdogMs,
+    onTimeout: () => turnAbortRef.current?.abort(),
+  });
 
   // Reflect connectivity into a banner the panel renders (J2 offline state).
   useEffect(() => {
@@ -555,8 +453,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // Cancel an in-flight turn's fetch if the workspace closes mid-turn (D-PAP-48)
       // — the disconnect is a clean server-side cancel (no Stars).
       turnAbortRef.current?.abort();
+      clearWatchdog();
     };
-  }, []);
+  }, [clearWatchdog]);
 
   const seq = useRef(0);
   const nextId = useCallback((): string => {
@@ -599,6 +498,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         );
       };
       await streamTurn(result, (d) => {
+        // Any delta is a sign of life — re-arm the silent-turn watchdog (D-HARN-03)
+        // so only a genuinely stalled turn ever times out.
+        bumpWatchdog();
         if (d.type === 'tool') {
           setProgress((p) => (p ? applyToolDelta(p, d.tool, Date.now()) : p));
           return;
@@ -667,7 +569,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // arm post-apply verification for a `verification: 'pending'` turn.
       onTurnApplied?.(result);
     },
-    [files, onApplyFiles, onStarsCharged, clientActions, onTurnApplied],
+    [files, onApplyFiles, onStarsCharged, clientActions, onTurnApplied, bumpWatchdog],
   );
 
   /**
@@ -713,13 +615,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         if (res.co_debug) {
           // Can't fix on its own → ONE warm hand-off message (never a silent broken game).
           setProgress(null);
-          setChat((prev) =>
-            prev.map((it) =>
-              it.id === pendingId
-                ? { id: pendingId, role: 'agent', text: res.message ?? "Let's fix this together! 🔧" }
-                : it,
-            ),
-          );
+          setChat((prev) => settleBubble(prev, pendingId, res.message ?? "Let's fix this together! 🔧"));
         } else if (res.turn) {
           // Fixed itself → apply the repair SILENTLY and drop the card: no extra
           // message, so the kid's request still reads as one message + a game that
@@ -815,18 +711,50 @@ export function useGameAgent(opts: UseGameAgentOptions) {
    * Persist any debounced local VFS change to the backend BEFORE running a turn,
    * so the agent reads the SAME files the kid sees (a turn body carries only the
    * prompt; the backend reads the server-persisted VFS). Without it, an edit still
-   * inside the ~600 ms autosave window is invisible to the agent. Best-effort: a
-   * save hiccup must NEVER block the kid's (paid) turn — the pre-flush behaviour
-   * ran on the stale VFS anyway.
+   * inside the ~600 ms autosave window is invisible to the agent.
+   *
+   * MUST-SUCCEED for a FRESH paid turn (D-HARN-05): returns false when the save
+   * fails, and the caller then does NOT start the PAID turn — a turn run against
+   * a stale VFS edits files that don't match what the kid sees. The free,
+   * non-metered classify may run BEFORE the flush: the gate sits immediately
+   * before the paid POST, so a turn stopped mid-classify never writes the VFS
+   * (a clean cancel must not bump vfs_version). The gate applies to every path
+   * that POSTs a NEW turn: `send()`, the agency confirm in `confirmPending`, and
+   * the acknowledged-warn retry in `confirmWarn` — each settles the pending
+   * bubble into FLUSH_FAILED_TEXT with a retry chip. The ONE exception is
+   * plan-APPROVE (`confirmPending`, kind 'plan'), which stays best-effort: the
+   * staged turn already ran against the VFS flushed when it was sent, so blocking
+   * its approve on a fresh save would strand paid work. Returns true when there
+   * is nothing to flush (no `flushSave` — the stub path never persists).
    */
-  const flushBeforeTurn = useCallback(async () => {
-    if (!flushSave) return;
+  const flushBeforeTurn = useCallback(async (): Promise<boolean> => {
+    if (!flushSave) return true;
     try {
       await flushSave();
+      return true;
     } catch {
-      // Proceed with whatever the backend already has — never trap the turn on a save.
+      return false;
     }
   }, [flushSave]);
+
+  /**
+   * Settle a pending bubble after an ABORTED fetch: the kid's Stop (calm
+   * STOPPED_TEXT, D-PAP-48) or the silent-turn watchdog (calm timeout copy +
+   * `retry` chip when the turn can be replayed from the bubble, D-HARN-03) —
+   * never an error either way.
+   */
+  const settleAbortedBubble = useCallback(
+    (pendingId: string, retry?: RetryPayload) => {
+      clearWatchdog();
+      const timedOut = consumeTimedOut();
+      setChat((prev) =>
+        timedOut
+          ? settleBubble(prev, pendingId, TURN_TIMEOUT_TEXT, retry)
+          : settleBubble(prev, pendingId, STOPPED_TEXT),
+      );
+    },
+    [clearWatchdog, consumeTimedOut],
+  );
 
   const send = useCallback(
     async (text: string, opts?: SendOptions) => {
@@ -838,18 +766,40 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       const images = opts?.images ?? [];
       const hasImages = images.length > 0;
       // A turn needs TEXT or PICTURES — relax the empty-text guard for an image-only
-      // ask (D-PAP-33). Still gated on not-busy / no pending confirm.
-      if ((!trimmed && !hasImages) || busy || pending) return;
+      // ask (D-PAP-33).
+      if (!trimmed && !hasImages) return;
+      // ── Busy queue (D-HARN-03): a message sent while a turn is in flight is
+      // NEVER silently dropped — exactly ONE queues ("I'll do this next", the
+      // composer pill) and auto-sends when the turn settles; further sends are
+      // ignored while the slot is taken (the composer keeps the kid's draft). ──
+      if (busy || streaming) {
+        queueMessage(trimmed, opts);
+        return;
+      }
+      if (pending) return; // a confirm card is up — the composer is disabled
       const guided = !!opts?.guided;
       lastPromptRef.current = trimmed;
       lastGuidedRef.current = guided;
+      // ONE idempotency key per LOGICAL turn (D-HARN-02), minted at send time (a
+      // retry pre-loads the previous key so the backend replays the SAME turn).
+      // The payload rides on any retryable bubble this turn settles into.
+      const turnKey = beginTurnKey();
+      const retryPayload: RetryPayload = { prompt: trimmed, turnKey, guided };
       // A fresh, kid-initiated turn restarts the auto-fix budget for whatever it builds.
       autofixAttempt.current = 0;
 
-      // Offline pre-check (real path) — never even attempt the call; keep work safe.
+      // Offline pre-check (real path) — never even attempt the call; keep work
+      // safe AND visible: the message lands in the chat with a retry chip (this
+      // path also serves the queue's auto-send, whose text would otherwise vanish
+      // with no bubble — D-HARN-03 "no silent drops").
       if (isReal && isOffline()) {
         setOffline(true);
         setError(OFFLINE_TEXT);
+        setChat((prev) => [
+          ...prev,
+          { id: nextId(), role: 'kid', text: trimmed, ...kidImages(images) },
+          { id: nextId(), role: 'agent', text: OFFLINE_TEXT, retry: retryPayload },
+        ]);
         return;
       }
 
@@ -913,9 +863,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           onApplyFiles(result.files);
         } catch {
           setError(ERROR_TEXT);
-          setChat((prev) =>
-            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: ERROR_TEXT } : it)),
-          );
+          setChat((prev) => settleBubble(prev, pendingId, ERROR_TEXT));
         } finally {
           setProgress(null);
           setBusy(false);
@@ -939,19 +887,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the disconnect is a clean server-side cancel (no Stars, game unchanged).
       const ac = new AbortController();
       turnAbortRef.current = ac;
+      const settleAborted = () => settleAbortedBubble(pendingId, retryPayload);
       const finalizeStopped = () => {
         setProgress(null);
         setBusy(false);
-        setChat((prev) =>
-          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
-        );
+        settleAborted();
       };
+
+      // Arm the silent-turn watchdog for the whole real turn (D-HARN-03). Cleared
+      // on every exit below; re-armed by each stream delta in applyResult.
+      beginWatchdog();
 
       let routedIntent: 'asset' | 'code' = 'code';
       if (trimmed) {
         try {
           const { safeguarding, intent } = await deps.classify({ projectId: projectId!, prompt: trimmed, signal: ac.signal });
           if (safeguarding) {
+            clearWatchdog();
             setProgress(null);
             applySafeguard(safeguarding, pendingId);
             setBusy(false);
@@ -976,8 +928,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
 
       // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
-      // not a code turn. Shares this turn's `busy` lock (one AI thing at a time). ──
+      // not a code turn. Shares this turn's `busy` lock (one AI thing at a time).
+      // The turn watchdog stands down — the generation card owns its own cancel. ──
       if (routedIntent === 'asset') {
+        clearWatchdog();
         setProgress(null);
         await runAssetTurn(trimmed, pendingId);
         setBusy(false);
@@ -990,13 +944,29 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       // the turn server-side (Stars-metered + applied inside POST /code/turn) and
       // stream the result straight into the chat.
       try {
-        // Make the agent read the kid's LIVE files (persist edits still in the
-        // autosave window) before the turn — see flushBeforeTurn.
-        await flushBeforeTurn();
+        // ── Pre-turn flush MUST succeed (D-HARN-05): persist edits still in the
+        // autosave window so the agent reads exactly what the kid sees. Placed
+        // AFTER the (free) classify + asset fork, immediately before the PAID
+        // POST — so a turn stopped mid-classify never writes the VFS (a clean
+        // cancel must not bump vfs_version). On failure the paid turn does NOT
+        // start; the bubble settles into retryable "save first" copy and retry
+        // re-flushes with the same idempotency key. ──
+        const flushed = await flushBeforeTurn();
+        if (ac.signal.aborted) {
+          // Stopped (or the watchdog fired) while the save was in flight — the
+          // `finally` re-enables the composer; never run the cancelled turn.
+          settleAborted();
+          return;
+        }
+        if (!flushed) {
+          setChat((prev) => settleBubble(prev, pendingId, FLUSH_FAILED_TEXT, retryPayload));
+          return;
+        }
         const result = await deps.runTurn({
           projectId: projectId!,
           prompt: trimmed,
           mode,
+          idempotencyKey: turnKey,
           piiWarnAcknowledged: false,
           guided,
           signal: ac.signal,
@@ -1005,14 +975,14 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         });
         await applyResult(result, pendingId);
       } catch (e) {
-        // The kid tapped "Stop waiting" (D-PAP-48): the fetch aborted, so the
-        // backend cleanly cancels the turn (no Stars). Settle the pending bubble to
-        // the calm STOPPED_TEXT — NOT an error — and let the `finally` re-enable the
-        // composer. Must precede every error branch (an abort isn't an ApiError).
+        // The fetch aborted: the kid tapped "Stop waiting" (D-PAP-48) or the
+        // silent-turn watchdog fired (D-HARN-03) — either way the backend cleanly
+        // cancels the turn (no Stars). Settle the pending bubble calmly (STOPPED
+        // or timeout-with-retry copy) — NOT an error — and let the `finally`
+        // re-enable the composer. Must precede every error branch (an abort isn't
+        // an ApiError).
         if (isAbortError(e)) {
-          setChat((prev) =>
-            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
-          );
+          settleAborted();
           return;
         }
         if (e instanceof ApiError && e.code === 'MODERATION_WARN') {
@@ -1049,17 +1019,32 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           const msg = friendlyError(e);
           if (msg === OFFLINE_TEXT) setOffline(true);
           setError(msg);
+          // The D-HARN-02 taxonomy is retryable in place: the failed bubble carries
+          // a "Try again" chip that replays the turn with the SAME idempotency key.
           setChat((prev) =>
-            prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+            settleBubble(prev, pendingId, msg, msg === AI_UNAVAILABLE_TEXT ? retryPayload : undefined),
           );
         }
       } finally {
+        clearWatchdog();
         setProgress(null);
         setBusy(false);
       }
     },
-    [readOnly, busy, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine, flushBeforeTurn],
+    [readOnly, busy, streaming, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine, flushBeforeTurn, queueMessage, beginTurnKey, beginWatchdog, clearWatchdog, settleAbortedBubble],
   );
+
+  // Auto-send the queued message once the turn settles (D-HARN-03). Driven by
+  // STATE (not the turn's finally block) so the send it fires sees the settled
+  // `busy` — a finally-time recursive call would still read the stale closure
+  // and re-queue itself forever. `sendRef` always points at the latest send.
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  useEffect(() => {
+    if (busy || streaming || pending || !queuedMessage) return;
+    const q = takeQueued();
+    if (q) void sendRef.current(q.text, q.opts);
+  }, [busy, streaming, pending, queuedMessage, takeQueued]);
 
   // Public entry for the Asset Viewer's Generate / Remix buttons (D-ASSET §3,
   // "both entry points → one place out"): post the request into THIS chat so it
@@ -1144,9 +1129,16 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       setBusy(true);
       setError(null);
       const pendingId = nextId();
-      // Let "Stop waiting" (D-PAP-48) abort this rebuild's turn too.
+      // Let "Stop waiting" (D-PAP-48) abort this rebuild's turn too, and guard the
+      // reset + rebuild round-trips with the silent-turn watchdog (D-HARN-03).
       const ac = new AbortController();
       turnAbortRef.current = ac;
+      beginWatchdog();
+      // The rebuild is its own logical turn (D-HARN-02): a retryable settle replays
+      // the PORT prompt (safe — the engine has flipped, so re-sending it through
+      // send() no longer reads as a switch) with this same key.
+      const rebuildKey = mintTurnKey();
+      let rebuildRetry: RetryPayload | undefined;
       setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
       try {
         const { version } = await deps.resetEngine({ projectId, engine: target, files: starter });
@@ -1158,6 +1150,12 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           onEngineChange?.(target);
           onApplyFiles(starter, version);
         });
+        // The kid stopped (or the watchdog fired) during the reset — the clean
+        // starter is in place on both ends; settle calmly without the rebuild.
+        if (ac.signal.aborted) {
+          settleAbortedBubble(pendingId);
+          return;
+        }
         // Rebuild the game's idea in the new engine, on the clean starter. Use the
         // original game idea (the landing prompt) so the port keeps what the kid made.
         switchBypassRef.current = true;
@@ -1175,19 +1173,24 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           target === 'three'
             ? `Rebuild this as a 3D game with three.js, starting from the current 3D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`
             : `Rebuild this as a 2D game with Phaser, starting from the current 2D starter files. Keep the same idea and gameplay: "${idea}". Replace the starter with the real game.${assetsNote}`;
-        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode, signal: ac.signal });
+        rebuildRetry = { prompt: portPrompt, turnKey: rebuildKey, guided: false };
+        const result = await deps.runTurn({ projectId, prompt: portPrompt, mode, idempotencyKey: rebuildKey, signal: ac.signal });
         await applyResult(result, pendingId);
       } catch (e) {
-        // Kid stopped the rebuild (D-PAP-48) → calm cancel, not an error.
+        // Kid stopped the rebuild (D-PAP-48) or the watchdog fired (D-HARN-03)
+        // → calm cancel / timeout-with-retry, not an error.
         if (isAbortError(e)) {
-          setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)));
+          settleAbortedBubble(pendingId, rebuildRetry);
           return;
         }
         const msg = friendlyError(e);
         if (msg === OFFLINE_TEXT) setOffline(true);
         setError(msg);
-        setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)));
+        setChat((prev) =>
+          settleBubble(prev, pendingId, msg, msg === AI_UNAVAILABLE_TEXT ? rebuildRetry : undefined),
+        );
       } finally {
+        clearWatchdog();
         switchBypassRef.current = false;
         setBusy(false);
       }
@@ -1197,33 +1200,55 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     setBusy(true);
     setError(null);
     const pendingId = nextId();
-    // Let "Stop waiting" (D-PAP-48) abort a fresh (agency) turn's fetch.
+    // Let "Stop waiting" (D-PAP-48) abort this confirm's fetch; the silent-turn
+    // watchdog (D-HARN-03) guards the whole round-trip.
     const ac = new AbortController();
     turnAbortRef.current = ac;
+    beginWatchdog();
     setChat((prev) => [...prev, { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true }]);
     try {
-      // A fresh (agency) turn reads the live VFS — persist pending edits first.
-      await flushBeforeTurn();
+      // A fresh (agency) confirm SPENDS a NEW paid turn against the live VFS, so
+      // the flush gate applies exactly like send() (D-HARN-05). Plan-APPROVE stays
+      // best-effort: the staged turn already ran against the VFS flushed when it
+      // was sent — blocking its approve on a fresh save would strand paid work.
+      const flushed = await flushBeforeTurn();
+      if (ac.signal.aborted) {
+        settleAbortedBubble(pendingId);
+        return;
+      }
+      if (p.kind !== 'plan' && !flushed) {
+        setPending(null);
+        setChat((prev) =>
+          settleBubble(prev, pendingId, FLUSH_FAILED_TEXT, {
+            prompt: p.prompt,
+            turnKey: mintTurnKey(),
+            guided: false,
+          }),
+        );
+        return;
+      }
       const result =
         p.kind === 'plan'
-          ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve' })
-          : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode, signal: ac.signal });
+          ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve', signal: ac.signal })
+          : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode, idempotencyKey: mintTurnKey(), signal: ac.signal });
       setPending(null);
       await applyResult(result, pendingId);
     } catch (e) {
-      // Kid stopped waiting (D-PAP-48) → calm cancel, not an error.
+      // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
+      // settle. No retry chip: the confirm card is still up — re-tapping IS the retry.
       if (isAbortError(e)) {
-        setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)));
+        settleAbortedBubble(pendingId);
         return;
       }
       const msg = friendlyError(e);
       if (msg === OFFLINE_TEXT) setOffline(true);
       setError(msg);
-      setChat((prev) => prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)));
+      setChat((prev) => settleBubble(prev, pendingId, msg));
     } finally {
+      clearWatchdog();
       setBusy(false);
     }
-  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt, files, flushBeforeTurn]);
+  }, [readOnly, pending, busy, nextId, deps, projectId, mode, applyResult, onEngineChange, onApplyFiles, introPrompt, files, flushBeforeTurn, beginWatchdog, clearWatchdog, settleAbortedBubble]);
 
   /**
    * Cancel a staged turn ("Show me first" / "Not yet"). For a Lite agency beat the
@@ -1287,17 +1312,38 @@ export function useGameAgent(opts: UseGameAgentOptions) {
   }, []);
 
   /**
-   * Retry the last prompt after an error (H2). Resends the exact prompt verbatim
-   * (the kid never has to retype). The cap message is not retryable — the panel
-   * gates the Try-again button on that.
+   * Retry the last prompt after an error / timeout (H2, D-HARN-02). Resends the
+   * exact prompt verbatim (the kid never has to retype) REUSING the previous
+   * turn's idempotency key, so the backend replays/dedupes the turn instead of
+   * running (and charging) a second one. The cap message is not retryable — the
+   * panel gates the Try-again button on that.
    */
   const retryLast = useCallback(() => {
     if (readOnly) return; // teacher viewer — no prompt to retry (D-LV-6)
     if (busy || pending) return;
     if (!lastPromptRef.current) return;
     setError(null);
+    reuseKeyNext(lastTurnKey());
     void send(lastPromptRef.current, { guided: lastGuidedRef.current });
-  }, [readOnly, busy, pending, send]);
+  }, [readOnly, busy, pending, reuseKeyNext, lastTurnKey, send]);
+
+  /**
+   * Replay a SPECIFIC retryable turn from its bubble's "Try again" chip
+   * (D-HARN-02): the payload rides on the ChatItem, so the chip re-sends ITS OWN
+   * prompt with ITS OWN idempotency key — a stale chip (an earlier failed turn)
+   * can never replay a later turn's prompt or reuse an already-applied key.
+   */
+  const retryTurn = useCallback(
+    (payload: RetryPayload) => {
+      if (readOnly) return; // teacher viewer — no turns (D-LV-6)
+      if (busy || pending) return;
+      if (!payload.prompt) return;
+      setError(null);
+      reuseKeyNext(payload.turnKey);
+      void send(payload.prompt, { guided: payload.guided });
+    },
+    [readOnly, busy, pending, reuseKeyNext, send],
+  );
 
   const confirmWarn = useCallback(async () => {
     if (!warnPending || busy) return;
@@ -1307,17 +1353,41 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     const pendingId = nextId();
     setError(null);
     setBusy(true);
-    // Let "Stop waiting" (D-PAP-48) abort the acknowledged-warn turn's fetch.
+    // Let "Stop waiting" (D-PAP-48) abort the acknowledged-warn turn's fetch; the
+    // silent-turn watchdog (D-HARN-03) guards the whole round-trip.
     const ac = new AbortController();
     turnAbortRef.current = ac;
+    beginWatchdog();
+    // The acknowledged retry is its own logical turn (D-HARN-02) with a FRESH key
+    // (the acknowledged request differs from the warned one); its retryable
+    // settles replay through the normal send flow (which re-runs the warn beat).
+    const warnKey = mintTurnKey();
+    const warnRetry: RetryPayload = { prompt, turnKey: warnKey, guided: false };
     setChat((prev) => [
       ...prev,
       { id: nextId(), role: 'kid', text: prompt },
       { id: pendingId, role: 'agent', text: PENDING_TEXT, pending: true },
     ]);
     try {
-      await flushBeforeTurn();
-      const result = await deps.runTurn({ projectId, prompt, mode, piiWarnAcknowledged: true, signal: ac.signal });
+      // The acknowledged warn POSTs a FRESH paid turn — the D-HARN-05 flush gate
+      // applies exactly like send(): a failed save stops the turn.
+      const flushed = await flushBeforeTurn();
+      if (ac.signal.aborted) {
+        settleAbortedBubble(pendingId, warnRetry);
+        return;
+      }
+      if (!flushed) {
+        setChat((prev) => settleBubble(prev, pendingId, FLUSH_FAILED_TEXT, warnRetry));
+        return;
+      }
+      const result = await deps.runTurn({
+        projectId,
+        prompt,
+        mode,
+        idempotencyKey: warnKey,
+        piiWarnAcknowledged: true,
+        signal: ac.signal,
+      });
       if (result.requires_approval) {
         setChat((prev) => prev.filter((it) => it.id !== pendingId));
         setPending({
@@ -1333,23 +1403,23 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       }
       await applyResult(result, pendingId);
     } catch (e) {
-      // Kid stopped waiting (D-PAP-48) → calm cancel, not an error.
+      // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
+      // cancel / timeout-with-retry, not an error.
       if (isAbortError(e)) {
-        setChat((prev) =>
-          prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: STOPPED_TEXT } : it)),
-        );
+        settleAbortedBubble(pendingId, warnRetry);
         return;
       }
       const msg = friendlyError(e);
       if (msg === OFFLINE_TEXT) setOffline(true);
       setError(msg);
       setChat((prev) =>
-        prev.map((it) => (it.id === pendingId ? { id: pendingId, role: 'agent', text: msg } : it)),
+        settleBubble(prev, pendingId, msg, msg === AI_UNAVAILABLE_TEXT ? warnRetry : undefined),
       );
     } finally {
+      clearWatchdog();
       setBusy(false);
     }
-  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult, flushBeforeTurn]);
+  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult, flushBeforeTurn, beginWatchdog, clearWatchdog, settleAbortedBubble]);
 
   const dismissWarn = useCallback(() => {
     if (warnPending) {
@@ -1384,6 +1454,11 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     /** Bumps on a screen OUTAGE — the composer RE-STAGES these unjudged pictures (D-PAP-46). */
     imageRestore,
     send,
+    /** The ONE queued next message while a turn is busy (D-HARN-03) — drives the
+     *  composer's "I'll do this next" pill; auto-sends when the turn settles. */
+    queuedMessage,
+    /** Drop the queued next message (the queued pill's ✕, D-HARN-03). */
+    cancelQueued,
     /** Generate an asset INTO the chat (Asset Viewer Generate/Remix buttons, §3). */
     requestAssetGen,
     confirmPending,
@@ -1401,6 +1476,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     cancelTurn,
     /** Resend the last prompt after a (non-cap) error (H2). */
     retryLast,
+    /** Replay a specific retryable bubble's own turn — same prompt, SAME
+     *  idempotency key (the per-bubble "Try again" chip, D-HARN-02/03/05). */
+    retryTurn,
     /** Report sandbox runtime errors → backend auto-fix / co-debug (MP3 / D-PAP-09,13,23).
      *  RETIRED for game verification — see the run-report loop (useVerification). */
     autoFixFromErrors,

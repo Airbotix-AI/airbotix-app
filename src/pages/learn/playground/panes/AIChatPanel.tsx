@@ -37,6 +37,8 @@ import {
   type SafeguardingVerdict,
 } from '../../code/codeApi';
 import { useGenerationStore } from '../generationStore';
+import { QueuedPill, RetryChip } from './chatChips';
+import type { RetryPayload } from './useTurnHygiene';
 import { MagicGenerationCard } from './MagicGenerationCard';
 import { canReadAloud, readAloud } from './readAloud';
 import { ThinkingBubble } from './ThinkingBubble';
@@ -44,7 +46,14 @@ import { WorkingCard } from './WorkingCard';
 import { AiroAvatar } from './AiroAvatar';
 import type { TurnProgress } from './turnProgress';
 import { useStickToBottom } from './useStickToBottom';
-import { CAP_MESSAGE, type ChatItem, type PendingTurn, type SendImage, type SendOptions } from './useGameAgent';
+import {
+  CAP_MESSAGE,
+  type ChatItem,
+  type PendingTurn,
+  type QueuedMessage,
+  type SendImage,
+  type SendOptions,
+} from './useGameAgent';
 
 /** The cap-reached "ask your grown-up" copy gets its own testid (J11 / §11g(e)). */
 const isCapMessage = (error: string): boolean => error === CAP_MESSAGE;
@@ -242,8 +251,16 @@ interface AIChatPanelProps {
    *  backend cleanly cancels the turn; the pending bubble becomes a calm "stopped"
    *  message and the composer re-enables. */
   onCancelTurn?: () => void;
-  /** Retry the last prompt after a (non-cap) error (H2). */
+  /** Retry the LAST prompt after a (non-cap) error — the error-banner button (H2). */
   onRetry?: () => void;
+  /** Replay a SPECIFIC retryable bubble's turn from its "Try again" chip — the
+   *  payload carries that turn's own prompt + idempotency key (D-HARN-02/03/05). */
+  onRetryTurn?: (retry: RetryPayload) => void;
+  /** The ONE message queued while a turn is busy (D-HARN-03) — renders the
+   *  "I'll do this next" pill above the composer; it auto-sends on settle. */
+  queuedMessage?: QueuedMessage | null;
+  /** Drop the queued message (the queued pill's ✕). */
+  onCancelQueued?: () => void;
 }
 
 export function AIChatPanel({
@@ -278,6 +295,9 @@ export function AIChatPanel({
   onStop,
   onCancelTurn,
   onRetry,
+  onRetryTurn,
+  queuedMessage,
+  onCancelQueued,
 }: AIChatPanelProps) {
   const [input, setInput] = useState('');
   // Staged image attachments for the next turn (D-PAP-33). Empty for a text turn.
@@ -396,9 +416,13 @@ export function AIChatPanel({
   const submit = () => {
     const t = input.trim();
     // A turn needs text OR ready pictures, and never sends while one is still
-    // uploading (or a confirm is pending / a turn is busy).
+    // uploading (or a confirm is pending).
     const ready = attachments.filter((a): a is Attachment & { ref: ChatImageRef } => a.status === 'ready' && !!a.ref);
-    if ((!t && ready.length === 0) || busy || pending || uploading) return;
+    if ((!t && ready.length === 0) || pending || uploading) return;
+    // While a turn is busy the hook QUEUES exactly one message (D-HARN-03) — a
+    // submit still goes through so nothing is silently dropped. But once one IS
+    // queued, keep this draft in the composer instead of clearing it into the void.
+    if (busy && queuedMessage) return;
     const images: SendImage[] = ready.map((a) => ({ ...a.ref, previewUrl: a.previewUrl }));
     setInput('');
     setAttachments([]);
@@ -515,6 +539,7 @@ export function AIChatPanel({
               <ChatRow
                 key={item.id}
                 item={item}
+                busy={busy}
                 readOnly={readOnly}
                 onRunGame={onRunGame}
                 onSeeCode={onSeeCode}
@@ -522,6 +547,7 @@ export function AIChatPanel({
                 onOpenFile={onOpenFile}
                 onOpenAsset={onOpenAsset}
                 assetSrc={assetSrc}
+                onRetryTurn={onRetryTurn}
               />
             ),
           )}
@@ -582,6 +608,8 @@ export function AIChatPanel({
         </div>
       ) : (
         <div className="shrink-0 border-t border-pg-border p-3">
+          {/* The ONE queued next message (D-HARN-03) — auto-sends on settle. */}
+          {queuedMessage && <QueuedPill text={queuedMessage.text} onCancel={onCancelQueued} />}
           {/* Staged-attachment strip (D-PAP-33) — sits ABOVE the textarea; each thumb
               shows a spinner while uploading, a red ring if moderation/upload failed,
               and a remove button. Hidden when nothing is attached. */}
@@ -795,6 +823,7 @@ function PendingCard({
 
 function ChatRow({
   item,
+  busy,
   readOnly,
   onRunGame,
   onSeeCode,
@@ -802,8 +831,11 @@ function ChatRow({
   onOpenFile,
   onOpenAsset,
   assetSrc,
+  onRetryTurn,
 }: {
   item: ChatItem;
+  /** A turn is in flight (D-HARN-03): the send-path chips render disabled. */
+  busy?: boolean;
   /** Read-only viewer (D-LV-6): hide the next-step chips (they send a turn). */
   readOnly?: boolean;
   onRunGame?: () => void;
@@ -812,6 +844,8 @@ function ChatRow({
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;
+  /** Replay THIS bubble's retryable turn (its own prompt + key, D-HARN-02). */
+  onRetryTurn?: (retry: RetryPayload) => void;
 }) {
   if (item.role === 'kid') {
     return (
@@ -954,6 +988,12 @@ function ChatRow({
           {item.streaming && <span aria-hidden="true" className="ml-0.5 animate-pulse">▍</span>}
         </div>
 
+        {/* Retryable failed/timed-out turn (D-HARN-02/03/05): one calm chip that
+            replays THIS bubble's own turn — same prompt, SAME idempotency key. */}
+        {item.retry && !readOnly && (
+          <RetryChip retry={item.retry} busy={busy} onRetryTurn={onRetryTurn} />
+        )}
+
         {(() => {
           // Per-file "what changed" rows (§11.4): ONE row per changed file
           // (consolidate multiple edits to the same file), each with the teacher's
@@ -1027,8 +1067,12 @@ function ChatRow({
                   key={i}
                   type="button"
                   data-testid="next-step"
+                  // Disabled while a turn is busy (D-HARN-03): a chip tap must never
+                  // vanish into an in-flight turn — the composer queue is the one
+                  // sanctioned "next message" slot.
+                  disabled={busy}
                   onClick={() => onSend?.(step.prompt, { guided: true })}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-transform hover:-translate-y-0.5 ${
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40 ${
                     step.tag === 'fun'
                       ? 'border-brand-bubblegum/45 bg-brand-bubblegum/10 text-brand-bubblegum'
                       : 'border-brand-sky/45 bg-brand-sky/10 text-brand-sky'
