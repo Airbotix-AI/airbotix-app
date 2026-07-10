@@ -13,11 +13,13 @@ import type { ChatItem } from './useGameAgent';
 afterEach(cleanup);
 
 describe('AIChatPanel — next-step option chips', () => {
+  // A turn WITH changes → its chips are guided next steps (NOT a question turn).
   const chat: ChatItem[] = [
     {
       id: 'a1',
       role: 'agent',
       text: 'Your player can jump now! 🦘',
+      changes: [{ path: 'main.js', before: 'a', after: 'b' }],
       nextSteps: [
         { label: 'Add a score', prompt: 'add a score', tag: 'concept' },
         { label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' },
@@ -69,15 +71,86 @@ describe('AIChatPanel — next-step option chips', () => {
   });
 });
 
+// D-HARN-07 — ANSWER chips on question turns: a settled turn with ZERO changes and
+// next-step chips is a QUESTION turn (the summary asks, the chips answer). Answer
+// chips send guided:false — guided:true would select the guided-chip prompt goal
+// server-side and re-offer chips, the wrong framing for an answer. Chips on turns
+// WITH changes keep guided:true exactly as before; testid stays `next-step`.
+describe('AIChatPanel — answer chips on question turns (D-HARN-07)', () => {
+  const questionChat: ChatItem[] = [
+    {
+      id: 'q1',
+      role: 'agent',
+      text: 'Should the aliens shoot lasers or drop bombs?',
+      changes: [],
+      nextSteps: [
+        { label: '🔫 Lasers', prompt: 'the aliens shoot lasers', tag: 'concept' },
+        { label: '💣 Bombs', prompt: 'the aliens drop bombs', tag: 'fun' },
+      ],
+    },
+  ];
+
+  it('a zero-change + chips turn sends the tapped answer with guided:false', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={questionChat} busy={false} error={null} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('next-step')[0]);
+    expect(onSend).toHaveBeenCalledWith('the aliens shoot lasers', { guided: false });
+  });
+
+  it('renders the "Pick one:" lead-in ONLY on a question turn', () => {
+    render(<AIChatPanel chat={questionChat} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.getByText('Pick one:')).toBeTruthy();
+    expect(screen.queryByText('What next?')).toBeNull();
+  });
+
+  it('a turn WITH changes keeps the guided framing ("What next?", guided:true)', () => {
+    const onSend = vi.fn();
+    const withChanges: ChatItem[] = [
+      {
+        id: 'a1',
+        role: 'agent',
+        text: 'Added a score!',
+        changes: [{ path: 'main.js', before: 'a', after: 'b' }],
+        nextSteps: [{ label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' }],
+      },
+    ];
+    render(<AIChatPanel chat={withChanges} busy={false} error={null} onSend={onSend} />);
+    expect(screen.getByText('What next?')).toBeTruthy();
+    expect(screen.queryByText('Pick one:')).toBeNull();
+    fireEvent.click(screen.getByTestId('next-step'));
+    expect(onSend).toHaveBeenCalledWith('make it bounce', { guided: true });
+  });
+
+  it('a seed bubble carrying actions (launch hand-off) is NOT a question turn', () => {
+    const onSend = vi.fn();
+    const seeded: ChatItem[] = [
+      {
+        id: 'first-agent',
+        role: 'agent',
+        text: 'I built your starter!',
+        actions: ['run', 'code'],
+        nextSteps: [{ label: 'Add a score', prompt: 'add a score', tag: 'concept' }],
+      },
+    ];
+    render(<AIChatPanel chat={seeded} busy={false} error={null} onSend={onSend} />);
+    expect(screen.getByText('What next?')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('next-step'));
+    // The first-turn chips stay in the D-PAP-26 guided chip→chip loop.
+    expect(onSend).toHaveBeenCalledWith('add a score', { guided: true });
+  });
+});
+
 // D-HARN-03 — no silent input drops: while a turn is busy the next-step chips render
 // disabled, the composer queues exactly ONE message through onSend (the hook owns the
 // queue), and the queued pill shows the message with a ✕ cancel.
 describe('AIChatPanel — busy queue + disabled send paths (D-HARN-03)', () => {
+  // A turn WITH changes → guided next-step chips (not a D-HARN-07 question turn).
   const chatWithChips: ChatItem[] = [
     {
       id: 'a1',
       role: 'agent',
       text: 'Done!',
+      changes: [{ path: 'main.js', before: 'a', after: 'b' }],
       nextSteps: [{ label: 'Add a score', prompt: 'add a score', tag: 'concept' }],
     },
   ];

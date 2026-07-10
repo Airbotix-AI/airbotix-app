@@ -100,6 +100,12 @@ All turns run server-side via `../code/codeApi`:
   auto-send on settle, never a silent drop); a 180 s silent-turn watchdog cancels every long
   paid await (send / rebuild / approve / warn-ack) cleanly into calm retry copy; a FAILED
   pre-turn flush BLOCKS every FRESH paid turn (plan-approve alone stays best-effort).
+- **Question turns + fix evidence (D-HARN-07/11a):** a settled turn with ZERO changes +
+  `next_steps` is a QUESTION — its chips are ANSWER options ("Pick one:", sent
+  `guided:false`; with-changes chips stay `guided:true`; seed bubbles with `actions` stay
+  guided). Ask-AI-fix sends multi-error + newest-stack evidence under the STABLE
+  `My game has an error` prefix (backend keys fix context on it; stacks NEVER enter the
+  RunReport wire).
 - **One turn → one message.** The pending bubble is the **`WorkingCard`** (`WorkingCard.tsx`):
   ONE breathing brand-gradient dot (`pg-breathe-dot`, no spin) + ONE shimmering current-state line
   (`pg-shimmer-text`) — the latest real tool/action delta's label (`turnProgress.ts`, via

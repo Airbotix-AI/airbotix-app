@@ -183,8 +183,14 @@ export function GameFrame({
         // Map srcdoc-relative locations (syntax errors — sourceURL never applied)
         // back to the kid's file:line; runtime locs pass through unchanged.
         const loc = resolveErrorLoc(e.data.loc, scriptRangesRef.current);
+        // The RunReport collector stays STACK-FREE (its wire shape is schema-
+        // capped + backend-mirrored, D-HARN-11a) — the clipped stack rides only
+        // the visible console lines, where "Ask AI to fix" builds its evidence.
         collectorRef.current?.feedConsole({ level: e.data.level, text: e.data.text, loc });
-        setLines((prev) => [...prev.slice(-49), { level: e.data.level, text: e.data.text, loc }]);
+        setLines((prev) => [
+          ...prev.slice(-49),
+          { level: e.data.level, text: e.data.text, loc, stack: e.data.stack },
+        ]);
         return;
       }
       if (isAssetMessage(e.data)) {

@@ -957,6 +957,15 @@ function ChatRow({
     );
   }
   const hasActions = item.actions && item.actions.length > 0;
+  // D-HARN-07 (playground-agent-harness-prd): a settled turn with ZERO changes
+  // but next-step chips is a QUESTION turn — the summary is a clarifying question
+  // and the chips are its ANSWER options. Answers send `guided:false` (guided:true
+  // selects the guided-chip prompt goal server-side and re-offers chips — wrong
+  // framing for an answer); chips on a turn WITH changes stay guided next steps.
+  // Seed bubbles carrying `actions` (the launch hand-off / first-turn replay)
+  // keep the guided framing — their chips enter the D-PAP-26 chip→chip loop.
+  const isQuestionTurn =
+    (item.nextSteps?.length ?? 0) > 0 && (item.changes?.length ?? 0) === 0 && !hasActions;
   // The streaming bubble carries `agent-msg-streaming`; a settled one `agent-msg`
   // (the stable markers the J2 e2e asserts the live→final transition by).
   const testid = item.pending
@@ -1053,13 +1062,15 @@ function ChatRow({
           </div>
         )}
 
-        {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06).
-            Tapping one sends its prompt as the next turn — so they're hidden in the
-            read-only viewer (D-LV-6), which must never trigger a turn. */}
+        {/* Teacher "what shall we do next?" option chips (§11.4 / D-PAP-06) — OR,
+            on a QUESTION turn (zero changes, D-HARN-07), the question's ANSWER
+            options ("Pick one:", sent guided:false). Tapping one sends its prompt
+            as the next turn — so they're hidden in the read-only viewer (D-LV-6),
+            which must never trigger a turn. Testid stays `next-step` either way. */}
         {!readOnly && item.nextSteps && item.nextSteps.length > 0 && (
           <div className="mt-3.5 border-t border-pg-border pt-3">
             <div className="mb-2 text-[11px] font-extrabold uppercase tracking-wide text-pg-text-muted">
-              What next?
+              {isQuestionTurn ? 'Pick one:' : 'What next?'}
             </div>
             <div data-testid="next-steps" className="flex flex-wrap gap-2">
               {item.nextSteps.map((step, i) => (
@@ -1071,7 +1082,9 @@ function ChatRow({
                   // vanish into an in-flight turn — the composer queue is the one
                   // sanctioned "next message" slot.
                   disabled={busy}
-                  onClick={() => onSend?.(step.prompt, { guided: true })}
+                  // An ANSWER to a question turn is a plain reply (guided:false) —
+                  // guided:true would re-select the guided-chip prompt goal (D-HARN-07).
+                  onClick={() => onSend?.(step.prompt, { guided: !isQuestionTurn })}
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-40 ${
                     step.tag === 'fun'
                       ? 'border-brand-bubblegum/45 bg-brand-bubblegum/10 text-brand-bubblegum'

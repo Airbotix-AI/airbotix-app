@@ -155,15 +155,32 @@ describe('createScriptedDemoAgent', () => {
   // console button calls — if its copy/shape changes, this fails loudly here,
   // never silently in the public demo.
   it('the console\'s real "Ask AI to fix" prompt triggers the fix step (drift alarm)', async () => {
-    const consolePrompt = fixPrompt({
-      level: 'error',
-      text: 'TypeError: this.makeWinBanner is not a function',
-      loc: { file: DEMO_GAME_FILE, line: 31, col: 5 },
-    });
+    const consolePrompt = fixPrompt([
+      {
+        level: 'error',
+        text: 'TypeError: this.makeWinBanner is not a function',
+        loc: { file: DEMO_GAME_FILE, line: 31, col: 5 },
+      },
+    ]);
     expect(isConsoleFixPrompt(consolePrompt.trim())).toBe(true);
     // …with or without a source location.
     expect(
-      isConsoleFixPrompt(fixPrompt({ level: 'error', text: 'ReferenceError: x' }).trim()),
+      isConsoleFixPrompt(fixPrompt([{ level: 'error', text: 'ReferenceError: x' }]).trim()),
+    ).toBe(true);
+    // …and with the D-HARN-11a evidence sections (older errors + a stack): the
+    // matcher tolerates the multi-line body (prefix + closing line are stable).
+    expect(
+      isConsoleFixPrompt(
+        fixPrompt([
+          { level: 'error', text: 'ReferenceError: x' },
+          {
+            level: 'error',
+            text: 'TypeError: boom',
+            loc: { file: DEMO_GAME_FILE, line: 3, col: 1 },
+            stack: 'TypeError: boom\n    at create (Game.js:3:1)',
+          },
+        ]).trim(),
+      ),
     ).toBe(true);
 
     const fixStep = editStep(5);
