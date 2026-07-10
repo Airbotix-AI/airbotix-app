@@ -278,6 +278,8 @@ export function Workspace({
     imageRejectNonce,
     imageRestore,
     send,
+    queuedMessage,
+    cancelQueued,
     requestAssetGen,
     confirmPending,
     cancelPending,
@@ -287,6 +289,7 @@ export function Workspace({
     abort,
     cancelTurn,
     retryLast,
+    retryTurn,
     pushAgentMessage,
   } = useGameAgent({
       files,
@@ -413,6 +416,11 @@ export function Workspace({
     onStop: abort,
     onCancelTurn: cancelTurn,
     onRetry: retryLast,
+    // Per-bubble "Try again" chip — replays that bubble's own turn (D-HARN-02).
+    onRetryTurn: retryTurn,
+    // The ONE queued next message + its cancel (D-HARN-03 busy queue).
+    queuedMessage,
+    onCancelQueued: cancelQueued,
     recap: showRecap ? resumeRecap : null,
     onContinueRecap: () => setRecapDismissed(true),
   };
@@ -516,6 +524,7 @@ export function Workspace({
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
+              busy={busy}
               onRunReport={verifyEnabled ? verification.onRunReport : undefined}
               reportAttempt={verification.reportAttempt}
               readOnly={readOnly}
@@ -621,6 +630,7 @@ export function Workspace({
                 onRun={onRun}
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}
+                busy={busy}
                 onRunReport={verifyEnabled ? verification.onRunReport : undefined}
                 reportAttempt={verification.reportAttempt}
                 readOnly={readOnly}

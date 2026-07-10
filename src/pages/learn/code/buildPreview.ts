@@ -46,16 +46,34 @@ export const EXTENSION_NOISE_GUARD = `
 })();
 </script>`;
 
+/**
+ * Max chars of an Error stack relayed on a console line (D-HARN-11a). Clipped
+ * INSIDE the sandbox shim so an enormous stack never bloats the postMessage.
+ */
+export const STACK_CLIP_CHARS = 1_000;
+
 export const CONSOLE_CAPTURE = `
 <script>
 (function () {
+  // Fix-turn evidence (D-HARN-11a): when an Error OBJECT is available (uncaught
+  // window errors, Error args to console.error) its stack rides the console line
+  // clipped — "Ask AI to fix" builds real evidence from it. Console-relay ONLY:
+  // the RunReport wire shape never carries stacks (GameFrame strips them).
+  var clipStack = function (s) { return String(s).slice(0, ${STACK_CLIP_CHARS}); };
   var send = function (level, args) {
     try {
-      parent.postMessage({
+      var msg = {
         __airbotixConsole: true,
         level: level,
         text: Array.prototype.map.call(args, String).join(' ')
-      }, '*');
+      };
+      if (level === 'error') {
+        for (var i = 0; i < args.length; i++) {
+          var a = args[i];
+          if (a && typeof a === 'object' && a.stack) { msg.stack = clipStack(a.stack); break; }
+        }
+      }
+      parent.postMessage(msg, '*');
     } catch (e) {}
   };
   ['log', 'info', 'warn', 'error'].forEach(function (level) {
@@ -71,7 +89,8 @@ export const CONSOLE_CAPTURE = `
         __airbotixConsole: true,
         level: 'error',
         text: e.message || 'Error',
-        loc: e.filename ? { file: e.filename, line: e.lineno || 0, col: e.colno || 0 } : undefined
+        loc: e.filename ? { file: e.filename, line: e.lineno || 0, col: e.colno || 0 } : undefined,
+        stack: e.error && e.error.stack ? clipStack(e.error.stack) : undefined
       }, '*');
     } catch (err) {}
   });
@@ -157,6 +176,13 @@ export interface ConsoleLine {
   text: string;
   /** Source location of an uncaught error (sourceURL → file). Used to jump to it. */
   loc?: { file: string; line: number; col: number };
+  /**
+   * The Error object's stack, clipped to STACK_CLIP_CHARS in the shim
+   * (D-HARN-11a). Fix-turn evidence for the console's "Ask AI to fix" ONLY —
+   * never forwarded into the RunReport wire shape (schema-capped, backend-
+   * mirrored; GameFrame keeps the collector feed stack-free).
+   */
+  stack?: string;
 }
 
 export function isConsoleMessage(data: unknown): data is { __airbotixConsole: true } & ConsoleLine {

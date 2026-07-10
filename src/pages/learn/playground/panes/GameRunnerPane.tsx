@@ -33,6 +33,9 @@ interface GameRunnerPaneProps {
   onOpenLocation?: (file: string, line: number) => void;
   /** Send a console error to the AI chat to fix ("Ask AI to fix"). */
   onAskFix?: (message: string) => void;
+  /** An AI turn is in flight (D-HARN-03): "Ask AI to fix" — a send-path button —
+   *  renders disabled so a tap never silently vanishes into a busy turn. */
+  busy?: boolean;
   /** Legacy self-verify (MP3): report captured runtime errors for a raw fix turn.
    *  RETIRED for game projects — verification now rides `onRunReport` (D-PAP-40). */
   onRuntimeErrors?: (errors: string[]) => void;
@@ -52,14 +55,65 @@ function baseName(file: string): string {
   return file.split(/[\\/]/).pop() || file;
 }
 
-/** Kid-friendly prompt for the AI from a captured error line (with its location).
- *  Exported: the try-demo scripted agent recognises this exact shape so the
- *  console's "Ask AI to fix" continues the demo script (drift-alarmed in
- *  `src/pages/try/scriptedAgent.test.ts` — keep them matching). */
+/** Ask-AI-fix prompt clip (D-HARN-11a) — well under the backend's 8k prompt cap. */
+const FIX_PROMPT_MAX_CHARS = 3_000;
+/** How many DISTINCT error lines ride the fix prompt (the newest + up to 3 older). */
+const FIX_PROMPT_MAX_ERRORS = 4;
+
+/**
+ * Kid-friendly "Ask AI to fix" prompt built from the captured console
+ * (D-HARN-11a): the NEWEST error leads (with its file:line), then up to 3 older
+ * DISTINCT error lines with their locations, then the newest error's stack in a
+ * fenced block when the shim captured one. Exported: the try-demo scripted agent
+ * recognises this shape so the console's "Ask AI to fix" continues the demo
+ * script (drift-alarmed in `src/pages/try/scriptedAgent.test.ts` — keep matching).
+ *
+ * ⚠️ STABLE BACKEND CONTRACT: the first line's `My game has an error` prefix keys
+ * the backend's previous-fix context injection (D-HARN-11b) and the demo matcher
+ * (`isConsoleFixPrompt`) — never reword it. The prompt always ENDS with
+ * `Can you fix it?`.
+ */
 // eslint-disable-next-line react-refresh/only-export-components
-export function fixPrompt(line: ConsoleLine): string {
-  const where = line.loc ? ` (in ${baseName(line.loc.file)}, line ${line.loc.line})` : '';
-  return `My game has an error${where}: ${line.text}\nCan you fix it?`;
+export function fixPrompt(lines: ConsoleLine[]): string {
+  // Newest-first DISTINCT real errors (same filter as the button's `lastError`).
+  const errors: ConsoleLine[] = [];
+  const seen = new Set<string>();
+  for (let i = lines.length - 1; i >= 0 && errors.length < FIX_PROMPT_MAX_ERRORS; i -= 1) {
+    const l = lines[i];
+    if (l.level !== 'error' || l.text === 'ready' || seen.has(l.text)) continue;
+    seen.add(l.text);
+    errors.push(l);
+  }
+  const newest = errors[0];
+  if (!newest) return ''; // defensive — the button only renders with an error line
+  const where = newest.loc ? ` (in ${baseName(newest.loc.file)}, line ${newest.loc.line})` : '';
+  let body = `My game has an error${where}: ${newest.text}`;
+  const older = errors.slice(1);
+  if (older.length > 0) {
+    body += '\nOther recent errors:';
+    for (const l of older) {
+      const w = l.loc ? `(in ${baseName(l.loc.file)}, line ${l.loc.line}) ` : '';
+      body += `\n- ${w}${l.text}`;
+    }
+  }
+  if (newest.stack) {
+    body += '\nStack of the newest error:\n```\n' + newest.stack + '\n```';
+  }
+  const suffix = '\nCan you fix it?';
+  const maxBody = FIX_PROMPT_MAX_CHARS - suffix.length;
+  if (body.length > maxBody) {
+    body = body.slice(0, maxBody);
+    // The slice can land INSIDE the stack's fenced block — never ship an
+    // unbalanced ``` fence: trim room for a closer, then append it (re-counting
+    // after the trim, which can itself eat into the opening fence).
+    const FENCE = '```';
+    const fenceCount = (s: string) => s.split(FENCE).length - 1;
+    if (fenceCount(body) % 2 === 1) {
+      body = body.slice(0, maxBody - FENCE.length - 1);
+      if (fenceCount(body) % 2 === 1) body += `\n${FENCE}`;
+    }
+  }
+  return body + suffix;
 }
 
 const DEFAULT_PRESET_ID = 'original';
@@ -168,6 +222,7 @@ export function GameRunnerPane({
   onRun,
   onOpenLocation,
   onAskFix,
+  busy,
   onRuntimeErrors,
   onRunReport,
   reportAttempt,
@@ -390,8 +445,12 @@ export function GameRunnerPane({
             {!readOnly && lastError && onAskFix && (
               <button
                 type="button"
-                onClick={() => onAskFix(fixPrompt(lastError))}
-                className="ml-auto flex items-center gap-1 rounded-md bg-brand-sky/20 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors hover:bg-brand-sky/30"
+                data-testid="ask-ai-fix"
+                // Disabled while a turn is busy (D-HARN-03) — a tap must never
+                // silently vanish; the chat queue is the one "next message" slot.
+                disabled={busy}
+                onClick={() => onAskFix(fixPrompt(lines))}
+                className="ml-auto flex items-center gap-1 rounded-md bg-brand-sky/20 px-2 py-0.5 text-[11px] font-bold text-pg-text transition-colors enabled:hover:bg-brand-sky/30 disabled:opacity-40"
               >
                 <Sparkles size={12} aria-hidden /> Ask AI to fix
               </button>

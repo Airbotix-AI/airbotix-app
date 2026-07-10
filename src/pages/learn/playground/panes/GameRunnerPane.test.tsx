@@ -17,7 +17,7 @@ vi.mock('../GameFrame', () => ({
 }));
 
 import type { ConsoleLine } from '../buildGamePreview';
-import { GameRunnerPane } from './GameRunnerPane';
+import { fixPrompt, GameRunnerPane } from './GameRunnerPane';
 
 const F = (...paths: string[]) => paths.map((p) => ({ path: p, content: 'x', kind: 'text' as const, size: 1 }));
 const noop = () => {};
@@ -68,6 +68,56 @@ describe('GameRunnerPane — the running game uses a launch snapshot of the VFS'
       <GameRunnerPane files={threeD} runKey={1} running engine="three" onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
     );
     expect(seen.at(-1)).toBe(threeD);
+  });
+});
+
+// D-HARN-03 — "Ask AI to fix" is a send-path button: while an AI turn is busy it
+// renders DISABLED so a tap never silently vanishes into an in-flight turn.
+describe('GameRunnerPane — "Ask AI to fix" disabled while a turn is busy (D-HARN-03)', () => {
+  // The earlier describe doesn't clean up between tests — start (and stay) clean
+  // so `getByTestId` never matches a stale pane.
+  beforeEach(cleanup);
+  afterEach(cleanup);
+  const errs: ConsoleLine[] = [{ level: 'error', text: 'TypeError: boom' }];
+
+  it('renders disabled while busy and does not fire onAskFix', () => {
+    const onAskFix = vi.fn();
+    render(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        busy
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={onAskFix}
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    const btn = screen.getByTestId('ask-ai-fix') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    fireEvent.click(btn);
+    expect(onAskFix).not.toHaveBeenCalled();
+  });
+
+  it('is enabled when no turn is busy and sends the fix prompt', () => {
+    const onAskFix = vi.fn();
+    render(
+      <GameRunnerPane
+        files={F('main.js')}
+        runKey={1}
+        running
+        onRun={noop}
+        onOpenLocation={noop}
+        onAskFix={onAskFix}
+      />,
+    );
+    act(() => latestOnConsole?.(errs));
+    const btn = screen.getByTestId('ask-ai-fix') as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    fireEvent.click(btn);
+    expect(onAskFix).toHaveBeenCalledTimes(1);
+    expect(onAskFix.mock.calls[0][0]).toContain('TypeError: boom');
   });
 });
 
@@ -164,5 +214,85 @@ describe('GameRunnerPane — the console pins to the latest output', () => {
     );
     act(() => latestOnConsole?.(errs));
     expect(screen.getByText(/Ask AI to fix/i)).toBeInTheDocument();
+  });
+});
+
+// D-HARN-11a — the Ask-AI-fix prompt carries REAL evidence: the newest error
+// (stable 'My game has an error' prefix — the backend keys previous-fix context
+// injection on it), up to 3 older DISTINCT errors with locations, and the newest
+// error's clipped stack in a fenced block; total clipped to ~3,000 chars.
+describe('fixPrompt — multi-error + stack fix evidence (D-HARN-11a)', () => {
+  const err = (text: string, opts?: Partial<ConsoleLine>): ConsoleLine => ({
+    level: 'error',
+    text,
+    ...opts,
+  });
+
+  it('a single error keeps the exact legacy shape (stable backend prefix + closing line)', () => {
+    expect(
+      fixPrompt([err('TypeError: boom', { loc: { file: 'src/scenes/Game.js', line: 12, col: 1 } })]),
+    ).toBe('My game has an error (in Game.js, line 12): TypeError: boom\nCan you fix it?');
+    expect(fixPrompt([err('ReferenceError: x')])).toBe(
+      'My game has an error: ReferenceError: x\nCan you fix it?',
+    );
+  });
+
+  it('lists up to 3 older DISTINCT errors with their locations, newest leading', () => {
+    const p = fixPrompt([
+      err('E1', { loc: { file: 'a.js', line: 1, col: 1 } }), // 5th distinct — dropped
+      err('E2'),
+      err('E2'), // duplicate — deduped
+      err('E3', { loc: { file: 'b.js', line: 2, col: 1 } }),
+      err('E4'),
+      err('E5', { loc: { file: 'src/c.js', line: 9, col: 1 } }), // newest
+    ]);
+    expect(p.startsWith('My game has an error (in c.js, line 9): E5')).toBe(true);
+    expect(p).toContain('Other recent errors:');
+    expect(p).toContain('\n- E4');
+    expect(p).toContain('\n- (in b.js, line 2) E3');
+    expect(p).toContain('\n- E2');
+    expect(p).not.toContain('E1');
+    expect(p.endsWith('\nCan you fix it?')).toBe(true);
+  });
+
+  it("attaches only the NEWEST error's stack, fenced", () => {
+    const p = fixPrompt([
+      err('old error', { stack: 'OLD STACK' }),
+      err('TypeError: boom', { stack: 'TypeError: boom\n    at create (Game.js:3:5)' }),
+    ]);
+    expect(p).toContain(
+      'Stack of the newest error:\n```\nTypeError: boom\n    at create (Game.js:3:5)\n```',
+    );
+    expect(p).not.toContain('OLD STACK');
+    expect(p.endsWith('\nCan you fix it?')).toBe(true);
+  });
+
+  it('ignores non-error lines and the ready marker', () => {
+    const p = fixPrompt([
+      { level: 'info', text: 'ready' },
+      { level: 'warn', text: 'a warning' },
+      err('TypeError: boom'),
+    ]);
+    expect(p).toBe('My game has an error: TypeError: boom\nCan you fix it?');
+  });
+
+  it('clips to the 3,000-char cap and still ends with the stable closing line', () => {
+    const p = fixPrompt([err('x'.repeat(5_000), { stack: 'y'.repeat(1_000) })]);
+    expect(p.length).toBeLessThanOrEqual(3_000);
+    expect(p.startsWith('My game has an error')).toBe(true);
+    expect(p.endsWith('\nCan you fix it?')).toBe(true);
+  });
+
+  it('a clip landing INSIDE the stack fence re-balances the ``` fences', () => {
+    // Error text sized so the 3,000-char clip cuts mid-stack: the opening fence
+    // is in, the closing fence would be past the cap.
+    const p = fixPrompt([err('x'.repeat(2_800), { stack: 'y'.repeat(1_000) })]);
+    expect(p.length).toBeLessThanOrEqual(3_000);
+    expect(p).toContain('Stack of the newest error:');
+    // Balanced fences — never an unterminated ``` block in the prompt…
+    expect((p.split('```').length - 1) % 2).toBe(0);
+    // …and the stable closing line still ends the prompt (backend + demo matcher).
+    expect(p.endsWith('\nCan you fix it?')).toBe(true);
+    expect(p.startsWith('My game has an error')).toBe(true);
   });
 });

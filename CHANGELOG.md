@@ -19,7 +19,70 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 
 ## 2026-07-10
 
+### Added
+- **Playground chat: ANSWER chips on question turns (D-HARN-07 FE half,
+  `playground-agent-harness-prd.md`).** A settled turn with ZERO `changes` and non-empty
+  `next_steps` is a QUESTION turn — the summary is a clarifying question and the chips are its
+  answer options: the chip row leads with "Pick one:" (instead of "What next?") and tapping a
+  chip sends its prompt with `guided:false` (guided:true selects the guided-chip prompt goal
+  server-side and re-offers chips — wrong framing for an answer). Chips on turns WITH changes
+  keep `guided:true` exactly as before; seed bubbles carrying `actions` (launch hand-off /
+  first-turn replay) stay in the D-PAP-26 guided loop. Testid stays `next-step` either way.
+  Predicate lives in `AIChatPanel.tsx` `ChatRow` (`isQuestionTurn`). Covered in
+  `AIChatPanel.test.tsx`.
+- **Playground console: real fix-turn evidence (D-HARN-11a FE half).** The sandbox console
+  shim (`CONSOLE_CAPTURE` in `learn/code/buildPreview.ts`, shared by the code-studio preview
+  and the game srcdoc) now relays the Error object's stack — clipped to `STACK_CLIP_CHARS`
+  (1,000) inside the sandbox — for uncaught window errors and Error-object `console.error`
+  args, as a new optional `stack` field on `ConsoleLine`. `GameFrame` threads stacks into the
+  visible console lines ONLY — the RunReport collector feed stays stack-free (its wire shape
+  is schema-capped + backend-mirrored). "Ask AI to fix" (`fixPrompt`, now taking the console
+  lines) builds: the newest error with its file:line under the STABLE `My game has an error`
+  prefix (the backend keys previous-fix context injection on it; drift-alarmed against the
+  demo matcher), then up to 3 older DISTINCT error lines with locations, then the newest
+  error's stack in a fenced block, ending with `Can you fix it?` — total clipped to 3,000
+  chars (backend prompt cap is 8,000). Covered in `buildPreview.consoleCapture.test.ts`,
+  `GameRunnerPane.test.tsx`, `scriptedAgent.test.ts` (drift alarm).
+- **Playground chat: kid-safe turn-failure taxonomy + idempotent retry (D-HARN-02,
+  `playground-agent-harness-prd.md`).** `AI_UNAVAILABLE` turn failures (the backend's new 502
+  envelope for upstream/loop errors) render FE-owned kid copy — "The AI helper had a hiccup
+  and couldn't finish that — let's try again!" — on a retryable bubble with a "Try again ↻"
+  chip (`chat-retry-chip`). `useGameAgent` mints ONE idempotency key per logical turn and
+  threads it through `deps.runTurn` → `codeApi.runAgentTurn`. **Each retryable bubble carries
+  its OWN replay payload** (`retry: {prompt, turnKey, guided}` → `retryTurn`), so a stale chip
+  replays ITS turn — never a later one — always with the SAME key (the backend replays instead
+  of double-charging); the error-banner `chat-retry` (`retryLast`) also reuses the last turn's
+  key. New `panes/useTurnHygiene.ts` owns the key/queue/watchdog state; `panes/chatChips.tsx`
+  owns the pill + chip UI. Covered in `useGameAgent.test.ts`, `useTurnHygiene.test.ts`,
+  `AIChatPanel.test.tsx`.
+- **Playground chat: no silent input drops — busy queue + silent-turn watchdog (D-HARN-03).**
+  `send()` while a turn is busy queues exactly ONE next message — shown as the composer's
+  "I'll do this next: …" pill (`chat-queued-pill`, ✕ = `chat-queued-cancel` → `cancelQueued`)
+  — and auto-sends it when the turn settles; further sends while one is queued are ignored
+  (the composer keeps the draft). Next-step chips and the Game Runner's "Ask AI to fix"
+  (`ask-ai-fix`, new `busy` prop threaded from `Workspace`) render disabled during a turn.
+  A 180 s watchdog (`TURN_WATCHDOG_MS`, re-armed on every stream delta; test override
+  `turnWatchdogMs`) aborts a silent turn through the existing clean-cancel path (0 Stars) and
+  settles the bubble into calm "That took too long — let's try again!" copy with the retry
+  chip. The watchdog also guards the OTHER long paid awaits: the engine-switch rebuild,
+  plan-approve (`approveTurn` now takes an `AbortSignal`), and the acknowledged-warn turn.
+  The offline pre-check now posts the kid bubble + a retryable offline bubble instead of
+  silently eating the message (which the queue's auto-send could otherwise hit). Covered in
+  `useGameAgent.test.ts`, `useTurnHygiene.test.ts`, `AIChatPanel.test.tsx`,
+  `GameRunnerPane.test.tsx`.
+
 ### Changed
+- **Playground pre-turn flush must now SUCCEED for every FRESH paid turn (D-HARN-05).**
+  `flushBeforeTurn` reports success; when the pre-turn save of the kid's freshest edits
+  fails, the PAID turn does NOT run against a stale VFS — the pending bubble settles into
+  "Let me save your changes first — try again in a moment." with the retry chip, and retry
+  re-attempts the flush + turn. The gate sits immediately before the paid POST (the free,
+  non-metered classify may run first), so a turn stopped mid-classify never writes the VFS —
+  a clean cancel must not bump `vfs_version` (harness `kid-game-stop-turn`). The gate covers
+  `send()`, the agency confirm in `confirmPending`, and the acknowledged-warn turn in
+  `confirmWarn`; the ONE exception is plan-APPROVE, which stays best-effort because the
+  staged plan already ran against the VFS flushed when it was sent. Covered in
+  `useGameAgent.test.ts`.
 - **All teacher prep creation now happens in the app** (`/teacher/prep/new?class=…&kind=…`),
   not in teacher-console — so it runs against the app tab's freshly-refreshed teacher
   session and can't be killed by the cross-tab refresh-cookie rotation that was closing

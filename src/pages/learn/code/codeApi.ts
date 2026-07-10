@@ -911,11 +911,14 @@ export async function approveTurn(args: {
   projectId: string;
   turnId: string;
   decision: 'approve' | 'reject';
+  /** Abort the in-flight approve (kid "Stop waiting" / the D-HARN-03 watchdog). */
+  signal?: AbortSignal;
 }): Promise<AgentTurnResult> {
   const res = await api<AgentTurnResult>(
     `/projects/${args.projectId}/code/turn/${args.turnId}/approve`,
     {
       method: 'POST',
+      signal: args.signal,
       body: { decision: args.decision },
     },
   );
