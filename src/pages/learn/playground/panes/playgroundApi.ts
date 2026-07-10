@@ -87,6 +87,26 @@ export async function placeGameProjectForClass(args: { projectId: string; classI
 }
 
 /**
+ * Create a teacher-owned PREP game project (teacher-prep-projects). This is the
+ * teacher counterpart of {@link createGameProject}: it hits the teacher-scoped
+ * `POST /classes/:id/prep-projects` (roles teacher/admin, only a delivering teacher),
+ * which creates a real `is_teacher_prep` game with `kid_id`/`family_id` null and a
+ * real VFS — so the teacher gets the SAME prompt-first landing → generate flow a kid
+ * gets, at 0 Stars. `engine` is INFERRED server-side from the title (2D/3D), exactly
+ * like the kid path — do NOT pass a template here.
+ */
+export async function createPrepGameProject(args: {
+  classId: string;
+  /** The teacher's prompt / game name — the backend infers the engine from it. */
+  title: string;
+}): Promise<{ id: string }> {
+  return api<{ id: string }>(`/classes/${args.classId}/prep-projects`, {
+    method: 'POST',
+    body: { title: args.title, kind: GAME_PROJECT_KIND },
+  });
+}
+
+/**
  * Transcribe a voice idea to text for the prompt box (UDL / OD-6 voice input).
  * STT runs SERVER-SIDE via `platform-backend /llm/transcribe` — the kid surface
  * NEVER calls an LLM/STT provider directly (airbotix-app CLAUDE.md #5). The mic

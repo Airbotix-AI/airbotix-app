@@ -67,6 +67,7 @@ import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
 import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
 import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
+import { TeacherPrepStudioPage } from '@/pages/teacher/TeacherPrepStudioPage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
 import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
@@ -157,6 +158,10 @@ export const router = createBrowserRouter([
       { path: 'classes/:classId/kids/:kidId/assessment', element: <AssessmentPage /> },
       // Teacher read-only LIVE project viewer (teacher-live-project-view-prd D-LV-1).
       { path: 'projects/:projectId/live', element: <TeacherProjectLivePage /> },
+      // Teacher EDITABLE prep-project studio (teacher-prep-projects Stage 2). Mounts
+      // the real studios editable for the OWNING teacher; deep-linked from
+      // teacher-console (Stage 3). Backend (Stage 1) authorizes the prep owner.
+      { path: 'prep/:projectId', element: <TeacherPrepStudioPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

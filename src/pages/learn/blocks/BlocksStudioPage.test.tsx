@@ -10,7 +10,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { saveBlocksProject } from './blocksApi';
+import { loadBlocksProject, saveBlocksProject } from './blocksApi';
 import { blankProject } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksStudioPage } from './BlocksStudioPage';
@@ -35,11 +35,11 @@ afterEach(() => {
   useBlocksStore.getState().setReadOnly(false);
 });
 
-async function renderStudio(readOnly = false) {
+async function renderStudio(readOnly = false, embedded = false) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <BlocksStudioPage projectId="p1" readOnly={readOnly} />
+        <BlocksStudioPage projectId="p1" readOnly={readOnly} embedded={embedded} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -191,6 +191,60 @@ describe('BlocksStudioPage read-only (teacher viewer)', () => {
     expect(useBlocksStore.getState().dirty).toBe(before); // no mutation landed
     // dirty never advanced → the debounced autosave can never have fired.
     expect(saveBlocksProject).not.toHaveBeenCalled();
+  });
+});
+
+// Home-link seam (teacher-prep-projects Stage 2): `embedded` hides the 🏠 home
+// link (which routes into `/learn/*` and would bounce a non-kid host principal)
+// while keeping the editor fully EDITABLE. The kid default (not embedded) is
+// unchanged — Home is present + interactive.
+describe('BlocksStudioPage embedded (host-owned Back)', () => {
+  it('hides the Home/back link but keeps the editor interactive', async () => {
+    await renderStudio(false, true);
+    // The 🏠 home link (kid + demo) is gone — the host's own chrome carries Back.
+    expect(screen.queryByTitle('Save & back')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('demo-home')).not.toBeInTheDocument();
+    // Editable, NOT read-only: edit affordances stay interactive (no dimming).
+    for (const testId of ['palette', 'add-character', 'add-page', 'scene-btn']) {
+      const el = screen.getByTestId(testId);
+      expect(el).not.toHaveClass('pointer-events-none');
+      expect(el).not.toHaveClass('opacity-60');
+    }
+    expect(screen.getByTestId('add-character')).not.toBeDisabled();
+  });
+
+  it('kid default (not embedded) still shows the Home/back link', async () => {
+    await renderStudio(false, false);
+    expect(screen.getByTitle('Save & back')).toBeInTheDocument();
+  });
+
+  // Load-error dead-end (review finding): the error state must NOT expose a
+  // `/learn/create/blocks` link when embedded — it would bounce a teacher `user`
+  // to `/portal`. The host banner's Back is the only exit.
+  it('load-error state hides the /learn link when embedded', async () => {
+    vi.mocked(loadBlocksProject).mockRejectedValueOnce(new Error('boom'));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <BlocksStudioPage projectId="p1" embedded />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText(/couldn.t open/i)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Back to Blocks/i })).not.toBeInTheDocument();
+  });
+
+  it('load-error state DOES show the /learn link for the kid default (not embedded)', async () => {
+    vi.mocked(loadBlocksProject).mockRejectedValueOnce(new Error('boom'));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <BlocksStudioPage projectId="p1" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText(/couldn.t open/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Back to Blocks/i })).toBeInTheDocument();
   });
 });
 

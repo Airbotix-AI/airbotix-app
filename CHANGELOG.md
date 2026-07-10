@@ -4,9 +4,55 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-10
+
+### Changed
+- **All teacher prep creation now happens in the app** (`/teacher/prep/new?class=…&kind=…`),
+  not in teacher-console — so it runs against the app tab's freshly-refreshed teacher
+  session and can't be killed by the cross-tab refresh-cookie rotation that was closing
+  the Blocks/Web Code tab. `TeacherPrepStudioPage` handles the `new` route: game →
+  prompt-first `PlaygroundApp`; blocks/code → `NewPrepStudio` creates the prep project
+  once (`POST /classes/:id/prep-projects` via new `teacherPrepApi`) then mounts the real
+  studio on the seeded VFS. Covered by `TeacherPrepStudioPage.test.tsx`.
+- **Teacher prep Game Playground is now PROMPT-FIRST — parity with the kid flow.**
+  A teacher opening a new game prep lands on the SAME prompt screen a kid sees
+  (`/teacher/prep/new?class=<id>`); the prep project is created only when they submit
+  the first prompt (`PlaygroundApp` gains a `prepClassId` prop that, for a NEW game,
+  creates a teacher-owned prep game via `POST /classes/:id/prep-projects` and rewrites
+  the URL to `/teacher/prep/:id` — the kid create/placement path is untouched).
+  `createPrepGameProject` added to `playgroundApi`. Covered by
+  `PlaygroundApp.classCreate.test.tsx` + `TeacherPrepStudioPage.test.tsx`.
+
+### Fixed
+- **Teacher prep studios no longer strand a teacher on a load error.** When a prep
+  studio is hosted embedded and the project fails to load, the Blocks error-state
+  "← Back to Blocks" link and the game studio's load-error "Make something new" button
+  used to navigate into `/learn/*`, which bounces a `user` (teacher) principal to
+  `/portal`. Both are now suppressed when `embedded` (the prep banner carries the only
+  Back): `BlocksStudioPage` gates the error link on `readOnly || embedded`, and
+  `PlaygroundApp` gains an `embedded` prop that drops the load-error `onBack` (the button
+  hides). Kid/default behaviour is unchanged. Covered by new cases in
+  `BlocksStudioPage.test.tsx` and `PlaygroundApp.embedded.test.tsx`.
+
 ## 2026-07-09
 
 ### Added
+- **Teacher prep-project studio (editable) — Stage 2.** A new `/teacher/prep/:projectId`
+  route (`TeacherPrepStudioPage`, under the `/teacher` `ProtectedRoute kind="user"` outlet)
+  mounts the REAL studios EDITABLE so a teacher builds/iterates a prep project exactly like
+  a kid does — `PlaygroundApp` (game), `CodeStudioPage` (code), `BlocksStudioPage` (blocks) —
+  by project `kind`. It fetches `GET /projects/:id` (the backend authorizes the owning teacher
+  to read+write + run 0-Star AI turns; a 403/404 shows a friendly owner-scope error), carries
+  a slim "Teacher prep · editable" banner (distinct from the read-only live viewer's dark
+  "Live · Read-only" banner) whose Back closes the tab (deep-linked from teacher-console in
+  Stage 3). Covered by `TeacherPrepStudioPage.test.tsx`.
+- **Studio `embedded` home-link seam.** `CodeStudioPage` and `BlocksStudioPage` accept an
+  `embedded` prop that hides the studio's own page-level Home/back navigation (which points
+  into `/learn/*` and would bounce a `user` principal) while keeping the editor fully editable
+  — reusing the existing `EmbeddedCodeStudio` `embedded` semantics. The teacher prep studio
+  uses it so its banner carries the only Back; `PlaygroundApp` needs no prop (it has no
+  in-studio home link — its home is the Learn nav, not mounted here). Kid/readOnly behaviour is
+  unchanged. Covered by `CodeStudioPage.readOnly.test.tsx` + `BlocksStudioPage.test.tsx`.
 - **Playground: "Stop waiting" while the AI is thinking (D-PAP-48).** During the WorkingCard
   "busy" phase (before the reply streams), the chat composer shows a Stop button
   (`chat-stop-waiting`). Tapping it aborts the in-flight `classify` + `runTurn` fetch via an

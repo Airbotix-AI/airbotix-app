@@ -94,12 +94,17 @@ function ZoneTag({ zone, emoji, label }: { zone: string; emoji: string; label: s
 export function BlocksStudioPage({
   projectId: projectIdProp,
   readOnly = false,
-}: { projectId?: string; readOnly?: boolean } = {}) {
+  embedded = false,
+}: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
   // The teacher live viewer (D-LV-6) mounts it with `projectId` + `readOnly` so a
   // teacher watches the kid's blocks editor with every edit affordance disabled.
+  // `embedded` HOSTS the studio inside other chrome (e.g. the teacher prep-project
+  // page): it hides the 🏠 home link — which routes into `/learn/*` and would bounce
+  // a `user` principal — while keeping the editor fully editable. The host's own
+  // chrome carries the only Back. Kid/readOnly behaviour is unchanged when false.
   const projectId = projectIdProp ?? routeProjectId;
   // Home/back returns to the class's "My work" if this is class work (§3.4).
   const homeHref = useProjectBackTo(projectId, '/learn/create/blocks');
@@ -762,9 +767,11 @@ export function BlocksStudioPage({
     return (
       <div className="bsx flex h-[60vh] flex-col items-center justify-center gap-4">
         <div className="text-[18px] font-bold">That project couldn&apos;t open. 🌧️</div>
-        <Link to="/learn/create/blocks" className="btn-pill-ghost">
-          ← Back to Blocks
-        </Link>
+        {readOnly || embedded ? null : (
+          <Link to="/learn/create/blocks" className="btn-pill-ghost">
+            ← Back to Blocks
+          </Link>
+        )}
       </div>
     );
   }
@@ -781,9 +788,10 @@ export function BlocksStudioPage({
       {/* ── toolbar ── */}
       <header className="bsx-card flex items-center gap-2 rounded-3xl px-3 py-2">
         {/* Home/back is the kid's own navigation — hidden in the teacher live viewer
-            (D-LV-6); the viewer's banner provides the only Back. Try-demo: Home
-            exits to the marketing "Try it" page, not the authed hub. */}
-        {readOnly ? null : demo?.exitHref ? (
+            (D-LV-6) AND when `embedded` in a host that carries its own Back (e.g. the
+            teacher prep-project page, which must not route a `user` into `/learn/*`).
+            Try-demo: Home exits to the marketing "Try it" page, not the authed hub. */}
+        {readOnly || embedded ? null : demo?.exitHref ? (
           <a
             href={demo.exitHref}
             data-testid="demo-home"
