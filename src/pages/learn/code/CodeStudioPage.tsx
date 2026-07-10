@@ -19,11 +19,19 @@ import { useReportFocus } from '../liveClass/reportFocus';
  * EXACT editor layout — FileTree / CodeChat / PreviewFrame — with every mutation
  * affordance disabled (chat input, send, approve/reject) and running (Run anew /
  * preview) still live.
+ *
+ * `embedded` HOSTS the studio inside other chrome (Mission runner, or the teacher
+ * prep-project page): it hides the studio's OWN page-level navigation (the "← My
+ * code" home link + "⤢ Full screen") while keeping the editor fully editable. A
+ * host on a non-kid surface (e.g. a teacher building a prep project) uses it so the
+ * home link never routes a `user` principal into `/learn/*`; its own chrome (banner)
+ * carries the only Back. Kid/readOnly behaviour is unchanged when `embedded` is false.
  */
 export function CodeStudioPage({
   projectId: projectIdProp,
   readOnly = false,
-}: { projectId?: string; readOnly?: boolean } = {}) {
+  embedded = false,
+}: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const projectId = projectIdProp ?? routeProjectId;
   const studio = useCodeStudio(projectId ?? '', { readOnly });
@@ -45,9 +53,9 @@ export function CodeStudioPage({
   const awaitingApproval = studio.pendingPlan !== null;
 
   return studio.mode === 'pro' ? (
-    <ProLayout projectId={projectId} studio={studio} awaitingApproval={awaitingApproval} />
+    <ProLayout projectId={projectId} studio={studio} awaitingApproval={awaitingApproval} embedded={embedded} />
   ) : (
-    <LiteLayout projectId={projectId} studio={studio} awaitingApproval={awaitingApproval} />
+    <LiteLayout projectId={projectId} studio={studio} awaitingApproval={awaitingApproval} embedded={embedded} />
   );
 }
 
@@ -218,10 +226,12 @@ function LiteLayout({
   projectId,
   studio,
   awaitingApproval,
+  embedded,
 }: {
   projectId: string;
   studio: Studio;
   awaitingApproval: boolean;
+  embedded?: boolean;
 }) {
   const [showFiles, setShowFiles] = useState(false);
   const [activePath, setActivePath] = useState<string | null>(studio.files[0]?.path ?? null);
@@ -234,6 +244,7 @@ function LiteLayout({
         balance={studio.balance}
         visibility={studio.visibility}
         onRunAnew={studio.runAnew}
+        embedded={embedded}
         readOnly={studio.readOnly}
       />
       <div className="flex flex-1 min-h-0 flex-col">

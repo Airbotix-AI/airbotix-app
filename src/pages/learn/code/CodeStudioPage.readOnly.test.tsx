@@ -50,12 +50,12 @@ const file = (path: string, content: string): VfsFile => ({
   size: content.length,
 });
 
-function renderStudio(readOnly: boolean) {
+function renderStudio(readOnly: boolean, embedded = false) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <CodeStudioPage projectId="p1" readOnly={readOnly} />
+        <CodeStudioPage projectId="p1" readOnly={readOnly} embedded={embedded} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -109,5 +109,31 @@ describe('CodeStudioPage read-only (teacher viewer)', () => {
     expect(screen.getByPlaceholderText(/want to build/i)).toBeInTheDocument();
     // The kid-only wallet query fires (family wallet endpoint).
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/families/fam1/wallet'));
+  });
+
+  // Home-link seam (teacher-prep-projects Stage 2): `embedded` hides the studio's
+  // own "← My code" / "⤢ Full screen" page-level nav (which points into `/learn/*`)
+  // while keeping the editor fully editable. Kid default (no embedded) is unchanged.
+  it('kid default shows the "← My code" home link (editable, not embedded)', async () => {
+    useMeMock.mockReturnValue({ data: { kind: 'kid', sub: 'k1', age: 14, family_id: 'fam1' } });
+
+    renderStudio(false);
+
+    expect(await screen.findByText('index.html')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /My code/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Full screen/i })).toBeInTheDocument();
+  });
+
+  it('embedded (editable) hides the home link + full-screen link but keeps the composer', async () => {
+    useMeMock.mockReturnValue({ data: { kind: 'kid', sub: 'k1', age: 14, family_id: 'fam1' } });
+
+    renderStudio(false, true);
+
+    expect(await screen.findByText('index.html')).toBeInTheDocument();
+    // Editable: the composer still renders (embedded is NOT read-only).
+    expect(screen.getByPlaceholderText(/want to build/i)).toBeInTheDocument();
+    // But the studio's own `/learn/*` navigation is gone — the host carries Back.
+    expect(screen.queryByRole('link', { name: /My code/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Full screen/i })).not.toBeInTheDocument();
   });
 });

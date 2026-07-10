@@ -8,7 +8,7 @@ import { useDemoMode } from '@/pages/try/demoMode';
 import { getProject, readVfs, type LearningContext, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
-import { createGameProject, placeGameProjectForClass } from './panes/playgroundApi';
+import { createGameProject, createPrepGameProject, placeGameProjectForClass } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
@@ -72,9 +72,30 @@ interface PlaygroundAppProps {
    * (non-destructive viewing). The kid (editable) flow is untouched when false.
    */
   readOnly?: boolean;
+  /**
+   * Hosts the studio inside other chrome (e.g. the teacher prep-project page)
+   * whose banner carries the only Back. When true, in-studio navigation that
+   * would route a `user` principal into `/learn/*` (the load-error Back) is
+   * suppressed. Mirrors the `embedded` seam on CodeStudioPage/BlocksStudioPage.
+   * Kid/default behavior is unchanged when false.
+   */
+  embedded?: boolean;
+  /**
+   * Teacher-prep host (teacher-prep-projects): when set, a NEW game (`isNew`) is
+   * created as a teacher-owned PREP project (`POST /classes/:id/prep-projects`) on
+   * prompt submit — the SAME prompt-first landing → generate flow a kid gets — and
+   * the URL is rewritten to `/teacher/prep/:id` instead of `/learn/playground/:id`.
+   * Undefined for the kid flow (unchanged).
+   */
+  prepClassId?: string;
 }
 
-export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: PlaygroundAppProps = {}) {
+export function PlaygroundApp({
+  projectId: projectIdProp,
+  readOnly = false,
+  embedded = false,
+  prepClassId,
+}: PlaygroundAppProps = {}) {
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
   // Highest window z-index — floating windows climb past any static z-index as the
@@ -400,7 +421,10 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
   return (
     <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
       {loadError ? (
-        <LoadErrorScreen variant={loadError} onBack={() => navigate('/learn/create')} />
+        <LoadErrorScreen
+          variant={loadError}
+          onBack={embedded ? undefined : () => navigate('/learn/create')}
+        />
       ) : (
         <>
       {phase === 'landing' && (
@@ -413,19 +437,27 @@ export function PlaygroundApp({ projectId: projectIdProp, readOnly = false }: Pl
             // scaffold if the backend isn't ready, so the studio still opens.
             if (isNew && !createdId) {
               try {
-                const game = await createGameProject({
-                  kidId,
-                  familyId,
-                  // The prompt IS the title; the backend infers 2D/3D from it and
-                  // seeds the matching blank starter (no hardcoded template — that
-                  // forced every game, incl. "make a 3D …", into Phaser/2D).
-                  title: p.trim().slice(0, 80) || 'My game',
-                });
-                if (createForClassId) {
-                  await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
+                // The prompt IS the title; the backend infers 2D/3D from it and
+                // seeds the matching blank starter (no hardcoded template — that
+                // forced every game, incl. "make a 3D …", into Phaser/2D).
+                const title = p.trim().slice(0, 80) || 'My game';
+                let newId: string;
+                if (prepClassId) {
+                  // TEACHER prep: create a teacher-owned prep game (0 Stars, class-
+                  // scoped) and open it under /teacher/prep/:id — the same prompt-
+                  // first flow the kid gets, just a different owner + URL.
+                  const game = await createPrepGameProject({ classId: prepClassId, title });
+                  newId = game.id;
+                  window.history.replaceState(null, '', `/teacher/prep/${newId}`);
+                } else {
+                  const game = await createGameProject({ kidId, familyId, title });
+                  if (createForClassId) {
+                    await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
+                  }
+                  newId = game.id;
+                  window.history.replaceState(null, '', `/learn/playground/${newId}`);
                 }
-                setCreatedId(game.id);
-                window.history.replaceState(null, '', `/learn/playground/${game.id}`);
+                setCreatedId(newId);
               } catch {
                 // Can't create the project on the backend → no local fallback;
                 // show the error and send the kid back to project creation.
@@ -603,7 +635,9 @@ function LoadErrorScreen({
   onBack,
 }: {
   variant: 'load' | 'service';
-  onBack: () => void;
+  // Omitted when hosted embedded (e.g. teacher prep) — the host banner carries
+  // Back, and routing a `user` principal into `/learn/*` would strand them.
+  onBack?: () => void;
 }) {
   const copy =
     variant === 'service'
@@ -631,13 +665,15 @@ function LoadErrorScreen({
         <h1 className="text-[20px] font-extrabold">{copy.title}</h1>
         <p className="max-w-sm text-[14px] text-pg-text-dim">{copy.body}</p>
       </div>
-      <button
-        type="button"
-        onClick={onBack}
-        className="rounded-xl bg-brand-coral px-5 py-2.5 text-[14px] font-extrabold text-white"
-      >
-        {variant === 'service' ? 'Try again' : 'Make something new'}
-      </button>
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-xl bg-brand-coral px-5 py-2.5 text-[14px] font-extrabold text-white"
+        >
+          {variant === 'service' ? 'Try again' : 'Make something new'}
+        </button>
+      )}
     </div>
   );
 }
