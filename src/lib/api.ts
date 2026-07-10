@@ -39,6 +39,7 @@ interface ApiOpts {
 const refreshInFlight: Record<PrincipalKind, Promise<string | null> | null> = {
   user: null,
   kid: null,
+  staff: null,
 };
 
 export async function refreshAccessToken(

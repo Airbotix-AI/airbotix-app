@@ -63,14 +63,41 @@ export async function requestOtp(email: string): Promise<void> {
 }
 
 export async function verifyOtp(email: string, code: string): Promise<VerifyOtpResponse> {
+  // role_hint 'parent' targets the FAMILY account realm — the same email may also
+  // hold a staff (teacher/admin) account, and OTP codes are realm-scoped, so
+  // request and verify must both carry the hint.
   const res = await api<VerifyOtpResponse>('/auth/verify-otp', {
     method: 'POST',
-    body: { email, code },
+    body: { email, code, role_hint: 'parent' },
     skipAuthRefresh: true,
   });
   useAuthStore.getState().setToken('user', res.access_token);
   useAuthStore.getState().setBootstrapped(true);
   // No portal WS consumer today, so the parent login does not open a socket.
+  return res;
+}
+
+// ── Teacher OTP flow (staff realm — the in-app /teacher/* class surface) ────
+
+export async function requestTeacherOtp(email: string): Promise<void> {
+  await api<void>('/auth/request-otp', {
+    method: 'POST',
+    body: { email, role_hint: 'teacher' },
+    skipAuthRefresh: true,
+  });
+}
+
+export async function verifyTeacherOtp(email: string, code: string): Promise<VerifyOtpResponse> {
+  // role_hint 'teacher' targets the STAFF realm; the token lands in the 'staff'
+  // slot so it coexists with a parent ('user') session under the same email.
+  // A non-teacher email gets 403 NOT_INVITED from the backend.
+  const res = await api<VerifyOtpResponse>('/auth/verify-otp', {
+    method: 'POST',
+    body: { email, code, role_hint: 'teacher' },
+    skipAuthRefresh: true,
+  });
+  useAuthStore.getState().setToken('staff', res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
   return res;
 }
 

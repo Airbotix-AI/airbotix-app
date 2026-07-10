@@ -27,7 +27,7 @@ function wsOrigin(configuredUrl: string): string {
 const WS_URL = wsOrigin(sameHostInDev(import.meta.env.VITE_WS_URL ?? 'ws://localhost:3030'));
 const WS_PATH = '/ws';
 
-const sockets: Record<PrincipalKind, Socket | null> = { user: null, kid: null };
+const sockets: Record<PrincipalKind, Socket | null> = { user: null, kid: null, staff: null };
 
 export function getSocket(kind: PrincipalKind = 'kid'): Socket | null {
   const token = getToken(kind);

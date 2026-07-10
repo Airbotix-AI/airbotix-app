@@ -28,12 +28,12 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  tokens: { user: null, kid: null },
+  tokens: { user: null, kid: null, staff: null },
   bootstrapped: false,
   setToken: (kind, token) =>
     set((s) => ({ tokens: { ...s.tokens, [kind]: token } })),
   clearToken: (kind) => set((s) => ({ tokens: { ...s.tokens, [kind]: null } })),
-  clearAll: () => set({ tokens: { user: null, kid: null } }),
+  clearAll: () => set({ tokens: { user: null, kid: null, staff: null } }),
   setBootstrapped: (v) => set({ bootstrapped: v }),
 }));
 
@@ -95,12 +95,16 @@ export function useKidToken(): string | null {
   return useAuthStore((s) => s.tokens.kid);
 }
 
-// The principal that owns the surface currently in the URL. The two surfaces are
-// route-segregated (`/learn/*` = kid, everything else = parent), so a component
-// or request inherits the principal of the surface it runs under. Single source
-// of truth for the default principal across the api client and `useMe`.
+// The principal that owns the surface currently in the URL. The surfaces are
+// route-segregated (`/learn/*` = kid, `/teacher/*` = staff, everything else =
+// parent), so a component or request inherits the principal of the surface it
+// runs under. Single source of truth for the default principal across the api
+// client and `useMe`.
 export function surfacePrincipal(): PrincipalKind {
-  return typeof window !== 'undefined' && window.location.pathname.startsWith('/learn')
-    ? 'kid'
-    : 'user';
+  if (typeof window === 'undefined') return 'user';
+  if (window.location.pathname.startsWith('/learn')) return 'kid';
+  // The in-app teacher class surface runs on the STAFF-realm session — its own
+  // token slot + refresh cookie, so a teacher-parent keeps both sessions live.
+  if (window.location.pathname.startsWith('/teacher')) return 'staff';
+  return 'user';
 }

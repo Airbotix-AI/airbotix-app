@@ -24,7 +24,13 @@ export interface KidPrincipal {
 
 export type AuthPrincipal = UserPrincipal | KidPrincipal;
 
-export type PrincipalKind = 'user' | 'kid';
+// Session slots, one per refresh cookie (auth-system-prd.md §3.2.1 v0.4):
+// 'user' = the parent's FAMILY-realm session, 'staff' = a teacher's STAFF-realm
+// session (the in-app /teacher/* class surface), 'kid' = the Learn surface.
+// A teacher who is also a parent holds 'user' and 'staff' at the same time —
+// under the same email — without either evicting the other. Both adult slots
+// normalise to a UserPrincipal shape; the slot (not the shape) picks the cookie.
+export type PrincipalKind = 'user' | 'kid' | 'staff';
 
 // Response shapes from platform-backend (auth-system-prd.md §4).
 

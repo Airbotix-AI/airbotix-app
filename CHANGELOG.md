@@ -4,6 +4,26 @@ All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
 
+## 2026-07-10
+
+### Added
+- **`/teacher/login` + `/teacher/verify-otp` — the in-app teacher class surface gets its own
+  STAFF-realm login.** `/teacher/*` previously borrowed the Portal login; after the realm split
+  a teacher email on `/portal/login` self-signs-up as a brand-new parent, so the teacher surface
+  now signs in with `role_hint: 'teacher'` into a third session slot (`staff`) with its own
+  refresh cookie (`/auth/refresh?kind=staff`). A teacher who is also a parent holds both
+  sessions in one browser; an email with no teacher account gets a clear "not a teacher
+  account" explanation (403 NOT_INVITED — staff has no self-signup).
+
+### Changed
+- **Account-realm split (auth-system-prd.md §2.1 v0.4).** Portal `verifyOtp` now sends
+  `role_hint: 'parent'` alongside the existing hint on `request-otp` — OTP codes are
+  realm-scoped server-side, and the hint pins the login to the FAMILY realm. Net effect for
+  users: an email that is already a teacher/admin can now register on the Portal as a parent
+  (it gets an independent family account) instead of being silently logged in as staff with
+  every parent page erroring. `PrincipalKind` gains `'staff'` (token slot + socket + bootstrap
+  refresh); `/teacher/*` API calls and the live-project socket ride the staff session.
+
 ## 2026-07-09
 
 ### Fixed

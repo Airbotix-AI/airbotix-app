@@ -24,6 +24,9 @@ export function useBootstrap(): void {
       const [, kidToken] = await Promise.all([
         refreshAccessToken('user'),
         refreshAccessToken('kid'),
+        // staff = the in-app /teacher/* surface's own session (realm split);
+        // restores a teacher's session on reload just like the other two.
+        refreshAccessToken('staff'),
       ]);
       if (cancelled) return;
       // Only the kid surface uses WS today; spin it up if the kid session restored.

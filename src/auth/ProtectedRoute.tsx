@@ -10,6 +10,13 @@ interface ProtectedRouteProps {
   kind: PrincipalKind;
 }
 
+// Each session kind has its own login surface (auth-system-prd.md §3.2.1 v0.4).
+function loginRoute(kind: PrincipalKind): string {
+  if (kind === 'kid') return '/learn/login';
+  if (kind === 'staff') return '/teacher/login';
+  return '/portal/login';
+}
+
 export function ProtectedRoute({ children, kind }: ProtectedRouteProps) {
   const location = useLocation();
   const accessToken = useAuthStore((s) => s.tokens[kind]);
@@ -29,8 +36,7 @@ export function ProtectedRoute({ children, kind }: ProtectedRouteProps) {
   }
 
   if (!accessToken && !me.isLoading) {
-    const fallback = kind === 'user' ? '/portal/login' : '/learn/login';
-    return <Navigate to={fallback} state={{ from: location }} replace />;
+    return <Navigate to={loginRoute(kind)} state={{ from: location }} replace />;
   }
 
   if (me.isLoading) {
@@ -42,8 +48,7 @@ export function ProtectedRoute({ children, kind }: ProtectedRouteProps) {
   }
 
   if (me.isError || !me.data) {
-    const fallback = kind === 'user' ? '/portal/login' : '/learn/login';
-    return <Navigate to={fallback} replace />;
+    return <Navigate to={loginRoute(kind)} replace />;
   }
 
   // Each surface validates its own principal (`useMe(kind)`), so no cross-surface

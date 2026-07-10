@@ -75,7 +75,7 @@ export function TeacherProjectLivePage() {
       setLiveVersion((v) => v + 1);
     },
     [projectId],
-    'user', // the teacher is a `user` principal — listen on the teacher socket.
+    'staff', // the teacher's staff-realm session owns this surface's socket.
   );
 
   if (metaQuery.isLoading) {

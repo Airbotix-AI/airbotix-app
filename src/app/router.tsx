@@ -65,6 +65,8 @@ import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
 import { ClassDashboardPage } from '@/pages/teacher/ClassDashboardPage';
+import { TeacherLoginPage } from '@/pages/teacher/TeacherLoginPage';
+import { TeacherVerifyOtpPage } from '@/pages/teacher/TeacherVerifyOtpPage';
 import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
 import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
@@ -142,12 +144,16 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Teacher — class-session surface (kind="user", role=teacher). Class dashboard
+  // Teacher — class-session surface (kind="staff", role=teacher). Class dashboard
   // + per-kid live read-only view + assessment (learn-game-studio-prd §17.12 J12).
+  // Own login: teachers sign into the STAFF realm (auth-system-prd.md §2.1 v0.4),
+  // so a teacher-parent's Portal session and this surface coexist in one browser.
+  { path: '/teacher/login', element: <TeacherLoginPage /> },
+  { path: '/teacher/verify-otp', element: <TeacherVerifyOtpPage /> },
   {
     path: '/teacher',
     element: (
-      <ProtectedRoute kind="user">
+      <ProtectedRoute kind="staff">
         <TeacherLayout />
       </ProtectedRoute>
     ),
