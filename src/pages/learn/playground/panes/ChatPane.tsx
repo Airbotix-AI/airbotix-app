@@ -1,7 +1,14 @@
 import type { ChatImageRef, LearningContext, SafeguardingVerdict } from '../../code/codeApi';
 import { ResumeRecap } from '../ResumeRecap';
 import { AIChatPanel } from './AIChatPanel';
-import type { ChatItem, PendingTurn, SendImage, SendOptions } from './useGameAgent';
+import type {
+  ChatItem,
+  PendingTurn,
+  QueuedMessage,
+  RetryPayload,
+  SendImage,
+  SendOptions,
+} from './useGameAgent';
 
 interface ChatPaneProps {
   chat: ChatItem[];
@@ -41,6 +48,12 @@ interface ChatPaneProps {
   /** Stop waiting for the in-flight AI response — D-PAP-48. Forwarded to AIChatPanel. */
   onCancelTurn?: () => void;
   onRetry?: () => void;
+  /** Replay a specific retryable bubble's turn (its own prompt + key, D-HARN-02). */
+  onRetryTurn?: (retry: RetryPayload) => void;
+  /** The ONE queued next message while a turn is busy (D-HARN-03) — the pill. */
+  queuedMessage?: QueuedMessage | null;
+  /** Drop the queued message (the pill's ✕). */
+  onCancelQueued?: () => void;
   /** Teacher live viewer (D-LV-6) — render chat history only; no composer / actions. */
   readOnly?: boolean;
 }

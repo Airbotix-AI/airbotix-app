@@ -39,6 +39,10 @@ export type RunAgentTurn = (args: {
   projectId: string;
   prompt: string;
   mode: 'lite' | 'pro';
+  /** ONE key per LOGICAL turn (D-HARN-02), minted by `useGameAgent.send` — a retry
+   *  reuses the previous turn's key so the backend replays/dedupes the turn instead
+   *  of running (and charging) a second one. `codeApi` mints a fallback if absent. */
+  idempotencyKey?: string;
   piiWarnAcknowledged?: boolean;
   /** The kid tapped a next-step chip — keep the guided chip→chip loop going (D-PAP-26). */
   guided?: boolean;
@@ -54,6 +58,8 @@ export type ApproveAgentTurn = (args: {
   projectId: string;
   turnId: string;
   decision: 'approve' | 'reject';
+  /** Abort the in-flight approve (kid "Stop waiting" / the D-HARN-03 watchdog). */
+  signal?: AbortSignal;
 }) => Promise<AgentTurnResult>;
 
 /**

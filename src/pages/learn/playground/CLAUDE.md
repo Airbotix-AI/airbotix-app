@@ -89,9 +89,23 @@ a STALE engine after a deploy, e.g. a pre-GLTFLoader `THREE`).
 All turns run server-side via `../code/codeApi`:
 - **Initial build:** `GeneratingScreen` → `streamAgentTurn` (SSE); backend builds the
   whole game and auto-applies (even Pro).
-- **Chat edits:** `useGameAgent` → classify (`…/turn/classify`, safeguarding) →
-  `runTurn` (`…/code/turn`). The game agent **always auto-applies** (the kid's ask IS
-  the go-ahead) — no agency beat, no plan→approve gate (those belong to the code studio).
+- **Chat edits:** `useGameAgent` → classify (`…/turn/classify`, safeguarding, free) →
+  pre-turn flush → `runTurn` (`…/code/turn`). The flush sits right before the PAID POST, so
+  a stop mid-classify never bumps `vfs_version`. The game agent **always auto-applies** (the
+  kid's ask IS the go-ahead) — no agency beat, no plan→approve gate (code-studio only).
+- **Turn hygiene (D-HARN-02/03/05; state in `panes/useTurnHygiene.ts`, chips in
+  `panes/chatChips.tsx`):** ONE idempotency key per logical turn — each retryable bubble
+  carries its own `{prompt, turnKey}` payload and its chip replays THAT turn (server replays,
+  never double-charges); a busy `send()` queues exactly ONE next message (`chat-queued-pill` →
+  auto-send on settle, never a silent drop); a 180 s silent-turn watchdog cancels every long
+  paid await (send / rebuild / approve / warn-ack) cleanly into calm retry copy; a FAILED
+  pre-turn flush BLOCKS every FRESH paid turn (plan-approve alone stays best-effort).
+- **Question turns + fix evidence (D-HARN-07/11a):** a settled turn with ZERO changes +
+  `next_steps` is a QUESTION — its chips are ANSWER options ("Pick one:", sent
+  `guided:false`; with-changes chips stay `guided:true`; seed bubbles with `actions` stay
+  guided). Ask-AI-fix sends multi-error + newest-stack evidence under the STABLE
+  `My game has an error` prefix (backend keys fix context on it; stacks NEVER enter the
+  RunReport wire).
 - **One turn → one message.** The pending bubble is the **`WorkingCard`** (`WorkingCard.tsx`):
   ONE breathing brand-gradient dot (`pg-breathe-dot`, no spin) + ONE shimmering current-state line
   (`pg-shimmer-text`) — the latest real tool/action delta's label (`turnProgress.ts`, via

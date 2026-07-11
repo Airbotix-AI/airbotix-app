@@ -13,10 +13,13 @@ import type { AgentTurnResult } from '../../code/codeApi';
 import type { GameAgentDeps } from './gameAgent';
 import {
   useGameAgent,
+  AI_UNAVAILABLE_TEXT,
+  FLUSH_FAILED_TEXT,
   IMAGE_REJECT_MESSAGE,
   IMAGE_DISABLED_MESSAGE,
   IMAGE_CHECK_HICCUP_MESSAGE,
   STOPPED_TEXT,
+  TURN_TIMEOUT_TEXT,
   type ChatItem,
   type SendImage,
 } from './useGameAgent';
@@ -26,13 +29,17 @@ import {
 let resolveStream: (() => void) | null = null;
 let lastSignal: { aborted: boolean } | undefined;
 
+// Test-controlled connectivity (default online; hoisted so the mock factory sees it).
+const net = vi.hoisted(() => ({ offline: false }));
+
 // Keep the real module (predictionQuestion / realGameAgentDeps / tokenize, etc.)
-// but force online + a controllable stream so we can simulate a mid-reveal Stop.
+// but a test-controlled `isOffline` + a controllable stream so we can simulate a
+// mid-reveal Stop and the offline pre-check.
 vi.mock('./gameAgent', async () => {
   const actual = await vi.importActual<typeof import('./gameAgent')>('./gameAgent');
   return {
     ...actual,
-    isOffline: () => false,
+    isOffline: () => net.offline,
     streamTurn: vi.fn(
       (_result: unknown, _onDelta: unknown, signal?: { aborted: boolean }) => {
         lastSignal = signal;
@@ -293,7 +300,7 @@ describe('useGameAgent read-only (teacher viewer)', () => {
   });
 });
 
-describe('useGameAgent flushes the save before a turn (agent reads the kid latest VFS)', () => {
+describe('useGameAgent pre-turn flush gate (D-HARN-05 — the flush must succeed)', () => {
   it('awaits flushSave BEFORE runTurn so the agent reads the kid latest edits', async () => {
     resolveStream = null;
     const order: string[] = [];
@@ -320,8 +327,39 @@ describe('useGameAgent flushes the save before a turn (agent reads the kid lates
     expect(order).toEqual(['flushSave', 'runTurn']);
   });
 
-  it('still runs the turn when flushSave throws (best-effort — never trap a paid turn)', async () => {
-    resolveStream = null;
+  it('a stop MID-CLASSIFY never flushes — a clean cancel must not bump vfs_version', async () => {
+    // Regression for the harness `kid-game-stop-turn` journey: the flush gate
+    // sits AFTER the free classify, so stopping a slow classify leaves the
+    // server VFS untouched (the pre-turn autosave PUT never fires).
+    const deps = makeDeps();
+    deps.classify = vi.fn(
+      (args: { signal?: AbortSignal }) =>
+        new Promise<{ safeguarding: null; intent: 'code' }>((_resolve, reject) => {
+          args.signal?.addEventListener('abort', () =>
+            reject(new DOMException('The user aborted a request.', 'AbortError')),
+          );
+        }),
+    );
+    const flushSave = vi.fn(async () => ({ status: 'saved' as const, version: 3 }));
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps, flushSave }),
+    );
+
+    await act(async () => {
+      void result.current.send('make it blue');
+      await waitFor(() => expect(deps.classify).toHaveBeenCalled());
+    });
+    await act(async () => {
+      result.current.cancelTurn();
+    });
+
+    expect(flushSave).not.toHaveBeenCalled();
+    expect(deps.runTurn).not.toHaveBeenCalled();
+    expect(result.current.busy).toBe(false);
+    expect(result.current.chat.at(-1)?.text).toBe(STOPPED_TEXT);
+  });
+
+  it('a FAILED flush stops the PAID turn: no runTurn, retryable "save first" copy', async () => {
     const deps = makeDeps();
     const flushSave = vi.fn(async () => {
       throw new Error('save hiccup');
@@ -331,12 +369,91 @@ describe('useGameAgent flushes the save before a turn (agent reads the kid lates
     );
 
     await act(async () => {
-      void result.current.send('add a score');
-      await waitFor(() => expect(resolveStream).not.toBeNull());
+      await result.current.send('add a score');
     });
 
     expect(flushSave).toHaveBeenCalledTimes(1);
+    // The free, non-metered classify MAY run — the flush gate sits AFTER it,
+    // immediately before the paid POST, so a turn stopped mid-classify never
+    // writes the VFS. The PAID turn must not fire (D-HARN-05).
+    expect(deps.classify).toHaveBeenCalledTimes(1);
+    expect(deps.runTurn).not.toHaveBeenCalled();
+    expect(result.current.busy).toBe(false);
+    const bubble = result.current.chat.at(-1);
+    expect(bubble?.text).toBe(FLUSH_FAILED_TEXT);
+    // The retry payload carries THIS turn's own prompt + minted key (D-HARN-02).
+    expect(bubble?.retry).toMatchObject({ prompt: 'add a score', guided: false });
+    expect(bubble?.retry?.turnKey).toBeTruthy();
+    expect(bubble?.pending).toBeFalsy();
+  });
+
+  it('a FAILED flush on the acknowledged-warn confirm also stops the turn (D-HARN-05)', async () => {
+    const deps = makeDeps();
+    let failFlush = false;
+    const flushSave = vi.fn(async () => {
+      if (failFlush) throw new Error('save hiccup');
+      return { status: 'saved' as const, version: 3 };
+    });
+    deps.runTurn = vi.fn(async () => {
+      throw new ApiError(422, 'MODERATION_WARN', 'Just checking — no personal stuff, okay?', {
+        kind: 'pii_warn',
+      });
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps, flushSave }),
+    );
+
+    // 1) The send hits the warn gate → the kid must acknowledge.
+    await act(async () => {
+      await result.current.send('my name is Sam, add a score');
+    });
+    expect(result.current.warnPending).not.toBeNull();
     expect(deps.runTurn).toHaveBeenCalledTimes(1);
+
+    // 2) The save breaks; the kid confirms → the FRESH paid turn must NOT run.
+    failFlush = true;
+    await act(async () => {
+      await result.current.confirmWarn();
+    });
+    expect(deps.runTurn).toHaveBeenCalledTimes(1); // no second (acknowledged) POST
+    expect(result.current.busy).toBe(false);
+    const bubble = result.current.chat.at(-1);
+    expect(bubble?.text).toBe(FLUSH_FAILED_TEXT);
+    expect(bubble?.retry).toMatchObject({ prompt: 'my name is Sam, add a score' });
+  });
+
+  it('retry re-attempts the flush and proceeds once the save succeeds', async () => {
+    resolveStream = null;
+    const deps = makeDeps();
+    let failFlush = true;
+    const flushSave = vi.fn(async () => {
+      if (failFlush) throw new Error('save hiccup');
+      return { status: 'saved' as const, version: 3 };
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps, flushSave }),
+    );
+
+    await act(async () => {
+      await result.current.send('add a score');
+    });
+    expect(deps.runTurn).not.toHaveBeenCalled();
+
+    // The kid taps the retry chip once the save can work again → the SAME prompt
+    // re-flushes and the turn proceeds.
+    failFlush = false;
+    await act(async () => {
+      result.current.retryLast();
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+
+    expect(flushSave).toHaveBeenCalledTimes(2);
+    expect(deps.runTurn).toHaveBeenCalledTimes(1);
+    expect(deps.runTurn).toHaveBeenCalledWith(expect.objectContaining({ prompt: 'add a score' }));
+    expect(result.current.chat.at(-1)?.text).toBe(TURN.summary);
   });
 });
 
@@ -817,5 +934,501 @@ describe('engine switch (D-3D-08 — confirm before rebuilding 2D⇄3D)', () => 
     await act(async () => {
       resolveStream?.();
     });
+  });
+});
+
+// D-HARN-02 (playground-agent-harness-prd) — kid-safe failure taxonomy + idempotent
+// retry: an AI_UNAVAILABLE turn failure shows FE-owned kid copy (never the raw
+// message) with a retryable bubble, and retryLast re-sends the SAME idempotency key
+// so the backend replays the turn instead of charging a second one.
+describe('useGameAgent AI_UNAVAILABLE taxonomy + idempotent retry (D-HARN-02)', () => {
+  it('an AI_UNAVAILABLE failure shows the kid copy on a retryable bubble (raw message never leaks)', async () => {
+    const { result } = setupFailing(new ApiError(502, 'AI_UNAVAILABLE', 'DEEPROUTER_500: upstream exploded'));
+    await act(async () => {
+      await result.current.send('make it blue');
+    });
+    await waitFor(() => expect(result.current.error).toBe(AI_UNAVAILABLE_TEXT));
+    const bubble = result.current.chat.at(-1);
+    expect(bubble?.text).toBe(AI_UNAVAILABLE_TEXT);
+    expect(bubble?.text).not.toContain('DEEPROUTER');
+    // The bubble carries ITS OWN replay payload (prompt + key, D-HARN-02).
+    expect(bubble?.retry).toMatchObject({ prompt: 'make it blue' });
+    expect(bubble?.retry?.turnKey).toBeTruthy();
+  });
+
+  it('retryLast reuses the SAME idempotency key; a fresh send mints a different one', async () => {
+    resolveStream = null;
+    const keys: (string | undefined)[] = [];
+    const deps = makeDeps();
+    let fail = true;
+    deps.runTurn = vi.fn(async (args: { idempotencyKey?: string }) => {
+      keys.push(args.idempotencyKey);
+      if (fail) {
+        fail = false;
+        throw new ApiError(502, 'AI_UNAVAILABLE', 'boom');
+      }
+      return TURN;
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    await act(async () => {
+      await result.current.send('make it blue');
+    });
+    await waitFor(() => expect(result.current.error).toBe(AI_UNAVAILABLE_TEXT));
+    expect(keys[0]).toBeTruthy();
+
+    // The retry replays the SAME logical turn: same prompt, SAME key (the backend
+    // dedupes by key — no double charge).
+    await act(async () => {
+      result.current.retryLast();
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+    expect((deps.runTurn as ReturnType<typeof vi.fn>).mock.calls[1][0]).toEqual(
+      expect.objectContaining({ prompt: 'make it blue' }),
+    );
+
+    // A brand-new send is a NEW logical turn → a fresh key.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.send('add a score');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(keys).toHaveLength(3);
+    expect(keys[2]).toBeTruthy();
+    expect(keys[2]).not.toBe(keys[0]);
+  });
+
+  it('a STALE bubble chip (retryTurn) replays ITS OWN turn — not the latest one', async () => {
+    resolveStream = null;
+    const calls: { prompt: string; idempotencyKey?: string }[] = [];
+    const deps = makeDeps();
+    let failFirst = true;
+    deps.runTurn = vi.fn(async (args: { prompt: string; idempotencyKey?: string }) => {
+      calls.push({ prompt: args.prompt, idempotencyKey: args.idempotencyKey });
+      if (failFirst) {
+        failFirst = false;
+        throw new ApiError(502, 'AI_UNAVAILABLE', 'boom');
+      }
+      return TURN;
+    });
+    const { result } = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+
+    // Turn A fails → its bubble carries A's payload.
+    await act(async () => {
+      await result.current.send('turn A');
+    });
+    const bubbleA = result.current.chat.find((c) => c.text === AI_UNAVAILABLE_TEXT);
+    expect(bubbleA?.retry).toMatchObject({ prompt: 'turn A', turnKey: calls[0].idempotencyKey });
+
+    // Turn B (a different prompt) succeeds afterwards — the "last" turn is now B.
+    resolveStream = null;
+    await act(async () => {
+      void result.current.send('turn B');
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(calls[1].prompt).toBe('turn B');
+
+    // Tapping A's (stale) chip replays A — A's prompt, A's key. Never B's.
+    resolveStream = null;
+    await act(async () => {
+      result.current.retryTurn(bubbleA!.retry!);
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(calls[2].prompt).toBe('turn A');
+    expect(calls[2].idempotencyKey).toBe(calls[0].idempotencyKey);
+    expect(calls[2].idempotencyKey).not.toBe(calls[1].idempotencyKey);
+  });
+});
+
+// D-HARN-03 — no silent input drops: a send while a turn is busy queues exactly ONE
+// message ("I'll do this next") that auto-sends when the turn settles; further sends
+// are ignored while the slot is taken; ✕ cancels the queued message.
+describe('useGameAgent busy queue (D-HARN-03 — no silent drops)', () => {
+  function setupHanging() {
+    const deps = makeDeps();
+    let resolveTurn: ((r: AgentTurnResult) => void) | null = null;
+    deps.runTurn = vi.fn(
+      () =>
+        new Promise<AgentTurnResult>((resolve) => {
+          resolveTurn = resolve;
+        }),
+    );
+    const view = renderHook(() =>
+      useGameAgent({ files: [], onApplyFiles: vi.fn(), projectId: 'p1', mode: 'pro', deps }),
+    );
+    return { ...view, deps, resolveTurn: () => resolveTurn };
+  }
+
+  it('queues ONE message while busy, ignores further sends, and auto-sends it on settle', async () => {
+    resolveStream = null;
+    const { result, deps, resolveTurn } = setupHanging();
+
+    // Turn 1 is in flight (runTurn hangs) → busy.
+    await act(async () => {
+      void result.current.send('first');
+      await waitFor(() => expect(deps.runTurn).toHaveBeenCalledTimes(1));
+    });
+    expect(result.current.busy).toBe(true);
+
+    // A second message while busy is QUEUED — never dropped, never a second turn.
+    await act(async () => {
+      void result.current.send('second');
+    });
+    expect(result.current.queuedMessage?.text).toBe('second');
+    expect(deps.runTurn).toHaveBeenCalledTimes(1);
+
+    // A third message is ignored — only ONE can queue.
+    await act(async () => {
+      void result.current.send('third');
+    });
+    expect(result.current.queuedMessage?.text).toBe('second');
+
+    // Turn 1 settles → the queued message auto-sends as its own turn.
+    await act(async () => {
+      resolveTurn()?.(TURN);
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    await waitFor(() => expect(deps.runTurn).toHaveBeenCalledTimes(2));
+    expect((deps.runTurn as ReturnType<typeof vi.fn>).mock.calls[1][0]).toEqual(
+      expect.objectContaining({ prompt: 'second' }),
+    );
+    // The slot is free again (the pill is gone).
+    expect(result.current.queuedMessage).toBeNull();
+    // The queued message shows as a normal kid bubble once it fires.
+    expect(result.current.chat.some((c) => c.role === 'kid' && c.text === 'second')).toBe(true);
+  });
+
+  it('cancelQueued drops the queued message — nothing auto-sends on settle', async () => {
+    resolveStream = null;
+    const { result, deps, resolveTurn } = setupHanging();
+
+    await act(async () => {
+      void result.current.send('first');
+      await waitFor(() => expect(deps.runTurn).toHaveBeenCalledTimes(1));
+    });
+    await act(async () => {
+      void result.current.send('second');
+    });
+    expect(result.current.queuedMessage?.text).toBe('second');
+
+    // The kid taps ✕ on the pill.
+    await act(async () => {
+      result.current.cancelQueued();
+    });
+    expect(result.current.queuedMessage).toBeNull();
+
+    // Turn 1 settles → NO auto-send fires.
+    await act(async () => {
+      resolveTurn()?.(TURN);
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+    await act(async () => {
+      resolveStream?.();
+    });
+    expect(result.current.busy).toBe(false);
+    expect(deps.runTurn).toHaveBeenCalledTimes(1);
+  });
+});
+
+// D-HARN-03 — the offline pre-check must never silently eat a message (it also
+// serves the queue's auto-send, whose text has already left the composer): the kid
+// bubble + a retryable offline bubble land in the chat, not just a banner.
+describe('useGameAgent offline pre-check keeps the message visible (D-HARN-03)', () => {
+  it('posts the kid bubble + a retryable offline bubble; the chip replays once online', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+    net.offline = true;
+    try {
+      await act(async () => {
+        await result.current.send('make it rain');
+      });
+      expect(deps.runTurn).not.toHaveBeenCalled();
+      // The message is VISIBLE (kid bubble) with a calm retryable answer.
+      expect(result.current.chat.some((c) => c.role === 'kid' && c.text === 'make it rain')).toBe(true);
+      const bubble = result.current.chat.at(-1);
+      expect(bubble?.text).toBe('Internet hiccup — your work is safe. Try again in a moment.');
+      expect(bubble?.retry).toMatchObject({ prompt: 'make it rain' });
+
+      // Back online → the bubble's chip replays the SAME turn (same key).
+      net.offline = false;
+      const keyBefore = bubble!.retry!.turnKey;
+      await act(async () => {
+        result.current.retryTurn(bubble!.retry!);
+        await waitFor(() => expect(resolveStream).not.toBeNull());
+      });
+      await act(async () => {
+        resolveStream?.();
+      });
+      expect(deps.runTurn).toHaveBeenCalledWith(
+        expect.objectContaining({ prompt: 'make it rain', idempotencyKey: keyBefore }),
+      );
+    } finally {
+      net.offline = false;
+    }
+  });
+});
+
+// D-HARN-03 — silent-turn watchdog: a turn with no sign of life for the watchdog
+// window is aborted through the EXISTING clean-cancel path (backend charges 0 Stars)
+// and settles into CALM timeout copy + a retry chip — never a scary error. The retry
+// reuses the same idempotency key (D-HARN-02).
+describe('useGameAgent silent-turn watchdog (D-HARN-03)', () => {
+  it('fires after the quiet window: clean abort, calm timeout copy + retry with the SAME key', async () => {
+    vi.useFakeTimers();
+    try {
+      const keys: (string | undefined)[] = [];
+      const deps = makeDeps();
+      let hang = true;
+      deps.runTurn = vi.fn((args: { idempotencyKey?: string; signal?: AbortSignal }) => {
+        keys.push(args.idempotencyKey);
+        if (hang) {
+          // Hangs like a dead upstream; rejects only when the client aborts —
+          // exactly what a real aborted fetch does (DOMException AbortError).
+          return new Promise<AgentTurnResult>((_resolve, reject) => {
+            args.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The user aborted a request.', 'AbortError')),
+            );
+          });
+        }
+        return Promise.resolve(TURN);
+      });
+      const onApplyFiles = vi.fn();
+      const onStarsCharged = vi.fn();
+      const { result } = renderHook(() =>
+        useGameAgent({
+          files: [],
+          onApplyFiles,
+          onStarsCharged,
+          projectId: 'p1',
+          mode: 'pro',
+          deps,
+          turnWatchdogMs: 5_000,
+        }),
+      );
+
+      await act(async () => {
+        void result.current.send('make it blue');
+      });
+      expect(deps.runTurn).toHaveBeenCalledTimes(1);
+      expect(result.current.busy).toBe(true);
+
+      // 5s (the overridden watchdog window) of total silence → the watchdog aborts
+      // the in-flight turn via the existing stop mechanism (clean cancel, 0 Stars).
+      await act(async () => {
+        vi.advanceTimersByTime(5_000);
+      });
+
+      expect(result.current.busy).toBe(false);
+      // CALM: never an error banner, and the game is untouched.
+      expect(result.current.error).toBeNull();
+      expect(onApplyFiles).not.toHaveBeenCalled();
+      expect(onStarsCharged).not.toHaveBeenCalled();
+      const bubble = result.current.chat.at(-1);
+      expect(bubble?.text).toBe(TURN_TIMEOUT_TEXT);
+      // The timeout bubble carries the turn's OWN replay payload.
+      expect(bubble?.retry).toMatchObject({ prompt: 'make it blue', turnKey: keys[0] });
+      expect(bubble?.pending).toBeFalsy();
+
+      // The retry chip replays the SAME logical turn — same prompt, SAME key.
+      hang = false;
+      resolveStream = null;
+      await act(async () => {
+        result.current.retryLast();
+      });
+      await act(async () => {
+        resolveStream?.();
+      });
+      expect(deps.runTurn).toHaveBeenCalledTimes(2);
+      expect(keys[1]).toBe(keys[0]);
+      expect(result.current.chat.at(-1)?.text).toBe(TURN.summary);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a kid "Stop waiting" still reads as STOPPED (the watchdog copy is timeout-only)', async () => {
+    vi.useFakeTimers();
+    try {
+      const deps = makeDeps();
+      deps.runTurn = vi.fn(
+        (args: { signal?: AbortSignal }) =>
+          new Promise<AgentTurnResult>((_resolve, reject) => {
+            args.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The user aborted a request.', 'AbortError')),
+            );
+          }),
+      );
+      const { result } = renderHook(() =>
+        useGameAgent({
+          files: [],
+          onApplyFiles: vi.fn(),
+          projectId: 'p1',
+          mode: 'pro',
+          deps,
+          turnWatchdogMs: 5_000,
+        }),
+      );
+
+      await act(async () => {
+        void result.current.send('make it blue');
+      });
+      // The kid stops BEFORE the watchdog window elapses.
+      await act(async () => {
+        vi.advanceTimersByTime(1_000);
+        result.current.cancelTurn();
+      });
+
+      const bubble = result.current.chat.at(-1);
+      expect(bubble?.text).toBe(STOPPED_TEXT);
+      expect(bubble?.retry).toBeFalsy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('guards the engine-switch REBUILD too: timeout settles calm copy + a port-prompt retry', async () => {
+    vi.useFakeTimers();
+    try {
+      const deps = makeDeps();
+      let portArgs: { prompt: string; idempotencyKey?: string } | undefined;
+      deps.runTurn = vi.fn(
+        (args: { prompt: string; idempotencyKey?: string; signal?: AbortSignal }) => {
+          portArgs = args;
+          return new Promise<AgentTurnResult>((_resolve, reject) => {
+            args.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The user aborted a request.', 'AbortError')),
+            );
+          });
+        },
+      );
+      const { result } = renderHook(() =>
+        useGameAgent({
+          files: [],
+          onApplyFiles: vi.fn(),
+          projectId: 'p1',
+          mode: 'lite',
+          engine: 'phaser',
+          onEngineChange: vi.fn(),
+          deps,
+          turnWatchdogMs: 5_000,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.send('make the game 3D');
+      });
+      expect(result.current.pending?.kind).toBe('engine-switch');
+
+      // Confirm → reset + rebuild; the rebuild's runTurn hangs silently.
+      await act(async () => {
+        void result.current.confirmPending();
+        await Promise.resolve();
+      });
+      expect(deps.resetEngine).toHaveBeenCalled();
+      expect(deps.runTurn).toHaveBeenCalledTimes(1);
+      expect(portArgs?.idempotencyKey).toBeTruthy();
+
+      await act(async () => {
+        vi.advanceTimersByTime(5_000);
+      });
+
+      expect(result.current.busy).toBe(false);
+      expect(result.current.error).toBeNull();
+      const bubble = result.current.chat.at(-1);
+      expect(bubble?.text).toBe(TURN_TIMEOUT_TEXT);
+      // The retry payload replays the PORT prompt with the rebuild's own key.
+      expect(bubble?.retry?.prompt).toContain('Rebuild this as a 3D game');
+      expect(bubble?.retry?.turnKey).toBe(portArgs?.idempotencyKey);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('guards plan-APPROVE: timeout settles calm copy, the confirm card stays as the retry', async () => {
+    vi.useFakeTimers();
+    try {
+      const deps = makeDeps();
+      // 1st runTurn (send) → warn gate; 2nd (acknowledged) → a plan needing approval.
+      let warned = false;
+      deps.runTurn = vi.fn(async () => {
+        if (!warned) {
+          warned = true;
+          throw new ApiError(422, 'MODERATION_WARN', 'Just checking!', { kind: 'pii_warn' });
+        }
+        return { ...TURN, requires_approval: true };
+      });
+      let approveSignal: AbortSignal | undefined;
+      deps.approve = vi.fn(
+        (args: { signal?: AbortSignal }) =>
+          new Promise<AgentTurnResult>((_resolve, reject) => {
+            approveSignal = args.signal;
+            args.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The user aborted a request.', 'AbortError')),
+            );
+          }),
+      );
+      const { result } = renderHook(() =>
+        useGameAgent({
+          files: [],
+          onApplyFiles: vi.fn(),
+          projectId: 'p1',
+          mode: 'pro',
+          deps,
+          turnWatchdogMs: 5_000,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.send('add lasers');
+      });
+      await act(async () => {
+        await result.current.confirmWarn();
+      });
+      expect(result.current.pending?.kind).toBe('plan');
+
+      // Approve hangs silently → the watchdog aborts it (the signal IS wired).
+      await act(async () => {
+        void result.current.confirmPending();
+        await Promise.resolve();
+      });
+      expect(deps.approve).toHaveBeenCalledWith(
+        expect.objectContaining({ decision: 'approve' }),
+      );
+      expect(approveSignal).toBeInstanceOf(AbortSignal);
+
+      await act(async () => {
+        vi.advanceTimersByTime(5_000);
+      });
+
+      expect(result.current.busy).toBe(false);
+      const bubble = result.current.chat.at(-1);
+      expect(bubble?.text).toBe(TURN_TIMEOUT_TEXT);
+      // No chip here: the plan card is still up — re-tapping Approve IS the retry.
+      expect(bubble?.retry).toBeUndefined();
+      expect(result.current.pending?.kind).toBe('plan');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

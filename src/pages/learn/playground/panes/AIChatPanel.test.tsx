@@ -13,11 +13,13 @@ import type { ChatItem } from './useGameAgent';
 afterEach(cleanup);
 
 describe('AIChatPanel — next-step option chips', () => {
+  // A turn WITH changes → its chips are guided next steps (NOT a question turn).
   const chat: ChatItem[] = [
     {
       id: 'a1',
       role: 'agent',
       text: 'Your player can jump now! 🦘',
+      changes: [{ path: 'main.js', before: 'a', after: 'b' }],
       nextSteps: [
         { label: 'Add a score', prompt: 'add a score', tag: 'concept' },
         { label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' },
@@ -66,6 +68,217 @@ describe('AIChatPanel — next-step option chips', () => {
     expect(screen.queryByTestId('chat-send')).toBeNull();
     expect(screen.queryByTestId('next-steps')).toBeNull();
     expect(screen.getByTestId('chat-readonly-note')).toBeTruthy();
+  });
+});
+
+// D-HARN-07 — ANSWER chips on question turns: a settled turn with ZERO changes and
+// next-step chips is a QUESTION turn (the summary asks, the chips answer). Answer
+// chips send guided:false — guided:true would select the guided-chip prompt goal
+// server-side and re-offer chips, the wrong framing for an answer. Chips on turns
+// WITH changes keep guided:true exactly as before; testid stays `next-step`.
+describe('AIChatPanel — answer chips on question turns (D-HARN-07)', () => {
+  const questionChat: ChatItem[] = [
+    {
+      id: 'q1',
+      role: 'agent',
+      text: 'Should the aliens shoot lasers or drop bombs?',
+      changes: [],
+      nextSteps: [
+        { label: '🔫 Lasers', prompt: 'the aliens shoot lasers', tag: 'concept' },
+        { label: '💣 Bombs', prompt: 'the aliens drop bombs', tag: 'fun' },
+      ],
+    },
+  ];
+
+  it('a zero-change + chips turn sends the tapped answer with guided:false', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={questionChat} busy={false} error={null} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('next-step')[0]);
+    expect(onSend).toHaveBeenCalledWith('the aliens shoot lasers', { guided: false });
+  });
+
+  it('renders the "Pick one:" lead-in ONLY on a question turn', () => {
+    render(<AIChatPanel chat={questionChat} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.getByText('Pick one:')).toBeTruthy();
+    expect(screen.queryByText('What next?')).toBeNull();
+  });
+
+  it('a turn WITH changes keeps the guided framing ("What next?", guided:true)', () => {
+    const onSend = vi.fn();
+    const withChanges: ChatItem[] = [
+      {
+        id: 'a1',
+        role: 'agent',
+        text: 'Added a score!',
+        changes: [{ path: 'main.js', before: 'a', after: 'b' }],
+        nextSteps: [{ label: 'Make it bounce', prompt: 'make it bounce', tag: 'fun' }],
+      },
+    ];
+    render(<AIChatPanel chat={withChanges} busy={false} error={null} onSend={onSend} />);
+    expect(screen.getByText('What next?')).toBeTruthy();
+    expect(screen.queryByText('Pick one:')).toBeNull();
+    fireEvent.click(screen.getByTestId('next-step'));
+    expect(onSend).toHaveBeenCalledWith('make it bounce', { guided: true });
+  });
+
+  it('a seed bubble carrying actions (launch hand-off) is NOT a question turn', () => {
+    const onSend = vi.fn();
+    const seeded: ChatItem[] = [
+      {
+        id: 'first-agent',
+        role: 'agent',
+        text: 'I built your starter!',
+        actions: ['run', 'code'],
+        nextSteps: [{ label: 'Add a score', prompt: 'add a score', tag: 'concept' }],
+      },
+    ];
+    render(<AIChatPanel chat={seeded} busy={false} error={null} onSend={onSend} />);
+    expect(screen.getByText('What next?')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('next-step'));
+    // The first-turn chips stay in the D-PAP-26 guided chip→chip loop.
+    expect(onSend).toHaveBeenCalledWith('add a score', { guided: true });
+  });
+});
+
+// D-HARN-03 — no silent input drops: while a turn is busy the next-step chips render
+// disabled, the composer queues exactly ONE message through onSend (the hook owns the
+// queue), and the queued pill shows the message with a ✕ cancel.
+describe('AIChatPanel — busy queue + disabled send paths (D-HARN-03)', () => {
+  // A turn WITH changes → guided next-step chips (not a D-HARN-07 question turn).
+  const chatWithChips: ChatItem[] = [
+    {
+      id: 'a1',
+      role: 'agent',
+      text: 'Done!',
+      changes: [{ path: 'main.js', before: 'a', after: 'b' }],
+      nextSteps: [{ label: 'Add a score', prompt: 'add a score', tag: 'concept' }],
+    },
+  ];
+
+  it('disables the next-step chips while a turn is busy', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={chatWithChips} busy error={null} onSend={onSend} />);
+    const chip = screen.getByTestId('next-step') as HTMLButtonElement;
+    expect(chip.disabled).toBe(true);
+    fireEvent.click(chip);
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('chips are enabled again once the turn settles', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={chatWithChips} busy={false} error={null} onSend={onSend} />);
+    const chip = screen.getByTestId('next-step') as HTMLButtonElement;
+    expect(chip.disabled).toBe(false);
+    fireEvent.click(chip);
+    expect(onSend).toHaveBeenCalledWith('add a score', { guided: true });
+  });
+
+  it('Enter while busy still reaches onSend — the hook queues it, never a silent drop', () => {
+    const onSend = vi.fn();
+    render(<AIChatPanel chat={[]} busy error={null} onSend={onSend} queuedMessage={null} />);
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'next thing' } });
+    fireEvent.keyDown(screen.getByTestId('chat-input'), { key: 'Enter' });
+    expect(onSend).toHaveBeenCalledWith('next thing', undefined);
+    // The composer cleared into the queue slot.
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('Enter while busy with a message ALREADY queued keeps the draft (no send, no clear)', () => {
+    const onSend = vi.fn();
+    render(
+      <AIChatPanel chat={[]} busy error={null} onSend={onSend} queuedMessage={{ text: 'queued one' }} />,
+    );
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'a third idea' } });
+    fireEvent.keyDown(screen.getByTestId('chat-input'), { key: 'Enter' });
+    expect(onSend).not.toHaveBeenCalled();
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('a third idea');
+  });
+
+  it('renders the queued pill with the message; ✕ calls onCancelQueued', () => {
+    const onCancelQueued = vi.fn();
+    render(
+      <AIChatPanel
+        chat={[]}
+        busy
+        error={null}
+        onSend={vi.fn()}
+        queuedMessage={{ text: 'make it rain' }}
+        onCancelQueued={onCancelQueued}
+      />,
+    );
+    const pill = screen.getByTestId('chat-queued-pill');
+    expect(pill.textContent).toContain("I'll do this next:");
+    expect(pill.textContent).toContain('make it rain');
+    fireEvent.click(screen.getByTestId('chat-queued-cancel'));
+    expect(onCancelQueued).toHaveBeenCalledTimes(1);
+  });
+
+  it('no pill when nothing is queued', () => {
+    render(<AIChatPanel chat={[]} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.queryByTestId('chat-queued-pill')).toBeNull();
+  });
+});
+
+// D-HARN-02/03/05 — the per-bubble "Try again" chip: a retryable failed / timed-out /
+// flush-blocked turn carries one calm chip that replays THAT bubble's OWN turn —
+// onRetryTurn receives the bubble's payload (its exact prompt + its SAME idempotency
+// key), so a stale chip can never replay a later turn.
+describe('AIChatPanel — retry chip on a retryable bubble (D-HARN-02/03/05)', () => {
+  const retryA = { prompt: 'make it blue', turnKey: 'key-A', guided: false };
+  const failedChat: ChatItem[] = [
+    { id: 'k1', role: 'kid', text: 'make it blue' },
+    { id: 'a1', role: 'agent', text: "That took too long — let's try again!", retry: retryA },
+  ];
+
+  it('tapping the chip sends THAT bubble’s own payload to onRetryTurn', () => {
+    const onRetryTurn = vi.fn();
+    render(
+      <AIChatPanel chat={failedChat} busy={false} error={null} onSend={vi.fn()} onRetryTurn={onRetryTurn} />,
+    );
+    fireEvent.click(screen.getByTestId('chat-retry-chip'));
+    expect(onRetryTurn).toHaveBeenCalledTimes(1);
+    expect(onRetryTurn).toHaveBeenCalledWith(retryA);
+  });
+
+  it('a STALE chip still carries its own turn — never a later one', () => {
+    const onRetryTurn = vi.fn();
+    const retryB = { prompt: 'add lasers', turnKey: 'key-B', guided: true };
+    const twoFailures: ChatItem[] = [
+      { id: 'a1', role: 'agent', text: 'The AI helper had a hiccup…', retry: retryA },
+      { id: 'k2', role: 'kid', text: 'add lasers' },
+      { id: 'a2', role: 'agent', text: "That took too long — let's try again!", retry: retryB },
+    ];
+    render(
+      <AIChatPanel chat={twoFailures} busy={false} error={null} onSend={vi.fn()} onRetryTurn={onRetryTurn} />,
+    );
+    const chips = screen.getAllByTestId('chat-retry-chip');
+    expect(chips).toHaveLength(2);
+    fireEvent.click(chips[0]); // the OLD bubble's chip
+    expect(onRetryTurn).toHaveBeenLastCalledWith(retryA);
+    fireEvent.click(chips[1]);
+    expect(onRetryTurn).toHaveBeenLastCalledWith(retryB);
+  });
+
+  it('no chip on an ordinary settled bubble', () => {
+    const plain: ChatItem[] = [{ id: 'a1', role: 'agent', text: 'Done!' }];
+    render(<AIChatPanel chat={plain} busy={false} error={null} onSend={vi.fn()} onRetryTurn={vi.fn()} />);
+    expect(screen.queryByTestId('chat-retry-chip')).toBeNull();
+  });
+
+  it('hides the chip in the read-only viewer (a teacher never fires a turn)', () => {
+    render(
+      <AIChatPanel chat={failedChat} busy={false} error={null} onSend={vi.fn()} onRetryTurn={vi.fn()} readOnly />,
+    );
+    expect(screen.queryByTestId('chat-retry-chip')).toBeNull();
+  });
+
+  it('the chip is disabled while another turn is busy', () => {
+    const onRetryTurn = vi.fn();
+    render(<AIChatPanel chat={failedChat} busy error={null} onSend={vi.fn()} onRetryTurn={onRetryTurn} />);
+    const chip = screen.getByTestId('chat-retry-chip') as HTMLButtonElement;
+    expect(chip.disabled).toBe(true);
+    fireEvent.click(chip);
+    expect(onRetryTurn).not.toHaveBeenCalled();
   });
 });
 
