@@ -1,4 +1,4 @@
-// PUBLIC, no-auth Game Playground demo — `/try/playground` (try-demo-mode-prd
+// PUBLIC, no-auth Creative Code Studio demo — `/try/playground` (try-demo-mode-prd
 // §3 T1 v3). Renders the REAL `PlaygroundApp` (unmodified) inside the demo
 // provider: it starts on the REAL landing phase (prompt pre-filled + locked),
 // plays the REAL generating progress (the bundled starter "streams" file-by-file

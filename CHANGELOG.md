@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-11
+
+### Changed
+- Updated repository instructions and demo documentation to use **Story
+  Blocks** and **Creative Code Studio**, while preserving stable technical
+  identifiers and `/try/*` routes.
+
 All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.

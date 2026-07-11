@@ -33,6 +33,12 @@ All paths below are at the **umbrella root** (`~/Documents/sites/airbotix-ai/doc
 | API contract | `docs/product/prd/platform-backend-api-spec.md` |
 | Master product PRD | `docs/product/prd/kids-ai-platform-prd.md` |
 | Compliance | `docs/product/compliance/minors-compliance.md` |
+| Product naming SOT | `docs/product/product-naming-sot.md` |
+
+Canonical display names are **Story Blocks** (`blocks` / Blocks Studio) and
+**Creative Code Studio** (`game` / `/learn/playground/*`). Keep technical route,
+enum and component identifiers stable; use the canonical names in rendered UI,
+PRDs, accessibility labels and new tests.
 
 ## Critical contracts
 

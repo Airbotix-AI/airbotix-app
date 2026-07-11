@@ -10,7 +10,7 @@ import { CREATE_TOOLS, type ProjectKind } from '../create/createTools';
  * inside the class hub — NOT a jump to the Create tab. Tapping a tool creates the
  * project, attaches it to the class (visibility=class_work, via the placement
  * endpoint) and opens it directly — so it lands in the studio AND shows under
- * "My work", with no intermediate naming page. Game Playground is the exception:
+ * "My work", with no intermediate naming page. Creative Code Studio is the exception:
  * it opens the prompt-first `/learn/playground/new?class=...` flow, and the
  * playground creates + attaches the game after the kid submits the initial prompt.
  *
@@ -23,7 +23,7 @@ const lineOf = (typeTag: string): string =>
 
 // Per-tool create config: kind + starter template + the EDITOR route to open
 // directly. Blocks/Code open their builder; creative tools open the project page
-// (where you add images/stories/voice/video). Game Playground is prompt-first:
+// (where you add images/stories/voice/video). Creative Code Studio is prompt-first:
 // the class id travels in the URL and the game project is created on prompt submit.
 type ToolCfg = {
   title: string;
@@ -63,14 +63,14 @@ const CODE_SUBTYPES: SubType[] = [
     title: 'Web Code',
     desc: 'A website, page, or tool. AI writes the code.',
     // Same shape as the Code tool's direct-create config (TOOL_CONFIG) — the
-    // sub-menu just makes it an explicit sibling of Game Playground.
+    // sub-menu just makes it an explicit sibling of Creative Code Studio.
     cfg: TOOL_CONFIG['/learn/create/code'],
     projectKind: 'code',
   },
   {
     id: 'game',
     emoji: '🎮',
-    title: 'Game Playground',
+    title: 'Creative Code Studio',
     desc: 'Vibe-code a 2D game and keep adding to it.',
     cfg: {
       title: 'My Game',

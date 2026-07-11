@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // "Create for this class" sheet (my-classes-prd §3.3): a tool with sub-types
-// (Code Studio → Web Code / Game Playground) opens a second-level menu; a plain
+// (Code Studio → Web Code / Creative Code Studio) opens a second-level menu; a plain
 // tool (Blocks) creates directly. Direct creates POST /projects, attach via the
-// placement endpoint, and navigate to the right editor. Game Playground is
+// placement endpoint, and navigate to the right editor. Creative Code Studio is
 // prompt-first: it navigates to `/learn/playground/new?class=...` and lets the
 // playground create + attach the game after the initial prompt.
 
@@ -56,26 +56,26 @@ describe('CreateForClassSheet — second-level menu', () => {
   });
   afterEach(cleanup);
 
-  it('opens the Code Studio sub-menu (Web Code + Game Playground) and can go back', async () => {
+  it('opens the Code Studio sub-menu (Web Code + Creative Code Studio) and can go back', async () => {
     renderSheet();
     // Code Studio is a sub-menu tool, not a direct create.
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
 
     expect(screen.getByText('Web Code')).toBeInTheDocument();
-    expect(screen.getByText('Game Playground')).toBeInTheDocument();
+    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
     expect(screen.getByText(/Code Studio · pick one/)).toBeInTheDocument();
     // Opening the sub-menu must not POST anything.
     expect(api).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('create-subtool-back'));
-    expect(screen.queryByText('Game Playground')).not.toBeInTheDocument();
+    expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
     expect(screen.getByText(/pick a tool/)).toBeInTheDocument();
   });
 
-  it('Game Playground opens the prompt-first playground with class context', async () => {
+  it('Creative Code Studio opens the prompt-first playground with class context', async () => {
     renderSheet();
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
-    const game = screen.getByText('Game Playground').closest('button')!;
+    const game = screen.getByText('Creative Code Studio').closest('button')!;
     fireEvent.click(game);
 
     expect(navigate).toHaveBeenCalledWith('/learn/playground/new?class=class-1');
@@ -118,7 +118,7 @@ describe('CreateForClassSheet — second-level menu', () => {
     expect(screen.getByText('Blocks')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
-    expect(screen.getByText('Game Playground')).toBeInTheDocument();
+    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
     expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
   });
 });

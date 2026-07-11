@@ -9,7 +9,7 @@ import { PlaygroundApp } from './PlaygroundApp';
  * This authed route is the only entry; dev/e2e testing uses a route-mocked authed
  * harness (`e2e/helpers.ts`) against `/learn/playground/new` + `/learn/create/code`.
  *
- * The Game Playground card now creates a REAL `kind='game'` backend project (PRD J1)
+ * The Creative Code Studio card now creates a REAL `kind='game'` backend project (PRD J1)
  * and routes here with its id; the studio loads that project's seeded Phaser VFS
  * (`GET /projects/:id/code/files`). If the backend `game` kind isn't ready, create
  * falls back to a `local-<uuid>` id whose file load 404s → the local scaffold

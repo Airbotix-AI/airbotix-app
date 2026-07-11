@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Class "Create for this class" enters the Game Playground prompt-first route:
+// Class "Create for this class" enters the Creative Code Studio prompt-first route:
 // `/learn/playground/new?class=<id>`. The project must be created only after the
 // kid submits the first prompt, then attached to the class before the studio
 // moves into generation.
