@@ -47,6 +47,8 @@ import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
+import { storyMissionFor } from './curriculumGuides';
+import { StoryMissionGuide } from './StoryMissionGuide';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -131,6 +133,9 @@ export function BlocksStudioPage({
   const [charTab, setCharTab] = useState(0);
   const [muted, setMutedState] = useState(isMuted());
   const [confirmReset, setConfirmReset] = useState(false);
+  const [missionOpen, setMissionOpen] = useState(false);
+  const [missionHasRun, setMissionHasRun] = useState(false);
+  const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
   const [moreAnchor, setMoreAnchor] = useState<{ right: number; top: number } | null>(null);
@@ -166,6 +171,16 @@ export function BlocksStudioPage({
     [project, pageId],
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
+  const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const introducedMissionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (phase !== 'ready' || !storyMission || introducedMissionRef.current === projectId) return;
+    introducedMissionRef.current = projectId ?? storyMission.lessonId;
+    setMissionHasRun(false);
+    setMissionAnswer(null);
+    setMissionOpen(true);
+  }, [phase, projectId, storyMission]);
 
   // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
   // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
@@ -361,8 +376,12 @@ export function BlocksStudioPage({
     void runner.runFlag().finally(() => {
       setRunning(false);
       demo?.onStoryRun?.('end');
+      if (storyMission) {
+        setMissionHasRun(true);
+        setMissionOpen(true);
+      }
     });
-  }, [running, makeRunner, demo]);
+  }, [running, makeRunner, demo, storyMission]);
 
   // try-demo seam: the tour's Next can press the REAL Go for the user
   useEffect(() => {
@@ -842,6 +861,17 @@ export function BlocksStudioPage({
           </div>
         </div>
         <div className="flex-1" />
+        {storyMission && (
+          <button
+            type="button"
+            className="bsx-mission-launcher"
+            data-testid="story-mission-launcher"
+            onClick={() => setMissionOpen(true)}
+            title="Open the story and mission"
+          >
+            📖 <span>Story mission</span>
+          </button>
+        )}
         <button
           type="button"
           className={`bsx-press grid h-11 w-11 place-items-center${muted ? ' bsx-muted-on' : ''}`}
@@ -883,6 +913,16 @@ export function BlocksStudioPage({
           ▶ Go!
         </button>
       </header>
+
+      {storyMission && missionOpen && (
+        <StoryMissionGuide
+          mission={storyMission}
+          hasRun={missionHasRun}
+          answerId={missionAnswer}
+          onAnswer={setMissionAnswer}
+          onClose={() => setMissionOpen(false)}
+        />
+      )}
 
       {/* ── middle: characters · stage · pages ── */}
       <section className="bsx-middle">

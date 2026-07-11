@@ -47,6 +47,25 @@ async function renderStudio(readOnly = false, embedded = false) {
 }
 
 describe('BlocksStudioPage zone labels', () => {
+  it('automatically opens the first-party story mission for a curriculum project', async () => {
+    const curriculumProject = blankProject('Tiny Star Village');
+    curriculumProject.lessonId = 'tsv-s1-a1-h';
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: curriculumProject,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    expect(await screen.findByTestId('story-mission')).toHaveTextContent(
+      'Tiny Star Village is still dark',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Show me Go ▶' }));
+    expect(screen.queryByTestId('story-mission')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission-launcher')).toBeInTheDocument();
+  });
+
   it('every zone wears its emoji-first name tag', async () => {
     await renderStudio();
     const chips: Array<[string, string]> = [
