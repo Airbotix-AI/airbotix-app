@@ -8,6 +8,8 @@ export interface StoryPage {
   emoji: string;
   title: string;
   body: string;
+  speaker?: string;
+  dialogue?: string;
 }
 
 export interface StoryMission {
@@ -33,21 +35,33 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     storyPages: [
       {
         emoji: '🌌🏘️',
-        title: 'The village beyond the clouds',
+        title: 'The village that wakes with light',
         body:
-          'Far beyond the clouds is Tiny Star Village. Its little houses, winding paths, and singing streetlights all glow with starshine.',
+          'Far beyond the clouds is Tiny Star Village. Every morning, its Bell Tower sends out one warm beam that wakes the houses, paths, and singing streetlights.',
       },
       {
-        emoji: '🌅🗼',
-        title: 'The morning promise',
+        emoji: '🌑🔕',
+        title: 'The morning light is missing',
         body:
-          'Every morning, the first star to wake must light the Dawn Tower. Its golden beam shows the Sun how to find the village.',
+          'But today the bell did not ring. The village stayed dark, and all the little stars wondered which morning step had not happened.',
+        speaker: 'Cloud Bear',
+        dialogue: 'Why is the village still dark?',
       },
       {
         emoji: '⭐⏰',
-        title: "Little Light's first big job",
+        title: 'A strange good morning',
         body:
-          'Today, Little Light must wake the village all by itself. But the tower is still dark—and its morning blocks may be mixed up.',
+          'At the window, Little Light was still asleep. It called out “Morning!” from its dream—and only then did it hop awake.',
+        speaker: 'Little Light',
+        dialogue: 'Oh! Did I do my morning steps in the wrong order?',
+      },
+      {
+        emoji: '🤝✨',
+        title: 'A new Morning Light Helper',
+        body:
+          'The Bell Tower cannot shine until the morning begins in the right order. Little Light needs someone who can watch carefully and find the mixed-up step.',
+        speaker: 'Little Light',
+        dialogue: 'Will you be my Story Partner?',
       },
     ],
     partnerLine: "Little Light needs a Story Partner. That's you!",

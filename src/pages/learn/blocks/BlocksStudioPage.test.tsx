@@ -59,8 +59,9 @@ describe('BlocksStudioPage zone labels', () => {
 
     await renderStudio();
     expect(await screen.findByTestId('story-mission')).toHaveTextContent(
-      'Far beyond the clouds is Tiny Star Village',
+      'Every morning, its Bell Tower sends out one warm beam',
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     fireEvent.click(screen.getByRole('button', { name: 'Start the mission ▶' }));

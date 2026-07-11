@@ -12,7 +12,7 @@
 - Added the first playable Tiny Star Village curriculum slice (`A1-H`) to Story Blocks, including a first-party Little Light SVG character, a dim window-room scene, and safe local image-character rendering with emoji fallback.
 - Added a persistent **Story Blocks** launcher to the `/learn/workspace` sidebar, routing directly to the Story Blocks starter/library page without pretending block coding is an AI chat session.
 - Completed the A1-H learning loop with an automatic story-and-mission introduction, a post-run observation check, retry guidance, an explicit success explanation, and a persistent **Story mission** launcher. Curriculum projects now carry a safe `lessonId` instead of relying on their display name; existing A1-H projects are recognised by their exact scene/asset/block fingerprint.
-- Expanded A1-H's opening into a three-page, touch-first storybook popup covering Tiny Star Village, the Dawn Tower's morning promise, Little Light's first big job, and the child's Story Partner role before revealing the mission. The observation and success screens can reopen the story at any time.
+- Reworked the A1-H storybook against the season SOT into four narrative beats: the Bell Tower's warm morning light, the missing bell and light, Little Light's dream-mixed greeting, and the child's invitation as Morning Light Helper. Added character dialogue and a real story synopsis to the starter card instead of showing an operation instruction as its description.
 
 All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped

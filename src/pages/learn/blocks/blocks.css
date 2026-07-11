@@ -1538,6 +1538,22 @@
   line-height: 1.4;
   font-weight: 900;
 }
+.bsx-story-dialogue {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: -4px auto 18px;
+  max-width: 430px;
+  padding: 12px 16px;
+  border-left: 5px solid #f2b83f;
+  border-radius: 8px 18px 18px 8px;
+  background: #fff9df;
+  color: #59440f;
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.bsx-story-dialogue strong { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; }
 .bsx-story-progress {
   display: flex;
   justify-content: center;

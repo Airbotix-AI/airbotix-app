@@ -55,6 +55,12 @@ export function StoryMissionGuide({
         {storyOpen ? (
           <div data-testid="story-book">
             <p className="bsx-mission-story">{page.body}</p>
+            {page.dialogue && (
+              <blockquote className="bsx-story-dialogue">
+                <strong>{page.speaker}</strong>
+                <span>“{page.dialogue}”</span>
+              </blockquote>
+            )}
             <div className="bsx-story-progress" aria-label={`Story page ${storyPage + 1} of ${mission.storyPages.length}`}>
               {mission.storyPages.map((story, index) => (
                 <span key={story.title} className={index === storyPage ? 'on' : ''} aria-hidden />

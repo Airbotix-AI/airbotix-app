@@ -9,7 +9,7 @@ import { StoryMissionGuide } from './StoryMissionGuide';
 const mission = storyMissionFor('tsv-s1-a1-h')!;
 
 describe('StoryMissionGuide', () => {
-  it('introduces the world, story problem, child role, and mission across three pages', () => {
+  it('introduces the world, story problem, child role, and mission across four pages', () => {
     render(
       <StoryMissionGuide
         mission={mission}
@@ -19,17 +19,22 @@ describe('StoryMissionGuide', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('The village beyond the clouds')).toBeInTheDocument();
+    expect(screen.getByText('The village that wakes with light')).toBeInTheDocument();
     expect(screen.getByText(/singing streetlights/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Story page 1 of 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Story page 1 of 4')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('The morning promise')).toBeInTheDocument();
-    expect(screen.getByText(/Dawn Tower/)).toBeInTheDocument();
+    expect(screen.getByText('The morning light is missing')).toBeInTheDocument();
+    expect(screen.getByText(/bell did not ring/)).toBeInTheDocument();
+    expect(screen.getByText(/Why is the village still dark/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText("Little Light's first big job")).toBeInTheDocument();
-    expect(screen.getByText(/Story Partner/)).toBeInTheDocument();
+    expect(screen.getByText('A strange good morning')).toBeInTheDocument();
+    expect(screen.getByText(/Did I do my morning steps/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    expect(screen.getByText('A new Morning Light Helper')).toBeInTheDocument();
+    expect(screen.getByText(/That's you!/)).toBeInTheDocument();
     expect(screen.getByText('Your mission')).toBeInTheDocument();
     expect(screen.getByText(/Press Go/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start the mission ▶' })).toBeInTheDocument();
