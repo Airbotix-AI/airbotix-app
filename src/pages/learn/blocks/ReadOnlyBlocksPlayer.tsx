@@ -15,6 +15,7 @@ import { GRID_H, GRID_W, type BlocksProject } from './blocksModel';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { sceneId } from './library';
 import './blocks.css';
+import { CharacterVisual } from './CharacterVisual';
 
 export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
   const [pageIndex, setPageIndex] = useState(0);
@@ -119,7 +120,7 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
                   onContextMenu={(e) => e.preventDefault()}
                   title={`Tap ${c.name}`}
                 >
-                  {c.emoji}
+                  <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset' : undefined} />
                 </div>
               </div>
             );

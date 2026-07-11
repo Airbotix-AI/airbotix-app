@@ -71,7 +71,7 @@ export function setDemoBlocksAdapter(adapter: typeof demoBlocksAdapter): void {
   demoBlocksAdapter = adapter;
 }
 
-export type BlocksTemplateId = 'blocks_blank' | 'blocks_story';
+export type BlocksTemplateId = 'blocks_blank' | 'blocks_story' | 'blocks_tsv_a1_h';
 
 export interface BlocksProjectMeta {
   id: string;

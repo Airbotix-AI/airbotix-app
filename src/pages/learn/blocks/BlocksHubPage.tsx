@@ -20,6 +20,7 @@ import './blocks.css';
 // chasing a bouncing ball) the kid can press Go! on, then remix into anything.
 const STARTERS: Array<{ id: BlocksTemplateId; emoji: string; title: string; desc: string }> = [
   { id: 'blocks_story', emoji: '🐱', title: 'New project', desc: 'Press Go! to watch the cat chase a bouncing ball — then make it your own.' },
+  { id: 'blocks_tsv_a1_h', emoji: '🌟', title: 'Tiny Star Village · A1', desc: 'Press Go and watch carefully: does Little Light say hello before waking up?' },
 ];
 
 export function BlocksHubPage() {

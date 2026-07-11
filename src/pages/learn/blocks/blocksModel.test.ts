@@ -99,6 +99,19 @@ describe('blocksModel', () => {
     expect(parseProject('{"version":2}').pages).toHaveLength(1);
   });
 
+  it('keeps first-party character assets and rejects remote image URLs', () => {
+    const project = blankProject();
+    project.pages[0].characters[0].asset =
+      '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+    const parsed = parseProject(serializeProject(project));
+    expect(parsed.pages[0].characters[0].asset).toBe(project.pages[0].characters[0].asset);
+
+    project.pages[0].characters[0].asset = 'https://example.com/tracker.png';
+    const unsafe = parseProject(serializeProject(project));
+    expect(unsafe.pages[0].characters[0].asset).toBeUndefined();
+    expect(unsafe.pages[0].characters[0].emoji).toBe('🐱');
+  });
+
   it('covers all six categories in the catalogue', () => {
     const cats = new Set(BLOCK_DEFS.map((d) => d.category));
     expect([...cats].sort()).toEqual(

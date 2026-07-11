@@ -751,6 +751,27 @@
 .bsx-stage[data-scene='snow'] { background: linear-gradient(180deg, #cfe6ff, #eaf4ff); }
 .bsx-stage[data-scene='city'] { background: linear-gradient(180deg, #8fb8ff, #d3e3ff); }
 .bsx-stage[data-scene='candy'] { background: linear-gradient(180deg, #ffd3ee, #ffe9c7 60%, #ffd0e6); }
+.bsx-stage[data-scene='tsv-window-room-dim'] {
+  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-dim.svg') center / cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-window-room-dim'] .bsx-hill,
+.bsx-stage[data-scene='tsv-window-room-dim'] .bsx-deco { display: none; }
+
+.bsx-character-asset {
+  display: block;
+  width: clamp(64px, 7vw, 92px);
+  height: clamp(64px, 7vw, 92px);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bsx-character-asset-thumb {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
 /* dark scenes get a light grid */
 .bsx-stage[data-scene='space'] .bsx-grid,
 .bsx-stage[data-scene='underwater'] .bsx-grid {

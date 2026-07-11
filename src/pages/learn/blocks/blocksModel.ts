@@ -145,8 +145,18 @@ export interface Character {
   id: string;
   name: string;
   emoji: string;
+  /** Optional first-party visual. Emoji remains the portable fallback. */
+  asset?: string;
   start: CharacterStart;
   scripts: Script[];
+}
+
+const STORY_BLOCKS_ASSET_PREFIX = '/story-blocks/';
+
+function safeCharacterAsset(value: unknown): string | undefined {
+  return typeof value === 'string' && value.startsWith(STORY_BLOCKS_ASSET_PREFIX)
+    ? value.slice(0, 240)
+    : undefined;
 }
 export interface Page {
   id: string;
@@ -208,6 +218,7 @@ export function parseProject(raw: string): BlocksProject {
         id: typeof c?.id === 'string' && c.id ? c.id : newId('char'),
         name: typeof c?.name === 'string' && c.name ? c.name.slice(0, 24) : `Friend ${ci + 1}`,
         emoji: typeof c?.emoji === 'string' && c.emoji ? c.emoji : '🐱',
+        asset: safeCharacterAsset(c?.asset),
         start: {
           gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
           gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),

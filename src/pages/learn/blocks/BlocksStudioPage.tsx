@@ -46,6 +46,7 @@ import { CHARACTER_GROUPS, SCENES, sceneId } from './library';
 import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
+import { CharacterVisual } from './CharacterVisual';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -898,7 +899,7 @@ export function BlocksStudioPage({
               style={c.id === selectedChar?.id ? { boxShadow: '0 0 0 4px #5DAEFF, 0 4px 0 var(--bsx-border)' } : undefined}
               title={c.name}
             >
-              {c.emoji}
+              <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset-thumb' : undefined} />
               {c.id === selectedChar?.id && page.characters.length > 1 && (
                 <span
                   role="button"
@@ -1000,7 +1001,7 @@ export function BlocksStudioPage({
                     }}
                     title={`${c.name} — drag to move, tap to run 👆, drag to the bin to remove`}
                   >
-                    {c.emoji}
+                    <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset' : undefined} />
                   </div>
                 </div>
               );

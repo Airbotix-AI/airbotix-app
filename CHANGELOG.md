@@ -7,6 +7,10 @@
   Blocks** and **Creative Code Studio**, while preserving stable technical
   identifiers and `/try/*` routes.
 
+### Added
+
+- Added the first playable Tiny Star Village curriculum slice (`A1-H`) to Story Blocks, including a first-party Little Light SVG character, a dim window-room scene, and safe local image-character rendering with emoji fallback.
+
 All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped
 by date (AEST), newest first. Update this file in the **same commit** as the code change.
