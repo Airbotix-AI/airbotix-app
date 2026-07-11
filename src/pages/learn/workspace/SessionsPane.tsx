@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 export interface SessionRow {
   id: string;
@@ -39,6 +40,15 @@ export function SessionsPane({
     <aside className="w-64 shrink-0 bg-canvas-pure flex flex-col">
       <div className="p-4 border-b border-hairline">
         <button onClick={onNew} className="btn-pill-primary w-full">✨ Make something</button>
+        <Link
+          to="/learn/create/blocks"
+          data-testid="workspace-story-blocks"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border-2 border-brand-mint/40 bg-wash-mint px-4 py-2 text-[13px] font-bold text-ink transition hover:-translate-y-0.5 hover:border-brand-mint"
+        >
+          <span aria-hidden="true">🌟</span>
+          Story Blocks
+          <span className="text-[10px] font-semibold text-ink-soft">Ages 5–8</span>
+        </Link>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {loading && <p className="lead-text text-center mt-8" style={{ fontSize: '13px' }}>Loading…</p>}
