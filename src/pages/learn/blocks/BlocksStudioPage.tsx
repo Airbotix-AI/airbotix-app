@@ -137,6 +137,8 @@ export function BlocksStudioPage({
   const [missionOpen, setMissionOpen] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
+  const [missionFixApplied, setMissionFixApplied] = useState(false);
+  const [missionCompleted, setMissionCompleted] = useState(false);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
@@ -177,11 +179,28 @@ export function BlocksStudioPage({
   const answeredCorrectly = storyMission?.choices.some(
     (choice) => choice.id === missionAnswer && choice.correct,
   ) ?? false;
-  const visibleCoachCue: StoryCoachCue = missionAnswer
-    ? answeredCorrectly
-      ? 'complete'
-      : 'retry'
-    : storyCoachCue;
+  const missionScript = useMemo(
+    () => page.characters
+      .flatMap((character) => character.scripts)
+      .find((script) => script.blocks[0]?.op === 'when_flag'
+        && script.blocks.some((block) => block.op === 'say')
+        && script.blocks.some((block) => block.op === 'hop')),
+    [page],
+  );
+  const missionOps = missionScript?.blocks.map((block) => block.op) ?? [];
+  const missionTargetFixed = missionOps.indexOf('hop') > 0
+    && missionOps.indexOf('hop') < missionOps.indexOf('say');
+  const visibleCoachCue: StoryCoachCue = missionCompleted
+    ? 'complete'
+    : running
+      ? storyCoachCue
+      : missionFixApplied
+        ? 'test'
+        : missionAnswer
+          ? answeredCorrectly
+            ? 'fix'
+            : 'retry'
+          : storyCoachCue;
   const introducedMissionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -189,6 +208,8 @@ export function BlocksStudioPage({
     introducedMissionRef.current = projectId ?? storyMission.lessonId;
     setMissionHasRun(false);
     setMissionAnswer(null);
+    setMissionFixApplied(false);
+    setMissionCompleted(false);
     setStoryCoachCue('ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission]);
@@ -375,7 +396,10 @@ export function BlocksStudioPage({
             .flatMap((character) => character.scripts)
             .find((candidate) => candidate.id === scriptId);
           const op = script?.blocks[index]?.op;
-          if (op === 'say' || op === 'hop') setStoryCoachCue(op);
+          const sayIndex = script?.blocks.findIndex((block) => block.op === 'say') ?? -1;
+          const hopIndex = script?.blocks.findIndex((block) => block.op === 'hop') ?? -1;
+          if (op === 'say') setStoryCoachCue(sayIndex < hopIndex ? 'sayFirst' : 'sayThen');
+          if (op === 'hop') setStoryCoachCue(hopIndex < sayIndex ? 'hopFirst' : 'hopThen');
         }
       },
     });
@@ -398,12 +422,33 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
-        setStoryCoachCue('hop');
         setMissionHasRun(true);
+        if (missionFixApplied && missionTargetFixed) {
+          setMissionCompleted(true);
+          setStoryCoachCue('complete');
+        }
         setMissionOpen(true);
       }
     });
-  }, [running, makeRunner, demo, storyMission]);
+  }, [running, makeRunner, demo, storyMission, missionFixApplied, missionTargetFixed]);
+
+  const applyMissionFix = useCallback(() => {
+    if (!missionScript) return;
+    const hopIndex = missionScript.blocks.findIndex((block) => block.op === 'hop');
+    const sayIndex = missionScript.blocks.findIndex((block) => block.op === 'say');
+    if (hopIndex < 1 || sayIndex < 1) return;
+    if (hopIndex > sayIndex) {
+      useBlocksStore.getState().moveBlockAcross(
+        missionScript.id,
+        hopIndex,
+        missionScript.id,
+        sayIndex,
+      );
+    }
+    setMissionFixApplied(true);
+    setStoryCoachCue('test');
+    setMissionOpen(false);
+  }, [missionScript]);
 
   // try-demo seam: the tour's Next can press the REAL Go for the user
   useEffect(() => {
@@ -941,8 +986,10 @@ export function BlocksStudioPage({
         <StoryMissionGuide
           mission={storyMission}
           hasRun={missionHasRun}
+          completed={missionCompleted}
           answerId={missionAnswer}
           onAnswer={setMissionAnswer}
+          onApplyFix={applyMissionFix}
           onClose={() => setMissionOpen(false)}
         />
       )}

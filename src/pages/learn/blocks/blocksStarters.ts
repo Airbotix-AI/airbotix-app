@@ -17,8 +17,8 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
   {
     id: 'blocks_tsv_a1_h',
     emoji: '🌟',
-    title: 'Tiny Star Village · Chapter 1',
+    title: 'Tiny Star Village · First Mission',
     desc:
-      'The Bell Tower did not ring, and the morning light has vanished. Become Little Light’s Story Partner and find the mixed-up step in its strange good morning.',
+      'The Bell Tower did not ring, and the morning light has vanished. Become Little Light’s Story Partner and fix its morning: hop awake first, then say hello.',
   },
 ];

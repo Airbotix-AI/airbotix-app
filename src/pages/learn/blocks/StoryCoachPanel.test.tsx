@@ -16,20 +16,30 @@ describe('StoryCoachPanel', () => {
     render(<StoryCoachPanel mission={mission} cue="ready" running={false} onGo={onGo} />);
 
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('Press Go');
-    expect(screen.getByLabelText('Mission step 1 of 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mission step 1 of 4')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '▶ Go' }));
     expect(onGo).toHaveBeenCalledOnce();
   });
 
   it('speaks the live block order without adding another action', () => {
     const { rerender } = render(
-      <StoryCoachPanel mission={mission} cue="say" running onGo={vi.fn()} />,
+      <StoryCoachPanel mission={mission} cue="sayFirst" running onGo={vi.fn()} />,
     );
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('First, I say');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
 
-    rerender(<StoryCoachPanel mission={mission} cue="hop" running onGo={vi.fn()} />);
+    rerender(<StoryCoachPanel mission={mission} cue="hopThen" running onGo={vi.fn()} />);
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('Then, I hop');
-    expect(screen.getByLabelText('Mission step 2 of 3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mission step 2 of 4')).toBeInTheDocument();
+  });
+
+  it('asks the child to test the real fix before showing completion', () => {
+    const onGo = vi.fn();
+    render(<StoryCoachPanel mission={mission} cue="test" running={false} onGo={onGo} />);
+
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('Press Go to test');
+    expect(screen.getByLabelText('Mission step 4 of 4')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
+    expect(onGo).toHaveBeenCalledOnce();
   });
 });

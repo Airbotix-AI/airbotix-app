@@ -4,14 +4,28 @@ export interface StoryMissionChoice {
   correct: boolean;
 }
 
-export type StoryCoachCue = 'ready' | 'watch' | 'say' | 'hop' | 'retry' | 'complete';
+export type StoryCoachCue =
+  | 'ready'
+  | 'watch'
+  | 'sayFirst'
+  | 'sayThen'
+  | 'hopFirst'
+  | 'hopThen'
+  | 'retry'
+  | 'fix'
+  | 'test'
+  | 'complete';
 
 export interface StoryCoachCopy {
   ready: string;
   watch: string;
-  say: string;
-  hop: string;
+  sayFirst: string;
+  sayThen: string;
+  hopFirst: string;
+  hopThen: string;
   retry: string;
+  fix: string;
+  test: string;
   complete: string;
 }
 
@@ -41,9 +55,17 @@ export interface StoryMission {
   retry: string;
   successTitle: string;
   success: string;
+  fixTitle: string;
+  fixPrompt: string;
+  fixChoices: StoryMissionChoice[];
+  fixRetry: string;
   coach: StoryCoachCopy;
   logicSteps: StoryLogicStep[];
   logicWhy: string;
+  completionTitle: string;
+  completion: string;
+  completionSteps: StoryLogicStep[];
+  completionWhy: string;
   next: string;
 }
 
@@ -95,12 +117,23 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     successTitle: 'You found the mixed-up step! ⭐',
     success:
       'Little Light talks before it wakes up. The order of the blocks makes the story feel strange.',
+    fixTitle: 'Now fix the morning',
+    fixPrompt: 'Which order will wake Little Light properly?',
+    fixChoices: [
+      { id: 'hop-then-say', label: '🦘 Hop awake → 💬 Say “Morning!”', correct: true },
+      { id: 'say-then-hop', label: '💬 Say “Morning!” → 🦘 Hop awake', correct: false },
+    ],
+    fixRetry: 'That is the mixed-up order we just saw. Try the other plan.',
     coach: {
       ready: 'Press Go. Watch only two things: the speech bubble and the hop.',
       watch: 'Watch closely… which block lights up first?',
-      say: 'First, I say “Morning!” 💬',
-      hop: 'Then, I hop awake! 🦘',
+      sayFirst: 'First, I say “Morning!” 💬',
+      sayThen: 'Then, I say “Morning!” 💬',
+      hopFirst: 'First, I hop awake! 🦘',
+      hopThen: 'Then, I hop awake! 🦘',
       retry: 'Let’s watch again. Look for the speech bubble first.',
+      fix: 'Choose the new order: hop awake first, then say hello.',
+      test: 'Your blocks changed! Press Go to test the new morning.',
       complete: 'You found it! The blocks run from left to right.',
     },
     logicSteps: [
@@ -108,7 +141,15 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
       { icon: '🦘', label: 'Hop', order: 'Then' },
     ],
     logicWhy: 'The speech block is on the left, so it runs first.',
-    next: 'Next, you will help Little Light wake up first, then say hello.',
+    completionTitle: 'First mission complete! 🌅',
+    completion:
+      'You changed the real program and tested it. Little Light now wakes up before saying hello.',
+    completionSteps: [
+      { icon: '🦘', label: 'Hop', order: 'First' },
+      { icon: '💬', label: 'Morning!', order: 'Then' },
+    ],
+    completionWhy: 'The Hop block is now on the left, so Little Light wakes up first.',
+    next: 'A tiny light appears at the window. The first morning clue is safe.',
   },
 };
 

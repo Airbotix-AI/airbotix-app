@@ -1595,7 +1595,7 @@
 }
 .bsx-story-coach-steps {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 5px;
 }
 .bsx-story-coach-steps > span {
