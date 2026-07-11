@@ -4,11 +4,18 @@ export interface StoryMissionChoice {
   correct: boolean;
 }
 
+export interface StoryPage {
+  emoji: string;
+  title: string;
+  body: string;
+}
+
 export interface StoryMission {
   lessonId: string;
   eyebrow: string;
   title: string;
-  story: string;
+  storyPages: StoryPage[];
+  partnerLine: string;
   mission: string;
   question: string;
   choices: StoryMissionChoice[];
@@ -23,8 +30,27 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     lessonId: 'tsv-s1-a1-h',
     eyebrow: 'Tiny Star Village · Chapter 1',
     title: 'A strange good morning',
-    story:
-      'Tiny Star Village is still dark. Little Light is trying to wake up—but its morning steps are mixed up.',
+    storyPages: [
+      {
+        emoji: '🌌🏘️',
+        title: 'The village beyond the clouds',
+        body:
+          'Far beyond the clouds is Tiny Star Village. Its little houses, winding paths, and singing streetlights all glow with starshine.',
+      },
+      {
+        emoji: '🌅🗼',
+        title: 'The morning promise',
+        body:
+          'Every morning, the first star to wake must light the Dawn Tower. Its golden beam shows the Sun how to find the village.',
+      },
+      {
+        emoji: '⭐⏰',
+        title: "Little Light's first big job",
+        body:
+          'Today, Little Light must wake the village all by itself. But the tower is still dark—and its morning blocks may be mixed up.',
+      },
+    ],
+    partnerLine: "Little Light needs a Story Partner. That's you!",
     mission: 'Press Go. Watch the speech bubble and the jump. What happens first?',
     question: 'What happens first?',
     choices: [

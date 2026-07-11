@@ -1531,6 +1531,40 @@
   line-height: 1.5;
   font-weight: 650;
 }
+.bsx-mission-partner {
+  margin: 0 0 14px;
+  color: #6d4d13;
+  font-size: 17px;
+  line-height: 1.4;
+  font-weight: 900;
+}
+.bsx-story-progress {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: -2px 0 20px;
+}
+.bsx-story-progress span {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: #d7c98d;
+  transition: width .15s ease, background .15s ease;
+}
+.bsx-story-progress span.on {
+  width: 28px;
+  background: #e4a92f;
+}
+.bsx-story-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.bsx-story-actions .bsx-mission-primary { flex: 1; max-width: 260px; }
+.bsx-story-actions .bsx-story-back {
+  margin-top: 0;
+  min-width: 105px;
+}
 .bsx-mission-task,
 .bsx-mission-next {
   display: flex;

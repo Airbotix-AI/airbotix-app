@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import type { StoryMission } from './curriculumGuides';
 
 interface StoryMissionGuideProps {
@@ -15,8 +17,17 @@ export function StoryMissionGuide({
   onAnswer,
   onClose,
 }: StoryMissionGuideProps) {
+  const [storyOpen, setStoryOpen] = useState(!hasRun);
+  const [storyPage, setStoryPage] = useState(0);
   const chosen = mission.choices.find((choice) => choice.id === answerId);
   const complete = chosen?.correct === true;
+  const page = mission.storyPages[storyPage];
+  const lastStoryPage = storyPage === mission.storyPages.length - 1;
+
+  const readStory = () => {
+    setStoryPage(0);
+    setStoryOpen(true);
+  };
 
   return (
     <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
@@ -35,14 +46,61 @@ export function StoryMissionGuide({
         >
           ✕
         </button>
-        <div className="bsx-mission-book" aria-hidden>📖</div>
+        <div className="bsx-mission-book" aria-hidden>{storyOpen ? page.emoji : '📖'}</div>
         <div className="bsx-mission-eyebrow">{mission.eyebrow}</div>
-        <h2 id="story-mission-title">{complete ? mission.successTitle : mission.title}</h2>
+        <h2 id="story-mission-title">
+          {storyOpen ? page.title : complete ? mission.successTitle : mission.title}
+        </h2>
 
-        {complete ? (
+        {storyOpen ? (
+          <div data-testid="story-book">
+            <p className="bsx-mission-story">{page.body}</p>
+            <div className="bsx-story-progress" aria-label={`Story page ${storyPage + 1} of ${mission.storyPages.length}`}>
+              {mission.storyPages.map((story, index) => (
+                <span key={story.title} className={index === storyPage ? 'on' : ''} aria-hidden />
+              ))}
+            </div>
+            {lastStoryPage && (
+              <>
+                <p className="bsx-mission-partner">🤝 {mission.partnerLine}</p>
+                <div className="bsx-mission-task">
+                  <strong>Your mission</strong>
+                  <span>{mission.mission}</span>
+                </div>
+              </>
+            )}
+            <div className="bsx-story-actions">
+              {storyPage > 0 && (
+                <button
+                  type="button"
+                  className="bsx-mission-secondary bsx-story-back"
+                  onClick={() => setStoryPage((current) => current - 1)}
+                >
+                  ← Back
+                </button>
+              )}
+              {lastStoryPage ? (
+                <button type="button" className="bsx-mission-primary" onClick={onClose}>
+                  Start the mission ▶
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="bsx-mission-primary"
+                  onClick={() => setStoryPage((current) => current + 1)}
+                >
+                  Next page →
+                </button>
+              )}
+            </div>
+          </div>
+        ) : complete ? (
           <div className="bsx-mission-success" data-testid="story-mission-success">
             <p>{mission.success}</p>
             <div className="bsx-mission-next">🌟 {mission.next}</div>
+            <button type="button" className="bsx-mission-secondary" onClick={readStory}>
+              📖 Read the story again
+            </button>
             <button type="button" className="bsx-mission-primary" onClick={onClose}>
               Keep exploring
             </button>
@@ -66,22 +124,14 @@ export function StoryMissionGuide({
             {chosen && !chosen.correct && (
               <p className="bsx-mission-retry" role="status">↻ {mission.retry}</p>
             )}
+            <button type="button" className="bsx-mission-secondary" onClick={readStory}>
+              📖 Read the story
+            </button>
             <button type="button" className="bsx-mission-secondary" onClick={onClose}>
               ▶ Watch again
             </button>
           </div>
-        ) : (
-          <div data-testid="story-mission-intro">
-            <p className="bsx-mission-story">{mission.story}</p>
-            <div className="bsx-mission-task">
-              <strong>Your mission</strong>
-              <span>{mission.mission}</span>
-            </div>
-            <button type="button" className="bsx-mission-primary" onClick={onClose}>
-              Show me Go ▶
-            </button>
-          </div>
-        )}
+        ) : null}
       </section>
     </div>
   );
