@@ -365,7 +365,7 @@ export async function openStudio(page: Page, opts: { openCode?: boolean } = {}):
 
 /**
  * Open the authed new-project LandingScreen (the prompt-first entry). The hub
- * routes a new Game Playground to `/learn/playground/new`, whose `isNew` sentinel makes
+ * routes a new Creative Code Studio to `/learn/playground/new`, whose `isNew` sentinel makes
  * `PlaygroundApp` open on the landing phase (see PlaygroundApp.tsx `isNew`). This
  * replaces `goto('/playground-sandbox')` for the landing/generating-flow specs.
  */

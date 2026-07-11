@@ -74,7 +74,7 @@ function makeDemoShareAdapter(shareId: string): DemoShareAdapter {
   };
 }
 
-// ── T1: Game Playground demo ──────────────────────────────────────────────────
+// ── T1: Creative Code Studio demo ──────────────────────────────────────────────────
 
 /**
  * Arm the playground demo: bundled starter VFS, in-memory persistence (no

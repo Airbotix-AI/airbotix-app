@@ -29,7 +29,7 @@ export interface CodeTemplate {
 
 export const CODE_TEMPLATES: CodeTemplate[] = [
   { id: 'pet_website', emoji: '🌐', title: 'My Pet Website', desc: 'A page all about your pet (real or made up).', color: 'sky' },
-  { id: 'tiny_game', emoji: '🎮', title: 'Game Playground', desc: 'A click-or-catch game you can keep adding to.', color: 'mint' },
+  { id: 'tiny_game', emoji: '🎮', title: 'Creative Code Studio', desc: 'A click-or-catch game you can keep adding to.', color: 'mint' },
   { id: 'doodle_pad', emoji: '✏️', title: 'Doodle Pad', desc: 'Draw with your mouse and pick colours.', color: 'bubblegum' },
   { id: 'beat_box', emoji: '🎵', title: 'Beat Box', desc: 'Tap buttons to make beats and sounds.', color: 'sunshine' },
   { id: 'blank', emoji: '✨', title: 'Blank Project', desc: 'Start from scratch and tell the AI your idea.', color: 'coral' },

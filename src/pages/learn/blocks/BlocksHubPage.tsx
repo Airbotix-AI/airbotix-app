@@ -14,13 +14,8 @@ import {
   type BlocksProjectMeta,
   type BlocksTemplateId,
 } from './blocksApi';
+import { BLOCKS_STARTERS } from './blocksStarters';
 import './blocks.css';
-
-// One generic starter: every new project opens on a working scene (the cat
-// chasing a bouncing ball) the kid can press Go! on, then remix into anything.
-const STARTERS: Array<{ id: BlocksTemplateId; emoji: string; title: string; desc: string }> = [
-  { id: 'blocks_story', emoji: '🐱', title: 'New project', desc: 'Press Go! to watch the cat chase a bouncing ball — then make it your own.' },
-];
 
 export function BlocksHubPage() {
   const me = useMe();
@@ -68,7 +63,7 @@ export function BlocksHubPage() {
       )}
 
       <div className="grid grid-cols-1 sm:max-w-md gap-6 mb-12">
-        {STARTERS.map((s) => (
+        {BLOCKS_STARTERS.map((s) => (
           <button
             key={s.id}
             type="button"

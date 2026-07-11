@@ -184,7 +184,7 @@ describe('TeacherPrepStudioPage', () => {
     );
   });
 
-  // Prompt-first NEW game (parity with the kid Game Playground): `/teacher/prep/new`
+  // Prompt-first NEW game (parity with the kid Creative Code Studio): `/teacher/prep/new`
   // lands on the game studio's prompt with `prepClassId` from `?class=` — and does
   // NOT fetch GET /projects/new (no project exists yet; it's created on prompt submit).
   //

@@ -99,6 +99,46 @@ describe('blocksModel', () => {
     expect(parseProject('{"version":2}').pages).toHaveLength(1);
   });
 
+  it('keeps first-party character assets and rejects remote image URLs', () => {
+    const project = blankProject();
+    project.pages[0].characters[0].asset =
+      '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+    const parsed = parseProject(serializeProject(project));
+    expect(parsed.pages[0].characters[0].asset).toBe(project.pages[0].characters[0].asset);
+
+    project.pages[0].characters[0].asset = 'https://example.com/tracker.png';
+    const unsafe = parseProject(serializeProject(project));
+    expect(unsafe.pages[0].characters[0].asset).toBeUndefined();
+    expect(unsafe.pages[0].characters[0].emoji).toBe('🐱');
+  });
+
+  it('keeps a safe curriculum lesson id and drops malformed ids', () => {
+    const project = blankProject();
+    project.lessonId = 'tsv-s1-a1-h';
+    expect(parseProject(serializeProject(project)).lessonId).toBe('tsv-s1-a1-h');
+
+    project.lessonId = '../../not-a-lesson';
+    expect(parseProject(serializeProject(project)).lessonId).toBeUndefined();
+  });
+
+  it('recognises A1-H projects created before lesson ids were added', () => {
+    const project = blankProject('Old A1-H');
+    project.pages[0].background = 'tsv-window-room-dim';
+    const character = project.pages[0].characters[0];
+    character.asset = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+    character.scripts = [{
+      id: 'little-light-flag',
+      blocks: [
+        { op: 'when_flag' },
+        { op: 'say', text: 'Morning!' },
+        { op: 'hop', n: 1 },
+        { op: 'end' },
+      ],
+    }];
+
+    expect(parseProject(serializeProject(project)).lessonId).toBe('tsv-s1-a1-h');
+  });
+
   it('covers all six categories in the catalogue', () => {
     const cats = new Set(BLOCK_DEFS.map((d) => d.category));
     expect([...cats].sort()).toEqual(

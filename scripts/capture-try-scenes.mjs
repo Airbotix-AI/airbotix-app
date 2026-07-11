@@ -3,7 +3,7 @@
 // The airbotix.ai/try page plays REAL screenshots of the demos as animated
 // scenes (airbotix/src/components/TryScenePlayer.tsx). Parity mandate
 // (AGENTS.md + try-demo-mode-prd §5): whenever the workspace UX changes —
-// Game Playground, Blocks Studio, or a future demo — these captures MUST be
+// Creative Code Studio, Blocks Studio, or a future demo — these captures MUST be
 // refreshed so the marketing previews never show a stale product.
 //
 // Usage (from airbotix-app/, with the app dev server running):

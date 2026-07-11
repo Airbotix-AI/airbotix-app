@@ -47,6 +47,29 @@ async function renderStudio(readOnly = false, embedded = false) {
 }
 
 describe('BlocksStudioPage zone labels', () => {
+  it('automatically opens the first-party story mission for a curriculum project', async () => {
+    const curriculumProject = blankProject('Tiny Star Village');
+    curriculumProject.lessonId = 'tsv-s1-a1-h';
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: curriculumProject,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    expect(await screen.findByTestId('story-mission')).toHaveTextContent(
+      'Every morning, its Bell Tower sends out one warm beam',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start the mission ▶' }));
+    expect(screen.queryByTestId('story-mission')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission-launcher')).toBeInTheDocument();
+    expect(screen.getByTestId('story-coach')).toHaveTextContent('Press Go');
+  });
+
   it('every zone wears its emoji-first name tag', async () => {
     await renderStudio();
     const chips: Array<[string, string]> = [

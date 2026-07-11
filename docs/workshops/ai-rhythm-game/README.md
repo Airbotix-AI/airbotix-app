@@ -18,7 +18,7 @@ test the result, and make responsible creative choices.
 
 ## Product Fit
 
-The workshop uses the Game Playground flow implemented in this app:
+The workshop uses the Creative Code Studio flow implemented in this app:
 
 - Landing prompt: students describe the game idea.
 - Generating screen: the playground builds the starter.
@@ -131,7 +131,7 @@ Student-safe prompt rules:
 - 3 laptops or tablets, ideally one per pair.
 - Teacher machine connected to a projector.
 - Airbotix app preloaded and signed in with test/student accounts.
-- Game Playground opened at `/learn/playground/new`.
+- Creative Code Studio opened at `/learn/playground/new`.
 - Printed prompt cards and design cards.
 - Optional headphones if sound generation or music loops are used.
 - Timer visible to the class.

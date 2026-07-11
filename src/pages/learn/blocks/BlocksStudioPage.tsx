@@ -46,6 +46,10 @@ import { CHARACTER_GROUPS, SCENES, sceneId } from './library';
 import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
+import { CharacterVisual } from './CharacterVisual';
+import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
+import { StoryCoachPanel } from './StoryCoachPanel';
+import { StoryMissionGuide } from './StoryMissionGuide';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -130,6 +134,12 @@ export function BlocksStudioPage({
   const [charTab, setCharTab] = useState(0);
   const [muted, setMutedState] = useState(isMuted());
   const [confirmReset, setConfirmReset] = useState(false);
+  const [missionOpen, setMissionOpen] = useState(false);
+  const [missionHasRun, setMissionHasRun] = useState(false);
+  const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
+  const [missionFixApplied, setMissionFixApplied] = useState(false);
+  const [missionCompleted, setMissionCompleted] = useState(false);
+  const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
   const [moreAnchor, setMoreAnchor] = useState<{ right: number; top: number } | null>(null);
@@ -165,6 +175,44 @@ export function BlocksStudioPage({
     [project, pageId],
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
+  const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const answeredCorrectly = storyMission?.choices.some(
+    (choice) => choice.id === missionAnswer && choice.correct,
+  ) ?? false;
+  const missionScript = useMemo(
+    () => page.characters
+      .flatMap((character) => character.scripts)
+      .find((script) => script.blocks[0]?.op === 'when_flag'
+        && script.blocks.some((block) => block.op === 'say')
+        && script.blocks.some((block) => block.op === 'hop')),
+    [page],
+  );
+  const missionOps = missionScript?.blocks.map((block) => block.op) ?? [];
+  const missionTargetFixed = missionOps.indexOf('hop') > 0
+    && missionOps.indexOf('hop') < missionOps.indexOf('say');
+  const visibleCoachCue: StoryCoachCue = missionCompleted
+    ? 'complete'
+    : running
+      ? storyCoachCue
+      : missionFixApplied
+        ? 'test'
+        : missionAnswer
+          ? answeredCorrectly
+            ? 'fix'
+            : 'retry'
+          : storyCoachCue;
+  const introducedMissionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (phase !== 'ready' || !storyMission || introducedMissionRef.current === projectId) return;
+    introducedMissionRef.current = projectId ?? storyMission.lessonId;
+    setMissionHasRun(false);
+    setMissionAnswer(null);
+    setMissionFixApplied(false);
+    setMissionCompleted(false);
+    setStoryCoachCue('ready');
+    setMissionOpen(true);
+  }, [phase, projectId, storyMission]);
 
   // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
   // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
@@ -309,6 +357,7 @@ export function BlocksStudioPage({
     setSays(new Map());
     setActiveBlocks(new Map());
     setRunning(false);
+    setStoryCoachCue('ready');
   }, [dirty, pageId]);
 
   // ── run ───────────────────────────────────────────────────────────────────
@@ -335,17 +384,28 @@ export function BlocksStudioPage({
       // key the live highlight by SCRIPT, not character — a character can run
       // several tracks at once, and each track's current block must glow
       // simultaneously (ScratchJr highlights the running block in every thread).
-      onStep: (_charId, scriptId, index) =>
+      onStep: (_charId, scriptId, index) => {
         setActiveBlocks((prev) => {
           const next = new Map(prev);
           if (index < 0) next.delete(scriptId);
           else next.set(scriptId, `${scriptId}:${index}`);
           return next;
-        }),
+        });
+        if (storyMission && index >= 0) {
+          const script = page.characters
+            .flatMap((character) => character.scripts)
+            .find((candidate) => candidate.id === scriptId);
+          const op = script?.blocks[index]?.op;
+          const sayIndex = script?.blocks.findIndex((block) => block.op === 'say') ?? -1;
+          const hopIndex = script?.blocks.findIndex((block) => block.op === 'hop') ?? -1;
+          if (op === 'say') setStoryCoachCue(sayIndex < hopIndex ? 'sayFirst' : 'sayThen');
+          if (op === 'hop') setStoryCoachCue(hopIndex < sayIndex ? 'hopFirst' : 'hopThen');
+        }
+      },
     });
     runnerRef.current = runner;
     return runner;
-  }, [page]);
+  }, [page, storyMission]);
 
   // fast lookup for the "lit" glow: the set of "scriptId:index" running now
   const activeKeys = useMemo(() => new Set(activeBlocks.values()), [activeBlocks]);
@@ -353,6 +413,7 @@ export function BlocksStudioPage({
   const go = useCallback(() => {
     if (running) return;
     setRunning(true);
+    if (storyMission) setStoryCoachCue('watch');
     demo?.onStoryRun?.('start'); // try-demo: tour spotlights the stage while it plays
     const runner = makeRunner();
     runner.resetAll();
@@ -360,8 +421,34 @@ export function BlocksStudioPage({
     void runner.runFlag().finally(() => {
       setRunning(false);
       demo?.onStoryRun?.('end');
+      if (storyMission) {
+        setMissionHasRun(true);
+        if (missionFixApplied && missionTargetFixed) {
+          setMissionCompleted(true);
+          setStoryCoachCue('complete');
+        }
+        setMissionOpen(true);
+      }
     });
-  }, [running, makeRunner, demo]);
+  }, [running, makeRunner, demo, storyMission, missionFixApplied, missionTargetFixed]);
+
+  const applyMissionFix = useCallback(() => {
+    if (!missionScript) return;
+    const hopIndex = missionScript.blocks.findIndex((block) => block.op === 'hop');
+    const sayIndex = missionScript.blocks.findIndex((block) => block.op === 'say');
+    if (hopIndex < 1 || sayIndex < 1) return;
+    if (hopIndex > sayIndex) {
+      useBlocksStore.getState().moveBlockAcross(
+        missionScript.id,
+        hopIndex,
+        missionScript.id,
+        sayIndex,
+      );
+    }
+    setMissionFixApplied(true);
+    setStoryCoachCue('test');
+    setMissionOpen(false);
+  }, [missionScript]);
 
   // try-demo seam: the tour's Next can press the REAL Go for the user
   useEffect(() => {
@@ -375,6 +462,7 @@ export function BlocksStudioPage({
     setSays(new Map());
     setActiveBlocks(new Map());
     setRunning(false);
+    setStoryCoachCue('ready');
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -841,6 +929,17 @@ export function BlocksStudioPage({
           </div>
         </div>
         <div className="flex-1" />
+        {storyMission && (
+          <button
+            type="button"
+            className="bsx-mission-launcher"
+            data-testid="story-mission-launcher"
+            onClick={() => setMissionOpen(true)}
+            title="Open the story and mission"
+          >
+            📖 <span>Story mission</span>
+          </button>
+        )}
         <button
           type="button"
           className={`bsx-press grid h-11 w-11 place-items-center${muted ? ' bsx-muted-on' : ''}`}
@@ -883,6 +982,18 @@ export function BlocksStudioPage({
         </button>
       </header>
 
+      {storyMission && missionOpen && (
+        <StoryMissionGuide
+          mission={storyMission}
+          hasRun={missionHasRun}
+          completed={missionCompleted}
+          answerId={missionAnswer}
+          onAnswer={setMissionAnswer}
+          onApplyFix={applyMissionFix}
+          onClose={() => setMissionOpen(false)}
+        />
+      )}
+
       {/* ── middle: characters · stage · pages ── */}
       <section className="bsx-middle">
         <aside className="bsx-railbox" style={{ gridArea: 'chars' }} aria-label="Characters">
@@ -898,7 +1009,7 @@ export function BlocksStudioPage({
               style={c.id === selectedChar?.id ? { boxShadow: '0 0 0 4px #5DAEFF, 0 4px 0 var(--bsx-border)' } : undefined}
               title={c.name}
             >
-              {c.emoji}
+              <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset-thumb' : undefined} />
               {c.id === selectedChar?.id && page.characters.length > 1 && (
                 <span
                   role="button"
@@ -965,6 +1076,14 @@ export function BlocksStudioPage({
             </button>
             {/* beside (never over) the scene button — the stage's name tag */}
             <ZoneTag zone="stage" emoji="🎬" label="Stage" />
+            {storyMission && !missionOpen && (
+              <StoryCoachPanel
+                mission={storyMission}
+                cue={visibleCoachCue}
+                running={running}
+                onGo={go}
+              />
+            )}
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
               const st = run?.st ?? startState(c);
@@ -1000,7 +1119,7 @@ export function BlocksStudioPage({
                     }}
                     title={`${c.name} — drag to move, tap to run 👆, drag to the bin to remove`}
                   >
-                    {c.emoji}
+                    <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset' : undefined} />
                   </div>
                 </div>
               );

@@ -145,8 +145,32 @@ export interface Character {
   id: string;
   name: string;
   emoji: string;
+  /** Optional first-party visual. Emoji remains the portable fallback. */
+  asset?: string;
   start: CharacterStart;
   scripts: Script[];
+}
+
+const STORY_BLOCKS_ASSET_PREFIX = '/story-blocks/';
+
+function safeCharacterAsset(value: unknown): string | undefined {
+  return typeof value === 'string' && value.startsWith(STORY_BLOCKS_ASSET_PREFIX)
+    ? value.slice(0, 240)
+    : undefined;
+}
+
+const TINY_STAR_A1_H_ASSET =
+  '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+
+function legacyLessonId(pages: Page[]): string | undefined {
+  const page = pages[0];
+  const littleLight = page?.characters.find(
+    (character) => character.asset === TINY_STAR_A1_H_ASSET,
+  );
+  const ops = littleLight?.scripts[0]?.blocks.map((block) => block.op).join(',');
+  return page?.background === 'tsv-window-room-dim' && ops === 'when_flag,say,hop,end'
+    ? 'tsv-s1-a1-h'
+    : undefined;
 }
 export interface Page {
   id: string;
@@ -156,6 +180,8 @@ export interface Page {
 export interface BlocksProject {
   version: 1;
   name: string;
+  /** Optional curriculum identity used to load a first-party story mission. */
+  lessonId?: string;
   pages: Page[];
 }
 
@@ -208,6 +234,7 @@ export function parseProject(raw: string): BlocksProject {
         id: typeof c?.id === 'string' && c.id ? c.id : newId('char'),
         name: typeof c?.name === 'string' && c.name ? c.name.slice(0, 24) : `Friend ${ci + 1}`,
         emoji: typeof c?.emoji === 'string' && c.emoji ? c.emoji : '🐱',
+        asset: safeCharacterAsset(c?.asset),
         start: {
           gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
           gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
@@ -237,7 +264,15 @@ export function parseProject(raw: string): BlocksProject {
         page.characters.push(blankProject().pages[0].characters[0]);
       }
     }
-    return { version: 1, name: typeof doc.name === 'string' ? doc.name.slice(0, 120) : 'My blocks project', pages };
+    return {
+      version: 1,
+      name: typeof doc.name === 'string' ? doc.name.slice(0, 120) : 'My blocks project',
+      lessonId:
+        typeof doc.lessonId === 'string' && /^[a-z0-9-]{1,64}$/.test(doc.lessonId)
+          ? doc.lessonId
+          : legacyLessonId(pages),
+      pages,
+    };
   } catch {
     return blankProject();
   }

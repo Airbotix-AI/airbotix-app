@@ -202,6 +202,7 @@ export interface SceneChoice {
 
 // id → CSS-animated background in blocks.css (`.bsx-stage[data-scene="<id>"]`).
 export const SCENES: SceneChoice[] = [
+  { id: 'tsv-window-room-dim', label: 'Little Light room', emoji: '🌟' },
   { id: 'meadow', label: 'Meadow', emoji: '🌳' },
   { id: 'space', label: 'Space', emoji: '🌌' },
   { id: 'beach', label: 'Beach', emoji: '🏖️' },

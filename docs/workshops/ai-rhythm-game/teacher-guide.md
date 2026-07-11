@@ -6,7 +6,7 @@
 - Group size: 6 students
 - Structure: 3 pairs
 - Target: Australian junior high, Years 7-9
-- Tool: Airbotix Game Playground
+- Tool: Airbotix Creative Code Studio
 - Theme: original pop-star monster-battle rhythm game
 - Final outcome: playable 30-60 second prototype plus 1-minute pair showcase
 
@@ -106,7 +106,7 @@ Teacher approval criteria:
 
 ### 25-35: Build Sprint 1A
 
-Students open Game Playground and enter the first prompt.
+Students open Creative Code Studio and enter the first prompt.
 
 Recommended first prompt:
 
