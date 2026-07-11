@@ -67,6 +67,7 @@ describe('BlocksStudioPage zone labels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start the mission ▶' }));
     expect(screen.queryByTestId('story-mission')).not.toBeInTheDocument();
     expect(screen.getByTestId('story-mission-launcher')).toBeInTheDocument();
+    expect(screen.getByTestId('story-coach')).toHaveTextContent('Press Go');
   });
 
   it('every zone wears its emoji-first name tag', async () => {

@@ -103,6 +103,18 @@ export function StoryMissionGuide({
         ) : complete ? (
           <div className="bsx-mission-success" data-testid="story-mission-success">
             <p>{mission.success}</p>
+            <div className="bsx-logic-proof" data-testid="story-logic-proof">
+              <div className="bsx-logic-proof-steps">
+                {mission.logicSteps.map((step, index) => (
+                  <div key={step.label} className="bsx-logic-proof-step">
+                    <small>{step.order}</small>
+                    <strong>{step.icon} {step.label}</strong>
+                    {index < mission.logicSteps.length - 1 && <span aria-hidden>→</span>}
+                  </div>
+                ))}
+              </div>
+              <p>{mission.logicWhy}</p>
+            </div>
             <div className="bsx-mission-next">🌟 {mission.next}</div>
             <button type="button" className="bsx-mission-secondary" onClick={readStory}>
               📖 Read the story again

@@ -47,7 +47,8 @@ import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
-import { storyMissionFor } from './curriculumGuides';
+import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
+import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
 
 const SAVE_DEBOUNCE_MS = 800;
@@ -136,6 +137,7 @@ export function BlocksStudioPage({
   const [missionOpen, setMissionOpen] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
+  const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
   const [moreAnchor, setMoreAnchor] = useState<{ right: number; top: number } | null>(null);
@@ -172,6 +174,14 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const answeredCorrectly = storyMission?.choices.some(
+    (choice) => choice.id === missionAnswer && choice.correct,
+  ) ?? false;
+  const visibleCoachCue: StoryCoachCue = missionAnswer
+    ? answeredCorrectly
+      ? 'complete'
+      : 'retry'
+    : storyCoachCue;
   const introducedMissionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -179,6 +189,7 @@ export function BlocksStudioPage({
     introducedMissionRef.current = projectId ?? storyMission.lessonId;
     setMissionHasRun(false);
     setMissionAnswer(null);
+    setStoryCoachCue('ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission]);
 
@@ -325,6 +336,7 @@ export function BlocksStudioPage({
     setSays(new Map());
     setActiveBlocks(new Map());
     setRunning(false);
+    setStoryCoachCue('ready');
   }, [dirty, pageId]);
 
   // ── run ───────────────────────────────────────────────────────────────────
@@ -351,17 +363,25 @@ export function BlocksStudioPage({
       // key the live highlight by SCRIPT, not character — a character can run
       // several tracks at once, and each track's current block must glow
       // simultaneously (ScratchJr highlights the running block in every thread).
-      onStep: (_charId, scriptId, index) =>
+      onStep: (_charId, scriptId, index) => {
         setActiveBlocks((prev) => {
           const next = new Map(prev);
           if (index < 0) next.delete(scriptId);
           else next.set(scriptId, `${scriptId}:${index}`);
           return next;
-        }),
+        });
+        if (storyMission && index >= 0) {
+          const script = page.characters
+            .flatMap((character) => character.scripts)
+            .find((candidate) => candidate.id === scriptId);
+          const op = script?.blocks[index]?.op;
+          if (op === 'say' || op === 'hop') setStoryCoachCue(op);
+        }
+      },
     });
     runnerRef.current = runner;
     return runner;
-  }, [page]);
+  }, [page, storyMission]);
 
   // fast lookup for the "lit" glow: the set of "scriptId:index" running now
   const activeKeys = useMemo(() => new Set(activeBlocks.values()), [activeBlocks]);
@@ -369,6 +389,7 @@ export function BlocksStudioPage({
   const go = useCallback(() => {
     if (running) return;
     setRunning(true);
+    if (storyMission) setStoryCoachCue('watch');
     demo?.onStoryRun?.('start'); // try-demo: tour spotlights the stage while it plays
     const runner = makeRunner();
     runner.resetAll();
@@ -377,6 +398,7 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
+        setStoryCoachCue('hop');
         setMissionHasRun(true);
         setMissionOpen(true);
       }
@@ -395,6 +417,7 @@ export function BlocksStudioPage({
     setSays(new Map());
     setActiveBlocks(new Map());
     setRunning(false);
+    setStoryCoachCue('ready');
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -1006,6 +1029,14 @@ export function BlocksStudioPage({
             </button>
             {/* beside (never over) the scene button — the stage's name tag */}
             <ZoneTag zone="stage" emoji="🎬" label="Stage" />
+            {storyMission && !missionOpen && (
+              <StoryCoachPanel
+                mission={storyMission}
+                cue={visibleCoachCue}
+                running={running}
+                onGo={go}
+              />
+            )}
             {page.characters.map((c) => {
               const run = runStates?.get(c.id);
               const st = run?.st ?? startState(c);

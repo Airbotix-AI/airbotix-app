@@ -13,6 +13,7 @@
 - Added a persistent **Story Blocks** launcher to the `/learn/workspace` sidebar, routing directly to the Story Blocks starter/library page without pretending block coding is an AI chat session.
 - Completed the A1-H learning loop with an automatic story-and-mission introduction, a post-run observation check, retry guidance, an explicit success explanation, and a persistent **Story mission** launcher. Curriculum projects now carry a safe `lessonId` instead of relying on their display name; existing A1-H projects are recognised by their exact scene/asset/block fingerprint.
 - Reworked the A1-H storybook against the season SOT into four narrative beats: the Bell Tower's warm morning light, the missing bell and light, Little Light's dream-mixed greeting, and the child's invitation as Morning Light Helper. Added character dialogue and a real story synopsis to the starter card instead of showing an operation instruction as its description.
+- Added a persistent Little Light story coach beside the A1-H stage. It keeps the next action visible after the storybook closes, narrates the live Say-then-Hop execution as the blocks run, offers direct Go/retry actions, and shows the successful `Morning → Hop` block-to-story proof with a left-to-right explanation.
 
 All notable changes to airbotix-app (Portal + Learn SPA) are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/); entries are grouped

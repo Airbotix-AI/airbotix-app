@@ -77,6 +77,11 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-mission-success')).toHaveTextContent(
       'The order of the blocks makes the story feel strange',
     );
+    expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('💬 Morning!');
+    expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('🦘 Hop');
+    expect(screen.getByTestId('story-logic-proof')).toHaveTextContent(
+      'The speech block is on the left, so it runs first',
+    );
     expect(screen.getByText(/Next, you will help Little Light wake up first/)).toBeInTheDocument();
   });
 });

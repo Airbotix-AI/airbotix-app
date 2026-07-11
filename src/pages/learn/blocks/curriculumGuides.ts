@@ -4,6 +4,23 @@ export interface StoryMissionChoice {
   correct: boolean;
 }
 
+export type StoryCoachCue = 'ready' | 'watch' | 'say' | 'hop' | 'retry' | 'complete';
+
+export interface StoryCoachCopy {
+  ready: string;
+  watch: string;
+  say: string;
+  hop: string;
+  retry: string;
+  complete: string;
+}
+
+export interface StoryLogicStep {
+  icon: string;
+  label: string;
+  order: string;
+}
+
 export interface StoryPage {
   emoji: string;
   title: string;
@@ -24,6 +41,9 @@ export interface StoryMission {
   retry: string;
   successTitle: string;
   success: string;
+  coach: StoryCoachCopy;
+  logicSteps: StoryLogicStep[];
+  logicWhy: string;
   next: string;
 }
 
@@ -75,6 +95,19 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     successTitle: 'You found the mixed-up step! ⭐',
     success:
       'Little Light talks before it wakes up. The order of the blocks makes the story feel strange.',
+    coach: {
+      ready: 'Press Go. Watch only two things: the speech bubble and the hop.',
+      watch: 'Watch closely… which block lights up first?',
+      say: 'First, I say “Morning!” 💬',
+      hop: 'Then, I hop awake! 🦘',
+      retry: 'Let’s watch again. Look for the speech bubble first.',
+      complete: 'You found it! The blocks run from left to right.',
+    },
+    logicSteps: [
+      { icon: '💬', label: 'Morning!', order: 'First' },
+      { icon: '🦘', label: 'Hop', order: 'Then' },
+    ],
+    logicWhy: 'The speech block is on the left, so it runs first.',
     next: 'Next, you will help Little Light wake up first, then say hello.',
   },
 };
