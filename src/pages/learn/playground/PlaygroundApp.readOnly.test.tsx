@@ -92,7 +92,7 @@ const VFS = [file('main.js', 'console.log("hi")')];
 beforeEach(() => {
   monacoSeen.length = 0;
   readVfsMock.mockReset().mockResolvedValue(VFS);
-  getProjectMock.mockReset().mockResolvedValue({ id: 'g1', title: 'My Game', learning_context: null });
+  getProjectMock.mockReset().mockResolvedValue({ id: 'g1', title: 'My Game' });
   apiMock.mockReset().mockResolvedValue({ stars_balance: 7 });
   saveProjectMock.mockReset().mockResolvedValue({ status: 'saved', version: 1 });
   // The Game Runner stage + tab strips use a ResizeObserver jsdom doesn't have.

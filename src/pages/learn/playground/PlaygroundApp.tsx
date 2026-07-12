@@ -5,7 +5,7 @@ import { useBlocker, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 
-import { getProject, readVfs, type LearningContext, type VfsFile } from '../code/codeApi';
+import { getProject, readVfs, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject, createPrepGameProject, placeGameProjectForClass } from './panes/playgroundApi';
@@ -139,9 +139,6 @@ export function PlaygroundApp({
   const mode: 'lite' | 'pro' = kidAge != null && kidAge >= 12 ? 'pro' : 'lite';
   // The AI's first turn (generated on the loading screen) → seeds the workspace chat.
   const [firstTurn, setFirstTurn] = useState<FirstTurnSeed | undefined>(undefined);
-  // Resume recap (D-PAP-19,22): the teacher's persisted "where we left off", shown
-  // as a welcome-back card on a resumed game (no fresh first turn).
-  const [resumeRecap, setResumeRecap] = useState<LearningContext | null>(null);
   // The project's game engine (2D phaser / 3D three) — drives which vendored global
   // + control shim the runner injects (learn-game-studio-3d-prd.md D-3D-01). Loaded
   // from the project below; defaults to phaser for a project-less local scaffold.
@@ -527,17 +524,6 @@ export function PlaygroundApp({
             } else {
               useWorkspaceUiStore.getState().restore(null);
             }
-            // Resume recap (D-PAP-19,22): on a genuine resume (real project, no
-            // fresh first turn) fetch the teacher's persisted "where we left off"
-            // and show the welcome-back card. Best-effort — never block the studio.
-            if (projectId && !ft) {
-              try {
-                const proj = await getProject(projectId);
-                setResumeRecap(proj.learning_context ?? null);
-              } catch {
-                setResumeRecap(null);
-              }
-            }
             // Auto-run on entering the workspace so the FIRST build plays (and
             // gets verified) without the kid pressing ▶ (D-PAP-40). The initial
             // turn's id isn't threaded through the generating flow — the
@@ -567,7 +553,6 @@ export function PlaygroundApp({
           onRun={run}
           prompt={prompt}
           firstTurn={firstTurn}
-          resumeRecap={resumeRecap}
           initialChat={initialChat}
           onChatChange={persistChat}
           blockedSeed={blockedSeed}
