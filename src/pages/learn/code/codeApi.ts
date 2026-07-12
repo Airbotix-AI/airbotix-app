@@ -221,6 +221,10 @@ export interface AgentTurnResult {
   // RunReport for it (see useVerification). 'none' = never verifiable (no file
   // changes / not a game). Optional: absent on older backends ⇒ treat as 'none'.
   verification?: 'pending' | 'none';
+  // Screenshot-verify hint (D-HARN-21b), riding the verification payload: with
+  // `verification: 'pending'`, true asks the studio to attach a composited
+  // screenshot to this turn's RunReport. Absent/false ⇒ never capture.
+  screenshot_requested?: boolean;
 }
 
 /** One next-step option the teacher offers on `done` (rendered as a chip). */
@@ -776,6 +780,9 @@ export interface VerifyState {
   turn_id: string | null;
   verify_status: 'none' | 'pending' | 'verified' | 'failed_fixed' | 'failed_codebug' | 'expired';
   attempts: number;
+  /** D-HARN-21b: the pending turn's resumed report should carry screenshot
+   *  evidence. Absent on older backends ⇒ false. */
+  screenshot_requested?: boolean;
 }
 
 /**

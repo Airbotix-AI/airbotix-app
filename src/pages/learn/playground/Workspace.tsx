@@ -257,7 +257,9 @@ export function Workspace({
   // Post-apply verification (D-PAP-40): the loop driver is created BELOW the
   // agent hook (it surfaces its co-debug bubble through the agent's chat), so
   // the agent's onTurnApplied reaches beginVerification through this ref.
-  const beginVerificationRef = useRef<(turnId: string) => void>(() => {});
+  const beginVerificationRef = useRef<(turnId: string, screenshotRequested?: boolean) => void>(
+    () => {},
+  );
 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
@@ -309,9 +311,11 @@ export function Workspace({
       readOnly,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
-      // Arm the run-report loop for an applied turn awaiting verification.
+      // Arm the run-report loop for an applied turn awaiting verification. The
+      // screenshot hint (D-HARN-21b) rides along so the report can carry evidence.
       onTurnApplied: (r) => {
-        if (r.verification === 'pending' && r.turn_id) beginVerificationRef.current(r.turn_id);
+        if (r.verification === 'pending' && r.turn_id)
+          beginVerificationRef.current(r.turn_id, r.screenshot_requested === true);
       },
       clientActions: {
         runGame: runFromEditor,

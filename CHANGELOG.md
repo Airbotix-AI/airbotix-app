@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-07-12
+
+### Added
+- **Game overlay layer (D-GAME13, frontend runtime half).** `overlay.html` is the ONE
+  reserved HTML fragment the game runtime renders: `buildGamePreview.ts` sanitizes it with
+  DOMParser (scripts stripped, malformed markup repaired so an unclosed tag can't swallow
+  kid scripts), inlines asset refs, and injects it as `<div id="overlay">` above `#game`
+  with pass-through base CSS (`pointer-events:none` container; buttons/`[data-ui]` opt back
+  in, ≥44px targets) BEFORE kid css. Every other `.html` file stays inert. A project
+  without `overlay.html` builds a **byte-identical** srcdoc (pinned by unit snapshot).
+  Overlay flows automatically to the public `/play` page, the class wall, and the teacher
+  live view via the shared builder (`ReadOnlyGameFrame` share-path test).
+- **Composited snapshots.** With an overlay present, the control channel's `snapshot`
+  reply composites the engine canvas (drawn at its on-screen rect — letterbox reproduced)
+  with the serialized `#overlay` DOM via an in-frame SVG foreignObject shim and posts
+  `{ dataUrl, composited: true }`; ANY failure falls back to the raw canvas
+  (`composited: false`). Workspace thumbnails pick this up with zero changes.
+- **Screenshot evidence on the RunReport (D-HARN-21b, frontend half).** When the backend's
+  verification payload carries `screenshot_requested` (turn result + `GET …/verify-state`),
+  `useVerification` captures a frame snapshot over the control channel, downscales it to a
+  ≤480px JPEG (`reportScreenshot.ts`), and attaches it to the RunReport POST as
+  `screenshot: { dataUrl, width, height }`. ANY capture failure (timeout / decode /
+  wire-illegal result) omits the field and still posts — a screenshot bug can never fail a
+  kid's run. Covered in `useVerification.test.ts` + `reportScreenshot.test.ts`.
+- **Starter overlay.** The starter scaffold ships an `overlay.html` (score chip + ▲/▼
+  touch buttons) wired from `src/scenes/Game.js` (pointer held-flags + HUD score update);
+  `game-smoke.spec.ts` proves it renders, passes events through, and its buttons work.
+- **`mobile-play` Playwright project** (`devices['iPhone 14']`, scoped to the `@mobile`
+  tests in `sharing-remix.spec.ts`): the /play overlay button taps on a phone viewport
+  with no page scroll and no zoom; the desktop `chromium` project excludes `@mobile`.
+
+### Changed
+- **Public `/play` page fits the real mobile viewport:** `h-dvh` where supported with an
+  `h-screen` fallback (`supports-[height:100dvh]:h-dvh` — the iOS/Android URL bar overlapped
+  100vh and hid bottom-anchored touch controls; pre-dvh browsers keep a working full-height
+  page); pull-to-refresh is disabled on the DOCUMENT root scroller via a route-scoped
+  `overscroll-behavior-y: none` effect (an inner-div `overscroll-none` never intercepted the
+  chained scroll); the gone/410 state likewise. Starter touch buttons stay live after any
+  canvas touch (pointer-follow is now drag-gated — an ungated `activePointer` follow re-pinned
+  the paddle to the stale touch position and deaded the ▲/▼ buttons), and `main.js` keeps the
+  game on `var game` (console-pokeable + testable).
+- `FileTree` shows a code-file icon for `.html`/`.htm`.
+- `e2e/sharing-remix.spec.ts` frozen-snapshot fixture now carries `overlay.html`; the
+  logged-out /play test asserts the overlay renders inside the play iframe while the
+  brand bar stays a sibling ABOVE the surface (D-GAME10e reconciliation).
+
 ## 2026-07-11
 
 ### Changed

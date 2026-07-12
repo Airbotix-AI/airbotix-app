@@ -62,6 +62,103 @@ test('game-smoke: the starter game runs with zero console errors and a live canv
     .toEqual([]);
 });
 
+// ── HTML overlay smoke (D-GAME13) ─────────────────────────────────────────────
+// The starter now ships `overlay.html` (score chip + ▲/▼ touch buttons) — the ONE
+// reserved fragment the runtime injects as `<div id="overlay">` above the canvas.
+// Proves the full overlay contract in a REAL browser: the fragment renders inside
+// the sandboxed frame, the container is pass-through (pointer-events: none) while
+// the buttons opt back in (auto), a HELD ▲ still moves the paddle AFTER the
+// canvas has been touched (the stale-activePointer regression class: an ungated
+// pointer-follow re-pins the paddle every frame and deads the buttons), the
+// composited snapshot channel delivers canvas+DOM pixels, and the game-runs
+// oracle (fps > 0) is unchanged.
+
+test('game-smoke (overlay): the starter overlay renders, passes events through, and its buttons work', async ({
+  page,
+}) => {
+  await installGameSignalRecorder(page);
+  await mockBackendAsKid(page, { age: 9 });
+  await openStudio(page);
+
+  await page.getByRole('button', { name: 'Run game' }).click();
+  await expect(page.locator('iframe[title="Game"]')).toBeVisible({ timeout: 6_000 });
+  const frame = page.frameLocator('iframe[title="Game"]');
+
+  // The overlay fragment renders INSIDE the sandboxed frame, above the canvas.
+  const upBtn = frame.locator('#overlay [data-ui]#btn-up');
+  await expect(upBtn).toBeVisible({ timeout: 6_000 });
+  await expect(frame.locator('#hud-score')).toHaveText('0');
+
+  // Pointer-events contract: the container swallows nothing; buttons opt in.
+  expect(
+    await frame.locator('#overlay').evaluate((el) => getComputedStyle(el).pointerEvents),
+  ).toBe('none');
+  expect(await upBtn.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('auto');
+
+  // Touch the canvas once — this leaves activePointer holding a stale position,
+  // the exact state where an ungated pointer-follow would dead the buttons…
+  await frame.locator('#game canvas').click({ position: { x: 40, y: 40 } });
+  // The starter's main.js keeps the game on `var game` (a window global in the
+  // classic-script srcdoc), so the paddle is directly observable in-frame.
+  const paddleY = () =>
+    frame
+      .locator('#overlay')
+      .evaluate(
+        () =>
+          (window as unknown as { game: { scene: { keys: { Game: { player: { y: number } } } } } })
+            .game.scene.keys.Game.player.y,
+      );
+  const before = await paddleY();
+  // …then HOLD ▲ and assert the paddle actually keeps moving up.
+  await upBtn.dispatchEvent('pointerdown');
+  await expect
+    .poll(paddleY, {
+      timeout: 5_000,
+      message: 'expected a held ▲ to keep moving the paddle up after a canvas touch',
+    })
+    .toBeLessThan(before - 10);
+  await upBtn.dispatchEvent('pointerup');
+
+  // Composited snapshot (D-HARN-21b): with an overlay present, the snapshot
+  // channel must reply with canvas+DOM pixels (`composited: true`) — the
+  // foreignObject compositor working in a real browser, not just the fallback.
+  const snapshot = await page.evaluate(async () => {
+    const iframe = document.querySelector<HTMLIFrameElement>('iframe[title="Game"]');
+    if (!iframe?.contentWindow) return null;
+    const reply = new Promise<{ composited?: boolean; dataUrl?: string } | null>((resolve) => {
+      const timer = setTimeout(() => resolve(null), 5_000);
+      window.addEventListener('message', function onMsg(e: MessageEvent) {
+        const d = e.data as { __airbotixSnapshot?: boolean; dataUrl?: string; composited?: boolean };
+        if (d && d.__airbotixSnapshot === true) {
+          clearTimeout(timer);
+          window.removeEventListener('message', onMsg);
+          resolve({ composited: d.composited, dataUrl: d.dataUrl });
+        }
+      });
+    });
+    iframe.contentWindow.postMessage({ __airbotixControl: true, action: 'snapshot' }, '*');
+    return reply;
+  });
+  expect(snapshot?.composited, 'the foreignObject compositor must succeed in a real browser').toBe(
+    true,
+  );
+  expect(snapshot?.dataUrl ?? '').toMatch(/^data:image\//);
+
+  // The game-runs oracle is UNCHANGED: loop alive + zero console errors.
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __smokeMaxFps: number }).__smokeMaxFps), {
+      timeout: 10_000,
+      message: 'expected a runner stat with fps > 0 (the game loop is alive)',
+    })
+    .toBeGreaterThan(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __smokeErrors: string[] }).__smokeErrors), {
+      timeout: 3_000,
+      message: 'the starter game with an overlay must run clean',
+    })
+    .toEqual([]);
+});
+
 // ── 3D + GLB smoke (D-3D-09) ──────────────────────────────────────────────────
 // The full "use a 3D model in the game" chain, sandbox-side: a three-engine
 // project whose VFS carries an animated .glb asset loads it with the vendored

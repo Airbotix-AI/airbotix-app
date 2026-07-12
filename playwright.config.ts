@@ -28,7 +28,24 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Desktop chromium runs everything EXCEPT the @mobile-tagged tests (those
+    // need touch + a phone viewport and run under mobile-play below).
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, grepInvert: /@mobile/ },
+    // Device-emulation truth for the majority-mobile /play share surface
+    // (overlay touch controls, dvh viewport). Scoped: ONLY the @mobile tests in
+    // the sharing spec — never the visual baselines (the snapshot path template
+    // carries no project name, so a second device would fight the desktop PNGs).
+    // NB: devices['iPhone 14'] defaults to WebKit — real iOS-Safari-engine
+    // fidelity for the -webkit- overlay CSS + dvh + touch; a true-device
+    // spot-check before prod flag flips stays a manual step.
+    {
+      name: 'mobile-play',
+      use: { ...devices['iPhone 14'] },
+      testMatch: /sharing-remix\.spec\.ts/,
+      grep: /@mobile/,
+    },
+  ],
   webServer: {
     command: `npm run dev -- --port ${PORT} --strictPort`,
     port: PORT,

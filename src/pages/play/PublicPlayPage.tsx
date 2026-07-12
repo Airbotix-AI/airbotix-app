@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -31,6 +32,22 @@ import { PlayBrandBar } from './PlayBrandBar';
 export function PublicPlayPage() {
   const { shareId } = useParams<{ shareId: string }>();
 
+  // Android pull-to-refresh chains out of the game iframe to the DOCUMENT root
+  // scroller — `overscroll-behavior` on an inner div does nothing (it only acts
+  // on scroll containers / the viewport-defining html/body). Route-scoped so
+  // the rest of the SPA keeps native pull-to-refresh.
+  useEffect(() => {
+    const html = document.documentElement;
+    const prevHtml = html.style.overscrollBehaviorY;
+    const prevBody = document.body.style.overscrollBehaviorY;
+    html.style.overscrollBehaviorY = 'none';
+    document.body.style.overscrollBehaviorY = 'none';
+    return () => {
+      html.style.overscrollBehaviorY = prevHtml;
+      document.body.style.overscrollBehaviorY = prevBody;
+    };
+  }, []);
+
   const snapshot = useQuery<PublicSnapshot>({
     queryKey: ['play', shareId],
     queryFn: () => readPublicSnapshot(shareId!),
@@ -45,7 +62,7 @@ export function PublicPlayPage() {
     return (
       <div
         data-testid="play-revoked"
-        className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-black px-6 text-center text-white"
+        className="flex h-screen w-screen flex-col items-center justify-center gap-3 bg-black px-6 text-center text-white supports-[height:100dvh]:h-dvh"
       >
         <div className="text-[40px]">🌙</div>
         <h1 className="text-[20px] font-bold">This game link has ended</h1>
@@ -61,8 +78,16 @@ export function PublicPlayPage() {
   const files = snapshot.data?.files;
   const blocksFile = files?.find((f) => f.path === BLOCKS_PROJECT_FILE);
 
+  // dvh where supported (mobile Safari/Chrome URL bars overlap 100vh, hiding
+  // bottom-anchored overlay touch controls; dvh tracks the VISIBLE viewport)
+  // with an h-screen fallback so pre-dvh browsers keep a working full-height
+  // page instead of a collapsed one. Pull-to-refresh is disabled on the ROOT
+  // scroller by the route-scoped effect above.
   return (
-    <div data-testid="play-root" className="flex h-screen w-screen flex-col bg-black">
+    <div
+      data-testid="play-root"
+      className="flex h-screen w-screen flex-col bg-black supports-[height:100dvh]:h-dvh"
+    >
       <PlayBrandBar />
       <div className="min-h-0 flex-1">
         {snapshot.isLoading ? (
