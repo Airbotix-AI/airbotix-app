@@ -27,6 +27,7 @@ export function StudioPicker({
             <button
               key={s.id}
               disabled={busy}
+              data-testid={`studio-pick-${s.id}`}
               onClick={() => onPick(s.id)}
               className={clsx(
                 'group rounded-2xl border-2 border-hairline bg-canvas-pure p-5 text-left transition-all',

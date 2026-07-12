@@ -1,5 +1,173 @@
 # Changelog
 
+## 2026-07-12 (feat: Music Stage — Save to My Works + Mixer entry + style_changes counter, music-stage-prd v0.5)
+
+### Fixed
+- **Version pin no longer yanked by passive updates** — a background messages
+  refetch (or another device's activity) used to re-run the "new version
+  arrived" choreography and unpin the kid's selected version (AC-7); the
+  choreography now only fires for takes this client requested. Also added
+  `data-testid="studio-pick-<id>"` to the studio picker buttons so harness
+  journeys can target them deterministically.
+
+### Added
+- **`[💾 Save]` on the transport row (PRD §2 step ⑤)**: promotes the CURRENT
+  score version into the kid's My Works by composing existing endpoints only —
+  `POST /projects` (creative project titled after the song) → artifact
+  `upload-url` → S3 PUT → register — with metadata mirroring the backend's own
+  score persistence (inline `score`, summary fields, `upload_failed`
+  resilience when the PUT fails). Saved state is per version; a failed save
+  explains itself in the AI bubble and stays retryable
+  (`saveScoreToMyWorks` in `musicScoreApi.ts`, `stage-save` testid).
+- **`[⚙️ Mixer]` entry (PRD §4 D-MX1)**: toggles the legacy `MusicTrackList`
+  mini-DAW region (real-audio tracks: imports + studio songs) as the Mixer
+  home until the score Mixer (parent PRD §3.5–3.9) lands; the region states
+  the capability boundary ("note editing / score re-rolls arrive soon") —
+  never faked. Track-lane `⋯` menu entries now deep-link into the same region
+  via `onOpenMixer` (`stage-mixer` / `mixer-region` / `mixer-note` testids).
+- **`style_changes` audit counter (PRD §8)**: the Stage counts 0⭐
+  instrument-style switches since the last generation and sends the tally on
+  the next `POST /llm/music-score` (omitted when zero; backend audit defaults
+  to 0), resetting after each success — the parent-visible iteration profile.
+
+## 2026-07-12 (fix: Music Stage — production soundfont self-host gate, music-stage-prd OQ-3)
+
+### Fixed
+- **The smplr sample path is now gated on self-hosting in production
+  (music-stage-prd OQ-3 launch gate)**: `smplrEnabled()` allows smplr only
+  when `VITE_SOUNDFONT_BASE_URL` points at our own origin, or in DEV builds
+  (external default sources are a dev convenience only). A production build
+  without the env var closes the whole smplr path — no preloads, no loads, no
+  external requests — and plays the styled Tone.js fallback voices (AC-11)
+  with a single explanatory `console.info`.
+- **`DrumMachine` always receives an explicit sample-source `url`**
+  (`drumMachineUrlFor` → `<base>/drum-machines/<machine>/dm.json`, same origin
+  as the soundfonts when self-hosted) instead of silently resolving smplr's
+  baked-in third-party default.
+
+### Changed
+- `.env.example` documents `VITE_SOUNDFONT_BASE_URL` as REQUIRED in production
+  for sampled timbres, including the expected layout (gleitz soundfonts at the
+  root, smpldsnds drum machines under `/drum-machines`).
+
+## 2026-07-12 (fix: Music Stage — align frontend↔backend music-score contract)
+
+### Fixed
+- **Suggestion-card modifier keys now use the canonical backend enum**
+  (`energy+1` / `energy-1` / `drums+` / `guitar_solo` / `surprise`, matching
+  platform-backend `SCORE_MODIFIER_KEYS`): the DTO enum-validates the
+  `modifier` field, so the previous `energy_up` / `energy_down` / `big_drums`
+  keys would have 400'd every suggestion card. `stageData.test.ts` now pins
+  the canonical keys as a cross-repo contract test.
+- **Version history works in free-play sessions (no project → no Artifact)**:
+  the backend inlines the composed score on the session message itself
+  (`Message.metadata.score`, music-stage-prd §3.5), so
+  `aggregateScoreVersions` now reads message metadata first and falls back to
+  the artifact's inlined copy for project-scoped generations. Previously
+  free-play generations produced an empty version rail.
+
+### Changed
+- `MusicScoreResult` matches the real `POST /llm/music-score` response shape:
+  gains the inline `score` and `session_id` fields alongside `stars_charged` /
+  `balance_after` / `artifact_id`.
+- `Message` (WorkspacePage) gains the optional `metadata?: { score? }` field
+  carried by score-bearing session messages.
+
+## 2026-07-12 (feat: Music Stage — smplr timbres + instrument styles, music-stage-prd Phase D §5/§6.1)
+
+### Added
+- **smplr GM-soundfont timbre engine (PRD §6.1, Tier-1)**: every §5 instrument
+  style now maps to a real sampled voice — melodic styles to General MIDI
+  programs (new `soundfont.ts` with the 12-program `GM_PROGRAM_SOUNDFONTS`
+  table), drum styles to sampled drum machines (`DRUM_MACHINE_FOR_STYLE`:
+  Rock→LM-2, Lo-fi→Casio-RZ1, Electro→TR-808) with fuzzy hit-name → sample
+  mapping. Soundfonts lazy-load per program with an 8s timeout; the base URL is
+  a named constant overridable via `VITE_SOUNDFONT_BASE_URL` (defaults to
+  smplr's official source; switches to our S3+CloudFront before launch, OQ-3).
+- **Styled Tone.js fallbacks (§5 fallback column, AC-11)**: new
+  `toneFallbackVoices.ts` implements one synth recipe per style (square +
+  wave-shaper crunch, −12st sine Deep Sub, +12st Music Box bell, tremolo organ,
+  detuned-saw Cloud Pad, membrane+noise drum kits with a low-passed Lo-fi
+  flavor…). New per-track `voices.ts` controller starts on the fallback
+  instantly and upgrades to smplr **in place** — a failed/slow soundfont load
+  degrades with a console warning and playback never interrupts.
+- **1-beat style audition (§5)**: picking a non-None style while idle plays a
+  single representative beat with the new timbre (`previewStyle` on the
+  playback hook) — 0⭐, no regeneration; stage style tag and lane style name
+  stay in sync (AC-5).
+- **Soundfont preloading (§6.1)**: the composing animation now doubles as a
+  cache warm-up — `preloadPrograms` fetches the GM programs of the pending
+  style set (genre preset on first generation) while the LLM writes the score.
+- Unit tests: style→GM mapping completeness (15 styles + None per slot), URL
+  building/env override, load/timeout/degrade paths, drum-hit fuzzy mapping,
+  fallback recipe selection + transposes, voice-controller upgrade/dispose
+  races, and pane tests for preview-on-pick, no-preview-on-None and preload.
+
+### Changed
+- `useScorePlayback` now builds voices per slot **style** (not a fixed synth
+  per instrument) behind stable controllers, so style changes swap timbres
+  mid-playback without touching the Tone.js Transport scheduling (architecture
+  unchanged per §6.1: smplr replaces the sound source, not the scheduler).
+
+## 2026-07-12 (feat: Music Stage — Track Lanes, music-stage-prd Phase C §4)
+
+### Added
+- **Track Lanes polish (PRD §4)**: piano-roll note blocks now **light up while
+  they sound** (full-strength instrument color + glow, synced with the
+  playhead and the stage pulses); each lane gained a tail `⋯` overflow menu
+  that keeps per-track download / note editing / re-roll **off the kid-facing
+  lane** and deep-links them into the advanced Mixer via a new
+  `onOpenMixer(trackIndex, action)` contract — entries render greyed out with
+  a one-line note until the Mixer task wires it (stated capability boundaries,
+  never faked).
+- Component tests for the lanes: one lane per generated track including extra
+  tracks (percussion/strings, AC-9), lane-click ↔ stage-slot selection for
+  nearest-instrument mapping, mute/solo dimming the stage in sync (AC-6
+  frontend half), VOL forwarding, active-note lighting, overflow-menu
+  behaviour, and the narrow-screen drawer handle (AC-12).
+
+### Changed
+- Compacted the Track Lanes styling (narrower channel strip, shorter
+  piano-rolls) so Stage + Lanes share one desktop screen per PRD §2.1.
+
+## 2026-07-12 (feat: Music Stage — studio=music opening, music-stage-prd Phase B)
+
+### Added
+- **Music Stage** now opens `/learn/workspace` studio=music (replacing the
+  form-based setup, music-stage-prd.md §1.1): a theater `StageView` with 5
+  fixed instrument positions, moving spotlight, genre neon marquee,
+  note-triggered performance pulses, 16-step walk lights, empty-band state and
+  staggered first-entrance pop-in (all animation disabled under
+  `prefers-reduced-motion`); a `ComposerBar` (description input, 6 inspiration
+  chips, 4 genre pills, `−3⭐` compose button, Stars chip); a full-stage
+  composing overlay for the real LLM wait (first-take vs remix subtitles, no
+  fake progress bar); a template-assembled **AI bubble** (title/key/BPM/genre +
+  what changed — no extra LLM call); **5 suggestion cards** that iterate via
+  the same `POST /llm/music-score` endpoint with a structured `modifier` key +
+  `existingScore` (`🎲 Surprise me` re-rolls without `existingScore`); and
+  client-side **version pills** aggregated from session messages (0⭐ switch
+  that preserves manual instrument styles and mute — AC-7).
+- **0⭐ instrument-style layer (UI/state)**: 3 styles + None per stage
+  instrument with genre presets applied after the first generation; `None`
+  silences the mapped tracks and dims the instrument on stage. GM-program
+  mapping is declared for the upcoming smplr timbre task (PRD §5/§6.1).
+- Component/unit tests for the Stage: empty stage (AC-1), Stars guard that
+  sends no request under 3⭐ (AC-8), composing overlay + request contract
+  (AC-2/3/4), kid-friendly failure + retry (AC-10 path), lanes-per-track
+  rendering (AC-9 frontend half) and version switching (AC-7).
+
+### Changed
+- Extracted the Tone.js engine from `MusicScorePlayer` into a shared
+  `useScorePlayback` hook (instrument-keyed mute/solo/volume, velocity
+  support, all 14 score instrument kinds, note-pulse subscription) and
+  re-homed the per-track channel strips as `TrackLanes` under the stage —
+  one transport drives the stage pulses, walk lights and lanes. On narrow
+  screens (<740px) the lanes collapse behind a persistent `🎚 Tracks` handle
+  (AC-12). `MusicScorePlayer.tsx` was removed; score types now live in
+  `stage/scoreTypes.ts` with lane colors on K-12 brand tokens.
+- `studios.ts`: the music studio no longer has a setup form (Stage replaces
+  it); music sessions skip straight from the picker into the Stage.
+
 ## 2026-07-11
 
 ### Changed

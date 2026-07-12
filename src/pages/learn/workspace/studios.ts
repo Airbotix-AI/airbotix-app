@@ -75,12 +75,9 @@ export const STUDIOS: StudioMeta[] = [
       'Spooky Halloween background music',
       'A calm piano lullaby',
     ],
-    setup: [
-      { kind: 'pick', key: 'style', label: 'Style', options: ['Pop', 'Rock', 'Classical', 'Jazz', 'Lo-fi', '8-bit', 'Cinematic'], defaultIndex: 0 },
-      { kind: 'pick', key: 'mood', label: 'Mood', options: ['Happy', 'Sad', 'Calm', 'Energetic', 'Spooky', 'Magical'], defaultIndex: 0 },
-      { kind: 'pick', key: 'length', label: 'Length', options: ['15s', '30s', '60s'], defaultIndex: 1 },
-      { kind: 'multi', key: 'instruments', label: 'Instruments', options: ['Piano', 'Guitar', 'Ukulele', 'Drums', 'Strings', 'Synth', 'Flute', 'Bass'], max: 3 },
-    ],
+    // No setup form: the Music Stage (Composer Bar + genre pills) replaces the
+    // form-based setup as the studio=music opening (music-stage-prd.md §1.1).
+    setup: [],
   },
   {
     id: 'voice',
