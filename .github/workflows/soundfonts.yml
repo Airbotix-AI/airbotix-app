@@ -72,7 +72,10 @@ jobs:
             # a case-sensitive host. Fetch from the cased path that resolves; the
             # re-homing below then hands our origin a manifest that is *correct*,
             # not just local.
+            # Sample names may themselves be PATHS (TR-808 ships 116 of them, e.g.
+            # "kick/bd0000") — mirror that tree locally or curl has nowhere to write.
             for sample in $(jq -r '.samples[]' "$dir/dm.json.orig"); do
+              mkdir -p "$dir/$(dirname "$sample")"
               for fmt in $(jq -r '.formats[]' "$dir/dm.json.orig"); do
                 curl -fsSL "$DRUMS_UPSTREAM/$machine/${sample}.${fmt}" \
                   -o "$dir/${sample}.${fmt}"
@@ -116,8 +119,13 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSI "$PUBLIC_BASE/FluidR3_GM/acoustic_grand_piano-mp3.js" | head -1
-          dm=$(curl -fsSL "$PUBLIC_BASE/drum-machines/LM-2/dm.json")
-          base=$(echo "$dm" | jq -r '.baseUrl')
-          echo "$base" | grep -q "^https://app.airbotix.ai/soundfonts/"
-          sample=$(echo "$dm" | jq -r '.samples[0]')
-          curl -fsSI "${base}${sample}.ogg" | head -1
+          for machine in LM-2 Casio-RZ1 TR-808; do
+            dm=$(curl -fsSL "$PUBLIC_BASE/drum-machines/$machine/dm.json")
+            base=$(echo "$dm" | jq -r '.baseUrl')
+            echo "$base" | grep -q "^https://app.airbotix.ai/soundfonts/"
+            # Load a real sample THROUGH the re-homed baseUrl — "dm.json exists"
+            # must never again pass for "the drums actually play".
+            sample=$(echo "$dm" | jq -r '.samples[0]')
+            echo "✓ $machine ← ${base}${sample}.ogg"
+            curl -fsSI "${base}${sample}.ogg" | head -1
+          done
