@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-07-12 (feat: Music Stage — smplr timbres + instrument styles, music-stage-prd Phase D §5/§6.1)
+
+### Added
+- **smplr GM-soundfont timbre engine (PRD §6.1, Tier-1)**: every §5 instrument
+  style now maps to a real sampled voice — melodic styles to General MIDI
+  programs (new `soundfont.ts` with the 12-program `GM_PROGRAM_SOUNDFONTS`
+  table), drum styles to sampled drum machines (`DRUM_MACHINE_FOR_STYLE`:
+  Rock→LM-2, Lo-fi→Casio-RZ1, Electro→TR-808) with fuzzy hit-name → sample
+  mapping. Soundfonts lazy-load per program with an 8s timeout; the base URL is
+  a named constant overridable via `VITE_SOUNDFONT_BASE_URL` (defaults to
+  smplr's official source; switches to our S3+CloudFront before launch, OQ-3).
+- **Styled Tone.js fallbacks (§5 fallback column, AC-11)**: new
+  `toneFallbackVoices.ts` implements one synth recipe per style (square +
+  wave-shaper crunch, −12st sine Deep Sub, +12st Music Box bell, tremolo organ,
+  detuned-saw Cloud Pad, membrane+noise drum kits with a low-passed Lo-fi
+  flavor…). New per-track `voices.ts` controller starts on the fallback
+  instantly and upgrades to smplr **in place** — a failed/slow soundfont load
+  degrades with a console warning and playback never interrupts.
+- **1-beat style audition (§5)**: picking a non-None style while idle plays a
+  single representative beat with the new timbre (`previewStyle` on the
+  playback hook) — 0⭐, no regeneration; stage style tag and lane style name
+  stay in sync (AC-5).
+- **Soundfont preloading (§6.1)**: the composing animation now doubles as a
+  cache warm-up — `preloadPrograms` fetches the GM programs of the pending
+  style set (genre preset on first generation) while the LLM writes the score.
+- Unit tests: style→GM mapping completeness (15 styles + None per slot), URL
+  building/env override, load/timeout/degrade paths, drum-hit fuzzy mapping,
+  fallback recipe selection + transposes, voice-controller upgrade/dispose
+  races, and pane tests for preview-on-pick, no-preview-on-None and preload.
+
+### Changed
+- `useScorePlayback` now builds voices per slot **style** (not a fixed synth
+  per instrument) behind stable controllers, so style changes swap timbres
+  mid-playback without touching the Tone.js Transport scheduling (architecture
+  unchanged per §6.1: smplr replaces the sound source, not the scheduler).
+
 ## 2026-07-12 (feat: Music Stage — Track Lanes, music-stage-prd Phase C §4)
 
 ### Added

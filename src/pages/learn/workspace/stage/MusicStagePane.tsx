@@ -20,6 +20,7 @@ import { StageView, type StageSlotView } from './StageView';
 import { TrackLanes } from './TrackLanes';
 import { generateMusicScore, type MusicScoreRequest } from './musicScoreApi';
 import type { InstrumentKind } from './scoreTypes';
+import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
 import {
   COMPOSE_FAILED_BUBBLE,
@@ -112,7 +113,7 @@ export function MusicStagePane({
     return out;
   }, [score, styles]);
 
-  const playback = useScorePlayback(score, silenced);
+  const playback = useScorePlayback(score, silenced, styles);
   const { play: playbackPlay, stop: playbackStop, unlock: playbackUnlock, onPulse } = playback;
 
   const generation = useMutation({
@@ -183,11 +184,21 @@ export function MusicStagePane({
       setFailed(null);
       if (playback.isPlaying) playbackStop();
       void playbackUnlock();
+      // Warm the soundfont cache while the composing animation runs — the
+      // first song uses the genre's preset styles (PRD §6.1).
+      const styleSet =
+        versions.length === 0 ? GENRE_BY_ID[genre].presetStyles : styles;
+      preloadPrograms(
+        STAGE_SLOTS.flatMap((slot) => {
+          const program = styleOf(slot.id, styleSet[slot.id])?.gmProgram;
+          return program == null ? [] : [program];
+        }),
+      );
       generation.mutate(req, {
         onError: () => setFailed({ req, meta, subtitle }),
       });
     },
-    [generation, balance, playback.isPlaying, playbackStop, playbackUnlock],
+    [generation, balance, playback.isPlaying, playbackStop, playbackUnlock, versions.length, genre, styles],
   );
 
   /** Composer-bar generate: a fresh direction — modifier cleared (PRD §3.4). */
@@ -316,7 +327,11 @@ export function MusicStagePane({
           onSuggestion={generateFromCard}
           selectedSlot={selectedSlot}
           styles={styles}
-          onStyle={(slot, styleId) => setStyles((s) => ({ ...s, [slot]: styleId }))}
+          onStyle={(slot, styleId) => {
+            setStyles((s) => ({ ...s, [slot]: styleId }));
+            // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
+            if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
+          }}
         />
 
         {score ? (

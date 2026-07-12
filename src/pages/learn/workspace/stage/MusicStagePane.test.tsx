@@ -9,7 +9,7 @@ import { ApiError } from '@/lib/api';
 import type { Message } from '../WorkspacePage';
 import type { MusicScore } from './scoreTypes';
 
-const { playbackMock, generateMusicScoreMock } = vi.hoisted(() => ({
+const { playbackMock, generateMusicScoreMock, preloadProgramsMock } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
     position: 0,
@@ -24,8 +24,10 @@ const { playbackMock, generateMusicScoreMock } = vi.hoisted(() => ({
     volumes: {} as Record<string, number>,
     setVolume: vi.fn(),
     onPulse: vi.fn(() => () => {}),
+    previewStyle: vi.fn(async () => {}),
   },
   generateMusicScoreMock: vi.fn(),
+  preloadProgramsMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -33,6 +35,10 @@ vi.mock('./useScorePlayback', () => ({
 }));
 vi.mock('./musicScoreApi', () => ({
   generateMusicScore: generateMusicScoreMock,
+}));
+// smplr layer is exercised in soundfont.test.ts — here only the preload call.
+vi.mock('./soundfont', () => ({
+  preloadPrograms: preloadProgramsMock,
 }));
 // Legacy audio-artifact fallback pulls in wavesurfer — irrelevant here.
 vi.mock('../MusicTrackList', () => ({
@@ -175,6 +181,18 @@ describe('MusicStagePane — generation', () => {
     expect(playbackMock.unlock).toHaveBeenCalled();
   });
 
+  it('warms the soundfont cache for the genre preset styles while composing (§6.1)', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([]);
+    fireEvent.change(screen.getByTestId('composer-input'), {
+      target: { value: 'a space puppy adventure' },
+    });
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await screen.findByTestId('stage-composing');
+    // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17.
+    expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17]);
+  });
+
   it('sends structured modifier + existingScore for suggestion cards (AC-4)', async () => {
     generateMusicScoreMock.mockResolvedValue({ stars_charged: 3, balance_after: 9, artifact_id: 'a9' });
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
@@ -262,6 +280,25 @@ describe('MusicStagePane — versions (AC-7)', () => {
     expect(screen.getByTestId('now-line')).not.toHaveTextContent('Space Pup II');
     expect(screen.getByTestId('stage-style-keys')).toHaveTextContent('Dreamy EP');
     expect(generateMusicScoreMock).not.toHaveBeenCalled();
+  });
+
+  it('previews the fresh style for one beat and syncs stage tag + lane name (AC-5)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-inst-keys'));
+    fireEvent.click(screen.getByTestId('style-keys-ep'));
+    // 0⭐: timbre swap + audition, never a generation request.
+    expect(playbackMock.previewStyle).toHaveBeenCalledWith('keys', 'ep');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('stage-style-keys')).toHaveTextContent('Dreamy EP');
+    // keyboard is track index 4 — its lane shows the same style name.
+    expect(screen.getByTestId('lane-style-4')).toHaveTextContent('Dreamy EP');
+  });
+
+  it('does not audition style = None', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-inst-drums'));
+    fireEvent.click(screen.getByTestId('style-drums-none'));
+    expect(playbackMock.previewStyle).not.toHaveBeenCalled();
   });
 
   it('marks style = None as an off (dimmed) instrument on stage', () => {

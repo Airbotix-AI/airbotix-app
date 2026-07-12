@@ -4,20 +4,33 @@
 //
 // Mute / solo / volume are keyed by INSTRUMENT KIND (not track index) so the
 // kid's manual mixing survives version switches even when the LLM reorders
-// tracks (AC-7). Timbres are V0 Tone.js synths; the smplr soundfont task
-// (PRD §6.1) swaps the voice factory, not this scheduling.
+// tracks (AC-7). Voices are smplr GM soundfonts with styled Tone.js fallbacks
+// (PRD §5 + §6.1, AC-11) behind stable per-track controllers — style changes
+// swap the voice in place and never touch the Transport scheduling (AC-5).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
 
 import type { InstrumentKind, MusicScore } from './scoreTypes';
-import { scoreDurationSeconds } from './scoreUtils';
+import { parseDurationBeats, scoreDurationSeconds } from './scoreUtils';
+import { INSTRUMENT_STYLES, STYLE_NONE, stageSlotFor, type StageSlotId, type StageStyles } from './stageData';
+import { createTrackVoice, type TrackVoice } from './voices';
 
 const DEFAULT_VOLUME = 0.85;
 const DEFAULT_VELOCITY = 0.9;
 const POSITION_POLL_MS = 50;
+const PREVIEW_TEMPO_FALLBACK_BPM = 100;
+const PREVIEW_VELOCITY = 0.9;
+const PREVIEW_TAIL_SECONDS = 2;
 
-type SynthVoice = Tone.PolySynth | Tone.MembraneSynth | Tone.MonoSynth | Tone.PluckSynth;
+/** One representative note per slot for the 1-beat style preview (PRD §5). */
+const PREVIEW_NOTES: Record<StageSlotId, string> = {
+  guitar: 'E3',
+  bass: 'E2',
+  drums: 'kick',
+  piano: 'C4',
+  keys: 'C4',
+};
 
 export type PulseListener = (instrument: InstrumentKind) => void;
 
@@ -38,16 +51,25 @@ export interface ScorePlayback {
   setVolume: (instrument: InstrumentKind, v: number) => void;
   /** Subscribe to note-trigger pulses; returns an unsubscribe fn. */
   onPulse: (cb: PulseListener) => () => void;
+  /** 1-beat timbre audition after picking a style, when not playing (0⭐). */
+  previewStyle: (slot: StageSlotId, styleId: string) => Promise<void>;
+}
+
+function defaultStyleFor(slot: StageSlotId): string {
+  return INSTRUMENT_STYLES[slot][0].id;
 }
 
 export function useScorePlayback(
   score: MusicScore | null,
   /** Instruments silenced from outside the mixer (style = None, PRD §3.1). */
   silenced?: ReadonlySet<string>,
+  /** Current per-slot instrument styles; drives the voice timbres (PRD §5). */
+  styles?: StageStyles,
 ): ScorePlayback {
-  const synthsRef = useRef<SynthVoice[]>([]);
   const channelsRef = useRef<Tone.Channel[]>([]);
   const partsRef = useRef<Tone.Part[]>([]);
+  const voicesRef = useRef<(TrackVoice | null)[]>([]);
+  const voiceSpecsRef = useRef<(string | null)[]>([]);
   const pulseListenersRef = useRef<Set<PulseListener>>(new Set());
   const pulseTimersRef = useRef<Set<number>>(new Set());
 
@@ -56,6 +78,9 @@ export function useScorePlayback(
   const [muted, setMuted] = useState<Record<string, boolean>>({});
   const [solo, setSolo] = useState<InstrumentKind | null>(null);
   const [volumes, setVolumes] = useState<Record<string, number>>({});
+
+  const isPlayingRef = useRef(false);
+  isPlayingRef.current = isPlaying;
 
   const totalDuration = useMemo(() => (score ? scoreDurationSeconds(score) : 0), [score]);
 
@@ -69,33 +94,26 @@ export function useScorePlayback(
     pulseTimersRef.current.add(id);
   }, []);
 
-  // Build synths + schedule parts whenever the score changes.
+  // Build channels + schedule parts whenever the score changes. Voices live in
+  // a separate effect so a style change never rebuilds the schedule.
   useEffect(() => {
     if (!score) return;
     Tone.getTransport().bpm.value = score.tempo;
     const secondsPerBeat = 60 / score.tempo;
 
-    score.tracks.forEach((t) => {
+    score.tracks.forEach((t, idx) => {
       const channel = new Tone.Channel({ volume: 0, pan: 0 }).toDestination();
       channelsRef.current.push(channel);
-      const synth = makeSynthFor(t.instrument);
-      synth.connect(channel);
-      synthsRef.current.push(synth);
 
-      const isDrumTrack = t.instrument === 'drums' || t.instrument === 'percussion';
       const events = t.notes.map((n) => ({
         time: n.time * secondsPerBeat,
         note: n.note,
-        duration: n.duration,
+        durationSec: parseDurationBeats(n.duration) * secondsPerBeat,
         velocity: n.velocity ?? DEFAULT_VELOCITY,
       }));
       const part = new Tone.Part((time, value) => {
         const v = value as (typeof events)[number];
-        if (isDrumTrack) {
-          triggerDrum(synth, v.note, time, v.velocity);
-        } else {
-          (synth as Tone.PolySynth).triggerAttackRelease(v.note, v.duration, time, v.velocity);
-        }
+        voicesRef.current[idx]?.trigger(v.note, v.durationSec, time, v.velocity);
         emitPulse(t.instrument, time);
       }, events);
       part.start(0);
@@ -105,10 +123,11 @@ export function useScorePlayback(
     const timers = pulseTimersRef.current;
     return () => {
       for (const part of partsRef.current) part.dispose();
-      for (const synth of synthsRef.current) synth.dispose();
+      for (const voice of voicesRef.current) voice?.dispose();
       for (const ch of channelsRef.current) ch.dispose();
       partsRef.current = [];
-      synthsRef.current = [];
+      voicesRef.current = [];
+      voiceSpecsRef.current = [];
       channelsRef.current = [];
       for (const id of timers) window.clearTimeout(id);
       timers.clear();
@@ -118,6 +137,22 @@ export function useScorePlayback(
       setPosition(0);
     };
   }, [score, emitPulse]);
+
+  // (Re)build per-track voices when the score or a slot style changes. Only
+  // tracks whose spec actually changed are swapped — in place, mid-playback.
+  useEffect(() => {
+    score?.tracks.forEach((t, idx) => {
+      const channel = channelsRef.current[idx];
+      if (!channel) return;
+      const slot = stageSlotFor(t.instrument);
+      const styleId = styles?.[slot] ?? defaultStyleFor(slot);
+      const spec = `${slot}|${styleId}`;
+      if (voiceSpecsRef.current[idx] === spec && voicesRef.current[idx]) return;
+      voicesRef.current[idx]?.dispose();
+      voicesRef.current[idx] = createTrackVoice(slot, styleId, channel);
+      voiceSpecsRef.current[idx] = spec;
+    });
+  }, [score, styles]);
 
   // Push mute / solo / silenced state into channels.
   useEffect(() => {
@@ -192,6 +227,35 @@ export function useScorePlayback(
     };
   }, []);
 
+  // 1-beat audition of a freshly picked style. Skipped while playing — the
+  // live song already demonstrates the new timbre (PRD §5).
+  const tempo = score?.tempo ?? PREVIEW_TEMPO_FALLBACK_BPM;
+  const previewStyle = useCallback(
+    async (slot: StageSlotId, styleId: string) => {
+      if (styleId === STYLE_NONE || isPlayingRef.current) return;
+      await Tone.start(); // called from the style-tag click, gesture is live
+      const channel = new Tone.Channel({ volume: 0, pan: 0 }).toDestination();
+      const voice = createTrackVoice(slot, styleId, channel);
+      await voice.ready; // bounded by the soundfont load timeout
+      if (isPlayingRef.current) {
+        // Playback started while the soundfont loaded — the song takes over.
+        voice.dispose();
+        channel.dispose();
+        return;
+      }
+      const beatSeconds = 60 / tempo;
+      voice.trigger(PREVIEW_NOTES[slot], beatSeconds, Tone.now(), PREVIEW_VELOCITY);
+      window.setTimeout(
+        () => {
+          voice.dispose();
+          channel.dispose();
+        },
+        (beatSeconds + PREVIEW_TAIL_SECONDS) * 1000,
+      );
+    },
+    [tempo],
+  );
+
   return {
     isPlaying,
     position,
@@ -206,75 +270,6 @@ export function useScorePlayback(
     volumes,
     setVolume,
     onPulse,
+    previewStyle,
   };
-}
-
-// ── voices ───────────────────────────────────────────────────────────────────
-
-function makeSynthFor(instrument: InstrumentKind): SynthVoice {
-  switch (instrument) {
-    case 'piano':
-    case 'keyboard':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.005, decay: 0.3, sustain: 0.2, release: 1 },
-      });
-    case 'guitar':
-      return new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.9 });
-    case 'bass':
-      return new Tone.MonoSynth({
-        oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.6 },
-        filter: { Q: 2, type: 'lowpass', rolloff: -24 },
-      });
-    case 'strings':
-    case 'pad':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.6, decay: 0.2, sustain: 0.8, release: 1.5 },
-      });
-    case 'brass':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.08, decay: 0.2, sustain: 0.7, release: 0.5 },
-      });
-    case 'synth':
-    case 'other':
-      return new Tone.PolySynth(Tone.FMSynth);
-    case 'flute':
-    case 'lead_vocals':
-    case 'backing_vocals':
-      return new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.15, decay: 0.1, sustain: 0.6, release: 0.8 },
-      });
-    case 'drums':
-    case 'percussion':
-      // One MembraneSynth as a generic drum voice; triggerDrum maps hit names
-      // to pitch + duration. The smplr task brings real GM drum kits.
-      return new Tone.MembraneSynth({
-        pitchDecay: 0.05,
-        octaves: 6,
-        envelope: { attack: 0.001, decay: 0.4, sustain: 0.0, release: 0.4 },
-      });
-  }
-}
-
-const DRUM_VOICE: Record<string, { pitch: string; duration: string; velocity: number }> = {
-  kick:  { pitch: 'C1', duration: '8n',  velocity: 1 },
-  tom:   { pitch: 'G1', duration: '8n',  velocity: 0.9 },
-  snare: { pitch: 'A1', duration: '16n', velocity: 0.9 },
-  clap:  { pitch: 'B1', duration: '16n', velocity: 0.8 },
-  hat:   { pitch: 'A4', duration: '32n', velocity: 0.3 },
-  ride:  { pitch: 'D5', duration: '16n', velocity: 0.25 },
-};
-
-function triggerDrum(synth: SynthVoice, hit: string, time: number, velocity: number) {
-  const voice = DRUM_VOICE[hit] ?? DRUM_VOICE.kick;
-  (synth as Tone.MembraneSynth).triggerAttackRelease(
-    voice.pitch,
-    voice.duration,
-    time,
-    voice.velocity * velocity,
-  );
 }
