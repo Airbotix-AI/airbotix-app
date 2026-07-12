@@ -57,13 +57,18 @@ vi.mock('tone', () => ({
 const gainNode = h.gainNode;
 
 import {
+  DRUM_MACHINE_DEFAULT_BASE_URL,
   DRUM_MACHINE_FOR_STYLE,
   GM_PROGRAM_SOUNDFONTS,
   SOUNDFONT_DEFAULT_BASE_URL,
   SOUNDFONT_LOAD_TIMEOUT_MS,
+  drumMachineUrlFor,
   loadDrumSoundfont,
   loadMelodicSoundfont,
   preloadPrograms,
+  resetSmplrGateForTests,
+  smplrEnabled,
+  soundfontBaseUrl,
   soundfontUrlFor,
 } from './soundfont';
 import { INSTRUMENT_STYLES, STYLE_NONE } from './stageData';
@@ -76,6 +81,7 @@ beforeEach(() => {
   h.instance = null;
   h.soundfontOpts = null;
   h.drumOpts = null;
+  resetSmplrGateForTests();
 });
 
 afterEach(() => {
@@ -134,6 +140,63 @@ describe('soundfontUrlFor', () => {
   it('returns null for unmapped programs (e.g. drum-kit numbers)', () => {
     expect(soundfontUrlFor(0)).toBeNull();
     expect(soundfontUrlFor(8)).toBeNull();
+  });
+});
+
+describe('production gating (music-stage-prd OQ-3 launch gate)', () => {
+  it('DEV builds may use the external default sources', () => {
+    // vitest runs as a DEV build; no env override configured.
+    expect(smplrEnabled()).toBe(true);
+    expect(soundfontBaseUrl()).toBe(SOUNDFONT_DEFAULT_BASE_URL);
+    expect(drumMachineUrlFor('electro')).toBe(
+      `${DRUM_MACHINE_DEFAULT_BASE_URL}/TR-808/dm.json`,
+    );
+  });
+
+  it('production without VITE_SOUNDFONT_BASE_URL closes the whole smplr path with ONE log', () => {
+    vi.stubEnv('DEV', false);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    expect(smplrEnabled()).toBe(false);
+    expect(smplrEnabled()).toBe(false); // repeated checks don't re-log
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0][0])).toContain('Tone.js fallback');
+    expect(soundfontBaseUrl()).toBeNull();
+    expect(soundfontUrlFor(1)).toBeNull();
+    expect(drumMachineUrlFor('rockkit')).toBeNull();
+    info.mockRestore();
+  });
+
+  it('production with a self-hosted base keeps smplr on, same-origin drums included', () => {
+    vi.stubEnv('DEV', false);
+    vi.stubEnv('VITE_SOUNDFONT_BASE_URL', 'https://cdn.airbotix.ai/soundfonts/');
+    expect(smplrEnabled()).toBe(true);
+    // trailing slash normalised; drum machines live under the SAME origin.
+    expect(soundfontUrlFor(1)).toBe(
+      'https://cdn.airbotix.ai/soundfonts/FluidR3_GM/acoustic_grand_piano-mp3.js',
+    );
+    expect(drumMachineUrlFor('lofikit')).toBe(
+      'https://cdn.airbotix.ai/soundfonts/drum-machines/Casio-RZ1/dm.json',
+    );
+  });
+
+  it('does not preload anything while gated off', () => {
+    vi.stubEnv('DEV', false);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const fetchMock = vi.fn(() => Promise.resolve());
+    vi.stubGlobal('fetch', fetchMock);
+    preloadPrograms([1, 29, 34]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    info.mockRestore();
+  });
+
+  it('load calls reject instead of touching external sources while gated off', async () => {
+    vi.stubEnv('DEV', false);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    await expect(loadMelodicSoundfont(1, channel)).rejects.toThrow('smplr gated off');
+    await expect(loadDrumSoundfont('rockkit', channel)).rejects.toThrow('smplr gated off');
+    expect(h.soundfontOpts).toBeNull();
+    expect(h.drumOpts).toBeNull();
+    info.mockRestore();
   });
 });
 
@@ -205,6 +268,8 @@ describe('loadDrumSoundfont', () => {
     h.instance = inst;
     const voice = await loadDrumSoundfont('electro', channel);
     expect(h.drumOpts?.instrument).toBe(DRUM_MACHINE_FOR_STYLE.electro);
+    // The sample source is ALWAYS explicit — never smplr's baked-in default.
+    expect(h.drumOpts?.url).toBe(drumMachineUrlFor('electro'));
     voice.trigger('hat', 0.25, 2, 0.4);
     expect(inst.start).toHaveBeenCalledWith({
       note: 'hat-closed',

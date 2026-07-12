@@ -7,7 +7,7 @@
 
 import type * as Tone from 'tone';
 
-import { loadDrumSoundfont, loadMelodicSoundfont, type SoundfontVoice } from './soundfont';
+import { loadDrumSoundfont, loadMelodicSoundfont, smplrEnabled, type SoundfontVoice } from './soundfont';
 import { STYLE_NONE, styleOf, type StageSlotId } from './stageData';
 import { makeFallbackVoice, type FallbackVoice } from './toneFallbackVoices';
 
@@ -36,7 +36,10 @@ export function createTrackVoice(
   let active: FallbackVoice | SoundfontVoice = makeFallbackVoice(slot, styleId, channel);
 
   const gmProgram = styleId === STYLE_NONE ? null : (styleOf(slot, styleId)?.gmProgram ?? null);
-  const wantsSoundfont = gmProgram !== null;
+  // Production without a self-hosted sample source keeps the whole smplr path
+  // closed (music-stage-prd OQ-3 gate): stay on the Tone.js fallback (AC-11).
+  // `smplrEnabled` logs the single explanatory line itself.
+  const wantsSoundfont = gmProgram !== null && smplrEnabled();
 
   const ready: Promise<void> = wantsSoundfont
     ? (slot === 'drums'

@@ -10,12 +10,14 @@ const h = vi.hoisted(() => ({
   makeFallbackVoice: vi.fn(),
   loadMelodicSoundfont: vi.fn(),
   loadDrumSoundfont: vi.fn(),
+  smplrEnabled: vi.fn(() => true),
 }));
 
 vi.mock('./toneFallbackVoices', () => ({ makeFallbackVoice: h.makeFallbackVoice }));
 vi.mock('./soundfont', () => ({
   loadMelodicSoundfont: h.loadMelodicSoundfont,
   loadDrumSoundfont: h.loadDrumSoundfont,
+  smplrEnabled: h.smplrEnabled,
 }));
 
 import { createTrackVoice } from './voices';
@@ -32,6 +34,7 @@ function smplrVoice() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  h.smplrEnabled.mockReturnValue(true);
 });
 
 describe('createTrackVoice', () => {
@@ -81,6 +84,16 @@ describe('createTrackVoice', () => {
     voice.trigger('E3', 0.5, 0, 0.9);
     expect(fallback.trigger).toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('never attempts a soundfont when the smplr path is gated off (OQ-3 launch gate)', async () => {
+    h.smplrEnabled.mockReturnValue(false);
+    h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+    const voice = createTrackVoice('piano', 'grand', channel);
+    await voice.ready; // settles immediately — no network, no degrade warning
+    expect(h.loadMelodicSoundfont).not.toHaveBeenCalled();
+    expect(h.loadDrumSoundfont).not.toHaveBeenCalled();
+    expect(voice.engine).toBe('tone');
   });
 
   it('never attempts a soundfont for style = None', async () => {

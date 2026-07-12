@@ -12,17 +12,59 @@ import * as Tone from 'tone';
 import { DRUM_HITS, type DrumHit } from './scoreTypes';
 import { noteToMidi } from './scoreUtils';
 
-// Default = smplr's official soundfont source. Before launch these files move
-// to our own S3 + CloudFront and VITE_SOUNDFONT_BASE_URL points there
-// (music-stage-prd OQ-3 — third-party CDN is not a shippable dependency).
+// Sample sources are gated on self-hosting (music-stage-prd OQ-3 — a
+// third-party CDN is not a shippable dependency): production builds enable
+// smplr ONLY when VITE_SOUNDFONT_BASE_URL points at our own origin (S3 +
+// CloudFront, hosting the gleitz soundfont layout plus a `drum-machines/`
+// tree in the smpldsnds layout). The external default sources below are a
+// DEV-build convenience only; without the env var a production build keeps
+// the whole smplr path closed and plays the Tone.js fallback voices (AC-11).
 export const SOUNDFONT_DEFAULT_BASE_URL = 'https://gleitz.github.io/midi-js-soundfonts';
+export const DRUM_MACHINE_DEFAULT_BASE_URL = 'https://smpldsnds.github.io/drum-machines';
 export const SOUNDFONT_KIT = 'FluidR3_GM';
 export const SOUNDFONT_LOAD_TIMEOUT_MS = 8000;
 
 const MIDI_VELOCITY_MAX = 127;
 
-export function soundfontBaseUrl(): string {
-  return import.meta.env.VITE_SOUNDFONT_BASE_URL ?? SOUNDFONT_DEFAULT_BASE_URL;
+let smplrDisabledLogged = false;
+
+/** Test hook: the "smplr disabled" notice logs once per page load. */
+export function resetSmplrGateForTests(): void {
+  smplrDisabledLogged = false;
+}
+
+function configuredBaseUrl(): string | null {
+  const base = import.meta.env.VITE_SOUNDFONT_BASE_URL as string | undefined;
+  return base ? base.replace(/\/+$/, '') : null;
+}
+
+/**
+ * Whether the smplr sample path may run at all. Self-hosted source → yes;
+ * DEV build → yes (external defaults allowed for local work); production
+ * without VITE_SOUNDFONT_BASE_URL → no, with a single explanatory log.
+ */
+export function smplrEnabled(): boolean {
+  if (configuredBaseUrl() !== null) return true;
+  if (import.meta.env.DEV) return true;
+  if (!smplrDisabledLogged) {
+    smplrDisabledLogged = true;
+    console.info(
+      '[music-stage] VITE_SOUNDFONT_BASE_URL is not configured — smplr GM soundfonts are disabled in production builds and playback uses the Tone.js fallback voices (AC-11). Point VITE_SOUNDFONT_BASE_URL at the self-hosted sample origin to enable sampled timbres (music-stage-prd OQ-3).',
+    );
+  }
+  return false;
+}
+
+/** Melodic soundfont base, or null when the smplr path is gated off. */
+export function soundfontBaseUrl(): string | null {
+  return configuredBaseUrl() ?? (smplrEnabled() ? SOUNDFONT_DEFAULT_BASE_URL : null);
+}
+
+/** Drum-machine sample base (same origin as the soundfonts when self-hosted). */
+export function drumMachineBaseUrl(): string | null {
+  const configured = configuredBaseUrl();
+  if (configured) return `${configured}/drum-machines`;
+  return smplrEnabled() ? DRUM_MACHINE_DEFAULT_BASE_URL : null;
 }
 
 /**
@@ -47,8 +89,8 @@ export const GM_PROGRAM_SOUNDFONTS: Record<number, string> = {
 
 /**
  * Drum styles → smplr sampled drum machines standing in for the GM kits
- * (§5: Standard / Room-softened / Electronic). These load from smplr's
- * drum-machine source; they migrate to our CDN together with OQ-3.
+ * (§5: Standard / Room-softened / Electronic). Samples load from the
+ * explicit URL built by `drumMachineUrlFor` — never smplr's baked-in source.
  */
 export const DRUM_MACHINE_FOR_STYLE: Record<string, string> = {
   rockkit: 'LM-2', // GM Standard Kit stand-in — punchy sampled acoustic drums
@@ -56,10 +98,18 @@ export const DRUM_MACHINE_FOR_STYLE: Record<string, string> = {
   electro: 'TR-808', // GM Electronic Kit
 };
 
-/** Full melodic soundfont URL for a GM program, or null when unmapped. */
+/** Full melodic soundfont URL for a GM program; null when unmapped or gated. */
 export function soundfontUrlFor(program: number): string | null {
   const name = GM_PROGRAM_SOUNDFONTS[program];
-  return name ? `${soundfontBaseUrl()}/${SOUNDFONT_KIT}/${name}-mp3.js` : null;
+  const base = soundfontBaseUrl();
+  return name && base ? `${base}/${SOUNDFONT_KIT}/${name}-mp3.js` : null;
+}
+
+/** Explicit dm.json URL for a drum style; null when unmapped or gated. */
+export function drumMachineUrlFor(styleId: string): string | null {
+  const machine = DRUM_MACHINE_FOR_STYLE[styleId];
+  const base = drumMachineBaseUrl();
+  return machine && base ? `${base}/${machine}/dm.json` : null;
 }
 
 /**
@@ -134,8 +184,13 @@ export async function loadMelodicSoundfont(
   program: number,
   channel: Tone.Channel,
 ): Promise<SoundfontVoice> {
+  if (!GM_PROGRAM_SOUNDFONTS[program]) {
+    throw new Error(`No soundfont mapped for GM program ${program}`);
+  }
   const instrumentUrl = soundfontUrlFor(program);
-  if (!instrumentUrl) throw new Error(`No soundfont mapped for GM program ${program}`);
+  if (!instrumentUrl) {
+    throw new Error(`smplr gated off — no sample source for GM program ${program}`);
+  }
   const gain = bridgeIntoChannel(channel);
   try {
     const voice = Soundfont(Tone.getContext().rawContext, {
@@ -198,10 +253,16 @@ export async function loadDrumSoundfont(
 ): Promise<SoundfontVoice> {
   const machine = DRUM_MACHINE_FOR_STYLE[styleId];
   if (!machine) throw new Error(`No drum machine mapped for style "${styleId}"`);
+  const url = drumMachineUrlFor(styleId);
+  if (!url) throw new Error(`smplr gated off — no sample source for drum machine ${machine}`);
   const gain = bridgeIntoChannel(channel);
   try {
+    // `url` is always explicit (smplr's DrumMachineConfig.url override) so the
+    // sample origin is OURS when self-hosted — never the library's baked-in
+    // external default outside DEV builds.
     const voice = DrumMachine(Tone.getContext().rawContext, {
       instrument: machine,
+      url,
       destination: gain,
     }) as unknown as SmplrDrumInstrument;
     await withTimeout(voice.ready, SOUNDFONT_LOAD_TIMEOUT_MS, `drum machine ${machine}`);

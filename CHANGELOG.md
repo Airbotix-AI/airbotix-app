@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-12 (fix: Music Stage — production soundfont self-host gate, music-stage-prd OQ-3)
+
+### Fixed
+- **The smplr sample path is now gated on self-hosting in production
+  (music-stage-prd OQ-3 launch gate)**: `smplrEnabled()` allows smplr only
+  when `VITE_SOUNDFONT_BASE_URL` points at our own origin, or in DEV builds
+  (external default sources are a dev convenience only). A production build
+  without the env var closes the whole smplr path — no preloads, no loads, no
+  external requests — and plays the styled Tone.js fallback voices (AC-11)
+  with a single explanatory `console.info`.
+- **`DrumMachine` always receives an explicit sample-source `url`**
+  (`drumMachineUrlFor` → `<base>/drum-machines/<machine>/dm.json`, same origin
+  as the soundfonts when self-hosted) instead of silently resolving smplr's
+  baked-in third-party default.
+
+### Changed
+- `.env.example` documents `VITE_SOUNDFONT_BASE_URL` as REQUIRED in production
+  for sampled timbres, including the expected layout (gleitz soundfonts at the
+  root, smpldsnds drum machines under `/drum-machines`).
+
 ## 2026-07-12 (fix: Music Stage — align frontend↔backend music-score contract)
 
 ### Fixed
