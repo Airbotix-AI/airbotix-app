@@ -5,6 +5,11 @@ interface ImportMetaEnv {
   readonly VITE_WS_URL?: string;
   /** Marketing site base (airbotix.ai). Overrides the prod/dev default. */
   readonly VITE_MARKETING_URL?: string;
+  /**
+   * GM soundfont base for the Music Stage (music-stage-prd §6.1). Defaults to
+   * smplr's official source; point at our S3+CloudFront host before launch.
+   */
+  readonly VITE_SOUNDFONT_BASE_URL?: string;
 }
 
 interface ImportMeta {

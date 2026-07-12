@@ -9,8 +9,8 @@ import { ChatPane } from './ChatPane';
 import { CodePane } from './CodePane';
 import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
-import { MusicScorePlayer, type MusicScore } from './MusicScorePlayer';
-import { MusicTrackList } from './MusicTrackList';
+import { MusicStagePane } from './stage/MusicStagePane';
+import type { MusicScore } from './stage/scoreTypes';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
 import { buildPromptPrefix, STUDIO_BY_ID, type Studio } from './studios';
@@ -23,6 +23,12 @@ export interface Message {
   artifact_id: string | null;
   stars_charged: number;
   created_at: string;
+  /**
+   * Structured payload for turns with no Artifact: free-play music generations
+   * carry the composed score here (music-stage-prd §3.5 — versions aggregate
+   * from session messages, and free-play sessions have no project/Artifact).
+   */
+  metadata?: { score?: MusicScore } | null;
   artifact?: {
     id: string;
     kind: 'image' | 'audio' | 'video' | 'text' | 'code_file' | 'project_export';
@@ -157,17 +163,8 @@ export function WorkspacePage() {
           },
         });
       }
-      // Music studio uses the structured MIDI-score endpoint instead of raw audio,
-      // so the frontend Tone.js player can render per-instrument layered playback.
-      if (studio === 'music') {
-        // Free-play workspace session: no project_id (backend treats it as
-        // free-play, like the sibling studios). The generated artifact is linked
-        // to the Learning Session via append-artifact, not a project.
-        return api('/llm/music-score', {
-          method: 'POST',
-          body: { prompt: fullPrompt },
-        });
-      }
+      // studio === 'music' never reaches this mutation — the Music Stage pane
+      // owns generation via POST /llm/music-score (music-stage-prd.md §2).
       const endpoint = studio === 'voice' ? 'tts' : studio;
       return api(`/llm/${endpoint}`, {
         method: 'POST',
@@ -237,6 +234,19 @@ export function WorkspacePage() {
               }
             }}
             busy={createSession.isPending}
+          />
+        ) : studio === 'music' ? (
+          // Music Stage replaces the chat pane + form setup for studio=music
+          // (music-stage-prd.md §1.1). Keyed by session: stage state is
+          // session-scoped like setupValues.
+          <MusicStagePane
+            key={activeSessionId!}
+            sessionId={activeSessionId!}
+            messages={messages.data ?? []}
+            balance={balance}
+            kidId={kidId}
+            familyId={familyId}
+            onImportTrack={() => setShowImport(true)}
           />
         ) : (
           <>
@@ -309,37 +319,7 @@ export function WorkspacePage() {
 
       {studio === 'code' ? (
         <CodePane messages={messages.data ?? []} />
-      ) : studio === 'music' ? (
-        (() => {
-          // Find the most recent music score (text artifact with metadata.score)
-          const list = messages.data ?? [];
-          let latestScore: MusicScore | null = null;
-          for (let i = list.length - 1; i >= 0; i--) {
-            const m = list[i];
-            const s = m.artifact?.metadata?.score;
-            if (s && s.tracks) {
-              latestScore = s;
-              break;
-            }
-          }
-          return latestScore ? (
-            <MusicScorePlayer
-              score={latestScore}
-              onAddTrack={() => inputRef.current?.focus()}
-              onImportTrack={() => setShowImport(true)}
-            />
-          ) : (
-            <MusicTrackList
-              messages={list}
-              onGenerateTrack={() => inputRef.current?.focus()}
-              onImportTrack={() => setShowImport(true)}
-              onUploadTrack={() =>
-                setError('Upload your own coming next — for now Generate or Import a track.')
-              }
-            />
-          );
-        })()
-      ) : (
+      ) : studio === 'music' ? null : ( // stage pane owns the whole music surface
         <PreviewPane artifact={latestArtifact} tool={studio ?? 'chat'} />
       )}
 
