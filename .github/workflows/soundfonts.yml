@@ -66,11 +66,16 @@ jobs:
             dir="out/drum-machines/$machine"
             mkdir -p "$dir"
             curl -fsSL "$DRUMS_UPSTREAM/$machine/dm.json" -o "$dir/dm.json.orig"
-            # Samples live under the ORIGINAL baseUrl; formats are listed in the file.
-            src=$(jq -r '.baseUrl' "$dir/dm.json.orig")
+            # Do NOT fetch from the manifest's own baseUrl: upstream writes it
+            # lowercased ("…/drum-machines/lm-2/") while the samples actually sit
+            # under the machine's cased directory ("…/LM-2/"), so that path 404s on
+            # a case-sensitive host. Fetch from the cased path that resolves; the
+            # re-homing below then hands our origin a manifest that is *correct*,
+            # not just local.
             for sample in $(jq -r '.samples[]' "$dir/dm.json.orig"); do
               for fmt in $(jq -r '.formats[]' "$dir/dm.json.orig"); do
-                curl -fsSL "${src}${sample}.${fmt}" -o "$dir/${sample}.${fmt}"
+                curl -fsSL "$DRUMS_UPSTREAM/$machine/${sample}.${fmt}" \
+                  -o "$dir/${sample}.${fmt}"
               done
             done
             # Point the manifest at OUR origin — this is the step that actually
@@ -106,7 +111,13 @@ jobs:
             --paths "/soundfonts/*"
 
       - name: Verify the published origin
+        # Prove the two things a kid's browser actually needs: a melodic program
+        # loads, and a drum sample loads THROUGH the re-homed manifest's baseUrl.
         run: |
           set -euo pipefail
           curl -fsSI "$PUBLIC_BASE/FluidR3_GM/acoustic_grand_piano-mp3.js" | head -1
-          curl -fsSL "$PUBLIC_BASE/drum-machines/LM-2/dm.json" | jq -e '.baseUrl | startswith("https://app.airbotix.ai/")'
+          dm=$(curl -fsSL "$PUBLIC_BASE/drum-machines/LM-2/dm.json")
+          base=$(echo "$dm" | jq -r '.baseUrl')
+          echo "$base" | grep -q "^https://app.airbotix.ai/soundfonts/"
+          sample=$(echo "$dm" | jq -r '.samples[0]')
+          curl -fsSI "${base}${sample}.ogg" | head -1
