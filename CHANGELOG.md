@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-12 (ci: self-host the Music Stage sample library — closes music-stage OQ-3)
+
+### CI
+- **`Publish soundfonts` workflow** (`workflow_dispatch`) mirrors the 11 GM programs
+  the §5 style table uses (FluidR3_GM) and the 3 sampled drum machines to
+  `s3://airbotix-app-prod/soundfonts/` — the SPA's own bucket + CloudFront, so
+  samples are same-origin (no CORS, no new infra). Each upstream `dm.json` carries
+  an **absolute** `baseUrl` back to its origin, so the workflow rewrites it to ours
+  and fails if any upstream host survives — hosting the manifest alone would still
+  have pulled samples off-site from a kid's browser.
+- **`deploy.yml`**: sets `VITE_SOUNDFONT_BASE_URL=https://app.airbotix.ai/soundfonts`
+  (turning the smplr timbre path ON in production — it stays closed without a
+  self-hosted origin), and excludes `soundfonts/*` from the `--delete` sync so an
+  app deploy can never wipe the sample library out from under the Stage.
+
 ## 2026-07-12 (feat: Music Stage — Save to My Works + Mixer entry + style_changes counter, music-stage-prd v0.5)
 
 ### Fixed

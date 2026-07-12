@@ -1,0 +1,112 @@
+# Publish the Music Stage sample library to our own origin (music-stage-prd §6.1, OQ-3).
+#
+# WHY: kid browsers must never fetch media from a third-party CDN. `soundfont.ts`
+# keeps the whole smplr path closed in production unless VITE_SOUNDFONT_BASE_URL
+# points at an origin we control — this workflow is what makes that origin exist.
+#
+# WHAT: the 11 GM programs the §5 style table uses (gleitz FluidR3_GM layout) plus
+# the 3 sampled drum machines (smpldsnds layout: dm.json + ogg/m4a samples). Each
+# dm.json carries an ABSOLUTE baseUrl back to the upstream host, so it is rewritten
+# to ours — otherwise hosting dm.json alone would still pull samples off-site.
+#
+# WHERE: s3://airbotix-app-prod/soundfonts/ — the SPA's own bucket + CloudFront
+# distribution, so samples are same-origin (no CORS, no new infra). deploy.yml
+# excludes `soundfonts/*` from its `--delete` sync so app deploys never wipe them.
+#
+# WHEN: run once (workflow_dispatch); re-run only to add programs/kits. Sample
+# bytes are static and content-addressed by name, cached immutable for a year.
+#
+# SOURCES + LICENCE: FluidR3_GM soundfont (Frank Wen, MIT) via gleitz/midi-js-soundfonts;
+# drum machines via smpldsnds (samples released for free use by their authors).
+name: Publish soundfonts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  S3_BUCKET: airbotix-app-prod
+  CF_DISTRIBUTION_ID: E1CN0CC163N595
+  SOUNDFONT_UPSTREAM: https://gleitz.github.io/midi-js-soundfonts
+  DRUMS_UPSTREAM: https://smpldsnds.github.io/drum-machines
+  # Must match VITE_SOUNDFONT_BASE_URL in deploy.yml — it is baked into the
+  # rewritten dm.json files, so the two cannot drift.
+  PUBLIC_BASE: https://app.airbotix.ai/soundfonts
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the GM programs used by the §5 style table
+        # Keep this list in sync with GM_PROGRAM_SOUNDFONTS in
+        # src/pages/learn/workspace/stage/soundfont.ts.
+        run: |
+          set -euo pipefail
+          mkdir -p out/FluidR3_GM
+          for name in \
+            acoustic_grand_piano electric_piano_1 music_box drawbar_organ \
+            acoustic_guitar_steel electric_guitar_clean overdriven_guitar \
+            electric_bass_finger electric_bass_pick synth_bass_1 \
+            lead_2_sawtooth pad_2_warm
+          do
+            echo "→ $name"
+            curl -fsSL "$SOUNDFONT_UPSTREAM/FluidR3_GM/${name}-mp3.js" \
+              -o "out/FluidR3_GM/${name}-mp3.js"
+          done
+
+      - name: Fetch the drum machines and re-home their dm.json baseUrl
+        run: |
+          set -euo pipefail
+          for machine in LM-2 Casio-RZ1 TR-808; do
+            echo "→ $machine"
+            dir="out/drum-machines/$machine"
+            mkdir -p "$dir"
+            curl -fsSL "$DRUMS_UPSTREAM/$machine/dm.json" -o "$dir/dm.json.orig"
+            # Samples live under the ORIGINAL baseUrl; formats are listed in the file.
+            src=$(jq -r '.baseUrl' "$dir/dm.json.orig")
+            for sample in $(jq -r '.samples[]' "$dir/dm.json.orig"); do
+              for fmt in $(jq -r '.formats[]' "$dir/dm.json.orig"); do
+                curl -fsSL "${src}${sample}.${fmt}" -o "$dir/${sample}.${fmt}"
+              done
+            done
+            # Point the manifest at OUR origin — this is the step that actually
+            # stops kid browsers from calling smpldsnds.github.io.
+            jq --arg base "$PUBLIC_BASE/drum-machines/$machine/" \
+              '.baseUrl = $base' "$dir/dm.json.orig" > "$dir/dm.json"
+            rm "$dir/dm.json.orig"
+            if grep -q "smpldsnds" "$dir/dm.json"; then
+              echo "dm.json for $machine still references the upstream host" >&2
+              exit 1
+            fi
+          done
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::026559016816:role/gh-actions-deploy-airbotix-app
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        # Immutable: every object here is a fixed sample byte-blob addressed by
+        # name; a change means a new program/kit, not a mutated file.
+        run: |
+          set -euo pipefail
+          du -sh out
+          aws s3 sync out/ "s3://${S3_BUCKET}/soundfonts/" \
+            --cache-control "public,max-age=31536000,immutable"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CF_DISTRIBUTION_ID}" \
+            --paths "/soundfonts/*"
+
+      - name: Verify the published origin
+        run: |
+          set -euo pipefail
+          curl -fsSI "$PUBLIC_BASE/FluidR3_GM/acoustic_grand_piano-mp3.js" | head -1
+          curl -fsSL "$PUBLIC_BASE/drum-machines/LM-2/dm.json" | jq -e '.baseUrl | startswith("https://app.airbotix.ai/")'
