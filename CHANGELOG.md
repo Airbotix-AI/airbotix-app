@@ -2,6 +2,14 @@
 
 ## 2026-07-12 (feat: Music Stage — Save to My Works + Mixer entry + style_changes counter, music-stage-prd v0.5)
 
+### Fixed
+- **Version pin no longer yanked by passive updates** — a background messages
+  refetch (or another device's activity) used to re-run the "new version
+  arrived" choreography and unpin the kid's selected version (AC-7); the
+  choreography now only fires for takes this client requested. Also added
+  `data-testid="studio-pick-<id>"` to the studio picker buttons so harness
+  journeys can target them deterministically.
+
 ### Added
 - **`[💾 Save]` on the transport row (PRD §2 step ⑤)**: promotes the CURRENT
   score version into the kid's My Works by composing existing endpoints only —

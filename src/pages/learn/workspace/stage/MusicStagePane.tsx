@@ -172,6 +172,10 @@ export function MusicStagePane({
     if (versions.length <= prev) return;
     const idx = versions.length - 1;
     const pending = pendingRef.current;
+    // Only a take THIS client requested gets the "new version" choreography.
+    // A passive messages update (background refetch, another device) must not
+    // yank the kid off a version they pinned (AC-7).
+    if (!pending && prev > 0) return;
     pendingRef.current = null;
     setVersionMeta((m) =>
       m[idx] ? m : { ...m, [idx]: pending ?? { label: idx === 0 ? FIRST_VERSION_TAG : REWRITE_VERSION_TAG } },
