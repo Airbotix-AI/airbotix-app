@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-07-12 (fix: Music Stage — align frontend↔backend music-score contract)
+
+### Fixed
+- **Suggestion-card modifier keys now use the canonical backend enum**
+  (`energy+1` / `energy-1` / `drums+` / `guitar_solo` / `surprise`, matching
+  platform-backend `SCORE_MODIFIER_KEYS`): the DTO enum-validates the
+  `modifier` field, so the previous `energy_up` / `energy_down` / `big_drums`
+  keys would have 400'd every suggestion card. `stageData.test.ts` now pins
+  the canonical keys as a cross-repo contract test.
+- **Version history works in free-play sessions (no project → no Artifact)**:
+  the backend inlines the composed score on the session message itself
+  (`Message.metadata.score`, music-stage-prd §3.5), so
+  `aggregateScoreVersions` now reads message metadata first and falls back to
+  the artifact's inlined copy for project-scoped generations. Previously
+  free-play generations produced an empty version rail.
+
+### Changed
+- `MusicScoreResult` matches the real `POST /llm/music-score` response shape:
+  gains the inline `score` and `session_id` fields alongside `stars_charged` /
+  `balance_after` / `artifact_id`.
+- `Message` (WorkspacePage) gains the optional `metadata?: { score? }` field
+  carried by score-bearing session messages.
+
 ## 2026-07-12 (feat: Music Stage — smplr timbres + instrument styles, music-stage-prd Phase D §5/§6.1)
 
 ### Added

@@ -39,7 +39,40 @@ function scoreMsg(id: string, s: MusicScore): Message {
   });
 }
 
+/** The free-play shape: no project → no Artifact, score on the message itself. */
+function freePlayScoreMsg(id: string, s: MusicScore): Message {
+  return msg(id, { metadata: { score: s } });
+}
+
 describe('aggregateScoreVersions', () => {
+  it('collects free-play scores from message metadata (no Artifact at all)', () => {
+    const versions = aggregateScoreVersions([
+      msg('u1', { role: 'user', content: 'a space song' }),
+      freePlayScoreMsg('m1', score('v1')),
+      freePlayScoreMsg('m2', score('v2')),
+    ]);
+    expect(versions).toHaveLength(2);
+    expect(versions[0]).toMatchObject({ messageId: 'm1' });
+    expect(versions[0].score.title).toBe('v1');
+    expect(versions[1].score.title).toBe('v2');
+  });
+
+  it('prefers the message metadata score over the artifact copy', () => {
+    const both = msg('m1', {
+      metadata: { score: score('message-copy') },
+      artifact_id: 'a-m1',
+      artifact: {
+        id: 'a-m1',
+        kind: 'text',
+        mime_type: 'application/json',
+        s3_key: 'scores/m1.json',
+        project_id: 'p1',
+        metadata: { score: score('artifact-copy') },
+      },
+    });
+    expect(aggregateScoreVersions([both])[0].score.title).toBe('message-copy');
+  });
+
   it('collects score-bearing messages in order, skipping everything else', () => {
     const messages: Message[] = [
       msg('u1', { role: 'user', content: 'a space song' }),

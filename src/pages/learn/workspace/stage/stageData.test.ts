@@ -60,11 +60,13 @@ describe('instrument styles', () => {
 });
 
 describe('suggestion cards', () => {
-  it('ships the 5 fixed cards with structured keys (PRD §3.4)', () => {
+  it('ships the 5 fixed cards with the CANONICAL backend keys (PRD §3.4)', () => {
+    // Cross-repo contract: must equal platform-backend SCORE_MODIFIER_KEYS —
+    // the DTO enum-validates the modifier, so any drift here 400s the card.
     expect(SUGGESTION_CARDS.map((c) => c.key)).toEqual([
-      'energy_up',
-      'energy_down',
-      'big_drums',
+      'energy+1',
+      'energy-1',
+      'drums+',
       'guitar_solo',
       'surprise',
     ]);
@@ -83,7 +85,7 @@ describe('buildAiBubble', () => {
   });
 
   it('explains the change when a modifier produced the version', () => {
-    const text = buildAiBubble({ score: SCORE, modifier: 'energy_up', isFirst: false });
+    const text = buildAiBubble({ score: SCORE, modifier: 'energy+1', isFirst: false });
     expect(text).toContain('Space Pup');
     expect(text.toLowerCase()).toContain('tempo');
   });

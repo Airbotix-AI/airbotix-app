@@ -87,24 +87,21 @@ function userMsg(content: string): Message {
     artifact: null,
   };
 }
+// The REAL workspace shape (free-play, no project): the backend inlines the
+// score on the session message itself — there is no Artifact row at all
+// (music-stage-prd §3.5). Versions must aggregate from message metadata.
 function scoreMsg(score: MusicScore): Message {
   nextId += 1;
   return {
     id: `m${nextId}`,
     role: 'assistant',
     tool: 'music',
-    content: 'Here is your song!',
-    artifact_id: `a${nextId}`,
-    stars_charged: 0,
+    content: `Composed "${score.title}" · ${score.tempo}bpm · ${score.tracks.length} instruments`,
+    artifact_id: null,
+    stars_charged: 3,
     created_at: new Date().toISOString(),
-    artifact: {
-      id: `a${nextId}`,
-      kind: 'text',
-      mime_type: 'application/json',
-      s3_key: `score/${nextId}.json`,
-      project_id: 'p1',
-      metadata: { score },
-    },
+    metadata: { score },
+    artifact: null,
   };
 }
 
@@ -193,22 +190,34 @@ describe('MusicStagePane — generation', () => {
     expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17]);
   });
 
-  it('sends structured modifier + existingScore for suggestion cards (AC-4)', async () => {
-    generateMusicScoreMock.mockResolvedValue({ stars_charged: 3, balance_after: 9, artifact_id: 'a9' });
+  it('sends the CANONICAL structured modifier + existingScore for suggestion cards (AC-4)', async () => {
+    generateMusicScoreMock.mockResolvedValue({
+      score: SCORE_V2,
+      stars_charged: 3,
+      balance_after: 9,
+      artifact_id: null,
+      session_id: 's1',
+    });
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
-    fireEvent.click(screen.getByTestId('suggestion-energy_up'));
+    fireEvent.click(screen.getByTestId('suggestion-energy+1'));
     await waitFor(() =>
       expect(generateMusicScoreMock).toHaveBeenCalledWith({
         prompt: 'a space puppy adventure',
         options: { genre: 'Rock' },
-        modifier: 'energy_up',
+        modifier: 'energy+1',
         existingScore: SCORE_V1,
       }),
     );
   });
 
   it('re-rolls from scratch for 🎲 Surprise me — same prompt, no existingScore (AC-3)', async () => {
-    generateMusicScoreMock.mockResolvedValue({ stars_charged: 3, balance_after: 9, artifact_id: 'a9' });
+    generateMusicScoreMock.mockResolvedValue({
+      score: SCORE_V2,
+      stars_charged: 3,
+      balance_after: 9,
+      artifact_id: null,
+      session_id: 's1',
+    });
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('suggestion-surprise'));
     await waitFor(() =>
@@ -225,7 +234,7 @@ describe('MusicStagePane — generation', () => {
       new ApiError(422, 'FIREWALL_BLOCKED', 'Let’s keep songs friendly!'),
     );
     renderPane([userMsg('something naughty'), scoreMsg(SCORE_V1)]);
-    fireEvent.click(screen.getByTestId('suggestion-big_drums'));
+    fireEvent.click(screen.getByTestId('suggestion-drums+'));
     expect(await screen.findByTestId('bubble-retry')).toBeInTheDocument();
     expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Let’s keep songs friendly!');
     fireEvent.click(screen.getByTestId('bubble-retry'));
@@ -234,6 +243,30 @@ describe('MusicStagePane — generation', () => {
 });
 
 describe('MusicStagePane — with a song (AC-2 render)', () => {
+  it('renders a project-scoped score carried on the artifact (fallback path)', () => {
+    nextId += 1;
+    const artifactScoreMsg: Message = {
+      id: `m${nextId}`,
+      role: 'assistant',
+      tool: 'music',
+      content: 'Here is your song!',
+      artifact_id: `a${nextId}`,
+      stars_charged: 3,
+      created_at: new Date().toISOString(),
+      artifact: {
+        id: `a${nextId}`,
+        kind: 'text',
+        mime_type: 'application/vnd.airbotix.score+json',
+        s3_key: `score/${nextId}.json`,
+        project_id: 'p1',
+        metadata: { score: SCORE_V1 },
+      },
+    };
+    renderPane([userMsg('a space puppy adventure'), artifactScoreMsg]);
+    expect(screen.getByTestId('music-stage')).not.toHaveClass('is-empty');
+    expect(screen.getByTestId('now-line')).toHaveTextContent('Space Pup');
+  });
+
   it('lights the stage, explains the song in the AI bubble and renders one lane per track', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     expect(screen.getByTestId('music-stage')).not.toHaveClass('is-empty');

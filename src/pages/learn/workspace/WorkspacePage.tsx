@@ -23,6 +23,12 @@ export interface Message {
   artifact_id: string | null;
   stars_charged: number;
   created_at: string;
+  /**
+   * Structured payload for turns with no Artifact: free-play music generations
+   * carry the composed score here (music-stage-prd §3.5 — versions aggregate
+   * from session messages, and free-play sessions have no project/Artifact).
+   */
+  metadata?: { score?: MusicScore } | null;
   artifact?: {
     id: string;
     kind: 'image' | 'audio' | 'video' | 'text' | 'code_file' | 'project_export';

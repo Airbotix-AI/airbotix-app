@@ -171,8 +171,13 @@ export const IDEA_CHIPS: { emoji: string; prompt: string }[] = [
 
 // ─── Suggestion cards (3⭐ conversational iteration, PRD §3.4) ───────────────
 
-/** Structured modifier key sent to `POST /llm/music-score` — never free text. */
-export type SuggestionKey = 'energy_up' | 'energy_down' | 'big_drums' | 'guitar_solo' | 'surprise';
+/**
+ * Structured modifier key sent to `POST /llm/music-score` — never free text.
+ * CANONICAL cross-repo enum (music-stage-prd §3.4): must match the backend's
+ * `SCORE_MODIFIER_KEYS` (platform-backend `src/llm/music-score.ts`) exactly —
+ * the DTO enum-validates it and the audit `modifier` field carries it verbatim.
+ */
+export type SuggestionKey = 'energy+1' | 'energy-1' | 'drums+' | 'guitar_solo' | 'surprise';
 
 export interface SuggestionCard {
   key: SuggestionKey;
@@ -184,9 +189,9 @@ export interface SuggestionCard {
 }
 
 export const SUGGESTION_CARDS: SuggestionCard[] = [
-  { key: 'energy_up',   label: '⚡ More hype',       tag: 'Hype+',     freshSeed: false },
-  { key: 'energy_down', label: '🌙 Softer & calmer', tag: 'Calm+',     freshSeed: false },
-  { key: 'big_drums',   label: '🥁 Bigger drums',    tag: 'Big drums', freshSeed: false },
+  { key: 'energy+1',    label: '⚡ More hype',       tag: 'Hype+',     freshSeed: false },
+  { key: 'energy-1',    label: '🌙 Softer & calmer', tag: 'Calm+',     freshSeed: false },
+  { key: 'drums+',      label: '🥁 Bigger drums',    tag: 'Big drums', freshSeed: false },
   { key: 'guitar_solo', label: '🎸 Guitar solo',     tag: 'Solo',      freshSeed: false },
   { key: 'surprise',    label: '🎲 Surprise me',     tag: 'Surprise',  freshSeed: true },
 ];
@@ -222,9 +227,9 @@ export function outOfStarsBubble(balance: number): string {
 }
 
 const MODIFIER_CHANGE_TEXT: Record<SuggestionKey, string> = {
-  energy_up: 'I pushed the tempo up and packed the beat tighter — energy up! ⚡',
-  energy_down: 'I slowed it down and gave the music more room to breathe 🌙',
-  big_drums: 'I made the kick heavier and dropped in a drum fill 🥁',
+  'energy+1': 'I pushed the tempo up and packed the beat tighter — energy up! ⚡',
+  'energy-1': 'I slowed it down and gave the music more room to breathe 🌙',
+  'drums+': 'I made the kick heavier and dropped in a drum fill 🥁',
   guitar_solo: 'The guitar takes over the melody for a solo in bar two 🎸',
   surprise: 'I rolled the dice and rebuilt the whole arrangement — same idea, new song 🎲',
 };

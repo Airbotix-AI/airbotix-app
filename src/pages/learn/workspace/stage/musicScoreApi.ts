@@ -24,9 +24,14 @@ export interface MusicScoreRequest {
 }
 
 export interface MusicScoreResult {
+  /** The validated score, returned inline. The backend ALSO persists it on the
+   *  session message (`metadata.score`), which is what the Stage renders after
+   *  the messages query refetches — the persisted read-back, not this echo. */
+  score: MusicScore;
   stars_charged: number;
   balance_after: number;
   artifact_id: string | null;
+  session_id: string | null;
 }
 
 export function generateMusicScore(req: MusicScoreRequest): Promise<MusicScoreResult> {
