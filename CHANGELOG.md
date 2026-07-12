@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-12
+
+### Changed
+- Renamed the Tiny Star Village A1-H guide character from **Little Light** to **Lumilo** ("Lumi", the Morning Light Keeper) across the storybook copy, story coach panel, starter card, and starter library. Technical identifiers (`little-light` character id, asset paths) are unchanged.
+- Rebuilt the A1-H storybook as a **five-page fullscreen animated storybook**: each page renders a decorative animated scene (moon, clouds, stars, village, Bell Tower, Lumilo, the Say/Hop blocks) beside the story copy, with a new "Meet Lumilo" page and rewritten light-chain narrative explaining why the child must fix the block order.
+- A1-H mission completion is now derived from the **real saved program order** (`missionTargetFixed`) instead of also requiring the in-guide fix choice, so a correctly ordered program still counts as complete after a reload. Reload persistence is covered by the umbrella harness journey `harness/journeys/kid-blocks-tiny-star-a1.spec.ts`.
+
+### Added
+- Confetti celebration (32 animated pieces, `aria-hidden`) on the A1-H mission success screen, asserted in `StoryMissionGuide.test.tsx`.
+
+### Fixed
+- `blocks.css`: replaced the invalid `box-shadow-color: #28935f` declaration (silently ignored by browsers) with `box-shadow: 0 5px 0 #28935f`, so the green Hop block in the story scene no longer keeps the purple base shadow.
+
 ## 2026-07-11
 
 ### Changed

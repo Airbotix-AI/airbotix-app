@@ -423,14 +423,14 @@ export function BlocksStudioPage({
       demo?.onStoryRun?.('end');
       if (storyMission) {
         setMissionHasRun(true);
-        if (missionFixApplied && missionTargetFixed) {
+        if (missionTargetFixed) {
           setMissionCompleted(true);
           setStoryCoachCue('complete');
         }
         setMissionOpen(true);
       }
     });
-  }, [running, makeRunner, demo, storyMission, missionFixApplied, missionTargetFixed]);
+  }, [running, makeRunner, demo, storyMission, missionTargetFixed]);
 
   const applyMissionFix = useCallback(() => {
     if (!missionScript) return;

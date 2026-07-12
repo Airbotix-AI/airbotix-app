@@ -9,7 +9,7 @@ import { StoryMissionGuide } from './StoryMissionGuide';
 const mission = storyMissionFor('tsv-s1-a1-h')!;
 
 describe('StoryMissionGuide', () => {
-  it('introduces the world, story problem, child role, and mission across four pages', () => {
+  it('explains the light chain, why it stopped, and why the child must fix it', () => {
     render(
       <StoryMissionGuide
         mission={mission}
@@ -21,25 +21,35 @@ describe('StoryMissionGuide', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('The village that wakes with light')).toBeInTheDocument();
-    expect(screen.getByText(/singing streetlights/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Story page 1 of 4')).toBeInTheDocument();
+    expect(screen.getByText('A village powered by morning steps')).toBeInTheDocument();
+    expect(screen.getByText(/Every home.*wake-up spark/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Story page 1 of 5')).toBeInTheDocument();
+    expect(screen.getByTestId('story-mission')).toHaveClass('bsx-story-fullscreen');
+    expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-1');
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('The morning light is missing')).toBeInTheDocument();
-    expect(screen.getByText(/bell did not ring/)).toBeInTheDocument();
-    expect(screen.getByText(/Why is the village still dark/)).toBeInTheDocument();
+    expect(screen.getByText('Meet Lumilo, the first light keeper')).toBeInTheDocument();
+    expect(screen.getByText(/Lumilo—Lumi to friends/)).toBeInTheDocument();
+    expect(screen.getByText(/Call me Lumi!.*wake up first/)).toBeInTheDocument();
+    expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-2');
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('A strange good morning')).toBeInTheDocument();
-    expect(screen.getByText(/Did I do my morning steps/)).toBeInTheDocument();
+    expect(screen.getByText('The light chain stopped today')).toBeInTheDocument();
+    expect(screen.getByText(/no wake-up star arrived first/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('A new Morning Light Helper')).toBeInTheDocument();
+    expect(screen.getByText('The program mixed up the story')).toBeInTheDocument();
+    expect(screen.getByText(/blocks run from left to right/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    expect(screen.getByText('Why the village needs a Story Partner')).toBeInTheDocument();
+    expect(screen.getByText(/you can read the glowing blocks/)).toBeInTheDocument();
     expect(screen.getByText(/That's you!/)).toBeInTheDocument();
     expect(screen.getByText('Your mission')).toBeInTheDocument();
-    expect(screen.getByText(/Press Go/)).toBeInTheDocument();
+    expect(screen.getByText(/press Go/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start the mission ▶' })).toBeInTheDocument();
+    expect(screen.getByText(/Help Lumi send the first wake-up star/)).toBeInTheDocument();
+    expect(screen.getByTestId('story-book')).toHaveClass('bsx-story-book-5');
   });
 
   it('requires the child to choose a fix and test it before completing the mission', () => {
@@ -110,11 +120,13 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-mission-success')).toHaveTextContent(
       'You changed the real program and tested it',
     );
+    expect(screen.getByTestId('story-celebration')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('story-celebration').children).toHaveLength(32);
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('🦘 Hop');
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('💬 Morning!');
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent(
       'The Hop block is now on the left',
     );
-    expect(screen.getByText(/first morning clue is safe/)).toBeInTheDocument();
+    expect(screen.getByText(/first of six morning clues/)).toBeInTheDocument();
   });
 });
