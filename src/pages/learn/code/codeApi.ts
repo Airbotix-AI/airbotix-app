@@ -51,8 +51,6 @@ export interface CodeProject {
   visibility: 'private' | 'class' | 'public';
   updated_at: string;
   created_at: string;
-  /** The teacher's "where we left off" (D-PAP-19,22); present on resumed games. */
-  learning_context?: LearningContext | null;
   /**
    * Game engine for kind='game' projects (learn-game-studio-3d-prd.md D-3D-01):
    * 'phaser' (2D) | 'three' (3D). Absent/null on non-game projects and on games
@@ -213,9 +211,6 @@ export interface AgentTurnResult {
   file_notes?: FileNote[];
   // A short, kid-readable label for the history timeline (null/absent if none).
   history_label?: string | null;
-  // The teacher's updated "where we left off" (playground §11 / D-PAP-19,22),
-  // persisted on the project and used for the resume recap.
-  learning_context?: LearningContext | null;
   // Post-apply verification (D-PAP-40): 'pending' = this applied game turn is
   // awaiting a run report — the studio runs the game instrumented and POSTs a
   // RunReport for it (see useVerification). 'none' = never verifiable (no file
@@ -241,13 +236,6 @@ export interface NextStep {
 export interface FileNote {
   path: string;
   note: string;
-}
-
-/** The teacher's lightweight "where we left off", shown as a recap on resume. */
-export interface LearningContext {
-  summary: string;
-  concepts?: string[];
-  next?: string;
 }
 
 // ── Project endpoints ──────────────────────────────────────────────────────

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-13
+
+### Removed
+- **Creative Code Studio "welcome back" resume recap card.** The `ResumeRecap` card that
+  greeted a kid on reopening a game in the playground AI chat is deleted: `ResumeRecap.tsx`
+  + `ResumeRecap.test.tsx` removed; `panes/ChatPane.tsx` no longer renders it (its
+  `recap`/`onContinueRecap` props dropped); `Workspace.tsx` drops the `resumeRecap` prop and
+  the `recapDismissed`/`showRecap` state; `PlaygroundApp.tsx` drops the `resumeRecap` state
+  and the best-effort `getProject → learning_context` recap fetch (the engine-load
+  `getProject` call is unchanged); the `LearningContext` interface + both `learning_context`
+  fields dropped from `pages/learn/code/codeApi.ts`. The backend `learning_context`
+  persistence is unchanged (still agent-updated for continuity — playground-ai-prompt-prd
+  D-PAP-19/22); only the kid-facing card is removed. See PRD v0.6.1 (S5 / D-PAP-18).
+
 ## 2026-07-12
 
 ### Added
