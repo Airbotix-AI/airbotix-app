@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026-07-12 (feat: Music Stage — studio=music opening, music-stage-prd Phase B)
+
+### Added
+- **Music Stage** now opens `/learn/workspace` studio=music (replacing the
+  form-based setup, music-stage-prd.md §1.1): a theater `StageView` with 5
+  fixed instrument positions, moving spotlight, genre neon marquee,
+  note-triggered performance pulses, 16-step walk lights, empty-band state and
+  staggered first-entrance pop-in (all animation disabled under
+  `prefers-reduced-motion`); a `ComposerBar` (description input, 6 inspiration
+  chips, 4 genre pills, `−3⭐` compose button, Stars chip); a full-stage
+  composing overlay for the real LLM wait (first-take vs remix subtitles, no
+  fake progress bar); a template-assembled **AI bubble** (title/key/BPM/genre +
+  what changed — no extra LLM call); **5 suggestion cards** that iterate via
+  the same `POST /llm/music-score` endpoint with a structured `modifier` key +
+  `existingScore` (`🎲 Surprise me` re-rolls without `existingScore`); and
+  client-side **version pills** aggregated from session messages (0⭐ switch
+  that preserves manual instrument styles and mute — AC-7).
+- **0⭐ instrument-style layer (UI/state)**: 3 styles + None per stage
+  instrument with genre presets applied after the first generation; `None`
+  silences the mapped tracks and dims the instrument on stage. GM-program
+  mapping is declared for the upcoming smplr timbre task (PRD §5/§6.1).
+- Component/unit tests for the Stage: empty stage (AC-1), Stars guard that
+  sends no request under 3⭐ (AC-8), composing overlay + request contract
+  (AC-2/3/4), kid-friendly failure + retry (AC-10 path), lanes-per-track
+  rendering (AC-9 frontend half) and version switching (AC-7).
+
+### Changed
+- Extracted the Tone.js engine from `MusicScorePlayer` into a shared
+  `useScorePlayback` hook (instrument-keyed mute/solo/volume, velocity
+  support, all 14 score instrument kinds, note-pulse subscription) and
+  re-homed the per-track channel strips as `TrackLanes` under the stage —
+  one transport drives the stage pulses, walk lights and lanes. On narrow
+  screens (<740px) the lanes collapse behind a persistent `🎚 Tracks` handle
+  (AC-12). `MusicScorePlayer.tsx` was removed; score types now live in
+  `stage/scoreTypes.ts` with lane colors on K-12 brand tokens.
+- `studios.ts`: the music studio no longer has a setup form (Stage replaces
+  it); music sessions skip straight from the picker into the Stage.
+
 ## 2026-07-11
 
 ### Changed

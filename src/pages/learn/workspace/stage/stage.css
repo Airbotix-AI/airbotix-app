@@ -1,0 +1,360 @@
+/* Music Stage theater scenery (music-stage-prd.md §3.1, mockup v2).
+ *
+ * The stage is the APPROVED local dark-theater scene (DESIGN.md exception,
+ * PRD §12): scenery colors below are scoped to `.mstage` and exist only here.
+ * All surrounding chrome uses standard K-12 tokens in the components.
+ * Brand tokens reused inside the scene: mint #3DD9A9 (walk lights),
+ * sunshine #FFD43B (spotlight / selected tag) — see tailwind.config.js.
+ */
+
+.mstage {
+  --mstage-bg-top: #201a30;
+  --mstage-bg-mid: #150f21;
+  --mstage-bg-bottom: #0d0a15;
+  --mstage-brick-hi: #37294a;
+  --mstage-brick-lo: #241a35;
+  --mstage-curtain-a: #8e1f3c;
+  --mstage-curtain-b: #5e1226;
+  --mstage-curtain-c: #a92a48;
+  --mstage-neon: #ff6ba9; /* brand bubblegum, neon-boosted for the marquee */
+  --mstage-spot: #ffe98a; /* sunshine, warmed for light beams */
+  --mstage-wood-a: #7a5233;
+  --mstage-wood-b: #64432a;
+  --mstage-text-dim: #efeaff;
+
+  position: relative;
+  height: 320px;
+  overflow: hidden;
+  user-select: none;
+  background: linear-gradient(
+    180deg,
+    var(--mstage-bg-top) 0%,
+    var(--mstage-bg-mid) 60%,
+    var(--mstage-bg-bottom) 100%
+  );
+}
+
+/* ── scenery ── */
+
+.mstage-bricks {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 63%;
+  opacity: 0.5;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 26px, rgb(0 0 0 / 0.33) 26px 29px),
+    repeating-linear-gradient(90deg, transparent 0 62px, rgb(0 0 0 / 0.26) 62px 65px),
+    linear-gradient(180deg, var(--mstage-brick-hi) 0%, var(--mstage-brick-lo) 100%);
+  mask-image: linear-gradient(180deg, #000 65%, transparent 100%);
+}
+
+.mstage-curtain {
+  position: absolute;
+  top: -6px;
+  width: 88px;
+  height: 76%;
+  z-index: 3;
+  filter: drop-shadow(6px 0 14px rgb(0 0 0 / 0.53));
+  background: repeating-linear-gradient(
+    90deg,
+    var(--mstage-curtain-a) 0 14px,
+    var(--mstage-curtain-b) 14px 30px,
+    var(--mstage-curtain-c) 30px 42px
+  );
+  border-radius: 0 0 60% 0;
+}
+.mstage-curtain--left { left: -22px; }
+.mstage-curtain--right { right: -22px; transform: scaleX(-1); }
+
+.mstage-marquee {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  z-index: 2;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ffd8e6;
+  padding: 6px 22px;
+  border-radius: 999px;
+  border: 2px solid var(--mstage-neon);
+  background: rgb(255 107 169 / 0.1);
+  text-shadow: 0 0 14px var(--mstage-neon);
+  box-shadow: 0 0 22px rgb(255 107 169 / 0.33), inset 0 0 16px rgb(255 107 169 / 0.18);
+  white-space: nowrap;
+}
+
+.mstage-floor {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 0;
+  height: 37%;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.07), transparent 40%),
+    repeating-linear-gradient(
+      90deg,
+      var(--mstage-wood-a) 0 88px,
+      rgb(0 0 0 / 0.19) 88px 92px,
+      var(--mstage-wood-b) 92px 178px,
+      rgb(0 0 0 / 0.19) 178px 182px
+    );
+  transform: perspective(430px) rotateX(37deg);
+  transform-origin: 50% 0%;
+  filter: brightness(0.85);
+}
+
+/* ── spotlight (450ms spring slide, PRD §3.1) ── */
+
+.mstage-spotlight {
+  position: absolute;
+  top: 0;
+  width: 250px;
+  height: 86%;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 40% at 50% 80%, rgb(255 233 138 / 0.26) 0%, transparent 70%),
+    linear-gradient(180deg, rgb(255 247 201 / 0.04) 0%, rgb(255 233 138 / 0.16) 78%, transparent 100%);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  transition: left 0.45s cubic-bezier(0.4, 1.4, 0.5, 1), opacity 0.4s;
+}
+.mstage-spot-pool {
+  position: absolute;
+  width: 200px;
+  height: 40px;
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgb(255 233 138 / 0.32) 0%, transparent 70%);
+  transition: left 0.45s cubic-bezier(0.4, 1.4, 0.5, 1), top 0.45s, opacity 0.4s;
+}
+
+/* ── band ── */
+
+.mstage-band {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0 26px 46px;
+  z-index: 5;
+}
+
+.mstage-inst {
+  position: relative;
+  width: 118px;
+  text-align: center;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  transition: transform 0.25s ease, filter 0.3s ease, opacity 0.5s;
+}
+/* band formation: middle high, wings low (PRD §3.1) */
+.mstage-inst:nth-child(1),
+.mstage-inst:nth-child(5) { transform: translateY(-30px); }
+.mstage-inst:nth-child(2),
+.mstage-inst:nth-child(4) { transform: translateY(-13px); }
+.mstage-inst:hover { filter: brightness(1.18); }
+.mstage-inst:focus-visible {
+  outline: 3px solid #ffd43b; /* brand sunshine */
+  outline-offset: 4px;
+  border-radius: 16px;
+}
+
+.mstage-glyph {
+  font-size: 52px;
+  line-height: 1;
+  display: block;
+  filter: drop-shadow(0 12px 16px rgb(0 0 0 / 0.55));
+  transition: transform 0.11s ease;
+}
+/* performance pulse: 1.15× snap-back ≤120ms (PRD §3.1) */
+.mstage-inst.is-pulsing .mstage-glyph {
+  transform: scale(1.15) translateY(-5px);
+}
+
+.mstage-tag {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgb(239 234 255 / 0.6);
+  background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.11);
+  transition: all 0.25s ease;
+}
+.mstage-inst.is-selected .mstage-tag {
+  color: #1f1b2d; /* ink */
+  background: #ffd43b; /* brand sunshine */
+  border-color: #ffd43b;
+  box-shadow: 0 6px 20px -4px rgb(255 212 59 / 0.5);
+}
+.mstage-style-tag {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: transparent;
+  transition: color 0.3s;
+}
+.mstage-inst.is-selected .mstage-style-tag { color: rgb(255 233 138 / 0.8); }
+
+/* None / muted: greyscale dim, tag struck through (PRD §3.1) */
+.mstage-inst.is-off .mstage-glyph {
+  filter: grayscale(1) brightness(0.4) drop-shadow(0 12px 16px rgb(0 0 0 / 0.55));
+}
+.mstage-inst.is-off .mstage-tag {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* empty stage: band dimmed, spotlight off */
+.mstage.is-empty .mstage-inst {
+  opacity: 0.32;
+  filter: grayscale(0.8) brightness(0.55);
+  cursor: default;
+}
+.mstage.is-empty .mstage-spotlight,
+.mstage.is-empty .mstage-spot-pool { opacity: 0; }
+
+.mstage-empty-hint {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  color: rgb(239 234 255 / 0.72);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.7;
+  background: rgb(0 0 0 / 0.33);
+  border: 1px dashed rgb(255 255 255 / 0.22);
+  border-radius: 20px;
+  padding: 12px 24px;
+  pointer-events: none;
+}
+
+/* first generation: staggered pop-in (80ms apart, PRD §3.1) */
+@keyframes mstage-popin {
+  0% { opacity: 0; transform: translateY(26px) scale(0.6); }
+  65% { transform: translateY(-8px) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.mstage-inst.is-entering .mstage-inner {
+  animation: mstage-popin 0.5s cubic-bezier(0.34, 1.5, 0.5, 1) both;
+  /* per-instrument delay set inline (index × 80ms) */
+  animation-delay: var(--mstage-enter-delay, 0s);
+}
+.mstage-inner { display: block; }
+
+/* ── walk lights (16 steps, beat marks every 4) ── */
+
+.mstage-steplights {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  z-index: 6;
+}
+.mstage-steplights i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.13);
+  transition: background 0.05s;
+}
+.mstage-steplights i.is-beat { background: rgb(255 255 255 / 0.23); }
+.mstage-steplights i.is-on {
+  background: #3dd9a9; /* brand mint */
+  box-shadow: 0 0 10px #3dd9a9;
+}
+
+/* ── composing overlay (real wait, no fake progress — PRD §3.2) ── */
+
+.mstage-composing {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: rgb(13 10 21 / 0.85);
+  backdrop-filter: blur(2px);
+}
+.mstage-beam {
+  position: absolute;
+  top: -10%;
+  width: 190px;
+  height: 120%;
+  opacity: 0.55;
+  background: linear-gradient(180deg, transparent, rgb(255 233 138 / 0.22) 70%, transparent);
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+}
+@keyframes mstage-sweep-l {
+  0%, 100% { left: 6%; transform: rotate(-8deg); }
+  50% { left: 46%; transform: rotate(9deg); }
+}
+@keyframes mstage-sweep-r {
+  0%, 100% { right: 6%; transform: rotate(8deg); }
+  50% { right: 46%; transform: rotate(-9deg); }
+}
+.mstage-beam--l { animation: mstage-sweep-l 1.6s ease-in-out infinite; }
+.mstage-beam--r { animation: mstage-sweep-r 1.6s ease-in-out infinite; }
+
+.mstage-composing-msg {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-weight: 800;
+  font-size: 17px;
+  padding: 0 24px;
+}
+.mstage-composing-msg small {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.65);
+}
+@keyframes mstage-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+.mstage-spark {
+  position: absolute;
+  font-size: 20px;
+  animation: mstage-twinkle 1.1s ease-in-out infinite;
+}
+
+/* ── narrow screens (<740px, PRD §2.1 / AC-12) ── */
+
+@media (max-width: 739px) {
+  .mstage { height: 270px; }
+  .mstage-inst { width: 19%; }
+  .mstage-glyph { font-size: 40px; }
+  .mstage-tag { font-size: 10px; padding: 3px 8px; }
+  .mstage-curtain { display: none; }
+}
+
+/* prefers-reduced-motion: everything static (PRD §3.1) */
+@media (prefers-reduced-motion: reduce) {
+  .mstage *,
+  .mstage-composing * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
