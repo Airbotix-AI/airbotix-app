@@ -219,6 +219,9 @@ export function iterationSubtitle(tag: string): string {
 export const COMPOSE_FAILED_BUBBLE =
   'Hmm, my song machine hiccupped and no Stars were charged. Want me to try again?';
 
+export const SAVE_FAILED_BUBBLE =
+  "I couldn't save that one to My Works just now — your song is still right here, try 💾 again!";
+
 export function outOfStarsBubble(balance: number): string {
   return (
     `⭐ Not enough Stars — composing costs ${MUSIC_GENERATION_COST_STARS}⭐ and you have ${balance}⭐. ` +

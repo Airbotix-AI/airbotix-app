@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-12 (feat: Music Stage — Save to My Works + Mixer entry + style_changes counter, music-stage-prd v0.5)
+
+### Added
+- **`[💾 Save]` on the transport row (PRD §2 step ⑤)**: promotes the CURRENT
+  score version into the kid's My Works by composing existing endpoints only —
+  `POST /projects` (creative project titled after the song) → artifact
+  `upload-url` → S3 PUT → register — with metadata mirroring the backend's own
+  score persistence (inline `score`, summary fields, `upload_failed`
+  resilience when the PUT fails). Saved state is per version; a failed save
+  explains itself in the AI bubble and stays retryable
+  (`saveScoreToMyWorks` in `musicScoreApi.ts`, `stage-save` testid).
+- **`[⚙️ Mixer]` entry (PRD §4 D-MX1)**: toggles the legacy `MusicTrackList`
+  mini-DAW region (real-audio tracks: imports + studio songs) as the Mixer
+  home until the score Mixer (parent PRD §3.5–3.9) lands; the region states
+  the capability boundary ("note editing / score re-rolls arrive soon") —
+  never faked. Track-lane `⋯` menu entries now deep-link into the same region
+  via `onOpenMixer` (`stage-mixer` / `mixer-region` / `mixer-note` testids).
+- **`style_changes` audit counter (PRD §8)**: the Stage counts 0⭐
+  instrument-style switches since the last generation and sends the tally on
+  the next `POST /llm/music-score` (omitted when zero; backend audit defaults
+  to 0), resetting after each success — the parent-visible iteration profile.
+
 ## 2026-07-12 (fix: Music Stage — production soundfont self-host gate, music-stage-prd OQ-3)
 
 ### Fixed

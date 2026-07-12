@@ -18,8 +18,12 @@ import { AiDeck } from './AiDeck';
 import { ComposerBar } from './ComposerBar';
 import { StageView, type StageSlotView } from './StageView';
 import { TrackLanes } from './TrackLanes';
-import { generateMusicScore, type MusicScoreRequest } from './musicScoreApi';
-import type { InstrumentKind } from './scoreTypes';
+import {
+  generateMusicScore,
+  saveScoreToMyWorks,
+  type MusicScoreRequest,
+} from './musicScoreApi';
+import type { InstrumentKind, MusicScore } from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
 import {
@@ -31,6 +35,7 @@ import {
   INITIAL_BUBBLE,
   MUSIC_GENERATION_COST_STARS,
   REWRITE_VERSION_TAG,
+  SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
   STYLE_NONE,
   buildAiBubble,
@@ -89,9 +94,18 @@ export function MusicStagePane({
   const [composeSubtitle, setComposeSubtitle] = useState(FIRST_COMPOSE_SUBTITLE);
   const [entering, setEntering] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // ⚙️ Mixer = the legacy MusicTrackList mini-DAW region (real-audio tracks)
+  // until the score Mixer (parent PRD §3.5–3.9) lands — see music-stage-prd
+  // D-MX1. Lane ⋯ menu entries deep-link here too.
+  const [mixerOpen, setMixerOpen] = useState(false);
+  // Versions already promoted to My Works this visit (💾, PRD §2 step ⑤).
+  const [savedVersions, setSavedVersions] = useState<Record<number, boolean>>({});
 
   const pendingRef = useRef<VersionMeta | null>(null);
   const lastPromptRef = useRef<string | null>(null);
+  // 0⭐ style switches since the last successful generation — sent as the
+  // audit `style_changes` counter (music-stage-prd §8), then reset.
+  const styleChangesRef = useRef(0);
   // null until mount: revisiting a session with existing versions must not
   // replay the "new version arrived" choreography (labels/pop-in/auto-play).
   const prevVersionCountRef = useRef<number | null>(null);
@@ -119,6 +133,7 @@ export function MusicStagePane({
   const generation = useMutation({
     mutationFn: (req: MusicScoreRequest) => generateMusicScore(req),
     onSuccess: () => {
+      styleChangesRef.current = 0; // counted per generation window (§8)
       qc.invalidateQueries({ queryKey: ['session', sessionId, 'messages'] });
       qc.invalidateQueries({ queryKey: ['kid', kidId, 'sessions'] });
       qc.invalidateQueries({ queryKey: ['wallet', familyId] });
@@ -133,6 +148,16 @@ export function MusicStagePane({
           : COMPOSE_FAILED_BUBBLE,
       );
     },
+  });
+
+  const save = useMutation({
+    mutationFn: (args: { score: MusicScore; version: number }) =>
+      saveScoreToMyWorks(args.score),
+    onSuccess: (_res, args) => {
+      setSavedVersions((m) => ({ ...m, [args.version]: true }));
+      qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
+    },
+    onError: () => setBubbleOverride(SAVE_FAILED_BUBBLE),
   });
 
   // A new version arrived: label it, follow it, start the show.
@@ -194,9 +219,15 @@ export function MusicStagePane({
           return program == null ? [] : [program];
         }),
       );
-      generation.mutate(req, {
-        onError: () => setFailed({ req, meta, subtitle }),
-      });
+      // The counter rides the request at send time (not capture time) so a
+      // "Try again" retry reports switches made while looking at the error.
+      const styleChanges = styleChangesRef.current;
+      generation.mutate(
+        { ...req, ...(styleChanges > 0 ? { style_changes: styleChanges } : {}) },
+        {
+          onError: () => setFailed({ req, meta, subtitle }),
+        },
+      );
     },
     [generation, balance, playback.isPlaying, playbackStop, playbackUnlock, versions.length, genre, styles],
   );
@@ -328,6 +359,7 @@ export function MusicStagePane({
           selectedSlot={selectedSlot}
           styles={styles}
           onStyle={(slot, styleId) => {
+            if (styles[slot] !== styleId) styleChangesRef.current += 1;
             setStyles((s) => ({ ...s, [slot]: styleId }));
             // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
             if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
@@ -335,16 +367,34 @@ export function MusicStagePane({
         />
 
         {score ? (
-          <div className={clsx(drawerOpen ? 'block' : 'hidden min-[740px]:block')} data-testid="lanes-region">
-            <TrackLanes
-              score={score}
-              playback={playback}
-              styles={styles}
-              selectedSlot={selectedSlot}
-              onSelectSlot={setSelectedSlot}
-              silenced={silenced}
-            />
-          </div>
+          <>
+            <div className={clsx(drawerOpen ? 'block' : 'hidden min-[740px]:block')} data-testid="lanes-region">
+              <TrackLanes
+                score={score}
+                playback={playback}
+                styles={styles}
+                selectedSlot={selectedSlot}
+                onSelectSlot={setSelectedSlot}
+                silenced={silenced}
+                onOpenMixer={() => setMixerOpen(true)}
+              />
+            </div>
+            {mixerOpen && (
+              <div className="border-t border-hairline bg-canvas-pure" data-testid="mixer-region">
+                {/* Capability boundary stated, never faked (PRD §4.1 principle):
+                    the legacy mini-DAW mixes REAL-AUDIO tracks only. */}
+                <p className="px-5 pt-3 text-[12px] font-semibold text-slate2" data-testid="mixer-note">
+                  🎚 The Mixer holds your real-audio tracks (imported + studio songs).
+                  Note editing and score-track re-rolls arrive here soon!
+                </p>
+                <MusicTrackList
+                  messages={messages}
+                  onGenerateTrack={() => composerRef.current?.focus()}
+                  onImportTrack={onImportTrack}
+                />
+              </div>
+            )}
+          </>
         ) : (
           hasAudioTracks && (
             <MusicTrackList
@@ -382,14 +432,44 @@ export function MusicStagePane({
           )}
         </div>
         {score && (
-          <button
-            type="button"
-            onClick={() => setDrawerOpen((v) => !v)}
-            className="min-[740px]:hidden rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint"
-            data-testid="lanes-drawer-handle"
-          >
-            🎚 Tracks {drawerOpen ? '▾' : '▴'}
-          </button>
+          <>
+            {/* PRD §2 step ⑤ — Save / Mixer exits on the transport row. */}
+            <button
+              type="button"
+              onClick={() => save.mutate({ score, version: currentVersion })}
+              disabled={save.isPending || !!savedVersions[currentVersion]}
+              className="rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint disabled:cursor-not-allowed disabled:opacity-60"
+              data-testid="stage-save"
+            >
+              {save.isPending
+                ? '💾 Saving…'
+                : savedVersions[currentVersion]
+                  ? '✓ Saved!'
+                  : '💾 Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMixerOpen((v) => !v)}
+              aria-expanded={mixerOpen}
+              className={clsx(
+                'rounded-full border-2 px-4 py-2 text-[13px] font-bold transition',
+                mixerOpen
+                  ? 'border-brand-mint bg-wash-mint text-ink'
+                  : 'border-hairline bg-canvas text-ink hover:border-brand-mint',
+              )}
+              data-testid="stage-mixer"
+            >
+              ⚙️ Mixer {mixerOpen ? '▾' : '▴'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen((v) => !v)}
+              className="min-[740px]:hidden rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint"
+              data-testid="lanes-drawer-handle"
+            >
+              🎚 Tracks {drawerOpen ? '▾' : '▴'}
+            </button>
+          </>
         )}
       </div>
     </div>

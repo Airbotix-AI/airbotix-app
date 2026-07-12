@@ -9,7 +9,7 @@ import { ApiError } from '@/lib/api';
 import type { Message } from '../WorkspacePage';
 import type { MusicScore } from './scoreTypes';
 
-const { playbackMock, generateMusicScoreMock, preloadProgramsMock } = vi.hoisted(() => ({
+const { playbackMock, generateMusicScoreMock, preloadProgramsMock, saveScoreToMyWorksMock } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
     position: 0,
@@ -28,6 +28,7 @@ const { playbackMock, generateMusicScoreMock, preloadProgramsMock } = vi.hoisted
   },
   generateMusicScoreMock: vi.fn(),
   preloadProgramsMock: vi.fn(),
+  saveScoreToMyWorksMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -35,6 +36,7 @@ vi.mock('./useScorePlayback', () => ({
 }));
 vi.mock('./musicScoreApi', () => ({
   generateMusicScore: generateMusicScoreMock,
+  saveScoreToMyWorks: saveScoreToMyWorksMock,
 }));
 // smplr layer is exercised in soundfont.test.ts — here only the preload call.
 vi.mock('./soundfont', () => ({
@@ -242,6 +244,106 @@ describe('MusicStagePane — generation', () => {
   });
 });
 
+describe('MusicStagePane — style_changes audit counter (PRD §8)', () => {
+  const OK_RESULT = {
+    score: SCORE_V2,
+    stars_charged: 3,
+    balance_after: 9,
+    artifact_id: null,
+    session_id: 's1',
+  };
+
+  it('counts 0⭐ switches since the last generation and rides the request', async () => {
+    generateMusicScoreMock.mockResolvedValue(OK_RESULT);
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // Two real switches + one no-op re-click of the already-active style.
+    fireEvent.click(screen.getByTestId('stage-inst-keys'));
+    fireEvent.click(screen.getByTestId('style-keys-ep'));
+    fireEvent.click(screen.getByTestId('style-keys-ep')); // same style — not a switch
+    fireEvent.click(screen.getByTestId('stage-inst-drums'));
+    fireEvent.click(screen.getByTestId('style-drums-none'));
+    fireEvent.click(screen.getByTestId('suggestion-energy+1'));
+    await waitFor(() =>
+      expect(generateMusicScoreMock).toHaveBeenCalledWith(
+        expect.objectContaining({ style_changes: 2 }),
+      ),
+    );
+  });
+
+  it('resets the counter after a successful generation', async () => {
+    generateMusicScoreMock.mockResolvedValue(OK_RESULT);
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-inst-keys'));
+    fireEvent.click(screen.getByTestId('style-keys-ep'));
+    fireEvent.click(screen.getByTestId('suggestion-energy+1'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    expect(generateMusicScoreMock.mock.calls[0][0]).toMatchObject({ style_changes: 1 });
+    // Next generation without further switches: counter back to zero — the
+    // field is omitted entirely (the backend audit defaults it to 0).
+    fireEvent.click(screen.getByTestId('suggestion-drums+'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(2));
+    expect(generateMusicScoreMock.mock.calls[1][0]).not.toHaveProperty('style_changes');
+  });
+
+  it('omits the field when no switch happened since the last generation', async () => {
+    generateMusicScoreMock.mockResolvedValue(OK_RESULT);
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('suggestion-energy+1'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    expect(generateMusicScoreMock.mock.calls[0][0]).not.toHaveProperty('style_changes');
+  });
+});
+
+describe('MusicStagePane — Save to My Works + Mixer (PRD §2 step ⑤)', () => {
+  it('hides Save/Mixer while the stage is empty', () => {
+    renderPane([]);
+    expect(screen.queryByTestId('stage-save')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('stage-mixer')).not.toBeInTheDocument();
+  });
+
+  it('promotes the CURRENT version score through the artifact flow and marks it saved', async () => {
+    saveScoreToMyWorksMock.mockResolvedValue({ project_id: 'p1', artifact_id: 'a1' });
+    renderPane([
+      userMsg('a space puppy adventure'),
+      scoreMsg(SCORE_V1),
+      userMsg('surprise me'),
+      scoreMsg(SCORE_V2),
+    ]);
+    // Pin v1 — Save must send the PINNED version, not the latest.
+    fireEvent.click(screen.getByTestId('version-pill-0'));
+    fireEvent.click(screen.getByTestId('stage-save'));
+    await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalledWith(SCORE_V1));
+    expect(await screen.findByTestId('stage-save')).toHaveTextContent('Saved');
+    expect(screen.getByTestId('stage-save')).toBeDisabled();
+    // The other version is its own work — still saveable.
+    fireEvent.click(screen.getByTestId('version-pill-1'));
+    expect(screen.getByTestId('stage-save')).toBeEnabled();
+    expect(screen.getByTestId('stage-save')).toHaveTextContent('Save');
+  });
+
+  it('explains a failed save in the AI bubble and lets the kid retry', async () => {
+    saveScoreToMyWorksMock.mockRejectedValue(new Error('network down'));
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-save'));
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-bubble')).toHaveTextContent("couldn't save"),
+    );
+    expect(screen.getByTestId('stage-save')).toBeEnabled(); // retryable
+  });
+
+  it('⚙️ Mixer toggles the legacy MusicTrackList region with its capability note', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    expect(screen.queryByTestId('mixer-region')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-mixer'));
+    const region = screen.getByTestId('mixer-region');
+    expect(region).toBeInTheDocument();
+    expect(screen.getByTestId('mixer-note')).toHaveTextContent('real-audio tracks');
+    expect(screen.getByTestId('legacy-track-list')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-mixer'));
+    expect(screen.queryByTestId('mixer-region')).not.toBeInTheDocument();
+  });
+});
+
 describe('MusicStagePane — with a song (AC-2 render)', () => {
   it('renders a project-scoped score carried on the artifact (fallback path)', () => {
     nextId += 1;
@@ -401,17 +503,27 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
     expect(document.querySelectorAll('[data-note-active="true"]')).toHaveLength(3);
   });
 
-  it('keeps download/edit/re-roll off the lane — the ⋯ menu points at the Mixer', () => {
+  it('keeps download/edit/re-roll off the lane — the ⋯ menu deep-links into the Mixer', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
     const menu = screen.getByTestId('lane-menu-0');
     expect(menu).toHaveTextContent('Opens in the Mixer');
-    // Mixer not wired yet: entries are visible but honestly greyed out.
-    expect(screen.getByTestId('lane-menu-download-0')).toBeDisabled();
-    expect(screen.getByTestId('lane-menu-edit-0')).toBeDisabled();
-    expect(screen.getByTestId('lane-menu-reroll-0')).toBeDisabled();
+    // Mixer home is wired (D-MX1): entries are live and open the Mixer region.
+    expect(screen.getByTestId('lane-menu-download-0')).toBeEnabled();
+    expect(screen.getByTestId('lane-menu-edit-0')).toBeEnabled();
+    expect(screen.getByTestId('lane-menu-reroll-0')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('lane-menu-download-0'));
+    expect(screen.queryByTestId('lane-menu-0')).not.toBeInTheDocument(); // menu closes
+    expect(screen.getByTestId('mixer-region')).toBeInTheDocument();
+    expect(screen.getByTestId('legacy-track-list')).toBeInTheDocument();
+  });
+
+  it('closes the ⋯ menu via the backdrop without opening the Mixer', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
     fireEvent.click(screen.getByLabelText('Close menu'));
     expect(screen.queryByTestId('lane-menu-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mixer-region')).not.toBeInTheDocument();
   });
 
   it('collapses lanes into a drawer with a persistent handle on narrow screens (AC-12)', () => {

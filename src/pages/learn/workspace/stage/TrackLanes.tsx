@@ -5,9 +5,10 @@
 //
 // Per-track download / note editing / re-roll deliberately do NOT live on the
 // Stage lane (8-year-old surface, PRD §4) — the `⋯` overflow menu at the lane
-// tail is the shortcut into the advanced Mixer, wired via `onOpenMixer` when
-// the Mixer task lands. Until then the menu shows the entries greyed out with
-// a one-line note — capability boundaries are stated, never faked.
+// tail is the shortcut into the Mixer via `onOpenMixer` (today: the legacy
+// MusicTrackList region, music-stage-prd D-MX1; the score Mixer of parent PRD
+// §3.5–3.9 replaces it later). Without `onOpenMixer` the entries stay greyed
+// out with a one-line note — capability boundaries are stated, never faked.
 
 import { useState } from 'react';
 import clsx from 'clsx';
@@ -45,7 +46,7 @@ export function TrackLanes({
   selectedSlot: StageSlotId | null;
   onSelectSlot: (slot: StageSlotId) => void;
   silenced: ReadonlySet<string>;
-  /** Deep link into the advanced Mixer; absent until the Mixer task wires it. */
+  /** Deep link into the Mixer (legacy MusicTrackList region, D-MX1). */
   onOpenMixer?: (trackIndex: number, action: LaneMixerAction) => void;
 }) {
   const [menuFor, setMenuFor] = useState<number | null>(null);
