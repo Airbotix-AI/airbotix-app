@@ -8,7 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentTurnResult, RunReportVerdict, VerifyState } from '../../code/codeApi';
-import type { RunReport } from '../runReport';
+import type { RunReport, RunReportScreenshot } from '../runReport';
 import { useVerification, type VerificationDeps } from './useVerification';
 
 const FIX_TURN: AgentTurnResult = {
@@ -45,15 +45,19 @@ function report(attempt: number): RunReport {
 
 const IDLE_STATE: VerifyState = { turn_id: null, verify_status: 'none', attempts: 0 };
 
+const SHOT: RunReportScreenshot = { dataUrl: 'data:image/jpeg;base64,SHOT', width: 480, height: 270 };
+
 function setup(overrides: {
   verdicts?: RunReportVerdict[];
   state?: VerifyState;
   enabled?: boolean;
+  captureScreenshot?: VerificationDeps['captureScreenshot'];
 } = {}) {
   const verdicts = [...(overrides.verdicts ?? [])];
   const deps: VerificationDeps = {
     postRunReport: vi.fn(async () => verdicts.shift() ?? { verdict: 'verified' as const }),
     getVerifyState: vi.fn(async () => overrides.state ?? IDLE_STATE),
+    captureScreenshot: overrides.captureScreenshot ?? vi.fn(async () => undefined),
   };
   const applyFixTurn = vi.fn();
   const restartGame = vi.fn();
@@ -147,6 +151,7 @@ describe('useVerification — the report → verdict loop', () => {
         () => new Promise<RunReportVerdict>((resolve) => { release = resolve; }),
       ),
       getVerifyState: vi.fn(async () => IDLE_STATE),
+      captureScreenshot: vi.fn(async () => undefined),
     };
     const { result } = renderHook(() =>
       useVerification({
@@ -201,6 +206,7 @@ describe('useVerification — the report → verdict loop', () => {
         throw new Error('boom');
       }),
       getVerifyState: vi.fn(async () => IDLE_STATE),
+      captureScreenshot: vi.fn(async () => undefined),
     };
     const pushCoDebugMessage = vi.fn();
     const { result } = renderHook(() =>
@@ -221,6 +227,97 @@ describe('useVerification — the report → verdict loop', () => {
     act(() => result.current.onRunReport(report(1)));
     await flush();
     expect(deps.postRunReport).toHaveBeenCalledTimes(1); // disarmed after the failure
+  });
+});
+
+describe('useVerification — screenshot evidence (D-HARN-21b)', () => {
+  it('attaches the captured screenshot when the turn requested one', async () => {
+    const captureScreenshot = vi.fn(async () => SHOT);
+    const { result, deps } = setup({ captureScreenshot });
+    act(() => result.current.beginVerification('t1', true));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(captureScreenshot).toHaveBeenCalledTimes(1);
+    expect(deps.postRunReport).toHaveBeenCalledWith({
+      projectId: 'p1',
+      turnId: 't1',
+      report: { ...report(1), screenshot: SHOT },
+      mode: 'lite',
+    });
+  });
+
+  it('NEVER captures when the backend did not ask (default + explicit false)', async () => {
+    const captureScreenshot = vi.fn(async () => SHOT);
+    const { result, deps } = setup({ captureScreenshot });
+    act(() => result.current.beginVerification('t1'));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(captureScreenshot).not.toHaveBeenCalled();
+    expect(deps.postRunReport).toHaveBeenCalledWith(
+      expect.objectContaining({ report: report(1) }),
+    );
+  });
+
+  it('a capture that resolves undefined omits the field — the report still posts', async () => {
+    const { result, deps } = setup({ captureScreenshot: vi.fn(async () => undefined) });
+    act(() => result.current.beginVerification('t1', true));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenCalledTimes(1);
+    const posted = (deps.postRunReport as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+      report: RunReport;
+    };
+    expect('screenshot' in posted.report).toBe(false);
+  });
+
+  it('a THROWING capture dep still posts the report without the field', async () => {
+    const { result, deps } = setup({
+      captureScreenshot: vi.fn(async () => {
+        throw new Error('capture exploded');
+      }),
+    });
+    act(() => result.current.beginVerification('t1', true));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenCalledWith(
+      expect.objectContaining({ report: report(1) }),
+    );
+  });
+
+  it('a fixing verdict re-arms with the FIX turn own screenshot hint', async () => {
+    const captureScreenshot = vi.fn(async () => SHOT);
+    const { result, deps } = setup({
+      captureScreenshot,
+      verdicts: [
+        { verdict: 'fixing', attempt: 1, turn: { ...FIX_TURN, screenshot_requested: true } },
+        { verdict: 'verified' },
+      ],
+    });
+    act(() => result.current.beginVerification('t1')); // first turn: NO screenshot
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(captureScreenshot).not.toHaveBeenCalled();
+    // The fix turn asked → its report carries the evidence.
+    act(() => result.current.onRunReport(report(2)));
+    await flush();
+    expect(captureScreenshot).toHaveBeenCalledTimes(1);
+    expect(deps.postRunReport).toHaveBeenLastCalledWith(
+      expect.objectContaining({ turnId: 'fix-1', report: { ...report(2), screenshot: SHOT } }),
+    );
+  });
+
+  it('resume-verify honours the verify-state screenshot hint', async () => {
+    const captureScreenshot = vi.fn(async () => SHOT);
+    const { result, deps, restartGame } = setup({
+      captureScreenshot,
+      state: { turn_id: 't9', verify_status: 'pending', attempts: 0, screenshot_requested: true },
+    });
+    await waitFor(() => expect(restartGame).toHaveBeenCalledTimes(1));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenCalledWith(
+      expect.objectContaining({ turnId: 't9', report: { ...report(1), screenshot: SHOT } }),
+    );
   });
 });
 

@@ -36,6 +36,8 @@ interface FileTreeProps {
 const FILE_ICON: Record<string, LucideIcon> = {
   js: FileCode2,
   ts: FileCode2,
+  html: FileCode2,
+  htm: FileCode2,
   css: FileType,
   json: FileJson,
   txt: FileText,

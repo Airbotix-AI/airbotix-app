@@ -66,7 +66,9 @@ a STALE engine after a deploy, e.g. a pre-GLTFLoader `THREE`).
 `buildGamePreview.ts` injects a per-engine control shim — **same wire protocol for both engines**:
 - Parent→frame: `{__airbotixControl, action:'pause'|'resume'|'mute'|'unmute'|'snapshot'|'report'}`.
 - Frame→parent: `{__airbotixStat, fps, paused, frames}` ~500 ms (`frames` = the ENGINE's cumulative
-  frame counter — never rAF, which ticks while frozen); `{__airbotixSnapshot, dataUrl}` on request;
+  frame counter — never rAF, which ticks while frozen); `{__airbotixSnapshot, dataUrl, composited?}`
+  on request — with an overlay the reply is COMPOSITED (canvas + `#overlay` DOM via an in-frame SVG
+  foreignObject shim → `composited:true`; ANY failure falls back to the raw canvas, `composited:false`);
   `{__airbotixRunReport, canvas:{present,nonBlank,sampled}}` answering `report` (engine-agnostic
   `RUN_PROBE`, 8×8 canvas sample; probe failure degrades, never breaks the game); **three only**
   `{__airbotixAsset, url, len, ok, error?}` per GLTF/Texture load (`THREE_LOADER_GUARD` — posts +
@@ -117,9 +119,11 @@ All turns run server-side via `../code/codeApi`:
   Silent on success AND on auto-fix (a `fixing` verdict applies files quietly, restarts,
   reports `attempt+1`); the **co-debug hand-off is the ONLY visible surface** (one warm
   bubble, server copy). Resume-verify: `GET …/code/verify-state` on workspace mount; loop
-  driver `panes/useVerification.ts`. The raw `/code/verify-fix` console-error path is
-  RETIRED for games. Stars metered server-side; undo is local; `client_actions` run via
-  `executeClientActions`.
+  driver `panes/useVerification.ts`. `screenshot_requested` (turn result + verify-state,
+  D-HARN-21b) → the report carries a downscaled composited screenshot (`reportScreenshot.ts`,
+  ≤480px JPEG); ANY capture failure omits the field — the report still posts. The raw
+  `/code/verify-fix` console-error path is RETIRED for games. Stars metered server-side;
+  undo is local; `client_actions` run via `executeClientActions`.
 
 ## Runtime contract (what the agent/kid writes)
 
@@ -129,6 +133,11 @@ the 4.x engine) and builds visuals from shapes. Each `<script>` carries
 `//# sourceURL=<path>` so errors report the kid's file/line (jump-to-error + Ask-AI-to-fix);
 SYNTAX errors never get sourceURL (the script doesn't parse), so `GameFrame` maps their
 srcdoc line back to file:line via `buildGamePreview`'s script ranges (`resolveErrorLoc`).
+**`overlay.html`** (root, reserved — D-GAME13) = the ONE HTML fragment rendered: DOMParser-sanitized
+(scripts stripped, markup repaired) + asset-inlined, injected as `<div id="overlay">` above `#game`
+BEFORE kid scripts (getElementById works at script time), with pass-through base CSS
+(`pointer-events:none`; buttons/`[data-ui]` opt in, ≥44px) BEFORE kid css so kid css wins. Every
+other `.html` file is INERT; no overlay ⇒ **byte-identical srcdoc** (snapshot-pinned).
 Assets: image/audio/video + `.glb` 3D models (three engine only — `THREE.GLTFLoader`, D-3D-09);
 sibling `<path>.anim.json` = sprite strip. (The Game Guide's
 `phaser/runtime-contract` doc mirrors THIS — keep in sync, D‑HELP‑06.)
@@ -140,10 +149,9 @@ reference, `addExtraLib` → hover/autocomplete; semantic validation off (no red
 
 ## Route & naming
 
-`/learn/playground/:projectId` — the **only** entry (authed kid; `LearnPlaygroundPage`
-→ `PlaygroundApp`); `/learn/playground/new` = create/landing (project created on prompt
-submit). Dev/e2e reach it via a route-mocked harness (`e2e/helpers.ts`). Naming: the
-**feature** is `playground`; a single game artifact keeps `game`.
+`/learn/playground/:projectId` — the **only** entry (authed kid; `LearnPlaygroundPage` →
+`PlaygroundApp`); `/learn/playground/new` = create/landing. Dev/e2e reach it via a route-mocked
+harness (`e2e/helpers.ts`). Naming: the **feature** is `playground`; a game artifact keeps `game`.
 
 ## Inherited rules (don't relitigate here)
 

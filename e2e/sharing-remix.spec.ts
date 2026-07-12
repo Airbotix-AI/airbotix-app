@@ -18,17 +18,25 @@ const SHARE_ID = 'sh-abc123';
 
 // A minimal but REAL Phaser game (runs the loop → posts fps > 0) for the frozen
 // snapshot the play route / wall serve. The update() keeps the loop alive so the
-// game-smoke oracle sees a stat with fps > 0.
+// game-smoke oracle sees a stat with fps > 0. The snapshot also carries the ONE
+// reserved `overlay.html` fragment (D-GAME13) — a touch button wired from main.js
+// (pointerdown → an observable console signal) — proving the overlay flows
+// through the frozen share snapshot to /play and the class wall.
+const OVERLAY_HTML =
+  '<button id="play-btn" data-ui type="button" aria-label="Boost" ' +
+  'style="pointer-events:auto;touch-action:none;position:absolute;bottom:16px;right:16px;' +
+  'width:56px;height:56px;font-size:24px;border-radius:16px;border:0">▲</button>';
 const RUNNABLE_VFS = {
   files: [
     {
       path: 'main.js',
       content:
-        "class Game extends Phaser.Scene { constructor(){ super('Game'); } create(){ this.add.rectangle(80,60,40,40,0x66ccff); } update(){} }\n" +
+        "class Game extends Phaser.Scene { constructor(){ super('Game'); } create(){ this.add.rectangle(80,60,40,40,0x66ccff); const b = document.getElementById('play-btn'); if (b) b.addEventListener('pointerdown', () => console.log('overlay-press:play-btn')); } update(){} }\n" +
         "new Phaser.Game({ type: Phaser.AUTO, parent: 'game', width: 160, height: 120, scene: [Game] });\n",
       kind: 'text',
       size: 200,
     },
+    { path: 'overlay.html', content: OVERLAY_HTML, kind: 'text', size: OVERLAY_HTML.length },
   ],
 };
 
@@ -75,8 +83,13 @@ async function mockKidSession(page: Page) {
  */
 async function installGameSignalRecorder(page: Page) {
   await page.addInitScript(() => {
-    const w = window as unknown as { __smokeErrors: string[]; __smokeMaxFps: number };
+    const w = window as unknown as {
+      __smokeErrors: string[];
+      __smokeLogs: string[];
+      __smokeMaxFps: number;
+    };
     w.__smokeErrors = [];
+    w.__smokeLogs = [];
     w.__smokeMaxFps = 0;
     window.addEventListener('message', (e: MessageEvent) => {
       const m = e.data as
@@ -87,6 +100,7 @@ async function installGameSignalRecorder(page: Page) {
       if ((m as { __airbotixConsole?: true }).__airbotixConsole === true) {
         const cm = m as { level?: string; text?: string };
         if (cm.level === 'error') w.__smokeErrors.push(String(cm.text));
+        else w.__smokeLogs.push(String(cm.text));
       } else if ((m as { __airbotixStat?: true }).__airbotixStat === true) {
         const fps = (m as { fps?: number }).fps ?? 0;
         if (fps > w.__smokeMaxFps) w.__smokeMaxFps = fps;
@@ -273,6 +287,18 @@ test('J8: a logged-out visitor plays /play/:shareId with NONE of the studio chro
   // No auth token was sent for the public snapshot (D-GAME10d).
   expect(sentAuthHeader).toBeNull();
 
+  // D-GAME13: the frozen snapshot's overlay.html renders INSIDE the play frame
+  // (part of the game, inside the sandbox) …
+  const playFrame = page.frameLocator('[data-testid="play-iframe"]');
+  await expect(playFrame.locator('#overlay #play-btn')).toBeVisible();
+  // … while the brand bar stays a SIBLING frame ABOVE the surface (D-GAME10e:
+  // platform chrome is never an overlay over the game).
+  const barBox = await page.getByTestId('play-brand-bar').boundingBox();
+  const frameBox = await page.getByTestId('play-iframe').boundingBox();
+  expect(barBox).not.toBeNull();
+  expect(frameBox).not.toBeNull();
+  expect(barBox!.y + barBox!.height).toBeLessThanOrEqual(frameBox!.y + 1);
+
   // GAME-ONLY: none of the studio / Game-Runner chrome testids exist, and no kid
   // nickname appears anywhere on the page.
   for (const id of [
@@ -309,6 +335,60 @@ test('J8: a revoked/expired /play/:shareId shows the 410 gone state (no play-ifr
   await page.goto(`/play/${SHARE_ID}`);
   await expect(page.getByTestId('play-revoked')).toBeVisible();
   await expect(page.getByTestId('play-iframe')).toHaveCount(0);
+});
+
+// ── Mobile /play — overlay touch controls on a phone viewport (@mobile) ───────
+// Runs ONLY under the `mobile-play` project (devices['iPhone 14'] emulation);
+// the desktop `chromium` project excludes it via grepInvert. Share links are
+// opened mostly on phones: the overlay button must TAP, and the page must stay
+// exactly one viewport (h-dvh + overscroll-none — a scrollable /play hides
+// bottom-anchored touch controls behind the URL bar).
+
+test.describe('mobile @mobile', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('J8 mobile: the overlay button taps on /play, with no page scroll and no zoom', async ({
+    page,
+  }) => {
+    await installGameSignalRecorder(page);
+    await page.route(`**/play/${SHARE_ID}/files`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(RUNNABLE_VFS),
+      }),
+    );
+
+    await page.goto(`/play/${SHARE_ID}`);
+    await expect(page.getByTestId('play-iframe')).toBeVisible({ timeout: 8_000 });
+    const frame = page.frameLocator('[data-testid="play-iframe"]');
+    const btn = frame.locator('#overlay #play-btn');
+    await expect(btn).toBeVisible({ timeout: 8_000 });
+
+    // Kid-thumb target: the runtime floor is 44×44 (the fixture uses 56).
+    const box = await btn.boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+
+    // A real TAP (touch, not mouse) reaches the game's wiring.
+    await btn.tap();
+    await expect
+      .poll(
+        () => page.evaluate(() => (window as unknown as { __smokeLogs: string[] }).__smokeLogs),
+        { timeout: 5_000, message: 'expected the overlay tap to reach the game (overlay-press log)' },
+      )
+      .toContain('overlay-press:play-btn');
+
+    // The page never scrolled or zoomed: /play is exactly one dynamic viewport.
+    const view = await page.evaluate(() => ({
+      scrollY: window.scrollY,
+      scale: window.visualViewport?.scale ?? 1,
+      overflow: document.documentElement.scrollHeight - window.innerHeight,
+    }));
+    expect(view.scrollY).toBe(0);
+    expect(view.scale).toBe(1);
+    expect(view.overflow).toBeLessThanOrEqual(0);
+  });
 });
 
 // ── Stable visual screenshot of the public play gone-state ────────────────────
