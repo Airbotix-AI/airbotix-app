@@ -55,6 +55,17 @@ const SCORE_V1: MusicScore = {
   ],
 };
 const SCORE_V2: MusicScore = { ...SCORE_V1, title: 'Space Pup II', tempo: 126 };
+// Extra tracks beyond the 5 stage instruments still get their own lane and
+// pulse the nearest stage slot (percussion→drums, strings→piano) — PRD §4.
+const SCORE_EXTRA: MusicScore = {
+  ...SCORE_V1,
+  title: 'Big Band Pup',
+  tracks: [
+    ...SCORE_V1.tracks,
+    { instrument: 'percussion', notes: [{ time: 0, note: 'clap', duration: '16n' }] },
+    { instrument: 'strings',    notes: [{ time: 0, note: 'A3', duration: '2n' }] },
+  ],
+};
 
 let nextId = 0;
 function userMsg(content: string): Message {
@@ -109,6 +120,12 @@ function renderPane(messages: Message[], balance = 12) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // clearAllMocks only resets the fns — restore the mutable playback state too.
+  playbackMock.isPlaying = false;
+  playbackMock.position = 0;
+  playbackMock.muted = {};
+  playbackMock.solo = null;
+  playbackMock.volumes = {};
 });
 
 afterEach(cleanup);
@@ -253,5 +270,89 @@ describe('MusicStagePane — versions (AC-7)', () => {
     fireEvent.click(screen.getByTestId('style-drums-none'));
     expect(screen.getByTestId('stage-inst-drums')).toHaveClass('is-off');
     expect(screen.getByTestId('stage-style-drums')).toHaveTextContent('None');
+  });
+});
+
+describe('MusicStagePane — Track Lanes (PRD §4)', () => {
+  it('renders one lane per track, extras included, with non-empty piano-rolls (AC-9)', () => {
+    renderPane([userMsg('a big band adventure'), scoreMsg(SCORE_EXTRA)]);
+    expect(screen.getAllByTestId(/^lane-\d+$/)).toHaveLength(SCORE_EXTRA.tracks.length);
+    const rolls = screen.getAllByTestId('piano-roll');
+    expect(rolls).toHaveLength(SCORE_EXTRA.tracks.length);
+    for (const roll of rolls) {
+      expect(roll.childElementCount).toBeGreaterThan(0);
+    }
+    // Extra tracks keep their own identity in the lane header…
+    expect(screen.getByTestId('lane-select-5')).toHaveTextContent('Percussion');
+    expect(screen.getByTestId('lane-select-6')).toHaveTextContent('Strings');
+  });
+
+  it('lane click selects the mapped stage slot — extras go to the nearest instrument', () => {
+    renderPane([userMsg('a big band adventure'), scoreMsg(SCORE_EXTRA)]);
+    // strings → piano slot: both the strings lane and the piano lane highlight.
+    fireEvent.click(screen.getByTestId('lane-select-6'));
+    expect(screen.getByTestId('lane-6')).toHaveClass('bg-wash-sunshine/40');
+    expect(screen.getByTestId('lane-3')).toHaveClass('bg-wash-sunshine/40');
+    expect(screen.getByTestId('lane-0')).not.toHaveClass('bg-wash-sunshine/40');
+  });
+
+  it('lane [M] mutes by instrument (0⭐) and forwards to the shared playback state', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-mute-2'));
+    expect(playbackMock.toggleMute).toHaveBeenCalledWith('drums');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+  });
+
+  it('a muted lane dims its stage instrument in sync (AC-6)', () => {
+    playbackMock.muted = { drums: true };
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    expect(screen.getByTestId('stage-inst-drums')).toHaveClass('is-off');
+    expect(screen.getByTestId('stage-inst-guitar')).not.toHaveClass('is-off');
+  });
+
+  it('solo on one lane dims every other stage instrument (AC-6)', () => {
+    playbackMock.solo = 'guitar';
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    expect(screen.getByTestId('stage-inst-guitar')).not.toHaveClass('is-off');
+    expect(screen.getByTestId('stage-inst-drums')).toHaveClass('is-off');
+    expect(screen.getByTestId('stage-inst-piano')).toHaveClass('is-off');
+  });
+
+  it('VOL slider forwards 0–1 values to the playback channel (0⭐)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.change(screen.getByTestId('lane-vol-1'), { target: { value: '0.4' } });
+    expect(playbackMock.setVolume).toHaveBeenCalledWith('bass', 0.4);
+  });
+
+  it('lights the currently-sounding notes while playing', () => {
+    playbackMock.isPlaying = true;
+    playbackMock.position = 0.1; // inside the three time-0 notes @118 BPM
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    expect(document.querySelectorAll('[data-note-active="true"]')).toHaveLength(3);
+  });
+
+  it('keeps download/edit/re-roll off the lane — the ⋯ menu points at the Mixer', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
+    const menu = screen.getByTestId('lane-menu-0');
+    expect(menu).toHaveTextContent('Opens in the Mixer');
+    // Mixer not wired yet: entries are visible but honestly greyed out.
+    expect(screen.getByTestId('lane-menu-download-0')).toBeDisabled();
+    expect(screen.getByTestId('lane-menu-edit-0')).toBeDisabled();
+    expect(screen.getByTestId('lane-menu-reroll-0')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Close menu'));
+    expect(screen.queryByTestId('lane-menu-0')).not.toBeInTheDocument();
+  });
+
+  it('collapses lanes into a drawer with a persistent handle on narrow screens (AC-12)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    const region = screen.getByTestId('lanes-region');
+    expect(region).toHaveClass('hidden', 'min-[740px]:block');
+    const handle = screen.getByTestId('lanes-drawer-handle');
+    fireEvent.click(handle);
+    expect(region).toHaveClass('block');
+    expect(region).not.toHaveClass('hidden');
+    fireEvent.click(handle);
+    expect(region).toHaveClass('hidden');
   });
 });

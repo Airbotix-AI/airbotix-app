@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-12 (feat: Music Stage — Track Lanes, music-stage-prd Phase C §4)
+
+### Added
+- **Track Lanes polish (PRD §4)**: piano-roll note blocks now **light up while
+  they sound** (full-strength instrument color + glow, synced with the
+  playhead and the stage pulses); each lane gained a tail `⋯` overflow menu
+  that keeps per-track download / note editing / re-roll **off the kid-facing
+  lane** and deep-links them into the advanced Mixer via a new
+  `onOpenMixer(trackIndex, action)` contract — entries render greyed out with
+  a one-line note until the Mixer task wires it (stated capability boundaries,
+  never faked).
+- Component tests for the lanes: one lane per generated track including extra
+  tracks (percussion/strings, AC-9), lane-click ↔ stage-slot selection for
+  nearest-instrument mapping, mute/solo dimming the stage in sync (AC-6
+  frontend half), VOL forwarding, active-note lighting, overflow-menu
+  behaviour, and the narrow-screen drawer handle (AC-12).
+
+### Changed
+- Compacted the Track Lanes styling (narrower channel strip, shorter
+  piano-rolls) so Stage + Lanes share one desktop screen per PRD §2.1.
+
 ## 2026-07-12 (feat: Music Stage — studio=music opening, music-stage-prd Phase B)
 
 ### Added
