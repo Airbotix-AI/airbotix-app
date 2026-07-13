@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-14 (fix: opening the AI Studio no longer bounces onto an old song)
+
+### Fixed
+- **Clicking "✨ AI Studio" hijacked the kid onto `/learn/music/<old-session>`.** The Workspace
+  auto-resumes the most recent session on entry, and the D-MS7 bridge (music session → Music
+  Stage) fired on that AUTO-selected session too — so a kid whose latest session was a song could
+  never reach the chat studio at all. Auto-select now skips music sessions (the Stage owns them);
+  the bridge still redirects a music session the kid EXPLICITLY picks from the sessions list.
+
 ## 2026-07-13 (fix: the auth card fits above the fold on laptop screens)
 
 ### Fixed

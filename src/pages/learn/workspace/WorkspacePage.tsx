@@ -96,10 +96,15 @@ export function WorkspacePage() {
     enabled: !!familyId,
   });
 
-  // Auto-select most recent session on first load only.
+  // Auto-select the most recent CHAT session on first load only. Music sessions
+  // are excluded: the Stage owns them (D-MS7), and auto-resuming one here would
+  // bounce the whole Workspace entry onto /learn/music — the kid clicked the AI
+  // studio and got hijacked to an old song. The music redirect below still works
+  // for a music session the kid EXPLICITLY picks from the sessions list.
   useEffect(() => {
     if (autoSelect && !activeSessionId && (sessions.data?.length ?? 0) > 0) {
-      setActiveSessionId(sessions.data![0].id);
+      const lastChat = sessions.data!.find((s) => s.studio !== 'music');
+      if (lastChat) setActiveSessionId(lastChat.id);
     }
   }, [autoSelect, activeSessionId, sessions.data]);
 
