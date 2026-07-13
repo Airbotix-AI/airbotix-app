@@ -50,6 +50,7 @@ import { CharacterVisual } from './CharacterVisual';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
+import { storyMissionProgramMatches, storyMissionScriptId } from './storyMissionProgress';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -138,6 +139,8 @@ export function BlocksStudioPage({
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
+  const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
+  const [missionFixPersisted, setMissionFixPersisted] = useState(false);
   const [missionCompleted, setMissionCompleted] = useState(false);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
@@ -182,16 +185,16 @@ export function BlocksStudioPage({
   const missionScript = useMemo(
     () => page.characters
       .flatMap((character) => character.scripts)
-      .find((script) => script.blocks[0]?.op === 'when_flag'
-        && script.blocks.some((block) => block.op === 'say')
-        && script.blocks.some((block) => block.op === 'hop')),
-    [page],
+      .find((script) => script.id === storyMissionScriptId(storyMission?.lessonId ?? '')),
+    [page, storyMission?.lessonId],
   );
-  const missionOps = missionScript?.blocks.map((block) => block.op) ?? [];
-  const missionTargetFixed = missionOps.indexOf('hop') > 0
-    && missionOps.indexOf('hop') < missionOps.indexOf('say');
+  const missionTargetFixed = storyMission
+    ? storyMissionProgramMatches(project, storyMission.lessonId)
+    : false;
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
+    : missionCorrectRunFinished
+      ? 'saving'
     : running
       ? storyCoachCue
       : missionFixApplied
@@ -209,10 +212,26 @@ export function BlocksStudioPage({
     setMissionHasRun(false);
     setMissionAnswer(null);
     setMissionFixApplied(false);
+    setMissionCorrectRunFinished(false);
+    setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(false);
     setStoryCoachCue('ready');
     setMissionOpen(true);
-  }, [phase, projectId, storyMission]);
+  }, [phase, projectId, storyMission, missionTargetFixed]);
+
+  useEffect(() => {
+    if (missionTargetFixed) return;
+    setMissionCorrectRunFinished(false);
+    setMissionFixPersisted(false);
+    setMissionCompleted(false);
+  }, [missionTargetFixed]);
+
+  useEffect(() => {
+    if (!missionCorrectRunFinished || !missionFixPersisted || !missionTargetFixed) return;
+    setMissionCompleted(true);
+    setStoryCoachCue('complete');
+    setMissionOpen(true);
+  }, [missionCorrectRunFinished, missionFixPersisted, missionTargetFixed]);
 
   // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
   // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
@@ -306,6 +325,14 @@ export function BlocksStudioPage({
             }
           } while (pendingRef.current);
           setSaveStatus('saved');
+          if (storyMission) {
+            setMissionFixPersisted(
+              storyMissionProgramMatches(
+                useBlocksStore.getState().project,
+                storyMission.lessonId,
+              ),
+            );
+          }
           // refresh the Projects/My Works cover thumbnail (device-local)
           try {
             const cover = useBlocksStore.getState().project.pages[0];
@@ -321,7 +348,7 @@ export function BlocksStudioPage({
       })();
     }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [dirty, phase, projectId, readOnly]);
+  }, [dirty, phase, projectId, readOnly, storyMission]);
 
   // ── undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ─────────────────
   const undo = useCallback(() => {
@@ -424,13 +451,20 @@ export function BlocksStudioPage({
       if (storyMission) {
         setMissionHasRun(true);
         if (missionTargetFixed) {
-          setMissionCompleted(true);
-          setStoryCoachCue('complete');
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue(missionFixPersisted ? 'complete' : 'saving');
+          if (missionFixPersisted) {
+            setMissionCompleted(true);
+            setMissionOpen(true);
+          } else {
+            setMissionOpen(false);
+          }
+        } else {
+          setMissionOpen(true);
         }
-        setMissionOpen(true);
       }
     });
-  }, [running, makeRunner, demo, storyMission, missionTargetFixed]);
+  }, [running, makeRunner, demo, storyMission, missionTargetFixed, missionFixPersisted]);
 
   const applyMissionFix = useCallback(() => {
     if (!missionScript) return;
@@ -446,6 +480,9 @@ export function BlocksStudioPage({
       );
     }
     setMissionFixApplied(true);
+    setMissionCorrectRunFinished(false);
+    setMissionFixPersisted(false);
+    setMissionCompleted(false);
     setStoryCoachCue('test');
     setMissionOpen(false);
   }, [missionScript]);

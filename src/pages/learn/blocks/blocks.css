@@ -716,6 +716,7 @@
 /* ── stage scenes (constant brand-wash art, both themes) ──────────────────── */
 .bsx-stage {
   position: relative;
+  container-type: size;
   border-radius: 26px;
   overflow: hidden;
   border: 1px solid var(--bsx-border);
@@ -759,8 +760,8 @@
 
 .bsx-character-asset {
   display: block;
-  width: clamp(64px, 7vw, 92px);
-  height: clamp(64px, 7vw, 92px);
+  width: clamp(92px, 18cqh, 160px);
+  height: clamp(92px, 18cqh, 160px);
   object-fit: contain;
   pointer-events: none;
   user-select: none;
@@ -1525,9 +1526,10 @@
   font-weight: 900;
 }
 .bsx-story-fullscreen {
-  width: min(1180px, calc(100vw - 36px));
-  height: calc(100dvh - 36px);
-  max-height: none;
+  width: min(1200px, calc(100vw - 36px));
+  height: min(760px, calc(100dvh - 36px));
+  min-height: min(620px, calc(100dvh - 36px));
+  max-height: calc(100dvh - 36px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1537,13 +1539,30 @@
     linear-gradient(155deg, #fffdf5, #fff0bb);
 }
 .bsx-story-fullscreen h2 { margin-bottom: clamp(10px, 2vh, 20px); }
+.bsx-story-fullscreen .bsx-mission-story {
+  max-width: 42ch;
+  font-size: clamp(18px, 1.25vw, 21px);
+}
 .bsx-story-book {
   min-height: 0;
   flex: 1;
   display: grid;
   grid-template-columns: minmax(300px, 1.12fr) minmax(340px, .88fr);
-  align-items: stretch;
+  align-items: center;
   gap: clamp(22px, 4vw, 54px);
+}
+
+@media (min-width: 1600px) and (min-height: 900px) {
+  .bsx-story-fullscreen {
+    width: min(1240px, calc(100vw - 72px));
+    height: min(780px, calc(100dvh - 72px));
+    min-height: 0;
+    padding: 24px 50px 30px;
+  }
+
+  .bsx-story-fullscreen h2 { margin-bottom: 16px; }
+  .bsx-story-book { gap: 48px; }
+  .bsx-story-copy { overflow: visible; }
 }
 .bsx-story-copy {
   min-height: 0;
@@ -1555,6 +1574,8 @@
 }
 .bsx-story-scene {
   position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   min-height: 330px;
   overflow: hidden;
   border: 4px solid rgb(255 255 255 / 78%);
@@ -1575,7 +1596,8 @@
 .bsx-story-cloud,
 .bsx-story-village,
 .bsx-story-tower,
-.bsx-story-light-path,
+.bsx-story-light-network,
+.bsx-story-light-equation,
 .bsx-story-hero,
 .bsx-story-speech,
 .bsx-story-blocks,
@@ -1605,23 +1627,89 @@
   display: flex;
   justify-content: space-between;
   align-items: end;
-  font-size: clamp(62px, 8vw, 92px);
+  font-size: clamp(48px, 5vw, 68px);
   filter: saturate(.75) brightness(.7);
 }
 .bsx-story-village span:nth-child(2) { transform: translateY(18px) scale(.82); }
-.bsx-story-tower { left: 50%; bottom: 26%; font-size: clamp(70px, 9vw, 106px); transform: translateX(-50%); filter: grayscale(.7) brightness(.8); }
-.bsx-story-light-path {
-  left: 15%;
-  bottom: 30%;
-  width: 70%;
-  height: 12px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #fff7a0, #ffc94a, #fff7a0);
-  box-shadow: 0 0 18px #ffe46b, 0 0 42px #ffc94a;
-  transform: scaleX(0);
-  transform-origin: left;
+.bsx-story-village,
+.bsx-story-tower { z-index: 2; }
+.bsx-story-tower { left: 50%; bottom: 27%; font-size: clamp(58px, 6vw, 78px); transform: translateX(-50%); filter: grayscale(.7) brightness(.8); }
+.bsx-story-light-network {
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
-.bsx-story-hero { left: 16%; bottom: 22%; font-size: clamp(76px, 10vw, 118px); filter: drop-shadow(0 0 20px #ffe76d); opacity: 0; }
+.bsx-story-light-network marker path { fill: #ffe574; }
+.bsx-story-light-route {
+  fill: none;
+  stroke: #ffe574;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 3 17;
+  filter: drop-shadow(0 0 6px #ffce45);
+  animation: bsx-story-spark-route 1.8s linear infinite;
+}
+.bsx-story-light-route.route-middle { animation-delay: -.6s; }
+.bsx-story-light-route.route-right { animation-delay: -1.2s; }
+.bsx-story-wake-node {
+  fill: #fff3a0;
+  stroke: #ffc947;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 9px #ffd95b);
+}
+.bsx-story-tower-node {
+  fill: rgb(255 211 72 / 45%);
+  stroke: #ffe884;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 12px #ffd64f);
+  animation: bsx-story-tower-node-pulse 2.2s ease-in-out infinite;
+}
+.bsx-story-light-equation {
+  left: 50%;
+  bottom: 2.5%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.3vw, 14px);
+  width: max-content;
+  max-width: 92%;
+  padding: 7px clamp(10px, 1.8vw, 17px);
+  border: 2px solid rgb(255 230 121 / 45%);
+  border-radius: 999px;
+  background: rgb(24 29 61 / 82%);
+  color: #fff6bd;
+  box-shadow: 0 7px 16px rgb(13 19 53 / 24%);
+  font-size: clamp(18px, 2.4vw, 25px);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.bsx-story-light-equation strong { color: #ffe06c; font-size: 1.15em; }
+.bsx-story-hero {
+  left: 16%;
+  bottom: 18%;
+  z-index: 3;
+  width: clamp(76px, 8vw, 108px);
+  filter: drop-shadow(0 0 20px #ffe76d);
+  opacity: 0;
+}
+.bsx-story-hero img { display: block; width: 100%; height: auto; }
+.bsx-story-hero span {
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #fff8d7;
+  color: #554113;
+  font-size: 14px;
+  font-weight: 900;
+  box-shadow: 0 4px 0 rgb(110 76 14 / 28%);
+  transform: translateX(-50%);
+}
 .bsx-story-speech {
   left: 34%;
   top: 22%;
@@ -1646,27 +1734,22 @@
 .bsx-story-blocks span:last-child { background: #62d79a; box-shadow: 0 5px 0 #28935f; }
 .bsx-story-blocks b { color: #fff; font-size: 28px; }
 .bsx-story-child { right: 9%; bottom: 20%; font-size: clamp(70px, 9vw, 105px); opacity: 0; }
-.bsx-story-scene-caption {
-  position: absolute;
-  left: 18px;
-  bottom: 15px;
-  z-index: 2;
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgb(24 29 61 / 72%);
-  color: #fff;
-  font-size: 18px;
-  letter-spacing: .1em;
+.bsx-story-scene-1 .bsx-story-village { bottom: 8%; opacity: .28; }
+.bsx-story-scene-1 .bsx-story-tower { opacity: .12; }
+.bsx-story-scene-1 .bsx-story-hero {
+  left: 50%;
+  bottom: 13%;
+  width: clamp(132px, 15vw, 190px);
+  opacity: 1;
+  transform: translateX(-50%);
+  animation: bsx-story-lumi-greeting 2.3s ease-in-out infinite;
 }
-.bsx-story-scene-1 .bsx-story-light-path { animation: bsx-story-light-travel 2.6s ease-in-out infinite; }
-.bsx-story-scene-1 .bsx-story-tower { animation: bsx-story-tower-glow 2.6s ease-in-out infinite; }
-.bsx-story-scene-2 .bsx-story-village { opacity: .45; }
-.bsx-story-scene-2 .bsx-story-tower { left: 76%; opacity: .8; }
-.bsx-story-scene-2 .bsx-story-hero { opacity: 1; animation: bsx-story-hop 1.9s ease-in-out infinite; }
-.bsx-story-scene-2 .bsx-story-light-path { left: 27%; bottom: 38%; width: 46%; animation: bsx-story-light-travel 1.9s .55s ease-in-out infinite; }
+.bsx-story-scene-1 .bsx-story-speech { left: 63%; top: 43%; opacity: 1; }
+.bsx-story-scene-2 .bsx-story-village { opacity: .78; }
+.bsx-story-scene-2 .bsx-story-tower { opacity: .9; animation: bsx-story-tower-glow 2.6s ease-in-out infinite; }
+.bsx-story-scene-2 .bsx-story-hero { left: 8%; bottom: 14%; width: clamp(68px, 7vw, 90px); opacity: 1; animation: bsx-story-hop 1.9s ease-in-out infinite; }
 .bsx-story-scene-3 .bsx-story-village { opacity: .42; }
 .bsx-story-scene-3 .bsx-story-tower { animation: bsx-story-pause 2.4s ease-in-out infinite; }
-.bsx-story-scene-3 .bsx-story-light-path { width: 32%; opacity: .5; animation: bsx-story-light-stop 2.4s ease-in-out infinite; }
 .bsx-story-scene-4 .bsx-story-village,
 .bsx-story-scene-4 .bsx-story-tower { opacity: .2; }
 .bsx-story-scene-4 .bsx-story-hero { opacity: 1; animation: bsx-story-late-hop 2.8s ease-in-out infinite; }
@@ -1676,14 +1759,14 @@
 .bsx-story-scene-5 .bsx-story-tower { left: 50%; opacity: .55; }
 .bsx-story-scene-5 .bsx-story-hero { left: 12%; opacity: 1; animation: bsx-story-invite 2.2s ease-in-out infinite; }
 .bsx-story-scene-5 .bsx-story-child { opacity: 1; animation: bsx-story-child-arrive .8s cubic-bezier(.2, .8, .2, 1) both; }
-.bsx-story-scene-5 .bsx-story-light-path { left: 27%; bottom: 38%; width: 50%; opacity: .6; animation: bsx-story-light-stop 2.2s ease-in-out infinite; }
 @keyframes bsx-story-twinkle { 50% { opacity: .35; transform: scale(.72); } }
 @keyframes bsx-story-cloud-drift { to { translate: 24px 0; } }
-@keyframes bsx-story-light-travel { 0%, 15% { transform: scaleX(0); } 65%, 100% { transform: scaleX(1); } }
+@keyframes bsx-story-spark-route { to { stroke-dashoffset: -40; } }
+@keyframes bsx-story-tower-node-pulse { 50% { opacity: .45; transform: scale(.76); transform-origin: center; } }
 @keyframes bsx-story-tower-glow { 50% { filter: grayscale(0) brightness(1.15) drop-shadow(0 0 20px #ffd953); transform: translateX(-50%) scale(1.05); } }
 @keyframes bsx-story-hop { 45% { transform: translateY(-58px) rotate(-8deg); } }
+@keyframes bsx-story-lumi-greeting { 50% { transform: translateX(-50%) translateY(-8px) rotate(3deg); } }
 @keyframes bsx-story-pause { 50% { opacity: .42; transform: translateX(-50%) scale(.94); } }
-@keyframes bsx-story-light-stop { 0%, 20% { transform: scaleX(0); } 55%, 100% { transform: scaleX(.48); } }
 @keyframes bsx-story-say-first { 0%, 12%, 100% { opacity: 0; transform: scale(.75); } 22%, 65% { opacity: 1; transform: scale(1); } }
 @keyframes bsx-story-late-hop { 0%, 55%, 100% { transform: translateY(0); } 75% { transform: translateY(-54px); } }
 @keyframes bsx-story-invite { 50% { transform: rotate(-7deg) scale(1.05); } }
@@ -1697,11 +1780,10 @@
   font-weight: 650;
 }
 .bsx-story-celebration {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 1300;
   overflow: hidden;
-  border-radius: 28px;
   pointer-events: none;
 }
 .bsx-story-celebration span {
@@ -1716,13 +1798,14 @@
   animation: bsx-confetti-fall var(--confetti-duration) cubic-bezier(.2, .7, .2, 1)
     var(--confetti-delay) both;
 }
-.bsx-story-celebration span:nth-child(3n) { width: 14px; height: 14px; border-radius: 50%; }
-.bsx-story-celebration span:nth-child(4n) { width: 8px; height: 20px; }
+.bsx-story-celebration span:nth-child(3n) { width: 15px; height: 15px; border-radius: 50%; }
+.bsx-story-celebration span:nth-child(4n) { width: 7px; height: 30px; border-radius: 999px; }
+.bsx-story-celebration span:nth-child(5n) { width: 24px; height: 7px; border-radius: 999px; }
 @keyframes bsx-confetti-fall {
   0% { opacity: 0; transform: translate3d(0, -20px, 0) rotate(0deg); }
   12% { opacity: 1; }
   82% { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(var(--confetti-drift), 680px, 0) rotate(700deg); }
+  100% { opacity: 0; transform: translate3d(var(--confetti-drift), 110dvh, 0) rotate(700deg); }
 }
 @media (prefers-reduced-motion: reduce) {
   .bsx-story-celebration span {
@@ -1731,17 +1814,10 @@
     opacity: .55;
     transform: rotate(24deg);
   }
-  .bsx-story-scene *,
-  .bsx-story-scene-1 .bsx-story-light-path,
-  .bsx-story-scene-2 .bsx-story-light-path,
-  .bsx-story-scene-3 .bsx-story-light-path,
-  .bsx-story-scene-5 .bsx-story-light-path {
-    animation: none;
-  }
-  .bsx-story-scene-1 .bsx-story-light-path,
-  .bsx-story-scene-2 .bsx-story-light-path { transform: scaleX(1); }
-  .bsx-story-scene-3 .bsx-story-light-path,
-  .bsx-story-scene-5 .bsx-story-light-path { transform: scaleX(.48); }
+  .bsx-story-celebration span:nth-child(n + 17) { display: none; }
+  .bsx-story-scene * { animation: none; }
+  .bsx-story-light-route,
+  .bsx-story-tower-node { animation: none; }
   .bsx-story-scene-4 .bsx-story-speech,
   .bsx-story-scene-4 .bsx-story-blocks,
   .bsx-story-scene-5 .bsx-story-child { opacity: 1; }
@@ -1751,19 +1827,18 @@
   .bsx-story-fullscreen .bsx-mission-eyebrow { padding-right: 44px; }
   .bsx-story-fullscreen h2 { font-size: clamp(23px, 7vw, 30px); }
   .bsx-story-book { grid-template-columns: 1fr; grid-template-rows: minmax(210px, 42%) minmax(0, 1fr); gap: 13px; }
-  .bsx-story-scene { min-height: 210px; border-radius: 22px; }
+  .bsx-story-scene { aspect-ratio: auto; min-height: 210px; height: 100%; border-radius: 22px; }
   .bsx-story-copy { justify-content: flex-start; }
   .bsx-story-village { font-size: clamp(48px, 17vw, 76px); }
   .bsx-story-tower { font-size: clamp(58px, 20vw, 88px); }
-  .bsx-story-hero { font-size: clamp(62px, 22vw, 96px); }
+  .bsx-story-hero { width: clamp(62px, 22vw, 96px); }
   .bsx-story-child { font-size: clamp(58px, 20vw, 88px); }
-  .bsx-story-scene-caption { font-size: 14px; }
   .bsx-story-book-5 { grid-template-rows: minmax(170px, 27%) minmax(0, 1fr); }
   .bsx-story-book-5 .bsx-story-scene { min-height: 170px; }
   .bsx-story-book-5 .bsx-story-village { font-size: clamp(38px, 13vw, 58px); }
   .bsx-story-book-5 .bsx-story-tower,
-  .bsx-story-book-5 .bsx-story-hero,
   .bsx-story-book-5 .bsx-story-child { font-size: clamp(48px, 16vw, 70px); }
+  .bsx-story-book-5 .bsx-story-hero { width: clamp(48px, 16vw, 70px); }
 }
 @media (max-height: 760px) {
   .bsx-mission-card { padding: 18px 30px 20px; }

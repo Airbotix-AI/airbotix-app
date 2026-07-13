@@ -1,9 +1,10 @@
 import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { StoryMission } from './curriculumGuides';
 
 const CELEBRATION_COLORS = ['#ffcc4d', '#ff6b91', '#6fd6ff', '#7ce38b', '#a98bff'];
-const CELEBRATION_PIECES = Array.from({ length: 32 }, (_, index) => ({
+const CELEBRATION_PIECES = Array.from({ length: 72 }, (_, index) => ({
   id: index,
   style: {
     '--confetti-left': `${(index * 37) % 100}%`,
@@ -48,7 +49,20 @@ export function StoryMissionGuide({
   };
 
   return (
-    <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
+    <>
+      {completed && typeof document !== 'undefined' && createPortal(
+        <div
+          className="bsx-story-celebration"
+          data-testid="story-celebration"
+          aria-hidden="true"
+        >
+          {CELEBRATION_PIECES.map((piece) => (
+            <span key={piece.id} style={piece.style} />
+          ))}
+        </div>,
+        document.body,
+      )}
+      <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
       <section
         className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}`}
         role="dialog"
@@ -96,14 +110,54 @@ export function StoryMissionGuide({
                 <span>🏠</span><span>🏡</span><span>🏠</span>
               </div>
               <div className="bsx-story-tower">🔔</div>
-              <div className="bsx-story-light-path" />
-              <div className="bsx-story-hero">⭐</div>
-              <div className="bsx-story-speech">Morning!</div>
+              {storyPage === 1 && (
+                <>
+                  <svg
+                    className="bsx-story-light-network"
+                    data-testid="story-light-network"
+                    viewBox="0 0 600 360"
+                    preserveAspectRatio="none"
+                  >
+                    <defs>
+                      <marker
+                        id="bsx-story-light-arrow"
+                        markerUnits="userSpaceOnUse"
+                        markerWidth="14"
+                        markerHeight="14"
+                        refX="12"
+                        refY="7"
+                        orient="auto"
+                      >
+                        <path d="M0,0 L14,7 L0,14 Z" />
+                      </marker>
+                    </defs>
+                    <path className="bsx-story-light-route route-left" d="M105 252 Q155 198 283 170" markerEnd="url(#bsx-story-light-arrow)" />
+                    <path className="bsx-story-light-route route-middle" d="M300 274 L300 176" markerEnd="url(#bsx-story-light-arrow)" />
+                    <path className="bsx-story-light-route route-right" d="M495 252 Q445 198 317 170" markerEnd="url(#bsx-story-light-arrow)" />
+                    <circle className="bsx-story-wake-node node-left" cx="105" cy="252" r="11" />
+                    <circle className="bsx-story-wake-node node-middle" cx="300" cy="274" r="11" />
+                    <circle className="bsx-story-wake-node node-right" cx="495" cy="252" r="11" />
+                    <circle className="bsx-story-tower-node" cx="300" cy="170" r="15" />
+                  </svg>
+                  <div className="bsx-story-light-equation" data-testid="story-light-equation">
+                    <span>🏠✦</span><strong>→</strong><span>🔔</span><strong>→</strong><span>🌅</span>
+                  </div>
+                </>
+              )}
+              <div className="bsx-story-hero" data-testid="story-lumilo">
+                <img
+                  src="/story-blocks/tiny-star-village/characters/little-light/resting.svg"
+                  alt=""
+                />
+                <span>Lumi</span>
+              </div>
+              <div className="bsx-story-speech">
+                {storyPage === 0 ? "Hi! I'm Lumi!" : 'Morning!'}
+              </div>
               <div className="bsx-story-blocks">
                 <span>💬 Say</span><b>→</b><span>🦘 Hop</span>
               </div>
               <div className="bsx-story-child">👉</div>
-              <div className="bsx-story-scene-caption">{page.emoji}</div>
             </div>
             <div className="bsx-story-copy">
               <p className="bsx-mission-story">{page.body}</p>
@@ -155,15 +209,6 @@ export function StoryMissionGuide({
           </div>
         ) : completed ? (
           <div className="bsx-mission-success" data-testid="story-mission-success">
-            <div
-              className="bsx-story-celebration"
-              data-testid="story-celebration"
-              aria-hidden="true"
-            >
-              {CELEBRATION_PIECES.map((piece) => (
-                <span key={piece.id} style={piece.style} />
-              ))}
-            </div>
             <p>{mission.completion}</p>
             <div className="bsx-logic-proof" data-testid="story-logic-proof">
               <div className="bsx-logic-proof-steps">
@@ -249,6 +294,7 @@ export function StoryMissionGuide({
           </div>
         ) : null}
       </section>
-    </div>
+      </div>
+    </>
   );
 }

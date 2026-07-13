@@ -59,7 +59,11 @@ describe('BlocksStudioPage zone labels', () => {
 
     await renderStudio();
     expect(await screen.findByTestId('story-mission')).toHaveTextContent(
-      'Every home in Tiny Star Village sends one wake-up spark',
+      'Meet Lumi, your morning-light friend',
+    );
+    expect(screen.getByTestId('story-lumilo').querySelector('img')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));

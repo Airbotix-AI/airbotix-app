@@ -21,17 +21,34 @@ describe('StoryMissionGuide', () => {
         onClose={vi.fn()}
       />,
     );
-    expect(screen.getByText('A village powered by morning steps')).toBeInTheDocument();
-    expect(screen.getByText(/Every home.*wake-up spark/)).toBeInTheDocument();
+    expect(screen.getByText('Meet Lumi, your morning-light friend')).toBeInTheDocument();
+    expect(screen.getByText(/This is Lumilo—Lumi to friends/)).toBeInTheDocument();
+    expect(screen.getByText(/Hi! Call me Lumi/)).toBeInTheDocument();
     expect(screen.getByLabelText('Story page 1 of 5')).toBeInTheDocument();
     expect(screen.getByTestId('story-mission')).toHaveClass('bsx-story-fullscreen');
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-1');
+    expect(screen.getByTestId('story-lumilo').querySelector('img')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    );
+    expect(screen.queryByTestId('story-light-network')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('Meet Lumilo, the first light keeper')).toBeInTheDocument();
-    expect(screen.getByText(/Lumilo—Lumi to friends/)).toBeInTheDocument();
-    expect(screen.getByText(/Call me Lumi!.*wake up first/)).toBeInTheDocument();
+    expect(screen.getByText('Lumi starts the morning light')).toBeInTheDocument();
+    expect(screen.getByText(/Other homes send their stars too/)).toBeInTheDocument();
+    expect(screen.getByText(/My star goes first/)).toBeInTheDocument();
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-2');
+    expect(screen.getByTestId('story-light-network')).toBeInTheDocument();
+    expect(screen.getByTestId('story-light-network').querySelectorAll('.bsx-story-light-route')).toHaveLength(3);
+    expect(screen.getByTestId('story-light-network').querySelector('marker')).toHaveAttribute(
+      'markerUnits',
+      'userSpaceOnUse',
+    );
+    expect(screen.getByTestId('story-light-network').querySelector('marker')).toHaveAttribute(
+      'markerWidth',
+      '14',
+    );
+    expect(screen.getByTestId('story-light-equation')).toHaveTextContent('🏠✦→🔔→🌅');
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     expect(screen.getByText('The light chain stopped today')).toBeInTheDocument();
@@ -121,7 +138,9 @@ describe('StoryMissionGuide', () => {
       'You changed the real program and tested it',
     );
     expect(screen.getByTestId('story-celebration')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.getByTestId('story-celebration').children).toHaveLength(32);
+    expect(screen.getByTestId('story-celebration')).not.toBe(screen.getByTestId('story-mission-success').parentElement);
+    expect(screen.getByTestId('story-celebration').parentElement).toBe(document.body);
+    expect(screen.getByTestId('story-celebration').children).toHaveLength(72);
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('🦘 Hop');
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('💬 Morning!');
     expect(screen.getByTestId('story-logic-proof')).toHaveTextContent(

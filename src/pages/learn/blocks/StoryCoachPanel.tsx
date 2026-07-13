@@ -17,6 +17,7 @@ const STEP_BY_CUE: Record<StoryCoachCue, number> = {
   retry: 2,
   fix: 3,
   test: 4,
+  saving: 4,
   complete: 4,
 };
 

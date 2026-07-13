@@ -14,6 +14,7 @@ export type StoryCoachCue =
   | 'retry'
   | 'fix'
   | 'test'
+  | 'saving'
   | 'complete';
 
 export interface StoryCoachCopy {
@@ -26,6 +27,7 @@ export interface StoryCoachCopy {
   retry: string;
   fix: string;
   test: string;
+  saving: string;
   complete: string;
 }
 
@@ -76,18 +78,20 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     title: 'A strange good morning',
     storyPages: [
       {
-        emoji: '🏘️✨🔔',
-        title: 'A village powered by morning steps',
+        emoji: '🌟👋',
+        title: 'Meet Lumi, your morning-light friend',
         body:
-          'Every home in Tiny Star Village sends one wake-up spark to the Bell Tower. The tower joins the sparks into a warm morning beam for the houses, paths, and singing streetlights.',
+          'This is Lumilo—Lumi to friends. Lumi is Tiny Star Village’s first Morning Light Keeper. Every morning begins at Lumi’s little window.',
+        speaker: 'Lumilo',
+        dialogue: 'Hi! Call me Lumi. Will you help me wake the village?',
       },
       {
-        emoji: '⭐🦘💬',
-        title: 'Meet Lumilo, the first light keeper',
+        emoji: '🏘️✨🔔',
+        title: 'Lumi starts the morning light',
         body:
-          'Lumilo—Lumi to friends—is Tiny Star Village’s first Morning Light Keeper. When Lumi hops awake, a wake-up star appears. When Lumi says “Morning!” next, the star flies from the first window to the Bell Tower.',
+          'When Lumi hops awake, one wake-up star appears. Lumi says “Morning!” next, and the star travels to the Bell Tower. Other homes send their stars too, and the tower joins them into warm morning light.',
         speaker: 'Lumilo',
-        dialogue: 'Call me Lumi! I wake up first, say hello next, and send our first light on its way.',
+        dialogue: 'My star goes first. Then the other homes join in!',
       },
       {
         emoji: '🌑🔕',
@@ -143,6 +147,7 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
       retry: 'Let’s watch again. Look for the speech bubble first.',
       fix: 'Choose the new order: hop awake first, then say hello.',
       test: 'Your blocks changed! Press Go to test the new morning.',
+      saving: 'The morning worked! I am saving your real blocks…',
       complete: 'You repaired the morning chain! The wake-up star reached the Bell Tower.',
     },
     logicSteps: [
