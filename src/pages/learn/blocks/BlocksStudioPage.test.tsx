@@ -75,6 +75,118 @@ describe('BlocksStudioPage zone labels', () => {
     expect(screen.getByTestId('story-coach')).toHaveTextContent('Press Go');
   });
 
+  it('lets A1-S choose a real greeting inside the persisted Say block', async () => {
+    const personalProject = blankProject('Tiny Star Village · My Morning');
+    personalProject.lessonId = 'tsv-s1-a1-s';
+    personalProject.pages[0] = {
+      id: 'tsv-a1-s-page',
+      background: 'tsv-window-room-dim',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 8, gy: 10, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'little-light-flag',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'hop', n: 1 },
+                { op: 'say', text: 'Choose my greeting' },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: personalProject,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('block-say'));
+    expect(screen.getByTestId('story-greeting-picker').children).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('button', { name: /Good morning, village!/ }));
+    expect(screen.getByTestId('say-input')).toHaveValue('Good morning, village!');
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks[2]).toEqual({
+      op: 'say',
+      text: 'Good morning, village!',
+    });
+  });
+
+  it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
+    const directionProject = blankProject('Tiny Star Village · Which Way?');
+    directionProject.lessonId = 'tsv-s1-a2-h';
+    directionProject.pages[0] = {
+      id: 'tsv-a2-h-page',
+      background: 'tsv-cloud-path-meadow',
+      characters: [
+        {
+          id: 'tuan-tuan',
+          name: 'Tuan Tuan',
+          emoji: '☁️',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          start: { gx: 8, gy: 10, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'tuan-tuan-flag',
+              blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
+            },
+          ],
+        },
+        {
+          id: 'plaza-target',
+          name: 'Plaza Star',
+          emoji: '⭐',
+          start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
+          scripts: [],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: directionProject,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    expect(await screen.findByTestId('story-tuan-tuan')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '8');
+    expect(screen.getByTestId('sprite-plaza-target')).toHaveAttribute('data-gx', '11');
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(
+      await screen.findByTestId('story-mission-question', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '5');
+    expect(screen.getByTestId('sprite-plaza-target')).toHaveAttribute('data-gx', '11');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-closer'));
+    expect(screen.getByRole('status')).toHaveTextContent('gap');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-farther'));
+    expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('finished farther');
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+
+    expect(directionProject.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'move_left', n: 3 },
+      { op: 'end' },
+    ]);
+    expect(saveBlocksProject).not.toHaveBeenCalled();
+  });
+
   it('every zone wears its emoji-first name tag', async () => {
     await renderStudio();
     const chips: Array<[string, string]> = [
@@ -160,13 +272,15 @@ describe('BlocksStudioPage zone labels', () => {
     expect(palette).toHaveTextContent('🦘Boing');
     expect(palette).toHaveTextContent('✨Sparkle');
 
-    const sparkle = screen.getAllByTestId('block-play_sound').find((block) =>
-      block.textContent?.includes('Sparkle'),
-    );
+    const sparkle = screen
+      .getAllByTestId('block-play_sound')
+      .find((block) => block.textContent?.includes('Sparkle'));
     expect(sparkle).toBeDefined();
     fireEvent.pointerDown(sparkle!);
     fireEvent.pointerUp(sparkle!);
-    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks.at(-1)).toEqual({
+    expect(
+      useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks.at(-1),
+    ).toEqual({
       op: 'play_sound',
       n: 6,
     });
@@ -238,7 +352,15 @@ describe('BlocksStudioPage read-only (teacher viewer)', () => {
   it('kid mode (editable) renders the same controls interactive + Home present', async () => {
     await renderStudio(false);
     // Edit controls are present and NOT given the disabled treatment.
-    for (const testId of ['palette', 'add-character', 'add-page', 'scene-btn', 'trash-bin', 'undo', 'redo']) {
+    for (const testId of [
+      'palette',
+      'add-character',
+      'add-page',
+      'scene-btn',
+      'trash-bin',
+      'undo',
+      'redo',
+    ]) {
       const el = screen.getByTestId(testId);
       expect(el).toBeInTheDocument();
       expect(el).not.toHaveClass('pointer-events-none');

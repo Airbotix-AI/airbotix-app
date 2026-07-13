@@ -22,23 +22,55 @@ const STEP_BY_CUE: Record<StoryCoachCue, number> = {
 };
 
 export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanelProps) {
-  const step = STEP_BY_CUE[cue];
-  const canRun = cue === 'ready' || cue === 'retry' || cue === 'test';
+  const completing = mission.mode === 'complete' || mission.mode === 'personal-ship';
+  const observing = mission.mode === 'observe-only';
+  const step = observing
+    ? cue === 'complete'
+      ? 4
+      : cue === 'watch'
+        ? 3
+        : cue === 'retry'
+          ? 4
+          : 2
+    : completing
+      ? cue === 'complete'
+        ? 4
+        : cue === 'test' ||
+            cue === 'saving' ||
+            cue === 'watch' ||
+            cue === 'hopFirst' ||
+            cue === 'sayThen'
+          ? 3
+          : 2
+      : STEP_BY_CUE[cue];
+  const canRun = observing
+    ? cue === 'ready' || cue === 'retry'
+    : completing
+      ? cue === 'test'
+      : cue === 'ready' || cue === 'retry' || cue === 'test';
+  const labels = observing
+    ? ['Story', 'Point', 'Go', 'Answer']
+    : completing
+      ? ['Story', 'Build', 'Test', 'Done']
+      : ['Story', 'Watch', 'Fix', 'Test'];
 
   return (
     <aside className="bsx-story-coach" data-testid="story-coach" aria-live="polite">
       <div className="bsx-story-coach-head">
-        <span className="bsx-story-coach-face" aria-hidden>⭐</span>
+        <span className="bsx-story-coach-face" aria-hidden>
+          <img src={mission.hero.asset} alt="" />
+        </span>
         <div>
-          <strong>Lumilo</strong>
-          <span>Morning Light Keeper</span>
+          <strong>{mission.hero.name}</strong>
+          <span>{mission.hero.role}</span>
         </div>
       </div>
       <p data-testid="story-coach-cue">{mission.coach[cue]}</p>
       <div className="bsx-story-coach-steps" aria-label={`Mission step ${step} of 4`}>
-        {['Story', 'Watch', 'Fix', 'Test'].map((label, index) => (
+        {labels.map((label, index) => (
           <span key={label} className={index + 1 <= step ? 'on' : ''}>
-            {index + 1}<small>{label}</small>
+            {index + 1}
+            <small>{label}</small>
           </span>
         ))}
       </div>

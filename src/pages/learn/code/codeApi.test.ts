@@ -251,8 +251,8 @@ describe('signChatImageUpload + uploadChatImage — presign then S3 PUT', () => 
 });
 
 describe('CODE_TEMPLATES — starter labels', () => {
-  it('renders the game starter as "Creative Code Studio" (display rename; id stays tiny_game)', () => {
+  it('labels the game starter as a guided demo without narrowing the whole studio to games', () => {
     const game = CODE_TEMPLATES.find((t) => t.id === 'tiny_game');
-    expect(game?.title).toBe('Creative Code Studio');
+    expect(game?.title).toBe('Guided Game Demo');
   });
 });

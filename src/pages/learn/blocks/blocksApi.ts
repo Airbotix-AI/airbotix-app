@@ -5,12 +5,7 @@
 // full-VFS replace, so saves carry every file (others preserved verbatim).
 
 import { api } from '@/lib/api';
-import {
-  readVfsSnapshot,
-  saveVfs,
-  SaveConflictError,
-  type VfsFile,
-} from '../code/codeApi';
+import { readVfsSnapshot, saveVfs, SaveConflictError, type VfsFile } from '../code/codeApi';
 import {
   BLOCKS_PROJECT_FILE,
   type BlocksProject,
@@ -71,7 +66,14 @@ export function setDemoBlocksAdapter(adapter: typeof demoBlocksAdapter): void {
   demoBlocksAdapter = adapter;
 }
 
-export type BlocksTemplateId = 'blocks_blank' | 'blocks_story' | 'blocks_tsv_a1_h';
+export type BlocksTemplateId =
+  | 'blocks_blank'
+  | 'blocks_story'
+  | 'blocks_tsv_a1_h'
+  | 'blocks_tsv_a1_b'
+  | 'blocks_tsv_a1_d'
+  | 'blocks_tsv_a1_s'
+  | 'blocks_tsv_a2_h';
 
 export interface BlocksProjectMeta {
   id: string;

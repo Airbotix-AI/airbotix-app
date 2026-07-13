@@ -7,6 +7,10 @@ import { storyMissionFor } from './curriculumGuides';
 import { StoryCoachPanel } from './StoryCoachPanel';
 
 const mission = storyMissionFor('tsv-s1-a1-h')!;
+const buildMission = storyMissionFor('tsv-s1-a1-b')!;
+const manualFixMission = storyMissionFor('tsv-s1-a1-d')!;
+const personalShipMission = storyMissionFor('tsv-s1-a1-s')!;
+const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
 
 afterEach(cleanup);
 
@@ -47,6 +51,75 @@ describe('StoryCoachPanel', () => {
     render(<StoryCoachPanel mission={mission} cue="saving" running={false} onGo={vi.fn()} />);
 
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('saving your real blocks');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('keeps A1-B in Build until the real target chain is ready', () => {
+    const onGo = vi.fn();
+    const { rerender } = render(
+      <StoryCoachPanel mission={buildMission} cue="ready" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('add blue Hop');
+    expect(screen.getByLabelText('Mission step 2 of 4')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    rerender(<StoryCoachPanel mission={buildMission} cue="test" running={false} onGo={onGo} />);
+    expect(screen.getByLabelText('Mission step 3 of 4')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
+    expect(onGo).toHaveBeenCalledOnce();
+  });
+
+  it('lets A1-D run the bug, then requires a manual reorder before retesting', () => {
+    const onGo = vi.fn();
+    const { rerender } = render(
+      <StoryCoachPanel mission={manualFixMission} cue="ready" running={false} onGo={onGo} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '▶ Go' }));
+    expect(onGo).toHaveBeenCalledOnce();
+
+    rerender(
+      <StoryCoachPanel mission={manualFixMission} cue="retry" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('drag the existing blue Hop');
+    fireEvent.click(screen.getByRole('button', { name: '▶ Watch again' }));
+    expect(onGo).toHaveBeenCalledTimes(2);
+
+    rerender(<StoryCoachPanel mission={manualFixMission} cue="test" running={false} onGo={onGo} />);
+    fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
+    expect(onGo).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps A1-S in personal Build until a valid greeting is ready to test', () => {
+    const onGo = vi.fn();
+    const { rerender } = render(
+      <StoryCoachPanel mission={personalShipMission} cue="ready" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('choose your greeting');
+    expect(screen.getByLabelText('Mission step 2 of 4')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    rerender(
+      <StoryCoachPanel mission={personalShipMission} cue="test" running={false} onGo={onGo} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
+    expect(onGo).toHaveBeenCalledOnce();
+  });
+
+  it('keeps A2-H as point, Go, and answer with Tuan Tuan as the coach', () => {
+    const onGo = vi.fn();
+    const { rerender } = render(
+      <StoryCoachPanel mission={directionHookMission} cue="ready" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByText('Tuan Tuan')).toBeInTheDocument();
+    expect(screen.getByText('Cloud-path Maker')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mission step 2 of 4')).toHaveTextContent('Point');
+    fireEvent.click(screen.getByRole('button', { name: '▶ Go' }));
+    expect(onGo).toHaveBeenCalledOnce();
+
+    rerender(
+      <StoryCoachPanel mission={directionHookMission} cue="fix" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('No fix yet');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

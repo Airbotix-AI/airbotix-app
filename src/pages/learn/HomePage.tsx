@@ -23,7 +23,7 @@ export function HomePage() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Link
           to="/learn/create/blocks"
-          className="pack-card mint block sm:col-span-2"
+          className="pack-card mint block"
           data-testid="home-story-blocks"
         >
           <span className="pack-blob" />
@@ -43,7 +43,29 @@ export function HomePage() {
           </div>
         </Link>
 
-        <Link to="/learn/missions" className="pack-card sky block" data-testid="home-courses">
+        <Link
+          to="/learn/create/code"
+          className="pack-card sky block"
+          data-testid="home-creative-code"
+        >
+          <span className="pack-blob" />
+          <div className="relative">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+              Creative Code Studio · Ages 8–14
+            </div>
+            <div className="mt-3 text-[32px] font-bold leading-tight">
+              💻 Turn an idea into code
+            </div>
+            <div className="mt-2 text-[14px] opacity-90 max-w-xl">
+              Build an interactive creation with AI and real JavaScript, then test, inspect, and improve it.
+            </div>
+            <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
+              Open Creative Code Studio →
+            </div>
+          </div>
+        </Link>
+
+        <Link to="/learn/missions" className="pack-card bubblegum block" data-testid="home-courses">
           <span className="pack-blob" />
           <div className="relative">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Cloud Bear resting</title>
+  <desc id="desc">A soft blue cloud bear named Tuantuan, standing calmly and ready to follow a path.</desc>
+  <defs>
+    <linearGradient id="cloudBearBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#DFF5FF"/>
+      <stop offset="1" stop-color="#9FD6EB"/>
+    </linearGradient>
+    <linearGradient id="cloudBearScarf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD56F"/>
+      <stop offset="1" stop-color="#F4A64A"/>
+    </linearGradient>
+    <filter id="cloudBearShadow" x="-35%" y="-30%" width="170%" height="175%">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#405575" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <g filter="url(#cloudBearShadow)">
+    <circle cx="78" cy="70" r="31" fill="#A8DDF0" stroke="#557A99" stroke-width="6"/>
+    <circle cx="178" cy="70" r="31" fill="#A8DDF0" stroke="#557A99" stroke-width="6"/>
+    <circle cx="78" cy="70" r="15" fill="#E9F8FC" opacity=".7"/>
+    <circle cx="178" cy="70" r="15" fill="#E9F8FC" opacity=".7"/>
+    <path d="M52 132c0-50 31-84 76-84s76 34 76 84v33c0 38-31 67-76 67s-76-29-76-67Z" fill="url(#cloudBearBody)" stroke="#557A99" stroke-width="7"/>
+    <path d="M61 156c-21 5-33 21-29 39 3 15 18 22 31 14 13-8 18-25 16-45Z" fill="#A8DDF0" stroke="#557A99" stroke-width="6"/>
+    <path d="M195 156c21 5 33 21 29 39-3 15-18 22-31 14-13-8-18-25-16-45Z" fill="#A8DDF0" stroke="#557A99" stroke-width="6"/>
+    <ellipse cx="91" cy="225" rx="31" ry="17" fill="#78B8D2" stroke="#557A99" stroke-width="6"/>
+    <ellipse cx="165" cy="225" rx="31" ry="17" fill="#78B8D2" stroke="#557A99" stroke-width="6"/>
+    <path d="M84 106q11-10 22 0M150 106q11-10 22 0" fill="none" stroke="#33495F" stroke-width="7" stroke-linecap="round"/>
+    <ellipse cx="128" cy="132" rx="15" ry="12" fill="#557A99"/>
+    <path d="M128 143q-8 14-21 5M128 143q8 14 21 5" fill="none" stroke="#33495F" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="82" cy="137" r="9" fill="#FFF7D6" opacity=".85"/>
+    <circle cx="174" cy="137" r="9" fill="#FFF7D6" opacity=".85"/>
+    <path d="M66 171c34 15 90 15 124 0" fill="none" stroke="url(#cloudBearScarf)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M168 177v44l26-8-7-39Z" fill="#F4A64A" stroke="#C47D38" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M112 61c8-10 24-10 32 0" fill="none" stroke="#FDFEFF" stroke-width="8" stroke-linecap="round" opacity=".8"/>
+  </g>
+</svg>
