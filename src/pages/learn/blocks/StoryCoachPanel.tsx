@@ -17,6 +17,7 @@ const STEP_BY_CUE: Record<StoryCoachCue, number> = {
   retry: 2,
   fix: 3,
   test: 4,
+  saving: 4,
   complete: 4,
 };
 
@@ -29,8 +30,8 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
       <div className="bsx-story-coach-head">
         <span className="bsx-story-coach-face" aria-hidden>⭐</span>
         <div>
-          <strong>Little Light</strong>
-          <span>Story helper</span>
+          <strong>Lumilo</strong>
+          <span>Morning Light Keeper</span>
         </div>
       </div>
       <p data-testid="story-coach-cue">{mission.coach[cue]}</p>

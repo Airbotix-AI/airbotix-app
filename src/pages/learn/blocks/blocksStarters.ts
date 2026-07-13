@@ -19,6 +19,6 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     emoji: '🌟',
     title: 'Tiny Star Village · First Mission',
     desc:
-      'The Bell Tower did not ring, and the morning light has vanished. Become Little Light’s Story Partner and fix its morning: hop awake first, then say hello.',
+      'The Bell Tower did not ring, and the morning light has vanished. Become Lumilo’s Story Partner and fix the first light: hop awake first, then say hello.',
   },
 ];

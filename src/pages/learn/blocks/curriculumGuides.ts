@@ -14,6 +14,7 @@ export type StoryCoachCue =
   | 'retry'
   | 'fix'
   | 'test'
+  | 'saving'
   | 'complete';
 
 export interface StoryCoachCopy {
@@ -26,6 +27,7 @@ export interface StoryCoachCopy {
   retry: string;
   fix: string;
   test: string;
+  saving: string;
   complete: string;
 }
 
@@ -76,38 +78,49 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     title: 'A strange good morning',
     storyPages: [
       {
-        emoji: '🌌🏘️',
-        title: 'The village that wakes with light',
+        emoji: '🌟👋',
+        title: 'Meet Lumi, your morning-light friend',
         body:
-          'Far beyond the clouds is Tiny Star Village. Every morning, its Bell Tower sends out one warm beam that wakes the houses, paths, and singing streetlights.',
+          'This is Lumilo—Lumi to friends. Lumi is Tiny Star Village’s first Morning Light Keeper. Every morning begins at Lumi’s little window.',
+        speaker: 'Lumilo',
+        dialogue: 'Hi! Call me Lumi. Will you help me wake the village?',
+      },
+      {
+        emoji: '🏘️✨🔔',
+        title: 'Lumi starts the morning light',
+        body:
+          'When Lumi hops awake, one wake-up star appears. Lumi says “Morning!” next, and the star travels to the Bell Tower. Other homes send their stars too, and the tower joins them into warm morning light.',
+        speaker: 'Lumilo',
+        dialogue: 'My star goes first. Then the other homes join in!',
       },
       {
         emoji: '🌑🔕',
-        title: 'The morning light is missing',
+        title: 'The light chain stopped today',
         body:
-          'But today the bell did not ring. The village stayed dark, and all the little stars wondered which morning step had not happened.',
+          'Today the tower heard “Morning!”, but no wake-up star arrived first. It paused the light chain, so the bell stayed quiet and the village stayed dim.',
         speaker: 'Cloud Bear',
-        dialogue: 'Why is the village still dark?',
+        dialogue: 'The tower heard a hello. Where is the wake-up star?',
       },
       {
         emoji: '⭐⏰',
-        title: 'A strange good morning',
+        title: 'The program mixed up the story',
         body:
-          'At the window, Little Light was still asleep. It called out “Morning!” from its dream—and only then did it hop awake.',
-        speaker: 'Little Light',
-        dialogue: 'Oh! Did I do my morning steps in the wrong order?',
+          'At the window, Lumi called “Morning!” from a dream—and only then hopped awake. The blocks run from left to right, so the mixed-up order made the morning happen backwards.',
+        speaker: 'Lumilo',
+        dialogue: 'My steps are both here. Can you put them in the right order?',
       },
       {
-        emoji: '🤝✨',
-        title: 'A new Morning Light Helper',
+        emoji: '🤝🧩✨',
+        title: 'Why the village needs a Story Partner',
         body:
-          'The Bell Tower cannot shine until the morning begins in the right order. Little Light needs someone who can watch carefully and find the mixed-up step.',
-        speaker: 'Little Light',
-        dialogue: 'Will you be my Story Partner?',
+          'The village friends can see the darkness, but you can read the glowing blocks and change their order. Fix this first link to light Lumi’s window and send the tower its first morning clue.',
+        speaker: 'Lumilo',
+        dialogue: 'Will you help my wake-up star reach the Bell Tower?',
       },
     ],
-    partnerLine: "Little Light needs a Story Partner. That's you!",
-    mission: 'Press Go. Watch the speech bubble and the jump. What happens first?',
+    partnerLine: "Lumilo needs a Story Partner. That's you!",
+    mission:
+      'Help Lumi send the first wake-up star: press Go, find what happens first, then make Lumi hop awake before saying “Morning!”',
     question: 'What happens first?',
     choices: [
       { id: 'say-first', label: "It says ‘Morning!’ first", correct: true },
@@ -116,9 +129,9 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     retry: 'Almost! Watch the speech bubble and the jump once more.',
     successTitle: 'You found the mixed-up step! ⭐',
     success:
-      'Little Light talks before it wakes up. The order of the blocks makes the story feel strange.',
+      'Lumi talks before waking up. The order of the blocks makes the story feel strange.',
     fixTitle: 'Now fix the morning',
-    fixPrompt: 'Which order will wake Little Light properly?',
+    fixPrompt: 'Which order will wake Lumi properly?',
     fixChoices: [
       { id: 'hop-then-say', label: '🦘 Hop awake → 💬 Say “Morning!”', correct: true },
       { id: 'say-then-hop', label: '💬 Say “Morning!” → 🦘 Hop awake', correct: false },
@@ -134,7 +147,8 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
       retry: 'Let’s watch again. Look for the speech bubble first.',
       fix: 'Choose the new order: hop awake first, then say hello.',
       test: 'Your blocks changed! Press Go to test the new morning.',
-      complete: 'You found it! The blocks run from left to right.',
+      saving: 'The morning worked! I am saving your real blocks…',
+      complete: 'You repaired the morning chain! The wake-up star reached the Bell Tower.',
     },
     logicSteps: [
       { icon: '💬', label: 'Morning!', order: 'First' },
@@ -143,13 +157,13 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicWhy: 'The speech block is on the left, so it runs first.',
     completionTitle: 'First mission complete! 🌅',
     completion:
-      'You changed the real program and tested it. Little Light now wakes up before saying hello.',
+      'You changed the real program and tested it. Lumi now wakes first, then sends the wake-up star to the Bell Tower.',
     completionSteps: [
       { icon: '🦘', label: 'Hop', order: 'First' },
       { icon: '💬', label: 'Morning!', order: 'Then' },
     ],
-    completionWhy: 'The Hop block is now on the left, so Little Light wakes up first.',
-    next: 'A tiny light appears at the window. The first morning clue is safe.',
+    completionWhy: 'The Hop block is now on the left, so Lumi wakes up first.',
+    next: 'Lumi’s window glows. The Bell Tower now has the first of six morning clues.',
   },
 };
 

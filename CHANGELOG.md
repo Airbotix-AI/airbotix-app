@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-13 (feat: Tiny Star Village A1 story mission)
+
+### Added
+- Connected the Story Blocks A1 mission guide, story coach, saved-program progress state, and completion celebration for Tiny Star Village.
+- Enlarged the Lumilo character presentation in the story scene.
+
 ## 2026-07-13 (feat: favicon — airbotix-app had none)
 
 ### Added

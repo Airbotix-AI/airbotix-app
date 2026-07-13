@@ -42,4 +42,11 @@ describe('StoryCoachPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
     expect(onGo).toHaveBeenCalledOnce();
   });
+
+  it('waits for the tested program to save before claiming completion', () => {
+    render(<StoryCoachPanel mission={mission} cue="saving" running={false} onGo={vi.fn()} />);
+
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('saving your real blocks');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });
