@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-13 (feat: favicon — airbotix-app had none)
+
+### Added
+- **Tab icon.** This SPA shipped with no favicon at all (browsers drew the blank default page
+  glyph). Added `favicon-16/32.png` + `apple-touch-icon.png`: the brand cloud mark knocked out
+  of a **brand-coral (AI Coding)** (`#FF7A66`) rounded square, generated from the real logo by
+  `design-system/scripts/make-favicons.py` at the umbrella root, so the icons are reproducible
+  rather than a one-off export nobody can rebuild.
+  Two deliberate choices: the **wordmark is cropped out** (an illegible smear at 32px) and the
+  tile is **filled**, not a transparent line-art logo (a black-on-transparent icon disappears
+  against dark browser chrome). The 16px variant has its strokes dilated before the downscale —
+  an outline mark's strokes fall below one pixel there and the robot's eyes vanish. Every
+  surface (app / teacher / admin) gets the same mark in its own token colour, so staff running
+  all three tabs can tell them apart at a glance.
+- **`src/favicon.spec.ts`** — a favicon is a pure asset: drop the file or rename the link and
+  nothing in the component tree fails, it just ships a blank tab. This spec is the only thing
+  that would notice.
+
 ## 2026-07-13
 
 ### Removed
