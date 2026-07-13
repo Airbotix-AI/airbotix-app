@@ -20,15 +20,20 @@ import {
 import {
   type BlockCategory,
   type BlockOp,
+  BUILT_IN_NOTES,
+  BUILT_IN_SOUNDS,
   BLOCK_DEFS,
   CATEGORIES,
   GRID_H,
   GRID_W,
   MAX_COLOR,
+  MAX_NOTE,
   MAX_PAGES,
   MAX_PARAM,
   MAX_SPEED,
+  MAX_SOUND,
   blockDef,
+  defaultParam,
   isTrigger,
 } from './blocksModel';
 import { useDemoMode } from '@/pages/try/demoMode';
@@ -403,7 +408,8 @@ export function BlocksStudioPage({
           else next.set(id, text);
           return next;
         }),
-      onPop: sfx.pop,
+      onNote: sfx.playNote,
+      onSound: sfx.playSound,
       onGotoPage: (idx) => {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
@@ -726,6 +732,7 @@ export function BlocksStudioPage({
   //    track). Same hold-to-lift + scroll-lock so the palette stays scrollable. ─
   const palDrag = useRef<{
     op: BlockOp;
+    n?: number;
     x0: number;
     y0: number;
     lastX: number;
@@ -738,6 +745,7 @@ export function BlocksStudioPage({
   const palDidDrag = useRef(false);
   const [palBlk, setPalBlk] = useState<{
     op: BlockOp;
+    n?: number;
     cx: number;
     cy: number;
     scriptId: string | null;
@@ -749,14 +757,14 @@ export function BlocksStudioPage({
     const d = palDrag.current;
     if (!d) return;
     const hit = isTrigger(d.op) ? null : scanRows(x, y);
-    setPalBlk({ op: d.op, cx: x, cy: y, scriptId: hit?.scriptId ?? null, slot: hit?.slot ?? 0, dropX: hit?.dropX ?? null });
+    setPalBlk({ op: d.op, n: d.n, cx: x, cy: y, scriptId: hit?.scriptId ?? null, slot: hit?.slot ?? 0, dropX: hit?.dropX ?? null });
   };
-  const onPalDown = (e: React.PointerEvent, op: BlockOp) => {
+  const onPalDown = (e: React.PointerEvent, op: BlockOp, n?: number) => {
     if (running || present || readOnly) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
-    palDrag.current = { op, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
+    palDrag.current = { op, n, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
     palDidDrag.current = false;
     window.clearTimeout(palLP.current);
     if (touch) {
@@ -793,7 +801,7 @@ export function BlocksStudioPage({
     }
     palDragUpdate(e.clientX, e.clientY);
   };
-  const endPalDrag = (op: BlockOp, commit: boolean) => {
+  const endPalDrag = (op: BlockOp, n: number | undefined, commit: boolean) => {
     window.clearTimeout(palLP.current);
     unlockTouchScroll();
     const info = palBlk;
@@ -805,21 +813,21 @@ export function BlocksStudioPage({
       if (palDidDrag.current) {
         if (info && info.scriptId) {
           sfx.snap();
-          store.insertBlock(d?.op ?? op, info.scriptId, info.slot);
+          store.insertBlock(d?.op ?? op, info.scriptId, info.slot, d?.n ?? n);
         } else {
           sfx.place();
-          store.addBlock(d?.op ?? op);
+          store.addBlock(d?.op ?? op, d?.n ?? n);
         }
       } else {
         // a clean tap → add to the bottom of the latest script
         sfx.place();
-        store.addBlock(op);
+        store.addBlock(op, n);
       }
     }
     setTimeout(() => (palDidDrag.current = false), 0);
   };
-  const onPalUp = (op: BlockOp) => endPalDrag(op, true);
-  const onPalCancel = (op: BlockOp) => endPalDrag(op, false);
+  const onPalUp = (op: BlockOp, n?: number) => endPalDrag(op, n, true);
+  const onPalCancel = (op: BlockOp, n?: number) => endPalDrag(op, n, false);
 
   // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
   const [editBlk, setEditBlk] = useState<{ scriptId: string; index: number; left: number; top: number } | null>(null);
@@ -838,7 +846,7 @@ export function BlocksStudioPage({
       useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
       return;
     }
-    if (!def.hasN && op !== 'say') return; // nothing to edit on this block
+    if (!def.hasN && def.param !== 'note' && def.param !== 'sound' && op !== 'say') return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 230;
@@ -901,7 +909,27 @@ export function BlocksStudioPage({
     );
   }
 
-  const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category);
+  const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category && !d.legacy);
+  const paletteChoices: Array<{
+    def: (typeof paletteBlocks)[number];
+    n?: number;
+    key: string;
+  }> = [];
+  paletteBlocks.forEach((def) => {
+    if (def.param === 'note') {
+      BUILT_IN_NOTES.forEach((note) => {
+        paletteChoices.push({ def, n: note.id, key: `${def.op}-${note.id}` });
+      });
+      return;
+    }
+    if (def.param === 'sound') {
+      BUILT_IN_SOUNDS.forEach((sound) => {
+        paletteChoices.push({ def, n: sound.id, key: `${def.op}-${sound.id}` });
+      });
+      return;
+    }
+    paletteChoices.push({ def, n: defaultParam(def.op), key: def.op });
+  });
   const activeCat = CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0];
 
   return (
@@ -1244,6 +1272,7 @@ export function BlocksStudioPage({
               title={`${c.label} blocks`}
             >
               <span>{c.icon}</span>
+              {c.id === 'sound' && <span className="bsx-cat-count" aria-hidden>7+6</span>}
             </button>
           ))}
           </FadeScroller>
@@ -1264,18 +1293,21 @@ export function BlocksStudioPage({
             <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
             <span className="bsx-palette-tag shrink-0">
               <span aria-hidden>{activeCat.icon}</span>
-              {activeCat.label}
+              {activeCat.id === 'sound' ? '7 Notes + 6 Sounds' : activeCat.label}
             </span>
-            {paletteBlocks.map((def) => (
+            {paletteChoices.map(({ def, n, key }) => (
               <BlockChip
-                key={def.op}
-                block={{ op: def.op, ...(def.hasN ? { n: def.defaultN } : {}) }}
-                style={palBlk?.op === def.op ? { opacity: 0.4 } : undefined}
-                onPointerDown={(e) => onPalDown(e, def.op)}
+                key={key}
+                block={{
+                  op: def.op,
+                  ...(n !== undefined ? { n } : {}),
+                }}
+                style={palBlk?.op === def.op && palBlk?.n === n ? { opacity: 0.4 } : undefined}
+                onPointerDown={(e) => onPalDown(e, def.op, n)}
                 onPointerMove={onPalMove}
-                onPointerUp={() => onPalUp(def.op)}
-                onPointerCancel={() => onPalCancel(def.op)}
-                title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
+                onPointerUp={() => onPalUp(def.op, n)}
+                onPointerCancel={() => onPalCancel(def.op, n)}
+                title={`Tap to add this sound — or hold and drag it into ${selectedChar?.name}'s program`}
               />
             ))}
             </FadeScroller>
@@ -1468,6 +1500,10 @@ export function BlocksStudioPage({
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
               {editing.block.op === 'say'
                 ? 'What should they say?'
+                : blockDef(editing.block.op).param === 'note'
+                  ? 'Which note? Tap to hear it!'
+                : blockDef(editing.block.op).param === 'sound'
+                  ? 'Which sound? Tap to hear it!'
                 : editing.block.op === 'goto_page'
                   ? `Which page? (1–${project.pages.length})`
                   : `How many? (${blockDef(editing.block.op).label})`}
@@ -1484,6 +1520,54 @@ export function BlocksStudioPage({
                 onKeyDown={(e) => e.key === 'Enter' && setEditBlk(null)}
                 className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
               />
+            ) : blockDef(editing.block.op).param === 'note' ? (
+              <div className="grid grid-cols-4 gap-2" data-testid="note-picker">
+                {BUILT_IN_NOTES.map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    data-testid={`note-choice-${note.id}`}
+                    aria-pressed={(editing.block.n ?? 1) === note.id}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-2 text-[12px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      sfx.playNote(note.id);
+                      useBlocksStore.getState().setParam(
+                        editing.scriptId,
+                        editing.index,
+                        note.id,
+                        MAX_NOTE,
+                      );
+                    }}
+                  >
+                    <span className="block text-[24px]" aria-hidden>{note.icon}</span>
+                    {note.label}
+                  </button>
+                ))}
+              </div>
+            ) : blockDef(editing.block.op).param === 'sound' ? (
+              <div className="grid grid-cols-3 gap-2" data-testid="sound-picker">
+                {BUILT_IN_SOUNDS.map((sound) => (
+                  <button
+                    key={sound.id}
+                    type="button"
+                    data-testid={`sound-choice-${sound.id}`}
+                    aria-pressed={(editing.block.n ?? 1) === sound.id}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-2 text-[12px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      sfx.playSound(sound.id);
+                      useBlocksStore.getState().setParam(
+                        editing.scriptId,
+                        editing.index,
+                        sound.id,
+                        MAX_SOUND,
+                      );
+                    }}
+                  >
+                    <span className="block text-[24px]" aria-hidden>{sound.icon}</span>
+                    {sound.label}
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-2">
                 <button
@@ -1637,7 +1721,14 @@ export function BlocksStudioPage({
             }}
           >
             <BlockChip
-              block={{ op: palBlk.op, ...(blockDef(palBlk.op).hasN ? { n: blockDef(palBlk.op).defaultN } : {}) }}
+              block={{
+                op: palBlk.op,
+                ...(palBlk.n !== undefined
+                  ? { n: palBlk.n }
+                  : blockDef(palBlk.op).hasN
+                    ? { n: blockDef(palBlk.op).defaultN }
+                    : {}),
+              }}
               inChain
             />
           </div>,

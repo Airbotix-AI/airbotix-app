@@ -33,6 +33,22 @@ describe('blocksStore', () => {
     expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'move_up']);
   });
 
+  it('adds the exact picture sound chosen from the palette', () => {
+    store().addBlock('play_sound', 6);
+    expect(char().scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'play_sound', n: 6 },
+    ]);
+  });
+
+  it('adds the exact numbered note chosen from the palette', () => {
+    store().addBlock('play_note', 7);
+    expect(char().scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'play_note', n: 7 },
+    ]);
+  });
+
   it('removing the trigger removes the whole script; mid-blocks splice out', () => {
     store().addBlock('when_flag');
     store().addBlock('move_right');

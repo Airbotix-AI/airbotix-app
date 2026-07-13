@@ -5,7 +5,15 @@
 import type { CSSProperties, MouseEvent, PointerEvent } from 'react';
 import clsx from 'clsx';
 
-import { type Block, MESSAGE_COLORS, SPEED_ICONS, blockDef, isTrigger } from './blocksModel';
+import {
+  BUILT_IN_NOTES,
+  BUILT_IN_SOUNDS,
+  type Block,
+  MESSAGE_COLORS,
+  SPEED_ICONS,
+  blockDef,
+  isTrigger,
+} from './blocksModel';
 
 const clampIdx = (i: number, max: number) => Math.min(max, Math.max(0, i));
 
@@ -44,7 +52,15 @@ export function BlockChip({
   const def = blockDef(block.op);
   const noPlug = def.category === 'end' || (inChain && isLast);
   // Set Speed shows its current pace glyph; message blocks show their colour tag.
-  const icon = def.param === 'speed' ? SPEED_ICONS[clampIdx((block.n ?? 2) - 1, SPEED_ICONS.length - 1)] : def.icon;
+  const sound = def.param === 'sound'
+    ? BUILT_IN_SOUNDS[clampIdx((block.n ?? 1) - 1, BUILT_IN_SOUNDS.length - 1)]
+    : null;
+  const note = def.param === 'note'
+    ? BUILT_IN_NOTES[clampIdx((block.n ?? 1) - 1, BUILT_IN_NOTES.length - 1)]
+    : null;
+  const icon = def.param === 'speed'
+    ? SPEED_ICONS[clampIdx((block.n ?? 2) - 1, SPEED_ICONS.length - 1)]
+    : note?.icon ?? sound?.icon ?? def.icon;
   const msgColor = def.param === 'color' ? MESSAGE_COLORS[clampIdx((block.n ?? 1) - 1, MESSAGE_COLORS.length - 1)] : null;
   return (
     <button
@@ -72,7 +88,7 @@ export function BlockChip({
       <span className="bd" />
       {!noPlug && <span className="plug" />}
       <span className="ic">{icon}</span>
-      {block.op === 'say' ? (block.text ?? 'Hi!').slice(0, 8) : def.label}
+      {block.op === 'say' ? (block.text ?? 'Hi!').slice(0, 8) : note?.label ?? sound?.label ?? def.label}
       {def.hasN && (
         // display-only — tapping anywhere on the block opens the editor
         <span className="num" data-testid="block-num">

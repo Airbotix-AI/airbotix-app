@@ -33,7 +33,8 @@ export interface SpriteHost {
   /** Apply a sprite's new state (the studio animates via CSS transition). */
   onSprite: (charId: string, state: SpriteState, durationMs: number) => void;
   onSay: (charId: string, text: string | null) => void;
-  onPop: () => void;
+  onNote: (noteId: number) => void;
+  onSound: (soundId: number) => void;
   onGotoPage: (pageIndex: number) => void;
   /** The block now executing for a character (for the live "lit" highlight).
    *  `blockIndex` is the absolute index in the script; -1 means "none / done". */
@@ -271,7 +272,15 @@ export class BlocksRunner {
         break;
       }
       case 'pop':
-        this.host.onPop();
+        this.host.onSound(1);
+        await this.sleep(STEP_MS);
+        break;
+      case 'play_sound':
+        this.host.onSound(clamp(n, 1, 6));
+        await this.sleep(STEP_MS);
+        break;
+      case 'play_note':
+        this.host.onNote(clamp(n, 1, 7));
         await this.sleep(STEP_MS);
         break;
       case 'send_message':

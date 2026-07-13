@@ -1,4 +1,4 @@
-// Blocks Studio hub — `/learn/create/blocks` (learn-blocks-studio-prd.md §2).
+// Story Blocks hub — `/learn/create/blocks` (learn-blocks-studio-prd.md §2).
 // Pick a starter (blank / sample story) or reopen an existing Blocks project.
 // Manual block coding is FREE (D-BLK-8) — no Stars gate anywhere here.
 
@@ -46,13 +46,13 @@ export function BlocksHubPage() {
   return (
     <div className="bsx">
       <div className="mb-8">
-        <div className="eyebrow eyebrow-mint">Blocks</div>
+        <div className="eyebrow eyebrow-mint">Story Blocks · Ages 5–8</div>
         <h1 className="hero-display">
-          Snap blocks. <span className="squiggle-word">Make magic.</span>
+          Choose a story. <span className="squiggle-word">Program the next scene.</span>
         </h1>
         <p className="lead-text mt-4">
-          Drag puzzle blocks to make your characters move, talk and play. No typing — and it&apos;s
-          free to make as much as you like!
+          Start with a ready-to-play mission, meet its characters, then snap blocks together to
+          solve the story problem. No typing — and it&apos;s free!
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export function BlocksHubPage() {
             type="button"
             data-testid={`blocks-starter-${s.id}`}
             disabled={busy !== null}
-            onClick={() => void start(s.id, 'My blocks project')}
+            onClick={() => void start(s.id, 'My Story Blocks project')}
             className="pack-card mint block text-left disabled:opacity-60"
           >
             <span className="pack-blob" />
@@ -87,7 +87,7 @@ export function BlocksHubPage() {
 
       {projects.data && projects.data.length > 0 && (
         <div>
-          <h2 className="text-[20px] font-bold mb-4">Your blocks projects</h2>
+          <h2 className="text-[20px] font-bold mb-4">Your Story Blocks projects</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.data.map((p) => (
               <button

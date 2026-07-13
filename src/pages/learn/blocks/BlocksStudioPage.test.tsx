@@ -118,6 +118,59 @@ describe('BlocksStudioPage zone labels', () => {
       /Tap a 🚩 block to pick what .+ does ✨/,
     );
   });
+
+  it('lets a child choose one of six picture sounds for the program', async () => {
+    await renderStudio();
+    act(() => useBlocksStore.getState().addBlock('play_sound'));
+
+    const soundBlocks = screen.getAllByTestId('block-play_sound');
+    fireEvent.click(soundBlocks[soundBlocks.length - 1]);
+    expect(screen.getByTestId('sound-picker').children).toHaveLength(6);
+
+    fireEvent.click(screen.getByTestId('sound-choice-6'));
+    expect(screen.getAllByTestId('block-play_sound').at(-1)).toHaveTextContent('✨Sparkle');
+  });
+
+  it('lets a child choose any note from 1 Do through 7 Ti', async () => {
+    await renderStudio();
+    act(() => useBlocksStore.getState().addBlock('play_note'));
+
+    const noteBlocks = screen.getAllByTestId('block-play_note');
+    fireEvent.click(noteBlocks[noteBlocks.length - 1]);
+    expect(screen.getByTestId('note-picker').children).toHaveLength(7);
+
+    fireEvent.click(screen.getByTestId('note-choice-7'));
+    expect(screen.getAllByTestId('block-play_note').at(-1)).toHaveTextContent('7Ti');
+  });
+
+  it('shows all six sounds directly in the sound palette', async () => {
+    await renderStudio();
+    fireEvent.click(screen.getByTitle('Sound blocks'));
+
+    const palette = screen.getByTestId('palette');
+    expect(screen.getByTestId('cat-sound')).toHaveTextContent('7+6');
+    expect(palette).toHaveTextContent('7 Notes + 6 Sounds');
+    expect(screen.getAllByTestId('block-play_note')).toHaveLength(7);
+    expect(palette).toHaveTextContent('1Do');
+    expect(palette).toHaveTextContent('7Ti');
+    expect(palette).toHaveTextContent('🫧Bubble Pop');
+    expect(palette).toHaveTextContent('🔔Chime');
+    expect(palette).toHaveTextContent('🥁Drum');
+    expect(palette).toHaveTextContent('💨Whoosh');
+    expect(palette).toHaveTextContent('🦘Boing');
+    expect(palette).toHaveTextContent('✨Sparkle');
+
+    const sparkle = screen.getAllByTestId('block-play_sound').find((block) =>
+      block.textContent?.includes('Sparkle'),
+    );
+    expect(sparkle).toBeDefined();
+    fireEvent.pointerDown(sparkle!);
+    fireEvent.pointerUp(sparkle!);
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks.at(-1)).toEqual({
+      op: 'play_sound',
+      n: 6,
+    });
+  });
 });
 
 // Teacher live read-only viewer (teacher-live-project-view-prd D-LV-6): the kid's

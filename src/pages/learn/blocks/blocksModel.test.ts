@@ -139,6 +139,27 @@ describe('blocksModel', () => {
     expect(parseProject(serializeProject(project)).lessonId).toBe('tsv-s1-a1-h');
   });
 
+  it('persists numbered notes and picture sounds, and still accepts legacy Pop', () => {
+    const project = blankProject('Sound story');
+    project.pages[0].characters[0].scripts = [{
+      id: 'sound-script',
+      blocks: [
+        { op: 'when_flag' },
+        { op: 'play_note', n: 7 },
+        { op: 'play_sound', n: 6 },
+        { op: 'pop' },
+      ],
+    }];
+
+    const parsed = parseProject(serializeProject(project));
+    expect(parsed.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'play_note', n: 7 },
+      { op: 'play_sound', n: 6 },
+      { op: 'pop' },
+    ]);
+  });
+
   it('covers all six categories in the catalogue', () => {
     const cats = new Set(BLOCK_DEFS.map((d) => d.category));
     expect([...cats].sort()).toEqual(

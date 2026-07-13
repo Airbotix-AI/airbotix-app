@@ -25,7 +25,8 @@ function makeHost() {
   const host: SpriteHost = {
     onSprite: (id, state) => sprites.set(id, state),
     onSay: (id, text) => says.push({ id, text }),
-    onPop: () => {},
+    onNote: () => {},
+    onSound: () => {},
     onGotoPage: (index) => gotos.push(index),
   };
   return { host, sprites, says, gotos };

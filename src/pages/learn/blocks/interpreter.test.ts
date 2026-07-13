@@ -26,15 +26,17 @@ function makePage(scriptsByChar: Record<string, Array<Array<Record<string, unkno
 function recordingHost() {
   const sprite: Array<{ charId: string; state: SpriteState }> = [];
   const says: Array<{ charId: string; text: string | null }> = [];
-  let pops = 0;
+  const notes: number[] = [];
+  const sounds: number[] = [];
   let gotoPage: number | null = null;
   const host: SpriteHost = {
     onSprite: (charId, state) => sprite.push({ charId, state }),
     onSay: (charId, text) => says.push({ charId, text }),
-    onPop: () => (pops += 1),
+    onNote: (noteId) => notes.push(noteId),
+    onSound: (soundId) => sounds.push(soundId),
     onGotoPage: (i) => (gotoPage = i),
   };
-  return { host, sprite, says, pops: () => pops, gotoPage: () => gotoPage };
+  return { host, sprite, says, notes, sounds, pops: () => sounds.length, gotoPage: () => gotoPage };
 }
 
 describe('BlocksRunner', () => {
@@ -87,6 +89,23 @@ describe('BlocksRunner', () => {
     await runner.runFlag();
     expect(r.pops()).toBeGreaterThan(1);
     expect(r.pops()).toBeLessThanOrEqual(12);
+  });
+
+  it('plays selected notes and sounds, and keeps legacy Pop compatible', async () => {
+    const page = makePage({
+      cat: [[
+        { op: 'when_flag' },
+        { op: 'pop' },
+        { op: 'play_note', n: 1 },
+        { op: 'play_note', n: 7 },
+        { op: 'play_sound', n: 2 },
+        { op: 'play_sound', n: 6 },
+      ]],
+    });
+    const r = recordingHost();
+    await new BlocksRunner(page, r.host, instantSleep).runFlag();
+    expect(r.notes).toEqual([1, 7]);
+    expect(r.sounds).toEqual([1, 2, 6]);
   });
 
   it('two 🚩 scripts on ONE character run in parallel without clobbering each other', async () => {

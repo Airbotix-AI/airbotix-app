@@ -14,6 +14,7 @@ import { Play } from 'lucide-react';
 import { GRID_H, GRID_W, type BlocksProject } from './blocksModel';
 import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { sceneId } from './library';
+import { sfx } from './sounds';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
 
@@ -40,7 +41,8 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
           else next.set(id, text);
           return next;
         }),
-      onPop: () => {},
+      onNote: sfx.playNote,
+      onSound: sfx.playSound,
       onGotoPage: (idx) => {
         if (project.pages[idx]) setPageIndex(idx);
       },
