@@ -552,15 +552,44 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
   });
 
   it('collapses lanes into a drawer with a persistent handle on narrow screens (AC-12)', () => {
+    // Narrow viewport (D-MS9): matchMedia says <740px, so the pane renders the
+    // stacked mobile column where the lanes hide behind the 🎚 drawer.
+    const mm = window.matchMedia;
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: false, // '(min-width: 740px)' → narrow
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }) as unknown as MediaQueryList) as typeof window.matchMedia;
+    try {
+      renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+      const region = screen.getByTestId('lanes-region');
+      expect(region).toHaveClass('hidden');
+      const handle = screen.getByTestId('lanes-drawer-handle');
+      fireEvent.click(handle);
+      expect(region).toHaveClass('block');
+      expect(region).not.toHaveClass('hidden');
+      fireEvent.click(handle);
+      expect(region).toHaveClass('hidden');
+    } finally {
+      window.matchMedia = mm;
+    }
+  });
+
+  it('renders the studio split on wide screens — deck column + always-visible lanes (D-MS9)', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // The deck column holds the AI conversation with the composer docked below.
+    const deck = screen.getByTestId('stage-deck');
+    expect(deck).toContainElement(screen.getByTestId('ai-bubble'));
+    expect(deck).toContainElement(screen.getByTestId('composer-input'));
+    // The lanes sit under the stage, always on screen — no drawer classes.
     const region = screen.getByTestId('lanes-region');
-    expect(region).toHaveClass('hidden', 'min-[740px]:block');
-    const handle = screen.getByTestId('lanes-drawer-handle');
-    fireEvent.click(handle);
-    expect(region).toHaveClass('block');
     expect(region).not.toHaveClass('hidden');
-    fireEvent.click(handle);
-    expect(region).toHaveClass('hidden');
+    expect(screen.getByTestId('music-stage')).not.toHaveClass('is-empty');
+    // The immersive page hides the Learn nav (D-MS7), so the transport bar
+    // carries the Airbotix brand mark, like the playground's Taskbar.
+    expect(screen.getByTestId('stage-brand')).toContainElement(screen.getByAltText('Airbotix'));
   });
 
   // ── 🎧 Make it real (§2 step ⑥) — the score becomes actual audio ────────────

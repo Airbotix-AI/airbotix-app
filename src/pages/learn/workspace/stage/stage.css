@@ -23,10 +23,12 @@
   --mstage-text-dim: #efeaff;
 
   position: relative;
-  /* The stage is the hero of its own full-viewport surface (D-MS7), so it GROWS
-     into the space instead of sitting in a fixed 320px letterbox strip — that
-     height is a floor for short screens, not the design. */
-  height: clamp(320px, 46vh, 560px);
+  /* The stage is the hero of its own full-viewport surface (D-MS7) and now
+     FILLS its split-layout region (D-MS9): the flex parent sizes it, the
+     min-height is only a floor for very short screens. The narrow-screen
+     rule below overrides with a fixed height for the stacked mobile column. */
+  height: 100%;
+  min-height: 300px;
   overflow: hidden;
   user-select: none;
   background: linear-gradient(
