@@ -35,7 +35,8 @@ export function ComposerBar({
 }) {
   const short = balance < MUSIC_GENERATION_COST_STARS;
   return (
-    <div className="border-b border-hairline bg-canvas-pure px-5 py-4">
+    // Docked at the BOTTOM of the deck column (D-MS9) — border on top.
+    <div className="shrink-0 border-t border-hairline bg-canvas-pure px-5 py-4">
       <div className="flex items-center justify-between mb-2.5">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate2">
           <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-full bg-brand-mint text-white text-[11px] mr-1.5 align-middle">1</span>

@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import clsx from 'clsx';
 
 import { ApiError } from '@/lib/api';
@@ -54,6 +55,7 @@ import {
   type SuggestionKey,
 } from './stageData';
 import { aggregateScoreVersions } from './versions';
+import { useIsWide } from './useIsWide';
 import { useScorePlayback } from './useScorePlayback';
 
 interface VersionMeta {
@@ -363,96 +365,164 @@ export function MusicStagePane({
   const activeStep =
     playback.isPlaying && score ? stepIndexAt(playback.position, score.tempo) : null;
 
+  // ── Layout regions (music-stage-prd D-MS9) ────────────────────────────────
+  // The Stage mirrors the Creative Code Studio's split-workspace skeleton: the
+  // page never scrolls — the ARTIFACT (stage + lanes) owns the big right region
+  // and stays on screen, the TOOLS (AI deck + composer) live in a left column
+  // that scrolls internally, and the transport docks below like the Taskbar.
+  const isWide = useIsWide();
+
+  const stageView = (
+    <StageView
+      slots={slotViews}
+      empty={!hasSong}
+      marquee={hasSong ? marqueeFor(score?.genre, genre) : EMPTY_MARQUEE}
+      selected={hasSong ? selectedSlot : null}
+      onSelect={setSelectedSlot}
+      activeStep={activeStep}
+      composingSubtitle={generation.isPending ? composeSubtitle : null}
+      entering={entering}
+      registerPulse={registerStagePulse}
+    />
+  );
+
+  const aiDeck = (
+    <AiDeck
+      bubble={bubble}
+      onRetry={retry}
+      versions={Array.from({ length: versions.length }, (_, i) => ({
+        label: versionMeta[i]?.label ?? (i === 0 ? FIRST_VERSION_TAG : REWRITE_VERSION_TAG),
+      }))}
+      currentVersion={currentVersion}
+      onSelectVersion={(i) => {
+        // 0⭐ instant switch — manual styles + mute survive (AC-7).
+        setPinnedVersion(i);
+        setBubbleOverride(null);
+      }}
+      hasSong={hasSong}
+      busy={generation.isPending}
+      onSuggestion={generateFromCard}
+      selectedSlot={selectedSlot}
+      styles={styles}
+      onStyle={(slot, styleId) => {
+        if (styles[slot] !== styleId) styleChangesRef.current += 1;
+        setStyles((s) => ({ ...s, [slot]: styleId }));
+        // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
+        if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
+      }}
+    />
+  );
+
+  // ⚙️ Mixer / pre-song imported tracks — the real-audio track list, shown in
+  // the deck column under the AI conversation (never a page-level section).
+  const trackListRegion = score ? (
+    mixerOpen && (
+      <div className="border-t border-hairline bg-canvas-pure" data-testid="mixer-region">
+        {/* Capability boundary stated, never faked (PRD §4.1 principle):
+            the legacy mini-DAW mixes REAL-AUDIO tracks only. */}
+        <p className="px-5 pt-3 text-[12px] font-semibold text-slate2" data-testid="mixer-note">
+          🎚 The Mixer holds your real-audio tracks (imported + studio songs).
+          Note editing and score-track re-rolls arrive here soon!
+        </p>
+        <MusicTrackList
+          messages={messages}
+          onGenerateTrack={() => composerRef.current?.focus()}
+          onImportTrack={onImportTrack}
+        />
+      </div>
+    )
+  ) : (
+    hasAudioTracks && (
+      <MusicTrackList
+        messages={messages}
+        onGenerateTrack={() => composerRef.current?.focus()}
+        onImportTrack={onImportTrack}
+      />
+    )
+  );
+
+  // The composer docks at the BOTTOM of the deck column — the chat idiom the
+  // Creative Code Studio's ChatPane uses (conversation above, input below).
+  const composerDock = (
+    <ComposerBar
+      value={input}
+      onChange={setInput}
+      genre={genre}
+      onGenre={setGenre}
+      onGenerate={generateFromPrompt}
+      busy={generation.isPending}
+      balance={balance}
+      inputRef={composerRef}
+    />
+  );
+
+  const trackLanes = score ? (
+    <TrackLanes
+      score={score}
+      playback={playback}
+      styles={styles}
+      selectedSlot={selectedSlot}
+      onSelectSlot={setSelectedSlot}
+      silenced={silenced}
+      onOpenMixer={() => setMixerOpen(true)}
+    />
+  ) : null;
+
   return (
-    <div className="flex min-w-0 flex-1 flex-col bg-canvas" data-testid="music-stage-pane">
-      <div className="flex-1 overflow-y-auto">
-        <ComposerBar
-          value={input}
-          onChange={setInput}
-          genre={genre}
-          onGenre={setGenre}
-          onGenerate={generateFromPrompt}
-          busy={generation.isPending}
-          balance={balance}
-          inputRef={composerRef}
-        />
-
-        <StageView
-          slots={slotViews}
-          empty={!hasSong}
-          marquee={hasSong ? marqueeFor(score?.genre, genre) : EMPTY_MARQUEE}
-          selected={hasSong ? selectedSlot : null}
-          onSelect={setSelectedSlot}
-          activeStep={activeStep}
-          composingSubtitle={generation.isPending ? composeSubtitle : null}
-          entering={entering}
-          registerPulse={registerStagePulse}
-        />
-
-        <AiDeck
-          bubble={bubble}
-          onRetry={retry}
-          versions={Array.from({ length: versions.length }, (_, i) => ({
-            label: versionMeta[i]?.label ?? (i === 0 ? FIRST_VERSION_TAG : REWRITE_VERSION_TAG),
-          }))}
-          currentVersion={currentVersion}
-          onSelectVersion={(i) => {
-            // 0⭐ instant switch — manual styles + mute survive (AC-7).
-            setPinnedVersion(i);
-            setBubbleOverride(null);
-          }}
-          hasSong={hasSong}
-          busy={generation.isPending}
-          onSuggestion={generateFromCard}
-          selectedSlot={selectedSlot}
-          styles={styles}
-          onStyle={(slot, styleId) => {
-            if (styles[slot] !== styleId) styleChangesRef.current += 1;
-            setStyles((s) => ({ ...s, [slot]: styleId }));
-            // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
-            if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
-          }}
-        />
-
-        {score ? (
-          <>
-            <div className={clsx(drawerOpen ? 'block' : 'hidden min-[740px]:block')} data-testid="lanes-region">
-              <TrackLanes
-                score={score}
-                playback={playback}
-                styles={styles}
-                selectedSlot={selectedSlot}
-                onSelectSlot={setSelectedSlot}
-                silenced={silenced}
-                onOpenMixer={() => setMixerOpen(true)}
-              />
-            </div>
-            {mixerOpen && (
-              <div className="border-t border-hairline bg-canvas-pure" data-testid="mixer-region">
-                {/* Capability boundary stated, never faked (PRD §4.1 principle):
-                    the legacy mini-DAW mixes REAL-AUDIO tracks only. */}
-                <p className="px-5 pt-3 text-[12px] font-semibold text-slate2" data-testid="mixer-note">
-                  🎚 The Mixer holds your real-audio tracks (imported + studio songs).
-                  Note editing and score-track re-rolls arrive here soon!
-                </p>
-                <MusicTrackList
-                  messages={messages}
-                  onGenerateTrack={() => composerRef.current?.focus()}
-                  onImportTrack={onImportTrack}
-                />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-canvas" data-testid="music-stage-pane">
+      {isWide ? (
+        // ≥740px: side-by-side studio split (deck left, stage + lanes right).
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <PanelGroup direction="horizontal" className="h-full min-h-0" autoSaveId="music-stage-split">
+            <Panel defaultSize={36} minSize={26} className="min-w-0">
+              <section className="flex h-full min-h-0 flex-col bg-canvas-pure" data-testid="stage-deck">
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {aiDeck}
+                  {trackListRegion}
+                </div>
+                {composerDock}
+              </section>
+            </Panel>
+            <PanelResizeHandle className="group relative flex w-2 shrink-0 items-stretch justify-center bg-transparent outline-none">
+              <span className="w-0.5 rounded bg-hairline transition-colors group-hover:bg-brand-mint group-data-[resize-handle-state=drag]:bg-brand-mint" />
+            </PanelResizeHandle>
+            <Panel defaultSize={64} minSize={40} className="min-w-0">
+              <div className="flex h-full min-h-0 flex-col">
+                <div className="min-h-0 flex-1">{stageView}</div>
+                {trackLanes && (
+                  <div
+                    className="max-h-[45%] shrink-0 overflow-y-auto border-t border-hairline"
+                    data-testid="lanes-region"
+                  >
+                    {trackLanes}
+                  </div>
+                )}
+              </div>
+            </Panel>
+          </PanelGroup>
+        </div>
+      ) : (
+        // <740px: stacked column — stage up top (fixed height via stage.css),
+        // everything else scrolls in the middle: a phone hasn't the height to
+        // dock the composer too, so it leads the scroll (step ① reading order)
+        // and only the stage + transport stay pinned.
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="shrink-0">{stageView}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto bg-canvas-pure">
+            {composerDock}
+            {aiDeck}
+            {trackListRegion}
+            {trackLanes && (
+              <div
+                className={clsx('border-t border-hairline', drawerOpen ? 'block' : 'hidden')}
+                data-testid="lanes-region"
+              >
+                {trackLanes}
               </div>
             )}
-          </>
-        ) : (
-          hasAudioTracks && (
-            <MusicTrackList
-              messages={messages}
-              onGenerateTrack={() => composerRef.current?.focus()}
-              onImportTrack={onImportTrack}
-            />
-          )
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* transport / exit row (PRD §2.1 bottom bar) */}
       <div className="flex shrink-0 flex-wrap items-center gap-4 border-t border-hairline bg-canvas-pure px-5 py-3">
@@ -467,6 +537,19 @@ export function MusicStagePane({
         >
           ←
         </button>
+        {/* Airbotix brand mark + surface name — the immersive page hides the
+            Learn nav (D-MS7), so the brand rides the transport bar exactly like
+            the playground's Taskbar. Hidden on narrow screens (the row is tight). */}
+        <div className="hidden shrink-0 items-center gap-2.5 min-[900px]:flex" data-testid="stage-brand">
+          <img
+            src="/logo-black-horizontal.png"
+            alt="Airbotix"
+            draggable={false}
+            className="h-6 w-auto select-none"
+          />
+          <span aria-hidden className="h-5 w-px bg-hairline" />
+          <span className="text-[13px] font-bold text-slate2">Music Stage</span>
+        </div>
         <button
           type="button"
           onClick={() => (playback.isPlaying ? playbackStop() : void playbackPlay())}

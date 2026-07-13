@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-07-13 (feat: the Music Stage adopts the studio split layout — D-MS9)
+
+### Changed
+- **The Stage's page skeleton now mirrors the Creative Code Studio's split workspace.** Going
+  fullscreen (D-MS7) had only moved the Stage out of the chat shell — inside, it was still one long
+  vertical form (composer → stage → AI bubble → suggestion cards → timbre picker → lanes) that all
+  scrolled, with the stage owning the most area yet usually off-screen. The page now **never
+  scrolls**: the artefact (stage growing to fill its region + track lanes docked below it with
+  internal scroll) owns the right panel, the tools (AI conversation, suggestion cards, timbre
+  picker, ⚙️ Mixer) scroll internally in a left column with the composer **docked at its bottom**
+  like the ChatPane's input, and the two panels are drag-resizable (`react-resizable-panels`, same
+  library and feel as the Workspace split). The transport bar docks at the page bottom like the
+  Taskbar — and now carries the **Airbotix brand mark + "Music Stage"**, since the immersive surface
+  hides the nav that used to carry the logo. Below 740px the page falls back to the stacked column
+  (fixed-height stage on top, composer leading the scroll, lanes behind the 🎚 drawer) so phones keep
+  the old behaviour.
+
+### Fixed
+- **The transport bar could sit 8px below the viewport.** The pane root lacked `min-h-0`, so the
+  docked composer's intrinsic height propagated up the flex chain (`min-height:auto`) and pushed the
+  transport row partially out of the screen. The root chain is now `min-h-0` + `overflow-hidden`
+  end-to-end, with a no-page-scroll assertion in the harness journey guarding it.
+
 ## 2026-07-13 (feat: the Music Stage gets its own fullscreen surface — D-MS7/D-MS8)
 
 ### Changed
