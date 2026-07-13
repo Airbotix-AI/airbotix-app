@@ -92,7 +92,12 @@ export function LearnLayout() {
           so it surfaces across every Learn surface, including immersive studios. */}
       <NudgeBanner />
       {!immersive && <LearnTopBar />}
-      <main className={immersive ? 'h-full min-h-0 overflow-hidden' : 'flex-1 overflow-y-auto'}>
+      {/* Immersive main is flex-1, NOT h-full: h-full is 100% of the whole layout
+          column, so the moment something renders above it (the NudgeBanner — which
+          deliberately surfaces over studios) the studio was pushed down and its
+          bottom bar clipped off-screen by exactly the banner height. flex-1 hands
+          the studio the space that is actually left. */}
+      <main className={immersive ? 'min-h-0 flex-1 overflow-hidden' : 'flex-1 overflow-y-auto'}>
         {fluid ? (
           <Outlet />
         ) : (

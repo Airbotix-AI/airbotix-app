@@ -80,16 +80,19 @@ export function MusicStudioPage() {
     },
   });
 
+  // h-full, not h-dvh: the page fills the box LearnLayout's immersive <main>
+  // hands it (viewport minus any banner above, e.g. a teacher nudge). A dvh box
+  // ignores that chrome and puts the transport bar below the fold.
   if (!sessionId) {
     return (
-      <div className="grid h-dvh place-items-center bg-canvas">
+      <div className="grid h-full place-items-center bg-canvas">
         <p className="lead-text">Setting up your stage…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+    <div className="flex h-full flex-col overflow-hidden bg-canvas">
       <MusicStagePane
         key={sessionId}
         sessionId={sessionId}

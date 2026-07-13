@@ -56,4 +56,15 @@ describe('LearnLayout', () => {
       expect(readingColumn(container)).toBeNull();
     },
   );
+
+  // The bug this locks: immersive <main> was h-full (100% of the layout column),
+  // so anything rendering above it — the NudgeBanner deliberately surfaces over
+  // studios — pushed the studio down and clipped its bottom bar off-screen by
+  // exactly the banner height. flex-1 hands the studio the space actually left.
+  it('sizes the immersive main with flex-1 so a banner above shrinks the studio instead of clipping it', () => {
+    const { container } = mount('/learn/music/s1');
+    const main = container.querySelector('main');
+    expect(main).toHaveClass('flex-1', 'min-h-0', 'overflow-hidden');
+    expect(main).not.toHaveClass('h-full');
+  });
 });
