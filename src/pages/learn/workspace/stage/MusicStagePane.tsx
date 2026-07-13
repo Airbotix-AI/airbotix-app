@@ -74,6 +74,7 @@ export function MusicStagePane({
   kidId,
   familyId,
   classId,
+  onExit,
   onImportTrack,
 }: {
   sessionId: string;
@@ -83,6 +84,8 @@ export function MusicStagePane({
   familyId: string | null;
   /** Set when the kid arrived via "create for class" — Save attaches the song to it. */
   classId: string | null;
+  /** Immersive surface: the Learn nav bar is hidden, so the stage owns the way out. */
+  onExit: () => void;
   onImportTrack: () => void;
 }) {
   const qc = useQueryClient();
@@ -453,6 +456,17 @@ export function MusicStagePane({
 
       {/* transport / exit row (PRD §2.1 bottom bar) */}
       <div className="flex shrink-0 flex-wrap items-center gap-4 border-t border-hairline bg-canvas-pure px-5 py-3">
+        {/* The nav bar is hidden on this immersive surface (D-MS7), so the way
+            out lives here — a kid must never be trapped on the stage. */}
+        <button
+          type="button"
+          onClick={onExit}
+          aria-label="Back to Learn"
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-2 border-hairline bg-canvas text-[18px] text-ink transition hover:border-brand-mint"
+          data-testid="stage-exit"
+        >
+          ←
+        </button>
         <button
           type="button"
           onClick={() => (playback.isPlaying ? playbackStop() : void playbackPlay())}
@@ -470,10 +484,11 @@ export function MusicStagePane({
               {score.tempo} BPM · {score.key} · {fmtTime(playback.position)} / {fmtTime(playback.totalDuration)}
             </>
           ) : (
-            <>
-              <span className="block text-[14px] font-extrabold text-ink">No song yet</span>
-              Ask the AI for one up top!
-            </>
+            // One instruction only — the composer bar up top already says
+            // "① Tell the AI what song you want". Repeating it here (and in the
+            // stage hint, and in the AI bubble) filled the screen with the same
+            // sentence four times.
+            <span className="block text-[14px] font-extrabold text-ink">No song yet</span>
           )}
         </div>
         {score && (

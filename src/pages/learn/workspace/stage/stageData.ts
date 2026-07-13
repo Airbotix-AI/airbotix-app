@@ -201,12 +201,14 @@ export const REWRITE_VERSION_TAG = 'Rewrite';
 
 // ─── Kid-facing copy (AI bubble, overlay, errors) ────────────────────────────
 
+// The bubble is the conductor's VOICE, not a second set of instructions: the
+// composer bar is already labelled "① Tell the AI what song you want", so the
+// greeting says what the conductor can do for the kid AFTER the first take.
 export const INITIAL_BUBBLE =
-  "I'm your band conductor! Describe your song up top and I'll compose it — " +
-  'then you can ask me to change it, or give any instrument a new sound.';
+  "I'm your band conductor! Once your song is up here you can ask me to change " +
+  'it, give any instrument a new sound, or record it for real.';
 
 export const EMPTY_STAGE_HINT = 'Your band is waiting for a song 🎤';
-export const EMPTY_STAGE_HINT_SUB = 'Describe one up top and let the AI get to work!';
 
 export const COMPOSING_TITLE = '✨ The AI is composing your song…';
 export const FIRST_COMPOSE_SUBTITLE =

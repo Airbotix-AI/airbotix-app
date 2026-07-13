@@ -23,7 +23,10 @@ export function StudioPicker({
           Pick a studio — each one teaches you one AI skill, so you can really get good at it.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {STUDIOS.map((s) => (
+          {/* Music has left the Workspace: it is its own immersive surface
+              (/learn/music, D-MS7). Offering it here would drop the kid back into
+              the chat shell this move exists to get them out of. */}
+          {STUDIOS.filter((s) => s.id !== 'music').map((s) => (
             <button
               key={s.id}
               disabled={busy}

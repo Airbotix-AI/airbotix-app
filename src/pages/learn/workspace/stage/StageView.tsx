@@ -9,7 +9,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   COMPOSING_TITLE,
   EMPTY_STAGE_HINT,
-  EMPTY_STAGE_HINT_SUB,
   type StageSlotId,
 } from './stageData';
 import { STAGE_STEPS } from './scoreUtils';
@@ -144,11 +143,13 @@ export function StageView({
         ))}
       </div>
 
+      {/* ONE line. The composer bar above already says "① Tell the AI what song
+          you want"; the sub-line used to repeat it, and so did the AI bubble and
+          the transport row — four copies of the same sentence around an empty
+          stage you could not even see the band on (D-MS7). */}
       {empty && (
         <div className="mstage-empty-hint" data-testid="stage-empty-hint">
           {EMPTY_STAGE_HINT}
-          <br />
-          {EMPTY_STAGE_HINT_SUB}
         </div>
       )}
 

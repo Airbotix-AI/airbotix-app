@@ -131,6 +131,7 @@ function renderPane(messages: Message[], balance = 12, classId: string | null = 
         kidId="k1"
         familyId="f1"
         classId={classId}
+        onExit={() => {}}
         onImportTrack={() => {}}
       />
     </QueryClientProvider>,
@@ -153,11 +154,20 @@ describe('MusicStagePane — empty stage (AC-1)', () => {
   it('dims the band, disables play, keeps the composer usable', () => {
     renderPane([]);
     expect(screen.getByTestId('music-stage')).toHaveClass('is-empty');
+    // ONE instruction on an empty stage. The hint used to carry a second line
+    // repeating the composer bar, the AI bubble repeated it again, and so did the
+    // transport row — four copies of "describe a song up top" around a stage whose
+    // band you could not see (D-MS7).
     expect(screen.getByTestId('stage-empty-hint')).toHaveTextContent('Your band is waiting for a song');
+    expect(screen.getByTestId('stage-empty-hint')).not.toHaveTextContent('up top');
+    expect(screen.getByTestId('now-line')).not.toHaveTextContent('up top');
+    expect(screen.getByTestId('ai-bubble')).not.toHaveTextContent('Describe your song up top');
     expect(screen.getByTestId('stage-play')).toBeDisabled();
     expect(screen.getByTestId('stage-inst-guitar')).toBeDisabled();
     expect(screen.getByTestId('composer-input')).toBeEnabled();
     expect(screen.getByTestId('ai-bubble')).toHaveTextContent('band conductor');
+    // The kid must never be trapped: this surface hides the Learn nav bar.
+    expect(screen.getByTestId('stage-exit')).toBeInTheDocument();
     expect(screen.queryByTestId('track-lanes')).not.toBeInTheDocument();
     expect(screen.queryByTestId('suggestion-row')).not.toBeInTheDocument();
   });
