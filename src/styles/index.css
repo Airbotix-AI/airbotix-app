@@ -169,6 +169,19 @@
     width: 100%;
     max-width: 460px;
   }
+  /* Short screens (laptops): the auth card must fit above the fold — a primary
+     CTA below the fold reads as a broken page, not a scrollable one. The
+     hero-display clamp is width-based (7vw), so on a wide-but-short laptop the
+     headline alone ate ~150px; scale it by viewport HEIGHT here instead. */
+  @media (max-height: 900px) {
+    .auth-shell { @apply py-6; }
+    .auth-card { padding: 28px 32px; }
+    .auth-card .hero-display { font-size: clamp(32px, 5vh, 56px); }
+    /* space-y-5 (20px) is airy on tall screens; 14px keeps the CTA above the
+       fold at 720px-tall viewports without crowding the fields. (Selector
+       mirrors Tailwind's own space-y rule to out-rank it.) */
+    .auth-card .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: 14px; }
+  }
 
   /* === Nav drawer === */
   .nav-link {
