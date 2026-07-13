@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-13 (fix: a banner above an immersive studio clipped its bottom bar off-screen)
+
+### Fixed
+- **The Music Stage's transport bar could sit below the fold whenever anything rendered above the
+  studio.** `LearnLayout`'s immersive `<main>` was `h-full` — 100% of the whole layout column — and
+  the stage itself was `h-dvh`, so the moment something occupied the strip above it (the
+  `NudgeBanner`, which deliberately surfaces over studios so a teacher's nudge is never missed), the
+  studio was pushed down and its bottom bar clipped by exactly the banner height. The immersive
+  `<main>` is now `flex-1 min-h-0` (it gets the space actually left) and the Music Studio page fills
+  it with `h-full` instead of assuming the full viewport — verified by inserting a synthetic banner
+  and asserting the transport stays on screen. The Blocks Studio's own `height: 100dvh` has the same
+  latent issue (tracked as a follow-up; not changed here while Story Blocks work is in flight).
+
 ## 2026-07-13 (feat: the Music Stage adopts the studio split layout — D-MS9)
 
 ### Changed
