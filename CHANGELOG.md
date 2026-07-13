@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-13 (fix: the auth card fits above the fold on laptop screens)
+
+### Fixed
+- **The kid/parent login card's primary CTA sat below the fold on laptop-height screens.** The
+  `hero-display` headline scales by viewport *width* (`7vw`), so a wide-but-short laptop window got
+  a ~150px headline and pushed "Let me in" off-screen — which reads as a broken page, not a
+  scrollable one (user-reported). `@media (max-height: 900px)` now compacts the shared auth shell
+  (tighter shell/card padding, height-scaled headline, snugger field spacing), so the whole card
+  fits at 1280×720 — asserted in the `kid-music-stage` journey's login step. Applies to every
+  `auth-card` surface (kid login, class code, parent login/register/OTP).
+
 ## 2026-07-13 (fix: a banner above an immersive studio clipped its bottom bar off-screen)
 
 ### Fixed
