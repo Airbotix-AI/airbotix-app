@@ -23,7 +23,7 @@ import { useMe } from '@/auth/useAuth';
 import { useDemoMode } from '@/pages/try/demoMode';
 import { listClasses } from '@/pages/learn/classroom/classroomApi';
 import { api } from '@/lib/api';
-import type { LearningContext, VfsFile } from '../code/codeApi';
+import type { VfsFile } from '../code/codeApi';
 import type { SaveResult } from './projectPersistence';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
@@ -75,8 +75,6 @@ interface WorkspaceProps {
   projectId?: string;
   /** The AI's first turn (generated on the loading screen) — seeds the chat. */
   firstTurn?: FirstTurnSeed;
-  /** The teacher's "where we left off" on a resumed game → welcome-back card (D-PAP-19,22). */
-  resumeRecap?: LearningContext | null;
   /** Restored chat history (J9 resume) — reopens the saved conversation. */
   initialChat?: ChatItem[];
   /** Persist the conversation whenever it changes (J9). */
@@ -119,17 +117,12 @@ export function Workspace({
   prompt,
   projectId,
   firstTurn,
-  resumeRecap,
   initialChat,
   onChatChange,
   blockedSeed,
   readOnly = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
-  // Welcome-back card on resume — dismissed once the kid taps "Keep building" (or
-  // it simply sits above the chat; it never blocks typing). D-PAP-19,22.
-  const [recapDismissed, setRecapDismissed] = useState(false);
-  const showRecap = !!resumeRecap && !recapDismissed;
   const [splitTab, setSplitTab] = useState<SplitTab>(
     () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
   );
@@ -257,7 +250,9 @@ export function Workspace({
   // Post-apply verification (D-PAP-40): the loop driver is created BELOW the
   // agent hook (it surfaces its co-debug bubble through the agent's chat), so
   // the agent's onTurnApplied reaches beginVerification through this ref.
-  const beginVerificationRef = useRef<(turnId: string) => void>(() => {});
+  const beginVerificationRef = useRef<(turnId: string, screenshotRequested?: boolean) => void>(
+    () => {},
+  );
 
   // Own the chat state HERE (not in ChatPane) so the history survives toggling
   // between Window and Split layouts — the panes remount across modes, this
@@ -309,9 +304,11 @@ export function Workspace({
       readOnly,
       balance: wallet.data?.stars_balance,
       onStarsCharged: () => wallet.refetch(),
-      // Arm the run-report loop for an applied turn awaiting verification.
+      // Arm the run-report loop for an applied turn awaiting verification. The
+      // screenshot hint (D-HARN-21b) rides along so the report can carry evidence.
       onTurnApplied: (r) => {
-        if (r.verification === 'pending' && r.turn_id) beginVerificationRef.current(r.turn_id);
+        if (r.verification === 'pending' && r.turn_id)
+          beginVerificationRef.current(r.turn_id, r.screenshot_requested === true);
       },
       clientActions: {
         runGame: runFromEditor,
@@ -421,8 +418,6 @@ export function Workspace({
     // The ONE queued next message + its cancel (D-HARN-03 busy queue).
     queuedMessage,
     onCancelQueued: cancelQueued,
-    recap: showRecap ? resumeRecap : null,
-    onContinueRecap: () => setRecapDismissed(true),
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and

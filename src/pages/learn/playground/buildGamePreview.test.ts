@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+//
 // Syntax-error location resolution (playground self-fix context): a script that
 // fails to PARSE never gets its `//# sourceURL` applied, so the browser reports
 // the error against the srcdoc document. buildGamePreview returns each script's
@@ -5,7 +7,7 @@
 // the kid's file:line — the location the console, jump-to-error, and the AI
 // self-fix round-trip all rely on.
 import { describe, expect, it } from 'vitest';
-import { buildGamePreview, resolveErrorLoc } from './buildGamePreview';
+import { OVERLAY_PATH, buildGamePreview, resolveErrorLoc, sanitizeOverlay } from './buildGamePreview';
 import type { VfsFile } from '../code/codeApi';
 
 const text = (path: string, content: string): VfsFile => ({
@@ -220,6 +222,19 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     }
   });
 
+  it('BYTE-IDENTITY: a project with NO overlay.html builds the exact pre-overlay srcdoc (both engines)', () => {
+    // Pinned BEFORE the overlay feature landed (vitest snapshot): a no-overlay
+    // build must stay byte-for-byte what it was — no seam text, no extra lines,
+    // no CSS — so every existing game, share snapshot, and thumbnail is
+    // untouched. The with-css variant pins the `${css}` seam the overlay base
+    // CSS injects in front of.
+    for (const engine of ['phaser', 'three'] as const) {
+      expect(buildGamePreview(FILES, { engine }).srcDoc).toMatchSnapshot(`no-overlay-${engine}`);
+    }
+    const withCss = [...FILES, text('style.css', 'body{background:#111}')];
+    expect(buildGamePreview(withCss).srcDoc).toMatchSnapshot('no-overlay-phaser-with-css');
+  });
+
   it('inlines a .glb whose path contains SPACES (real imported filenames, D-3D-09)', () => {
     // Imported models keep their original names, which routinely contain spaces
     // ("Cube Guy Character.glb"). The path must still be matched + inlined so the
@@ -237,5 +252,131 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     const doc = buildGamePreview([game, glb], { engine: 'three' }).srcDoc;
     expect(doc).toContain("load('data:model/gltf-binary;base64,Z2xURg==',");
     expect(doc).not.toContain("'assets/imported/Cube Guy Character.glb'");
+  });
+});
+
+// ── overlay.html — the ONE reserved HTML fragment (D-GAME13) ──────────────────
+
+describe('overlay.html injection', () => {
+  const overlay = (content: string): VfsFile => text(OVERLAY_PATH, content);
+  const HUD = '<div class="hud">Score: <span id="hud-score">0</span></div>';
+
+  it('a build with NO overlay.html carries NO overlay seam at all (both engines)', () => {
+    for (const engine of ['phaser', 'three'] as const) {
+      const doc = buildGamePreview(FILES, { engine }).srcDoc;
+      expect(doc).not.toContain('id="overlay"');
+      expect(doc).not.toContain('#overlay');
+      expect(doc).not.toContain('__airbotixSnapshotOut');
+      // The wire field never appears ('composited' the WORD is in a shim comment).
+      expect(doc).not.toContain('composited:');
+    }
+  });
+
+  it('injects the sanitized fragment as <div id="overlay"> AFTER the run probe and BEFORE the first kid script', () => {
+    const { srcDoc, scriptRanges } = buildGamePreview([...FILES, overlay(HUD)]);
+    const overlayAt = srcDoc.indexOf(`<div id="overlay">${HUD}</div>`);
+    expect(overlayAt).toBeGreaterThan(-1);
+    expect(overlayAt).toBeGreaterThan(srcDoc.indexOf('__airbotixRunReport')); // after RUN_PROBE
+    const overlayLine = srcDoc.slice(0, overlayAt).split('\n').length;
+    expect(overlayLine).toBeLessThan(scriptRanges[0].start); // before every kid script
+  });
+
+  it('injects the overlay base CSS into the shell <style> BEFORE kid css (kid css wins)', () => {
+    const kidCss = text('style.css', '#overlay{color:red}');
+    const doc = buildGamePreview([...FILES, overlay(HUD), kidCss]).srcDoc;
+    const baseAt = doc.indexOf('#overlay{position:fixed;inset:0;z-index:10;pointer-events:none');
+    const kidAt = doc.indexOf('#overlay{color:red}');
+    expect(baseAt).toBeGreaterThan(-1);
+    expect(kidAt).toBeGreaterThan(baseAt);
+    // The frozen pass-through + touch-target rules ride along.
+    expect(doc).toContain('[data-ui]){pointer-events:auto;touch-action:manipulation}');
+    expect(doc).toContain('#overlay button{min-width:44px;min-height:44px}');
+  });
+
+  it('keeps scriptRanges EXACT with a multi-line overlay in front of the kid scripts', () => {
+    const multi = overlay('<div class="hud">\n  <button id="b1" data-ui>▲</button>\n  <button id="b2" data-ui>▼</button>\n</div>');
+    const { srcDoc, scriptRanges } = buildGamePreview([...FILES, multi]);
+    const docLines = srcDoc.split('\n');
+    for (const range of scriptRanges) {
+      const file = FILES.find((f) => f.path === range.path)!;
+      const fileLines = file.content.split('\n');
+      expect(docLines[range.start - 1].endsWith(fileLines[0])).toBe(true);
+      for (let i = 1; i < fileLines.length; i++) {
+        expect(docLines[range.start - 1 + i]).toBe(fileLines[i]);
+      }
+    }
+  });
+
+  it('inlines quoted asset refs inside the overlay (an <img src> becomes a data: URL)', () => {
+    const heart: VfsFile = { path: 'assets/hud/heart.png', content: 'SEVBUlQ=', kind: 'asset', size: 6 };
+    const doc = buildGamePreview([
+      ...FILES,
+      heart,
+      overlay('<img src="assets/hud/heart.png" alt="life">'),
+    ]).srcDoc;
+    expect(doc).toContain('<img src="data:image/png;base64,SEVBUlQ=" alt="life">');
+    expect(doc).not.toContain('"assets/hud/heart.png"');
+  });
+
+  it('inlines asset paths containing & / spaces (innerHTML entity-encodes attributes — the DOM pass must win)', () => {
+    // `assets/a&b.png` serializes as `assets/a&amp;b.png` in innerHTML, so a raw
+    // text-level path match can never hit it — the regression this pins is a
+    // silently-broken <img> for a perfectly legal imported filename.
+    const amp: VfsFile = { path: 'assets/a&b.png', content: 'QUImQg==', kind: 'asset', size: 6 };
+    const spaced: VfsFile = {
+      path: 'assets/fish & chips.png',
+      content: 'RklTSA==',
+      kind: 'asset',
+      size: 6,
+    };
+    const doc = buildGamePreview([
+      ...FILES,
+      amp,
+      spaced,
+      overlay('<img src="assets/a&b.png"><img src="assets/fish & chips.png">'),
+    ]).srcDoc;
+    expect(doc).toContain('src="data:image/png;base64,QUImQg=="');
+    expect(doc).toContain('src="data:image/png;base64,RklTSA=="');
+    expect(doc).not.toContain('a&amp;b.png');
+    expect(doc).not.toContain('fish &amp; chips.png');
+  });
+
+  it('strips <script> from the overlay and repairs malformed markup so kid scripts still execute', () => {
+    expect(sanitizeOverlay('<button>ok</button><script>alert(1)</script>')).toBe('<button>ok</button>');
+    // DOMParser repair: an unclosed tag is CLOSED inside the fragment — raw
+    // injection would have swallowed every following kid <script>.
+    expect(sanitizeOverlay('<div class="hud">hi')).toBe('<div class="hud">hi</div>');
+    for (const broken of ['<style>.hud{color:red}', '<div class="hud">hi']) {
+      const { srcDoc, scriptRanges } = buildGamePreview([...FILES, overlay(broken)]);
+      expect(srcDoc).not.toContain('alert(1)');
+      // The kid entry is still an executable <script> with its sourceURL intact.
+      expect(srcDoc).toContain('<script>new Game();');
+      expect(srcDoc).toContain('//# sourceURL=main.js');
+      expect(scriptRanges.map((r) => r.path)).toEqual(['src/scenes/Game.js', 'main.js']);
+    }
+  });
+
+  it('does NOT inject any other .html file (only the reserved overlay.html renders)', () => {
+    const doc = buildGamePreview([...FILES, text('notes.html', '<h1>my secret notes</h1>')]).srcDoc;
+    expect(doc).not.toContain('my secret notes');
+    expect(doc).not.toContain('id="overlay"');
+  });
+
+  it('resolveErrorLoc drops a loc pointing into the overlay region (host chrome, not kid code)', () => {
+    const { srcDoc, scriptRanges } = buildGamePreview([...FILES, overlay(HUD)]);
+    const overlayLine = srcDoc.slice(0, srcDoc.indexOf('<div id="overlay">')).split('\n').length;
+    expect(
+      resolveErrorLoc({ file: 'about:srcdoc', line: overlayLine, col: 1 }, scriptRanges),
+    ).toBeUndefined();
+  });
+
+  it('with an overlay BOTH engines route snapshots through the composited seam', () => {
+    for (const engine of ['phaser', 'three'] as const) {
+      const doc = buildGamePreview([...FILES, overlay(HUD)], { engine }).srcDoc;
+      expect(doc).toContain('window.__airbotixSnapshotOut = function (canvasUrl)'); // the shim
+      expect(doc).toContain('(window.__airbotixSnapshotOut || function (u)'); // the control-shim seam
+      expect(doc).toContain('composited: true');
+      expect(doc).toContain('composited: false');
+    }
   });
 });

@@ -69,7 +69,7 @@ describe('PlaygroundApp class create flow', () => {
   beforeEach(() => {
     createGameProjectMock.mockReset().mockResolvedValue({ id: 'game-77' });
     placeGameProjectForClassMock.mockReset().mockResolvedValue(undefined);
-    getProjectMock.mockReset().mockResolvedValue({ id: 'game-77', engine: 'three', learning_context: null });
+    getProjectMock.mockReset().mockResolvedValue({ id: 'game-77', engine: 'three' });
     useMeMock.mockReturnValue({ data: { kind: 'kid', sub: 'kid-1', family_id: 'fam-1', age: 10 } });
   });
 
@@ -107,7 +107,7 @@ describe('PlaygroundApp teacher-prep create flow (prompt-first)', () => {
     createGameProjectMock.mockReset();
     createPrepGameProjectMock.mockReset().mockResolvedValue({ id: 'prep-99' });
     placeGameProjectForClassMock.mockReset().mockResolvedValue(undefined);
-    getProjectMock.mockReset().mockResolvedValue({ id: 'prep-99', engine: 'phaser', learning_context: null });
+    getProjectMock.mockReset().mockResolvedValue({ id: 'prep-99', engine: 'phaser' });
     // A teacher is a `user` principal (no kid/family).
     useMeMock.mockReturnValue({ data: { kind: 'user', sub: 't1', role: 'teacher', family_id: null } });
   });

@@ -27,6 +27,12 @@ export const MAX_REPORT_REJECTIONS = 3;
 export const MAX_REPORT_WINDOW_ERRORS = 3;
 export const MAX_REPORT_LINE_CHARS = 300;
 export const MAX_REPORT_ASSETS = 20;
+// Screenshot evidence caps (D-HARN-21b; mirror the backend request schema).
+export const MAX_SCREENSHOT_DATAURL_CHARS = 200_000;
+export const SCREENSHOT_MIN_DIM = 16;
+export const SCREENSHOT_MAX_DIM = 1024;
+/** The only wire-legal screenshot encodings (frozen cross-repo contract). */
+export const SCREENSHOT_DATAURL_RE = /^data:image\/(png|jpeg|webp);base64,/;
 const MAX_REPORT_PATH_CHARS = 200;
 const MAX_REPORT_DETAIL_CHARS = 200;
 const MAX_OBSERVED_MS = 120_000;
@@ -45,6 +51,20 @@ export interface AssetOutcome {
   path: string;
   status: 'loaded' | 'failed' | 'missing-ref' | 'unknown';
   detail?: string;
+}
+
+/**
+ * Screenshot evidence riding the RunReport REQUEST (D-HARN-21b). Attached by
+ * `useVerification` ONLY when the backend requested it (`screenshot_requested`)
+ * — never collected here, never persisted server-side (the evidence report the
+ * backend stores stays lean). `dataUrl` must match {@link SCREENSHOT_DATAURL_RE}
+ * and stay ≤ {@link MAX_SCREENSHOT_DATAURL_CHARS}; dims are the screenshot's own
+ * pixel size, {@link SCREENSHOT_MIN_DIM}–{@link SCREENSHOT_MAX_DIM}.
+ */
+export interface RunReportScreenshot {
+  dataUrl: string;
+  width: number;
+  height: number;
 }
 
 export interface RunReport {
@@ -70,6 +90,9 @@ export interface RunReport {
   /** Set when the PROBE itself failed — the backend treats the run as
    *  inconclusive, never as a failure of the kid's game. */
   probeError?: string;
+  /** Screenshot evidence — ONLY when the backend requested it AND capture
+   *  succeeded; ANY capture failure omits the field (the report still posts). */
+  screenshot?: RunReportScreenshot;
 }
 
 // ── Frame → parent message guards ───────────────────────────────────────────

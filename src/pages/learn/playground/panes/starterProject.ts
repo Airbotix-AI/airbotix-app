@@ -10,7 +10,10 @@
 // `import`/`export` — every scene is a GLOBAL class, and `main.js` constructs
 // `new Phaser.Game({ scene: [Boot, Game] })` referencing those globals. Mount is
 // the host element `id="game"`; assets/sounds resolve via the build-time data:
-// URL rewrite, so this scaffold references none and runs as-is.
+// URL rewrite, so this scaffold references none and runs as-is. `overlay.html`
+// is the ONE reserved HTML fragment the runtime injects as `<div id="overlay">`
+// above the canvas (D-GAME13) — markup only, wired from Game.js via
+// getElementById (the overlay div exists before any kid script runs).
 
 import type { VfsFile } from '../../code/codeApi';
 
@@ -18,7 +21,9 @@ import type { VfsFile } from '../../code/codeApi';
 
 const MAIN_JS = `// Entry point. Wires the global scene classes into one Phaser.Game.
 // Boot runs first, then hands off to Game. GameOver is reachable from Game.
-new Phaser.Game({
+// Kept on \`var game\` (a window global in this classic script) so you can poke
+// the running game from the console — try game.scene.keys.Game in devtools.
+var game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: 800,
@@ -58,6 +63,7 @@ class Game extends Phaser.Scene {
 
   create() {
     this.score = 0;
+    this.wireOverlay();
     this.player = this.add.rectangle(30, H / 2, 16, 110, 0x6ee7b7);
     this.cpu = this.add.rectangle(W - 30, H / 2, 16, 110, 0xfca5a5);
     this.physics.add.existing(this.player);
@@ -77,11 +83,29 @@ class Game extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '48px', color: '#ffffff',
     }).setOrigin(0.5);
 
-    this.add.text(W / 2, H - 28, 'Move your paddle with the mouse or ↑ / ↓', {
+    this.add.text(W / 2, H - 28, 'Drag to move your paddle — or use ↑ / ↓ or the buttons', {
       fontFamily: 'monospace', fontSize: '16px', color: '#94a3b8',
     }).setOrigin(0.5);
 
     this.cursors = this.input.keyboard.createCursorKeys();
+  }
+
+  // Wire the HTML overlay (overlay.html): the ▲/▼ touch buttons set held-flags
+  // (pointerdown = press, pointerup/cancel = release) and the score chip mirrors
+  // the in-canvas score. Overlay elements may be edited away — always null-check.
+  // Property assignment (not addEventListener) so a scene restart re-binds to
+  // the NEW scene instance instead of stacking a listener per restart.
+  wireOverlay() {
+    this.touch = { up: false, down: false };
+    const hold = (id, key) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.onpointerdown = () => { this.touch[key] = true; };
+      el.onpointerup = () => { this.touch[key] = false; };
+      el.onpointercancel = () => { this.touch[key] = false; };
+    };
+    hold('btn-up', 'up');
+    hold('btn-down', 'down');
   }
 
   resetBall() {
@@ -93,15 +117,20 @@ class Game extends Phaser.Scene {
   bump() {
     this.score += 1;
     this.scoreText.setText(String(this.score));
+    const chip = document.getElementById('hud-score');
+    if (chip) chip.textContent = String(this.score);
     const b = this.ball.body;
     b.setVelocity(b.velocity.x * 1.05, b.velocity.y * 1.05);
   }
 
   update() {
     const pointer = this.input.activePointer;
-    if (pointer.worldY) this.player.y = Phaser.Math.Clamp(pointer.worldY, 55, H - 55);
-    if (this.cursors.up.isDown) this.player.y = Math.max(55, this.player.y - 7);
-    if (this.cursors.down.isDown) this.player.y = Math.min(H - 55, this.player.y + 7);
+    // Follow the pointer only while it is HELD DOWN (drag). activePointer keeps
+    // its last position after a touch ends, so an ungated follow would pin the
+    // paddle to a stale spot forever and dead the ▲/▼ hold-buttons.
+    if (pointer.isDown && pointer.worldY) this.player.y = Phaser.Math.Clamp(pointer.worldY, 55, H - 55);
+    if (this.cursors.up.isDown || this.touch.up) this.player.y = Math.max(55, this.player.y - 7);
+    if (this.cursors.down.isDown || this.touch.down) this.player.y = Math.min(H - 55, this.player.y + 7);
     this.player.body.updateFromGameObject();
 
     // Simple CPU: track the ball.
@@ -132,6 +161,21 @@ class GameOver extends Phaser.Scene {
 }
 `;
 
+// ── HTML overlay (the ONE reserved fragment, injected as <div id="overlay">) ──
+// Markup only — no <script> (the runtime strips them). The runtime's base CSS
+// makes the container pass-through (pointer-events:none) and opts buttons back
+// in; the inline pointer-events/touch-action keep held-buttons working even if
+// a kid edits the base rules away (touch-action:none = no scroll while held).
+
+const OVERLAY_HTML = `<div style="position:absolute;top:12px;left:12px;background:rgba(15,23,42,0.72);border-radius:12px;padding:6px 14px;font:bold 18px system-ui,sans-serif">
+  Score: <span id="hud-score">0</span>
+</div>
+<div style="position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px">
+  <button id="btn-up" data-ui type="button" aria-label="Move up" style="pointer-events:auto;touch-action:none;width:56px;height:56px;font-size:24px;border-radius:16px;border:0;background:rgba(255,255,255,0.85)">▲</button>
+  <button id="btn-down" data-ui type="button" aria-label="Move down" style="pointer-events:auto;touch-action:none;width:56px;height:56px;font-size:24px;border-radius:16px;border:0;background:rgba(255,255,255,0.85)">▼</button>
+</div>
+`;
+
 // ── Host stylesheet (the studio owns the page; kids may tweak the frame) ──────
 
 const STYLE_CSS = `html, body { margin: 0; background: #000; }
@@ -144,6 +188,7 @@ export const STARTER_PROJECT: VfsFile[] = [
   { path: 'src/scenes/Boot.js', content: BOOT_JS, kind: 'text', size: BOOT_JS.length },
   { path: 'src/scenes/Game.js', content: GAME_JS, kind: 'text', size: GAME_JS.length },
   { path: 'src/scenes/GameOver.js', content: GAME_OVER_JS, kind: 'text', size: GAME_OVER_JS.length },
+  { path: 'overlay.html', content: OVERLAY_HTML, kind: 'text', size: OVERLAY_HTML.length },
   { path: 'style.css', content: STYLE_CSS, kind: 'text', size: STYLE_CSS.length },
 ];
 

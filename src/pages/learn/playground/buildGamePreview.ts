@@ -25,6 +25,16 @@
 // This is the V0 substitute for a service-worker asset origin, exactly as the
 // code studio defers in `buildPreview.ts`. Robust for the common case (a handful
 // of sprites/sounds); a dedicated preview origin is deferred to V1.
+//
+// OVERLAY (D-GAME13): one reserved root file — `overlay.html` (OVERLAY_PATH) — is
+// a markup-only HTML FRAGMENT injected into the shell as `<div id="overlay">`,
+// layered above `#game` (HUDs / touch buttons / menus). It is sanitized with
+// DOMParser (scripts stripped, malformed markup repaired so an unclosed tag can't
+// swallow the kid scripts that follow), asset-inlined like kid JS, and gets a
+// pointer-events pass-through base CSS injected BEFORE kid css (kid css wins).
+// Every other `.html` file is INERT (editable, never injected). A project without
+// overlay.html builds a BYTE-IDENTICAL srcdoc to the pre-overlay builder (pinned
+// by unit snapshot) — the seam only exists when the overlay does.
 
 import { PHASER_VENDOR_URL, THREE_VENDOR_URL } from 'virtual:engine-vendors';
 
@@ -46,6 +56,19 @@ if (!window.Phaser) {
 </script>`;
 
 /**
+ * One snapshot-reply site inside an engine control shim. A no-overlay build
+ * emits today's EXACT inline postMessage (byte-identity pinned by the unit
+ * snapshot); an overlay build routes through the composited shim
+ * `window.__airbotixSnapshotOut` — resolved LAZILY at reply time, because the
+ * OVERLAY_SNAPSHOT part is injected AFTER the control shim — with the same
+ * inline post as the fallback if the shim is somehow absent.
+ */
+const snapshotReply = (withOverlay: boolean, expr: string): string =>
+  withOverlay
+    ? `(window.__airbotixSnapshotOut || function (u) { parent.postMessage({ __airbotixSnapshot: true, dataUrl: u }, '*'); })(${expr});`
+    : `parent.postMessage({ __airbotixSnapshot: true, dataUrl: ${expr} }, '*');`;
+
+/**
  * Bidirectional control channel shim (see virtual-desktop-design.md §3).
  *
  * `Phaser.GAMES` is ABSENT in our vendored build, so we cannot read a global
@@ -62,9 +85,10 @@ if (!window.Phaser) {
  *
  * All control access is wrapped in try/catch (the game may not exist yet, or
  * Phaser internals may differ); communication stays on `postMessage` only, so
- * the strict opaque-origin sandbox is unchanged.
+ * the strict opaque-origin sandbox is unchanged. `withOverlay` only swaps the
+ * snapshot-reply sites through {@link snapshotReply} — nothing else may vary.
  */
-const GAME_CONTROL = `
+const GAME_CONTROL = (withOverlay: boolean): string => `
 <script>
 (function () {
   if (!window.Phaser || !window.Phaser.Game) return;
@@ -98,13 +122,13 @@ const GAME_CONTROL = `
         // canvas.toDataURL() returns blank once the drawing buffer is composited).
         if (__game.renderer && __game.renderer.snapshot) {
           __game.renderer.snapshot(function (image) {
-            try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: (image && image.src) || null }, '*'); } catch (er) {}
+            try { ${snapshotReply(withOverlay, '(image && image.src) || null')} } catch (er) {}
           });
         } else {
-          parent.postMessage({ __airbotixSnapshot: true, dataUrl: __game.canvas ? __game.canvas.toDataURL() : null }, '*');
+          ${snapshotReply(withOverlay, '__game.canvas ? __game.canvas.toDataURL() : null')}
         }
       }
-    } catch (e) { try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: null }, '*'); } catch (er) {} }
+    } catch (e) { try { ${snapshotReply(withOverlay, 'null')} } catch (er) {} }
   });
 
   setInterval(function () {
@@ -147,8 +171,9 @@ if (!window.THREE) {
  *
  * `frames` is the renderer's cumulative `info.render.frame` — the same engine
  * counter the FPS derives from (rAF is NOT a substitute; it ticks while frozen).
+ * `withOverlay` only swaps the snapshot-reply sites through {@link snapshotReply}.
  */
-const THREE_CONTROL = `
+const THREE_CONTROL = (withOverlay: boolean): string => `
 <script>
 (function () {
   var paused = false;
@@ -171,10 +196,10 @@ const THREE_CONTROL = `
       if (m.action === 'snapshot') {
         var url = null;
         try { var c = canvasEl(); if (c && c.toDataURL) url = c.toDataURL(); } catch (er) {}
-        parent.postMessage({ __airbotixSnapshot: true, dataUrl: url }, '*');
+        ${snapshotReply(withOverlay, 'url')}
       }
     } catch (er) {
-      try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: null }, '*'); } catch (e2) {}
+      try { ${snapshotReply(withOverlay, 'null')} } catch (e2) {}
     }
   });
   setInterval(function () {
@@ -382,6 +407,125 @@ const THREE_LOADER_GUARD = `
 })();
 </script>`;
 
+/**
+ * The ONE reserved HTML fragment the runtime renders (D-GAME13). Only a root
+ * `overlay.html` (kind 'text') is injected; every other `.html` file is inert.
+ * FROZEN cross-repo: the backend write gate + agent prompts quote this path.
+ */
+export const OVERLAY_PATH = 'overlay.html';
+
+/**
+ * Overlay base CSS (D-GAME13, FROZEN cross-repo — the agent prompt quotes it).
+ * Injected into the shell `<style>` ONLY when overlay.html exists, BEFORE kid
+ * css so kid css wins. The container swallows no input (`pointer-events:none`);
+ * interactive elements (and anything tagged `data-ui`) opt back in with
+ * kid-tap-friendly defaults (44px minimum, no double-tap zoom / callouts).
+ */
+const OVERLAY_BASE_CSS =
+  '#overlay{position:fixed;inset:0;z-index:10;pointer-events:none;-webkit-user-select:none;user-select:none;' +
+  '-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;font-family:system-ui,sans-serif;color:#fff}' +
+  '#overlay :where(button,a,input,select,textarea,label,[role="button"],[data-ui]){pointer-events:auto;touch-action:manipulation}' +
+  '#overlay button{min-width:44px;min-height:44px}';
+
+/**
+ * Render-time overlay hygiene (D-GAME13 — determinism, NOT the security
+ * boundary; that stays the opaque-origin sandbox). DOMParser never executes
+ * scripts or loads resources while parsing; it also REPAIRS malformed markup —
+ * the point: an unclosed tag in raw injection would swallow the kid `<script>`s
+ * that follow the overlay in the srcdoc. Scripts are stripped (the backend
+ * write gate already bounces them from AI writes; this covers kid hand-edits
+ * without bouncing kid saves). Any parser failure degrades to an empty overlay.
+ *
+ * Asset refs in `src`/`href` attributes are inlined HERE, on the parsed DOM —
+ * NOT by the text-level `inlineAssetRefs` pass afterwards — because
+ * `body.innerHTML` entity-encodes `&` in attribute values (`assets/a&b.png` →
+ * `assets/a&amp;b.png`), which a raw-path text match can never hit. The text
+ * pass still runs after as a best-effort net for non-attribute refs (e.g.
+ * quoted paths inside inline `style` urls).
+ *
+ * Known parser quirk (documented, accepted): a fragment BEGINNING with
+ * head-only content (`<style>`, `<meta>`, `<link>`, `<template>`) is parsed
+ * into `doc.head` and silently dropped by `body.innerHTML` — consistent with
+ * the backend gate rejecting those tags in AI writes. Styles belong in
+ * style.css.
+ */
+export function sanitizeOverlay(fragment: string, assets: VfsFile[] = []): string {
+  try {
+    const doc = new DOMParser().parseFromString(fragment, 'text/html');
+    doc.querySelectorAll('script').forEach((el) => el.remove());
+    if (assets.length > 0) {
+      const byPath = new Map(assets.map((a) => [a.path, a] as const));
+      for (const el of Array.from(doc.body.querySelectorAll('[src], [href]'))) {
+        for (const attr of ['src', 'href'] as const) {
+          const val = el.getAttribute(attr);
+          const asset = val ? byPath.get(val) : undefined;
+          if (asset) el.setAttribute(attr, toDataUrl(asset));
+        }
+      }
+    }
+    return doc.body.innerHTML;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Composited-snapshot shim (D-HARN-21b) — injected ONLY when overlay.html is
+ * present. Installs `window.__airbotixSnapshotOut`, which the engine control
+ * shims route their snapshot replies through (lazily — this part sits AFTER the
+ * control shim, so the seam resolves at reply time, not load time). It draws
+ * the engine's canvas snapshot at the canvas's on-screen rect onto an offscreen
+ * frame-sized canvas (letterbox reproduced), rasterizes the live `#overlay` DOM
+ * over it via an SVG foreignObject (document `<style>` text + XMLSerializer —
+ * no libs; every asset is already a data: URL), and posts
+ * `{ __airbotixSnapshot, dataUrl, composited: true }`. EVERY step is try/caught:
+ * any failure (e.g. Safari foreignObject quirks) falls back to posting the RAW
+ * canvas dataUrl with `composited: false` — exactly the pre-overlay behaviour.
+ */
+const OVERLAY_SNAPSHOT = `
+<script>
+(function () {
+  function fallback(u) { try { parent.postMessage({ __airbotixSnapshot: true, dataUrl: u, composited: false }, '*'); } catch (e) {} }
+  window.__airbotixSnapshotOut = function (canvasUrl) {
+    try {
+      var overlay = document.getElementById('overlay');
+      var gameCanvas = document.querySelector('#game canvas');
+      if (!canvasUrl || !overlay || !gameCanvas) return fallback(canvasUrl || null);
+      var w = window.innerWidth, h = window.innerHeight;
+      var out = document.createElement('canvas');
+      out.width = w; out.height = h;
+      var ctx = out.getContext('2d');
+      if (!ctx) return fallback(canvasUrl);
+      var rect = gameCanvas.getBoundingClientRect();
+      var game = new Image();
+      game.onload = function () {
+        try {
+          ctx.drawImage(game, rect.left, rect.top, rect.width, rect.height);
+          var cssText = '';
+          var styles = document.querySelectorAll('style');
+          for (var i = 0; i < styles.length; i++) cssText += styles[i].textContent || '';
+          var xhtml = '<div xmlns="http://www.w3.org/1999/xhtml"><style>' + cssText + '</style>' +
+            new XMLSerializer().serializeToString(overlay) + '</div>';
+          var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '">' +
+            '<foreignObject width="100%" height="100%">' + xhtml + '</foreignObject></svg>';
+          var ov = new Image();
+          ov.onload = function () {
+            try {
+              ctx.drawImage(ov, 0, 0, w, h);
+              parent.postMessage({ __airbotixSnapshot: true, dataUrl: out.toDataURL(), composited: true }, '*');
+            } catch (e) { fallback(canvasUrl); }
+          };
+          ov.onerror = function () { fallback(canvasUrl); };
+          ov.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        } catch (e) { fallback(canvasUrl); }
+      };
+      game.onerror = function () { fallback(canvasUrl); };
+      game.src = canvasUrl;
+    } catch (e) { fallback(canvasUrl); }
+  };
+})();
+</script>`;
+
 /** Which 2D/3D engine a game project runs on (mirrors backend `Project.engine`; null ⇒ phaser). */
 export type GameEngine = 'phaser' | 'three';
 
@@ -396,8 +540,10 @@ interface EngineProfile {
   vendorTag: string;
   /** Guard that warns to the console if the global failed to load. */
   guard: string;
-  /** Control shim (pause/resume/mute/snapshot/fps over postMessage). */
-  control: string;
+  /** Control shim (pause/resume/mute/snapshot/fps over postMessage).
+   *  `control(false)` is byte-identical to the pre-overlay shim; `control(true)`
+   *  routes snapshot replies through the composited overlay seam. */
+  control: (withOverlay: boolean) => string;
   /** Optional loader instrumentation (asset-outcome reporting) — three only;
    *  OMITTED (not an empty part) for phaser so its srcdoc gains no extra line. */
   loaderGuard?: string;
@@ -544,6 +690,14 @@ export function buildGamePreview(
     return { path: a.path, prefix: dataUrl.slice(0, ASSET_MANIFEST_PREFIX_CHARS), length: dataUrl.length };
   });
 
+  // The ONE reserved overlay fragment (D-GAME13). Sanitize FIRST, inline asset
+  // refs AFTER — DOMParser re-quotes attributes, so inlining pre-sanitize could
+  // split a quoted-path match. Other `.html` files are inert (never injected).
+  const overlayFile = files.find((f) => f.kind === 'text' && f.path === OVERLAY_PATH);
+  const overlayHtml = overlayFile
+    ? inlineAssetRefs(sanitizeOverlay(overlayFile.content, assets), assets)
+    : '';
+
   const jsFiles = files.filter((f) => f.kind === 'text' && f.path.endsWith('.js'));
   const entry = entryIndex(jsFiles);
   // Non-entry js files keep their array order; the entry goes last. Each script
@@ -579,9 +733,10 @@ export function buildGamePreview(
     '<html><head><meta charset="utf-8">',
     EXTENSION_NOISE_GUARD,
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-    // Full-bleed black stage; the kid's optional .css files can override.
+    // Full-bleed black stage; the overlay base CSS (only when overlay.html
+    // exists) sits BEFORE the kid's .css so kid css can override BOTH.
     `<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}` +
-      `#game{width:100%;height:100%}#game canvas{display:block}${css}</style>`,
+      `#game{width:100%;height:100%}#game canvas{display:block}${overlayFile ? OVERLAY_BASE_CSS : ''}${css}</style>`,
     '</head><body>',
     '<div id="game"></div>',
     CONSOLE_CAPTURE,
@@ -596,8 +751,12 @@ export function buildGamePreview(
     // the phaser srcdoc's line count is untouched.
     ...(profile.loaderGuard ? [profile.loaderGuard] : []),
     debugFlag,
-    profile.control,
+    profile.control(!!overlayFile),
     RUN_PROBE,
+    // Overlay fragment + composited-snapshot shim (D-GAME13/D-HARN-21b) — the
+    // div precedes every kid `<script>` so getElementById works at script time.
+    // Spread — never an empty part — so a no-overlay srcdoc is byte-identical.
+    ...(overlayFile ? [`<div id="overlay">${overlayHtml}</div>`, OVERLAY_SNAPSHOT] : []),
   ];
   const scriptRanges: ScriptLineRange[] = [];
   // Parts join with '\n', so part k starts at 1 + the line count of all parts before it.
@@ -624,5 +783,23 @@ export function isStatMessage(data: unknown): data is { __airbotixStat: true } &
     data !== null &&
     '__airbotixStat' in data &&
     (data as { __airbotixStat: unknown }).__airbotixStat === true
+  );
+}
+
+/** The frame's snapshot reply. `composited` is ADDITIVE (absent on no-overlay
+ *  builds): true = canvas + overlay composited; false = raw canvas fallback. */
+export interface SnapshotMessage {
+  dataUrl: string | null;
+  composited?: boolean;
+}
+
+export function isSnapshotMessage(
+  data: unknown,
+): data is { __airbotixSnapshot: true } & SnapshotMessage {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    '__airbotixSnapshot' in data &&
+    (data as { __airbotixSnapshot: unknown }).__airbotixSnapshot === true
   );
 }

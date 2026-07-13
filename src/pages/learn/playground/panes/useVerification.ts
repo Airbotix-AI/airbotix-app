@@ -11,6 +11,10 @@
 // Resume-verify: on mount, a `pending` verify-state means the last applied turn
 // was never verified (closed tab) — arm it at attempts+1 and restart the game
 // so a fresh report gets generated.
+// Screenshot evidence (D-HARN-21b): when the verification payload carries
+// `screenshot_requested`, the report gains a downscaled composited screenshot —
+// captured over the control channel; ANY capture failure omits the field and
+// the report still posts (a screenshot bug must never fail a kid's run).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -19,6 +23,7 @@ import {
   postRunReport,
   type AgentTurnResult,
 } from '../../code/codeApi';
+import { captureReportScreenshot } from '../reportScreenshot';
 import type { RunReport } from '../runReport';
 
 /** Belt-and-suspenders client cap: reports posted per verification chain. The
@@ -30,9 +35,16 @@ const MAX_CHAIN_REPORTS = 3;
 export interface VerificationDeps {
   postRunReport: typeof postRunReport;
   getVerifyState: typeof getVerifyState;
+  /** Screenshot evidence capture (D-HARN-21b) — bounded, resolves undefined on
+   *  any failure so the report still posts without the field. */
+  captureScreenshot: typeof captureReportScreenshot;
 }
 
-const realDeps: VerificationDeps = { postRunReport, getVerifyState };
+const realDeps: VerificationDeps = {
+  postRunReport,
+  getVerifyState,
+  captureScreenshot: captureReportScreenshot,
+};
 
 export interface UseVerificationOptions {
   /** The real backend project (verification is a no-op without one). */
@@ -59,13 +71,16 @@ interface ArmedChain {
   attempt: number;
   /** Reports already posted in this chain (client-side loop cap). */
   reports: number;
+  /** Backend asked for screenshot evidence on this turn's report (D-HARN-21b). */
+  screenshot: boolean;
 }
 
 export interface Verification {
   /** The attempt GameFrame stamps into the next run's report. */
   reportAttempt: number;
-  /** Arm the loop: the next run report is posted for this just-applied turn. */
-  beginVerification: (turnId: string) => void;
+  /** Arm the loop: the next run report is posted for this just-applied turn.
+   *  `screenshotRequested` = the turn's `screenshot_requested` hint. */
+  beginVerification: (turnId: string, screenshotRequested?: boolean) => void;
   /** GameFrame's `onRunReport` — posts the report for the armed turn (if any). */
   onRunReport: (report: RunReport) => void;
 }
@@ -90,9 +105,9 @@ export function useVerification(opts: UseVerificationOptions): Verification {
   }, []);
 
   const beginVerification = useCallback(
-    (turnId: string) => {
+    (turnId: string, screenshotRequested = false) => {
       if (!enabled || !turnId) return;
-      arm({ turnId, attempt: 1, reports: 0 });
+      arm({ turnId, attempt: 1, reports: 0, screenshot: screenshotRequested });
     },
     [enabled, arm],
   );
@@ -111,9 +126,29 @@ export function useVerification(opts: UseVerificationOptions): Verification {
       const key = `${armed.turnId}:${armed.attempt}`;
       if (inFlightRef.current === key) return;
       inFlightRef.current = key;
-      void deps
-        .postRunReport({ projectId, turnId: armed.turnId, report, mode })
+      // Screenshot evidence (D-HARN-21b): attached ONLY when the backend asked
+      // for it, and ANY capture failure (timeout / decode / oversize / a throwing
+      // dep) omits the field — the report must still post.
+      const withEvidence = async (): Promise<RunReport> => {
+        if (!armed.screenshot) return report;
+        try {
+          const screenshot = await deps.captureScreenshot();
+          return screenshot ? { ...report, screenshot } : report;
+        } catch {
+          return report;
+        }
+      };
+      void withEvidence()
+        .then((finalReport) => {
+          // Capture adds up to ~3s — if a newer chat turn re-armed (and possibly
+          // restarted the game) meanwhile, this screenshot shows the NEW game on
+          // the OLD turn's report: wrong evidence for the fix turn / vision
+          // verdict. Only the still-armed chain may post.
+          if (armedRef.current !== armed) return null;
+          return deps.postRunReport({ projectId, turnId: armed.turnId, report: finalReport, mode });
+        })
         .then((res) => {
+          if (res === null) return; // superseded before posting (stale evidence)
           // The POST is held open for the whole server-side fix turn — if the
           // kid sent a chat turn meanwhile, a NEW chain owns the loop and this
           // verdict is stale evidence: applying its files would clobber the
@@ -127,6 +162,7 @@ export function useVerification(opts: UseVerificationOptions): Verification {
               turnId: res.turn.turn_id,
               attempt: res.attempt + 1,
               reports: armed.reports + 1,
+              screenshot: res.turn.screenshot_requested === true,
             });
             cb.applyFixTurn(res.turn);
             cb.onStarsCharged?.(res.turn.stars_charged);
@@ -163,7 +199,12 @@ export function useVerification(opts: UseVerificationOptions): Verification {
       .then((state) => {
         if (!alive || !state.turn_id || state.verify_status !== 'pending') return;
         if (armedRef.current) return; // a fresh chat-turn chain already owns the loop
-        arm({ turnId: state.turn_id, attempt: state.attempts + 1, reports: 0 });
+        arm({
+          turnId: state.turn_id,
+          attempt: state.attempts + 1,
+          reports: 0,
+          screenshot: state.screenshot_requested === true,
+        });
         callbacksRef.current.restartGame();
       })
       .catch(() => {
