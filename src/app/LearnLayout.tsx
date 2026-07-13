@@ -19,12 +19,17 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground', '/
 // the surface manages its own layout (Blocks Studio, a tablet-first app). The
 // hub `/learn/create/blocks` keeps the nav; only the studio `/learn/blocks/:id`
 // is immersive.
-const IMMERSIVE_ROUTES = ['/learn/blocks/'];
+const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music'];
 
 export function LearnLayout() {
   const { pathname } = useLocation();
-  const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const immersive = IMMERSIVE_ROUTES.some((p) => pathname.startsWith(p));
+  // Immersive IMPLIES full-bleed. Listing a route as immersive but forgetting the
+  // FLUID list hid the nav and locked page scroll while still wrapping the surface
+  // in the centered max-w-5xl box — a "fullscreen" studio letterboxed inside a
+  // reading column. There is no case where an immersive surface wants that box.
+  const fluid =
+    immersive || FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   // Depend on the kid token so the FIRST heartbeat (which lazily creates + connects
   // the kid socket via getSocket) fires the moment auth lands — not up to 10s later

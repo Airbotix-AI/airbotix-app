@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-07-13 (feat: the Music Stage gets its own fullscreen surface — D-MS7/D-MS8)
+
+### Changed
+- **Music is its own immersive surface (`/learn/music`), not a pane in the Workspace.** The Stage
+  used to sit in the Workspace's three-pane chat shell: a session sidebar on the left, a chat
+  transcript below, and the band — the entire point of the feature — squeezed into a 320px strip in
+  between. Wrong shell. It now owns the viewport like the Blocks Studio: no nav bar, no page scroll,
+  and the stage grows with the window. Sessions still back it (each take is a message pair), but the
+  session rides the **URL** (`/learn/music/:sessionId`, so a reload returns to the same song) instead
+  of a sidebar. The Workspace no longer offers music, and an old music session opened from the
+  sessions list redirects to the Stage. Because an immersive surface has no nav bar, the stage now
+  carries its own way out — a kid must never be trapped on it.
+- **The empty stage says one thing, and you can see the band.** "Describe a song up top" appeared
+  **four times** at once (neon marquee, hint box sub-line, AI bubble, transport row) around a stage
+  whose instruments were dimmed into invisibility (opacity .32 + grayscale .8 + brightness .55,
+  stacked on an already-dark stage). The band is the invitation — five silhouettes waiting to be
+  filled — so it stays legible; the spotlight is what's off. The instruction now lives only where
+  the kid is meant to act, and the AI bubble introduces what the conductor can *do* for them.
+
+### Fixed
+- **A "fullscreen" route could still be letterboxed.** `LearnLayout` hid the nav and locked page
+  scroll for immersive routes, but the container width was decided by a *separate* list — so a route
+  registered as immersive but missing from the fluid list rendered inside the centered `max-w-5xl`
+  reading column. Immersive now implies full-bleed, with a test to keep it that way.
+
 ## 2026-07-13 (feat: Tiny Star Village A1 story mission)
 
 ### Added

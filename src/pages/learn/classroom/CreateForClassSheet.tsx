@@ -46,7 +46,7 @@ const TOOL_CONFIG: Record<string, ToolCfg> = {
   // Music Stage (the retired Music Maker's replacement) is session-based, not
   // project-based: there is no project to create up front, so a class row opens
   // the Stage itself. (music-stage-prd §2)
-  '/learn/workspace?studio=music': { title: 'My Song', line: 'line_a_creative', noProject: true, open: () => '/learn/workspace?studio=music' },
+  '/learn/music': { title: 'My Song', line: 'line_a_creative', noProject: true, open: () => '/learn/music' },
   '/learn/create/voice': { title: 'My Voice', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
   '/learn/create/video': { title: 'My Video', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
 };

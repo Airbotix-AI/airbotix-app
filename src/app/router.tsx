@@ -61,6 +61,7 @@ import { ClassHubPage } from '@/pages/learn/classroom/ClassHubPage';
 import { ClassGamesWallPage } from '@/pages/learn/classroom/ClassGamesWallPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
+import { MusicStudioPage } from '@/pages/learn/music/MusicStudioPage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -197,7 +198,7 @@ export const router = createBrowserRouter([
       // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
       // is the single music surface (music-stage-prd §2). Kept as a redirect so
       // old links, bookmarks and class "create for class" rows still land somewhere.
-      { path: 'create/music', element: <Navigate to="/learn/workspace?studio=music" replace /> },
+      { path: 'create/music', element: <Navigate to="/learn/music" replace /> },
       { path: 'create/voice', element: <VoiceBoothPage /> },
       { path: 'create/video', element: <VideoStudioPage /> },
       { path: 'create/code', element: <CodeHubPage /> },
@@ -213,6 +214,13 @@ export const router = createBrowserRouter([
       // `/learn/playground/new` drives the create/landing flow. (Dev/e2e testing
       // uses a route-mocked authed harness, not a separate no-auth route.)
       { path: 'playground/:projectId', element: <LearnPlaygroundPage /> },
+      // Music Stage: its OWN immersive surface (music-stage-prd D-MS7). Wedged
+      // inside the Workspace's chat shell it got a letterboxed strip while a
+      // session sidebar and a chat transcript took the screen — wrong shell for a
+      // band. `/learn/music` opens (or reuses) the session and redirects to the
+      // session URL so a refresh returns to the same song.
+      { path: 'music', element: <MusicStudioPage /> },
+      { path: 'music/:sessionId', element: <MusicStudioPage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

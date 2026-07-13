@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
@@ -10,7 +10,6 @@ import { ChatPane } from './ChatPane';
 import { CodePane } from './CodePane';
 import { PreviewPane } from './PreviewPane';
 import { ImportTrackPicker } from './ImportTrackPicker';
-import { MusicStagePane } from './stage/MusicStagePane';
 import type { MusicScore } from './stage/scoreTypes';
 import { StudioPicker } from './StudioPicker';
 import { StudioSetup } from './StudioSetup';
@@ -45,6 +44,7 @@ export function WorkspacePage() {
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
   const qc = useQueryClient();
+  const nav = useNavigate();
 
   // activeSessionId = pinned chat; null + autoSelect=true → auto-pick most recent.
   // When the kid clicks "Make something" we set autoSelect=false to surface the picker.
@@ -63,20 +63,14 @@ export function WorkspacePage() {
   // away, not closer). Runs once: after landing we clear the param so a reload or
   // a "back to my chats" click doesn't re-arm the picker.
   const [searchParams, setSearchParams] = useSearchParams();
-  // "create for class" carries the class here; the Stage has no project to attach
-  // until 💾 Save, so the id has to survive the param cleanup below.
-  const [classId, setClassId] = useState<string | null>(null);
   useEffect(() => {
-    const cls = searchParams.get('class');
-    if (cls) setClassId(cls);
     const wanted = searchParams.get('studio');
-    if (!wanted && !cls) return;
+    if (!wanted) return;
     if (wanted && wanted in STUDIO_BY_ID) {
       setPendingStudio(wanted as Studio);
       setAutoSelect(false);
     }
     searchParams.delete('studio');
-    searchParams.delete('class');
     setSearchParams(searchParams, { replace: true });
   }, [searchParams, setSearchParams]);
   // Session-scoped setup values keyed by sessionId.
@@ -116,6 +110,15 @@ export function WorkspacePage() {
   );
   const studio: Studio | null = (activeSession?.studio as Studio | undefined) ?? null;
   const studioMeta = studio ? STUDIO_BY_ID[studio] : null;
+
+  // A music session picked from the sessions list opens on the Music Stage, not
+  // in this chat shell (D-MS7). Old sessions predate the move, so this is the
+  // bridge that keeps them reachable.
+  useEffect(() => {
+    if (studio === 'music' && activeSessionId) {
+      nav(`/learn/music/${activeSessionId}`, { replace: true });
+    }
+  }, [studio, activeSessionId, nav]);
 
   const createSession = useMutation({
     mutationFn: async (args: { studio: Studio; values: Record<string, string | string[]> }) => {
@@ -258,20 +261,6 @@ export function WorkspacePage() {
               }
             }}
             busy={createSession.isPending}
-          />
-        ) : studio === 'music' ? (
-          // Music Stage replaces the chat pane + form setup for studio=music
-          // (music-stage-prd.md §1.1). Keyed by session: stage state is
-          // session-scoped like setupValues.
-          <MusicStagePane
-            key={activeSessionId!}
-            sessionId={activeSessionId!}
-            messages={messages.data ?? []}
-            balance={balance}
-            kidId={kidId}
-            familyId={familyId}
-            classId={classId}
-            onImportTrack={() => setShowImport(true)}
           />
         ) : (
           <>

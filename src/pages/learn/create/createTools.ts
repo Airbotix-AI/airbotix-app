@@ -27,7 +27,7 @@ export const CREATE_TOOLS: CreateTool[] = [
   // a form that asked for mood/tempo and handed back an MP3 the kid could not
   // touch — is retired; the Stage does the same generation as its step ⑥, on top
   // of a song the kid actually composed. (music-stage-prd §2)
-  { to: '/learn/workspace?studio=music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
+  { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1 },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5 },
   { to: '/learn/create/code', emoji: '💻', title: 'Code Studio', desc: 'Make a website, game, or tool. AI writes the code.', color: 'sky', typeTag: 'Code', projectKind: 'code', cost: 1 },
