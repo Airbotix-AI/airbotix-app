@@ -760,8 +760,8 @@
 
 .bsx-character-asset {
   display: block;
-  width: clamp(92px, 18cqh, 160px);
-  height: clamp(92px, 18cqh, 160px);
+  width: clamp(92px, 24cqh, 180px);
+  height: clamp(92px, 24cqh, 180px);
   object-fit: contain;
   pointer-events: none;
   user-select: none;
