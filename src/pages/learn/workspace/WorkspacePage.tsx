@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
@@ -55,6 +56,29 @@ export function WorkspacePage() {
   // Two-step "Make something" flow: pick a studio, then fill its setup form,
   // then create the session and switch to chat.
   const [pendingStudio, setPendingStudio] = useState<Studio | null>(null);
+
+  // `?studio=music` — the Create hub's 🎵 card deep-links straight into the Music
+  // Stage instead of dropping the kid on the studio picker (the retired Music
+  // Maker page was a direct link; losing that would make the Stage feel further
+  // away, not closer). Runs once: after landing we clear the param so a reload or
+  // a "back to my chats" click doesn't re-arm the picker.
+  const [searchParams, setSearchParams] = useSearchParams();
+  // "create for class" carries the class here; the Stage has no project to attach
+  // until 💾 Save, so the id has to survive the param cleanup below.
+  const [classId, setClassId] = useState<string | null>(null);
+  useEffect(() => {
+    const cls = searchParams.get('class');
+    if (cls) setClassId(cls);
+    const wanted = searchParams.get('studio');
+    if (!wanted && !cls) return;
+    if (wanted && wanted in STUDIO_BY_ID) {
+      setPendingStudio(wanted as Studio);
+      setAutoSelect(false);
+    }
+    searchParams.delete('studio');
+    searchParams.delete('class');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
   // Session-scoped setup values keyed by sessionId.
   const [setupValues, setSetupValues] = useState<Record<string, Record<string, string | string[]>>>({});
   const [showImport, setShowImport] = useState(false);
@@ -246,6 +270,7 @@ export function WorkspacePage() {
             balance={balance}
             kidId={kidId}
             familyId={familyId}
+            classId={classId}
             onImportTrack={() => setShowImport(true)}
           />
         ) : (

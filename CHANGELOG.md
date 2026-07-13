@@ -5,6 +5,35 @@
 ### Added
 - Connected the Story Blocks A1 mission guide, story coach, saved-program progress state, and completion celebration for Tiny Star Village.
 - Enlarged the Lumilo character presentation in the story scene.
+## 2026-07-13 (feat: Music Stage is the only music surface — Music Maker retired, D-MS6)
+
+### Added
+- **🎧 "Make it real" on the Music Stage.** The score the kid composed is now rendered as actual
+  audio by the provider (ElevenLabs / Suno / the DeepRouter gateway) as step ⑥ of the Stage flow,
+  3⭐. The prompt is **derived from the score on the stage** — title, genre, BPM, key, instruments,
+  with the kid's own words carried as the topic — instead of asking them to describe the song a
+  second time, which is how the retired Music Maker ended up handing back an MP3 that sounded
+  nothing like what the kid had been listening to. Length comes from the last note's beat, not the
+  note count (a dense bar and a sparse bar of the same width are the same number of seconds).
+- **`?studio=` deep-link on the Workspace**, so the Create hub's 🎵 card lands straight on the
+  Music Stage rather than the studio picker.
+
+### Changed
+- **Music Maker is retired; the Music Stage is the single music surface.** Two "make music" doors
+  in the kid's navigation — one producing a real song it could not edit, one producing a score it
+  could — was a split product, not two complementary tools. The Create hub's 🎵 card now opens the
+  Stage, `MusicMakerPage.tsx` is deleted, and `/learn/create/music` redirects (old links, bookmarks
+  and class rows still land somewhere). The real-audio capability is not lost — it moved into the
+  Stage as step ⑥ above.
+- **"Create for class" keeps working for music.** The Stage is session-based and owns no project,
+  so the class id now rides the deep-link and is attached when 💾 Save / 🎧 Make-it-real mints the
+  project — otherwise a song made for a class would have been invisible to the teacher.
+
+### Fixed
+- **A recorded song would have vanished on reload.** The backend only writes an audio Artifact when
+  the request names a project (`runMedia`), and a free-play Stage session has none — so "Make it
+  real" mints (and reuses) the song's project *before* generating. Save and Make-it-real share that
+  one project, so a single song can't scatter across two My Works entries.
 
 ## 2026-07-13 (feat: favicon — airbotix-app had none)
 

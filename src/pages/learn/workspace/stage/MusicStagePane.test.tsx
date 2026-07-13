@@ -9,7 +9,13 @@ import { ApiError } from '@/lib/api';
 import type { Message } from '../WorkspacePage';
 import type { MusicScore } from './scoreTypes';
 
-const { playbackMock, generateMusicScoreMock, preloadProgramsMock, saveScoreToMyWorksMock } = vi.hoisted(() => ({
+const {
+  playbackMock,
+  generateMusicScoreMock,
+  preloadProgramsMock,
+  saveScoreToMyWorksMock,
+  generateRealSongMock,
+} = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
     position: 0,
@@ -29,6 +35,7 @@ const { playbackMock, generateMusicScoreMock, preloadProgramsMock, saveScoreToMy
   generateMusicScoreMock: vi.fn(),
   preloadProgramsMock: vi.fn(),
   saveScoreToMyWorksMock: vi.fn(),
+  generateRealSongMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -37,6 +44,12 @@ vi.mock('./useScorePlayback', () => ({
 vi.mock('./musicScoreApi', () => ({
   generateMusicScore: generateMusicScoreMock,
   saveScoreToMyWorks: saveScoreToMyWorksMock,
+}));
+vi.mock('./realSongApi', async (orig) => ({
+  // Keep the real prompt/length derivation (covered in realSongApi.test) and stub
+  // only the network call.
+  ...(await orig<typeof import('./realSongApi')>()),
+  generateRealSong: generateRealSongMock,
 }));
 // smplr layer is exercised in soundfont.test.ts — here only the preload call.
 vi.mock('./soundfont', () => ({
@@ -107,7 +120,7 @@ function scoreMsg(score: MusicScore): Message {
   };
 }
 
-function renderPane(messages: Message[], balance = 12) {
+function renderPane(messages: Message[], balance = 12, classId: string | null = null) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -117,6 +130,7 @@ function renderPane(messages: Message[], balance = 12) {
         balance={balance}
         kidId="k1"
         familyId="f1"
+        classId={classId}
         onImportTrack={() => {}}
       />
     </QueryClientProvider>,
@@ -312,7 +326,8 @@ describe('MusicStagePane — Save to My Works + Mixer (PRD §2 step ⑤)', () =>
     // Pin v1 — Save must send the PINNED version, not the latest.
     fireEvent.click(screen.getByTestId('version-pill-0'));
     fireEvent.click(screen.getByTestId('stage-save'));
-    await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalledWith(SCORE_V1));
+    // 2nd arg = the class to attach to; null when the kid opened the Stage alone.
+    await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalledWith(SCORE_V1, null));
     expect(await screen.findByTestId('stage-save')).toHaveTextContent('Saved');
     expect(screen.getByTestId('stage-save')).toBeDisabled();
     // The other version is its own work — still saveable.
@@ -536,5 +551,79 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
     expect(region).not.toHaveClass('hidden');
     fireEvent.click(handle);
     expect(region).toHaveClass('hidden');
+  });
+
+  // ── 🎧 Make it real (§2 step ⑥) — the score becomes actual audio ────────────
+  // The retired Music Maker was the only way a kid could get a real track. It now
+  // lives HERE, on top of a song they composed, so the two never diverge.
+
+  describe('make it real', () => {
+    it('sends the CURRENT score to the audio provider and reveals the recording', async () => {
+      generateRealSongMock.mockResolvedValue({
+        id: 'el_music_1',
+        url: 'data:audio/mpeg;base64,AAA',
+        mime_type: 'audio/mpeg',
+        stars_charged: 3,
+        balance_after: 9,
+        project_id: 'p_song',
+      });
+      renderPane([scoreMsg(SCORE_V1)]);
+
+      fireEvent.click(screen.getByTestId('stage-real-song'));
+
+      await waitFor(() => expect(generateRealSongMock).toHaveBeenCalledTimes(1));
+      // An audio Artifact requires a project (backend runMedia): recording without
+      // one would hand the kid a song that vanishes on reload.
+      expect(generateRealSongMock.mock.calls[0][0]).toMatchObject({
+        score: SCORE_V1,
+        classId: null,
+        projectId: null,
+      });
+      // The audio lands on the session as a track — open the Mixer so the kid
+      // sees where their song went instead of nothing appearing to happen.
+      await screen.findByTestId('legacy-track-list');
+    });
+
+    it('never fires an unaffordable request (AC-8)', () => {
+      renderPane([scoreMsg(SCORE_V1)], 2); // 2⭐ < 3⭐
+      const btn = screen.getByTestId('stage-real-song');
+      expect(btn).toBeDisabled();
+      fireEvent.click(btn);
+      expect(generateRealSongMock).not.toHaveBeenCalled();
+    });
+
+    it('is absent until there is a song to record', () => {
+      renderPane([]);
+      expect(screen.queryByTestId('stage-real-song')).not.toBeInTheDocument();
+    });
+
+    it('tells the kid no Stars were charged when the provider fails', async () => {
+      generateRealSongMock.mockRejectedValue(new Error('boom'));
+      renderPane([scoreMsg(SCORE_V1)]);
+      fireEvent.click(screen.getByTestId('stage-real-song'));
+      expect(await screen.findByText(/no Stars were charged/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('save', () => {
+    it('attaches the song to the class when the kid came from "create for class"', async () => {
+      saveScoreToMyWorksMock.mockResolvedValue({ project_id: 'p1' });
+      renderPane([scoreMsg(SCORE_V1)], 12, 'class_42');
+
+      fireEvent.click(screen.getByTestId('stage-save'));
+
+      await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalled());
+      // Without this the song is saved to My Works but is invisible to the
+      // teacher — the whole point of the class row.
+      expect(saveScoreToMyWorksMock.mock.calls[0][1]).toBe('class_42');
+    });
+
+    it('passes no class when the kid opened the Stage on their own', async () => {
+      saveScoreToMyWorksMock.mockResolvedValue({ project_id: 'p1' });
+      renderPane([scoreMsg(SCORE_V1)]);
+      fireEvent.click(screen.getByTestId('stage-save'));
+      await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalled());
+      expect(saveScoreToMyWorksMock.mock.calls[0][1]).toBeNull();
+    });
   });
 });

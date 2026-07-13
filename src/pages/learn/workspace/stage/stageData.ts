@@ -222,6 +222,13 @@ export const COMPOSE_FAILED_BUBBLE =
 export const SAVE_FAILED_BUBBLE =
   "I couldn't save that one to My Works just now — your song is still right here, try 💾 again!";
 
+// 🎧 Make it real (§2 step ⑥) — the score becomes an actual audio track.
+export const REAL_SONG_DONE_BUBBLE =
+  "🎧 I recorded your song for real! It's in the Mixer below — press play and hear it.";
+
+export const REAL_SONG_FAILED_BUBBLE =
+  "The recording studio hiccupped and no Stars were charged. Your song is safe — try 🎧 again!";
+
 export function outOfStarsBubble(balance: number): string {
   return (
     `⭐ Not enough Stars — composing costs ${MUSIC_GENERATION_COST_STARS}⭐ and you have ${balance}⭐. ` +

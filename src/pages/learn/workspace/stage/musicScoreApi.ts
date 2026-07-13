@@ -81,7 +81,13 @@ export interface SaveScoreResult {
  * registers the artifact with `upload_failed` — the inline score is the
  * render source, exactly like the backend's own resilience path.
  */
-export async function saveScoreToMyWorks(score: MusicScore): Promise<SaveScoreResult> {
+export async function saveScoreToMyWorks(
+  score: MusicScore,
+  /** Set when the kid reached the Stage from a class ("create for class") — the
+   *  Stage owns no project until Save, so the class placement happens HERE or the
+   *  song never becomes teacher-visible class work. */
+  classId?: string | null,
+): Promise<SaveScoreResult> {
   const project = await api<{ id: string }>('/projects', {
     method: 'POST',
     body: {
@@ -89,6 +95,13 @@ export async function saveScoreToMyWorks(score: MusicScore): Promise<SaveScoreRe
       product_line: 'line_a_creative',
     },
   });
+
+  if (classId) {
+    await api(`/projects/${project.id}/placement`, {
+      method: 'PATCH',
+      body: { action: 'use_for_class', class_id: classId },
+    });
+  }
 
   const json = JSON.stringify(score, null, 2);
   const size_bytes = new TextEncoder().encode(json).length;
