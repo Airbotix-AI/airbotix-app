@@ -31,13 +31,22 @@ type ToolCfg = {
   kind?: string;
   template?: string;
   open: (id: string) => string;
-  promptFirstGame?: boolean;
+  /**
+   * The tool owns no project up front: navigate straight to it (carrying the
+   * class) instead of POSTing /projects first. True for the prompt-first Game
+   * Playground and for the session-based Music Stage, which mints its project
+   * only when the kid presses 💾 Save.
+   */
+  noProject?: boolean;
 };
 const TOOL_CONFIG: Record<string, ToolCfg> = {
   '/learn/create/blocks': { title: 'My Blocks', line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank', open: (id) => `/learn/blocks/${id}` },
   '/learn/create/code': { title: 'My Project', line: 'line_b_coding', kind: 'code', template: 'blank', open: (id) => `/learn/code/${id}` },
   '/learn/create/image': { title: 'My Picture', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
-  '/learn/create/music': { title: 'My Song', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
+  // Music Stage (the retired Music Maker's replacement) is session-based, not
+  // project-based: there is no project to create up front, so a class row opens
+  // the Stage itself. (music-stage-prd §2)
+  '/learn/workspace?studio=music': { title: 'My Song', line: 'line_a_creative', noProject: true, open: () => '/learn/workspace?studio=music' },
   '/learn/create/voice': { title: 'My Voice', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
   '/learn/create/video': { title: 'My Video', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
 };
@@ -77,7 +86,7 @@ const CODE_SUBTYPES: SubType[] = [
       line: 'line_b_coding',
       kind: 'game',
       open: () => '/learn/playground/new',
-      promptFirstGame: true,
+      noProject: true,
     },
     projectKind: 'game',
   },
@@ -139,9 +148,12 @@ export function CreateForClassSheet({
   // the same flow whether `cfg` comes from a plain tool or a chosen sub-type.
   async function make(cfg: ToolCfg) {
     if (busy) return;
-    if (cfg.promptFirstGame) {
+    if (cfg.noProject) {
       setError(null);
-      nav(`${cfg.open('new')}?class=${encodeURIComponent(classId)}`);
+      // `open()` may already carry a query (the Stage deep-link does) — appending
+      // a second "?" would silently drop the class.
+      const to = cfg.open('new');
+      nav(`${to}${to.includes('?') ? '&' : '?'}class=${encodeURIComponent(classId)}`);
       return;
     }
     setBusy(true);

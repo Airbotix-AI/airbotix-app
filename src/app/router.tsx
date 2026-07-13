@@ -70,7 +70,6 @@ import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { TeacherPrepStudioPage } from '@/pages/teacher/TeacherPrepStudioPage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
-import { MusicMakerPage } from '@/pages/learn/create/MusicMakerPage';
 import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
 import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 
@@ -195,7 +194,10 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <LearnProfilePage /> },
       { path: 'create', element: <CreateHubPage /> },
       { path: 'create/image', element: <ImageMakerPage /> },
-      { path: 'create/music', element: <MusicMakerPage /> },
+      // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
+      // is the single music surface (music-stage-prd §2). Kept as a redirect so
+      // old links, bookmarks and class "create for class" rows still land somewhere.
+      { path: 'create/music', element: <Navigate to="/learn/workspace?studio=music" replace /> },
       { path: 'create/voice', element: <VoiceBoothPage /> },
       { path: 'create/video', element: <VideoStudioPage /> },
       { path: 'create/code', element: <CodeHubPage /> },

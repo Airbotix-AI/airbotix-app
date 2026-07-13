@@ -23,6 +23,7 @@ import {
   saveScoreToMyWorks,
   type MusicScoreRequest,
 } from './musicScoreApi';
+import { generateRealSong, REAL_SONG_COST_STARS } from './realSongApi';
 import type { InstrumentKind, MusicScore } from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
@@ -34,6 +35,8 @@ import {
   EMPTY_MARQUEE,
   INITIAL_BUBBLE,
   MUSIC_GENERATION_COST_STARS,
+  REAL_SONG_DONE_BUBBLE,
+  REAL_SONG_FAILED_BUBBLE,
   REWRITE_VERSION_TAG,
   SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
@@ -70,6 +73,7 @@ export function MusicStagePane({
   balance,
   kidId,
   familyId,
+  classId,
   onImportTrack,
 }: {
   sessionId: string;
@@ -77,6 +81,8 @@ export function MusicStagePane({
   balance: number;
   kidId: string | null;
   familyId: string | null;
+  /** Set when the kid arrived via "create for class" — Save attaches the song to it. */
+  classId: string | null;
   onImportTrack: () => void;
 }) {
   const qc = useQueryClient();
@@ -100,6 +106,10 @@ export function MusicStagePane({
   const [mixerOpen, setMixerOpen] = useState(false);
   // Versions already promoted to My Works this visit (💾, PRD §2 step ⑤).
   const [savedVersions, setSavedVersions] = useState<Record<number, boolean>>({});
+  // The project this song lives in, once 💾 Save or 🎧 Make-it-real has minted one.
+  // Both need a project (audio Artifacts require one) and must share it — otherwise
+  // one song scatters across two "My Works" entries.
+  const [songProjectId, setSongProjectId] = useState<string | null>(null);
 
   const pendingRef = useRef<VersionMeta | null>(null);
   const lastPromptRef = useRef<string | null>(null);
@@ -152,12 +162,43 @@ export function MusicStagePane({
 
   const save = useMutation({
     mutationFn: (args: { score: MusicScore; version: number }) =>
-      saveScoreToMyWorks(args.score),
-    onSuccess: (_res, args) => {
+      saveScoreToMyWorks(args.score, classId),
+    onSuccess: (res, args) => {
       setSavedVersions((m) => ({ ...m, [args.version]: true }));
+      setSongProjectId(res.project_id);
       qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
     },
     onError: () => setBubbleOverride(SAVE_FAILED_BUBBLE),
+  });
+
+  // 🎧 "Make it real" — the score the kid wrote, rendered as actual audio by the
+  // provider (music-stage-prd §2 step ⑥). The backend lands it on this session as
+  // an assistant message with an audio Artifact, which is exactly what the track
+  // list below already renders — so open the Mixer to show the kid where it went.
+  const realSong = useMutation({
+    mutationFn: (args: { score: MusicScore; topic: string | null }) =>
+      generateRealSong({
+        score: args.score,
+        topic: args.topic,
+        classId,
+        projectId: songProjectId,
+      }),
+    onSuccess: (res) => {
+      setSongProjectId(res.project_id);
+      setMixerOpen(true);
+      setBubbleOverride(REAL_SONG_DONE_BUBBLE);
+      qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
+      qc.invalidateQueries({ queryKey: ['session', sessionId, 'messages'] });
+      qc.invalidateQueries({ queryKey: ['kid', kidId, 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+      qc.invalidateQueries({ queryKey: ['kid', kidId, 'artifacts', 'audio'] });
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : REAL_SONG_FAILED_BUBBLE,
+      ),
   });
 
   // A new version arrived: label it, follow it, start the show.
@@ -450,6 +491,23 @@ export function MusicStagePane({
                 : savedVersions[currentVersion]
                   ? '✓ Saved!'
                   : '💾 Save'}
+            </button>
+            {/* PRD §2 step ⑥ — the score the kid wrote, recorded for real by the
+                audio provider. Star-gated like composing (AC-8): an unaffordable
+                click must never reach the backend. */}
+            <button
+              type="button"
+              onClick={() => realSong.mutate({ score, topic: lastPromptRef.current })}
+              disabled={realSong.isPending || balance < REAL_SONG_COST_STARS}
+              title={
+                balance < REAL_SONG_COST_STARS
+                  ? `Need ${REAL_SONG_COST_STARS}★, have ${balance}★`
+                  : 'Record this song for real'
+              }
+              className="rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint disabled:cursor-not-allowed disabled:opacity-60"
+              data-testid="stage-real-song"
+            >
+              {realSong.isPending ? '🎧 Recording…' : `🎧 Make it real −${REAL_SONG_COST_STARS}⭐`}
             </button>
             <button
               type="button"
