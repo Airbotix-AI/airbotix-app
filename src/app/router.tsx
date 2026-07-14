@@ -62,6 +62,7 @@ import { ClassGamesWallPage } from '@/pages/learn/classroom/ClassGamesWallPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 import { MusicStudioPage } from '@/pages/learn/music/MusicStudioPage';
+import { AcademyPracticePage } from '@/pages/learn/academy/AcademyPracticePage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -221,6 +222,9 @@ export const router = createBrowserRouter([
       // session URL so a refresh returns to the same song.
       { path: 'music', element: <MusicStudioPage /> },
       { path: 'music/:sessionId', element: <MusicStudioPage /> },
+      // Academy — NAPLAN Maths practice: pick a year, answer real Numeracy
+      // questions one at a time with instant feedback.
+      { path: 'academy', element: <AcademyPracticePage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

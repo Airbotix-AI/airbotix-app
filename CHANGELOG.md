@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-16 (feat: Academy — native-rendered maths practice)
+
+### Added
+- **Academy practice is integrated into the Learn SPA.** The first slice adds the
+  `/learn/academy` route, year selection, server-side answer checking, progress,
+  and the native question renderer that this branch will finish.
+
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 
 ### Fixed
