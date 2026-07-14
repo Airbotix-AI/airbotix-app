@@ -30,6 +30,7 @@ import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
 import {
   COMPOSE_FAILED_BUBBLE,
+  EDIT_VERSION_TAG,
   FIRST_COMPOSE_SUBTITLE,
   FIRST_VERSION_TAG,
   GENRE_BY_ID,
@@ -48,6 +49,7 @@ import {
   outOfStarsBubble,
   stageSlotFor,
   styleOf,
+  type ComposeMode,
   type GenreId,
   type StageSlotId,
   type StageStyles,
@@ -91,10 +93,13 @@ export function MusicStagePane({
   onImportTrack: () => void;
 }) {
   const qc = useQueryClient();
-  const composerRef = useRef<HTMLInputElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const [input, setInput] = useState('');
   const [genre, setGenre] = useState<GenreId>('rock');
+  // Once a song exists, typed text EDITS the current version by default
+  // (D-MS10) — "every Compose starts over" was the exact complaint.
+  const [composeMode, setComposeMode] = useState<ComposeMode>('edit');
   const [selectedSlot, setSelectedSlot] = useState<StageSlotId | null>(null);
   const [styles, setStyles] = useState<StageStyles>({ ...GENRE_BY_ID.rock.presetStyles });
   // null = follow the latest version; a number pins an older version (0⭐).
@@ -229,6 +234,9 @@ export function MusicStagePane({
     setPinnedVersion(null);
     setBubbleOverride(null);
     setFailed(null);
+    // The take landed — clear the composer so edit mode starts with a clean
+    // slate (the typed instruction was consumed, not a draft to keep).
+    setInput('');
     if (prev === 0) {
       // First song: the AI pre-picks a style set for the genre (PRD §5) and
       // the band enters with the staggered pop-in (PRD §3.1).
@@ -282,16 +290,30 @@ export function MusicStagePane({
     [generation, balance, playback.isPlaying, playbackStop, playbackUnlock, versions.length, genre, styles],
   );
 
-  /** Composer-bar generate: a fresh direction — modifier cleared (PRD §3.4). */
+  /** Composer-bar generate (D-MS10): in edit mode the typed text CHANGES the
+   *  current version (the score rides the request, like a suggestion card with
+   *  the kid's own words); in new mode it's a from-scratch compose. */
   const generateFromPrompt = () => {
     const prompt = input.trim();
     if (!prompt) return;
-    lastPromptRef.current = prompt;
-    fire(
-      { prompt, options: { genre: GENRE_BY_ID[genre].promptLabel } },
-      { label: versions.length === 0 ? FIRST_VERSION_TAG : REWRITE_VERSION_TAG },
-      FIRST_COMPOSE_SUBTITLE,
-    );
+    const editing = hasSong && composeMode === 'edit' && score;
+    if (editing) {
+      // The typed text is an INSTRUCTION ("make it faster"), not the song's
+      // TOPIC — lastPromptRef stays on the original description, which the
+      // 🎧 real-song prompt and the suggestion cards derive from (D-MS6).
+      fire(
+        { prompt, options: { genre: GENRE_BY_ID[genre].promptLabel }, existingScore: score },
+        { label: EDIT_VERSION_TAG },
+        iterationSubtitle(EDIT_VERSION_TAG),
+      );
+    } else {
+      lastPromptRef.current = prompt;
+      fire(
+        { prompt, options: { genre: GENRE_BY_ID[genre].promptLabel } },
+        { label: versions.length === 0 ? FIRST_VERSION_TAG : REWRITE_VERSION_TAG },
+        FIRST_COMPOSE_SUBTITLE,
+      );
+    }
   };
 
   /** Suggestion card: same endpoint + existingScore + structured modifier. */
@@ -308,12 +330,15 @@ export function MusicStagePane({
     fire(req, { label: card.tag, modifier: card.key }, iterationSubtitle(card.tag));
   };
 
-  // Restore the last prompt for suggestion cards on reloaded sessions.
+  // Restore the song's TOPIC for suggestion cards / 🎧 on reloaded sessions.
+  // FIRST user message, not the last: later user messages may be typed EDIT
+  // instructions ("make it faster", D-MS10), which describe a change, not the
+  // song. The original description is what recordings should be titled after.
   useEffect(() => {
     if (lastPromptRef.current) return;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user' && messages[i].content.trim()) {
-        lastPromptRef.current = messages[i].content.trim();
+    for (const m of messages) {
+      if (m.role === 'user' && m.content.trim()) {
+        lastPromptRef.current = m.content.trim();
         break;
       }
     }
@@ -452,6 +477,9 @@ export function MusicStagePane({
       onGenerate={generateFromPrompt}
       busy={generation.isPending}
       balance={balance}
+      hasSong={hasSong}
+      mode={composeMode}
+      onMode={setComposeMode}
       inputRef={composerRef}
     />
   );
