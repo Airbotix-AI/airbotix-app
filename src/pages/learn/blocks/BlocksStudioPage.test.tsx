@@ -110,7 +110,7 @@ describe('BlocksStudioPage zone labels', () => {
     });
 
     await renderStudio();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('block-say'));
     expect(screen.getByTestId('story-greeting-picker').children).toHaveLength(3);
 
@@ -160,7 +160,7 @@ describe('BlocksStudioPage zone labels', () => {
 
     await renderStudio();
     expect(await screen.findByTestId('story-tuan-tuan')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '8');
     expect(screen.getByTestId('sprite-plaza-target')).toHaveAttribute('data-gx', '11');
 
@@ -224,7 +224,7 @@ describe('BlocksStudioPage zone labels', () => {
     });
 
     await renderStudio();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('cat-motion'));
 
     const leftPalette = screen

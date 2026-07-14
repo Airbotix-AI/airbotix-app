@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // "Create for this class" sheet (my-classes-prd §3.3): a tool with sub-types
-// (Code Studio → Web Code / Creative Code Studio) opens a second-level menu; a plain
-// tool (Blocks) creates directly. Direct creates POST /projects, attach via the
+// (Creative Code Studio → Web Code / Creative Code Studio) opens a second-level menu; a plain
+// tool (Story Blocks) creates directly. Direct creates POST /projects, attach via the
 // placement endpoint, and navigate to the right editor. Creative Code Studio is
 // prompt-first: it navigates to `/learn/playground/new?class=...` and lets the
 // playground create + attach the game after the initial prompt.
@@ -56,19 +56,20 @@ describe('CreateForClassSheet — second-level menu', () => {
   });
   afterEach(cleanup);
 
-  it('opens the Code Studio sub-menu (Web Code + Creative Code Studio) and can go back', async () => {
+  it('opens the Creative Code Studio sub-menu (Web Code + Creative Code Studio) and can go back', async () => {
     renderSheet();
-    // Code Studio is a sub-menu tool, not a direct create.
+    // Creative Code Studio is a sub-menu tool, not a direct create.
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
 
     expect(screen.getByText('Web Code')).toBeInTheDocument();
     expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
-    expect(screen.getByText(/Code Studio · pick one/)).toBeInTheDocument();
+    expect(screen.getByText(/Creative Code Studio · pick one/)).toBeInTheDocument();
     // Opening the sub-menu must not POST anything.
     expect(api).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('create-subtool-back'));
-    expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('create-subtool-back')).not.toBeInTheDocument();
     expect(screen.getByText(/pick a tool/)).toBeInTheDocument();
   });
 
@@ -95,9 +96,9 @@ describe('CreateForClassSheet — second-level menu', () => {
     });
   });
 
-  it('a direct tool (Blocks) creates immediately without a sub-menu', async () => {
+  it('the direct Story Blocks tool creates immediately without a sub-menu', async () => {
     renderSheet();
-    const blocks = screen.getByText('Blocks').closest('button')!;
+    const blocks = screen.getByText('Story Blocks').closest('button')!;
     expect(blocks).toHaveAttribute('data-testid', 'create-tool');
     fireEvent.click(blocks);
 
@@ -114,8 +115,8 @@ describe('CreateForClassSheet — second-level menu', () => {
     expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
     expect(screen.queryByText('Music Maker')).not.toBeInTheDocument();
     expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
-    expect(screen.getByText('Code Studio')).toBeInTheDocument();
-    expect(screen.getByText('Blocks')).toBeInTheDocument();
+    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
+    expect(screen.getByText('Story Blocks')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tool-submenu'));
     expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
