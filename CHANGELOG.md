@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
+
+### Fixed
+- **Creative Code Studio kept an unsent chat message only until you looked away.** In split mode,
+  typing into the Airo composer and then flipping to the Assets (or Code / Guide) tab and back
+  discarded the draft — the chat pane unmounts on a tab switch and the composer text lived in that
+  pane's local state (user-reported). The draft is now lifted into `Workspace` (which stays mounted
+  for the whole project, exactly like the chat history already is), so an unsent message survives
+  split-tab and Window⇄Split switches for as long as the kid is in the project; it clears on send
+  and resets when a different project opens.
+
 ## 2026-07-14 (feat: typed text edits the current song — the composer gets an edit mode)
 
 ### Added
