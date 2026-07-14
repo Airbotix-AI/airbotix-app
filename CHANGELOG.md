@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-14 (feat: typed text edits the current song — the composer gets an edit mode)
+
+### Added
+- **"✏️ Change this song" — typed freeform edits on the Music Stage (D-MS10).** Only the five
+  suggestion cards could iterate on the current song; typing in the composer always composed from
+  scratch ("每次都是从零 Compose" — user-reported, with Suno's edit-on-existing flow as the
+  reference). Once a song is on stage the composer now defaults to edit mode: the kid's words ride
+  the request WITH the current score (`existingScore`, same backend path/price as the cards), the
+  take lands as a `✏️ Edit` version, and "✨ New song" switches back to a from-scratch compose.
+
+### Changed
+- **The composer input is a real textarea now** (Enter sends, Shift+Enter breaks a line; prompt cap
+  120→240 chars) and edit mode puts the idea chips + genre pills away — together they answer
+  "输入空间太少了". The input clears itself after a take lands.
+
 ## 2026-07-14 (fix: Music is discoverable from the studio picker again)
 
 ### Fixed
