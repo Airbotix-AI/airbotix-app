@@ -3,8 +3,9 @@
 // to that studio — the chat that follows can only use that one tool.
 
 import clsx from 'clsx';
+import { Link } from 'react-router-dom';
 
-import { STUDIOS, type Studio } from './studios';
+import { STUDIO_BY_ID, STUDIOS, type Studio } from './studios';
 
 export function StudioPicker({
   onPick,
@@ -23,9 +24,31 @@ export function StudioPicker({
           Pick a studio — each one teaches you one AI skill, so you can really get good at it.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Music has left the Workspace: it is its own immersive surface
-              (/learn/music, D-MS7). Offering it here would drop the kid back into
-              the chat shell this move exists to get them out of. */}
+          {/* Music lives on its OWN immersive surface (/learn/music, D-MS7) — the
+              card stays HERE for discoverability ("what do you want to make?"
+              must include music), but picking it navigates to the Stage instead
+              of opening a chat-shell session. */}
+          <Link
+            to="/learn/music"
+            data-testid="studio-pick-music"
+            className={clsx(
+              'group rounded-2xl border-2 border-hairline bg-canvas-pure p-5 text-left transition-all',
+              'hover:-translate-y-0.5 hover:shadow-card-soft hover:border-ink/20',
+            )}
+          >
+            <div className={clsx('inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-bold', `bg-${STUDIO_BY_ID.music.wash}`)}>
+              <span className="text-[16px]">{STUDIO_BY_ID.music.emoji}</span>
+              <span className="text-ink">{STUDIO_BY_ID.music.label}</span>
+              <span className="text-ink-soft">−{STUDIO_BY_ID.music.cost}★</span>
+            </div>
+            <div className="mt-3 text-[16px] font-bold text-ink">{STUDIO_BY_ID.music.tagline}</div>
+            <ul className="mt-2 space-y-1 text-[12px] text-ink-soft">
+              {STUDIO_BY_ID.music.examples.slice(0, 2).map((ex) => (
+                <li key={ex} className="truncate">· {ex}</li>
+              ))}
+            </ul>
+            <div className="mt-2 text-[11px] font-bold text-brand-mint">🎤 Opens your own stage →</div>
+          </Link>
           {STUDIOS.filter((s) => s.id !== 'music').map((s) => (
             <button
               key={s.id}
