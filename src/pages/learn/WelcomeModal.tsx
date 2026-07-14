@@ -7,7 +7,12 @@ const STEPS = [
   {
     emoji: '👋',
     title: 'Hi there!',
-    body: "This is Airbotix Learn — your AI playground. You'll make images, music, voice, and videos with AI.",
+    body: "This is Airbotix Learn — a place to program stories, build projects, and create with AI.",
+  },
+  {
+    emoji: '🧩',
+    title: 'Start with Story Blocks',
+    body: 'Snap picture blocks together to make characters move, talk, and play music. Story Blocks is free and needs no typing.',
   },
   {
     emoji: '⭐',
@@ -17,7 +22,7 @@ const STEPS = [
   {
     emoji: '🎨',
     title: 'Pick a tool, make something',
-    body: 'Four studios: Image, Music, Voice, Video. Each teaches a different skill. Start with whatever feels fun.',
+    body: 'Choose Story Blocks, Creative Code, Image, Music, Voice, or Video. Each studio teaches a different skill.',
   },
 ];
 
@@ -88,7 +93,7 @@ export function WelcomeModal({ nickname }: { nickname: string }) {
             </button>
           ) : (
             <Link to="/learn/create" onClick={dismiss} className="btn-pill-primary">
-              Open the studio →
+              See all studios →
             </Link>
           )}
         </div>

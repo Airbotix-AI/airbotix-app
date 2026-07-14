@@ -30,6 +30,6 @@ export const CREATE_TOOLS: CreateTool[] = [
   { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1 },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5 },
-  { to: '/learn/create/code', emoji: '💻', title: 'Code Studio', desc: 'Make a website, game, or tool. AI writes the code.', color: 'sky', typeTag: 'Code', projectKind: 'code', cost: 1 },
-  { to: '/learn/create/blocks', emoji: '🧩', title: 'Blocks', desc: 'Snap puzzle blocks to make characters move & talk. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
+  { to: '/learn/create/code', emoji: '💻', title: 'Creative Code Studio', desc: 'Build websites, games, and tools with AI and real JavaScript.', color: 'sky', typeTag: 'Code', projectKind: 'code', cost: 1 },
+  { to: '/learn/create/blocks', emoji: '🧩', title: 'Story Blocks', desc: 'Program an animated story with snap-together blocks. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
 ];

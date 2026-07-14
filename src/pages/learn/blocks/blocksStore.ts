@@ -15,9 +15,14 @@ import {
   type Page,
   GRID_H,
   GRID_W,
+  MAX_COLOR,
+  MAX_NOTE,
   MAX_PAGES,
   MAX_PARAM,
+  MAX_SOUND,
+  MAX_SPEED,
   blankProject,
+  blockDef,
   defaultParam,
   isTrigger,
   newId,
@@ -32,6 +37,26 @@ export interface HistoryEntry {
 
 /** Keep undo bounded so the persisted sidecar can't grow without limit. */
 export const HISTORY_CAP = 40;
+
+function newBlock(op: BlockOp, chosenN?: number): Block {
+  const block: Block = { op };
+  const def = blockDef(op);
+  const fallback = defaultParam(op);
+  if (chosenN !== undefined || fallback !== undefined) {
+    const max = def.param === 'note'
+      ? MAX_NOTE
+      : def.param === 'sound'
+        ? MAX_SOUND
+      : def.param === 'color'
+        ? MAX_COLOR
+        : def.param === 'speed'
+          ? MAX_SPEED
+          : MAX_PARAM;
+    block.n = Math.min(max, Math.max(1, Math.round(chosenN ?? fallback ?? 1)));
+  }
+  if (op === 'say') block.text = 'Hi!';
+  return block;
+}
 
 interface BlocksStore {
   project: BlocksProject;
@@ -72,12 +97,14 @@ interface BlocksStore {
   removeCharacter: (charId: string) => void;
   /** Append a block: a trigger starts a NEW script; anything else extends the
    *  last script (auto-opening a 🚩 script so a lone "move" still runs). */
-  addBlock: (op: BlockOp) => void;
+  addBlock: (op: BlockOp, n?: number) => void;
   /** Insert a body block at an exact position (drag-from-palette to a slot).
    *  Triggers can't be inserted mid-script; index is clamped to 1..len. */
-  insertBlock: (op: BlockOp, scriptId: string, index: number) => void;
+  insertBlock: (op: BlockOp, scriptId: string, index: number, n?: number) => void;
   /** Remove a block (the trigger removes its whole script). */
   removeBlock: (scriptId: string, index: number) => void;
+  /** Swap a block's operation while preserving its existing parameters. */
+  replaceBlockOp: (scriptId: string, index: number, op: BlockOp) => void;
   /** Tap-to-cycle a block's value 1→max→1 (number tile, speed, or msg colour). */
   cycleParam: (scriptId: string, index: number, max?: number) => void;
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
@@ -306,12 +333,9 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     });
   },
 
-  addBlock(op) {
+  addBlock(op, chosenN) {
     get()._commit((s) => {
-      const block: Block = { op };
-      const n = defaultParam(op);
-      if (n !== undefined) block.n = n;
-      if (op === 'say') block.text = 'Hi!';
+      const block = newBlock(op, chosenN);
       const cid = currentChar(currentPage(s.project, s.pageId), s.charId).id;
       return {
         project: patchChar(s.project, s.pageId, cid, (c) => {
@@ -333,16 +357,13 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
     });
   },
 
-  insertBlock(op, scriptId, index) {
+  insertBlock(op, scriptId, index, chosenN) {
     if (isTrigger(op)) {
-      get().addBlock(op);
+      get().addBlock(op, chosenN);
       return;
     }
     get()._commit((s) => {
-      const block: Block = { op };
-      const n = defaultParam(op);
-      if (n !== undefined) block.n = n;
-      if (op === 'say') block.text = 'Hi!';
+      const block = newBlock(op, chosenN);
       return {
         project: patchChar(s.project, s.pageId, s.charId, (c) => ({
           ...c,
@@ -367,6 +388,24 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             sc.id !== scriptId ? sc : { ...sc, blocks: sc.blocks.filter((_, i) => i !== index) },
           )
           .filter((sc) => sc.blocks.length > 0 && isTrigger(sc.blocks[0].op)),
+      })),
+    }));
+  },
+
+  replaceBlockOp(scriptId, index, op) {
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) =>
+          sc.id !== scriptId
+            ? sc
+            : {
+                ...sc,
+                blocks: sc.blocks.map((block, blockIndex) =>
+                  blockIndex === index ? { ...block, op } : block,
+                ),
+              },
+        ),
       })),
     }));
   },

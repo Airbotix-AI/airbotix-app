@@ -41,4 +41,20 @@ describe('BlockChip', () => {
     expect(btn.className).toContain('dragging');
     expect(btn.className).toContain('removing');
   });
+
+  it('shows the selected programmable sound as a picture and name', () => {
+    const { rerender } = render(<BlockChip block={{ op: 'play_sound', n: 2 }} inChain />);
+    expect(screen.getByTestId('block-play_sound').textContent).toContain('🔔Chime');
+
+    rerender(<BlockChip block={{ op: 'play_sound', n: 6 }} inChain />);
+    expect(screen.getByTestId('block-play_sound').textContent).toContain('✨Sparkle');
+  });
+
+  it('shows the selected numbered note and solfege name', () => {
+    const { rerender } = render(<BlockChip block={{ op: 'play_note', n: 1 }} inChain />);
+    expect(screen.getByTestId('block-play_note').textContent).toContain('1Do');
+
+    rerender(<BlockChip block={{ op: 'play_note', n: 7 }} inChain />);
+    expect(screen.getByTestId('block-play_note').textContent).toContain('7Ti');
+  });
 });

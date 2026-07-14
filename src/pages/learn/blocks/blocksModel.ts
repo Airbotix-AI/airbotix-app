@@ -39,6 +39,8 @@ export type BlockOp =
   | 'hide'
   | 'show'
   | 'pop'
+  | 'play_note'
+  | 'play_sound'
   | 'send_message'
   | 'wait'
   | 'set_speed'
@@ -49,7 +51,7 @@ export type BlockOp =
 
 /** The editable parameter on a block: a number tile, a 3-state speed, a 6-colour
  *  message tag, or none. (`hasN` stays for the number-tile blocks.) */
-export type BlockParam = 'speed' | 'color';
+export type BlockParam = 'speed' | 'color' | 'note' | 'sound';
 
 export interface BlockDef {
   op: BlockOp;
@@ -61,15 +63,36 @@ export interface BlockDef {
   defaultN?: number;
   /** A non-number tap-to-cycle parameter (speed level 1–3, or message colour 1–6). */
   param?: BlockParam;
+  /** Accepted for old projects but omitted from the new-project palette. */
+  legacy?: boolean;
 }
 
 export const MAX_SPEED = 3; // 1 slow · 2 normal · 3 fast
 export const MAX_COLOR = 6; // ScratchJr-style six message colours
+export const MAX_NOTE = 7; // C-major Do · Re · Mi · Fa · Sol · La · Ti
+export const MAX_SOUND = 6;
 /** Six message colours (index = block.n − 1). Used by Send / Get message blocks. */
 export const MESSAGE_COLORS = ['#ff5677', '#ff8a2b', '#ffb400', '#1fc983', '#3d9bf5', '#a964f7'] as const;
 /** Speed level → glyph + duration multiplier (slow runs 2×, fast runs 0.5×). */
 export const SPEED_ICONS = ['🐢', '🚶', '🐇'] as const;
 export const SPEED_FACTORS = [2, 1, 0.5] as const;
+export const BUILT_IN_NOTES = [
+  { id: 1, icon: '1', label: 'Do' },
+  { id: 2, icon: '2', label: 'Re' },
+  { id: 3, icon: '3', label: 'Mi' },
+  { id: 4, icon: '4', label: 'Fa' },
+  { id: 5, icon: '5', label: 'Sol' },
+  { id: 6, icon: '6', label: 'La' },
+  { id: 7, icon: '7', label: 'Ti' },
+] as const;
+export const BUILT_IN_SOUNDS = [
+  { id: 1, icon: '🫧', label: 'Bubble Pop' },
+  { id: 2, icon: '🔔', label: 'Chime' },
+  { id: 3, icon: '🥁', label: 'Drum' },
+  { id: 4, icon: '💨', label: 'Whoosh' },
+  { id: 5, icon: '🦘', label: 'Boing' },
+  { id: 6, icon: '✨', label: 'Sparkle' },
+] as const;
 
 export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'when_flag', category: 'trigger', icon: '🚩', label: 'Start' },
@@ -90,7 +113,9 @@ export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'reset_size', category: 'looks', icon: '🔄', label: 'Reset' },
   { op: 'hide', category: 'looks', icon: '🫥', label: 'Hide' },
   { op: 'show', category: 'looks', icon: '👁', label: 'Show' },
-  { op: 'pop', category: 'sound', icon: '🔊', label: 'Pop' },
+  { op: 'pop', category: 'sound', icon: '🫧', label: 'Pop', legacy: true },
+  { op: 'play_note', category: 'sound', icon: '🎵', label: 'Do', param: 'note' },
+  { op: 'play_sound', category: 'sound', icon: '🫧', label: 'Pop', param: 'sound' },
   { op: 'send_message', category: 'control', icon: '📤', label: 'Send', param: 'color' },
   { op: 'wait', category: 'control', icon: '⏱', label: 'Wait', hasN: true, defaultN: 5 },
   { op: 'set_speed', category: 'control', icon: '🐇', label: 'Speed', param: 'speed' },
@@ -106,6 +131,8 @@ export function defaultParam(op: BlockOp): number | undefined {
   if (def.hasN) return def.defaultN ?? 1;
   if (def.param === 'speed') return 2; // normal
   if (def.param === 'color') return 1; // first colour
+  if (def.param === 'note') return 1; // Do
+  if (def.param === 'sound') return 1; // Pop
   return undefined;
 }
 
@@ -230,19 +257,21 @@ export function parseProject(raw: string): BlocksProject {
     const pages: Page[] = doc.pages.slice(0, MAX_PAGES).map((p, pi) => ({
       id: typeof p?.id === 'string' && p.id ? p.id : newId('page'),
       background: typeof p?.background === 'string' ? p.background : 'meadow',
-      characters: (Array.isArray(p?.characters) ? p.characters : []).map((c, ci) => ({
-        id: typeof c?.id === 'string' && c.id ? c.id : newId('char'),
-        name: typeof c?.name === 'string' && c.name ? c.name.slice(0, 24) : `Friend ${ci + 1}`,
-        emoji: typeof c?.emoji === 'string' && c.emoji ? c.emoji : '🐱',
-        asset: safeCharacterAsset(c?.asset),
-        start: {
-          gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
-          gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
-          size: typeof c?.start?.size === 'number' ? Math.min(3, Math.max(0.3, c.start.size)) : 1,
-          rot: clampN(c?.start?.rot, -360, 360, 0),
-        },
-        scripts: (Array.isArray(c?.scripts) ? c.scripts : [])
-          .map((s) => ({
+      characters: (Array.isArray(p?.characters) ? p.characters : []).map((c, ci) => {
+        const asset = safeCharacterAsset(c?.asset);
+        return {
+          id: typeof c?.id === 'string' && c.id ? c.id : newId('char'),
+          name: typeof c?.name === 'string' && c.name ? c.name.slice(0, 24) : `Friend ${ci + 1}`,
+          emoji: typeof c?.emoji === 'string' && c.emoji ? c.emoji : '🐱',
+          ...(asset ? { asset } : {}),
+          start: {
+            gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
+            gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
+            size: typeof c?.start?.size === 'number' ? Math.min(3, Math.max(0.3, c.start.size)) : 1,
+            rot: clampN(c?.start?.rot, -360, 360, 0),
+          },
+          scripts: (Array.isArray(c?.scripts) ? c.scripts : [])
+            .map((s) => ({
             id: typeof s?.id === 'string' && s.id ? s.id : newId('script'),
             blocks: (Array.isArray(s?.blocks) ? s.blocks : [])
               .filter((b): b is Block => !!b && DEFS_BY_OP.has(b.op as BlockOp))
@@ -250,12 +279,17 @@ export function parseProject(raw: string): BlocksProject {
                 const def = blockDef(b.op);
                 const out: Block = { op: b.op };
                 if (def.hasN) out.n = clampN(b.n, 1, MAX_PARAM, def.defaultN ?? 1);
+                if (b.n !== undefined && def.param === 'speed') out.n = clampN(b.n, 1, MAX_SPEED, 2);
+                if (b.n !== undefined && def.param === 'color') out.n = clampN(b.n, 1, MAX_COLOR, 1);
+                if (b.n !== undefined && def.param === 'note') out.n = clampN(b.n, 1, MAX_NOTE, 1);
+                if (b.n !== undefined && def.param === 'sound') out.n = clampN(b.n, 1, MAX_SOUND, 1);
                 if (b.op === 'say') out.text = (typeof b.text === 'string' ? b.text : 'Hi!').slice(0, 60);
                 return out;
               }),
           }))
-          .filter((s) => s.blocks.length > 0 && isTrigger(s.blocks[0].op)),
-      })),
+            .filter((s) => s.blocks.length > 0 && isTrigger(s.blocks[0].op)),
+        };
+      }),
       // every page must have at least one character to code
       ...(pi === 0 ? {} : {}),
     }));
@@ -264,13 +298,14 @@ export function parseProject(raw: string): BlocksProject {
         page.characters.push(blankProject().pages[0].characters[0]);
       }
     }
+    const lessonId =
+      typeof doc.lessonId === 'string' && /^[a-z0-9-]{1,64}$/.test(doc.lessonId)
+        ? doc.lessonId
+        : legacyLessonId(pages);
     return {
       version: 1,
       name: typeof doc.name === 'string' ? doc.name.slice(0, 120) : 'My blocks project',
-      lessonId:
-        typeof doc.lessonId === 'string' && /^[a-z0-9-]{1,64}$/.test(doc.lessonId)
-          ? doc.lessonId
-          : legacyLessonId(pages),
+      ...(lessonId ? { lessonId } : {}),
       pages,
     };
   } catch {

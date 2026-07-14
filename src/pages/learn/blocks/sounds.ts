@@ -103,6 +103,38 @@ export const sfx = {
   place: () => tone(720, 0.11, { type: 'triangle', gain: 0.09, slideTo: 1040 }),
   /** the green Pop block + small confirmations */
   pop: () => tone(880, 0.12, { type: 'sine', gain: 0.11, slideTo: 1250 }),
+  /** The six child-programmable sounds used by the green Play Sound block. */
+  playSound: (soundId: number) => {
+    switch (Math.min(6, Math.max(1, Math.round(soundId)))) {
+      case 2: // Chime
+        tone(659, 0.18, { type: 'sine', gain: 0.09 });
+        tone(988, 0.24, { type: 'sine', gain: 0.08, delay: 0.08 });
+        break;
+      case 3: // Drum
+        tone(150, 0.16, { type: 'triangle', gain: 0.12, slideTo: 70 });
+        break;
+      case 4: // Whoosh
+        noise(0.24, 0.045, 900);
+        tone(520, 0.22, { type: 'sine', gain: 0.04, slideTo: 180 });
+        break;
+      case 5: // Boing
+        tone(260, 0.26, { type: 'triangle', gain: 0.11, slideTo: 720 });
+        break;
+      case 6: // Sparkle
+        [784, 988, 1319].forEach((freq, index) =>
+          tone(freq, 0.16, { type: 'sine', gain: 0.065, delay: index * 0.07 }),
+        );
+        break;
+      default:
+        tone(880, 0.12, { type: 'sine', gain: 0.11, slideTo: 1250 });
+    }
+  },
+  /** A fixed one-octave C-major scale: 1 Do through 7 Ti. */
+  playNote: (noteId: number) => {
+    const frequencies = [261.63, 293.66, 329.63, 349.23, 392, 440, 493.88] as const;
+    const index = Math.min(frequencies.length - 1, Math.max(0, Math.round(noteId) - 1));
+    tone(frequencies[index], 0.32, { type: 'triangle', gain: 0.09 });
+  },
   /** adding a character / page — a cheerful two-note rise */
   add: () => {
     tone(523, 0.08, { type: 'triangle', gain: 0.09 });

@@ -1,0 +1,96 @@
+import type { BlocksTemplateId } from './blocksApi';
+
+export interface StoryJourneyMission {
+  template: BlocksTemplateId;
+  number: number;
+  title: string;
+  action: string;
+}
+
+export interface StoryJourneyChapter {
+  id: string;
+  number: number;
+  emoji: string;
+  title: string;
+  story: string;
+  skill: string;
+  art: 'window' | 'cloud' | 'rooftop' | 'breakfast' | 'greeting' | 'tower';
+  missions: StoryJourneyMission[];
+}
+
+export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
+  {
+    id: 'a1',
+    number: 1,
+    emoji: '🌟',
+    title: 'Lumi starts the morning',
+    story: 'The Bell Tower is quiet. Help Lumi send the village’s first wake-up light.',
+    skill: 'Put steps in order',
+    art: 'window',
+    missions: [
+      { template: 'blocks_tsv_a1_h', number: 1, title: 'A strange good morning', action: 'Try' },
+      { template: 'blocks_tsv_a1_b', number: 2, title: 'Wake up first', action: 'Build' },
+      { template: 'blocks_tsv_a1_d', number: 3, title: 'The backwards morning', action: 'Fix' },
+      { template: 'blocks_tsv_a1_s', number: 4, title: 'My morning greeting', action: 'Make mine' },
+    ],
+  },
+  {
+    id: 'a2',
+    number: 2,
+    emoji: '☁️',
+    title: 'Tuan Tuan finds the plaza',
+    story: 'A cloud path appears, but Tuan Tuan keeps following the wrong arrow.',
+    skill: 'Choose left or right',
+    art: 'cloud',
+    missions: [
+      { template: 'blocks_tsv_a2_h', number: 5, title: 'Which way is the plaza?', action: 'Try' },
+      { template: 'blocks_tsv_a2_b', number: 6, title: 'Choose an arrow', action: 'Build' },
+      { template: 'blocks_tsv_a2_d', number: 7, title: 'Tuan Tuan walked the wrong way', action: 'Fix' },
+    ],
+  },
+  {
+    id: 'a3',
+    number: 3,
+    emoji: '🐱',
+    title: 'Tap to wake Dot Dot',
+    story: 'The rooftop star will not wake for Go. Dot Dot needs a different kind of start.',
+    skill: 'Make taps start actions',
+    art: 'rooftop',
+    missions: [],
+  },
+  {
+    id: 'a4',
+    number: 4,
+    emoji: '🚙',
+    title: 'The breakfast cart stops here',
+    story: 'Breakfast is ready, but the little cart keeps stopping too early or too late.',
+    skill: 'Move 1, 2, or 3 spaces',
+    art: 'breakfast',
+    missions: [],
+  },
+  {
+    id: 'a5',
+    number: 5,
+    emoji: '💡',
+    title: 'Everyone takes a turn',
+    story: 'All the friends say good morning at once. Help each voice have its moment.',
+    skill: 'Use Wait to make turns',
+    art: 'greeting',
+    missions: [],
+  },
+  {
+    id: 'a6',
+    number: 6,
+    emoji: '🔔',
+    title: 'Ring in the morning light',
+    story: 'Walk, hop, then ring the Bell Tower to bring sunrise back to the whole village.',
+    skill: 'Build and fix a three-step story',
+    art: 'tower',
+    missions: [],
+  },
+];
+
+export const PLAYABLE_STORY_MISSION_COUNT = TINY_STAR_VILLAGE_CHAPTERS.reduce(
+  (total, chapter) => total + chapter.missions.length,
+  0,
+);

@@ -11,24 +11,37 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
-import { Expand, Image as ImageIcon, MoreHorizontal, Moon, Redo2, RotateCcw, Sun, Undo2, Volume2, VolumeX } from 'lucide-react';
-
 import {
-  loadBlocksProject,
-  saveBlocksProject,
-} from './blocksApi';
+  Expand,
+  Image as ImageIcon,
+  MoreHorizontal,
+  Moon,
+  Redo2,
+  RotateCcw,
+  Sun,
+  Undo2,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+
+import { loadBlocksProject, saveBlocksProject } from './blocksApi';
 import {
   type BlockCategory,
   type BlockOp,
+  BUILT_IN_NOTES,
+  BUILT_IN_SOUNDS,
   BLOCK_DEFS,
   CATEGORIES,
   GRID_H,
   GRID_W,
   MAX_COLOR,
+  MAX_NOTE,
   MAX_PAGES,
   MAX_PARAM,
   MAX_SPEED,
+  MAX_SOUND,
   blockDef,
+  defaultParam,
   isTrigger,
 } from './blocksModel';
 import { useDemoMode } from '@/pages/try/demoMode';
@@ -50,7 +63,11 @@ import { CharacterVisual } from './CharacterVisual';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
-import { storyMissionProgramMatches, storyMissionScriptId } from './storyMissionProgress';
+import {
+  storyMissionProgramMatches,
+  storyMissionScriptId,
+  TINY_STAR_GREETING_CHOICES,
+} from './storyMissionProgress';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -137,6 +154,7 @@ export function BlocksStudioPage({
   const [confirmReset, setConfirmReset] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
+  const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -156,7 +174,9 @@ export function BlocksStudioPage({
   const [friendPos, setFriendPos] = useState<{ left: number; top: number } | null>(null);
   const pickFriend = friendPos !== null;
   // live sprite states while/after a run (charId → state+duration); null = start poses
-  const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(null);
+  const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(
+    null,
+  );
   const [says, setSays] = useState<Map<string, string>>(new Map());
   // the block each character is executing right now → "lit" glow (charId → "scriptId:index")
   const [activeBlocks, setActiveBlocks] = useState<Map<string, string>>(new Map());
@@ -179,31 +199,36 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
-  const answeredCorrectly = storyMission?.choices.some(
-    (choice) => choice.id === missionAnswer && choice.correct,
-  ) ?? false;
+  const answeredCorrectly =
+    storyMission?.choices.some((choice) => choice.id === missionAnswer && choice.correct) ?? false;
   const missionScript = useMemo(
-    () => page.characters
-      .flatMap((character) => character.scripts)
-      .find((script) => script.id === storyMissionScriptId(storyMission?.lessonId ?? '')),
+    () =>
+      page.characters
+        .flatMap((character) => character.scripts)
+        .find((script) => script.id === storyMissionScriptId(storyMission?.lessonId ?? '')),
     [page, storyMission?.lessonId],
   );
   const missionTargetFixed = storyMission
     ? storyMissionProgramMatches(project, storyMission.lessonId)
     : false;
+  const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
       ? 'saving'
-    : running
-      ? storyCoachCue
-      : missionFixApplied
-        ? 'test'
-        : missionAnswer
-          ? answeredCorrectly
-            ? 'fix'
-            : 'retry'
-          : storyCoachCue;
+      : running
+        ? storyCoachCue
+        : storyMission?.mode === 'observe-only'
+          ? storyCoachCue
+          : storyMission?.mode !== 'observe-fix' && missionTargetFixed
+            ? 'test'
+            : missionFixApplied
+              ? 'test'
+              : missionAnswer
+                ? answeredCorrectly
+                  ? 'fix'
+                  : 'retry'
+                : storyCoachCue;
   const introducedMissionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -213,6 +238,7 @@ export function BlocksStudioPage({
     setMissionAnswer(null);
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(false);
+    setMissionWrongRunObserved(false);
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(false);
     setStoryCoachCue('ready');
@@ -327,10 +353,7 @@ export function BlocksStudioPage({
           setSaveStatus('saved');
           if (storyMission) {
             setMissionFixPersisted(
-              storyMissionProgramMatches(
-                useBlocksStore.getState().project,
-                storyMission.lessonId,
-              ),
+              storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId),
             );
           }
           // refresh the Projects/My Works cover thumbnail (device-local)
@@ -403,7 +426,8 @@ export function BlocksStudioPage({
           else next.set(id, text);
           return next;
         }),
-      onPop: sfx.pop,
+      onNote: sfx.playNote,
+      onSound: sfx.playSound,
       onGotoPage: (idx) => {
         const target = useBlocksStore.getState().project.pages[idx];
         if (target) useBlocksStore.getState().selectPage(target.id);
@@ -449,8 +473,21 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
+        const requiresPlazaArrival =
+          storyMission.lessonId === 'tsv-s1-a2-b' || storyMission.lessonId === 'tsv-s1-a2-d';
+        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === 11;
+        const observedWrongDirection =
+          storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
-        if (missionTargetFixed) {
+        if (observedWrongDirection) setMissionWrongRunObserved(true);
+        if (storyMission.mode === 'observe-only') {
+          setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
+          setMissionOpen(true);
+        } else if (
+          missionTargetFixed &&
+          reachedMissionTarget &&
+          (!isA2DirectionDebug || missionWrongRunObserved)
+        ) {
           setMissionCorrectRunFinished(true);
           setStoryCoachCue(missionFixPersisted ? 'complete' : 'saving');
           if (missionFixPersisted) {
@@ -460,11 +497,39 @@ export function BlocksStudioPage({
             setMissionOpen(false);
           }
         } else {
+          if (storyMission.mode !== 'observe-fix') setStoryCoachCue('retry');
           setMissionOpen(true);
         }
       }
     });
-  }, [running, makeRunner, demo, storyMission, missionTargetFixed, missionFixPersisted]);
+  }, [
+    running,
+    makeRunner,
+    demo,
+    storyMission,
+    missionTargetFixed,
+    missionFixPersisted,
+    isA2DirectionDebug,
+    missionWrongRunObserved,
+  ]);
+
+  const answerStoryMission = useCallback(
+    (choiceId: string) => {
+      setMissionAnswer(choiceId);
+      if (storyMission?.mode !== 'observe-only' || !missionHasRun || !missionTargetFixed) return;
+      const correct = storyMission.choices.some(
+        (choice) => choice.id === choiceId && choice.correct,
+      );
+      if (!correct) {
+        setStoryCoachCue('retry');
+        return;
+      }
+      setMissionCompleted(true);
+      setStoryCoachCue('complete');
+      setMissionOpen(true);
+    },
+    [missionHasRun, missionTargetFixed, storyMission],
+  );
 
   const applyMissionFix = useCallback(() => {
     if (!missionScript) return;
@@ -472,12 +537,9 @@ export function BlocksStudioPage({
     const sayIndex = missionScript.blocks.findIndex((block) => block.op === 'say');
     if (hopIndex < 1 || sayIndex < 1) return;
     if (hopIndex > sayIndex) {
-      useBlocksStore.getState().moveBlockAcross(
-        missionScript.id,
-        hopIndex,
-        missionScript.id,
-        sayIndex,
-      );
+      useBlocksStore
+        .getState()
+        .moveBlockAcross(missionScript.id, hopIndex, missionScript.id, sayIndex);
     }
     setMissionFixApplied(true);
     setMissionCorrectRunFinished(false);
@@ -579,16 +641,21 @@ export function BlocksStudioPage({
     exclude?: { scriptId: string; index: number },
   ): { scriptId: string; slot: number; dropX: number } | null => {
     const rows = [
-      ...document.querySelectorAll<HTMLElement>('[data-testid^="script-"]:not([data-testid="script-area"])'),
+      ...document.querySelectorAll<HTMLElement>(
+        '[data-testid^="script-"]:not([data-testid="script-area"])',
+      ),
     ];
     for (const row of rows) {
       const rr = row.getBoundingClientRect();
       const pad = 18;
-      if (x < rr.left - pad || x > rr.right + pad || y < rr.top - pad || y > rr.bottom + pad) continue;
+      if (x < rr.left - pad || x > rr.right + pad || y < rr.top - pad || y > rr.bottom + pad)
+        continue;
       const scriptId = row.getAttribute('data-testid')!.slice('script-'.length);
       const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')];
       let slot = items.length;
-      let dropX = items.length ? items[items.length - 1].getBoundingClientRect().right - rr.left + 2 : 0;
+      let dropX = items.length
+        ? items[items.length - 1].getBoundingClientRect().right - rr.left + 2
+        : 0;
       for (let i = 1; i < items.length; i += 1) {
         if (exclude && exclude.scriptId === scriptId && i === exclude.index) continue;
         const r = items[i].getBoundingClientRect();
@@ -654,10 +721,19 @@ export function BlocksStudioPage({
         dropX = hit.dropX;
       }
     }
-    setDragBlk({ scriptId: d.scriptId, index: d.index, cx: x, cy: y, onBin, targetScriptId, targetSlot, dropX });
+    setDragBlk({
+      scriptId: d.scriptId,
+      index: d.index,
+      cx: x,
+      cy: y,
+      onBin,
+      targetScriptId,
+      targetSlot,
+      dropX,
+    });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly) return;
+    if (running || present || readOnly || isA2DirectionDebug) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -670,7 +746,11 @@ export function BlocksStudioPage({
         if (!d || blockDidDrag.current) return;
         blockDidDrag.current = true;
         sfx.pickup();
-        try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+        try {
+          d.el.setPointerCapture(d.pointerId);
+        } catch {
+          /* ignore */
+        }
         lockTouchScroll();
         navigator.vibrate?.(8);
         blockDragUpdate(d.lastX, d.lastY);
@@ -694,7 +774,11 @@ export function BlocksStudioPage({
       if (moved <= MOUSE_DRAG_PX) return;
       blockDidDrag.current = true;
       sfx.pickup();
-      try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+      try {
+        d.el.setPointerCapture(d.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
     blockDragUpdate(e.clientX, e.clientY);
   };
@@ -710,7 +794,10 @@ export function BlocksStudioPage({
       if (info.onBin) {
         sfx.trash();
         useBlocksStore.getState().removeBlock(d.scriptId, d.index);
-      } else if (info.targetScriptId && (info.targetScriptId !== d.scriptId || info.targetSlot !== d.index)) {
+      } else if (
+        info.targetScriptId &&
+        (info.targetScriptId !== d.scriptId || info.targetSlot !== d.index)
+      ) {
         sfx.snap();
         useBlocksStore
           .getState()
@@ -726,6 +813,7 @@ export function BlocksStudioPage({
   //    track). Same hold-to-lift + scroll-lock so the palette stays scrollable. ─
   const palDrag = useRef<{
     op: BlockOp;
+    n?: number;
     x0: number;
     y0: number;
     lastX: number;
@@ -738,6 +826,7 @@ export function BlocksStudioPage({
   const palDidDrag = useRef(false);
   const [palBlk, setPalBlk] = useState<{
     op: BlockOp;
+    n?: number;
     cx: number;
     cy: number;
     scriptId: string | null;
@@ -749,14 +838,22 @@ export function BlocksStudioPage({
     const d = palDrag.current;
     if (!d) return;
     const hit = isTrigger(d.op) ? null : scanRows(x, y);
-    setPalBlk({ op: d.op, cx: x, cy: y, scriptId: hit?.scriptId ?? null, slot: hit?.slot ?? 0, dropX: hit?.dropX ?? null });
+    setPalBlk({
+      op: d.op,
+      n: d.n,
+      cx: x,
+      cy: y,
+      scriptId: hit?.scriptId ?? null,
+      slot: hit?.slot ?? 0,
+      dropX: hit?.dropX ?? null,
+    });
   };
-  const onPalDown = (e: React.PointerEvent, op: BlockOp) => {
+  const onPalDown = (e: React.PointerEvent, op: BlockOp, n?: number) => {
     if (running || present || readOnly) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
-    palDrag.current = { op, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
+    palDrag.current = { op, n, x0, y0, lastX: x0, lastY: y0, pointerId, touch, el };
     palDidDrag.current = false;
     window.clearTimeout(palLP.current);
     if (touch) {
@@ -765,7 +862,11 @@ export function BlocksStudioPage({
         if (!d || palDidDrag.current) return;
         palDidDrag.current = true;
         sfx.pickup();
-        try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+        try {
+          d.el.setPointerCapture(d.pointerId);
+        } catch {
+          /* ignore */
+        }
         lockTouchScroll();
         navigator.vibrate?.(8);
         palDragUpdate(d.lastX, d.lastY);
@@ -789,11 +890,40 @@ export function BlocksStudioPage({
       if (moved <= MOUSE_DRAG_PX) return;
       palDidDrag.current = true;
       sfx.pickup();
-      try { d.el.setPointerCapture(d.pointerId); } catch { /* ignore */ }
+      try {
+        d.el.setPointerCapture(d.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
     palDragUpdate(e.clientX, e.clientY);
   };
-  const endPalDrag = (op: BlockOp, commit: boolean) => {
+  const addPaletteBlock = (
+    store: ReturnType<typeof useBlocksStore.getState>,
+    op: BlockOp,
+    n: number | undefined,
+    drop?: { scriptId: string; slot: number },
+  ) => {
+    if (isA2DirectionDebug) return;
+    const isA2Direction =
+      storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right');
+    if (isA2Direction && missionScript) {
+      const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
+      store.insertBlock(
+        op,
+        missionScript.id,
+        endIndex >= 1 ? endIndex : missionScript.blocks.length,
+        3,
+      );
+      return;
+    }
+    if (drop) {
+      store.insertBlock(op, drop.scriptId, drop.slot, n);
+      return;
+    }
+    store.addBlock(op, n);
+  };
+  const endPalDrag = (op: BlockOp, n: number | undefined, commit: boolean) => {
     window.clearTimeout(palLP.current);
     unlockTouchScroll();
     const info = palBlk;
@@ -805,27 +935,52 @@ export function BlocksStudioPage({
       if (palDidDrag.current) {
         if (info && info.scriptId) {
           sfx.snap();
-          store.insertBlock(d?.op ?? op, info.scriptId, info.slot);
+          addPaletteBlock(store, d?.op ?? op, d?.n ?? n, {
+            scriptId: info.scriptId,
+            slot: info.slot,
+          });
         } else {
           sfx.place();
-          store.addBlock(d?.op ?? op);
+          addPaletteBlock(store, d?.op ?? op, d?.n ?? n);
         }
       } else {
         // a clean tap → add to the bottom of the latest script
         sfx.place();
-        store.addBlock(op);
+        addPaletteBlock(store, op, n);
       }
     }
     setTimeout(() => (palDidDrag.current = false), 0);
   };
-  const onPalUp = (op: BlockOp) => endPalDrag(op, true);
-  const onPalCancel = (op: BlockOp) => endPalDrag(op, false);
+  const onPalUp = (op: BlockOp, n?: number) => endPalDrag(op, n, true);
+  const onPalCancel = (op: BlockOp, n?: number) => endPalDrag(op, n, false);
 
   // ── tap a whole block to EDIT it (number stepper / Say text) ─────────────
-  const [editBlk, setEditBlk] = useState<{ scriptId: string; index: number; left: number; top: number } | null>(null);
+  const [editBlk, setEditBlk] = useState<{
+    scriptId: string;
+    index: number;
+    left: number;
+    top: number;
+  } | null>(null);
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
+    if (storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right')) {
+      return; // Age A direction mission fixes the distance at three steps.
+    }
+    if (isA2DirectionDebug && (op === 'move_left' || op === 'move_right')) {
+      if (!missionWrongRunObserved) {
+        setStoryCoachCue('retry');
+        setMissionOpen(true);
+        return;
+      }
+      sfx.tap();
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const W = 230;
+      const left = Math.min(Math.max(8, r.left + r.width / 2 - W / 2), window.innerWidth - W - 8);
+      setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
+      return;
+    }
+    if (isA2DirectionDebug) return;
     const def = blockDef(op as BlockOp);
     // speed / message-colour blocks cycle their value on tap (no number editor)
     if (def.param === 'speed') {
@@ -838,7 +993,7 @@ export function BlocksStudioPage({
       useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
       return;
     }
-    if (!def.hasN && op !== 'say') return; // nothing to edit on this block
+    if (!def.hasN && def.param !== 'note' && def.param !== 'sound' && op !== 'say') return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 230;
@@ -901,7 +1056,27 @@ export function BlocksStudioPage({
     );
   }
 
-  const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category);
+  const paletteBlocks = BLOCK_DEFS.filter((d) => d.category === category && !d.legacy);
+  const paletteChoices: Array<{
+    def: (typeof paletteBlocks)[number];
+    n?: number;
+    key: string;
+  }> = [];
+  paletteBlocks.forEach((def) => {
+    if (def.param === 'note') {
+      BUILT_IN_NOTES.forEach((note) => {
+        paletteChoices.push({ def, n: note.id, key: `${def.op}-${note.id}` });
+      });
+      return;
+    }
+    if (def.param === 'sound') {
+      BUILT_IN_SOUNDS.forEach((sound) => {
+        paletteChoices.push({ def, n: sound.id, key: `${def.op}-${sound.id}` });
+      });
+      return;
+    }
+    paletteChoices.push({ def, n: defaultParam(def.op), key: def.op });
+  });
   const activeCat = CATEGORIES.find((c) => c.id === category) ?? CATEGORIES[0];
 
   return (
@@ -960,9 +1135,17 @@ export function BlocksStudioPage({
         </button>
         <div className="min-w-0 px-1">
           <div className="truncate text-[15px] font-extrabold leading-tight">{project.name}</div>
-          <div className="bsx-muted truncate text-[11px] font-semibold" data-testid="save-status" data-status={saveStatus}>
+          <div
+            className="bsx-muted truncate text-[11px] font-semibold"
+            data-testid="save-status"
+            data-status={saveStatus}
+          >
             Page {project.pages.indexOf(page) + 1} of {project.pages.length} ·{' '}
-            {saveStatus === 'saved' ? '✓ saved' : saveStatus === 'saving' ? 'saving…' : 'saved on this device'}
+            {saveStatus === 'saved'
+              ? '✓ saved'
+              : saveStatus === 'saving'
+                ? 'saving…'
+                : 'saved on this device'}
           </div>
         </div>
         <div className="flex-1" />
@@ -1025,7 +1208,7 @@ export function BlocksStudioPage({
           hasRun={missionHasRun}
           completed={missionCompleted}
           answerId={missionAnswer}
-          onAnswer={setMissionAnswer}
+          onAnswer={answerStoryMission}
           onApplyFix={applyMissionFix}
           onClose={() => setMissionOpen(false)}
         />
@@ -1035,48 +1218,55 @@ export function BlocksStudioPage({
       <section className="bsx-middle">
         <aside className="bsx-railbox" style={{ gridArea: 'chars' }} aria-label="Characters">
           <FadeScroller className="bsx-railscroll">
-          <ZoneTag zone="chars" emoji="🐱" label="Characters" />
-          {page.characters.map((c) => (
+            <ZoneTag zone="chars" emoji="🐱" label="Characters" />
+            {page.characters.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                data-testid={`char-thumb-${c.id}`}
+                onClick={() => useBlocksStore.getState().selectChar(c.id)}
+                className="bsx-press relative grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl text-[30px]"
+                style={
+                  c.id === selectedChar?.id
+                    ? { boxShadow: '0 0 0 4px #5DAEFF, 0 4px 0 var(--bsx-border)' }
+                    : undefined
+                }
+                title={c.name}
+              >
+                <CharacterVisual
+                  character={c}
+                  className={c.asset ? 'bsx-character-asset-thumb' : undefined}
+                />
+                {c.id === selectedChar?.id && page.characters.length > 1 && (
+                  <span
+                    role="button"
+                    data-testid={`remove-character-${c.id}`}
+                    aria-disabled={readOnly || undefined}
+                    className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+                    title={`Remove ${c.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (readOnly) return;
+                      sfx.trash();
+                      useBlocksStore.getState().removeCharacter(c.id);
+                    }}
+                  >
+                    ✕
+                  </span>
+                )}
+              </button>
+            ))}
             <button
-              key={c.id}
               type="button"
-              data-testid={`char-thumb-${c.id}`}
-              onClick={() => useBlocksStore.getState().selectChar(c.id)}
-              className="bsx-press relative grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl text-[30px]"
-              style={c.id === selectedChar?.id ? { boxShadow: '0 0 0 4px #5DAEFF, 0 4px 0 var(--bsx-border)' } : undefined}
-              title={c.name}
+              data-testid="add-character"
+              onClick={openFriendPicker}
+              disabled={readOnly}
+              aria-disabled={readOnly || undefined}
+              className={`grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+              title="Add a character"
             >
-              <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset-thumb' : undefined} />
-              {c.id === selectedChar?.id && page.characters.length > 1 && (
-                <span
-                  role="button"
-                  data-testid={`remove-character-${c.id}`}
-                  aria-disabled={readOnly || undefined}
-                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
-                  title={`Remove ${c.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (readOnly) return;
-                    sfx.trash();
-                    useBlocksStore.getState().removeCharacter(c.id);
-                  }}
-                >
-                  ✕
-                </span>
-              )}
+              ＋
             </button>
-          ))}
-          <button
-            type="button"
-            data-testid="add-character"
-            onClick={openFriendPicker}
-            disabled={readOnly}
-            aria-disabled={readOnly || undefined}
-            className={`grid aspect-square w-full max-w-[72px] place-items-center rounded-2xl border-2 border-dashed border-brand-sky/50 text-[26px] text-brand-sky${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
-            title="Add a character"
-          >
-            ＋
-          </button>
           </FadeScroller>
         </aside>
 
@@ -1141,6 +1331,8 @@ export function BlocksStudioPage({
                   )}
                   <div
                     data-testid={`sprite-${c.id}`}
+                    data-gx={st.gx}
+                    data-gy={st.gy}
                     className={`bsx-sprite${dragging === c.id ? ' dragging' : ''}`}
                     onPointerDown={(e) => onSpriteDown(e, c.id)}
                     onPointerMove={(e) => onSpriteMove(e, c.id)}
@@ -1152,11 +1344,17 @@ export function BlocksStudioPage({
                       fontSize: 'clamp(40px,5.5vw,64px)',
                       opacity: st.visible ? 1 : 0.12,
                       transform: `translate(-50%,-50%) rotate(${st.rot}deg) scale(${st.size})`,
-                      transition: dur > 0 ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease` : 'none',
+                      transition:
+                        dur > 0
+                          ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease`
+                          : 'none',
                     }}
                     title={`${c.name} — drag to move, tap to run 👆, drag to the bin to remove`}
                   >
-                    <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset' : undefined} />
+                    <CharacterVisual
+                      character={c}
+                      className={c.asset ? 'bsx-character-asset' : undefined}
+                    />
                   </div>
                 </div>
               );
@@ -1166,56 +1364,63 @@ export function BlocksStudioPage({
 
         <aside className="bsx-railbox" style={{ gridArea: 'pages' }} aria-label="Pages">
           <FadeScroller className="bsx-railscroll">
-          <ZoneTag zone="pages" emoji="📖" label="Pages" />
-          {project.pages.map((p, i) => (
-            <div key={p.id} className="relative w-full max-w-[96px]">
-              <button
-                type="button"
-                data-testid={`page-thumb-${i}`}
-                onClick={() => { sfx.page(); useBlocksStore.getState().selectPage(p.id); }}
-                className={`bsx-press bsx-stage bsx-pagethumb${p.id === page.id ? ' sel' : ''}`}
-                data-scene={sceneId(p.background)}
-                style={{ aspectRatio: '4/3' }}
-                title={`Page ${i + 1}`}
-              >
-                <span className="bsx-hill" />
-                <span className="bsx-pagethumb-n">{i + 1}</span>
-                <span className="bsx-pagethumb-emoji">{p.characters[0]?.emoji ?? '🧩'}</span>
-              </button>
-              {project.pages.length > 1 && (
+            <ZoneTag zone="pages" emoji="📖" label="Pages" />
+            {project.pages.map((p, i) => (
+              <div key={p.id} className="relative w-full max-w-[96px]">
                 <button
                   type="button"
-                  data-testid={`remove-page-${i}`}
-                  disabled={readOnly}
-                  aria-disabled={readOnly || undefined}
-                  className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
-                  title={`Remove page ${i + 1}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (readOnly) return;
-                    sfx.trash();
-                    useBlocksStore.getState().removePage(p.id);
+                  data-testid={`page-thumb-${i}`}
+                  onClick={() => {
+                    sfx.page();
+                    useBlocksStore.getState().selectPage(p.id);
                   }}
+                  className={`bsx-press bsx-stage bsx-pagethumb${p.id === page.id ? ' sel' : ''}`}
+                  data-scene={sceneId(p.background)}
+                  style={{ aspectRatio: '4/3' }}
+                  title={`Page ${i + 1}`}
                 >
-                  ✕
+                  <span className="bsx-hill" />
+                  <span className="bsx-pagethumb-n">{i + 1}</span>
+                  <span className="bsx-pagethumb-emoji">{p.characters[0]?.emoji ?? '🧩'}</span>
                 </button>
-              )}
-            </div>
-          ))}
-          {project.pages.length < MAX_PAGES && (
-            <button
-              type="button"
-              data-testid="add-page"
-              onClick={() => { if (readOnly) return; sfx.add(); useBlocksStore.getState().addPage(); }}
-              disabled={readOnly}
-              aria-disabled={readOnly || undefined}
-              className={`grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
-              style={{ aspectRatio: '4/3' }}
-              title="Add a page"
-            >
-              ＋
-            </button>
-          )}
+                {project.pages.length > 1 && (
+                  <button
+                    type="button"
+                    data-testid={`remove-page-${i}`}
+                    disabled={readOnly}
+                    aria-disabled={readOnly || undefined}
+                    className={`absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-brand-coral text-[11px] font-bold text-white shadow${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+                    title={`Remove page ${i + 1}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (readOnly) return;
+                      sfx.trash();
+                      useBlocksStore.getState().removePage(p.id);
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            {project.pages.length < MAX_PAGES && (
+              <button
+                type="button"
+                data-testid="add-page"
+                onClick={() => {
+                  if (readOnly) return;
+                  sfx.add();
+                  useBlocksStore.getState().addPage();
+                }}
+                disabled={readOnly}
+                aria-disabled={readOnly || undefined}
+                className={`grid w-full max-w-[96px] place-items-center rounded-xl border-2 border-dashed border-brand-coral/50 text-[22px] text-brand-coral${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+                style={{ aspectRatio: '4/3' }}
+                title="Add a page"
+              >
+                ＋
+              </button>
+            )}
           </FadeScroller>
         </aside>
       </section>
@@ -1230,22 +1435,31 @@ export function BlocksStudioPage({
           aria-disabled={readOnly || undefined}
         >
           <FadeScroller className="bsx-catscroll">
-          <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              data-testid={`cat-${c.id}`}
-              className={`bsx-cat c-${c.id}`}
-              aria-pressed={category === c.id}
-              disabled={readOnly}
-              aria-disabled={readOnly || undefined}
-              onClick={() => { if (readOnly) return; sfx.tap(); setCategory(c.id); }}
-              title={`${c.label} blocks`}
-            >
-              <span>{c.icon}</span>
-            </button>
-          ))}
+            <ZoneTag zone="cats" emoji="🧰" label="Kinds" />
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                data-testid={`cat-${c.id}`}
+                className={`bsx-cat c-${c.id}`}
+                aria-pressed={category === c.id}
+                disabled={readOnly}
+                aria-disabled={readOnly || undefined}
+                onClick={() => {
+                  if (readOnly) return;
+                  sfx.tap();
+                  setCategory(c.id);
+                }}
+                title={`${c.label} blocks`}
+              >
+                <span>{c.icon}</span>
+                {c.id === 'sound' && (
+                  <span className="bsx-cat-count" aria-hidden>
+                    7+6
+                  </span>
+                )}
+              </button>
+            ))}
           </FadeScroller>
         </nav>
 
@@ -1262,106 +1476,129 @@ export function BlocksStudioPage({
             aria-disabled={readOnly || undefined}
           >
             <FadeScroller className="flex items-center gap-4 overflow-x-auto px-4 pb-4 pt-3">
-            <span className="bsx-palette-tag shrink-0">
-              <span aria-hidden>{activeCat.icon}</span>
-              {activeCat.label}
-            </span>
-            {paletteBlocks.map((def) => (
-              <BlockChip
-                key={def.op}
-                block={{ op: def.op, ...(def.hasN ? { n: def.defaultN } : {}) }}
-                style={palBlk?.op === def.op ? { opacity: 0.4 } : undefined}
-                onPointerDown={(e) => onPalDown(e, def.op)}
-                onPointerMove={onPalMove}
-                onPointerUp={() => onPalUp(def.op)}
-                onPointerCancel={() => onPalCancel(def.op)}
-                title={`Tap to add "${def.label}" — or hold and drag it into ${selectedChar?.name}'s program`}
-              />
-            ))}
+              <span className="bsx-palette-tag shrink-0">
+                <span aria-hidden>{activeCat.icon}</span>
+                {activeCat.id === 'sound' ? '7 Notes + 6 Sounds' : activeCat.label}
+              </span>
+              {paletteChoices.map(({ def, n, key }) => (
+                <BlockChip
+                  key={key}
+                  block={{
+                    op: def.op,
+                    ...(n !== undefined ? { n } : {}),
+                  }}
+                  style={palBlk?.op === def.op && palBlk?.n === n ? { opacity: 0.4 } : undefined}
+                  onPointerDown={(e) => onPalDown(e, def.op, n)}
+                  onPointerMove={onPalMove}
+                  onPointerUp={() => onPalUp(def.op, n)}
+                  onPointerCancel={() => onPalCancel(def.op, n)}
+                  title={`Tap to add this sound — or hold and drag it into ${selectedChar?.name}'s program`}
+                />
+              ))}
             </FadeScroller>
           </div>
 
           <div className="relative flex min-h-0 flex-1 gap-2">
-          {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
-          <ZoneTag zone="script" emoji="✨" label="What they do" />
-          <div className="bsx-soft relative flex min-h-0 flex-1 overflow-hidden rounded-3xl" data-testid="script-area" aria-label="What they do">
-            <FadeScroller className="overflow-auto p-4">
-            {selectedChar?.scripts.length === 0 && (
-              <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
-                Tap a 🚩 block to pick what {selectedChar.name} does ✨
-              </div>
-            )}
-            {selectedChar?.scripts.map((script) => {
-              const isDragSource = !!dragBlk && dragBlk.scriptId === script.id;
-              // the insertion bar shows in whichever track the block is heading
-              // for — which may be a DIFFERENT track (cross-track move).
-              const showReorderBar =
-                !!dragBlk && !dragBlk.onBin && dragBlk.targetScriptId === script.id && dragBlk.dropX !== null;
-              return (
-                <div
-                  key={script.id}
-                  className="bsx-chainwrap relative mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4"
-                  data-testid={`script-${script.id}`}
-                >
-                  {script.blocks.map((b, i) => {
-                    const isDragged = isDragSource && dragBlk!.index === i;
-                    const def = blockDef(b.op);
-                    return (
-                      <BlockChip
-                        key={`${script.id}-${i}`}
-                        block={b}
-                        inChain
-                        isLast={i === script.blocks.length - 1}
-                        lit={activeKeys.has(`${script.id}:${i}`)}
-                        dragging={isDragged}
-                        // the original stays put (dimmed) while a fixed clone
-                        // follows the pointer — so it can't be clipped by the
-                        // script-area's overflow or pushed behind the bin, and
-                        // dragging never adds a horizontal scrollbar.
-                        style={isDragged ? { opacity: 0.28 } : undefined}
-                        onPointerDown={(e) => onBlockDown(e, script.id, i)}
-                        onPointerMove={onBlockMove}
-                        onPointerUp={onBlockUp}
-                        onPointerCancel={onBlockCancel}
-                        onTap={(e) => onBlockTap(e, script.id, i, b.op)}
-                        title={
-                          def.hasN
-                            ? 'Tap to change the number · hold to drag · drag to the bin to remove'
-                            : b.op === 'say'
-                              ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                              : 'Hold to drag · drag to another track or the bin'
-                        }
-                      />
-                    );
-                  })}
-                  {/* reorder / cross-track insertion bar */}
-                  {showReorderBar && <span className="bsx-dropbar" style={{ left: dragBlk!.dropX! }} />}
-                  {/* palette-drop insertion bar */}
-                  {palBlk && palBlk.scriptId === script.id && palBlk.dropX !== null && (
-                    <span className="bsx-dropbar" style={{ left: palBlk.dropX }} />
-                  )}
-                </div>
-              );
-            })}
-            </FadeScroller>
-          </div>
-          {/* the trash bin — at the end of the block area; drag a block here to
+            {/* pinned on the wrapper (not the scroller) so it never scrolls away */}
+            <ZoneTag zone="script" emoji="✨" label="What they do" />
+            <div
+              className="bsx-soft relative flex min-h-0 flex-1 overflow-hidden rounded-3xl"
+              data-testid="script-area"
+              aria-label="What they do"
+            >
+              <FadeScroller className="overflow-auto p-4">
+                {selectedChar?.scripts.length === 0 && (
+                  <div className="bsx-muted grid h-full place-items-center text-[14px] font-bold">
+                    Tap a 🚩 block to pick what {selectedChar.name} does ✨
+                  </div>
+                )}
+                {selectedChar?.scripts.map((script) => {
+                  const isDragSource = !!dragBlk && dragBlk.scriptId === script.id;
+                  // the insertion bar shows in whichever track the block is heading
+                  // for — which may be a DIFFERENT track (cross-track move).
+                  const showReorderBar =
+                    !!dragBlk &&
+                    !dragBlk.onBin &&
+                    dragBlk.targetScriptId === script.id &&
+                    dragBlk.dropX !== null;
+                  return (
+                    <div
+                      key={script.id}
+                      className="bsx-chainwrap relative mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4"
+                      data-testid={`script-${script.id}`}
+                    >
+                      {script.blocks.map((b, i) => {
+                        const isDragged = isDragSource && dragBlk!.index === i;
+                        const def = blockDef(b.op);
+                        const isLockedDirection =
+                          storyMission?.lessonId === 'tsv-s1-a2-b' &&
+                          (b.op === 'move_left' || b.op === 'move_right');
+                        const isDebugDirection =
+                          isA2DirectionDebug && (b.op === 'move_left' || b.op === 'move_right');
+                        return (
+                          <BlockChip
+                            key={`${script.id}-${i}`}
+                            block={b}
+                            inChain
+                            isLast={i === script.blocks.length - 1}
+                            lit={activeKeys.has(`${script.id}:${i}`)}
+                            dragging={isDragged}
+                            // the original stays put (dimmed) while a fixed clone
+                            // follows the pointer — so it can't be clipped by the
+                            // script-area's overflow or pushed behind the bin, and
+                            // dragging never adds a horizontal scrollbar.
+                            style={isDragged ? { opacity: 0.28 } : undefined}
+                            onPointerDown={(e) => onBlockDown(e, script.id, i)}
+                            onPointerMove={onBlockMove}
+                            onPointerUp={onBlockUp}
+                            onPointerCancel={onBlockCancel}
+                            onTap={(e) => onBlockTap(e, script.id, i, b.op)}
+                            title={
+                              isDebugDirection
+                                ? missionWrongRunObserved
+                                  ? 'Tap to turn this one arrow · 3 steps stay the same'
+                                  : 'Press Go first and watch where Left 3 goes'
+                                : isLockedDirection
+                                ? '3 steps are ready · hold to drag · drag to the bin to remove'
+                                : def.hasN
+                                  ? 'Tap to change the number · hold to drag · drag to the bin to remove'
+                                  : b.op === 'say'
+                                    ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                                    : 'Hold to drag · drag to another track or the bin'
+                            }
+                          />
+                        );
+                      })}
+                      {/* reorder / cross-track insertion bar */}
+                      {showReorderBar && (
+                        <span className="bsx-dropbar" style={{ left: dragBlk!.dropX! }} />
+                      )}
+                      {/* palette-drop insertion bar */}
+                      {palBlk && palBlk.scriptId === script.id && palBlk.dropX !== null && (
+                        <span className="bsx-dropbar" style={{ left: palBlk.dropX }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </FadeScroller>
+            </div>
+            {/* the trash bin — at the end of the block area; drag a block here to
               remove it. Bigger + glows red when armed. (Blocks only.) Rendered but
               inert + dimmed in the teacher viewer so the band matches the kid's
               layout — there's no block dragging to feed it (D-LV-6). */}
-          <div
-            ref={binRef}
-            data-testid="trash-bin"
-            aria-label="Trash"
-            aria-disabled={readOnly || undefined}
-            className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
-          >
-            <div className="bsx-bin-can">
-              <span className="bsx-bin-lid" />
-              <span className="bsx-bin-body" />
+            <div
+              ref={binRef}
+              data-testid="trash-bin"
+              aria-label="Trash"
+              aria-disabled={readOnly || undefined}
+              className={`bsx-bin${dragBlk ? ' active' : ''}${binArmed ? ' armed' : ''}${readOnly ? ` ${READONLY_EDIT_DISABLED}` : ''}`}
+            >
+              <div className="bsx-bin-can">
+                <span className="bsx-bin-lid" />
+                <span className="bsx-bin-body" />
+              </div>
+              <span className="bsx-bin-label">{binArmed ? 'Drop!' : 'Bin'}</span>
             </div>
-            <span className="bsx-bin-label">{binArmed ? 'Drop!' : 'Bin'}</span>
-          </div>
           </div>
         </div>
       </section>
@@ -1369,7 +1606,11 @@ export function BlocksStudioPage({
       {/* floating friend picker — portalled to <body> so the rail can't clip it */}
       {pickFriend &&
         createPortal(
-          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setFriendPos(null)}>
+          <div
+            className="bsx bsx-sheet-bg"
+            data-theme={theme}
+            onPointerDown={() => setFriendPos(null)}
+          >
             <div
               data-testid="friend-picker"
               className="bsx-sheet"
@@ -1377,7 +1618,11 @@ export function BlocksStudioPage({
             >
               <div className="bsx-sheet-head">
                 <span>Pick a friend ✨</span>
-                <button type="button" className="bsx-press bsx-sheet-x" onClick={() => setFriendPos(null)}>
+                <button
+                  type="button"
+                  className="bsx-press bsx-sheet-x"
+                  onClick={() => setFriendPos(null)}
+                >
                   ✕
                 </button>
               </div>
@@ -1423,11 +1668,23 @@ export function BlocksStudioPage({
       {/* scene / background picker — a big picture library */}
       {scenePick &&
         createPortal(
-          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setScenePick(false)}>
-            <div data-testid="scene-picker" className="bsx-sheet" onPointerDown={(e) => e.stopPropagation()}>
+          <div
+            className="bsx bsx-sheet-bg"
+            data-theme={theme}
+            onPointerDown={() => setScenePick(false)}
+          >
+            <div
+              data-testid="scene-picker"
+              className="bsx-sheet"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <div className="bsx-sheet-head">
                 <span>Pick a scene 🏞</span>
-                <button type="button" className="bsx-press bsx-sheet-x" onClick={() => setScenePick(false)}>
+                <button
+                  type="button"
+                  className="bsx-press bsx-sheet-x"
+                  onClick={() => setScenePick(false)}
+                >
                   ✕
                 </button>
               </div>
@@ -1446,7 +1703,9 @@ export function BlocksStudioPage({
                       setScenePick(false);
                     }}
                   >
-                    <span className="bsx-scene-name">{sc.emoji} {sc.label}</span>
+                    <span className="bsx-scene-name">
+                      {sc.emoji} {sc.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -1466,24 +1725,124 @@ export function BlocksStudioPage({
           >
             <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
-              {editing.block.op === 'say'
+              {isA2DirectionDebug &&
+              (editing.block.op === 'move_left' || editing.block.op === 'move_right')
+                ? 'Which way should Tuan Tuan go?'
+                : editing.block.op === 'say'
                 ? 'What should they say?'
-                : editing.block.op === 'goto_page'
-                  ? `Which page? (1–${project.pages.length})`
-                  : `How many? (${blockDef(editing.block.op).label})`}
+                : blockDef(editing.block.op).param === 'note'
+                  ? 'Which note? Tap to hear it!'
+                  : blockDef(editing.block.op).param === 'sound'
+                    ? 'Which sound? Tap to hear it!'
+                    : editing.block.op === 'goto_page'
+                      ? `Which page? (1–${project.pages.length})`
+                      : `How many? (${blockDef(editing.block.op).label})`}
             </div>
-            {editing.block.op === 'say' ? (
-              <input
-                data-testid="say-input"
-                autoFocus
-                maxLength={60}
-                defaultValue={editing.block.text ?? 'Hi!'}
-                onChange={(e) =>
-                  useBlocksStore.getState().setSayText(editing.scriptId, editing.index, e.target.value)
-                }
-                onKeyDown={(e) => e.key === 'Enter' && setEditBlk(null)}
-                className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
-              />
+            {isA2DirectionDebug &&
+            (editing.block.op === 'move_left' || editing.block.op === 'move_right') ? (
+              <div className="grid grid-cols-2 gap-2" data-testid="direction-repair-picker">
+                {(['move_left', 'move_right'] as const).map((direction) => (
+                  <button
+                    key={direction}
+                    type="button"
+                    data-testid={`direction-repair-${direction}`}
+                    aria-pressed={editing.block.op === direction}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-3 text-[13px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      if (editing.block.op === direction) return;
+                      sfx.tap();
+                      useBlocksStore
+                        .getState()
+                        .replaceBlockOp(editing.scriptId, editing.index, direction);
+                      setEditBlk(null);
+                    }}
+                  >
+                    {direction === 'move_left' ? '⬅️ Left' : '➡️ Right'}
+                  </button>
+                ))}
+              </div>
+            ) : editing.block.op === 'say' ? (
+              <div>
+                <input
+                  data-testid="say-input"
+                  autoFocus
+                  maxLength={60}
+                  value={editing.block.text ?? 'Hi!'}
+                  onChange={(e) =>
+                    useBlocksStore
+                      .getState()
+                      .setSayText(editing.scriptId, editing.index, e.target.value)
+                  }
+                  onKeyDown={(e) => e.key === 'Enter' && setEditBlk(null)}
+                  className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
+                />
+                {storyMission?.mode === 'personal-ship' && (
+                  <div className="mt-2 grid gap-1.5" data-testid="story-greeting-picker">
+                    {TINY_STAR_GREETING_CHOICES.map((greeting) => (
+                      <button
+                        key={greeting}
+                        type="button"
+                        className="bsx-press rounded-xl border border-current/15 px-2 py-2 text-left text-[12px] font-extrabold"
+                        aria-pressed={editing.block.text === greeting}
+                        onClick={() => {
+                          sfx.tap();
+                          useBlocksStore
+                            .getState()
+                            .setSayText(editing.scriptId, editing.index, greeting);
+                        }}
+                      >
+                        💬 {greeting}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : blockDef(editing.block.op).param === 'note' ? (
+              <div className="grid grid-cols-4 gap-2" data-testid="note-picker">
+                {BUILT_IN_NOTES.map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    data-testid={`note-choice-${note.id}`}
+                    aria-pressed={(editing.block.n ?? 1) === note.id}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-2 text-[12px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      sfx.playNote(note.id);
+                      useBlocksStore
+                        .getState()
+                        .setParam(editing.scriptId, editing.index, note.id, MAX_NOTE);
+                    }}
+                  >
+                    <span className="block text-[24px]" aria-hidden>
+                      {note.icon}
+                    </span>
+                    {note.label}
+                  </button>
+                ))}
+              </div>
+            ) : blockDef(editing.block.op).param === 'sound' ? (
+              <div className="grid grid-cols-3 gap-2" data-testid="sound-picker">
+                {BUILT_IN_SOUNDS.map((sound) => (
+                  <button
+                    key={sound.id}
+                    type="button"
+                    data-testid={`sound-choice-${sound.id}`}
+                    aria-pressed={(editing.block.n ?? 1) === sound.id}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-2 text-[12px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      sfx.playSound(sound.id);
+                      useBlocksStore
+                        .getState()
+                        .setParam(editing.scriptId, editing.index, sound.id, MAX_SOUND);
+                    }}
+                  >
+                    <span className="block text-[24px]" aria-hidden>
+                      {sound.icon}
+                    </span>
+                    {sound.label}
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-2">
                 <button
@@ -1495,7 +1854,12 @@ export function BlocksStudioPage({
                     sfx.numDown();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) - 1, editMax);
+                      .setParam(
+                        editing.scriptId,
+                        editing.index,
+                        (editing.block.n ?? 1) - 1,
+                        editMax,
+                      );
                   }}
                 >
                   −
@@ -1511,7 +1875,12 @@ export function BlocksStudioPage({
                     sfx.numUp();
                     useBlocksStore
                       .getState()
-                      .setParam(editing.scriptId, editing.index, (editing.block.n ?? 1) + 1, editMax);
+                      .setParam(
+                        editing.scriptId,
+                        editing.index,
+                        (editing.block.n ?? 1) + 1,
+                        editMax,
+                      );
                   }}
                   disabled={(editing.block.n ?? 1) >= editMax}
                 >
@@ -1537,7 +1906,10 @@ export function BlocksStudioPage({
                 type="button"
                 className="bsx-menu-row"
                 data-testid="theme-toggle"
-                onClick={() => { toggleTheme(); setMoreAnchor(null); }}
+                onClick={() => {
+                  toggleTheme();
+                  setMoreAnchor(null);
+                }}
               >
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
                 <span>{theme === 'dark' ? 'Day mode' : 'Night mode'}</span>
@@ -1546,7 +1918,11 @@ export function BlocksStudioPage({
                 type="button"
                 className="bsx-menu-row"
                 data-testid="reset-button"
-                onClick={() => { sfx.tap(); setMoreAnchor(null); setConfirmReset(true); }}
+                onClick={() => {
+                  sfx.tap();
+                  setMoreAnchor(null);
+                  setConfirmReset(true);
+                }}
               >
                 <RotateCcw size={18} />
                 <span>Reset</span>
@@ -1555,7 +1931,10 @@ export function BlocksStudioPage({
                 type="button"
                 className="bsx-menu-row"
                 data-testid="present-toggle"
-                onClick={() => { setMoreAnchor(null); setPresent((p) => !p); }}
+                onClick={() => {
+                  setMoreAnchor(null);
+                  setPresent((p) => !p);
+                }}
               >
                 <Expand size={18} />
                 <span>{present ? 'Exit big screen' : 'Big screen'}</span>
@@ -1568,20 +1947,32 @@ export function BlocksStudioPage({
       {/* ── reset confirmation — friendly, reversible-sounding, kid-readable ── */}
       {confirmReset &&
         createPortal(
-          <div className="bsx bsx-sheet-bg" data-theme={theme} onPointerDown={() => setConfirmReset(false)}>
-            <div className="bsx-confirm" data-testid="reset-confirm" onPointerDown={(e) => e.stopPropagation()}>
+          <div
+            className="bsx bsx-sheet-bg"
+            data-theme={theme}
+            onPointerDown={() => setConfirmReset(false)}
+          >
+            <div
+              className="bsx-confirm"
+              data-testid="reset-confirm"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <div className="bsx-confirm-icon">
                 <RotateCcw size={34} />
               </div>
               <div className="bsx-confirm-title">Start over?</div>
               <div className="bsx-confirm-text">
-                Everyone hops back to their start spots. Your blocks stay just the way you made them. ✨
+                Everyone hops back to their start spots. Your blocks stay just the way you made
+                them. ✨
               </div>
               <div className="bsx-confirm-btns">
                 <button
                   type="button"
                   className="bsx-confirm-cancel"
-                  onClick={() => { sfx.tap(); setConfirmReset(false); }}
+                  onClick={() => {
+                    sfx.tap();
+                    setConfirmReset(false);
+                  }}
                 >
                   Keep playing
                 </button>
@@ -1589,7 +1980,11 @@ export function BlocksStudioPage({
                   type="button"
                   className="bsx-confirm-ok"
                   data-testid="reset-confirm-ok"
-                  onClick={() => { sfx.page(); reset(); setConfirmReset(false); }}
+                  onClick={() => {
+                    sfx.page();
+                    reset();
+                    setConfirmReset(false);
+                  }}
                 >
                   ↺ Reset
                 </button>
@@ -1637,7 +2032,14 @@ export function BlocksStudioPage({
             }}
           >
             <BlockChip
-              block={{ op: palBlk.op, ...(blockDef(palBlk.op).hasN ? { n: blockDef(palBlk.op).defaultN } : {}) }}
+              block={{
+                op: palBlk.op,
+                ...(palBlk.n !== undefined
+                  ? { n: palBlk.n }
+                  : blockDef(palBlk.op).hasN
+                    ? { n: blockDef(palBlk.op).defaultN }
+                    : {}),
+              }}
               inChain
             />
           </div>,

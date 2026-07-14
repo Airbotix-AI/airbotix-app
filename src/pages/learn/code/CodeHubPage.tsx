@@ -15,7 +15,7 @@ import {
   type CodeTemplate,
 } from './codeApi';
 
-/** Code Studio hub — `/learn/create/code` (learn-code-studio-prd.md §2.1). */
+/** Creative Code Studio hub — `/learn/create/code` (learn-code-studio-prd.md §2.1). */
 export function CodeHubPage() {
   const me = useMe();
   const nav = useNavigate();
@@ -35,7 +35,7 @@ export function CodeHubPage() {
   const start = async (template: CodeTemplate) => {
     setBusy(template.id);
     setError(null);
-    // Creative Code Studio opens the Phaser game studio (the playground), not the web
+    // The guided game demo opens the Phaser game studio (the playground), not the web
     // code editor. It now creates a REAL `kind='game'` backend project (PRD J1 / M1):
     // the backend seeds a Phaser template into the S3-backed VFS and the studio
     // opens on those real files. The `phaser_pong` template backs the Game
@@ -75,12 +75,13 @@ export function CodeHubPage() {
           <Link to="/learn/create" className="btn-pill-ghost mb-3 -ml-3 text-[13px]">
             ← Make
           </Link>
-          <div className="eyebrow eyebrow-sky">Code Studio</div>
+          <div className="eyebrow eyebrow-sky">Creative Code Studio · Ages 8–14</div>
           <h1 className="hero-display">
             Make a website, a game, or a <span className="squiggle-word">tool</span>.
           </h1>
           <p className="lead-text mt-4">
-            You tell the AI what you want — it writes the code, you watch it run.
+            Turn an idea into an interactive creation with AI and real JavaScript. Test it, inspect
+            the code, and improve it.
           </p>
         </div>
         {wallet.data && (
@@ -99,7 +100,7 @@ export function CodeHubPage() {
           <button
             key={t.id}
             type="button"
-            // The Creative Code Studio card opens the Phaser studio on a real game project
+            // The guided game demo opens the Phaser studio on a real game project
             // (PRD J1) — its testid follows the J1 `hub-template-pong` contract.
             data-testid={t.id === 'tiny_game' ? 'hub-template-pong' : `hub-template-${t.id}`}
             disabled={busy !== null}

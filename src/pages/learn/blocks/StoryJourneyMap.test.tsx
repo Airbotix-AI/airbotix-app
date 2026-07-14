@@ -1,0 +1,44 @@
+// @vitest-environment jsdom
+
+import '@testing-library/jest-dom/vitest';
+
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { StoryJourneyMap } from './StoryJourneyMap';
+import {
+  PLAYABLE_STORY_MISSION_COUNT,
+  TINY_STAR_VILLAGE_CHAPTERS,
+} from './storyJourneyCatalog';
+
+afterEach(cleanup);
+
+describe('StoryJourneyMap', () => {
+  it('shows the complete six-chapter story while distinguishing playable scenes from previews', () => {
+    render(<StoryJourneyMap busy={null} onStart={vi.fn()} />);
+
+    expect(screen.getByText('Bring back the morning light')).toBeInTheDocument();
+    expect(screen.getAllByTestId(/story-chapter-/)).toHaveLength(6);
+    expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(7);
+    expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('Story preview');
+    expect(screen.getByTestId('story-chapter-a6')).toHaveTextContent('Ring in the morning light');
+  });
+
+  it('starts a scene with a meaningful project title', () => {
+    const onStart = vi.fn();
+    render(<StoryJourneyMap busy={null} onStart={onStart} />);
+
+    fireEvent.click(screen.getByTestId('blocks-starter-blocks_tsv_a2_b'));
+
+    expect(onStart).toHaveBeenCalledWith(
+      'blocks_tsv_a2_b',
+      'Tiny Star Village · Choose an arrow',
+    );
+  });
+
+  it('keeps the story count derived from the playable mission catalogue', () => {
+    const derived = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
+    expect(PLAYABLE_STORY_MISSION_COUNT).toBe(7);
+    expect(derived).toHaveLength(PLAYABLE_STORY_MISSION_COUNT);
+  });
+});

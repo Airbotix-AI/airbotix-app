@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-14 (feat: Tiny Star Village chapter 2 missions)
+
+### Added
+- Added the Tiny Star Village A2-B and A2-D Story Blocks missions with real direction editing, exact run/save completion gates, and focused behavioural coverage.
+- Added the Story Journey map and catalog so completed and upcoming Tiny Star Village scenes have a child-facing progression surface.
+
+### Changed
+- Extended the Story Blocks hub, mission guide, coach, starter registry, persistence state, and studio controls for the chapter 2 direction workflow.
+
 ## 2026-07-14 (fix: the Music Stage no longer auto-enters OS fullscreen)
 
 ### Fixed
@@ -89,7 +98,6 @@
   scroll for immersive routes, but the container width was decided by a *separate* list — so a route
   registered as immersive but missing from the fluid list rendered inside the centered `max-w-5xl`
   reading column. Immersive now implies full-bleed, with a test to keep it that way.
-
 ## 2026-07-13 (feat: Tiny Star Village A1 story mission)
 
 ### Added

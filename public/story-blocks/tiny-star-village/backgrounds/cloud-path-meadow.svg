@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Cloud path meadow</title>
+  <desc id="desc">A gentle meadow path with a quiet flower hill on the left and Star Plaza clearly visible on the right.</desc>
+  <defs>
+    <linearGradient id="cloudPathSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6E82BE"/>
+      <stop offset=".62" stop-color="#B8D9E8"/>
+      <stop offset="1" stop-color="#F7E7B9"/>
+    </linearGradient>
+    <linearGradient id="cloudPathGrass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BCB9B"/>
+      <stop offset="1" stop-color="#5E9D7B"/>
+    </linearGradient>
+    <linearGradient id="cloudPathRoad" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#E8D4B0"/>
+      <stop offset=".5" stop-color="#F8E9CA"/>
+      <stop offset="1" stop-color="#E3C69C"/>
+    </linearGradient>
+    <radialGradient id="cloudPathPlazaGlow">
+      <stop stop-color="#FFF3A8" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#FFF3A8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#cloudPathSky)"/>
+  <g fill="#F8FBFF" opacity=".78">
+    <path d="M80 184c28-46 91-47 123-9 29-32 85-20 96 22 49-4 70 57 34 82H77c-47-14-45-76 3-95Z"/>
+    <path d="M1045 135c31-48 97-47 128-5 31-31 85-12 91 31 47 2 63 61 25 82h-250c-44-18-38-80 6-108Z"/>
+  </g>
+  <path d="M0 536C250 435 471 454 670 536c206 85 426 69 620-26 130-64 232-49 310-7v397H0Z" fill="#78B28D"/>
+  <path d="M0 635c242-71 445-64 620 2 219 83 459 72 686-25 128-55 224-39 294-4v292H0Z" fill="url(#cloudPathGrass)"/>
+  <path d="M535 900c42-115 93-193 153-238 72-53 151-67 240-43 111 31 194 6 296-75 65-51 130-79 199-91l74 66c-72 17-128 43-172 78-129 103-254 142-401 104-70-18-128-8-178 30-47 36-87 92-121 169Z" fill="url(#cloudPathRoad)" stroke="#C5A77F" stroke-width="9"/>
+  <g opacity=".88">
+    <path d="M150 666c84-78 192-91 302-38l-22 103H114Z" fill="#75A779"/>
+    <circle cx="201" cy="642" r="13" fill="#F9D87A"/><circle cx="244" cy="681" r="11" fill="#DFA7DD"/>
+    <circle cx="310" cy="637" r="12" fill="#F6B19B"/><circle cx="373" cy="683" r="10" fill="#F9D87A"/>
+  </g>
+  <g transform="translate(1280 332)">
+    <circle cx="0" cy="0" r="165" fill="url(#cloudPathPlazaGlow)"/>
+    <ellipse cx="0" cy="181" rx="150" ry="45" fill="#668F7B" opacity=".45"/>
+    <circle cx="0" cy="112" r="104" fill="#D8C6E5" stroke="#8B75A7" stroke-width="13"/>
+    <circle cx="0" cy="112" r="72" fill="#F3E8F7" stroke="#C0A9D2" stroke-width="8"/>
+    <path d="M0 11 24 64 82 70 39 108 51 165 0 136-51 165-39 108-82 70-24 64Z" fill="#FFD75C" stroke="#B9822F" stroke-width="9" stroke-linejoin="round"/>
+    <path d="M-119 151h238" stroke="#8B75A7" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+  </g>
+  <g fill="#F8F1D6" opacity=".58">
+    <circle cx="732" cy="480" r="7"/><circle cx="792" cy="445" r="6"/><circle cx="853" cy="464" r="8"/>
+    <circle cx="921" cy="435" r="6"/><circle cx="988" cy="451" r="7"/><circle cx="1051" cy="420" r="6"/>
+  </g>
+</svg>

@@ -525,6 +525,24 @@
     0 10px 16px -8px var(--cc);
   transform: scale(1.06);
 }
+.bsx-cat-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px solid var(--bsx-surface);
+  border-radius: 999px;
+  background: #fff;
+  color: #087a4d;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgb(20 40 35 / 24%);
+}
 .bsx-cat.c-trigger {
   --cc: var(--bsx-cat-trigger);
 }
@@ -757,6 +775,11 @@
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-hill,
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-deco { display: none; }
+.bsx-stage[data-scene='tsv-cloud-path-meadow'] {
+  background: #bde8ff url('/story-blocks/tiny-star-village/backgrounds/cloud-path-meadow.svg') center / cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-hill,
+.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-deco { display: none; }
 
 .bsx-character-asset {
   display: block;
@@ -1598,6 +1621,7 @@
 .bsx-story-tower,
 .bsx-story-light-network,
 .bsx-story-light-equation,
+.bsx-story-direction,
 .bsx-story-hero,
 .bsx-story-speech,
 .bsx-story-blocks,
@@ -1688,6 +1712,44 @@
   white-space: nowrap;
 }
 .bsx-story-light-equation strong { color: #ffe06c; font-size: 1.15em; }
+.bsx-story-direction {
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: clamp(14px, 3vw, 34px);
+  padding: 0 9% 12%;
+}
+.bsx-story-direction-start,
+.bsx-story-direction-target {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  color: #fff8d7;
+  font-size: clamp(13px, 1.4vw, 17px);
+  font-weight: 900;
+  text-shadow: 0 2px 5px rgb(20 28 62 / 75%);
+}
+.bsx-story-direction-start img {
+  width: clamp(92px, 12vw, 150px);
+  max-height: 150px;
+  filter: drop-shadow(0 9px 12px rgb(24 35 78 / 35%));
+}
+.bsx-story-direction-target b {
+  font-size: clamp(72px, 9vw, 116px);
+  filter: drop-shadow(0 0 14px #ffd94f);
+}
+.bsx-story-direction > strong {
+  align-self: center;
+  color: #ffe36d;
+  font-size: clamp(42px, 6vw, 74px);
+  filter: drop-shadow(0 0 8px #ffcf43);
+}
+.bsx-story-direction > strong[data-direction='left'] { transform: translateY(18px); }
+.bsx-story-direction ~ .bsx-story-hero,
+.bsx-story-direction ~ .bsx-story-speech,
+.bsx-story-direction ~ .bsx-story-blocks { display: none; }
 .bsx-story-hero {
   left: 16%;
   bottom: 18%;
@@ -1713,6 +1775,7 @@
 .bsx-story-speech {
   left: 34%;
   top: 22%;
+  z-index: 5;
   padding: 10px 17px;
   border-radius: 20px 20px 20px 4px;
   background: #fff;
@@ -1904,6 +1967,7 @@
   background: #fff0aa;
   font-size: 23px;
 }
+.bsx-story-coach-face img { width: 34px; height: 34px; object-fit: contain; }
 .bsx-story-coach-head div { display: flex; flex-direction: column; }
 .bsx-story-coach-head strong { font-size: 14px; line-height: 1.1; }
 .bsx-story-coach-head span:last-child { color: #756a4f; font-size: 10px; font-weight: 750; }
