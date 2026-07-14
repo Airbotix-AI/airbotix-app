@@ -261,9 +261,26 @@ function Scoreboard({
   );
 }
 
+// Some questions carry their data IN a figure (a table of values, a bar graph, a
+// grid, a clock) — flattening that to text yields garbage. And PDF-layout extraction
+// occasionally bleeds the next question's text into this one (>1 question mark).
+// In both cases prefer the scanned question image over the extracted text.
+function needsImage(q: AcademyQuestion): boolean {
+  const s = q.stem_text ?? '';
+  if (!s) return true;
+  const figureEssential =
+    /\b(table|graph|chart|diagram|scale|grid|clock|column|axis|shaded|net|shapes?|balloons?|balanced|below)\b/i.test(
+      s,
+    );
+  const mergedQuestions = (s.match(/\?/g)?.length ?? 0) > 1;
+  const hasImage = (q.figure_keys?.length ?? 0) > 0 || Boolean(q.q_image_key ?? q.page_image_key);
+  return (figureEssential || mergedQuestions) && hasImage;
+}
+
 function QuestionBody({ question }: { question: AcademyQuestion }) {
-  // Primary path: real question text + inline figure images.
-  if (question.stem_text) {
+  // Primary path: real question text + inline figure images — but only when the
+  // text is trustworthy (see needsImage).
+  if (question.stem_text && !needsImage(question)) {
     return (
       <div>
         <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
@@ -349,9 +366,10 @@ function AnswerArea({
   }
 
   // Choice: prefer the real option text (submitting the LETTER); otherwise fall
-  // back to generic A/B/C/D buttons.
+  // back to generic A/B/C/D buttons. When the question is shown as an image
+  // (needsImage), the options live in the image too — don't risk garbled text.
   const letters =
-    question.options && question.options.length > 0
+    question.options && question.options.length > 0 && !needsImage(question)
       ? question.options.map((text, i) => ({ letter: CHOICE_LETTERS[i], text }))
       : CHOICE_LETTERS.slice(0, FALLBACK_CHOICE_COUNT).map((letter) => ({ letter, text: null }));
 

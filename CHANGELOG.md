@@ -1,3 +1,11 @@
+
+### Fixed
+- **Table/graph questions now show the image, not garbled text.** Questions whose data
+  lives in a figure (a table of values, a bar graph, a grid, a clock) were being rendered
+  from flattened, noisy extracted text — and PDF-layout extraction occasionally bled the
+  next question's text in. `AcademyPracticePage` now detects these (figure keywords or >1
+  question mark + an available image) and renders the scanned question image instead, with
+  generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
 ## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)

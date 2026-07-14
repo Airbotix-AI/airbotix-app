@@ -127,4 +127,24 @@ describe('AcademyPracticePage', () => {
     );
     expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
   });
+
+  it('shows the image (not garbled text) when the question data lives in a table/figure', async () => {
+    const TABLE_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'q3',
+      answer_type: 'value' as const,
+      // Extraction flattens a table to noisy text — the real data is in the figure,
+      // so the page must show the image, not this stem.
+      stem_text:
+        'Some children were asked to name their favourite sport. The table below shows their responses.',
+      options: null,
+      q_image_key: 'q/naplan-y5-2016-std-q2.png',
+    };
+    wireApi([TABLE_Q]);
+    renderPage();
+
+    const img = await screen.findByTestId('academy-question-image');
+    expect(img).toHaveAttribute('src', 'http://api.test/academy/assets/q/naplan-y5-2016-std-q2.png');
+    expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
+  });
 });
