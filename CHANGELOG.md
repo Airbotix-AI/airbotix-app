@@ -1,6 +1,17 @@
 # Changelog
 
-## 2026-07-14 (fix: Music is discoverable from the studio picker again)
+## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)
+
+### Added
+- **Academy — NAPLAN Maths practice (`/learn/academy`).** A new kid Learn surface: pick a year
+  level (Year 3/5/7/9, default Year 5; subject fixed to Numeracy), work through ~20 real
+  NAPLAN-style questions one at a time, and get the official answer straight after each try. Renders
+  the real question text with inline figure images when present, falling back to the scanned
+  question/page image otherwise; multiple-choice shows the real option text and submits the letter,
+  value questions take a typed number. A header scoreboard tracks done/correct + progress, and the
+  end-of-set summary reads back the kid's running accuracy with a "Practise more" reset. Rides the
+  shared `api` client (kid-JWT auth) + K-12 design tokens like every other Learn page; a new home
+  tile links to it.
 
 ### Fixed
 - **The Workspace studio picker had no Music entry at all.** When the Stage moved out of the chat
