@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-14 (fix: the Music Stage no longer auto-enters OS fullscreen)
+
+### Fixed
+- **Opening the Music Stage hijacked the whole browser into OS fullscreen on the first click.**
+  Auto-fullscreen-on-first-gesture is a Blocks Studio behaviour (tablet-first); it applied to every
+  immersive route, so the Music Stage triggered it too. The two concerns are now separate: immersive
+  (nav hidden + page-scroll lock) still covers both studios, but OS fullscreen only arms on
+  `/learn/blocks/` (user decision: "music is immersive, not fullscreen").
+
 ## 2026-07-14 (fix: opening the AI Studio no longer bounces onto an old song)
 
 ### Fixed

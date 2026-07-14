@@ -67,4 +67,28 @@ describe('LearnLayout', () => {
     expect(main).toHaveClass('flex-1', 'min-h-0', 'overflow-hidden');
     expect(main).not.toHaveClass('h-full');
   });
+
+  // OS fullscreen is a Blocks-only behaviour (tablet-first). The Music Stage is
+  // immersive (no nav, no page scroll) but must stay a normal browser page —
+  // a desktop kid composing a song shouldn't have their browser hijacked into
+  // fullscreen (user decision).
+  it('auto-enters OS fullscreen on first tap for Blocks but NEVER for the Music Stage', () => {
+    const requestFullscreen = vi.fn(() => Promise.resolve());
+    Object.defineProperty(document.documentElement, 'requestFullscreen', {
+      configurable: true,
+      value: requestFullscreen,
+    });
+    try {
+      mount('/learn/music/s1');
+      window.dispatchEvent(new Event('pointerdown'));
+      expect(requestFullscreen).not.toHaveBeenCalled();
+      cleanup();
+
+      mount('/learn/blocks/p1');
+      window.dispatchEvent(new Event('pointerdown'));
+      expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    } finally {
+      delete (document.documentElement as { requestFullscreen?: unknown }).requestFullscreen;
+    }
+  });
 });

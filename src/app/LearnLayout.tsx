@@ -21,6 +21,13 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground', '/
 // is immersive.
 const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music'];
 
+// Of the immersive surfaces, only the tablet-first Blocks Studio ALSO asks the
+// browser for OS fullscreen on the first tap. The Music Stage is immersive
+// (no nav, no page scroll) but stays a normal browser page — a desktop kid
+// composing a song shouldn't have their whole browser hijacked into fullscreen
+// (user decision, music-stage-prd D-MS7 refinement).
+const AUTO_FULLSCREEN_ROUTES = ['/learn/blocks/'];
+
 export function LearnLayout() {
   const { pathname } = useLocation();
   const immersive = IMMERSIVE_ROUTES.some((p) => pathname.startsWith(p));
@@ -64,7 +71,19 @@ export function LearnLayout() {
     const prevOverscroll = html.style.overscrollBehavior;
     document.body.style.overflow = 'hidden';
     html.style.overscrollBehavior = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      html.style.overscrollBehavior = prevOverscroll;
+    };
+  }, [immersive]);
 
+  // OS fullscreen on the first gesture — Blocks Studio only (tablet-first).
+  // The Music Stage is immersive but must NOT hijack the browser into
+  // fullscreen; see AUTO_FULLSCREEN_ROUTES above.
+  const autoFullscreen = AUTO_FULLSCREEN_ROUTES.some((p) => pathname.startsWith(p));
+  useEffect(() => {
+    if (!autoFullscreen) return undefined;
+    const html = document.documentElement;
     let dismissed = false; // user/browser left fullscreen → don't auto re-enter
     const enter = () => {
       if (!dismissed && !document.fullscreenElement && html.requestFullscreen) {
@@ -76,15 +95,12 @@ export function LearnLayout() {
     };
     window.addEventListener('pointerdown', enter, { once: true });
     document.addEventListener('fullscreenchange', onFsChange);
-
     return () => {
-      document.body.style.overflow = prevOverflow;
-      html.style.overscrollBehavior = prevOverscroll;
       window.removeEventListener('pointerdown', enter);
       document.removeEventListener('fullscreenchange', onFsChange);
       if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
     };
-  }, [immersive]);
+  }, [autoFullscreen]);
 
   return (
     <div className="flex h-full flex-col bg-canvas">
