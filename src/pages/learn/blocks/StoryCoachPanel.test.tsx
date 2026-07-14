@@ -11,6 +11,7 @@ const buildMission = storyMissionFor('tsv-s1-a1-b')!;
 const manualFixMission = storyMissionFor('tsv-s1-a1-d')!;
 const personalShipMission = storyMissionFor('tsv-s1-a1-s')!;
 const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
+const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 
 afterEach(cleanup);
 
@@ -121,5 +122,22 @@ describe('StoryCoachPanel', () => {
     );
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('No fix yet');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('keeps A2-B in Build until the exact Right 3 chain is ready', () => {
+    const onGo = vi.fn();
+    const { rerender } = render(
+      <StoryCoachPanel mission={directionBuildMission} cue="ready" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByText('Tuan Tuan')).toBeInTheDocument();
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('choose one arrow');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    rerender(
+      <StoryCoachPanel mission={directionBuildMission} cue="test" running={false} onGo={onGo} />,
+    );
+    expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('Right 3');
+    fireEvent.click(screen.getByRole('button', { name: '▶ Test my fix' }));
+    expect(onGo).toHaveBeenCalledOnce();
   });
 });

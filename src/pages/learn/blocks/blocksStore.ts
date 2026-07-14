@@ -103,6 +103,8 @@ interface BlocksStore {
   insertBlock: (op: BlockOp, scriptId: string, index: number, n?: number) => void;
   /** Remove a block (the trigger removes its whole script). */
   removeBlock: (scriptId: string, index: number) => void;
+  /** Swap a block's operation while preserving its existing parameters. */
+  replaceBlockOp: (scriptId: string, index: number, op: BlockOp) => void;
   /** Tap-to-cycle a block's value 1→max→1 (number tile, speed, or msg colour). */
   cycleParam: (scriptId: string, index: number, max?: number) => void;
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
@@ -386,6 +388,24 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             sc.id !== scriptId ? sc : { ...sc, blocks: sc.blocks.filter((_, i) => i !== index) },
           )
           .filter((sc) => sc.blocks.length > 0 && isTrigger(sc.blocks[0].op)),
+      })),
+    }));
+  },
+
+  replaceBlockOp(scriptId, index, op) {
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) =>
+          sc.id !== scriptId
+            ? sc
+            : {
+                ...sc,
+                blocks: sc.blocks.map((block, blockIndex) =>
+                  blockIndex === index ? { ...block, op } : block,
+                ),
+              },
+        ),
       })),
     }));
   },

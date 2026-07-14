@@ -154,6 +154,7 @@ export function BlocksStudioPage({
   const [confirmReset, setConfirmReset] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
+  const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -210,6 +211,7 @@ export function BlocksStudioPage({
   const missionTargetFixed = storyMission
     ? storyMissionProgramMatches(project, storyMission.lessonId)
     : false;
+  const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
@@ -236,6 +238,7 @@ export function BlocksStudioPage({
     setMissionAnswer(null);
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(false);
+    setMissionWrongRunObserved(false);
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(false);
     setStoryCoachCue('ready');
@@ -470,11 +473,21 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
+        const requiresPlazaArrival =
+          storyMission.lessonId === 'tsv-s1-a2-b' || storyMission.lessonId === 'tsv-s1-a2-d';
+        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === 11;
+        const observedWrongDirection =
+          storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
+        if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
           setMissionOpen(true);
-        } else if (missionTargetFixed) {
+        } else if (
+          missionTargetFixed &&
+          reachedMissionTarget &&
+          (!isA2DirectionDebug || missionWrongRunObserved)
+        ) {
           setMissionCorrectRunFinished(true);
           setStoryCoachCue(missionFixPersisted ? 'complete' : 'saving');
           if (missionFixPersisted) {
@@ -489,7 +502,16 @@ export function BlocksStudioPage({
         }
       }
     });
-  }, [running, makeRunner, demo, storyMission, missionTargetFixed, missionFixPersisted]);
+  }, [
+    running,
+    makeRunner,
+    demo,
+    storyMission,
+    missionTargetFixed,
+    missionFixPersisted,
+    isA2DirectionDebug,
+    missionWrongRunObserved,
+  ]);
 
   const answerStoryMission = useCallback(
     (choiceId: string) => {
@@ -711,7 +733,7 @@ export function BlocksStudioPage({
     });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly) return;
+    if (running || present || readOnly || isA2DirectionDebug) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -876,6 +898,31 @@ export function BlocksStudioPage({
     }
     palDragUpdate(e.clientX, e.clientY);
   };
+  const addPaletteBlock = (
+    store: ReturnType<typeof useBlocksStore.getState>,
+    op: BlockOp,
+    n: number | undefined,
+    drop?: { scriptId: string; slot: number },
+  ) => {
+    if (isA2DirectionDebug) return;
+    const isA2Direction =
+      storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right');
+    if (isA2Direction && missionScript) {
+      const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
+      store.insertBlock(
+        op,
+        missionScript.id,
+        endIndex >= 1 ? endIndex : missionScript.blocks.length,
+        3,
+      );
+      return;
+    }
+    if (drop) {
+      store.insertBlock(op, drop.scriptId, drop.slot, n);
+      return;
+    }
+    store.addBlock(op, n);
+  };
   const endPalDrag = (op: BlockOp, n: number | undefined, commit: boolean) => {
     window.clearTimeout(palLP.current);
     unlockTouchScroll();
@@ -888,15 +935,18 @@ export function BlocksStudioPage({
       if (palDidDrag.current) {
         if (info && info.scriptId) {
           sfx.snap();
-          store.insertBlock(d?.op ?? op, info.scriptId, info.slot, d?.n ?? n);
+          addPaletteBlock(store, d?.op ?? op, d?.n ?? n, {
+            scriptId: info.scriptId,
+            slot: info.slot,
+          });
         } else {
           sfx.place();
-          store.addBlock(d?.op ?? op, d?.n ?? n);
+          addPaletteBlock(store, d?.op ?? op, d?.n ?? n);
         }
       } else {
         // a clean tap → add to the bottom of the latest script
         sfx.place();
-        store.addBlock(op, n);
+        addPaletteBlock(store, op, n);
       }
     }
     setTimeout(() => (palDidDrag.current = false), 0);
@@ -914,6 +964,23 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
+    if (storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right')) {
+      return; // Age A direction mission fixes the distance at three steps.
+    }
+    if (isA2DirectionDebug && (op === 'move_left' || op === 'move_right')) {
+      if (!missionWrongRunObserved) {
+        setStoryCoachCue('retry');
+        setMissionOpen(true);
+        return;
+      }
+      sfx.tap();
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const W = 230;
+      const left = Math.min(Math.max(8, r.left + r.width / 2 - W / 2), window.innerWidth - W - 8);
+      setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
+      return;
+    }
+    if (isA2DirectionDebug) return;
     const def = blockDef(op as BlockOp);
     // speed / message-colour blocks cycle their value on tap (no number editor)
     if (def.param === 'speed') {
@@ -1463,6 +1530,11 @@ export function BlocksStudioPage({
                       {script.blocks.map((b, i) => {
                         const isDragged = isDragSource && dragBlk!.index === i;
                         const def = blockDef(b.op);
+                        const isLockedDirection =
+                          storyMission?.lessonId === 'tsv-s1-a2-b' &&
+                          (b.op === 'move_left' || b.op === 'move_right');
+                        const isDebugDirection =
+                          isA2DirectionDebug && (b.op === 'move_left' || b.op === 'move_right');
                         return (
                           <BlockChip
                             key={`${script.id}-${i}`}
@@ -1482,11 +1554,17 @@ export function BlocksStudioPage({
                             onPointerCancel={onBlockCancel}
                             onTap={(e) => onBlockTap(e, script.id, i, b.op)}
                             title={
-                              def.hasN
-                                ? 'Tap to change the number · hold to drag · drag to the bin to remove'
-                                : b.op === 'say'
-                                  ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                                  : 'Hold to drag · drag to another track or the bin'
+                              isDebugDirection
+                                ? missionWrongRunObserved
+                                  ? 'Tap to turn this one arrow · 3 steps stay the same'
+                                  : 'Press Go first and watch where Left 3 goes'
+                                : isLockedDirection
+                                ? '3 steps are ready · hold to drag · drag to the bin to remove'
+                                : def.hasN
+                                  ? 'Tap to change the number · hold to drag · drag to the bin to remove'
+                                  : b.op === 'say'
+                                    ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                                    : 'Hold to drag · drag to another track or the bin'
                             }
                           />
                         );
@@ -1647,7 +1725,10 @@ export function BlocksStudioPage({
           >
             <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
-              {editing.block.op === 'say'
+              {isA2DirectionDebug &&
+              (editing.block.op === 'move_left' || editing.block.op === 'move_right')
+                ? 'Which way should Tuan Tuan go?'
+                : editing.block.op === 'say'
                 ? 'What should they say?'
                 : blockDef(editing.block.op).param === 'note'
                   ? 'Which note? Tap to hear it!'
@@ -1657,7 +1738,30 @@ export function BlocksStudioPage({
                       ? `Which page? (1–${project.pages.length})`
                       : `How many? (${blockDef(editing.block.op).label})`}
             </div>
-            {editing.block.op === 'say' ? (
+            {isA2DirectionDebug &&
+            (editing.block.op === 'move_left' || editing.block.op === 'move_right') ? (
+              <div className="grid grid-cols-2 gap-2" data-testid="direction-repair-picker">
+                {(['move_left', 'move_right'] as const).map((direction) => (
+                  <button
+                    key={direction}
+                    type="button"
+                    data-testid={`direction-repair-${direction}`}
+                    aria-pressed={editing.block.op === direction}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-3 text-[13px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      if (editing.block.op === direction) return;
+                      sfx.tap();
+                      useBlocksStore
+                        .getState()
+                        .replaceBlockOp(editing.scriptId, editing.index, direction);
+                      setEditBlk(null);
+                    }}
+                  >
+                    {direction === 'move_left' ? '⬅️ Left' : '➡️ Right'}
+                  </button>
+                ))}
+              </div>
+            ) : editing.block.op === 'say' ? (
               <div>
                 <input
                   data-testid="say-input"

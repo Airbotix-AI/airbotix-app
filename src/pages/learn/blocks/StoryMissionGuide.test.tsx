@@ -11,6 +11,7 @@ const buildMission = storyMissionFor('tsv-s1-a1-b')!;
 const manualFixMission = storyMissionFor('tsv-s1-a1-d')!;
 const personalShipMission = storyMissionFor('tsv-s1-a1-s')!;
 const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
+const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 
 afterEach(cleanup);
 
@@ -350,5 +351,64 @@ describe('StoryMissionGuide', () => {
     expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
     expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
     expect(screen.getByText(/A2-B/)).toBeInTheDocument();
+  });
+
+  it('carries A2-H into a three-page A2-B build with no auto-fix answer', () => {
+    const onApplyFix = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={directionBuildMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Tuan Tuan remembers your careful watching')).toBeInTheDocument();
+    expect(screen.getByText(/Left arrow carry Tuan Tuan farther/)).toBeInTheDocument();
+    expect(screen.getByTestId('story-tuan-tuan')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    expect(screen.getByText('The plaza star is three steps right')).toBeInTheDocument();
+    expect(screen.getByTestId('story-direction-target')).toHaveTextContent('Plaza star');
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    expect(screen.getByText('Put one real arrow before End')).toBeInTheDocument();
+    expect(screen.getByText(/Start and End are already connected/)).toBeInTheDocument();
+
+    unmount();
+    render(
+      <StoryMissionGuide
+        mission={directionBuildMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('story-build-task')).toHaveTextContent(
+      'Open Motion and tap one arrow',
+    );
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
+  it('celebrates A2-B only as a tested and saved Right 3 program', () => {
+    render(
+      <StoryMissionGuide
+        mission={directionBuildMission}
+        hasRun
+        completed
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('story-mission-success')).toHaveTextContent('saved it');
+    expect(screen.getByTestId('story-logic-proof')).toHaveTextContent('Right 3');
+    expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
   });
 });

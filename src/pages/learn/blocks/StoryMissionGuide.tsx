@@ -44,7 +44,7 @@ export function StoryMissionGuide({
   const lastStoryPage = storyPage === mission.storyPages.length - 1;
   const storyScene = page.scene ?? storyPage + 1;
   const storyBlocks = page.blocks ?? ['💬 Say', '🦘 Hop'];
-  const heroTestId = mission.lessonId === 'tsv-s1-a2-h' ? 'story-tuan-tuan' : 'story-lumilo';
+  const heroTestId = mission.hero.name === 'Tuan Tuan' ? 'story-tuan-tuan' : 'story-lumilo';
 
   const readStory = () => {
     setStoryPage(0);
@@ -198,10 +198,11 @@ export function StoryMissionGuide({
                 <div className="bsx-story-hero" data-testid={heroTestId}>
                   <img src={mission.hero.asset} alt="" />
                   <span>{mission.hero.name}</span>
-              </div>
-              <div className="bsx-story-speech">
-                {page.visualSpeech ?? (storyPage === 0 ? `Hi! I'm ${mission.hero.name}!` : 'Morning!')}
-              </div>
+                </div>
+                <div className="bsx-story-speech">
+                  {page.visualSpeech ??
+                    (storyPage === 0 ? `Hi! I'm ${mission.hero.name}!` : 'Morning!')}
+                </div>
                 <div className="bsx-story-blocks">
                   <span>{storyBlocks[0]}</span>
                   <b>→</b>

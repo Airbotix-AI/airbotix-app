@@ -42,4 +42,17 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.desc).toMatch(/point to the plaza star/i);
     expect(starter?.desc).toContain('closer or farther');
   });
+
+  it('offers A2-B as a real one-arrow build mission', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a2_b');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 6');
+    expect(starter?.desc).toContain('Choose one real direction block');
+    expect(starter?.desc).toContain('reach the star');
+  });
+
+  it('offers A2-D as a one-arrow repair mission', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a2_d');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 7');
+    expect(starter?.desc).toContain('swap only Left for Right');
+  });
 });

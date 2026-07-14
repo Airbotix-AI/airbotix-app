@@ -87,6 +87,25 @@ function directionHookProject() {
   return project;
 }
 
+function completedDirectionBuildProject() {
+  const project = directionHookProject();
+  project.lessonId = 'tsv-s1-a2-b';
+  project.pages[0].id = 'tsv-a2-b-page';
+  project.pages[0].characters[0].scripts[0].blocks = [
+    { op: 'when_flag' },
+    { op: 'move_right', n: 3 },
+    { op: 'end' },
+  ];
+  return project;
+}
+
+function directionDebugProject() {
+  const project = directionHookProject();
+  project.lessonId = 'tsv-s1-a2-d';
+  project.pages[0].id = 'tsv-a2-d-page';
+  return project;
+}
+
 describe('storyMissionProgramMatches', () => {
   it('accepts only the exact saved Lumi mission program', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-h')).toBe(true);
@@ -140,12 +159,50 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(wrongAsset, 'tsv-s1-a2-h')).toBe(false);
   });
 
+  it('accepts A2-B only for the exact Right 3 path to the unchanged plaza target', () => {
+    expect(storyMissionProgramMatches(completedDirectionBuildProject(), 'tsv-s1-a2-b')).toBe(true);
+
+    const left = completedDirectionBuildProject();
+    left.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_left', n: 3 };
+    expect(storyMissionProgramMatches(left, 'tsv-s1-a2-b')).toBe(false);
+
+    const wrongDistance = completedDirectionBuildProject();
+    wrongDistance.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 2 };
+    expect(storyMissionProgramMatches(wrongDistance, 'tsv-s1-a2-b')).toBe(false);
+
+    const missingEnd = completedDirectionBuildProject();
+    missingEnd.pages[0].characters[0].scripts[0].blocks.pop();
+    expect(storyMissionProgramMatches(missingEnd, 'tsv-s1-a2-b')).toBe(false);
+  });
+
+  it('accepts A2-D only after Left 3 is replaced by Right 3 and every other block stays exact', () => {
+    const repaired = directionDebugProject();
+    repaired.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a2-d')).toBe(true);
+
+    expect(storyMissionProgramMatches(directionDebugProject(), 'tsv-s1-a2-d')).toBe(false);
+
+    const wrongDistance = directionDebugProject();
+    wrongDistance.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 2 };
+    expect(storyMissionProgramMatches(wrongDistance, 'tsv-s1-a2-d')).toBe(false);
+
+    const extraChange = directionDebugProject();
+    extraChange.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 3 },
+      { op: 'hop', n: 1 },
+      { op: 'end' },
+    ];
+    expect(storyMissionProgramMatches(extraChange, 'tsv-s1-a2-d')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);
     expect(storyMissionProgramMatches(correctedDebugMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(personalShipMissionProject(), 'tsv-s1-a1-d')).toBe(false);
     expect(storyMissionProgramMatches(directionHookProject(), 'tsv-s1-a1-s')).toBe(false);
+    expect(storyMissionProgramMatches(completedDirectionBuildProject(), 'tsv-s1-a2-h')).toBe(false);
   });
 
   it('rejects a correct-looking sequence on the wrong character or script', () => {

@@ -44,4 +44,16 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 5',
     desc: 'The fourth wake-up star reveals Tuan Tuan on the cloud path. Point to the plaza star, press Go, then decide whether Tuan Tuan moved closer or farther away.',
   },
+  {
+    id: 'blocks_tsv_a2_b',
+    emoji: '➡️',
+    title: 'Tiny Star Village · Mission 6',
+    desc: 'Tuan Tuan knows the plaza star is on the right. Choose one real direction block, run the path, and help Tuan Tuan reach the star.',
+  },
+  {
+    id: 'blocks_tsv_a2_d',
+    emoji: '🛠️',
+    title: 'Tiny Star Village · Mission 7',
+    desc: 'Tuan Tuan has the right three-step path but the arrow points the wrong way. Run it once, then swap only Left for Right and test your repair.',
+  },
 ];

@@ -68,6 +68,38 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       size: 0.8,
     },
   },
+  'tsv-s1-a2-b': {
+    pageId: 'tsv-a2-b-page',
+    background: 'tsv-cloud-path-meadow',
+    characterId: 'tuan-tuan',
+    scriptId: 'tuan-tuan-flag',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: {
+      id: 'plaza-target',
+      name: 'Plaza Star',
+      gx: 11,
+      gy: 10,
+      size: 0.8,
+    },
+  },
+  'tsv-s1-a2-d': {
+    pageId: 'tsv-a2-d-page',
+    background: 'tsv-cloud-path-meadow',
+    characterId: 'tuan-tuan',
+    scriptId: 'tuan-tuan-flag',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: {
+      id: 'plaza-target',
+      name: 'Plaza Star',
+      gx: 11,
+      gy: 10,
+      size: 0.8,
+    },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
