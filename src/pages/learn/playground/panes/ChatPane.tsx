@@ -52,6 +52,11 @@ interface ChatPaneProps {
   onCancelQueued?: () => void;
   /** Teacher live viewer (D-LV-6) — render chat history only; no composer / actions. */
   readOnly?: boolean;
+  /** The unsent composer text, owned by `Workspace` so it survives this pane
+   *  remounting on a split-tab / layout switch (the draft must not be lost). */
+  draft?: string;
+  /** Patch the lifted draft. */
+  onDraftChange?: (value: string) => void;
 }
 
 // Presentational. The chat state (`useGameAgent`) is owned by `Workspace` so it
