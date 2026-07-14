@@ -2105,6 +2105,30 @@
   font-weight: 800;
 }
 .bsx-mission-next { margin-top: 8px; background: #ecf9e9; color: #2f653e; font-weight: 800; }
+.bsx-mission-journey-label {
+  margin: 0 auto 10px;
+  color: #7b5f14;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.bsx-mission-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 16px;
+}
+.bsx-mission-evidence span {
+  border: 1px solid #a8dfbd;
+  border-radius: 999px;
+  background: #effbf3;
+  padding: 7px 10px;
+  color: #2f653e;
+  font-size: 12px;
+  font-weight: 850;
+}
 
 @media (max-width: 760px) {
   .bsx-mission-launcher span { display: none; }

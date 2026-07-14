@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Expand,
   Image as ImageIcon,
@@ -24,7 +24,12 @@ import {
   VolumeX,
 } from 'lucide-react';
 
-import { loadBlocksProject, saveBlocksProject } from './blocksApi';
+import {
+  createBlocksProject,
+  loadBlocksProject,
+  saveBlocksProject,
+  type BlocksStoryProgress,
+} from './blocksApi';
 import {
   type BlockCategory,
   type BlockOp,
@@ -68,6 +73,11 @@ import {
   storyMissionScriptId,
   TINY_STAR_GREETING_CHOICES,
 } from './storyMissionProgress';
+import {
+  nextStoryMissionForLesson,
+  storyJourneyPositionForLesson,
+  storyMissionProjectTitle,
+} from './storyJourneyCatalog';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -119,6 +129,7 @@ export function BlocksStudioPage({
   embedded = false,
 }: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
   // The teacher live viewer (D-LV-6) mounts it with `projectId` + `readOnly` so a
@@ -160,6 +171,8 @@ export function BlocksStudioPage({
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
   const [missionFixPersisted, setMissionFixPersisted] = useState(false);
   const [missionCompleted, setMissionCompleted] = useState(false);
+  const [nextMissionBusy, setNextMissionBusy] = useState(false);
+  const [nextMissionError, setNextMissionError] = useState<string | null>(null);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
@@ -183,6 +196,8 @@ export function BlocksStudioPage({
 
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
+  const storyProgressRef = useRef<BlocksStoryProgress>({ schemaVersion: 1, completed: {} });
+  const completionSaveInFlightRef = useRef(false);
   const runnerRef = useRef<BlocksRunner | null>(null);
   // Autosave is serialized: only one save may be in flight. Overlapping saves
   // would share the same base `versionRef` (it only advances when a save
@@ -199,6 +214,14 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const journeyPosition = useMemo(
+    () => storyJourneyPositionForLesson(project.lessonId),
+    [project.lessonId],
+  );
+  const nextJourneyPosition = useMemo(
+    () => nextStoryMissionForLesson(project.lessonId),
+    [project.lessonId],
+  );
   const answeredCorrectly =
     storyMission?.choices.some((choice) => choice.id === missionAnswer && choice.correct) ?? false;
   const missionScript = useMemo(
@@ -234,16 +257,37 @@ export function BlocksStudioPage({
   useEffect(() => {
     if (phase !== 'ready' || !storyMission || introducedMissionRef.current === projectId) return;
     introducedMissionRef.current = projectId ?? storyMission.lessonId;
-    setMissionHasRun(false);
+    const previouslyCompleted = Boolean(
+      storyProgressRef.current.completed[storyMission.lessonId] && missionTargetFixed,
+    );
+    setMissionHasRun(previouslyCompleted);
     setMissionAnswer(null);
     setMissionFixApplied(false);
-    setMissionCorrectRunFinished(false);
+    setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
     setMissionFixPersisted(missionTargetFixed);
-    setMissionCompleted(false);
-    setStoryCoachCue('ready');
+    setMissionCompleted(previouslyCompleted);
+    setNextMissionBusy(false);
+    setNextMissionError(null);
+    setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission, missionTargetFixed]);
+
+  const startNextStoryMission = useCallback(async () => {
+    if (!nextJourneyPosition || nextMissionBusy) return;
+    setNextMissionBusy(true);
+    setNextMissionError(null);
+    try {
+      const { id } = await createBlocksProject({
+        template: nextJourneyPosition.mission.template,
+        title: storyMissionProjectTitle(nextJourneyPosition.mission),
+      });
+      navigate(`/learn/blocks/${id}`);
+    } catch {
+      setNextMissionBusy(false);
+      setNextMissionError("Couldn't open the next scene. Please try again.");
+    }
+  }, [navigate, nextJourneyPosition, nextMissionBusy]);
 
   useEffect(() => {
     if (missionTargetFixed) return;
@@ -251,13 +295,6 @@ export function BlocksStudioPage({
     setMissionFixPersisted(false);
     setMissionCompleted(false);
   }, [missionTargetFixed]);
-
-  useEffect(() => {
-    if (!missionCorrectRunFinished || !missionFixPersisted || !missionTargetFixed) return;
-    setMissionCompleted(true);
-    setStoryCoachCue('complete');
-    setMissionOpen(true);
-  }, [missionCorrectRunFinished, missionFixPersisted, missionTargetFixed]);
 
   // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
   // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
@@ -291,8 +328,24 @@ export function BlocksStudioPage({
         if (!alive) return;
         versionRef.current = loaded.version;
         otherFilesRef.current = loaded.otherFiles;
+        storyProgressRef.current = loaded.storyProgress ?? { schemaVersion: 1, completed: {} };
+        const loadedMission = storyMissionFor(loaded.project.lessonId);
+        const loadedMissionCompleted = Boolean(
+          loadedMission &&
+            storyProgressRef.current.completed[loadedMission.lessonId] &&
+            storyMissionProgramMatches(loaded.project, loadedMission.lessonId),
+        );
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
+        if (loadedMissionCompleted && loadedMission) {
+          introducedMissionRef.current = projectId;
+          setMissionHasRun(true);
+          setMissionCorrectRunFinished(true);
+          setMissionFixPersisted(true);
+          setMissionCompleted(true);
+          setStoryCoachCue('complete');
+          setMissionOpen(true);
+        }
         setPhase('ready');
         // refresh the cover thumbnail on open (device-local; even without an edit).
         // Never in the teacher viewer (D-LV-6): saveThumbnail is a kid-scoped write,
@@ -344,10 +397,12 @@ export function BlocksStudioPage({
               version: versionRef.current,
               otherFiles: otherFilesRef.current,
               history: { past: st.past, future: st.future },
+              storyProgress: storyProgressRef.current,
             });
             versionRef.current = result.version;
             if (result.status === 'kept-newest') {
               useBlocksStore.getState().load(result.project);
+              storyProgressRef.current = result.storyProgress;
             }
           } while (pendingRef.current);
           setSaveStatus('saved');
@@ -372,6 +427,102 @@ export function BlocksStudioPage({
     }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [dirty, phase, projectId, readOnly, storyMission]);
+
+  const persistStoryMissionCompletion = useCallback(async () => {
+    if (
+      !projectId ||
+      !storyMission ||
+      completionSaveInFlightRef.current ||
+      savingRef.current
+    ) {
+      return;
+    }
+    completionSaveInFlightRef.current = true;
+    savingRef.current = true;
+    setSaveStatus('saving');
+    setNextMissionError(null);
+    const nextProgress: BlocksStoryProgress = {
+      schemaVersion: 1,
+      completed: {
+        ...storyProgressRef.current.completed,
+        [storyMission.lessonId]: { completedAt: new Date().toISOString() },
+      },
+    };
+    try {
+      let serverWon = false;
+      do {
+        pendingRef.current = false;
+        const st = useBlocksStore.getState();
+        const result = await saveBlocksProject({
+          projectId,
+          project: st.project,
+          version: versionRef.current,
+          otherFiles: otherFilesRef.current,
+          history: { past: st.past, future: st.future },
+          storyProgress: nextProgress,
+        });
+        versionRef.current = result.version;
+        if (result.status === 'kept-newest') {
+          serverWon = true;
+          useBlocksStore.getState().load(result.project);
+          storyProgressRef.current = result.storyProgress;
+          break;
+        }
+      } while (pendingRef.current);
+
+      if (serverWon) {
+        const currentProject = useBlocksStore.getState().project;
+        const completedOnServer = Boolean(
+          storyProgressRef.current.completed[storyMission.lessonId] &&
+            storyMissionProgramMatches(currentProject, storyMission.lessonId),
+        );
+        setMissionCompleted(completedOnServer);
+        setMissionCorrectRunFinished(completedOnServer);
+        setMissionFixPersisted(
+          storyMissionProgramMatches(currentProject, storyMission.lessonId),
+        );
+        setStoryCoachCue(completedOnServer ? 'complete' : 'test');
+        setMissionOpen(completedOnServer);
+      } else {
+        storyProgressRef.current = nextProgress;
+        setMissionCompleted(true);
+        setStoryCoachCue('complete');
+        setMissionOpen(true);
+      }
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('offline');
+      setMissionCorrectRunFinished(false);
+      setNextMissionError(
+        'Your blocks are ready, but the completion could not be saved. Press Go to try again.',
+      );
+      setStoryCoachCue('test');
+      setMissionOpen(true);
+    } finally {
+      savingRef.current = false;
+      completionSaveInFlightRef.current = false;
+    }
+  }, [projectId, storyMission]);
+
+  useEffect(() => {
+    if (
+      missionCompleted ||
+      !missionCorrectRunFinished ||
+      !missionFixPersisted ||
+      !missionTargetFixed ||
+      saveStatus === 'saving'
+    ) {
+      return;
+    }
+    void persistStoryMissionCompletion();
+  }, [
+    missionCompleted,
+    missionCorrectRunFinished,
+    missionFixPersisted,
+    missionTargetFixed,
+    persistStoryMissionCompletion,
+    saveStatus,
+  ]);
 
   // ── undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ─────────────────
   const undo = useCallback(() => {
@@ -489,13 +640,8 @@ export function BlocksStudioPage({
           (!isA2DirectionDebug || missionWrongRunObserved)
         ) {
           setMissionCorrectRunFinished(true);
-          setStoryCoachCue(missionFixPersisted ? 'complete' : 'saving');
-          if (missionFixPersisted) {
-            setMissionCompleted(true);
-            setMissionOpen(true);
-          } else {
-            setMissionOpen(false);
-          }
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
         } else {
           if (storyMission.mode !== 'observe-fix') setStoryCoachCue('retry');
           setMissionOpen(true);
@@ -508,7 +654,6 @@ export function BlocksStudioPage({
     demo,
     storyMission,
     missionTargetFixed,
-    missionFixPersisted,
     isA2DirectionDebug,
     missionWrongRunObserved,
   ]);
@@ -524,9 +669,9 @@ export function BlocksStudioPage({
         setStoryCoachCue('retry');
         return;
       }
-      setMissionCompleted(true);
-      setStoryCoachCue('complete');
-      setMissionOpen(true);
+      setMissionCorrectRunFinished(true);
+      setStoryCoachCue('saving');
+      setMissionOpen(false);
     },
     [missionHasRun, missionTargetFixed, storyMission],
   );
@@ -1211,6 +1356,20 @@ export function BlocksStudioPage({
           onAnswer={answerStoryMission}
           onApplyFix={applyMissionFix}
           onClose={() => setMissionOpen(false)}
+          journeyLabel={
+            journeyPosition
+              ? `Chapter ${journeyPosition.chapter.number} · Scene ${journeyPosition.sceneNumber} of ${journeyPosition.sceneCount}`
+              : undefined
+          }
+          nextJourneyLabel={
+            nextJourneyPosition
+              ? `Chapter ${nextJourneyPosition.chapter.number} · ${nextJourneyPosition.mission.title}`
+              : undefined
+          }
+          nextBusy={nextMissionBusy}
+          nextError={nextMissionError}
+          onNext={nextJourneyPosition && !readOnly && !demo ? startNextStoryMission : undefined}
+          onBackToCollection={() => navigate('/learn/create/blocks')}
         />
       )}
 

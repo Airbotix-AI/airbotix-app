@@ -2,6 +2,7 @@ import type { BlocksTemplateId } from './blocksApi';
 
 export interface StoryJourneyMission {
   template: BlocksTemplateId;
+  lessonId: string;
   number: number;
   title: string;
   action: string;
@@ -28,10 +29,10 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     skill: 'Put steps in order',
     art: 'window',
     missions: [
-      { template: 'blocks_tsv_a1_h', number: 1, title: 'A strange good morning', action: 'Try' },
-      { template: 'blocks_tsv_a1_b', number: 2, title: 'Wake up first', action: 'Build' },
-      { template: 'blocks_tsv_a1_d', number: 3, title: 'The backwards morning', action: 'Fix' },
-      { template: 'blocks_tsv_a1_s', number: 4, title: 'My morning greeting', action: 'Make mine' },
+      { template: 'blocks_tsv_a1_h', lessonId: 'tsv-s1-a1-h', number: 1, title: 'A strange good morning', action: 'Try' },
+      { template: 'blocks_tsv_a1_b', lessonId: 'tsv-s1-a1-b', number: 2, title: 'Wake up first', action: 'Build' },
+      { template: 'blocks_tsv_a1_d', lessonId: 'tsv-s1-a1-d', number: 3, title: 'The backwards morning', action: 'Fix' },
+      { template: 'blocks_tsv_a1_s', lessonId: 'tsv-s1-a1-s', number: 4, title: 'My morning greeting', action: 'Make mine' },
     ],
   },
   {
@@ -43,9 +44,9 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     skill: 'Choose left or right',
     art: 'cloud',
     missions: [
-      { template: 'blocks_tsv_a2_h', number: 5, title: 'Which way is the plaza?', action: 'Try' },
-      { template: 'blocks_tsv_a2_b', number: 6, title: 'Choose an arrow', action: 'Build' },
-      { template: 'blocks_tsv_a2_d', number: 7, title: 'Tuan Tuan walked the wrong way', action: 'Fix' },
+      { template: 'blocks_tsv_a2_h', lessonId: 'tsv-s1-a2-h', number: 5, title: 'Which way is the plaza?', action: 'Try' },
+      { template: 'blocks_tsv_a2_b', lessonId: 'tsv-s1-a2-b', number: 6, title: 'Choose an arrow', action: 'Build' },
+      { template: 'blocks_tsv_a2_d', lessonId: 'tsv-s1-a2-d', number: 7, title: 'Tuan Tuan walked the wrong way', action: 'Fix' },
     ],
   },
   {
@@ -94,3 +95,48 @@ export const PLAYABLE_STORY_MISSION_COUNT = TINY_STAR_VILLAGE_CHAPTERS.reduce(
   (total, chapter) => total + chapter.missions.length,
   0,
 );
+
+export interface StoryJourneyPosition {
+  chapter: StoryJourneyChapter;
+  mission: StoryJourneyMission;
+  sceneNumber: number;
+  sceneCount: number;
+}
+
+export function storyJourneyPositionForLesson(
+  lessonId: string | undefined,
+): StoryJourneyPosition | undefined {
+  if (!lessonId) return undefined;
+  for (const chapter of TINY_STAR_VILLAGE_CHAPTERS) {
+    const sceneNumber = chapter.missions.findIndex((mission) => mission.lessonId === lessonId);
+    if (sceneNumber >= 0) {
+      return {
+        chapter,
+        mission: chapter.missions[sceneNumber],
+        sceneNumber: sceneNumber + 1,
+        sceneCount: chapter.missions.length,
+      };
+    }
+  }
+  return undefined;
+}
+
+export function nextStoryMissionForLesson(
+  lessonId: string | undefined,
+): StoryJourneyPosition | undefined {
+  if (!lessonId) return undefined;
+  const playable = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) =>
+    chapter.missions.map((mission, index) => ({
+      chapter,
+      mission,
+      sceneNumber: index + 1,
+      sceneCount: chapter.missions.length,
+    })),
+  );
+  const current = playable.findIndex((position) => position.mission.lessonId === lessonId);
+  return current >= 0 ? playable[current + 1] : undefined;
+}
+
+export function storyMissionProjectTitle(mission: StoryJourneyMission): string {
+  return `Tiny Star Village · ${mission.title}`;
+}

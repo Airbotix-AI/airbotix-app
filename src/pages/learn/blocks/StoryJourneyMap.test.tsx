@@ -22,6 +22,14 @@ describe('StoryJourneyMap', () => {
     expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(7);
     expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('Story preview');
     expect(screen.getByTestId('story-chapter-a6')).toHaveTextContent('Ring in the morning light');
+    expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
+      'The Missing Morning Light',
+    );
+    expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
+      'The Monkey King’s New Journey',
+    );
+    expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Fable Forest');
+    expect(screen.getAllByText(/Planned/)).toHaveLength(2);
   });
 
   it('starts a scene with a meaningful project title', () => {
