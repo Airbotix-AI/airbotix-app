@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-14 (fix: Music is discoverable from the studio picker again)
+
+### Fixed
+- **The Workspace studio picker had no Music entry at all.** When the Stage moved out of the chat
+  shell (D-MS7) the music card was removed from the picker, leaving the Create-hub 🎵 card as the
+  only discoverable entry — a kid (or owner) standing in front of "What do you want to make with
+  AI?" found no music (user-reported). The card is back, but as a LINK to `/learn/music` (the
+  Stage) with an "Opens your own stage →" hint — picking it never creates a chat-shell session.
+
 ## 2026-07-14 (feat: Tiny Star Village chapter 2 missions)
 
 ### Added
