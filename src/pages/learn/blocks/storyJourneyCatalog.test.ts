@@ -31,7 +31,8 @@ describe('storyJourneyCatalog progression', () => {
   });
 
   it('returns no next mission after the last production-ready scene', () => {
-    expect(nextStoryMissionForLesson('tsv-s1-a2-d')).toBeUndefined();
+    expect(nextStoryMissionForLesson('tsv-s1-a2-d')?.mission.lessonId).toBe('tsv-s1-a2-s');
+    expect(nextStoryMissionForLesson('tsv-s1-a2-s')).toBeUndefined();
     expect(storyJourneyPositionForLesson('unknown')).toBeUndefined();
   });
 });

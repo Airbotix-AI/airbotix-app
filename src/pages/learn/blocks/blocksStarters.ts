@@ -56,4 +56,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 7',
     desc: 'Tuan Tuan has the right three-step path but the arrow points the wrong way. Run it once, then swap only Left for Right and test your repair.',
   },
+  {
+    id: 'blocks_tsv_a2_s',
+    emoji: '⭐',
+    title: 'Tiny Star Village · Mission 8',
+    desc: 'Choose a home star, then build your own two-step Left or Right path and save where Tuan Tuan arrives.',
+  },
 ];

@@ -47,6 +47,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
       { template: 'blocks_tsv_a2_h', lessonId: 'tsv-s1-a2-h', number: 5, title: 'Which way is the plaza?', action: 'Try' },
       { template: 'blocks_tsv_a2_b', lessonId: 'tsv-s1-a2-b', number: 6, title: 'Choose an arrow', action: 'Build' },
       { template: 'blocks_tsv_a2_d', lessonId: 'tsv-s1-a2-d', number: 7, title: 'Tuan Tuan walked the wrong way', action: 'Fix' },
+      { template: 'blocks_tsv_a2_s', lessonId: 'tsv-s1-a2-s', number: 8, title: 'My two-step path', action: 'Make mine' },
     ],
   },
   {

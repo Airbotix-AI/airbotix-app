@@ -235,6 +235,7 @@ export function BlocksStudioPage({
     ? storyMissionProgramMatches(project, storyMission.lessonId)
     : false;
   const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
+  const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
@@ -624,9 +625,11 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
-        const requiresPlazaArrival =
-          storyMission.lessonId === 'tsv-s1-a2-b' || storyMission.lessonId === 'tsv-s1-a2-d';
-        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === 11;
+        const requiresPlazaArrival = ['tsv-s1-a2-b', 'tsv-s1-a2-d', 'tsv-s1-a2-s'].includes(
+          storyMission.lessonId,
+        );
+        const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start.gx;
+        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx;
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
@@ -656,6 +659,7 @@ export function BlocksStudioPage({
     missionTargetFixed,
     isA2DirectionDebug,
     missionWrongRunObserved,
+    page.characters,
   ]);
 
   const answerStoryMission = useCallback(
@@ -1051,14 +1055,15 @@ export function BlocksStudioPage({
   ) => {
     if (isA2DirectionDebug) return;
     const isA2Direction =
-      storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right');
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+      (op === 'move_left' || op === 'move_right');
     if (isA2Direction && missionScript) {
       const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
       store.insertBlock(
         op,
         missionScript.id,
         endIndex >= 1 ? endIndex : missionScript.blocks.length,
-        3,
+        isA2PersonalShip ? 1 : 3,
       );
       return;
     }
@@ -1109,7 +1114,7 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
-    if (storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right')) {
+    if ((storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) && (op === 'move_left' || op === 'move_right')) {
       return; // Age A direction mission fixes the distance at three steps.
     }
     if (isA2DirectionDebug && (op === 'move_left' || op === 'move_right')) {
@@ -1346,6 +1351,24 @@ export function BlocksStudioPage({
           ▶ Go!
         </button>
       </header>
+
+      {isA2PersonalShip && (
+        <div className="flex items-center justify-center gap-3 bg-white/90 px-3 py-2" data-testid="a2-s-endpoint-picker">
+          <strong className="text-sm">Choose my home star:</strong>
+          <button
+            type="button"
+            data-testid="a2-s-endpoint-left"
+            className="bsx-press rounded-full bg-brand-lilac px-4 py-2 font-bold"
+            onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 6, 10)}
+          >⬅️ Left home</button>
+          <button
+            type="button"
+            data-testid="a2-s-endpoint-right"
+            className="bsx-press rounded-full bg-brand-sun px-4 py-2 font-bold"
+            onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 10, 10)}
+          >Right home ➡️</button>
+        </div>
+      )}
 
       {storyMission && missionOpen && (
         <StoryMissionGuide
