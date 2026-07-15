@@ -65,6 +65,8 @@ import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
+import { performanceForBlock } from './characterPerformance';
+import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -193,6 +195,9 @@ export function BlocksStudioPage({
   const [says, setSays] = useState<Map<string, string>>(new Map());
   // the block each character is executing right now → "lit" glow (charId → "scriptId:index")
   const [activeBlocks, setActiveBlocks] = useState<Map<string, string>>(new Map());
+  const [characterPerformances, setCharacterPerformances] = useState<
+    Map<string, CharacterPerformance>
+  >(new Map());
 
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
@@ -236,6 +241,8 @@ export function BlocksStudioPage({
     : false;
   const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
+  const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
+    .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
@@ -333,8 +340,8 @@ export function BlocksStudioPage({
         const loadedMission = storyMissionFor(loaded.project.lessonId);
         const loadedMissionCompleted = Boolean(
           loadedMission &&
-            storyProgressRef.current.completed[loadedMission.lessonId] &&
-            storyMissionProgramMatches(loaded.project, loadedMission.lessonId),
+          storyProgressRef.current.completed[loadedMission.lessonId] &&
+          storyMissionProgramMatches(loaded.project, loadedMission.lessonId),
         );
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
@@ -430,12 +437,7 @@ export function BlocksStudioPage({
   }, [dirty, phase, projectId, readOnly, storyMission]);
 
   const persistStoryMissionCompletion = useCallback(async () => {
-    if (
-      !projectId ||
-      !storyMission ||
-      completionSaveInFlightRef.current ||
-      savingRef.current
-    ) {
+    if (!projectId || !storyMission || completionSaveInFlightRef.current || savingRef.current) {
       return;
     }
     completionSaveInFlightRef.current = true;
@@ -475,13 +477,11 @@ export function BlocksStudioPage({
         const currentProject = useBlocksStore.getState().project;
         const completedOnServer = Boolean(
           storyProgressRef.current.completed[storyMission.lessonId] &&
-            storyMissionProgramMatches(currentProject, storyMission.lessonId),
+          storyMissionProgramMatches(currentProject, storyMission.lessonId),
         );
         setMissionCompleted(completedOnServer);
         setMissionCorrectRunFinished(completedOnServer);
-        setMissionFixPersisted(
-          storyMissionProgramMatches(currentProject, storyMission.lessonId),
-        );
+        setMissionFixPersisted(storyMissionProgramMatches(currentProject, storyMission.lessonId));
         setStoryCoachCue(completedOnServer ? 'complete' : 'test');
         setMissionOpen(completedOnServer);
       } else {
@@ -558,6 +558,7 @@ export function BlocksStudioPage({
     setRunStates(null);
     setSays(new Map());
     setActiveBlocks(new Map());
+    setCharacterPerformances(new Map());
     setRunning(false);
     setStoryCoachCue('ready');
   }, [dirty, pageId]);
@@ -587,7 +588,16 @@ export function BlocksStudioPage({
       // key the live highlight by SCRIPT, not character — a character can run
       // several tracks at once, and each track's current block must glow
       // simultaneously (ScratchJr highlights the running block in every thread).
-      onStep: (_charId, scriptId, index) => {
+      onStep: (stepCharId, scriptId, index) => {
+        const script = page.characters
+          .flatMap((character) => character.scripts)
+          .find((candidate) => candidate.id === scriptId);
+        const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        setCharacterPerformances((prev) => {
+          const next = new Map(prev);
+          next.set(stepCharId, performanceForBlock(op));
+          return next;
+        });
         setActiveBlocks((prev) => {
           const next = new Map(prev);
           if (index < 0) next.delete(scriptId);
@@ -595,10 +605,6 @@ export function BlocksStudioPage({
           return next;
         });
         if (storyMission && index >= 0) {
-          const script = page.characters
-            .flatMap((character) => character.scripts)
-            .find((candidate) => candidate.id === scriptId);
-          const op = script?.blocks[index]?.op;
           const sayIndex = script?.blocks.findIndex((block) => block.op === 'say') ?? -1;
           const hopIndex = script?.blocks.findIndex((block) => block.op === 'hop') ?? -1;
           if (op === 'say') setStoryCoachCue(sayIndex < hopIndex ? 'sayFirst' : 'sayThen');
@@ -628,8 +634,10 @@ export function BlocksStudioPage({
         const requiresPlazaArrival = ['tsv-s1-a2-b', 'tsv-s1-a2-d', 'tsv-s1-a2-s'].includes(
           storyMission.lessonId,
         );
-        const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start.gx;
-        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx;
+        const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
+          .gx;
+        const reachedMissionTarget =
+          !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx;
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
@@ -643,8 +651,13 @@ export function BlocksStudioPage({
           (!isA2DirectionDebug || missionWrongRunObserved)
         ) {
           setMissionCorrectRunFinished(true);
-          setStoryCoachCue('saving');
-          setMissionOpen(false);
+          if (missionCompleted) {
+            setStoryCoachCue('complete');
+            setMissionOpen(true);
+          } else {
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+          }
         } else {
           if (storyMission.mode !== 'observe-fix') setStoryCoachCue('retry');
           setMissionOpen(true);
@@ -657,6 +670,7 @@ export function BlocksStudioPage({
     demo,
     storyMission,
     missionTargetFixed,
+    missionCompleted,
     isA2DirectionDebug,
     missionWrongRunObserved,
     page.characters,
@@ -709,6 +723,7 @@ export function BlocksStudioPage({
     setRunStates(null);
     setSays(new Map());
     setActiveBlocks(new Map());
+    setCharacterPerformances(new Map());
     setRunning(false);
     setStoryCoachCue('ready');
   }, []);
@@ -1114,7 +1129,10 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
-    if ((storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) && (op === 'move_left' || op === 'move_right')) {
+    if (
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+      (op === 'move_left' || op === 'move_right')
+    ) {
       return; // Age A direction mission fixes the distance at three steps.
     }
     if (isA2DirectionDebug && (op === 'move_left' || op === 'move_right')) {
@@ -1231,8 +1249,9 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
+      data-story={storyMission ? 'true' : undefined}
       data-testid="blocks-studio"
     >
       {/* ── toolbar ── */}
@@ -1353,20 +1372,42 @@ export function BlocksStudioPage({
       </header>
 
       {isA2PersonalShip && (
-        <div className="flex items-center justify-center gap-3 bg-white/90 px-3 py-2" data-testid="a2-s-endpoint-picker">
-          <strong className="text-sm">Choose my home star:</strong>
-          <button
-            type="button"
-            data-testid="a2-s-endpoint-left"
-            className="bsx-press rounded-full bg-brand-lilac px-4 py-2 font-bold"
-            onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 6, 10)}
-          >⬅️ Left home</button>
-          <button
-            type="button"
-            data-testid="a2-s-endpoint-right"
-            className="bsx-press rounded-full bg-brand-sun px-4 py-2 font-bold"
-            onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 10, 10)}
-          >Right home ➡️</button>
+        <div className="bsx-home-picker" data-testid="a2-s-endpoint-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>⭐</span>
+            <div>
+              <strong>Choose my home star</strong>
+              <small>Pick where Tuan Tuan should land</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my home star">
+            <button
+              type="button"
+              data-testid="a2-s-endpoint-left"
+              className={`bsx-home-choice${selectedHomeGx === 6 ? ' selected' : ''}`}
+              aria-pressed={selectedHomeGx === 6}
+              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 6, 10)}
+            >
+              <span aria-hidden>⬅️</span>
+              <strong>Left home</strong>
+              <span className="bsx-home-star" aria-hidden>
+                ⭐
+              </span>
+            </button>
+            <button
+              type="button"
+              data-testid="a2-s-endpoint-right"
+              className={`bsx-home-choice${selectedHomeGx === 10 ? ' selected' : ''}`}
+              aria-pressed={selectedHomeGx === 10}
+              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 10, 10)}
+            >
+              <span className="bsx-home-star" aria-hidden>
+                ⭐
+              </span>
+              <strong>Right home</strong>
+              <span aria-hidden>➡️</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1536,6 +1577,11 @@ export function BlocksStudioPage({
                     <CharacterVisual
                       character={c}
                       className={c.asset ? 'bsx-character-asset' : undefined}
+                      performance={
+                        missionCompleted && storyMission?.hero.asset === c.asset
+                          ? 'success'
+                          : characterPerformances.get(c.id)
+                      }
                     />
                   </div>
                 </div>
@@ -1741,12 +1787,12 @@ export function BlocksStudioPage({
                                   ? 'Tap to turn this one arrow · 3 steps stay the same'
                                   : 'Press Go first and watch where Left 3 goes'
                                 : isLockedDirection
-                                ? '3 steps are ready · hold to drag · drag to the bin to remove'
-                                : def.hasN
-                                  ? 'Tap to change the number · hold to drag · drag to the bin to remove'
-                                  : b.op === 'say'
-                                    ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                                    : 'Hold to drag · drag to another track or the bin'
+                                  ? '3 steps are ready · hold to drag · drag to the bin to remove'
+                                  : def.hasN
+                                    ? 'Tap to change the number · hold to drag · drag to the bin to remove'
+                                    : b.op === 'say'
+                                      ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                                      : 'Hold to drag · drag to another track or the bin'
                             }
                           />
                         );
@@ -1911,14 +1957,14 @@ export function BlocksStudioPage({
               (editing.block.op === 'move_left' || editing.block.op === 'move_right')
                 ? 'Which way should Tuan Tuan go?'
                 : editing.block.op === 'say'
-                ? 'What should they say?'
-                : blockDef(editing.block.op).param === 'note'
-                  ? 'Which note? Tap to hear it!'
-                  : blockDef(editing.block.op).param === 'sound'
-                    ? 'Which sound? Tap to hear it!'
-                    : editing.block.op === 'goto_page'
-                      ? `Which page? (1–${project.pages.length})`
-                      : `How many? (${blockDef(editing.block.op).label})`}
+                  ? 'What should they say?'
+                  : blockDef(editing.block.op).param === 'note'
+                    ? 'Which note? Tap to hear it!'
+                    : blockDef(editing.block.op).param === 'sound'
+                      ? 'Which sound? Tap to hear it!'
+                      : editing.block.op === 'goto_page'
+                        ? `Which page? (1–${project.pages.length})`
+                        : `How many? (${blockDef(editing.block.op).label})`}
             </div>
             {isA2DirectionDebug &&
             (editing.block.op === 'move_left' || editing.block.op === 'move_right') ? (

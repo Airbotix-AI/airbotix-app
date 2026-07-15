@@ -1,4 +1,6 @@
 import type { StoryCoachCue, StoryMission } from './curriculumGuides';
+import { CharacterVisual } from './CharacterVisual';
+import type { CharacterPerformance } from './characterPerformance';
 
 interface StoryCoachPanelProps {
   mission: StoryMission;
@@ -22,6 +24,18 @@ const STEP_BY_CUE: Record<StoryCoachCue, number> = {
 };
 
 export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanelProps) {
+  const performance: CharacterPerformance =
+    cue === 'complete'
+      ? 'success'
+      : cue === 'retry' || cue === 'fix'
+        ? 'thinking'
+        : cue === 'sayFirst' || cue === 'sayThen'
+          ? 'speaking'
+          : cue === 'hopFirst' || cue === 'hopThen'
+            ? 'hopping'
+            : running
+              ? 'listening'
+              : 'idle';
   const completing = mission.mode === 'complete' || mission.mode === 'personal-ship';
   const observing = mission.mode === 'observe-only';
   const step = observing
@@ -58,7 +72,7 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
     <aside className="bsx-story-coach" data-testid="story-coach" aria-live="polite">
       <div className="bsx-story-coach-head">
         <span className="bsx-story-coach-face" aria-hidden>
-          <img src={mission.hero.asset} alt="" />
+          <CharacterVisual character={mission.hero} performance={performance} />
         </span>
         <div>
           <strong>{mission.hero.name}</strong>

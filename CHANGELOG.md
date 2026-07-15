@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
+
+### Changed
+- **Lumilo is no longer a permanently closed-eye picture that only slides around the stage.** The
+  Tiny Star Village tutorial, in-studio coach, editable stage, and read-only player now share one
+  canonical layered SVG puppet with open-eyed idle/blink, listening, movement, hop, speech,
+  thinking, resting, and arms-up success performances. Running blocks drive those performances,
+  so the character visibly explains the same cause-and-effect the child is programming.
+- **Tuan Tuan now uses the same performance contract in Chapter 2.** The cloud bear opens their
+  eyes by default, looks toward the route, walks with a soft step and scarf swish, speaks, thinks,
+  rests only when asked, and raises both arms after the saved program reaches the plaza target.
+- A completed mission can be replayed after reload: pressing Go on the still-correct saved program
+  reopens the evidence card and full-screen celebration instead of silently running underneath it.
+- Reduced-motion mode keeps every meaningful expression and final state while disabling repeated
+  character motion. Generic and legacy character images continue to render unchanged.
+
 ## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
 
 ### Fixed

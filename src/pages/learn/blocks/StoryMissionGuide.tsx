@@ -2,6 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { StoryMission } from './curriculumGuides';
+import { CharacterVisual } from './CharacterVisual';
+import type { CharacterPerformance } from './characterPerformance';
 
 const CELEBRATION_COLORS = ['#ffcc4d', '#ff6b91', '#6fd6ff', '#7ce38b', '#a98bff'];
 const CELEBRATION_PIECES = Array.from({ length: 72 }, (_, index) => ({
@@ -57,6 +59,16 @@ export function StoryMissionGuide({
   const storyScene = page.scene ?? storyPage + 1;
   const storyBlocks = page.blocks ?? ['💬 Say', '🦘 Hop'];
   const heroTestId = mission.hero.name === 'Tuan Tuan' ? 'story-tuan-tuan' : 'story-lumilo';
+  const storyPerformance: CharacterPerformance =
+    storyScene === 1
+      ? 'speaking'
+      : storyScene === 2
+        ? 'hopping'
+        : storyScene === 4
+          ? 'thinking'
+          : storyScene === 5
+            ? 'success'
+            : 'listening';
 
   const readStory = () => {
     setStoryPage(0);
@@ -142,7 +154,7 @@ export function StoryMissionGuide({
                 {page.direction && (
                   <div className="bsx-story-direction" data-testid="story-direction-map">
                     <div className="bsx-story-direction-start">
-                      <img src={mission.hero.asset} alt="" />
+                      <CharacterVisual character={mission.hero} performance="moving" />
                       <span>Start</span>
                     </div>
                     <strong data-direction={page.direction.arrow}>
@@ -213,7 +225,7 @@ export function StoryMissionGuide({
                   </>
                 )}
                 <div className="bsx-story-hero" data-testid={heroTestId}>
-                  <img src={mission.hero.asset} alt="" />
+                  <CharacterVisual character={mission.hero} performance={storyPerformance} />
                   <span>{mission.hero.name}</span>
                 </div>
                 <div className="bsx-story-speech">
@@ -316,7 +328,11 @@ export function StoryMissionGuide({
                 <p>{mission.completionWhy}</p>
               </div>
               <div className="bsx-mission-next">🌟 {mission.next}</div>
-              {nextError && <p className="bsx-mission-retry" role="alert">{nextError}</p>}
+              {nextError && (
+                <p className="bsx-mission-retry" role="alert">
+                  {nextError}
+                </p>
+              )}
               <button type="button" className="bsx-mission-secondary" onClick={readStory}>
                 📖 Read the story again
               </button>

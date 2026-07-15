@@ -59,9 +59,9 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByLabelText('Story page 1 of 5')).toBeInTheDocument();
     expect(screen.getByTestId('story-mission')).toHaveClass('bsx-story-fullscreen');
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-1');
-    expect(screen.getByTestId('story-lumilo').querySelector('img')).toHaveAttribute(
-      'src',
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    expect(screen.getByTestId('story-lumilo').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'speaking',
     );
     expect(screen.queryByTestId('story-light-network')).not.toBeInTheDocument();
 
@@ -70,6 +70,10 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByText(/Other homes send their stars too/)).toBeInTheDocument();
     expect(screen.getByText(/My star goes first/)).toBeInTheDocument();
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-2');
+    expect(screen.getByTestId('story-lumilo').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'hopping',
+    );
     expect(screen.getByTestId('story-light-network')).toBeInTheDocument();
     expect(
       screen.getByTestId('story-light-network').querySelectorAll('.bsx-story-light-route'),
@@ -324,9 +328,9 @@ describe('StoryMissionGuide', () => {
     );
 
     expect(screen.getByText('Meet Tuan Tuan, the cloud-path maker')).toBeInTheDocument();
-    expect(screen.getByTestId('story-tuan-tuan').querySelector('img')).toHaveAttribute(
-      'src',
-      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    expect(screen.getByTestId('story-tuan-tuan').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'speaking',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     expect(screen.getByText('The plaza star is on the right')).toBeInTheDocument();

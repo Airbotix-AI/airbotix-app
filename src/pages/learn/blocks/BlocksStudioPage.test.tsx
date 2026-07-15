@@ -62,9 +62,9 @@ describe('BlocksStudioPage zone labels', () => {
     expect(await screen.findByTestId('story-mission')).toHaveTextContent(
       'Meet Lumi, your morning-light friend',
     );
-    expect(screen.getByTestId('story-lumilo').querySelector('img')).toHaveAttribute(
-      'src',
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    expect(screen.getByTestId('story-lumilo').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'speaking',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
@@ -165,6 +165,16 @@ describe('BlocksStudioPage zone labels', () => {
 
     expect(await screen.findByTestId('story-mission-success')).toBeInTheDocument();
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(
+      await screen.findByTestId('story-mission-success', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
+    expect(screen.getByTestId('sprite-little-light').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'success',
+    );
     fireEvent.click(screen.getByTestId('story-next-mission'));
     await waitFor(() =>
       expect(createBlocksProject).toHaveBeenCalledWith({
@@ -245,6 +255,52 @@ describe('BlocksStudioPage zone labels', () => {
         }),
       }),
     );
+  });
+
+  it('keeps the A2-S home picker compact and shows the selected star route', async () => {
+    const personalPath = blankProject('Tiny Star Village · My Two-Step Path');
+    personalPath.lessonId = 'tsv-s1-a2-s';
+    personalPath.pages[0] = {
+      id: 'tsv-a2-s-page',
+      background: 'tsv-cloud-path-meadow',
+      characters: [
+        {
+          id: 'tuan-tuan',
+          name: 'Tuan Tuan',
+          emoji: '☁️',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          start: { gx: 8, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'end' }] }],
+        },
+        {
+          id: 'plaza-target',
+          name: 'My Home Star',
+          emoji: '⭐',
+          start: { gx: 8, gy: 10, size: 0.8, rot: 0 },
+          scripts: [],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: personalPath,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    expect(studio).toHaveAttribute('data-story', 'true');
+    const picker = screen.getByTestId('a2-s-endpoint-picker');
+    expect(picker).toHaveTextContent('Choose my home star');
+    const rightHome = screen.getByTestId('a2-s-endpoint-right');
+    expect(rightHome).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(rightHome);
+
+    expect(rightHome).toHaveAttribute('aria-pressed', 'true');
+    expect(rightHome).toHaveClass('selected');
+    expect(useBlocksStore.getState().project.pages[0].characters[1].start.gx).toBe(10);
   });
 
   it('makes A2-B palette arrows fixed at 3, inserts before End, and completes only at gx11', async () => {
@@ -332,6 +388,10 @@ describe('BlocksStudioPage zone labels', () => {
     ).toHaveTextContent('Tuan Tuan travelled from grid 8');
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '11');
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
+    expect(screen.getByTestId('sprite-tuan-tuan').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'success',
+    );
   });
 
   it('every zone wears its emoji-first name tag', async () => {
@@ -576,16 +636,32 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
       background: 'tsv-cloud-path-meadow',
       characters: [
         {
-          id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '☁️',
+          id: 'tuan-tuan',
+          name: 'Tuan Tuan',
+          emoji: '☁️',
           asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
-          scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }] }],
+          scripts: [
+            {
+              id: 'tuan-tuan-flag',
+              blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
+            },
+          ],
         },
-        { id: 'plaza-target', name: 'Plaza Star', emoji: '⭐', start: { gx: 11, gy: 10, size: 0.8, rot: 0 }, scripts: [] },
+        {
+          id: 'plaza-target',
+          name: 'Plaza Star',
+          emoji: '⭐',
+          start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
+          scripts: [],
+        },
       ],
     };
     vi.mocked(loadBlocksProject).mockResolvedValueOnce({
-      project: directionDebug, version: 1, history: { past: [], future: [] }, otherFiles: [],
+      project: directionDebug,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
     });
 
     await renderStudio();
@@ -596,7 +672,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
 
     fireEvent.click(screen.getByTestId('go-button'));
-    expect(await screen.findByTestId('story-build-task', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('story-build-task', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '5');
     fireEvent.click(screen.getByRole('button', { name: 'Keep building ▶' }));
 
@@ -604,12 +682,16 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(screen.getByTestId('direction-repair-picker')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('direction-repair-move_right'));
     expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
-      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' },
+      { op: 'when_flag' },
+      { op: 'move_right', n: 3 },
+      { op: 'end' },
     ]);
     await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
 
     fireEvent.click(screen.getByTestId('go-button'));
-    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 3000 })).toHaveTextContent('changed only its arrow');
+    expect(
+      await screen.findByTestId('story-mission-success', {}, { timeout: 3000 }),
+    ).toHaveTextContent('changed only its arrow');
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '11');
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
   });
