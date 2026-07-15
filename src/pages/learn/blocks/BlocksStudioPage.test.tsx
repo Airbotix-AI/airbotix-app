@@ -10,12 +10,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadBlocksProject, saveBlocksProject } from './blocksApi';
+import { createBlocksProject, loadBlocksProject, saveBlocksProject } from './blocksApi';
 import { blankProject } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksStudioPage } from './BlocksStudioPage';
 
 vi.mock('./blocksApi', () => ({
+  createBlocksProject: vi.fn(async () => ({ id: 'next-project' })),
   loadBlocksProject: vi.fn(async () => ({
     project: blankProject('Zone test'),
     version: 1,
@@ -122,6 +123,57 @@ describe('BlocksStudioPage zone labels', () => {
     });
   });
 
+  it('restores a server-verified completion and opens the exact next story scene', async () => {
+    const completedProject = blankProject('Tiny Star Village · The Backwards Morning');
+    completedProject.lessonId = 'tsv-s1-a1-d';
+    completedProject.pages[0] = {
+      id: 'tsv-a1-d-page',
+      background: 'tsv-window-room-dim',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 8, gy: 10, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'little-light-flag',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'hop', n: 1 },
+                { op: 'say', text: 'Morning!' },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: completedProject,
+      version: 4,
+      history: { past: [], future: [] },
+      otherFiles: [],
+      storyProgress: {
+        schemaVersion: 1,
+        completed: { 'tsv-s1-a1-d': { completedAt: '2026-07-14T00:00:00.000Z' } },
+      },
+    });
+
+    await renderStudio();
+
+    expect(await screen.findByTestId('story-mission-success')).toBeInTheDocument();
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    fireEvent.click(screen.getByTestId('story-next-mission'));
+    await waitFor(() =>
+      expect(createBlocksProject).toHaveBeenCalledWith({
+        template: 'blocks_tsv_a1_s',
+        title: 'Tiny Star Village · My morning greeting',
+      }),
+    );
+  });
+
   it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
     const directionProject = blankProject('Tiny Star Village · Which Way?');
     directionProject.lessonId = 'tsv-s1-a2-h';
@@ -184,7 +236,15 @@ describe('BlocksStudioPage zone labels', () => {
       { op: 'move_left', n: 3 },
       { op: 'end' },
     ]);
-    expect(saveBlocksProject).not.toHaveBeenCalled();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a2-h': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('makes A2-B palette arrows fixed at 3, inserts before End, and completes only at gx11', async () => {

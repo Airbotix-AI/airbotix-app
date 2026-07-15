@@ -16,6 +16,31 @@ const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 afterEach(cleanup);
 
 describe('StoryMissionGuide', () => {
+  it('turns a completed mission into a clear saved proof and next-scene action', () => {
+    const onNext = vi.fn();
+    render(
+      <StoryMissionGuide
+        mission={manualFixMission}
+        hasRun
+        completed
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+        journeyLabel="Chapter 1 · Scene 3 of 4"
+        nextJourneyLabel="Chapter 1 · My morning greeting"
+        onNext={onNext}
+      />,
+    );
+
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Blocks ready');
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Story played');
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-next-mission'));
+    expect(onNext).toHaveBeenCalledOnce();
+  });
+
   it('explains the light chain, why it stopped, and why the child must fix it', () => {
     render(
       <StoryMissionGuide

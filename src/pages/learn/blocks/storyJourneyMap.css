@@ -3,6 +3,97 @@
   gap: 32px;
 }
 
+.tsv-library-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.tsv-library-heading h2 {
+  margin-top: 5px;
+  color: #28213f;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.tsv-library-heading p {
+  max-width: 480px;
+  color: #756c87;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.tsv-collection-shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tsv-collection-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  min-height: 190px;
+  border: 2px solid #ded4ff;
+  border-radius: 26px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(71, 48, 119, 0.1);
+}
+
+.tsv-collection-card.is-open {
+  border-color: #f0c44f;
+  background: linear-gradient(145deg, #fff9dd, #fff);
+}
+
+.tsv-collection-card.is-planned {
+  border-style: dashed;
+  background: #faf8ff;
+}
+
+.tsv-collection-avatar {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 18px;
+  background: #f2ecff;
+  font-size: 34px;
+}
+
+.tsv-collection-card small {
+  color: #8b6b13;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tsv-collection-card h3 {
+  margin: 6px 0;
+  color: #28213f;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.tsv-collection-card p {
+  margin: 0 0 10px;
+  color: #6c647d;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.tsv-collection-card strong {
+  color: #55466f;
+  font-size: 11px;
+  font-weight: 850;
+}
+
 .tsv-world-hero {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1.1fr);
@@ -273,12 +364,14 @@
 .tsv-coming-note { grid-column: 1 / -1; }
 
 @media (max-width: 900px) {
+  .tsv-collection-shelf { grid-template-columns: 1fr; }
   .tsv-world-hero { grid-template-columns: 1fr; }
   .tsv-world-sky { min-height: 260px; }
   .tsv-chapter-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
+  .tsv-library-heading { align-items: start; flex-direction: column; gap: 8px; }
   .tsv-world-hero { border-radius: 26px; }
   .tsv-world-intro { padding: 26px 22px 30px; }
   .tsv-map-heading { align-items: start; flex-direction: column; gap: 8px; }
