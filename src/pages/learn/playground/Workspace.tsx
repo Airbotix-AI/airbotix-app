@@ -376,6 +376,17 @@ export function Workspace({
     focusPanel('chat');
     requestAssetGen(prompt, ref);
   };
+  // Own the composer DRAFT here too (like the chat history above): the ChatPane
+  // remounts when the kid flips split tabs (chat ↔ assets) or layout modes, so a
+  // draft kept in AIChatPanel's local state would be lost. Lifting it to Workspace
+  // — which stays mounted for the whole project — keeps the unsent message alive
+  // for as long as the kid is in the project. Reset it only when they open a
+  // DIFFERENT project (the draft is scoped to where they typed it).
+  const [chatDraft, setChatDraft] = useState('');
+  useEffect(() => {
+    setChatDraft('');
+  }, [projectId]);
+
   const chatProps = {
     chat,
     busy,
@@ -418,6 +429,9 @@ export function Workspace({
     // The ONE queued next message + its cancel (D-HARN-03 busy queue).
     queuedMessage,
     onCancelQueued: cancelQueued,
+    // Lifted composer draft — survives ChatPane remounts on tab/layout switches.
+    draft: chatDraft,
+    onDraftChange: setChatDraft,
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and

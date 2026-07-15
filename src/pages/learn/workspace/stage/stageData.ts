@@ -156,8 +156,16 @@ export function marqueeFor(scoreGenre: string | undefined, fallback: GenreId): s
 
 // ─── Composer bar ────────────────────────────────────────────────────────────
 
-export const PROMPT_MAX_LENGTH = 120;
+export const PROMPT_MAX_LENGTH = 240;
+/** Composer mode once a song exists (D-MS10): typed text either EDITS the
+ *  current version (existingScore rides the request) or starts a new song. */
+export type ComposeMode = 'edit' | 'new';
 export const PROMPT_PLACEHOLDER = 'e.g. A song about a space puppy adventure — make it epic!';
+/** Edit mode (D-MS10): typed text CHANGES the current song instead of starting over. */
+export const EDIT_PROMPT_PLACEHOLDER =
+  'e.g. Make the chorus faster, or give the piano a sadder melody…';
+export const COMPOSE_HEADER = 'Tell the AI what song you want';
+export const EDIT_HEADER = 'Tell the AI what to change';
 
 /** Inspiration chips (mockup). The emoji stays in the chip, not the prompt. */
 export const IDEA_CHIPS: { emoji: string; prompt: string }[] = [
@@ -198,6 +206,8 @@ export const SUGGESTION_CARDS: SuggestionCard[] = [
 
 export const FIRST_VERSION_TAG = 'First take';
 export const REWRITE_VERSION_TAG = 'Rewrite';
+/** Typed freeform edit on the current version (D-MS10). */
+export const EDIT_VERSION_TAG = '✏️ Edit';
 
 // ─── Kid-facing copy (AI bubble, overlay, errors) ────────────────────────────
 

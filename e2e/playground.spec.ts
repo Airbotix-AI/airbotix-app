@@ -229,6 +229,25 @@ test('chat history persists across a layout-mode switch', async ({ page }) => {
   await expect(page.getByText('persist me please')).toBeVisible();
 });
 
+test('unsent chat draft survives switching split tabs (chat ⇄ assets)', async ({ page }) => {
+  await reachWorkspace(page);
+  // Split mode exposes the Chat/Code/Assets/Guide tab strip.
+  await page.getByRole('button', { name: /Split/ }).click();
+
+  // Type a message into the composer but do NOT send it.
+  const composer = page.getByTestId('chat-input');
+  await composer.fill('a purple dragon that breathes fire');
+  await expect(composer).toHaveValue('a purple dragon that breathes fire');
+
+  // Flip to the Assets tab (this unmounts the chat pane) …
+  await page.getByRole('tab', { name: /Assets/ }).click();
+  await expect(page.getByTestId('chat-input')).toHaveCount(0);
+
+  // … and back to Chat: the unsent draft is still there, not lost.
+  await page.getByRole('tab', { name: /Chat/ }).click();
+  await expect(page.getByTestId('chat-input')).toHaveValue('a purple dragon that breathes fire');
+});
+
 test('double-click the title bar maximizes, and restore returns to the prior position', async ({ page }) => {
   await reachWorkspace(page);
   const win = page.locator('.react-draggable:has(.pg-win-title:has-text("Chat"))').first();
