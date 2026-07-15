@@ -55,6 +55,7 @@ import {
   type AssetKind,
   type ImageMeta,
 } from './assetMeta';
+import { ASSET_GENERATION_ENABLED } from '../featureFlags';
 
 interface AssetViewerPaneProps {
   files: VfsFile[];
@@ -516,6 +517,10 @@ export function AssetViewerPane({
     // the registered submit always closes over the current prompt state.
   }, [demo, onGenerate]);
 
+  // AI generation entry points (✨ Generate + Remix) are gated by the feature
+  // flag. The public demo tour (`demo` != null) drives them through an offline
+  // seam, so it bypasses the flag and keeps showcasing the feature.
+  const genEntriesEnabled = ASSET_GENERATION_ENABLED || Boolean(demo);
 
   return (
     <div
@@ -674,6 +679,7 @@ export function AssetViewerPane({
               asset={selectedLib}
               busy={false}
               readOnly={readOnly}
+              remixEnabled={genEntriesEnabled}
               onRemix={(p) => void onRemix(p, { refUrl: selectedLib.url })}
               onBack={() => setSelectedLibId(null)}
             />
@@ -686,6 +692,7 @@ export function AssetViewerPane({
             files={files}
             busy={false}
             readOnly={readOnly}
+            remixEnabled={genEntriesEnabled}
             onRemix={(p) => void onRemix(p, { refAssetPath: selected.path })}
             onBack={() => setSelectedPath(null)}
             onRename={(to) => {
@@ -699,14 +706,17 @@ export function AssetViewerPane({
           />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            {/* Generate is hidden in the read-only viewer (D-LV-6). */}
-            {!readOnly && (
+            {/* Generate is hidden in the read-only viewer (D-LV-6) and when the
+                asset-generation feature is disabled (featureFlags). */}
+            {!readOnly && genEntriesEnabled && (
               <GenerateBar prompt={genPrompt} onPrompt={setGenPrompt} onGenerate={onGenerate} />
             )}
             <div className="min-h-0 flex-1 overflow-auto p-4">
               {visible.length === 0 ? (
                 <p className="mt-8 text-center text-[13px] text-pg-text-muted">
-                  No assets here yet — Import or ✨ Generate to add some.
+                  {genEntriesEnabled
+                    ? 'No assets here yet — Import or ✨ Generate to add some.'
+                    : 'No assets here yet — Import to add some.'}
                 </p>
               ) : (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
@@ -873,12 +883,14 @@ function LibraryDetailView({
   asset,
   busy,
   readOnly,
+  remixEnabled = true,
   onRemix,
   onBack,
 }: {
   asset: LibraryAsset;
   busy: boolean;
   readOnly?: boolean;
+  remixEnabled?: boolean;
   onRemix: (prompt: string) => void;
   onBack: () => void;
 }) {
@@ -930,7 +942,9 @@ function LibraryDetailView({
             <Row k="Source" v="Shared library (read-only)" />
           </dl>
 
-          {asset.kind === 'image' && !readOnly && <RemixBar busy={busy} onRemix={onRemix} />}
+          {asset.kind === 'image' && !readOnly && remixEnabled && (
+            <RemixBar busy={busy} onRemix={onRemix} />
+          )}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
@@ -1023,6 +1037,7 @@ function DetailView({
   files,
   busy,
   readOnly,
+  remixEnabled = true,
   onRemix,
   onBack,
   onRename,
@@ -1032,6 +1047,7 @@ function DetailView({
   files: VfsFile[];
   busy: boolean;
   readOnly?: boolean;
+  remixEnabled?: boolean;
   onRemix: (prompt: string) => void;
   onBack: () => void;
   onRename: (to: string) => void;
@@ -1129,7 +1145,9 @@ function DetailView({
             <Row k="Size" v={formatBytes(asset.size || asset.content.length)} />
           </dl>
 
-          {(kind === 'image' || kind === 'sprite') && !readOnly && <RemixBar busy={busy} onRemix={onRemix} />}
+          {(kind === 'image' || kind === 'sprite') && !readOnly && remixEnabled && (
+            <RemixBar busy={busy} onRemix={onRemix} />
+          )}
 
           <div className="rounded-xl border border-pg-border bg-pg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
