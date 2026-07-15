@@ -27,6 +27,25 @@ describe('StoryJourneyMap', () => {
     );
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Fable Forest');
     expect(screen.getAllByText(/Planned/)).toHaveLength(2);
+    expect(screen.getByTestId('story-chapter-a1').querySelector('.bsx-lumilo')).toHaveAttribute(
+      'data-performance',
+      'idle',
+    );
+    expect(screen.getByTestId('story-chapter-a2').querySelector('.bsx-tuan')).toHaveAttribute(
+      'data-performance',
+      'idle',
+    );
+    expect(screen.getByTestId('story-collection-shelf').querySelectorAll('.bsx-lumilo')).toHaveLength(
+      1,
+    );
+    expect(screen.getByTestId('story-collection-shelf').querySelectorAll('.bsx-tuan')).toHaveLength(
+      1,
+    );
+    expect(screen.getByTestId('story-world-cast').querySelectorAll('.tsv-world-character')).toHaveLength(
+      2,
+    );
+    expect(screen.getByTestId('story-world-cast').querySelector('.tsv-world-lumi')).toBeInTheDocument();
+    expect(screen.getByTestId('story-world-cast').querySelector('.tsv-world-tuan')).toBeInTheDocument();
   });
 
   it('starts a scene with a meaningful project title', () => {

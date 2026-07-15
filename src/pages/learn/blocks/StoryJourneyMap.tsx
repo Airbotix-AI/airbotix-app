@@ -5,7 +5,30 @@ import {
   TINY_STAR_VILLAGE_CHAPTERS,
   type StoryJourneyChapter,
 } from './storyJourneyCatalog';
+import { CharacterVisual } from './CharacterVisual';
 import './storyJourneyMap.css';
+
+const LUMI = {
+  name: 'Lumilo',
+  asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+};
+
+const TUAN_TUAN = {
+  name: 'Tuan Tuan',
+  asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+};
+
+function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {
+  if (chapter.id === 'a1') {
+    return <CharacterVisual character={LUMI} className="tsv-chapter-character" performance="idle" />;
+  }
+  if (chapter.id === 'a2') {
+    return (
+      <CharacterVisual character={TUAN_TUAN} className="tsv-chapter-character" performance="idle" />
+    );
+  }
+  return <span>{chapter.emoji}</span>;
+}
 
 interface StoryJourneyMapProps {
   busy: string | null;
@@ -29,7 +52,7 @@ function ChapterCard({
       data-testid={`story-chapter-${chapter.id}`}
     >
       <div className="tsv-chapter-art" aria-hidden="true">
-        <span>{chapter.emoji}</span>
+        <ChapterArtwork chapter={chapter} />
         <b>{chapter.number}</b>
       </div>
       <div className="tsv-chapter-copy">
@@ -89,7 +112,10 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
       </div>
       <div className="tsv-collection-shelf" data-testid="story-collection-shelf">
         <article className="tsv-collection-card is-open">
-          <div className="tsv-collection-avatar" aria-hidden="true">🌟</div>
+          <div className="tsv-collection-avatar tsv-collection-cast" aria-hidden="true">
+            <CharacterVisual character={LUMI} className="tsv-collection-character is-lumi" />
+            <CharacterVisual character={TUAN_TUAN} className="tsv-collection-character is-tuan" />
+          </div>
           <div>
             <small>Open now · Original story</small>
             <h3>The Missing Morning Light</h3>
@@ -117,12 +143,21 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
         </article>
       </div>
       <div className="tsv-world-hero">
-        <div className="tsv-world-sky" aria-hidden="true">
+        <div className="tsv-world-sky" data-testid="story-world-cast" aria-hidden="true">
           <span className="tsv-world-star one">✦</span>
           <span className="tsv-world-star two">✦</span>
           <span className="tsv-world-moon">☾</span>
           <span className="tsv-world-house left">🏠</span>
-          <span className="tsv-world-lumi">🌟</span>
+          <CharacterVisual
+            character={LUMI}
+            className="tsv-world-character tsv-world-lumi"
+            performance="listening"
+          />
+          <CharacterVisual
+            character={TUAN_TUAN}
+            className="tsv-world-character tsv-world-tuan"
+            performance="listening"
+          />
           <span className="tsv-world-house right">🏡</span>
         </div>
         <div className="tsv-world-intro">

@@ -2,6 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { CharacterVisual } from './CharacterVisual';
@@ -34,6 +35,7 @@ describe('CharacterVisual', () => {
       />,
     );
     expect(container.querySelector('svg')).toHaveAttribute('data-performance', 'speaking');
+    expect(container.querySelector('.bsx-lumilo-mouth-smile')).toBeInTheDocument();
     expect(container.querySelector('.bsx-lumilo-mouth-speak')).toBeInTheDocument();
   });
 
@@ -57,6 +59,19 @@ describe('CharacterVisual', () => {
           emoji: '☁️',
           asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
         }}
+        performance="speaking"
+      />,
+    );
+    expect(container.querySelector('.bsx-tuan-mouth-smile')).toBeInTheDocument();
+    expect(container.querySelector('.bsx-tuan-mouth-speak')).toBeInTheDocument();
+
+    rerender(
+      <CharacterVisual
+        character={{
+          name: 'Tuan Tuan',
+          emoji: '☁️',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+        }}
         performance="success"
       />,
     );
@@ -67,5 +82,16 @@ describe('CharacterVisual', () => {
   it('keeps emoji as the portable fallback', () => {
     render(<CharacterVisual character={{ name: 'Cat', emoji: '🐱' }} />);
     expect(screen.getByText('🐱')).toBeInTheDocument();
+  });
+
+  it('keeps speaking mouths calm instead of looping an open-close animation', () => {
+    const css = readFileSync('src/pages/learn/blocks/blocks.css', 'utf8');
+
+    expect(css).not.toContain("data-performance='speaking'] .bsx-lumilo-mouth-speak");
+    expect(css).not.toContain("data-performance='speaking'] .bsx-tuan-mouth-speak");
+    expect(css).not.toContain('@keyframes bsx-lumilo-talk');
+    expect(css).not.toContain('@keyframes bsx-tuan-talk');
+    expect(css).toContain("data-performance='speaking'] .bsx-lumilo-eyes");
+    expect(css).toContain("data-performance='speaking'] .bsx-tuan-eyes");
   });
 });

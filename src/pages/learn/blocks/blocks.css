@@ -976,7 +976,8 @@
 }
 
 .bsx-lumilo[data-performance='idle'] .bsx-lumilo-eyes,
-.bsx-lumilo[data-performance='listening'] .bsx-lumilo-eyes {
+.bsx-lumilo[data-performance='listening'] .bsx-lumilo-eyes,
+.bsx-lumilo[data-performance='speaking'] .bsx-lumilo-eyes {
   transform-box: fill-box;
   transform-origin: center;
   animation: bsx-lumilo-blink 4.8s ease-in-out infinite;
@@ -997,15 +998,8 @@
   transform: translateY(-4px) scaleY(0.72);
   transform-origin: center;
 }
-.bsx-lumilo[data-performance='speaking'] .bsx-lumilo-mouth-smile {
-  display: none;
-}
-.bsx-lumilo[data-performance='speaking'] .bsx-lumilo-mouth-speak {
-  display: block;
-  animation: bsx-lumilo-talk 0.34s ease-in-out infinite alternate;
-}
 .bsx-lumilo[data-performance='speaking'] .bsx-lumilo-arms-rest {
-  animation: bsx-lumilo-wave 0.65s ease-in-out infinite alternate;
+  animation: bsx-lumilo-wave 0.65s ease-in-out 2 alternate;
   transform-origin: center;
 }
 .bsx-lumilo[data-performance='thinking'] .bsx-lumilo-mouth-smile {
@@ -1069,11 +1063,6 @@
 @keyframes bsx-lumilo-hop-body {
   to {
     transform: scaleX(0.94) scaleY(1.06) translateY(-5px);
-  }
-}
-@keyframes bsx-lumilo-talk {
-  to {
-    transform: scaleY(0.62);
   }
 }
 @keyframes bsx-lumilo-wave {
@@ -1186,7 +1175,8 @@
 }
 
 .bsx-tuan[data-performance='idle'] .bsx-tuan-eyes,
-.bsx-tuan[data-performance='listening'] .bsx-tuan-eyes {
+.bsx-tuan[data-performance='listening'] .bsx-tuan-eyes,
+.bsx-tuan[data-performance='speaking'] .bsx-tuan-eyes {
   transform-box: fill-box;
   transform-origin: center;
   animation: bsx-tuan-blink 5.2s ease-in-out infinite;
@@ -1203,13 +1193,6 @@
 }
 .bsx-tuan[data-performance='hopping'] .bsx-tuan-puppet {
   animation: bsx-tuan-hop 0.55s ease-in-out infinite alternate;
-}
-.bsx-tuan[data-performance='speaking'] .bsx-tuan-mouth-smile {
-  display: none;
-}
-.bsx-tuan[data-performance='speaking'] .bsx-tuan-mouth-speak {
-  display: block;
-  animation: bsx-tuan-talk 0.34s ease-in-out infinite alternate;
 }
 .bsx-tuan[data-performance='thinking'] .bsx-tuan-pupil {
   transform: translate(2px, -2px);
@@ -1255,11 +1238,6 @@
 @keyframes bsx-tuan-hop {
   to {
     transform: translateY(-6px) scaleX(0.96) scaleY(1.04);
-  }
-}
-@keyframes bsx-tuan-talk {
-  to {
-    transform: scaleY(0.6);
   }
 }
 @keyframes bsx-tuan-celebrate {
