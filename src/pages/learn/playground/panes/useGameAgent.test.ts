@@ -1432,3 +1432,28 @@ describe('useGameAgent silent-turn watchdog (D-HARN-03)', () => {
     }
   });
 });
+
+// Asset generation is disabled behind featureFlags.ASSET_GENERATION_ENABLED
+// (default OFF). The chat "make me a picture" routing must NOT generate an asset:
+// an "asset"-classified message falls through to a normal game-code turn instead.
+describe('useGameAgent — asset generation disabled (featureFlags)', () => {
+  it('an "asset"-classified message runs a code turn, not asset generation', async () => {
+    resolveStream = null;
+    const { result, deps } = setup();
+    // The backend classifies the message as an asset request…
+    deps.classify = vi.fn(async () => ({ safeguarding: null, intent: 'asset' as const }));
+
+    await act(async () => {
+      void result.current.send('make me a shiny gold coin');
+      // …but with the flag OFF it flushes + runs a CODE turn (streamTurn pending).
+      await waitFor(() => expect(resolveStream).not.toBeNull());
+    });
+
+    // A code turn ran (asset routing would have returned BEFORE runTurn), and no
+    // asset-generation bubble was ever created.
+    expect(deps.runTurn).toHaveBeenCalledTimes(1);
+    expect(result.current.chat.some((c) => 'assetGen' in c && Boolean(c.assetGen))).toBe(false);
+
+    await act(async () => resolveStream?.());
+  });
+});

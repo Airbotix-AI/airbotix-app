@@ -39,10 +39,11 @@ function renderPane(demo: DemoMode | null, onRequestAssetGen = vi.fn()) {
 
 describe('AssetViewerPane demo bind seam', () => {
   it('registers the pane controls only when a demo provider is present', () => {
-    // Outside the demo there is no provider — the pane renders its normal UI
-    // with the seam dormant (useDemoMode() is null).
+    // Outside the demo there is no provider — the seam is dormant (useDemoMode()
+    // is null). With AI generation disabled (featureFlags) the ✨ Generate bar is
+    // hidden here; the demo provider re-enables it by bypassing the flag (below).
     renderPane(null);
-    expect(screen.getByTestId('asset-generate-prompt')).toBeInTheDocument();
+    expect(screen.queryByTestId('asset-generate-prompt')).toBeNull();
     cleanup();
 
     const bindAssetPane = vi.fn();

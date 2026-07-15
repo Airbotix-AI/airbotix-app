@@ -16,6 +16,18 @@
 - Reduced-motion mode keeps every meaningful expression and final state while disabling repeated
   character motion. Generic and legacy character images continue to render unchanged.
 
+## 2026-07-15 (change: pause AI asset generation in Creative Code Studio)
+
+### Changed
+- **AI asset generation is disabled behind a feature flag (`featureFlags.ASSET_GENERATION_ENABLED`,
+  default `false`).** The kid-facing ENTRY POINTS are now hidden/short-circuited: the Asset Viewer's
+  ✨ Generate bar and Remix bar don't render, and a chat message classified as an "asset" request
+  falls through to a normal game-code turn instead of generating (no `POST /llm/generate-asset`).
+  No generation code was removed — the `assetGen` seam, `generationStore`, the backend endpoint and
+  the guided demo all stay intact, so flipping the flag back to `true` fully restores the feature.
+  The public `/try/playground` marketing demo is unaffected (it drives an offline art seam and
+  bypasses the flag). The Asset Viewer still browses/imports/previews assets and the shared Library.
+
 ## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
 
 ### Fixed
