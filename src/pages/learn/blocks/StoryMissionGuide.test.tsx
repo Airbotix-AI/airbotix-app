@@ -16,6 +16,31 @@ const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 afterEach(cleanup);
 
 describe('StoryMissionGuide', () => {
+  it('turns a completed mission into a clear saved proof and next-scene action', () => {
+    const onNext = vi.fn();
+    render(
+      <StoryMissionGuide
+        mission={manualFixMission}
+        hasRun
+        completed
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+        journeyLabel="Chapter 1 · Scene 3 of 4"
+        nextJourneyLabel="Chapter 1 · My morning greeting"
+        onNext={onNext}
+      />,
+    );
+
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Blocks ready');
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Story played');
+    expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-next-mission'));
+    expect(onNext).toHaveBeenCalledOnce();
+  });
+
   it('explains the light chain, why it stopped, and why the child must fix it', () => {
     render(
       <StoryMissionGuide
@@ -34,9 +59,9 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByLabelText('Story page 1 of 5')).toBeInTheDocument();
     expect(screen.getByTestId('story-mission')).toHaveClass('bsx-story-fullscreen');
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-1');
-    expect(screen.getByTestId('story-lumilo').querySelector('img')).toHaveAttribute(
-      'src',
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    expect(screen.getByTestId('story-lumilo').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'speaking',
     );
     expect(screen.queryByTestId('story-light-network')).not.toBeInTheDocument();
 
@@ -45,6 +70,10 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByText(/Other homes send their stars too/)).toBeInTheDocument();
     expect(screen.getByText(/My star goes first/)).toBeInTheDocument();
     expect(screen.getByTestId('story-animated-scene')).toHaveClass('bsx-story-scene-2');
+    expect(screen.getByTestId('story-lumilo').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'hopping',
+    );
     expect(screen.getByTestId('story-light-network')).toBeInTheDocument();
     expect(
       screen.getByTestId('story-light-network').querySelectorAll('.bsx-story-light-route'),
@@ -299,9 +328,9 @@ describe('StoryMissionGuide', () => {
     );
 
     expect(screen.getByText('Meet Tuan Tuan, the cloud-path maker')).toBeInTheDocument();
-    expect(screen.getByTestId('story-tuan-tuan').querySelector('img')).toHaveAttribute(
-      'src',
-      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    expect(screen.getByTestId('story-tuan-tuan').querySelector('svg')).toHaveAttribute(
+      'data-performance',
+      'speaking',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
     expect(screen.getByText('The plaza star is on the right')).toBeInTheDocument();

@@ -3,6 +3,125 @@
   gap: 32px;
 }
 
+.tsv-library-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.tsv-library-heading h2 {
+  margin-top: 5px;
+  color: #28213f;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.tsv-library-heading p {
+  max-width: 480px;
+  color: #756c87;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.tsv-collection-shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tsv-collection-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  min-height: 190px;
+  border: 2px solid #ded4ff;
+  border-radius: 26px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(71, 48, 119, 0.1);
+}
+
+.tsv-collection-card.is-open {
+  border-color: #f0c44f;
+  background: linear-gradient(145deg, #fff9dd, #fff);
+}
+
+.tsv-collection-card.is-planned {
+  border-style: dashed;
+  background: #faf8ff;
+}
+
+.tsv-collection-avatar {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 18px;
+  background: #f2ecff;
+  font-size: 34px;
+}
+
+.tsv-collection-avatar.tsv-collection-cast {
+  position: relative;
+  width: 82px;
+  height: 68px;
+  overflow: hidden;
+  border: 1px solid #f1cf62;
+  background: linear-gradient(160deg, #283061, #776f99);
+}
+
+.tsv-collection-character {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  filter: drop-shadow(0 5px 8px rgb(17 22 58 / 35%));
+}
+
+.tsv-collection-character.is-lumi {
+  left: 2px;
+  bottom: 2px;
+  z-index: 2;
+}
+
+.tsv-collection-character.is-tuan {
+  right: -2px;
+  bottom: 0;
+  transform: scale(0.86);
+}
+
+.tsv-collection-card small {
+  color: #8b6b13;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tsv-collection-card h3 {
+  margin: 6px 0;
+  color: #28213f;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.tsv-collection-card p {
+  margin: 0 0 10px;
+  color: #6c647d;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.tsv-collection-card strong {
+  color: #55466f;
+  font-size: 11px;
+  font-weight: 850;
+}
+
 .tsv-world-hero {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1.1fr);
@@ -35,7 +154,7 @@
 .tsv-world-star,
 .tsv-world-moon,
 .tsv-world-house,
-.tsv-world-lumi {
+.tsv-world-character {
   position: absolute;
   z-index: 1;
   filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.25));
@@ -49,11 +168,18 @@
 .tsv-world-house.left { left: 8%; }
 .tsv-world-house.right { right: 6%; transform: scale(0.78); opacity: 0.8; }
 .tsv-world-lumi {
-  left: 50%;
-  bottom: 16%;
-  font-size: clamp(70px, 10vw, 116px);
-  transform: translateX(-50%);
+  right: 59%;
+  bottom: 12%;
   filter: drop-shadow(0 0 22px rgba(255, 222, 93, 0.9));
+}
+.tsv-world-tuan {
+  left: 59%;
+  bottom: 12%;
+  filter: drop-shadow(0 0 18px rgb(159 214 235 / 75%));
+}
+.tsv-world-character {
+  width: clamp(82px, 10vw, 128px);
+  height: clamp(82px, 10vw, 128px);
 }
 
 .tsv-world-intro {
@@ -162,6 +288,11 @@
 }
 
 .tsv-chapter-art span { font-size: 60px; filter: drop-shadow(0 8px 10px rgba(0,0,0,.25)); }
+.tsv-chapter-character {
+  width: 92px;
+  height: 92px;
+  filter: drop-shadow(0 8px 10px rgb(0 0 0 / 25%));
+}
 .tsv-chapter-art b {
   position: absolute;
   top: 9px;
@@ -273,20 +404,28 @@
 .tsv-coming-note { grid-column: 1 / -1; }
 
 @media (max-width: 900px) {
+  .tsv-collection-shelf { grid-template-columns: 1fr; }
   .tsv-world-hero { grid-template-columns: 1fr; }
   .tsv-world-sky { min-height: 260px; }
   .tsv-chapter-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
+  .tsv-library-heading { align-items: start; flex-direction: column; gap: 8px; }
   .tsv-world-hero { border-radius: 26px; }
   .tsv-world-intro { padding: 26px 22px 30px; }
+  .tsv-world-lumi { right: 59%; }
+  .tsv-world-tuan { left: 59%; }
   .tsv-map-heading { align-items: start; flex-direction: column; gap: 8px; }
   .tsv-chapter-card { grid-template-columns: 88px 1fr; padding: 14px; border-radius: 22px; }
   .tsv-chapter-art { min-height: 110px; }
   .tsv-chapter-art span { font-size: 48px; }
+  .tsv-chapter-character { width: 74px; height: 74px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tsv-mission-button { transition: none; }
+  .tsv-collection-character *,
+  .tsv-world-character *,
+  .tsv-chapter-character * { animation: none !important; }
 }

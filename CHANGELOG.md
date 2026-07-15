@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
+
+### Changed
+- **Character dialogue is calm instead of uncanny.** Lumi and Tuan Tuan now keep a friendly,
+  stable smile while speaking instead of looping the mouth open and closed. Lumi waves once, and
+  both puppets keep only the natural slow blink while a speech bubble is visible.
+- **The Tiny Star Village collection hero gives each partner their own space.** Lumi now stands on
+  the left and Tuan Tuan on the right with a clear gap between them at desktop and phone widths,
+  rather than overlapping into one unreadable character silhouette.
+- **Lumilo is no longer a permanently closed-eye picture that only slides around the stage.** The
+  Tiny Star Village tutorial, in-studio coach, editable stage, and read-only player now share one
+  canonical layered SVG puppet with open-eyed idle/blink, listening, movement, hop, speech,
+  thinking, resting, and arms-up success performances. Running blocks drive those performances,
+  so the character visibly explains the same cause-and-effect the child is programming.
+- **Tuan Tuan now uses the same performance contract in Chapter 2.** The cloud bear opens their
+  eyes by default, looks toward the route, walks with a soft step and scarf swish, speaks, thinks,
+  rests only when asked, and raises both arms after the saved program reaches the plaza target.
+- **The Story Blocks collection and chapter list now introduces the real partners.** Tiny Star
+  Village, Chapter 1, Chapter 2, and the world hero scene use the same open-eyed Lumi and Tuan Tuan
+  puppets as the tutorial and stage instead of generic star/cloud emoji placeholders.
+- A completed mission can be replayed after reload: pressing Go on the still-correct saved program
+  reopens the evidence card and full-screen celebration instead of silently running underneath it.
+- Reduced-motion mode keeps every meaningful expression and final state while disabling repeated
+  character motion. Generic and legacy character images continue to render unchanged.
+
 ## 2026-07-15 (change: pause AI asset generation in Creative Code Studio)
 
 ### Changed
@@ -11,6 +36,8 @@
   the guided demo all stay intact, so flipping the flag back to `true` fully restores the feature.
   The public `/try/playground` marketing demo is unaffected (it drives an offline art seam and
   bypasses the flag). The Asset Viewer still browses/imports/previews assets and the shared Library.
+
+## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
 
 ### Fixed
 - **Creative Code Studio kept an unsent chat message only until you looked away.** In split mode,

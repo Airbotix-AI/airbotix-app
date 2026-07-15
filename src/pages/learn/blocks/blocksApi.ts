@@ -16,6 +16,36 @@ import { HISTORY_CAP, type HistoryEntry } from './blocksStore';
 
 /** Sidecar VFS file holding the undo/redo stack (persisted with the project). */
 export const BLOCKS_HISTORY_FILE = 'project.blocks.history.json';
+export const BLOCKS_STORY_PROGRESS_FILE = 'project.blocks.progress.json';
+
+export interface BlocksStoryProgress {
+  schemaVersion: 1;
+  completed: Record<string, { completedAt: string }>;
+}
+
+export const EMPTY_BLOCKS_STORY_PROGRESS: BlocksStoryProgress = {
+  schemaVersion: 1,
+  completed: {},
+};
+
+function parseStoryProgress(raw: string | undefined): BlocksStoryProgress {
+  if (!raw) return EMPTY_BLOCKS_STORY_PROGRESS;
+  try {
+    const doc = JSON.parse(raw) as Partial<BlocksStoryProgress>;
+    if (doc.schemaVersion !== 1 || !doc.completed || typeof doc.completed !== 'object') {
+      return EMPTY_BLOCKS_STORY_PROGRESS;
+    }
+    const completed = Object.fromEntries(
+      Object.entries(doc.completed).filter(
+        (entry): entry is [string, { completedAt: string }] =>
+          typeof entry[1]?.completedAt === 'string',
+      ),
+    );
+    return { schemaVersion: 1, completed };
+  } catch {
+    return EMPTY_BLOCKS_STORY_PROGRESS;
+  }
+}
 
 /** Defensively parse a persisted history stack — bad/old files → empty history. */
 function parseHistory(raw: string | undefined): { past: HistoryEntry[]; future: HistoryEntry[] } {
@@ -75,7 +105,8 @@ export type BlocksTemplateId =
   | 'blocks_tsv_a1_s'
   | 'blocks_tsv_a2_h'
   | 'blocks_tsv_a2_b'
-  | 'blocks_tsv_a2_d';
+  | 'blocks_tsv_a2_d'
+  | 'blocks_tsv_a2_s';
 
 export interface BlocksProjectMeta {
   id: string;
@@ -116,6 +147,8 @@ export interface LoadedBlocksProject {
   /** Every OTHER file in the VFS (NOT the project or its history) — echoed back
    *  on save (PUT replaces the set). */
   otherFiles: VfsFile[];
+  /** Server-persisted proof that a story mission was run, verified, and saved. */
+  storyProgress?: BlocksStoryProgress;
 }
 
 export async function loadBlocksProject(projectId: string): Promise<LoadedBlocksProject> {
@@ -124,19 +157,29 @@ export async function loadBlocksProject(projectId: string): Promise<LoadedBlocks
   const snap = await readVfsSnapshot(projectId);
   const doc = snap.files.find((f) => f.path === BLOCKS_PROJECT_FILE);
   const hist = snap.files.find((f) => f.path === BLOCKS_HISTORY_FILE);
+  const storyProgress = snap.files.find((f) => f.path === BLOCKS_STORY_PROGRESS_FILE);
   return {
     project: parseProject(doc?.content ?? ''),
     version: snap.version,
     history: parseHistory(hist?.content),
+    storyProgress: parseStoryProgress(storyProgress?.content),
     otherFiles: snap.files.filter(
-      (f) => f.path !== BLOCKS_PROJECT_FILE && f.path !== BLOCKS_HISTORY_FILE,
+      (f) =>
+        f.path !== BLOCKS_PROJECT_FILE &&
+        f.path !== BLOCKS_HISTORY_FILE &&
+        f.path !== BLOCKS_STORY_PROGRESS_FILE,
     ),
   };
 }
 
 export type BlocksSaveResult =
   | { status: 'saved'; version: number }
-  | { status: 'kept-newest'; project: BlocksProject; version: number };
+  | {
+      status: 'kept-newest';
+      project: BlocksProject;
+      version: number;
+      storyProgress: BlocksStoryProgress;
+    };
 
 /**
  * Persist the program. On a stale version (saved elsewhere) the server wins:
@@ -148,6 +191,7 @@ export async function saveBlocksProject(args: {
   version: number;
   otherFiles: VfsFile[];
   history?: { past: HistoryEntry[]; future: HistoryEntry[] };
+  storyProgress?: BlocksStoryProgress;
 }): Promise<BlocksSaveResult> {
   // Demo mode: in-memory no-op save, no network (try-demo-mode-prd D-DEMO-02).
   if (demoBlocksAdapter) return demoBlocksAdapter.save(args);
@@ -170,6 +214,16 @@ export async function saveBlocksProject(args: {
           },
         ]
       : []),
+    ...(args.storyProgress
+      ? [
+          {
+            path: BLOCKS_STORY_PROGRESS_FILE,
+            content: JSON.stringify(args.storyProgress),
+            kind: 'text' as const,
+            size: 0,
+          },
+        ]
+      : []),
   ];
   try {
     const snap = await saveVfs({ projectId: args.projectId, files, version: args.version });
@@ -177,10 +231,12 @@ export async function saveBlocksProject(args: {
   } catch (e) {
     if (e instanceof SaveConflictError) {
       const doc = e.current.files.find((f) => f.path === BLOCKS_PROJECT_FILE);
+      const storyProgress = e.current.files.find((f) => f.path === BLOCKS_STORY_PROGRESS_FILE);
       return {
         status: 'kept-newest',
         project: parseProject(doc?.content ?? ''),
         version: e.current.version,
+        storyProgress: parseStoryProgress(storyProgress?.content),
       };
     }
     throw e;

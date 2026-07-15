@@ -100,6 +100,16 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       size: 0.8,
     },
   },
+  'tsv-s1-a2-s': {
+    pageId: 'tsv-a2-s-page',
+    background: 'tsv-cloud-path-meadow',
+    characterId: 'tuan-tuan',
+    scriptId: 'tuan-tuan-flag',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }, { op: 'end' }],
+    sceneTarget: { id: 'plaza-target', name: 'My Home Star', gx: 10, gy: 10, size: 0.8 },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -143,6 +153,19 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget.scripts.length === 0 &&
       page?.characters.length === 2);
 
+  if (lessonId === 'tsv-s1-a2-s') {
+    const endpoint = sceneTarget?.start.gx;
+    const direction = endpoint === 6 ? 'move_left' : endpoint === 10 ? 'move_right' : undefined;
+    return (
+      project.lessonId === lessonId && page?.background === mission.background &&
+      character?.asset === mission.asset && startMatches && page?.characters.length === 2 &&
+      sceneTarget?.name === 'My Home Star' && sceneTarget.start.gy === 10 &&
+      sceneTarget.start.size === 0.8 && sceneTarget.scripts.length === 0 &&
+      blocks.length === 4 && blocks[0]?.op === 'when_flag' && blocks[3]?.op === 'end' &&
+      blocks[1]?.op === direction && blocks[1]?.n === 1 &&
+      blocks[2]?.op === direction && blocks[2]?.n === 1
+    );
+  }
   return (
     project.lessonId === lessonId &&
     page?.background === mission.background &&
