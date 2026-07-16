@@ -58,7 +58,9 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'The rooftop star will not wake for Go. Dot Dot needs a different kind of start.',
     skill: 'Make taps start actions',
     art: 'rooftop',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a3_h', lessonId: 'tsv-s1-a3-h', number: 9, title: 'Go cannot wake Dot Dot', action: 'Try' },
+    ],
   },
   {
     id: 'a4',

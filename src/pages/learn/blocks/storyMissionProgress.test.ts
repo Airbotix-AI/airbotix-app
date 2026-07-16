@@ -220,6 +220,35 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(neutral, 'tsv-s1-a2-s')).toBe(false);
   });
 
+  it('accepts A3-H only for Dot Dot’s exact saved On Tap response', () => {
+    const project = blankProject('Dot Dot wakes on tap');
+    project.lessonId = 'tsv-s1-a3-h';
+    project.pages = [{
+      id: 'tsv-a3-h-page',
+      background: 'sunset',
+      characters: [{
+        id: 'dot-dot',
+        name: 'Dot Dot',
+        emoji: '🐱',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        start: { gx: 10, gy: 8, size: 1, rot: 0 },
+        scripts: [{
+          id: 'dot-dot-tap',
+          blocks: [
+            { op: 'when_tap' },
+            { op: 'hop', n: 1 },
+            { op: 'say', text: '醒啦' },
+            { op: 'end' },
+          ],
+        }],
+      }],
+    }];
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(true);
+
+    project.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

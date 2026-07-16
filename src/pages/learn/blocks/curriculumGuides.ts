@@ -744,6 +744,24 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The runner finished on the selected star and the same exact program was saved on the server.',
     next: 'Tuan Tuan sees Dot Dot sleeping under the rooftop star. Next, discover what wakes Dot Dot.',
   },
+  'tsv-s1-a3-h': {
+    mode: 'observe-only', lessonId: 'tsv-s1-a3-h', celebrate: false,
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 3 · Mission 9', title: 'Go cannot wake Dot Dot',
+    storyPages: [
+      { emoji: '🐱💤', title: 'Dot Dot is sleeping', body: 'Dot Dot sleeps under the rooftop star. The green Go button starts the village, but Dot Dot is waiting for a different start.', speaker: 'Lumilo', dialogue: 'Try Go first. Watch Dot Dot.', scene: 1 },
+      { emoji: '▶️😴', title: 'Go makes no response', body: 'Press Go. Dot Dot does not hop or speak because this script does not begin with Start.', speaker: 'Lumilo', dialogue: 'Go did not wake Dot Dot.', scene: 3, blocks: ['▶️ Go', '😴 No response'] },
+      { emoji: '👆🐱', title: 'Try your fingertip', body: 'Tap Dot Dot on the stage. On Tap runs only for the character you touched, so Dot Dot hops and says “醒啦”.', speaker: 'Dot Dot', dialogue: 'A gentle tap wakes me!', scene: 5, blocks: ['👆 On Tap', '🦘 Hop + Say'] },
+    ],
+    partnerLine: 'Your real touch can be the reason a story begins.',
+    mission: 'Press Go once and notice Dot Dot stays asleep. Then tap Dot Dot on the stage and watch the different event run.',
+    question: 'What woke Dot Dot?', choices: [{ id: 'go', label: '▶️ The Go button', correct: false }, { id: 'tap', label: '👆 My tap on Dot Dot', correct: true }],
+    retry: 'Try the two starts again: Go first, then tap Dot Dot.', successTitle: 'You found a different start!', success: 'Only your tap ran Dot Dot’s On Tap script.',
+    fixTitle: 'Story Hook complete', fixPrompt: 'Keep the finished On Tap program. You will build a response in the next mission.', workspaceIntro: 'Do not change the blocks. Compare Go with a real tap on Dot Dot.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Press Go first. Watch Dot Dot.', watch: 'Did Go make Dot Dot hop or speak?', sayFirst: 'Dot Dot speaks after a tap.', sayThen: 'Dot Dot speaks after a tap.', hopFirst: 'Dot Dot hops after a tap.', hopThen: 'Dot Dot hops after a tap.', retry: 'Now tap Dot Dot directly on the stage.', fix: 'No fix yet. Name what started the response.', test: 'Press Go, then tap Dot Dot.', saving: 'Your observation is saved with the unchanged program.', complete: 'Your tap—not Go—woke Dot Dot!' },
+    logicSteps: [{ icon: '▶️', label: 'Go', order: 'No response' }, { icon: '👆', label: 'Tap Dot Dot', order: 'Starts' }, { icon: '🦘', label: 'Hop and say', order: 'Response' }],
+    logicWhy: 'A script beginning with On Tap waits for that character to be touched.', completionTitle: 'Story Hook complete · You discovered On Tap!', completion: 'You ran Go, then used a real stage tap and identified the event that made Dot Dot respond.', completionSteps: [{ icon: '▶️', label: 'Try Go', order: 'First' }, { icon: '👆', label: 'Tap Dot Dot', order: 'Then' }, { icon: '💬', label: 'Name the cause', order: 'Explain' }], completionWhy: 'The exact saved script starts with On Tap, so Go cannot run it.', next: 'Next, add one visible response after On Tap in A3-B.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {
