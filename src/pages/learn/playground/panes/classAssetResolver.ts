@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { CLASS_ASSET_DIR } from './assetMeta';
-import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
+import { fetchClassAssetDataUrl, type ClassAssetView } from './playgroundApi';
 
 // A quoted `assets/class/<name>` reference — the SAME quote-anchored form the srcdoc
 // inliner rewrites (`buildGamePreview.ts` `inlineAssetRefs`), so a name we resolve is a
@@ -68,13 +68,16 @@ function useReferencedStable(files: VfsFile[], classAssets: ClassAssetView[]): C
  * Virtual (never-persisted) VFS assets for the class assets the game references,
  * each resolved to a `data:` URL ready for `buildGamePreview` to inline. Feed the
  * result to `GameFrame`/`GameRunnerPane` as `virtualAssets`. Only referenced assets
- * are fetched (once, cached by name); an unresolved fetch simply omits that asset
+ * are fetched (once, cached by name) from the SAME-ORIGIN backend proxy by asset id
+ * (never the cross-origin signed S3 URL — a browser `fetch()` of that needs bucket
+ * CORS the media bucket doesn't set); an unresolved fetch simply omits that asset
  * (the game shows it missing — never throws). `fetchDataUrl` is injectable for tests.
  */
 export function useReferencedClassAssets(
   files: VfsFile[],
   classAssets: ClassAssetView[],
-  fetchDataUrl: (url: string) => Promise<string> = fetchAssetDataUrl,
+  projectId: string,
+  fetchDataUrl: (projectId: string, assetId: string) => Promise<string> = fetchClassAssetDataUrl,
 ): VfsFile[] {
   // name -> data URL. A ref (stable across renders) is the cache of record; state
   // mirrors it to trigger a rebuild when a new asset resolves.
@@ -94,7 +97,7 @@ export function useReferencedClassAssets(
     void Promise.all(
       missing.map(async (a) => {
         try {
-          cacheRef.current[a.name] = await fetchDataUrl(a.download_url);
+          cacheRef.current[a.name] = await fetchDataUrl(projectId, a.id);
         } catch {
           // Leave unresolved — the game shows the missing asset rather than crashing.
         }
@@ -105,7 +108,7 @@ export function useReferencedClassAssets(
     return () => {
       cancelled = true;
     };
-  }, [referenced, fetchDataUrl]);
+  }, [referenced, fetchDataUrl, projectId]);
 
   return useMemo(
     () =>

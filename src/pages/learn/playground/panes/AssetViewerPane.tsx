@@ -238,6 +238,7 @@ function ModelThumb({ content }: { content: string }) {
 
 export function AssetViewerPane({
   files,
+  projectId,
   onSaveNow,
   onRequestAssetGen,
   openAsset,
@@ -668,10 +669,15 @@ export function AssetViewerPane({
             <ClassAssetDetailView
               asset={selectedClass}
               items={classList}
+              projectId={projectId ?? ''}
               onBack={() => setSelectedClassId(null)}
             />
           ) : (
-            <ClassAssetsGrid items={classVisible} onSelect={setSelectedClassId} />
+            <ClassAssetsGrid
+              items={classVisible}
+              projectId={projectId ?? ''}
+              onSelect={setSelectedClassId}
+            />
           )
         ) : source === 'library' ? (
           selectedLib ? (

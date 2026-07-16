@@ -82,7 +82,9 @@ describe('useReferencedClassAssets', () => {
     const files = [text('g.js', `this.load.image('s', 'assets/class/game_stage.png')`)];
     const fetchDataUrl = vi.fn(async () => 'data:image/png;base64,STAGE');
 
-    const { result } = renderHook(() => useReferencedClassAssets(files, lib, fetchDataUrl));
+    const { result } = renderHook(() =>
+      useReferencedClassAssets(files, lib, 'proj-1', fetchDataUrl),
+    );
 
     await waitFor(() => expect(result.current).toHaveLength(1));
     expect(result.current[0]).toEqual({
@@ -91,9 +93,10 @@ describe('useReferencedClassAssets', () => {
       kind: 'asset',
       size: 123,
     });
-    // Only the referenced asset is fetched — never the whole library.
+    // Only the referenced asset is fetched — never the whole library — and by the
+    // SAME-ORIGIN (projectId, assetId) proxy, never the cross-origin signed S3 URL.
     expect(fetchDataUrl).toHaveBeenCalledTimes(1);
-    expect(fetchDataUrl).toHaveBeenCalledWith('https://signed.example/game_stage.png?sig=x');
+    expect(fetchDataUrl).toHaveBeenCalledWith('proj-1', 'id-game_stage.png');
   });
 
   it('omits an asset whose fetch fails (game shows it missing, never throws)', async () => {
@@ -103,7 +106,9 @@ describe('useReferencedClassAssets', () => {
       throw new Error('signed URL expired');
     });
 
-    const { result } = renderHook(() => useReferencedClassAssets(files, lib, fetchDataUrl));
+    const { result } = renderHook(() =>
+      useReferencedClassAssets(files, lib, 'proj-1', fetchDataUrl),
+    );
 
     await waitFor(() => expect(fetchDataUrl).toHaveBeenCalled());
     expect(result.current).toEqual([]);
@@ -114,9 +119,12 @@ describe('useReferencedClassAssets', () => {
     const fetchDataUrl = vi.fn(async () => 'data:image/png;base64,A');
     const first = [text('g.js', `'assets/class/a.png'`)];
 
-    const { result, rerender } = renderHook(({ files }) => useReferencedClassAssets(files, lib, fetchDataUrl), {
-      initialProps: { files: first },
-    });
+    const { result, rerender } = renderHook(
+      ({ files }) => useReferencedClassAssets(files, lib, 'proj-1', fetchDataUrl),
+      {
+        initialProps: { files: first },
+      },
+    );
     await waitFor(() => expect(result.current).toHaveLength(1));
 
     // A fresh files array (new identity) that still references the same asset.

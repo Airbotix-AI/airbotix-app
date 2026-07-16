@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
+
+### Fixed
+- **A referenced class/course asset now actually loads in the game.** In teacher prep (and the kid
+  playground), referencing a shared asset by `assets/class/<name>` logged
+  `[airbotix] Texture failed to load: assets/class/<name>` and the asset never rendered: the runtime
+  resolver read the bytes with a cross-origin `fetch()` of the signed S3 `download_url`, which fails
+  without media-bucket CORS (the `<img>` preview kept working because image loads ignore CORS), so
+  the sandboxed game was left with a bare path it couldn't resolve. `useReferencedClassAssets` now
+  fetches the bytes **same-origin** from the backend proxy
+  `GET /projects/:id/class-assets/:assetId/bytes` (class-shared-assets-prd D-CSA-11).
+- The Class-tab **3D-model preview** (`ClassModelThumb` / `ClassModelStage`) had the same latent
+  cross-origin failure (it `fetch()`ed the model bytes) — both now use the same-origin proxy.
+
+### Changed
+- `playgroundApi`: `fetchAssetDataUrl(url)` → `fetchClassAssetDataUrl(projectId, assetId)` (fetches
+  via the proxy) + a shared `blobToDataUrl` helper; `lib/api` gains `apiBlob` (authenticated
+  same-origin binary fetch, now also backing `apiDownload`).
+
+### Tests
+- Updated `classAssetResolver.test.ts` (resolver fetches by `(projectId, assetId)`),
+  `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
+  `AssetViewerPane.classAssets.test.tsx` (model preview mock).
+
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
 ### Changed
