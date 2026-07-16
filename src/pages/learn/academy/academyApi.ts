@@ -1,8 +1,7 @@
 // Academy — NAPLAN Maths practice backend contract. Rides the shared kid-JWT
-// `api` client (auth + silent refresh) exactly like every other Learn feature;
-// image assets are PUBLIC (no auth header) so they load through a plain <img>.
+// `api` client (auth + silent refresh) exactly like every other Learn feature.
 
-import { api, BASE_URL } from '@/lib/api';
+import { api } from '@/lib/api';
 
 export const ACADEMY_YEAR_LEVELS = ['Year 3', 'Year 5', 'Year 7', 'Year 9'] as const;
 export type AcademyYearLevel = (typeof ACADEMY_YEAR_LEVELS)[number];
@@ -14,6 +13,32 @@ export const ACADEMY_SUBJECT = 'Numeracy' as const;
 export const ACADEMY_SET_SIZE = 20;
 
 export type AcademyAnswerType = 'choice' | 'value';
+
+type TallyTableSpec = {
+  kind: 'tally_table';
+  title: string;
+  value_label: string;
+  rows: Array<{ label: string; count: number }>;
+};
+
+type BalanceScaleSpec = {
+  kind: 'balance_scale';
+  left: Array<{ label: string; tone: 'mint' | 'sky' | 'sun' }>;
+  right: Array<{ label: string; tone: 'mint' | 'sky' | 'sun' }>;
+};
+
+export type AcademyRenderSpec =
+  | { kind: 'none' }
+  | TallyTableSpec
+  | {
+      kind: 'number_range';
+      lower: number;
+      upper: number;
+      lower_inclusive: boolean;
+      upper_inclusive: boolean;
+    }
+  | BalanceScaleSpec
+  | { kind: 'route'; from: string; to: string; label: string };
 
 // One practice question. The official answer is deliberately NOT part of this
 // shape — it only comes back from POST /academy/attempts after a kid answers.
@@ -27,11 +52,10 @@ export interface AcademyQuestion {
   paper_year: number;
   q_no: number;
   answer_type: AcademyAnswerType;
-  q_image_key: string | null;
-  page_image_key: string | null;
   stem_text: string | null;
   options: string[] | null;
-  figure_keys: string[] | null;
+  render_ready: boolean;
+  render_spec: AcademyRenderSpec;
   ac9_code: string | null;
   difficulty: string | null;
 }
@@ -45,11 +69,6 @@ export interface AcademyProgress {
   attempts: number;
   correct: number;
   accuracy: number;
-}
-
-/** Absolute URL for a PUBLIC image asset (figure / question / page image key). */
-export function academyAssetUrl(key: string): string {
-  return `${BASE_URL}/academy/assets/${key}`;
 }
 
 /** Load a practice set for the selected year level (subject fixed to Numeracy). */

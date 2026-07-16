@@ -13,7 +13,6 @@ import {
   ACADEMY_DEFAULT_YEAR,
   ACADEMY_SUBJECT,
   ACADEMY_YEAR_LEVELS,
-  academyAssetUrl,
   getAcademyProgress,
   listAcademyQuestions,
   submitAcademyAttempt,
@@ -21,6 +20,7 @@ import {
   type AcademyQuestion,
   type AcademyYearLevel,
 } from './academyApi';
+import { AcademyQuestionVisual } from './AcademyQuestionVisual';
 
 // Choice questions map option index → letter; the LETTER is what we submit.
 const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -261,65 +261,15 @@ function Scoreboard({
   );
 }
 
-// Some questions carry their data IN a figure (a table of values, a bar graph, a
-// grid, a clock) — flattening that to text yields garbage. And PDF-layout extraction
-// occasionally bleeds the next question's text into this one (>1 question mark).
-// In both cases prefer the scanned question image over the extracted text.
-function needsImage(q: AcademyQuestion): boolean {
-  const s = q.stem_text ?? '';
-  if (!s) return true;
-  const figureEssential =
-    /\b(table|graph|chart|diagram|scale|grid|clock|column|axis|shaded|net|shapes?|balloons?|balanced|below)\b/i.test(
-      s,
-    );
-  const mergedQuestions = (s.match(/\?/g)?.length ?? 0) > 1;
-  // A run of many small isolated numbers is the tell-tale of a bar-graph/table's
-  // axis labels flattened into text ("8 students 7 6 5 4 of 3 Number 2 1 0 …").
-  const noisyNumbers = (s.match(/\b\d{1,2}\b/g)?.length ?? 0) >= 6;
-  const hasImage = (q.figure_keys?.length ?? 0) > 0 || Boolean(q.q_image_key ?? q.page_image_key);
-  return (figureEssential || mergedQuestions || noisyNumbers) && hasImage;
-}
-
 function QuestionBody({ question }: { question: AcademyQuestion }) {
-  // Primary path: real question text + inline figure images — but only when the
-  // text is trustworthy (see needsImage).
-  if (question.stem_text && !needsImage(question)) {
-    return (
-      <div>
-        <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
-          {question.stem_text}
-        </p>
-        {question.figure_keys && question.figure_keys.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {question.figure_keys.map((key) => (
-              <img
-                key={key}
-                data-testid="academy-figure"
-                src={academyAssetUrl(key)}
-                alt="Question figure"
-                className="max-h-40 rounded-xl border border-hairline bg-canvas-pure"
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback: no text — show the scanned question (or full page) image.
-  const imageKey = question.q_image_key ?? question.page_image_key;
-  if (imageKey) {
-    return (
-      <img
-        data-testid="academy-question-image"
-        src={academyAssetUrl(imageKey)}
-        alt="Question"
-        className="max-h-[60vh] w-full rounded-xl border border-hairline bg-canvas-pure object-contain"
-      />
-    );
-  }
-
-  return <p className="lead-text">This question can&apos;t be shown right now.</p>;
+  return (
+    <div>
+      <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
+        {question.stem_text}
+      </p>
+      <AcademyQuestionVisual spec={question.render_spec} />
+    </div>
+  );
 }
 
 function AnswerArea({
@@ -368,11 +318,8 @@ function AnswerArea({
     );
   }
 
-  // Choice: prefer the real option text (submitting the LETTER); otherwise fall
-  // back to generic A/B/C/D buttons. When the question is shown as an image
-  // (needsImage), the options live in the image too — don't risk garbled text.
   const letters =
-    question.options && question.options.length > 0 && !needsImage(question)
+    question.options && question.options.length > 0
       ? question.options.map((text, i) => ({ letter: CHOICE_LETTERS[i], text }))
       : CHOICE_LETTERS.slice(0, FALLBACK_CHOICE_COUNT).map((letter) => ({ letter, text: null }));
 

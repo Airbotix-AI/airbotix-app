@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // Academy — NAPLAN Maths practice page. Covers the three behaviours the feature
-// hinges on: it renders a real TEXT question with option-TEXT buttons, submitting
-// an answer shows feedback + reveals the official answer, and a question with no
-// stem_text falls back to the scanned question image.
+// hinges on: it renders native text/options/visuals without PDF screenshots,
+// submitting an answer shows feedback, and the official answer stays server-side
+// until that submission.
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -32,22 +32,31 @@ const TEXT_CHOICE_Q = {
   paper_year: 2016,
   q_no: 1,
   answer_type: 'choice' as const,
-  q_image_key: 'q/naplan-y5-2016-std-q1.png',
-  page_image_key: 'pages/naplan-y5-2016-std-p1.png',
   stem_text: 'A pencil costs 19 cents. How much do 10 pencils cost?',
   options: ['19 cents', '$1.90', '$19.00', '$190'],
-  figure_keys: ['figures/naplan-y5-2016-std-q1-fig0.png'],
+  render_ready: true,
+  render_spec: { kind: 'none' as const },
   ac9_code: 'AC9M5N01',
   difficulty: 'easy',
 };
 
-const IMAGE_ONLY_Q = {
+const TALLY_Q = {
   ...TEXT_CHOICE_Q,
   id: 'q2',
-  stem_text: null,
+  answer_type: 'value' as const,
+  stem_text:
+    'Some children were asked to name their favourite sport. How many children were asked altogether?',
   options: null,
-  figure_keys: null,
-  q_image_key: 'figures/naplan-y5-2016-std-q2.png',
+  render_spec: {
+    kind: 'tally_table' as const,
+    title: 'Favourite sport',
+    value_label: 'Number of students',
+    rows: [
+      { label: 'Basketball', count: 22 },
+      { label: 'Tennis', count: 10 },
+      { label: 'Hockey', count: 15 },
+    ],
+  },
 };
 
 function wireApi(questions: unknown[], attempt = { is_correct: true, correct_answer: 'A' }) {
@@ -90,11 +99,7 @@ describe('AcademyPracticePage', () => {
     // Real option TEXT is shown (not generic A/B/C/D).
     expect(screen.getByTestId('academy-option-A')).toHaveTextContent('19 cents');
     expect(screen.getByTestId('academy-option-B')).toHaveTextContent('$1.90');
-    // Inline figure renders as an <img> pointing at the public asset endpoint.
-    expect(screen.getByTestId('academy-figure')).toHaveAttribute(
-      'src',
-      'http://api.test/academy/assets/figures/naplan-y5-2016-std-q1-fig0.png',
-    );
+    expect(screen.queryByRole('img', { name: 'Question' })).not.toBeInTheDocument();
   });
 
   it('submits the chosen LETTER and shows feedback with the correct answer', async () => {
@@ -116,51 +121,35 @@ describe('AcademyPracticePage', () => {
     );
   });
 
-  it('falls back to the question image when stem_text is null', async () => {
-    wireApi([IMAGE_ONLY_Q]);
+  it('renders a tally table as native HTML/SVG and never shows a PDF crop', async () => {
+    wireApi([TALLY_Q]);
     renderPage();
 
-    const img = await screen.findByTestId('academy-question-image');
-    expect(img).toHaveAttribute(
-      'src',
-      'http://api.test/academy/assets/figures/naplan-y5-2016-std-q2.png',
-    );
-    expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('academy-native-visual')).toHaveTextContent('Basketball');
+    expect(screen.getByLabelText('22 tally marks')).toBeInTheDocument();
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
 
-  it('shows the image (not garbled text) when the question data lives in a table/figure', async () => {
-    const TABLE_Q = {
+  it('renders a balance scale as native SVG', async () => {
+    const BALANCE_Q = {
       ...TEXT_CHOICE_Q,
       id: 'q3',
       answer_type: 'value' as const,
-      // Extraction flattens a table to noisy text — the real data is in the figure,
-      // so the page must show the image, not this stem.
-      stem_text:
-        'Some children were asked to name their favourite sport. The table below shows their responses.',
+      stem_text: 'This scale is balanced. What is the weight of the cube?',
       options: null,
-      q_image_key: 'q/naplan-y5-2016-std-q2.png',
+      render_spec: {
+        kind: 'balance_scale' as const,
+        left: [
+          { label: '13 g', tone: 'mint' as const },
+          { label: '?', tone: 'sky' as const },
+        ],
+        right: [{ label: '28 g', tone: 'sun' as const }],
+      },
     };
-    wireApi([TABLE_Q]);
+    wireApi([BALANCE_Q]);
     renderPage();
 
-    const img = await screen.findByTestId('academy-question-image');
-    expect(img).toHaveAttribute('src', 'http://api.test/academy/assets/q/naplan-y5-2016-std-q2.png');
-    expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
-  });
-
-  it('shows the image when the stem is noisy with flattened axis numbers (a graph)', async () => {
-    const GRAPH_Q = {
-      ...TEXT_CHOICE_Q,
-      id: 'q4',
-      // A bar graph whose axis labels flattened into the text.
-      stem_text: 'Eye colour of the class 8 students 7 6 5 4 3 2 1 0 Blue Brown Hazel Grey',
-      options: null,
-      q_image_key: 'q/naplan-y3-2016-std-q4.png',
-    };
-    wireApi([GRAPH_Q]);
-    renderPage();
-
-    expect(await screen.findByTestId('academy-question-image')).toBeInTheDocument();
-    expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
+    expect(await screen.findByRole('img', { name: /balanced scale/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
 });
