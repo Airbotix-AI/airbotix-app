@@ -273,8 +273,11 @@ function needsImage(q: AcademyQuestion): boolean {
       s,
     );
   const mergedQuestions = (s.match(/\?/g)?.length ?? 0) > 1;
+  // A run of many small isolated numbers is the tell-tale of a bar-graph/table's
+  // axis labels flattened into text ("8 students 7 6 5 4 of 3 Number 2 1 0 …").
+  const noisyNumbers = (s.match(/\b\d{1,2}\b/g)?.length ?? 0) >= 6;
   const hasImage = (q.figure_keys?.length ?? 0) > 0 || Boolean(q.q_image_key ?? q.page_image_key);
-  return (figureEssential || mergedQuestions) && hasImage;
+  return (figureEssential || mergedQuestions || noisyNumbers) && hasImage;
 }
 
 function QuestionBody({ question }: { question: AcademyQuestion }) {

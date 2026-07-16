@@ -147,4 +147,20 @@ describe('AcademyPracticePage', () => {
     expect(img).toHaveAttribute('src', 'http://api.test/academy/assets/q/naplan-y5-2016-std-q2.png');
     expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
   });
+
+  it('shows the image when the stem is noisy with flattened axis numbers (a graph)', async () => {
+    const GRAPH_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'q4',
+      // A bar graph whose axis labels flattened into the text.
+      stem_text: 'Eye colour of the class 8 students 7 6 5 4 3 2 1 0 Blue Brown Hazel Grey',
+      options: null,
+      q_image_key: 'q/naplan-y3-2016-std-q4.png',
+    };
+    wireApi([GRAPH_Q]);
+    renderPage();
+
+    expect(await screen.findByTestId('academy-question-image')).toBeInTheDocument();
+    expect(screen.queryByTestId('academy-stem')).not.toBeInTheDocument();
+  });
 });
