@@ -1804,33 +1804,38 @@ export function BlocksStudioPage({
                                 className={`bsx-if-body${bodyTarget ? ' is-target' : ''}`}
                                 data-testid="if-body"
                               >
-                                {(b.body ?? []).map((child, bodyIndex) => (
-                                  <BlockChip
-                                    key={`${script.id}-${i}-body-${bodyIndex}`}
-                                    block={child}
-                                    inChain
-                                    isLast={bodyIndex === (b.body?.length ?? 0) - 1}
-                                    title="Tap to remove this action from the If"
-                                    onTap={() =>
-                                      useBlocksStore
-                                        .getState()
-                                        .removeIfBodyBlock(script.id, i, bodyIndex)
-                                    }
-                                  />
-                                ))}
+                                <span className="bsx-if-body-label">Then do</span>
+                                <div className="bsx-if-body-chain">
+                                  {(b.body ?? []).map((child, bodyIndex) => (
+                                    <BlockChip
+                                      key={`${script.id}-${i}-body-${bodyIndex}`}
+                                      block={child}
+                                      inChain
+                                      isLast={bodyIndex === (b.body?.length ?? 0) - 1}
+                                      title="Tap to remove this action from the If"
+                                      onTap={() =>
+                                        useBlocksStore
+                                          .getState()
+                                          .removeIfBodyBlock(script.id, i, bodyIndex)
+                                      }
+                                    />
+                                  ))}
+                                </div>
                                 <button
                                   type="button"
                                   className="bsx-if-add"
                                   data-testid="if-add-inside"
+                                  aria-pressed={bodyTarget}
                                   onClick={() => {
                                     sfx.tap();
                                     setIfBodyTarget({ scriptId: script.id, index: i });
                                   }}
                                 >
-                                  {bodyTarget ? 'Pick a block ↑' : '+ Add inside'}
+                                  <span aria-hidden>{bodyTarget ? '←' : '+'}</span>
+                                  {bodyTarget ? 'Pick a block on the left' : 'Add block'}
                                 </button>
                               </div>
-                              <span aria-hidden />
+                              <span className="bsx-if-foot" aria-hidden />
                             </div>
                           );
                         }

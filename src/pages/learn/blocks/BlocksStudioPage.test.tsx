@@ -72,6 +72,11 @@ describe('BlocksStudioPage zone labels', () => {
     await renderStudio();
     expect(screen.getByTestId('if-container')).toBeInTheDocument();
     expect(screen.getByTestId('if-body')).toContainElement(screen.getByTestId('block-hop'));
+    expect(screen.getByTestId('if-body')).toHaveTextContent('Then do');
+    expect(screen.getByTestId('if-add-inside')).toHaveTextContent('Add block');
+    fireEvent.click(screen.getByTestId('if-add-inside'));
+    expect(screen.getByTestId('if-add-inside')).toHaveTextContent('Pick a block on the left');
+    expect(screen.getByTestId('if-add-inside')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByTestId('block-if_touching'));
     expect(screen.getByTestId('if-touching-picker')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('if-touching-choice-friend-2'));

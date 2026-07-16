@@ -8,6 +8,11 @@
 - The editor provides a touch-first character picker, the saved project preserves the selected
   character ID, and old one-action Junior If projects migrate without changing their behavior.
 
+### Changed
+- Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
+  Nested actions, the add affordance and the active insertion state now have separate visual zones,
+  and the insertion prompt points children to the block palette on the left.
+
 ### Tests
 - Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
   and multi-action true/false runtime coverage.
