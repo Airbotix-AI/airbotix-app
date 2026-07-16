@@ -758,14 +758,20 @@ export function BlocksStudioPage({
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
-        if (storyMission?.lessonId !== 'tsv-s1-a3-h' || id !== 'dot-dot' || !missionHasRun)
-          return;
-        setMissionTapObserved(true);
-        setStoryCoachCue('fix');
-        setMissionOpen(true);
+        if (id !== 'dot-dot') return;
+        if (storyMission?.lessonId === 'tsv-s1-a3-h' && missionHasRun) {
+          setMissionTapObserved(true);
+          setStoryCoachCue('fix');
+          setMissionOpen(true);
+        }
+        if (storyMission?.lessonId === 'tsv-s1-a3-b' && missionTargetFixed) {
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+        }
       });
     },
-    [makeRunner, missionHasRun, storyMission],
+    [makeRunner, missionHasRun, missionTargetFixed, storyMission],
   );
 
   // ── character picker: a centered modal sheet (big library, kid-friendly) ──

@@ -762,6 +762,35 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '▶️', label: 'Go', order: 'No response' }, { icon: '👆', label: 'Tap Dot Dot', order: 'Starts' }, { icon: '🦘', label: 'Hop and say', order: 'Response' }],
     logicWhy: 'A script beginning with On Tap waits for that character to be touched.', completionTitle: 'Story Hook complete · You discovered On Tap!', completion: 'You ran Go, then used a real stage tap and identified the event that made Dot Dot respond.', completionSteps: [{ icon: '▶️', label: 'Try Go', order: 'First' }, { icon: '👆', label: 'Tap Dot Dot', order: 'Then' }, { icon: '💬', label: 'Name the cause', order: 'Explain' }], completionWhy: 'The exact saved script starts with On Tap, so Go cannot run it.', next: 'Next, add one visible response after On Tap in A3-B.',
   },
+  'tsv-s1-a3-b': {
+    mode: 'complete', lessonId: 'tsv-s1-a3-b', celebrate: true,
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 3 · Mission 10', title: 'Build a tap response',
+    storyPages: [
+      { emoji: '👆🧩', title: 'On Tap is waiting', body: 'Dot Dot has an On Tap start and an End, but nothing visible happens between them yet.', speaker: 'Dot Dot', dialogue: 'Give my tap a response!', scene: 1 },
+      { emoji: '🦘💬', title: 'Choose a visible response', body: 'Add Hop 1 or a Say block in the real workspace. You may add both, but On Tap must stay first.', speaker: 'Lumilo', dialogue: 'Your block decides what a tap will do.', scene: 3, blocks: ['👆 On Tap', '🦘 Hop 1 or 💬 Say'] },
+      { emoji: '🐱👆✨', title: 'Tap Dot Dot to test', body: 'The green Go button cannot start this script. Save your chain, then tap Dot Dot on the stage to run your response.', speaker: 'Dot Dot', dialogue: 'Tap me when your block is ready!', scene: 5 },
+    ],
+    partnerLine: 'You choose a real response, and your fingertip starts it.',
+    mission: 'Add Hop 1 or Say between On Tap and End. Wait for it to save, then tap Dot Dot on the stage.',
+    question: 'What should Dot Dot do when tapped?', choices: [], retry: 'Keep On Tap first. Add Hop 1 or a non-empty Say before End.',
+    successTitle: 'Your tap response is ready!', success: 'The saved chain starts with On Tap and contains your visible response.',
+    fixTitle: 'Build one real response', fixPrompt: 'Close this card. Add Hop 1 or Say in the real chain, then tap Dot Dot.',
+    workspaceIntro: 'No answer button builds this scene. Add a real response block between On Tap and End.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Add Hop 1 or Say after On Tap.', watch: 'Go cannot start this chain. Tap Dot Dot instead.',
+      sayFirst: 'Dot Dot can speak after your tap.', sayThen: 'Your tap started the saved Say block.',
+      hopFirst: 'Dot Dot can hop after your tap.', hopThen: 'Your tap started the saved Hop block.',
+      retry: 'Keep On Tap first and add one visible response.', fix: 'Add Hop 1 or a non-empty Say before End.',
+      test: 'Your tap response is ready. Wait for Saved, then tap Dot Dot!', saving: 'Your real tap ran the response. Saving the exact chain…',
+      complete: 'Your saved On Tap story responded to a real tap!',
+    },
+    logicSteps: [{ icon: '👆', label: 'On Tap', order: 'First' }, { icon: '🦘', label: 'Hop or Say', order: 'Response' }, { icon: '🏁', label: 'End', order: 'Last' }],
+    logicWhy: 'On Tap listens for a touch on Dot Dot, then runs the response blocks below it.',
+    completionTitle: 'Mission 10 complete! 👆✨', completion: 'You added a visible response, saved it, and used a real stage tap to run it.',
+    completionSteps: [{ icon: '👆', label: 'On Tap', order: 'Start' }, { icon: '🦘', label: 'Your response', order: 'Run' }, { icon: '💾', label: 'Saved', order: 'Proof' }],
+    completionWhy: 'The server-saved chain kept On Tap first, and the real tap ran your chosen visible response.', next: 'Next, repair a tap script whose event block is wrong.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

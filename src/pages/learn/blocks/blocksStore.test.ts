@@ -28,6 +28,23 @@ describe('blocksStore', () => {
     expect(char().scripts[1].blocks.map((b) => b.op)).toEqual(['when_tap', 'pop']);
   });
 
+  it('adds a response before an existing terminal End block', () => {
+    const project = blankProject('Tap response');
+    project.pages[0].characters[0].scripts = [{
+      id: 'tap-script',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    }];
+    store().load(project);
+
+    store().addBlock('hop', 1);
+
+    expect(char().scripts[0].blocks).toEqual([
+      { op: 'when_tap' },
+      { op: 'hop', n: 1 },
+      { op: 'end' },
+    ]);
+  });
+
   it('a lone non-trigger auto-opens a 🚩 script (the block always runs)', () => {
     store().addBlock('move_up');
     expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'move_up']);

@@ -349,7 +349,15 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           return {
             ...c,
             scripts: c.scripts.map((sc, i) =>
-              i === c.scripts.length - 1 ? { ...sc, blocks: [...sc.blocks, block] } : sc,
+              i === c.scripts.length - 1
+                ? {
+                    ...sc,
+                    blocks:
+                      sc.blocks.at(-1)?.op === 'end' && op !== 'end'
+                        ? [...sc.blocks.slice(0, -1), block, sc.blocks.at(-1)!]
+                        : [...sc.blocks, block],
+                  }
+                : sc,
             ),
           };
         }),
