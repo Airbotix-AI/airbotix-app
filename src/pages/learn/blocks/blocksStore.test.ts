@@ -192,6 +192,21 @@ describe('blocksStore', () => {
     expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'hop', 'move_right']);
   });
 
+  it('adds, moves, and removes If as one paired structural group', () => {
+    store().addBlock('when_flag');
+    store().addBlock('if_touching');
+    const id = char().scripts[0].id;
+    const ops = () => char().scripts.find((script) => script.id === id)!.blocks.map((b) => b.op);
+    expect(ops()).toEqual(['when_flag', 'if_touching', 'end_if']);
+
+    store().insertBlock('say', id, 2);
+    store().insertBlock('pop', id, 3);
+    expect(ops()).toEqual(['when_flag', 'if_touching', 'say', 'pop', 'end_if']);
+
+    store().removeBlock(id, 1);
+    expect(ops()).toEqual(['when_flag']);
+  });
+
   it('removePage keeps at least one page and reselects when the open page goes', () => {
     store().addPage(); // now 2 pages, page 2 selected
     const firstPage = store().project.pages[0].id;

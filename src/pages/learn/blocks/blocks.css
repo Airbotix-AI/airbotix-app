@@ -377,6 +377,35 @@
 .bsx-block.cat-control {
   --c: var(--bsx-cat-control);
 }
+.bsx-block.if-open {
+  min-width: 104px;
+  border-bottom-left-radius: 4px;
+}
+.bsx-block.if-open::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: -15px;
+  width: 5px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--c);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent);
+}
+.bsx-block.if-close {
+  min-width: 74px;
+  opacity: 0.88;
+}
+.bsx-block.if-close::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 10px;
+  bottom: 10px;
+  width: 5px;
+  border-radius: 999px;
+  background: var(--c);
+}
 .bsx-block.cat-end {
   --c: var(--bsx-cat-end);
 }

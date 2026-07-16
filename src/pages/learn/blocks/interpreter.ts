@@ -190,9 +190,24 @@ export class BlocksRunner {
         // body[i] is blocks[i+1] (the trigger was sliced off) — report absolute idx
         this.host.onStep?.(char.id, scriptId, i + 1);
         if (body[i].op === 'if_touching') {
-          if (!this.isTouching(char.id, body[i].text)) i += 1;
+          if (!this.isTouching(char.id, body[i].text)) {
+            const conditionIndex = i;
+            let depth = 1;
+            let foundEnd = false;
+            while (i + 1 < body.length && depth > 0) {
+              i += 1;
+              if (body[i].op === 'if_touching') depth += 1;
+              if (body[i].op === 'end_if') {
+                depth -= 1;
+                if (depth === 0) foundEnd = true;
+              }
+            }
+            // Runtime compatibility for an unparsed v0.12 document.
+            if (!foundEnd) i = Math.min(conditionIndex + 1, body.length - 1);
+          }
           continue;
         }
+        if (body[i].op === 'end_if') continue;
         const again = await this.step(char, body[i]);
         if (again === 'goto') {
           this.host.onStep?.(char.id, scriptId, -1);
@@ -306,7 +321,8 @@ export class BlocksRunner {
         await this.sleep(STEP_MS * sf);
         break;
       case 'if_touching':
-        break; // handled by runScript so it can guard the next block
+      case 'end_if':
+        break; // structural control is handled by runScript
       case 'set_speed':
         this.speeds.set(char.id, SPEED_FACTORS[clamp(n - 1, 0, SPEED_FACTORS.length - 1)]);
         await this.sleep(60);

@@ -898,6 +898,8 @@ export function BlocksStudioPage({
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
     if (running || present || readOnly || isA2DirectionDebug) return;
+    const script = selectedChar?.scripts.find((candidate) => candidate.id === scriptId);
+    if (script?.blocks[index]?.op === 'end_if') return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1129,6 +1131,7 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
+    if (op === 'end_if') return;
     if (
       (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
       (op === 'move_left' || op === 'move_right')
@@ -1798,6 +1801,10 @@ export function BlocksStudioPage({
                                     ? 'Tap to change the number · hold to drag · drag to the bin to remove'
                                     : b.op === 'say'
                                       ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                                      : b.op === 'if_touching'
+                                        ? 'Tap to choose a friend · put every Then action before End if'
+                                        : b.op === 'end_if'
+                                          ? 'Blocks between If and End if run only when the condition is true'
                                       : 'Hold to drag · drag to another track or the bin'
                             }
                           />

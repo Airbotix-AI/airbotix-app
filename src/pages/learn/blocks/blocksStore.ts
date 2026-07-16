@@ -58,6 +58,29 @@ function newBlock(op: BlockOp, chosenN?: number): Block {
   return block;
 }
 
+function structuralBlocks(block: Block): Block[] {
+  return block.op === 'if_touching' ? [block, { op: 'end_if' }] : [block];
+}
+
+function matchingEndIf(blocks: Block[], start: number): number {
+  let depth = 0;
+  for (let i = start; i < blocks.length; i += 1) {
+    if (blocks[i].op === 'if_touching') depth += 1;
+    if (blocks[i].op === 'end_if') {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return start;
+}
+
+function structuralRange(blocks: Block[], index: number): [number, number] | null {
+  if (blocks[index]?.op === 'end_if') return null;
+  return blocks[index]?.op === 'if_touching'
+    ? [index, matchingEndIf(blocks, index)]
+    : [index, index];
+}
+
 interface BlocksStore {
   project: BlocksProject;
   pageId: string;
@@ -344,12 +367,19 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           }
           const last = c.scripts[c.scripts.length - 1];
           if (!last) {
-            return { ...c, scripts: [{ id: newId('script'), blocks: [{ op: 'when_flag' }, block] }] };
+            return {
+              ...c,
+              scripts: [
+                { id: newId('script'), blocks: [{ op: 'when_flag' }, ...structuralBlocks(block)] },
+              ],
+            };
           }
           return {
             ...c,
             scripts: c.scripts.map((sc, i) =>
-              i === c.scripts.length - 1 ? { ...sc, blocks: [...sc.blocks, block] } : sc,
+              i === c.scripts.length - 1
+                ? { ...sc, blocks: [...sc.blocks, ...structuralBlocks(block)] }
+                : sc,
             ),
           };
         }),
@@ -371,7 +401,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             if (sc.id !== scriptId) return sc;
             const arr = [...sc.blocks];
             const at = Math.min(Math.max(1, index), arr.length);
-            arr.splice(at, 0, block);
+            arr.splice(at, 0, ...structuralBlocks(block));
             return { ...sc, blocks: arr };
           }),
         })),
@@ -385,7 +415,19 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
         ...c,
         scripts: c.scripts
           .map((sc) =>
-            sc.id !== scriptId ? sc : { ...sc, blocks: sc.blocks.filter((_, i) => i !== index) },
+            sc.id !== scriptId
+              ? sc
+              : {
+                  ...sc,
+                  blocks:
+                    sc.blocks[index]?.op === 'if_touching'
+                      ? sc.blocks.filter(
+                          (_, i) => i < index || i > matchingEndIf(sc.blocks, index),
+                        )
+                      : sc.blocks[index]?.op === 'end_if'
+                        ? sc.blocks
+                        : sc.blocks.filter((_, i) => i !== index),
+                },
           )
           .filter((sc) => sc.blocks.length > 0 && isTrigger(sc.blocks[0].op)),
       })),
@@ -469,9 +511,11 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           if (sc.id !== scriptId) return sc;
           if (from <= 0 || from >= sc.blocks.length) return sc; // trigger stays first
           const arr = [...sc.blocks];
-          const [moved] = arr.splice(from, 1);
+          const range = structuralRange(arr, from);
+          if (!range) return sc;
+          const moved = arr.splice(range[0], range[1] - range[0] + 1);
           const dest = Math.min(Math.max(1, to), arr.length);
-          arr.splice(dest, 0, moved);
+          arr.splice(dest, 0, ...moved);
           return { ...sc, blocks: arr };
         }),
       })),
@@ -483,17 +527,19 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => {
         const from = c.scripts.find((sc) => sc.id === fromScriptId);
         if (!from || fromIndex <= 0 || fromIndex >= from.blocks.length) return c;
-        const moved = from.blocks[fromIndex];
-        if (isTrigger(moved.op)) return c; // triggers anchor their own track
+        const range = structuralRange(from.blocks, fromIndex);
+        if (!range) return c;
+        const moved = from.blocks.slice(range[0], range[1] + 1);
+        if (isTrigger(moved[0].op)) return c; // triggers anchor their own track
         if (fromScriptId === toScriptId) {
           return {
             ...c,
             scripts: c.scripts.map((sc) => {
               if (sc.id !== fromScriptId) return sc;
               const arr = [...sc.blocks];
-              arr.splice(fromIndex, 1);
+              arr.splice(range[0], range[1] - range[0] + 1);
               const dest = Math.min(Math.max(1, toIndex), arr.length);
-              arr.splice(dest, 0, moved);
+              arr.splice(dest, 0, ...moved);
               return { ...sc, blocks: arr };
             }),
           };
@@ -503,13 +549,13 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           scripts: c.scripts.map((sc) => {
             if (sc.id === fromScriptId) {
               const arr = [...sc.blocks];
-              arr.splice(fromIndex, 1);
+              arr.splice(range[0], range[1] - range[0] + 1);
               return { ...sc, blocks: arr };
             }
             if (sc.id === toScriptId) {
               const arr = [...sc.blocks];
               const dest = Math.min(Math.max(1, toIndex), arr.length);
-              arr.splice(dest, 0, moved);
+              arr.splice(dest, 0, ...moved);
               return { ...sc, blocks: arr };
             }
             return sc;

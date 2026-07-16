@@ -68,12 +68,14 @@ describe('BlocksRunner', () => {
     expect(r.sprite.every((s) => s.charId === 'ball')).toBe(true);
   });
 
-  it('runs only the next block when the selected character is touching', async () => {
+  it('runs a multi-block If body only when the selected character is touching', async () => {
     const touchingPage = makePage({
       cat: [[
         { op: 'when_flag' },
         { op: 'if_touching', text: 'ball' },
         { op: 'pop' },
+        { op: 'say', text: 'Found' },
+        { op: 'end_if' },
         { op: 'say', text: 'Done' },
       ]],
       ball: [],
@@ -81,6 +83,7 @@ describe('BlocksRunner', () => {
     const touching = recordingHost();
     await new BlocksRunner(touchingPage, touching.host, instantSleep).runFlag();
     expect(touching.pops()).toBe(1);
+    expect(touching.says).toContainEqual({ charId: 'cat', text: 'Found' });
     expect(touching.says).toContainEqual({ charId: 'cat', text: 'Done' });
 
     const apartPage = makePage({
@@ -88,6 +91,8 @@ describe('BlocksRunner', () => {
         { op: 'when_flag' },
         { op: 'if_touching', text: 'ball' },
         { op: 'pop' },
+        { op: 'say', text: 'Found' },
+        { op: 'end_if' },
         { op: 'say', text: 'Done' },
       ]],
       ball: [],
@@ -96,6 +101,7 @@ describe('BlocksRunner', () => {
     const apart = recordingHost();
     await new BlocksRunner(apartPage, apart.host, instantSleep).runFlag();
     expect(apart.pops()).toBe(0);
+    expect(apart.says).not.toContainEqual({ charId: 'cat', text: 'Found' });
     expect(apart.says).toContainEqual({ charId: 'cat', text: 'Done' });
   });
 

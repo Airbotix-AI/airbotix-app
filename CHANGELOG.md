@@ -1,16 +1,17 @@
 # Changelog
 
-## 2026-07-16 (feat: add a picture-first Junior If condition)
+## 2026-07-16 (feat: add a structural picture-first If condition)
 
 ### Added
-- Story Blocks now has a real `If touching` control block. A child chooses another character, and
-  the condition runs only the immediately following block when the two visible characters overlap.
-  A missing target or a false condition safely skips that one action.
+- Story Blocks now has a real `If touching … End if` control structure. A child chooses another
+  character and can place multiple actions inside the condition body. A missing target or false
+  condition safely skips the entire body.
 - The editor provides a touch-first character picker, the saved project preserves the selected
-  character ID, and the same deterministic interpreter powers both the editor and read-only player.
+  character ID, and old one-action Junior If projects migrate without changing their behavior.
 
 ### Tests
-- Added parser, block rendering, editor target-picker, and true/false runtime coverage.
+- Added parser migration, paired-structure store behavior, block rendering, editor target-picker,
+  and multi-action true/false runtime coverage.
 
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 

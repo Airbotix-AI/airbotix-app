@@ -81,6 +81,8 @@ export function BlockChip({
         def.hasN && 'has-num',
         lit && 'lit',
         inChain && 'in-chain',
+        block.op === 'if_touching' && 'if-open',
+        block.op === 'end_if' && 'if-close',
         dragging && 'dragging',
         removing && 'removing',
       )}
@@ -92,8 +94,10 @@ export function BlockChip({
         ? (block.text ?? 'Hi!').slice(0, 8)
         : block.op === 'if_touching'
           ? block.text
-            ? 'If touch ✓'
-            : 'If touch ?'
+            ? 'If touch ✓ then'
+            : 'If touch ? then'
+          : block.op === 'end_if'
+            ? 'End if'
           : note?.label ?? sound?.label ?? def.label}
       {def.hasN && (
         // display-only — tapping anywhere on the block opens the editor

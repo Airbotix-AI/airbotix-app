@@ -9,9 +9,14 @@ afterEach(cleanup);
 describe('BlockChip', () => {
   it('shows whether the Junior If block still needs a target', () => {
     const { rerender } = render(<BlockChip block={{ op: 'if_touching' }} />);
-    expect(screen.getByText('If touch ?')).toBeTruthy();
+    expect(screen.getByText('If touch ? then')).toBeTruthy();
     rerender(<BlockChip block={{ op: 'if_touching', text: 'friend-2' }} />);
-    expect(screen.getByText('If touch ✓')).toBeTruthy();
+    expect(screen.getByText('If touch ✓ then')).toBeTruthy();
+  });
+
+  it('labels the structural closing block', () => {
+    render(<BlockChip block={{ op: 'end_if' }} />);
+    expect(screen.getByText('End if')).toBeTruthy();
   });
   it('a plain tap fires onTap (edit/run) — NOT a delete, and forwards pointer handlers', () => {
     const onTap = vi.fn();

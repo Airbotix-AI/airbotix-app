@@ -160,7 +160,7 @@ describe('blocksModel', () => {
     ]);
   });
 
-  it('persists a bounded Junior If target and drops unknown condition fields', () => {
+  it('migrates a bounded Junior If target into a structural multi-block body', () => {
     const project = blankProject('Conditional story');
     project.pages[0].characters[0].scripts = [{
       id: 'conditional-script',
@@ -176,6 +176,7 @@ describe('blocksModel', () => {
       { op: 'when_flag' },
       { op: 'if_touching', text: 'friend-2' },
       { op: 'hop', n: 1 },
+      { op: 'end_if' },
     ]);
   });
 

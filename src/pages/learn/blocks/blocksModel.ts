@@ -43,6 +43,7 @@ export type BlockOp =
   | 'play_sound'
   | 'send_message'
   | 'if_touching'
+  | 'end_if'
   | 'wait'
   | 'set_speed'
   | 'stop'
@@ -119,6 +120,7 @@ export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'play_sound', category: 'sound', icon: '🫧', label: 'Pop', param: 'sound' },
   { op: 'send_message', category: 'control', icon: '📤', label: 'Send', param: 'color' },
   { op: 'if_touching', category: 'control', icon: '🤝', label: 'If touching' },
+  { op: 'end_if', category: 'control', icon: '↩', label: 'End if', legacy: true },
   { op: 'wait', category: 'control', icon: '⏱', label: 'Wait', hasN: true, defaultN: 5 },
   { op: 'set_speed', category: 'control', icon: '🐇', label: 'Speed', param: 'speed' },
   { op: 'stop', category: 'control', icon: '🛑', label: 'Stop' },
@@ -159,6 +161,31 @@ export interface Block {
   op: BlockOp;
   n?: number;
   text?: string;
+}
+
+/**
+ * v0.12 stored Junior If as a one-action guard. Upgrade those flat projects to
+ * the paired structural form without changing what they do:
+ *   If touching → action
+ * becomes
+ *   If touching → action → End if.
+ */
+function migrateJuniorIf(blocks: Block[]): Block[] {
+  if (blocks.some((block) => block.op === 'end_if')) return blocks;
+  const migrated: Block[] = [];
+  for (let i = 0; i < blocks.length; i += 1) {
+    const block = blocks[i];
+    migrated.push(block);
+    if (block.op !== 'if_touching') continue;
+    const guarded = blocks[i + 1];
+    if (guarded) {
+      migrated.push(guarded, { op: 'end_if' });
+      i += 1;
+    } else {
+      migrated.push({ op: 'end_if' });
+    }
+  }
+  return migrated;
 }
 export interface Script {
   id: string;
@@ -275,7 +302,7 @@ export function parseProject(raw: string): BlocksProject {
           scripts: (Array.isArray(c?.scripts) ? c.scripts : [])
             .map((s) => ({
             id: typeof s?.id === 'string' && s.id ? s.id : newId('script'),
-            blocks: (Array.isArray(s?.blocks) ? s.blocks : [])
+            blocks: migrateJuniorIf((Array.isArray(s?.blocks) ? s.blocks : [])
               .filter((b): b is Block => !!b && DEFS_BY_OP.has(b.op as BlockOp))
               .map((b) => {
                 const def = blockDef(b.op);
@@ -290,7 +317,7 @@ export function parseProject(raw: string): BlocksProject {
                   out.text = b.text.slice(0, 80);
                 }
                 return out;
-              }),
+              })),
           }))
             .filter((s) => s.blocks.length > 0 && isTrigger(s.blocks[0].op)),
         };
