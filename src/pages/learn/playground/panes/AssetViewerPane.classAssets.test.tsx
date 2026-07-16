@@ -22,10 +22,11 @@ function LiveAssetViewer({ onSaveNow }: { onSaveNow?: () => Promise<SaveResult> 
   return <AssetViewerPane files={files} classAssets={[]} onSaveNow={onSaveNow} />;
 }
 
-// Mock the bytes-fetch so a class model/thumbnail preview needs no network.
-const fetchAssetDataUrl = vi.fn();
+// Mock the bytes-fetch so a class model/thumbnail preview needs no network. The
+// preview now reads bytes SAME-ORIGIN via the backend proxy (projectId, assetId).
+const fetchClassAssetDataUrl = vi.fn();
 vi.mock('./playgroundApi', () => ({
-  fetchAssetDataUrl: (...a: unknown[]) => fetchAssetDataUrl(...a),
+  fetchClassAssetDataUrl: (...a: unknown[]) => fetchClassAssetDataUrl(...a),
 }));
 
 // The merged endpoint (D-CSA-3) puts course-pack defaults (source:'course', no
@@ -134,7 +135,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 beforeEach(() => {
-  fetchAssetDataUrl.mockReset();
+  fetchClassAssetDataUrl.mockReset();
   // Fresh stores so persisted source/selection never leaks between tests.
   useProjectStore.getState().setFiles([{ path: 'main.js', content: '', kind: 'text', size: 0 }]);
   useWorkspaceUiStore.getState().restore(null);
@@ -241,7 +242,7 @@ describe('AssetViewerPane — full-parity kinds (model / other / sprite)', () =>
   it('renders a 3D model card without crashing and labels it "model"', () => {
     // The model thumbnail fetches its bytes lazily; the card shows the 3D-cube
     // fallback synchronously (never crashes for a glb) and reads "model".
-    fetchAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
+    fetchClassAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
     fireEvent.click(screen.getByTestId('asset-source-class'));
     const cards = screen.getAllByTestId('class-asset-card');
@@ -271,7 +272,7 @@ describe('AssetViewerPane — full-parity kinds (model / other / sprite)', () =>
   });
 
   it('opening a model detail renders without crashing (no glb throw)', () => {
-    fetchAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
+    fetchClassAssetDataUrl.mockResolvedValue('data:model/gltf-binary;base64,AAA');
     render(<AssetViewerPane files={useProjectStore.getState().files} classAssets={PARITY_ASSETS} />);
     fireEvent.click(screen.getByTestId('asset-source-class'));
     const modelCard = screen
