@@ -42,6 +42,7 @@ export type BlockOp =
   | 'play_note'
   | 'play_sound'
   | 'send_message'
+  | 'if_touching'
   | 'wait'
   | 'set_speed'
   | 'stop'
@@ -117,6 +118,7 @@ export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'play_note', category: 'sound', icon: '🎵', label: 'Do', param: 'note' },
   { op: 'play_sound', category: 'sound', icon: '🫧', label: 'Pop', param: 'sound' },
   { op: 'send_message', category: 'control', icon: '📤', label: 'Send', param: 'color' },
+  { op: 'if_touching', category: 'control', icon: '🤝', label: 'If touching' },
   { op: 'wait', category: 'control', icon: '⏱', label: 'Wait', hasN: true, defaultN: 5 },
   { op: 'set_speed', category: 'control', icon: '🐇', label: 'Speed', param: 'speed' },
   { op: 'stop', category: 'control', icon: '🛑', label: 'Stop' },
@@ -284,6 +286,9 @@ export function parseProject(raw: string): BlocksProject {
                 if (b.n !== undefined && def.param === 'note') out.n = clampN(b.n, 1, MAX_NOTE, 1);
                 if (b.n !== undefined && def.param === 'sound') out.n = clampN(b.n, 1, MAX_SOUND, 1);
                 if (b.op === 'say') out.text = (typeof b.text === 'string' ? b.text : 'Hi!').slice(0, 60);
+                if (b.op === 'if_touching' && typeof b.text === 'string') {
+                  out.text = b.text.slice(0, 80);
+                }
                 return out;
               }),
           }))

@@ -68,6 +68,37 @@ describe('BlocksRunner', () => {
     expect(r.sprite.every((s) => s.charId === 'ball')).toBe(true);
   });
 
+  it('runs only the next block when the selected character is touching', async () => {
+    const touchingPage = makePage({
+      cat: [[
+        { op: 'when_flag' },
+        { op: 'if_touching', text: 'ball' },
+        { op: 'pop' },
+        { op: 'say', text: 'Done' },
+      ]],
+      ball: [],
+    });
+    const touching = recordingHost();
+    await new BlocksRunner(touchingPage, touching.host, instantSleep).runFlag();
+    expect(touching.pops()).toBe(1);
+    expect(touching.says).toContainEqual({ charId: 'cat', text: 'Done' });
+
+    const apartPage = makePage({
+      cat: [[
+        { op: 'when_flag' },
+        { op: 'if_touching', text: 'ball' },
+        { op: 'pop' },
+        { op: 'say', text: 'Done' },
+      ]],
+      ball: [],
+    });
+    apartPage.characters[1].start.gx = 12;
+    const apart = recordingHost();
+    await new BlocksRunner(apartPage, apart.host, instantSleep).runFlag();
+    expect(apart.pops()).toBe(0);
+    expect(apart.says).toContainEqual({ charId: 'cat', text: 'Done' });
+  });
+
   it('stop halts the character; goto_page fires the page jump and ends the run', async () => {
     const page = makePage({
       cat: [[{ op: 'when_flag' }, { op: 'stop' }, { op: 'pop' }]],

@@ -138,6 +138,20 @@ export class BlocksRunner {
     }
   }
 
+  private isTouching(charId: string, targetId: string | undefined): boolean {
+    if (!targetId || targetId === charId) return false;
+    const a = this.states.get(charId);
+    const b = this.states.get(targetId);
+    return Boolean(
+      a &&
+        b &&
+        a.visible &&
+        b.visible &&
+        Math.abs(a.gx - b.gx) < 1 &&
+        Math.abs(a.gy - b.gy) < 1,
+    );
+  }
+
   /** Run a tapped character's 👆 scripts. */
   async runTap(charId: string): Promise<void> {
     const char = this.page.characters.find((c) => c.id === charId);
@@ -175,6 +189,10 @@ export class BlocksRunner {
         }
         // body[i] is blocks[i+1] (the trigger was sliced off) — report absolute idx
         this.host.onStep?.(char.id, scriptId, i + 1);
+        if (body[i].op === 'if_touching') {
+          if (!this.isTouching(char.id, body[i].text)) i += 1;
+          continue;
+        }
         const again = await this.step(char, body[i]);
         if (again === 'goto') {
           this.host.onStep?.(char.id, scriptId, -1);
@@ -287,6 +305,8 @@ export class BlocksRunner {
         this.sendMessage(n);
         await this.sleep(STEP_MS * sf);
         break;
+      case 'if_touching':
+        break; // handled by runScript so it can guard the next block
       case 'set_speed':
         this.speeds.set(char.id, SPEED_FACTORS[clamp(n - 1, 0, SPEED_FACTORS.length - 1)]);
         await this.sleep(60);

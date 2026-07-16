@@ -7,6 +7,12 @@ import { BlockChip } from './BlockChip';
 afterEach(cleanup);
 
 describe('BlockChip', () => {
+  it('shows whether the Junior If block still needs a target', () => {
+    const { rerender } = render(<BlockChip block={{ op: 'if_touching' }} />);
+    expect(screen.getByText('If touch ?')).toBeTruthy();
+    rerender(<BlockChip block={{ op: 'if_touching', text: 'friend-2' }} />);
+    expect(screen.getByText('If touch ✓')).toBeTruthy();
+  });
   it('a plain tap fires onTap (edit/run) — NOT a delete, and forwards pointer handlers', () => {
     const onTap = vi.fn();
     const onDown = vi.fn();

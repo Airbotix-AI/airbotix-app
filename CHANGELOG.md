@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-16 (feat: add a picture-first Junior If condition)
+
+### Added
+- Story Blocks now has a real `If touching` control block. A child chooses another character, and
+  the condition runs only the immediately following block when the two visible characters overlap.
+  A missing target or a false condition safely skips that one action.
+- The editor provides a touch-first character picker, the saved project preserves the selected
+  character ID, and the same deterministic interpreter powers both the editor and read-only player.
+
+### Tests
+- Added parser, block rendering, editor target-picker, and true/false runtime coverage.
+
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 
 ### Fixed

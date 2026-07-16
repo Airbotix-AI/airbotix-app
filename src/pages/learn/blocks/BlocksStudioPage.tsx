@@ -1161,7 +1161,13 @@ export function BlocksStudioPage({
       useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
       return;
     }
-    if (!def.hasN && def.param !== 'note' && def.param !== 'sound' && op !== 'say') return; // nothing to edit on this block
+    if (
+      !def.hasN &&
+      def.param !== 'note' &&
+      def.param !== 'sound' &&
+      op !== 'say' &&
+      op !== 'if_touching'
+    ) return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 230;
@@ -1958,6 +1964,8 @@ export function BlocksStudioPage({
                 ? 'Which way should Tuan Tuan go?'
                 : editing.block.op === 'say'
                   ? 'What should they say?'
+                  : editing.block.op === 'if_touching'
+                    ? 'Touching which friend?'
                   : blockDef(editing.block.op).param === 'note'
                     ? 'Which note? Tap to hear it!'
                     : blockDef(editing.block.op).param === 'sound'
@@ -1988,6 +1996,34 @@ export function BlocksStudioPage({
                     {direction === 'move_left' ? '⬅️ Left' : '➡️ Right'}
                   </button>
                 ))}
+              </div>
+            ) : editing.block.op === 'if_touching' ? (
+              <div className="grid gap-2" data-testid="if-touching-picker">
+                {page.characters
+                  .filter((character) => character.id !== selectedChar.id)
+                  .map((character) => (
+                    <button
+                      key={character.id}
+                      type="button"
+                      data-testid={`if-touching-choice-${character.id}`}
+                      aria-pressed={editing.block.text === character.id}
+                      className="bsx-press rounded-xl border border-current/15 px-3 py-2 text-left text-[13px] font-extrabold aria-pressed:bg-emerald-100"
+                      onClick={() => {
+                        sfx.tap();
+                        useBlocksStore
+                          .getState()
+                          .setSayText(editing.scriptId, editing.index, character.id);
+                        setEditBlk(null);
+                      }}
+                    >
+                      {character.emoji} {character.name}
+                    </button>
+                  ))}
+                {page.characters.length < 2 && (
+                  <p className="text-[12px] font-bold bsx-muted">
+                    Add another character first.
+                  </p>
+                )}
               </div>
             ) : editing.block.op === 'say' ? (
               <div>
