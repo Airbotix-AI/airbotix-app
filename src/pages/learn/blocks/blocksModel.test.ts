@@ -174,9 +174,7 @@ describe('blocksModel', () => {
     const parsed = parseProject(serializeProject(project));
     expect(parsed.pages[0].characters[0].scripts[0].blocks).toEqual([
       { op: 'when_flag' },
-      { op: 'if_touching', text: 'friend-2' },
-      { op: 'hop', n: 1 },
-      { op: 'end_if' },
+      { op: 'if_touching', text: 'friend-2', body: [{ op: 'hop', n: 1 }] },
     ]);
   });
 

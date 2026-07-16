@@ -898,8 +898,6 @@ export function BlocksStudioPage({
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
     if (running || present || readOnly || isA2DirectionDebug) return;
-    const script = selectedChar?.scripts.find((candidate) => candidate.id === scriptId);
-    if (script?.blocks[index]?.op === 'end_if') return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -999,6 +997,10 @@ export function BlocksStudioPage({
     slot: number;
     dropX: number | null;
   } | null>(null);
+  const [ifBodyTarget, setIfBodyTarget] = useState<{
+    scriptId: string;
+    index: number;
+  } | null>(null);
 
   const palDragUpdate = (x: number, y: number) => {
     const d = palDrag.current;
@@ -1071,6 +1073,11 @@ export function BlocksStudioPage({
     drop?: { scriptId: string; slot: number },
   ) => {
     if (isA2DirectionDebug) return;
+    if (ifBodyTarget && !isTrigger(op)) {
+      store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
+      setIfBodyTarget(null);
+      return;
+    }
     const isA2Direction =
       (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
       (op === 'move_left' || op === 'move_right');
@@ -1131,7 +1138,6 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
-    if (op === 'end_if') return;
     if (
       (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
       (op === 'move_left' || op === 'move_right')
@@ -1772,6 +1778,62 @@ export function BlocksStudioPage({
                           (b.op === 'move_left' || b.op === 'move_right');
                         const isDebugDirection =
                           isA2DirectionDebug && (b.op === 'move_left' || b.op === 'move_right');
+                        if (b.op === 'if_touching') {
+                          const bodyTarget =
+                            ifBodyTarget?.scriptId === script.id && ifBodyTarget.index === i;
+                          return (
+                            <div
+                              key={`${script.id}-${i}`}
+                              className="bsx-if-c"
+                              data-testid="if-container"
+                            >
+                              <BlockChip
+                                block={b}
+                                inChain
+                                lit={activeKeys.has(`${script.id}:${i}`)}
+                                dragging={isDragged}
+                                style={isDragged ? { opacity: 0.28 } : undefined}
+                                onPointerDown={(e) => onBlockDown(e, script.id, i)}
+                                onPointerMove={onBlockMove}
+                                onPointerUp={onBlockUp}
+                                onPointerCancel={onBlockCancel}
+                                onTap={(e) => onBlockTap(e, script.id, i, b.op)}
+                                title="Tap to choose a friend · hold to move the whole If"
+                              />
+                              <div
+                                className={`bsx-if-body${bodyTarget ? ' is-target' : ''}`}
+                                data-testid="if-body"
+                              >
+                                {(b.body ?? []).map((child, bodyIndex) => (
+                                  <BlockChip
+                                    key={`${script.id}-${i}-body-${bodyIndex}`}
+                                    block={child}
+                                    inChain
+                                    isLast={bodyIndex === (b.body?.length ?? 0) - 1}
+                                    title="Tap to remove this action from the If"
+                                    onTap={() =>
+                                      useBlocksStore
+                                        .getState()
+                                        .removeIfBodyBlock(script.id, i, bodyIndex)
+                                    }
+                                  />
+                                ))}
+                                <button
+                                  type="button"
+                                  className="bsx-if-add"
+                                  data-testid="if-add-inside"
+                                  onClick={() => {
+                                    sfx.tap();
+                                    setIfBodyTarget({ scriptId: script.id, index: i });
+                                  }}
+                                >
+                                  {bodyTarget ? 'Pick a block ↑' : '+ Add inside'}
+                                </button>
+                              </div>
+                              <span aria-hidden />
+                            </div>
+                          );
+                        }
                         return (
                           <BlockChip
                             key={`${script.id}-${i}`}
@@ -1801,10 +1863,6 @@ export function BlocksStudioPage({
                                     ? 'Tap to change the number · hold to drag · drag to the bin to remove'
                                     : b.op === 'say'
                                       ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                                      : b.op === 'if_touching'
-                                        ? 'Tap to choose a friend · put every Then action before End if'
-                                        : b.op === 'end_if'
-                                          ? 'Blocks between If and End if run only when the condition is true'
                                       : 'Hold to drag · drag to another track or the bin'
                             }
                           />

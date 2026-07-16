@@ -72,10 +72,11 @@ describe('BlocksRunner', () => {
     const touchingPage = makePage({
       cat: [[
         { op: 'when_flag' },
-        { op: 'if_touching', text: 'ball' },
-        { op: 'pop' },
-        { op: 'say', text: 'Found' },
-        { op: 'end_if' },
+        {
+          op: 'if_touching',
+          text: 'ball',
+          body: [{ op: 'pop' }, { op: 'say', text: 'Found' }],
+        },
         { op: 'say', text: 'Done' },
       ]],
       ball: [],
@@ -89,10 +90,11 @@ describe('BlocksRunner', () => {
     const apartPage = makePage({
       cat: [[
         { op: 'when_flag' },
-        { op: 'if_touching', text: 'ball' },
-        { op: 'pop' },
-        { op: 'say', text: 'Found' },
-        { op: 'end_if' },
+        {
+          op: 'if_touching',
+          text: 'ball',
+          body: [{ op: 'pop' }, { op: 'say', text: 'Found' }],
+        },
         { op: 'say', text: 'Done' },
       ]],
       ball: [],

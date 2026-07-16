@@ -197,11 +197,11 @@ describe('blocksStore', () => {
     store().addBlock('if_touching');
     const id = char().scripts[0].id;
     const ops = () => char().scripts.find((script) => script.id === id)!.blocks.map((b) => b.op);
-    expect(ops()).toEqual(['when_flag', 'if_touching', 'end_if']);
+    expect(ops()).toEqual(['when_flag', 'if_touching']);
 
-    store().insertBlock('say', id, 2);
-    store().insertBlock('pop', id, 3);
-    expect(ops()).toEqual(['when_flag', 'if_touching', 'say', 'pop', 'end_if']);
+    store().addIfBodyBlock(id, 1, 'say');
+    store().addIfBodyBlock(id, 1, 'pop');
+    expect(char().scripts[0].blocks[1].body?.map((b) => b.op)).toEqual(['say', 'pop']);
 
     store().removeBlock(id, 1);
     expect(ops()).toEqual(['when_flag']);

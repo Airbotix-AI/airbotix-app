@@ -3,14 +3,13 @@
 ## 2026-07-16 (feat: add a structural picture-first If condition)
 
 ### Added
-- Story Blocks now has a real `If touching … End if` control structure. A child chooses another
-  character and can place multiple actions inside the condition body. A missing target or false
-  condition safely skips the entire body.
+- Story Blocks now has a real C-shaped `If touching` container. A child chooses another character
+  and places multiple actions in its visibly nested body. There is no separate `End if` block.
 - The editor provides a touch-first character picker, the saved project preserves the selected
   character ID, and old one-action Junior If projects migrate without changing their behavior.
 
 ### Tests
-- Added parser migration, paired-structure store behavior, block rendering, editor target-picker,
+- Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
   and multi-action true/false runtime coverage.
 
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)

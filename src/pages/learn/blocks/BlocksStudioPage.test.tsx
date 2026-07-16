@@ -53,7 +53,7 @@ describe('BlocksStudioPage zone labels', () => {
     const cat = project.pages[0].characters[0];
     cat.scripts = [{
       id: 'cat-flag',
-      blocks: [{ op: 'when_flag' }, { op: 'if_touching' }, { op: 'hop', n: 1 }],
+      blocks: [{ op: 'when_flag' }, { op: 'if_touching', body: [{ op: 'hop', n: 1 }] }],
     }];
     project.pages[0].characters.push({
       id: 'friend-2',
@@ -70,12 +70,15 @@ describe('BlocksStudioPage zone labels', () => {
     });
 
     await renderStudio();
+    expect(screen.getByTestId('if-container')).toBeInTheDocument();
+    expect(screen.getByTestId('if-body')).toContainElement(screen.getByTestId('block-hop'));
     fireEvent.click(screen.getByTestId('block-if_touching'));
     expect(screen.getByTestId('if-touching-picker')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('if-touching-choice-friend-2'));
     expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks[1]).toEqual({
       op: 'if_touching',
       text: 'friend-2',
+      body: [{ op: 'hop', n: 1 }],
     });
   });
 
