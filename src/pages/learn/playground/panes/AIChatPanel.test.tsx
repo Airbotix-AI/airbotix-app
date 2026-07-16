@@ -4,6 +4,7 @@
 // a settled agent bubble carrying `nextSteps` renders tappable chips, and tapping
 // one sends its prompt as the next turn.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AIChatPanel } from './AIChatPanel';
@@ -622,5 +623,91 @@ describe('AIChatPanel — image attachments', () => {
     const imgs = screen.getAllByTestId('kid-bubble-image');
     expect(imgs).toHaveLength(1);
     expect(imgs[0].getAttribute('src')).toBe('blob:kid-1');
+  });
+});
+
+// Draft persistence — the unsent composer text is LIFTED to the owner (Workspace)
+// so it survives the ChatPane unmounting when the kid flips split tabs (chat ↔
+// assets) or layout modes while still in the project. This harness stands in for
+// Workspace: it owns the draft and toggles the panel's mount, exactly like the
+// split-tab ternary does.
+describe('AIChatPanel — lifted composer draft survives a remount', () => {
+  function DraftHarness() {
+    const [draft, setDraft] = useState('');
+    const [showChat, setShowChat] = useState(true);
+    return (
+      <div>
+        <button type="button" data-testid="toggle-tab" onClick={() => setShowChat((v) => !v)}>
+          toggle
+        </button>
+        {showChat ? (
+          <AIChatPanel
+            chat={[]}
+            busy={false}
+            error={null}
+            onSend={vi.fn()}
+            draft={draft}
+            onDraftChange={setDraft}
+          />
+        ) : (
+          <div data-testid="assets-stub">assets</div>
+        )}
+      </div>
+    );
+  }
+
+  it('keeps the unsent text after switching to another tab and back', () => {
+    render(<DraftHarness />);
+
+    // Kid types a message but does NOT send it.
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'make it rainbow' } });
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('make it rainbow');
+
+    // Flip to the Assets tab (unmounts the composer) …
+    fireEvent.click(screen.getByTestId('toggle-tab'));
+    expect(screen.queryByTestId('chat-input')).toBeNull();
+    expect(screen.getByTestId('assets-stub')).toBeTruthy();
+
+    // … and back to Chat: the draft is still there, not lost.
+    fireEvent.click(screen.getByTestId('toggle-tab'));
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('make it rainbow');
+  });
+
+  it('reflects the controlled draft and reports edits through onDraftChange', () => {
+    const onDraftChange = vi.fn();
+    render(
+      <AIChatPanel
+        chat={[]}
+        busy={false}
+        error={null}
+        onSend={vi.fn()}
+        draft="hello there"
+        onDraftChange={onDraftChange}
+      />,
+    );
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('hello there');
+    fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'hello world' } });
+    expect(onDraftChange).toHaveBeenCalledWith('hello world');
+  });
+
+  it('clears the lifted draft on send', () => {
+    const onSend = vi.fn();
+    function SendHarness() {
+      const [draft, setDraft] = useState('ready to go');
+      return (
+        <AIChatPanel
+          chat={[]}
+          busy={false}
+          error={null}
+          onSend={onSend}
+          draft={draft}
+          onDraftChange={setDraft}
+        />
+      );
+    }
+    render(<SendHarness />);
+    fireEvent.click(screen.getByTestId('chat-send'));
+    expect(onSend).toHaveBeenCalledWith('ready to go', undefined);
+    expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('');
   });
 });

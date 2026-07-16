@@ -17,13 +17,20 @@ import { sceneId } from './library';
 import { sfx } from './sounds';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
+import { performanceForBlock } from './characterPerformance';
+import type { CharacterPerformance } from './characterPerformance';
 
 export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
   const [pageIndex, setPageIndex] = useState(0);
   const page = project.pages[pageIndex] ?? project.pages[0];
-  const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(null);
+  const [runStates, setRunStates] = useState<Map<string, { st: SpriteState; dur: number }> | null>(
+    null,
+  );
   const [says, setSays] = useState<Map<string, string>>(new Map());
   const [running, setRunning] = useState(false);
+  const [characterPerformances, setCharacterPerformances] = useState<
+    Map<string, CharacterPerformance>
+  >(new Map());
   const runnerRef = useRef<BlocksRunner | null>(null);
 
   const makeRunner = useCallback(() => {
@@ -46,6 +53,17 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
       onGotoPage: (idx) => {
         if (project.pages[idx]) setPageIndex(idx);
       },
+      onStep: (characterId, scriptId, index) => {
+        const script = page.characters
+          .flatMap((character) => character.scripts)
+          .find((candidate) => candidate.id === scriptId);
+        const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        setCharacterPerformances((prev) => {
+          const next = new Map(prev);
+          next.set(characterId, performanceForBlock(op));
+          return next;
+        });
+      },
     });
     runnerRef.current = runner;
     return runner;
@@ -57,6 +75,7 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
     runnerRef.current = null;
     setRunStates(null);
     setSays(new Map());
+    setCharacterPerformances(new Map());
     setRunning(false);
   }, [pageIndex]);
 
@@ -66,6 +85,7 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
     const runner = makeRunner();
     setRunStates(null);
     setSays(new Map());
+    setCharacterPerformances(new Map());
     setRunning(true);
     try {
       await runner.runFlag();
@@ -82,7 +102,11 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
   return (
     <div className="bsx bsx-play" data-theme="dark" data-testid="blocks-play-root">
       <div className="bsx-play-stagewrap">
-        <div data-testid="blocks-play-stage" data-scene={sceneId(page.background)} className="bsx-stage bsx-play-stage">
+        <div
+          data-testid="blocks-play-stage"
+          data-scene={sceneId(page.background)}
+          className="bsx-stage bsx-play-stage"
+        >
           <div className="bsx-grid" />
           <div className="bsx-deco bsx-deco-a" />
           <div className="bsx-deco bsx-deco-b" />
@@ -116,13 +140,20 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
                     fontSize: 'clamp(40px,5.5vw,72px)',
                     opacity: st.visible ? 1 : 0.12,
                     transform: `translate(-50%,-50%) rotate(${st.rot}deg) scale(${st.size})`,
-                    transition: dur > 0 ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease` : 'none',
+                    transition:
+                      dur > 0
+                        ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease`
+                        : 'none',
                   }}
                   onClick={() => tapSprite(c.id)}
                   onContextMenu={(e) => e.preventDefault()}
                   title={`Tap ${c.name}`}
                 >
-                  <CharacterVisual character={c} className={c.asset ? 'bsx-character-asset' : undefined} />
+                  <CharacterVisual
+                    character={c}
+                    className={c.asset ? 'bsx-character-asset' : undefined}
+                    performance={characterPerformances.get(c.id)}
+                  />
                 </div>
               </div>
             );

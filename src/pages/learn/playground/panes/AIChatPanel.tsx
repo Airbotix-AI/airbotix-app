@@ -261,6 +261,13 @@ interface AIChatPanelProps {
   queuedMessage?: QueuedMessage | null;
   /** Drop the queued message (the queued pill's ✕). */
   onCancelQueued?: () => void;
+  /** The unsent composer text, LIFTED to the owner so it survives this pane
+   *  remounting when the kid flips split tabs / layout modes while still in the
+   *  project (the draft must never be lost). Absent → the composer falls back to
+   *  its own local state (direct renders / tests). */
+  draft?: string;
+  /** Patch the lifted draft (bound to the textarea's onChange). */
+  onDraftChange?: (value: string) => void;
 }
 
 export function AIChatPanel({
@@ -298,8 +305,15 @@ export function AIChatPanel({
   onRetryTurn,
   queuedMessage,
   onCancelQueued,
+  draft,
+  onDraftChange,
 }: AIChatPanelProps) {
-  const [input, setInput] = useState('');
+  // The draft is controlled by the owner when `draft`/`onDraftChange` are wired
+  // (Workspace lifts it so it outlives this pane's remounts); otherwise it stays
+  // local. Both setters take a value, matching the two call sites below.
+  const [localInput, setLocalInput] = useState('');
+  const input = draft ?? localInput;
+  const setInput = onDraftChange ?? setLocalInput;
   // Staged image attachments for the next turn (D-PAP-33). Empty for a text turn.
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);

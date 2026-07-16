@@ -683,6 +683,67 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'Only the arrow changed. Right 3 moves from grid 8 to grid 11, where the plaza star waits.',
     next: 'The cloud path is working again. Next, you will make a two-step path of your own.',
   },
+  'tsv-s1-a2-s': {
+    mode: 'personal-ship',
+    lessonId: 'tsv-s1-a2-s',
+    hero: {
+      name: 'Tuan Tuan',
+      role: 'Cloud-path Maker',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    },
+    eyebrow: 'Tiny Star Village · Chapter 2 · Mission 8',
+    title: 'Make your own two-step path',
+    storyPages: [
+      {
+        emoji: '☁️🐻⭐', title: 'Choose where the story ends',
+        body: 'Tuan Tuan starts at grid 8. Put your home star two spaces left at grid 6 or two spaces right at grid 10.',
+        speaker: 'Tuan Tuan', dialogue: 'Which home star should my path reach?', scene: 1,
+      },
+      {
+        emoji: '⬅️⬅️➡️➡️', title: 'Build two real arrows',
+        body: 'The star buttons move only the star. You must add two one-step arrows in the real workspace. Both arrows must point toward your chosen star.',
+        speaker: 'Tuan Tuan', dialogue: 'Place both arrows yourself, then test my path!', scene: 3,
+      },
+      {
+        emoji: '▶️💾✨', title: 'Run and save your route',
+        body: 'Press Go. Your story ships only when the saved four-block program carries Tuan Tuan exactly onto the home star you chose.',
+        speaker: 'Tuan Tuan', dialogue: 'I will follow your two steps!', scene: 5,
+      },
+    ],
+    partnerLine: 'Your endpoint choice changes the exact program that can finish this story.',
+    mission: 'Choose the left or right home star. Then add exactly two matching one-step arrows between Start and End and press Go.',
+    question: 'Where will your two-step story end?', choices: [],
+    retry: 'Check your star and both arrows. Two Left steps reach grid 6; two Right steps reach grid 10.',
+    successTitle: 'Your two-step path is ready!',
+    success: 'The star and the two real arrows tell the same route.',
+    fixTitle: 'Build your route',
+    fixPrompt: 'Choose an endpoint below the stage, then add both arrows in the workspace.',
+    workspaceIntro: 'The endpoint buttons never add answer blocks. Build both one-step arrows yourself.',
+    fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Choose a home star, then build two arrows.', watch: 'Watch where both one-step arrows carry me.',
+      sayFirst: 'Follow your star.', sayThen: 'Follow your star.', hopFirst: 'First step.', hopThen: 'Second step.',
+      retry: 'Your saved arrows must land exactly on your chosen star.', fix: 'Add two matching one-step arrows.',
+      test: 'Your star and arrows match. Press Go!', saving: 'You arrived. Saving your personal path…',
+      complete: 'Your saved two-step story reached your chosen home star!',
+    },
+    logicSteps: [
+      { icon: '⭐', label: 'Choose star', order: 'First' },
+      { icon: '⬅️', label: 'Add arrow 1', order: 'Second' },
+      { icon: '⬅️', label: 'Add arrow 2', order: 'Third' },
+    ],
+    logicWhy: 'Two one-step arrows in the same direction move from grid 8 to grid 6 or grid 10.',
+    completionTitle: 'Chapter 2 complete! ☁️⭐',
+    completion: 'You chose a meaningful endpoint, authored both real arrows, ran the exact route, and saved your personal story.',
+    completionSteps: [
+      { icon: '🚩', label: 'Start', order: '1' },
+      { icon: '⬅️', label: 'One step', order: '2' },
+      { icon: '⬅️', label: 'One step', order: '3' },
+      { icon: '🏁', label: 'End', order: '4' },
+    ],
+    completionWhy: 'The runner finished on the selected star and the same exact program was saved on the server.',
+    next: 'Tuan Tuan sees Dot Dot sleeping under the rooftop star. Next, discover what wakes Dot Dot.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

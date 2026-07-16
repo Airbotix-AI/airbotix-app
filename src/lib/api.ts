@@ -125,15 +125,16 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
 }
 
 /**
- * Authenticated file download (non-JSON, e.g. CSV export). Mirrors `api`'s auth
- * + silent-refresh handling, but streams the body to a Blob and triggers a
- * browser download instead of parsing JSON.
+ * Authenticated same-origin binary fetch → Blob. Mirrors `api`'s auth +
+ * silent-refresh handling but returns the raw bytes (no JSON parse). Use it to pull
+ * private media (e.g. a class/course asset's bytes) from a backend proxy on the app
+ * origin — that keeps the signed S3 URL server-side and avoids the cross-origin S3
+ * CORS a direct `fetch()` of the signed URL would need.
  */
-export async function apiDownload(
+export async function apiBlob(
   path: string,
-  filename: string,
   principal: PrincipalKind = defaultPrincipal(),
-): Promise<void> {
+): Promise<Blob> {
   const exec = async (token: string | null): Promise<Response> => {
     const headers: Record<string, string> = {};
     if (token) headers.authorization = `Bearer ${token}`;
@@ -167,7 +168,19 @@ export async function apiDownload(
     throw new ApiError(res.status, code, message);
   }
 
-  const blob = await res.blob();
+  return res.blob();
+}
+
+/**
+ * Authenticated file download (non-JSON, e.g. CSV export). Fetches the bytes with
+ * `apiBlob` (auth + silent-refresh) and triggers a browser download.
+ */
+export async function apiDownload(
+  path: string,
+  filename: string,
+  principal: PrincipalKind = defaultPrincipal(),
+): Promise<void> {
+  const blob = await apiBlob(path, principal);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

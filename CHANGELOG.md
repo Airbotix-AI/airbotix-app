@@ -8,6 +8,94 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
+
+### Fixed
+- **A referenced class/course asset now actually loads in the game.** In teacher prep (and the kid
+  playground), referencing a shared asset by `assets/class/<name>` logged
+  `[airbotix] Texture failed to load: assets/class/<name>` and the asset never rendered: the runtime
+  resolver read the bytes with a cross-origin `fetch()` of the signed S3 `download_url`, which fails
+  without media-bucket CORS (the `<img>` preview kept working because image loads ignore CORS), so
+  the sandboxed game was left with a bare path it couldn't resolve. `useReferencedClassAssets` now
+  fetches the bytes **same-origin** from the backend proxy
+  `GET /projects/:id/class-assets/:assetId/bytes` (class-shared-assets-prd D-CSA-11).
+- The Class-tab **3D-model preview** (`ClassModelThumb` / `ClassModelStage`) had the same latent
+  cross-origin failure (it `fetch()`ed the model bytes) — both now use the same-origin proxy.
+
+### Changed
+- `playgroundApi`: `fetchAssetDataUrl(url)` → `fetchClassAssetDataUrl(projectId, assetId)` (fetches
+  via the proxy) + a shared `blobToDataUrl` helper; `lib/api` gains `apiBlob` (authenticated
+  same-origin binary fetch, now also backing `apiDownload`).
+
+### Tests
+- Updated `classAssetResolver.test.ts` (resolver fetches by `(projectId, assetId)`),
+  `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
+  `AssetViewerPane.classAssets.test.tsx` (model preview mock).
+
+## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
+
+### Changed
+- **Character dialogue is calm instead of uncanny.** Lumi and Tuan Tuan now keep a friendly,
+  stable smile while speaking instead of looping the mouth open and closed. Lumi waves once, and
+  both puppets keep only the natural slow blink while a speech bubble is visible.
+- **The Tiny Star Village collection hero gives each partner their own space.** Lumi now stands on
+  the left and Tuan Tuan on the right with a clear gap between them at desktop and phone widths,
+  rather than overlapping into one unreadable character silhouette.
+- **Lumilo is no longer a permanently closed-eye picture that only slides around the stage.** The
+  Tiny Star Village tutorial, in-studio coach, editable stage, and read-only player now share one
+  canonical layered SVG puppet with open-eyed idle/blink, listening, movement, hop, speech,
+  thinking, resting, and arms-up success performances. Running blocks drive those performances,
+  so the character visibly explains the same cause-and-effect the child is programming.
+- **Tuan Tuan now uses the same performance contract in Chapter 2.** The cloud bear opens their
+  eyes by default, looks toward the route, walks with a soft step and scarf swish, speaks, thinks,
+  rests only when asked, and raises both arms after the saved program reaches the plaza target.
+- **The Story Blocks collection and chapter list now introduces the real partners.** Tiny Star
+  Village, Chapter 1, Chapter 2, and the world hero scene use the same open-eyed Lumi and Tuan Tuan
+  puppets as the tutorial and stage instead of generic star/cloud emoji placeholders.
+- A completed mission can be replayed after reload: pressing Go on the still-correct saved program
+  reopens the evidence card and full-screen celebration instead of silently running underneath it.
+- Reduced-motion mode keeps every meaningful expression and final state while disabling repeated
+  character motion. Generic and legacy character images continue to render unchanged.
+
+## 2026-07-15 (change: pause AI asset generation in Creative Code Studio)
+
+### Changed
+- **AI asset generation is disabled behind a feature flag (`featureFlags.ASSET_GENERATION_ENABLED`,
+  default `false`).** The kid-facing ENTRY POINTS are now hidden/short-circuited: the Asset Viewer's
+  ✨ Generate bar and Remix bar don't render, and a chat message classified as an "asset" request
+  falls through to a normal game-code turn instead of generating (no `POST /llm/generate-asset`).
+  No generation code was removed — the `assetGen` seam, `generationStore`, the backend endpoint and
+  the guided demo all stay intact, so flipping the flag back to `true` fully restores the feature.
+  The public `/try/playground` marketing demo is unaffected (it drives an offline art seam and
+  bypasses the flag). The Asset Viewer still browses/imports/previews assets and the shared Library.
+
+## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
+
+### Fixed
+- **Creative Code Studio kept an unsent chat message only until you looked away.** In split mode,
+  typing into the Airo composer and then flipping to the Assets (or Code / Guide) tab and back
+  discarded the draft — the chat pane unmounts on a tab switch and the composer text lived in that
+  pane's local state (user-reported). The draft is now lifted into `Workspace` (which stays mounted
+  for the whole project, exactly like the chat history already is), so an unsent message survives
+  split-tab and Window⇄Split switches for as long as the kid is in the project; it clears on send
+  and resets when a different project opens.
+
+## 2026-07-14 (feat: typed text edits the current song — the composer gets an edit mode)
+
+### Added
+- **"✏️ Change this song" — typed freeform edits on the Music Stage (D-MS10).** Only the five
+  suggestion cards could iterate on the current song; typing in the composer always composed from
+  scratch ("每次都是从零 Compose" — user-reported, with Suno's edit-on-existing flow as the
+  reference). Once a song is on stage the composer now defaults to edit mode: the kid's words ride
+  the request WITH the current score (`existingScore`, same backend path/price as the cards), the
+  take lands as a `✏️ Edit` version, and "✨ New song" switches back to a from-scratch compose.
+
+### Changed
+- **The composer input is a real textarea now** (Enter sends, Shift+Enter breaks a line; prompt cap
+  120→240 chars) and edit mode puts the idea chips + genre pills away — together they answer
+  "输入空间太少了". The input clears itself after a take lands.
+
+## 2026-07-14 (fix: Music is discoverable from the studio picker again)
 ## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)
 
 ### Added

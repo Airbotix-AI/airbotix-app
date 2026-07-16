@@ -216,6 +216,46 @@ describe('MusicStagePane — generation', () => {
     expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17]);
   });
 
+  // D-MS10: with a song on stage the composer defaults to EDIT mode — typed
+  // text CHANGES the current version (existingScore rides, no card modifier).
+  it('typed text edits the CURRENT song by default (existingScore, no modifier)', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    expect(screen.getByTestId('compose-mode-edit')).toHaveAttribute('aria-selected', 'true');
+    // Edit mode clears the new-song helpers so the textarea gets the room.
+    expect(screen.queryByTestId('idea-chip-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('genre-rock')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('composer-input'), {
+      target: { value: 'make the piano sadder' },
+    });
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await waitFor(() =>
+      expect(generateMusicScoreMock).toHaveBeenCalledWith({
+        prompt: 'make the piano sadder',
+        options: { genre: 'Rock' },
+        existingScore: SCORE_V1,
+      }),
+    );
+  });
+
+  it('"✨ New song" mode composes from scratch (no existingScore) and brings the helpers back', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('compose-mode-new'));
+    expect(screen.getByTestId('idea-chip-0')).toBeInTheDocument();
+    expect(screen.getByTestId('genre-rock')).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('composer-input'), {
+      target: { value: 'a totally different song' },
+    });
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await waitFor(() =>
+      expect(generateMusicScoreMock).toHaveBeenCalledWith({
+        prompt: 'a totally different song',
+        options: { genre: 'Rock' },
+      }),
+    );
+  });
+
   it('sends the CANONICAL structured modifier + existingScore for suggestion cards (AC-4)', async () => {
     generateMusicScoreMock.mockResolvedValue({
       score: SCORE_V2,
@@ -629,6 +669,40 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
       expect(btn).toBeDisabled();
       fireEvent.click(btn);
       expect(generateRealSongMock).not.toHaveBeenCalled();
+    });
+
+    // D-MS10 regression (caught by the harness): a typed EDIT instruction
+    // ("make it faster") must NOT become the song's TOPIC — the recording
+    // prompt derives from the original description (D-MS6).
+    it('keeps the ORIGINAL description as the topic after a typed edit', async () => {
+      generateMusicScoreMock.mockResolvedValue({
+        score: SCORE_V2,
+        stars_charged: 3,
+        balance_after: 9,
+        artifact_id: null,
+        session_id: 's1',
+      });
+      generateRealSongMock.mockResolvedValue({
+        id: 'el_music_1',
+        url: 'data:audio/mpeg;base64,AAA',
+        mime_type: 'audio/mpeg',
+        stars_charged: 3,
+        balance_after: 6,
+        project_id: 'p_song',
+      });
+      renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+      // Typed edit (default edit mode) — an instruction, not a topic.
+      fireEvent.change(screen.getByTestId('composer-input'), {
+        target: { value: 'make it a little faster' },
+      });
+      fireEvent.click(screen.getByTestId('composer-generate'));
+      await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+
+      fireEvent.click(screen.getByTestId('stage-real-song'));
+      await waitFor(() => expect(generateRealSongMock).toHaveBeenCalledTimes(1));
+      expect(generateRealSongMock.mock.calls[0][0]).toMatchObject({
+        topic: 'a space puppy adventure',
+      });
     });
 
     it('is absent until there is a song to record', () => {

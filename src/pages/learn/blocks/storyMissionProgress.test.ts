@@ -106,6 +106,19 @@ function directionDebugProject() {
   return project;
 }
 
+function personalDirectionProject(endpoint: 6 | 10 = 10) {
+  const project = directionHookProject();
+  project.lessonId = 'tsv-s1-a2-s';
+  project.pages[0].id = 'tsv-a2-s-page';
+  project.pages[0].characters[1].name = 'My Home Star';
+  project.pages[0].characters[1].start.gx = endpoint;
+  const op = endpoint === 6 ? 'move_left' : 'move_right';
+  project.pages[0].characters[0].scripts[0].blocks = [
+    { op: 'when_flag' }, { op, n: 1 }, { op, n: 1 }, { op: 'end' },
+  ];
+  return project;
+}
+
 describe('storyMissionProgramMatches', () => {
   it('accepts only the exact saved Lumi mission program', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-h')).toBe(true);
@@ -194,6 +207,17 @@ describe('storyMissionProgramMatches', () => {
       { op: 'end' },
     ];
     expect(storyMissionProgramMatches(extraChange, 'tsv-s1-a2-d')).toBe(false);
+  });
+
+  it('accepts A2-S only when both one-step arrows match the chosen endpoint', () => {
+    expect(storyMissionProgramMatches(personalDirectionProject(6), 'tsv-s1-a2-s')).toBe(true);
+    expect(storyMissionProgramMatches(personalDirectionProject(10), 'tsv-s1-a2-s')).toBe(true);
+    const mixed = personalDirectionProject(10);
+    mixed.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_left', n: 1 };
+    expect(storyMissionProgramMatches(mixed, 'tsv-s1-a2-s')).toBe(false);
+    const neutral = personalDirectionProject(10);
+    neutral.pages[0].characters[1].start.gx = 8;
+    expect(storyMissionProgramMatches(neutral, 'tsv-s1-a2-s')).toBe(false);
   });
 
   it('does not confuse A1-H and A1-B page identities', () => {

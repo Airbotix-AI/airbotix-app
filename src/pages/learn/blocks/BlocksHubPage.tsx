@@ -55,8 +55,8 @@ export function BlocksHubPage() {
           Step into a story. <span className="squiggle-word">Program what happens next.</span>
         </h1>
         <p className="lead-text mt-4">
-          Follow one connected adventure, meet a new friend in every chapter, and use real blocks
-          to solve each story problem.
+          Pick a story collection, follow its six connected chapters, and use real blocks to help
+          each hero solve what happens next.
         </p>
       </div>
 

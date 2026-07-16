@@ -172,7 +172,7 @@ export function Workspace({
   // Class assets the game REFERENCES (`assets/class/<name>`), resolved to inline-
   // ready data URLs so the runner loads them without copying anything into the VFS
   // (class-shared-assets-prd, Model A). Passed live to the runner as virtualAssets.
-  const virtualClassAssets = useReferencedClassAssets(files, classAssets);
+  const virtualClassAssets = useReferencedClassAssets(files, classAssets, projectId ?? '');
 
   // Live-refresh the Class tab when the teacher changes the class library
   // (class-shared-assets-prd): the backend pushes a class_id-only signal to the
@@ -376,6 +376,17 @@ export function Workspace({
     focusPanel('chat');
     requestAssetGen(prompt, ref);
   };
+  // Own the composer DRAFT here too (like the chat history above): the ChatPane
+  // remounts when the kid flips split tabs (chat ↔ assets) or layout modes, so a
+  // draft kept in AIChatPanel's local state would be lost. Lifting it to Workspace
+  // — which stays mounted for the whole project — keeps the unsent message alive
+  // for as long as the kid is in the project. Reset it only when they open a
+  // DIFFERENT project (the draft is scoped to where they typed it).
+  const [chatDraft, setChatDraft] = useState('');
+  useEffect(() => {
+    setChatDraft('');
+  }, [projectId]);
+
   const chatProps = {
     chat,
     busy,
@@ -418,6 +429,9 @@ export function Workspace({
     // The ONE queued next message + its cancel (D-HARN-03 busy queue).
     queuedMessage,
     onCancelQueued: cancelQueued,
+    // Lifted composer draft — survives ChatPane remounts on tab/layout switches.
+    draft: chatDraft,
+    onDraftChange: setChatDraft,
   };
 
   // "Ask AI to fix" on a console error → send the error to the chat agent and

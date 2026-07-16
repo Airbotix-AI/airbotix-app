@@ -16,7 +16,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 
 import { ArrowLeft, Box, File, Film, Image as ImageIcon, Music } from 'lucide-react';
 
-import { fetchAssetDataUrl, type ClassAssetView } from './playgroundApi';
+import { fetchClassAssetDataUrl, type ClassAssetView } from './playgroundApi';
 import { animSidecarPath, classAssetChatRef, formatBytes, referenceLabel, type AssetKind } from './assetMeta';
 import { CopyButton } from './CopyButton';
 import { EnlargeButton, ImageLightbox } from './ImageLightbox';
@@ -66,13 +66,13 @@ function displayKindOf(asset: ClassAssetView, items: readonly ClassAssetView[]):
  * content. Falls back to the 3D cube icon while fetching/rendering and on any
  * failure (an unparsable model or a network error never breaks the card).
  */
-function ClassModelThumb({ downloadUrl }: { downloadUrl: string }) {
+function ClassModelThumb({ projectId, assetId }: { projectId: string; assetId: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     void (async () => {
       try {
-        const content = await fetchAssetDataUrl(downloadUrl);
+        const content = await fetchClassAssetDataUrl(projectId, assetId);
         const { modelThumbnail } = await import('./modelThumbnail');
         const u = await modelThumbnail(content);
         if (live) setUrl(u);
@@ -83,7 +83,7 @@ function ClassModelThumb({ downloadUrl }: { downloadUrl: string }) {
     return () => {
       live = false;
     };
-  }, [downloadUrl]);
+  }, [projectId, assetId]);
   if (!url) {
     return (
       <div className="flex h-full w-full items-center justify-center text-brand-sky">
@@ -107,14 +107,14 @@ function ClassModelThumb({ downloadUrl }: { downloadUrl: string }) {
  * URL, no network/blob-URL race). Falls back to the 3D cube while fetching and if
  * the bytes can't be loaded — a glb NEVER crashes the detail view.
  */
-function ClassModelStage({ downloadUrl }: { downloadUrl: string }) {
+function ClassModelStage({ projectId, assetId }: { projectId: string; assetId: string }) {
   const [content, setContent] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let live = true;
     setContent(null);
     setFailed(false);
-    void fetchAssetDataUrl(downloadUrl)
+    void fetchClassAssetDataUrl(projectId, assetId)
       .then((c) => {
         if (live) setContent(c);
       })
@@ -124,7 +124,7 @@ function ClassModelStage({ downloadUrl }: { downloadUrl: string }) {
     return () => {
       live = false;
     };
-  }, [downloadUrl]);
+  }, [projectId, assetId]);
   if (failed) {
     return (
       <div className="flex h-[300px] w-full items-center justify-center text-brand-sky">
@@ -167,9 +167,12 @@ const SOURCE_DETAIL: Record<ClassAssetView['source'], string> = {
 /** The read-only Class asset grid (image thumb by signed URL; icon for av). */
 export function ClassAssetsGrid({
   items,
+  projectId,
   onSelect,
 }: {
   items: ClassAssetView[];
+  /** The current project — model thumbnails read bytes via its same-origin proxy. */
+  projectId: string;
   onSelect: (id: string) => void;
 }) {
   // Sidecar `.anim.json` items are metadata for their sibling sprite image — hidden
@@ -199,7 +202,7 @@ export function ClassAssetsGrid({
               className="flex flex-col overflow-hidden rounded-xl border border-pg-border bg-pg-surface text-left transition-colors hover:border-brand-bubblegum/60"
             >
               <div className="relative h-28 bg-pg-surface-2 p-2">
-                <ClassThumb asset={a} kind={kind} />
+                <ClassThumb asset={a} kind={kind} projectId={projectId} />
               </div>
               <div className="px-2.5 py-2">
                 <p className="truncate text-[12.5px] font-bold">{a.name}</p>
@@ -228,7 +231,15 @@ export function ClassAssetsGrid({
  * URL still; `model` renders the real 3D still (or a cube while it loads); `other`
  * (data/fonts/shaders) and av get their kind icon.
  */
-function ClassThumb({ asset, kind }: { asset: ClassAssetView; kind: ClassDisplayKind }) {
+function ClassThumb({
+  asset,
+  kind,
+  projectId,
+}: {
+  asset: ClassAssetView;
+  kind: ClassDisplayKind;
+  projectId: string;
+}) {
   if (kind === 'image' || kind === 'sprite') {
     return (
       <img
@@ -240,7 +251,7 @@ function ClassThumb({ asset, kind }: { asset: ClassAssetView; kind: ClassDisplay
     );
   }
   if (kind === 'model') {
-    return <ClassModelThumb downloadUrl={asset.download_url} />;
+    return <ClassModelThumb projectId={projectId} assetId={asset.id} />;
   }
   const Icon = KIND_ICON[asset.kind];
   return (
@@ -256,11 +267,14 @@ function ClassThumb({ asset, kind }: { asset: ClassAssetView; kind: ClassDisplay
 export function ClassAssetDetailView({
   asset,
   items,
+  projectId,
   onBack,
 }: {
   asset: ClassAssetView;
   /** The full merged list — used to detect a sprite (its `.anim.json` sidecar). */
   items: readonly ClassAssetView[];
+  /** The current project — the 3D model stage reads bytes via its same-origin proxy. */
+  projectId: string;
   onBack: () => void;
 }) {
   const kind: AssetKind = displayKindOf(asset, items);
@@ -303,7 +317,7 @@ export function ClassAssetDetailView({
             </>
           ) : kind === 'model' ? (
             <div className="w-full">
-              <ClassModelStage downloadUrl={asset.download_url} />
+              <ClassModelStage projectId={projectId} assetId={asset.id} />
             </div>
           ) : asset.kind === 'video' ? (
             <video src={asset.download_url} controls className="max-h-48 w-full object-contain" />

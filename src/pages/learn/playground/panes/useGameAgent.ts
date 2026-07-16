@@ -47,6 +47,7 @@ import type { SaveResult } from '../projectPersistence';
 import { STARTER_GAME } from '../starterGame';
 import { STARTER_GAME_3D } from '../threeStarter';
 import { useGenerationStore, type StartGenArgs } from '../generationStore';
+import { ASSET_GENERATION_ENABLED } from '../featureFlags';
 import {
   startProgress,
   applyToolDelta,
@@ -929,8 +930,10 @@ export function useGameAgent(opts: UseGameAgentOptions) {
 
       // ── ASSET intent (D-ASSET §3): generate a media asset as a chat message,
       // not a code turn. Shares this turn's `busy` lock (one AI thing at a time).
-      // The turn watchdog stands down — the generation card owns its own cancel. ──
-      if (routedIntent === 'asset') {
+      // The turn watchdog stands down — the generation card owns its own cancel.
+      // Gated by the feature flag: while asset generation is disabled, an "asset"
+      // classification falls through to a normal game-code turn (no generation). ──
+      if (ASSET_GENERATION_ENABLED && routedIntent === 'asset') {
         clearWatchdog();
         setProgress(null);
         await runAssetTurn(trimmed, pendingId);

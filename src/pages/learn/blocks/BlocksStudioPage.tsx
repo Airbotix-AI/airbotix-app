@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Expand,
   Image as ImageIcon,
@@ -24,7 +24,12 @@ import {
   VolumeX,
 } from 'lucide-react';
 
-import { loadBlocksProject, saveBlocksProject } from './blocksApi';
+import {
+  createBlocksProject,
+  loadBlocksProject,
+  saveBlocksProject,
+  type BlocksStoryProgress,
+} from './blocksApi';
 import {
   type BlockCategory,
   type BlockOp,
@@ -60,6 +65,8 @@ import { sfx, isMuted, setMuted } from './sounds';
 import { BlocksSharePanel } from './BlocksSharePanel';
 import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
+import { performanceForBlock } from './characterPerformance';
+import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -68,6 +75,11 @@ import {
   storyMissionScriptId,
   TINY_STAR_GREETING_CHOICES,
 } from './storyMissionProgress';
+import {
+  nextStoryMissionForLesson,
+  storyJourneyPositionForLesson,
+  storyMissionProjectTitle,
+} from './storyJourneyCatalog';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -119,6 +131,7 @@ export function BlocksStudioPage({
   embedded = false,
 }: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
   // The public /try/blocks demo mounts this page directly (no route param) with
   // a fixed demo id; everywhere else the authed route param wins (unchanged).
   // The teacher live viewer (D-LV-6) mounts it with `projectId` + `readOnly` so a
@@ -160,6 +173,8 @@ export function BlocksStudioPage({
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
   const [missionFixPersisted, setMissionFixPersisted] = useState(false);
   const [missionCompleted, setMissionCompleted] = useState(false);
+  const [nextMissionBusy, setNextMissionBusy] = useState(false);
+  const [nextMissionError, setNextMissionError] = useState<string | null>(null);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
@@ -180,9 +195,14 @@ export function BlocksStudioPage({
   const [says, setSays] = useState<Map<string, string>>(new Map());
   // the block each character is executing right now → "lit" glow (charId → "scriptId:index")
   const [activeBlocks, setActiveBlocks] = useState<Map<string, string>>(new Map());
+  const [characterPerformances, setCharacterPerformances] = useState<
+    Map<string, CharacterPerformance>
+  >(new Map());
 
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
+  const storyProgressRef = useRef<BlocksStoryProgress>({ schemaVersion: 1, completed: {} });
+  const completionSaveInFlightRef = useRef(false);
   const runnerRef = useRef<BlocksRunner | null>(null);
   // Autosave is serialized: only one save may be in flight. Overlapping saves
   // would share the same base `versionRef` (it only advances when a save
@@ -199,6 +219,14 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const journeyPosition = useMemo(
+    () => storyJourneyPositionForLesson(project.lessonId),
+    [project.lessonId],
+  );
+  const nextJourneyPosition = useMemo(
+    () => nextStoryMissionForLesson(project.lessonId),
+    [project.lessonId],
+  );
   const answeredCorrectly =
     storyMission?.choices.some((choice) => choice.id === missionAnswer && choice.correct) ?? false;
   const missionScript = useMemo(
@@ -212,6 +240,9 @@ export function BlocksStudioPage({
     ? storyMissionProgramMatches(project, storyMission.lessonId)
     : false;
   const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
+  const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
+  const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
+    .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
@@ -234,16 +265,37 @@ export function BlocksStudioPage({
   useEffect(() => {
     if (phase !== 'ready' || !storyMission || introducedMissionRef.current === projectId) return;
     introducedMissionRef.current = projectId ?? storyMission.lessonId;
-    setMissionHasRun(false);
+    const previouslyCompleted = Boolean(
+      storyProgressRef.current.completed[storyMission.lessonId] && missionTargetFixed,
+    );
+    setMissionHasRun(previouslyCompleted);
     setMissionAnswer(null);
     setMissionFixApplied(false);
-    setMissionCorrectRunFinished(false);
+    setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
     setMissionFixPersisted(missionTargetFixed);
-    setMissionCompleted(false);
-    setStoryCoachCue('ready');
+    setMissionCompleted(previouslyCompleted);
+    setNextMissionBusy(false);
+    setNextMissionError(null);
+    setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission, missionTargetFixed]);
+
+  const startNextStoryMission = useCallback(async () => {
+    if (!nextJourneyPosition || nextMissionBusy) return;
+    setNextMissionBusy(true);
+    setNextMissionError(null);
+    try {
+      const { id } = await createBlocksProject({
+        template: nextJourneyPosition.mission.template,
+        title: storyMissionProjectTitle(nextJourneyPosition.mission),
+      });
+      navigate(`/learn/blocks/${id}`);
+    } catch {
+      setNextMissionBusy(false);
+      setNextMissionError("Couldn't open the next scene. Please try again.");
+    }
+  }, [navigate, nextJourneyPosition, nextMissionBusy]);
 
   useEffect(() => {
     if (missionTargetFixed) return;
@@ -251,13 +303,6 @@ export function BlocksStudioPage({
     setMissionFixPersisted(false);
     setMissionCompleted(false);
   }, [missionTargetFixed]);
-
-  useEffect(() => {
-    if (!missionCorrectRunFinished || !missionFixPersisted || !missionTargetFixed) return;
-    setMissionCompleted(true);
-    setStoryCoachCue('complete');
-    setMissionOpen(true);
-  }, [missionCorrectRunFinished, missionFixPersisted, missionTargetFixed]);
 
   // Mirror the read-only flag into the store so EVERY mutation funnel (`_commit`,
   // undo, redo) is a hard no-op and `dirty` can never advance — the autosave
@@ -291,8 +336,24 @@ export function BlocksStudioPage({
         if (!alive) return;
         versionRef.current = loaded.version;
         otherFilesRef.current = loaded.otherFiles;
+        storyProgressRef.current = loaded.storyProgress ?? { schemaVersion: 1, completed: {} };
+        const loadedMission = storyMissionFor(loaded.project.lessonId);
+        const loadedMissionCompleted = Boolean(
+          loadedMission &&
+          storyProgressRef.current.completed[loadedMission.lessonId] &&
+          storyMissionProgramMatches(loaded.project, loadedMission.lessonId),
+        );
         useBlocksStore.getState().load(loaded.project);
         useBlocksStore.getState().setHistory(loaded.history.past, loaded.history.future);
+        if (loadedMissionCompleted && loadedMission) {
+          introducedMissionRef.current = projectId;
+          setMissionHasRun(true);
+          setMissionCorrectRunFinished(true);
+          setMissionFixPersisted(true);
+          setMissionCompleted(true);
+          setStoryCoachCue('complete');
+          setMissionOpen(true);
+        }
         setPhase('ready');
         // refresh the cover thumbnail on open (device-local; even without an edit).
         // Never in the teacher viewer (D-LV-6): saveThumbnail is a kid-scoped write,
@@ -344,10 +405,12 @@ export function BlocksStudioPage({
               version: versionRef.current,
               otherFiles: otherFilesRef.current,
               history: { past: st.past, future: st.future },
+              storyProgress: storyProgressRef.current,
             });
             versionRef.current = result.version;
             if (result.status === 'kept-newest') {
               useBlocksStore.getState().load(result.project);
+              storyProgressRef.current = result.storyProgress;
             }
           } while (pendingRef.current);
           setSaveStatus('saved');
@@ -372,6 +435,95 @@ export function BlocksStudioPage({
     }, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [dirty, phase, projectId, readOnly, storyMission]);
+
+  const persistStoryMissionCompletion = useCallback(async () => {
+    if (!projectId || !storyMission || completionSaveInFlightRef.current || savingRef.current) {
+      return;
+    }
+    completionSaveInFlightRef.current = true;
+    savingRef.current = true;
+    setSaveStatus('saving');
+    setNextMissionError(null);
+    const nextProgress: BlocksStoryProgress = {
+      schemaVersion: 1,
+      completed: {
+        ...storyProgressRef.current.completed,
+        [storyMission.lessonId]: { completedAt: new Date().toISOString() },
+      },
+    };
+    try {
+      let serverWon = false;
+      do {
+        pendingRef.current = false;
+        const st = useBlocksStore.getState();
+        const result = await saveBlocksProject({
+          projectId,
+          project: st.project,
+          version: versionRef.current,
+          otherFiles: otherFilesRef.current,
+          history: { past: st.past, future: st.future },
+          storyProgress: nextProgress,
+        });
+        versionRef.current = result.version;
+        if (result.status === 'kept-newest') {
+          serverWon = true;
+          useBlocksStore.getState().load(result.project);
+          storyProgressRef.current = result.storyProgress;
+          break;
+        }
+      } while (pendingRef.current);
+
+      if (serverWon) {
+        const currentProject = useBlocksStore.getState().project;
+        const completedOnServer = Boolean(
+          storyProgressRef.current.completed[storyMission.lessonId] &&
+          storyMissionProgramMatches(currentProject, storyMission.lessonId),
+        );
+        setMissionCompleted(completedOnServer);
+        setMissionCorrectRunFinished(completedOnServer);
+        setMissionFixPersisted(storyMissionProgramMatches(currentProject, storyMission.lessonId));
+        setStoryCoachCue(completedOnServer ? 'complete' : 'test');
+        setMissionOpen(completedOnServer);
+      } else {
+        storyProgressRef.current = nextProgress;
+        setMissionCompleted(true);
+        setStoryCoachCue('complete');
+        setMissionOpen(true);
+      }
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('offline');
+      setMissionCorrectRunFinished(false);
+      setNextMissionError(
+        'Your blocks are ready, but the completion could not be saved. Press Go to try again.',
+      );
+      setStoryCoachCue('test');
+      setMissionOpen(true);
+    } finally {
+      savingRef.current = false;
+      completionSaveInFlightRef.current = false;
+    }
+  }, [projectId, storyMission]);
+
+  useEffect(() => {
+    if (
+      missionCompleted ||
+      !missionCorrectRunFinished ||
+      !missionFixPersisted ||
+      !missionTargetFixed ||
+      saveStatus === 'saving'
+    ) {
+      return;
+    }
+    void persistStoryMissionCompletion();
+  }, [
+    missionCompleted,
+    missionCorrectRunFinished,
+    missionFixPersisted,
+    missionTargetFixed,
+    persistStoryMissionCompletion,
+    saveStatus,
+  ]);
 
   // ── undo / redo (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y) ─────────────────
   const undo = useCallback(() => {
@@ -406,6 +558,7 @@ export function BlocksStudioPage({
     setRunStates(null);
     setSays(new Map());
     setActiveBlocks(new Map());
+    setCharacterPerformances(new Map());
     setRunning(false);
     setStoryCoachCue('ready');
   }, [dirty, pageId]);
@@ -435,7 +588,16 @@ export function BlocksStudioPage({
       // key the live highlight by SCRIPT, not character — a character can run
       // several tracks at once, and each track's current block must glow
       // simultaneously (ScratchJr highlights the running block in every thread).
-      onStep: (_charId, scriptId, index) => {
+      onStep: (stepCharId, scriptId, index) => {
+        const script = page.characters
+          .flatMap((character) => character.scripts)
+          .find((candidate) => candidate.id === scriptId);
+        const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        setCharacterPerformances((prev) => {
+          const next = new Map(prev);
+          next.set(stepCharId, performanceForBlock(op));
+          return next;
+        });
         setActiveBlocks((prev) => {
           const next = new Map(prev);
           if (index < 0) next.delete(scriptId);
@@ -443,10 +605,6 @@ export function BlocksStudioPage({
           return next;
         });
         if (storyMission && index >= 0) {
-          const script = page.characters
-            .flatMap((character) => character.scripts)
-            .find((candidate) => candidate.id === scriptId);
-          const op = script?.blocks[index]?.op;
           const sayIndex = script?.blocks.findIndex((block) => block.op === 'say') ?? -1;
           const hopIndex = script?.blocks.findIndex((block) => block.op === 'hop') ?? -1;
           if (op === 'say') setStoryCoachCue(sayIndex < hopIndex ? 'sayFirst' : 'sayThen');
@@ -473,9 +631,13 @@ export function BlocksStudioPage({
       setRunning(false);
       demo?.onStoryRun?.('end');
       if (storyMission) {
-        const requiresPlazaArrival =
-          storyMission.lessonId === 'tsv-s1-a2-b' || storyMission.lessonId === 'tsv-s1-a2-d';
-        const reachedMissionTarget = !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === 11;
+        const requiresPlazaArrival = ['tsv-s1-a2-b', 'tsv-s1-a2-d', 'tsv-s1-a2-s'].includes(
+          storyMission.lessonId,
+        );
+        const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
+          .gx;
+        const reachedMissionTarget =
+          !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx;
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
@@ -489,11 +651,11 @@ export function BlocksStudioPage({
           (!isA2DirectionDebug || missionWrongRunObserved)
         ) {
           setMissionCorrectRunFinished(true);
-          setStoryCoachCue(missionFixPersisted ? 'complete' : 'saving');
-          if (missionFixPersisted) {
-            setMissionCompleted(true);
+          if (missionCompleted) {
+            setStoryCoachCue('complete');
             setMissionOpen(true);
           } else {
+            setStoryCoachCue('saving');
             setMissionOpen(false);
           }
         } else {
@@ -508,9 +670,10 @@ export function BlocksStudioPage({
     demo,
     storyMission,
     missionTargetFixed,
-    missionFixPersisted,
+    missionCompleted,
     isA2DirectionDebug,
     missionWrongRunObserved,
+    page.characters,
   ]);
 
   const answerStoryMission = useCallback(
@@ -524,9 +687,9 @@ export function BlocksStudioPage({
         setStoryCoachCue('retry');
         return;
       }
-      setMissionCompleted(true);
-      setStoryCoachCue('complete');
-      setMissionOpen(true);
+      setMissionCorrectRunFinished(true);
+      setStoryCoachCue('saving');
+      setMissionOpen(false);
     },
     [missionHasRun, missionTargetFixed, storyMission],
   );
@@ -560,6 +723,7 @@ export function BlocksStudioPage({
     setRunStates(null);
     setSays(new Map());
     setActiveBlocks(new Map());
+    setCharacterPerformances(new Map());
     setRunning(false);
     setStoryCoachCue('ready');
   }, []);
@@ -906,14 +1070,15 @@ export function BlocksStudioPage({
   ) => {
     if (isA2DirectionDebug) return;
     const isA2Direction =
-      storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right');
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+      (op === 'move_left' || op === 'move_right');
     if (isA2Direction && missionScript) {
       const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
       store.insertBlock(
         op,
         missionScript.id,
         endIndex >= 1 ? endIndex : missionScript.blocks.length,
-        3,
+        isA2PersonalShip ? 1 : 3,
       );
       return;
     }
@@ -964,7 +1129,10 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
-    if (storyMission?.lessonId === 'tsv-s1-a2-b' && (op === 'move_left' || op === 'move_right')) {
+    if (
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+      (op === 'move_left' || op === 'move_right')
+    ) {
       return; // Age A direction mission fixes the distance at three steps.
     }
     if (isA2DirectionDebug && (op === 'move_left' || op === 'move_right')) {
@@ -1081,8 +1249,9 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
+      data-story={storyMission ? 'true' : undefined}
       data-testid="blocks-studio"
     >
       {/* ── toolbar ── */}
@@ -1202,6 +1371,46 @@ export function BlocksStudioPage({
         </button>
       </header>
 
+      {isA2PersonalShip && (
+        <div className="bsx-home-picker" data-testid="a2-s-endpoint-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>⭐</span>
+            <div>
+              <strong>Choose my home star</strong>
+              <small>Pick where Tuan Tuan should land</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my home star">
+            <button
+              type="button"
+              data-testid="a2-s-endpoint-left"
+              className={`bsx-home-choice${selectedHomeGx === 6 ? ' selected' : ''}`}
+              aria-pressed={selectedHomeGx === 6}
+              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 6, 10)}
+            >
+              <span aria-hidden>⬅️</span>
+              <strong>Left home</strong>
+              <span className="bsx-home-star" aria-hidden>
+                ⭐
+              </span>
+            </button>
+            <button
+              type="button"
+              data-testid="a2-s-endpoint-right"
+              className={`bsx-home-choice${selectedHomeGx === 10 ? ' selected' : ''}`}
+              aria-pressed={selectedHomeGx === 10}
+              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 10, 10)}
+            >
+              <span className="bsx-home-star" aria-hidden>
+                ⭐
+              </span>
+              <strong>Right home</strong>
+              <span aria-hidden>➡️</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {storyMission && missionOpen && (
         <StoryMissionGuide
           mission={storyMission}
@@ -1211,6 +1420,20 @@ export function BlocksStudioPage({
           onAnswer={answerStoryMission}
           onApplyFix={applyMissionFix}
           onClose={() => setMissionOpen(false)}
+          journeyLabel={
+            journeyPosition
+              ? `Chapter ${journeyPosition.chapter.number} · Scene ${journeyPosition.sceneNumber} of ${journeyPosition.sceneCount}`
+              : undefined
+          }
+          nextJourneyLabel={
+            nextJourneyPosition
+              ? `Chapter ${nextJourneyPosition.chapter.number} · ${nextJourneyPosition.mission.title}`
+              : undefined
+          }
+          nextBusy={nextMissionBusy}
+          nextError={nextMissionError}
+          onNext={nextJourneyPosition && !readOnly && !demo ? startNextStoryMission : undefined}
+          onBackToCollection={() => navigate('/learn/create/blocks')}
         />
       )}
 
@@ -1354,6 +1577,11 @@ export function BlocksStudioPage({
                     <CharacterVisual
                       character={c}
                       className={c.asset ? 'bsx-character-asset' : undefined}
+                      performance={
+                        missionCompleted && storyMission?.hero.asset === c.asset
+                          ? 'success'
+                          : characterPerformances.get(c.id)
+                      }
                     />
                   </div>
                 </div>
@@ -1559,12 +1787,12 @@ export function BlocksStudioPage({
                                   ? 'Tap to turn this one arrow · 3 steps stay the same'
                                   : 'Press Go first and watch where Left 3 goes'
                                 : isLockedDirection
-                                ? '3 steps are ready · hold to drag · drag to the bin to remove'
-                                : def.hasN
-                                  ? 'Tap to change the number · hold to drag · drag to the bin to remove'
-                                  : b.op === 'say'
-                                    ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                                    : 'Hold to drag · drag to another track or the bin'
+                                  ? '3 steps are ready · hold to drag · drag to the bin to remove'
+                                  : def.hasN
+                                    ? 'Tap to change the number · hold to drag · drag to the bin to remove'
+                                    : b.op === 'say'
+                                      ? 'Tap to change the words · hold to drag · drag to the bin to remove'
+                                      : 'Hold to drag · drag to another track or the bin'
                             }
                           />
                         );
@@ -1729,14 +1957,14 @@ export function BlocksStudioPage({
               (editing.block.op === 'move_left' || editing.block.op === 'move_right')
                 ? 'Which way should Tuan Tuan go?'
                 : editing.block.op === 'say'
-                ? 'What should they say?'
-                : blockDef(editing.block.op).param === 'note'
-                  ? 'Which note? Tap to hear it!'
-                  : blockDef(editing.block.op).param === 'sound'
-                    ? 'Which sound? Tap to hear it!'
-                    : editing.block.op === 'goto_page'
-                      ? `Which page? (1–${project.pages.length})`
-                      : `How many? (${blockDef(editing.block.op).label})`}
+                  ? 'What should they say?'
+                  : blockDef(editing.block.op).param === 'note'
+                    ? 'Which note? Tap to hear it!'
+                    : blockDef(editing.block.op).param === 'sound'
+                      ? 'Which sound? Tap to hear it!'
+                      : editing.block.op === 'goto_page'
+                        ? `Which page? (1–${project.pages.length})`
+                        : `How many? (${blockDef(editing.block.op).label})`}
             </div>
             {isA2DirectionDebug &&
             (editing.block.op === 'move_left' || editing.block.op === 'move_right') ? (
