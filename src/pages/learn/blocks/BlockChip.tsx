@@ -88,7 +88,13 @@ export function BlockChip({
       <span className="bd" />
       {!noPlug && <span className="plug" />}
       <span className="ic">{icon}</span>
-      {block.op === 'say' ? (block.text ?? 'Hi!').slice(0, 8) : note?.label ?? sound?.label ?? def.label}
+      {block.op === 'say'
+        ? (block.text ?? 'Hi!').slice(0, 8)
+        : block.op === 'if_touching'
+          ? block.text
+            ? 'If touch ✓'
+            : 'If touch ?'
+          : note?.label ?? sound?.label ?? def.label}
       {def.hasN && (
         // display-only — tapping anywhere on the block opens the editor
         <span className="num" data-testid="block-num">

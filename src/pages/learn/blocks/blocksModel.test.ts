@@ -160,6 +160,24 @@ describe('blocksModel', () => {
     ]);
   });
 
+  it('migrates a bounded Junior If target into a structural multi-block body', () => {
+    const project = blankProject('Conditional story');
+    project.pages[0].characters[0].scripts = [{
+      id: 'conditional-script',
+      blocks: [
+        { op: 'when_flag' },
+        { op: 'if_touching', text: 'friend-2' },
+        { op: 'hop', n: 1 },
+      ],
+    }];
+
+    const parsed = parseProject(serializeProject(project));
+    expect(parsed.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'if_touching', text: 'friend-2', body: [{ op: 'hop', n: 1 }] },
+    ]);
+  });
+
   it('covers all six categories in the catalogue', () => {
     const cats = new Set(BLOCK_DEFS.map((d) => d.category));
     expect([...cats].sort()).toEqual(

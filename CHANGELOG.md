@@ -8,6 +8,27 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-16 (feat: add a structural picture-first If condition)
+
+### Added
+- Story Blocks now has a real C-shaped `If touching` container. A child chooses another character
+  and places multiple actions in its visibly nested body. There is no separate `End if` block.
+- The editor provides a touch-first character picker, the saved project preserves the selected
+  character ID, and old one-action Junior If projects migrate without changing their behavior.
+
+### Changed
+- Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
+  Nested actions, the add affordance and the active insertion state now have separate visual zones,
+  and the insertion prompt points children to the block palette on the left.
+- Replaced the dashed web-style add button with a tactile connector control that shares the
+  blocks' border, depth and press feedback without pretending to be an executable block.
+- Integrated the `If touch` condition directly into the orange C-frame header, removing the
+  duplicate raised block surface while preserving its tap-to-choose and whole-If drag behavior.
+
+### Tests
+- Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
+  and multi-action true/false runtime coverage.
+
 ## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
 
 ### Fixed
