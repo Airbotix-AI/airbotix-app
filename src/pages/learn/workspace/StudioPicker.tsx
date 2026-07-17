@@ -49,7 +49,7 @@ export function StudioPicker({
             </ul>
             <div className="mt-2 text-[11px] font-bold text-brand-mint">🎤 Opens your own stage →</div>
           </Link>
-          {STUDIOS.filter((s) => s.id !== 'music').map((s) => (
+          {STUDIOS.filter((s) => s.id !== 'music' && !s.comingSoon).map((s) => (
             <button
               key={s.id}
               disabled={busy}
@@ -74,6 +74,34 @@ export function StudioPicker({
               </ul>
             </button>
           ))}
+        </div>
+
+        {/* Paused studios (studios.ts `comingSoon`, learn PRD v0.7): shown so the
+            answer to "what do you want to make?" still includes them, but no new
+            session can start — plain non-interactive cards. */}
+        <div className="mt-8" data-testid="studio-coming-soon">
+          <div className="text-[12px] font-bold uppercase tracking-[0.12em] text-ink-soft mb-3">
+            Coming soon
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {STUDIOS.filter((s) => s.comingSoon).map((s) => (
+              <div
+                key={s.id}
+                data-testid={`studio-coming-soon-${s.id}`}
+                aria-disabled="true"
+                className="rounded-2xl border-2 border-dashed border-hairline bg-canvas-pure p-4 opacity-60 saturate-50 select-none"
+              >
+                <div className={clsx('inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-bold', `bg-${s.wash}`)}>
+                  <span className="text-[16px]">{s.emoji}</span>
+                  <span className="text-ink">{s.label}</span>
+                </div>
+                <div className="mt-2 text-[13px] font-bold text-ink">{s.tagline}</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.10em] text-ink-soft">
+                  Coming soon
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

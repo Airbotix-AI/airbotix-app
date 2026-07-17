@@ -23,7 +23,7 @@ const SLIDES: Slide[] = [
     body: (
       <p>
         Airbotix is where your child <strong>learns by making real things</strong> with AI —
-        pictures, music, stories, videos, games, even code. The AI is a coach that asks questions
+        animated stories, music, games, even code. The AI is a coach that asks questions
         and guides — it never just does the work for them.
       </p>
     ),
@@ -37,13 +37,16 @@ const SLIDES: Slide[] = [
     body: (
       <ul className="space-y-2">
         <li>
-          🎨 <strong>Image, Music & Voice</strong> — make art, songs, and characters
+          🧩 <strong>Story Blocks</strong> — program animated stories with snap-together blocks
         </li>
         <li>
-          🎬 <strong>Video</strong> — turn their ideas into short videos
+          🎵 <strong>Music</strong> — compose real songs on their own Music Stage
         </li>
         <li>
           💻 <strong>Code & Games</strong> — build real games and apps they can play and share
+        </li>
+        <li className="text-ink-soft">
+          🎨 Image, voice & video studios are <strong>coming soon</strong>
         </li>
         <li className="pt-1 text-ink">
           Along the way they build <strong>creativity, AI literacy, and problem-solving</strong> —

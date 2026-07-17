@@ -2,9 +2,10 @@
 // (`CreateHubPage` — personal projects) and the in-class "Create for this
 // class" sheet (`CreateForClassSheet` — class work). my-classes-prd §3.3.
 //
-// The personal Create tab shows every tool. The in-class sheet filters this
-// registry by `CoursePack.allowed_kinds` so a course only offers the project
-// kinds ops enabled for that course.
+// The personal Create tab shows live tools as cards and coming-soon tools as
+// non-clickable teasers below. The in-class sheet filters this registry by
+// `CoursePack.allowed_kinds` (and drops coming-soon tools) so a course only
+// offers the project kinds ops enabled for that course.
 
 export type ProjectKind = 'creative' | 'code' | 'game' | 'blocks';
 
@@ -19,17 +20,17 @@ export interface CreateTool {
   /** Backend Project.kind created by this top-level tool. Code Studio owns a game sub-tool too. */
   projectKind: ProjectKind;
   cost: number;
+  /**
+   * Not ready for kids yet: hidden from every create entry point (class sheet,
+   * workspace picker) and shown only as a non-clickable "Coming soon" card at
+   * the bottom of the Create tab. The route itself stays registered so deep
+   * links and harness journeys keep working. (learn PRD v0.7)
+   */
+  comingSoon?: boolean;
 }
 
 export const CREATE_TOOLS: CreateTool[] = [
-  { to: '/learn/create/image', emoji: '🎨', title: 'Image Maker', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 4 },
-  // Music has ONE home: the Music Stage in the Workspace. The old Music Maker —
-  // a form that asked for mood/tempo and handed back an MP3 the kid could not
-  // touch — is retired; the Stage does the same generation as its step ⑥, on top
-  // of a song the kid actually composed. (music-stage-prd §2)
-  { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
-  { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1 },
-  { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5 },
+  { to: '/learn/create/blocks', emoji: '🧩', title: 'Story Blocks', desc: 'Program an animated story with snap-together blocks. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
   // Creative Code Studio jumps STRAIGHT to the prompt-first game playground
   // (`/learn/playground/new`) — the guided-game surface is the only Code Studio
   // path that's productized today, so we skip the old `/learn/create/code`
@@ -38,5 +39,14 @@ export const CREATE_TOOLS: CreateTool[] = [
   // still exists as a deep-link). `projectKind: 'game'` so the in-class sheet
   // filters it by the course's `game` allowance.
   { to: '/learn/playground/new', emoji: '💻', title: 'Creative Code Studio', desc: 'Vibe-code a 2D game with AI and real JavaScript — then keep adding to it.', color: 'sky', typeTag: 'Code', projectKind: 'game', cost: 1 },
-  { to: '/learn/create/blocks', emoji: '🧩', title: 'Story Blocks', desc: 'Program an animated story with snap-together blocks. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
+  // Music has ONE home: the Music Stage in the Workspace. The old Music Maker —
+  // a form that asked for mood/tempo and handed back an MP3 the kid could not
+  // touch — is retired; the Stage does the same generation as its step ⑥, on top
+  // of a song the kid actually composed. (music-stage-prd §2)
+  { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
+  // Paused 2026-07-17 (owner call): output quality isn't there yet — hidden as
+  // coming-soon until each studio is fixed and re-approved.
+  { to: '/learn/create/image', emoji: '🎨', title: 'Image Maker', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 4, comingSoon: true },
+  { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1, comingSoon: true },
+  { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5, comingSoon: true },
 ];

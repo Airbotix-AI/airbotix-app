@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 
 import { useMe } from '@/auth/useAuth';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { ClassCoverImage } from './ClassCoverImage';
 import { listMyClasses, type ClassMineSummary } from './classroomApi';
 import { coverColor, coverEmoji } from './classCover';
@@ -66,10 +67,15 @@ export function ClassroomListPage() {
             show up here.
           </p>
           <div className="mt-7 flex gap-3 justify-center flex-wrap">
-            <Link to="/learn/missions" className="btn-pill-primary">
-              Browse lessons →
-            </Link>
-            <Link to="/learn/create" className="btn-pill-secondary">
+            {SHOW_LESSONS_CATALOG && (
+              <Link to="/learn/missions" className="btn-pill-primary">
+                Browse lessons →
+              </Link>
+            )}
+            <Link
+              to="/learn/create"
+              className={SHOW_LESSONS_CATALOG ? 'btn-pill-secondary' : 'btn-pill-primary'}
+            >
               Make something
             </Link>
           </div>

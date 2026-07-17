@@ -28,6 +28,70 @@
   allows only `code` (not `game`) therefore shows no Creative Code Studio tool for now.
   Covered by `CreateForClassSheet.test` + `HomePage.test`; harness `kid-game-save`.
 
+## 2026-07-17 (docs: README troubleshooting pointer)
+
+### Added
+- README quick start: troubleshooting note — "buttons do nothing" in local dev is
+  almost always a backend 500 (local Postgres down; `/health` still 200), with the
+  diagnosis chain linked in umbrella `rules/local-dev-environment.md`.
+
+## 2026-07-17 (chore: pause Image Maker / Voice Booth / Video Studio as "Coming soon")
+
+### Changed
+- **Image Maker, Voice Booth and Video Studio are paused on owner request** (output
+  quality isn't there yet). A per-tool `comingSoon` flag in the shared create-tool
+  registry (`src/pages/learn/create/createTools.ts`) now drives every surface:
+  - **Create tab** (`/learn/create`): the three tools moved to a non-clickable
+    "Coming soon" teaser section below the live tools (Story Blocks, Creative Code
+    Studio, Music Stage — now listed first); the skills Tip line mentions live
+    studios only.
+  - **"Create for this class" sheet**: paused tools are never offered, even when the
+    course allows `creative` kinds.
+  - **Workspace studio picker**: Image / Voice / Video render as non-interactive
+    "Coming soon" teasers; no new session can start, and the `?studio=` deep-link
+    param is ignored for paused studios. Existing sessions still open.
+  - **Learn home**: the Studios and Workspace card copy no longer advertises
+    image/voice/video.
+  - **Parent Portal onboarding** (`WelcomeWizard`): the "what your child will make"
+    slide now leads with Story Blocks / Music / Code & Games and marks image, voice
+    & video as coming soon.
+  - The `/learn/create/{image,voice,video}` **routes stay registered** (deep links +
+    harness wallet journeys), so flipping `comingSoon` off restores everything —
+    nothing was deleted.
+
+## 2026-07-17 (chore: hide the self-serve Lessons catalog behind a feature switch)
+
+### Changed
+- The kid-facing Lessons catalog (`/learn/missions` — the course-pack browser fed by
+  `GET /course-packs` — and its per-pack detail page) is temporarily hidden on owner
+  request via a new `SHOW_LESSONS_CATALOG` switch (`src/lib/features.ts`), because the
+  seeded official course-pack content is not ready for self-serve browsing. The switch
+  removes the top-bar **Lessons** entry, the home **Guided courses** card, and the
+  My Classes empty-state **Browse lessons →** CTA, and redirects both `/learn/missions`
+  routes to `/learn`. Nothing was deleted — flipping the switch back to `true` restores
+  the whole surface. Copy-split guard and home tests are now switch-aware.
+
+## 2026-07-16 (feat: add a structural picture-first If condition)
+
+### Added
+- Story Blocks now has a real C-shaped `If touching` container. A child chooses another character
+  and places multiple actions in its visibly nested body. There is no separate `End if` block.
+- The editor provides a touch-first character picker, the saved project preserves the selected
+  character ID, and old one-action Junior If projects migrate without changing their behavior.
+
+### Changed
+- Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
+  Nested actions, the add affordance and the active insertion state now have separate visual zones,
+  and the insertion prompt points children to the block palette on the left.
+- Replaced the dashed web-style add button with a tactile connector control that shares the
+  blocks' border, depth and press feedback without pretending to be an executable block.
+- Integrated the `If touch` condition directly into the orange C-frame header, removing the
+  duplicate raised block surface while preserving its tap-to-choose and whole-If drag behavior.
+
+### Tests
+- Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
+  and multi-action true/false runtime coverage.
+
 ## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
 
 ### Fixed

@@ -90,6 +90,16 @@ describe('CreateForClassSheet — direct-jump', () => {
     });
   });
 
+  it('never offers paused (coming-soon) studios, even when creative is allowed', async () => {
+    renderSheet(['creative', 'code', 'game', 'blocks']);
+
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Voice Booth')).not.toBeInTheDocument();
+    expect(screen.queryByText('Video Studio')).not.toBeInTheDocument();
+    // live creative tool still offered
+    expect(screen.getByText('Music Stage')).toBeInTheDocument();
+  });
+
   it('shows only the course-allowed project kinds', async () => {
     renderSheet(['game', 'blocks']);
 
@@ -108,6 +118,9 @@ describe('CreateForClassSheet — direct-jump', () => {
     // Only the game sub-type is visible today, so a game-less course drops the tool.
     expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
     expect(screen.getByText('Story Blocks')).toBeInTheDocument();
-    expect(screen.getByText('Image Maker')).toBeInTheDocument();
+    // A live creative tool still shows (Music Stage). Image Maker/Voice/Video are
+    // paused as `comingSoon` and are never offered for class work.
+    expect(screen.getByText('Music Stage')).toBeInTheDocument();
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
   });
 });

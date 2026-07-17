@@ -48,6 +48,45 @@ async function renderStudio(readOnly = false, embedded = false) {
 }
 
 describe('BlocksStudioPage zone labels', () => {
+  it('lets a child choose the friend used by a Junior If condition', async () => {
+    const project = blankProject('Junior If');
+    const cat = project.pages[0].characters[0];
+    cat.scripts = [{
+      id: 'cat-flag',
+      blocks: [{ op: 'when_flag' }, { op: 'if_touching', body: [{ op: 'hop', n: 1 }] }],
+    }];
+    project.pages[0].characters.push({
+      id: 'friend-2',
+      name: 'Star',
+      emoji: '⭐',
+      start: { gx: 8, gy: 10, size: 1, rot: 0 },
+      scripts: [],
+    });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    expect(screen.getByTestId('if-container')).toBeInTheDocument();
+    expect(screen.getByTestId('if-body')).toContainElement(screen.getByTestId('block-hop'));
+    expect(screen.getByTestId('if-body')).toHaveTextContent('Then do');
+    expect(screen.getByTestId('if-add-inside')).toHaveTextContent('Add block');
+    fireEvent.click(screen.getByTestId('if-add-inside'));
+    expect(screen.getByTestId('if-add-inside')).toHaveTextContent('Pick a block on the left');
+    expect(screen.getByTestId('if-add-inside')).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByTestId('block-if_touching'));
+    expect(screen.getByTestId('if-touching-picker')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('if-touching-choice-friend-2'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks[1]).toEqual({
+      op: 'if_touching',
+      text: 'friend-2',
+      body: [{ op: 'hop', n: 1 }],
+    });
+  });
+
   it('automatically opens the first-party story mission for a curriculum project', async () => {
     const curriculumProject = blankProject('Tiny Star Village');
     curriculumProject.lessonId = 'tsv-s1-a1-h';

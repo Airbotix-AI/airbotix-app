@@ -128,6 +128,7 @@ export function CreateForClassSheet({
   const [subMenu, setSubMenu] = useState<(typeof CREATE_TOOLS)[number] | null>(null);
   const allowedSet = new Set<ProjectKind>(allowedKinds?.length ? allowedKinds : ['creative', 'code', 'game', 'blocks']);
   const allowedTools = CREATE_TOOLS.filter((tool) => {
+    if (tool.comingSoon) return false; // paused studios never offered for class work
     const subtypes = SUBTYPES_BY_TOOL[tool.to];
     if (subtypes) return subtypes.some((s) => !s.hidden && allowedSet.has(s.projectKind));
     return allowedSet.has(tool.projectKind);

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { WelcomeModal } from './WelcomeModal';
 
 export function HomePage() {
@@ -65,23 +66,25 @@ export function HomePage() {
           </div>
         </Link>
 
-        <Link to="/learn/missions" className="pack-card bubblegum block" data-testid="home-courses">
-          <span className="pack-blob" />
-          <div className="relative">
-            <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
-              Courses
+        {SHOW_LESSONS_CATALOG && (
+          <Link to="/learn/missions" className="pack-card bubblegum block" data-testid="home-courses">
+            <span className="pack-blob" />
+            <div className="relative">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+                Courses
+              </div>
+              <div className="mt-4 text-[24px] font-bold leading-tight">
+                🚀 Guided courses
+              </div>
+              <div className="mt-2 text-[14px] opacity-90">
+                Follow step-by-step lessons chosen for your age and see what success looks like.
+              </div>
+              <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
+                Browse courses →
+              </div>
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              🚀 Guided courses
-            </div>
-            <div className="mt-2 text-[14px] opacity-90">
-              Follow step-by-step lessons chosen for your age and see what success looks like.
-            </div>
-            <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
-              Browse courses →
-            </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
         <Link to="/learn/academy" className="pack-card coral block" data-testid="home-academy">
           <span className="pack-blob" />
@@ -112,7 +115,7 @@ export function HomePage() {
               🎨 Explore all studios
             </div>
             <div className="mt-2 text-[14px] opacity-90">
-              Choose Story Blocks, Creative Code, images, music, voice, or video.
+              Choose Story Blocks, Creative Code, or Music Stage. More studios coming soon.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               See studios →
@@ -130,7 +133,7 @@ export function HomePage() {
               💬 Continue a session
             </div>
             <div className="mt-2 text-[14px] opacity-90">
-              Continue a chat, image, music, voice, or video session you already started.
+              Continue a chat, music, or code session you already started.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               Open workspace →
