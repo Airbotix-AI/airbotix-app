@@ -137,7 +137,7 @@ describe('useGameAgent streamed apply (H1)', () => {
     // Applied once with the result's files; charged once with 2 — no lost work,
     // no double-charge.
     expect(onApplyFiles).toHaveBeenCalledTimes(1);
-    expect(onApplyFiles).toHaveBeenCalledWith(TURN.files, TURN.version);
+    expect(onApplyFiles).toHaveBeenCalledWith(TURN.files, TURN.version, []);
     expect(onStarsCharged).toHaveBeenCalledTimes(1);
     expect(onStarsCharged).toHaveBeenCalledWith(2);
     // The bubble settled to the full summary.
@@ -162,7 +162,7 @@ describe('useGameAgent streamed apply (H1)', () => {
     expect(result.current.streaming).toBe(false);
 
     expect(onApplyFiles).toHaveBeenCalledTimes(1);
-    expect(onApplyFiles).toHaveBeenCalledWith(TURN.files, TURN.version);
+    expect(onApplyFiles).toHaveBeenCalledWith(TURN.files, TURN.version, []);
     expect(onStarsCharged).toHaveBeenCalledTimes(1);
     expect(onStarsCharged).toHaveBeenCalledWith(2);
     const lastChat = result.current.chat[result.current.chat.length - 1];
@@ -524,7 +524,7 @@ describe('useGameAgent guided chip loop + sticky chips (D-PAP-26 #1/#3)', () => 
 
     expect(deps.reportRuntimeErrors).toHaveBeenCalled();
     expect(resolveStream).toBeNull(); // no replay → no fix bubble typed out
-    expect(onApplyFiles).toHaveBeenCalledWith(FIX_TURN.files, FIX_TURN.version); // the repair WAS applied
+    expect(onApplyFiles).toHaveBeenCalledWith(FIX_TURN.files, FIX_TURN.version, []); // the repair WAS applied
     const agents = result.current.chat.filter((c) => c.role === 'agent');
     expect(agents.length).toBe(agentsBefore); // no extra message
     expect(agents.at(-1)?.nextSteps).toEqual(TURN.next_steps); // chips intact

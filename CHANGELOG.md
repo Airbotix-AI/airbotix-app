@@ -24,6 +24,39 @@
   base64; the MIME is derived at render time.
 - Tests: `buildGamePreview.test` — raw-base64 mp3 inlines as `data:audio/mpeg` (never
   octet-stream) + all four audio extensions map to real `audio/*` MIMEs.
+## 2026-07-18 (fix: Creative Code Studio — manual edits no longer revert after AI activity; Time Machine reverts stick)
+
+### Fixed
+- **Manual code edits no longer silently revert seconds after AI activity** (Creative Code
+  Studio, PRD learn-game-studio-prd.md J3 revised). Four separate races made a stale server
+  snapshot land on top of newer local work:
+  1. **Saves now single-flight** (`PlaygroundApp`): overlapping `flushSave` calls (debounce
+     timer + pre-turn flush + asset import + exit) serialized through one promise chain, and
+     a direct flush cancels the pending debounce tick — the client can no longer 409 against
+     itself and "resolve" the phantom conflict destructively.
+  2. **A 409 save conflict now keeps the kid's LIVE copy** (`projectPersistence`): the save
+     retries the local files on the server's adopted version; the server's conflicting copy
+     drops into the Time Machine ("Kept your newest copy" — now literally true). Previously
+     the code adopted the *server* files over the live editor, reverting the kid's work. A
+     double conflict adopts the server counter and stays queued (no loop).
+  3. **AI/fix turns merge per-path instead of wholesale-replacing the VFS**
+     (`vfsOps.mergeTurnFiles` via `applyTurnFiles`): the turn wins only on the paths it
+     changed; a hand-edit committed while the turn (or a server-side auto-fix) was in
+     flight survives.
+  4. **A late auto-fix verdict can no longer clobber newer local work** (`useVerification`):
+     each verification chain records the projectStore mutation seq at arm time; a `fixing`
+     verdict arriving after any local mutation (hand-edit, file op, Time Machine revert) is
+     discarded — resume-verify picks the still-pending turn up on the next open.
+  5. **The idle autosave commits over the LIVE store files** (`CodeEditorPane.commitDrafts`):
+     the 1.2 s idle timer's closure could predate an AI apply, so its commit wholesale-
+     reverted the turn's changes; it now reads `useProjectStore.getState().files` at fire time.
+- **Time Machine "Go back" no longer ends up half-undone**: the revert flushes its save
+  immediately (bypassing the 600 ms debounce) so the reverted state reaches the server before
+  any in-flight writer, and the verification staleness guard (above) stops a late fix turn
+  from stomping the reverted files.
+- Tests: `projectPersistence.test` (local-wins retry, double-conflict adopt+queued, retry→4xx),
+  new `vfsOps.mergeTurnFiles.test`, `useVerification.test` staleness-guard cases;
+  `useGameAgent.test` apply assertions carry the changed-paths arg.
 
 ## 2026-07-17 (feat: teacher-prep immediate share-link — D-PREP-6)
 

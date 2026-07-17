@@ -70,16 +70,40 @@ describe('projectPersistence — backend save/load + outbox (PRD J3)', () => {
       expect(res).toEqual({ status: 'saved', version: 8 });
     });
 
-    it('on a stale-version save keeps the SERVER newest copy and returns the superseded build', async () => {
-      const serverFiles = [file('main.js', 'newer-from-other-tab')];
-      saveVfs.mockRejectedValue(new SaveConflictError({ files: serverFiles, version: 12 }));
-      const local = [file('main.js', 'my-older-edit')];
+    it('on a stale-version save the LOCAL live copy wins: re-saves it on the adopted server version', async () => {
+      // The live editor is the kid's newest work — a 409 must never revert what's
+      // on screen (the "my code reverted after a few seconds" bug). The server's
+      // conflicting copy is handed back for History instead.
+      const serverFiles = [file('main.js', 'other-copy')];
+      const local = [file('main.js', 'my-live-edit')];
+      saveVfs
+        .mockRejectedValueOnce(new SaveConflictError({ files: serverFiles, version: 12 }))
+        .mockResolvedValueOnce({ files: local, version: 13 });
       const res = await saveProject('game-1', snapshot(local, 9), 'game-1');
-      expect(res).toEqual({
-        status: 'kept-newest',
-        server: { files: serverFiles, version: 12 },
-        superseded: local,
-      });
+      // The retry PUT carries the kid's files at the server's version counter.
+      expect(saveVfs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ projectId: 'game-1', files: local, version: 12 }),
+      );
+      expect(res).toEqual({ status: 'kept-newest', version: 13, overwritten: serverFiles });
+    });
+
+    it('a DOUBLE conflict (live external writer) adopts the server version and stays queued', async () => {
+      const local = [file('main.js', 'mine')];
+      saveVfs
+        .mockRejectedValueOnce(new SaveConflictError({ files: [file('main.js', 'a')], version: 12 }))
+        .mockRejectedValueOnce(new SaveConflictError({ files: [file('main.js', 'b')], version: 13 }));
+      const res = await saveProject('game-1', snapshot(local, 9), 'game-1');
+      // Never loops: the caller bases its NEXT save on the adopted counter.
+      expect(saveVfs).toHaveBeenCalledTimes(2);
+      expect(res).toEqual({ status: 'queued', version: 13 });
+    });
+
+    it('a conflict retry that hits a permanent 4xx surfaces as rejected', async () => {
+      saveVfs
+        .mockRejectedValueOnce(new SaveConflictError({ files: [], version: 12 }))
+        .mockRejectedValueOnce(new ApiError(400, 'VFS_FILE_TOO_LARGE', 'too big'));
+      const res = await saveProject('game-1', snapshot([file('a.js', 'x')], 9), 'game-1');
+      expect(res).toEqual({ status: 'rejected', reason: 'too big' });
     });
 
     it('queues the save (cache = outbox) when the backend is unreachable', async () => {

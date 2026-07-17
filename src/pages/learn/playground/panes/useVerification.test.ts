@@ -8,6 +8,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AgentTurnResult, RunReportVerdict, VerifyState } from '../../code/codeApi';
+import { useProjectStore } from '../projectStore';
 import type { RunReport, RunReportScreenshot } from '../runReport';
 import { useVerification, type VerificationDeps } from './useVerification';
 
@@ -318,6 +319,63 @@ describe('useVerification — screenshot evidence (D-HARN-21b)', () => {
     expect(deps.postRunReport).toHaveBeenCalledWith(
       expect.objectContaining({ turnId: 't9', report: { ...report(1), screenshot: SHOT } }),
     );
+  });
+});
+
+describe('useVerification — staleness guard (a fix must never clobber newer local work)', () => {
+  it('DROPS a fixing verdict when the kid mutated the VFS while the server was fixing', async () => {
+    const { result, deps, applyFixTurn, restartGame } = setup({
+      verdicts: [{ verdict: 'fixing', attempt: 1, turn: FIX_TURN }, { verdict: 'verified' }],
+    });
+    act(() => result.current.beginVerification('t1'));
+    act(() => result.current.onRunReport(report(1)));
+    // The kid hand-edits (or Time-Machine-reverts) while the fix turn runs
+    // server-side — any projectStore mutation bumps the seq the chain armed at.
+    act(() => useProjectStore.getState().apply([{ path: 'main.js', content: 'kid edit', kind: 'text', size: 8 }]));
+    await flush();
+    // The stale fix is discarded (it was computed against the older snapshot)
+    // and the chain disarms — a later report never posts.
+    expect(applyFixTurn).not.toHaveBeenCalled();
+    expect(restartGame).not.toHaveBeenCalled();
+    act(() => result.current.onRunReport(report(2)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('a fix chain re-arms past its OWN apply (the fix mutation must not trip the guard)', async () => {
+    const applyFixTurn = vi.fn(() =>
+      // The real applyFixTurn funnels through projectStore — the fix itself
+      // bumps the seq. The re-arm must read the seq AFTER this apply.
+      useProjectStore.getState().apply([{ path: 'main.js', content: 'fixed', kind: 'text', size: 5 }]),
+    );
+    const verdicts: RunReportVerdict[] = [
+      { verdict: 'fixing', attempt: 1, turn: FIX_TURN },
+      { verdict: 'fixing', attempt: 2, turn: { ...FIX_TURN, turn_id: 'fix-2' } },
+    ];
+    const deps: VerificationDeps = {
+      postRunReport: vi.fn(async () => verdicts.shift() ?? { verdict: 'verified' as const }),
+      getVerifyState: vi.fn(async () => IDLE_STATE),
+      captureScreenshot: vi.fn(async () => undefined),
+    };
+    const { result } = renderHook(() =>
+      useVerification({
+        projectId: 'p1',
+        mode: 'lite',
+        enabled: true,
+        applyFixTurn,
+        restartGame: vi.fn(),
+        pushCoDebugMessage: vi.fn(),
+        deps,
+      }),
+    );
+    act(() => result.current.beginVerification('t1'));
+    act(() => result.current.onRunReport(report(1)));
+    await flush();
+    expect(applyFixTurn).toHaveBeenCalledTimes(1);
+    // Untouched since the fix applied → the NEXT fixing verdict still applies.
+    act(() => result.current.onRunReport(report(2)));
+    await flush();
+    expect(applyFixTurn).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -63,8 +63,10 @@ interface WorkspaceProps {
    *  place of the Stars balance. The backend enforces the waiver regardless. */
   aiFreeNow?: boolean;
   /** Commit edits back to the page-level source of truth. An applied AI/fix
-   *  turn passes the new server VFS `version` so the save flow adopts it. */
-  onApplyFiles: (f: VfsFile[], version?: number) => void;
+   *  turn passes the new server VFS `version` so the save flow adopts it, plus
+   *  the paths it changed so the apply MERGES per-path onto the current local
+   *  VFS (a concurrent hand-edit survives) instead of wholesale-replacing. */
+  onApplyFiles: (f: VfsFile[], version?: number, changedPaths?: string[]) => void;
   /** Save the project now + report the result — lets an asset import confirm the
    *  upload before revealing the asset (see AssetViewerPane). */
   onSaveNow?: () => Promise<SaveResult>;
@@ -368,8 +370,11 @@ export function Workspace({
     projectId,
     mode,
     enabled: verifyEnabled,
-    // The same funnel a chat turn's apply uses: files + server-version adoption.
-    applyFixTurn: (turn) => onApplyFiles(turn.files, turn.version),
+    // The same funnel a chat turn's apply uses: files + server-version adoption
+    // + per-path merge (the changed paths), so a hand-edit made while the server
+    // was fixing is never wholesale-replaced away.
+    applyFixTurn: (turn) =>
+      onApplyFiles(turn.files, turn.version, turn.changes.map((c) => c.path)),
     restartGame: runForVerification,
     pushCoDebugMessage: pushAgentMessage,
     onStarsCharged: () => wallet.refetch(),
@@ -532,6 +537,7 @@ export function Workspace({
             <CodeEditorPane
               files={files}
               onApplyFiles={onApplyFiles}
+              onSaveNow={onSaveNow}
               onRun={runFromEditor}
               openLocation={locationRequest}
               onExplainSelection={handleExplainCode}
@@ -638,6 +644,7 @@ export function Workspace({
                   <CodeEditorPane
                     files={files}
                     onApplyFiles={onApplyFiles}
+                    onSaveNow={onSaveNow}
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                     onExplainSelection={handleExplainCode}
