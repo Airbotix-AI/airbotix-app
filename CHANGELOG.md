@@ -33,6 +33,17 @@
     nothing was deleted.
 
 ## 2026-07-17 (chore: hide the self-serve Lessons catalog behind a feature switch)
+
+### Changed
+- The kid-facing Lessons catalog (`/learn/missions` — the course-pack browser fed by
+  `GET /course-packs` — and its per-pack detail page) is temporarily hidden on owner
+  request via a new `SHOW_LESSONS_CATALOG` switch (`src/lib/features.ts`), because the
+  seeded official course-pack content is not ready for self-serve browsing. The switch
+  removes the top-bar **Lessons** entry, the home **Guided courses** card, and the
+  My Classes empty-state **Browse lessons →** CTA, and redirects both `/learn/missions`
+  routes to `/learn`. Nothing was deleted — flipping the switch back to `true` restores
+  the whole surface. Copy-split guard and home tests are now switch-aware.
+
 ## 2026-07-16 (feat: add a structural picture-first If condition)
 
 ### Added
