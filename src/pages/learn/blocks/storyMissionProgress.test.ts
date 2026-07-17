@@ -301,6 +301,22 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
   });
 
+  it('accepts A3-S only for one saved personal character response', () => {
+    const personal = tapResponseProject({ op: 'hop', n: 1 });
+    personal.lessonId = 'tsv-s1-a3-s';
+    personal.pages[0].id = 'tsv-a3-s-page';
+    personal.pages[0].characters[0].name = 'Tuan Tuan';
+    personal.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg';
+    personal.pages[0].characters[0].scripts[0].id = 'dot-dot-surprise';
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(true);
+
+    personal.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'grow', n: 1 });
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
+    personal.pages[0].characters[0].scripts[0].blocks.splice(2, 1);
+    personal.pages[0].characters[0].asset = '/unapproved.svg';
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

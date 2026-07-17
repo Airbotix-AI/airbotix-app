@@ -813,6 +813,28 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '👆', label: 'No response', order: 'Before' }, { icon: '🔁', label: 'On Tap', order: 'Repair' }, { icon: '🦘', label: 'Hop runs', order: 'After' }],
     completionWhy: 'The server-saved program is exactly On Tap → Hop 1 → End, and the real tap finished it.', next: 'Next, design your own tap surprise in A3-S.',
   },
+  'tsv-s1-a3-s': {
+    mode: 'complete', lessonId: 'tsv-s1-a3-s', celebrate: true,
+    hero: { name: 'Your secret friend', role: 'Tap Surprise Maker', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 3 · Mission 12', title: 'My tap surprise',
+    storyPages: [
+      { emoji: '🌟👀', title: 'Hide a rooftop secret', body: 'The rooftop star needs a surprise that a friend can discover by tapping.', speaker: 'Lumilo', dialogue: 'Choose who will keep your secret.', scene: 1 },
+      { emoji: '🐱🐻⭐', title: 'Choose your character', body: 'Pick Dot Dot, Tuan Tuan, or Lumilo. This changes the real saved character but never adds an answer block.', speaker: 'Lumilo', dialogue: 'Your character, your story.', scene: 3 },
+      { emoji: '👆✨', title: 'Build one surprise', body: 'Add exactly one Hop 1, Grow 1, or preset Say between On Tap and End. Save it, then tap the character to test.', speaker: 'Your friend', dialogue: 'Can someone discover me?', scene: 5, blocks: ['👆 On Tap', '✨ One response → End'] },
+    ],
+    partnerLine: 'Your choice changes both the saved character and its secret response.',
+    mission: 'Choose one character, add exactly one visible response, wait for Saved, then tap the character.',
+    question: 'What will your secret character do?', choices: [], retry: 'Keep On Tap first and End last. Add exactly one Hop 1, Grow 1, or preset Say.',
+    successTitle: 'Your tap surprise is ready!', success: 'A real tap ran your saved character and response.',
+    fixTitle: 'Build your own surprise', fixPrompt: 'Close this card, choose a character, and add one real response block.',
+    workspaceIntro: 'Character buttons change only the saved character. You must add the response in the real editor.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Choose your secret character, then add one response.', watch: 'Tap your chosen character only after the chain is ready.', sayFirst: 'Choose a preset message.', sayThen: 'Your tap revealed the saved message.', hopFirst: 'Hop 1 makes a small surprise.', hopThen: 'Your tap ran the saved hop.', retry: 'Use exactly one Hop 1, Grow 1, or preset Say.', fix: 'Build the response in the real chain.', test: 'Saved? Tap your secret character now.', saving: 'Your tap surprise ran. Saving the exact story…', complete: 'A friend can now discover your tap surprise!' },
+    logicSteps: [{ icon: '🐱', label: 'Choose friend', order: 'Mine' }, { icon: '👆', label: 'On Tap', order: 'Start' }, { icon: '✨', label: 'One response', order: 'Secret' }],
+    logicWhy: 'On Tap waits for a touch, then runs the one response you authored.',
+    completionTitle: 'Chapter 3 complete! 👆✨', completion: 'You chose a character, authored one visible response, saved it, and ran it with a real tap.',
+    completionSteps: [{ icon: '🐱', label: 'Character', order: 'Choose' }, { icon: '🧩', label: 'Response', order: 'Build' }, { icon: '👆', label: 'Tap', order: 'Reveal' }],
+    completionWhy: 'The server-saved project contains your selected character and exact On Tap surprise, and the real runner finished it.', next: 'Dot Dot spots the breakfast cart. Next, predict how far it should travel.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

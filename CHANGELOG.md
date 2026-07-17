@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-17 (feat: add Tiny Star Village A3-S)
+
+### Added
+- Added saved character choice, one child-authored tap response, and real-run completion evidence for Mission 12.
+
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
 ### Changed

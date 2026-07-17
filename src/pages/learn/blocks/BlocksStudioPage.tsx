@@ -243,6 +243,7 @@ export function BlocksStudioPage({
   const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
   const isA3EventDebug = storyMission?.lessonId === 'tsv-s1-a3-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
+  const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -760,12 +761,19 @@ export function BlocksStudioPage({
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
         if (id !== 'dot-dot') return;
+        const targetFixedNow = storyMission
+          ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
+          : false;
         if (storyMission?.lessonId === 'tsv-s1-a3-h' && missionHasRun) {
           setMissionTapObserved(true);
           setStoryCoachCue('fix');
           setMissionOpen(true);
         }
-        if (storyMission?.lessonId === 'tsv-s1-a3-b' && missionTargetFixed) {
+        if (
+          (storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) &&
+          targetFixedNow
+        ) {
+          setMissionFixPersisted(true);
           setMissionCorrectRunFinished(true);
           setStoryCoachCue('saving');
           setMissionOpen(false);
@@ -776,7 +784,7 @@ export function BlocksStudioPage({
             setMissionTapObserved(true);
             setStoryCoachCue('fix');
             setMissionOpen(true);
-          } else if (missionTargetFixed) {
+          } else if (targetFixedNow) {
             setMissionCorrectRunFinished(true);
             setStoryCoachCue('saving');
             setMissionOpen(false);
@@ -784,7 +792,7 @@ export function BlocksStudioPage({
         }
       });
     },
-    [makeRunner, missionHasRun, missionTapObserved, missionTargetFixed, storyMission],
+    [isA3PersonalShip, makeRunner, missionHasRun, missionTapObserved, storyMission],
   );
 
   // ── character picker: a centered modal sheet (big library, kid-friendly) ──
@@ -1292,6 +1300,7 @@ export function BlocksStudioPage({
       className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
+      data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
       data-testid="blocks-studio"
     >
       {/* ── toolbar ── */}
@@ -1447,6 +1456,26 @@ export function BlocksStudioPage({
               <strong>Right home</strong>
               <span aria-hidden>➡️</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {isA3PersonalShip && (
+        <div className="bsx-home-picker" data-testid="a3-s-character-picker">
+          <div className="bsx-home-picker-title"><span aria-hidden>✨</span><div><strong>Choose my secret friend</strong><small>This changes the saved character, not the blocks</small></div></div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my secret friend">
+            {[
+              ['Dot Dot', '🐱', '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg'],
+              ['Tuan Tuan', '🐻', '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg'],
+              ['Lumilo', '⭐', '/story-blocks/tiny-star-village/characters/little-light/resting.svg'],
+            ].map(([name, emoji, asset]) => (
+              <button key={name} type="button" data-testid={`a3-s-character-${name.toLowerCase().replaceAll(' ', '-')}`}
+                className={`bsx-home-choice${selectedChar.asset === asset ? ' selected' : ''}`}
+                aria-pressed={selectedChar.asset === asset}
+                onClick={() => useBlocksStore.getState().setCharacterIdentity('dot-dot', name, emoji, asset)}>
+                <img src={asset} alt="" className="bsx-character-asset-thumb" /><strong>{name}</strong>
+              </button>
+            ))}
           </div>
         </div>
       )}

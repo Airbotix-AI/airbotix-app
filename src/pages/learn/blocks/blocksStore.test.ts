@@ -115,6 +115,14 @@ describe('blocksStore', () => {
     expect(char().start).toMatchObject({ gx: 19, gy: 0 });
   });
 
+  it('persists a child-selected Story Blocks character identity', () => {
+    const id = store().project.pages[0].characters[0].id;
+    store().setCharacterIdentity(id, 'Tuan Tuan', '🐻', '/cloud-bear.svg');
+    expect(store().project.pages[0].characters[0]).toMatchObject({
+      name: 'Tuan Tuan', emoji: '🐻', asset: '/cloud-bear.svg',
+    });
+  });
+
   it('setParam sets an exact value, clamped to 1..9', () => {
     store().addBlock('when_flag');
     store().addBlock('wait');

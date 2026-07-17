@@ -742,6 +742,32 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(await screen.findByTestId('story-celebration', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
+  it('changes the saved A3-S character without inserting a response', async () => {
+    const personal = blankProject('Tiny Star Village · My Tap Surprise');
+    personal.lessonId = 'tsv-s1-a3-s';
+    personal.pages[0] = {
+      id: 'tsv-a3-s-page', background: 'sunset', characters: [{
+        id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        start: { gx: 10, gy: 8, size: 1, rot: 0 },
+        scripts: [{ id: 'dot-dot-surprise', blocks: [{ op: 'when_tap' }, { op: 'end' }] }],
+      }],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: personal, version: 1, history: { past: [], future: [] }, otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(screen.getByTestId('a3-s-character-tuan-tuan'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
+      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    });
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_tap' }, { op: 'end' },
+    ]);
+    await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
+  });
+
   // Load-error dead-end (review finding): the error state must NOT expose a
   // `/learn/create/blocks` link when embedded — it would bounce a teacher `user`
   // to `/portal`. The host banner's Back is the only exit.

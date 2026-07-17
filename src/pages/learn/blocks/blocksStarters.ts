@@ -80,4 +80,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 11',
     desc: 'Dot Dot is wearing the wrong start hat. Tap Dot Dot first, then replace Start with On Tap and test the saved repair.',
   },
+  {
+    id: 'blocks_tsv_a3_s',
+    emoji: '✨',
+    title: 'Tiny Star Village · Mission 12',
+    desc: 'Choose your secret character, add one real Hop, Grow, or Say response, then let someone discover it with a tap.',
+  },
 ];

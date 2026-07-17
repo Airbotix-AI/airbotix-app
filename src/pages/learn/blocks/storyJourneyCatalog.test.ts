@@ -35,7 +35,8 @@ describe('storyJourneyCatalog progression', () => {
     expect(nextStoryMissionForLesson('tsv-s1-a2-s')?.mission.lessonId).toBe('tsv-s1-a3-h');
     expect(nextStoryMissionForLesson('tsv-s1-a3-h')?.mission.lessonId).toBe('tsv-s1-a3-b');
     expect(nextStoryMissionForLesson('tsv-s1-a3-b')?.mission.lessonId).toBe('tsv-s1-a3-d');
-    expect(nextStoryMissionForLesson('tsv-s1-a3-d')).toBeUndefined();
+    expect(nextStoryMissionForLesson('tsv-s1-a3-d')?.mission.lessonId).toBe('tsv-s1-a3-s');
+    expect(nextStoryMissionForLesson('tsv-s1-a3-s')).toBeUndefined();
     expect(storyJourneyPositionForLesson('unknown')).toBeUndefined();
   });
 });
