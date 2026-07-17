@@ -8,6 +8,47 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
+
+### Fixed
+- **The Code Editor's Time Machine now adds a save point for every AI turn, named by the
+  backend's kid-readable label.** The turn result has always carried a `history_label`
+  ("Made a change", "Added a pause button"), but the studio never recorded it: only manual
+  edits snapshotted (the editor's idle autosnapshot on dirty drafts + file-tree ops), and an
+  applied AI turn refreshes the editor's drafts to the committed content *without* marking them
+  dirty — so the idle autosnapshot never fired for it. A game built purely by prompting never
+  grew past its "Your game started here" entry. Most visible in **teacher-prep projects**, which
+  are built prompt-first (teachers iterate almost entirely via 0-Stars chat turns) — the reported
+  bug. `Workspace.onTurnApplied` (the one seam every applied turn passes through) now records a
+  checkpoint via `historyStore`; a no-op question turn (no file change) is deduped away and a
+  read-only teacher viewer never records.
+- **AI save points can be named after what was asked.** The entry is titled by the backend's
+  authored `history_label` ("Added a pause button"); when that label is generic or absent
+  (e.g. the fake LLM's "Made a change", or a bland real turn), it falls back to the triggering
+  prompt — the message the kid typed or the next-step chip they tapped — tidied to one short,
+  capitalized line (`aiCheckpointLabel`). So a turn from "make the player jump higher" reads
+  "Make the player jump higher" in the Time Machine instead of "Made a change". The prompt is
+  threaded to the recorder via `useGameAgent`'s `onTurnApplied(result, { prompt })` seam.
+
+### Changed
+- **Time Machine entries are named from an authored label, not by reverse-parsing a technical
+  summary.** `Checkpoint` gains an explicit `label` + semantic `kind`
+  (`initial|edit|file|revert|kept-newest|ai`); `HistoryPanel` renders the `label` verbatim with a
+  `kind`-driven icon instead of sniffing the `summary` string (which mangled friendly AI labels,
+  e.g. "Made a change" → "Changed a change"). `describe()` is kept as the legacy fallback for
+  checkpoints persisted before `label`/`kind` existed; the initial-version, kept-newest and revert
+  records now pass explicit `label`+`kind`. New fields are optional → old cached checkpoints still
+  render.
+
+### Tests
+- `historyStore.test.ts`: authored `label`/`kind` stored verbatim; a plain auto edit leaves them
+  undefined; an AI turn identical to the latest snapshot dedupes to null; a coalesced typing burst
+  keeps the session's label/kind.
+- New `HistoryPanel.test.tsx`: an AI turn's `history_label` renders verbatim (never mangled), a
+  legacy checkpoint (no label/kind) still derives a title from its summary, one entry per checkpoint.
+- Harness `kid-game-edit-after-turn` now also asserts an applied AI turn adds a 'Made a change'
+  Time Machine entry (the positive case beside the existing kept-newest regression).
+
 ## 2026-07-17 (fix: game-player pause/mute silences background music started via a bare Audio element)
 
 ### Fixed

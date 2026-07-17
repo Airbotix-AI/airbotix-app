@@ -18,11 +18,12 @@ import {
   RotateCcw,
   Sparkles,
   Undo2,
+  Wand2,
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { useHistoryStore, type Checkpoint } from '../historyStore';
+import { useHistoryStore, type Checkpoint, type CheckpointKind } from '../historyStore';
 
 interface HistoryPanelProps {
   /** Open a before/after view: left = the version before this entry, right = it. */
@@ -65,6 +66,30 @@ function ago(ts: number): string {
   if (h < 24) return h === 1 ? 'an hour ago' : `${h} hours ago`;
   const d = Math.round(h / 24);
   return d === 1 ? 'yesterday' : `${d} days ago`;
+}
+
+/** The timeline icon for each semantic checkpoint kind. */
+const KIND_ICON: Record<CheckpointKind, LucideIcon> = {
+  initial: Sparkles,
+  ai: Wand2,
+  edit: FilePen,
+  file: FilePlus2,
+  revert: Undo2,
+  'kept-newest': Cloud,
+};
+
+/** How to present a save point: prefer its authored `label`/`kind` (set for AI turns
+ *  and other named points); fall back to deriving a title/icon from the technical
+ *  `summary` for auto edits and legacy checkpoints that carry neither. */
+function present(cp: Checkpoint): { Icon: LucideIcon; title: string } {
+  if (cp.label || cp.kind) {
+    const derived = describe(cp.summary);
+    return {
+      Icon: cp.kind ? KIND_ICON[cp.kind] : derived.Icon,
+      title: cp.label?.trim() || derived.title,
+    };
+  }
+  return describe(cp.summary);
 }
 
 /** A plain-language title + icon for a save point, from its (technical) summary. */
@@ -153,7 +178,7 @@ export function HistoryPanel({ onDiff, onRevert, onDetailOpen }: HistoryPanelPro
       >
         {checkpoints.map((cp, i) => {
           const isNow = i === 0;
-          const { Icon, title } = describe(cp.summary);
+          const { Icon, title } = present(cp);
           const prev = checkpoints[i + 1] ?? null;
           const changes = changedIn(cp, prev);
           const expanded = expandedId === cp.id;
