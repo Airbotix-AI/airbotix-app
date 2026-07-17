@@ -128,6 +128,15 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
+  'tsv-s1-a3-d': {
+    pageId: 'tsv-a3-d-page',
+    background: 'sunset',
+    characterId: 'dot-dot',
+    scriptId: 'dot-dot-event',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    start: { gx: 10, gy: 8, size: 1, rot: 0 },
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {

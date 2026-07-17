@@ -791,6 +791,28 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '👆', label: 'On Tap', order: 'Start' }, { icon: '🦘', label: 'Your response', order: 'Run' }, { icon: '💾', label: 'Saved', order: 'Proof' }],
     completionWhy: 'The server-saved chain kept On Tap first, and the real tap ran your chosen visible response.', next: 'Next, repair a tap script whose event block is wrong.',
   },
+  'tsv-s1-a3-d': {
+    mode: 'observe-fix', lessonId: 'tsv-s1-a3-d', celebrate: true,
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 3 · Mission 11', title: 'The wrong start hat',
+    storyPages: [
+      { emoji: '🐱🎩', title: 'Dot Dot has the wrong hat', body: 'The response is ready, but its first block says Start. That hat listens for Go, not a fingertip.', speaker: 'Dot Dot', dialogue: 'Why does your tap do nothing?', scene: 1 },
+      { emoji: '👆😴', title: 'Find the bug', body: 'Tap Dot Dot on the real stage first. Nothing happens because the event block does not match your action.', speaker: 'Lumilo', dialogue: 'The response is fine. Check the first block.', scene: 3, blocks: ['🚩 Start', '🦘 Hop 1 → End'] },
+      { emoji: '👆🔁', title: 'Swap only the event', body: 'Tap the Start block and replace it with On Tap. Keep Hop 1 and End exactly where they are, then tap Dot Dot again.', speaker: 'Dot Dot', dialogue: 'Give me my tap hat!', scene: 5, blocks: ['👆 On Tap', '🦘 Hop 1 → End'] },
+    ],
+    partnerLine: 'A matching event makes the same response wake up.',
+    mission: 'Tap Dot Dot once to see no response. Replace only Start with On Tap, wait for Saved, then tap Dot Dot again.',
+    question: 'Which start listens for your fingertip?', choices: [], retry: 'Tap Dot Dot first. Then change only the first event block.',
+    successTitle: 'The event matches!', success: 'Your real tap ran the unchanged Hop response.',
+    fixTitle: 'Repair one event block', fixPrompt: 'Close this card, tap Start, and choose On Tap. Do not add or remove response blocks.',
+    workspaceIntro: 'First prove the tap does nothing. Then repair only the first block in the real chain.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Tap Dot Dot first. Watch for no response.', watch: 'The tap did nothing. Which first block listens for touch?', sayFirst: 'Keep the response unchanged.', sayThen: 'Keep the response unchanged.', hopFirst: 'Hop is already correct.', hopThen: 'The repaired tap ran Hop.', retry: 'Tap Dot Dot before opening the wrong Start block.', fix: 'Now tap Start and replace it with On Tap.', test: 'Saved? Tap Dot Dot again to test the repair.', saving: 'Your repaired event ran. Saving the exact chain…', complete: 'On Tap now wakes Dot Dot!' },
+    logicSteps: [{ icon: '👆', label: 'Tap Dot Dot', order: 'Find bug' }, { icon: '🔁', label: 'Start → On Tap', order: 'Fix one' }, { icon: '👆', label: 'Tap again', order: 'Test' }],
+    logicWhy: 'The first event block decides which action starts the response.',
+    completionTitle: 'Mission 11 complete! 🎩✨', completion: 'You proved the tap failed, replaced only the wrong event, saved it, and ran the response with a real tap.',
+    completionSteps: [{ icon: '👆', label: 'No response', order: 'Before' }, { icon: '🔁', label: 'On Tap', order: 'Repair' }, { icon: '🦘', label: 'Hop runs', order: 'After' }],
+    completionWhy: 'The server-saved program is exactly On Tap → Hop 1 → End, and the real tap finished it.', next: 'Next, design your own tap surprise in A3-S.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

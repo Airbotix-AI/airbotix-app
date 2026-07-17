@@ -287,6 +287,20 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(tapResponseProject({ op: 'say', text: '   ' }), 'tsv-s1-a3-b')).toBe(false);
   });
 
+  it('accepts A3-D only after Start is replaced with On Tap and nothing else changes', () => {
+    const repaired = tapResponseProject({ op: 'hop', n: 1 });
+    repaired.lessonId = 'tsv-s1-a3-d';
+    repaired.pages[0].id = 'tsv-a3-d-page';
+    repaired.pages[0].characters[0].scripts[0].id = 'dot-dot-event';
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(true);
+
+    repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
+    repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_tap' };
+    repaired.pages[0].characters[0].scripts[0].blocks[1] = { op: 'hop', n: 2 };
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

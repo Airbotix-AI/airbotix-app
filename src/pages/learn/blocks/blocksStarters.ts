@@ -74,4 +74,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 10',
     desc: 'On Tap is ready, but Dot Dot needs a response. Add a real Hop or Say block, then tap Dot Dot to test what you built.',
   },
+  {
+    id: 'blocks_tsv_a3_d',
+    emoji: '🎩',
+    title: 'Tiny Star Village · Mission 11',
+    desc: 'Dot Dot is wearing the wrong start hat. Tap Dot Dot first, then replace Start with On Tap and test the saved repair.',
+  },
 ];

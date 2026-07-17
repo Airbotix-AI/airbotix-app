@@ -61,6 +61,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     missions: [
       { template: 'blocks_tsv_a3_h', lessonId: 'tsv-s1-a3-h', number: 9, title: 'Go cannot wake Dot Dot', action: 'Try' },
       { template: 'blocks_tsv_a3_b', lessonId: 'tsv-s1-a3-b', number: 10, title: 'Build a tap response', action: 'Build' },
+      { template: 'blocks_tsv_a3_d', lessonId: 'tsv-s1-a3-d', number: 11, title: 'The wrong start hat', action: 'Fix' },
     ],
   },
   {

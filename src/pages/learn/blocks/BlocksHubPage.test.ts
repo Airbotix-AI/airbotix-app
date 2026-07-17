@@ -27,6 +27,12 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.desc).toContain('tap Dot Dot');
   });
 
+  it('offers A3-D as a one-event repair', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a3_d');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 11');
+    expect(starter?.desc).toContain('replace Start with On Tap');
+  });
+
   it('offers the next A1 Complete scene as a separate real mission', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a1_b');
     expect(starter?.title).toBe('Tiny Star Village · Mission 2');
