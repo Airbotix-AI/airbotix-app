@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Celebration } from './Celebration';
+import { FreeBadge } from './FreeBadge';
 import { StudioTip } from './StudioTip';
 import { friendlyError, useGenerate } from './useStudio';
 
@@ -14,9 +15,12 @@ const COST = 4;
 
 export function ImageStudioContent({
   projectId,
+  aiFreeNow = false,
   onCreated,
 }: {
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — show "Free" in place of the star cost. */
+  aiFreeNow?: boolean;
   onCreated: () => void;
 }) {
   const [prompt, setPrompt] = useState('');
@@ -119,7 +123,13 @@ export function ImageStudioContent({
           disabled={generate.isPending}
           className="btn-pill-primary w-full mt-6"
         >
-          {generate.isPending ? '✨ Making…' : `✨ Make it — ${COST}★`}
+          {generate.isPending ? (
+            '✨ Making…'
+          ) : aiFreeNow ? (
+            <span className="inline-flex items-center gap-1.5">✨ Make it <FreeBadge /></span>
+          ) : (
+            `✨ Make it — ${COST}★`
+          )}
         </button>
       </div>
     </div>

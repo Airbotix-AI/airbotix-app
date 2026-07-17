@@ -263,6 +263,10 @@ export function useCodeStudio(projectId: string, opts: CodeStudioOptions = {}) {
       // A teacher viewer has no wallet — surface null so the UI hides the balance
       // ("—") rather than showing the kid a misleading 0★ (D-LV-6).
       balance: readOnly ? null : balance,
+      // Workshop-free-AI waiver (D-WFA-01): AI turns are free (0★) for this project
+      // right now → the composer shows "Free during workshop" and never gates on
+      // balance. Never in the teacher viewer (no turns there anyway).
+      aiFreeNow: !readOnly && (project.data?.ai_free_now ?? false),
       runKey,
       pendingPlan,
       send,

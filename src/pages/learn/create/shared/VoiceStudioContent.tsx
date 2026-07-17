@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Celebration } from './Celebration';
+import { FreeBadge } from './FreeBadge';
 import { StudioTip } from './StudioTip';
 import { friendlyError, useGenerate } from './useStudio';
 
@@ -22,9 +23,12 @@ const COST = 1;
 
 export function VoiceStudioContent({
   projectId,
+  aiFreeNow = false,
   onCreated,
 }: {
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — show "Free" in place of the star cost. */
+  aiFreeNow?: boolean;
   onCreated: () => void;
 }) {
   const [text, setText] = useState('');
@@ -130,7 +134,13 @@ export function VoiceStudioContent({
           disabled={generate.isPending}
           className="btn-pill-primary w-full mt-6"
         >
-          {generate.isPending ? '🔊 Speaking…' : `🔊 Speak it — ${COST}★`}
+          {generate.isPending ? (
+            '🔊 Speaking…'
+          ) : aiFreeNow ? (
+            <span className="inline-flex items-center gap-1.5">🔊 Speak it <FreeBadge /></span>
+          ) : (
+            `🔊 Speak it — ${COST}★`
+          )}
         </button>
       </div>
     </div>

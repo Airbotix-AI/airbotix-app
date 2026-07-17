@@ -256,6 +256,11 @@ export function MusicStagePane({
   const fire = useCallback(
     (req: MusicScoreRequest, meta: VersionMeta, subtitle: string) => {
       if (generation.isPending) return;
+      // TODO(D-WFA-01): skip this `short` gate (and show "Free during workshop") when
+      // the workshop-free-AI waiver is live. Not wired — the song project is created
+      // lazily on the first generate (setSongProjectId below), so the per-project
+      // `ai_free_now` flag isn't available at this session-scoped stage before the
+      // paid turn. The backend enforces the waiver regardless of this client gate.
       if (balance < MUSIC_GENERATION_COST_STARS) {
         // AC-8: never send the request when Stars are short.
         setBubbleOverride(outOfStarsBubble(balance));

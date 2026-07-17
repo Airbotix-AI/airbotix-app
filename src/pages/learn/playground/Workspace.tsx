@@ -58,6 +58,10 @@ interface WorkspaceProps {
   engine?: GameEngine;
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
+  /** Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): AI turns are free
+   *  (0★) for this project right now → the chat shows "Free during workshop" in
+   *  place of the Stars balance. The backend enforces the waiver regardless. */
+  aiFreeNow?: boolean;
   /** Commit edits back to the page-level source of truth. An applied AI/fix
    *  turn passes the new server VFS `version` so the save flow adopts it. */
   onApplyFiles: (f: VfsFile[], version?: number) => void;
@@ -112,6 +116,7 @@ export function Workspace({
   running,
   engine = 'phaser',
   onEngineChange,
+  aiFreeNow = false,
   onApplyFiles,
   onSaveNow,
   onRun,
@@ -409,6 +414,7 @@ export function Workspace({
     error,
     offline,
     balance,
+    aiFreeNow,
     pending,
     canUndo,
     safeguard,

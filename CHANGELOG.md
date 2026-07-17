@@ -8,6 +8,30 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (change: "Free during workshop" AI cost UI — D-WFA-01)
+
+### Added
+- **Studios now show "Free during workshop" instead of a star cost while a project's
+  free-workshop window is live (workshop-free-ai-prd.md D-WFA-01).** The backend already
+  returns `ai_free_now` on `GET /projects/:id` and waives all AI star charges regardless of
+  the UI; this threads that flag into the kid studios so the cost display + the low/zero-balance
+  gate match reality. New shared `FreeBadge` pill (K-12 `wash-mint` token) marks the free state.
+- **Creative Code Studio (`CodeChat`):** the Ask button reads `✨ Ask · Free` (no `−2★`), never
+  disables on a low/zero balance, and the `{stars}★ left` hint becomes `🎉 Free during workshop`.
+  Wired through `useCodeStudio` (`aiFreeNow`) → `CodeStudioPage` → `CodeChat`.
+- **Game playground (`AIChatPanel`):** the metered Stars badge is replaced with a "🎉 Free during
+  workshop" badge. Wired via `PlaygroundApp` (reads `ai_free_now` on the same `getProject` that
+  loads the engine) → `Workspace` → `AIChatPanel`.
+- **Project-scoped creative studios (`ProjectDetailPage` → Image/Voice/Music/Story/Video
+  `*StudioContent`):** each generate button shows the `Free` badge in place of its `N★` cost
+  when the project's free-workshop window is live.
+- Tests: `CodeChat.aiFreeNow.test`, `AIChatPanel.test` (free-workshop badge block),
+  `ImageStudioContent.aiFreeNow.test`.
+
+### Changed
+- Added `ai_free_now?: boolean` to the `CodeProject` (codeApi) and `Project` (ProjectDetailPage)
+  types so the field flows through the existing project fetches.
+
 ## 2026-07-17 (change: Creative Code Studio jumps straight to the game prompt)
 
 ### Changed

@@ -143,6 +143,10 @@ export function PlaygroundApp({
   // + control shim the runner injects (learn-game-studio-3d-prd.md D-3D-01). Loaded
   // from the project below; defaults to phaser for a project-less local scaffold.
   const [engine, setEngine] = useState<GameEngine>('phaser');
+  // Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): true when this
+  // project's class is inside its free-workshop session window → AI turns are free
+  // (0★) and the chat shows "Free during workshop". Loaded from the project below.
+  const [aiFreeNow, setAiFreeNow] = useState(false);
   // Restored chat history (J9): the saved conversation, loaded on resume and passed
   // to the workspace so it reopens with the real log (not a fresh starter seed).
   const [initialChat, setInitialChat] = useState<ChatItem[] | undefined>(undefined);
@@ -238,7 +242,11 @@ export function PlaygroundApp({
     let alive = true;
     void getProject(projectId)
       .then((p) => {
-        if (alive && (p.engine === 'three' || p.engine === 'phaser')) setEngine(p.engine);
+        if (!alive) return;
+        if (p.engine === 'three' || p.engine === 'phaser') setEngine(p.engine);
+        // Workshop-free-AI waiver (D-WFA-01) — free-workshop window is live for this
+        // project → the chat drops the star cost and shows "Free during workshop".
+        setAiFreeNow(p.ai_free_now ?? false);
       })
       .catch(() => {
         /* fall back to the phaser default */
@@ -557,6 +565,7 @@ export function PlaygroundApp({
           running={running}
           engine={engine}
           onEngineChange={setEngine}
+          aiFreeNow={aiFreeNow}
           onApplyFiles={applyTurnFiles}
           onSaveNow={flushSave}
           onRun={run}

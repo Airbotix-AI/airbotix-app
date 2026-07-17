@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Celebration } from './Celebration';
+import { FreeBadge } from './FreeBadge';
 import { StudioTip } from './StudioTip';
 import { friendlyError, useGenerate } from './useStudio';
 
@@ -14,9 +15,12 @@ const COST = 3;
 
 export function MusicStudioContent({
   projectId,
+  aiFreeNow = false,
   onCreated,
 }: {
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — show "Free" in place of the star cost. */
+  aiFreeNow?: boolean;
   onCreated: () => void;
 }) {
   const [prompt, setPrompt] = useState('');
@@ -136,7 +140,13 @@ export function MusicStudioContent({
           disabled={generate.isPending}
           className="btn-pill-primary w-full mt-6"
         >
-          {generate.isPending ? '🎵 Composing…' : `🎵 Compose — ${COST}★`}
+          {generate.isPending ? (
+            '🎵 Composing…'
+          ) : aiFreeNow ? (
+            <span className="inline-flex items-center gap-1.5">🎵 Compose <FreeBadge /></span>
+          ) : (
+            `🎵 Compose — ${COST}★`
+          )}
         </button>
       </div>
     </div>
