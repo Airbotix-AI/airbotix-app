@@ -1,4 +1,15 @@
 
+# Changelog
+
+## 2026-07-17 (feat: render Academy pattern questions natively)
+
+### Added
+- Added responsive, accessible native renderers for coin collections, shape-and-shading matrices, and repeating symbol patterns.
+- Graphical answer choices now render inside the answer buttons alongside their text labels, including at 390px mobile width.
+
+### Tests
+- Expanded Academy practice component coverage for all three render specs and verified that no PDF image fallback is present.
+
 ### Fixed
 - **Table/graph questions now show the image, not garbled text.** Questions whose data
   lives in a figure (a table of values, a bar graph, a grid, a clock) were being rendered
@@ -6,7 +17,6 @@
   next question's text in. `AcademyPracticePage` now detects these (figure keywords or >1
   question mark + an available image) and renders the scanned question image instead, with
   generic A–D options (the choices live in the image). Prose questions still render as text.
-# Changelog
 
 ## 2026-07-17 (feat: child-scoped Academy exam products)
 

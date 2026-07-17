@@ -24,6 +24,23 @@ type EqualGroupsSpec = {
   item_label: string;
 };
 
+export type AcademyShapeName = 'hexagon' | 'diamond' | 'triangle' | 'trapezoid';
+export type AcademyShapeFill = 'outline' | 'grid' | 'solid' | 'dots';
+export type AcademyShape = { shape: AcademyShapeName; fill: AcademyShapeFill };
+export type AcademyPatternSymbol = 'circle' | 'star' | 'oval' | 'triangle';
+
+type ShapeMatrixSpec = {
+  kind: 'shape_matrix';
+  cells: Array<Array<AcademyShape | { question: true } | null>>;
+  choices: AcademyShape[];
+};
+
+type SymbolPatternSpec = {
+  kind: 'symbol_pattern';
+  sequence: AcademyPatternSymbol[];
+  choices: AcademyPatternSymbol[][];
+};
+
 export type AcademyRenderSpec =
   | { kind: 'none' }
   | TallyTableSpec
@@ -36,6 +53,9 @@ export type AcademyRenderSpec =
     }
   | BalanceScaleSpec
   | EqualGroupsSpec
+  | { kind: 'coin_collection'; coins_cents: number[] }
+  | ShapeMatrixSpec
+  | SymbolPatternSpec
   | { kind: 'route'; from: string; to: string; label: string };
 
 export interface AcademyQuestion {

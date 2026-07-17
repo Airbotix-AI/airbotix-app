@@ -1,4 +1,11 @@
-import type { AcademyRenderSpec } from './academyApi';
+import { useId } from 'react';
+
+import type {
+  AcademyPatternSymbol,
+  AcademyRenderSpec,
+  AcademyShape,
+  AcademyShapeName,
+} from './academyApi';
 
 export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'none') return null;
@@ -6,7 +13,38 @@ export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'number_range') return <NumberRange spec={spec} />;
   if (spec.kind === 'balance_scale') return <BalanceScale spec={spec} />;
   if (spec.kind === 'equal_groups') return <EqualGroups spec={spec} />;
+  if (spec.kind === 'coin_collection') return <CoinCollection spec={spec} />;
+  if (spec.kind === 'shape_matrix') return <ShapeMatrix spec={spec} />;
+  if (spec.kind === 'symbol_pattern') return <SymbolPattern spec={spec} />;
   return <RouteMap spec={spec} />;
+}
+
+export function AcademyChoiceVisual({
+  spec,
+  choiceIndex,
+}: {
+  spec: AcademyRenderSpec;
+  choiceIndex: number;
+}) {
+  if (spec.kind === 'shape_matrix') {
+    const choice = spec.choices[choiceIndex];
+    return choice ? (
+      <div className="w-20 flex-none" aria-hidden="true">
+        <ShapeGlyph value={choice} />
+      </div>
+    ) : null;
+  }
+  if (spec.kind === 'symbol_pattern') {
+    const choice = spec.choices[choiceIndex];
+    return choice ? (
+      <div className="flex flex-none items-center gap-1" aria-hidden="true">
+        {choice.map((symbol, index) => (
+          <SymbolGlyph key={`${symbol}-${index}`} symbol={symbol} />
+        ))}
+      </div>
+    ) : null;
+  }
+  return null;
 }
 
 function TallyTable({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'tally_table' }> }) {
@@ -56,12 +94,7 @@ function Tallies({ count }: { count: number }) {
           {Array.from({ length: rest }).map((_, index) => {
             const x = 6 + index * 8;
             return (
-              <path
-                key={x}
-                d={`M${x} 4 L${x - 2} 26`}
-                stroke="currentColor"
-                strokeWidth="3"
-              />
+              <path key={x} d={`M${x} 4 L${x - 2} 26`} stroke="currentColor" strokeWidth="3" />
             );
           })}
         </svg>
@@ -132,14 +165,7 @@ function BalanceScale({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'bala
               stroke="#25324B"
               strokeWidth="4"
             />
-            <text
-              x="0"
-              y="-22"
-              textAnchor="middle"
-              fill="#25324B"
-              fontSize="20"
-              fontWeight="800"
-            >
+            <text x="0" y="-22" textAnchor="middle" fill="#25324B" fontSize="20" fontWeight="800">
               {item.label}
             </text>
           </g>
@@ -152,14 +178,7 @@ function BalanceScale({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'bala
               stroke="#25324B"
               strokeWidth="4"
             />
-            <text
-              x="0"
-              y="-22"
-              textAnchor="middle"
-              fill="#25324B"
-              fontSize="20"
-              fontWeight="800"
-            >
+            <text x="0" y="-22" textAnchor="middle" fill="#25324B" fontSize="20" fontWeight="800">
               {item.label}
             </text>
           </g>
@@ -221,6 +240,159 @@ function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal
           </p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function formatCoin(cents: number) {
+  if (cents >= 100) return `$${cents / 100}`;
+  return `${cents}c`;
+}
+
+function CoinCollection({
+  spec,
+}: {
+  spec: Extract<AcademyRenderSpec, { kind: 'coin_collection' }>;
+}) {
+  const labels = spec.coins_cents.map(formatCoin);
+  return (
+    <div
+      data-testid="academy-native-visual"
+      role="img"
+      aria-label={`Coins: ${labels.join(', ')}`}
+      className="mt-6 flex flex-wrap items-end justify-center gap-3 rounded-[28px] border-2 border-brand-sunshine/30 bg-wash-sunshine p-5 sm:gap-4"
+    >
+      {spec.coins_cents.map((cents, index) => {
+        const size = cents >= 100 ? 76 : cents >= 50 ? 68 : cents >= 20 ? 60 : 52;
+        return (
+          <span
+            aria-hidden="true"
+            key={`${cents}-${index}`}
+            className="grid flex-none place-items-center rounded-full border-[3px] border-brand-navy bg-gradient-to-br from-white via-slate-100 to-slate-300 text-[14px] font-black text-brand-navy shadow-sm"
+            style={{ width: size, height: size }}
+          >
+            {formatCoin(cents)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function shapePath(shape: AcademyShapeName) {
+  if (shape === 'hexagon') return 'M25 10 H75 L95 50 L75 90 H25 L5 50 Z';
+  if (shape === 'diamond') return 'M50 5 L95 50 L50 95 L5 50 Z';
+  if (shape === 'triangle') return 'M14 10 L14 90 L90 90 Z';
+  return 'M22 10 H78 L95 90 H5 Z';
+}
+
+function ShapeGlyph({ value }: { value: AcademyShape }) {
+  const rawId = useId();
+  const clipId = `shape-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const path = shapePath(value.shape);
+  return (
+    <svg viewBox="0 0 100 100" className="h-auto w-full" focusable="false">
+      <defs>
+        <clipPath id={clipId}>
+          <path d={path} />
+        </clipPath>
+      </defs>
+      <path
+        d={path}
+        fill={value.fill === 'solid' ? '#25324B' : '#FFFFFF'}
+        stroke="#25324B"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      {value.fill === 'grid' && (
+        <g clipPath={`url(#${clipId})`} stroke="#70809A" strokeWidth="2">
+          {[22, 42, 62, 82].map((position) => (
+            <g key={position}>
+              <path d={`M0 ${position} H100`} />
+              <path d={`M${position} 0 V100`} />
+            </g>
+          ))}
+        </g>
+      )}
+      {value.fill === 'dots' && (
+        <g clipPath={`url(#${clipId})`} fill="#25324B">
+          {[25, 50, 75].flatMap((y) =>
+            [25, 50, 75].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="3" />),
+          )}
+        </g>
+      )}
+      <path d={path} fill="none" stroke="#25324B" strokeWidth="4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function isQuestionCell(
+  cell: AcademyShape | { question: true } | null,
+): cell is { question: true } {
+  return cell !== null && 'question' in cell;
+}
+
+function ShapeMatrix({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'shape_matrix' }> }) {
+  return (
+    <div
+      data-testid="academy-native-visual"
+      role="img"
+      aria-label="A four by four shape pattern with the bottom-right shape missing"
+      className="mt-6 grid grid-cols-4 overflow-hidden rounded-[20px] border-2 border-brand-navy bg-white"
+    >
+      {spec.cells.flatMap((row, rowIndex) =>
+        row.map((cell, columnIndex) => (
+          <div
+            key={`${rowIndex}-${columnIndex}`}
+            className={`grid aspect-square min-w-0 place-items-center border-brand-navy/40 p-2 ${
+              columnIndex < 3 ? 'border-r' : ''
+            } ${rowIndex < 3 ? 'border-b' : ''} ${
+              isQuestionCell(cell) ? 'bg-brand-sky/25' : 'bg-white'
+            }`}
+          >
+            {cell && !isQuestionCell(cell) && <ShapeGlyph value={cell} />}
+            {isQuestionCell(cell) && (
+              <span className="text-[clamp(24px,8vw,54px)] font-black text-brand-sky">?</span>
+            )}
+          </div>
+        )),
+      )}
+    </div>
+  );
+}
+
+function SymbolGlyph({ symbol }: { symbol: AcademyPatternSymbol }) {
+  const common = { fill: '#FFFFFF', stroke: '#25324B', strokeWidth: 3 };
+  return (
+    <svg viewBox="0 0 40 40" className="h-9 w-9 flex-none" focusable="false">
+      {symbol === 'circle' && <circle cx="20" cy="20" r="9" {...common} />}
+      {symbol === 'oval' && (
+        <ellipse cx="20" cy="20" rx="7" ry="14" fill="#70809A" stroke="#25324B" strokeWidth="3" />
+      )}
+      {symbol === 'triangle' && <path d="M20 8 L33 31 H7 Z" {...common} />}
+      {symbol === 'star' && (
+        <path d="M20 4 L24 15 L36 20 L24 24 L20 36 L16 24 L4 20 L16 15 Z" {...common} />
+      )}
+    </svg>
+  );
+}
+
+function SymbolPattern({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'symbol_pattern' }> }) {
+  return (
+    <div
+      data-testid="academy-native-visual"
+      role="img"
+      aria-label={`Repeating lights: ${spec.sequence.join(', ')}`}
+      className="mt-6 rounded-[28px] border-2 border-brand-sky/20 bg-wash-sky p-4 sm:p-6"
+    >
+      <div className="grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-10">
+        {spec.sequence.map((symbol, index) => (
+          <SymbolGlyph key={`${symbol}-${index}`} symbol={symbol} />
+        ))}
+      </div>
+      <div className="mt-4 border-t-2 border-dashed border-brand-sky/35 pt-3 text-center text-[14px] font-black text-slate2">
+        What comes next?
+      </div>
     </div>
   );
 }

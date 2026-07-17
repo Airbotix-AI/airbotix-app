@@ -187,4 +187,122 @@ describe('AcademyPracticePage', () => {
     expect(screen.getByText('car 6')).toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
+
+  it('renders a reviewed coin collection and its real money options', async () => {
+    const COINS_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q10',
+      stem_text:
+        'Gina has only these coins. She buys a magazine for $1.95. How much money does Gina have left?',
+      options: ['$1.00', '$1.10', '$2.00', '$2.10'],
+      render_spec: {
+        kind: 'coin_collection' as const,
+        coins_cents: [200, 50, 20, 20, 10, 5, 100],
+      },
+    };
+    wireApi([COINS_Q]);
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', { name: 'Coins: $2, 50c, 20c, 20c, 10c, 5c, $1' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-D')).toHaveTextContent('$2.10');
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders the shape matrix and visual answer choices natively', async () => {
+    const MATRIX_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2015-std-q11',
+      stem_text: 'Which shape is missing from the bottom right corner?',
+      options: ['Dotted hexagon', 'Grid triangle', 'Dotted trapezoid', 'Solid diamond'],
+      render_spec: {
+        kind: 'shape_matrix' as const,
+        cells: [
+          [
+            { shape: 'hexagon' as const, fill: 'outline' as const },
+            { shape: 'hexagon' as const, fill: 'grid' as const },
+            { shape: 'hexagon' as const, fill: 'solid' as const },
+            { shape: 'hexagon' as const, fill: 'dots' as const },
+          ],
+          [
+            { shape: 'diamond' as const, fill: 'outline' as const },
+            { shape: 'diamond' as const, fill: 'grid' as const },
+            null,
+            null,
+          ],
+          [
+            { shape: 'triangle' as const, fill: 'outline' as const },
+            null,
+            null,
+            { shape: 'triangle' as const, fill: 'dots' as const },
+          ],
+          [
+            null,
+            { shape: 'trapezoid' as const, fill: 'grid' as const },
+            { shape: 'trapezoid' as const, fill: 'solid' as const },
+            { question: true as const },
+          ],
+        ],
+        choices: [
+          { shape: 'hexagon' as const, fill: 'dots' as const },
+          { shape: 'triangle' as const, fill: 'grid' as const },
+          { shape: 'trapezoid' as const, fill: 'dots' as const },
+          { shape: 'diamond' as const, fill: 'solid' as const },
+        ],
+      },
+    };
+    wireApi([MATRIX_Q]);
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'A four by four shape pattern with the bottom-right shape missing',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-C')).toHaveTextContent('Dotted trapezoid');
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders the repeating light sequence with four visual options', async () => {
+    const cycle = [
+      'circle',
+      'circle',
+      'star',
+      'oval',
+      'oval',
+      'oval',
+      'star',
+      'triangle',
+      'triangle',
+      'star',
+    ] as const;
+    const PATTERN_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q14',
+      stem_text: 'Which option shows the order of the next four lights?',
+      options: [
+        'Star, oval, oval, oval',
+        'Circle, circle, star, oval',
+        'Star, circle, circle, star',
+        'Oval, oval, oval, star',
+      ],
+      render_spec: {
+        kind: 'symbol_pattern' as const,
+        sequence: [...cycle, ...cycle],
+        choices: [
+          ['star', 'oval', 'oval', 'oval'],
+          ['circle', 'circle', 'star', 'oval'],
+          ['star', 'circle', 'circle', 'star'],
+          ['oval', 'oval', 'oval', 'star'],
+        ] as const,
+      },
+    };
+    wireApi([PATTERN_Q]);
+    renderPage();
+
+    expect(await screen.findByRole('img', { name: /Repeating lights:/ })).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-B')).toHaveTextContent('Circle, circle, star, oval');
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
 });

@@ -13,7 +13,7 @@ import {
   type AcademyProgress,
   type AcademyQuestion,
 } from './academyApi';
-import { AcademyQuestionVisual } from './AcademyQuestionVisual';
+import { AcademyChoiceVisual, AcademyQuestionVisual } from './AcademyQuestionVisual';
 
 // Choice questions map option index → letter; the LETTER is what we submit.
 const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -311,7 +311,7 @@ function AnswerArea({
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {letters.map(({ letter, text }) => {
+      {letters.map(({ letter, text }, choiceIndex) => {
         const isCorrect = !!answered && answered.correct_answer === letter;
         const isWrongPick = !!answered && answered.submitted === letter && !answered.is_correct;
         const tone = isCorrect
@@ -331,6 +331,7 @@ function AnswerArea({
             <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-sky/15 text-[14px] font-black text-brand-sky">
               {letter}
             </span>
+            <AcademyChoiceVisual spec={question.render_spec} choiceIndex={choiceIndex} />
             {text !== null && <span>{text}</span>}
           </button>
         );
