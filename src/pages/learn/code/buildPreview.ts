@@ -101,6 +101,10 @@ export const CONSOLE_CAPTURE = `
 })();
 </script>`;
 
+// Keep in sync with `BINARY_ASSET_MIME` (codeApi.ts) — the API-boundary wrapper for
+// authed studio reads. This map is the LAST line of defence: it types raw-base64
+// asset content that reaches a srcdoc builder unwrapped (the public /play snapshot
+// fetch bypasses `toStudioContent`). Only intended difference: `svg` (text kind).
 export const ASSET_MIME: Record<string, string> = {
   png: 'image/png',
   jpg: 'image/jpeg',
@@ -108,6 +112,13 @@ export const ASSET_MIME: Record<string, string> = {
   gif: 'image/gif',
   svg: 'image/svg+xml',
   webp: 'image/webp',
+  // Audio MUST carry a real audio/* MIME: data: URLs are never MIME-sniffed, so a
+  // raw-base64 snapshot asset (e.g. the public /play page) inlined as
+  // application/octet-stream is refused by <audio>/new Audio() — BGM silently dies.
+  wav: 'audio/wav',
+  mp3: 'audio/mpeg',
+  ogg: 'audio/ogg',
+  m4a: 'audio/mp4',
   mp4: 'video/mp4',
   webm: 'video/webm',
   // Non-executable DATA assets (game data, fonts, shaders) — inlined as data: URLs

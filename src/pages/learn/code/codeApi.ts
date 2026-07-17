@@ -325,6 +325,9 @@ export async function setProjectEngine(args: {
 // directly). Convert at the API boundary, or the round-trip mangles the bytes
 // (the `data:…;base64,` prefix's `:`/`;`/`,` corrupt the base64 decode). SVG is
 // backend-text → its data: URL round-trips verbatim, so it needs no conversion.
+// Keep in sync with `ASSET_MIME` (buildPreview.ts) — the srcdoc inliner's map for
+// raw-base64 snapshots (public /play) that never pass this boundary. The ONLY
+// intended difference: `svg` lives there but not here (text kind, no wrapping).
 const BINARY_ASSET_MIME: Record<string, string> = {
   png: 'image/png',
   jpg: 'image/jpeg',

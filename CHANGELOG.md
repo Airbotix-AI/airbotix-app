@@ -8,6 +8,23 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-18 (fix: shared-link background music — audio MIME in srcdoc inliner)
+
+### Fixed
+- **Background music (and anything the game gates on it) now plays on public `/play/:shareId`
+  links.** The srcdoc asset inliner's `ASSET_MIME` map (`buildPreview.ts`) had no audio rows,
+  so a frozen share snapshot's raw-base64 `.mp3`/`.wav`/`.ogg`/`.m4a` inlined as
+  `data:application/octet-stream` — and data: URLs are never MIME-sniffed, so
+  `new Audio()` refused the source. In the reported game the on-beat note spawner checked
+  `backgroundMusic.paused`, so the missing music also made all incoming notes vanish. The
+  authed studio never hit this because `codeApi.toStudioContent` (whose `BINARY_ASSET_MIME`
+  does know audio) wraps assets before the builder runs; the public play fetch bypasses it.
+  Added `wav/mp3/ogg/m4a` to `ASSET_MIME` (mirroring backend `asset-kinds.ts`) + cross-sync
+  comments on both maps. Existing share links are fixed on deploy — snapshots store raw
+  base64; the MIME is derived at render time.
+- Tests: `buildGamePreview.test` — raw-base64 mp3 inlines as `data:audio/mpeg` (never
+  octet-stream) + all four audio extensions map to real `audio/*` MIMEs.
+
 ## 2026-07-17 (feat: teacher-prep immediate share-link — D-PREP-6)
 
 ### Added
