@@ -338,7 +338,7 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
     };
     setDrafts(reset);
     setSynced(reset);
-    record(cp.files, Date.now(), `reverted · ${cp.summary}`);
+    record(cp.files, Date.now(), `reverted · ${cp.summary}`, { label: 'Went back in time', kind: 'revert' });
   };
 
   // The sidebar auto-widens ONLY while a History entry is selected (i.e. the

@@ -12,14 +12,26 @@ import { create } from 'zustand';
 
 import type { VfsFile } from '../code/codeApi';
 
+/** What produced a save point — drives the timeline icon and lets the panel show a
+ *  ready title instead of re-parsing `summary`. `ai` = an applied AI chat/build turn
+ *  (the dominant way a game evolves, esp. in the prompt-first teacher-prep flow). */
+export type CheckpointKind = 'initial' | 'edit' | 'file' | 'revert' | 'kept-newest' | 'ai';
+
 export interface Checkpoint {
   id: string;
   /** Epoch ms when recorded (stamped by the caller — keeps the store testable). */
   ts: number;
   /** Full VFS snapshot at this checkpoint. */
   files: VfsFile[];
-  /** Human summary of what changed vs the previous checkpoint, e.g. "edited main.js". */
+  /** Human summary of what changed vs the previous checkpoint, e.g. "edited main.js".
+   *  Technical (drives the "what changed" file list); NOT the display title. */
   summary: string;
+  /** An authored, ready-to-render kid-facing title — preferred over deriving one from
+   *  `summary`. Set for AI turns (the backend's `history_label`) and other named save
+   *  points. Absent for auto edits/legacy checkpoints (the panel derives a title then). */
+  label?: string;
+  /** Semantic origin of this save point — picks the timeline icon without string-sniffing. */
+  kind?: CheckpointKind;
   /** True if this point is an in-progress editing session that later edits in the
    *  same session FOLD INTO (so a burst of typing is one entry, not dozens). */
   coalescable?: boolean;
@@ -37,6 +49,11 @@ interface RecordOptions {
   /** This is a continuous-editing autosave: fold it into the latest save point if
    *  that one is also a recent editing session (instead of adding a new entry). */
   coalesce?: boolean;
+  /** An authored, ready-to-render title for this save point (e.g. an AI turn's
+   *  `history_label`). Stored on the checkpoint and shown verbatim by the panel. */
+  label?: string;
+  /** Semantic origin of this save point (drives the timeline icon). */
+  kind?: CheckpointKind;
 }
 
 interface HistoryState {
@@ -73,6 +90,35 @@ export function summarize(prev: VfsFile[] | null, next: VfsFile[]): string {
   return parts.join(', ') || 'No change';
 }
 
+/** Bland fillers a turn may emit as its `history_label`; when we get one of these we
+ *  prefer naming the save point after what was actually asked. Lower-cased for match. */
+const GENERIC_AI_LABELS = new Set([
+  'made a change',
+  'made changes',
+  'made an update',
+  'updated the game',
+  'updated your game',
+  'changed the game',
+]);
+
+/** Longest an ask-derived title runs before it's clipped with an ellipsis. */
+const ASK_LABEL_MAX = 60;
+
+/** The Time Machine title for an applied AI turn. Prefer the backend's authored,
+ *  kid-readable `history_label`; when it's absent or a generic filler, name the save
+ *  point after what was ASKED (the triggering prompt, tidied to one short line) so the
+ *  timeline reads like the kid's own words; fall back to a gentle default. */
+export function aiCheckpointLabel(historyLabel?: string | null, prompt?: string): string {
+  const authored = historyLabel?.trim();
+  if (authored && !GENERIC_AI_LABELS.has(authored.toLowerCase())) return authored;
+  const asked = prompt?.trim().replace(/\s+/g, ' ');
+  if (asked) {
+    const oneLine = asked.length > ASK_LABEL_MAX ? `${asked.slice(0, ASK_LABEL_MAX - 1).trimEnd()}…` : asked;
+    return oneLine.charAt(0).toUpperCase() + oneLine.slice(1);
+  }
+  return authored || 'Made a change';
+}
+
 let counter = 0;
 const nextId = () => `cp_${(counter += 1)}`;
 
@@ -96,6 +142,10 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
         ts,
         files: snapshot,
         summary: summary ?? summarize(before, files),
+        // A later edit in the same session may carry a fresh label/kind; otherwise
+        // keep the session's original (typing bursts pass neither).
+        label: opts?.label ?? latest.label,
+        kind: opts?.kind ?? latest.kind,
       };
       set({ checkpoints: [updated, ...checkpoints.slice(1)] });
       return updated;
@@ -106,6 +156,8 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       ts,
       files: snapshot,
       summary: summary ?? summarize(latest?.files ?? null, files),
+      label: opts?.label,
+      kind: opts?.kind,
       coalescable: opts?.coalesce,
     };
     set({ checkpoints: [cp, ...checkpoints].slice(0, MAX_CHECKPOINTS) });
