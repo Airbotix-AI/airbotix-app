@@ -94,6 +94,26 @@
   `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
   `AssetViewerPane.classAssets.test.tsx` (model preview mock).
 
+## 2026-07-17 (feat: make parent and kid sign-in unmistakable)
+
+### Changed
+- Rebuilt the shared sign-in experience around an explicit first question — **Parent or
+  guardian** or **Kid creator** — with the active identity, its credential type, and a direct
+  route switch visible before either form.
+- Parent sign-in now says **Parent login or sign up** and explains that a new family
+  is set up after the same email-code step, removing the hidden-registration ambiguity.
+- Added an original robot platform-world scene and a responsive split layout that keeps the
+  identity choice prominent on desktop, tablet, and phone widths.
+- The desktop sign-in gateway now fills the entire viewport. Its game-world rail is fixed at
+  100% height while the right-hand form owns its scrolling, so switching between the shorter
+  parent form and taller kid form never offsets the family artwork.
+- Elevated the full-screen gateway from a plain split screen to a premium editorial treatment:
+  a bright fixed game stage, framed platform artwork, role-tinted ambient canvas, translucent form
+  panel, refined segmented identity control, focus lighting, and reduced-motion-safe animation.
+- The game stage now doubles as an Airbotix creation showcase, rotating through three curated
+  course worlds every eight seconds with manual pagination, pause/play control, and a static
+  experience for visitors who prefer reduced motion.
+
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
 ### Changed
