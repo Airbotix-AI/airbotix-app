@@ -88,6 +88,13 @@ interface PlaygroundAppProps {
    * Undefined for the kid flow (unchanged).
    */
   prepClassId?: string;
+  /**
+   * Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): this game is a
+   * teacher-owned prep project, so the workspace's share-link control mints an
+   * external play-link IMMEDIATELY with no parent-approval gate. Also implied while
+   * a NEW prep game is being created (`prepClassId` set). Undefined for the kid flow.
+   */
+  prepMode?: boolean;
 }
 
 export function PlaygroundApp({
@@ -95,6 +102,7 @@ export function PlaygroundApp({
   readOnly = false,
   embedded = false,
   prepClassId,
+  prepMode = false,
 }: PlaygroundAppProps = {}) {
   // The whole playground (all phases) themes from this one `data-theme` root.
   const theme = usePlaygroundStore((s) => s.theme);
@@ -581,6 +589,10 @@ export function PlaygroundApp({
           projectId={ownedProjectId}
           // Teacher live viewer — gate every mutation entry point (D-LV-6).
           readOnly={readOnly}
+          // Teacher-prep host (D-PREP-6): the share-link control mints an external
+          // play-link immediately, no parent approval. True while creating a NEW
+          // prep game (prepClassId) or editing an existing one (prepMode).
+          prepShare={prepMode || Boolean(prepClassId)}
         />
         </div>
       )}

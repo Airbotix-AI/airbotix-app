@@ -108,7 +108,11 @@ const DEMO_SNAPSHOTS: Record<string, () => Promise<VfsFile[]>> = {
     import('../../try/demoSnapshot.blocks').then((m) => m.demoBlocksSnapshot()),
 };
 
-/** Ask for a share-link (kid → parent approval, J8). Returns `pending` until approved. */
+/**
+ * Ask for a share-link (kid → parent approval, J8). Returns `pending` until approved.
+ * For a teacher-prep project (teacher-prep-projects-prd.md D-PREP-6) the backend has
+ * no parent gate and returns `active` straight away — the same call MINTS the link.
+ */
 export async function requestShareLink(projectId: string): Promise<ShareLink> {
   if (demoShareAdapter) return demoShareAdapter.request();
   return toShareLink(await api<RawShareView>(`/projects/${projectId}/share`, { method: 'POST' }));

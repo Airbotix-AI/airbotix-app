@@ -63,9 +63,11 @@ interface TaskbarProps {
   /** Teacher live viewer (D-LV-6): hide the kid's Home/back nav (the viewer's
       banner provides the only Back). */
   readOnly?: boolean;
+  /** Teacher-prep host (D-PREP-6): the share control mints immediately, no approval. */
+  prepShare?: boolean;
 }
 
-export function Taskbar({ projectId, readOnly = false }: TaskbarProps) {
+export function Taskbar({ projectId, readOnly = false, prepShare = false }: TaskbarProps) {
   // Home/back: a game has no other way out of the immersive desktop. For a class
   // project this returns to the class's "My work" tab; otherwise to My Works
   // (useProjectBackTo). Navigating runs the playground's leave/save guard.
@@ -176,7 +178,7 @@ export function Taskbar({ projectId, readOnly = false }: TaskbarProps) {
       <div className="ml-auto flex items-center gap-3">
         <SaveStatusBadge />
         <RaiseHandButton readOnly={readOnly} />
-        {shareProjectId && <ShareLinkPanel projectId={shareProjectId} />}
+        {shareProjectId && <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} />}
       </div>
     </div>
   );

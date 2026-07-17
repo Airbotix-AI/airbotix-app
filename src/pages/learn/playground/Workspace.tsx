@@ -93,6 +93,12 @@ interface WorkspaceProps {
    * The kid-only wallet query is skipped (a teacher has no family).
    */
   readOnly?: boolean;
+  /**
+   * Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): the Taskbar's
+   * share-link control mints immediately with no parent-approval gate. Forwarded
+   * to `ShareLinkPanel`; kid/default behaviour is unchanged when false.
+   */
+  prepShare?: boolean;
 }
 
 interface Wallet {
@@ -127,6 +133,7 @@ export function Workspace({
   onChatChange,
   blockedSeed,
   readOnly = false,
+  prepShare = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>(
@@ -576,7 +583,7 @@ export function Workspace({
         </div>
 
         {/* Docked taskbar (brand + LayoutToggle + window buttons + share link) */}
-        <Taskbar projectId={projectId} readOnly={readOnly} />
+        <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
       </div>
     );
   }
@@ -670,7 +677,7 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} readOnly={readOnly} />
+      <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
     </div>
   );
 }
