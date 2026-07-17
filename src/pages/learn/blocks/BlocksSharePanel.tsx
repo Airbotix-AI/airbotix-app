@@ -24,10 +24,18 @@ export function BlocksSharePanel({
   projectId,
   theme,
   readOnly = false,
+  prepMode = false,
 }: {
   projectId: string;
   theme: BlocksTheme;
   readOnly?: boolean;
+  /**
+   * Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): the owner is an adult
+   * teacher, so sharing is IMMEDIATE — one click mints the live link with no
+   * parent-approval gate (the backend returns `active` straight from the request).
+   * Drops the kid "ask a grown-up" copy; there is no pending/waiting beat.
+   */
+  prepMode?: boolean;
 }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -121,7 +129,9 @@ export function BlocksSharePanel({
               </span>
             </span>
           ) : (
-            <span className="bsx-tlabel">{status === 'pending' ? 'Waiting' : 'Share'}</span>
+            <span className="bsx-tlabel">
+              {status === 'pending' ? (prepMode ? 'Creating' : 'Waiting') : 'Share'}
+            </span>
           )}
         </span>
       </button>
@@ -152,7 +162,9 @@ export function BlocksSharePanel({
 
               {status !== 'active' && (
                 <p className="bsx-muted mb-3 text-[12px] font-semibold" data-testid="citizenship-note">
-                  Anyone with this link can play your project. Don&apos;t put your real name or photo in it.
+                  {prepMode
+                    ? 'Anyone with this link can play this project — no sign-in needed.'
+                    : "Anyone with this link can play your project. Don't put your real name or photo in it."}
                 </p>
               )}
 
@@ -163,7 +175,13 @@ export function BlocksSharePanel({
                   onClick={() => request.mutate()}
                   disabled={request.isPending}
                 >
-                  {request.isPending ? 'Asking…' : 'Ask my grown-up to share'}
+                  {prepMode
+                    ? request.isPending
+                      ? 'Creating link…'
+                      : 'Create share link'
+                    : request.isPending
+                      ? 'Asking…'
+                      : 'Ask my grown-up to share'}
                 </button>
               )}
 

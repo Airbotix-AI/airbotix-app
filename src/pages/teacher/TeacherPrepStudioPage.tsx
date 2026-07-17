@@ -72,7 +72,7 @@ export function TeacherPrepStudioPage() {
               This prep link is missing its class. Reopen it from the class page.
             </CenterMessage>
           ) : newKind === 'game' ? (
-            <PlaygroundApp projectId="new" embedded prepClassId={prepClassId} />
+            <PlaygroundApp projectId="new" embedded prepClassId={prepClassId} prepMode />
           ) : newKind === 'blocks' || newKind === 'code' ? (
             <NewPrepStudio classId={prepClassId} kind={newKind} />
           ) : (
@@ -162,7 +162,7 @@ function NewPrepStudio({ classId, kind }: { classId: string; kind: 'blocks' | 'c
     return <CenterMessage testId="teacher-prep-creating">Creating your project…</CenterMessage>;
   }
   return kind === 'blocks' ? (
-    <BlocksStudioPage projectId={createdId} embedded />
+    <BlocksStudioPage projectId={createdId} embedded prepMode />
   ) : (
     <CodeStudioPage projectId={createdId} embedded />
   );
@@ -174,14 +174,16 @@ function NewPrepStudio({ classId, kind }: { classId: string; kind: 'blocks' | 'c
 // which otherwise routes to `/learn/create`) so a teacher `user` principal is never
 // routed there and stranded on `/portal`; the prep banner carries the only Back.
 function PrepStudio({ kind, projectId }: { kind: PrepKind; projectId: string }) {
+  // `prepMode` lights up the studio's share-link control as the immediate,
+  // no-approval teacher-prep share (D-PREP-6). `code` has no share/play surface.
   if (kind === 'blocks') {
-    return <BlocksStudioPage projectId={projectId} embedded />;
+    return <BlocksStudioPage projectId={projectId} embedded prepMode />;
   }
   if (kind === 'code') {
     return <CodeStudioPage projectId={projectId} embedded />;
   }
   // game
-  return <PlaygroundApp projectId={projectId} embedded />;
+  return <PlaygroundApp projectId={projectId} embedded prepMode />;
 }
 
 // A slim "Teacher prep · editable" banner above the studio — distinct from the

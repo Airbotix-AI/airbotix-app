@@ -129,7 +129,8 @@ export function BlocksStudioPage({
   projectId: projectIdProp,
   readOnly = false,
   embedded = false,
-}: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
+  prepMode = false,
+}: { projectId?: string; readOnly?: boolean; embedded?: boolean; prepMode?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   // The public /try/blocks demo mounts this page directly (no route param) with
@@ -1354,7 +1355,14 @@ export function BlocksStudioPage({
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} readOnly={readOnly} />}
+        {projectId && (
+          <BlocksSharePanel
+            projectId={projectId}
+            theme={theme}
+            readOnly={readOnly}
+            prepMode={prepMode}
+          />
+        )}
         <RaiseHandButton readOnly={readOnly} />
         <button
           ref={moreBtnRef}

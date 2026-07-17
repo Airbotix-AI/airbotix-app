@@ -8,6 +8,22 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (feat: teacher-prep immediate share-link — D-PREP-6)
+
+### Added
+- **Teacher-prep game/blocks studios can create an external play-link in one click,
+  with no grown-up approval** (teacher-prep-projects-prd.md D-PREP-6). The prep host
+  (`TeacherPrepStudioPage`) now passes a `prepMode` flag into the shared studios;
+  threaded `PlaygroundApp → Workspace → Taskbar → ShareLinkPanel` (game) and
+  `BlocksStudioPage → BlocksSharePanel` (blocks). In prep mode the share control drops
+  the kid "Ask my grown-up to share" copy for a one-click **"Create share link"**, shows
+  an adult "no sign-in needed" citizenship note, and never renders the pending/waiting
+  beat — the backend returns an `active` link straight from the request (no parent gate).
+  Web Code (`code`) prep has no share/play surface, so no control appears there. Kid share
+  flow (parent-approval-gated) is unchanged.
+- Tests: `ShareLinkPanel.test` + new `BlocksSharePanel.test` (prep adult copy + one-click
+  active, no pending beat; kid copy unchanged).
+
 ## 2026-07-17 (change: "Free during workshop" AI cost UI — D-WFA-01)
 
 ### Added
