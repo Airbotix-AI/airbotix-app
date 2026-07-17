@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
-// Academy — NAPLAN Maths practice page. Covers the three behaviours the feature
-// hinges on: it renders native text/options/visuals without PDF screenshots,
-// submitting an answer shows feedback, and the official answer stays server-side
-// until that submission.
+// Product-scoped Academy practice: native rendering, server-side grading, and
+// no exam/year switching inside the player.
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -61,11 +59,23 @@ const TALLY_Q = {
 
 function wireApi(questions: unknown[], attempt = { is_correct: true, correct_answer: 'A' }) {
   api.mockImplementation((path: string) => {
-    if (path.startsWith('/academy/questions')) return Promise.resolve(questions);
-    if (path === '/academy/attempts') return Promise.resolve(attempt);
-    if (path.startsWith('/academy/kids/')) {
+    if (path === '/academy/me/products/naplan-y5-numeracy')
+      return Promise.resolve({
+        id: 'ent-1',
+        product: {
+          slug: 'naplan-y5-numeracy',
+          title: 'NAPLAN Year 5 Numeracy Prep',
+          level_key: 'Year 5',
+          subject_key: 'Numeracy',
+          exam: { title: 'NAPLAN' },
+        },
+      });
+    if (path.startsWith('/academy/me/products/naplan-y5-numeracy/questions'))
+      return Promise.resolve(questions);
+    if (path === '/academy/me/products/naplan-y5-numeracy/attempts')
+      return Promise.resolve(attempt);
+    if (path === '/academy/me/products/naplan-y5-numeracy/progress')
       return Promise.resolve({ attempts: 3, correct: 2, accuracy: 0.67 });
-    }
     return Promise.resolve(undefined);
   });
 }
@@ -74,9 +84,9 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/learn/academy']}>
+      <MemoryRouter initialEntries={['/learn/exams/naplan-y5-numeracy/practice']}>
         <Routes>
-          <Route path="/learn/academy" element={<AcademyPracticePage />} />
+          <Route path="/learn/exams/:productSlug/practice" element={<AcademyPracticePage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -93,13 +103,13 @@ describe('AcademyPracticePage', () => {
     wireApi([TEXT_CHOICE_Q]);
     renderPage();
 
-    expect(await screen.findByTestId('academy-stem')).toHaveTextContent(
-      'A pencil costs 19 cents',
-    );
+    expect(await screen.findByTestId('academy-stem')).toHaveTextContent('A pencil costs 19 cents');
     // Real option TEXT is shown (not generic A/B/C/D).
     expect(screen.getByTestId('academy-option-A')).toHaveTextContent('19 cents');
     expect(screen.getByTestId('academy-option-B')).toHaveTextContent('$1.90');
     expect(screen.queryByRole('img', { name: 'Question' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Year level' })).not.toBeInTheDocument();
+    expect(screen.getByText(/NAPLAN · Year 5 · Numeracy/)).toBeInTheDocument();
   });
 
   it('submits the chosen LETTER and shows feedback with the correct answer', async () => {
@@ -113,7 +123,7 @@ describe('AcademyPracticePage', () => {
     expect(feedback).toHaveTextContent('The answer is A');
     // The attempt POST carried the LETTER, not the option text.
     expect(api).toHaveBeenCalledWith(
-      '/academy/attempts',
+      '/academy/me/products/naplan-y5-numeracy/attempts',
       expect.objectContaining({
         method: 'POST',
         body: expect.objectContaining({ question_id: 'q1', submitted: 'A' }),

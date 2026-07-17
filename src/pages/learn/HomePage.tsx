@@ -12,12 +12,8 @@ export function HomePage() {
       <WelcomeModal nickname={typeof nickname === 'string' ? nickname : 'friend'} />
       <div className="mb-12">
         <div className="eyebrow eyebrow-bubblegum">Today</div>
-        <h1 className="hero-display">
-          Hi {nickname}!
-        </h1>
-        <p className="lead-text mt-4">
-          What do you want to make today?
-        </p>
+        <h1 className="hero-display">Hi {nickname}!</h1>
+        <p className="lead-text mt-4">What do you want to make today?</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -35,7 +31,8 @@ export function HomePage() {
               🧩 Make a story with blocks
             </div>
             <div className="mt-2 text-[14px] opacity-90 max-w-xl">
-              Meet the characters, follow a story mission, and snap blocks together to make it move, talk, and play music. No typing needed.
+              Meet the characters, follow a story mission, and snap blocks together to make it move,
+              talk, and play music. No typing needed.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               Open Story Blocks →
@@ -57,7 +54,8 @@ export function HomePage() {
               💻 Turn an idea into code
             </div>
             <div className="mt-2 text-[14px] opacity-90 max-w-xl">
-              Build an interactive creation with AI and real JavaScript, then test, inspect, and improve it.
+              Build an interactive creation with AI and real JavaScript, then test, inspect, and
+              improve it.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               Open Creative Code Studio →
@@ -71,9 +69,7 @@ export function HomePage() {
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
               Courses
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              🚀 Guided courses
-            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">🚀 Guided courses</div>
             <div className="mt-2 text-[14px] opacity-90">
               Follow step-by-step lessons chosen for your age and see what success looks like.
             </div>
@@ -83,21 +79,18 @@ export function HomePage() {
           </div>
         </Link>
 
-        <Link to="/learn/academy" className="pack-card coral block" data-testid="home-academy">
+        <Link to="/learn/exams" className="pack-card coral block" data-testid="home-academy">
           <span className="pack-blob" />
           <div className="relative">
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
-              Academy · NAPLAN Maths
+              Airbotix Academy
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              🔢 Practise maths
-            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">🎯 My Exam Prep</div>
             <div className="mt-2 text-[14px] opacity-90">
-              Real NAPLAN-style Numeracy questions for your year, one at a time, with the answer
-              straight after.
+              Open only the exam products unlocked for you. Your exam and year stay fixed.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
-              Start practising →
+              Open my exams →
             </div>
           </div>
         </Link>
@@ -108,9 +101,7 @@ export function HomePage() {
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
               Studios
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              🎨 Explore all studios
-            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">🎨 Explore all studios</div>
             <div className="mt-2 text-[14px] opacity-90">
               Choose Story Blocks, Creative Code, images, music, voice, or video.
             </div>
@@ -126,9 +117,7 @@ export function HomePage() {
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
               AI workspace
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              💬 Continue a session
-            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">💬 Continue a session</div>
             <div className="mt-2 text-[14px] opacity-90">
               Continue a chat, image, music, voice, or video session you already started.
             </div>
@@ -144,9 +133,7 @@ export function HomePage() {
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
               Projects
             </div>
-            <div className="mt-4 text-[24px] font-bold leading-tight">
-              📁 Your stuff
-            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">📁 Your stuff</div>
             <div className="mt-2 text-[14px] opacity-90">
               Saved creations + the full gallery of everything you made.
             </div>

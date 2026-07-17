@@ -12,6 +12,7 @@ const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal', label: 'Find a class', end: true },
   { to: '/portal/dashboard', label: 'Dashboard' },
   { to: '/portal/courses', label: 'Courses' },
+  { to: '/portal/academy', label: 'Exam Prep' },
   { to: '/portal/tutoring', label: 'Tutoring' },
   { to: '/portal/family', label: 'My Family' },
   { to: '/portal/wallet', label: 'Wallet' },
@@ -111,7 +112,10 @@ export function PortalNavDrawer() {
             </div>
           </div>
         )}
-        <button onClick={() => logout('user', false)} className="btn-pill-ghost w-full justify-start">
+        <button
+          onClick={() => logout('user', false)}
+          className="btn-pill-ghost w-full justify-start"
+        >
           Sign out
         </button>
       </div>

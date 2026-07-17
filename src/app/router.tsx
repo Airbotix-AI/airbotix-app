@@ -22,6 +22,9 @@ import { AuditPage } from '@/pages/portal/AuditPage';
 import { AuditProjectPage } from '@/pages/portal/AuditProjectPage';
 import { BillingPage } from '@/pages/portal/BillingPage';
 import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
+import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
+import { AcademyOrderPage } from '@/pages/portal/AcademyOrderPage';
+import { AcademyPage } from '@/pages/portal/AcademyPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
 import { FindClassesPage } from '@/pages/portal/FindClassesPage';
@@ -63,6 +66,8 @@ import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 import { MusicStudioPage } from '@/pages/learn/music/MusicStudioPage';
 import { AcademyPracticePage } from '@/pages/learn/academy/AcademyPracticePage';
+import { AcademyProductPage } from '@/pages/learn/academy/AcademyProductPage';
+import { MyExamPrepPage } from '@/pages/learn/academy/MyExamPrepPage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -122,6 +127,9 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
+      { path: 'academy', element: <AcademyPage /> },
+      { path: 'academy/checkout/:sku', element: <AcademyCheckoutPage /> },
+      { path: 'academy/orders/:intentId', element: <AcademyOrderPage /> },
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
       // (class-seat-checkout-prd.md D-CSC-8).
       { path: 'checkout/class/:classId', element: <ClassCheckoutPage /> },
@@ -222,9 +230,12 @@ export const router = createBrowserRouter([
       // session URL so a refresh returns to the same song.
       { path: 'music', element: <MusicStudioPage /> },
       { path: 'music/:sessionId', element: <MusicStudioPage /> },
-      // Academy — NAPLAN Maths practice: pick a year, answer real Numeracy
-      // questions one at a time with instant feedback.
-      { path: 'academy', element: <AcademyPracticePage /> },
+      // Academy products are fixed exam/year/subject scopes. The old route now
+      // migrates into the kid's entitlement-only product library.
+      { path: 'academy', element: <Navigate to="/learn/exams" replace /> },
+      { path: 'exams', element: <MyExamPrepPage /> },
+      { path: 'exams/:productSlug', element: <AcademyProductPage /> },
+      { path: 'exams/:productSlug/practice', element: <AcademyPracticePage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

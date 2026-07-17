@@ -8,6 +8,15 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (feat: child-scoped Academy exam products)
+
+### Added
+- Added Parent Portal exam catalog, fixed Year/Level SKU checkout, hosted-payment confirmation, and family entitlement views.
+- Added kid “My Exam Prep”, fixed-product home/progress, and product-scoped native practice routes.
+
+### Changed
+- `/learn/academy` now redirects to `/learn/exams`; the answer player no longer exposes a Year switch or the legacy global question API.
+
 ## 2026-07-16 (feat: Academy — native-rendered maths practice)
 
 ### Added

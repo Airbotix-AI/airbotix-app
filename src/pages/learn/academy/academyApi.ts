@@ -1,17 +1,6 @@
-// Academy — NAPLAN Maths practice backend contract. Rides the shared kid-JWT
-// `api` client (auth + silent refresh) exactly like every other Learn feature.
-
 import { api } from '@/lib/api';
 
-export const ACADEMY_YEAR_LEVELS = ['Year 3', 'Year 5', 'Year 7', 'Year 9'] as const;
-export type AcademyYearLevel = (typeof ACADEMY_YEAR_LEVELS)[number];
-
-export const ACADEMY_DEFAULT_YEAR: AcademyYearLevel = 'Year 5';
-// Numeracy is the only subject for now (task scope); kept named so the selector
-// and the fetch share one source of truth.
-export const ACADEMY_SUBJECT = 'Numeracy' as const;
 export const ACADEMY_SET_SIZE = 20;
-
 export type AcademyAnswerType = 'choice' | 'value';
 
 type TallyTableSpec = {
@@ -40,8 +29,6 @@ export type AcademyRenderSpec =
   | BalanceScaleSpec
   | { kind: 'route'; from: string; to: string; label: string };
 
-// One practice question. The official answer is deliberately NOT part of this
-// shape — it only comes back from POST /academy/attempts after a kid answers.
 export interface AcademyQuestion {
   id: string;
   source_ref: string;
@@ -69,28 +56,66 @@ export interface AcademyProgress {
   attempts: number;
   correct: number;
   accuracy: number;
+  last_attempt_at: string | null;
 }
 
-/** Load a practice set for the selected year level (subject fixed to Numeracy). */
-export function listAcademyQuestions(args: {
-  yearLevel: AcademyYearLevel;
-  limit?: number;
-}): Promise<AcademyQuestion[]> {
-  const params = new URLSearchParams({
-    year_level: args.yearLevel,
-    subject: ACADEMY_SUBJECT,
-    limit: String(args.limit ?? ACADEMY_SET_SIZE),
-  });
-  return api<AcademyQuestion[]>(`/academy/questions?${params.toString()}`);
+export interface AcademyProductSummary {
+  id: string;
+  sku: string;
+  slug: string;
+  title: string;
+  level_key: string;
+  subject_key: string;
+  exam: { slug: string; title: string };
 }
 
-/** Submit one answer; the response reveals correctness + the official answer. */
-export function submitAcademyAttempt(args: {
+export interface AcademyEntitlement {
+  id: string;
+  status?: string;
+  starts_at: string;
+  ends_at: string;
+  product: AcademyProductSummary & {
+    sales_config?: Record<string, unknown>;
+    _count?: { question_links: number };
+  };
+  kid?: { id: string; nickname: string };
+}
+
+export interface AcademyCatalogProduct extends Omit<AcademyProductSummary, 'exam'> {
+  edition: string;
+  price_aud_cents: number;
+  access_days: number;
+  sales_config: Record<string, unknown>;
+}
+
+export interface AcademyCatalogExam {
+  slug: string;
+  title: string;
+  provider: string | null;
+  brand_config: Record<string, unknown>;
+  products: AcademyCatalogProduct[];
+}
+
+export interface AcademyPublicProduct extends AcademyCatalogProduct {
+  exam: { slug: string; title: string; provider: string | null };
+  _count: { question_links: number };
+}
+
+export const listMyAcademyProducts = () => api<AcademyEntitlement[]>('/academy/me/products');
+
+export const getMyAcademyProduct = (productSlug: string) =>
+  api<AcademyEntitlement>(`/academy/me/products/${productSlug}`);
+
+export const listProductQuestions = (productSlug: string, limit = ACADEMY_SET_SIZE) =>
+  api<AcademyQuestion[]>(`/academy/me/products/${productSlug}/questions?limit=${limit}`);
+
+export const submitProductAttempt = (args: {
+  productSlug: string;
   questionId: string;
   submitted: string;
   timeMs?: number;
-}): Promise<AcademyAttemptResult> {
-  return api<AcademyAttemptResult>('/academy/attempts', {
+}) =>
+  api<AcademyAttemptResult>(`/academy/me/products/${args.productSlug}/attempts`, {
     method: 'POST',
     body: {
       question_id: args.questionId,
@@ -98,9 +123,26 @@ export function submitAcademyAttempt(args: {
       time_ms: args.timeMs,
     },
   });
-}
 
-/** This kid's running practice tally (shown on the end-of-set summary). */
-export function getAcademyProgress(kidId: string): Promise<AcademyProgress> {
-  return api<AcademyProgress>(`/academy/kids/${kidId}/progress`);
-}
+export const getProductProgress = (productSlug: string) =>
+  api<AcademyProgress>(`/academy/me/products/${productSlug}/progress`);
+
+export const getAcademyCatalog = () => api<AcademyCatalogExam[]>('/academy/catalog');
+
+export const getAcademyProduct = (slug: string) =>
+  api<AcademyPublicProduct>(`/academy/products/${slug}`);
+
+export const listFamilyAcademyEntitlements = (familyId: string) =>
+  api<AcademyEntitlement[]>(`/families/${familyId}/academy-entitlements`);
+
+export const startAcademyCheckout = (productId: string, kidId: string) =>
+  api<{ payment_intent_id: string; checkout_url: string }>('/academy/checkouts', {
+    method: 'POST',
+    body: { product_id: productId, kid_id: kidId },
+  });
+
+export const getAcademyOrder = (intentId: string) =>
+  api<{
+    status: string;
+    entitlement: { id: string; status: string; ends_at: string } | null;
+  }>(`/academy/orders/${intentId}`);
