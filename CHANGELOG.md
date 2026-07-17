@@ -8,6 +8,27 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (fix: game-player pause/mute silences background music started via a bare Audio element)
+
+### Fixed
+- **Pause and mute in the game player now stop background music that a game plays through a bare
+  `new Audio(src)` element it never adds to the page.** The engine-agnostic `AUDIO_CONTROL` shim
+  (`buildGamePreview.ts`) suspends/mutes every `AudioContext` and every `<audio>/<video>` it can
+  find, but it only found media via `document.querySelectorAll('audio,video')` — so a looping BGM
+  track created with `new Audio('song.mp3'); a.loop = true; a.play()` and never appended to the DOM
+  was invisible to it and kept playing straight through pause and mute. The shim now also patches
+  `HTMLMediaElement.prototype.play` to track every element that plays (DOM-attached or not) and
+  drives mute/pause across that set too.
+- The shim also remembers the latest mute/pause intent, so audio that **starts after** the kid
+  already muted or paused (a lazily-created `AudioContext`, a BGM track that begins on a later
+  scene) is born silenced too — not only what was already playing.
+
+### Tests
+- Extended `buildGamePreview.audioControl.test.ts`: a bare `new Audio()` never added to the DOM is
+  muted and paused; a detached track that only starts after mute is born silent; a WebAudio context
+  created after mute is born with its master gain at 0. Refreshed the `buildGamePreview` srcdoc
+  snapshot for the expanded shim.
+
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 
 ### Fixed

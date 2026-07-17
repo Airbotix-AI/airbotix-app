@@ -85,6 +85,9 @@ a STALE engine after a deploy, e.g. a pre-GLTFLoader `THREE`).
   freeze the game LOOP — Web Audio runs on the AudioContext clock, so pause/mute must silence audio
   separately. This patches `AudioContext` (master gain + tracking) so `pause`→`suspend()`+pause media,
   `mute`→gain 0 + `media.muted`, catching Phaser WebAudio, three.js `AudioListener` & raw audio alike.
+  It ALSO patches `HTMLMediaElement.prototype.play` to track every element that plays — including a
+  bare `new Audio(src)` BGM never appended to the DOM (invisible to `querySelectorAll`) — and remembers
+  the latest mute/pause intent so audio that starts AFTER a toggle is born silenced too.
 
 ## AI turn flow (the kid surface NEVER calls an LLM — platform §5)
 
