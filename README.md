@@ -43,6 +43,12 @@ npm run dev                      # http://localhost:5173
 
 Vite proxies `/api` + `/auth` to `http://localhost:3000` for local platform-backend dev. In prod, both come from `api.airbotix.ai`.
 
+> **Buttons "do nothing" in local dev?** Almost always a backend 500, not a frontend
+> bug — most commonly the local Postgres isn't running, and the only UI feedback is a
+> small error banner. `/health` still returns 200 (it doesn't touch the DB). Follow the
+> diagnosis chain in the umbrella `rules/local-dev-environment.md` (kid-login probe →
+> check `airbotix-pg` → `npm run db:up` in `platform-backend/`).
+
 ## Scripts
 
 | Command | Purpose |

@@ -8,6 +8,13 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (docs: README troubleshooting pointer)
+
+### Added
+- README quick start: troubleshooting note — "buttons do nothing" in local dev is
+  almost always a backend 500 (local Postgres down; `/health` still 200), with the
+  diagnosis chain linked in umbrella `rules/local-dev-environment.md`.
+
 ## 2026-07-17 (chore: pause Image Maker / Voice Booth / Video Studio as "Coming soon")
 
 ### Changed
