@@ -393,10 +393,37 @@
     drop-shadow(0 8px 10px color-mix(in srgb, var(--c) 24%, transparent));
 }
 .bsx-if-c > .bsx-block {
+  box-sizing: border-box;
+  width: 100%;
+  height: 48px;
   filter: none;
-  min-width: 112px;
+  min-width: 0;
+  padding: 0 20px 0 18px;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 7px;
   justify-self: start;
+  border-radius: 18px 14px 0 0;
+  background: transparent;
   z-index: 1;
+}
+.bsx-if-c > .bsx-block:hover,
+.bsx-if-c > .bsx-block:active {
+  transform: none;
+}
+.bsx-if-c > .bsx-block:hover {
+  background: color-mix(in srgb, white 9%, transparent);
+}
+.bsx-if-c > .bsx-block:focus-visible {
+  outline: 3px solid white;
+  outline-offset: -5px;
+}
+.bsx-if-c > .bsx-block .bd,
+.bsx-if-c > .bsx-block .plug {
+  display: none;
+}
+.bsx-if-c > .bsx-block .ic {
+  font-size: 18px;
 }
 .bsx-if-body {
   position: relative;

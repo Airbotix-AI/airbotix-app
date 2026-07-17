@@ -14,6 +14,8 @@
   and the insertion prompt points children to the block palette on the left.
 - Replaced the dashed web-style add button with a tactile connector control that shares the
   blocks' border, depth and press feedback without pretending to be an executable block.
+- Integrated the `If touch` condition directly into the orange C-frame header, removing the
+  duplicate raised block surface while preserving its tap-to-choose and whole-If drag behavior.
 
 ### Tests
 - Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
