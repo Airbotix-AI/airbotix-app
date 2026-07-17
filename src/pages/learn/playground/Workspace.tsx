@@ -43,6 +43,7 @@ import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { useVerification } from './panes/useVerification';
 import { ensureGameRunnerVisible, usePlaygroundStore } from './playgroundStore';
+import { aiCheckpointLabel, useHistoryStore } from './historyStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
 interface WorkspaceProps {
@@ -306,7 +307,20 @@ export function Workspace({
       onStarsCharged: () => wallet.refetch(),
       // Arm the run-report loop for an applied turn awaiting verification. The
       // screenshot hint (D-HARN-21b) rides along so the report can carry evidence.
-      onTurnApplied: (r) => {
+      onTurnApplied: (r, meta) => {
+        // Capture every applied AI turn as a Time Machine save point. It's named by
+        // the backend's authored `history_label`; when that's generic/absent we name
+        // it after what was ASKED (the triggering prompt) so the entry reads like the
+        // kid's own words. This is the ONLY place an AI turn enters History: chat/build
+        // turns apply files externally, so the editor's idle autosnapshot never fires
+        // for them. Without this, a game built purely by prompting — the whole
+        // teacher-prep prompt-first flow — never grows past its "Initial version".
+        // `record` dedupes a no-op question turn (no file change) to null, so only real
+        // changes add an entry. Read-only viewers never mutate → never record.
+        if (!readOnly) {
+          const label = aiCheckpointLabel(r.history_label, meta?.prompt);
+          useHistoryStore.getState().record(r.files, Date.now(), r.summary, { label, kind: 'ai' });
+        }
         if (r.verification === 'pending' && r.turn_id)
           beginVerificationRef.current(r.turn_id, r.screenshot_requested === true);
       },

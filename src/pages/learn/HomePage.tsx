@@ -83,6 +83,25 @@ export function HomePage() {
           </div>
         </Link>
 
+        <Link to="/learn/academy" className="pack-card coral block" data-testid="home-academy">
+          <span className="pack-blob" />
+          <div className="relative">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+              Academy · NAPLAN Maths
+            </div>
+            <div className="mt-4 text-[24px] font-bold leading-tight">
+              🔢 Practise maths
+            </div>
+            <div className="mt-2 text-[14px] opacity-90">
+              Real NAPLAN-style Numeracy questions for your year, one at a time, with the answer
+              straight after.
+            </div>
+            <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
+              Start practising →
+            </div>
+          </div>
+        </Link>
+
         <Link to="/learn/create" className="pack-card sunshine block" data-testid="home-studios">
           <span className="pack-blob" />
           <div className="relative">

@@ -1,3 +1,11 @@
+
+### Fixed
+- **Table/graph questions now show the image, not garbled text.** Questions whose data
+  lives in a figure (a table of values, a bar graph, a grid, a clock) were being rendered
+  from flattened, noisy extracted text — and PDF-layout extraction occasionally bled the
+  next question's text in. `AcademyPracticePage` now detects these (figure keywords or >1
+  question mark + an available image) and renders the scanned question image instead, with
+  generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
 ## 2026-07-16 (feat: add a structural picture-first If condition)
@@ -20,6 +28,68 @@
 ### Tests
 - Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
   and multi-action true/false runtime coverage.
+
+## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
+
+### Fixed
+- **The Code Editor's Time Machine now adds a save point for every AI turn, named by the
+  backend's kid-readable label.** The turn result has always carried a `history_label`
+  ("Made a change", "Added a pause button"), but the studio never recorded it: only manual
+  edits snapshotted (the editor's idle autosnapshot on dirty drafts + file-tree ops), and an
+  applied AI turn refreshes the editor's drafts to the committed content *without* marking them
+  dirty — so the idle autosnapshot never fired for it. A game built purely by prompting never
+  grew past its "Your game started here" entry. Most visible in **teacher-prep projects**, which
+  are built prompt-first (teachers iterate almost entirely via 0-Stars chat turns) — the reported
+  bug. `Workspace.onTurnApplied` (the one seam every applied turn passes through) now records a
+  checkpoint via `historyStore`; a no-op question turn (no file change) is deduped away and a
+  read-only teacher viewer never records.
+- **AI save points can be named after what was asked.** The entry is titled by the backend's
+  authored `history_label` ("Added a pause button"); when that label is generic or absent
+  (e.g. the fake LLM's "Made a change", or a bland real turn), it falls back to the triggering
+  prompt — the message the kid typed or the next-step chip they tapped — tidied to one short,
+  capitalized line (`aiCheckpointLabel`). So a turn from "make the player jump higher" reads
+  "Make the player jump higher" in the Time Machine instead of "Made a change". The prompt is
+  threaded to the recorder via `useGameAgent`'s `onTurnApplied(result, { prompt })` seam.
+
+### Changed
+- **Time Machine entries are named from an authored label, not by reverse-parsing a technical
+  summary.** `Checkpoint` gains an explicit `label` + semantic `kind`
+  (`initial|edit|file|revert|kept-newest|ai`); `HistoryPanel` renders the `label` verbatim with a
+  `kind`-driven icon instead of sniffing the `summary` string (which mangled friendly AI labels,
+  e.g. "Made a change" → "Changed a change"). `describe()` is kept as the legacy fallback for
+  checkpoints persisted before `label`/`kind` existed; the initial-version, kept-newest and revert
+  records now pass explicit `label`+`kind`. New fields are optional → old cached checkpoints still
+  render.
+
+### Tests
+- `historyStore.test.ts`: authored `label`/`kind` stored verbatim; a plain auto edit leaves them
+  undefined; an AI turn identical to the latest snapshot dedupes to null; a coalesced typing burst
+  keeps the session's label/kind.
+- New `HistoryPanel.test.tsx`: an AI turn's `history_label` renders verbatim (never mangled), a
+  legacy checkpoint (no label/kind) still derives a title from its summary, one entry per checkpoint.
+- Harness `kid-game-edit-after-turn` now also asserts an applied AI turn adds a 'Made a change'
+  Time Machine entry (the positive case beside the existing kept-newest regression).
+
+## 2026-07-17 (fix: game-player pause/mute silences background music started via a bare Audio element)
+
+### Fixed
+- **Pause and mute in the game player now stop background music that a game plays through a bare
+  `new Audio(src)` element it never adds to the page.** The engine-agnostic `AUDIO_CONTROL` shim
+  (`buildGamePreview.ts`) suspends/mutes every `AudioContext` and every `<audio>/<video>` it can
+  find, but it only found media via `document.querySelectorAll('audio,video')` — so a looping BGM
+  track created with `new Audio('song.mp3'); a.loop = true; a.play()` and never appended to the DOM
+  was invisible to it and kept playing straight through pause and mute. The shim now also patches
+  `HTMLMediaElement.prototype.play` to track every element that plays (DOM-attached or not) and
+  drives mute/pause across that set too.
+- The shim also remembers the latest mute/pause intent, so audio that **starts after** the kid
+  already muted or paused (a lazily-created `AudioContext`, a BGM track that begins on a later
+  scene) is born silenced too — not only what was already playing.
+
+### Tests
+- Extended `buildGamePreview.audioControl.test.ts`: a bare `new Audio()` never added to the DOM is
+  muted and paused; a detached track that only starts after mute is born silent; a WebAudio context
+  created after mute is born with its master gain at 0. Refreshed the `buildGamePreview` srcdoc
+  snapshot for the expanded shim.
 
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 
@@ -44,6 +114,26 @@
 - Updated `classAssetResolver.test.ts` (resolver fetches by `(projectId, assetId)`),
   `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
   `AssetViewerPane.classAssets.test.tsx` (model preview mock).
+
+## 2026-07-17 (feat: make parent and kid sign-in unmistakable)
+
+### Changed
+- Rebuilt the shared sign-in experience around an explicit first question — **Parent or
+  guardian** or **Kid creator** — with the active identity, its credential type, and a direct
+  route switch visible before either form.
+- Parent sign-in now says **Parent login or sign up** and explains that a new family
+  is set up after the same email-code step, removing the hidden-registration ambiguity.
+- Added an original robot platform-world scene and a responsive split layout that keeps the
+  identity choice prominent on desktop, tablet, and phone widths.
+- The desktop sign-in gateway now fills the entire viewport. Its game-world rail is fixed at
+  100% height while the right-hand form owns its scrolling, so switching between the shorter
+  parent form and taller kid form never offsets the family artwork.
+- Elevated the full-screen gateway from a plain split screen to a premium editorial treatment:
+  a bright fixed game stage, framed platform artwork, role-tinted ambient canvas, translucent form
+  panel, refined segmented identity control, focus lighting, and reduced-motion-safe animation.
+- The game stage now doubles as an Airbotix creation showcase, rotating through three curated
+  course worlds every eight seconds with manual pagination, pause/play control, and a static
+  experience for visitors who prefer reduced motion.
 
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
@@ -109,6 +199,18 @@
   "输入空间太少了". The input clears itself after a take lands.
 
 ## 2026-07-14 (fix: Music is discoverable from the studio picker again)
+## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)
+
+### Added
+- **Academy — NAPLAN Maths practice (`/learn/academy`).** A new kid Learn surface: pick a year
+  level (Year 3/5/7/9, default Year 5; subject fixed to Numeracy), work through ~20 real
+  NAPLAN-style questions one at a time, and get the official answer straight after each try. Renders
+  the real question text with inline figure images when present, falling back to the scanned
+  question/page image otherwise; multiple-choice shows the real option text and submits the letter,
+  value questions take a typed number. A header scoreboard tracks done/correct + progress, and the
+  end-of-set summary reads back the kid's running accuracy with a "Practise more" reset. Rides the
+  shared `api` client (kid-JWT auth) + K-12 design tokens like every other Learn page; a new home
+  tile links to it.
 
 ### Fixed
 - **The Workspace studio picker had no Music entry at all.** When the Stage moved out of the chat

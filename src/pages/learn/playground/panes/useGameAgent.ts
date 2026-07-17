@@ -247,9 +247,12 @@ export interface UseGameAgentOptions {
   /**
    * Fired after a turn's result fully applies (files + version adopted, chat
    * settled). The workspace uses it to arm the post-apply verification loop for
-   * a `verification: 'pending'` turn (D-PAP-40 / useVerification).
+   * a `verification: 'pending'` turn (D-PAP-40 / useVerification) and to record a
+   * Time Machine save point. `meta.prompt` is the message that triggered this turn
+   * (a typed ask or a tapped next-step chip), so the save point can be named after
+   * what was asked when the backend's `history_label` is generic/absent.
    */
-  onTurnApplied?: (result: AgentTurnResult) => void;
+  onTurnApplied?: (result: AgentTurnResult, meta?: { prompt?: string }) => void;
   /**
    * Flush any pending (debounced) local VFS save to the backend BEFORE a turn
    * runs. A turn reads the SERVER-persisted VFS (the request body carries only the
@@ -474,7 +477,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     async (
       result: AgentTurnResult,
       pendingId: string,
-      opts?: { keepOtherNextSteps?: boolean },
+      opts?: { keepOtherNextSteps?: boolean; prompt?: string },
     ) => {
       undoTargetRef.current = files;
       setCanUndo(true);
@@ -567,8 +570,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       );
       if (changed && !alreadyRan) clientActions?.restartGame();
       // The turn is fully applied (and the game re-running) — let the workspace
-      // arm post-apply verification for a `verification: 'pending'` turn.
-      onTurnApplied?.(result);
+      // arm post-apply verification for a `verification: 'pending'` turn and record
+      // a Time Machine save point (named after the ask when the label is generic).
+      onTurnApplied?.(result, { prompt: opts?.prompt });
     },
     [files, onApplyFiles, onStarsCharged, clientActions, onTurnApplied, bumpWatchdog],
   );
@@ -976,7 +980,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           // Only the S3 refs go to the backend — never the local preview URLs.
           ...(hasImages ? { images: images.map((im) => ({ s3_key: im.s3_key, mime: im.mime })) } : {}),
         });
-        await applyResult(result, pendingId);
+        await applyResult(result, pendingId, { prompt: trimmed });
       } catch (e) {
         // The fetch aborted: the kid tapped "Stop waiting" (D-PAP-48) or the
         // silent-turn watchdog fired (D-HARN-03) — either way the backend cleanly
@@ -1235,7 +1239,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve', signal: ac.signal })
           : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode, idempotencyKey: mintTurnKey(), signal: ac.signal });
       setPending(null);
-      await applyResult(result, pendingId);
+      await applyResult(result, pendingId, { prompt: p.prompt });
     } catch (e) {
       // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
       // settle. No retry chip: the confirm card is still up — re-tapping IS the retry.
@@ -1404,7 +1408,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         });
         return;
       }
-      await applyResult(result, pendingId);
+      await applyResult(result, pendingId, { prompt });
     } catch (e) {
       // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
       // cancel / timeout-with-retry, not an error.

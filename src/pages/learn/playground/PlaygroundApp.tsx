@@ -308,7 +308,10 @@ export function PlaygroundApp({
       versionRef.current = result.server.version;
       useHistoryStore
         .getState()
-        .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)');
+        .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)', {
+          label: 'Kept your newest copy',
+          kind: 'kept-newest',
+        });
       useProjectStore.getState().apply(result.server.files);
       setSaveStatus('kept-newest');
     }
@@ -494,7 +497,10 @@ export function PlaygroundApp({
                 history.hydrate(persisted.checkpoints);
               } else {
                 history.reset();
-                history.record(persisted.files, Date.now(), 'Initial version');
+                history.record(persisted.files, Date.now(), 'Initial version', {
+                  label: 'Your game started here',
+                  kind: 'initial',
+                });
               }
               setSaveStatus('saved');
             } else {
@@ -502,7 +508,10 @@ export function PlaygroundApp({
               syncedAssetsRef.current = assetPathSet(f);
               project.setFiles(f);
               history.reset();
-              history.record(f, Date.now(), 'Initial version');
+              history.record(f, Date.now(), 'Initial version', {
+                label: 'Your game started here',
+                kind: 'initial',
+              });
               setSaveStatus('idle');
             }
             // Restore the saved workspace UI (open tabs, sidebar, layout mode,
