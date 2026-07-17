@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-// "Create for this class" sheet (my-classes-prd §3.3): a tool with sub-types
-// (Creative Code Studio → Web Code / Creative Code Studio) opens a second-level menu; a plain
-// tool (Story Blocks) creates directly. Direct creates POST /projects, attach via the
-// placement endpoint, and navigate to the right editor. Creative Code Studio is
-// prompt-first: it navigates to `/learn/playground/new?class=...` and lets the
-// playground create + attach the game after the initial prompt.
+// "Create for this class" sheet (my-classes-prd §3.3): Creative Code Studio jumps
+// STRAIGHT to the prompt-first game playground (`/learn/playground/new?class=...`)
+// — its old Web Code / game second-level menu is skipped because Web Code is hidden
+// until it ships (a tool only shows a sub-menu when >1 sub-type is visible). Plain
+// tools (Story Blocks) create directly: POST /projects, attach via the placement
+// endpoint, and navigate to the right editor.
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -49,51 +49,32 @@ function wireCreate(id = 'new-proj') {
   });
 }
 
-describe('CreateForClassSheet — second-level menu', () => {
+describe('CreateForClassSheet — direct-jump', () => {
   beforeEach(() => {
     navigate.mockReset();
     wireCreate();
   });
   afterEach(cleanup);
 
-  it('opens the Creative Code Studio sub-menu (Web Code + Creative Code Studio) and can go back', async () => {
+  it('Creative Code Studio jumps straight to the prompt-first playground — no sub-menu, no POST', async () => {
     renderSheet();
-    // Creative Code Studio is a sub-menu tool, not a direct create.
-    fireEvent.click(screen.getByTestId('create-tool-submenu'));
+    // No second-level menu affordance: Web Code is hidden, so only the game
+    // sub-type is visible and the tool renders as a direct-create tool.
+    expect(screen.queryByTestId('create-tool-submenu')).not.toBeInTheDocument();
 
-    expect(screen.getByText('Web Code')).toBeInTheDocument();
-    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
-    expect(screen.getByText(/Creative Code Studio · pick one/)).toBeInTheDocument();
-    // Opening the sub-menu must not POST anything.
-    expect(api).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByTestId('create-subtool-back'));
-    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('create-subtool-back')).not.toBeInTheDocument();
-    expect(screen.getByText(/pick a tool/)).toBeInTheDocument();
-  });
-
-  it('Creative Code Studio opens the prompt-first playground with class context', async () => {
-    renderSheet();
-    fireEvent.click(screen.getByTestId('create-tool-submenu'));
     const game = screen.getByText('Creative Code Studio').closest('button')!;
+    expect(game).toHaveAttribute('data-testid', 'create-tool');
     fireEvent.click(game);
 
     expect(navigate).toHaveBeenCalledWith('/learn/playground/new?class=class-1');
+    // Prompt-first: the playground creates + attaches the game later, not here.
     expect(api).not.toHaveBeenCalled();
   });
 
-  it('Web Code creates a blank code project and opens the code studio', async () => {
+  it('keeps Web Code hidden until it ships', () => {
     renderSheet();
-    fireEvent.click(screen.getByTestId('create-tool-submenu'));
-    const web = screen.getByText('Web Code').closest('button')!;
-    fireEvent.click(web);
-
-    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('/learn/code/new-proj'));
-    expect(api).toHaveBeenCalledWith('/projects', {
-      method: 'POST',
-      body: { title: 'My Project', product_line: 'line_b_coding', kind: 'code', template: 'blank' },
-    });
+    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('create-subtool-back')).not.toBeInTheDocument();
   });
 
   it('the direct Story Blocks tool creates immediately without a sub-menu', async () => {
@@ -125,11 +106,21 @@ describe('CreateForClassSheet — second-level menu', () => {
     expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
     expect(screen.queryByText('Music Maker')).not.toBeInTheDocument();
     expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
-    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
+    // Creative Code Studio is allowed via its `game` sub-type and jumps directly.
+    const game = screen.getByText('Creative Code Studio').closest('button')!;
+    expect(game).toHaveAttribute('data-testid', 'create-tool');
     expect(screen.getByText('Story Blocks')).toBeInTheDocument();
+    expect(screen.queryByTestId('create-tool-submenu')).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId('create-tool-submenu'));
-    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
-    expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
+  it('hides Creative Code Studio when the course disallows game work', async () => {
+    renderSheet(['creative', 'blocks']);
+    // Only the game sub-type is visible today, so a game-less course drops the tool.
+    expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
+    expect(screen.getByText('Story Blocks')).toBeInTheDocument();
+    // A live creative tool still shows (Music Stage). Image Maker/Voice/Video are
+    // paused as `comingSoon` and are never offered for class work.
+    expect(screen.getByText('Music Stage')).toBeInTheDocument();
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
   });
 });

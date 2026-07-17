@@ -13,6 +13,9 @@ import { CREATE_TOOLS, type ProjectKind } from '../create/createTools';
  * "My work", with no intermediate naming page. Creative Code Studio is the exception:
  * it opens the prompt-first `/learn/playground/new?class=...` flow, and the
  * playground creates + attaches the game after the kid submits the initial prompt.
+ * That tool jumps STRAIGHT to the game prompt — its old second-level menu (Web
+ * Code vs game) is skipped because Web Code is hidden until it ships (a tool only
+ * shows a sub-menu when more than one sub-type is visible).
  *
  * The sheet filters the shared create-tool registry by the course's
  * `CoursePack.allowed_kinds` (D-MC-11). The personal Create tab remains
@@ -51,11 +54,14 @@ const TOOL_CONFIG: Record<string, ToolCfg> = {
   '/learn/create/video': { title: 'My Video', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
 };
 
-// A second-level menu: a tool that owns sub-types (a `›` affordance in the sheet)
-// shows them in-place instead of creating directly. The Code Studio tool splits
-// into **Web Code** (today's blank `code` project → /learn/code/:id) and **Game
-// Playground** (prompt-first `/learn/playground/new?class=...`; create +
-// placement happen after the initial prompt). Tools without sub-types create as before.
+// A tool can own sub-types. When MORE THAN ONE is visible the sheet shows a
+// second-level menu (a `›` affordance + `← Back`); when exactly one is visible
+// the tool jumps straight into it (no menu). The Code Studio tool splits into
+// **Web Code** (blank `code` project → /learn/code/:id) and **Creative Code
+// Studio** (prompt-first `/learn/playground/new?class=...`; create + placement
+// happen after the initial prompt). Web Code is `hidden` for now — kept in the
+// registry but not offered until it ships — so today only the game is visible and
+// the tool jumps directly to the game prompt. Tools without sub-types create as before.
 interface SubType {
   /** Stable key for testids/keys (NOT user-facing). */
   id: string;
@@ -64,6 +70,8 @@ interface SubType {
   desc: string;
   cfg: ToolCfg;
   projectKind: ProjectKind;
+  /** Hidden-not-removed: kept in the registry but never offered until it ships. */
+  hidden?: boolean;
 }
 const CODE_SUBTYPES: SubType[] = [
   {
@@ -75,6 +83,9 @@ const CODE_SUBTYPES: SubType[] = [
     // sub-menu just makes it an explicit sibling of Creative Code Studio.
     cfg: TOOL_CONFIG['/learn/create/code'],
     projectKind: 'code',
+    // Web Code isn't productized yet — hide it so Creative Code Studio jumps
+    // straight to the game prompt. Un-hide (remove this line) to bring it back.
+    hidden: true,
   },
   {
     id: 'game',
@@ -92,9 +103,10 @@ const CODE_SUBTYPES: SubType[] = [
   },
 ];
 
-// Tool path → its sub-types. Only the Code Studio tool has them today.
+// Tool path → its sub-types, keyed by the tool's `to`. Only Creative Code Studio
+// (now `/learn/playground/new`) has sub-types today.
 const SUBTYPES_BY_TOOL: Record<string, SubType[]> = {
-  '/learn/create/code': CODE_SUBTYPES,
+  '/learn/playground/new': CODE_SUBTYPES,
 };
 
 export function CreateForClassSheet({
@@ -118,22 +130,29 @@ export function CreateForClassSheet({
   const allowedTools = CREATE_TOOLS.filter((tool) => {
     if (tool.comingSoon) return false; // paused studios never offered for class work
     const subtypes = SUBTYPES_BY_TOOL[tool.to];
-    if (subtypes) return subtypes.some((subtype) => allowedSet.has(subtype.projectKind));
+    if (subtypes) return subtypes.some((s) => !s.hidden && allowedSet.has(s.projectKind));
     return allowedSet.has(tool.projectKind);
   });
 
+  // Course-allowed AND not-hidden sub-types — what the kid can actually pick.
   function allowedSubtypes(tool: (typeof CREATE_TOOLS)[number]) {
-    return (SUBTYPES_BY_TOOL[tool.to] ?? []).filter((subtype) => allowedSet.has(subtype.projectKind));
+    return (SUBTYPES_BY_TOOL[tool.to] ?? []).filter((s) => !s.hidden && allowedSet.has(s.projectKind));
   }
 
-  // Tapping a tool with sub-types opens its second-level menu; a plain tool
-  // creates directly with its default config.
+  // Tapping a tool: >1 visible sub-type → open the second-level menu; exactly one
+  // (today: Creative Code Studio's game, since Web Code is hidden) → jump straight
+  // into it, no menu; none → create directly with the tool's default config.
   function pick(tool: (typeof CREATE_TOOLS)[number]) {
     if (busy) return;
     const subs = allowedSubtypes(tool);
-    if (subs.length > 0) {
+    if (subs.length > 1) {
       setError(null);
       setSubMenu(tool);
+      return;
+    }
+    if (subs.length === 1) {
+      setError(null);
+      void make(subs[0].cfg);
       return;
     }
     void make(
@@ -262,7 +281,7 @@ export function CreateForClassSheet({
                 disabled={busy}
                 onClick={() => pick(t)}
                 className="flex w-full items-center gap-3 rounded-2xl border border-hairline bg-canvas-pure p-3.5 text-left transition-transform hover:-translate-y-0.5 hover:shadow-card-soft disabled:opacity-60"
-                data-testid={allowedSubtypes(t).length > 0 ? 'create-tool-submenu' : 'create-tool'}
+                data-testid={allowedSubtypes(t).length > 1 ? 'create-tool-submenu' : 'create-tool'}
               >
                 <span className={`grid h-12 w-12 place-items-center rounded-xl bg-grad-${t.color} text-[24px]`}>
                   {t.emoji}
@@ -272,7 +291,7 @@ export function CreateForClassSheet({
                   <div className="text-[12px] text-slate2">{t.desc}</div>
                 </div>
                 <span className="rounded-full bg-surface px-2.5 py-1 text-[11px] font-bold text-slate2">
-                  {allowedSubtypes(t).length > 0 ? '›' : t.cost === 0 ? 'Free' : `${t.cost}★`}
+                  {allowedSubtypes(t).length > 1 ? '›' : t.cost === 0 ? 'Free' : `${t.cost}★`}
                 </span>
               </button>
             ))}

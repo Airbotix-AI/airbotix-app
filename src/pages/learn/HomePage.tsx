@@ -45,7 +45,7 @@ export function HomePage() {
         </Link>
 
         <Link
-          to="/learn/create/code"
+          to="/learn/playground/new"
           className="pack-card sky block"
           data-testid="home-creative-code"
         >
