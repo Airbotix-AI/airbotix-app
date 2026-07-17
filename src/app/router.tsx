@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { LearnLayout } from './LearnLayout';
 import { PortalLayout } from './PortalLayout';
 import { TeacherLayout } from './TeacherLayout';
@@ -184,8 +185,17 @@ export const router = createBrowserRouter([
       { path: 'projects/:id', element: <ProjectDetailPage /> },
       // Internal route id stays `/learn/missions` (D-LP-2); the catalog & detail
       // pages render the pack's Lessons (课节) → each Lesson's Mission tasks.
-      { path: 'missions', element: <LessonsCatalogPage /> },
-      { path: 'missions/:id', element: <PackLessonsPage /> },
+      // While the catalog is hidden (features.ts SHOW_LESSONS_CATALOG) the
+      // routes redirect home so old links/bookmarks land somewhere sensible.
+      ...(SHOW_LESSONS_CATALOG
+        ? [
+            { path: 'missions', element: <LessonsCatalogPage /> },
+            { path: 'missions/:id', element: <PackLessonsPage /> },
+          ]
+        : [
+            { path: 'missions', element: <Navigate to="/learn" replace /> },
+            { path: 'missions/:id', element: <Navigate to="/learn" replace /> },
+          ]),
       // Legacy alias: the class wall is `/learn/classroom` (ClassroomListPage).
       // The old `/learn/wall` was a "Coming soon" placeholder — redirect it.
       { path: 'wall', element: <Navigate to="/learn/classroom" replace /> },
