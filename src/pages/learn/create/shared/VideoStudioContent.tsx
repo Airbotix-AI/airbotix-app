@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { Celebration } from './Celebration';
+import { FreeBadge } from './FreeBadge';
 import { StudioTip } from './StudioTip';
 import { friendlyError, useGenerate } from './useStudio';
 
@@ -17,9 +18,12 @@ const COST = 5;
 
 export function VideoStudioContent({
   projectId,
+  aiFreeNow = false,
   onCreated,
 }: {
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — show "Free" in place of the star cost. */
+  aiFreeNow?: boolean;
   onCreated: () => void;
 }) {
   const [prompt, setPrompt] = useState('');
@@ -121,7 +125,13 @@ export function VideoStudioContent({
           disabled={generate.isPending}
           className="btn-pill-primary w-full mt-6"
         >
-          {generate.isPending ? '🎬 Filming…' : `🎬 Film it — ${COST}★`}
+          {generate.isPending ? (
+            '🎬 Filming…'
+          ) : aiFreeNow ? (
+            <span className="inline-flex items-center gap-1.5">🎬 Film it <FreeBadge /></span>
+          ) : (
+            `🎬 Film it — ${COST}★`
+          )}
         </button>
         <p className="text-[11px] text-steel mt-3">
           ⏱ Video takes 30-60s to generate. Hang tight.

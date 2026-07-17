@@ -57,6 +57,15 @@ export interface CodeProject {
    * created before 3D — treat absent as 'phaser'.
    */
   engine?: 'phaser' | 'three' | null;
+  /**
+   * Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01). `true` when this
+   * project's class delivers a free-workshop CoursePack and now is inside that
+   * class's ClassSession ±1h window — every studio's AI generation is FREE (0★)
+   * for this project right now. The backend enforces the waiver regardless of the
+   * UI; the studios use this only to DISPLAY "Free during workshop" and to NOT
+   * gate the AI action on a low/zero balance. Absent → treat as not-free.
+   */
+  ai_free_now?: boolean;
 }
 
 // ── Agent turn model (PRD §4 / §4.5 — server-side loop) ────────────────────

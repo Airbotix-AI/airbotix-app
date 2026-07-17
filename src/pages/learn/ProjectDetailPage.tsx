@@ -30,6 +30,12 @@ interface Project {
   created_at: string;
   updated_at: string;
   mission_id: string | null;
+  /**
+   * Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): true when this
+   * project's class is inside its free-workshop session window → studio generation
+   * is FREE (0★). The studios show "Free during workshop" in place of the star cost.
+   */
+  ai_free_now?: boolean;
 }
 
 interface Wallet {
@@ -350,6 +356,7 @@ export function ProjectDetailPage() {
             artifacts={byKind[kind] ?? []}
             projectId={id!}
             atLimit={atArtifactLimit}
+            aiFreeNow={p.ai_free_now ?? false}
             onDeleted={() => qc.invalidateQueries({ queryKey: ['project', id, 'artifacts'] })}
           />
         ))}
@@ -461,12 +468,15 @@ function ArtifactSection({
   artifacts,
   projectId,
   atLimit,
+  aiFreeNow = false,
   onDeleted,
 }: {
   kind: string;
   artifacts: Artifact[];
   projectId: string;
   atLimit: boolean;
+  /** Workshop-free-AI waiver (D-WFA-01) — the add-artifact studio shows "Free". */
+  aiFreeNow?: boolean;
   onDeleted: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -494,13 +504,13 @@ function ArtifactSection({
       ) : kind === 'audio' || kind === 'text' ? (
         <div className="space-y-3">
           {artifacts.map((a) => (
-            <ArtifactTile key={a.id} artifact={a} projectId={projectId} onDeleted={onDeleted} />
+            <ArtifactTile key={a.id} artifact={a} projectId={projectId} aiFreeNow={aiFreeNow} onDeleted={onDeleted} />
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {artifacts.map((a) => (
-            <ArtifactTile key={a.id} artifact={a} projectId={projectId} onDeleted={onDeleted} />
+            <ArtifactTile key={a.id} artifact={a} projectId={projectId} aiFreeNow={aiFreeNow} onDeleted={onDeleted} />
           ))}
         </div>
       )}
@@ -509,6 +519,7 @@ function ArtifactSection({
         <StudioDrawerForKind
           kind={kind as 'image' | 'text' | 'audio' | 'video'}
           projectId={projectId}
+          aiFreeNow={aiFreeNow}
           onClose={() => setShowAdd(false)}
           onCreated={onDeleted}
         />
@@ -522,10 +533,13 @@ function ArtifactSection({
 function ArtifactTile({
   artifact,
   projectId,
+  aiFreeNow = false,
   onDeleted,
 }: {
   artifact: Artifact;
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — the replace studio shows "Free". */
+  aiFreeNow?: boolean;
   onDeleted: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -644,6 +658,7 @@ function ArtifactTile({
     <StudioDrawerForKind
       kind={replaceKind}
       projectId={projectId}
+      aiFreeNow={aiFreeNow}
       onClose={() => setReplacing(false)}
       onCreated={() => { setReplacing(false); onDeleted(); }}
     />
@@ -981,11 +996,14 @@ const DRAWER_META: Record<string, { title: string; emoji: string; color: string 
 function StudioDrawerForKind({
   kind,
   projectId,
+  aiFreeNow = false,
   onClose,
   onCreated,
 }: {
   kind: 'image' | 'text' | 'audio' | 'video';
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — each studio shows "Free" for its cost. */
+  aiFreeNow?: boolean;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -998,17 +1016,17 @@ function StudioDrawerForKind({
       color={meta.color}
       onClose={onClose}
     >
-      {kind === 'image' && <ImageStudioContent projectId={projectId} onCreated={onCreated} />}
-      {kind === 'audio' && <AudioStudioContent projectId={projectId} onCreated={onCreated} />}
-      {kind === 'text'  && <StoryStudioContent projectId={projectId} onCreated={onCreated} />}
-      {kind === 'video' && <VideoStudioContent projectId={projectId} onCreated={onCreated} />}
+      {kind === 'image' && <ImageStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />}
+      {kind === 'audio' && <AudioStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />}
+      {kind === 'text'  && <StoryStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />}
+      {kind === 'video' && <VideoStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />}
     </StudioDrawer>
   );
 }
 
 // ─── AudioStudioContent — voice or music picker ──────────────────────────────
 
-function AudioStudioContent({ projectId, onCreated }: { projectId: string; onCreated: () => void }) {
+function AudioStudioContent({ projectId, aiFreeNow = false, onCreated }: { projectId: string; aiFreeNow?: boolean; onCreated: () => void }) {
   const [tab, setTab] = useState<'voice' | 'music'>('voice');
   return (
     <div>
@@ -1026,8 +1044,8 @@ function AudioStudioContent({ projectId, onCreated }: { projectId: string; onCre
         ))}
       </div>
       {tab === 'voice'
-        ? <VoiceStudioContent projectId={projectId} onCreated={onCreated} />
-        : <MusicStudioContent projectId={projectId} onCreated={onCreated} />}
+        ? <VoiceStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />
+        : <MusicStudioContent projectId={projectId} aiFreeNow={aiFreeNow} onCreated={onCreated} />}
     </div>
   );
 }

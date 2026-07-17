@@ -415,6 +415,25 @@ describe('AIChatPanel — Airo branding', () => {
   });
 });
 
+// Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): during a live
+// free-workshop window AI turns are free (0★), so the header shows a "Free during
+// workshop" badge in place of the metered Stars balance.
+describe('AIChatPanel — workshop-free-AI badge (D-WFA-01)', () => {
+  const chat: ChatItem[] = [{ id: 'a1', role: 'agent', text: 'Done!' }];
+
+  it('shows the free-workshop badge and hides the Stars balance when aiFreeNow', () => {
+    render(<AIChatPanel chat={chat} busy={false} error={null} balance={0} aiFreeNow onSend={vi.fn()} />);
+    expect(screen.getByTestId('free-workshop-badge').textContent).toMatch(/Free during workshop/i);
+    expect(screen.queryByTestId('stars-badge')).toBeNull();
+  });
+
+  it('shows the metered Stars balance (no free badge) when the waiver is off', () => {
+    render(<AIChatPanel chat={chat} busy={false} error={null} balance={7} onSend={vi.fn()} />);
+    expect(screen.getByTestId('stars-badge').textContent).toContain('7');
+    expect(screen.queryByTestId('free-workshop-badge')).toBeNull();
+  });
+});
+
 describe('AIChatPanel — changed-file rows with new files (null before)', () => {
   it('renders a bubble whose changes include a NEW file (before=null) without crashing', () => {
     // A whole-game rebuild (e.g. the 2D→3D switch) creates files with no `before`.

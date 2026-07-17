@@ -197,6 +197,12 @@ interface AIChatPanelProps {
   offline?: boolean;
   /** Family Stars balance, shown metered (real path only). */
   balance?: number;
+  /**
+   * Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01). When true, AI turns
+   * are FREE (0★) for this project right now → the header shows a "Free during
+   * workshop" badge in place of the Stars balance. The backend enforces the waiver.
+   */
+  aiFreeNow?: boolean;
   /** A staged turn awaiting the kid's confirm (agency beat / plan gate). */
   pending?: PendingTurn | null;
   /** Undo the last applied change is available (free local revert). */
@@ -278,6 +284,7 @@ export function AIChatPanel({
   error,
   offline,
   balance,
+  aiFreeNow,
   pending,
   canUndo,
   safeguard,
@@ -477,13 +484,22 @@ export function AIChatPanel({
               <Undo2 size={12} /> Undo
             </button>
           )}
-          {balance != null && (
+          {aiFreeNow ? (
             <span
-              data-testid="stars-badge"
-              className="inline-flex items-center gap-1 rounded-full bg-wash-sunshine px-2.5 py-0.5 text-[11px] font-extrabold text-ink"
+              data-testid="free-workshop-badge"
+              className="inline-flex items-center gap-1 rounded-full bg-wash-mint px-2.5 py-0.5 text-[11px] font-extrabold text-ink"
             >
-              <Star size={12} className="fill-current" /> {balance}
+              🎉 Free during workshop
             </span>
+          ) : (
+            balance != null && (
+              <span
+                data-testid="stars-badge"
+                className="inline-flex items-center gap-1 rounded-full bg-wash-sunshine px-2.5 py-0.5 text-[11px] font-extrabold text-ink"
+              >
+                <Star size={12} className="fill-current" /> {balance}
+              </span>
+            )
           )}
         </div>
       </div>

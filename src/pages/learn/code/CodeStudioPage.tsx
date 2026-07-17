@@ -197,6 +197,7 @@ function ProLayout({
             chat={studio.chat}
             busy={studio.busy}
             balance={studio.balance}
+            aiFreeNow={studio.aiFreeNow}
             error={studio.error}
             awaitingApproval={awaitingApproval}
             readOnly={studio.readOnly}
@@ -259,6 +260,7 @@ function LiteLayout({
             chat={studio.chat}
             busy={studio.busy}
             balance={studio.balance}
+            aiFreeNow={studio.aiFreeNow}
             error={studio.error}
             awaitingApproval={awaitingApproval}
             lite

@@ -8,6 +8,13 @@ interface CodeChatProps {
   busy: boolean;
   /** Null = no wallet (teacher viewer) → the cost/balance hints are hidden. */
   balance: number | null;
+  /**
+   * Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01). When true, this
+   * turn is FREE (0★): the Ask button shows "Free" instead of the star cost and
+   * never disables on a low/zero balance, and the balance hint is replaced with a
+   * "Free during workshop" indicator. The backend enforces the waiver regardless.
+   */
+  aiFreeNow?: boolean;
   error: string | null;
   /** When set, the latest agent item is a plan awaiting approval. */
   awaitingApproval: boolean;
@@ -31,6 +38,7 @@ export function CodeChat({
   chat,
   busy,
   balance,
+  aiFreeNow = false,
   error,
   awaitingApproval,
   lite = false,
@@ -52,6 +60,8 @@ export function CodeChat({
   // A teacher viewer has no wallet — treat as "enough stars" so the (hidden)
   // composer logic never gates on a misleading 0.
   const stars = balance ?? ESTIMATED_COST;
+  // During a free workshop the turn costs 0★ (D-WFA-01) → never gate on balance.
+  const tooPoor = !aiFreeNow && stars < ESTIMATED_COST;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -114,16 +124,31 @@ export function CodeChat({
           />
           <button
             onClick={submit}
-            disabled={busy || awaitingApproval || !input.trim() || stars < ESTIMATED_COST}
+            disabled={busy || awaitingApproval || !input.trim() || tooPoor}
             className="btn-pill-primary shrink-0 self-stretch"
-            title={stars < ESTIMATED_COST ? `Need ${ESTIMATED_COST}★, have ${stars}★` : ''}
+            title={tooPoor ? `Need ${ESTIMATED_COST}★, have ${stars}★` : ''}
           >
-            {busy ? '…' : `✨ Ask −${ESTIMATED_COST}★`}
+            {busy ? (
+              '…'
+            ) : aiFreeNow ? (
+              <span className="inline-flex items-center gap-1">
+                ✨ Ask
+                <span className="rounded-full bg-wash-mint px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-ink">
+                  Free
+                </span>
+              </span>
+            ) : (
+              `✨ Ask −${ESTIMATED_COST}★`
+            )}
           </button>
         </div>
         <div className="mt-1.5 flex items-center justify-between text-[11px] text-slate2">
           <span>Enter to send</span>
-          <span className={stars < ESTIMATED_COST ? 'text-brand-coral font-bold' : ''}>{stars}★ left</span>
+          {aiFreeNow ? (
+            <span className="font-bold text-brand-mint">🎉 Free during workshop</span>
+          ) : (
+            <span className={tooPoor ? 'text-brand-coral font-bold' : ''}>{stars}★ left</span>
+          )}
         </div>
       </div>
       )}
