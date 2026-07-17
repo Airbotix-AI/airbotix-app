@@ -8,6 +8,26 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-17 (change: Creative Code Studio jumps straight to the game prompt)
+
+### Changed
+- **Creating a Creative Code Studio project now goes straight to the game playground
+  prompt, skipping the second-level menu.** Every create entry-point — the Create tab
+  card, the Learn-home "Creative Code Studio" card, the in-class "Create for this class"
+  sheet, and the class games-wall "Make a game" CTA — now routes directly to the
+  prompt-first `/learn/playground/new` (carrying `?class=<id>` in class contexts) instead
+  of the `/learn/create/code` "pick a starting point" hub or the class sheet's Web Code /
+  game sub-menu. `CREATE_TOOLS`' Creative Code Studio entry is now `to:/learn/playground/new`,
+  `projectKind:'game'`.
+- **The unimplemented web-code entries are hidden, not removed.** The `/learn/create/code`
+  `CodeHubPage` route and its `Tiny Game`/website/tool templates, and the
+  `CreateForClassSheet` **Web Code** sub-type, stay in code (still reachable as deep-links —
+  the cross-repo harness enters the game via `hub-template-pong`). The class sheet now shows
+  a second-level menu only when **more than one** sub-type is visible; with Web Code hidden,
+  Creative Code Studio jumps directly into the single visible game sub-type. A course that
+  allows only `code` (not `game`) therefore shows no Creative Code Studio tool for now.
+  Covered by `CreateForClassSheet.test` + `HomePage.test`; harness `kid-game-save`.
+
 ## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
 
 ### Fixed

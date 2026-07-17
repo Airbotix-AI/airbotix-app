@@ -30,6 +30,13 @@ export const CREATE_TOOLS: CreateTool[] = [
   { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1 },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5 },
-  { to: '/learn/create/code', emoji: '💻', title: 'Creative Code Studio', desc: 'Build websites, games, and tools with AI and real JavaScript.', color: 'sky', typeTag: 'Code', projectKind: 'code', cost: 1 },
+  // Creative Code Studio jumps STRAIGHT to the prompt-first game playground
+  // (`/learn/playground/new`) — the guided-game surface is the only Code Studio
+  // path that's productized today, so we skip the old `/learn/create/code`
+  // "pick a starting point" second-level menu (the Web Code / website / tool
+  // templates are hidden-not-removed until they ship: the CodeHubPage route
+  // still exists as a deep-link). `projectKind: 'game'` so the in-class sheet
+  // filters it by the course's `game` allowance.
+  { to: '/learn/playground/new', emoji: '💻', title: 'Creative Code Studio', desc: 'Vibe-code a 2D game with AI and real JavaScript — then keep adding to it.', color: 'sky', typeTag: 'Code', projectKind: 'game', cost: 1 },
   { to: '/learn/create/blocks', emoji: '🧩', title: 'Story Blocks', desc: 'Program an animated story with snap-together blocks. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
 ];

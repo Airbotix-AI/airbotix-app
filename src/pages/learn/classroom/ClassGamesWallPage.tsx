@@ -65,7 +65,10 @@ export function ClassGamesWallPage() {
         <div className="card-base text-center" data-testid="games-wall-empty">
           <span className="sticker-sunshine">No games yet</span>
           <p className="lead-text mt-4">No one has shared a game yet. Be the first!</p>
-          <Link to="/learn/create/code" className="btn-pill-primary mt-6">
+          <Link
+            to={`/learn/playground/new?class=${encodeURIComponent(classId!)}`}
+            className="btn-pill-primary mt-6"
+          >
             Make a game →
           </Link>
         </div>
