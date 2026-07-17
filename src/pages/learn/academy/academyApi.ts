@@ -16,6 +16,14 @@ type BalanceScaleSpec = {
   right: Array<{ label: string; tone: 'mint' | 'sky' | 'sun' }>;
 };
 
+type EqualGroupsSpec = {
+  kind: 'equal_groups';
+  group_label: string;
+  group_count: number;
+  items_per_group: number;
+  item_label: string;
+};
+
 export type AcademyRenderSpec =
   | { kind: 'none' }
   | TallyTableSpec
@@ -27,6 +35,7 @@ export type AcademyRenderSpec =
       upper_inclusive: boolean;
     }
   | BalanceScaleSpec
+  | EqualGroupsSpec
   | { kind: 'route'; from: string; to: string; label: string };
 
 export interface AcademyQuestion {

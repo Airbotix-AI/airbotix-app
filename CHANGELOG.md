@@ -16,6 +16,7 @@
 
 ### Changed
 - `/learn/academy` now redirects to `/learn/exams`; the answer player no longer exposes a Year switch or the legacy global question API.
+- Added a responsive, accessible equal-groups renderer so multiplication stories can be drawn as native SVG cards without PDF screenshots.
 
 ## 2026-07-16 (feat: Academy — native-rendered maths practice)
 

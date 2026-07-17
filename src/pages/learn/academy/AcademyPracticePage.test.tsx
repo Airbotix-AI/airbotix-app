@@ -162,4 +162,29 @@ describe('AcademyPracticePage', () => {
     expect(await screen.findByRole('img', { name: /balanced scale/i })).toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
+
+  it('renders equal groups as six native cars without a PDF screenshot', async () => {
+    const GROUPS_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2016-std-q6',
+      stem_text:
+        'A roller-coaster has 6 cars. Each car has 3 people in it. How many people are on the roller-coaster altogether?',
+      options: ['6', '9', '12', '18'],
+      render_spec: {
+        kind: 'equal_groups' as const,
+        group_label: 'car',
+        group_count: 6,
+        items_per_group: 3,
+        item_label: 'person',
+      },
+    };
+    wireApi([GROUPS_Q]);
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', { name: '6 cars with 3 people in each' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('car 6')).toBeInTheDocument();
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
 });

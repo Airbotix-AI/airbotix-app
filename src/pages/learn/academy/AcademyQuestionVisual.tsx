@@ -5,6 +5,7 @@ export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'tally_table') return <TallyTable spec={spec} />;
   if (spec.kind === 'number_range') return <NumberRange spec={spec} />;
   if (spec.kind === 'balance_scale') return <BalanceScale spec={spec} />;
+  if (spec.kind === 'equal_groups') return <EqualGroups spec={spec} />;
   return <RouteMap spec={spec} />;
 }
 
@@ -164,6 +165,62 @@ function BalanceScale({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'bala
           </g>
         ))}
       </svg>
+    </div>
+  );
+}
+
+const CAR_TONES = ['#CFE8FF', '#C7F2DF', '#FFE7A3'] as const;
+
+function pluralise(label: string, count: number) {
+  if (count === 1) return label;
+  if (label === 'person') return 'people';
+  return `${label}s`;
+}
+
+function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal_groups' }> }) {
+  const groupWord = pluralise(spec.group_label, spec.group_count);
+  const itemWord = pluralise(spec.item_label, spec.items_per_group);
+  return (
+    <div
+      data-testid="academy-native-visual"
+      role="img"
+      aria-label={`${spec.group_count} ${groupWord} with ${spec.items_per_group} ${itemWord} in each`}
+      className="mt-6 grid grid-cols-2 gap-3 rounded-[28px] border-2 border-brand-sunshine/30 bg-wash-sunshine p-4 sm:grid-cols-3 sm:p-6"
+    >
+      {Array.from({ length: spec.group_count }, (_, groupIndex) => (
+        <div key={groupIndex} className="rounded-[20px] bg-white p-2 shadow-sm">
+          <svg viewBox="0 0 140 96" aria-hidden="true" className="w-full">
+            {Array.from({ length: spec.items_per_group }, (_, itemIndex) => {
+              const spacing = 82 / Math.max(spec.items_per_group - 1, 1);
+              const x = spec.items_per_group === 1 ? 70 : 29 + itemIndex * spacing;
+              return (
+                <g key={itemIndex}>
+                  <circle cx={x} cy="28" r="10" fill="#FFF" stroke="#25324B" strokeWidth="4" />
+                  <path
+                    d={`M${x - 10} 51 Q${x} 35 ${x + 10} 51`}
+                    fill="#FF9E92"
+                    stroke="#25324B"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </g>
+              );
+            })}
+            <path
+              d="M14 48 H126 L116 78 H25 Z"
+              fill={CAR_TONES[groupIndex % CAR_TONES.length]}
+              stroke="#25324B"
+              strokeWidth="5"
+              strokeLinejoin="round"
+            />
+            <circle cx="40" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
+            <circle cx="103" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
+          </svg>
+          <p className="text-center text-[12px] font-black capitalize text-slate2">
+            {spec.group_label} {groupIndex + 1}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
