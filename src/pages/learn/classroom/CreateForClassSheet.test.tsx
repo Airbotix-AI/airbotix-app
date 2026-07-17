@@ -109,6 +109,16 @@ describe('CreateForClassSheet — second-level menu', () => {
     });
   });
 
+  it('never offers paused (coming-soon) studios, even when creative is allowed', async () => {
+    renderSheet(['creative', 'code', 'game', 'blocks']);
+
+    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Voice Booth')).not.toBeInTheDocument();
+    expect(screen.queryByText('Video Studio')).not.toBeInTheDocument();
+    // live creative tool still offered
+    expect(screen.getByText('Music Stage')).toBeInTheDocument();
+  });
+
   it('shows only the course-allowed project kinds', async () => {
     renderSheet(['game', 'blocks']);
 

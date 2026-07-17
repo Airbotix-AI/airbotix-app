@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-17 (chore: pause Image Maker / Voice Booth / Video Studio as "Coming soon")
+
+### Changed
+- **Image Maker, Voice Booth and Video Studio are paused on owner request** (output
+  quality isn't there yet). A per-tool `comingSoon` flag in the shared create-tool
+  registry (`src/pages/learn/create/createTools.ts`) now drives every surface:
+  - **Create tab** (`/learn/create`): the three tools moved to a non-clickable
+    "Coming soon" teaser section below the live tools (Story Blocks, Creative Code
+    Studio, Music Stage — now listed first); the skills Tip line mentions live
+    studios only.
+  - **"Create for this class" sheet**: paused tools are never offered, even when the
+    course allows `creative` kinds.
+  - **Workspace studio picker**: Image / Voice / Video render as non-interactive
+    "Coming soon" teasers; no new session can start, and the `?studio=` deep-link
+    param is ignored for paused studios. Existing sessions still open.
+  - **Learn home**: the Studios and Workspace card copy no longer advertises
+    image/voice/video.
+  - **Parent Portal onboarding** (`WelcomeWizard`): the "what your child will make"
+    slide now leads with Story Blocks / Music / Code & Games and marks image, voice
+    & video as coming soon.
+  - The `/learn/create/{image,voice,video}` **routes stay registered** (deep links +
+    harness wallet journeys), so flipping `comingSoon` off restores everything —
+    nothing was deleted.
+
 ## 2026-07-17 (chore: hide the self-serve Lessons catalog behind a feature switch)
 
 ### Changed

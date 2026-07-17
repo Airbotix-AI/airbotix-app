@@ -25,6 +25,13 @@ export interface StudioMeta {
   examples: string[];
   /** Quick-setup fields shown before the chat starts. [] = skip setup. */
   setup: SetupField[];
+  /**
+   * Paused studio (2026-07-17 owner call — output quality isn't there yet):
+   * the picker shows it as a non-clickable "Coming soon" card, so no NEW
+   * sessions can start. Existing sessions still open read-only-ish via the
+   * normal session list. Mirrors `comingSoon` in create/createTools.ts.
+   */
+  comingSoon?: boolean;
 }
 
 export const STUDIOS: StudioMeta[] = [
@@ -45,6 +52,7 @@ export const STUDIOS: StudioMeta[] = [
   },
   {
     id: 'image',
+    comingSoon: true,
     emoji: '🎨',
     label: 'Image',
     cost: 8,
@@ -81,6 +89,7 @@ export const STUDIOS: StudioMeta[] = [
   },
   {
     id: 'voice',
+    comingSoon: true,
     emoji: '🔊',
     label: 'Voice',
     cost: 1,
@@ -99,6 +108,7 @@ export const STUDIOS: StudioMeta[] = [
   },
   {
     id: 'video',
+    comingSoon: true,
     emoji: '🎬',
     label: 'Video',
     cost: 40,

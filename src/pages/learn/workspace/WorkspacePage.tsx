@@ -66,7 +66,9 @@ export function WorkspacePage() {
   useEffect(() => {
     const wanted = searchParams.get('studio');
     if (!wanted) return;
-    if (wanted && wanted in STUDIO_BY_ID) {
+    // Paused (comingSoon) studios can't be armed via deep link either — the
+    // param is dropped and the kid lands on the normal picker.
+    if (wanted && wanted in STUDIO_BY_ID && !STUDIO_BY_ID[wanted as Studio].comingSoon) {
       setPendingStudio(wanted as Studio);
       setAutoSelect(false);
     }

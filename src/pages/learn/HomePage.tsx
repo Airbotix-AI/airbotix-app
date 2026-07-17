@@ -96,7 +96,7 @@ export function HomePage() {
               🎨 Explore all studios
             </div>
             <div className="mt-2 text-[14px] opacity-90">
-              Choose Story Blocks, Creative Code, images, music, voice, or video.
+              Choose Story Blocks, Creative Code, or Music Stage. More studios coming soon.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               See studios →
@@ -114,7 +114,7 @@ export function HomePage() {
               💬 Continue a session
             </div>
             <div className="mt-2 text-[14px] opacity-90">
-              Continue a chat, image, music, voice, or video session you already started.
+              Continue a chat, music, or code session you already started.
             </div>
             <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
               Open workspace →
