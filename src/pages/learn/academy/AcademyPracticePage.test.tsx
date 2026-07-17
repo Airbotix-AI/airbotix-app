@@ -184,7 +184,14 @@ describe('AcademyPracticePage', () => {
     expect(
       await screen.findByRole('img', { name: '6 cars with 3 people in each' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('car 6')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-group-count')).toHaveTextContent('6 cars');
+    expect(screen.getByTestId('academy-items-per-group')).toHaveTextContent('3 people in each');
+    expect(screen.getAllByTestId('academy-equal-group')).toHaveLength(6);
+    expect(screen.getAllByTestId('academy-equal-group-item')).toHaveLength(18);
+    expect(screen.getByTestId('academy-equal-groups-equation')).toHaveTextContent(
+      '6 cars×3 people in each=?people altogether',
+    );
+    expect(screen.queryByText('car 6')).not.toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
 

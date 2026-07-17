@@ -204,42 +204,76 @@ function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal
       data-testid="academy-native-visual"
       role="img"
       aria-label={`${spec.group_count} ${groupWord} with ${spec.items_per_group} ${itemWord} in each`}
-      className="mt-6 grid grid-cols-2 gap-3 rounded-[28px] border-2 border-brand-sunshine/30 bg-wash-sunshine p-4 sm:grid-cols-3 sm:p-6"
+      className="mt-6 rounded-[28px] border-2 border-brand-sunshine/30 bg-wash-sunshine p-4 sm:p-6"
     >
-      {Array.from({ length: spec.group_count }, (_, groupIndex) => (
-        <div key={groupIndex} className="rounded-[20px] bg-white p-2 shadow-sm">
-          <svg viewBox="0 0 140 96" aria-hidden="true" className="w-full">
-            {Array.from({ length: spec.items_per_group }, (_, itemIndex) => {
-              const spacing = 82 / Math.max(spec.items_per_group - 1, 1);
-              const x = spec.items_per_group === 1 ? 70 : 29 + itemIndex * spacing;
-              return (
-                <g key={itemIndex}>
-                  <circle cx={x} cy="28" r="10" fill="#FFF" stroke="#25324B" strokeWidth="4" />
-                  <path
-                    d={`M${x - 10} 51 Q${x} 35 ${x + 10} 51`}
-                    fill="#FF9E92"
-                    stroke="#25324B"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                </g>
-              );
-            })}
-            <path
-              d="M14 48 H126 L116 78 H25 Z"
-              fill={CAR_TONES[groupIndex % CAR_TONES.length]}
-              stroke="#25324B"
-              strokeWidth="5"
-              strokeLinejoin="round"
-            />
-            <circle cx="40" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
-            <circle cx="103" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
-          </svg>
-          <p className="text-center text-[12px] font-black capitalize text-slate2">
-            {spec.group_label} {groupIndex + 1}
-          </p>
-        </div>
-      ))}
+      <div className="flex items-center justify-center gap-2 text-center text-sm font-black text-[#25324B] sm:text-base">
+        <span data-testid="academy-group-count" className="rounded-full bg-white px-3 py-2 shadow-sm">
+          {spec.group_count} {groupWord}
+        </span>
+        <span aria-hidden="true" className="text-xl text-brand-coral">
+          ×
+        </span>
+        <span data-testid="academy-items-per-group" className="rounded-full bg-white px-3 py-2 shadow-sm">
+          {spec.items_per_group} {itemWord} in each
+        </span>
+      </div>
+
+      <div className="relative mx-auto mt-4 grid max-w-2xl grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-4">
+        {Array.from({ length: spec.group_count }, (_, groupIndex) => (
+          <div
+            data-testid="academy-equal-group"
+            key={groupIndex}
+            className="relative z-10 min-w-0"
+            aria-hidden="true"
+          >
+            {groupIndex % 3 !== 2 && groupIndex < spec.group_count - 1 && (
+              <span className="absolute left-[88%] top-[62%] -z-10 h-1 w-[28%] rounded-full bg-[#25324B]" />
+            )}
+            <svg viewBox="0 0 140 96" className="w-full">
+              {Array.from({ length: spec.items_per_group }, (_, itemIndex) => {
+                const spacing = 82 / Math.max(spec.items_per_group - 1, 1);
+                const x = spec.items_per_group === 1 ? 70 : 29 + itemIndex * spacing;
+                return (
+                  <g data-testid="academy-equal-group-item" key={itemIndex}>
+                    <circle cx={x} cy="28" r="10" fill="#FFF" stroke="#25324B" strokeWidth="4" />
+                    <path
+                      d={`M${x - 10} 51 Q${x} 35 ${x + 10} 51`}
+                      fill="#FF9E92"
+                      stroke="#25324B"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
+                  </g>
+                );
+              })}
+              <path
+                d="M14 48 H126 L116 78 H25 Z"
+                fill={CAR_TONES[groupIndex % CAR_TONES.length]}
+                stroke="#25324B"
+                strokeWidth="5"
+                strokeLinejoin="round"
+              />
+              <circle cx="40" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
+              <circle cx="103" cy="80" r="9" fill="#FFF" stroke="#25324B" strokeWidth="5" />
+            </svg>
+            <p className="-mt-1 text-center text-[11px] font-black text-slate2 sm:text-xs">
+              {spec.items_per_group} {itemWord}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        data-testid="academy-equal-groups-equation"
+        className="mt-4 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 rounded-[18px] bg-[#25324B] px-4 py-3 text-center text-sm font-bold text-white sm:text-base"
+      >
+        <span>{spec.group_count} {groupWord}</span>
+        <span aria-hidden="true">×</span>
+        <span>{spec.items_per_group} {itemWord} in each</span>
+        <span aria-hidden="true">=</span>
+        <strong className="text-xl text-brand-sunshine">?</strong>
+        <span>{itemWord} altogether</span>
+      </div>
     </div>
   );
 }
