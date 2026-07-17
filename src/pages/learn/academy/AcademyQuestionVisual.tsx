@@ -13,6 +13,8 @@ export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'number_range') return <NumberRange spec={spec} />;
   if (spec.kind === 'balance_scale') return <BalanceScale spec={spec} />;
   if (spec.kind === 'equal_groups') return <EqualGroups spec={spec} />;
+  if (spec.kind === 'analog_clock') return <AnalogClock spec={spec} />;
+  if (spec.kind === 'solid_shape') return <SolidShape spec={spec} />;
   if (spec.kind === 'coin_collection') return <CoinCollection spec={spec} />;
   if (spec.kind === 'shape_matrix') return <ShapeMatrix spec={spec} />;
   if (spec.kind === 'symbol_pattern') return <SymbolPattern spec={spec} />;
@@ -274,6 +276,146 @@ function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal
         <strong className="text-xl text-brand-sunshine">?</strong>
         <span>{itemWord} altogether</span>
       </div>
+    </div>
+  );
+}
+
+function clockPoint(angle: number, length: number) {
+  const radians = ((angle - 90) * Math.PI) / 180;
+  return {
+    x: 150 + Math.cos(radians) * length,
+    y: 150 + Math.sin(radians) * length,
+  };
+}
+
+function AnalogClock({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'analog_clock' }> }) {
+  const minuteAngle = spec.minute * 6;
+  const hourAngle = ((spec.hour % 12) + spec.minute / 60) * 30;
+  const minuteEnd = clockPoint(minuteAngle, 92);
+  const hourEnd = clockPoint(hourAngle, 62);
+  return (
+    <div
+      data-testid="academy-native-visual"
+      className="mt-6 rounded-[28px] border-2 border-brand-sky/25 bg-wash-sky p-4 sm:p-6"
+    >
+      <svg
+        viewBox="0 0 300 300"
+        role="img"
+        aria-label="An analogue clock with the minute hand pointing to 3 and the hour hand just past 8"
+        className="mx-auto w-full max-w-[320px]"
+      >
+        <circle cx="150" cy="150" r="137" fill="#FFFFFF" stroke="#25324B" strokeWidth="9" />
+        <circle cx="150" cy="150" r="126" fill="none" stroke="#CFE8FF" strokeWidth="5" />
+        {Array.from({ length: 60 }, (_, index) => {
+          const outer = clockPoint(index * 6, 119);
+          const inner = clockPoint(index * 6, index % 5 === 0 ? 104 : 112);
+          return (
+            <line
+              aria-hidden="true"
+              key={index}
+              x1={inner.x}
+              y1={inner.y}
+              x2={outer.x}
+              y2={outer.y}
+              stroke="#25324B"
+              strokeWidth={index % 5 === 0 ? 4 : 2}
+              strokeLinecap="round"
+            />
+          );
+        })}
+        {Array.from({ length: 12 }, (_, index) => {
+          const number = index + 1;
+          const point = clockPoint(number * 30, 86);
+          return (
+            <text
+              aria-hidden="true"
+              key={number}
+              x={point.x}
+              y={point.y + 7}
+              textAnchor="middle"
+              fill="#25324B"
+              fontSize="22"
+              fontWeight="800"
+            >
+              {number}
+            </text>
+          );
+        })}
+        <line
+          data-testid="academy-clock-hour-hand"
+          x1="150"
+          y1="150"
+          x2={hourEnd.x}
+          y2={hourEnd.y}
+          stroke="#25324B"
+          strokeWidth="12"
+          strokeLinecap="round"
+        />
+        <line
+          data-testid="academy-clock-minute-hand"
+          x1="150"
+          y1="150"
+          x2={minuteEnd.x}
+          y2={minuteEnd.y}
+          stroke="#FF7C68"
+          strokeWidth="8"
+          strokeLinecap="round"
+        />
+        <circle cx="150" cy="150" r="11" fill="#FFE27A" stroke="#25324B" strokeWidth="5" />
+      </svg>
+    </div>
+  );
+}
+
+function SolidShape({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'solid_shape' }> }) {
+  return (
+    <div
+      data-testid="academy-native-visual"
+      className="mt-6 rounded-[28px] border-2 border-brand-mint/30 bg-wash-mint p-4 sm:p-6"
+    >
+      <svg
+        viewBox="0 0 420 280"
+        role="img"
+        aria-label={
+          spec.shape === 'triangular_prism'
+            ? 'A pet hutch with two triangular ends and rectangular side faces'
+            : 'A three-dimensional solid shape'
+        }
+        className="mx-auto w-full max-w-[520px]"
+      >
+        <path
+          data-testid="academy-solid-shape-side"
+          d="M105 70 L270 42 L355 205 L190 230 Z"
+          fill="#CFE8FF"
+          stroke="#25324B"
+          strokeWidth="7"
+          strokeLinejoin="round"
+        />
+        <path
+          data-testid="academy-solid-shape-end"
+          d="M105 70 L35 220 L190 230 Z"
+          fill="#FFE7A3"
+          stroke="#25324B"
+          strokeWidth="7"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M270 42 L215 165 L355 205 Z"
+          fill="#C7F2DF"
+          stroke="#25324B"
+          strokeWidth="7"
+          strokeLinejoin="round"
+        />
+        <path d="M105 70 L270 42 M35 220 L215 165 M190 230 L355 205" fill="none" stroke="#25324B" strokeWidth="7" />
+        <g stroke="#70809A" strokeWidth="3" opacity="0.65">
+          <path d="M226 142 L334 177 M238 115 L320 145 M250 88 L304 112" />
+          <path d="M238 151 L286 78 M270 162 L309 105 M302 173 L331 135" />
+        </g>
+        <rect x="83" y="150" width="58" height="71" rx="5" fill="#FFFFFF" stroke="#25324B" strokeWidth="6" />
+      </svg>
+      <p className="mt-1 text-center text-sm font-bold text-slate2">
+        Look at the ends and side faces of the solid.
+      </p>
     </div>
   );
 }

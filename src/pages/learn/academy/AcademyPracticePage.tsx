@@ -32,6 +32,7 @@ export function AcademyPracticePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [phase, setPhase] = useState<'practice' | 'summary'>('practice');
   const startedAt = useRef<number>(Date.now());
+  const questionTop = useRef<HTMLDivElement>(null);
 
   const product = useQuery({
     queryKey: ['academy-product', productSlug],
@@ -67,6 +68,7 @@ export function AcademyPracticePage() {
     startedAt.current = Date.now();
     setDraft('');
     setSubmitError(null);
+    questionTop.current?.scrollIntoView?.({ block: 'start' });
   }, [idx]);
 
   const all = useMemo(() => questions.data ?? [], [questions.data]);
@@ -151,7 +153,7 @@ export function AcademyPracticePage() {
         total > 0 &&
         phase === 'practice' &&
         current && (
-          <div className="max-w-3xl">
+          <div ref={questionTop} className="max-w-3xl">
             <Scoreboard done={doneCount} correct={correctCount} idx={idx} total={total} />
 
             <section className="card-base mt-6" data-testid="academy-question">

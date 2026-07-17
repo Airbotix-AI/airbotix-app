@@ -24,6 +24,17 @@ type EqualGroupsSpec = {
   item_label: string;
 };
 
+type AnalogClockSpec = {
+  kind: 'analog_clock';
+  hour: number;
+  minute: number;
+};
+
+type SolidShapeSpec = {
+  kind: 'solid_shape';
+  shape: 'triangular_prism';
+};
+
 export type AcademyShapeName = 'hexagon' | 'diamond' | 'triangle' | 'trapezoid';
 export type AcademyShapeFill = 'outline' | 'grid' | 'solid' | 'dots';
 export type AcademyShape = { shape: AcademyShapeName; fill: AcademyShapeFill };
@@ -53,6 +64,8 @@ export type AcademyRenderSpec =
     }
   | BalanceScaleSpec
   | EqualGroupsSpec
+  | AnalogClockSpec
+  | SolidShapeSpec
   | { kind: 'coin_collection'; coins_cents: number[] }
   | ShapeMatrixSpec
   | SymbolPatternSpec

@@ -3,7 +3,7 @@
 // no exam/year switching inside the player.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -131,6 +131,40 @@ describe('AcademyPracticePage', () => {
     );
   });
 
+  it('scrolls the next question back to the top on mobile', async () => {
+    const scrollIntoView = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    try {
+      wireApi([
+        TEXT_CHOICE_Q,
+        { ...TEXT_CHOICE_Q, id: 'q-next', stem_text: 'The next question starts here.' },
+      ]);
+      renderPage();
+
+      fireEvent.click(await screen.findByTestId('academy-option-A'));
+      fireEvent.click(await screen.findByTestId('academy-next'));
+
+      expect(await screen.findByTestId('academy-stem')).toHaveTextContent(
+        'The next question starts here.',
+      );
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' }));
+    } finally {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+          configurable: true,
+          value: original,
+        });
+      } else {
+        delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+      }
+    }
+  });
+
   it('renders a tally table as native HTML/SVG and never shows a PDF crop', async () => {
     wireApi([TALLY_Q]);
     renderPage();
@@ -192,6 +226,74 @@ describe('AcademyPracticePage', () => {
       '6 cars×3 people in each=?people altogether',
     );
     expect(screen.queryByText('car 6')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders an analogue clock with exact native hand geometry', async () => {
+    const CLOCK_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q15',
+      stem_text: 'What time does this clock show?',
+      options: ['3:08', '3:40', '8:03', '8:15'],
+      render_spec: { kind: 'analog_clock' as const, hour: 8, minute: 15 },
+    };
+    wireApi([CLOCK_Q]);
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'An analogue clock with the minute hand pointing to 3 and the hour hand just past 8',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('academy-clock-hour-hand')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-clock-minute-hand')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-D')).toHaveTextContent('8:15');
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders the chicken hutch as a native triangular-prism solid', async () => {
+    const HUTCH_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q18',
+      stem_text:
+        'Natalie made a hutch for her pet chicken. Her hutch is most like which solid shape?',
+      options: [
+        'Rectangular prism',
+        'Rectangular pyramid',
+        'Triangular pyramid',
+        'Triangular prism',
+      ],
+      render_spec: { kind: 'solid_shape' as const, shape: 'triangular_prism' as const },
+    };
+    wireApi([HUTCH_Q]);
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'A pet hutch with two triangular ends and rectangular side faces',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('academy-solid-shape-end')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-solid-shape-side')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-D')).toHaveTextContent('Triangular prism');
+    expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('removes the decorative pizza photo after making the grouping fact explicit in text', async () => {
+    const TRAYS_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q24',
+      stem_text:
+        'James makes 12 pizzas. Each tray holds 4 pizzas. Which calculation shows how James could work out the number of trays he needs?',
+      options: ['12 ÷ 4', '12 × 4', '12 − 4', '12 + 4'],
+      render_spec: { kind: 'none' as const },
+    };
+    wireApi([TRAYS_Q]);
+    renderPage();
+
+    expect(await screen.findByTestId('academy-stem')).toHaveTextContent('Each tray holds 4 pizzas');
+    expect(screen.getByTestId('academy-option-A')).toHaveTextContent('12 ÷ 4');
+    expect(screen.queryByTestId('academy-native-visual')).not.toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
   });
 
