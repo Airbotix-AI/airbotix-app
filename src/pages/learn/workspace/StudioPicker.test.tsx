@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { StudioPicker } from './StudioPicker';
 
 describe('StudioPicker', () => {
+  afterEach(cleanup);
   // Music left the chat shell (D-MS7) but must stay DISCOVERABLE here — the
   // picker asks "what do you want to make?" and music is an answer. Its card
   // links to the Stage instead of creating a chat-shell session.
@@ -23,5 +24,24 @@ describe('StudioPicker', () => {
     expect(music).toHaveTextContent('Opens your own stage');
     // The chat studio stays a plain session-creating button (no href).
     expect(screen.getByTestId('studio-pick-chat')).not.toHaveAttribute('href');
+  });
+
+  // Image / Voice / Video are paused (studios.ts `comingSoon`, learn PRD v0.7):
+  // no session-creating card, only a non-interactive "Coming soon" teaser.
+  it('shows paused studios as coming-soon teasers, never as pickable cards', () => {
+    render(
+      <MemoryRouter>
+        <StudioPicker onPick={vi.fn()} busy={false} />
+      </MemoryRouter>,
+    );
+    for (const id of ['image', 'voice', 'video']) {
+      expect(screen.queryByTestId(`studio-pick-${id}`)).toBeNull();
+      const teaser = screen.getByTestId(`studio-coming-soon-${id}`);
+      expect(teaser).toHaveAttribute('aria-disabled', 'true');
+      expect(teaser).toHaveTextContent(/coming soon/i);
+    }
+    // live studios keep their pickable cards
+    expect(screen.getByTestId('studio-pick-chat')).toBeInTheDocument();
+    expect(screen.getByTestId('studio-pick-code')).toBeInTheDocument();
   });
 });

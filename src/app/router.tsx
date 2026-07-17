@@ -195,6 +195,10 @@ export const router = createBrowserRouter([
       { path: 'classroom/:classId/post/:projectId', element: <ClassPostPage /> },
       { path: 'profile', element: <LearnProfilePage /> },
       { path: 'create', element: <CreateHubPage /> },
+      // Image / Voice / Video are PAUSED (createTools.ts `comingSoon`, learn PRD
+      // v0.7): every visible entry (Create hub, class sheet, workspace picker)
+      // hides them, but the routes stay registered so deep links and the harness
+      // wallet journeys (kid-create-image, wallet-pause) keep working.
       { path: 'create/image', element: <ImageMakerPage /> },
       // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
       // is the single music surface (music-stage-prd §2). Kept as a redirect so
