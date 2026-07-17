@@ -12,6 +12,8 @@
 - Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
   Nested actions, the add affordance and the active insertion state now have separate visual zones,
   and the insertion prompt points children to the block palette on the left.
+- Replaced the dashed web-style add button with a tactile connector control that shares the
+  blocks' border, depth and press feedback without pretending to be an executable block.
 
 ### Tests
 - Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
