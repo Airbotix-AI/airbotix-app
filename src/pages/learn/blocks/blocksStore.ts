@@ -128,6 +128,7 @@ interface BlocksStore {
     toIndex: number,
   ) => void;
   moveCharacter: (charId: string, gx: number, gy: number) => void;
+  setCharacterIdentity: (charId: string, name: string, emoji: string, asset: string) => void;
 
   /** Internal: apply a mutation + record history. Producer returns the next
    *  {project,pageId?,charId?} or null for a no-op (no history entry). */
@@ -361,7 +362,13 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             ...c,
             scripts: c.scripts.map((sc, i) =>
               i === c.scripts.length - 1
-                ? { ...sc, blocks: [...sc.blocks, ...structuralBlocks(block)] }
+                ? {
+                    ...sc,
+                    blocks:
+                      sc.blocks.at(-1)?.op === 'end' && op !== 'end'
+                        ? [...sc.blocks.slice(0, -1), ...structuralBlocks(block), sc.blocks.at(-1)!]
+                        : [...sc.blocks, ...structuralBlocks(block)],
+                  }
                 : sc,
             ),
           };
@@ -596,5 +603,11 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
       }),
       `move:${charId}`,
     );
+  },
+
+  setCharacterIdentity(charId, name, emoji, asset) {
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, charId, (c) => ({ ...c, name, emoji, asset })),
+    }));
   },
 }));

@@ -735,6 +735,78 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
   });
 
+  it('makes A3-D observe a failed tap before replacing only Start with On Tap', async () => {
+    const eventDebug = blankProject('Tiny Star Village · The Wrong Start Hat');
+    eventDebug.lessonId = 'tsv-s1-a3-d';
+    eventDebug.pages[0] = {
+      id: 'tsv-a3-d-page',
+      background: 'sunset',
+      characters: [{
+        id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        start: { gx: 10, gy: 8, size: 1, rot: 0 },
+        scripts: [{
+          id: 'dot-dot-event',
+          blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }],
+        }],
+      }],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: eventDebug, version: 1, history: { past: [], future: [] }, otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
+    expect(screen.queryByTestId('event-repair-picker')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+
+    const dot = screen.getByTestId('sprite-dot-dot');
+    dot.setPointerCapture = vi.fn();
+    dot.releasePointerCapture = vi.fn();
+    fireEvent.pointerDown(dot);
+    fireEvent.pointerUp(dot);
+    expect(await screen.findByTestId('story-mission')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
+    expect(screen.getByTestId('event-repair-picker')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('event-repair-when_tap'));
+
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+    await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
+    fireEvent.pointerDown(dot);
+    fireEvent.pointerUp(dot);
+    expect(await screen.findByTestId('story-celebration', {}, { timeout: 3000 })).toBeInTheDocument();
+  });
+
+  it('changes the saved A3-S character without inserting a response', async () => {
+    const personal = blankProject('Tiny Star Village · My Tap Surprise');
+    personal.lessonId = 'tsv-s1-a3-s';
+    personal.pages[0] = {
+      id: 'tsv-a3-s-page', background: 'sunset', characters: [{
+        id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        start: { gx: 10, gy: 8, size: 1, rot: 0 },
+        scripts: [{ id: 'dot-dot-surprise', blocks: [{ op: 'when_tap' }, { op: 'end' }] }],
+      }],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: personal, version: 1, history: { past: [], future: [] }, otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(screen.getByTestId('a3-s-character-tuan-tuan'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
+      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    });
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_tap' }, { op: 'end' },
+    ]);
+    await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
+  });
+
   // Load-error dead-end (review finding): the error state must NOT expose a
   // `/learn/create/blocks` link when embedded — it would bounce a teacher `user`
   // to `/portal`. The host banner's Back is the only exit.
