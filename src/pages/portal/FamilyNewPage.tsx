@@ -7,10 +7,12 @@ import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { ClaimKidForm } from './ClaimKidForm';
 
 const schema = z.object({
   nickname: z.string().min(1).max(40),
-  age: z.coerce.number().int().min(4).max(17),
+  // Backend minimum age is 6 (D-SP8 / C2 compliance) — keep the client aligned.
+  age: z.coerce.number().int().min(6, 'Airbotix is for ages 6+').max(17),
   pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
   daily_star_cap: z
     .union([z.literal(''), z.coerce.number().int().min(0).max(1000)])
@@ -24,6 +26,9 @@ export function FamilyNewPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  // 'new' = create a fresh kid; 'claim' = claim a walk-in workshop kid by kid
+  // code (auth-system-prd §5.2).
+  const [mode, setMode] = useState<'new' | 'claim'>('new');
 
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
 
@@ -73,6 +78,39 @@ export function FamilyNewPage() {
         </p>
       </div>
 
+      <div className="mb-5 flex gap-2" role="tablist" aria-label="How to add the kid">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'new'}
+          onClick={() => setMode('new')}
+          className={mode === 'new' ? 'btn-pill-primary' : 'btn-pill-ghost'}
+        >
+          New kid
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'claim'}
+          onClick={() => setMode('claim')}
+          className={mode === 'claim' ? 'btn-pill-primary' : 'btn-pill-ghost'}
+        >
+          I have a kid code
+        </button>
+      </div>
+
+      {mode === 'claim' ? (
+        <div className="card-base" style={{ maxWidth: '520px' }}>
+          <ClaimKidForm
+            familyId={familyId}
+            onClaimed={async () => {
+              await qc.invalidateQueries({ queryKey: ['family', familyId, 'kids'] });
+              await qc.invalidateQueries({ queryKey: ['auth', 'me'] });
+              nav('/portal/family', { replace: true });
+            }}
+          />
+        </div>
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="card-base space-y-5" style={{ maxWidth: '520px' }}>
         <label className="block">
           <span className="label-k12">Nickname</span>
@@ -125,6 +163,7 @@ export function FamilyNewPage() {
           <Link to="/portal/family" className="btn-pill-secondary">Cancel</Link>
         </div>
       </form>
+      )}
     </div>
   );
 }
