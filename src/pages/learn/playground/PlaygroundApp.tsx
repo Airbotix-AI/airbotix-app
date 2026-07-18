@@ -25,6 +25,7 @@ import {
 import { captureWorkspaceThumbnail } from './workspaceThumbnail';
 import { useWorkspaceUiStore } from './workspaceUiStore';
 import { type ProjectChange, useProjectStore } from './projectStore';
+import { mergeTurnFiles } from './vfsOps';
 import { useSaveStatusStore } from './saveStatusStore';
 import { Workspace } from './Workspace';
 import type { ChatItem, FirstTurnSeed } from './panes/useGameAgent';
@@ -194,13 +195,21 @@ export function PlaygroundApp({
   // but keep the old version, the next manual save sends a stale expected_version,
   // 409s, and the server's pre-edit copy wins — silently reverting the kid's hand
   // edit. `version` is omitted for local-only applies (undo) that don't move it.
+  // With `changedPaths` (an applied AI/fix turn) the server snapshot is MERGED
+  // per-path onto the CURRENT local VFS — the turn wins only on the files it
+  // actually changed, so a hand-edit the kid committed while the turn was in
+  // flight survives instead of being wholesale-replaced away.
   const applyTurnFiles = useCallback(
-    (next: VfsFile[], version?: number) => {
+    (next: VfsFile[], version?: number, changedPaths?: string[]) => {
       if (version != null) versionRef.current = version;
       // Turn files come from the backend (already written to S3), so the next save
       // references their assets instead of re-uploading.
       for (const p of assetPathSet(next)) syncedAssetsRef.current.add(p);
-      applyFiles(next);
+      applyFiles(
+        changedPaths
+          ? mergeTurnFiles(useProjectStore.getState().files, next, changedPaths)
+          : next,
+      );
     },
     [applyFiles],
   );
@@ -281,12 +290,10 @@ export function PlaygroundApp({
   // Persist the project (VFS + history) on change, debounced, while in the
   // workspace. The backend is the source of truth (PRD J3): we PUT the VFS and
   // show a visible save status; IndexedDB is the offline cache/outbox. On a
-  // stale-version save the server's newer copy wins and the kid's superseded
-  // build drops into History so it stays recoverable (never the word "conflict").
-  // Persist the live project NOW (bypassing the debounce). Used by the debounced
-  // autosave AND on exit (handleLeave) so a just-created asset/import that's still
-  // within the debounce window isn't lost when the workspace unmounts.
-  const flushSave = useCallback(async (): Promise<SaveResult> => {
+  // stale-version save the kid's LIVE copy wins (re-saved on the adopted server
+  // version) and the OVERWRITTEN server copy drops into History so it stays
+  // recoverable (never the word "conflict").
+  const performSave = useCallback(async (): Promise<SaveResult> => {
     const ps = useProjectStore.getState();
     // Assets not yet confirmed in S3 at their path (new import / rename) → uploaded
     // straight to S3 by the save; the rest are referenced.
@@ -313,28 +320,52 @@ export function PlaygroundApp({
       syncedAssetsRef.current = assetPathSet(ps.files);
       setSaveStatus('saved');
     } else if (result.status === 'queued') {
+      // A double conflict adopts the server's counter so the NEXT save resolves.
+      if (result.version != null) versionRef.current = result.version;
       setSaveStatus('queued');
     } else if (result.status === 'rejected') {
       // Permanent backend rejection (e.g. an asset over the size cap). Surface it
       // honestly — the change won't survive a reload — instead of a false "saved".
       setSaveStatus('error');
     } else {
-      // kept-newest: adopt the server's snapshot, record the superseded build
-      // in History (recoverable), and reassure the kid we kept their newest.
-      versionRef.current = result.server.version;
+      // kept-newest: the kid's live copy won the re-save; record the overwritten
+      // server copy in History (recoverable — e.g. edits from another device),
+      // and reassure the kid we kept their newest. The LOCAL files stay exactly
+      // as they are — a conflict must never revert what's on screen.
+      versionRef.current = result.version;
+      syncedAssetsRef.current = assetPathSet(ps.files);
       useHistoryStore
         .getState()
-        .record(result.superseded, Date.now(), 'Your earlier copy (we kept your newest)', {
+        .record(result.overwritten, Date.now(), 'Another copy (we kept your newest)', {
           label: 'Kept your newest copy',
           kind: 'kept-newest',
         });
-      useProjectStore.getState().apply(result.server.files);
       setSaveStatus('kept-newest');
     }
     // Returned so a caller (e.g. an asset import) can confirm the save before
     // revealing its result; the status side-effects above are unchanged.
     return result;
   }, [persistKey, projectId, setSaveStatus]);
+
+  // Persist the live project NOW (bypassing the debounce). Used by the debounced
+  // autosave, the agent's pre-turn flush, asset imports, Time Machine reverts AND
+  // on exit (handleLeave) so a just-created asset/import that's still within the
+  // debounce window isn't lost when the workspace unmounts.
+  //
+  // SINGLE-FLIGHT: saves serialize through `saveChainRef`. Two overlapping saves
+  // (debounce timer + pre-turn flush, say) would both read the same versionRef,
+  // PUT the same expected_version, and self-conflict — the loser's 409 then
+  // "resolved" a phantom conflict. Serializing means each save reads the version
+  // its predecessor adopted, so the client never races itself. A direct flush
+  // also cancels the pending debounce tick (it would only repeat this save).
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const flushSave = useCallback((): Promise<SaveResult> => {
+    clearTimeout(saveTimerRef.current);
+    const run = saveChainRef.current.then(performSave, performSave);
+    saveChainRef.current = run.catch(() => undefined);
+    return run;
+  }, [performSave]);
 
   // Persist the chat conversation (J9 resume), debounced. The agent hook hands us
   // the full chat on every change; we strip transient bubbles ("Thinking…" /
@@ -359,16 +390,17 @@ export function PlaygroundApp({
 
   useEffect(() => {
     if (readOnly || phase !== 'workspace') return; // teacher viewer never saves (D-LV-6)
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       setSaveStatus('saving');
-      clearTimeout(timer);
-      timer = setTimeout(() => void flushSave(), SAVE_DEBOUNCE_MS);
+      // The shared saveTimerRef lets a direct flush (pre-turn / revert / exit)
+      // cancel a scheduled tick instead of racing it.
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => void flushSave(), SAVE_DEBOUNCE_MS);
     };
     const unsubProject = useProjectStore.subscribe(schedule);
     const unsubHistory = useHistoryStore.subscribe(schedule);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(saveTimerRef.current);
       unsubProject();
       unsubHistory();
     };

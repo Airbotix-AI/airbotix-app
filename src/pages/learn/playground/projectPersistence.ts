@@ -5,11 +5,14 @@
 // cached so a reload restores instantly (and works offline), and a save that
 // can't reach the backend is queued and flushed on the next successful save.
 //
-// Conflict policy (PRD J3): on a stale-version save the backend returns the
-// server's newer snapshot (409 → SaveConflictError). We keep the kid's NEWEST
-// copy (server wins) and hand the SUPERSEDED build back so the caller can drop
-// it into History — recoverable, never silently lost. The word "conflict" never
-// reaches the kid (caller copy says "we kept your newest copy").
+// Conflict policy (PRD J3, revised): on a stale-version save the backend returns
+// the server's snapshot (409 → SaveConflictError). The LIVE editor is the kid's
+// newest work — on a single device the "conflicting" server copy is almost always
+// an OLDER snapshot we raced ourselves to (a turn, a second flush) — so LOCAL
+// WINS: we adopt the server's version counter, re-save the kid's files on top,
+// and hand the OVERWRITTEN server copy back so the caller can drop it into
+// History — recoverable, never silently lost. The word "conflict" never reaches
+// the kid (caller copy says "we kept your newest copy" — now literally true).
 //
 // A project-less session (e.g. the `/learn/playground/new` create/landing flow
 // before a project exists) has no project id, so it stays cache-only — the same
@@ -223,15 +226,19 @@ export async function loadProject(
 /** The outcome of a save attempt the caller acts on (PRD J3). */
 export type SaveResult =
   | { status: 'saved'; version: number }
-  | { status: 'queued' } // offline — cached + outboxed, will flush on reconnect
+  // Offline / still racing — cached + outboxed, flushes on the next save.
+  // `version` is present when a conflict adopted the server's counter (so the
+  // caller can base its NEXT save on it even though this one didn't land).
+  | { status: 'queued'; version?: number }
   | { status: 'rejected'; reason: string } // permanent server rejection (4xx) — NOT retryable
   | {
-      // A newer copy existed server-side; we kept it (server wins). The caller
-      // surfaces "we kept your newest copy" and drops the superseded build into
+      // A conflicting copy existed server-side; the kid's LIVE copy won the
+      // re-save (local wins — it is the newest work). The caller surfaces
+      // "we kept your newest copy" and drops the OVERWRITTEN server copy into
       // History so it's recoverable.
       status: 'kept-newest';
-      server: VfsSnapshot;
-      superseded: VfsFile[];
+      version: number;
+      overwritten: VfsFile[];
     };
 
 /**
@@ -239,7 +246,9 @@ export type SaveResult =
  * IndexedDB cache first (so a reload is instant + offline-safe), then writes to
  * the backend when a `projectId` is present:
  *   - success → cache the bumped version, report `saved`;
- *   - 409 (stale) → server wins; report `kept-newest` + the superseded build;
+ *   - 409 (stale) → LOCAL wins: adopt the server's version counter, re-save the
+ *     kid's files on top, report `kept-newest` + the overwritten server copy
+ *     (the caller records it in History so it stays recoverable);
  *   - network failure → leave it cached (the cache IS the outbox) + report
  *     `queued`; the next successful save flushes the newest local state.
  * Without a `projectId` it's cache-only (`saved` once cached).
@@ -264,26 +273,54 @@ export async function saveProject(
     return { status: 'saved', version: snap.version };
   } catch (e) {
     if (e instanceof SaveConflictError) {
-      // Server wins: adopt its snapshot as the new base, keep our local build
-      // recoverable in History. Cache the server version so the next save is
-      // non-stale (last-write-wins resolves deterministically).
-      await writeCache(key, {
-        ...data,
-        files: e.current.files,
-        version: e.current.version,
-        savedAt: Date.now(),
-      });
-      return { status: 'kept-newest', server: e.current, superseded: data.files };
+      return resolveConflictLocalWins(key, data, projectId, e.current, opts);
     }
-    // A permanent client error (4xx — e.g. file too large, disallowed extension,
-    // project over budget) will NEVER succeed on retry, so don't pretend we saved
-    // on-device ('queued'): surface it so the UI shows the save FAILED and the kid
-    // knows the change won't survive a reload (the original asset-vanish bug).
-    if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
-      return { status: 'rejected', reason: e.message };
-    }
-    // Network / backend down — the cache holds the newest state (the outbox);
-    // a later successful save with the same version flushes it.
-    return { status: 'queued' };
+    return classifySaveFailure(e);
   }
+}
+
+/**
+ * Resolve a 409 by re-saving the kid's LIVE files on top of the server's version
+ * (local wins — the live editor is the newest work; the server copy is handed
+ * back for History). If a live external writer beats us AGAIN, adopt its version
+ * and stay `queued` (the cache/outbox holds the newest local state) rather than
+ * loop — the next save resolves against the adopted counter.
+ */
+async function resolveConflictLocalWins(
+  key: string,
+  data: PersistedProject,
+  projectId: string,
+  server: VfsSnapshot,
+  opts?: { dirtyAssetPaths?: Set<string> },
+): Promise<SaveResult> {
+  try {
+    const snap = await saveVfs({
+      projectId,
+      files: data.files,
+      version: server.version,
+      dirtyAssetPaths: opts?.dirtyAssetPaths,
+    });
+    await writeCache(key, { ...data, version: snap.version, savedAt: Date.now() });
+    return { status: 'kept-newest', version: snap.version, overwritten: server.files };
+  } catch (e) {
+    if (e instanceof SaveConflictError) {
+      await writeCache(key, { ...data, version: e.current.version, savedAt: Date.now() });
+      return { status: 'queued', version: e.current.version };
+    }
+    return classifySaveFailure(e);
+  }
+}
+
+/** Non-conflict save failure → `rejected` (permanent 4xx) or `queued` (network). */
+function classifySaveFailure(e: unknown): SaveResult {
+  // A permanent client error (4xx — e.g. file too large, disallowed extension,
+  // project over budget) will NEVER succeed on retry, so don't pretend we saved
+  // on-device ('queued'): surface it so the UI shows the save FAILED and the kid
+  // knows the change won't survive a reload (the original asset-vanish bug).
+  if (e instanceof ApiError && e.status >= 400 && e.status < 500) {
+    return { status: 'rejected', reason: e.message };
+  }
+  // Network / backend down — the cache holds the newest state (the outbox);
+  // a later successful save with the same version flushes it.
+  return { status: 'queued' };
 }

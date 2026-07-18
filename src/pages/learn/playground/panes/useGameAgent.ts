@@ -186,9 +186,11 @@ export interface UseGameAgentOptions {
    * VFS version (the turn bumped it server-side) so the page can keep its save
    * version in sync — without it, the next manual save 409s and the kid's edit is
    * reverted. Omit `version` for local-only applies (undo) that don't change the
-   * server version.
+   * server version. `changedPaths` (the turn's changed files) makes the apply a
+   * per-path MERGE onto the current local VFS instead of a wholesale replace, so
+   * a hand-edit committed while the turn was in flight survives.
    */
-  onApplyFiles: (files: VfsFile[], version?: number) => void;
+  onApplyFiles: (files: VfsFile[], version?: number, changedPaths?: string[]) => void;
   /** The real backend project. When absent, the offline stub runs (project-less session). */
   projectId?: string;
   /** Age-derived tier: Lite (8–11) auto-applies w/ agency beat; Pro (12–17) approves. */
@@ -550,7 +552,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         );
         setStreaming(false);
       }
-      onApplyFiles(result.files, result.version);
+      onApplyFiles(result.files, result.version, result.changes.map((c) => c.path));
       onStarsCharged?.(result.stars_charged);
       // Run the turn's workspace actions — but NOT the ones that yank the code
       // editor to the front. The kid opens the editor by tapping a changed-file
@@ -629,7 +631,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           setCanUndo(true);
           setProgress(null);
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
-          onApplyFiles(res.turn.files, res.turn.version);
+          onApplyFiles(res.turn.files, res.turn.version, res.turn.changes.map((c) => c.path));
           onStarsCharged?.(res.turn.stars_charged);
           clientActions?.restartGame();
         } else {
