@@ -853,6 +853,28 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '👉', label: 'Predict 3', order: 'Before' }, { icon: '▶️', label: 'Run Right 1', order: 'Then' }, { icon: '🍽️', label: 'Compare', order: 'Explain' }],
     logicWhy: 'The cart starts at 4 and the table is at 7, so the distance is three spaces.', completionTitle: 'Story Hook complete · Three spaces!', completion: 'You predicted before running and saw the unchanged one-space program stop early.', completionSteps: [{ icon: '3️⃣', label: 'Predict', order: 'First' }, { icon: '🚙', label: 'Stop at 5', order: 'Run' }, { icon: '🍽️', label: 'Table at 7', order: 'Compare' }], completionWhy: 'The exact unchanged Start → Right 1 → End program ran from 4 to 5 while the table stayed at 7.', next: 'Next, change only the movement number to 3 in A4-B.',
   },
+  'tsv-s1-a4-b': {
+    mode: 'complete', lessonId: 'tsv-s1-a4-b', celebrate: true,
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 4 · Mission 14', title: 'How many spaces?',
+    storyPages: [
+      { emoji: '🚙…🍽️', title: 'The cart stopped early', body: 'Right 1 moved the cart from space 4 to space 5. The table is still at space 7.', speaker: 'Breakfast Cart', dialogue: 'I need a bigger number.', scene: 1 },
+      { emoji: '1️⃣→3️⃣', title: 'Change only the number', body: 'Keep Start, Right, and End exactly where they are. Tap the 1 and change it to 3.', speaker: 'Lumilo', dialogue: 'Three spaces reaches the table.', scene: 3, blocks: ['🚩 Start', '➡️ Right 1 → change to 3 → End'] },
+      { emoji: '▶️🚙🍽️', title: 'Save, then test', body: 'Wait for Saved, press Go, and watch the real cart stop exactly beside breakfast.', speaker: 'Lumilo', dialogue: 'No new blocks are needed.', scene: 5 },
+    ],
+    partnerLine: 'The movement stays Right; only its distance number changes.',
+    mission: 'Tap Right 1, change only its number to 3, wait for Saved, then press Go.',
+    question: 'Which number reaches the table?', choices: [], retry: 'Keep the three-block chain. Change only Right 1 to Right 3.',
+    successTitle: 'Breakfast delivered!', success: 'The saved Right 3 program moved the real cart from space 4 to the table at space 7.',
+    fixTitle: 'Change one number', fixPrompt: 'Close this card, tap the number on Right, and choose 3.',
+    workspaceIntro: 'Start, Right, and End are locked in place. Edit only the movement number.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Tap the 1 on Right and change it to 3.', watch: 'Watch where the cart stops.', sayFirst: 'Count three spaces from 4 to 7.', sayThen: 'Right 3 reaches the table.', hopFirst: 'Keep the direction Right.', hopThen: 'Keep the direction Right.', retry: 'Change only the movement number to 3.', fix: 'The cart still needs Right 3.', test: 'Saved? Press Go to deliver breakfast.', saving: 'The cart arrived. Saving the exact Right 3 program…', complete: 'Breakfast is at the table!' },
+    logicSteps: [{ icon: '1️⃣', label: 'Find number', order: 'Tap' }, { icon: '3️⃣', label: 'Choose 3', order: 'Change' }, { icon: '▶️', label: 'Run', order: 'Test' }],
+    logicWhy: 'From space 4 to space 7 is three spaces, so Right 3 reaches the target.',
+    completionTitle: 'Breakfast delivered! 🚙🍽️', completion: 'You changed one real parameter, saved the exact chain, and ran it to the table.',
+    completionSteps: [{ icon: '3️⃣', label: 'Right 3', order: 'Build' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '🍽️', label: 'At table', order: 'Run' }],
+    completionWhy: 'The server-saved Start → Right 3 → End program ran from space 4 and finished at space 7.', next: 'Next, repair an overshoot by changing only its distance.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

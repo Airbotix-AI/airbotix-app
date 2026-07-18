@@ -156,6 +156,16 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }],
     sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
+  'tsv-s1-a4-b': {
+    pageId: 'tsv-a4-b-page',
+    background: 'meadow',
+    characterId: 'breakfast-cart',
+    scriptId: 'breakfast-cart-build',
+    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {

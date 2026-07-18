@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-19 (feat: add Tiny Star Village A4-B)
+
+### Added
+- Added Mission 14 with a locked three-block breakfast-cart chain where the child changes only the movement parameter, saves, and runs to the table.
+
 ## 2026-07-17 (feat: add Tiny Star Village A3-S)
 
 ### Added

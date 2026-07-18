@@ -92,4 +92,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 13',
     desc: 'Point to where the breakfast cart will stop, choose 3 spaces before Go, then compare the one-space run with the table.',
   },
+  {
+    id: 'blocks_tsv_a4_b',
+    emoji: '3️⃣',
+    title: 'Tiny Star Village · Mission 14',
+    desc: 'Change only the breakfast cart number from 1 to 3, save it, then run the real cart exactly to the table.',
+  },
 ];
