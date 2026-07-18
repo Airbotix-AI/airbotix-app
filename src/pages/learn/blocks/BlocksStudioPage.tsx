@@ -646,8 +646,18 @@ export function BlocksStudioPage({
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
-          setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
-          setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          const completedDistanceHook =
+            storyMission.lessonId === 'tsv-s1-a4-h' &&
+            missionAnswer === 'three' &&
+            runner.state('breakfast-cart')?.gx === 5;
+          if (completedDistanceHook) {
+            setMissionCorrectRunFinished(true);
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+          } else {
+            setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
+            setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          }
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
@@ -676,6 +686,7 @@ export function BlocksStudioPage({
     missionCompleted,
     isA2DirectionDebug,
     missionWrongRunObserved,
+    missionAnswer,
     page.characters,
   ]);
 
