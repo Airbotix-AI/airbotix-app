@@ -1119,7 +1119,7 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug || isA3EventDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
