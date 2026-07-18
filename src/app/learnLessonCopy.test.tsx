@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 
-import { NAV_ITEMS } from './LearnTopBar';
+import { NAV_ITEMS, VISIBLE_NAV_ITEMS } from './LearnTopBar';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { studioMeta } from '@/pages/portal/kidGrowth';
 
 // Mission/Lesson split (platform model): "Lesson / 课节" is the course-CONTENT unit —
@@ -16,6 +17,16 @@ describe('Lesson(content) / Mission(task) copy split', () => {
     expect(labels).not.toContain('Missions');
     // the route path is the internal identifier and intentionally stays /learn/missions
     expect(NAV_ITEMS.find((i) => i.label === 'Lessons')?.to).toBe('/learn/missions');
+  });
+
+  it('the rendered nav only shows the Lessons catalog entry when the feature switch is on', () => {
+    // features.ts SHOW_LESSONS_CATALOG — the catalog is temporarily hidden on
+    // owner request (2026-07-17); the canonical NAV_ITEMS list keeps the entry.
+    expect(VISIBLE_NAV_ITEMS.some((i) => i.to === '/learn/missions')).toBe(SHOW_LESSONS_CATALOG);
+    // every other entry is untouched by the switch
+    expect(VISIBLE_NAV_ITEMS.filter((i) => i.to !== '/learn/missions')).toEqual(
+      NAV_ITEMS.filter((i) => i.to !== '/learn/missions'),
+    );
   });
 
   it('the parent growth tracker labels the kid TASK studio "Missions", not "Lessons"', () => {

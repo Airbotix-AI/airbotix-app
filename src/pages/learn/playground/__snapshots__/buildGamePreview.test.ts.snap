@@ -75,6 +75,11 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
   try {
     var Native = window.AudioContext || window.webkitAudioContext;
     var contexts = [];
+    // Persist the latest mute/pause intent so audio that STARTS after the kid
+    // already muted/paused (a lazily-created context, a BGM track that begins on
+    // a later scene) is born silenced too — not only what was already playing.
+    var mutedState = false;
+    var pausedState = false;
     function attach(ctx) {
       try {
         if (!ctx || ctx.__airbotixTracked) return;
@@ -87,6 +92,8 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
         gain.connect(realDest);
         Object.defineProperty(ctx, 'destination', { configurable: true, get: function () { return gain; } });
         ctx.__airbotixGain = gain;
+        gain.gain.value = mutedState ? 0 : 1;
+        if (pausedState) ctx.suspend();
       } catch (e) {}
     }
     if (Native) {
@@ -100,9 +107,38 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       window.AudioContext = Patched;
       if (window.webkitAudioContext) window.webkitAudioContext = Patched;
     }
-    function media() { try { return document.querySelectorAll('audio,video'); } catch (e) { return []; } }
+    // Track every media element that ever plays — including a "new Audio(src)"
+    // that a game never inserts into the DOM (the most common way a hand-written
+    // BGM track slips past querySelectorAll('audio,video'): mute/pause silenced
+    // the WebAudio engine but the detached looping element played on).
+    var tracked = [];
+    try {
+      var MediaProto = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (MediaProto && MediaProto.play) {
+        var __origPlay = MediaProto.play;
+        MediaProto.play = function () {
+          try {
+            if (tracked.indexOf(this) === -1) tracked.push(this);
+            if (mutedState) this.muted = true;
+          } catch (e) {}
+          return __origPlay.apply(this, arguments);
+        };
+      }
+    } catch (e) {}
+    function media() {
+      var out = [];
+      try {
+        var dom = document.querySelectorAll('audio,video');
+        for (var i = 0; i < dom.length; i++) out.push(dom[i]);
+      } catch (e) {}
+      for (var j = 0; j < tracked.length; j++) {
+        if (out.indexOf(tracked[j]) === -1) out.push(tracked[j]);
+      }
+      return out;
+    }
     var mediaPaused = [];
     function setMuted(on) {
+      mutedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (contexts[i].__airbotixGain) contexts[i].__airbotixGain.gain.value = on ? 0 : 1; } catch (e) {}
       }
@@ -110,6 +146,7 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       for (var j = 0; j < els.length; j++) { try { els[j].muted = on; } catch (e) {} }
     }
     function setPaused(on) {
+      pausedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (on) contexts[i].suspend(); else contexts[i].resume(); } catch (e) {}
       }
@@ -325,6 +362,11 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
   try {
     var Native = window.AudioContext || window.webkitAudioContext;
     var contexts = [];
+    // Persist the latest mute/pause intent so audio that STARTS after the kid
+    // already muted/paused (a lazily-created context, a BGM track that begins on
+    // a later scene) is born silenced too — not only what was already playing.
+    var mutedState = false;
+    var pausedState = false;
     function attach(ctx) {
       try {
         if (!ctx || ctx.__airbotixTracked) return;
@@ -337,6 +379,8 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
         gain.connect(realDest);
         Object.defineProperty(ctx, 'destination', { configurable: true, get: function () { return gain; } });
         ctx.__airbotixGain = gain;
+        gain.gain.value = mutedState ? 0 : 1;
+        if (pausedState) ctx.suspend();
       } catch (e) {}
     }
     if (Native) {
@@ -350,9 +394,38 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       window.AudioContext = Patched;
       if (window.webkitAudioContext) window.webkitAudioContext = Patched;
     }
-    function media() { try { return document.querySelectorAll('audio,video'); } catch (e) { return []; } }
+    // Track every media element that ever plays — including a "new Audio(src)"
+    // that a game never inserts into the DOM (the most common way a hand-written
+    // BGM track slips past querySelectorAll('audio,video'): mute/pause silenced
+    // the WebAudio engine but the detached looping element played on).
+    var tracked = [];
+    try {
+      var MediaProto = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (MediaProto && MediaProto.play) {
+        var __origPlay = MediaProto.play;
+        MediaProto.play = function () {
+          try {
+            if (tracked.indexOf(this) === -1) tracked.push(this);
+            if (mutedState) this.muted = true;
+          } catch (e) {}
+          return __origPlay.apply(this, arguments);
+        };
+      }
+    } catch (e) {}
+    function media() {
+      var out = [];
+      try {
+        var dom = document.querySelectorAll('audio,video');
+        for (var i = 0; i < dom.length; i++) out.push(dom[i]);
+      } catch (e) {}
+      for (var j = 0; j < tracked.length; j++) {
+        if (out.indexOf(tracked[j]) === -1) out.push(tracked[j]);
+      }
+      return out;
+    }
     var mediaPaused = [];
     function setMuted(on) {
+      mutedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (contexts[i].__airbotixGain) contexts[i].__airbotixGain.gain.value = on ? 0 : 1; } catch (e) {}
       }
@@ -360,6 +433,7 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       for (var j = 0; j < els.length; j++) { try { els[j].muted = on; } catch (e) {} }
     }
     function setPaused(on) {
+      pausedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (on) contexts[i].suspend(); else contexts[i].resume(); } catch (e) {}
       }
@@ -575,6 +649,11 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
   try {
     var Native = window.AudioContext || window.webkitAudioContext;
     var contexts = [];
+    // Persist the latest mute/pause intent so audio that STARTS after the kid
+    // already muted/paused (a lazily-created context, a BGM track that begins on
+    // a later scene) is born silenced too — not only what was already playing.
+    var mutedState = false;
+    var pausedState = false;
     function attach(ctx) {
       try {
         if (!ctx || ctx.__airbotixTracked) return;
@@ -587,6 +666,8 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
         gain.connect(realDest);
         Object.defineProperty(ctx, 'destination', { configurable: true, get: function () { return gain; } });
         ctx.__airbotixGain = gain;
+        gain.gain.value = mutedState ? 0 : 1;
+        if (pausedState) ctx.suspend();
       } catch (e) {}
     }
     if (Native) {
@@ -600,9 +681,38 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       window.AudioContext = Patched;
       if (window.webkitAudioContext) window.webkitAudioContext = Patched;
     }
-    function media() { try { return document.querySelectorAll('audio,video'); } catch (e) { return []; } }
+    // Track every media element that ever plays — including a "new Audio(src)"
+    // that a game never inserts into the DOM (the most common way a hand-written
+    // BGM track slips past querySelectorAll('audio,video'): mute/pause silenced
+    // the WebAudio engine but the detached looping element played on).
+    var tracked = [];
+    try {
+      var MediaProto = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (MediaProto && MediaProto.play) {
+        var __origPlay = MediaProto.play;
+        MediaProto.play = function () {
+          try {
+            if (tracked.indexOf(this) === -1) tracked.push(this);
+            if (mutedState) this.muted = true;
+          } catch (e) {}
+          return __origPlay.apply(this, arguments);
+        };
+      }
+    } catch (e) {}
+    function media() {
+      var out = [];
+      try {
+        var dom = document.querySelectorAll('audio,video');
+        for (var i = 0; i < dom.length; i++) out.push(dom[i]);
+      } catch (e) {}
+      for (var j = 0; j < tracked.length; j++) {
+        if (out.indexOf(tracked[j]) === -1) out.push(tracked[j]);
+      }
+      return out;
+    }
     var mediaPaused = [];
     function setMuted(on) {
+      mutedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (contexts[i].__airbotixGain) contexts[i].__airbotixGain.gain.value = on ? 0 : 1; } catch (e) {}
       }
@@ -610,6 +720,7 @@ exports[`engine profiles (2D Phaser / 3D three.js) > BYTE-IDENTITY: a project wi
       for (var j = 0; j < els.length; j++) { try { els[j].muted = on; } catch (e) {} }
     }
     function setPaused(on) {
+      pausedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (on) contexts[i].suspend(); else contexts[i].resume(); } catch (e) {}
       }

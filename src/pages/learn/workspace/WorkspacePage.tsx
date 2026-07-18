@@ -66,7 +66,9 @@ export function WorkspacePage() {
   useEffect(() => {
     const wanted = searchParams.get('studio');
     if (!wanted) return;
-    if (wanted && wanted in STUDIO_BY_ID) {
+    // Paused (comingSoon) studios can't be armed via deep link either — the
+    // param is dropped and the kid lands on the normal picker.
+    if (wanted && wanted in STUDIO_BY_ID && !STUDIO_BY_ID[wanted as Studio].comingSoon) {
       setPendingStudio(wanted as Studio);
       setAutoSelect(false);
     }
@@ -226,6 +228,14 @@ export function WorkspacePage() {
 
   const balance = wallet.data?.stars_balance ?? 0;
   const cost = studioMeta?.cost ?? 0;
+  // TODO(D-WFA-01): show "Free during workshop" + drop the `balance < cost` gate
+  // when the workshop-free-AI waiver is live. Not wired yet because this Workspace
+  // is SESSION-based (learning-sessions), not project-based: a free-play music/chat
+  // session has NO project until the first paid generate creates one (see
+  // MusicStagePane's setSongProjectId), and `ai_free_now` is a per-project flag
+  // (GET /projects/:id). There is no upfront project id here to read it from. The
+  // backend still enforces the waiver, so generation is already free; this is
+  // display polish pending a project handle before the first generate.
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   return (

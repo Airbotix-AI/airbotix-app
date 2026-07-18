@@ -231,10 +231,14 @@ const THREE_CONTROL = (withOverlay: boolean): string => `
  *
  * Mechanism: patch the `AudioContext` constructor BEFORE any engine boots so every context
  * the game creates is (a) tracked (for suspend/resume) and (b) re-routed through an injected
- * master GainNode (for mute). `pause` → `context.suspend()` + pause playing media; `mute` →
- * master gain 0 + `media.muted`. Mute and pause are INDEPENDENT states (a muted-then-paused
- * game stays silent on unmute until resumed). This must be injected ahead of `vendorTag`, and
- * every access is wrapped in try/catch — an audio-control bug must NEVER break a kid's game.
+ * master GainNode (for mute); AND patch `HTMLMediaElement.prototype.play` so every element that
+ * plays is tracked even when it was never inserted into the DOM (a bare `new Audio(src)` BGM
+ * that `querySelectorAll('audio,video')` can't see — the common raw-audio escape hatch). `pause`
+ * → `context.suspend()` + pause playing media; `mute` → master gain 0 + `media.muted`. The latest
+ * mute/pause intent is remembered so audio that STARTS after a toggle is born silenced too. Mute
+ * and pause are INDEPENDENT states (a muted-then-paused game stays silent on unmute until
+ * resumed). This must be injected ahead of `vendorTag`, and every access is wrapped in try/catch
+ * — an audio-control bug must NEVER break a kid's game.
  */
 const AUDIO_CONTROL = `
 <script>
@@ -242,6 +246,11 @@ const AUDIO_CONTROL = `
   try {
     var Native = window.AudioContext || window.webkitAudioContext;
     var contexts = [];
+    // Persist the latest mute/pause intent so audio that STARTS after the kid
+    // already muted/paused (a lazily-created context, a BGM track that begins on
+    // a later scene) is born silenced too — not only what was already playing.
+    var mutedState = false;
+    var pausedState = false;
     function attach(ctx) {
       try {
         if (!ctx || ctx.__airbotixTracked) return;
@@ -254,6 +263,8 @@ const AUDIO_CONTROL = `
         gain.connect(realDest);
         Object.defineProperty(ctx, 'destination', { configurable: true, get: function () { return gain; } });
         ctx.__airbotixGain = gain;
+        gain.gain.value = mutedState ? 0 : 1;
+        if (pausedState) ctx.suspend();
       } catch (e) {}
     }
     if (Native) {
@@ -267,9 +278,38 @@ const AUDIO_CONTROL = `
       window.AudioContext = Patched;
       if (window.webkitAudioContext) window.webkitAudioContext = Patched;
     }
-    function media() { try { return document.querySelectorAll('audio,video'); } catch (e) { return []; } }
+    // Track every media element that ever plays — including a "new Audio(src)"
+    // that a game never inserts into the DOM (the most common way a hand-written
+    // BGM track slips past querySelectorAll('audio,video'): mute/pause silenced
+    // the WebAudio engine but the detached looping element played on).
+    var tracked = [];
+    try {
+      var MediaProto = window.HTMLMediaElement && window.HTMLMediaElement.prototype;
+      if (MediaProto && MediaProto.play) {
+        var __origPlay = MediaProto.play;
+        MediaProto.play = function () {
+          try {
+            if (tracked.indexOf(this) === -1) tracked.push(this);
+            if (mutedState) this.muted = true;
+          } catch (e) {}
+          return __origPlay.apply(this, arguments);
+        };
+      }
+    } catch (e) {}
+    function media() {
+      var out = [];
+      try {
+        var dom = document.querySelectorAll('audio,video');
+        for (var i = 0; i < dom.length; i++) out.push(dom[i]);
+      } catch (e) {}
+      for (var j = 0; j < tracked.length; j++) {
+        if (out.indexOf(tracked[j]) === -1) out.push(tracked[j]);
+      }
+      return out;
+    }
     var mediaPaused = [];
     function setMuted(on) {
+      mutedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (contexts[i].__airbotixGain) contexts[i].__airbotixGain.gain.value = on ? 0 : 1; } catch (e) {}
       }
@@ -277,6 +317,7 @@ const AUDIO_CONTROL = `
       for (var j = 0; j < els.length; j++) { try { els[j].muted = on; } catch (e) {} }
     }
     function setPaused(on) {
+      pausedState = on;
       for (var i = 0; i < contexts.length; i++) {
         try { if (on) contexts[i].suspend(); else contexts[i].resume(); } catch (e) {}
       }

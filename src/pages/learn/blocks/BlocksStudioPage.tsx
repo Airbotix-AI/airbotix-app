@@ -129,7 +129,8 @@ export function BlocksStudioPage({
   projectId: projectIdProp,
   readOnly = false,
   embedded = false,
-}: { projectId?: string; readOnly?: boolean; embedded?: boolean } = {}) {
+  prepMode = false,
+}: { projectId?: string; readOnly?: boolean; embedded?: boolean; prepMode?: boolean } = {}) {
   const { projectId: routeProjectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   // The public /try/blocks demo mounts this page directly (no route param) with
@@ -1005,6 +1006,10 @@ export function BlocksStudioPage({
     slot: number;
     dropX: number | null;
   } | null>(null);
+  const [ifBodyTarget, setIfBodyTarget] = useState<{
+    scriptId: string;
+    index: number;
+  } | null>(null);
 
   const palDragUpdate = (x: number, y: number) => {
     const d = palDrag.current;
@@ -1077,6 +1082,11 @@ export function BlocksStudioPage({
     drop?: { scriptId: string; slot: number },
   ) => {
     if (isA2DirectionDebug) return;
+    if (ifBodyTarget && !isTrigger(op)) {
+      store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
+      setIfBodyTarget(null);
+      return;
+    }
     const isA2Direction =
       (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
       (op === 'move_left' || op === 'move_right');
@@ -1169,7 +1179,13 @@ export function BlocksStudioPage({
       useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR);
       return;
     }
-    if (!def.hasN && def.param !== 'note' && def.param !== 'sound' && op !== 'say') return; // nothing to edit on this block
+    if (
+      !def.hasN &&
+      def.param !== 'note' &&
+      def.param !== 'sound' &&
+      op !== 'say' &&
+      op !== 'if_touching'
+    ) return; // nothing to edit on this block
     sfx.tap();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const W = 230;
@@ -1347,7 +1363,14 @@ export function BlocksStudioPage({
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        {projectId && <BlocksSharePanel projectId={projectId} theme={theme} readOnly={readOnly} />}
+        {projectId && (
+          <BlocksSharePanel
+            projectId={projectId}
+            theme={theme}
+            readOnly={readOnly}
+            prepMode={prepMode}
+          />
+        )}
         <RaiseHandButton readOnly={readOnly} />
         <button
           ref={moreBtnRef}
@@ -1771,6 +1794,67 @@ export function BlocksStudioPage({
                           (b.op === 'move_left' || b.op === 'move_right');
                         const isDebugDirection =
                           isA2DirectionDebug && (b.op === 'move_left' || b.op === 'move_right');
+                        if (b.op === 'if_touching') {
+                          const bodyTarget =
+                            ifBodyTarget?.scriptId === script.id && ifBodyTarget.index === i;
+                          return (
+                            <div
+                              key={`${script.id}-${i}`}
+                              className="bsx-if-c"
+                              data-testid="if-container"
+                            >
+                              <BlockChip
+                                block={b}
+                                inChain
+                                lit={activeKeys.has(`${script.id}:${i}`)}
+                                dragging={isDragged}
+                                style={isDragged ? { opacity: 0.28 } : undefined}
+                                onPointerDown={(e) => onBlockDown(e, script.id, i)}
+                                onPointerMove={onBlockMove}
+                                onPointerUp={onBlockUp}
+                                onPointerCancel={onBlockCancel}
+                                onTap={(e) => onBlockTap(e, script.id, i, b.op)}
+                                title="Tap to choose a friend · hold to move the whole If"
+                              />
+                              <div
+                                className={`bsx-if-body${bodyTarget ? ' is-target' : ''}`}
+                                data-testid="if-body"
+                              >
+                                <span className="bsx-if-body-label">Then do</span>
+                                <div className="bsx-if-body-chain">
+                                  {(b.body ?? []).map((child, bodyIndex) => (
+                                    <BlockChip
+                                      key={`${script.id}-${i}-body-${bodyIndex}`}
+                                      block={child}
+                                      inChain
+                                      isLast={bodyIndex === (b.body?.length ?? 0) - 1}
+                                      title="Tap to remove this action from the If"
+                                      onTap={() =>
+                                        useBlocksStore
+                                          .getState()
+                                          .removeIfBodyBlock(script.id, i, bodyIndex)
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="bsx-if-add"
+                                  data-testid="if-add-inside"
+                                  aria-pressed={bodyTarget}
+                                  onClick={() => {
+                                    sfx.tap();
+                                    setIfBodyTarget({ scriptId: script.id, index: i });
+                                  }}
+                                >
+                                  <span aria-hidden>{bodyTarget ? '←' : '+'}</span>
+                                  {bodyTarget ? 'Pick a block on the left' : 'Add block'}
+                                </button>
+                              </div>
+                              <span className="bsx-if-foot" aria-hidden />
+                            </div>
+                          );
+                        }
                         return (
                           <BlockChip
                             key={`${script.id}-${i}`}
@@ -1966,6 +2050,8 @@ export function BlocksStudioPage({
                 ? 'Which way should Tuan Tuan go?'
                 : editing.block.op === 'say'
                   ? 'What should they say?'
+                  : editing.block.op === 'if_touching'
+                    ? 'Touching which friend?'
                   : blockDef(editing.block.op).param === 'note'
                     ? 'Which note? Tap to hear it!'
                     : blockDef(editing.block.op).param === 'sound'
@@ -1996,6 +2082,34 @@ export function BlocksStudioPage({
                     {direction === 'move_left' ? '⬅️ Left' : '➡️ Right'}
                   </button>
                 ))}
+              </div>
+            ) : editing.block.op === 'if_touching' ? (
+              <div className="grid gap-2" data-testid="if-touching-picker">
+                {page.characters
+                  .filter((character) => character.id !== selectedChar.id)
+                  .map((character) => (
+                    <button
+                      key={character.id}
+                      type="button"
+                      data-testid={`if-touching-choice-${character.id}`}
+                      aria-pressed={editing.block.text === character.id}
+                      className="bsx-press rounded-xl border border-current/15 px-3 py-2 text-left text-[13px] font-extrabold aria-pressed:bg-emerald-100"
+                      onClick={() => {
+                        sfx.tap();
+                        useBlocksStore
+                          .getState()
+                          .setSayText(editing.scriptId, editing.index, character.id);
+                        setEditBlk(null);
+                      }}
+                    >
+                      {character.emoji} {character.name}
+                    </button>
+                  ))}
+                {page.characters.length < 2 && (
+                  <p className="text-[12px] font-bold bsx-muted">
+                    Add another character first.
+                  </p>
+                )}
               </div>
             ) : editing.block.op === 'say' ? (
               <div>

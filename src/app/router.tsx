@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { LearnLayout } from './LearnLayout';
 import { PortalLayout } from './PortalLayout';
 import { TeacherLayout } from './TeacherLayout';
@@ -62,6 +63,7 @@ import { ClassGamesWallPage } from '@/pages/learn/classroom/ClassGamesWallPage';
 import { ClassPostPage } from '@/pages/learn/classroom/ClassPostPage';
 import { WorkspacePage } from '@/pages/learn/workspace/WorkspacePage';
 import { MusicStudioPage } from '@/pages/learn/music/MusicStudioPage';
+import { AcademyPracticePage } from '@/pages/learn/academy/AcademyPracticePage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -183,8 +185,17 @@ export const router = createBrowserRouter([
       { path: 'projects/:id', element: <ProjectDetailPage /> },
       // Internal route id stays `/learn/missions` (D-LP-2); the catalog & detail
       // pages render the pack's Lessons (课节) → each Lesson's Mission tasks.
-      { path: 'missions', element: <LessonsCatalogPage /> },
-      { path: 'missions/:id', element: <PackLessonsPage /> },
+      // While the catalog is hidden (features.ts SHOW_LESSONS_CATALOG) the
+      // routes redirect home so old links/bookmarks land somewhere sensible.
+      ...(SHOW_LESSONS_CATALOG
+        ? [
+            { path: 'missions', element: <LessonsCatalogPage /> },
+            { path: 'missions/:id', element: <PackLessonsPage /> },
+          ]
+        : [
+            { path: 'missions', element: <Navigate to="/learn" replace /> },
+            { path: 'missions/:id', element: <Navigate to="/learn" replace /> },
+          ]),
       // Legacy alias: the class wall is `/learn/classroom` (ClassroomListPage).
       // The old `/learn/wall` was a "Coming soon" placeholder — redirect it.
       { path: 'wall', element: <Navigate to="/learn/classroom" replace /> },
@@ -194,6 +205,10 @@ export const router = createBrowserRouter([
       { path: 'classroom/:classId/post/:projectId', element: <ClassPostPage /> },
       { path: 'profile', element: <LearnProfilePage /> },
       { path: 'create', element: <CreateHubPage /> },
+      // Image / Voice / Video are PAUSED (createTools.ts `comingSoon`, learn PRD
+      // v0.7): every visible entry (Create hub, class sheet, workspace picker)
+      // hides them, but the routes stay registered so deep links and the harness
+      // wallet journeys (kid-create-image, wallet-pause) keep working.
       { path: 'create/image', element: <ImageMakerPage /> },
       // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
       // is the single music surface (music-stage-prd §2). Kept as a redirect so
@@ -221,6 +236,9 @@ export const router = createBrowserRouter([
       // session URL so a refresh returns to the same song.
       { path: 'music', element: <MusicStudioPage /> },
       { path: 'music/:sessionId', element: <MusicStudioPage /> },
+      // Academy — NAPLAN Maths practice: pick a year, answer real Numeracy
+      // questions one at a time with instant feedback.
+      { path: 'academy', element: <AcademyPracticePage /> },
       { path: 'workspace', element: <WorkspacePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -51,6 +51,11 @@ export function ComposerBar({
   onMode: (m: ComposeMode) => void;
   inputRef?: React.RefObject<HTMLTextAreaElement>;
 }) {
+  // TODO(D-WFA-01): show "Free during workshop" + skip the `short` (balance) gate
+  // during a live free-workshop window. Not wired yet — the Music Stage is
+  // SESSION-scoped and its song project is created lazily on the first generate
+  // (MusicStagePane.setSongProjectId), so the per-project `ai_free_now` flag isn't
+  // available before the paid turn. The backend enforces the waiver regardless.
   const short = balance < MUSIC_GENERATION_COST_STARS;
   const editing = hasSong && mode === 'edit';
   return (

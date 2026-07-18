@@ -138,6 +138,20 @@ export class BlocksRunner {
     }
   }
 
+  private isTouching(charId: string, targetId: string | undefined): boolean {
+    if (!targetId || targetId === charId) return false;
+    const a = this.states.get(charId);
+    const b = this.states.get(targetId);
+    return Boolean(
+      a &&
+        b &&
+        a.visible &&
+        b.visible &&
+        Math.abs(a.gx - b.gx) < 1 &&
+        Math.abs(a.gy - b.gy) < 1,
+    );
+  }
+
   /** Run a tapped character's 👆 scripts. */
   async runTap(charId: string): Promise<void> {
     const char = this.page.characters.find((c) => c.id === charId);
@@ -175,6 +189,13 @@ export class BlocksRunner {
         }
         // body[i] is blocks[i+1] (the trigger was sliced off) — report absolute idx
         this.host.onStep?.(char.id, scriptId, i + 1);
+        if (body[i].op === 'if_touching') {
+          if (this.isTouching(char.id, body[i].text)) {
+            const result = await this.runBlocks(char, scriptId, body[i].body ?? []);
+            if (result === 'goto') return;
+          }
+          continue;
+        }
         const again = await this.step(char, body[i]);
         if (again === 'goto') {
           this.host.onStep?.(char.id, scriptId, -1);
@@ -184,6 +205,25 @@ export class BlocksRunner {
       // ♾️ "Again" loops the WHOLE script (capped so preview can't hang)
     } while (body.some((b) => b.op === 'forever') && runs < FOREVER_CAP && !this.stopped);
     this.host.onStep?.(char.id, scriptId, -1);
+  }
+
+  private async runBlocks(
+    char: Character,
+    scriptId: string,
+    blocks: Block[],
+  ): Promise<'ok' | 'goto'> {
+    for (const block of blocks) {
+      if (this.stopped || this.stoppedChars.has(char.id)) return 'ok';
+      if (block.op === 'if_touching') {
+        if (this.isTouching(char.id, block.text)) {
+          const nested = await this.runBlocks(char, scriptId, block.body ?? []);
+          if (nested === 'goto') return 'goto';
+        }
+        continue;
+      }
+      if ((await this.step(char, block)) === 'goto') return 'goto';
+    }
+    return 'ok';
   }
 
   private async step(char: Character, block: Block): Promise<'ok' | 'goto'> {
@@ -287,6 +327,8 @@ export class BlocksRunner {
         this.sendMessage(n);
         await this.sleep(STEP_MS * sf);
         break;
+      case 'if_touching':
+        break; // structural control is handled by runScript
       case 'set_speed':
         this.speeds.set(char.id, SPEED_FACTORS[clamp(n - 1, 0, SPEED_FACTORS.length - 1)]);
         await this.sleep(60);

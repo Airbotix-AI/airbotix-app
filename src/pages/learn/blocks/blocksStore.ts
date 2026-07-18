@@ -58,6 +58,10 @@ function newBlock(op: BlockOp, chosenN?: number): Block {
   return block;
 }
 
+function structuralBlocks(block: Block): Block[] {
+  return block.op === 'if_touching' ? [{ ...block, body: [] }] : [block];
+}
+
 interface BlocksStore {
   project: BlocksProject;
   pageId: string;
@@ -110,6 +114,8 @@ interface BlocksStore {
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
   setParam: (scriptId: string, index: number, n: number, max?: number) => void;
   setSayText: (scriptId: string, index: number, text: string) => void;
+  addIfBodyBlock: (scriptId: string, index: number, op: BlockOp, n?: number) => void;
+  removeIfBodyBlock: (scriptId: string, index: number, bodyIndex: number) => void;
   /** Reorder a block within its script — drag to change execution order. The
    *  trigger (index 0) stays first; body blocks reorder among 1..n. */
   moveBlock: (scriptId: string, from: number, to: number) => void;
@@ -344,12 +350,19 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           }
           const last = c.scripts[c.scripts.length - 1];
           if (!last) {
-            return { ...c, scripts: [{ id: newId('script'), blocks: [{ op: 'when_flag' }, block] }] };
+            return {
+              ...c,
+              scripts: [
+                { id: newId('script'), blocks: [{ op: 'when_flag' }, ...structuralBlocks(block)] },
+              ],
+            };
           }
           return {
             ...c,
             scripts: c.scripts.map((sc, i) =>
-              i === c.scripts.length - 1 ? { ...sc, blocks: [...sc.blocks, block] } : sc,
+              i === c.scripts.length - 1
+                ? { ...sc, blocks: [...sc.blocks, ...structuralBlocks(block)] }
+                : sc,
             ),
           };
         }),
@@ -371,7 +384,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             if (sc.id !== scriptId) return sc;
             const arr = [...sc.blocks];
             const at = Math.min(Math.max(1, index), arr.length);
-            arr.splice(at, 0, block);
+            arr.splice(at, 0, ...structuralBlocks(block));
             return { ...sc, blocks: arr };
           }),
         })),
@@ -385,7 +398,12 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
         ...c,
         scripts: c.scripts
           .map((sc) =>
-            sc.id !== scriptId ? sc : { ...sc, blocks: sc.blocks.filter((_, i) => i !== index) },
+            sc.id !== scriptId
+              ? sc
+              : {
+                  ...sc,
+                  blocks: sc.blocks.filter((_, i) => i !== index),
+                },
           )
           .filter((sc) => sc.blocks.length > 0 && isTrigger(sc.blocks[0].op)),
       })),
@@ -459,6 +477,53 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
       }),
       `say:${scriptId}:${index}`,
     );
+  },
+
+  addIfBodyBlock(scriptId, index, op, chosenN) {
+    if (isTrigger(op)) return;
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) =>
+          sc.id !== scriptId
+            ? sc
+            : {
+                ...sc,
+                blocks: sc.blocks.map((block, blockIndex) =>
+                  blockIndex !== index || block.op !== 'if_touching'
+                    ? block
+                    : {
+                        ...block,
+                        body: [...(block.body ?? []), ...structuralBlocks(newBlock(op, chosenN))],
+                      },
+                ),
+              },
+        ),
+      })),
+    }));
+  },
+
+  removeIfBodyBlock(scriptId, index, bodyIndex) {
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => ({
+        ...c,
+        scripts: c.scripts.map((sc) =>
+          sc.id !== scriptId
+            ? sc
+            : {
+                ...sc,
+                blocks: sc.blocks.map((block, blockIndex) =>
+                  blockIndex !== index || block.op !== 'if_touching'
+                    ? block
+                    : {
+                        ...block,
+                        body: (block.body ?? []).filter((_, i) => i !== bodyIndex),
+                      },
+                ),
+              },
+        ),
+      })),
+    }));
   },
 
   moveBlock(scriptId, from, to) {

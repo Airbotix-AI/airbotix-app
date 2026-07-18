@@ -66,6 +66,10 @@ interface CodeEditorPaneProps {
   files: VfsFile[];
   /** Commit edits back to the page-level source of truth. */
   onApplyFiles: (files: VfsFile[]) => void;
+  /** Persist NOW, bypassing the debounce. A Time Machine revert flushes through
+   *  this immediately so the reverted state hits the server before anything
+   *  in flight (a stale save, a late fix turn) can race it. */
+  onSaveNow?: () => Promise<unknown>;
   /** Re-run the game (PlaygroundPage bumps runKey). */
   onRun: () => void;
   /** A request (from a console error, or the agent's open_file/highlight_code) to
@@ -107,7 +111,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExplainSelection, readOnly }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLocation, onExplainSelection, readOnly }: CodeEditorPaneProps) {
   // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
   // filtered to files that still exist; the `[files]` effect fills their drafts on
   // mount. Read once (useRef) so it's stable across renders.
@@ -271,9 +275,13 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
   // return the merged files. Shared by ▶ Play and the idle autosave.
   // In the read-only viewer (D-LV-6) this is a no-op — the editor is non-editable so
   // no drafts can form, but we hard-gate the write path as defence-in-depth.
+  // Maps over the LIVE store files, not the render-closure `files` prop: the idle
+  // autosave fires from a timer whose closure may predate an AI turn's apply —
+  // committing over the stale prop would wholesale-revert the turn's changes.
   const commitDrafts = (): VfsFile[] => {
     if (readOnly) return files;
-    const next = files.map((f) =>
+    const current = useProjectStore.getState().files;
+    const next = current.map((f) =>
       isDirty(f.path) ? { ...f, content: drafts[f.path], size: drafts[f.path].length } : f,
     );
     setSynced((prev) => {
@@ -325,7 +333,10 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
   };
 
   // Revert the whole project to a checkpoint, reset open-tab drafts to it, and
-  // record the revert as its own checkpoint.
+  // record the revert as its own checkpoint. Then flush the save IMMEDIATELY
+  // (not after the 600ms debounce): the reverted state must reach the server
+  // before any still-in-flight writer (a racing save, a late fix turn) could
+  // land on top and leave the game looking half-reverted.
   const revertTo = (cp: Checkpoint) => {
     onApplyFiles(cp.files);
     const reset = (prev: Record<string, string>): Record<string, string> => {
@@ -338,7 +349,8 @@ export function CodeEditorPane({ files, onApplyFiles, onRun, openLocation, onExp
     };
     setDrafts(reset);
     setSynced(reset);
-    record(cp.files, Date.now(), `reverted · ${cp.summary}`);
+    record(cp.files, Date.now(), `reverted · ${cp.summary}`, { label: 'Went back in time', kind: 'revert' });
+    void onSaveNow?.();
   };
 
   // The sidebar auto-widens ONLY while a History entry is selected (i.e. the

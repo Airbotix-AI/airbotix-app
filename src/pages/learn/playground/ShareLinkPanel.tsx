@@ -17,6 +17,13 @@ import { useDemoMode } from '@/pages/try/demoMode';
 interface ShareLinkPanelProps {
   /** The real backend project (no share UI for the DEV local scaffold). */
   projectId: string;
+  /**
+   * Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): the owner is an adult
+   * teacher, so sharing is IMMEDIATE — no parent-approval gate. One click mints the
+   * live link (the backend returns `active` straight from the request). The copy
+   * drops the kid "ask a grown-up" framing and there is no pending/waiting beat.
+   */
+  prepMode?: boolean;
 }
 
 /**
@@ -35,7 +42,7 @@ interface ShareLinkPanelProps {
  * This component owns NO play surface; it just produces/manages the link. The
  * public play page (`/play/:shareId`) is the only place a snapshot actually plays.
  */
-export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
+export function ShareLinkPanel({ projectId, prepMode = false }: ShareLinkPanelProps) {
   const qc = useQueryClient();
   // Try-demo (D-DEMO-09): `null` (off) outside a /try/* page. The tour drives this
   // real panel through `bindShareControls` and owns its open/close lifecycle.
@@ -200,7 +207,7 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
             </span>
           </span>
         ) : status === 'pending' ? (
-          'Waiting for grown-up'
+          prepMode ? 'Creating…' : 'Waiting for grown-up'
         ) : (
           'Share'
         )}
@@ -218,11 +225,14 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
             style={{ position: 'fixed', right: anchor.right, bottom: anchor.bottom, zIndex: 1000 }}
             className="w-72 rounded-2xl border border-pg-border bg-pg-surface p-4 text-pg-text shadow-2xl"
           >
-            {/* Digital-citizenship beat (§11 (c)) — shown before any link exists. */}
+            {/* Digital-citizenship beat (§11 (c)) — shown before any link exists.
+                Prep is adult-authored, so it drops the kid "your real name/photo"
+                framing for a neutral heads-up (D-PREP-6). */}
             {status !== 'active' && (
               <p className="text-[12px] text-pg-text-dim mb-3" data-testid="citizenship-note">
-                Anyone with this link can play your game. Don’t put your real name or
-                photo in it.
+                {prepMode
+                  ? 'Anyone with this link can play this game — no sign-in needed.'
+                  : 'Anyone with this link can play your game. Don’t put your real name or photo in it.'}
               </p>
             )}
 
@@ -233,7 +243,13 @@ export function ShareLinkPanel({ projectId }: ShareLinkPanelProps) {
                 disabled={request.isPending}
                 className="w-full rounded-full bg-brand-sky px-3 py-2 text-[13px] font-bold text-white hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {request.isPending ? 'Asking…' : 'Ask my grown-up to share'}
+                {prepMode
+                  ? request.isPending
+                    ? 'Creating link…'
+                    : 'Create share link'
+                  : request.isPending
+                    ? 'Asking…'
+                    : 'Ask my grown-up to share'}
               </button>
             )}
 

@@ -23,8 +23,12 @@ import {
   postRunReport,
   type AgentTurnResult,
 } from '../../code/codeApi';
+import { useProjectStore } from '../projectStore';
 import { captureReportScreenshot } from '../reportScreenshot';
 import type { RunReport } from '../runReport';
+
+/** The project store's monotonic mutation counter — the staleness sentinel. */
+const vfsSeq = (): number => useProjectStore.getState().change?.seq ?? 0;
 
 /** Belt-and-suspenders client cap: reports posted per verification chain. The
  *  server bounds fix turns anyway (≤2 + doom-loop breaker); this just guarantees
@@ -73,6 +77,11 @@ interface ArmedChain {
   reports: number;
   /** Backend asked for screenshot evidence on this turn's report (D-HARN-21b). */
   screenshot: boolean;
+  /** The VFS mutation seq when this chain armed. A `fixing` verdict that arrives
+   *  after the kid touched the project (hand-edit, file op, Time Machine revert)
+   *  was computed against an older snapshot — applying it would clobber the
+   *  kid's newer work, so the chain is dropped instead. */
+  baseSeq: number;
 }
 
 export interface Verification {
@@ -107,7 +116,8 @@ export function useVerification(opts: UseVerificationOptions): Verification {
   const beginVerification = useCallback(
     (turnId: string, screenshotRequested = false) => {
       if (!enabled || !turnId) return;
-      arm({ turnId, attempt: 1, reports: 0, screenshot: screenshotRequested });
+      // Called AFTER the turn's files applied, so baseSeq is the post-apply seq.
+      arm({ turnId, attempt: 1, reports: 0, screenshot: screenshotRequested, baseSeq: vfsSeq() });
     },
     [enabled, arm],
   );
@@ -156,16 +166,27 @@ export function useVerification(opts: UseVerificationOptions): Verification {
           if (armedRef.current !== armed) return;
           const cb = callbacksRef.current;
           if (res.verdict === 'fixing') {
-            // Silent fix beat: apply exactly like a chat turn (files + version),
-            // re-arm for the FIX turn's own report, run again. No chat message.
+            // The kid touched the project while the server was fixing (hand-edit,
+            // file op, Time Machine revert): the fix was computed against the older
+            // snapshot, so applying it would clobber their newer work. Drop the
+            // chain — resume-verify picks the still-pending turn up on next open.
+            if (vfsSeq() !== armed.baseSeq) {
+              arm(null);
+              return;
+            }
+            // Silent fix beat: apply exactly like a chat turn (files + version +
+            // per-path merge), re-arm for the FIX turn's own report (baseSeq is
+            // read AFTER the apply so the fix's own mutation doesn't trip the
+            // staleness guard), run again. No chat message.
+            cb.applyFixTurn(res.turn);
+            cb.onStarsCharged?.(res.turn.stars_charged);
             arm({
               turnId: res.turn.turn_id,
               attempt: res.attempt + 1,
               reports: armed.reports + 1,
               screenshot: res.turn.screenshot_requested === true,
+              baseSeq: vfsSeq(),
             });
-            cb.applyFixTurn(res.turn);
-            cb.onStarsCharged?.(res.turn.stars_charged);
             cb.restartGame();
             return;
           }
@@ -204,6 +225,7 @@ export function useVerification(opts: UseVerificationOptions): Verification {
           attempt: state.attempts + 1,
           reports: 0,
           screenshot: state.screenshot_requested === true,
+          baseSeq: vfsSeq(),
         });
         callbacksRef.current.restartGame();
       })

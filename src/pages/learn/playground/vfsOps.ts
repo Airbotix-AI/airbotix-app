@@ -167,3 +167,37 @@ export function removePath(files: VfsFile[], folders: string[], path: string): V
   const nextFolders = folders.filter((d) => d !== p && !d.startsWith(`${p}/`));
   return { files: nextFiles, folders: nextFolders, remaps: [], removed, added: [] };
 }
+
+/**
+ * Merge an AI turn's server snapshot onto the kid's CURRENT local VFS. The turn
+ * wins on the paths it actually changed (`changedPaths`: edited/added take the
+ * server copy, paths the turn deleted are dropped); the kid's LOCAL copy wins on
+ * every other path. A wholesale replace with the server snapshot would silently
+ * revert any hand-edit the kid committed while the turn (or a server-side fix
+ * turn) was in flight — the "my code reverted after a few seconds" bug.
+ */
+export function mergeTurnFiles(
+  local: VfsFile[],
+  server: VfsFile[],
+  changedPaths: string[],
+): VfsFile[] {
+  const changed = new Set(changedPaths);
+  const serverByPath = new Map(server.map((f) => [f.path, f]));
+  const merged: VfsFile[] = [];
+  for (const f of local) {
+    if (!changed.has(f.path)) {
+      merged.push(f);
+      continue;
+    }
+    const s = serverByPath.get(f.path);
+    if (s) merged.push(s); // turn edited it → server copy wins
+    // else: the turn deleted it → drop
+  }
+  // Paths the turn ADDED (changed + on the server + not present locally).
+  const localPaths = new Set(local.map((f) => f.path));
+  for (const p of changed) {
+    const s = serverByPath.get(p);
+    if (s && !localPaths.has(p)) merged.push(s);
+  }
+  return merged;
+}

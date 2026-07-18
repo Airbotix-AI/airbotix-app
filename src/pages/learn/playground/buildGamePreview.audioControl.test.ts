@@ -33,6 +33,42 @@ function runShim(): void {
   new Function(audioControlSource())();
 }
 
+/**
+ * jsdom has no real media playback (`HTMLMediaElement.prototype.play` throws
+ * "Not implemented"). Give the prototype safe play/pause/paused stubs BEFORE the
+ * shim wraps `play()`, model `paused` via a `__playing` flag, then restore — so a
+ * bare `new Audio()` behaves like a real looping element the shim can silence.
+ */
+function withStubbedMedia(body: () => void): void {
+  const proto = window.HTMLMediaElement.prototype as unknown as {
+    play: () => Promise<void>;
+    pause: () => void;
+  };
+  const origPlay = proto.play;
+  const origPause = proto.pause;
+  const origPaused = Object.getOwnPropertyDescriptor(window.HTMLMediaElement.prototype, 'paused');
+  proto.play = function (this: { __playing?: boolean }) {
+    this.__playing = true;
+    return Promise.resolve();
+  };
+  proto.pause = function (this: { __playing?: boolean }) {
+    this.__playing = false;
+  };
+  Object.defineProperty(window.HTMLMediaElement.prototype, 'paused', {
+    configurable: true,
+    get(this: { __playing?: boolean }) {
+      return !this.__playing;
+    },
+  });
+  try {
+    body();
+  } finally {
+    proto.play = origPlay;
+    proto.pause = origPause;
+    if (origPaused) Object.defineProperty(window.HTMLMediaElement.prototype, 'paused', origPaused);
+  }
+}
+
 class MockGain {
   gain = { value: 1 };
   connected: unknown = null;
@@ -122,5 +158,47 @@ describe('AUDIO_CONTROL shim (pause/mute actually silence the game)', () => {
     expect(paused).toBe(true);
     control('resume');
     expect(paused).toBe(false);
+  });
+
+  // The most common way a hand-written BGM slips past the DOM query: a bare
+  // `new Audio(src)` that loops but is never appended to the document.
+  it('mutes and pauses a bare new Audio() that was never added to the DOM', () => {
+    (window as unknown as { AudioContext: unknown }).AudioContext = MockAudioContext;
+    withStubbedMedia(() => {
+      runShim();
+      const bgm = new Audio('song.mp3');
+      bgm.loop = true;
+      void bgm.play(); // starts playing; never inserted into the document
+      expect(document.querySelector('audio')).toBeNull(); // truly not in the DOM
+
+      control('mute');
+      expect(bgm.muted).toBe(true);
+      control('unmute');
+      expect(bgm.muted).toBe(false);
+
+      control('pause');
+      expect(bgm.paused).toBe(true);
+      control('resume');
+      expect(bgm.paused).toBe(false);
+    });
+  });
+
+  it('silences a detached BGM that only starts playing AFTER mute (sticky state)', () => {
+    (window as unknown as { AudioContext: unknown }).AudioContext = MockAudioContext;
+    withStubbedMedia(() => {
+      runShim();
+      control('mute'); // muted while nothing is playing yet
+      const bgm = new Audio('late.mp3');
+      void bgm.play(); // begins after the mute — must be born silenced
+      expect(bgm.muted).toBe(true);
+    });
+  });
+
+  it('a WebAudio context created after mute is born with its master gain at 0 (sticky state)', () => {
+    (window as unknown as { AudioContext: unknown }).AudioContext = MockAudioContext;
+    runShim();
+    control('mute'); // muted before the game creates its context
+    const ctx = new (window as unknown as { AudioContext: new () => MockAudioContext }).AudioContext();
+    expect(ctx.__airbotixGain?.gain.value).toBe(0);
   });
 });

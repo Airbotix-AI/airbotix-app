@@ -42,6 +42,7 @@ export type BlockOp =
   | 'play_note'
   | 'play_sound'
   | 'send_message'
+  | 'if_touching'
   | 'wait'
   | 'set_speed'
   | 'stop'
@@ -117,6 +118,7 @@ export const BLOCK_DEFS: readonly BlockDef[] = [
   { op: 'play_note', category: 'sound', icon: '🎵', label: 'Do', param: 'note' },
   { op: 'play_sound', category: 'sound', icon: '🫧', label: 'Pop', param: 'sound' },
   { op: 'send_message', category: 'control', icon: '📤', label: 'Send', param: 'color' },
+  { op: 'if_touching', category: 'control', icon: '🤝', label: 'If touching' },
   { op: 'wait', category: 'control', icon: '⏱', label: 'Wait', hasN: true, defaultN: 5 },
   { op: 'set_speed', category: 'control', icon: '🐇', label: 'Speed', param: 'speed' },
   { op: 'stop', category: 'control', icon: '🛑', label: 'Stop' },
@@ -157,6 +159,59 @@ export interface Block {
   op: BlockOp;
   n?: number;
   text?: string;
+  /** Nested actions owned by a C-shaped control block. */
+  body?: Block[];
+}
+
+/**
+ * v0.12 stored Junior If as a one-action guard. Upgrade those flat projects to
+ * the paired structural form without changing what they do:
+ *   If touching → action
+ * becomes
+ *   If touching → action → End if.
+ */
+type LegacyBlock = Omit<Block, 'op' | 'body'> & {
+  op: BlockOp | 'end_if';
+  body?: LegacyBlock[];
+};
+
+function migrateJuniorIf(blocks: LegacyBlock[]): Block[] {
+  const pairedFormat = blocks.some((block) => block.op === 'end_if');
+  const migrated: Block[] = [];
+  for (let i = 0; i < blocks.length; i += 1) {
+    const block = blocks[i];
+    if (block.op === 'end_if') continue;
+    if (block.op !== 'if_touching') {
+      migrated.push(block as Block);
+      continue;
+    }
+    if (Array.isArray(block.body)) {
+      migrated.push({ ...(block as Block), body: migrateJuniorIf(block.body) });
+      continue;
+    }
+    if (!pairedFormat) {
+      const guarded = blocks[i + 1];
+      migrated.push({
+        op: 'if_touching',
+        ...(block.text ? { text: block.text } : {}),
+        body: guarded ? [guarded as Block] : [],
+      });
+      if (guarded) i += 1;
+      continue;
+    }
+    const body: Block[] = [];
+    let depth = 1;
+    while (i + 1 < blocks.length) {
+      const next = blocks[i + 1];
+      if (next.op === 'if_touching') depth += 1;
+      if (next.op === 'end_if') depth -= 1;
+      i += 1;
+      if (depth === 0) break;
+      body.push(next as Block);
+    }
+    migrated.push({ op: 'if_touching', ...(block.text ? { text: block.text } : {}), body });
+  }
+  return migrated;
 }
 export interface Script {
   id: string;
@@ -273,9 +328,14 @@ export function parseProject(raw: string): BlocksProject {
           scripts: (Array.isArray(c?.scripts) ? c.scripts : [])
             .map((s) => ({
             id: typeof s?.id === 'string' && s.id ? s.id : newId('script'),
-            blocks: (Array.isArray(s?.blocks) ? s.blocks : [])
-              .filter((b): b is Block => !!b && DEFS_BY_OP.has(b.op as BlockOp))
+            blocks: migrateJuniorIf(((Array.isArray(s?.blocks) ? s.blocks : []) as unknown[])
+              .filter((b): b is LegacyBlock => {
+                if (!b || typeof b !== 'object' || !('op' in b)) return false;
+                const op = (b as { op?: unknown }).op;
+                return op === 'end_if' || (typeof op === 'string' && DEFS_BY_OP.has(op as BlockOp));
+              })
               .map((b) => {
+                if (b.op === 'end_if') return { op: 'end_if' as const };
                 const def = blockDef(b.op);
                 const out: Block = { op: b.op };
                 if (def.hasN) out.n = clampN(b.n, 1, MAX_PARAM, def.defaultN ?? 1);
@@ -284,8 +344,14 @@ export function parseProject(raw: string): BlocksProject {
                 if (b.n !== undefined && def.param === 'note') out.n = clampN(b.n, 1, MAX_NOTE, 1);
                 if (b.n !== undefined && def.param === 'sound') out.n = clampN(b.n, 1, MAX_SOUND, 1);
                 if (b.op === 'say') out.text = (typeof b.text === 'string' ? b.text : 'Hi!').slice(0, 60);
+                if (b.op === 'if_touching' && typeof b.text === 'string') {
+                  out.text = b.text.slice(0, 80);
+                }
+                if (b.op === 'if_touching' && Array.isArray(b.body)) {
+                  out.body = migrateJuniorIf(b.body);
+                }
                 return out;
-              }),
+              })),
           }))
             .filter((s) => s.blocks.length > 0 && isTrigger(s.blocks[0].op)),
         };

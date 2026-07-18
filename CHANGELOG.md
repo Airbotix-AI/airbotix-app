@@ -1,4 +1,292 @@
+
+### Fixed
+- **Table/graph questions now show the image, not garbled text.** Questions whose data
+  lives in a figure (a table of values, a bar graph, a grid, a clock) were being rendered
+  from flattened, noisy extracted text — and PDF-layout extraction occasionally bled the
+  next question's text in. `AcademyPracticePage` now detects these (figure keywords or >1
+  question mark + an available image) and renders the scanned question image instead, with
+  generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
+
+## 2026-07-18 (fix: shared-link background music — audio MIME in srcdoc inliner)
+
+### Fixed
+- **Background music (and anything the game gates on it) now plays on public `/play/:shareId`
+  links.** The srcdoc asset inliner's `ASSET_MIME` map (`buildPreview.ts`) had no audio rows,
+  so a frozen share snapshot's raw-base64 `.mp3`/`.wav`/`.ogg`/`.m4a` inlined as
+  `data:application/octet-stream` — and data: URLs are never MIME-sniffed, so
+  `new Audio()` refused the source. In the reported game the on-beat note spawner checked
+  `backgroundMusic.paused`, so the missing music also made all incoming notes vanish. The
+  authed studio never hit this because `codeApi.toStudioContent` (whose `BINARY_ASSET_MIME`
+  does know audio) wraps assets before the builder runs; the public play fetch bypasses it.
+  Added `wav/mp3/ogg/m4a` to `ASSET_MIME` (mirroring backend `asset-kinds.ts`) + cross-sync
+  comments on both maps. Existing share links are fixed on deploy — snapshots store raw
+  base64; the MIME is derived at render time.
+- Tests: `buildGamePreview.test` — raw-base64 mp3 inlines as `data:audio/mpeg` (never
+  octet-stream) + all four audio extensions map to real `audio/*` MIMEs.
+## 2026-07-18 (fix: Creative Code Studio — manual edits no longer revert after AI activity; Time Machine reverts stick)
+
+### Fixed
+- **Manual code edits no longer silently revert seconds after AI activity** (Creative Code
+  Studio, PRD learn-game-studio-prd.md J3 revised). Four separate races made a stale server
+  snapshot land on top of newer local work:
+  1. **Saves now single-flight** (`PlaygroundApp`): overlapping `flushSave` calls (debounce
+     timer + pre-turn flush + asset import + exit) serialized through one promise chain, and
+     a direct flush cancels the pending debounce tick — the client can no longer 409 against
+     itself and "resolve" the phantom conflict destructively.
+  2. **A 409 save conflict now keeps the kid's LIVE copy** (`projectPersistence`): the save
+     retries the local files on the server's adopted version; the server's conflicting copy
+     drops into the Time Machine ("Kept your newest copy" — now literally true). Previously
+     the code adopted the *server* files over the live editor, reverting the kid's work. A
+     double conflict adopts the server counter and stays queued (no loop).
+  3. **AI/fix turns merge per-path instead of wholesale-replacing the VFS**
+     (`vfsOps.mergeTurnFiles` via `applyTurnFiles`): the turn wins only on the paths it
+     changed; a hand-edit committed while the turn (or a server-side auto-fix) was in
+     flight survives.
+  4. **A late auto-fix verdict can no longer clobber newer local work** (`useVerification`):
+     each verification chain records the projectStore mutation seq at arm time; a `fixing`
+     verdict arriving after any local mutation (hand-edit, file op, Time Machine revert) is
+     discarded — resume-verify picks the still-pending turn up on the next open.
+  5. **The idle autosave commits over the LIVE store files** (`CodeEditorPane.commitDrafts`):
+     the 1.2 s idle timer's closure could predate an AI apply, so its commit wholesale-
+     reverted the turn's changes; it now reads `useProjectStore.getState().files` at fire time.
+- **Time Machine "Go back" no longer ends up half-undone**: the revert flushes its save
+  immediately (bypassing the 600 ms debounce) so the reverted state reaches the server before
+  any in-flight writer, and the verification staleness guard (above) stops a late fix turn
+  from stomping the reverted files.
+- Tests: `projectPersistence.test` (local-wins retry, double-conflict adopt+queued, retry→4xx),
+  new `vfsOps.mergeTurnFiles.test`, `useVerification.test` staleness-guard cases;
+  `useGameAgent.test` apply assertions carry the changed-paths arg.
+
+## 2026-07-17 (feat: teacher-prep immediate share-link — D-PREP-6)
+
+### Added
+- **Teacher-prep game/blocks studios can create an external play-link in one click,
+  with no grown-up approval** (teacher-prep-projects-prd.md D-PREP-6). The prep host
+  (`TeacherPrepStudioPage`) now passes a `prepMode` flag into the shared studios;
+  threaded `PlaygroundApp → Workspace → Taskbar → ShareLinkPanel` (game) and
+  `BlocksStudioPage → BlocksSharePanel` (blocks). In prep mode the share control drops
+  the kid "Ask my grown-up to share" copy for a one-click **"Create share link"**, shows
+  an adult "no sign-in needed" citizenship note, and never renders the pending/waiting
+  beat — the backend returns an `active` link straight from the request (no parent gate).
+  Web Code (`code`) prep has no share/play surface, so no control appears there. Kid share
+  flow (parent-approval-gated) is unchanged.
+- Tests: `ShareLinkPanel.test` + new `BlocksSharePanel.test` (prep adult copy + one-click
+  active, no pending beat; kid copy unchanged).
+
+## 2026-07-17 (change: "Free during workshop" AI cost UI — D-WFA-01)
+
+### Added
+- **Studios now show "Free during workshop" instead of a star cost while a project's
+  free-workshop window is live (workshop-free-ai-prd.md D-WFA-01).** The backend already
+  returns `ai_free_now` on `GET /projects/:id` and waives all AI star charges regardless of
+  the UI; this threads that flag into the kid studios so the cost display + the low/zero-balance
+  gate match reality. New shared `FreeBadge` pill (K-12 `wash-mint` token) marks the free state.
+- **Creative Code Studio (`CodeChat`):** the Ask button reads `✨ Ask · Free` (no `−2★`), never
+  disables on a low/zero balance, and the `{stars}★ left` hint becomes `🎉 Free during workshop`.
+  Wired through `useCodeStudio` (`aiFreeNow`) → `CodeStudioPage` → `CodeChat`.
+- **Game playground (`AIChatPanel`):** the metered Stars badge is replaced with a "🎉 Free during
+  workshop" badge. Wired via `PlaygroundApp` (reads `ai_free_now` on the same `getProject` that
+  loads the engine) → `Workspace` → `AIChatPanel`.
+- **Project-scoped creative studios (`ProjectDetailPage` → Image/Voice/Music/Story/Video
+  `*StudioContent`):** each generate button shows the `Free` badge in place of its `N★` cost
+  when the project's free-workshop window is live.
+- Tests: `CodeChat.aiFreeNow.test`, `AIChatPanel.test` (free-workshop badge block),
+  `ImageStudioContent.aiFreeNow.test`.
+
+### Changed
+- Added `ai_free_now?: boolean` to the `CodeProject` (codeApi) and `Project` (ProjectDetailPage)
+  types so the field flows through the existing project fetches.
+
+## 2026-07-17 (change: Creative Code Studio jumps straight to the game prompt)
+
+### Changed
+- **Creating a Creative Code Studio project now goes straight to the game playground
+  prompt, skipping the second-level menu.** Every create entry-point — the Create tab
+  card, the Learn-home "Creative Code Studio" card, the in-class "Create for this class"
+  sheet, and the class games-wall "Make a game" CTA — now routes directly to the
+  prompt-first `/learn/playground/new` (carrying `?class=<id>` in class contexts) instead
+  of the `/learn/create/code` "pick a starting point" hub or the class sheet's Web Code /
+  game sub-menu. `CREATE_TOOLS`' Creative Code Studio entry is now `to:/learn/playground/new`,
+  `projectKind:'game'`.
+- **The unimplemented web-code entries are hidden, not removed.** The `/learn/create/code`
+  `CodeHubPage` route and its `Tiny Game`/website/tool templates, and the
+  `CreateForClassSheet` **Web Code** sub-type, stay in code (still reachable as deep-links —
+  the cross-repo harness enters the game via `hub-template-pong`). The class sheet now shows
+  a second-level menu only when **more than one** sub-type is visible; with Web Code hidden,
+  Creative Code Studio jumps directly into the single visible game sub-type. A course that
+  allows only `code` (not `game`) therefore shows no Creative Code Studio tool for now.
+  Covered by `CreateForClassSheet.test` + `HomePage.test`; harness `kid-game-save`.
+
+## 2026-07-17 (docs: README troubleshooting pointer)
+
+### Added
+- README quick start: troubleshooting note — "buttons do nothing" in local dev is
+  almost always a backend 500 (local Postgres down; `/health` still 200), with the
+  diagnosis chain linked in umbrella `rules/local-dev-environment.md`.
+
+## 2026-07-17 (chore: pause Image Maker / Voice Booth / Video Studio as "Coming soon")
+
+### Changed
+- **Image Maker, Voice Booth and Video Studio are paused on owner request** (output
+  quality isn't there yet). A per-tool `comingSoon` flag in the shared create-tool
+  registry (`src/pages/learn/create/createTools.ts`) now drives every surface:
+  - **Create tab** (`/learn/create`): the three tools moved to a non-clickable
+    "Coming soon" teaser section below the live tools (Story Blocks, Creative Code
+    Studio, Music Stage — now listed first); the skills Tip line mentions live
+    studios only.
+  - **"Create for this class" sheet**: paused tools are never offered, even when the
+    course allows `creative` kinds.
+  - **Workspace studio picker**: Image / Voice / Video render as non-interactive
+    "Coming soon" teasers; no new session can start, and the `?studio=` deep-link
+    param is ignored for paused studios. Existing sessions still open.
+  - **Learn home**: the Studios and Workspace card copy no longer advertises
+    image/voice/video.
+  - **Parent Portal onboarding** (`WelcomeWizard`): the "what your child will make"
+    slide now leads with Story Blocks / Music / Code & Games and marks image, voice
+    & video as coming soon.
+  - The `/learn/create/{image,voice,video}` **routes stay registered** (deep links +
+    harness wallet journeys), so flipping `comingSoon` off restores everything —
+    nothing was deleted.
+
+## 2026-07-17 (chore: hide the self-serve Lessons catalog behind a feature switch)
+
+### Changed
+- The kid-facing Lessons catalog (`/learn/missions` — the course-pack browser fed by
+  `GET /course-packs` — and its per-pack detail page) is temporarily hidden on owner
+  request via a new `SHOW_LESSONS_CATALOG` switch (`src/lib/features.ts`), because the
+  seeded official course-pack content is not ready for self-serve browsing. The switch
+  removes the top-bar **Lessons** entry, the home **Guided courses** card, and the
+  My Classes empty-state **Browse lessons →** CTA, and redirects both `/learn/missions`
+  routes to `/learn`. Nothing was deleted — flipping the switch back to `true` restores
+  the whole surface. Copy-split guard and home tests are now switch-aware.
+
+## 2026-07-16 (feat: add a structural picture-first If condition)
+
+### Added
+- Story Blocks now has a real C-shaped `If touching` container. A child chooses another character
+  and places multiple actions in its visibly nested body. There is no separate `End if` block.
+- The editor provides a touch-first character picker, the saved project preserves the selected
+  character ID, and old one-action Junior If projects migrate without changing their behavior.
+
+### Changed
+- Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
+  Nested actions, the add affordance and the active insertion state now have separate visual zones,
+  and the insertion prompt points children to the block palette on the left.
+- Replaced the dashed web-style add button with a tactile connector control that shares the
+  blocks' border, depth and press feedback without pretending to be an executable block.
+- Integrated the `If touch` condition directly into the orange C-frame header, removing the
+  duplicate raised block surface while preserving its tap-to-choose and whole-If drag behavior.
+
+### Tests
+- Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
+  and multi-action true/false runtime coverage.
+
+## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
+
+### Fixed
+- **The Code Editor's Time Machine now adds a save point for every AI turn, named by the
+  backend's kid-readable label.** The turn result has always carried a `history_label`
+  ("Made a change", "Added a pause button"), but the studio never recorded it: only manual
+  edits snapshotted (the editor's idle autosnapshot on dirty drafts + file-tree ops), and an
+  applied AI turn refreshes the editor's drafts to the committed content *without* marking them
+  dirty — so the idle autosnapshot never fired for it. A game built purely by prompting never
+  grew past its "Your game started here" entry. Most visible in **teacher-prep projects**, which
+  are built prompt-first (teachers iterate almost entirely via 0-Stars chat turns) — the reported
+  bug. `Workspace.onTurnApplied` (the one seam every applied turn passes through) now records a
+  checkpoint via `historyStore`; a no-op question turn (no file change) is deduped away and a
+  read-only teacher viewer never records.
+- **AI save points can be named after what was asked.** The entry is titled by the backend's
+  authored `history_label` ("Added a pause button"); when that label is generic or absent
+  (e.g. the fake LLM's "Made a change", or a bland real turn), it falls back to the triggering
+  prompt — the message the kid typed or the next-step chip they tapped — tidied to one short,
+  capitalized line (`aiCheckpointLabel`). So a turn from "make the player jump higher" reads
+  "Make the player jump higher" in the Time Machine instead of "Made a change". The prompt is
+  threaded to the recorder via `useGameAgent`'s `onTurnApplied(result, { prompt })` seam.
+
+### Changed
+- **Time Machine entries are named from an authored label, not by reverse-parsing a technical
+  summary.** `Checkpoint` gains an explicit `label` + semantic `kind`
+  (`initial|edit|file|revert|kept-newest|ai`); `HistoryPanel` renders the `label` verbatim with a
+  `kind`-driven icon instead of sniffing the `summary` string (which mangled friendly AI labels,
+  e.g. "Made a change" → "Changed a change"). `describe()` is kept as the legacy fallback for
+  checkpoints persisted before `label`/`kind` existed; the initial-version, kept-newest and revert
+  records now pass explicit `label`+`kind`. New fields are optional → old cached checkpoints still
+  render.
+
+### Tests
+- `historyStore.test.ts`: authored `label`/`kind` stored verbatim; a plain auto edit leaves them
+  undefined; an AI turn identical to the latest snapshot dedupes to null; a coalesced typing burst
+  keeps the session's label/kind.
+- New `HistoryPanel.test.tsx`: an AI turn's `history_label` renders verbatim (never mangled), a
+  legacy checkpoint (no label/kind) still derives a title from its summary, one entry per checkpoint.
+- Harness `kid-game-edit-after-turn` now also asserts an applied AI turn adds a 'Made a change'
+  Time Machine entry (the positive case beside the existing kept-newest regression).
+
+## 2026-07-17 (fix: game-player pause/mute silences background music started via a bare Audio element)
+
+### Fixed
+- **Pause and mute in the game player now stop background music that a game plays through a bare
+  `new Audio(src)` element it never adds to the page.** The engine-agnostic `AUDIO_CONTROL` shim
+  (`buildGamePreview.ts`) suspends/mutes every `AudioContext` and every `<audio>/<video>` it can
+  find, but it only found media via `document.querySelectorAll('audio,video')` — so a looping BGM
+  track created with `new Audio('song.mp3'); a.loop = true; a.play()` and never appended to the DOM
+  was invisible to it and kept playing straight through pause and mute. The shim now also patches
+  `HTMLMediaElement.prototype.play` to track every element that plays (DOM-attached or not) and
+  drives mute/pause across that set too.
+- The shim also remembers the latest mute/pause intent, so audio that **starts after** the kid
+  already muted or paused (a lazily-created `AudioContext`, a BGM track that begins on a later
+  scene) is born silenced too — not only what was already playing.
+
+### Tests
+- Extended `buildGamePreview.audioControl.test.ts`: a bare `new Audio()` never added to the DOM is
+  muted and paused; a detached track that only starts after mute is born silent; a WebAudio context
+  created after mute is born with its master gain at 0. Refreshed the `buildGamePreview` srcdoc
+  snapshot for the expanded shim.
+
+## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
+
+### Fixed
+- **A referenced class/course asset now actually loads in the game.** In teacher prep (and the kid
+  playground), referencing a shared asset by `assets/class/<name>` logged
+  `[airbotix] Texture failed to load: assets/class/<name>` and the asset never rendered: the runtime
+  resolver read the bytes with a cross-origin `fetch()` of the signed S3 `download_url`, which fails
+  without media-bucket CORS (the `<img>` preview kept working because image loads ignore CORS), so
+  the sandboxed game was left with a bare path it couldn't resolve. `useReferencedClassAssets` now
+  fetches the bytes **same-origin** from the backend proxy
+  `GET /projects/:id/class-assets/:assetId/bytes` (class-shared-assets-prd D-CSA-11).
+- The Class-tab **3D-model preview** (`ClassModelThumb` / `ClassModelStage`) had the same latent
+  cross-origin failure (it `fetch()`ed the model bytes) — both now use the same-origin proxy.
+
+### Changed
+- `playgroundApi`: `fetchAssetDataUrl(url)` → `fetchClassAssetDataUrl(projectId, assetId)` (fetches
+  via the proxy) + a shared `blobToDataUrl` helper; `lib/api` gains `apiBlob` (authenticated
+  same-origin binary fetch, now also backing `apiDownload`).
+
+### Tests
+- Updated `classAssetResolver.test.ts` (resolver fetches by `(projectId, assetId)`),
+  `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
+  `AssetViewerPane.classAssets.test.tsx` (model preview mock).
+
+## 2026-07-17 (feat: make parent and kid sign-in unmistakable)
+
+### Changed
+- Rebuilt the shared sign-in experience around an explicit first question — **Parent or
+  guardian** or **Kid creator** — with the active identity, its credential type, and a direct
+  route switch visible before either form.
+- Parent sign-in now says **Parent login or sign up** and explains that a new family
+  is set up after the same email-code step, removing the hidden-registration ambiguity.
+- Added an original robot platform-world scene and a responsive split layout that keeps the
+  identity choice prominent on desktop, tablet, and phone widths.
+- The desktop sign-in gateway now fills the entire viewport. Its game-world rail is fixed at
+  100% height while the right-hand form owns its scrolling, so switching between the shorter
+  parent form and taller kid form never offsets the family artwork.
+- Elevated the full-screen gateway from a plain split screen to a premium editorial treatment:
+  a bright fixed game stage, framed platform artwork, role-tinted ambient canvas, translucent form
+  panel, refined segmented identity control, focus lighting, and reduced-motion-safe animation.
+- The game stage now doubles as an Airbotix creation showcase, rotating through three curated
+  course worlds every eight seconds with manual pagination, pause/play control, and a static
+  experience for visitors who prefer reduced motion.
 
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
@@ -64,6 +352,18 @@
   "输入空间太少了". The input clears itself after a take lands.
 
 ## 2026-07-14 (fix: Music is discoverable from the studio picker again)
+## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)
+
+### Added
+- **Academy — NAPLAN Maths practice (`/learn/academy`).** A new kid Learn surface: pick a year
+  level (Year 3/5/7/9, default Year 5; subject fixed to Numeracy), work through ~20 real
+  NAPLAN-style questions one at a time, and get the official answer straight after each try. Renders
+  the real question text with inline figure images when present, falling back to the scanned
+  question/page image otherwise; multiple-choice shows the real option text and submits the letter,
+  value questions take a typed number. A header scoreboard tracks done/correct + progress, and the
+  end-of-set summary reads back the kid's running accuracy with a "Practise more" reset. Rides the
+  shared `api` client (kid-JWT auth) + K-12 design tokens like every other Learn page; a new home
+  tile links to it.
 
 ### Fixed
 - **The Workspace studio picker had no Music entry at all.** When the Stage moved out of the chat

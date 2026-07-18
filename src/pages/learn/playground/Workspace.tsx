@@ -43,6 +43,7 @@ import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { useVerification } from './panes/useVerification';
 import { ensureGameRunnerVisible, usePlaygroundStore } from './playgroundStore';
+import { aiCheckpointLabel, useHistoryStore } from './historyStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
 interface WorkspaceProps {
@@ -57,9 +58,15 @@ interface WorkspaceProps {
   engine?: GameEngine;
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
+  /** Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): AI turns are free
+   *  (0★) for this project right now → the chat shows "Free during workshop" in
+   *  place of the Stars balance. The backend enforces the waiver regardless. */
+  aiFreeNow?: boolean;
   /** Commit edits back to the page-level source of truth. An applied AI/fix
-   *  turn passes the new server VFS `version` so the save flow adopts it. */
-  onApplyFiles: (f: VfsFile[], version?: number) => void;
+   *  turn passes the new server VFS `version` so the save flow adopts it, plus
+   *  the paths it changed so the apply MERGES per-path onto the current local
+   *  VFS (a concurrent hand-edit survives) instead of wholesale-replacing. */
+  onApplyFiles: (f: VfsFile[], version?: number, changedPaths?: string[]) => void;
   /** Save the project now + report the result — lets an asset import confirm the
    *  upload before revealing the asset (see AssetViewerPane). */
   onSaveNow?: () => Promise<SaveResult>;
@@ -88,6 +95,12 @@ interface WorkspaceProps {
    * The kid-only wallet query is skipped (a teacher has no family).
    */
   readOnly?: boolean;
+  /**
+   * Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): the Taskbar's
+   * share-link control mints immediately with no parent-approval gate. Forwarded
+   * to `ShareLinkPanel`; kid/default behaviour is unchanged when false.
+   */
+  prepShare?: boolean;
 }
 
 interface Wallet {
@@ -111,6 +124,7 @@ export function Workspace({
   running,
   engine = 'phaser',
   onEngineChange,
+  aiFreeNow = false,
   onApplyFiles,
   onSaveNow,
   onRun,
@@ -121,6 +135,7 @@ export function Workspace({
   onChatChange,
   blockedSeed,
   readOnly = false,
+  prepShare = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
   const [splitTab, setSplitTab] = useState<SplitTab>(
@@ -172,7 +187,7 @@ export function Workspace({
   // Class assets the game REFERENCES (`assets/class/<name>`), resolved to inline-
   // ready data URLs so the runner loads them without copying anything into the VFS
   // (class-shared-assets-prd, Model A). Passed live to the runner as virtualAssets.
-  const virtualClassAssets = useReferencedClassAssets(files, classAssets);
+  const virtualClassAssets = useReferencedClassAssets(files, classAssets, projectId ?? '');
 
   // Live-refresh the Class tab when the teacher changes the class library
   // (class-shared-assets-prd): the backend pushes a class_id-only signal to the
@@ -306,7 +321,20 @@ export function Workspace({
       onStarsCharged: () => wallet.refetch(),
       // Arm the run-report loop for an applied turn awaiting verification. The
       // screenshot hint (D-HARN-21b) rides along so the report can carry evidence.
-      onTurnApplied: (r) => {
+      onTurnApplied: (r, meta) => {
+        // Capture every applied AI turn as a Time Machine save point. It's named by
+        // the backend's authored `history_label`; when that's generic/absent we name
+        // it after what was ASKED (the triggering prompt) so the entry reads like the
+        // kid's own words. This is the ONLY place an AI turn enters History: chat/build
+        // turns apply files externally, so the editor's idle autosnapshot never fires
+        // for them. Without this, a game built purely by prompting — the whole
+        // teacher-prep prompt-first flow — never grows past its "Initial version".
+        // `record` dedupes a no-op question turn (no file change) to null, so only real
+        // changes add an entry. Read-only viewers never mutate → never record.
+        if (!readOnly) {
+          const label = aiCheckpointLabel(r.history_label, meta?.prompt);
+          useHistoryStore.getState().record(r.files, Date.now(), r.summary, { label, kind: 'ai' });
+        }
         if (r.verification === 'pending' && r.turn_id)
           beginVerificationRef.current(r.turn_id, r.screenshot_requested === true);
       },
@@ -342,8 +370,11 @@ export function Workspace({
     projectId,
     mode,
     enabled: verifyEnabled,
-    // The same funnel a chat turn's apply uses: files + server-version adoption.
-    applyFixTurn: (turn) => onApplyFiles(turn.files, turn.version),
+    // The same funnel a chat turn's apply uses: files + server-version adoption
+    // + per-path merge (the changed paths), so a hand-edit made while the server
+    // was fixing is never wholesale-replaced away.
+    applyFixTurn: (turn) =>
+      onApplyFiles(turn.files, turn.version, turn.changes.map((c) => c.path)),
     restartGame: runForVerification,
     pushCoDebugMessage: pushAgentMessage,
     onStarsCharged: () => wallet.refetch(),
@@ -395,6 +426,7 @@ export function Workspace({
     error,
     offline,
     balance,
+    aiFreeNow,
     pending,
     canUndo,
     safeguard,
@@ -505,6 +537,7 @@ export function Workspace({
             <CodeEditorPane
               files={files}
               onApplyFiles={onApplyFiles}
+              onSaveNow={onSaveNow}
               onRun={runFromEditor}
               openLocation={locationRequest}
               onExplainSelection={handleExplainCode}
@@ -556,7 +589,7 @@ export function Workspace({
         </div>
 
         {/* Docked taskbar (brand + LayoutToggle + window buttons + share link) */}
-        <Taskbar projectId={projectId} readOnly={readOnly} />
+        <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
       </div>
     );
   }
@@ -611,6 +644,7 @@ export function Workspace({
                   <CodeEditorPane
                     files={files}
                     onApplyFiles={onApplyFiles}
+                    onSaveNow={onSaveNow}
                     onRun={runFromEditor}
                     openLocation={locationRequest}
                     onExplainSelection={handleExplainCode}
@@ -650,7 +684,7 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} readOnly={readOnly} />
+      <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
     </div>
   );
 }

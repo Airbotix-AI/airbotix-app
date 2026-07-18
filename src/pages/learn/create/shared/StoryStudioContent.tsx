@@ -4,15 +4,19 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { Celebration } from './Celebration';
+import { FreeBadge } from './FreeBadge';
 import { StudioTip } from './StudioTip';
 
 const COST = 1;
 
 export function StoryStudioContent({
   projectId,
+  aiFreeNow = false,
   onCreated,
 }: {
   projectId: string;
+  /** Workshop-free-AI waiver (D-WFA-01) — show "Free" in place of the star cost. */
+  aiFreeNow?: boolean;
   onCreated: () => void;
 }) {
   const [prompt, setPrompt] = useState('');
@@ -90,7 +94,13 @@ export function StoryStudioContent({
           disabled={generate.isPending || !prompt.trim()}
           className="btn-pill-primary w-full mt-6"
         >
-          {generate.isPending ? '📖 Writing…' : `📖 Write it — ${COST}★`}
+          {generate.isPending ? (
+            '📖 Writing…'
+          ) : aiFreeNow ? (
+            <span className="inline-flex items-center gap-1.5">📖 Write it <FreeBadge /></span>
+          ) : (
+            `📖 Write it — ${COST}★`
+          )}
         </button>
       </div>
     </div>

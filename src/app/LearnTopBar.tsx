@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
+import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { usePlaygroundStore } from '@/pages/learn/playground/playgroundStore';
 import { useBlocksTheme } from '@/pages/learn/blocks/blocksTheme';
 // the themed nav uses the pg-* tokens — ensure they're loaded on every Learn
@@ -26,6 +27,13 @@ export const NAV_ITEMS = [
   { to: '/learn/missions', label: 'Lessons' },
   { to: '/learn/classroom', label: 'My Classes' },
 ];
+
+// The Lessons catalog is temporarily hidden (features.ts SHOW_LESSONS_CATALOG);
+// NAV_ITEMS above stays the full canonical list so the copy-split guard keeps
+// pinning the Lesson/Mission wording.
+export const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter(
+  (item) => SHOW_LESSONS_CATALOG || item.to !== '/learn/missions',
+);
 
 export function LearnTopBar() {
   const me = useMe();
@@ -81,7 +89,7 @@ export function LearnTopBar() {
           </NavLink>
           {/* inline nav (≥ md) */}
           <nav className="hidden gap-2 md:flex">
-            {NAV_ITEMS.map((item) => (
+            {VISIBLE_NAV_ITEMS.map((item) => (
               <TopLink key={item.to} to={item.to} end={item.end} themed={themed}>
                 {item.label}
               </TopLink>
@@ -137,7 +145,7 @@ export function LearnTopBar() {
             themed ? 'border-pg-border' : 'border-hairline',
           )}
         >
-          {NAV_ITEMS.map((item) => (
+          {VISIBLE_NAV_ITEMS.map((item) => (
             <TopLink key={item.to} to={item.to} end={item.end} themed={themed} block>
               {item.label}
             </TopLink>

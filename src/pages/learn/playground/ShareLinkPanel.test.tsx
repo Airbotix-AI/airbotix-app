@@ -13,6 +13,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ShareLinkPanel } from './ShareLinkPanel';
 import { usePlaygroundStore } from './playgroundStore';
+import { getShareLink, requestShareLink } from './sharingApi';
 
 vi.mock('./sharingApi', () => ({
   getShareLink: vi.fn(() => Promise.resolve({ status: 'none' })),
@@ -21,11 +22,11 @@ vi.mock('./sharingApi', () => ({
   revokeShareLink: vi.fn(),
 }));
 
-function renderPanel() {
+function renderPanel(props: { prepMode?: boolean } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <ShareLinkPanel projectId="p1" />
+      <ShareLinkPanel projectId="p1" {...props} />
     </QueryClientProvider>,
   );
 }
@@ -66,5 +67,43 @@ describe('ShareLinkPanel popup theming (portal escapes the data-theme root)', ()
 
     const dialog = await screen.findByRole('dialog', { name: 'Share link' });
     expect(dialog.getAttribute('data-theme')).toBe('light');
+  });
+});
+
+// Teacher-prep host (teacher-prep-projects-prd.md D-PREP-6): sharing is immediate
+// with no parent-approval gate — the copy drops the kid "grown-up" framing and one
+// click mints the live link.
+describe('ShareLinkPanel — teacher-prep immediate share (D-PREP-6)', () => {
+  it('shows the adult "Create share link" copy, not "ask a grown-up"', async () => {
+    renderPanel({ prepMode: true });
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+
+    await screen.findByRole('dialog', { name: 'Share link' });
+    expect(screen.getByText('Create share link')).toBeTruthy();
+    expect(screen.queryByText('Ask my grown-up to share')).toBeNull();
+    // The citizenship note drops the kid "real name or photo" framing.
+    expect(screen.getByTestId('citizenship-note').textContent).toContain('no sign-in needed');
+  });
+
+  it('one click mints an ACTIVE link (backend returns active straight away — no pending beat)', async () => {
+    // The prep request path returns `active` directly (no parent approval).
+    vi.mocked(requestShareLink).mockResolvedValue({
+      status: 'active',
+      shareId: 'ps1',
+      plays: 0,
+    });
+    vi.mocked(getShareLink).mockResolvedValue({ status: 'none' });
+
+    renderPanel({ prepMode: true });
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+    await screen.findByRole('dialog', { name: 'Share link' });
+
+    fireEvent.click(screen.getByText('Create share link'));
+
+    // The live URL appears with no "waiting for grown-up" pending state in between.
+    const url = (await screen.findByTestId('share-url')) as HTMLInputElement;
+    expect(url.value).toContain('/play/ps1');
+    expect(screen.queryByTestId('share-approval-pending')).toBeNull();
+    expect(requestShareLink).toHaveBeenCalledWith('p1');
   });
 });

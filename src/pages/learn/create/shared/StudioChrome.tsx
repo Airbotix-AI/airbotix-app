@@ -26,6 +26,15 @@ export function StudioChrome({
   const balance = wallet.data?.stars_balance ?? 0;
   const canAfford = balance >= cost;
 
+  // TODO(D-WFA-01): show "Free during workshop" here when the workshop-free-AI
+  // waiver is live. Not wired yet because StudioChrome's callers (ImageMakerPage,
+  // VideoStudioPage, VoiceBoothPage) are the STANDALONE studios that generate
+  // WITHOUT a project_id — `ai_free_now` is a per-project flag (GET /projects/:id),
+  // so there is no project here to read it from. The project-scoped creative
+  // studios (ProjectDetailPage → *StudioContent) ARE wired. The backend enforces
+  // the waiver regardless, so these standalone studios are already free; this is
+  // display-only polish pending a project handle on this surface.
+
   return (
     <div>
       <Link to="/learn/create" className="btn-pill-ghost mb-4 -ml-3">← All tools</Link>

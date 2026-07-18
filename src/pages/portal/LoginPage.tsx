@@ -5,6 +5,7 @@ import { useLocation, useNavigate, type Location } from 'react-router-dom';
 import { z } from 'zod';
 
 import { requestOtp } from '@/auth/useAuth';
+import { AuthIdentityLayout } from '@/components/auth/AuthIdentityLayout';
 import { ApiError } from '@/lib/api';
 
 const schema = z.object({ email: z.string().email() });
@@ -39,50 +40,49 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card">
-        <div className="mb-2">
-          <span className="sticker-coral">Parent Portal</span>
-        </div>
-        <h1 className="hero-display mt-6">
-          Welcome <span className="squiggle-word">back</span>.
-        </h1>
-        <p className="lead-text mt-4">
-          Sign in with your email — we'll send you a one-time code.
-        </p>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
-          <div>
-            <label htmlFor="email" className="label-k12">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="input-k12"
-              {...register('email')}
-            />
-            {errors.email && <span className="field-error">{errors.email.message}</span>}
-          </div>
-
-          {error && (
-            <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
-              {error}
-            </div>
-          )}
-
-          <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
-            {isSubmitting ? 'Sending…' : 'Send code'}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-[13px] text-slate2">
-          Kid?{' '}
-          <a href="/learn/login" className="font-semibold text-brand-coral hover:underline">
-            Sign in here →
-          </a>
-        </p>
+    <AuthIdentityLayout activeRole="parent">
+      <div>
+        <span className="sticker-sky">Parents &amp; guardians</span>
       </div>
-    </div>
+      <h1 className="hero-display mt-6">
+        <span className="squiggle-word">Parent</span> login or sign up.
+      </h1>
+      <p className="lead-text mt-4">
+        Enter your email for your family account and we'll send a secure one-time code. No password
+        needed.
+      </p>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+        <div>
+          <label htmlFor="email" className="label-k12">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="input-k12"
+            {...register('email')}
+          />
+          {errors.email && <span className="field-error">{errors.email.message}</span>}
+        </div>
+
+        {error && (
+          <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+            {error}
+          </div>
+        )}
+
+        <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
+          {isSubmitting ? 'Sending…' : 'Send code & continue'}
+        </button>
+      </form>
+
+      <div className="mt-6 rounded-2xl border border-brand-mint/30 bg-wash-mint px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
+        <strong className="text-ink">New to Airbotix?</strong> After the code, we'll help you set up
+        your family and your first kid profile.
+      </div>
+    </AuthIdentityLayout>
   );
 }

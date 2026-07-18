@@ -186,9 +186,11 @@ export interface UseGameAgentOptions {
    * VFS version (the turn bumped it server-side) so the page can keep its save
    * version in sync — without it, the next manual save 409s and the kid's edit is
    * reverted. Omit `version` for local-only applies (undo) that don't change the
-   * server version.
+   * server version. `changedPaths` (the turn's changed files) makes the apply a
+   * per-path MERGE onto the current local VFS instead of a wholesale replace, so
+   * a hand-edit committed while the turn was in flight survives.
    */
-  onApplyFiles: (files: VfsFile[], version?: number) => void;
+  onApplyFiles: (files: VfsFile[], version?: number, changedPaths?: string[]) => void;
   /** The real backend project. When absent, the offline stub runs (project-less session). */
   projectId?: string;
   /** Age-derived tier: Lite (8–11) auto-applies w/ agency beat; Pro (12–17) approves. */
@@ -247,9 +249,12 @@ export interface UseGameAgentOptions {
   /**
    * Fired after a turn's result fully applies (files + version adopted, chat
    * settled). The workspace uses it to arm the post-apply verification loop for
-   * a `verification: 'pending'` turn (D-PAP-40 / useVerification).
+   * a `verification: 'pending'` turn (D-PAP-40 / useVerification) and to record a
+   * Time Machine save point. `meta.prompt` is the message that triggered this turn
+   * (a typed ask or a tapped next-step chip), so the save point can be named after
+   * what was asked when the backend's `history_label` is generic/absent.
    */
-  onTurnApplied?: (result: AgentTurnResult) => void;
+  onTurnApplied?: (result: AgentTurnResult, meta?: { prompt?: string }) => void;
   /**
    * Flush any pending (debounced) local VFS save to the backend BEFORE a turn
    * runs. A turn reads the SERVER-persisted VFS (the request body carries only the
@@ -474,7 +479,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     async (
       result: AgentTurnResult,
       pendingId: string,
-      opts?: { keepOtherNextSteps?: boolean },
+      opts?: { keepOtherNextSteps?: boolean; prompt?: string },
     ) => {
       undoTargetRef.current = files;
       setCanUndo(true);
@@ -547,7 +552,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         );
         setStreaming(false);
       }
-      onApplyFiles(result.files, result.version);
+      onApplyFiles(result.files, result.version, result.changes.map((c) => c.path));
       onStarsCharged?.(result.stars_charged);
       // Run the turn's workspace actions — but NOT the ones that yank the code
       // editor to the front. The kid opens the editor by tapping a changed-file
@@ -567,8 +572,9 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       );
       if (changed && !alreadyRan) clientActions?.restartGame();
       // The turn is fully applied (and the game re-running) — let the workspace
-      // arm post-apply verification for a `verification: 'pending'` turn.
-      onTurnApplied?.(result);
+      // arm post-apply verification for a `verification: 'pending'` turn and record
+      // a Time Machine save point (named after the ask when the label is generic).
+      onTurnApplied?.(result, { prompt: opts?.prompt });
     },
     [files, onApplyFiles, onStarsCharged, clientActions, onTurnApplied, bumpWatchdog],
   );
@@ -625,7 +631,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           setCanUndo(true);
           setProgress(null);
           setChat((prev) => prev.filter((it) => it.id !== pendingId));
-          onApplyFiles(res.turn.files, res.turn.version);
+          onApplyFiles(res.turn.files, res.turn.version, res.turn.changes.map((c) => c.path));
           onStarsCharged?.(res.turn.stars_charged);
           clientActions?.restartGame();
         } else {
@@ -976,7 +982,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           // Only the S3 refs go to the backend — never the local preview URLs.
           ...(hasImages ? { images: images.map((im) => ({ s3_key: im.s3_key, mime: im.mime })) } : {}),
         });
-        await applyResult(result, pendingId);
+        await applyResult(result, pendingId, { prompt: trimmed });
       } catch (e) {
         // The fetch aborted: the kid tapped "Stop waiting" (D-PAP-48) or the
         // silent-turn watchdog fired (D-HARN-03) — either way the backend cleanly
@@ -1235,7 +1241,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           ? await deps.approve({ projectId: projectId!, turnId: p.turnId, decision: 'approve', signal: ac.signal })
           : await deps.runTurn({ projectId: projectId!, prompt: p.prompt, mode, idempotencyKey: mintTurnKey(), signal: ac.signal });
       setPending(null);
-      await applyResult(result, pendingId);
+      await applyResult(result, pendingId, { prompt: p.prompt });
     } catch (e) {
       // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
       // settle. No retry chip: the confirm card is still up — re-tapping IS the retry.
@@ -1404,7 +1410,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         });
         return;
       }
-      await applyResult(result, pendingId);
+      await applyResult(result, pendingId, { prompt });
     } catch (e) {
       // Kid stopped waiting (D-PAP-48) or the watchdog fired (D-HARN-03) → calm
       // cancel / timeout-with-retry, not an error.

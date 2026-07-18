@@ -11,7 +11,7 @@
 // before a project exists, and the game backend isn't built yet) — so the
 // playground always opens with files.
 
-import { api } from '@/lib/api';
+import { api, apiBlob } from '@/lib/api';
 import { readVfs } from '../../code/codeApi';
 import type { VfsFile } from '../../code/codeApi';
 import { generateScaffold } from './starterProject';
@@ -182,25 +182,36 @@ export async function listClassAssets(projectId: string): Promise<ClassAssetView
   return api<ClassAssetView[]>(`/projects/${projectId}/class-assets`);
 }
 
-/**
- * Fetch a class asset's bytes from its short-lived signed `download_url` and
- * convert them to a `data:` URL — the uniform VFS shape for a binary asset (the
- * same representation imports use). Copying the bytes into the VFS (rather than
- * referencing the signed URL) keeps the game self-contained and the sandbox
- * intact: a signed S3 URL would expire and would mean the untrusted game holds a
- * live credential-bearing URL. SSRF/safety is moot — the URL is one the backend
- * itself just minted for this kid.
- */
-export async function fetchAssetDataUrl(downloadUrl: string): Promise<string> {
-  const res = await fetch(downloadUrl);
-  if (!res.ok) throw new Error(`Failed to download asset (${res.status})`);
-  const blob = await res.blob();
-  return await new Promise<string>((resolve, reject) => {
+/** Read a Blob's bytes as a `data:` URL — the uniform VFS shape for binary media. */
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error('Failed to read asset bytes'));
     reader.readAsDataURL(blob);
   });
+}
+
+/**
+ * Fetch a referenced class/course asset's bytes and convert them to a `data:` URL —
+ * the uniform VFS shape for a binary asset (the same representation imports use).
+ * The studio inlines this into the sandboxed game (class-shared-assets-prd, Model A)
+ * and, for a 3D asset, into the model preview.
+ *
+ * The bytes come SAME-ORIGIN from the backend proxy
+ * (`GET /projects/:projectId/class-assets/:assetId/bytes`), NOT from the signed S3
+ * `download_url`: a browser `fetch()` of that cross-origin URL requires media-bucket
+ * CORS that isn't set, so it fails (while the `<img>` preview, which ignores CORS,
+ * still works) and the game would be left with a bare `assets/class/<name>` path it
+ * can't load in the opaque-origin frame. The proxy is on the app origin (same CORS
+ * posture as every API call) and keeps the signed S3 URL server-side.
+ */
+export async function fetchClassAssetDataUrl(
+  projectId: string,
+  assetId: string,
+): Promise<string> {
+  const blob = await apiBlob(`/projects/${projectId}/class-assets/${assetId}/bytes`);
+  return blobToDataUrl(blob);
 }
 
 export interface ResolveFilesOptions {

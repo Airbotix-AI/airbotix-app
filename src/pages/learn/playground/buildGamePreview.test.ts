@@ -127,6 +127,42 @@ describe('engine profiles (2D Phaser / 3D three.js)', () => {
     expect(doc).not.toContain("'assets/imported/robot.glb'");
   });
 
+  it('inlines a raw-base64 audio asset as a data:audio/* URL — NEVER octet-stream', () => {
+    // The public /play page fetches a frozen share snapshot whose assets are RAW
+    // base64 (they bypass codeApi's toStudioContent wrapper), so the srcdoc builder
+    // types them by extension. A data: URL is never MIME-sniffed: an mp3 inlined as
+    // application/octet-stream is refused by `new Audio()` — the shared game's BGM
+    // (and anything gated on it, e.g. on-beat note spawning) silently dies.
+    const mp3: VfsFile = {
+      path: 'assets/class/Golden.mp3',
+      content: 'SUQzBA==', // backend shape: raw base64, no data: prefix
+      kind: 'asset',
+      size: 4,
+    };
+    const game = text('main.js', "const bgm = new Audio('assets/class/Golden.mp3');");
+    const doc = buildGamePreview([game, mp3], { engine: 'three' }).srcDoc;
+    expect(doc).toContain("new Audio('data:audio/mpeg;base64,SUQzBA==')");
+    expect(doc).not.toContain('octet-stream');
+    expect(doc).not.toContain("'assets/class/Golden.mp3'");
+  });
+
+  it('types every supported audio extension with a real audio/* MIME', () => {
+    // wav/mp3/ogg/m4a mirror the platform's audio asset kinds (backend
+    // asset-kinds.ts MIME_BY_EXT + codeApi BINARY_ASSET_MIME) — a row missing
+    // HERE is exactly the drift that broke shared-link background music.
+    for (const [ext, mime] of [
+      ['wav', 'audio/wav'],
+      ['mp3', 'audio/mpeg'],
+      ['ogg', 'audio/ogg'],
+      ['m4a', 'audio/mp4'],
+    ] as const) {
+      const asset: VfsFile = { path: `sounds/bgm.${ext}`, content: 'QUJD', kind: 'asset', size: 3 };
+      const game = text('main.js', `const bgm = new Audio('sounds/bgm.${ext}');`);
+      const doc = buildGamePreview([game, asset], { engine: 'phaser' }).srcDoc;
+      expect(doc).toContain(`new Audio('data:${mime};base64,QUJD')`);
+    }
+  });
+
   it('inlines a VIRTUAL class asset (Model A) the game references, without it being in files', () => {
     // A class asset lives at assets/class/<name> but is NOT in the project VFS —
     // it's passed as a virtualAssets data URL and must inline exactly like a real

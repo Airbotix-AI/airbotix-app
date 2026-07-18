@@ -4,13 +4,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the shared api client so we assert the request shape without a network.
 const apiMock = vi.fn();
-vi.mock('@/lib/api', () => ({ api: (...args: unknown[]) => apiMock(...args) }));
+const apiBlobMock = vi.fn();
+vi.mock('@/lib/api', () => ({
+  api: (...args: unknown[]) => apiMock(...args),
+  apiBlob: (...args: unknown[]) => apiBlobMock(...args),
+}));
 // Mock the readVfs the resolver delegates to (its own module is tested elsewhere).
 vi.mock('../../code/codeApi', () => ({ readVfs: vi.fn() }));
 
 import {
   createGameProject,
-  fetchAssetDataUrl,
+  fetchClassAssetDataUrl,
   listClassAssets,
   placeGameProjectForClass,
   transcribeVoice,
@@ -130,22 +134,20 @@ describe('listClassAssets (class-shared-assets-prd)', () => {
   });
 });
 
-describe('fetchAssetDataUrl (class asset → VFS data URL)', () => {
-  it('downloads the signed URL and reads the bytes as a data URL', async () => {
-    const blob = new Blob(['hello'], { type: 'image/png' });
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, blob: () => Promise.resolve(blob) });
-    vi.stubGlobal('fetch', fetchMock);
-    const dataUrl = await fetchAssetDataUrl('https://signed.example/x.png?sig=z');
-    expect(fetchMock).toHaveBeenCalledWith('https://signed.example/x.png?sig=z');
-    expect(dataUrl.startsWith('data:image/png;base64,')).toBe(true);
-    vi.unstubAllGlobals();
-  });
+describe('fetchClassAssetDataUrl (class/course asset → VFS data URL)', () => {
+  beforeEach(() => apiBlobMock.mockReset());
 
-  it('throws when the signed URL responds non-OK', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }));
-    await expect(fetchAssetDataUrl('https://signed.example/x.png')).rejects.toThrow(/403/);
-    vi.unstubAllGlobals();
+  it('reads the bytes SAME-ORIGIN from the backend proxy (never the signed S3 URL)', async () => {
+    const blob = new Blob(['hello'], { type: 'image/png' });
+    apiBlobMock.mockResolvedValue(blob);
+    const dataUrl = await fetchClassAssetDataUrl('proj-9', 'asset-3');
+    // The bytes come from the app-origin proxy by (projectId, assetId), so no
+    // cross-origin S3 fetch (and no bucket CORS) is involved.
+    expect(apiBlobMock).toHaveBeenCalledWith('/projects/proj-9/class-assets/asset-3/bytes');
+    expect(dataUrl.startsWith('data:image/png;base64,')).toBe(true);
   });
+  // A failed proxy fetch is exercised end-to-end in classAssetResolver.test.ts
+  // ("omits an asset whose fetch fails") — the resolver drops the asset there.
 });
 
 describe('transcribeVoice (UDL / OD-6 — backend STT, never a direct LLM)', () => {
