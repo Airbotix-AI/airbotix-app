@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useKidToken } from '@/auth/authStore';
+import { useMe } from '@/auth/useAuth';
 import { sendWsEvent } from '@/lib/ws';
 import { NudgeBanner } from '@/pages/learn/liveClass/NudgeBanner';
 import { reEmitFocus } from '@/pages/learn/liveClass/reportFocus';
@@ -27,6 +28,24 @@ const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music'];
 // composing a song shouldn't have their whole browser hijacked into fullscreen
 // (user decision, music-stage-prd D-MS7 refinement).
 const AUTO_FULLSCREEN_ROUTES = ['/learn/blocks/'];
+
+// Walk-in (unclaimed) workshop kids only see their class + their kid code
+// (auth-system-prd §5.2): the top-level catalog surfaces below bounce to the
+// classroom. DEEP working routes stay open — a class mission still launches the
+// studios (/learn/blocks/:id, /learn/code/:id, /learn/playground/:id), project
+// details and mission details — so nothing in the workshop itself is blocked.
+// Exported for tests. (Pre-existing pattern: data/util export beside the layout
+// component — the fast-refresh warning is benign here, same as LearnTopBar's
+// NAV_ITEMS, and would otherwise fail the deploy's --max-warnings 0 lint.)
+// eslint-disable-next-line react-refresh/only-export-components
+export function isRestrictedForWalkIn(pathname: string): boolean {
+  if (pathname === '/learn' || pathname === '/learn/') return true;
+  if (pathname === '/learn/projects' || pathname === '/learn/projects/new') return true;
+  if (pathname === '/learn/missions') return true;
+  if (pathname === '/learn/create' || pathname.startsWith('/learn/create/')) return true;
+  if (pathname === '/learn/workspace' || pathname.startsWith('/learn/workspace/')) return true;
+  return false;
+}
 
 export function LearnLayout() {
   const { pathname } = useLocation();
@@ -101,6 +120,15 @@ export function LearnLayout() {
       if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => undefined);
     };
   }, [autoFullscreen]);
+
+  // Walk-in restriction (§5.2): declared after every hook so the early return
+  // can't break hook order. While /auth/me is still loading we render normally —
+  // the server scopes a walk-in session to its class regardless.
+  const me = useMe('kid');
+  const isWalkIn = me.data?.kind === 'kid' && me.data.is_ephemeral === true;
+  if (isWalkIn && isRestrictedForWalkIn(pathname)) {
+    return <Navigate to="/learn/classroom" replace />;
+  }
 
   return (
     <div className="flex h-full flex-col bg-canvas">

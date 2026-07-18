@@ -6,11 +6,18 @@ import { cleanup, render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { LearnLayout } from './LearnLayout';
+import type { AuthPrincipal } from '@/auth/types';
+
+import { isRestrictedForWalkIn, LearnLayout } from './LearnLayout';
 
 vi.mock('./LearnTopBar', () => ({ LearnTopBar: () => <nav data-testid="learn-nav" /> }));
 vi.mock('@/components/NudgeBanner', () => ({ NudgeBanner: () => null }));
-vi.mock('@/auth/useAuth', () => ({ useKidToken: () => 'tok' }));
+// Mutable per-test principal: default is an ordinary (claimed / family) kid.
+let mePrincipal: AuthPrincipal | undefined;
+vi.mock('@/auth/useAuth', () => ({
+  useKidToken: () => 'tok',
+  useMe: () => ({ data: mePrincipal }),
+}));
 vi.mock('@/lib/ws', () => ({
   sendWsEvent: vi.fn(),
   reEmitFocus: vi.fn(),
@@ -24,6 +31,7 @@ function mount(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<LearnLayout />}>
+            <Route path="/learn/classroom" element={<div data-testid="classroom" />} />
             <Route path="/learn/*" element={<div data-testid="page" />} />
           </Route>
         </Routes>
@@ -35,7 +43,19 @@ function mount(path: string) {
 /** The centered reading column every ordinary Learn page sits in. */
 const readingColumn = (c: HTMLElement) => c.querySelector('.max-w-5xl');
 
-afterEach(cleanup);
+afterEach(() => {
+  mePrincipal = undefined;
+  cleanup();
+});
+
+const walkInKid: AuthPrincipal = {
+  kind: 'kid',
+  sub: 'kid_w',
+  nickname: 'Zoe',
+  family_id: 'fam_eph',
+  is_ephemeral: true,
+  claim_code: 'ABCDEFGHJ3',
+};
 
 describe('LearnLayout', () => {
   it('wraps an ordinary page in the centered reading column, with the nav', () => {
@@ -72,6 +92,64 @@ describe('LearnLayout', () => {
   // immersive (no nav, no page scroll) but must stay a normal browser page —
   // a desktop kid composing a song shouldn't have their browser hijacked into
   // fullscreen (user decision).
+  // Walk-in (unclaimed) workshop kids only see their class + kid code
+  // (auth-system-prd §5.2): catalog surfaces bounce to the classroom; deep
+  // working routes stay open so nothing in the workshop itself is blocked.
+  describe('walk-in restriction', () => {
+    it.each(['/learn', '/learn/projects', '/learn/create', '/learn/workspace', '/learn/missions'])(
+      'bounces a walk-in kid from %s to the classroom',
+      (path) => {
+        mePrincipal = walkInKid;
+        const { getByTestId, queryByTestId } = mount(path);
+        expect(getByTestId('classroom')).toBeInTheDocument();
+        expect(queryByTestId('page')).toBeNull();
+      },
+    );
+
+    it.each(['/learn/playground/p1', '/learn/blocks/p1', '/learn/projects/p1', '/learn/profile'])(
+      'keeps the deep working route %s open for a walk-in kid',
+      (path) => {
+        mePrincipal = walkInKid;
+        const { queryByTestId } = mount(path);
+        expect(queryByTestId('classroom')).toBeNull();
+      },
+    );
+
+    it('does not restrict an ordinary (claimed) kid', () => {
+      mePrincipal = { ...walkInKid, is_ephemeral: false, claim_code: undefined };
+      const { getByTestId } = mount('/learn/projects');
+      expect(getByTestId('page')).toBeInTheDocument();
+    });
+
+    it('isRestrictedForWalkIn pins the exact route policy', () => {
+      // restricted catalogs
+      for (const p of [
+        '/learn',
+        '/learn/projects',
+        '/learn/projects/new',
+        '/learn/missions',
+        '/learn/create',
+        '/learn/create/code',
+        '/learn/workspace',
+      ]) {
+        expect(isRestrictedForWalkIn(p), p).toBe(true);
+      }
+      // open working routes
+      for (const p of [
+        '/learn/classroom',
+        '/learn/classroom/c1',
+        '/learn/profile',
+        '/learn/projects/p1',
+        '/learn/missions/m1',
+        '/learn/playground/p1',
+        '/learn/code/p1',
+        '/learn/blocks/p1',
+      ]) {
+        expect(isRestrictedForWalkIn(p), p).toBe(false);
+      }
+    });
+  });
+
   it('auto-enters OS fullscreen on first tap for Blocks but NEVER for the Music Stage', () => {
     const requestFullscreen = vi.fn(() => Promise.resolve());
     Object.defineProperty(document.documentElement, 'requestFullscreen', {

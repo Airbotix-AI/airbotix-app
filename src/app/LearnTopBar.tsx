@@ -35,10 +35,21 @@ export const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter(
   (item) => SHOW_LESSONS_CATALOG || item.to !== '/learn/missions',
 );
 
+// Walk-in (unclaimed) workshop kids see ONLY their class + their kid code
+// (auth-system-prd §5.2). Deep working routes (studios/projects launched from
+// the class) stay reachable — this trims the top-level catalog surfaces.
+// eslint-disable-next-line react-refresh/only-export-components
+export const WALK_IN_NAV_ITEMS = [
+  { to: '/learn/classroom', label: 'My Classes', end: undefined as boolean | undefined },
+  { to: '/learn/profile', label: '🎟️ My code', end: undefined as boolean | undefined },
+];
+
 export function LearnTopBar() {
   const me = useMe();
   const logout = useLogout();
   const nickname = me.data?.kind === 'kid' ? me.data.nickname : null;
+  const isWalkIn = me.data?.kind === 'kid' && me.data.is_ephemeral === true;
+  const navItems = isWalkIn ? WALK_IN_NAV_ITEMS : VISIBLE_NAV_ITEMS;
   const { pathname } = useLocation();
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
@@ -89,7 +100,7 @@ export function LearnTopBar() {
           </NavLink>
           {/* inline nav (≥ md) */}
           <nav className="hidden gap-2 md:flex">
-            {VISIBLE_NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <TopLink key={item.to} to={item.to} end={item.end} themed={themed}>
                 {item.label}
               </TopLink>
@@ -145,7 +156,7 @@ export function LearnTopBar() {
             themed ? 'border-pg-border' : 'border-hairline',
           )}
         >
-          {VISIBLE_NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <TopLink key={item.to} to={item.to} end={item.end} themed={themed} block>
               {item.label}
             </TopLink>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
@@ -10,11 +11,50 @@ interface Project {
   star_cost_total: number;
 }
 
+/** Display form of a kid claim code: ABCDEFGHJ3 → ABCD-EFGH-J3. */
+function formatKidCode(code: string): string {
+  return code.replace(/(.{4})(?=.)/g, '$1-');
+}
+
+// Walk-in kids' claim code (auth-system-prd §5.2): big, copyable, with
+// kid-friendly instructions — a parent uses it later to add this kid to their
+// family, keeping all workshop projects. Gone once claimed.
+function KidCodeCard({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="card-base mb-10" style={{ maxWidth: '520px' }} data-testid="kid-code-card">
+      <div className="eyebrow eyebrow-mint">My kid code</div>
+      <div className="mt-3 font-mono font-extrabold text-ink" style={{ fontSize: '32px', letterSpacing: '0.15em' }} data-testid="kid-code">
+        {formatKidCode(code)}
+      </div>
+      <p className="mt-3 text-[14px] text-slate2">
+        Give this code to your parent! They can use it to add you to your family account — all your
+        projects come with you. It never expires.
+      </p>
+      <button
+        type="button"
+        className="btn-pill-secondary mt-4"
+        onClick={() => {
+          void navigator.clipboard?.writeText(formatKidCode(code));
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 2000);
+        }}
+      >
+        {copied ? 'Copied ✓' : 'Copy my code'}
+      </button>
+    </div>
+  );
+}
+
 export function ProfilePage() {
   const me = useMe();
   const logout = useLogout();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const nickname = me.data?.kind === 'kid' ? me.data.nickname : '—';
+  const claimCode =
+    me.data?.kind === 'kid' && me.data.is_ephemeral && me.data.claim_code
+      ? me.data.claim_code
+      : null;
 
   const projects = useQuery<Project[]>({
     queryKey: ['projects', 'kid', kidId, 'profile'],
@@ -34,6 +74,8 @@ export function ProfilePage() {
           I'm <span className="squiggle-word">{nickname}</span>.
         </h1>
       </div>
+
+      {claimCode && <KidCodeCard code={claimCode} />}
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
         <div className="stat-tile coral">

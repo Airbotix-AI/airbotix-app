@@ -19,7 +19,11 @@ export interface KidPrincipal {
   age?: number;
   family_id: string | null;
   class_id?: string;
+  // Unclaimed walk-in workshop kid (auth-system-prd §5.2): drives the restricted
+  // Learn surface (current class + kid code only) until a parent claims them.
   is_ephemeral?: boolean;
+  // The kid's own claim code — present only while unclaimed.
+  claim_code?: string;
 }
 
 export type AuthPrincipal = UserPrincipal | KidPrincipal;
@@ -33,7 +37,14 @@ export interface MeResponse {
   user?: { id: string; email: string; display_name: string | null; role: Role; family_id: string | null };
   family?: { id: string; name: string; region: string } | null;
   kid_profiles?: Array<{ id: string; nickname: string; age: number }>;
-  kid?: { id: string; nickname: string; age?: number; family_id: string | null };
+  kid?: {
+    id: string;
+    nickname: string;
+    age?: number;
+    family_id: string | null;
+    is_ephemeral?: boolean;
+    claim_code?: string;
+  };
 }
 
 export interface VerifyOtpResponse {

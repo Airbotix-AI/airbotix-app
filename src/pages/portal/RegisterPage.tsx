@@ -21,28 +21,47 @@ import {
 
 // Family setup. Backend auto-generates the family code (kid-memorable 4 chars).
 // Multi-step "90s wizard" comes once underlying endpoints settle.
-const schema = z.object({
-  // The parent's own name (§3.1 wizard step "[1] Your name"). Written to
-  // User.display_name via PATCH /auth/me before the family is created.
-  your_name: z.string().min(1).max(120),
-  family_name: z.string().min(1).max(80),
-  region: z.string().min(2).max(8),
-  city: z.string().max(80).optional(),
-  // Optional analytics-relevant family profile (kept light at signup).
-  state: z.enum(AU_STATES).or(z.literal('')).optional(),
-  postcode: z.string().max(8).optional(),
-  acquisition_source: z.enum(ACQUISITION_SOURCES).or(z.literal('')).optional(),
-  preferred_language: z.enum(PREFERRED_LANGUAGES),
-  marketing_opt_in: z.boolean().optional(),
-  kid_nickname: z.string().min(1).max(40),
-  kid_age: z.coerce.number().int().min(4).max(17),
-  kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
-  // Registration consent (terms-of-service.md §2.1): must be affirmatively
-  // ticked; the backend rejects POST /families without accept_terms: true.
-  accept_terms: z.literal(true, {
-    errorMap: () => ({ message: 'You need to agree before we can set up your family.' }),
-  }),
-});
+const schema = z
+  .object({
+    // The parent's own name (§3.1 wizard step "[1] Your name"). Written to
+    // User.display_name via PATCH /auth/me before the family is created.
+    your_name: z.string().min(1).max(120),
+    family_name: z.string().min(1).max(80),
+    region: z.string().min(2).max(8),
+    city: z.string().max(80).optional(),
+    // Optional analytics-relevant family profile (kept light at signup).
+    state: z.enum(AU_STATES).or(z.literal('')).optional(),
+    postcode: z.string().max(8).optional(),
+    acquisition_source: z.enum(ACQUISITION_SOURCES).or(z.literal('')).optional(),
+    preferred_language: z.enum(PREFERRED_LANGUAGES),
+    marketing_opt_in: z.boolean().optional(),
+    // First kid: either a brand-new profile, or CLAIM a walk-in workshop kid by
+    // their kid code (auth-system-prd §5.2) — the code brings the kid and all
+    // their workshop projects into this new family.
+    kid_mode: z.enum(['new', 'claim']),
+    kid_nickname: z.string().max(40).optional(),
+    // Backend minimum age is 6 (D-SP8 / C2 compliance) — keep the client aligned.
+    kid_age: z.coerce.number().int().min(6, 'Airbotix is for ages 6+').max(17),
+    kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
+    kid_claim_code: z.string().trim().max(20).optional(),
+    // Registration consent (terms-of-service.md §2.1): must be affirmatively
+    // ticked; the backend rejects POST /families without accept_terms: true.
+    accept_terms: z.literal(true, {
+      errorMap: () => ({ message: 'You need to agree before we can set up your family.' }),
+    }),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kid_mode === 'new' && !v.kid_nickname?.trim()) {
+      ctx.addIssue({ code: 'custom', path: ['kid_nickname'], message: 'Nickname is required' });
+    }
+    if (v.kid_mode === 'claim' && (v.kid_claim_code ?? '').trim().length < 6) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['kid_claim_code'],
+        message: 'Enter the kid code from the workshop',
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -62,6 +81,9 @@ export function RegisterPage() {
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedFamily | null>(null);
+  // Non-fatal: family created but the kid-code claim failed (§5.2) — shown on
+  // the success screen so the parent knows to retry from Family → Add kid.
+  const [claimWarning, setClaimWarning] = useState<string | null>(null);
 
   // Deep-link return-to (class-seat-checkout-prd.md D-CSC-8): a page that
   // bounced the parent here (e.g. /portal/checkout/class/:id) stashes itself
@@ -87,11 +109,13 @@ export function RegisterPage() {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { region: 'AU', preferred_language: detectPreferredLanguage() },
+    defaultValues: { region: 'AU', preferred_language: detectPreferredLanguage(), kid_mode: 'new' },
   });
+  const kidMode = watch('kid_mode');
 
   // Creating a family requires an authenticated parent (OTP token in memory).
   // Unlike /portal/*, this route isn't behind <ProtectedRoute>, so guard here:
@@ -172,14 +196,39 @@ export function RegisterPage() {
       // family_id=null. Refresh it now so the kid-creation call passes the
       // family-scope guard (otherwise POST /families/:id/kids → 403).
       await refreshAccessToken('user');
-      await api<unknown>(`/families/${family.id}/kids`, {
-        method: 'POST',
-        body: {
-          nickname: values.kid_nickname,
-          age: values.kid_age,
-          pin: values.kid_pin,
-        },
-      });
+      if (values.kid_mode === 'claim') {
+        // Walk-in workshop kid (§5.2): the code re-parents the existing kid —
+        // and every project they made — into this brand-new family. The family
+        // already exists at this point, so a bad code must NOT fail the whole
+        // registration: surface it on the success screen and let the parent
+        // retry from Family → Add kid.
+        try {
+          await api<unknown>(`/families/${family.id}/kids/claim`, {
+            method: 'POST',
+            body: {
+              claim_code: values.kid_claim_code,
+              age: values.kid_age,
+              pin: values.kid_pin,
+              ...(values.kid_nickname?.trim() ? { nickname: values.kid_nickname.trim() } : {}),
+            },
+          });
+        } catch (claimErr) {
+          setClaimWarning(
+            claimErr instanceof ApiError && claimErr.code === 'INVALID_CLAIM_CODE'
+              ? "The kid code didn't match, so your kid isn't linked yet. Check the code with the teacher, then use Family → Add kid → “I have a kid code”."
+              : "We couldn't link your kid yet. You can claim them any time from Family → Add kid → “I have a kid code”.",
+          );
+        }
+      } else {
+        await api<unknown>(`/families/${family.id}/kids`, {
+          method: 'POST',
+          body: {
+            nickname: values.kid_nickname,
+            age: values.kid_age,
+            pin: values.kid_pin,
+          },
+        });
+      }
       // Show the success screen BEFORE invalidating `me`: the refetch makes
       // family_id non-null, and the arrive-with-family redirect above must
       // already see `created` set — otherwise it navs away, dropping the
@@ -219,6 +268,12 @@ export function RegisterPage() {
             </div>
             <div className="mt-2 text-[14px] opacity-90">{created.name}</div>
           </div>
+
+          {claimWarning && (
+            <div className="mt-6 rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
+              {claimWarning}
+            </div>
+          )}
 
           <button
             onClick={() => nav(afterCreateDest, { replace: true })}
@@ -333,14 +388,53 @@ export function RegisterPage() {
 
           <section className="space-y-4">
             <div className="eyebrow eyebrow-bubblegum">Your first kid</div>
-            <Field label="Nickname" error={errors.kid_nickname?.message}>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+                <input
+                  type="radio"
+                  value="new"
+                  className="h-4 w-4 accent-brand-coral"
+                  {...register('kid_mode')}
+                />
+                New kid
+              </label>
+              <label className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+                <input
+                  type="radio"
+                  value="claim"
+                  className="h-4 w-4 accent-brand-coral"
+                  {...register('kid_mode')}
+                />
+                I have a kid code from a workshop
+              </label>
+            </div>
+            {kidMode === 'claim' && (
+              <>
+                <p className="text-[13px] text-slate2">
+                  The kid code links the account your kid used at the workshop — and everything
+                  they made — to your new family.
+                </p>
+                <Field label="Kid code" error={errors.kid_claim_code?.message}>
+                  <input
+                    className="input-k12 font-mono uppercase tracking-widest"
+                    placeholder="ABCD-EFGH-12"
+                    autoComplete="off"
+                    {...register('kid_claim_code')}
+                  />
+                </Field>
+              </>
+            )}
+            <Field
+              label={kidMode === 'claim' ? 'Nickname (optional — keeps the workshop one)' : 'Nickname'}
+              error={errors.kid_nickname?.message}
+            >
               <input className="input-k12" placeholder="Mia" {...register('kid_nickname')} />
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Age" error={errors.kid_age?.message}>
                 <input
                   type="number"
-                  min={4}
+                  min={6}
                   max={17}
                   className="input-k12"
                   {...register('kid_age')}

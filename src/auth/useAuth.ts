@@ -23,6 +23,10 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
       nickname: raw.kid.nickname,
       age: raw.kid.age,
       family_id: raw.kid.family_id,
+      // Walk-in (unclaimed) kids get the restricted Learn surface (§5.2); the
+      // claim code renders on their profile so a parent can claim them later.
+      is_ephemeral: raw.kid.is_ephemeral,
+      claim_code: raw.kid.claim_code,
     };
   }
   if (!raw.user) {

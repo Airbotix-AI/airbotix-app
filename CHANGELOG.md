@@ -97,6 +97,27 @@
 ### Changed
 - Added `ai_free_now?: boolean` to the `CodeProject` (codeApi) and `Project` (ProjectDetailPage)
   types so the field flows through the existing project fetches.
+## 2026-07-17 (feat: walk-in workshop kids — restricted Learn + kid-code claim in Portal)
+
+### Added
+- **Restricted Learn surface for walk-in (unclaimed) workshop kids** (auth-system-prd
+  §5.2.1): nav trims to **My Classes + 🎟️ My code**; catalog surfaces (`/learn` home,
+  Projects list/new, Create, Lessons catalog, AI Workspace) bounce to `/learn/classroom`
+  (`LearnLayout.isRestrictedForWalkIn`); deep working routes (studios, project/mission
+  detail) stay open so class missions are never blocked. `normaliseMe` now forwards
+  `is_ephemeral`/`claim_code` onto `KidPrincipal`.
+- **Kid-code card on the Learn profile**: an unclaimed kid sees their claim code big +
+  copyable ("give this to your parent — it never expires"); gone once claimed.
+- **Claim a walk-in kid in the Portal**: the register wizard's first-kid step gains
+  **"I have a kid code from a workshop"** (code + real age + new PIN; a failed claim
+  never fails registration — the success screen says to retry from Family → Add kid),
+  and `/portal/family/new` gains an **"I have a kid code"** tab (shared `ClaimKidForm`,
+  409 nickname-collision retry with override).
+
+### Fixed
+- Kid-age minimums in the register + add-kid forms aligned to the backend (6, D-SP8) —
+  they allowed 4–5 and the backend rejected the submit.
+
 
 ## 2026-07-17 (change: Creative Code Studio jumps straight to the game prompt)
 
