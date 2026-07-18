@@ -317,6 +317,22 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
   });
 
+  it('accepts A4-H only for the unchanged one-space breakfast-cart program', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a4-h';
+    project.pages[0].id = 'tsv-a4-h-page';
+    project.pages[0].background = 'meadow';
+    project.pages[0].characters[0].id = 'breakfast-cart';
+    project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+    project.pages[0].characters[0].start.gx = 4;
+    project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-flag';
+    project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }];
+    project.pages[0].characters.push({ id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a4-h')).toBe(true);
+    project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a4-h')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

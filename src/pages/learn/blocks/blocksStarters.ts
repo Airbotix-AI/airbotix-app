@@ -86,4 +86,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 12',
     desc: 'Choose your secret character, add one real Hop, Grow, or Say response, then let someone discover it with a tap.',
   },
+  {
+    id: 'blocks_tsv_a4_h',
+    emoji: '🚙',
+    title: 'Tiny Star Village · Mission 13',
+    desc: 'Point to where the breakfast cart will stop, choose 3 spaces before Go, then compare the one-space run with the table.',
+  },
 ];

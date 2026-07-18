@@ -266,6 +266,22 @@ export function StoryMissionGuide({
                       <strong>Your mission</strong>
                       <span>{mission.mission}</span>
                     </div>
+                    {mission.lessonId === 'tsv-s1-a4-h' && (
+                      <div className="bsx-mission-choices" data-testid="story-prerun-prediction">
+                        {mission.choices.map((choice) => (
+                          <button
+                            key={choice.id}
+                            type="button"
+                            className="bsx-mission-choice"
+                            data-testid={`story-choice-${choice.id}`}
+                            aria-pressed={answerId === choice.id}
+                            onClick={() => onAnswer(choice.id)}
+                          >
+                            {choice.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
                 <div className="bsx-story-actions">

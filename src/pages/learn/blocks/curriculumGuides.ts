@@ -835,6 +835,24 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '🐱', label: 'Character', order: 'Choose' }, { icon: '🧩', label: 'Response', order: 'Build' }, { icon: '👆', label: 'Tap', order: 'Reveal' }],
     completionWhy: 'The server-saved project contains your selected character and exact On Tap surprise, and the real runner finished it.', next: 'Dot Dot spots the breakfast cart. Next, predict how far it should travel.',
   },
+  'tsv-s1-a4-h': {
+    mode: 'observe-only', lessonId: 'tsv-s1-a4-h', celebrate: false,
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 4 · Mission 13', title: 'How far is breakfast?',
+    storyPages: [
+      { emoji: '🚙🍎', title: 'Breakfast is waiting', body: 'The cart starts at space 4. The breakfast table waits at space 7.', speaker: 'Lumilo', dialogue: 'Point from the cart to the table.', scene: 1 },
+      { emoji: '1️⃣➡️', title: 'The cart knows one step', body: 'The unchanged program says Right 1. Before Go, predict the full distance to the table.', speaker: 'Lumilo', dialogue: 'How many spaces are between them?', scene: 3, blocks: ['🚩 Start', '➡️ Right 1 → End'] },
+      { emoji: '🚙…🍽️', title: 'Compare after Go', body: 'Run the real program. The cart stops at space 5, still two spaces before the table.', speaker: 'Breakfast Cart', dialogue: 'One step was too short!', scene: 5 },
+    ],
+    partnerLine: 'A number tells the cart how many spaces to travel.',
+    mission: 'Before Go, choose how many spaces reach the table. Then run the unchanged Right 1 program and compare its stop with the table.',
+    question: 'How many spaces from the cart to the table?', choices: [{ id: 'one', label: '1 space', correct: false }, { id: 'two', label: '2 spaces', correct: false }, { id: 'three', label: '3 spaces', correct: true }],
+    retry: 'Count from space 4 to space 7. Choose before Go, then compare the run.', successTitle: 'You predicted three spaces!', success: 'The real one-space run stopped early at space 5.',
+    fixTitle: 'Story Hook complete', fixPrompt: 'Keep Right 1 unchanged. In the next mission you will change its number.', workspaceIntro: 'Do not change the blocks. Choose 3 spaces before Go, then watch where Right 1 stops.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Count to the table and choose before Go.', watch: 'The cart stopped at space 5. Is that the table?', sayFirst: 'Count three spaces from 4 to 7.', sayThen: 'Count three spaces from 4 to 7.', hopFirst: 'Keep the cart program unchanged.', hopThen: 'Keep the cart program unchanged.', retry: 'Choose the full distance before Go.', fix: 'One step stopped early. Your three-space prediction was right.', test: 'Run the unchanged Right 1 program.', saving: 'Saving your observation with the unchanged program…', complete: 'Three spaces reach the table; Right 1 stops early.' },
+    logicSteps: [{ icon: '👉', label: 'Predict 3', order: 'Before' }, { icon: '▶️', label: 'Run Right 1', order: 'Then' }, { icon: '🍽️', label: 'Compare', order: 'Explain' }],
+    logicWhy: 'The cart starts at 4 and the table is at 7, so the distance is three spaces.', completionTitle: 'Story Hook complete · Three spaces!', completion: 'You predicted before running and saw the unchanged one-space program stop early.', completionSteps: [{ icon: '3️⃣', label: 'Predict', order: 'First' }, { icon: '🚙', label: 'Stop at 5', order: 'Run' }, { icon: '🍽️', label: 'Table at 7', order: 'Compare' }], completionWhy: 'The exact unchanged Start → Right 1 → End program ran from 4 to 5 while the table stayed at 7.', next: 'Next, change only the movement number to 3 in A4-B.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {
