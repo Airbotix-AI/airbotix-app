@@ -168,6 +168,7 @@ export function BlocksStudioPage({
   const [confirmReset, setConfirmReset] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
+  const [missionTapObserved, setMissionTapObserved] = useState(false);
   const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
@@ -645,7 +646,7 @@ export function BlocksStudioPage({
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
-          setMissionOpen(true);
+          setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
@@ -681,6 +682,7 @@ export function BlocksStudioPage({
     (choiceId: string) => {
       setMissionAnswer(choiceId);
       if (storyMission?.mode !== 'observe-only' || !missionHasRun || !missionTargetFixed) return;
+      if (storyMission.lessonId === 'tsv-s1-a3-h' && !missionTapObserved) return;
       const correct = storyMission.choices.some(
         (choice) => choice.id === choiceId && choice.correct,
       );
@@ -692,7 +694,7 @@ export function BlocksStudioPage({
       setStoryCoachCue('saving');
       setMissionOpen(false);
     },
-    [missionHasRun, missionTargetFixed, storyMission],
+    [missionHasRun, missionTapObserved, missionTargetFixed, storyMission],
   );
 
   const applyMissionFix = useCallback(() => {
@@ -756,9 +758,15 @@ export function BlocksStudioPage({
   const tapSprite = useCallback(
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
-      void runner.runTap(id);
+      void runner.runTap(id).finally(() => {
+        if (storyMission?.lessonId !== 'tsv-s1-a3-h' || id !== 'dot-dot' || !missionHasRun)
+          return;
+        setMissionTapObserved(true);
+        setStoryCoachCue('fix');
+        setMissionOpen(true);
+      });
     },
-    [makeRunner],
+    [makeRunner, missionHasRun, storyMission],
   );
 
   // ── character picker: a centered modal sheet (big library, kid-friendly) ──

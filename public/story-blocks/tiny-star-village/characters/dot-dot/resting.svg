@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Dot Dot sleeping cat">
+  <path fill="#6f5aa8" d="M58 86 42 42l50 28c18-9 38-9 56 0l50-28-16 44c15 17 22 38 18 62-6 38-38 64-80 64s-74-26-80-64c-4-24 3-45 18-62Z"/>
+  <path fill="#fff3cf" d="M67 91 55 61l34 20m84 10 12-30-34 20"/>
+  <path fill="none" stroke="#302848" stroke-linecap="round" stroke-width="8" d="M76 126q16 13 32 0m24 0q16 13 32 0"/>
+  <path fill="#ef8da8" d="m120 139-10 9 10 7 10-7Z"/>
+  <path fill="none" stroke="#302848" stroke-linecap="round" stroke-width="6" d="M120 155q-9 13-22 5m22-5q9 13 22 5"/>
+  <circle cx="51" cy="116" r="5" fill="#ffd56a"/><circle cx="189" cy="116" r="5" fill="#ffd56a"/>
+</svg>

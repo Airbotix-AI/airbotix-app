@@ -14,6 +14,11 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.desc).not.toContain('Press Go');
   });
 
+  it('lists the A3 Story Hook starter', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a3_h');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 9');
+  });
+
   it('offers the next A1 Complete scene as a separate real mission', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a1_b');
     expect(starter?.title).toBe('Tiny Star Village · Mission 2');

@@ -62,4 +62,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 8',
     desc: 'Choose a home star, then build your own two-step Left or Right path and save where Tuan Tuan arrives.',
   },
+  {
+    id: 'blocks_tsv_a3_h',
+    emoji: '🐱',
+    title: 'Tiny Star Village · Mission 9',
+    desc: 'Go cannot wake Dot Dot. Run it once, then tap Dot Dot and discover which start makes the rooftop story respond.',
+  },
 ];

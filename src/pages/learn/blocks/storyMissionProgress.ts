@@ -110,6 +110,15 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }, { op: 'end' }],
     sceneTarget: { id: 'plaza-target', name: 'My Home Star', gx: 10, gy: 10, size: 0.8 },
   },
+  'tsv-s1-a3-h': {
+    pageId: 'tsv-a3-h-page',
+    background: 'sunset',
+    characterId: 'dot-dot',
+    scriptId: 'dot-dot-tap',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    start: { gx: 10, gy: 8, size: 1, rot: 0 },
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: '醒啦' }, { op: 'end' }],
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
