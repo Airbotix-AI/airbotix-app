@@ -40,7 +40,7 @@ export const CREATE_TOOLS: CreateTool[] = [
   // Paused 2026-07-17 (owner call): output quality isn't there yet — hidden as
   // coming-soon until each studio is fixed and re-approved.
   // "Art Studio" replaced the informal "Image Maker" name (image-studio-prd.md);
-  // cost matches the backend charge (pricing.ts image = 8⭐, was mislabelled 4).
+  // Cost matches the backend image tier (9⭐; previously mislabelled 4⭐).
   { to: '/learn/create/image', emoji: '🎨', title: 'Art Studio', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 9, comingSoon: true },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 5, comingSoon: true },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 60, comingSoon: true },

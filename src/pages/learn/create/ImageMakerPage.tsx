@@ -35,7 +35,7 @@ type PlanSize = (typeof SIZES)[number]['id'];
 
 // Must match the backend charges (pricing: image tier, kids-default text turn).
 // Every AI invocation charges Stars (rules/ai-star-billing.md).
-const COST = 8;
+const COST = 9; // gpt-image image tier (star-pricing-sot.md; dall-e-3 retired)
 const CHAT_COST = 1;
 
 const OPENING = 'What should we paint today? Tell me your idea!';
