@@ -70,6 +70,20 @@
 - Studio "Recent" headers now state where work is saved ("saved to My Pictures ✓").
 - Removed `useRecentArtifacts` (cross-project `/kids/:id/artifacts?kind=` feed) in
   favour of bucket reads.
+## 2026-07-19 (fix: transient refresh failures no longer log the user out — 2026-07-18 incident)
+
+### Fixed
+- **A rate-limited or briefly-unreachable `/auth/refresh` no longer kills the session**
+  (both principals: parent `user` + kid). `api.ts` treated every refresh failure as
+  session death, so when a whole venue behind one egress IP hit the backend's old
+  60/h/IP refresh limit (2026-07-18 incident) everyone was mass-logged-out. Now only a
+  refresh 401/403 (cookie truly dead) — or a replay that still 401s on a fresh token —
+  clears the session; 429/5xx/network keep it, with one 1.5s-backoff retry on 5xx/network
+  to ride out deploy windows. Backend fix lands separately (session-keyed refresh
+  throttle, platform-backend `auth-throttlers.ts`).
+- Tests: new `src/lib/api.test.ts` — 429 keeps session, refresh-401 clears it, successful
+  refresh replays the request, 5xx retries once then succeeds, network×2 keeps session,
+  fresh-token-still-401 clears.
 
 ### Fixed
 - **Table/graph questions now show the image, not garbled text.** Questions whose data
