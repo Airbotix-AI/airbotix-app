@@ -56,6 +56,26 @@ export interface MusicScore {
   tracks: ScoreTrack[];
 }
 
+/** Octave-shift bounds for the lane Edit drawer (track-editing PRD §3-A). */
+export const TRACK_OCTAVE_MIN = -2;
+export const TRACK_OCTAVE_MAX = 2;
+
+/**
+ * The kid's 0⭐ per-instrument tweaks from the lane Edit drawer — keyed by
+ * INSTRUMENT KIND like mute/solo/volume so they survive version switches even
+ * when the LLM reorders tracks (music-stage-prd AC-7).
+ */
+export interface TrackTweak {
+  /** Custom lane display name (metadata only). */
+  name?: string;
+  /** Whole-octave pitch shift, TRACK_OCTAVE_MIN..TRACK_OCTAVE_MAX; drums ignore it. */
+  octave?: number;
+  /** Stereo pan −1 (left) .. 1 (right). */
+  pan?: number;
+}
+
+export type StageTweaks = Partial<Record<InstrumentKind, TrackTweak>>;
+
 export interface LaneColor {
   /** Accent — a K-12 brand token hex (mirrors tailwind.config.js `brand`). */
   hex: string;

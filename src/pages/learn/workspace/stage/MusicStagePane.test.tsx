@@ -15,6 +15,8 @@ const {
   preloadProgramsMock,
   saveScoreToMyWorksMock,
   generateRealSongMock,
+  renderScoreMock,
+  triggerBlobDownloadMock,
 } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
@@ -36,6 +38,8 @@ const {
   preloadProgramsMock: vi.fn(),
   saveScoreToMyWorksMock: vi.fn(),
   generateRealSongMock: vi.fn(),
+  renderScoreMock: vi.fn(),
+  triggerBlobDownloadMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -54,6 +58,14 @@ vi.mock('./realSongApi', async (orig) => ({
 // smplr layer is exercised in soundfont.test.ts — here only the preload call.
 vi.mock('./soundfont', () => ({
   preloadPrograms: preloadProgramsMock,
+}));
+// Offline WAV rendering needs a real AudioContext — stub the render + the
+// download hand-off, keep the pure helpers (filenames, audibility) real.
+vi.mock('./offlineRender', async (orig) => ({
+  ...(await orig<typeof import('./offlineRender')>()),
+  renderScore: renderScoreMock,
+  audioBufferToWavBlob: () => new Blob(),
+  triggerBlobDownload: triggerBlobDownloadMock,
 }));
 // Legacy audio-artifact fallback pulls in wavesurfer — irrelevant here.
 vi.mock('../MusicTrackList', () => ({
@@ -120,7 +132,7 @@ function scoreMsg(score: MusicScore): Message {
   };
 }
 
-function renderPane(messages: Message[], balance = 12, classId: string | null = null) {
+function renderPane(messages: Message[], balance = 50, classId: string | null = null) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -568,27 +580,82 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
     expect(document.querySelectorAll('[data-note-active="true"]')).toHaveLength(3);
   });
 
-  it('keeps download/edit/re-roll off the lane — the ⋯ menu deep-links into the Mixer', () => {
+  // Track-editing PRD §3-A: the ⋯ actions ACT — no more shell entries that
+  // just opened the legacy Mixer region ("调整编辑" owner feedback 2026-07-17).
+  it('⋯ Edit opens the drawer; name / octave / pan apply per instrument (0⭐)', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
-    const menu = screen.getByTestId('lane-menu-0');
-    expect(menu).toHaveTextContent('Opens in the Mixer');
-    // Mixer home is wired (D-MX1): entries are live and open the Mixer region.
-    expect(screen.getByTestId('lane-menu-download-0')).toBeEnabled();
-    expect(screen.getByTestId('lane-menu-edit-0')).toBeEnabled();
-    expect(screen.getByTestId('lane-menu-reroll-0')).toBeEnabled();
-    fireEvent.click(screen.getByTestId('lane-menu-download-0'));
+    fireEvent.click(screen.getByTestId('lane-menu-edit-0'));
     expect(screen.queryByTestId('lane-menu-0')).not.toBeInTheDocument(); // menu closes
-    expect(screen.getByTestId('mixer-region')).toBeInTheDocument();
-    expect(screen.getByTestId('legacy-track-list')).toBeInTheDocument();
+    const drawer = screen.getByTestId('lane-edit-drawer-0');
+    expect(drawer).toBeInTheDocument();
+    // Rename shows on the lane label immediately (metadata only).
+    fireEvent.change(screen.getByTestId('lane-edit-name-0'), { target: { value: 'Lead Axe' } });
+    expect(screen.getByTestId('lane-name-0')).toHaveTextContent('Lead Axe');
+    // Octave + pan sliders are live; zero generation calls (0⭐ layer).
+    fireEvent.change(screen.getByTestId('lane-edit-octave-0'), { target: { value: '1' } });
+    fireEvent.change(screen.getByTestId('lane-edit-pan-0'), { target: { value: '-0.5' } });
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('lane-edit-done-0'));
+    expect(screen.queryByTestId('lane-edit-drawer-0')).not.toBeInTheDocument();
   });
 
-  it('closes the ⋯ menu via the backdrop without opening the Mixer', () => {
+  it('hides the octave control on the drums lane (hit names have no pitch)', () => {
+    renderPane([scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-menu-btn-2')); // drums lane
+    fireEvent.click(screen.getByTestId('lane-menu-edit-2'));
+    expect(screen.getByTestId('lane-edit-drawer-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('lane-edit-octave-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('lane-edit-pan-2')).toBeInTheDocument();
+  });
+
+  it('⋯ Download renders the ONE track client-side — zero network, zero stars (AC-2)', async () => {
+    renderScoreMock.mockResolvedValue({});
+    renderPane([scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
+    fireEvent.click(screen.getByTestId('lane-menu-download-0'));
+    await waitFor(() => expect(triggerBlobDownloadMock).toHaveBeenCalledTimes(1));
+    // renderScore got the stem index; the file is named song-track.wav.
+    expect(renderScoreMock.mock.calls[0][3]).toBe(0);
+    expect(triggerBlobDownloadMock.mock.calls[0][1]).toBe('space-pup-guitar.wav');
+    // No LLM/star call rode along (parent PRD AC-11).
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(generateRealSongMock).not.toHaveBeenCalled();
+  });
+
+  it('⋯ Re-roll fires ONE generation with the structured rerollTrack (−3⭐, AC-3)', async () => {
+    generateMusicScoreMock.mockResolvedValue({
+      score: SCORE_V2,
+      stars_charged: 3,
+      balance_after: 9,
+      artifact_id: null,
+      session_id: 's1',
+    });
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('lane-menu-btn-2')); // drums lane
+    fireEvent.click(screen.getByTestId('lane-menu-reroll-2'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    expect(generateMusicScoreMock.mock.calls[0][0]).toMatchObject({
+      prompt: 'a space puppy adventure',
+      existingScore: SCORE_V1,
+      rerollTrack: 'drums',
+    });
+  });
+
+  it('never fires an unaffordable re-roll (AC-8)', () => {
+    renderPane([scoreMsg(SCORE_V1)], 2); // 2⭐ < 3⭐
+    fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
+    fireEvent.click(screen.getByTestId('lane-menu-reroll-0'));
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+  });
+
+  it('closes the ⋯ menu via the backdrop without acting', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('lane-menu-btn-0'));
     fireEvent.click(screen.getByLabelText('Close menu'));
     expect(screen.queryByTestId('lane-menu-0')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('mixer-region')).not.toBeInTheDocument();
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(triggerBlobDownloadMock).not.toHaveBeenCalled();
   });
 
   it('collapses lanes into a drawer with a persistent handle on narrow screens (AC-12)', () => {
@@ -648,7 +715,12 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
       });
       renderPane([scoreMsg(SCORE_V1)]);
 
+      // Two-step (track-editing PRD §3-B): the confirm shows what the AI will
+      // hear — mix included — BEFORE the 3⭐ call fires.
       fireEvent.click(screen.getByTestId('stage-real-song'));
+      expect(generateRealSongMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('real-song-prompt-preview')).toHaveTextContent(/featuring/);
+      fireEvent.click(screen.getByTestId('real-song-confirm-go'));
 
       await waitFor(() => expect(generateRealSongMock).toHaveBeenCalledTimes(1));
       // An audio Artifact requires a project (backend runMedia): recording without
@@ -658,6 +730,8 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
         classId: null,
         projectId: null,
       });
+      // The stage mix rides the request (PRD §3-B).
+      expect(generateRealSongMock.mock.calls[0][0].mix).toMatchObject({ solo: null });
       // The audio lands on the session as a track — open the Mixer so the kid
       // sees where their song went instead of nothing appearing to happen.
       await screen.findByTestId('legacy-track-list');
@@ -699,6 +773,7 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
       await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
 
       fireEvent.click(screen.getByTestId('stage-real-song'));
+      fireEvent.click(screen.getByTestId('real-song-confirm-go'));
       await waitFor(() => expect(generateRealSongMock).toHaveBeenCalledTimes(1));
       expect(generateRealSongMock.mock.calls[0][0]).toMatchObject({
         topic: 'a space puppy adventure',
@@ -714,8 +789,43 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
       generateRealSongMock.mockRejectedValue(new Error('boom'));
       renderPane([scoreMsg(SCORE_V1)]);
       fireEvent.click(screen.getByTestId('stage-real-song'));
+      fireEvent.click(screen.getByTestId('real-song-confirm-go'));
       expect(await screen.findByText(/no Stars were charged/i)).toBeInTheDocument();
     });
+
+    it('cancel closes the confirm without spending anything', () => {
+      renderPane([scoreMsg(SCORE_V1)]);
+      fireEvent.click(screen.getByTestId('stage-real-song'));
+      fireEvent.click(screen.getByTestId('real-song-cancel'));
+      expect(screen.queryByTestId('real-song-confirm')).not.toBeInTheDocument();
+      expect(generateRealSongMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('↓ Song mix export (track-editing PRD §3-C)', () => {
+    it('renders the WHOLE mix client-side and downloads song.wav (AC-6)', async () => {
+      renderScoreMock.mockResolvedValue({});
+      renderPane([scoreMsg(SCORE_V1)]);
+      fireEvent.click(screen.getByTestId('stage-download-mix'));
+      await waitFor(() => expect(triggerBlobDownloadMock).toHaveBeenCalledTimes(1));
+      expect(renderScoreMock.mock.calls[0][3]).toBeUndefined(); // no stem index
+      expect(triggerBlobDownloadMock.mock.calls[0][1]).toBe('space-pup.wav');
+      expect(generateMusicScoreMock).not.toHaveBeenCalled();
+      expect(generateRealSongMock).not.toHaveBeenCalled();
+    });
+
+    it('surfaces a friendly bubble when the render fails', async () => {
+      renderScoreMock.mockRejectedValue(new Error('no AudioContext'));
+      renderPane([scoreMsg(SCORE_V1)]);
+      fireEvent.click(screen.getByTestId('stage-download-mix'));
+      expect(await screen.findByText(/couldn't render that file/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows the DEV fake-AI note so mock-stack sessions are not misread (PRD §4)', () => {
+    // vitest runs DEV builds; production builds strip this via import.meta.env.
+    renderPane([scoreMsg(SCORE_V1)]);
+    expect(screen.getByTestId('dev-mock-note')).toBeInTheDocument();
   });
 
   describe('save', () => {

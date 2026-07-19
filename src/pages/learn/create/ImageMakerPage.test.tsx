@@ -2,8 +2,8 @@
 
 // Art Studio (`/learn/create/image`) — ONE conversation (image-studio-prd.md
 // D-IS-7/8, owner call 2026-07-19): coach chat (1★/turn) → paint-plan card IN
-// the stream (8★ Make) → the finished picture lands as an image bubble IN the
-// stream → the same input in "Change" mode remixes via ref_artifact_id (8★).
+// the stream (9★ Make) → the finished picture lands as an image bubble IN the
+// stream → the same input in "Change" mode remixes via ref_artifact_id (9★).
 // No gallery grid on the page — history lives in My Pictures (footer link).
 
 import '@testing-library/jest-dom/vitest';
@@ -134,7 +134,7 @@ describe('ImageMakerPage (Art Studio — one conversation)', () => {
     expect(apiCalls.some((c) => c.path.startsWith('/kids/kid_1/artifacts'))).toBe(false);
   });
 
-  it('coach chat (1★/turn) → plan card IN the stream → 8★ Make with project_id → image bubble', async () => {
+  it('coach chat (1★/turn) → plan card IN the stream → 9★ Make with project_id → image bubble', async () => {
     renderPage();
     const planCard = await chatToPlan();
 
@@ -142,7 +142,7 @@ describe('ImageMakerPage (Art Studio — one conversation)', () => {
     expect(apiCalls.some((c) => c.path === '/llm/image')).toBe(false);
     expect(planCard).toHaveTextContent('Our paint plan');
 
-    const makeBtn = screen.getByRole('button', { name: /Make it! −8★/ });
+    const makeBtn = screen.getByRole('button', { name: /Make it! −9★/ });
     await waitFor(() => expect(makeBtn).toBeEnabled());
     fireEvent.click(makeBtn);
 
@@ -158,10 +158,10 @@ describe('ImageMakerPage (Art Studio — one conversation)', () => {
     expect(await screen.findByText('Your image is ready!')).toBeInTheDocument();
   });
 
-  it('after making, the SAME input flips to Change mode (8★) and remixes with ref_artifact_id', async () => {
+  it('after making, the SAME input flips to Change mode (9★) and remixes with ref_artifact_id', async () => {
     renderPage();
     await chatToPlan();
-    fireEvent.click(screen.getByRole('button', { name: /Make it! −8★/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
     await screen.findByTestId('image-bubble');
 
     // input is now in change mode: placeholder + price flip
@@ -169,7 +169,7 @@ describe('ImageMakerPage (Art Studio — one conversation)', () => {
     fireEvent.change(screen.getByPlaceholderText(/tiny hat/i), {
       target: { value: 'add a crown' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Send −8★/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Send −9★/ }));
 
     await waitFor(() => {
       const remix = apiCalls.filter((c) => c.path === '/llm/image')[1];
@@ -185,7 +185,7 @@ describe('ImageMakerPage (Art Studio — one conversation)', () => {
   it('"Plan something new" flips the input back to the 1★ coach', async () => {
     renderPage();
     await chatToPlan();
-    fireEvent.click(screen.getByRole('button', { name: /Make it! −8★/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
     await screen.findByTestId('image-bubble');
 
     fireEvent.click(screen.getByRole('button', { name: /Plan something new/ }));

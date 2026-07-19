@@ -6,7 +6,10 @@
 import type { InstrumentKind, MusicScore } from './scoreTypes';
 
 /** Stars charged per generation / suggestion-card iteration (parent PRD §4). */
-export const MUSIC_GENERATION_COST_STARS = 3;
+// Owner pricing ladder 2026-07-17 (final uplift "整体太低"): score layer 5⭐ —
+// the iteration loop stays cheaper than the 15⭐ real-audio "成品" moment.
+// Display/gate only — the backend Model row (super-admin overridable) charges.
+export const MUSIC_GENERATION_COST_STARS = 5;
 
 // ─── Stage slots (5 fixed positions, left → right per PRD §3.1) ─────────────
 
@@ -209,6 +212,11 @@ export const REWRITE_VERSION_TAG = 'Rewrite';
 /** Typed freeform edit on the current version (D-MS10). */
 export const EDIT_VERSION_TAG = '✏️ Edit';
 
+/** Lane 🔄 single-track regeneration (track-editing PRD §3-A). */
+export function rerollVersionTag(instrumentLabel: string): string {
+  return `🔄 ${instrumentLabel}`;
+}
+
 // ─── Kid-facing copy (AI bubble, overlay, errors) ────────────────────────────
 
 // The bubble is the conductor's VOICE, not a second set of instructions: the
@@ -240,6 +248,10 @@ export const REAL_SONG_DONE_BUBBLE =
 
 export const REAL_SONG_FAILED_BUBBLE =
   "The recording studio hiccupped and no Stars were charged. Your song is safe — try 🎧 again!";
+
+// ↓ WAV exports render locally in the browser (track-editing PRD §3-A/§3-C).
+export const EXPORT_FAILED_BUBBLE =
+  "I couldn't render that file on this device — your song is safe, try the download again!";
 
 export function outOfStarsBubble(balance: number): string {
   return (

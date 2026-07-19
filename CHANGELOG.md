@@ -1,4 +1,46 @@
 # Changelog
+## 2026-07-17 (chore: pricing ladder final — labels + music-real model)
+
+### Changed
+- 🎧 Make it real now bills as its own **`music-real` model (15⭐)** — `generateRealSong`
+  sends `model: 'music-real'`; `REAL_SONG_COST_STARS` = 15. Score actions (compose / edit /
+  card / re-roll) settle at **5⭐** after the owner's final "整体太低" uplift.
+- All price labels re-synced to the final ladder (star-pricing-sot.md): Voice Booth 1★→**5★**,
+  Art Studio 8★→**9★**, Video Studio 5★→**60★** (was badly mislabelled vs the backend 40★,
+  now 60★), Create-hub cards to match (music 5 / image 9 / voice 5 / video 60).
+
+## 2026-07-17 (chore: music pricing 3 -> 5 stars)
+
+### Changed
+- `MUSIC_GENERATION_COST_STARS` / `REAL_SONG_COST_STARS` raised 3⭐ → **5⭐** to match the
+  backend `music-default` price bump (owner decision: music was underpriced). The lane
+  `⋯` Re-roll menu label now derives from the constant instead of a hardcoded string.
+
+## 2026-07-17 (feat: Music Stage track editing & export — track-editing PRD v0.1)
+
+### Added
+- **Lane `⋯` actions now ACT** (they were shells that just opened the legacy Mixer region):
+  **✏️ Edit** opens an inline drawer — rename, octave shift ±2 (melodic lanes; live at the
+  next note, drums excluded), stereo pan — all 0⭐, keyed by instrument kind so they survive
+  version switches; **↓ Download track** renders that ONE stem client-side (`Tone.Offline`
+  + fallback voices → 16-bit WAV, zero network, zero stars); **🔄 Re-roll −3⭐** fires a
+  single-track regeneration through the structured `rerollTrack` DTO field the backend
+  already supported (version pill `🔄 <Track>`).
+- **↓ Song** on the transport bar — the whole mix exported as `{title}.wav`, honouring
+  mute/solo/style=None/volume/pan/octave exactly as the stage plays it (`offlineRender.ts`).
+- **🎧 Make it real is now two-step**: the confirm popover shows "The AI will hear: …" —
+  the exact provider prompt, mix included — before the 3⭐ call fires.
+- DEV-build "fake AI" badge on the transport bar: local stacks run the deterministic mock
+  LLM, whose freeform edits return the same fixture song — named so it stops reading as
+  "the AI ignored me".
+
+### Changed
+- **The stage mix now reaches the real-song provider** (`buildRealSongPrompt`): muted and
+  style=None instruments leave the featuring list, a solo becomes "featuring mainly the …",
+  VOL ≤0.4 / ≥0.98 read as "quiet/prominent <instrument>". Previously VOL/mute/solo were
+  ignored — recording after mixing produced the identical song.
+- `useScorePlayback` accepts per-instrument tweaks: pan pushes live into each `Tone.Channel`,
+  octave transposes at trigger time (mid-playback safe).
 
 ## 2026-07-19 (feat: Art Studio is ONE conversation — no more form page)
 

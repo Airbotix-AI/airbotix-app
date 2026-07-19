@@ -28,6 +28,20 @@ export function isDrumNote(note: string): boolean {
   return (DRUM_HITS as readonly string[]).includes(note);
 }
 
+const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const;
+
+/** 60 → "C4", 61 → "C#4" (sharps only — the LLM contract never emits flats). */
+export function midiToNote(midi: number): string {
+  const clamped = Math.max(0, Math.min(127, Math.round(midi)));
+  return `${NOTE_NAMES[clamped % 12]}${Math.floor(clamped / 12) - 1}`;
+}
+
+/** Pitch shifted by semitones; drum hit names pass through untouched. */
+export function transposeNote(note: string, semitones: number): string {
+  if (semitones === 0 || isDrumNote(note)) return note;
+  return midiToNote(noteToMidi(note) + semitones);
+}
+
 /** Song length in seconds: latest note end across all tracks, beats → seconds. */
 export function scoreDurationSeconds(score: MusicScore): number {
   let maxBeat = 0;
