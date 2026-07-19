@@ -78,7 +78,7 @@ export function useBucketArtifacts(bucketId: string | undefined) {
 }
 
 /** Signed download URL for one artifact — a proper query so components stay render-pure. */
-export function useArtifactUrl(artifact: Artifact) {
+export function useArtifactUrl(artifact: Artifact, enabled = true) {
   return useQuery<string>({
     queryKey: ['artifact-url', artifact.id],
     queryFn: () =>
@@ -87,6 +87,7 @@ export function useArtifactUrl(artifact: Artifact) {
         { method: 'POST' },
       ).then((r) => r.url),
     staleTime: 5 * 60 * 1000,
+    enabled: enabled && !!artifact.id && artifact.id !== 'none',
   });
 }
 
