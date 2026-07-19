@@ -50,8 +50,8 @@ export type AcademyShellKind = 'fan' | 'spiral' | 'conch' | 'spotted';
 type ScheduleTableSpec = {
   kind: 'schedule_table';
   title: string;
-  columns: [string, string];
-  rows: Array<[string, string]>;
+  columns: string[];
+  rows: string[][];
 };
 
 type JoinedSolidsSpec = {
