@@ -6,6 +6,10 @@ import type {
   AcademyShape,
   AcademyShapeName,
 } from './academyApi';
+import {
+  AcademyYear3ChoiceVisual,
+  AcademyYear3QuestionVisual,
+} from './AcademyQuestionVisualsYear3';
 
 export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'none') return null;
@@ -18,7 +22,8 @@ export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'coin_collection') return <CoinCollection spec={spec} />;
   if (spec.kind === 'shape_matrix') return <ShapeMatrix spec={spec} />;
   if (spec.kind === 'symbol_pattern') return <SymbolPattern spec={spec} />;
-  return <RouteMap spec={spec} />;
+  if (spec.kind === 'route') return <RouteMap spec={spec} />;
+  return <AcademyYear3QuestionVisual spec={spec} />;
 }
 
 export function AcademyChoiceVisual({
@@ -46,7 +51,7 @@ export function AcademyChoiceVisual({
       </div>
     ) : null;
   }
-  return null;
+  return <AcademyYear3ChoiceVisual spec={spec} choiceIndex={choiceIndex} />;
 }
 
 function TallyTable({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'tally_table' }> }) {
@@ -209,13 +214,19 @@ function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal
       className="mt-6 rounded-[28px] border-2 border-brand-sunshine/30 bg-wash-sunshine p-4 sm:p-6"
     >
       <div className="flex items-center justify-center gap-2 text-center text-sm font-black text-[#25324B] sm:text-base">
-        <span data-testid="academy-group-count" className="rounded-full bg-white px-3 py-2 shadow-sm">
+        <span
+          data-testid="academy-group-count"
+          className="rounded-full bg-white px-3 py-2 shadow-sm"
+        >
           {spec.group_count} {groupWord}
         </span>
         <span aria-hidden="true" className="text-xl text-brand-coral">
           ×
         </span>
-        <span data-testid="academy-items-per-group" className="rounded-full bg-white px-3 py-2 shadow-sm">
+        <span
+          data-testid="academy-items-per-group"
+          className="rounded-full bg-white px-3 py-2 shadow-sm"
+        >
           {spec.items_per_group} {itemWord} in each
         </span>
       </div>
@@ -269,9 +280,13 @@ function EqualGroups({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'equal
         data-testid="academy-equal-groups-equation"
         className="mt-4 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 rounded-[18px] bg-[#25324B] px-4 py-3 text-center text-sm font-bold text-white sm:text-base"
       >
-        <span>{spec.group_count} {groupWord}</span>
+        <span>
+          {spec.group_count} {groupWord}
+        </span>
         <span aria-hidden="true">×</span>
-        <span>{spec.items_per_group} {itemWord} in each</span>
+        <span>
+          {spec.items_per_group} {itemWord} in each
+        </span>
         <span aria-hidden="true">=</span>
         <strong className="text-xl text-brand-sunshine">?</strong>
         <span>{itemWord} altogether</span>
@@ -406,12 +421,26 @@ function SolidShape({ spec }: { spec: Extract<AcademyRenderSpec, { kind: 'solid_
           strokeWidth="7"
           strokeLinejoin="round"
         />
-        <path d="M105 70 L270 42 M35 220 L215 165 M190 230 L355 205" fill="none" stroke="#25324B" strokeWidth="7" />
+        <path
+          d="M105 70 L270 42 M35 220 L215 165 M190 230 L355 205"
+          fill="none"
+          stroke="#25324B"
+          strokeWidth="7"
+        />
         <g stroke="#70809A" strokeWidth="3" opacity="0.65">
           <path d="M226 142 L334 177 M238 115 L320 145 M250 88 L304 112" />
           <path d="M238 151 L286 78 M270 162 L309 105 M302 173 L331 135" />
         </g>
-        <rect x="83" y="150" width="58" height="71" rx="5" fill="#FFFFFF" stroke="#25324B" strokeWidth="6" />
+        <rect
+          x="83"
+          y="150"
+          width="58"
+          height="71"
+          rx="5"
+          fill="#FFFFFF"
+          stroke="#25324B"
+          strokeWidth="6"
+        />
       </svg>
       <p className="mt-1 text-center text-sm font-bold text-slate2">
         Look at the ends and side faces of the solid.
