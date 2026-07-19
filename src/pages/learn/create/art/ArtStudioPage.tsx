@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
@@ -78,6 +78,22 @@ interface Take {
   label: string;
 }
 
+// Mission Mode (image-studio-prd D-IS-20/22): the studio opened from a course
+// task. Passed via router state by PackLessonsPage; the template config rides
+// the mission's steps_json.art.
+export interface ArtMissionTemplate {
+  url: string;
+  layer: 'underlay' | 'base';
+  magic?: 'with-base' | 'strokes-only';
+}
+export interface ArtMission {
+  id: string;
+  slug?: string;
+  title: string;
+  description?: string;
+  template?: ArtMissionTemplate;
+}
+
 export function ArtStudioPage() {
   // canvas state
   const canvasRef = useRef<ArtCanvasHandle | null>(null);
@@ -107,6 +123,11 @@ export function ArtStudioPage() {
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
 
+  const location = useLocation();
+  const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
+  const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
+  const [missionDone, setMissionDone] = useState(false);
+
   const { summary, endNow, dismiss } = useStudioSession('image');
   const bucket = useCreateBucket('image');
   const wallet = useKidWallet();
@@ -124,6 +145,23 @@ export function ArtStudioPage() {
   });
 
   const hasInk = ops.length > 0;
+
+  // Mission Mode: work saves to a mission-linked project (teacher-visible via
+  // the existing chain) instead of the free-play bucket (D-IS-20). Created
+  // lazily on the first paid action.
+  const ensureSaveProject = async (): Promise<string> => {
+    if (!mission) return (bucket.data as { project_id: string }).project_id;
+    if (missionProjectId) return missionProjectId;
+    const project = await api<{ id: string }>('/projects', {
+      method: 'POST',
+      body: { title: mission.title, product_line: 'line_a_creative', mission_id: mission.id },
+    });
+    setMissionProjectId(project.id);
+    return project.id;
+  };
+
+  const template = mission?.template ?? null;
+  const exportIncludesBase = template?.magic !== 'strokes-only';
 
   // ── coach chat (sidekick — D-IS-15) ──
   const sendToCoach = (text: string) => {
@@ -154,9 +192,10 @@ export function ArtStudioPage() {
       return;
     }
     setError(null);
-    generate.mutate(
-      { prompt: idea, options: { mode: 'ghost' } },
-      {
+    void ensureSaveProject().then((projectId) =>
+      generate.mutate(
+        { prompt: idea, options: { mode: 'ghost' }, project_id: projectId },
+        {
         onSuccess: (r) => {
           if (r.artifact_id) setGhostArtifactId(r.artifact_id);
           setMsgs((m) => [
@@ -164,8 +203,9 @@ export function ArtStudioPage() {
             { role: 'assistant', content: '👻 I sketched a faint outline — trace it your way!' },
           ]);
         },
-        onError: (e) => setError(friendlyError(e)),
-      },
+          onError: (e) => setError(friendlyError(e)),
+        },
+      ),
     );
   };
 
@@ -190,8 +230,8 @@ export function ArtStudioPage() {
   };
 
   // ── ③ ✨ bring to life (9★): upload the kid's canvas → ref-based magic ──
-  const uploadCanvas = async (): Promise<{ id: string }> => {
-    const bucketId = bucket.data!.project_id;
+  const uploadCanvas = async (projectId: string): Promise<{ id: string }> => {
+    const bucketId = projectId;
     const dataUrl = (canvasRef.current as ArtCanvasHandle).exportPng(1);
     const blob = dataUrlToBlob(dataUrl);
     const sign = await api<{ url: string; headers: Record<string, string>; s3_key: string }>(
@@ -216,9 +256,10 @@ export function ArtStudioPage() {
     setError(null);
     setMagicOpen(false);
     try {
+      const projectId = await ensureSaveProject();
       let refId: string | undefined;
       if (hasInk || baseArtifactId) {
-        const sketch = await uploadCanvas();
+        const sketch = await uploadCanvas(projectId);
         refId = sketch.id;
         setSketchTakeId((prev) => prev ?? sketch.id);
         setTakes((t) => [...t, { artifactId: sketch.id, kind: 'sketch', label: '✏️ my sketch' }]);
@@ -227,7 +268,12 @@ export function ArtStudioPage() {
       const prompt = `${magicDesc.trim() || 'my drawing'}, ${magicStyle} style`;
       generate.mutate(
         // No ink at all = the pure-generation on-ramp (D-IS-15 bypass).
-        { prompt, options: { size: 'square' }, ...(refId ? { ref_artifact_id: refId } : {}) },
+        {
+          prompt,
+          options: { size: 'square' },
+          project_id: projectId,
+          ...(refId ? { ref_artifact_id: refId } : {}),
+        },
         {
           onSuccess: (r) => {
             setCelebrate(true);
@@ -244,6 +290,34 @@ export function ArtStudioPage() {
           onError: (e) => setError(friendlyError(e)),
         },
       );
+    } catch (e) {
+      setError(friendlyError(e));
+    }
+  };
+
+  // 🚀 Mission turn-in (D-IS-20): existing submit → acceptance → +3★ (D-M3).
+  const onTurnIn = async () => {
+    if (!missionProjectId) return;
+    setError(null);
+    try {
+      const res = await api<{ ok: boolean; reason?: string; stars_awarded?: number }>(
+        `/projects/${missionProjectId}/submit`,
+        { method: 'POST' },
+      );
+      if (res.ok) {
+        setMissionDone(true);
+        setCelebrate(true);
+        setMsgs((m) => [
+          ...m,
+          { role: 'assistant', content: '🚀 Mission complete! +3★ — your teacher can see it now.' },
+        ]);
+        void qc.invalidateQueries({ queryKey: ['wallet'] });
+      } else {
+        setMsgs((m) => [
+          ...m,
+          { role: 'assistant', content: `Almost! ${res.reason ?? 'Something is still missing.'}` },
+        ]);
+      }
     } catch (e) {
       setError(friendlyError(e));
     }
@@ -375,8 +449,10 @@ export function ArtStudioPage() {
               color={color}
               brushSize={brushSize}
               stampEmoji={stampEmoji}
-              baseImageUrl={baseUrl}
+              baseImageUrl={baseUrl ?? (template?.layer === 'base' ? template.url : null)}
               ghostUrl={ghostUrlResolved}
+              templateUrl={template?.layer === 'underlay' ? template.url : null}
+              exportIncludesBase={exportIncludesBase}
               compareUrl={comparing ? sketchUrl : null}
             />
           </div>
@@ -413,6 +489,25 @@ export function ArtStudioPage() {
                 ✕
               </button>
             </div>
+            {mission && (
+              <div className="mb-2 rounded-2xl bg-wash-sunshine px-3 py-2" data-testid="mission-card">
+                <div className="text-[12px] font-bold text-ink">🚀 {mission.title}</div>
+                {mission.description && (
+                  <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
+                )}
+                {takes.some((t) => t.kind === 'magic') && !missionDone && (
+                  <button
+                    onClick={() => void onTurnIn()}
+                    className="btn-pill-primary w-full mt-2 text-[12px]"
+                  >
+                    🚀 Turn it in! +3★
+                  </button>
+                )}
+                {missionDone && (
+                  <div className="text-[11px] font-bold text-brand-mint mt-1">✓ Complete! +3★</div>
+                )}
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto space-y-2 mb-2">
               <Bubble role="assistant" content="What should we paint today? Tell me your idea!" />
               {msgs.map((m, i) => (

@@ -12,6 +12,13 @@ interface Mission {
   description: string;
   estimated_stars: number;
   order_index: number;
+  // Art missions carry their studio config here (image-studio-prd D-IS-20/22);
+  // the pack endpoint returns full mission rows so this rides for free.
+  steps_json?: {
+    art?: {
+      template?: { url: string; layer: 'underlay' | 'base'; magic?: 'with-base' | 'strokes-only' };
+    };
+  } | null;
 }
 
 // A Lesson (课节) is the course-content unit: an ordered step in the pack that
@@ -124,9 +131,23 @@ export function PackLessonsPage() {
                           </div>
                           <button
                             onClick={() =>
-                              nav('/learn/projects/new', {
-                                state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
-                              })
+                              m.steps_json?.art
+                                ? nav('/learn/create/image', {
+                                    // Art missions open the Art Studio in Mission
+                                    // Mode (image-studio-prd D-IS-20/22).
+                                    state: {
+                                      mission: {
+                                        id: m.id,
+                                        slug: m.slug,
+                                        title: m.title,
+                                        description: m.description,
+                                        template: m.steps_json.art.template,
+                                      },
+                                    },
+                                  })
+                                : nav('/learn/projects/new', {
+                                    state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
+                                  })
                             }
                             className="btn-pill-primary shrink-0"
                           >

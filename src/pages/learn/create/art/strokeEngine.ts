@@ -181,6 +181,7 @@ export function exportPng(
   ops: CanvasOp[],
   baseImage: HTMLImageElement | null,
   scale = 1,
+  includeBase = true,
 ): string {
   const size = Math.round(CANVAS_SIZE * scale);
   const canvas = document.createElement('canvas');
@@ -191,7 +192,7 @@ export function exportPng(
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
   ctx.scale(scale, scale);
-  if (baseImage) ctx.drawImage(baseImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  if (baseImage && includeBase) ctx.drawImage(baseImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
   renderOps(ctx, ops);
   return canvas.toDataURL('image/png');
 }
