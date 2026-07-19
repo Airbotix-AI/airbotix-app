@@ -1,4 +1,11 @@
 # Changelog
+
+## 2026-07-19 (fix: replace the Fable Forest placeholder with Alice)
+
+### Changed
+- The Story Blocks collection shelf now shows the planned **Alice in Wonderland** classic
+  adventure instead of the unrelated **Fable Forest** placeholder, matching the curriculum and
+  marketing display name while keeping the collection visibly unavailable.
 ## 2026-07-17 (chore: pricing ladder final — labels + music-real model)
 
 ### Changed

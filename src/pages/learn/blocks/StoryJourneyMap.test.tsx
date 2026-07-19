@@ -25,7 +25,8 @@ describe('StoryJourneyMap', () => {
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
       'The Monkey King’s New Journey',
     );
-    expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Fable Forest');
+    expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Alice in Wonderland');
+    expect(screen.getByTestId('story-collection-shelf')).not.toHaveTextContent('Fable Forest');
     expect(screen.getAllByText(/Planned/)).toHaveLength(2);
     expect(screen.getByTestId('story-chapter-a1').querySelector('.bsx-lumilo')).toHaveAttribute(
       'data-performance',
