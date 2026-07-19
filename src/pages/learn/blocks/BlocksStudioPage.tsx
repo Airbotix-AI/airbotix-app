@@ -245,6 +245,7 @@ export function BlocksStudioPage({
   const isA3EventDebug = storyMission?.lessonId === 'tsv-s1-a3-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
+  const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
