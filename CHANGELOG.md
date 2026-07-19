@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-19 (feat: Art Studio is ONE conversation — no more form page)
+
+### Changed
+- The Art Studio page is now a single chat stream (owner call: 不是表单+聊天框,
+  整个体验就是对话): the paint-plan card renders as a message IN the stream, the
+  finished picture arrives as an image bubble IN the stream, and after a picture
+  exists the same input flips between "🖌 Change this picture −8★" (remix via
+  ref_artifact_id) and "💬 Plan something new −1★" (coach). The "Your recent
+  images" gallery grid / "Empty canvas" block is REMOVED from the page — history
+  lives in My Pictures (footer link to the bucket project).
+
 ## 2026-07-19 (feat: Academy exam products and native practice)
 
 ### Added
