@@ -40,31 +40,73 @@ export function useKidWallet() {
   });
 }
 
-export function useRecentArtifacts(kind: 'image' | 'audio' | 'video') {
+// The standalone Create-tab tools that own a system bucket
+// (learn-create-studio-save-prd.md §5.1 — mirrors backend BUCKET_TOOLS).
+export type CreateBucketTool = 'image' | 'music' | 'voice' | 'video';
+
+/**
+ * Resolve (get-or-create) the kid's per-tool system bucket — the project this
+ * studio's generations auto-save into (My Pictures / My Songs / My Voice /
+ * My Videos). Idempotent on the backend, so retries and re-mounts are safe.
+ */
+export function useCreateBucket(tool: CreateBucketTool) {
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
-  return useQuery<Artifact[]>({
-    queryKey: ['kid', kidId, 'artifacts', kind],
-    queryFn: () => api<Artifact[]>(`/kids/${kidId}/artifacts?kind=${kind}`),
+  return useQuery<{ project_id: string; title: string }>({
+    queryKey: ['kid', kidId, 'create-bucket', tool],
+    queryFn: () =>
+      api<{ project_id: string; title: string }>(`/kids/${kidId}/create-buckets/resolve`, {
+        method: 'POST',
+        body: { tool },
+      }),
     enabled: !!kidId,
+    staleTime: Infinity,
   });
 }
 
-export function useGenerate(endpoint: 'image' | 'tts' | 'music' | 'video') {
+/**
+ * The studio's Recent grid = the bucket's contents (D-CSS-03). Bucket-level
+ * reads keep the two audio tools (music vs voice) separate, which the old
+ * `/kids/:id/artifacts?kind=audio` query could not.
+ */
+export function useBucketArtifacts(bucketId: string | undefined) {
+  return useQuery<Artifact[]>({
+    queryKey: ['bucket-artifacts', bucketId],
+    queryFn: () => api<Artifact[]>(`/projects/${bucketId}/artifacts`),
+    enabled: !!bucketId,
+  });
+}
+
+/** Signed download URL for one artifact — a proper query so components stay render-pure. */
+export function useArtifactUrl(artifact: Artifact) {
+  return useQuery<string>({
+    queryKey: ['artifact-url', artifact.id],
+    queryFn: () =>
+      api<{ url: string }>(
+        `/projects/${artifact.project_id}/artifacts/${artifact.id}/download-url`,
+        { method: 'POST' },
+      ).then((r) => r.url),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useGenerate(endpoint: 'image' | 'tts' | 'music' | 'video', projectId?: string) {
   const me = useMe();
   const qc = useQueryClient();
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
-  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
-  const kindForCache: 'image' | 'audio' | 'video' =
-    endpoint === 'image' ? 'image' : endpoint === 'video' ? 'video' : 'audio';
 
   return useMutation<MediaResult, ApiError, Record<string, unknown>>({
     mutationFn: (body) =>
-      api<MediaResult>(`/llm/${endpoint}`, { method: 'POST', body }),
+      api<MediaResult>(`/llm/${endpoint}`, {
+        method: 'POST',
+        // Generations persist into the studio's bucket (learn-create-studio-save-prd
+        // §5.3) — without a project_id the backend saves nothing and the work is lost.
+        body: { ...body, ...(projectId ? { project_id: projectId } : {}) },
+      }),
     onSuccess: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['wallet', familyId] }),
-        qc.invalidateQueries({ queryKey: ['kid', kidId, 'artifacts', kindForCache] }),
+        qc.invalidateQueries({ queryKey: ['bucket-artifacts', projectId] }),
       ]);
     },
   });

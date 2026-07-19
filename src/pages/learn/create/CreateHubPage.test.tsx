@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// Create tab gating (learn PRD v0.7): Image Maker / Voice Booth / Video Studio
+// Create tab gating (learn PRD v0.7): Art Studio / Voice Booth / Video Studio
 // are paused — rendered as non-clickable "Coming soon" cards BELOW the live
 // tools, never as links. Live tools stay full pack-card links.
 
@@ -26,9 +26,9 @@ function renderHub() {
 
 describe('CreateHubPage coming-soon gating', () => {
   afterEach(cleanup);
-  it('marks exactly Image Maker, Voice Booth and Video Studio as coming soon in the registry', () => {
+  it('marks exactly Art Studio, Voice Booth and Video Studio as coming soon in the registry', () => {
     const paused = CREATE_TOOLS.filter((t) => t.comingSoon).map((t) => t.title);
-    expect(paused.sort()).toEqual(['Image Maker', 'Video Studio', 'Voice Booth']);
+    expect(paused.sort()).toEqual(['Art Studio', 'Video Studio', 'Voice Booth']);
   });
 
   it('renders live tools as links and paused tools as non-clickable coming-soon cards', () => {

@@ -1,3 +1,52 @@
+# Changelog
+
+## 2026-07-17 (feat: Art Studio coach chat shows its 1★ price)
+
+### Changed
+- The Art Studio coach chat is now billed per turn (owner rule
+  `rules/ai-star-billing.md`): the Send button reads "Send −1★" (matches the backend
+  `kids-default` text-turn price) and each coach turn refreshes the wallet balance.
+
+## 2026-07-17 (feat: Art Studio plan-first interaction — 想/画/改)
+
+### Changed
+- The Art Studio now opens as a **conversation with an art coach** (owner call: plan first,
+  never straight to generation). The FREE coach chat (`POST /llm/image-plan`) asks one short
+  question at a time with tap-chips (WHO/WHERE/FEELING), then produces an **editable plan
+  card** — the only 8★ moment; "Skip the chat — just paint it" builds a plan from what the
+  kid already said. After making, a **"Change it"** bar remixes the fresh picture via
+  `ref_artifact_id` (image-to-image, 8★). Recent grid and My Pictures auto-save unchanged.
+- `ImageMakerPage.test.tsx` rewritten for the new flow (free chat → plan card with
+  project_id → celebration → remix with ref_artifact_id → skip-to-paint).
+
+## 2026-07-17 (feat: Art Studio rebuild — bucket auto-save, real prices, rename)
+
+### Added
+- Create studios (image/voice/video) now resolve the kid's per-tool system bucket
+  (`useCreateBucket` → `POST /kids/:id/create-buckets/resolve`) and every generation
+  carries its `project_id`, so the backend persists an S3 `Artifact` — creations
+  finally SURVIVE a reload (learn-create-studio-save-prd.md §5, D-CSS-01/02).
+- New shared hooks in `useStudio.ts`: `useCreateBucket`, `useBucketArtifacts`
+  (Recent = bucket contents, D-CSS-03 — music and voice audio no longer mix),
+  `useArtifactUrl` (signed download URL as a proper query).
+- `ImageMakerPage.test.tsx`: bucket resolve + `project_id` on generate + celebration +
+  bucket-based Recent + real 8★ price label (the create/ pages' first tests).
+
+### Changed
+- **"Image Maker" renamed to "Art Studio"** (kid-facing display strings only —
+  route `/learn/create/image`, files and enums unchanged; image-studio-prd.md v0.2).
+  Applies to the Create-tab tile, page chrome, project-drawer title, and the Portal
+  growth copy ("Art Studio").
+- Art Studio size presets now show the real generated dims (1024×1024 / 1536×1024 /
+  1024×1536 — the old 512×512 etc. were never true) and the make button shows the
+  real backend charge (8★, was mislabelled 4★).
+- Generation success in the Art Studio now fires the celebration (was silent — the
+  only studio missing `onSuccess`).
+- `ImageTile`/`AudioRow`/`VideoTile` no longer fire API requests inside the render
+  body (render-purity fix) — they use the shared `useArtifactUrl` query.
+- Studio "Recent" headers now state where work is saved ("saved to My Pictures ✓").
+- Removed `useRecentArtifacts` (cross-project `/kids/:id/artifacts?kind=` feed) in
+  favour of bucket reads.
 
 ### Fixed
 - **Table/graph questions now show the image, not garbled text.** Questions whose data

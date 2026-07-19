@@ -1,12 +1,18 @@
 import { useState } from 'react';
 
-import { api } from '@/lib/api';
 import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
 import { useStudioSession } from './shared/useSession';
-import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
+import {
+  friendlyError,
+  useArtifactUrl,
+  useBucketArtifacts,
+  useCreateBucket,
+  useGenerate,
+  type Artifact,
+} from './shared/useStudio';
 
 const VOICES = [
   { id: 'alloy', emoji: '🧑', name: 'Alloy', desc: 'Friendly neutral' },
@@ -22,7 +28,7 @@ const SPEEDS = [
   { id: '1.2', label: 'Fast' },
 ] as const;
 
-const COST = 1;
+const COST = 3; // tts-default (star-pricing-sot.md — ElevenLabs-routed clip)
 
 export function VoiceBoothPage() {
   const [text, setText] = useState('');
@@ -33,8 +39,10 @@ export function VoiceBoothPage() {
 
   const { summary, endNow, dismiss } = useStudioSession('voice');
 
-  const generate = useGenerate('tts');
-  const recent = useRecentArtifacts('audio');
+  // Clips auto-save into the kid's My Voice bucket (learn-create-studio-save-prd §5).
+  const bucket = useCreateBucket('voice');
+  const generate = useGenerate('tts', bucket.data?.project_id);
+  const recent = useBucketArtifacts(bucket.data?.project_id);
 
   const onMake = () => {
     if (!text.trim()) {
@@ -135,12 +143,15 @@ export function VoiceBoothPage() {
           </div>
         )}
 
-        <button onClick={onMake} disabled={generate.isPending} className="btn-pill-primary w-full mt-6">
+        <button onClick={onMake} disabled={generate.isPending || !bucket.data} className="btn-pill-primary w-full mt-6">
           {generate.isPending ? '🔊 Speaking…' : `🔊 Speak it −${COST}★`}
         </button>
       </div>
 
-      <h2 className="text-[18px] font-bold text-ink mb-3">Your recent voice clips</h2>
+      <h2 className="text-[18px] font-bold text-ink mb-1">Your recent voice clips</h2>
+      <p className="text-[12px] text-ink-soft mb-3">
+        Everything you make is saved to {bucket.data?.title ?? 'My Voice'} ✓
+      </p>
       {recent.isLoading ? (
         <p className="lead-text">Loading…</p>
       ) : (recent.data?.length ?? 0) === 0 ? (
@@ -168,21 +179,16 @@ export function VoiceBoothPage() {
 }
 
 function AudioRow({ artifact }: { artifact: Artifact }) {
-  const [url, setUrl] = useState<string | null>(null);
-  if (!url) {
-    api<{ url: string }>(`/projects/${artifact.project_id}/artifacts/${artifact.id}/download-url`, {
-      method: 'POST',
-    }).then((r) => setUrl(r.url)).catch(() => undefined);
-  }
+  const url = useArtifactUrl(artifact);
   const meta = artifact.metadata as { prompt?: string };
   return (
     <div className="card-base">
       {meta.prompt && (
         <div className="text-[13px] text-ink mb-2 line-clamp-2">"{meta.prompt}"</div>
       )}
-      {url ? (
+      {url.data ? (
         <audio controls className="w-full">
-          <source src={url} type={artifact.mime_type} />
+          <source src={url.data} type={artifact.mime_type} />
         </audio>
       ) : (
         <span className="text-[12px] text-slate2">loading…</span>

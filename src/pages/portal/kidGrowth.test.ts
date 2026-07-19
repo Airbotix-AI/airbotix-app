@@ -92,7 +92,7 @@ describe('studiosTried', () => {
 describe('studioMeta', () => {
   it('maps known studios', () => {
     expect(studioMeta('music').noun).toBe('songs');
-    expect(studioMeta('IMAGE').label).toBe('Image studio');
+    expect(studioMeta('IMAGE').label).toBe('Art Studio');
   });
   it('falls back gracefully for unknown keys', () => {
     const m = studioMeta('puppetry');
@@ -144,7 +144,7 @@ describe('growthHeadline', () => {
     });
     const line = growthHeadline('Emma', summarize(d, trend(2, 3, 1)));
     expect(line).toContain('Emma made 12 things with AI');
-    expect(line).toContain('pictures in the Image studio');
+    expect(line).toContain('pictures in the Art Studio');
     expect(line).toContain('3-day streak');
   });
   it('singularises a single creation', () => {

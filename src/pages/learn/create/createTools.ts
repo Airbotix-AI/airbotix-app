@@ -46,7 +46,9 @@ export const CREATE_TOOLS: CreateTool[] = [
   { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 3 },
   // Paused 2026-07-17 (owner call): output quality isn't there yet — hidden as
   // coming-soon until each studio is fixed and re-approved.
-  { to: '/learn/create/image', emoji: '🎨', title: 'Image Maker', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 4, comingSoon: true },
-  { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 1, comingSoon: true },
-  { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 5, comingSoon: true },
+  // "Art Studio" replaced the informal "Image Maker" name (image-studio-prd.md);
+  // cost matches the backend charge (pricing.ts image = 8⭐, was mislabelled 4).
+  { to: '/learn/create/image', emoji: '🎨', title: 'Art Studio', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 8, comingSoon: true },
+  { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 3, comingSoon: true },
+  { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 40, comingSoon: true },
 ];

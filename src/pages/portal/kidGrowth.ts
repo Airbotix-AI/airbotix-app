@@ -22,7 +22,7 @@ export interface StudioMeta {
 }
 
 const STUDIOS: Record<string, StudioMeta> = {
-  image: { emoji: '🎨', label: 'Image studio', noun: 'pictures' },
+  image: { emoji: '🎨', label: 'Art Studio', noun: 'pictures' },
   music: { emoji: '🎵', label: 'Music studio', noun: 'songs' },
   voice: { emoji: '🎙️', label: 'Voice booth', noun: 'voices' },
   video: { emoji: '🎬', label: 'Video studio', noun: 'videos' },
