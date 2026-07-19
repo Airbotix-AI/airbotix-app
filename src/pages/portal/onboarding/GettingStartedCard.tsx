@@ -142,6 +142,15 @@ export function GettingStartedCard() {
         </Link>
       ),
     },
+    browseGuides: {
+      label: 'Browse family guides',
+      sub: '60+ free guides for Australian families — school, childcare, benefits and more.',
+      action: (
+        <Link to="/portal/guides" onClick={ob.markGuidesBrowsed} className="btn-pill-secondary">
+          Browse guides →
+        </Link>
+      ),
+    },
   };
 
   return (

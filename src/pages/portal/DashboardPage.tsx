@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
 import { openWelcomeTour } from './onboarding/welcomeTour';
@@ -128,6 +129,8 @@ export function DashboardPage() {
               </Link>
             </div>
           </div>
+
+          <FamilyGuidesRecommendation familyId={familyId} />
         </>
       )}
     </div>

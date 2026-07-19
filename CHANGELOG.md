@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-19 (feat: Portal Family Guides discovery layer)
+
+### Added
+- New Portal page **`/portal/guides` (Family Guides)** — parent-portal-family-guides-prd.md
+  §5.1: card grid over the new `GET /portal/resource-guides` catalogue endpoint (cover,
+  title, summary, location/age/language chips, verified date, featured badge), with
+  topic / location / age / language filters reflected in the URL query. Cards and PDF
+  buttons open the marketing-site reading pages in a new tab with `?src=portal`
+  attribution; a friendly empty state links to `airbotix.ai/resources` when the endpoint
+  is down (503) so the rest of the Portal is unaffected.
+- Dashboard **"Family Guides — Picked for your family"** block (§5.2): 3 recommendations
+  via a pure frontend selector — family city/state→locations match first, then featured
+  guides matching the kids' ages (city/state and ages come from the already-cached family
+  queries; no new API call), then remaining featured, then newest `lastVerified` — plus a
+  "View all" link. Hidden entirely while loading or on endpoint failure.
+- Onboarding getting-started checklist gains an optional **"Browse family guides"** item
+  linking `/portal/guides` (new `guidesBrowsed` localStorage flag, same pattern as
+  `limitsReviewed`).
+- Portal nav drawer gains **Family Guides** between Tutoring and My Family.
+
 ## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
 
 ### Added
@@ -179,6 +199,21 @@
   question mark + an available image) and renders the scanned question image instead, with
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
+
+## 2026-07-19 (feat: Art Studio P2 — Mission Mode + canvas templates)
+
+### Added
+- **Mission Mode** (image-studio-prd D-IS-20): art missions (Mission.steps_json.art)
+  open the Art Studio with a 🚀 task card in the coach rail; work saves to a
+  mission-linked project (created lazily, teacher-visible via the existing class
+  chain) instead of the free-play bucket; "🚀 Turn it in! +3★" submits through the
+  existing acceptance flow (must_have_kinds) and celebrates completion. Backend
+  untouched — the pack endpoint already returns full mission rows.
+- **Canvas templates** (D-IS-22): a mission template renders as an immutable
+  underlay (color-it/copy-it, 35% alpha, excluded from export) or as the base
+  layer (populate-it, included in export unless magic='strokes-only').
+- PackLessonsPage routes art missions straight into the studio with the mission
+  context; non-art missions keep the existing ProjectNewPage flow.
 
 ## 2026-07-19 (feat: Art Studio P1 — canvas-first studio: 孩子的手在前,AI 的魔法在后)
 

@@ -29,6 +29,7 @@ import { AcademyPage } from '@/pages/portal/AcademyPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
 import { FindClassesPage } from '@/pages/portal/FindClassesPage';
+import { GuidesPage } from '@/pages/portal/guides/GuidesPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
 import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
@@ -142,6 +143,8 @@ export const router = createBrowserRouter([
       { path: 'wallet/topup', element: <WalletTopupPage /> },
       { path: 'wallet/auto-topup', element: <WalletAutoTopupPage /> },
       { path: 'tutoring', element: <TutoringPage /> },
+      // Family Guides catalogue (parent-portal-family-guides-prd.md §5.1)
+      { path: 'guides', element: <GuidesPage /> },
       { path: 'usage', element: <UsagePage /> },
       { path: 'usage/:kidId', element: <KidUsagePage /> },
       { path: 'approvals', element: <ApprovalsPage /> },

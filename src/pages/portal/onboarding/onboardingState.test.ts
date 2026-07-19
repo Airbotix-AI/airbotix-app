@@ -11,6 +11,7 @@ const fresh: OnboardingInputs = {
   autoTopupEnabled: false,
   kidLoginShown: false,
   limitsReviewed: false,
+  guidesBrowsed: false,
 };
 
 const done = (s: ReturnType<typeof computeOnboardingState>, id: string) =>
@@ -75,7 +76,15 @@ describe('computeOnboardingState', () => {
     expect(done(computeOnboardingState({ ...fresh, kidCount: 0 }), 'kidAdded')).toBe(false);
   });
 
-  it('returns exactly 5 items in the documented order, optional only on setLimits', () => {
+  it('browseGuides is done via the guidesBrowsed flag, optional, no effect on core', () => {
+    const s = computeOnboardingState({ ...fresh, guidesBrowsed: true });
+    const item = s.items.find((it) => it.id === 'browseGuides')!;
+    expect(item.done).toBe(true);
+    expect(item.optional).toBe(true);
+    expect(s.coreComplete).toBe(false);
+  });
+
+  it('returns exactly 6 items in the documented order, optional only on setLimits + browseGuides', () => {
     const s = computeOnboardingState(fresh);
     expect(s.items.map((it) => it.id)).toEqual([
       'familySetup',
@@ -83,7 +92,11 @@ describe('computeOnboardingState', () => {
       'kidLogin',
       'addStars',
       'setLimits',
+      'browseGuides',
     ]);
-    expect(s.items.filter((it) => it.optional).map((it) => it.id)).toEqual(['setLimits']);
+    expect(s.items.filter((it) => it.optional).map((it) => it.id)).toEqual([
+      'setLimits',
+      'browseGuides',
+    ]);
   });
 });
