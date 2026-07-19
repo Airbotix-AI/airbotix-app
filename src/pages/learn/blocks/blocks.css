@@ -2426,6 +2426,21 @@
   box-shadow: 0 24px 70px rgb(10 18 40 / 35%);
   text-align: center;
 }
+.bsx-mission-card.bsx-mission-complete {
+  width: min(760px, 100%);
+}
+.bsx-mission-complete .bsx-logic-proof-steps {
+  justify-content: space-between;
+  gap: 8px;
+}
+.bsx-mission-complete .bsx-logic-proof-step {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+.bsx-mission-complete .bsx-logic-proof-step strong {
+  white-space: nowrap;
+}
 .bsx-mission-close {
   position: absolute;
   z-index: 3;

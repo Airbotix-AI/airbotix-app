@@ -65,6 +65,7 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Blocks ready');
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Story played');
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    expect(screen.getByTestId('story-mission')).toHaveClass('bsx-mission-complete');
     expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('story-next-mission'));
     expect(onNext).toHaveBeenCalledOnce();

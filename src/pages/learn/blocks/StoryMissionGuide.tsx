@@ -90,7 +90,7 @@ export function StoryMissionGuide({
         )}
       <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
         <section
-          className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}`}
+          className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}${completed ? ' bsx-mission-complete' : ''}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="story-mission-title"
