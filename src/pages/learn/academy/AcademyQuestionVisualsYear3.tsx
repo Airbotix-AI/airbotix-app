@@ -370,7 +370,7 @@ function FractionPrompt() {
   return (
     <VisualCard>
       <p className="text-center text-base font-black text-brand-navy">
-        Each option is divided into equal parts. Compare the shaded part.
+        Compare each shaded region with the whole shape.
       </p>
     </VisualCard>
   );

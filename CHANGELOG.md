@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
+
+### Added
+- Added accessible native Year 3 table and solid-shape renderers with regression tests.
+
 ## 2026-07-19 (feat: Academy exam products and native practice)
 
 ### Added
