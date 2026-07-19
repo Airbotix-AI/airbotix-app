@@ -180,6 +180,21 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-19 (feat: Art Studio P2 — Mission Mode + canvas templates)
+
+### Added
+- **Mission Mode** (image-studio-prd D-IS-20): art missions (Mission.steps_json.art)
+  open the Art Studio with a 🚀 task card in the coach rail; work saves to a
+  mission-linked project (created lazily, teacher-visible via the existing class
+  chain) instead of the free-play bucket; "🚀 Turn it in! +3★" submits through the
+  existing acceptance flow (must_have_kinds) and celebrates completion. Backend
+  untouched — the pack endpoint already returns full mission rows.
+- **Canvas templates** (D-IS-22): a mission template renders as an immutable
+  underlay (color-it/copy-it, 35% alpha, excluded from export) or as the base
+  layer (populate-it, included in export unless magic='strokes-only').
+- PackLessonsPage routes art missions straight into the studio with the mission
+  context; non-art missions keep the existing ProjectNewPage flow.
+
 ## 2026-07-19 (feat: Art Studio P1 — canvas-first studio: 孩子的手在前,AI 的魔法在后)
 
 ### Added

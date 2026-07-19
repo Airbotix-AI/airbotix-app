@@ -39,6 +39,10 @@ interface ArtCanvasProps {
   baseImageUrl: string | null;
   /** Faint AI trace-me underlay (D-IS-18 ①) — guidance, never exported. */
   ghostUrl: string | null;
+  /** Mission template underlay (D-IS-22) — slightly stronger than the ghost. */
+  templateUrl: string | null;
+  /** Whether exportPng includes the base image (D-IS-22 magic flag). */
+  exportIncludesBase: boolean;
   /** Hold-to-compare: when true, only white + base sketch shows (no ops hidden — ops ARE the kid's). */
   compareUrl: string | null;
 }
@@ -46,12 +50,25 @@ interface ArtCanvasProps {
 const LAZY_RADIUS = 14;
 
 export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function ArtCanvas(
-  { ops, onOpsChange, tool, color, brushSize, stampEmoji, baseImageUrl, ghostUrl, compareUrl },
+  {
+    ops,
+    onOpsChange,
+    tool,
+    color,
+    brushSize,
+    stampEmoji,
+    baseImageUrl,
+    ghostUrl,
+    templateUrl,
+    exportIncludesBase,
+    compareUrl,
+  },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [ghostImage, setGhostImage] = useState<HTMLImageElement | null>(null);
+  const [templateImage, setTemplateImage] = useState<HTMLImageElement | null>(null);
   const [compareImage, setCompareImage] = useState<HTMLImageElement | null>(null);
   const liveStroke = useRef<StrokePoint[] | null>(null);
   const lazy = useRef(new LazyBrush({ radius: LAZY_RADIUS, enabled: true }));
@@ -70,6 +87,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
   };
   useEffect(() => loadImage(baseImageUrl, setBaseImage), [baseImageUrl]);
   useEffect(() => loadImage(ghostUrl, setGhostImage), [ghostUrl]);
+  useEffect(() => loadImage(templateUrl, setTemplateImage), [templateUrl]);
   useEffect(() => loadImage(compareUrl, setCompareImage), [compareUrl]);
 
   const draw = useCallback(() => {
@@ -92,6 +110,12 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     }
 
     if (baseImage) ctx.drawImage(baseImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    if (templateImage) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(templateImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      ctx.restore();
+    }
     if (ghostImage) {
       ctx.save();
       ctx.globalAlpha = 0.25;
@@ -112,7 +136,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
         ]
       : ops;
     renderOps(ctx, all);
-  }, [ops, baseImage, ghostImage, compareImage, tool, color, brushSize]);
+  }, [ops, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
 
   useEffect(() => {
     draw();
@@ -182,7 +206,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
   };
 
   useImperativeHandle(ref, () => ({
-    exportPng: (scale = 1) => exportPng(ops, baseImage, scale),
+    exportPng: (scale = 1) => exportPng(ops, baseImage, scale, exportIncludesBase),
   }));
 
   return (
