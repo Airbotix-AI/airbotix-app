@@ -112,6 +112,30 @@ describe('AcademyPracticePage', () => {
     expect(screen.getByText(/NAPLAN · Year 5 · Numeracy/)).toBeInTheDocument();
   });
 
+  it('keeps side-view answer labels accessible without squeezing the mobile diagrams', async () => {
+    const SIDE_VIEW_Q = {
+      ...TEXT_CHOICE_Q,
+      id: 'naplan-y3-2010-std-q9',
+      stem_text: 'Which option shows the view from the marked side?',
+      options: [
+        'Separate square',
+        'Square in front of hexagon',
+        'Triangle above square',
+        'Wide block with square in front',
+      ],
+      render_spec: { kind: 'side_view_model' as const },
+    };
+    wireApi([SIDE_VIEW_Q]);
+    renderPage();
+
+    const label = await screen.findByText('Square in front of hexagon');
+    expect(label).toHaveClass('sr-only', 'sm:not-sr-only');
+    expect(screen.getByTestId('academy-side-view-1')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-option-B')).toHaveAccessibleName(
+      /B Square in front of hexagon/,
+    );
+  });
+
   it('submits the chosen LETTER and shows feedback with the correct answer', async () => {
     wireApi([TEXT_CHOICE_Q], { is_correct: true, correct_answer: 'A' });
     renderPage();

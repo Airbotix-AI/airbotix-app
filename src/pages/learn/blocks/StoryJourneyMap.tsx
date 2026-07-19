@@ -133,12 +133,12 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
           </div>
         </article>
         <article className="tsv-collection-card is-planned">
-          <div className="tsv-collection-avatar" aria-hidden="true">🦊</div>
+          <div className="tsv-collection-avatar" aria-hidden="true">🐇</div>
           <div>
-            <small>Planned fable collection</small>
-            <h3>Fable Forest</h3>
-            <p>Short animal tales where choices, causes, and consequences become programs.</p>
-            <strong>New avatars · New story mechanics</strong>
+            <small>Planned classic adventure</small>
+            <h3>Alice in Wonderland</h3>
+            <p>Follow curious clues and test Wonderland’s changing rules with blocks.</p>
+            <strong>New characters · New logic path</strong>
           </div>
         </article>
       </div>
