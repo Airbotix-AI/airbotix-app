@@ -44,7 +44,7 @@ describe('Learn home', () => {
   it('uses the canonical Story Blocks name in the studio catalogue', () => {
     const blocks = CREATE_TOOLS.find((tool) => tool.to === '/learn/create/blocks');
     expect(blocks?.title).toBe('Story Blocks');
-    const creativeCode = CREATE_TOOLS.find((tool) => tool.to === '/learn/playground/new');
+    const creativeCode = CREATE_TOOLS.find((tool) => tool.to === '/learn/create/code');
     expect(creativeCode?.title).toBe('Creative Code Studio');
   });
 });
