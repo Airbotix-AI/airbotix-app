@@ -1,22 +1,76 @@
-// Academy — NAPLAN Maths practice backend contract. Rides the shared kid-JWT
-// `api` client (auth + silent refresh) exactly like every other Learn feature;
-// image assets are PUBLIC (no auth header) so they load through a plain <img>.
+import { api } from '@/lib/api';
 
-import { api, BASE_URL } from '@/lib/api';
-
-export const ACADEMY_YEAR_LEVELS = ['Year 3', 'Year 5', 'Year 7', 'Year 9'] as const;
-export type AcademyYearLevel = (typeof ACADEMY_YEAR_LEVELS)[number];
-
-export const ACADEMY_DEFAULT_YEAR: AcademyYearLevel = 'Year 5';
-// Numeracy is the only subject for now (task scope); kept named so the selector
-// and the fetch share one source of truth.
-export const ACADEMY_SUBJECT = 'Numeracy' as const;
 export const ACADEMY_SET_SIZE = 20;
-
 export type AcademyAnswerType = 'choice' | 'value';
 
-// One practice question. The official answer is deliberately NOT part of this
-// shape — it only comes back from POST /academy/attempts after a kid answers.
+type TallyTableSpec = {
+  kind: 'tally_table';
+  title: string;
+  value_label: string;
+  rows: Array<{ label: string; count: number }>;
+};
+
+type BalanceScaleSpec = {
+  kind: 'balance_scale';
+  left: Array<{ label: string; tone: 'mint' | 'sky' | 'sun' }>;
+  right: Array<{ label: string; tone: 'mint' | 'sky' | 'sun' }>;
+};
+
+type EqualGroupsSpec = {
+  kind: 'equal_groups';
+  group_label: string;
+  group_count: number;
+  items_per_group: number;
+  item_label: string;
+};
+
+type AnalogClockSpec = {
+  kind: 'analog_clock';
+  hour: number;
+  minute: number;
+};
+
+type SolidShapeSpec = {
+  kind: 'solid_shape';
+  shape: 'triangular_prism';
+};
+
+export type AcademyShapeName = 'hexagon' | 'diamond' | 'triangle' | 'trapezoid';
+export type AcademyShapeFill = 'outline' | 'grid' | 'solid' | 'dots';
+export type AcademyShape = { shape: AcademyShapeName; fill: AcademyShapeFill };
+export type AcademyPatternSymbol = 'circle' | 'star' | 'oval' | 'triangle';
+
+type ShapeMatrixSpec = {
+  kind: 'shape_matrix';
+  cells: Array<Array<AcademyShape | { question: true } | null>>;
+  choices: AcademyShape[];
+};
+
+type SymbolPatternSpec = {
+  kind: 'symbol_pattern';
+  sequence: AcademyPatternSymbol[];
+  choices: AcademyPatternSymbol[][];
+};
+
+export type AcademyRenderSpec =
+  | { kind: 'none' }
+  | TallyTableSpec
+  | {
+      kind: 'number_range';
+      lower: number;
+      upper: number;
+      lower_inclusive: boolean;
+      upper_inclusive: boolean;
+    }
+  | BalanceScaleSpec
+  | EqualGroupsSpec
+  | AnalogClockSpec
+  | SolidShapeSpec
+  | { kind: 'coin_collection'; coins_cents: number[] }
+  | ShapeMatrixSpec
+  | SymbolPatternSpec
+  | { kind: 'route'; from: string; to: string; label: string };
+
 export interface AcademyQuestion {
   id: string;
   source_ref: string;
@@ -27,11 +81,10 @@ export interface AcademyQuestion {
   paper_year: number;
   q_no: number;
   answer_type: AcademyAnswerType;
-  q_image_key: string | null;
-  page_image_key: string | null;
   stem_text: string | null;
   options: string[] | null;
-  figure_keys: string[] | null;
+  render_ready: boolean;
+  render_spec: AcademyRenderSpec;
   ac9_code: string | null;
   difficulty: string | null;
 }
@@ -45,33 +98,66 @@ export interface AcademyProgress {
   attempts: number;
   correct: number;
   accuracy: number;
+  last_attempt_at: string | null;
 }
 
-/** Absolute URL for a PUBLIC image asset (figure / question / page image key). */
-export function academyAssetUrl(key: string): string {
-  return `${BASE_URL}/academy/assets/${key}`;
+export interface AcademyProductSummary {
+  id: string;
+  sku: string;
+  slug: string;
+  title: string;
+  level_key: string;
+  subject_key: string;
+  exam: { slug: string; title: string };
 }
 
-/** Load a practice set for the selected year level (subject fixed to Numeracy). */
-export function listAcademyQuestions(args: {
-  yearLevel: AcademyYearLevel;
-  limit?: number;
-}): Promise<AcademyQuestion[]> {
-  const params = new URLSearchParams({
-    year_level: args.yearLevel,
-    subject: ACADEMY_SUBJECT,
-    limit: String(args.limit ?? ACADEMY_SET_SIZE),
-  });
-  return api<AcademyQuestion[]>(`/academy/questions?${params.toString()}`);
+export interface AcademyEntitlement {
+  id: string;
+  status?: string;
+  starts_at: string;
+  ends_at: string;
+  product: AcademyProductSummary & {
+    sales_config?: Record<string, unknown>;
+    _count?: { question_links: number };
+  };
+  kid?: { id: string; nickname: string };
 }
 
-/** Submit one answer; the response reveals correctness + the official answer. */
-export function submitAcademyAttempt(args: {
+export interface AcademyCatalogProduct extends Omit<AcademyProductSummary, 'exam'> {
+  edition: string;
+  price_aud_cents: number;
+  access_days: number;
+  sales_config: Record<string, unknown>;
+}
+
+export interface AcademyCatalogExam {
+  slug: string;
+  title: string;
+  provider: string | null;
+  brand_config: Record<string, unknown>;
+  products: AcademyCatalogProduct[];
+}
+
+export interface AcademyPublicProduct extends AcademyCatalogProduct {
+  exam: { slug: string; title: string; provider: string | null };
+  _count: { question_links: number };
+}
+
+export const listMyAcademyProducts = () => api<AcademyEntitlement[]>('/academy/me/products');
+
+export const getMyAcademyProduct = (productSlug: string) =>
+  api<AcademyEntitlement>(`/academy/me/products/${productSlug}`);
+
+export const listProductQuestions = (productSlug: string, limit = ACADEMY_SET_SIZE) =>
+  api<AcademyQuestion[]>(`/academy/me/products/${productSlug}/questions?limit=${limit}`);
+
+export const submitProductAttempt = (args: {
+  productSlug: string;
   questionId: string;
   submitted: string;
   timeMs?: number;
-}): Promise<AcademyAttemptResult> {
-  return api<AcademyAttemptResult>('/academy/attempts', {
+}) =>
+  api<AcademyAttemptResult>(`/academy/me/products/${args.productSlug}/attempts`, {
     method: 'POST',
     body: {
       question_id: args.questionId,
@@ -79,9 +165,26 @@ export function submitAcademyAttempt(args: {
       time_ms: args.timeMs,
     },
   });
-}
 
-/** This kid's running practice tally (shown on the end-of-set summary). */
-export function getAcademyProgress(kidId: string): Promise<AcademyProgress> {
-  return api<AcademyProgress>(`/academy/kids/${kidId}/progress`);
-}
+export const getProductProgress = (productSlug: string) =>
+  api<AcademyProgress>(`/academy/me/products/${productSlug}/progress`);
+
+export const getAcademyCatalog = () => api<AcademyCatalogExam[]>('/academy/catalog');
+
+export const getAcademyProduct = (slug: string) =>
+  api<AcademyPublicProduct>(`/academy/products/${slug}`);
+
+export const listFamilyAcademyEntitlements = (familyId: string) =>
+  api<AcademyEntitlement[]>(`/families/${familyId}/academy-entitlements`);
+
+export const startAcademyCheckout = (productId: string, kidId: string) =>
+  api<{ payment_intent_id: string; checkout_url: string }>('/academy/checkouts', {
+    method: 'POST',
+    body: { product_id: productId, kid_id: kidId },
+  });
+
+export const getAcademyOrder = (intentId: string) =>
+  api<{
+    status: string;
+    entitlement: { id: string; status: string; ends_at: string } | null;
+  }>(`/academy/orders/${intentId}`);

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-19 (feat: Academy exam products and native practice)
+
+### Added
+- Academy is sold and opened as a fixed exam/year/subject product. Kids see only products
+  unlocked for them, and the practice player has no year switcher.
+- Parent Academy catalog, checkout/order confirmation, kid exam library, and fixed-product
+  practice routes.
+- Accessible native renderers for deterministic exam visuals, including tally tables,
+  equal groups, clocks, solid shapes, coin collections, shape matrices, and symbol patterns.
+
+### Tests
+- Academy component coverage plus the cross-repo purchase, child-scoped entitlement,
+  12-question answer, DB read-back, and 390px mobile journey.
+
 ## 2026-07-19 (fix: deflake Story Blocks close-button queries in CI)
 
 ### Fixed
