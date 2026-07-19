@@ -26,6 +26,9 @@ export interface MusicScoreRequest {
   existingScore?: MusicScore;
   /** Suggestion-card key (structured, never free text). */
   modifier?: SuggestionKey;
+  /** Lane 🔄: regenerate ONLY this instrument's track (backend prompt builder
+   *  emits the structured instruction; track-editing PRD §3-A). */
+  rerollTrack?: string;
   /**
    * 0⭐ instrument-style switches accumulated since the previous generation —
    * the kid's iteration profile for the parent-visible audit event
@@ -53,6 +56,7 @@ export function generateMusicScore(req: MusicScoreRequest): Promise<MusicScoreRe
       options: req.options,
       existingScore: req.existingScore,
       modifier: req.modifier,
+      rerollTrack: req.rerollTrack,
       style_changes: req.style_changes,
     },
   });

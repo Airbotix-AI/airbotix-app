@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildRealSongPrompt, realSongSeconds } from './realSongApi';
+import type { MixSnapshot } from './offlineRender';
+import {
+  buildRealSongPrompt,
+  MIX_PROMINENT_MIN,
+  MIX_QUIET_MAX,
+  realSongSeconds,
+} from './realSongApi';
 import type { MusicScore } from './scoreTypes';
 
 // "Make it real" (music-stage-prd §2 step ⑥) hands the audio provider a prompt
@@ -50,6 +56,67 @@ describe('buildRealSongPrompt', () => {
     });
     expect(buildRealSongPrompt(s)).toContain('featuring drums');
     expect(buildRealSongPrompt(s)).not.toContain('drums, drums');
+  });
+
+  // Track-editing PRD §3-B ("调 VOL 合成一模一样" owner feedback 2026-07-17):
+  // the stage mix is part of the arrangement — the provider must hear it.
+  describe('with the stage mix (§3-B)', () => {
+    const mix = (over: Partial<MixSnapshot> = {}): MixSnapshot => ({
+      muted: {},
+      solo: null,
+      silenced: new Set<string>(),
+      volumes: {},
+      ...over,
+    });
+
+    it('drops muted instruments from the featuring list (AC-4)', () => {
+      const out = buildRealSongPrompt(score(), undefined, mix({ muted: { drums: true } }));
+      expect(out).toContain('featuring bass');
+      expect(out).not.toContain('drums');
+    });
+
+    it('drops style=None (silenced) instruments (AC-5)', () => {
+      const out = buildRealSongPrompt(score(), undefined, mix({ silenced: new Set(['bass']) }));
+      expect(out).toContain('featuring drums');
+      expect(out).not.toContain('bass');
+    });
+
+    it('a solo becomes "featuring mainly the …"', () => {
+      const out = buildRealSongPrompt(score(), undefined, mix({ solo: 'bass' }));
+      expect(out).toContain('featuring mainly the bass');
+      expect(out).not.toContain('drums');
+    });
+
+    it('volume extremes read as quiet / prominent wording (AC-4)', () => {
+      const out = buildRealSongPrompt(
+        score(),
+        undefined,
+        mix({ volumes: { drums: MIX_QUIET_MAX, bass: MIX_PROMINENT_MIN } }),
+      );
+      expect(out).toContain('quiet drums');
+      expect(out).toContain('prominent bass');
+    });
+
+    it('the default slider volume stays plain — no accidental "prominent" band', () => {
+      const out = buildRealSongPrompt(score(), undefined, mix({ volumes: { drums: 0.85 } }));
+      expect(out).toContain('featuring drums, bass');
+    });
+
+    it('everything muted → no featuring clause at all, never an empty one', () => {
+      const out = buildRealSongPrompt(
+        score(),
+        undefined,
+        mix({ muted: { drums: true, bass: true } }),
+      );
+      expect(out).not.toContain('featuring');
+      expect(out.endsWith('key of C major')).toBe(true);
+    });
+
+    it('without a mix the legacy full-instrument prompt is unchanged', () => {
+      expect(buildRealSongPrompt(score())).toBe(
+        'Star Puppy Jam, rock style, 120 BPM, key of C major, featuring drums, bass',
+      );
+    });
   });
 });
 

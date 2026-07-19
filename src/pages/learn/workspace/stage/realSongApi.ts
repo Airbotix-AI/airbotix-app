@@ -13,10 +13,14 @@
 // Stage's track list already renders — so no new plumbing, just the call.
 
 import { api } from '@/lib/api';
+import { isInstrumentAudible, type MixSnapshot } from './offlineRender';
 import type { MusicScore } from './scoreTypes';
 
-/** Same star price the retired Music Maker charged — real audio is the costly call. */
-export const REAL_SONG_COST_STARS = 3;
+/** 🎧 bills as its OWN model (owner pricing ladder 2026-07-17): real audio via
+ *  ElevenLabs/Suno costs an order of magnitude more upstream than the 5⭐
+ *  score call. Display/gate only — the backend `music-real` row charges. */
+export const REAL_SONG_MODEL_ID = 'music-real';
+export const REAL_SONG_COST_STARS = 15;
 
 /** Upstream bound (ElevenLabs /v1/music clamps at 600s; kids never need that). */
 const MAX_SECONDS = 120;
@@ -40,6 +44,8 @@ export interface RealSongArgs {
   classId?: string | null;
   /** Reuse the project a previous Save / recording already minted for this song. */
   projectId?: string | null;
+  /** Stage mixer state — part of the arrangement the provider must respect (§3-B). */
+  mix?: MixSnapshot;
 }
 
 /**
@@ -68,6 +74,11 @@ async function ensureSongProject(args: RealSongArgs): Promise<string> {
   return project.id;
 }
 
+/** VOL below this reads as a deliberate "keep it quiet" decision. */
+export const MIX_QUIET_MAX = 0.4;
+/** VOL at/above this (slider default is 0.85) reads as "make it stand out". */
+export const MIX_PROMINENT_MIN = 0.98;
+
 /**
  * Turn the score the kid ALREADY has into a prompt for the audio provider.
  *
@@ -76,16 +87,35 @@ async function ensureSongProject(args: RealSongArgs): Promise<string> {
  * the old Music Maker did) throws that away and invites a mismatch between the
  * song they hear on the stage and the song they get back. So the prompt is
  * DERIVED from the score, with their own wording carried along as the topic.
+ *
+ * The stage MIX is part of that arrangement (track-editing PRD §3-B): muted /
+ * style=None instruments leave the featuring list entirely, a solo becomes
+ * "featuring mainly …", and deliberate volume extremes translate into
+ * quiet/prominent wording. Without `mix` (legacy callers/tests) the prompt
+ * lists every score instrument, as before.
  */
-export function buildRealSongPrompt(score: MusicScore, topic?: string): string {
-  const instruments = [...new Set(score.tracks.map((t) => t.instrument))].join(', ');
+export function buildRealSongPrompt(score: MusicScore, topic?: string, mix?: MixSnapshot): string {
+  const all = [...new Set(score.tracks.map((t) => t.instrument))];
+  const audible = mix ? all.filter((i) => isInstrumentAudible(i, mix)) : all;
+  const wordFor = (instrument: string): string => {
+    const vol = mix?.volumes[instrument];
+    if (vol !== undefined && vol <= MIX_QUIET_MAX) return `quiet ${instrument}`;
+    if (vol !== undefined && vol >= MIX_PROMINENT_MIN) return `prominent ${instrument}`;
+    return instrument;
+  };
+  const featuring =
+    audible.length === 0
+      ? ''
+      : mix?.solo !== null && mix?.solo !== undefined
+        ? `featuring mainly the ${mix.solo}`
+        : `featuring ${audible.map(wordFor).join(', ')}`;
   const parts = [
     topic?.trim() || score.title,
     // `genre` is optional on the score — never emit "undefined style".
     score.genre && `${score.genre} style`,
     `${score.tempo} BPM`,
     `key of ${score.key}`,
-    instruments && `featuring ${instruments}`,
+    featuring,
   ].filter(Boolean);
   return parts.join(', ');
 }
@@ -103,13 +133,14 @@ export function realSongSeconds(score: MusicScore): number {
 }
 
 export async function generateRealSong(args: RealSongArgs): Promise<RealSongResult> {
-  const { score, topic } = args;
+  const { score, topic, mix } = args;
   const project_id = await ensureSongProject(args);
 
   const result = await api<Omit<RealSongResult, 'project_id'>>('/llm/music', {
     method: 'POST',
     body: {
-      prompt: buildRealSongPrompt(score, topic ?? undefined),
+      model: REAL_SONG_MODEL_ID,
+      prompt: buildRealSongPrompt(score, topic ?? undefined, mix),
       project_id,
       options: {
         genre: score.genre,

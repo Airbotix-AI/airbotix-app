@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-19 (feat: Music Stage track editing, export and final pricing)
+
+### Added
+- Added per-track rename, octave, pan, WAV download and paid re-roll actions, plus
+  whole-song mix-aware WAV export and a confirmation preview before real-song generation.
+
+### Changed
+- Music generation and re-rolls now cost 5★, real-song generation costs 15★,
+  Voice Booth costs 5★, Art Studio costs 9★ and Video Studio costs 60★.
+- Playback and real-song prompts now honour mute, solo, volume, pan and octave settings.
+
 ## 2026-07-19 (feat: Art Studio is ONE conversation — no more form page)
 
 ### Changed

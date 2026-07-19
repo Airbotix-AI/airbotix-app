@@ -24,13 +24,27 @@ import {
   saveScoreToMyWorks,
   type MusicScoreRequest,
 } from './musicScoreApi';
-import { generateRealSong, REAL_SONG_COST_STARS } from './realSongApi';
-import type { InstrumentKind, MusicScore } from './scoreTypes';
+import {
+  audioBufferToWavBlob,
+  exportFilename,
+  renderScore,
+  triggerBlobDownload,
+  type MixSnapshot,
+} from './offlineRender';
+import { buildRealSongPrompt, generateRealSong, REAL_SONG_COST_STARS } from './realSongApi';
+import {
+  INSTRUMENT_META,
+  type InstrumentKind,
+  type MusicScore,
+  type StageTweaks,
+  type TrackTweak,
+} from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
 import {
   COMPOSE_FAILED_BUBBLE,
   EDIT_VERSION_TAG,
+  EXPORT_FAILED_BUBBLE,
   FIRST_COMPOSE_SUBTITLE,
   FIRST_VERSION_TAG,
   GENRE_BY_ID,
@@ -40,6 +54,7 @@ import {
   REAL_SONG_DONE_BUBBLE,
   REAL_SONG_FAILED_BUBBLE,
   REWRITE_VERSION_TAG,
+  rerollVersionTag,
   SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
   STYLE_NONE,
@@ -116,6 +131,14 @@ export function MusicStagePane({
   const [mixerOpen, setMixerOpen] = useState(false);
   // Versions already promoted to My Works this visit (💾, PRD §2 step ⑤).
   const [savedVersions, setSavedVersions] = useState<Record<number, boolean>>({});
+  // Lane Edit-drawer tweaks (name/octave/pan) by INSTRUMENT KIND, surviving
+  // version switches like mute/solo/volume (track-editing PRD §3-A, AC-8).
+  const [tweaks, setTweaks] = useState<StageTweaks>({});
+  // WAV export spinners (track-editing PRD §3-A/§3-C): lane index or the mix.
+  const [downloadingTrack, setDownloadingTrack] = useState<number | null>(null);
+  const [mixDownloadBusy, setMixDownloadBusy] = useState(false);
+  // 🎧 two-step confirm — shows "The AI will hear: …" first (PRD §3-B).
+  const [realConfirmOpen, setRealConfirmOpen] = useState(false);
   // The project this song lives in, once 💾 Save or 🎧 Make-it-real has minted one.
   // Both need a project (audio Artifacts require one) and must share it — otherwise
   // one song scatters across two "My Works" entries.
@@ -147,8 +170,22 @@ export function MusicStagePane({
     return out;
   }, [score, styles]);
 
-  const playback = useScorePlayback(score, silenced, styles);
+  const playback = useScorePlayback(score, silenced, styles, tweaks);
   const { play: playbackPlay, stop: playbackStop, unlock: playbackUnlock, onPulse } = playback;
+
+  // The mixer state exports and the 🎧 real-song prompt must both honour —
+  // one snapshot so the file the kid downloads and the song the provider
+  // renders agree with what the stage plays (track-editing PRD §3-B/§3-C).
+  const mixSnapshot: MixSnapshot = useMemo(
+    () => ({
+      muted: playback.muted,
+      solo: playback.solo,
+      silenced,
+      volumes: playback.volumes,
+      tweaks,
+    }),
+    [playback.muted, playback.solo, silenced, playback.volumes, tweaks],
+  );
 
   const generation = useMutation({
     mutationFn: (req: MusicScoreRequest) => generateMusicScore(req),
@@ -192,6 +229,7 @@ export function MusicStagePane({
         topic: args.topic,
         classId,
         projectId: songProjectId,
+        mix: mixSnapshot,
       }),
     onSuccess: (res) => {
       setSongProjectId(res.project_id);
@@ -333,6 +371,63 @@ export function MusicStagePane({
       ...(card.freshSeed ? {} : { existingScore: score }),
     };
     fire(req, { label: card.tag, modifier: card.key }, iterationSubtitle(card.tag));
+  };
+
+  /** Lane 🔄 (track-editing PRD §3-A): regenerate ONLY this track, −3⭐. The
+   *  backend prompt builder emits the structured keep-everything-else rule. */
+  const rerollTrack = (trackIndex: number) => {
+    const instrument = score?.tracks[trackIndex]?.instrument;
+    if (!score || !instrument) return;
+    const tag = rerollVersionTag(INSTRUMENT_META[instrument]?.label ?? instrument);
+    fire(
+      {
+        prompt: lastPromptRef.current ?? score.title,
+        options: { genre: GENRE_BY_ID[genre].promptLabel },
+        existingScore: score,
+        rerollTrack: instrument,
+      },
+      { label: tag },
+      iterationSubtitle(tag),
+    );
+  };
+
+  /** Lane Edit drawer changes merge per instrument (name / octave / pan). */
+  const applyTweak = useCallback((instrument: InstrumentKind, patch: TrackTweak) => {
+    setTweaks((m) => ({ ...m, [instrument]: { ...m[instrument], ...patch } }));
+  }, []);
+
+  /** Lane ↓ (PRD §3-A): render ONE track client-side and download it. 0⭐,
+   *  zero network — mute/solo are bypassed on purpose (it's a stem export). */
+  const downloadTrack = async (trackIndex: number) => {
+    const track = score?.tracks[trackIndex];
+    if (!score || !track || downloadingTrack !== null) return;
+    setDownloadingTrack(trackIndex);
+    try {
+      const buffer = await renderScore(score, styles, mixSnapshot, trackIndex);
+      const label =
+        tweaks[track.instrument]?.name?.trim() ||
+        INSTRUMENT_META[track.instrument]?.label ||
+        track.instrument;
+      triggerBlobDownload(audioBufferToWavBlob(buffer), exportFilename(score.title, label));
+    } catch {
+      setBubbleOverride(EXPORT_FAILED_BUBBLE);
+    } finally {
+      setDownloadingTrack(null);
+    }
+  };
+
+  /** Transport ↓ Song (PRD §3-C): the whole mix as the kid hears it. */
+  const downloadMix = async () => {
+    if (!score || mixDownloadBusy) return;
+    setMixDownloadBusy(true);
+    try {
+      const buffer = await renderScore(score, styles, mixSnapshot);
+      triggerBlobDownload(audioBufferToWavBlob(buffer), exportFilename(score.title));
+    } catch {
+      setBubbleOverride(EXPORT_FAILED_BUBBLE);
+    } finally {
+      setMixDownloadBusy(false);
+    }
   };
 
   // Restore the song's TOPIC for suggestion cards / 🎧 on reloaded sessions.
@@ -497,7 +592,11 @@ export function MusicStagePane({
       selectedSlot={selectedSlot}
       onSelectSlot={setSelectedSlot}
       silenced={silenced}
-      onOpenMixer={() => setMixerOpen(true)}
+      tweaks={tweaks}
+      onTweak={applyTweak}
+      onDownloadTrack={(idx) => void downloadTrack(idx)}
+      onReroll={rerollTrack}
+      downloadingTrack={downloadingTrack}
     />
   ) : null;
 
@@ -583,6 +682,18 @@ export function MusicStagePane({
           <span aria-hidden className="h-5 w-px bg-hairline" />
           <span className="text-[13px] font-bold text-slate2">Music Stage</span>
         </div>
+        {import.meta.env.DEV && (
+          // Local stacks run the deterministic mock LLM (DEEPROUTER_USE_MOCK):
+          // freeform edits return the SAME fixture song, which reads as "the AI
+          // ignored me". Name it, DEV builds only (track-editing PRD §4).
+          <span
+            className="hidden shrink-0 rounded-full bg-wash-sunshine px-2.5 py-1 text-[10px] font-bold text-ink min-[900px]:inline"
+            title="Local dev stacks use a fake AI — edit instructions may return the same song every time. Production uses the real AI."
+            data-testid="dev-mock-note"
+          >
+            DEV · fake AI
+          </span>
+        )}
         <button
           type="button"
           onClick={() => (playback.isPlaying ? playbackStop() : void playbackPlay())}
@@ -623,23 +734,72 @@ export function MusicStagePane({
                   ? '✓ Saved!'
                   : '💾 Save'}
             </button>
-            {/* PRD §2 step ⑥ — the score the kid wrote, recorded for real by the
-                audio provider. Star-gated like composing (AC-8): an unaffordable
-                click must never reach the backend. */}
+            {/* ↓ Song — the whole mix, rendered client-side (0⭐, PRD §3-C). */}
             <button
               type="button"
-              onClick={() => realSong.mutate({ score, topic: lastPromptRef.current })}
-              disabled={realSong.isPending || balance < REAL_SONG_COST_STARS}
-              title={
-                balance < REAL_SONG_COST_STARS
-                  ? `Need ${REAL_SONG_COST_STARS}★, have ${balance}★`
-                  : 'Record this song for real'
-              }
+              onClick={() => void downloadMix()}
+              disabled={mixDownloadBusy}
+              title="Download your song as an audio file"
               className="rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint disabled:cursor-not-allowed disabled:opacity-60"
-              data-testid="stage-real-song"
+              data-testid="stage-download-mix"
             >
-              {realSong.isPending ? '🎧 Recording…' : `🎧 Make it real −${REAL_SONG_COST_STARS}⭐`}
+              {mixDownloadBusy ? '↓ Rendering…' : '↓ Song'}
             </button>
+            {/* PRD §2 step ⑥ — the score the kid wrote, recorded for real by the
+                audio provider. Star-gated like composing (AC-8): an unaffordable
+                click must never reach the backend. Two-step: the confirm shows
+                exactly what the AI will hear, mix included (PRD §3-B). */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setRealConfirmOpen((v) => !v)}
+                disabled={realSong.isPending || balance < REAL_SONG_COST_STARS}
+                title={
+                  balance < REAL_SONG_COST_STARS
+                    ? `Need ${REAL_SONG_COST_STARS}★, have ${balance}★`
+                    : 'Record this song for real'
+                }
+                aria-expanded={realConfirmOpen}
+                className="rounded-full border-2 border-hairline bg-canvas px-4 py-2 text-[13px] font-bold text-ink transition hover:border-brand-mint disabled:cursor-not-allowed disabled:opacity-60"
+                data-testid="stage-real-song"
+              >
+                {realSong.isPending ? '🎧 Recording…' : `🎧 Make it real −${REAL_SONG_COST_STARS}⭐`}
+              </button>
+              {realConfirmOpen && !realSong.isPending && (
+                <div
+                  className="absolute bottom-full right-0 z-30 mb-2 w-72 rounded-xl border border-hairline bg-canvas-pure p-3 shadow-lg"
+                  data-testid="real-song-confirm"
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-slate2">
+                    The AI will hear
+                  </p>
+                  <p className="mt-1 text-[12px] font-semibold leading-snug text-ink" data-testid="real-song-prompt-preview">
+                    “{buildRealSongPrompt(score, lastPromptRef.current ?? undefined, mixSnapshot)}”
+                  </p>
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRealConfirmOpen(false)}
+                      className="rounded-full border-2 border-hairline bg-canvas px-3 py-1 text-[12px] font-bold text-ink transition hover:border-brand-coral"
+                      data-testid="real-song-cancel"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRealConfirmOpen(false);
+                        realSong.mutate({ score, topic: lastPromptRef.current });
+                      }}
+                      className="rounded-full bg-grad-mint px-3 py-1 text-[12px] font-bold text-white shadow-brand-mint transition hover:scale-105"
+                      data-testid="real-song-confirm-go"
+                    >
+                      Record −{REAL_SONG_COST_STARS}⭐
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setMixerOpen((v) => !v)}
