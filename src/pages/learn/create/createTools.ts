@@ -31,7 +31,9 @@ export interface CreateTool {
 
 export const CREATE_TOOLS: CreateTool[] = [
   { to: '/learn/create/blocks', emoji: '🧩', title: 'Story Blocks', desc: 'Program an animated story with snap-together blocks. No typing!', color: 'mint', typeTag: 'Blocks', projectKind: 'blocks', cost: 0 },
-  { to: '/learn/create/code', emoji: '💻', title: 'Creative Code Studio', desc: 'Build websites, games, and tools with AI and real JavaScript.', color: 'sky', typeTag: 'Code', projectKind: 'code', cost: 1 },
+  // Creative Code Studio jumps straight to the prompt-first game playground;
+  // Web Code remains hidden until it is ready for kids.
+  { to: '/learn/playground/new', emoji: '💻', title: 'Creative Code Studio', desc: 'Vibe-code a 2D game with AI and real JavaScript — then keep adding to it.', color: 'sky', typeTag: 'Code', projectKind: 'game', cost: 1 },
   // Music has ONE home: the Music Stage in the Workspace. The old Music Maker —
   // a form that asked for mood/tempo and handed back an MP3 the kid could not
   // touch — is retired; the Stage does the same generation as its step ⑥, on top
