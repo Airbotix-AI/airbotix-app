@@ -83,6 +83,22 @@ vi.mock('@/lib/api', () => ({
     if (path === '/projects/proj_bucket/artifacts' && opts?.method === 'POST') {
       return Promise.resolve({ id: 'art_sketch' });
     }
+    if (path === '/projects' && opts?.method === 'POST') {
+      return Promise.resolve({ id: 'proj_mission' });
+    }
+    if (path === '/projects/proj_mission/artifacts/upload-url') {
+      return Promise.resolve({
+        url: 'https://s3/put-mission',
+        headers: { 'Content-Type': 'image/png' },
+        s3_key: 'families/fam_1/m/image/sketch.png',
+      });
+    }
+    if (path === '/projects/proj_mission/artifacts' && opts?.method === 'POST') {
+      return Promise.resolve({ id: 'art_msketch' });
+    }
+    if (path === '/projects/proj_mission/submit') {
+      return Promise.resolve({ ok: true, stars_awarded: 3 });
+    }
     if (path === '/projects/proj_bucket/artifacts') return Promise.resolve([]);
     if (path.endsWith('/download-url')) return Promise.resolve({ url: 'https://signed' });
     if (path.includes('/wallet')) {
@@ -110,16 +126,24 @@ vi.mock('../shared/useSession', () => ({
 
 import { ArtStudioPage } from './ArtStudioPage';
 
-function renderPage() {
+function renderPage(state?: Record<string, unknown>) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/learn/create/image', state }]}>
       <QueryClientProvider client={qc}>
         <ArtStudioPage />
       </QueryClientProvider>
     </MemoryRouter>,
   );
 }
+
+const MISSION = {
+  id: 'm_art_1',
+  slug: 'draw-your-robot',
+  title: 'Draw your robot',
+  description: 'A robot with a happy face!',
+  template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
+};
 
 describe('ArtStudioPage (canvas-first)', () => {
   beforeEach(() => {
@@ -230,5 +254,55 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
       false,
     );
+  });
+
+  describe('Mission Mode (D-IS-20/22)', () => {
+    it('shows the task card and loads the template underlay', async () => {
+      renderPage({ mission: MISSION });
+      const card = await screen.findByTestId('mission-card');
+      expect(card).toHaveTextContent('Draw your robot');
+      expect(card).toHaveTextContent('A robot with a happy face!');
+    });
+
+    it('magic creates a MISSION project (not the bucket) and saves there', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+
+      await waitFor(() => {
+        const create = apiCalls.find((c) => c.path === '/projects' && c.opts?.method === 'POST');
+        expect(create).toBeDefined();
+        expect(create!.opts?.body?.mission_id).toBe('m_art_1');
+        const gen = apiCalls.find((c) => c.path === '/llm/image');
+        expect(gen!.opts?.body?.project_id).toBe('proj_mission');
+        expect(gen!.opts?.body?.ref_artifact_id).toBe('art_msketch');
+      });
+      expect(
+        apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url'),
+      ).toBe(false);
+    });
+
+    it('🚀 turn-in submits the mission project and celebrates +3★', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      const turnIn = await screen.findByRole('button', { name: /Turn it in! \+3★/ });
+      fireEvent.click(turnIn);
+
+      await waitFor(() => {
+        expect(apiCalls.some((c) => c.path === '/projects/proj_mission/submit')).toBe(true);
+      });
+      expect(await screen.findByText(/Mission complete! \+3★/)).toBeInTheDocument();
+    });
   });
 });

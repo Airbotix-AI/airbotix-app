@@ -102,7 +102,9 @@ export function useGenerate(endpoint: 'image' | 'tts' | 'music' | 'video', proje
         method: 'POST',
         // Generations persist into the studio's bucket (learn-create-studio-save-prd
         // §5.3) — without a project_id the backend saves nothing and the work is lost.
-        body: { ...body, ...(projectId ? { project_id: projectId } : {}) },
+        // The hook-bound bucket id is the DEFAULT; an explicit per-call
+        // project_id (Art Studio mission mode) wins.
+        body: { ...(projectId ? { project_id: projectId } : {}), ...body },
       }),
     onSuccess: async () => {
       await Promise.all([
