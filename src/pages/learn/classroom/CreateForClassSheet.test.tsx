@@ -93,7 +93,7 @@ describe('CreateForClassSheet — direct-jump', () => {
   it('never offers paused (coming-soon) studios, even when creative is allowed', async () => {
     renderSheet(['creative', 'code', 'game', 'blocks']);
 
-    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Art Studio')).not.toBeInTheDocument();
     expect(screen.queryByText('Voice Booth')).not.toBeInTheDocument();
     expect(screen.queryByText('Video Studio')).not.toBeInTheDocument();
     // live creative tool still offered
@@ -103,7 +103,7 @@ describe('CreateForClassSheet — direct-jump', () => {
   it('shows only the course-allowed project kinds', async () => {
     renderSheet(['game', 'blocks']);
 
-    expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+    expect(screen.queryByText('Art Studio')).not.toBeInTheDocument();
     expect(screen.queryByText('Music Maker')).not.toBeInTheDocument();
     expect(screen.queryByText('Web Code')).not.toBeInTheDocument();
     // Creative Code Studio is allowed via its `game` sub-type and jumps directly.

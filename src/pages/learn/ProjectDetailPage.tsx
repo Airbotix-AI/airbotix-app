@@ -987,7 +987,7 @@ function ChatBubble({ message, pending = false }: { message: ChatMessage; pendin
 // ─── StudioDrawerForKind ─────────────────────────────────────────────────────
 
 const DRAWER_META: Record<string, { title: string; emoji: string; color: string }> = {
-  image: { title: 'Image Maker',  emoji: '🎨', color: 'bubblegum' },
+  image: { title: 'Art Studio',   emoji: '🎨', color: 'bubblegum' },
   text:  { title: 'Story Writer', emoji: '📖', color: 'mint' },
   audio: { title: 'Voice Booth',  emoji: '🔊', color: 'sky' },
   video: { title: 'Video Studio', emoji: '🎬', color: 'sunshine' },

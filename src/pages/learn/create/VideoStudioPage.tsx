@@ -1,12 +1,18 @@
 import { useState } from 'react';
 
-import { api } from '@/lib/api';
 import { Celebration } from './shared/Celebration';
 import { StudioChrome } from './shared/StudioChrome';
 import { SessionSummary } from './shared/SessionSummary';
 import { StudioTip } from './shared/StudioTip';
 import { useStudioSession } from './shared/useSession';
-import { friendlyError, useGenerate, useRecentArtifacts, type Artifact } from './shared/useStudio';
+import {
+  friendlyError,
+  useArtifactUrl,
+  useBucketArtifacts,
+  useCreateBucket,
+  useGenerate,
+  type Artifact,
+} from './shared/useStudio';
 
 const DURATIONS = [
   { id: 4, label: '4 seconds' },
@@ -16,7 +22,7 @@ const DURATIONS = [
 
 const VIBES = ['cinematic', 'cartoon', '3d-animated', 'stop-motion', 'doodle'] as const;
 
-const COST = 5;
+const COST = 40; // video-default (star-pricing-sot.md — was mislabelled 5 vs backend 40)
 
 export function VideoStudioPage() {
   const [prompt, setPrompt] = useState('');
@@ -27,8 +33,10 @@ export function VideoStudioPage() {
 
   const { summary, endNow, dismiss } = useStudioSession('video');
 
-  const generate = useGenerate('video');
-  const recent = useRecentArtifacts('video');
+  // Clips auto-save into the kid's My Videos bucket (learn-create-studio-save-prd §5).
+  const bucket = useCreateBucket('video');
+  const generate = useGenerate('video', bucket.data?.project_id);
+  const recent = useBucketArtifacts(bucket.data?.project_id);
 
   const onMake = () => {
     if (!prompt.trim()) {
@@ -123,7 +131,7 @@ export function VideoStudioPage() {
           </div>
         )}
 
-        <button onClick={onMake} disabled={generate.isPending} className="btn-pill-primary w-full mt-6">
+        <button onClick={onMake} disabled={generate.isPending || !bucket.data} className="btn-pill-primary w-full mt-6">
           {generate.isPending ? '🎬 Filming…' : `🎬 Film it −${COST}★`}
         </button>
         <p className="text-[11px] text-slate2 mt-3">
@@ -131,7 +139,10 @@ export function VideoStudioPage() {
         </p>
       </div>
 
-      <h2 className="text-[18px] font-bold text-ink mb-3">Your recent videos</h2>
+      <h2 className="text-[18px] font-bold text-ink mb-1">Your recent videos</h2>
+      <p className="text-[12px] text-ink-soft mb-3">
+        Everything you make is saved to {bucket.data?.title ?? 'My Videos'} ✓
+      </p>
       {recent.isLoading ? (
         <p className="lead-text">Loading…</p>
       ) : (recent.data?.length ?? 0) === 0 ? (
@@ -162,19 +173,14 @@ export function VideoStudioPage() {
 }
 
 function VideoTile({ artifact }: { artifact: Artifact }) {
-  const [url, setUrl] = useState<string | null>(null);
-  if (!url) {
-    api<{ url: string }>(`/projects/${artifact.project_id}/artifacts/${artifact.id}/download-url`, {
-      method: 'POST',
-    }).then((r) => setUrl(r.url)).catch(() => undefined);
-  }
+  const url = useArtifactUrl(artifact);
   const meta = artifact.metadata as { prompt?: string };
   return (
     <div className="card-base p-3">
       <div className="aspect-video rounded-xl bg-surface overflow-hidden">
-        {url ? (
+        {url.data ? (
           <video controls className="h-full w-full object-cover">
-            <source src={url} type={artifact.mime_type} />
+            <source src={url.data} type={artifact.mime_type} />
           </video>
         ) : (
           <div className="h-full flex items-center justify-center">
