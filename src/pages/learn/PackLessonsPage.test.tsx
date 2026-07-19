@@ -4,9 +4,9 @@
 // Mission task(s). FE-only — `@/lib/api` is mocked (no network).
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { api } = vi.hoisted(() => ({ api: vi.fn() }));
@@ -51,10 +51,16 @@ function renderPack() {
       <MemoryRouter initialEntries={['/learn/missions/creative-starter']}>
         <Routes>
           <Route path="/learn/missions/:id" element={<PackLessonsPage />} />
+          <Route path="/learn/create/image" element={<ArtMissionTarget />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function ArtMissionTarget() {
+  const location = useLocation();
+  return <pre data-testid="art-mission-state">{JSON.stringify(location.state)}</pre>;
 }
 
 afterEach(() => {
@@ -79,5 +85,48 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
     expect(task).not.toBeNull();
     expect(within(task as HTMLElement).getByText(/5★ to complete/)).toBeInTheDocument();
     expect(within(task as HTMLElement).getByRole('button', { name: /Start/ })).toBeInTheDocument();
+  });
+
+  it('opens an art task in Mission Mode with its template config', async () => {
+    api.mockResolvedValue({
+      ...PACK,
+      lessons: [
+        {
+          ...PACK.lessons[0],
+          missions: [
+            {
+              ...PACK.lessons[0].missions[0],
+              steps_json: {
+                art: {
+                  template: {
+                    url: '/templates/robot.png',
+                    layer: 'underlay',
+                    magic: 'strokes-only',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    renderPack();
+    const task = (await screen.findByText('Draw a cat')).closest('li');
+    fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+    expect(await screen.findByTestId('art-mission-state')).toHaveTextContent(
+      JSON.stringify({
+        mission: {
+          id: 'm1',
+          slug: 'draw-a-cat',
+          title: 'Draw a cat',
+          description: 'Make a picture.',
+          template: {
+            url: '/templates/robot.png',
+            layer: 'underlay',
+            magic: 'strokes-only',
+          },
+        },
+      }),
+    );
   });
 });
