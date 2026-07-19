@@ -16,7 +16,8 @@ export type OnboardingFlag =
   | 'welcomeSeen'
   | 'checklistDismissed'
   | 'kidLoginShown'
-  | 'limitsReviewed';
+  | 'limitsReviewed'
+  | 'guidesBrowsed';
 
 // Stable order — used to build the snapshot string for useSyncExternalStore.
 const FLAG_ORDER: OnboardingFlag[] = [
@@ -24,7 +25,11 @@ const FLAG_ORDER: OnboardingFlag[] = [
   'checklistDismissed',
   'kidLoginShown',
   'limitsReviewed',
+  'guidesBrowsed',
 ];
+
+/** All-unset snapshot — one slot per FLAG_ORDER entry. */
+export const EMPTY_FLAGS_SNAPSHOT = FLAG_ORDER.map(() => '0').join('|');
 
 const keyFor = (sub: string, flag: OnboardingFlag) => `airbotix.onboarding.${flag}.${sub}`;
 
@@ -95,7 +100,7 @@ export function subscribeOnboardingFlags(listener: () => void): () => void {
  * getSnapshot stable across renders when nothing changed.
  */
 export function readFlagsSnapshot(sub: string): string {
-  if (!sub) return '0|0|0|0';
+  if (!sub) return EMPTY_FLAGS_SNAPSHOT;
   return FLAG_ORDER.map((flag) => (getOnboardingFlag(sub, flag) ? '1' : '0')).join('|');
 }
 

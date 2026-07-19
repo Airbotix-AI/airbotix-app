@@ -13,7 +13,8 @@ export type OnboardingItemId =
   | 'kidAdded'
   | 'kidLogin'
   | 'addStars'
-  | 'setLimits';
+  | 'setLimits'
+  | 'browseGuides';
 
 export interface OnboardingInputs {
   /** family_id != null */
@@ -30,6 +31,8 @@ export interface OnboardingInputs {
   kidLoginShown: boolean;
   /** parent has visited the spending-limits page (localStorage flag) */
   limitsReviewed: boolean;
+  /** parent has opened the Family Guides page (localStorage flag) */
+  guidesBrowsed: boolean;
 }
 
 export interface OnboardingItem {
@@ -40,7 +43,7 @@ export interface OnboardingItem {
 }
 
 export interface OnboardingState {
-  /** fixed order: familySetup, kidAdded, kidLogin, addStars, setLimits */
+  /** fixed order: familySetup, kidAdded, kidLogin, addStars, setLimits, browseGuides */
   items: OnboardingItem[];
   /** the two steps that gate "ready to create": kidLogin && addStars */
   coreComplete: boolean;
@@ -55,6 +58,7 @@ export function computeOnboardingState(i: OnboardingInputs): OnboardingState {
   const kidLogin = i.kidLoginShown;
   const addStars = hasStars || i.paymentMethodCount > 0;
   const setLimits = i.autoTopupEnabled || i.limitsReviewed;
+  const browseGuides = i.guidesBrowsed;
 
   const items: OnboardingItem[] = [
     { id: 'familySetup', done: familySetup, optional: false },
@@ -62,6 +66,7 @@ export function computeOnboardingState(i: OnboardingInputs): OnboardingState {
     { id: 'kidLogin', done: kidLogin, optional: false },
     { id: 'addStars', done: addStars, optional: false },
     { id: 'setLimits', done: setLimits, optional: true },
+    { id: 'browseGuides', done: browseGuides, optional: true },
   ];
 
   return { items, coreComplete: kidLogin && addStars };

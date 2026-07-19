@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import {
+  EMPTY_FLAGS_SNAPSHOT,
   clearOnboardingFlag,
   parseFlagsSnapshot,
   readFlagsSnapshot,
@@ -29,7 +30,7 @@ function useOnboardingFlags(sub: string) {
   const snapshot = useSyncExternalStore(
     subscribeOnboardingFlags,
     () => readFlagsSnapshot(sub),
-    () => '0|0|0|0',
+    () => EMPTY_FLAGS_SNAPSHOT,
   );
   return useMemo(() => parseFlagsSnapshot(snapshot), [snapshot]);
 }
@@ -47,6 +48,7 @@ export interface UseOnboardingState {
   markWelcomeSeen: () => void;
   markKidLoginShown: () => void;
   markLimitsReviewed: () => void;
+  markGuidesBrowsed: () => void;
   dismissChecklist: () => void;
   /** clears welcomeSeen so the wizard shows again (Settings → Replay intro) */
   replayWelcome: () => void;
@@ -99,6 +101,7 @@ export function useOnboardingState(): UseOnboardingState {
     autoTopupEnabled: autoTopup.data?.auto_topup_enabled ?? false,
     kidLoginShown: flags.kidLoginShown,
     limitsReviewed: flags.limitsReviewed,
+    guidesBrowsed: flags.guidesBrowsed,
   };
 
   const state = computeOnboardingState(inputs);
@@ -123,6 +126,7 @@ export function useOnboardingState(): UseOnboardingState {
     markWelcomeSeen: () => setOnboardingFlag(sub, 'welcomeSeen'),
     markKidLoginShown: () => setOnboardingFlag(sub, 'kidLoginShown'),
     markLimitsReviewed: () => setOnboardingFlag(sub, 'limitsReviewed'),
+    markGuidesBrowsed: () => setOnboardingFlag(sub, 'guidesBrowsed'),
     dismissChecklist: () => setOnboardingFlag(sub, 'checklistDismissed'),
     replayWelcome: () => clearOnboardingFlag(sub, 'welcomeSeen'),
   };

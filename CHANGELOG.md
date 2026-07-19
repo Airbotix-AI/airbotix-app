@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-19 (feat: Portal Family Guides discovery layer)
+
+### Added
+- New Portal page **`/portal/guides` (Family Guides)** — parent-portal-family-guides-prd.md
+  §5.1: card grid over the new `GET /portal/resource-guides` catalogue endpoint (cover,
+  title, summary, location/age/language chips, verified date, featured badge), with
+  topic / location / age / language filters reflected in the URL query. Cards and PDF
+  buttons open the marketing-site reading pages in a new tab with `?src=portal`
+  attribution; a friendly empty state links to `airbotix.ai/resources` (also `?src=portal`-attributed)
+  when the endpoint is down (503) so the rest of the Portal is unaffected.
+- Dashboard **"Family Guides — Picked for your family"** block (§5.2): 3 recommendations
+  via a pure frontend selector — family city/state→locations match first, then featured
+  guides matching the kids' ages (city/state and ages come from the already-cached family
+  queries; no new API call), then remaining featured, then newest `lastVerified` — plus a
+  "View all" link. Hidden entirely while loading or on endpoint failure.
+- Onboarding getting-started checklist gains an optional **"Browse family guides"** item
+  linking `/portal/guides` (new `guidesBrowsed` localStorage flag, same pattern as
+  `limitsReviewed`).
+- Portal nav drawer gains **Family Guides** between Tutoring and My Family.
+
 ## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
 
 ### Added
