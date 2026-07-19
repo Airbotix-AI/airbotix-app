@@ -77,7 +77,7 @@ import { LiveViewPage } from '@/pages/teacher/LiveViewPage';
 import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { TeacherPrepStudioPage } from '@/pages/teacher/TeacherPrepStudioPage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
-import { ImageMakerPage } from '@/pages/learn/create/ImageMakerPage';
+import { ArtStudioPage } from '@/pages/learn/create/art/ArtStudioPage';
 import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
 import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 
@@ -217,7 +217,7 @@ export const router = createBrowserRouter([
       // v0.7): every visible entry (Create hub, class sheet, workspace picker)
       // hides them, but the routes stay registered so deep links and the harness
       // wallet journeys (kid-create-image, wallet-pause) keep working.
-      { path: 'create/image', element: <ImageMakerPage /> },
+      { path: 'create/image', element: <ArtStudioPage /> },
       // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
       // is the single music surface (music-stage-prd §2). Kept as a redirect so
       // old links, bookmarks and class "create for class" rows still land somewhere.

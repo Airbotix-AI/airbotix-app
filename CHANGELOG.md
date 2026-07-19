@@ -147,6 +147,27 @@
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
 
+## 2026-07-19 (feat: Art Studio P1 — canvas-first studio: 孩子的手在前,AI 的魔法在后)
+
+### Added
+- The Art Studio is now a CANVAS studio (image-studio-prd v0.9, D-IS-11…19):
+  four zones (left tool rail · center canvas · right AI coach rail · bottom
+  takes film-strip). Stroke-list engine on `perfect-freehand` + `lazy-brush`
+  (MIT): 6 chunky brushes (pencil/crayon/marker/eraser/fill/stamps), Apple
+  Pencil pressure, undo, hi-res PNG export.
+- Three kid-triggered AI ignitions with price tags (rules/ai-star-billing.md):
+  👻 "Sketch it for me" −2★ (faint erasable trace-me underlay, never exported),
+  👀 "Coach, look!" −1★ (vision on the canvas, one encouraging suggestion),
+  ✨ "Bring it to life" −9★ (uploads the kid's OWN canvas as the ref → the
+  magic preserves their composition; empty canvas = pure-generation on-ramp).
+- Takes film-strip: magic results are NEW takes and never replace the sketch;
+  hold-to-compare shows the kid's hand-drawn original; ＋new starts a fresh
+  picture; everything persists to My Pictures.
+
+### Changed
+- The conversational ImageMakerPage is replaced by `art/ArtStudioPage` at
+  `/learn/create/image` (the coach chat lives on as the AI-rail sidekick).
+
 ## 2026-07-18 (fix: shared-link background music — audio MIME in srcdoc inliner)
 
 ### Fixed
