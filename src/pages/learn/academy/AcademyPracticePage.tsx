@@ -1,26 +1,19 @@
-// Academy — NAPLAN Maths practice (`/learn/academy`). A kid picks a year level,
-// works through ~20 Numeracy questions one at a time, answers each (multiple
-// choice or a typed value), sees instant feedback with the official answer, and
-// finishes on a summary of their running progress. Kid surface: shared `api`
-// client + kid session (`useMe`) + K-12 design tokens, like every other Learn page.
+// Product-scoped Academy practice. The route determines the entitled product;
+// there is deliberately no exam/year switch inside the question player.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
-import { useMe } from '@/auth/useAuth';
 import {
-  ACADEMY_DEFAULT_YEAR,
-  ACADEMY_SUBJECT,
-  ACADEMY_YEAR_LEVELS,
-  academyAssetUrl,
-  getAcademyProgress,
-  listAcademyQuestions,
-  submitAcademyAttempt,
+  getMyAcademyProduct,
+  getProductProgress,
+  listProductQuestions,
+  submitProductAttempt,
   type AcademyProgress,
   type AcademyQuestion,
-  type AcademyYearLevel,
 } from './academyApi';
+import { AcademyChoiceVisual, AcademyQuestionVisual } from './AcademyQuestionVisual';
 
 // Choice questions map option index → letter; the LETTER is what we submit.
 const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -29,11 +22,7 @@ const FALLBACK_CHOICE_COUNT = 4;
 type AnsweredResult = { is_correct: boolean; correct_answer: string; submitted: string };
 
 export function AcademyPracticePage() {
-  const me = useMe();
-  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
-
-  const [yearLevel, setYearLevel] = useState<AcademyYearLevel>(ACADEMY_DEFAULT_YEAR);
-  // Bumped by "Practise more" to pull a fresh set + fresh progress.
+  const { productSlug = '' } = useParams<{ productSlug: string }>();
   const [setNo, setSetNo] = useState(0);
 
   const [idx, setIdx] = useState(0);
@@ -43,16 +32,26 @@ export function AcademyPracticePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [phase, setPhase] = useState<'practice' | 'summary'>('practice');
   const startedAt = useRef<number>(Date.now());
+  const questionTop = useRef<HTMLDivElement>(null);
+
+  const product = useQuery({
+    queryKey: ['academy-product', productSlug],
+    queryFn: () => getMyAcademyProduct(productSlug),
+    enabled: productSlug !== '',
+    retry: false,
+  });
 
   const questions = useQuery<AcademyQuestion[]>({
-    queryKey: ['academy-questions', yearLevel, setNo],
-    queryFn: () => listAcademyQuestions({ yearLevel }),
+    queryKey: ['academy-product-questions', productSlug, setNo],
+    queryFn: () => listProductQuestions(productSlug),
+    enabled: productSlug !== '',
+    retry: false,
   });
 
   const progress = useQuery<AcademyProgress>({
-    queryKey: ['academy-progress', kidId, setNo],
-    queryFn: () => getAcademyProgress(kidId!),
-    enabled: phase === 'summary' && !!kidId,
+    queryKey: ['academy-product-progress', productSlug, setNo],
+    queryFn: () => getProductProgress(productSlug),
+    enabled: phase === 'summary' && productSlug !== '',
   });
 
   // Start each set/question fresh: reset the walk whenever the loaded set changes.
@@ -62,13 +61,14 @@ export function AcademyPracticePage() {
     setDraft('');
     setSubmitError(null);
     setPhase('practice');
-  }, [yearLevel, setNo]);
+  }, [setNo]);
 
   // Reset the per-question timer + typed draft when the question changes.
   useEffect(() => {
     startedAt.current = Date.now();
     setDraft('');
     setSubmitError(null);
+    questionTop.current?.scrollIntoView?.({ block: 'start' });
   }, [idx]);
 
   const all = useMemo(() => questions.data ?? [], [questions.data]);
@@ -83,7 +83,8 @@ export function AcademyPracticePage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await submitAcademyAttempt({
+      const res = await submitProductAttempt({
+        productSlug,
         questionId: current.id,
         submitted,
         timeMs: Date.now() - startedAt.current,
@@ -102,114 +103,100 @@ export function AcademyPracticePage() {
   };
 
   const practiseMore = () => setSetNo((n) => n + 1);
+  const productInfo = product.data?.product;
 
   return (
     <div>
       <header className="mb-8 max-w-3xl">
-        <div className="eyebrow eyebrow-sky">Academy · NAPLAN Maths</div>
+        <div className="eyebrow eyebrow-sky">
+          {productInfo
+            ? `${productInfo.exam.title} · ${productInfo.level_key} · ${productInfo.subject_key}`
+            : 'My Exam Prep'}
+        </div>
         <h1 className="hero-display">
-          Practise <span className="squiggle-word">Numeracy</span>.
+          Topic <span className="squiggle-word">practice</span>.
         </h1>
         <p className="lead-text mt-4">
-          Pick your year, then work through real NAPLAN-style questions one at a time. You get the
-          answer straight after each try.
+          Work through your questions one at a time. You get the answer straight after each try.
         </p>
       </header>
 
-      <div className="mb-8">
-        <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-          Choose your year · {ACADEMY_SUBJECT}
-        </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Year level">
-          {ACADEMY_YEAR_LEVELS.map((y) => {
-            const active = y === yearLevel;
-            return (
-              <button
-                key={y}
-                type="button"
-                data-testid={`academy-year-${y}`}
-                aria-pressed={active}
-                onClick={() => setYearLevel(y)}
-                className={`rounded-full px-5 py-3 text-[14px] font-black transition ${
-                  active
-                    ? 'bg-brand-sky text-white shadow-brand-sky'
-                    : 'border border-hairline bg-canvas-pure text-ink hover:-translate-y-0.5'
-                }`}
-              >
-                {y}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {(product.isLoading || questions.isLoading) && (
+        <p className="lead-text">Loading questions…</p>
+      )}
 
-      {questions.isLoading && <p className="lead-text">Loading questions…</p>}
-
-      {questions.isError && (
+      {(product.isError || questions.isError) && (
         <div className="card-base text-center">
-          <span className="sticker-sunshine">Hmm</span>
-          <p className="lead-text mt-4">We couldn&apos;t load the questions. Try again in a moment.</p>
-          <button type="button" onClick={() => void questions.refetch()} className="btn-pill-primary mt-6">
-            Try again
-          </button>
+          <span className="sticker-sunshine">Not unlocked</span>
+          <p className="lead-text mt-4">
+            This exam prep product is not available for this account. Ask a parent to check My Exam
+            Prep in the Parent Portal.
+          </p>
+          <Link to="/learn/exams" className="btn-pill-primary mt-6 inline-block">
+            Back to My Exam Prep
+          </Link>
         </div>
       )}
 
       {!questions.isLoading && !questions.isError && total === 0 && (
         <div className="card-base text-center">
           <span className="sticker-sunshine">Coming soon</span>
-          <p className="lead-text mt-4">No questions for {yearLevel} yet. Try another year!</p>
-          <Link to="/learn" className="btn-pill-primary mt-6">
-            ← Back home
+          <p className="lead-text mt-4">Your reviewed practice questions are being prepared.</p>
+          <Link to={`/learn/exams/${productSlug}`} className="btn-pill-primary mt-6 inline-block">
+            Back to product
           </Link>
         </div>
       )}
 
-      {!questions.isLoading && !questions.isError && total > 0 && phase === 'practice' && current && (
-        <div className="max-w-3xl">
-          <Scoreboard done={doneCount} correct={correctCount} idx={idx} total={total} />
+      {!questions.isLoading &&
+        !questions.isError &&
+        total > 0 &&
+        phase === 'practice' &&
+        current && (
+          <div ref={questionTop} className="max-w-3xl">
+            <Scoreboard done={doneCount} correct={correctCount} idx={idx} total={total} />
 
-          <section className="card-base mt-6" data-testid="academy-question">
-            <QuestionBody question={current} />
+            <section className="card-base mt-6" data-testid="academy-question">
+              <QuestionBody question={current} />
 
-            <div className="mt-6">
-              <AnswerArea
-                question={current}
-                answered={answered}
-                submitting={submitting}
-                draft={draft}
-                onDraft={setDraft}
-                onSubmit={(value) => void submit(value)}
-              />
-            </div>
-
-            {submitError && (
-              <p className="mt-4 text-[14px] font-semibold text-brand-coral">{submitError}</p>
-            )}
-
-            {answered && (
-              <div className="mt-6" data-testid="academy-feedback">
-                <div
-                  className={`rounded-2xl px-4 py-3 text-[15px] font-black ${
-                    answered.is_correct ? 'bg-wash-mint text-ink' : 'bg-wash-coral text-ink'
-                  }`}
-                >
-                  {answered.is_correct ? '🎉 Correct!' : '💡 Not quite.'}{' '}
-                  <span className="font-semibold">The answer is {answered.correct_answer}.</span>
-                </div>
-                <button
-                  type="button"
-                  data-testid="academy-next"
-                  onClick={next}
-                  className="btn-pill-primary mt-5"
-                >
-                  {idx + 1 < total ? 'Next question →' : 'See my results →'}
-                </button>
+              <div className="mt-6">
+                <AnswerArea
+                  question={current}
+                  answered={answered}
+                  submitting={submitting}
+                  draft={draft}
+                  onDraft={setDraft}
+                  onSubmit={(value) => void submit(value)}
+                />
               </div>
-            )}
-          </section>
-        </div>
-      )}
+
+              {submitError && (
+                <p className="mt-4 text-[14px] font-semibold text-brand-coral">{submitError}</p>
+              )}
+
+              {answered && (
+                <div className="mt-6" data-testid="academy-feedback">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-[15px] font-black ${
+                      answered.is_correct ? 'bg-wash-mint text-ink' : 'bg-wash-coral text-ink'
+                    }`}
+                  >
+                    {answered.is_correct ? '🎉 Correct!' : '💡 Not quite.'}{' '}
+                    <span className="font-semibold">The answer is {answered.correct_answer}.</span>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="academy-next"
+                    onClick={next}
+                    className="btn-pill-primary mt-5"
+                  >
+                    {idx + 1 < total ? 'Next question →' : 'See my results →'}
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
 
       {phase === 'summary' && (
         <Summary
@@ -218,6 +205,7 @@ export function AcademyPracticePage() {
           progress={progress.data}
           loading={progress.isLoading}
           onPractiseMore={practiseMore}
+          productSlug={productSlug}
         />
       )}
     </div>
@@ -261,65 +249,15 @@ function Scoreboard({
   );
 }
 
-// Some questions carry their data IN a figure (a table of values, a bar graph, a
-// grid, a clock) — flattening that to text yields garbage. And PDF-layout extraction
-// occasionally bleeds the next question's text into this one (>1 question mark).
-// In both cases prefer the scanned question image over the extracted text.
-function needsImage(q: AcademyQuestion): boolean {
-  const s = q.stem_text ?? '';
-  if (!s) return true;
-  const figureEssential =
-    /\b(table|graph|chart|diagram|scale|grid|clock|column|axis|shaded|net|shapes?|balloons?|balanced|below)\b/i.test(
-      s,
-    );
-  const mergedQuestions = (s.match(/\?/g)?.length ?? 0) > 1;
-  // A run of many small isolated numbers is the tell-tale of a bar-graph/table's
-  // axis labels flattened into text ("8 students 7 6 5 4 of 3 Number 2 1 0 …").
-  const noisyNumbers = (s.match(/\b\d{1,2}\b/g)?.length ?? 0) >= 6;
-  const hasImage = (q.figure_keys?.length ?? 0) > 0 || Boolean(q.q_image_key ?? q.page_image_key);
-  return (figureEssential || mergedQuestions || noisyNumbers) && hasImage;
-}
-
 function QuestionBody({ question }: { question: AcademyQuestion }) {
-  // Primary path: real question text + inline figure images — but only when the
-  // text is trustworthy (see needsImage).
-  if (question.stem_text && !needsImage(question)) {
-    return (
-      <div>
-        <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
-          {question.stem_text}
-        </p>
-        {question.figure_keys && question.figure_keys.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            {question.figure_keys.map((key) => (
-              <img
-                key={key}
-                data-testid="academy-figure"
-                src={academyAssetUrl(key)}
-                alt="Question figure"
-                className="max-h-40 rounded-xl border border-hairline bg-canvas-pure"
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback: no text — show the scanned question (or full page) image.
-  const imageKey = question.q_image_key ?? question.page_image_key;
-  if (imageKey) {
-    return (
-      <img
-        data-testid="academy-question-image"
-        src={academyAssetUrl(imageKey)}
-        alt="Question"
-        className="max-h-[60vh] w-full rounded-xl border border-hairline bg-canvas-pure object-contain"
-      />
-    );
-  }
-
-  return <p className="lead-text">This question can&apos;t be shown right now.</p>;
+  return (
+    <div>
+      <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
+        {question.stem_text}
+      </p>
+      <AcademyQuestionVisual spec={question.render_spec} />
+    </div>
+  );
 }
 
 function AnswerArea({
@@ -368,17 +306,14 @@ function AnswerArea({
     );
   }
 
-  // Choice: prefer the real option text (submitting the LETTER); otherwise fall
-  // back to generic A/B/C/D buttons. When the question is shown as an image
-  // (needsImage), the options live in the image too — don't risk garbled text.
   const letters =
-    question.options && question.options.length > 0 && !needsImage(question)
+    question.options && question.options.length > 0
       ? question.options.map((text, i) => ({ letter: CHOICE_LETTERS[i], text }))
       : CHOICE_LETTERS.slice(0, FALLBACK_CHOICE_COUNT).map((letter) => ({ letter, text: null }));
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {letters.map(({ letter, text }) => {
+      {letters.map(({ letter, text }, choiceIndex) => {
         const isCorrect = !!answered && answered.correct_answer === letter;
         const isWrongPick = !!answered && answered.submitted === letter && !answered.is_correct;
         const tone = isCorrect
@@ -398,6 +333,7 @@ function AnswerArea({
             <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-sky/15 text-[14px] font-black text-brand-sky">
               {letter}
             </span>
+            <AcademyChoiceVisual spec={question.render_spec} choiceIndex={choiceIndex} />
             {text !== null && <span>{text}</span>}
           </button>
         );
@@ -412,12 +348,14 @@ function Summary({
   progress,
   loading,
   onPractiseMore,
+  productSlug,
 }: {
   setCorrect: number;
   setTotal: number;
   progress: AcademyProgress | undefined;
   loading: boolean;
   onPractiseMore: () => void;
+  productSlug: string;
 }) {
   return (
     <div className="max-w-2xl" data-testid="academy-summary">
@@ -446,8 +384,8 @@ function Summary({
           >
             Practise more →
           </button>
-          <Link to="/learn" className="btn-pill-secondary">
-            Back home
+          <Link to={`/learn/exams/${productSlug}`} className="btn-pill-secondary">
+            Back to product
           </Link>
         </div>
       </section>
@@ -459,7 +397,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-hairline bg-canvas-pure p-4">
       <div className="text-[26px] font-black text-ink">{value}</div>
-      <div className="mt-1 text-[12px] font-bold uppercase tracking-[0.1em] text-slate2">{label}</div>
+      <div className="mt-1 text-[12px] font-bold uppercase tracking-[0.1em] text-slate2">
+        {label}
+      </div>
     </div>
   );
 }
