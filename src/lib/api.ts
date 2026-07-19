@@ -34,36 +34,74 @@ interface ApiOpts {
   principal?: PrincipalKind;
 }
 
+// Distinguishes "the refresh cookie is truly dead" (401/403 → drop the session)
+// from a transient refresh failure (429 rate-limit, 5xx, network — e.g. a shared
+// venue IP hitting a limit, or a deploy window). Transient failures must NOT
+// kill the session: the 2026-07-18 incident mass-logged-out whole venues because
+// every refresh failure was treated as session death.
+interface RefreshOutcome {
+  token: string | null;
+  sessionDead: boolean;
+}
+
+// One retry after a short pause covers a backend restart blip without turning
+// the client into a retry storm.
+const REFRESH_RETRY_DELAY_MS = 1500;
+
 // In-flight dedupe is per kind so a parent and kid refresh can run concurrently
 // without clobbering each other.
-const refreshInFlight: Record<PrincipalKind, Promise<string | null> | null> = {
+const refreshInFlight: Record<PrincipalKind, Promise<RefreshOutcome> | null> = {
   user: null,
   kid: null,
 };
 
-export async function refreshAccessToken(
-  kind: PrincipalKind = defaultPrincipal(),
-): Promise<string | null> {
+function fetchRefresh(kind: PrincipalKind): Promise<Response> {
+  return fetch(`${BASE_URL}/auth/refresh?kind=${kind}`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+}
+
+function refreshSession(kind: PrincipalKind): Promise<RefreshOutcome> {
   const existing = refreshInFlight[kind];
   if (existing) return existing;
-  const run = (async () => {
+  const run = (async (): Promise<RefreshOutcome> => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/refresh?kind=${kind}`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) return null;
-      const body = (await res.json()) as { access_token: string };
-      useAuthStore.getState().setToken(kind, body.access_token);
-      return body.access_token;
-    } catch {
-      return null;
+      let res: Response | null = null;
+      try {
+        res = await fetchRefresh(kind);
+      } catch {
+        res = null; // network error — retry below
+      }
+      if (!res || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, REFRESH_RETRY_DELAY_MS));
+        try {
+          res = await fetchRefresh(kind);
+        } catch {
+          return { token: null, sessionDead: false };
+        }
+      }
+      if (res.status === 401 || res.status === 403) return { token: null, sessionDead: true };
+      if (!res.ok) return { token: null, sessionDead: false }; // 429 / lingering 5xx
+      try {
+        const body = (await res.json()) as { access_token: string };
+        useAuthStore.getState().setToken(kind, body.access_token);
+        return { token: body.access_token, sessionDead: false };
+      } catch {
+        return { token: null, sessionDead: false };
+      }
     } finally {
       refreshInFlight[kind] = null;
     }
   })();
   refreshInFlight[kind] = run;
   return run;
+}
+
+export async function refreshAccessToken(
+  kind: PrincipalKind = defaultPrincipal(),
+): Promise<string | null> {
+  return (await refreshSession(kind)).token;
 }
 
 export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
@@ -87,10 +125,11 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
   let token = useAuthStore.getState().tokens[principal];
   let res = await exec(token);
 
+  let refresh: RefreshOutcome | null = null;
   if (res.status === 401 && !skipAuthRefresh) {
-    const next = await refreshAccessToken(principal);
-    if (next) {
-      token = next;
+    refresh = await refreshSession(principal);
+    if (refresh.token) {
+      token = refresh.token;
       res = await exec(token);
     }
   }
@@ -115,7 +154,14 @@ export async function api<T>(path: string, opts: ApiOpts = {}): Promise<T> {
     }
     if (res.status === 401) {
       // Only drop the failing principal's session — the other one survives.
-      useAuthStore.getState().clearToken(principal);
+      // And only when the session is actually dead: the refresh cookie was
+      // rejected (401/403), or a freshly-minted access token still got 401.
+      // A refresh that merely couldn't run (429 / 5xx / offline) keeps the
+      // session — the next request will try again.
+      const refreshWasTransient = refresh !== null && !refresh.sessionDead && refresh.token === null;
+      if (!refreshWasTransient) {
+        useAuthStore.getState().clearToken(principal);
+      }
     }
     throw new ApiError(res.status, code, message, details, requestId);
   }
@@ -144,11 +190,12 @@ export async function apiBlob(
   let token = useAuthStore.getState().tokens[principal];
   let res = await exec(token);
   if (res.status === 401) {
-    const next = await refreshAccessToken(principal);
-    if (next) {
-      token = next;
+    const refresh = await refreshSession(principal);
+    if (refresh.token) {
+      token = refresh.token;
       res = await exec(token);
-    } else {
+    } else if (refresh.sessionDead) {
+      // Transient refresh failures (429/5xx/offline) keep the session — see api().
       useAuthStore.getState().clearToken(principal);
     }
   }
