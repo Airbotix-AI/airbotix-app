@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-19 (fix: deflake Story Blocks close-button queries in CI)
+
+### Fixed
+- `BlocksStudioPage.test.tsx`: six `getByRole('button', { name: 'Close story
+  mission' })` queries fired synchronously right after `renderStudio()` — on
+  slow CI runners the button hasn't rendered yet (main went red on A3-D after
+  an unrelated merge reshuffled vitest sharding). All now use the file's own
+  `await screen.findByRole` pattern. Suite passes locally isolated + full.
+
 ## 2026-07-17 (feat: Art Studio coach chat shows its 1★ price)
 
 ### Changed
