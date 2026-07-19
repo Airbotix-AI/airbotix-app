@@ -19,6 +19,27 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.title).toBe('Tiny Star Village · Mission 9');
   });
 
+  it('offers A3-B as a real child-built tap response', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a3_b');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 10');
+    expect(starter?.desc).toContain('On Tap');
+    expect(starter?.desc).toMatch(/Hop|Say/);
+    expect(starter?.desc).toContain('tap Dot Dot');
+  });
+
+  it('offers A3-D as a one-event repair', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a3_d');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 11');
+    expect(starter?.desc).toContain('replace Start with On Tap');
+  });
+
+  it('offers A3-S as a personal character and response story', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a3_s');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 12');
+    expect(starter?.desc).toContain('Choose your secret character');
+    expect(starter?.desc).toMatch(/Hop, Grow, or Say/);
+  });
+
   it('offers the next A1 Complete scene as a separate real mission', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a1_b');
     expect(starter?.title).toBe('Tiny Star Village · Mission 2');

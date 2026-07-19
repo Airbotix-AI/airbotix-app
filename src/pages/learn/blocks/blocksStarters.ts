@@ -68,4 +68,22 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 9',
     desc: 'Go cannot wake Dot Dot. Run it once, then tap Dot Dot and discover which start makes the rooftop story respond.',
   },
+  {
+    id: 'blocks_tsv_a3_b',
+    emoji: '👆',
+    title: 'Tiny Star Village · Mission 10',
+    desc: 'On Tap is ready, but Dot Dot needs a response. Add a real Hop or Say block, then tap Dot Dot to test what you built.',
+  },
+  {
+    id: 'blocks_tsv_a3_d',
+    emoji: '🎩',
+    title: 'Tiny Star Village · Mission 11',
+    desc: 'Dot Dot is wearing the wrong start hat. Tap Dot Dot first, then replace Start with On Tap and test the saved repair.',
+  },
+  {
+    id: 'blocks_tsv_a3_s',
+    emoji: '✨',
+    title: 'Tiny Star Village · Mission 12',
+    desc: 'Choose your secret character, add one real Hop, Grow, or Say response, then let someone discover it with a tap.',
+  },
 ];

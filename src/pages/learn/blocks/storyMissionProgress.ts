@@ -119,6 +119,33 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: '醒啦' }, { op: 'end' }],
   },
+  'tsv-s1-a3-b': {
+    pageId: 'tsv-a3-b-page',
+    background: 'sunset',
+    characterId: 'dot-dot',
+    scriptId: 'dot-dot-tap',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    start: { gx: 10, gy: 8, size: 1, rot: 0 },
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+  },
+  'tsv-s1-a3-d': {
+    pageId: 'tsv-a3-d-page',
+    background: 'sunset',
+    characterId: 'dot-dot',
+    scriptId: 'dot-dot-event',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    start: { gx: 10, gy: 8, size: 1, rot: 0 },
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+  },
+  'tsv-s1-a3-s': {
+    pageId: 'tsv-a3-s-page',
+    background: 'sunset',
+    characterId: 'dot-dot',
+    scriptId: 'dot-dot-surprise',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    start: { gx: 10, gy: 8, size: 1, rot: 0 },
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -161,6 +188,45 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget.start.size === mission.sceneTarget.size &&
       sceneTarget.scripts.length === 0 &&
       page?.characters.length === 2);
+
+  if (lessonId === 'tsv-s1-a3-b') {
+    const responseBlocks = blocks.slice(1, -1);
+    const responsesAreVisible =
+      responseBlocks.length >= 1 &&
+      responseBlocks.length <= 2 &&
+      responseBlocks.every(
+        (block) =>
+          (block.op === 'hop' && block.n === 1) ||
+          (block.op === 'say' && Boolean(block.text?.trim())),
+      );
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === 1 &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      blocks[0]?.op === 'when_tap' &&
+      blocks.at(-1)?.op === 'end' &&
+      responsesAreVisible
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a3-s') {
+    const allowedAssets = [
+      '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    ];
+    const response = blocks[1];
+    const responseIsVisible =
+      (response?.op === 'hop' && response.n === 1) ||
+      (response?.op === 'grow' && response.n === 1) ||
+      (response?.op === 'say' && ['Surprise!', 'Tap sparkle!', 'Hello, friend!'].includes(response.text ?? ''));
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      page.characters.length === 1 && character?.id === 'dot-dot' &&
+      allowedAssets.includes(character.asset ?? '') && startMatches && blocks.length === 3 &&
+      blocks[0]?.op === 'when_tap' && responseIsVisible && blocks[2]?.op === 'end';
+  }
 
   if (lessonId === 'tsv-s1-a2-s') {
     const endpoint = sceneTarget?.start.gx;

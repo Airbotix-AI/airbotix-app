@@ -242,7 +242,9 @@ export function BlocksStudioPage({
     ? storyMissionProgramMatches(project, storyMission.lessonId)
     : false;
   const isA2DirectionDebug = storyMission?.lessonId === 'tsv-s1-a2-d';
+  const isA3EventDebug = storyMission?.lessonId === 'tsv-s1-a3-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
+  const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -759,14 +761,39 @@ export function BlocksStudioPage({
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
-        if (storyMission?.lessonId !== 'tsv-s1-a3-h' || id !== 'dot-dot' || !missionHasRun)
-          return;
-        setMissionTapObserved(true);
-        setStoryCoachCue('fix');
-        setMissionOpen(true);
+        if (id !== 'dot-dot') return;
+        const targetFixedNow = storyMission
+          ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
+          : false;
+        if (storyMission?.lessonId === 'tsv-s1-a3-h' && missionHasRun) {
+          setMissionTapObserved(true);
+          setStoryCoachCue('fix');
+          setMissionOpen(true);
+        }
+        if (
+          (storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) &&
+          targetFixedNow
+        ) {
+          setMissionFixPersisted(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+        }
+        if (storyMission?.lessonId === 'tsv-s1-a3-d') {
+          if (!missionTapObserved) {
+            setMissionHasRun(true);
+            setMissionTapObserved(true);
+            setStoryCoachCue('fix');
+            setMissionOpen(true);
+          } else if (targetFixedNow) {
+            setMissionCorrectRunFinished(true);
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+          }
+        }
       });
     },
-    [makeRunner, missionHasRun, storyMission],
+    [isA3PersonalShip, makeRunner, missionHasRun, missionTapObserved, storyMission],
   );
 
   // ── character picker: a centered modal sheet (big library, kid-friendly) ──
@@ -906,7 +933,7 @@ export function BlocksStudioPage({
     });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly || isA2DirectionDebug) return;
+    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1081,7 +1108,7 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
@@ -1166,7 +1193,20 @@ export function BlocksStudioPage({
       setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
       return;
     }
-    if (isA2DirectionDebug) return;
+    if (isA3EventDebug && (op === 'when_flag' || op === 'when_tap')) {
+      if (!missionTapObserved) {
+        setStoryCoachCue('retry');
+        setMissionOpen(true);
+        return;
+      }
+      sfx.tap();
+      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const W = 230;
+      const left = Math.min(Math.max(8, r.left + r.width / 2 - W / 2), window.innerWidth - W - 8);
+      setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
+      return;
+    }
+    if (isA2DirectionDebug || isA3EventDebug) return;
     const def = blockDef(op as BlockOp);
     // speed / message-colour blocks cycle their value on tap (no number editor)
     if (def.param === 'speed') {
@@ -1276,6 +1316,7 @@ export function BlocksStudioPage({
       className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
+      data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
       data-testid="blocks-studio"
     >
       {/* ── toolbar ── */}
@@ -1438,6 +1479,26 @@ export function BlocksStudioPage({
               <strong>Right home</strong>
               <span aria-hidden>➡️</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {isA3PersonalShip && (
+        <div className="bsx-home-picker" data-testid="a3-s-character-picker">
+          <div className="bsx-home-picker-title"><span aria-hidden>✨</span><div><strong>Choose my secret friend</strong><small>This changes the saved character, not the blocks</small></div></div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my secret friend">
+            {[
+              ['Dot Dot', '🐱', '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg'],
+              ['Tuan Tuan', '🐻', '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg'],
+              ['Lumilo', '⭐', '/story-blocks/tiny-star-village/characters/little-light/resting.svg'],
+            ].map(([name, emoji, asset]) => (
+              <button key={name} type="button" data-testid={`a3-s-character-${name.toLowerCase().replaceAll(' ', '-')}`}
+                className={`bsx-home-choice${selectedChar.asset === asset ? ' selected' : ''}`}
+                aria-pressed={selectedChar.asset === asset}
+                onClick={() => useBlocksStore.getState().setCharacterIdentity('dot-dot', name, emoji, asset)}>
+                <img src={asset} alt="" className="bsx-character-asset-thumb" /><strong>{name}</strong>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -2045,7 +2106,10 @@ export function BlocksStudioPage({
           >
             <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
-              {isA2DirectionDebug &&
+              {isA3EventDebug &&
+              (editing.block.op === 'when_flag' || editing.block.op === 'when_tap')
+                ? 'Which start listens for a tap?'
+                : isA2DirectionDebug &&
               (editing.block.op === 'move_left' || editing.block.op === 'move_right')
                 ? 'Which way should Tuan Tuan go?'
                 : editing.block.op === 'say'
@@ -2060,7 +2124,29 @@ export function BlocksStudioPage({
                         ? `Which page? (1–${project.pages.length})`
                         : `How many? (${blockDef(editing.block.op).label})`}
             </div>
-            {isA2DirectionDebug &&
+            {isA3EventDebug &&
+            (editing.block.op === 'when_flag' || editing.block.op === 'when_tap') ? (
+              <div className="grid grid-cols-2 gap-2" data-testid="event-repair-picker">
+                {(['when_flag', 'when_tap'] as const).map((event) => (
+                  <button
+                    key={event}
+                    type="button"
+                    data-testid={`event-repair-${event}`}
+                    aria-pressed={editing.block.op === event}
+                    className="bsx-press rounded-xl border border-current/15 px-2 py-3 text-[13px] font-extrabold aria-pressed:bg-emerald-100"
+                    onClick={() => {
+                      if (editing.block.op === event) return;
+                      sfx.tap();
+                      useBlocksStore.getState().replaceBlockOp(editing.scriptId, editing.index, event);
+                      setEditBlk(null);
+                      setStoryCoachCue('test');
+                    }}
+                  >
+                    {event === 'when_flag' ? '🚩 Start' : '👆 On Tap'}
+                  </button>
+                ))}
+              </div>
+            ) : isA2DirectionDebug &&
             (editing.block.op === 'move_left' || editing.block.op === 'move_right') ? (
               <div className="grid grid-cols-2 gap-2" data-testid="direction-repair-picker">
                 {(['move_left', 'move_right'] as const).map((direction) => (

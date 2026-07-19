@@ -119,6 +119,27 @@ function personalDirectionProject(endpoint: 6 | 10 = 10) {
   return project;
 }
 
+function tapResponseProject(response: { op: 'hop'; n: number } | { op: 'say'; text: string }) {
+  const project = blankProject('Dot Dot responds to a tap');
+  project.lessonId = 'tsv-s1-a3-b';
+  project.pages = [{
+    id: 'tsv-a3-b-page',
+    background: 'sunset',
+    characters: [{
+      id: 'dot-dot',
+      name: 'Dot Dot',
+      emoji: '🐱',
+      asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+      start: { gx: 10, gy: 8, size: 1, rot: 0 },
+      scripts: [{
+        id: 'dot-dot-tap',
+        blocks: [{ op: 'when_tap' }, response, { op: 'end' }],
+      }],
+    }],
+  }];
+  return project;
+}
+
 describe('storyMissionProgramMatches', () => {
   it('accepts only the exact saved Lumi mission program', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-h')).toBe(true);
@@ -247,6 +268,53 @@ describe('storyMissionProgramMatches', () => {
 
     project.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
     expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(false);
+  });
+
+  it('accepts A3-B only when the child adds one or two visible tap responses', () => {
+    const hop = tapResponseProject({ op: 'hop', n: 1 });
+    expect(storyMissionProgramMatches(hop, 'tsv-s1-a3-b')).toBe(true);
+
+    const say = tapResponseProject({ op: 'say', text: '醒啦' });
+    expect(storyMissionProgramMatches(say, 'tsv-s1-a3-b')).toBe(true);
+
+    const both = tapResponseProject({ op: 'hop', n: 1 });
+    both.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'say', text: '醒啦' });
+    expect(storyMissionProgramMatches(both, 'tsv-s1-a3-b')).toBe(true);
+
+    hop.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
+    expect(storyMissionProgramMatches(hop, 'tsv-s1-a3-b')).toBe(false);
+    expect(storyMissionProgramMatches(tapResponseProject({ op: 'hop', n: 2 }), 'tsv-s1-a3-b')).toBe(false);
+    expect(storyMissionProgramMatches(tapResponseProject({ op: 'say', text: '   ' }), 'tsv-s1-a3-b')).toBe(false);
+  });
+
+  it('accepts A3-D only after Start is replaced with On Tap and nothing else changes', () => {
+    const repaired = tapResponseProject({ op: 'hop', n: 1 });
+    repaired.lessonId = 'tsv-s1-a3-d';
+    repaired.pages[0].id = 'tsv-a3-d-page';
+    repaired.pages[0].characters[0].scripts[0].id = 'dot-dot-event';
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(true);
+
+    repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
+    repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_tap' };
+    repaired.pages[0].characters[0].scripts[0].blocks[1] = { op: 'hop', n: 2 };
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
+  });
+
+  it('accepts A3-S only for one saved personal character response', () => {
+    const personal = tapResponseProject({ op: 'hop', n: 1 });
+    personal.lessonId = 'tsv-s1-a3-s';
+    personal.pages[0].id = 'tsv-a3-s-page';
+    personal.pages[0].characters[0].name = 'Tuan Tuan';
+    personal.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg';
+    personal.pages[0].characters[0].scripts[0].id = 'dot-dot-surprise';
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(true);
+
+    personal.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'grow', n: 1 });
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
+    personal.pages[0].characters[0].scripts[0].blocks.splice(2, 1);
+    personal.pages[0].characters[0].asset = '/unapproved.svg';
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
   });
 
   it('does not confuse A1-H and A1-B page identities', () => {
