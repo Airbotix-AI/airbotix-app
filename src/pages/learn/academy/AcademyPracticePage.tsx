@@ -310,6 +310,7 @@ function AnswerArea({
     question.options && question.options.length > 0
       ? question.options.map((text, i) => ({ letter: CHOICE_LETTERS[i], text }))
       : CHOICE_LETTERS.slice(0, FALLBACK_CHOICE_COUNT).map((letter) => ({ letter, text: null }));
+  const visualOnlyOnMobile = question.render_spec.kind === 'side_view_model';
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -334,7 +335,9 @@ function AnswerArea({
               {letter}
             </span>
             <AcademyChoiceVisual spec={question.render_spec} choiceIndex={choiceIndex} />
-            {text !== null && <span>{text}</span>}
+            {text !== null && (
+              <span className={visualOnlyOnMobile ? 'sr-only sm:not-sr-only' : undefined}>{text}</span>
+            )}
           </button>
         );
       })}
