@@ -204,7 +204,7 @@ describe('BlocksStudioPage zone labels', () => {
 
     expect(await screen.findByTestId('story-mission-success')).toBeInTheDocument();
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('go-button'));
     expect(
       await screen.findByTestId('story-mission-success', {}, { timeout: 3000 }),
@@ -704,11 +704,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     });
 
     await renderStudio();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getAllByTestId('block-move_left').at(-1)!);
     expect(screen.queryByTestId('direction-repair-picker')).not.toBeInTheDocument();
     expect(screen.getByTestId('story-mission')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
 
     fireEvent.click(screen.getByTestId('go-button'));
     expect(
@@ -756,10 +756,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     });
 
     await renderStudio();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
     expect(screen.queryByTestId('event-repair-picker')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
 
     const dot = screen.getByTestId('sprite-dot-dot');
     dot.setPointerCapture = vi.fn();
@@ -767,7 +767,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.pointerDown(dot);
     fireEvent.pointerUp(dot);
     expect(await screen.findByTestId('story-mission')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
     expect(screen.getByTestId('event-repair-picker')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('event-repair-when_tap'));
