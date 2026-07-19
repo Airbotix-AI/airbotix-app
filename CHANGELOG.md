@@ -1,4 +1,57 @@
 # Changelog
+## 2026-07-17 (chore: pricing ladder final — labels + music-real model)
+
+### Changed
+- 🎧 Make it real now bills as its own **`music-real` model (15⭐)** — `generateRealSong`
+  sends `model: 'music-real'`; `REAL_SONG_COST_STARS` = 15. Score actions (compose / edit /
+  card / re-roll) settle at **5⭐** after the owner's final "整体太低" uplift.
+- All price labels re-synced to the final ladder (star-pricing-sot.md): Voice Booth 1★→**5★**,
+  Art Studio 8★→**9★**, Video Studio 5★→**60★** (was badly mislabelled vs the backend 40★,
+  now 60★), Create-hub cards to match (music 5 / image 9 / voice 5 / video 60).
+
+## 2026-07-17 (chore: music pricing 3 -> 5 stars)
+
+### Changed
+- `MUSIC_GENERATION_COST_STARS` / `REAL_SONG_COST_STARS` raised 3⭐ → **5⭐** to match the
+  backend `music-default` price bump (owner decision: music was underpriced). The lane
+  `⋯` Re-roll menu label now derives from the constant instead of a hardcoded string.
+
+## 2026-07-17 (feat: Music Stage track editing & export — track-editing PRD v0.1)
+
+### Added
+- **Lane `⋯` actions now ACT** (they were shells that just opened the legacy Mixer region):
+  **✏️ Edit** opens an inline drawer — rename, octave shift ±2 (melodic lanes; live at the
+  next note, drums excluded), stereo pan — all 0⭐, keyed by instrument kind so they survive
+  version switches; **↓ Download track** renders that ONE stem client-side (`Tone.Offline`
+  + fallback voices → 16-bit WAV, zero network, zero stars); **🔄 Re-roll −3⭐** fires a
+  single-track regeneration through the structured `rerollTrack` DTO field the backend
+  already supported (version pill `🔄 <Track>`).
+- **↓ Song** on the transport bar — the whole mix exported as `{title}.wav`, honouring
+  mute/solo/style=None/volume/pan/octave exactly as the stage plays it (`offlineRender.ts`).
+- **🎧 Make it real is now two-step**: the confirm popover shows "The AI will hear: …" —
+  the exact provider prompt, mix included — before the 3⭐ call fires.
+- DEV-build "fake AI" badge on the transport bar: local stacks run the deterministic mock
+  LLM, whose freeform edits return the same fixture song — named so it stops reading as
+  "the AI ignored me".
+
+### Changed
+- **The stage mix now reaches the real-song provider** (`buildRealSongPrompt`): muted and
+  style=None instruments leave the featuring list, a solo becomes "featuring mainly the …",
+  VOL ≤0.4 / ≥0.98 read as "quiet/prominent <instrument>". Previously VOL/mute/solo were
+  ignored — recording after mixing produced the identical song.
+- `useScorePlayback` accepts per-instrument tweaks: pan pushes live into each `Tone.Channel`,
+  octave transposes at trigger time (mid-playback safe).
+
+## 2026-07-19 (feat: Art Studio is ONE conversation — no more form page)
+
+### Changed
+- The Art Studio page is now a single chat stream (owner call: 不是表单+聊天框,
+  整个体验就是对话): the paint-plan card renders as a message IN the stream, the
+  finished picture arrives as an image bubble IN the stream, and after a picture
+  exists the same input flips between "🖌 Change this picture −8★" (remix via
+  ref_artifact_id) and "💬 Plan something new −1★" (coach). The "Your recent
+  images" gallery grid / "Empty canvas" block is REMOVED from the page — history
+  lives in My Pictures (footer link to the bucket project).
 
 ## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
 
@@ -75,6 +128,20 @@
 - Studio "Recent" headers now state where work is saved ("saved to My Pictures ✓").
 - Removed `useRecentArtifacts` (cross-project `/kids/:id/artifacts?kind=` feed) in
   favour of bucket reads.
+## 2026-07-19 (fix: transient refresh failures no longer log the user out — 2026-07-18 incident)
+
+### Fixed
+- **A rate-limited or briefly-unreachable `/auth/refresh` no longer kills the session**
+  (both principals: parent `user` + kid). `api.ts` treated every refresh failure as
+  session death, so when a whole venue behind one egress IP hit the backend's old
+  60/h/IP refresh limit (2026-07-18 incident) everyone was mass-logged-out. Now only a
+  refresh 401/403 (cookie truly dead) — or a replay that still 401s on a fresh token —
+  clears the session; 429/5xx/network keep it, with one 1.5s-backoff retry on 5xx/network
+  to ride out deploy windows. Backend fix lands separately (session-keyed refresh
+  throttle, platform-backend `auth-throttlers.ts`).
+- Tests: new `src/lib/api.test.ts` — 429 keeps session, refresh-401 clears it, successful
+  refresh replays the request, 5xx retries once then succeeds, network×2 keeps session,
+  fresh-token-still-401 clears.
 
 ### Fixed
 - **Table/graph questions now show the image, not garbled text.** Questions whose data
@@ -84,6 +151,27 @@
   question mark + an available image) and renders the scanned question image instead, with
   generic A–D options (the choices live in the image). Prose questions still render as text.
 # Changelog
+
+## 2026-07-19 (feat: Art Studio P1 — canvas-first studio: 孩子的手在前,AI 的魔法在后)
+
+### Added
+- The Art Studio is now a CANVAS studio (image-studio-prd v0.9, D-IS-11…19):
+  four zones (left tool rail · center canvas · right AI coach rail · bottom
+  takes film-strip). Stroke-list engine on `perfect-freehand` + `lazy-brush`
+  (MIT): 6 chunky brushes (pencil/crayon/marker/eraser/fill/stamps), Apple
+  Pencil pressure, undo, hi-res PNG export.
+- Three kid-triggered AI ignitions with price tags (rules/ai-star-billing.md):
+  👻 "Sketch it for me" −2★ (faint erasable trace-me underlay, never exported),
+  👀 "Coach, look!" −1★ (vision on the canvas, one encouraging suggestion),
+  ✨ "Bring it to life" −9★ (uploads the kid's OWN canvas as the ref → the
+  magic preserves their composition; empty canvas = pure-generation on-ramp).
+- Takes film-strip: magic results are NEW takes and never replace the sketch;
+  hold-to-compare shows the kid's hand-drawn original; ＋new starts a fresh
+  picture; everything persists to My Pictures.
+
+### Changed
+- The conversational ImageMakerPage is replaced by `art/ArtStudioPage` at
+  `/learn/create/image` (the coach chat lives on as the AI-rail sidekick).
 
 ## 2026-07-18 (fix: shared-link background music — audio MIME in srcdoc inliner)
 

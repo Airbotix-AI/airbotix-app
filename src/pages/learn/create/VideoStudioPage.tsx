@@ -22,7 +22,7 @@ const DURATIONS = [
 
 const VIBES = ['cinematic', 'cartoon', '3d-animated', 'stop-motion', 'doodle'] as const;
 
-const COST = 40; // video-default (star-pricing-sot.md — was mislabelled 5 vs backend 40)
+const COST = 60; // video-default (star-pricing-sot.md)
 
 export function VideoStudioPage() {
   const [prompt, setPrompt] = useState('');

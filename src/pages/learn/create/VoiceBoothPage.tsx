@@ -28,7 +28,7 @@ const SPEEDS = [
   { id: '1.2', label: 'Fast' },
 ] as const;
 
-const COST = 3; // tts-default (star-pricing-sot.md — ElevenLabs-routed clip)
+const COST = 5; // tts-default (star-pricing-sot.md — ElevenLabs-routed clip)
 
 export function VoiceBoothPage() {
   const [text, setText] = useState('');

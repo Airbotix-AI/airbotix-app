@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { MusicScore } from './scoreTypes';
 import {
   fmtTime,
+  midiToNote,
+  transposeNote,
   isDrumNote,
   noteToMidi,
   parseDurationBeats,
@@ -74,6 +76,33 @@ describe('stepIndexAt', () => {
   it('is safe on zero tempo / negative position', () => {
     expect(stepIndexAt(1, 0)).toBe(0);
     expect(stepIndexAt(-1, 120)).toBe(0);
+  });
+});
+
+describe('midiToNote / transposeNote (lane Edit drawer, track-editing PRD §3-A)', () => {
+  it('round-trips pitch names through midi', () => {
+    expect(midiToNote(60)).toBe('C4');
+    expect(midiToNote(61)).toBe('C#4');
+    expect(midiToNote(45)).toBe('A2');
+  });
+
+  it('shifts by whole octaves for the drawer slider', () => {
+    expect(transposeNote('C4', 12)).toBe('C5');
+    expect(transposeNote('C4', -24)).toBe('C2');
+    expect(transposeNote('F#3', 12)).toBe('F#4');
+  });
+
+  it('normalises flats to sharps (LLM contract emits either)', () => {
+    expect(transposeNote('Db4', 12)).toBe('C#5');
+  });
+
+  it('passes drum hit names through untouched — hits have no pitch', () => {
+    expect(transposeNote('kick', 12)).toBe('kick');
+    expect(transposeNote('snare', -12)).toBe('snare');
+  });
+
+  it('is the identity at zero shift', () => {
+    expect(transposeNote('C4', 0)).toBe('C4');
   });
 });
 
