@@ -11,8 +11,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Tone from 'tone';
 
-import type { InstrumentKind, MusicScore } from './scoreTypes';
-import { parseDurationBeats, scoreDurationSeconds } from './scoreUtils';
+import type { InstrumentKind, MusicScore, StageTweaks } from './scoreTypes';
+import { parseDurationBeats, scoreDurationSeconds, transposeNote } from './scoreUtils';
 import { INSTRUMENT_STYLES, STYLE_NONE, stageSlotFor, type StageSlotId, type StageStyles } from './stageData';
 import { createTrackVoice, type TrackVoice } from './voices';
 
@@ -65,6 +65,8 @@ export function useScorePlayback(
   silenced?: ReadonlySet<string>,
   /** Current per-slot instrument styles; drives the voice timbres (PRD §5). */
   styles?: StageStyles,
+  /** Lane Edit-drawer tweaks (octave/pan, track-editing PRD §3-A) by instrument. */
+  tweaks?: StageTweaks,
 ): ScorePlayback {
   const channelsRef = useRef<Tone.Channel[]>([]);
   const partsRef = useRef<Tone.Part[]>([]);
@@ -81,6 +83,11 @@ export function useScorePlayback(
 
   const isPlayingRef = useRef(false);
   isPlayingRef.current = isPlaying;
+
+  // Octave shifts apply at trigger time (mid-playback changes affect the very
+  // next note) — a ref keeps the Tone.Part callbacks free of stale closures.
+  const tweaksRef = useRef<StageTweaks | undefined>(tweaks);
+  tweaksRef.current = tweaks;
 
   const totalDuration = useMemo(() => (score ? scoreDurationSeconds(score) : 0), [score]);
 
@@ -113,7 +120,9 @@ export function useScorePlayback(
       }));
       const part = new Tone.Part((time, value) => {
         const v = value as (typeof events)[number];
-        voicesRef.current[idx]?.trigger(v.note, v.durationSec, time, v.velocity);
+        const octave = tweaksRef.current?.[t.instrument]?.octave ?? 0;
+        const note = octave === 0 ? v.note : transposeNote(v.note, octave * 12);
+        voicesRef.current[idx]?.trigger(note, v.durationSec, time, v.velocity);
         emitPulse(t.instrument, time);
       }, events);
       part.start(0);
@@ -174,6 +183,15 @@ export function useScorePlayback(
       ch.volume.value = Tone.gainToDb(volumes[t.instrument] ?? DEFAULT_VOLUME);
     });
   }, [volumes, score]);
+
+  // Push pan (lane Edit drawer, track-editing PRD §3-A).
+  useEffect(() => {
+    score?.tracks.forEach((t, idx) => {
+      const ch = channelsRef.current[idx];
+      if (!ch) return;
+      ch.pan.value = Math.max(-1, Math.min(1, tweaks?.[t.instrument]?.pan ?? 0));
+    });
+  }, [tweaks, score]);
 
   // Position ticker with auto-stop at the end of the song.
   useEffect(() => {
