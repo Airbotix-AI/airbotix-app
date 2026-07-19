@@ -118,6 +118,59 @@ export function ageMatchesStage(age: number, stage: string): boolean {
 const overlapsKidAges = (item: ResourceGuideItem, kidAges: number[]): boolean =>
   kidAges.some((age) => item.ageStages.some((stage) => ageMatchesStage(age, stage)));
 
+/**
+ * The family's known location for the §5.2 city tier — the `city`/`state`
+ * fields of `GET /families/:id` (both optional in the profile).
+ */
+export interface FamilyLocation {
+  city?: string | null;
+  state?: string | null;
+}
+
+export const NO_FAMILY_LOCATION: FamilyLocation = { city: null, state: null };
+
+// Family.state stores AU state codes (see familyProfile.ts AU_STATES) while
+// manifest `locations` mostly spell states out ("Victoria / Melbourne").
+const AU_STATE_NAMES: Record<string, string> = {
+  NSW: 'New South Wales',
+  VIC: 'Victoria',
+  QLD: 'Queensland',
+  SA: 'South Australia',
+  WA: 'Western Australia',
+  TAS: 'Tasmania',
+  ACT: 'Australian Capital Territory',
+  NT: 'Northern Territory',
+};
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Whole-word, case-insensitive containment — so state code "SA" never matches
+// inside "Australia" and "Sydney" still matches "NSW / Greater Sydney".
+const containsWord = (haystack: string, word: string): boolean =>
+  new RegExp(`\\b${escapeRegExp(word)}\\b`, 'i').test(haystack);
+
+/**
+ * Does one manifest `locations` entry (e.g. "NSW / Sydney",
+ * "Victoria / Greater Melbourne") cover the family's city or state?
+ * City matches on the word appearing anywhere in the entry; state matches the
+ * code ("NSW") or its full name ("Queensland"). Country-level entries like
+ * "Australia" never count as a location match.
+ */
+export function locationMatchesFamily(location: string, family: FamilyLocation): boolean {
+  const city = family.city?.trim();
+  if (city && containsWord(location, city)) return true;
+  const stateCode = family.state?.trim().toUpperCase();
+  if (!stateCode) return false;
+  const stateName = AU_STATE_NAMES[stateCode];
+  return (
+    containsWord(location, stateCode) ||
+    (stateName !== undefined && containsWord(location, stateName))
+  );
+}
+
+const matchesFamilyLocation = (item: ResourceGuideItem, family: FamilyLocation): boolean =>
+  item.locations.some((location) => locationMatchesFamily(location, family));
+
 // Newest lastVerified first; slug ascending as the deterministic tie-break.
 const byNewestVerified = (a: ResourceGuideItem, b: ResourceGuideItem): number =>
   b.lastVerified.localeCompare(a.lastVerified) || a.slug.localeCompare(b.slug);
@@ -125,23 +178,34 @@ const byNewestVerified = (a: ResourceGuideItem, b: ResourceGuideItem): number =>
 export const RECOMMENDED_GUIDE_COUNT = 3;
 
 /**
- * Phase 1 dashboard recommendation rule (PRD §5.2, frontend-only):
- * 1. featured guides whose ageStages overlap the family's kids' ages,
- * 2. remaining featured guides,
- * 3. everything else, newest `lastVerified` first.
+ * Phase 1 dashboard recommendation rule (PRD §5.2, frontend-only): among
+ * `featured` guides, prefer entries matching the family's known city/state
+ * (`locations`) and the kids' ages (`ageStages`), city above age — mirroring
+ * the §6 Phase 2 backend ordering (城市匹配 > 年龄段匹配):
+ * 1. featured + location match + age match,
+ * 2. featured + location match,
+ * 3. featured + age match,
+ * 4. remaining featured,
+ * 5. everything else, newest `lastVerified` first.
  * Each tier is itself ordered newest-first with a slug tie-break, so the
- * result is deterministic. `kidAges` may be empty (ages unknown) — the rule
- * then degrades to featured-then-newest.
+ * result is deterministic. `kidAges` may be empty and `familyLocation` may be
+ * empty/omitted (profile fields unset) — the rule then degrades tier by tier
+ * down to featured-then-newest.
  */
 export function selectRecommendedGuides(
   items: ResourceGuideItem[],
   kidAges: number[],
+  familyLocation: FamilyLocation = NO_FAMILY_LOCATION,
   count: number = RECOMMENDED_GUIDE_COUNT,
 ): ResourceGuideItem[] {
   const tier = (item: ResourceGuideItem): number => {
-    if (item.featured && overlapsKidAges(item, kidAges)) return 0;
-    if (item.featured) return 1;
-    return 2;
+    if (!item.featured) return 4;
+    const locationMatch = matchesFamilyLocation(item, familyLocation);
+    const ageMatch = overlapsKidAges(item, kidAges);
+    if (locationMatch && ageMatch) return 0;
+    if (locationMatch) return 1;
+    if (ageMatch) return 2;
+    return 3;
   };
   return [...items].sort((a, b) => tier(a) - tier(b) || byNewestVerified(a, b)).slice(0, count);
 }

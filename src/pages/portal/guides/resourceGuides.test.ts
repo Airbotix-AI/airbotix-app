@@ -5,10 +5,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   EMPTY_GUIDE_FILTERS,
+  NO_FAMILY_LOCATION,
   ageMatchesStage,
   filterGuides,
   guideFilterOptions,
   languageLabel,
+  locationMatchesFamily,
   selectRecommendedGuides,
   withPortalSrc,
   type ResourceGuideItem,
@@ -117,6 +119,32 @@ describe('languageLabel', () => {
   });
 });
 
+describe('locationMatchesFamily', () => {
+  it('matches the family city anywhere in the location entry', () => {
+    expect(locationMatchesFamily('NSW / Sydney', { city: 'Sydney' })).toBe(true);
+    expect(locationMatchesFamily('NSW / Greater Sydney', { city: 'sydney' })).toBe(true);
+    expect(locationMatchesFamily('Gold Coast', { city: 'Gold Coast' })).toBe(true);
+    expect(locationMatchesFamily('Victoria / Melbourne', { city: 'Sydney' })).toBe(false);
+  });
+
+  it('matches the state by code or full name', () => {
+    expect(locationMatchesFamily('NSW / Sydney', { state: 'NSW' })).toBe(true);
+    expect(locationMatchesFamily('Victoria / Greater Melbourne', { state: 'VIC' })).toBe(true);
+    expect(locationMatchesFamily('Queensland / Brisbane', { state: 'qld' })).toBe(true);
+    expect(locationMatchesFamily('Victoria / Melbourne', { state: 'NSW' })).toBe(false);
+  });
+
+  it('never matches country-level entries or an empty profile', () => {
+    // "SA" must not word-match inside "Australia".
+    expect(locationMatchesFamily('Australia', { state: 'SA' })).toBe(false);
+    expect(locationMatchesFamily('Australia / Online', { city: 'Sydney', state: 'NSW' })).toBe(
+      false,
+    );
+    expect(locationMatchesFamily('NSW / Sydney', NO_FAMILY_LOCATION)).toBe(false);
+    expect(locationMatchesFamily('NSW / Sydney', { city: '  ', state: '' })).toBe(false);
+  });
+});
+
 describe('selectRecommendedGuides (Phase 1 rule)', () => {
   const items = [
     guide({ slug: 'plain-new', lastVerified: '2026-07-18' }),
@@ -140,6 +168,48 @@ describe('selectRecommendedGuides (Phase 1 rule)', () => {
       'featured-old',
       'featured-age-match',
     ]);
+  });
+
+  it('prefers featured guides matching the family city, above age-only matches', () => {
+    const withCity = [
+      ...items,
+      guide({
+        slug: 'featured-city-age',
+        featured: true,
+        locations: ['NSW / Sydney'],
+        ageStages: ['5-8'],
+        lastVerified: '2026-02-01',
+      }),
+      guide({
+        slug: 'featured-city-only',
+        featured: true,
+        locations: ['NSW / Greater Sydney'],
+        ageStages: ['0-3'],
+        lastVerified: '2026-03-01',
+      }),
+    ];
+    // city+age > city-only > age-only, regardless of lastVerified.
+    expect(selectRecommendedGuides(withCity, [6], { city: 'Sydney' }).map((i) => i.slug)).toEqual([
+      'featured-city-age',
+      'featured-city-only',
+      'featured-age-match',
+    ]);
+  });
+
+  it('matches on the family state when the city gives no match', () => {
+    const withState = [
+      ...items,
+      guide({
+        slug: 'featured-state',
+        featured: true,
+        locations: ['Victoria / Melbourne'],
+        ageStages: ['0-3'],
+        lastVerified: '2026-02-01',
+      }),
+    ];
+    expect(
+      selectRecommendedGuides(withState, [6], { city: 'Geelong', state: 'VIC' }).map((i) => i.slug),
+    ).toEqual(['featured-state', 'featured-age-match', 'featured-new']);
   });
 
   it('fills from non-featured newest-first when featured runs out', () => {
@@ -169,7 +239,7 @@ describe('selectRecommendedGuides (Phase 1 rule)', () => {
 
   it('does not mutate the input and caps at the requested count', () => {
     const input = [...items];
-    const result = selectRecommendedGuides(input, [6], 2);
+    const result = selectRecommendedGuides(input, [6], NO_FAMILY_LOCATION, 2);
     expect(result).toHaveLength(2);
     expect(input.map((i) => i.slug)).toEqual(items.map((i) => i.slug));
   });

@@ -8,8 +8,8 @@
   title, summary, location/age/language chips, verified date, featured badge), with
   topic / location / age / language filters reflected in the URL query. Cards and PDF
   buttons open the marketing-site reading pages in a new tab with `?src=portal`
-  attribution; a friendly empty state links to `airbotix.ai/resources` when the endpoint
-  is down (503) so the rest of the Portal is unaffected.
+  attribution; a friendly empty state links to `airbotix.ai/resources` (also `?src=portal`-attributed)
+  when the endpoint is down (503) so the rest of the Portal is unaffected.
 - Dashboard **"Family Guides — Picked for your family"** block (§5.2): 3 recommendations
   via a pure frontend selector — family city/state→locations match first, then featured
   guides matching the kids' ages (city/state and ages come from the already-cached family

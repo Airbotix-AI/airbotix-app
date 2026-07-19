@@ -155,8 +155,9 @@ describe('GuidesPage', () => {
     renderPage();
 
     expect(await screen.findByText(/couldn.t load the guide library/i)).toBeInTheDocument();
+    // §3.1: even the fallback outbound link carries the ?src=portal attribution.
     const hubLink = screen.getByRole('link', { name: /Visit the resources hub/ });
-    expect(hubLink).toHaveAttribute('href', 'https://airbotix.ai/resources');
+    expect(hubLink).toHaveAttribute('href', 'https://airbotix.ai/resources?src=portal');
     expect(hubLink).toHaveAttribute('target', '_blank');
   });
 });

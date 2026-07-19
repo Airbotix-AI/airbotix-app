@@ -8,6 +8,7 @@ import {
   filterGuides,
   guideFilterOptions,
   languageLabel,
+  withPortalSrc,
   type GuideFilters,
   type ResourceGuideItem,
   type ResourceGuidesResponse,
@@ -115,7 +116,7 @@ export function GuidesPage() {
             You can browse every guide on our website instead.
           </p>
           <a
-            href={RESOURCES_HUB_URL}
+            href={withPortalSrc(RESOURCES_HUB_URL)}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-pill-secondary mt-6"
