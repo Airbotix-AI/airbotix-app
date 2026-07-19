@@ -84,7 +84,7 @@ describe('Academy Year 3 native question visuals', () => {
       choices: ['sixth', 'half', 'third', 'quarter'],
     };
     const { rerender } = render(<AcademyQuestionVisual spec={spec} />);
-    expect(screen.getByText(/divided into equal parts/)).toBeInTheDocument();
+    expect(screen.getByText(/Compare each shaded region/)).toBeInTheDocument();
     for (let index = 0; index < 4; index += 1) {
       rerender(<AcademyChoiceVisual spec={spec} choiceIndex={index} />);
       expect(screen.getByTestId('academy-fraction-choice')).toBeInTheDocument();
