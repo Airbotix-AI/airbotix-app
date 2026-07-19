@@ -35,6 +35,66 @@ type SolidShapeSpec = {
   shape: 'triangular_prism';
 };
 
+export type AcademyTilePattern =
+  | 'solid'
+  | 'diagonal_upper_left'
+  | 'diagonal_lower_left'
+  | 'vertical_left'
+  | 'vertical_right'
+  | 'horizontal_top'
+  | 'horizontal_middle'
+  | 'horizontal_bottom';
+
+export type AcademyShellKind = 'fan' | 'spiral' | 'conch' | 'spotted';
+
+type ScheduleTableSpec = {
+  kind: 'schedule_table';
+  title: string;
+  columns: [string, string];
+  rows: Array<[string, string]>;
+};
+
+type JoinedSolidsSpec = {
+  kind: 'joined_solids';
+  solids: ['cone', 'cylinder'];
+};
+
+type SideViewModelSpec = {
+  kind: 'side_view_model';
+};
+
+type TileRotationSpec = {
+  kind: 'tile_rotation';
+  turn: 'clockwise';
+  start: AcademyTilePattern[];
+  choices: AcademyTilePattern[][];
+};
+
+type SymmetryGridSpec = {
+  kind: 'symmetry_grid';
+  columns: string[];
+  rows: number[];
+  axis_after_column: string;
+  eye_cell: string;
+};
+
+type FractionShapesSpec = {
+  kind: 'fraction_shapes';
+  choices: ['sixth', 'half', 'third', 'quarter'];
+};
+
+type ShellBagsSpec = {
+  kind: 'shell_bags';
+  bags: AcademyShellKind[][];
+  choices: AcademyShellKind[][];
+};
+
+type PyramidFacesSpec = {
+  kind: 'pyramid_faces';
+  square_faces: number;
+  triangular_faces: number;
+};
+
 export type AcademyShapeName = 'hexagon' | 'diamond' | 'triangle' | 'trapezoid';
 export type AcademyShapeFill = 'outline' | 'grid' | 'solid' | 'dots';
 export type AcademyShape = { shape: AcademyShapeName; fill: AcademyShapeFill };
@@ -66,6 +126,14 @@ export type AcademyRenderSpec =
   | EqualGroupsSpec
   | AnalogClockSpec
   | SolidShapeSpec
+  | ScheduleTableSpec
+  | JoinedSolidsSpec
+  | SideViewModelSpec
+  | TileRotationSpec
+  | SymmetryGridSpec
+  | FractionShapesSpec
+  | ShellBagsSpec
+  | PyramidFacesSpec
   | { kind: 'coin_collection'; coins_cents: number[] }
   | ShapeMatrixSpec
   | SymbolPatternSpec
