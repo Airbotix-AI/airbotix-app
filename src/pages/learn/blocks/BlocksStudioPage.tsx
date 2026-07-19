@@ -245,6 +245,7 @@ export function BlocksStudioPage({
   const isA3EventDebug = storyMission?.lessonId === 'tsv-s1-a3-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
+  const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -641,14 +642,25 @@ export function BlocksStudioPage({
         const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
           .gx;
         const reachedMissionTarget =
-          !requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx;
+          (!requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx) &&
+          (!isA4ParameterBuild || runner.state('breakfast-cart')?.gx === 7);
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
-          setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
-          setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          const completedDistanceHook =
+            storyMission.lessonId === 'tsv-s1-a4-h' &&
+            missionAnswer === 'three' &&
+            runner.state('breakfast-cart')?.gx === 5;
+          if (completedDistanceHook) {
+            setMissionCorrectRunFinished(true);
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+          } else {
+            setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
+            setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          }
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
@@ -676,7 +688,9 @@ export function BlocksStudioPage({
     missionTargetFixed,
     missionCompleted,
     isA2DirectionDebug,
+    isA4ParameterBuild,
     missionWrongRunObserved,
+    missionAnswer,
     page.characters,
   ]);
 
@@ -933,7 +947,7 @@ export function BlocksStudioPage({
     });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug) return;
+    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1108,7 +1122,7 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug || isA3EventDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
@@ -1174,6 +1188,7 @@ export function BlocksStudioPage({
   const onBlockTap = (e: React.MouseEvent, scriptId: string, index: number, op: string) => {
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
+    if (isA4ParameterBuild && op !== 'move_right') return;
     if (
       (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
       (op === 'move_left' || op === 'move_right')

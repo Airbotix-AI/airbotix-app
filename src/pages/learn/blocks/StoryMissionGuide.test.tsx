@@ -12,10 +12,39 @@ const manualFixMission = storyMissionFor('tsv-s1-a1-d')!;
 const personalShipMission = storyMissionFor('tsv-s1-a1-s')!;
 const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
 const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
+const breakfastHookMission = storyMissionFor('tsv-s1-a4-h')!;
+const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
 
 afterEach(cleanup);
 
 describe('StoryMissionGuide', () => {
+  it('tells the child to change only the breakfast cart number', () => {
+    render(
+      <StoryMissionGuide mission={breakfastBuildMission} hasRun={false} completed={false} answerId={null} onAnswer={vi.fn()} onApplyFix={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.getByText('The cart stopped early')).toBeInTheDocument();
+    expect(breakfastBuildMission.mission).toContain('change only its number to 3');
+  });
+  it('captures the A4-H distance prediction before the child starts the runner mission', () => {
+    const onAnswer = vi.fn();
+    render(
+      <StoryMissionGuide
+        mission={breakfastHookMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByTestId('story-choice-three'));
+    expect(onAnswer).toHaveBeenCalledWith('three');
+    expect(screen.getByRole('button', { name: 'Start the mission ▶' })).toBeInTheDocument();
+  });
+
   it('turns a completed mission into a clear saved proof and next-scene action', () => {
     const onNext = vi.fn();
     render(
