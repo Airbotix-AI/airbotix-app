@@ -245,6 +245,7 @@ export function BlocksStudioPage({
   const isA3EventDebug = storyMission?.lessonId === 'tsv-s1-a3-d';
   const isA2PersonalShip = storyMission?.lessonId === 'tsv-s1-a2-s';
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
+  const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -647,8 +648,18 @@ export function BlocksStudioPage({
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
-          setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
-          setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          const completedDistanceHook =
+            storyMission.lessonId === 'tsv-s1-a4-h' &&
+            missionAnswer === 'three' &&
+            runner.state('breakfast-cart')?.gx === 5;
+          if (completedDistanceHook) {
+            setMissionCorrectRunFinished(true);
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+          } else {
+            setStoryCoachCue(missionTargetFixed ? 'fix' : 'retry');
+            setMissionOpen(storyMission.lessonId !== 'tsv-s1-a3-h');
+          }
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
@@ -677,6 +688,7 @@ export function BlocksStudioPage({
     missionCompleted,
     isA2DirectionDebug,
     missionWrongRunObserved,
+    missionAnswer,
     page.characters,
   ]);
 
@@ -1108,7 +1120,7 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug || isA3EventDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);

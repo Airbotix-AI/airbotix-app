@@ -781,6 +781,30 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(await screen.findByTestId('story-celebration', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
+  it('lets A4-B change only the existing movement parameter', async () => {
+    const breakfast = blankProject('Tiny Star Village · Breakfast');
+    breakfast.lessonId = 'tsv-s1-a4-b';
+    breakfast.pages[0] = {
+      id: 'tsv-a4-b-page', background: 'meadow', characters: [
+        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-build', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }] }] },
+        { id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: breakfast, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByTestId('block-move_right').at(-1)!);
+    expect(screen.getByTestId('num-value')).toHaveTextContent('1');
+    fireEvent.click(screen.getByTestId('num-plus'));
+    fireEvent.click(screen.getByTestId('num-plus'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' },
+    ]);
+  });
+
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';

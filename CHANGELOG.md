@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
+
+### Added
+- Added accessible native Year 3 table and solid-shape renderers with regression tests.
+
+## 2026-07-19 (feat: add Tiny Star Village A4-B)
+
+### Added
+- Added Mission 14 with a locked three-block breakfast-cart chain where the child
+  changes only the movement parameter, saves, and runs to the table.
+
+## 2026-07-19 (feat: Music Stage track editing, export and final pricing)
+
+### Added
+- Added per-track rename, octave, pan, WAV download and paid re-roll actions, plus
+  whole-song mix-aware WAV export and a confirmation preview before real-song generation.
+
+### Changed
+- Music generation and re-rolls now cost 5★, real-song generation costs 15★,
+  Voice Booth costs 5★, Art Studio costs 9★ and Video Studio costs 60★.
+- Playback and real-song prompts now honour mute, solo, volume, pan and octave settings.
 ## 2026-07-19 (fix: replace the Fable Forest placeholder with Alice)
 
 ### Changed
@@ -55,7 +76,7 @@
 - The Art Studio page is now a single chat stream (owner call: 不是表单+聊天框,
   整个体验就是对话): the paint-plan card renders as a message IN the stream, the
   finished picture arrives as an image bubble IN the stream, and after a picture
-  exists the same input flips between "🖌 Change this picture −8★" (remix via
+  exists the same input flips between "🖌 Change this picture −9★" (remix via
   ref_artifact_id) and "💬 Plan something new −1★" (coach). The "Your recent
   images" gallery grid / "Empty canvas" block is REMOVED from the page — history
   lives in My Pictures (footer link to the bucket project).

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-labelledby="title desc">
+  <title id="title">Tiny Star Village breakfast cart</title>
+  <desc id="desc">A warm yellow breakfast cart carrying apples and star buns.</desc>
+  <path fill="#FFE8A3" stroke="#493A6B" stroke-width="8" stroke-linejoin="round" d="M35 67h157l-14 70H48z"/>
+  <path fill="#FF8F70" stroke="#493A6B" stroke-width="8" stroke-linecap="round" d="M191 78h25v55"/>
+  <circle cx="73" cy="145" r="19" fill="#7358A5" stroke="#493A6B" stroke-width="8"/>
+  <circle cx="162" cy="145" r="19" fill="#7358A5" stroke="#493A6B" stroke-width="8"/>
+  <circle cx="82" cy="54" r="19" fill="#FF6B6B" stroke="#493A6B" stroke-width="7"/>
+  <path fill="#69B96B" stroke="#493A6B" stroke-width="6" stroke-linecap="round" d="M82 35c8-14 20-15 29-9-7 12-18 16-29 9z"/>
+  <path fill="#FFF6D7" stroke="#493A6B" stroke-width="7" stroke-linejoin="round" d="m139 25 9 18 20 3-15 14 4 20-18-9-18 9 4-20-15-14 20-3z"/>
+</svg>

@@ -73,7 +73,10 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'Breakfast is ready, but the little cart keeps stopping too early or too late.',
     skill: 'Move 1, 2, or 3 spaces',
     art: 'breakfast',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a4_h', lessonId: 'tsv-s1-a4-h', number: 13, title: 'How far is breakfast?', action: 'Try' },
+      { template: 'blocks_tsv_a4_b', lessonId: 'tsv-s1-a4-b', number: 14, title: 'How many spaces?', action: 'Build' },
+    ],
   },
   {
     id: 'a5',
