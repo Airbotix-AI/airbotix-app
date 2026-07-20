@@ -32,6 +32,15 @@ import {
   type MixSnapshot,
 } from './offlineRender';
 import { buildRealSongPrompt, generateRealSong, REAL_SONG_COST_STARS } from './realSongApi';
+import { RiffPadPanel } from './RiffPadPanel';
+import {
+  emptyRiff,
+  riffToSeedScore,
+  seedToPlayableScore,
+  toggleRiffCell,
+  RIFF_TEMPO,
+  type RiffSection,
+} from './riffPad';
 import {
   INSTRUMENT_META,
   type InstrumentKind,
@@ -54,11 +63,15 @@ import {
   REAL_SONG_DONE_BUBBLE,
   REAL_SONG_FAILED_BUBBLE,
   REWRITE_VERSION_TAG,
+  RIFF_COMPOSE_SUBTITLE,
+  RIFF_DEFAULT_PROMPT,
+  RIFF_VERSION_TAG,
   rerollVersionTag,
   SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
   STYLE_NONE,
   buildAiBubble,
+  buildScoreDiff,
   iterationSubtitle,
   marqueeFor,
   outOfStarsBubble,
@@ -71,7 +84,7 @@ import {
   type SuggestionCard,
   type SuggestionKey,
 } from './stageData';
-import { aggregateScoreVersions } from './versions';
+import { aggregateScoreVersions, aggregateSeedRiff } from './versions';
 import { useIsWide } from './useIsWide';
 import { useScorePlayback } from './useScorePlayback';
 
@@ -143,6 +156,14 @@ export function MusicStagePane({
   // Both need a project (audio Artifacts require one) and must share it — otherwise
   // one song scatters across two "My Works" entries.
   const [songProjectId, setSongProjectId] = useState<string | null>(null);
+  // Riff Pad (§5A D-MS11): the kid's own tapped motif — 0⭐, no AI, session-local
+  // until a seeded generation persists it as the permanent frame 0.
+  const [riff, setRiff] = useState(emptyRiff);
+  // What the ONE playback engine is auditioning instead of the song: the live
+  // pad loop, or the persisted frame-0 riff ("hear just mine"). Tone.Transport
+  // is a singleton, so audition swaps the played score rather than adding a
+  // second engine.
+  const [audition, setAudition] = useState<'pad' | 'seed' | null>(null);
 
   const pendingRef = useRef<VersionMeta | null>(null);
   const lastPromptRef = useRef<string | null>(null);
@@ -161,6 +182,24 @@ export function MusicStagePane({
   const score = versions[currentVersion]?.score ?? null;
   const hasSong = score !== null;
 
+  // ── Riff Pad derivations (§5A D-MS11) ────────────────────────────────────
+  const riffSeed = useMemo(() => riffToSeedScore(riff), [riff]);
+  const riffPlayable = useMemo(() => seedToPlayableScore(riffSeed), [riffSeed]);
+  // The persisted frame 0 — the riff this session's song actually grew from.
+  const seedRiff = useMemo(() => aggregateSeedRiff(messages), [messages]);
+  const seedPlayable = useMemo(() => seedToPlayableScore(seedRiff), [seedRiff]);
+  // The one engine plays whichever score is being auditioned (pad loop /
+  // frame-0 compare), else the song itself.
+  const playbackScore =
+    audition === 'pad' ? riffPlayable : audition === 'seed' ? seedPlayable : score;
+
+  // Musical diff vs the previous version (§5A D-MS12) — 0⭐ template chips.
+  const prevScore = currentVersion > 0 ? versions[currentVersion - 1]?.score : null;
+  const diffChips = useMemo(
+    () => (prevScore && score ? buildScoreDiff(prevScore, score) : []),
+    [prevScore, score],
+  );
+
   // Instruments silenced by style = None (0⭐, per stage slot — PRD §3.1/§5).
   const silenced = useMemo(() => {
     const out = new Set<InstrumentKind>();
@@ -170,8 +209,25 @@ export function MusicStagePane({
     return out;
   }, [score, styles]);
 
-  const playback = useScorePlayback(score, silenced, styles, tweaks);
+  const playback = useScorePlayback(playbackScore, silenced, styles, tweaks);
   const { play: playbackPlay, stop: playbackStop, unlock: playbackUnlock, onPulse } = playback;
+
+  // Audition loop: while an audition is active, (re)start playback whenever it
+  // isn't running — the engine auto-stops at the score's end, so this IS the
+  // loop. Leaving an audition needs no explicit stop: playbackScore swaps back
+  // to the song, and the hook's rebuild-on-score-change tears the transport
+  // down. Editing the riff mid-loop restarts it from the top the same way.
+  useEffect(() => {
+    if (audition === null || playback.isPlaying) return;
+    let cancelled = false;
+    void playbackUnlock().then(() => {
+      if (!cancelled) return playbackPlay();
+      return undefined;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [audition, playback.isPlaying, playbackUnlock, playbackPlay]);
 
   // The mixer state exports and the 🎧 real-song prompt must both honour —
   // one snapshot so the file the kid downloads and the song the provider
@@ -273,8 +329,12 @@ export function MusicStagePane({
     setBubbleOverride(null);
     setFailed(null);
     // The take landed — clear the composer so edit mode starts with a clean
-    // slate (the typed instruction was consumed, not a draft to keep).
+    // slate (the typed instruction was consumed, not a draft to keep). A riff
+    // compose also folds the pad away: the default mode is now editing the
+    // song it grew into (D-MS10), and the song owns the playback again.
     setInput('');
+    setAudition(null);
+    setComposeMode('edit');
     if (prev === 0) {
       // First song: the AI pre-picks a style set for the genre (PRD §5) and
       // the band enters with the staggered pop-in (PRD §3.1).
@@ -303,6 +363,7 @@ export function MusicStagePane({
       setComposeSubtitle(subtitle);
       setBubbleOverride(null);
       setFailed(null);
+      setAudition(null); // a generation always takes the stage back
       if (playback.isPlaying) playbackStop();
       void playbackUnlock();
       // Warm the soundfont cache while the composing animation runs — the
@@ -332,6 +393,23 @@ export function MusicStagePane({
    *  current version (the score rides the request, like a suggestion card with
    *  the kid's own words); in new mode it's a from-scratch compose. */
   const generateFromPrompt = () => {
+    // Riff mode (§5A D-MS11): the kid's tapped motif IS the brief — it rides
+    // the request as seedScore and the words are optional colour.
+    if (composeMode === 'riff') {
+      if (!riffSeed) return;
+      const prompt = input.trim() || RIFF_DEFAULT_PROMPT;
+      lastPromptRef.current = prompt;
+      fire(
+        {
+          prompt,
+          options: { genre: GENRE_BY_ID[genre].promptLabel },
+          seedScore: riffSeed,
+        },
+        { label: RIFF_VERSION_TAG },
+        RIFF_COMPOSE_SUBTITLE,
+      );
+      return;
+    }
     const prompt = input.trim();
     if (!prompt) return;
     const editing = hasSong && composeMode === 'edit' && score;
@@ -474,6 +552,11 @@ export function MusicStagePane({
           score,
           modifier: versionMeta[currentVersion]?.modifier,
           isFirst: currentVersion === 0,
+          // Seeded story (§5A): fresh takes know their label; a reloaded
+          // session falls back to "frame 0 exists and this is the first take".
+          seeded:
+            versionMeta[currentVersion]?.label === RIFF_VERSION_TAG ||
+            (currentVersion === 0 && seedRiff !== null),
         })
       : INITIAL_BUBBLE);
 
@@ -530,8 +613,35 @@ export function MusicStagePane({
         // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
         if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
       }}
+      diffChips={diffChips}
+      hasSeedFrame={seedRiff !== null}
+      seedAuditioning={audition === 'seed'}
+      onSeedAudition={() => setAudition((a) => (a === 'seed' ? null : 'seed'))}
     />
   );
+
+  // Riff Pad panel (§5A D-MS11) — docked above the composer while riff mode is
+  // on, so "tap → loop → make it a song" reads top-to-bottom in one column.
+  const riffPanel =
+    composeMode === 'riff' ? (
+      <RiffPadPanel
+        grid={riff}
+        onToggle={(section: RiffSection, row: number, step: number) =>
+          setRiff((g) => toggleRiffCell(g, section, row, step))
+        }
+        onClear={() => {
+          setRiff(emptyRiff());
+          setAudition((a) => (a === 'pad' ? null : a));
+        }}
+        auditioning={audition === 'pad'}
+        onToggleAudition={() => setAudition((a) => (a === 'pad' ? null : 'pad'))}
+        activeStep={
+          audition === 'pad' && playback.isPlaying
+            ? stepIndexAt(playback.position, RIFF_TEMPO)
+            : null
+        }
+      />
+    ) : null;
 
   // ⚙️ Mixer / pre-song imported tracks — the real-audio track list, shown in
   // the deck column under the AI conversation (never a page-level section).
@@ -575,6 +685,7 @@ export function MusicStagePane({
       hasSong={hasSong}
       mode={composeMode}
       onMode={setComposeMode}
+      riffEmpty={riffSeed === null}
       inputRef={composerRef}
     />
   );
@@ -607,6 +718,7 @@ export function MusicStagePane({
                   {aiDeck}
                   {trackListRegion}
                 </div>
+                {riffPanel}
                 {composerDock}
               </section>
             </Panel>
@@ -636,6 +748,7 @@ export function MusicStagePane({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="shrink-0">{stageView}</div>
           <div className="min-h-0 flex-1 overflow-y-auto bg-canvas-pure">
+            {riffPanel}
             {composerDock}
             {aiDeck}
             {trackListRegion}
@@ -691,8 +804,17 @@ export function MusicStagePane({
         )}
         <button
           type="button"
-          onClick={() => (playback.isPlaying ? playbackStop() : void playbackPlay())}
-          disabled={!hasSong}
+          onClick={() => {
+            if (playback.isPlaying) {
+              // Stopping also leaves any audition — otherwise the audition
+              // loop would immediately restart what the kid just stopped.
+              setAudition(null);
+              playbackStop();
+            } else {
+              void playbackPlay();
+            }
+          }}
+          disabled={!hasSong && !playbackScore}
           aria-label={playback.isPlaying ? 'Stop' : 'Play'}
           className="grid h-12 w-12 place-items-center rounded-full bg-grad-mint text-[18px] text-white shadow-brand-mint transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           data-testid="stage-play"

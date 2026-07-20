@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Message } from '../WorkspacePage';
+import { emptyRiff, riffToSeedScore, toggleRiffCell } from './riffPad';
 import type { MusicScore } from './scoreTypes';
-import { aggregateScoreVersions } from './versions';
+import { aggregateScoreVersions, aggregateSeedRiff } from './versions';
 
 function msg(id: string, partial: Partial<Message> = {}): Message {
   return {
@@ -99,5 +100,34 @@ describe('aggregateScoreVersions', () => {
 
   it('returns [] when no message carries a score', () => {
     expect(aggregateScoreVersions([msg('u1', { role: 'user' })])).toEqual([]);
+  });
+});
+
+describe('aggregateSeedRiff (permanent frame 0, §5A D-MS11)', () => {
+  const seed = riffToSeedScore(toggleRiffCell(emptyRiff(), 'melody', 0, 0));
+
+  it('finds the persisted seed on a seeded generation message', () => {
+    const seeded = msg('m1', {
+      metadata: { score: score('v1'), seed } as unknown as Message['metadata'],
+    });
+    expect(aggregateSeedRiff([msg('u1', { role: 'user' }), seeded])).toEqual(seed);
+  });
+
+  it('first seed wins — the frame-0 story is where the song started', () => {
+    const other = riffToSeedScore(toggleRiffCell(emptyRiff(), 'melody', 3, 2));
+    const messages = [
+      msg('m1', { metadata: { score: score('v1'), seed } as unknown as Message['metadata'] }),
+      msg('m2', { metadata: { score: score('v2'), seed: other } as unknown as Message['metadata'] }),
+    ];
+    expect(aggregateSeedRiff(messages)).toEqual(seed);
+  });
+
+  it('returns null when no message carries a seed (or the seed is junk)', () => {
+    expect(aggregateSeedRiff([msg('m1', { metadata: { score: score('v1') } })])).toBeNull();
+    expect(
+      aggregateSeedRiff([
+        msg('m1', { metadata: { seed: { tracks: [] } } as unknown as Message['metadata'] }),
+      ]),
+    ).toBeNull();
   });
 });

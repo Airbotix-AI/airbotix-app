@@ -7,8 +7,10 @@ import clsx from 'clsx';
 import {
   INSTRUMENT_STYLES,
   MUSIC_GENERATION_COST_STARS,
+  RIFF_FRAME_LABEL,
   STAGE_SLOTS,
   SUGGESTION_CARDS,
+  type DiffChip,
   type StageSlotId,
   type StageStyles,
   type SuggestionCard,
@@ -30,6 +32,10 @@ export function AiDeck({
   selectedSlot,
   styles,
   onStyle,
+  diffChips,
+  hasSeedFrame,
+  seedAuditioning,
+  onSeedAudition,
 }: {
   bubble: string;
   /** Set after a failed generation — renders the "Try again" button. */
@@ -43,6 +49,14 @@ export function AiDeck({
   selectedSlot: StageSlotId | null;
   styles: StageStyles;
   onStyle: (slot: StageSlotId, styleId: string) => void;
+  /** Musical diff vs the previous version (§5A D-MS12) — 0⭐ theory chips. */
+  diffChips: DiffChip[];
+  /** The kid's persisted riff exists → the permanent 🎹 frame-0 pill (§5A). */
+  hasSeedFrame: boolean;
+  /** True while the frame-0 riff is playing instead of the song. */
+  seedAuditioning: boolean;
+  /** Toggle "hear just MY riff" — the authorship compare (§5A D-MS11). */
+  onSeedAudition: () => void;
 }) {
   const slotMeta = selectedSlot ? STAGE_SLOTS.find((s) => s.id === selectedSlot) : null;
   return (
@@ -69,9 +83,45 @@ export function AiDeck({
         </div>
       </div>
 
-      {versions.length >= 2 && (
+      {diffChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" data-testid="diff-chips">
+          <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-slate2">
+            What changed
+          </span>
+          {diffChips.map((chip, i) => (
+            <span
+              key={chip.label}
+              title={chip.explain}
+              className="cursor-help rounded-full border border-hairline bg-wash-sunshine px-2.5 py-1 text-[11px] font-bold text-ink"
+              data-testid={`diff-chip-${i}`}
+            >
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {(versions.length >= 2 || hasSeedFrame) && (
         <div className="flex flex-wrap items-center gap-2" data-testid="version-row">
           <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-slate2">Versions</span>
+          {hasSeedFrame && (
+            // The kid's raw riff is the PERMANENT frame 0 — AI takes never
+            // replace it, and one tap A/Bs "just mine" vs the full band (§5A).
+            <button
+              type="button"
+              onClick={onSeedAudition}
+              title="Hear just YOUR riff — the song grew from these notes"
+              className={clsx(
+                'rounded-full px-3 py-1 text-[12px] font-extrabold transition',
+                seedAuditioning
+                  ? 'border-2 border-brand-mint bg-wash-mint text-ink'
+                  : 'border-2 border-dashed border-brand-mint bg-canvas-pure text-ink hover:bg-wash-mint',
+              )}
+              data-testid="riff-frame-pill"
+            >
+              {seedAuditioning ? `⏹ ${RIFF_FRAME_LABEL}` : RIFF_FRAME_LABEL}
+            </button>
+          )}
           {versions.map((v, i) => (
             <button
               key={i}
