@@ -66,6 +66,9 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Story played');
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
     expect(screen.getByTestId('story-mission')).toHaveClass('bsx-mission-complete');
+    expect(
+      screen.getByTestId('story-logic-proof').querySelectorAll('.bsx-logic-proof-connector'),
+    ).toHaveLength(manualFixMission.completionSteps.length - 1);
     expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('story-next-mission'));
     expect(onNext).toHaveBeenCalledOnce();

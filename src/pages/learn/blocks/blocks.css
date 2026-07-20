@@ -2427,36 +2427,35 @@
   text-align: center;
 }
 .bsx-mission-card.bsx-mission-complete {
-  width: min(820px, 100%);
+  width: min(52rem, 100%);
 }
 .bsx-mission-complete .bsx-logic-proof-steps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns:
+    minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
-  gap: 44px;
-  padding: 4px 10px 0;
+  gap: clamp(0.5rem, 2cqi, 1.25rem);
+  padding: 0.25rem clamp(0rem, 1cqi, 0.5rem) 0;
 }
 .bsx-mission-complete .bsx-logic-proof-step {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 5px;
+  display: grid;
+  grid-template-rows: auto minmax(1.6rem, auto);
+  justify-items: center;
+  gap: 0.3rem;
   min-width: 0;
 }
 .bsx-mission-complete .bsx-logic-proof-step small {
   line-height: 1;
 }
 .bsx-mission-complete .bsx-logic-proof-step strong {
-  min-height: 25px;
-  line-height: 25px;
-  white-space: nowrap;
+  line-height: 1.6rem;
+  text-wrap: balance;
 }
-.bsx-mission-complete .bsx-logic-proof-step > span {
-  position: absolute;
-  top: 50%;
-  right: -30px;
-  transform: translate(50%, -10%);
+.bsx-mission-complete .bsx-logic-proof-connector {
+  align-self: end;
+  justify-self: center;
+  min-width: 1.6rem;
+  line-height: 1.6rem;
 }
 .bsx-mission-complete .bsx-logic-proof > p {
   width: 100%;
@@ -2465,16 +2464,65 @@
   padding-top: 12px;
   border-top: 1px solid #c7e4f5;
 }
-@media (max-width: 620px) {
+@container logic-proof (max-width: 34rem) {
   .bsx-mission-complete .bsx-logic-proof-steps {
     grid-template-columns: 1fr;
-    gap: 22px;
+    gap: 0.45rem;
   }
-  .bsx-mission-complete .bsx-logic-proof-step > span {
-    top: auto;
-    right: 50%;
-    bottom: -21px;
-    transform: translate(50%, 0) rotate(90deg);
+  .bsx-mission-complete .bsx-logic-proof-connector {
+    align-self: center;
+    line-height: 1;
+    transform: rotate(90deg);
+  }
+}
+@media (max-width: 620px) {
+  .bsx-mission-backdrop {
+    padding: 10px;
+  }
+  .bsx-mission-card.bsx-mission-complete {
+    max-height: calc(100dvh - 20px);
+    padding: 18px 20px 20px;
+    border-radius: 24px;
+  }
+  .bsx-mission-complete .bsx-mission-book {
+    font-size: 32px;
+  }
+  .bsx-mission-complete h2 {
+    margin: 4px 0 10px;
+    font-size: 28px;
+  }
+  .bsx-mission-complete .bsx-mission-success > p {
+    margin-bottom: 12px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .bsx-mission-complete .bsx-mission-journey-label {
+    margin-bottom: 8px;
+  }
+  .bsx-mission-complete .bsx-mission-evidence {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .bsx-mission-complete .bsx-mission-evidence span {
+    padding: 5px 8px;
+  }
+  .bsx-mission-complete .bsx-logic-proof {
+    margin-bottom: 12px;
+    padding: 10px;
+  }
+  .bsx-mission-complete .bsx-logic-proof > p {
+    margin-bottom: 0;
+    padding-top: 9px;
+  }
+  .bsx-mission-complete .bsx-mission-next {
+    margin: 6px 0 10px;
+    padding: 11px 12px;
+  }
+  .bsx-mission-complete .bsx-mission-success > :is(.bsx-mission-primary, .bsx-mission-secondary) {
+    min-height: 48px;
+  }
+  .bsx-mission-complete .bsx-mission-secondary {
+    margin-top: 0;
   }
 }
 .bsx-mission-close {
@@ -3290,6 +3338,8 @@
   box-shadow: 0 4px 0 #238456;
 }
 .bsx-logic-proof {
+  container-name: logic-proof;
+  container-type: inline-size;
   margin: 0 0 18px;
   padding: 14px;
   border: 2px solid #a9d7f4;
