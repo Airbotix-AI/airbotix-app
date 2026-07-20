@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
+
+### Changed
+- `/learn/create/image` joins IMMERSIVE_ROUTES + AUTO_FULLSCREEN_ROUTES (owner
+  call: 肯定是全屏,就跟 Story Blocks 一样) — Learn nav gone, no page scroll,
+  auto browser-fullscreen on entry, own exit via "← All tools".
+
 ## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
 
 ### Added
