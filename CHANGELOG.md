@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
+
+### Added
+- **My Characters** (image-studio-prd D-IS-23): name the active take → saved as a
+  character (artifact metadata); a 👤 picker in the takes strip puts any saved
+  character back on the canvas as the base — characters grow across sessions and
+  pair with the build-on-yours mission template.
+- **Use in my game** (D-IS-25, P4 v1): send the active take into one of your own
+  game/code projects as a VFS asset (`assets/art/…`, direct-to-S3 + reference
+  save — merge semantics, never clobbers the game). The Art Studio becomes the
+  platform's asset forge; Story Blocks import stays a cross-studio follow-up.
+- Canvas artifact pixels now load through the same-origin bytes proxy
+  (D-IS-24) — kills S3-CORS taint on paint-over chaining and powers the game
+  hand-off.
+
 ## 2026-07-20 (feat: 🪄 magic brush — paint the spot, say what it becomes)
 
 ### Added

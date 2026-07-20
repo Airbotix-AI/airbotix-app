@@ -64,6 +64,7 @@ vi.mock('./ArtCanvas', () => ({
 }));
 
 vi.mock('@/lib/api', () => ({
+  BASE_URL: 'http://api.test',
   api: vi.fn((path: string, opts?: { method?: string; body?: Record<string, unknown> }) => {
     apiCalls.push({ path, opts });
     if (path.endsWith('/create-buckets/resolve')) {
@@ -116,7 +117,29 @@ vi.mock('@/lib/api', () => ({
     if (path === '/projects/proj_mission/submit') {
       return Promise.resolve({ ok: true, stars_awarded: 3 });
     }
-    if (path === '/projects/proj_bucket/artifacts') return Promise.resolve([]);
+    if (path.startsWith('/projects/proj_bucket/artifacts/') && opts?.method === 'PATCH') {
+      return Promise.resolve({ id: 'art_magic', metadata: { character: 'Sparky' } });
+    }
+    if (path === '/kids/kid_1/projects') {
+      return Promise.resolve([
+        { id: 'g1', title: 'Space Pong', kind: 'game' },
+        { id: 'p2', title: 'My Pictures', kind: 'creative' },
+      ]);
+    }
+    if (path === '/projects/g1/vfs/assets/sign-upload') {
+      return Promise.resolve({ url: 'https://s3/put-game', headers: { 'Content-Type': 'image/png' }, s3_key: 'vfs/x' });
+    }
+    if (path === '/projects/g1' && (!opts || opts.method === undefined)) {
+      return Promise.resolve({ id: 'g1', vfs_version: 7 });
+    }
+    if (path === '/projects/g1/code/files') {
+      return Promise.resolve({ ok: true });
+    }
+    if (path === '/projects/proj_bucket/artifacts')
+      return Promise.resolve([
+        { id: 'art_magic', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+        { id: 'art_sketch', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+      ]);
     if (path.endsWith('/download-url')) return Promise.resolve({ url: 'https://signed' });
     if (path.includes('/wallet')) {
       return Promise.resolve({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false });
@@ -136,6 +159,10 @@ vi.mock('@/lib/api', () => ({
 
 vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'kid', sub: 'kid_1', family_id: 'fam_1' } }),
+}));
+vi.mock('@/auth/authStore', () => ({
+  surfacePrincipal: () => 'kid',
+  useAuthStore: { getState: () => ({ tokens: { kid: 'tok', user: null } }) },
 }));
 vi.mock('../shared/useSession', () => ({
   useStudioSession: () => ({ summary: null, endNow: vi.fn(), dismiss: vi.fn() }),
@@ -175,9 +202,12 @@ describe('ArtStudioPage (canvas-first)', () => {
     putCalls.length = 0;
     vi.stubGlobal(
       'fetch',
-      vi.fn((url: string) => {
-        putCalls.push(String(url));
-        return Promise.resolve({ ok: true } as Response);
+      vi.fn((url: string, init?: RequestInit) => {
+        putCalls.push(`${init?.method ?? 'GET'} ${url}`);
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([new Uint8Array([1])], { type: 'image/png' })),
+        } as unknown as Response);
       }),
     );
   });
@@ -244,7 +274,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
         true,
       );
-      expect(putCalls).toContain('https://s3/put-here');
+      expect(putCalls).toContain('PUT https://s3/put-here');
       const gen = apiCalls.find((c) => c.path === '/llm/image');
       expect(gen).toBeDefined();
       expect(gen!.opts?.body?.ref_artifact_id).toBe('art_sketch');
@@ -322,6 +352,54 @@ describe('ArtStudioPage (canvas-first)', () => {
       // a new take arrived and the mask UI reset
       expect((await screen.findAllByTestId('take-thumb')).length).toBe(3);
       await waitFor(() => expect(screen.queryByTestId('mask-bar')).not.toBeInTheDocument());
+    });
+  });
+
+  describe('👤 My Characters + 🎮 use in my game (D-IS-23/25)', () => {
+    async function makeAMagicTake() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findAllByTestId('take-thumb');
+    }
+
+    it('names the active take → PATCH artifact metadata.character', async () => {
+      await makeAMagicTake();
+      const nameInput = await screen.findByPlaceholderText(/Name them/);
+      fireEvent.change(nameInput, { target: { value: 'Sparky' } });
+      fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
+      await waitFor(() => {
+        const patch = apiCalls.find(
+          (c) => c.opts?.method === 'PATCH' && c.path.includes('/artifacts/'),
+        );
+        expect(patch).toBeDefined();
+        expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Sparky');
+      });
+      expect(await screen.findByText(/Sparky joined your characters/)).toBeInTheDocument();
+    });
+
+    it('🎮 sends the active take into a chosen game via the VFS asset flow', async () => {
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('use-in-game'));
+      await screen.findByTestId('game-sheet');
+      // only game/code projects offered — the creative bucket is filtered out
+      expect(screen.queryByText('My Pictures', { selector: 'button' })).not.toBeInTheDocument();
+      fireEvent.click(await screen.findByRole('button', { name: /Space Pong/ }));
+
+      expect(await screen.findByText(/Sent to .Space Pong/)).toBeInTheDocument();
+      expect(apiCalls.some((c) => c.path === '/projects/g1/vfs/assets/sign-upload')).toBe(true);
+      expect(putCalls.some((u) => u === 'PUT https://s3/put-game')).toBe(true);
+      const save = apiCalls.find((c) => c.path === '/projects/g1/code/files');
+      expect(save).toBeDefined();
+      const files = save!.opts?.body?.files as Array<{ path: string; uploaded: boolean }>;
+      expect(files[0].uploaded).toBe(true);
+      expect(files[0].path).toMatch(/^assets\/art\//);
+      expect(save!.opts?.body?.expected_version).toBe(7);
     });
   });
 
