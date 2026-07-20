@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
+import { useMe } from '@/auth/useAuth';
 import { Celebration } from '../shared/Celebration';
 import { SessionSummary } from '../shared/SessionSummary';
 import { useStudioSession } from '../shared/useSession';
@@ -16,7 +17,8 @@ import {
   type Artifact,
 } from '../shared/useStudio';
 import { ArtCanvas, type ArtCanvasHandle } from './ArtCanvas';
-import { dataUrlToBlob, type CanvasOp, type ToolId } from './strokeEngine';
+import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
+import { fetchArtifactBlob, useArtifactBlobUrl } from './artifactBytes';
 
 // The Art Studio, canvas-first (image-studio-prd.md v0.9, D-IS-11…19):
 // 孩子的手在前,AI 的魔法在后. Four zones — left tool rail / center canvas /
@@ -92,6 +94,10 @@ export interface ArtMission {
   title: string;
   description?: string;
   template?: ArtMissionTemplate;
+  /** Draw-along steps (D-IS-21): each step can summon its own 2★ ghost. */
+  draw_along?: string[];
+  /** Element checklist (D-IS-20): grounds the 👀 look in the task. */
+  checklist?: string[];
 }
 
 export function ArtStudioPage() {
@@ -105,6 +111,12 @@ export function ArtStudioPage() {
   const [baseArtifactId, setBaseArtifactId] = useState<string | null>(null);
   const [ghostArtifactId, setGhostArtifactId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [maskMode, setMaskMode] = useState(false);
+  const [maskOps, setMaskOps] = useState<CanvasOp[]>([]);
+  const [maskText, setMaskText] = useState('');
+  const [charName, setCharName] = useState('');
+  const [charOpen, setCharOpen] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
 
   // takes + magic
   const [takes, setTakes] = useState<Take[]>([]);
@@ -127,7 +139,9 @@ export function ArtStudioPage() {
   const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
 
+  const me = useMe();
   const { summary, endNow, dismiss } = useStudioSession('image');
   const bucket = useCreateBucket('image');
   const wallet = useKidWallet();
@@ -209,12 +223,189 @@ export function ArtStudioPage() {
     );
   };
 
+  // Draw-along (D-IS-21): each step summons its own ghost underlay.
+  const onStepGhost = () => {
+    const steps = mission?.draw_along;
+    if (!steps?.length) return;
+    setError(null);
+    void ensureSaveProject().then((projectId) =>
+      generate.mutate(
+        {
+          prompt: `${steps[stepIdx]} — part of: ${mission!.title}`,
+          options: { mode: 'ghost' },
+          project_id: projectId,
+        },
+        {
+          onSuccess: (r) => {
+            if (r.artifact_id) setGhostArtifactId(r.artifact_id);
+          },
+          onError: (e) => setError(friendlyError(e)),
+        },
+      ),
+    );
+  };
+
+  // ── ⑤ 📖 story time (1★): a tiny story + name for the picture (D-IS-18 ⑤) ──
+  const onStory = () => {
+    if (!canvasRef.current) return;
+    setError(null);
+    const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
+    const next = [
+      ...msgs,
+      {
+        role: 'user' as const,
+        content: 'Tell me a tiny three-sentence story about this picture, then suggest a fun name for it!',
+      },
+    ];
+    setMsgs(next);
+    coach.mutate(
+      { messages: next, canvas_b64: b64 },
+      {
+        onSuccess: (turn) => {
+          setMsgs([...next, { role: 'assistant', content: turn.reply }]);
+          setChips(turn.chips);
+        },
+        onError: (e) => setError(friendlyError(e)),
+      },
+    );
+  };
+
+  // ── ④ 🪄 magic brush (D-IS-18 ④): change ONLY the highlighted region ──
+  const onMaskApply = () => {
+    const wish = maskText.trim();
+    if (!wish || !baseArtifactId || maskOps.length === 0 || generate.isPending) return;
+    setError(null);
+    const mask = exportMask(maskOps).split(',')[1];
+    void ensureSaveProject().then((projectId) =>
+      generate.mutate(
+        {
+          prompt: wish,
+          options: { size: 'square' },
+          project_id: projectId,
+          ref_artifact_id: baseArtifactId,
+          mask_b64: mask,
+        },
+        {
+          onSuccess: (r) => {
+            setCelebrate(true);
+            if (r.artifact_id) {
+              setTakes((t) => [
+                ...t,
+                { artifactId: r.artifact_id as string, kind: 'magic', label: '🪄 magic brush' },
+              ]);
+              setBaseArtifactId(r.artifact_id);
+            }
+            setMaskOps([]);
+            setMaskText('');
+            setMaskMode(false);
+          },
+          onError: (e) => setError(friendlyError(e)),
+        },
+      ),
+    );
+  };
+
+  // ── 👤 My Characters (D-IS-23): save the active take as a named character ──
+  const onSaveCharacter = () => {
+    const name = charName.trim().slice(0, 40);
+    if (!name || !baseArtifactId) return;
+    const art = artifactById(baseArtifactId);
+    if (!art) return;
+    setError(null);
+    void api(`/projects/${art.project_id}/artifacts/${art.id}`, {
+      method: 'PATCH',
+      body: { metadata: { character: name } },
+    })
+      .then(() => {
+        setCharName('');
+        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', art.project_id] });
+        setMsgs((m) => [
+          ...m,
+          { role: 'assistant', content: `👤 ${name} joined your characters! Use them any time.` },
+        ]);
+      })
+      .catch((e) => setError(friendlyError(e)));
+  };
+
+  const characters = (bucketArtifacts.data ?? []).filter(
+    (a) => typeof (a.metadata as { character?: string }).character === 'string',
+  );
+
+  const pickCharacter = (a: Artifact) => {
+    setBaseArtifactId(a.id);
+    setOps([]);
+    setCharOpen(false);
+    const name = (a.metadata as { character?: string }).character ?? 'your character';
+    setMsgs((m) => [
+      ...m,
+      { role: 'assistant', content: `👤 ${name} is on the canvas — draw their next adventure!` },
+    ]);
+  };
+
+  // ── 🎮 Use in my game (P4 v1, D-IS-25): the take becomes a game VFS asset ──
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const gameProjects = useQuery<Array<{ id: string; title: string; kind: string }>>({
+    queryKey: ['kid-projects-for-art', kidId],
+    queryFn: async () => {
+      const all = await api<Array<{ id: string; title: string; kind: string; deleted_at?: string | null }>>(
+        `/kids/${kidId}/projects`,
+      );
+      return all.filter((p) => p.kind === 'game' || p.kind === 'code');
+    },
+    enabled: gameOpen && !!kidId,
+  });
+
+  const sendToGame = async (game: { id: string; title: string }) => {
+    const art = artifactById(baseArtifactId);
+    if (!art) return;
+    setGameOpen(false);
+    setError(null);
+    try {
+      const blob = await fetchArtifactBlob(art);
+      const path = `assets/art/${(
+        (art.metadata as { character?: string }).character ?? 'my-art'
+      )
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')}-${art.id.slice(-6)}.png`;
+      const sign = await api<{ url: string; headers?: Record<string, string>; s3_key?: string }>(
+        `/projects/${game.id}/vfs/assets/sign-upload`,
+        { method: 'POST', body: { path, content_type: 'image/png', size_bytes: blob.size } },
+      );
+      const put = await fetch(sign.url, {
+        method: 'PUT',
+        headers: sign.headers ?? { 'Content-Type': 'image/png' },
+        body: blob,
+      });
+      if (!put.ok) throw new Error(`upload ${put.status}`);
+      const project = await api<{ vfs_version: number }>(`/projects/${game.id}`);
+      await api(`/projects/${game.id}/code/files`, {
+        method: 'PUT',
+        body: {
+          files: [{ path, uploaded: true }],
+          expected_version: project.vfs_version,
+        },
+      });
+      setMsgs((m) => [
+        ...m,
+        {
+          role: 'assistant',
+          content: `🎮 Sent to “${game.title}”! Find it under ${path} in that game's assets.`,
+        },
+      ]);
+    } catch (e) {
+      setError(friendlyError(e));
+    }
+  };
+
   // ── ② 👀 coach look (1★): vision on the canvas ──
   const onLook = () => {
     if (!canvasRef.current) return;
     setError(null);
     const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
-    const next = [...msgs, { role: 'user' as const, content: 'Coach, look at my canvas!' }];
+    const ask = mission?.checklist?.length
+      ? `Coach, look at my canvas! The task checklist: ${mission.checklist.join(', ')}. Tell me which ones you can see and what is still missing.`
+      : 'Coach, look at my canvas!';
+    const next = [...msgs, { role: 'user' as const, content: ask }];
     setMsgs(next);
     coach.mutate(
       { messages: next, canvas_b64: b64 },
@@ -331,9 +522,11 @@ export function ArtStudioPage() {
   const artifactById = (id: string | null): Artifact | undefined =>
     id ? bucketArtifacts.data?.find((a) => a.id === id) : undefined;
 
-  const baseUrl = useSignedUrl(artifactById(baseArtifactId));
-  const ghostUrlResolved = useSignedUrl(artifactById(ghostArtifactId));
-  const sketchUrl = useSignedUrl(artifactById(sketchTakeId));
+  // Canvas pixels ride the SAME-ORIGIN bytes proxy (D-IS-24) — no S3-CORS taint
+  // on export; thumbnails elsewhere keep signed URLs (display only).
+  const baseUrl = useArtifactBlobUrl(artifactById(baseArtifactId));
+  const ghostUrlResolved = useArtifactBlobUrl(artifactById(ghostArtifactId));
+  const sketchUrl = useArtifactBlobUrl(artifactById(sketchTakeId));
 
   return (
     <div className="h-dvh flex flex-col bg-canvas overflow-hidden" data-testid="art-studio">
@@ -454,6 +647,9 @@ export function ArtStudioPage() {
               templateUrl={template?.layer === 'underlay' ? template.url : null}
               exportIncludesBase={exportIncludesBase}
               compareUrl={comparing ? sketchUrl : null}
+              maskMode={maskMode}
+              maskOps={maskOps}
+              onMaskOpsChange={setMaskOps}
             />
           </div>
           {ghostArtifactId && (
@@ -462,6 +658,20 @@ export function ArtStudioPage() {
               className="absolute top-2 left-2 rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-ink-soft"
             >
               👻 hide the ghost ✕
+            </button>
+          )}
+          {baseArtifactId && (
+            <button
+              data-testid="mask-toggle"
+              onClick={() => {
+                setMaskMode((m) => !m);
+                if (maskMode) setMaskOps([]);
+              }}
+              className={`absolute top-2 right-2 rounded-full px-3 py-1 text-[11px] font-bold ${
+                maskMode ? 'bg-grad-bubblegum text-white' : 'bg-surface text-ink-soft'
+              }`}
+            >
+              🪄 Magic brush
             </button>
           )}
           {baseArtifactId && sketchTakeId && (
@@ -474,6 +684,27 @@ export function ArtStudioPage() {
             >
               👆 hold to see my sketch
             </button>
+          )}
+          {maskMode && (
+            <div
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 items-center card-base px-3 py-2 w-[90%] max-w-[440px]"
+              data-testid="mask-bar"
+            >
+              <input
+                value={maskText}
+                onChange={(e) => setMaskText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onMaskApply()}
+                placeholder="Paint the spot, then say what it becomes…"
+                className="input-k12 flex-1 text-[13px]"
+              />
+              <button
+                onClick={onMaskApply}
+                disabled={generate.isPending || !maskText.trim() || maskOps.length === 0}
+                className="btn-pill-primary text-[13px] whitespace-nowrap"
+              >
+                🪄 −{MAGIC_COST}★
+              </button>
+            </div>
           )}
         </div>
 
@@ -494,6 +725,38 @@ export function ArtStudioPage() {
                 <div className="text-[12px] font-bold text-ink">🚀 {mission.title}</div>
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
+                )}
+                {mission.draw_along && mission.draw_along.length > 0 && !missionDone && (
+                  <div className="mt-2" data-testid="draw-along">
+                    <div className="text-[11px] font-bold text-ink">
+                      Step {stepIdx + 1}/{mission.draw_along.length}: {mission.draw_along[stepIdx]}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <button
+                        onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                        disabled={stepIdx === 0}
+                        className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold disabled:opacity-40"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={onStepGhost}
+                        disabled={generate.isPending}
+                        className="btn-pill-secondary flex-1 text-[11px]"
+                      >
+                        👻 Show this step −{GHOST_COST}★
+                      </button>
+                      <button
+                        onClick={() =>
+                          setStepIdx((i) => Math.min((mission.draw_along as string[]).length - 1, i + 1))
+                        }
+                        disabled={stepIdx >= mission.draw_along.length - 1}
+                        className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold disabled:opacity-40"
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
                 )}
                 {takes.some((t) => t.kind === 'magic') && !missionDone && (
                   <button
@@ -567,6 +830,42 @@ export function ArtStudioPage() {
               >
                 ✨ Bring it to life! −{MAGIC_COST}★
               </button>
+              {takes.some((t) => t.kind === 'magic') && (
+                <button
+                  onClick={onStory}
+                  disabled={coach.isPending}
+                  className="btn-pill-secondary w-full text-[13px]"
+                >
+                  📖 Story time! −{CHAT_COST}★
+                </button>
+              )}
+              {baseArtifactId && (
+                <div className="flex gap-1.5" data-testid="character-save">
+                  <input
+                    value={charName}
+                    onChange={(e) => setCharName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && onSaveCharacter()}
+                    placeholder="Name them… (Sparky)"
+                    className="input-k12 flex-1 text-[12px]"
+                  />
+                  <button
+                    onClick={onSaveCharacter}
+                    disabled={!charName.trim()}
+                    className="btn-pill-secondary text-[12px] whitespace-nowrap"
+                  >
+                    👤 Save
+                  </button>
+                </div>
+              )}
+              {baseArtifactId && (
+                <button
+                  onClick={() => setGameOpen(true)}
+                  className="btn-pill-secondary w-full text-[13px]"
+                  data-testid="use-in-game"
+                >
+                  🎮 Use in my game
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -630,9 +929,72 @@ export function ArtStudioPage() {
         </div>
       )}
 
+      {/* 👤 characters picker (D-IS-23) */}
+      {charOpen && (
+        <div className="absolute inset-0 bg-black/30 flex items-end sm:items-center justify-center z-20">
+          <div className="card-base w-full sm:w-[420px] m-3 p-4" data-testid="characters-sheet">
+            <span className="sticker-bubblegum">👤 My Characters</span>
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {characters.map((a) => (
+                <CharacterTile key={a.id} artifact={a} onPick={() => pickCharacter(a)} />
+              ))}
+            </div>
+            <button
+              onClick={() => setCharOpen(false)}
+              className="text-[12px] text-ink-soft underline mt-3"
+            >
+              ← back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🎮 pick a game (P4 v1, D-IS-25) */}
+      {gameOpen && (
+        <div className="absolute inset-0 bg-black/30 flex items-end sm:items-center justify-center z-20">
+          <div className="card-base w-full sm:w-[420px] m-3 p-4" data-testid="game-sheet">
+            <span className="sticker-bubblegum">🎮 Which game gets this art?</span>
+            {gameProjects.isLoading ? (
+              <p className="lead-text mt-3">Loading…</p>
+            ) : (gameProjects.data?.length ?? 0) === 0 ? (
+              <p className="text-[13px] text-ink-soft mt-3">
+                No games yet — make one in the Creative Code Studio first!
+              </p>
+            ) : (
+              <div className="space-y-2 mt-3">
+                {gameProjects.data!.slice(0, 8).map((g) => (
+                  <button
+                    key={g.id}
+                    onClick={() => void sendToGame(g)}
+                    className="w-full text-left rounded-2xl bg-surface px-4 py-3 text-[14px] font-bold text-ink hover:bg-wash-bubblegum"
+                  >
+                    {g.kind === 'game' ? '🎮' : '💻'} {g.title}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setGameOpen(false)}
+              className="text-[12px] text-ink-soft underline mt-3"
+            >
+              ← back
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* bottom takes film-strip */}
       <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto" data-testid="takes-strip">
         <span className="text-[12px] text-ink-soft shrink-0">🎞</span>
+        {characters.length > 0 && (
+          <button
+            onClick={() => setCharOpen(true)}
+            className="shrink-0 rounded-xl bg-wash-bubblegum px-3 py-2 text-[12px] font-bold text-ink"
+            data-testid="characters-open"
+          >
+            👤 Characters ({characters.length})
+          </button>
+        )}
         {takes.map((t, i) => (
           <TakeThumb
             key={`${t.artifactId}-${i}`}
@@ -709,6 +1071,20 @@ function TakeThumb({
         {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : null}
       </div>
       <div className="text-[10px] font-bold text-ink-soft truncate px-1">{take.label}</div>
+    </button>
+  );
+}
+
+
+function CharacterTile({ artifact, onPick }: { artifact: Artifact; onPick(): void }) {
+  const url = useSignedUrl(artifact);
+  const name = (artifact.metadata as { character?: string }).character ?? '';
+  return (
+    <button onClick={onPick} className="rounded-2xl overflow-hidden border-2 border-black/10">
+      <div className="aspect-square bg-white">
+        {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : null}
+      </div>
+      <div className="text-[12px] font-bold text-ink truncate px-1 py-1">{name}</div>
     </button>
   );
 }
