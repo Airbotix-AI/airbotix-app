@@ -22,7 +22,13 @@ const putCalls: string[] = [];
 
 vi.mock('./ArtCanvas', () => ({
   ArtCanvas: forwardRef(function StubCanvas(
-    props: { ops: unknown[]; onOpsChange(ops: unknown[]): void; ghostUrl: string | null },
+    props: {
+      ops: unknown[];
+      onOpsChange(ops: unknown[]): void;
+      ghostUrl: string | null;
+      maskOps: unknown[];
+      onMaskOpsChange(ops: unknown[]): void;
+    },
     ref,
   ) {
     useImperativeHandle(ref, () => ({
@@ -40,6 +46,17 @@ vi.mock('./ArtCanvas', () => ({
           }
         >
           draw
+        </button>
+        <button
+          data-testid="stub-mask-draw"
+          onClick={() =>
+            props.onMaskOpsChange([
+              ...props.maskOps,
+              { kind: 'stroke', tool: 'marker', color: '#f277c3', size: 20, points: [[2, 2, 0.5]] },
+            ])
+          }
+        >
+          mask
         </button>
       </div>
     );
@@ -123,6 +140,11 @@ vi.mock('@/auth/useAuth', () => ({
 vi.mock('../shared/useSession', () => ({
   useStudioSession: () => ({ summary: null, endNow: vi.fn(), dismiss: vi.fn() }),
 }));
+
+vi.mock('./strokeEngine', async (importOriginal) => {
+  const real = (await importOriginal()) as Record<string, unknown>;
+  return { ...real, exportMask: () => 'data:image/png;base64,TUFTSw==' }; // "MASK"
+});
 
 import { ArtStudioPage } from './ArtStudioPage';
 
@@ -256,6 +278,51 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
       false,
     );
+  });
+
+  describe('🪄 magic brush (D-IS-18 ④)', () => {
+    async function makeAMagicTake() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findAllByTestId('take-thumb');
+    }
+
+    it('is hidden until a magic take exists, then toggles mask mode with the apply bar', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      expect(screen.queryByTestId('mask-toggle')).not.toBeInTheDocument();
+      cleanup();
+
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      expect(screen.getByTestId('mask-bar')).toBeInTheDocument();
+    });
+
+    it('paint region + wish → /llm/image with ref_artifact_id AND mask_b64 (9★), then clears', async () => {
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      fireEvent.click(screen.getByTestId('stub-mask-draw'));
+      fireEvent.change(screen.getByPlaceholderText(/what it becomes/i), {
+        target: { value: 'a golden crown' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /🪄 −9★/ }));
+
+      await waitFor(() => {
+        const call = apiCalls.filter((c) => c.path === '/llm/image').at(-1)!;
+        expect(call.opts?.body?.ref_artifact_id).toBe('art_magic');
+        expect(call.opts?.body?.mask_b64).toBe('TUFTSw==');
+        expect(call.opts?.body?.prompt).toBe('a golden crown');
+      });
+      // a new take arrived and the mask UI reset
+      expect((await screen.findAllByTestId('take-thumb')).length).toBe(3);
+      await waitFor(() => expect(screen.queryByTestId('mask-bar')).not.toBeInTheDocument());
+    });
   });
 
   describe('Mission Mode (D-IS-20/22)', () => {
