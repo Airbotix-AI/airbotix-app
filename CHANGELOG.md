@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-20 (feat: Music Mission Mode — task card + template + turn-in, music-stage §5A D-MS14 P2b)
+
+### Added
+- **Music Mission Mode (music-stage-prd §5A D-MS14)** — the Music Stage end of the
+  four-layer course machinery, mirroring art missions: `Mission.steps_json.music`
+  (`{ template?: { mode: 'base'|'reference', riff }, checklist?, accept? }`) opens
+  `/learn/music` in Mission Mode via router state (PackLessonsPage music branch;
+  the mission survives the session redirect). Task card pins atop the deck with
+  **live deterministic checks** on the kid's OWN notes (min melody notes / distinct
+  pitches / needs drums / needs off-beat — a riff is JSON, zero LLM verification
+  cost; labels say what to ADD, never a grade). A `base` template pre-loads the pad
+  as a LOCKED layer below the kid's notes (plays + rides the seed — populate-it 配器);
+  a `reference` template loads as the erasable ghost (copy-it 临摹, excluded from the
+  seed). Mission entry lands straight in riff mode; the seeded compose prompt
+  defaults to the mission title. **🚀 Turn it in! +3⭐** saves the song into a
+  mission-linked project (`saveScoreToMyWorks` gains `mission_id`) and rides the
+  existing `POST /projects/:id/submit` acceptance chain (D-M3 reward, backend
+  untouched).
+
 ## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
 
 ### Added

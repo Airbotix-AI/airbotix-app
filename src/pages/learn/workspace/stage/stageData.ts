@@ -191,6 +191,14 @@ export const RIFF_ADVICE_COST_STARS = 1;
 export const RIFF_GHOST_DEFAULT_IDEA = 'a happy little tune';
 export const RIFF_TUTOR_FAILED_BUBBLE =
   'The music tutor is having a nap and no Stars were charged — try again in a moment!';
+
+// ─── Music Mission Mode (§5A D-MS14, P2b) ────────────────────────────────────
+/** Display only — the backend MISSION_REWARD_STARS pays the real reward (D-M3). */
+export const MISSION_REWARD_STARS_DISPLAY = 3;
+export const MISSION_DONE_BUBBLE =
+  '🚀 Mission complete! +3⭐ — your song is saved and on its way to your teacher!';
+export const MISSION_TURNIN_FAILED_BUBBLE =
+  "I couldn't turn that in just now — your song is safe, try 🚀 again!";
 export function riffTutorOutOfStarsBubble(cost: number, balance: number): string {
   return `⭐ Not enough Stars — that costs ${cost}⭐ and you have ${balance}⭐. Finish a mission to earn more!`;
 }

@@ -12,18 +12,20 @@
 // the session) — the URL just carries the session instead of a sidebar.
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { MusicStagePane } from '../workspace/stage/MusicStagePane';
+import { parseMusicMission } from '../workspace/stage/musicMission';
 import { ImportTrackPicker } from '../workspace/ImportTrackPicker';
 import type { Message } from '../workspace/WorkspacePage';
 
 export function MusicStudioPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const nav = useNavigate();
+  const location = useLocation();
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const familyId = me.data?.kind === 'kid' ? me.data.family_id : null;
@@ -33,6 +35,12 @@ export function MusicStudioPage() {
   // 💾 Save / 🎧 Make it real mints one, so the id has to survive the redirect.
   const [classId] = useState<string | null>(
     () => new URLSearchParams(window.location.search).get('class'),
+  );
+  // Mission Mode (music-stage §5A D-MS14): a music Mission arrives as router
+  // state from PackLessonsPage — captured once so the session redirect below
+  // can't drop it.
+  const [mission] = useState(() =>
+    parseMusicMission((location.state as { mission?: unknown } | null)?.mission),
   );
 
   // No session in the URL → open one and put it there, so a refresh (or a link a
@@ -44,7 +52,10 @@ export function MusicStudioPage() {
       api<{ id: string }>('/learning-sessions', { method: 'POST', body: { studio: 'music' } }),
     onSuccess: ({ id }) => {
       const q = classId ? `?class=${encodeURIComponent(classId)}` : '';
-      nav(`/learn/music/${id}${q}`, { replace: true });
+      // The mission rides the redirect state so a Mission Mode entry survives
+      // the hop onto the session URL (a plain reload drops it by design —
+      // free play resumes, same as the Art Studio's router-state contract).
+      nav(`/learn/music/${id}${q}`, { replace: true, state: mission ? { mission } : undefined });
     },
   });
 
@@ -101,6 +112,7 @@ export function MusicStudioPage() {
         kidId={kidId}
         familyId={familyId}
         classId={classId}
+        mission={mission}
         onExit={() => nav('/learn')}
         onImportTrack={() => setShowImport(true)}
       />
