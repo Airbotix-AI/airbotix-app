@@ -56,6 +56,26 @@ export function languageLabel(language: string): string {
   return LANGUAGE_LABELS[language] ?? language;
 }
 
+/**
+ * The catalogue language `/portal/guides` opens in when the URL carries no
+ * `language` param (D-PFG-04: English-first, with a visible 中文 toggle).
+ */
+export const DEFAULT_GUIDE_LANGUAGE = 'en-AU';
+
+// Toggle order: English first (the default), then 中文, then anything new the
+// manifest grows — so an unexpected language never becomes unreachable.
+const LANGUAGE_TOGGLE_ORDER = ['en-AU', 'zh-CN'];
+
+/** Languages present in the catalogue, ordered for the EN/中文 toggle. */
+export function languageToggleOptions(items: ResourceGuideItem[]): string[] {
+  const present = [...new Set(items.map((item) => item.language))];
+  const preferred = LANGUAGE_TOGGLE_ORDER.filter((language) => present.includes(language));
+  const extras = present
+    .filter((language) => !LANGUAGE_TOGGLE_ORDER.includes(language))
+    .sort((a, b) => a.localeCompare(b));
+  return [...preferred, ...extras];
+}
+
 /** Active filter state — `null` means "all" for that dimension. */
 export interface GuideFilters {
   category: string | null;

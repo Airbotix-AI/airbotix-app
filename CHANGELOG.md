@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-20 (feat: Family Guides default to English with an EN/中文 toggle)
+
+### Changed
+- `/portal/guides` now opens in **English by default** (D-PFG-04, resolves Q-PFG-3) with a
+  prominent **English / 中文 toggle** replacing the language dropdown; the default keeps the
+  URL clean while 中文 lands in `?language=zh-CN` like the other filters. Topic / location /
+  age select options are scoped to the active language so they never dead-end across
+  languages. Clear filters returns to the English catalogue.
+
 ## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
 
 ### Changed

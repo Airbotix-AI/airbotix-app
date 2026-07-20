@@ -4,10 +4,12 @@ import { useSearchParams } from 'react-router-dom';
 
 import { api } from '@/lib/api';
 import {
+  DEFAULT_GUIDE_LANGUAGE,
   RESOURCES_HUB_URL,
   filterGuides,
   guideFilterOptions,
   languageLabel,
+  languageToggleOptions,
   withPortalSrc,
   type GuideFilters,
   type ResourceGuideItem,
@@ -16,6 +18,8 @@ import {
 import { GuideCard } from './GuideCard';
 
 // URL query keys for the filters (shareable / revisitable per PRD §5.1).
+// `language` is special: absent = DEFAULT_GUIDE_LANGUAGE (D-PFG-04), so plain
+// /portal/guides links always open the English catalogue.
 const PARAM_KEYS = {
   category: 'category',
   location: 'location',
@@ -24,19 +28,20 @@ const PARAM_KEYS = {
 } as const;
 
 type FilterKey = keyof typeof PARAM_KEYS;
+type SelectKey = Exclude<FilterKey, 'language'>;
 
-const FILTER_LABELS: Record<FilterKey, { label: string; all: string }> = {
+const SELECT_LABELS: Record<SelectKey, { label: string; all: string }> = {
   category: { label: 'Topic', all: 'All topics' },
   location: { label: 'Location', all: 'All locations' },
   ageStage: { label: 'Age', all: 'All ages' },
-  language: { label: 'Language', all: 'All languages' },
 };
 
 /**
  * `/portal/guides` — Family Guides catalogue (parent-portal-family-guides-prd
- * §5.1). Card grid over `GET /portal/resource-guides` with topic / location /
- * age / language filters reflected in the URL query. Cards + PDF buttons open
- * the marketing-site reading pages in a new tab with `?src=portal` attribution.
+ * §5.1). Card grid over `GET /portal/resource-guides`, opening in English by
+ * default with a prominent EN/中文 toggle (D-PFG-04) plus topic / location /
+ * age selects, all reflected in the URL query. Cards + PDF buttons open the
+ * marketing-site reading pages in a new tab with `?src=portal` attribution.
  */
 export function GuidesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,31 +51,45 @@ export function GuidesPage() {
     queryFn: () => api<ResourceGuidesResponse>('/portal/resource-guides'),
   });
 
+  const language = searchParams.get(PARAM_KEYS.language) ?? DEFAULT_GUIDE_LANGUAGE;
   const filters: GuideFilters = {
     category: searchParams.get(PARAM_KEYS.category),
     location: searchParams.get(PARAM_KEYS.location),
     ageStage: searchParams.get(PARAM_KEYS.ageStage),
-    language: searchParams.get(PARAM_KEYS.language),
+    language,
   };
-  const hasActiveFilters = Object.values(filters).some((value) => value !== null);
+  const hasActiveFilters =
+    filters.category !== null ||
+    filters.location !== null ||
+    filters.ageStage !== null ||
+    searchParams.get(PARAM_KEYS.language) !== null;
 
   const items = useMemo(() => guides.data?.items ?? [], [guides.data?.items]);
-  const options = useMemo(() => guideFilterOptions(items), [items]);
+  const languages = useMemo(() => languageToggleOptions(items), [items]);
+  // Topic / location / age options follow the selected language so the selects
+  // never offer a value that dead-ends into "No matches" purely by language.
+  const options = useMemo(
+    () => guideFilterOptions(items.filter((item) => item.language === language)),
+    [items, language],
+  );
   const visible = filterGuides(items, filters);
 
-  const setFilter = (key: FilterKey, value: string) => {
+  const setParam = (key: FilterKey, value: string) => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(PARAM_KEYS[key], value);
     else next.delete(PARAM_KEYS[key]);
     setSearchParams(next, { replace: true });
   };
+  // The default language keeps the URL clean (no param) so shared links stay
+  // canonical; picking anything else lands in the query like the other filters.
+  const setLanguage = (value: string) =>
+    setParam('language', value === DEFAULT_GUIDE_LANGUAGE ? '' : value);
   const clearFilters = () => setSearchParams(new URLSearchParams(), { replace: true });
 
-  const optionValues: Record<FilterKey, string[]> = {
+  const optionValues: Record<SelectKey, string[]> = {
     category: options.categories,
     location: options.locations,
     ageStage: options.ageStages,
-    language: options.languages,
   };
 
   return (
@@ -84,20 +103,36 @@ export function GuidesPage() {
         </p>
       </div>
 
+      {languages.length > 1 && (
+        <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Guide language">
+          {languages.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setLanguage(value)}
+              aria-pressed={language === value}
+              className={language === value ? 'btn-pill-primary' : 'btn-pill-secondary'}
+            >
+              {languageLabel(value)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {items.length > 0 && (
-        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => (
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {(Object.keys(SELECT_LABELS) as SelectKey[]).map((key) => (
             <label key={key}>
-              <span className="label-k12">{FILTER_LABELS[key].label}</span>
+              <span className="label-k12">{SELECT_LABELS[key].label}</span>
               <select
                 className="input-k12"
                 value={filters[key] ?? ''}
-                onChange={(event) => setFilter(key, event.target.value)}
+                onChange={(event) => setParam(key, event.target.value)}
               >
-                <option value="">{FILTER_LABELS[key].all}</option>
+                <option value="">{SELECT_LABELS[key].all}</option>
                 {optionValues[key].map((value) => (
                   <option key={value} value={value}>
-                    {key === 'language' ? languageLabel(value) : value}
+                    {value}
                   </option>
                 ))}
               </select>

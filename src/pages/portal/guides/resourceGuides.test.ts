@@ -14,6 +14,8 @@ import {
   selectRecommendedGuides,
   withPortalSrc,
   type ResourceGuideItem,
+  DEFAULT_GUIDE_LANGUAGE,
+  languageToggleOptions,
 } from './resourceGuides';
 
 const guide = (overrides: Partial<ResourceGuideItem> & { slug: string }): ResourceGuideItem => ({
@@ -242,5 +244,23 @@ describe('selectRecommendedGuides (Phase 1 rule)', () => {
     const result = selectRecommendedGuides(input, [6], NO_FAMILY_LOCATION, 2);
     expect(result).toHaveLength(2);
     expect(input.map((i) => i.slug)).toEqual(items.map((i) => i.slug));
+  });
+});
+
+describe('languageToggleOptions', () => {
+  it('orders English (the default) first, then 中文, then extras', () => {
+    const result = languageToggleOptions([
+      guide({ slug: 'a', language: 'zh-CN' }),
+      guide({ slug: 'b', language: 'en-AU' }),
+      guide({ slug: 'c', language: 'fr-FR' }),
+      guide({ slug: 'd', language: 'zh-CN' }),
+    ]);
+    expect(result).toEqual(['en-AU', 'zh-CN', 'fr-FR']);
+    expect(result[0]).toBe(DEFAULT_GUIDE_LANGUAGE);
+  });
+
+  it('only offers languages actually present', () => {
+    expect(languageToggleOptions([guide({ slug: 'a', language: 'zh-CN' })])).toEqual(['zh-CN']);
+    expect(languageToggleOptions([])).toEqual([]);
   });
 });
