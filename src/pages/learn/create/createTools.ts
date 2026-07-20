@@ -27,6 +27,14 @@ export interface CreateTool {
    * links and harness journeys keep working. (learn PRD v0.7)
    */
   comingSoon?: boolean;
+  /**
+   * Live tool that is still NOT offered in the in-class "Create for this class"
+   * sheet. Art Studio's class path is mission templates (a lesson's art mission
+   * loads its template + checklist, D-IS-20/22); free-form class work would need
+   * the studio to attach its bucket saves to a class first — a follow-up, not a
+   * silent half-feature (image-studio-prd D-IS-26).
+   */
+  noClassSheet?: boolean;
 }
 
 export const CREATE_TOOLS: CreateTool[] = [
@@ -39,11 +47,13 @@ export const CREATE_TOOLS: CreateTool[] = [
   // touch — is retired; the Stage does the same generation as its step ⑥, on top
   // of a song the kid actually composed. (music-stage-prd §2)
   { to: '/learn/music', emoji: '🎵', title: 'Music Stage', desc: 'Compose a song on a real stage, then record it for real.', color: 'mint', typeTag: 'Creative', projectKind: 'creative', cost: 5 },
+  // Art Studio un-paused 2026-07-20 (owner call) after the canvas-first rebuild
+  // (image-studio-prd v0.13): kid draws first, AI is summoned. Cost = the magic
+  // image price (9⭐); drawing itself is free, ghost sketch 2⭐, coach chat 1⭐.
+  // "Art Studio" replaced the informal "Image Maker" name (image-studio-prd.md).
+  { to: '/learn/create/image', emoji: '🎨', title: 'Art Studio', desc: 'Draw your own picture, then let AI bring it to life.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 9, noClassSheet: true },
   // Paused 2026-07-17 (owner call): output quality isn't there yet — hidden as
   // coming-soon until each studio is fixed and re-approved.
-  // "Art Studio" replaced the informal "Image Maker" name (image-studio-prd.md);
-  // Cost matches the backend image tier (9⭐; previously mislabelled 4⭐).
-  { to: '/learn/create/image', emoji: '🎨', title: 'Art Studio', desc: 'Draw with AI. Cartoon, painting, pixel art, photo.', color: 'bubblegum', typeTag: 'Creative', projectKind: 'creative', cost: 9, comingSoon: true },
   { to: '/learn/create/voice', emoji: '🔊', title: 'Voice Booth', desc: 'Turn text into spoken audio. Many voices.', color: 'sky', typeTag: 'Creative', projectKind: 'creative', cost: 5, comingSoon: true },
   { to: '/learn/create/video', emoji: '🎬', title: 'Video Studio', desc: 'Short AI video from a prompt.', color: 'sunshine', typeTag: 'Creative', projectKind: 'creative', cost: 60, comingSoon: true },
 ];

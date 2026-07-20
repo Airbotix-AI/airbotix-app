@@ -5,7 +5,7 @@
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 
-import { STUDIO_BY_ID, STUDIOS, type Studio } from './studios';
+import { STUDIOS, type Studio } from './studios';
 
 export function StudioPicker({
   onPick,
@@ -24,32 +24,36 @@ export function StudioPicker({
           Pick a studio — each one teaches you one AI skill, so you can really get good at it.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Music lives on its OWN immersive surface (/learn/music, D-MS7) — the
-              card stays HERE for discoverability ("what do you want to make?"
-              must include music), but picking it navigates to the Stage instead
-              of opening a chat-shell session. */}
-          <Link
-            to="/learn/music"
-            data-testid="studio-pick-music"
-            className={clsx(
-              'group rounded-2xl border-2 border-hairline bg-canvas-pure p-5 text-left transition-all',
-              'hover:-translate-y-0.5 hover:shadow-card-soft hover:border-ink/20',
-            )}
-          >
-            <div className={clsx('inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-bold', `bg-${STUDIO_BY_ID.music.wash}`)}>
-              <span className="text-[16px]">{STUDIO_BY_ID.music.emoji}</span>
-              <span className="text-ink">{STUDIO_BY_ID.music.label}</span>
-              <span className="text-ink-soft">−{STUDIO_BY_ID.music.cost}★</span>
-            </div>
-            <div className="mt-3 text-[16px] font-bold text-ink">{STUDIO_BY_ID.music.tagline}</div>
-            <ul className="mt-2 space-y-1 text-[12px] text-ink-soft">
-              {STUDIO_BY_ID.music.examples.slice(0, 2).map((ex) => (
-                <li key={ex} className="truncate">· {ex}</li>
-              ))}
-            </ul>
-            <div className="mt-2 text-[11px] font-bold text-brand-mint">🎤 Opens your own stage →</div>
-          </Link>
-          {STUDIOS.filter((s) => s.id !== 'music' && !s.comingSoon).map((s) => (
+          {/* Link-out studios live on their OWN immersive surface (Music → the
+              Stage D-MS7, Image → the Art Studio D-IS-26) — the card stays HERE
+              for discoverability ("what do you want to make?" must include
+              them), but picking it navigates there instead of opening a
+              chat-shell session. */}
+          {STUDIOS.filter((s) => s.linkTo).map((s) => (
+            <Link
+              key={s.id}
+              to={s.linkTo!}
+              data-testid={`studio-pick-${s.id}`}
+              className={clsx(
+                'group rounded-2xl border-2 border-hairline bg-canvas-pure p-5 text-left transition-all',
+                'hover:-translate-y-0.5 hover:shadow-card-soft hover:border-ink/20',
+              )}
+            >
+              <div className={clsx('inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12px] font-bold', `bg-${s.wash}`)}>
+                <span className="text-[16px]">{s.emoji}</span>
+                <span className="text-ink">{s.label}</span>
+                <span className="text-ink-soft">−{s.cost}★</span>
+              </div>
+              <div className="mt-3 text-[16px] font-bold text-ink">{s.tagline}</div>
+              <ul className="mt-2 space-y-1 text-[12px] text-ink-soft">
+                {s.examples.slice(0, 2).map((ex) => (
+                  <li key={ex} className="truncate">· {ex}</li>
+                ))}
+              </ul>
+              <div className="mt-2 text-[11px] font-bold text-brand-mint">{s.linkCta}</div>
+            </Link>
+          ))}
+          {STUDIOS.filter((s) => !s.linkTo && !s.comingSoon).map((s) => (
             <button
               key={s.id}
               disabled={busy}

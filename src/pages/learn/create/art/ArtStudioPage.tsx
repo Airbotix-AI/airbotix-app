@@ -985,6 +985,22 @@ export function ArtStudioPage() {
 
       {/* bottom takes film-strip */}
       <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto" data-testid="takes-strip">
+        {/* Airbotix brand mark — the immersive page hides the Learn nav, so the
+            brand rides the bottom bar exactly like the Music Stage's transport
+            (owner call 2026-07-20: 左下角放 logo,跟其他 studio 一样). */}
+        <div
+          className="hidden shrink-0 items-center gap-2.5 min-[720px]:flex"
+          data-testid="studio-brand"
+        >
+          <img
+            src="/logo-black-horizontal.png"
+            alt="Airbotix"
+            draggable={false}
+            className="h-6 w-auto select-none"
+          />
+          <span aria-hidden className="h-5 w-px bg-hairline" />
+          <span className="text-[13px] font-bold text-slate2">Art Studio</span>
+        </div>
         <span className="text-[12px] text-ink-soft shrink-0">🎞</span>
         {characters.length > 0 && (
           <button

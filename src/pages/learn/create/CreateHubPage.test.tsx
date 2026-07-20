@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-// Create tab gating (learn PRD v0.7): Art Studio / Voice Booth / Video Studio
-// are paused — rendered as non-clickable "Coming soon" cards BELOW the live
-// tools, never as links. Live tools stay full pack-card links.
+// Create tab gating (learn PRD v0.7): Voice Booth / Video Studio are paused —
+// rendered as non-clickable "Coming soon" cards BELOW the live tools, never as
+// links. Live tools (incl. Art Studio since 2026-07-20) stay full pack-card links.
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
@@ -26,9 +26,17 @@ function renderHub() {
 
 describe('CreateHubPage coming-soon gating', () => {
   afterEach(cleanup);
-  it('marks exactly Art Studio, Voice Booth and Video Studio as coming soon in the registry', () => {
+  it('marks exactly Voice Booth and Video Studio as coming soon in the registry', () => {
+    // Art Studio left this list 2026-07-20 (owner un-pause after the
+    // canvas-first rebuild, image-studio-prd D-IS-26).
     const paused = CREATE_TOOLS.filter((t) => t.comingSoon).map((t) => t.title);
-    expect(paused.sort()).toEqual(['Art Studio', 'Video Studio', 'Voice Booth']);
+    expect(paused.sort()).toEqual(['Video Studio', 'Voice Booth']);
+  });
+
+  it('offers Art Studio as a live card linking to the canvas studio', () => {
+    renderHub();
+    const art = screen.getByRole('link', { name: /Art Studio/ });
+    expect(art).toHaveAttribute('href', '/learn/create/image');
   });
 
   it('renders live tools as links and paused tools as non-clickable coming-soon cards', () => {
@@ -49,7 +57,7 @@ describe('CreateHubPage coming-soon gating', () => {
       expect(within(section).getByText(tool.title)).toBeInTheDocument();
     }
     // one "Coming soon" sticker per paused tool (the section eyebrow says it too)
-    expect(section.querySelectorAll('.sticker-sunshine').length).toBe(3);
+    expect(section.querySelectorAll('.sticker-sunshine').length).toBe(2);
   });
 
   it('places the coming-soon section after the live tool grid', () => {

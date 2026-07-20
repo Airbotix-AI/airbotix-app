@@ -90,9 +90,11 @@ describe('CreateForClassSheet — direct-jump', () => {
     });
   });
 
-  it('never offers paused (coming-soon) studios, even when creative is allowed', async () => {
+  it('never offers paused (coming-soon) or noClassSheet studios, even when creative is allowed', async () => {
     renderSheet(['creative', 'code', 'game', 'blocks']);
 
+    // Art Studio is live but `noClassSheet`: its class path is mission
+    // templates, not free-form class work (image-studio-prd D-IS-26).
     expect(screen.queryByText('Art Studio')).not.toBeInTheDocument();
     expect(screen.queryByText('Voice Booth')).not.toBeInTheDocument();
     expect(screen.queryByText('Video Studio')).not.toBeInTheDocument();
@@ -118,8 +120,8 @@ describe('CreateForClassSheet — direct-jump', () => {
     // Only the game sub-type is visible today, so a game-less course drops the tool.
     expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
     expect(screen.getByText('Story Blocks')).toBeInTheDocument();
-    // A live creative tool still shows (Music Stage). Image Maker/Voice/Video are
-    // paused as `comingSoon` and are never offered for class work.
+    // A live creative tool still shows (Music Stage). Voice/Video are paused as
+    // `comingSoon`; Art Studio is live but `noClassSheet` — never offered here.
     expect(screen.getByText('Music Stage')).toBeInTheDocument();
     expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
   });

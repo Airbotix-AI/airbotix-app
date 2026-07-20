@@ -45,7 +45,9 @@ type ToolCfg = {
 const TOOL_CONFIG: Record<string, ToolCfg> = {
   '/learn/create/blocks': { title: 'My Blocks', line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank', open: (id) => `/learn/blocks/${id}` },
   '/learn/create/code': { title: 'My Project', line: 'line_b_coding', kind: 'code', template: 'blank', open: (id) => `/learn/code/${id}` },
-  '/learn/create/image': { title: 'My Picture', line: 'line_a_creative', open: (id) => `/learn/projects/${id}` },
+  // Art Studio is currently `noClassSheet` (missions are its class path); if the
+  // flag ever flips, it opens like the Stage — never the retired project page.
+  '/learn/create/image': { title: 'My Picture', line: 'line_a_creative', noProject: true, open: () => '/learn/create/image' },
   // Music Stage (the retired Music Maker's replacement) is session-based, not
   // project-based: there is no project to create up front, so a class row opens
   // the Stage itself. (music-stage-prd §2)
@@ -128,7 +130,9 @@ export function CreateForClassSheet({
   const [subMenu, setSubMenu] = useState<(typeof CREATE_TOOLS)[number] | null>(null);
   const allowedSet = new Set<ProjectKind>(allowedKinds?.length ? allowedKinds : ['creative', 'code', 'game', 'blocks']);
   const allowedTools = CREATE_TOOLS.filter((tool) => {
-    if (tool.comingSoon) return false; // paused studios never offered for class work
+    // Paused studios never offered for class work; `noClassSheet` tools are live
+    // but class work reaches them another way (Art Studio → mission templates).
+    if (tool.comingSoon || tool.noClassSheet) return false;
     const subtypes = SUBTYPES_BY_TOOL[tool.to];
     if (subtypes) return subtypes.some((s) => !s.hidden && allowedSet.has(s.projectKind));
     return allowedSet.has(tool.projectKind);

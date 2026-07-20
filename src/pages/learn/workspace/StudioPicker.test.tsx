@@ -26,7 +26,21 @@ describe('StudioPicker', () => {
     expect(screen.getByTestId('studio-pick-chat')).not.toHaveAttribute('href');
   });
 
-  // Image / Voice / Video are paused (studios.ts `comingSoon`, learn PRD v0.7):
+  // Image left the chat shell for the canvas-first Art Studio (D-IS-26): its
+  // card is a link-out like Music, never a session-creating button.
+  it('offers Image as a link to the Art Studio, not a session-creating button', () => {
+    render(
+      <MemoryRouter>
+        <StudioPicker onPick={vi.fn()} busy={false} />
+      </MemoryRouter>,
+    );
+    const image = screen.getByTestId('studio-pick-image');
+    expect(image).toHaveAttribute('href', '/learn/create/image');
+    expect(image).toHaveTextContent('Art Studio');
+    expect(image).toHaveTextContent('Opens your own art studio');
+  });
+
+  // Voice / Video are paused (studios.ts `comingSoon`, learn PRD v0.7):
   // no session-creating card, only a non-interactive "Coming soon" teaser.
   it('shows paused studios as coming-soon teasers, never as pickable cards', () => {
     render(
@@ -34,7 +48,7 @@ describe('StudioPicker', () => {
         <StudioPicker onPick={vi.fn()} busy={false} />
       </MemoryRouter>,
     );
-    for (const id of ['image', 'voice', 'video']) {
+    for (const id of ['voice', 'video']) {
       expect(screen.queryByTestId(`studio-pick-${id}`)).toBeNull();
       const teaser = screen.getByTestId(`studio-coming-soon-${id}`);
       expect(teaser).toHaveAttribute('aria-disabled', 'true');

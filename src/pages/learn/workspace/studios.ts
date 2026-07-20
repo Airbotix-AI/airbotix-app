@@ -32,6 +32,15 @@ export interface StudioMeta {
    * normal session list. Mirrors `comingSoon` in create/createTools.ts.
    */
   comingSoon?: boolean;
+  /**
+   * The studio left the chat shell for its own immersive surface: the picker
+   * card stays for discoverability but navigates there instead of creating a
+   * chat-shell session (Music → the Stage, D-MS7; Image → the Art Studio,
+   * image-studio-prd D-IS-26). `?studio=<id>` deep links are dropped too.
+   */
+  linkTo?: string;
+  /** CTA line shown at the bottom of a `linkTo` card. */
+  linkCta?: string;
 }
 
 export const STUDIOS: StudioMeta[] = [
@@ -50,13 +59,17 @@ export const STUDIOS: StudioMeta[] = [
     ],
     setup: [],
   },
+  // Image left the chat shell entirely: the canvas-first Art Studio replaced
+  // the retired describe-a-picture form (image-studio-prd v0.13). The card
+  // stays here as a link-out, like Music.
   {
     id: 'image',
-    comingSoon: true,
+    linkTo: '/learn/create/image',
+    linkCta: '🎨 Opens your own art studio →',
     emoji: '🎨',
-    label: 'Image',
-    cost: 8,
-    tagline: 'Describe a picture, and AI draws it.',
+    label: 'Art Studio',
+    cost: 9,
+    tagline: 'Draw your own picture, then let AI bring it to life.',
     placeholder: 'Describe what to draw…',
     wash: 'wash-bubblegum',
     examples: [
@@ -72,6 +85,8 @@ export const STUDIOS: StudioMeta[] = [
   },
   {
     id: 'music',
+    linkTo: '/learn/music',
+    linkCta: '🎤 Opens your own stage →',
     emoji: '🎵',
     label: 'Music',
     cost: 3,
