@@ -57,9 +57,15 @@ export function CoursesPage() {
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   const contactEmail = me.data?.kind === 'user' ? me.data.email : undefined;
 
+  // `bookable=true` = taught AND put on sale by owner. Without it this list also showed
+  // content-ready drafts nobody has priced: the parent got a "Request a seat" button on a
+  // course whose class times 404, and the enrolment landed in the DB anyway
+  // (booking-enrollment-prd D-6). The learn-side catalog still lists every published
+  // pack, so the query key MUST stay distinct from ['course-packs'] — same key, different
+  // filter would let whichever page loaded first serve its cache to the other.
   const packs = useQuery<CoursePack[]>({
-    queryKey: ['course-packs'],
-    queryFn: () => api<CoursePack[]>('/course-packs'),
+    queryKey: ['course-packs', 'bookable'],
+    queryFn: () => api<CoursePack[]>('/course-packs?bookable=true'),
   });
 
   const kids = useQuery<Kid[]>({
