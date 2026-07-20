@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format, formatDistanceToNow } from 'date-fns';
 
 import { api } from '@/lib/api';
-import { buildPromptsCsv, gallerySummary, groupImages } from './kidImages';
+import { buildPromptsCsv, gallerySummary, groupImages, GALLERY_FETCH_LIMIT } from './kidImages';
 import type { KidImageArtifact } from './kidImages';
 
 interface Kid {
@@ -124,16 +124,26 @@ export function KidImagesPage() {
   });
 
   const images = useQuery<KidImageArtifact[]>({
-    queryKey: ['kid', kidId, 'artifacts', 'image'],
-    queryFn: () => api<KidImageArtifact[]>(`/kids/${kidId}/artifacts?kind=image`),
+    queryKey: ['kid', kidId, 'artifacts', 'image', GALLERY_FETCH_LIMIT],
+    queryFn: () =>
+      api<KidImageArtifact[]>(
+        `/kids/${kidId}/artifacts?kind=image&limit=${GALLERY_FETCH_LIMIT}`,
+      ),
     enabled: !!kidId,
     retry: false,
   });
 
-  const name = kid.data?.nickname ?? 'Your kid';
-  const list = images.data ?? [];
-  const summary = gallerySummary(list);
-  const groups = groupImages(list);
+  /**
+   * Null when the kid lookup failed — we surface a small notice rather than
+   * inventing a name, so nothing on this page claims to be about a kid we
+   * could not actually confirm.
+   */
+  const nickname: string | null = kid.data?.nickname ?? null;
+  /** Possessive-friendly label; generic (never a fabricated nickname) when unknown. */
+  const name = nickname ?? 'your kid';
+  const list = useMemo(() => images.data ?? [], [images.data]);
+  const summary = useMemo(() => gallerySummary(list), [list]);
+  const groups = useMemo(() => groupImages(list), [list]);
   const open = list.find((a) => a.id === openId) ?? null;
 
   const exportPrompts = () => {
@@ -151,17 +161,38 @@ export function KidImagesPage() {
   return (
     <div data-testid="portal-image-gallery">
       <Link to={`/portal/family/${kidId}`} className="btn-pill-ghost mb-4 -ml-3">
-        ← {name}&apos;s growth
+        ← {nickname ? `${nickname}’s growth` : 'Back to growth'}
       </Link>
+
+      {kid.isError && (
+        <p
+          data-testid="kid-name-error"
+          className="mb-4 rounded-xl bg-wash-sunshine px-4 py-3 text-[14px] text-ink-soft"
+        >
+          We couldn&apos;t load your kid&apos;s name just now — the pictures below are still
+          theirs.
+        </p>
+      )}
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-bubblegum">Art Studio</div>
-          <h1 className="section-heading">{name}&apos;s pictures</h1>
+          <h1 className="section-heading">
+            {nickname ? `${nickname}’s pictures` : 'Art Studio pictures'}
+          </h1>
           {summary.count > 0 && (
-            <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
-              {summary.count} picture{summary.count === 1 ? '' : 's'} ·{' '}
-              <span className="font-bold text-ink">{summary.totalStars}★</span> spent
+            <p className="lead-text mt-2" data-testid="gallery-summary" style={{ fontSize: '15px' }}>
+              {summary.capped ? (
+                <>
+                  Showing the latest {summary.limit} pictures ·{' '}
+                  <span className="font-bold text-ink">{summary.totalStars}★</span> spent on these
+                </>
+              ) : (
+                <>
+                  {summary.count} picture{summary.count === 1 ? '' : 's'} ·{' '}
+                  <span className="font-bold text-ink">{summary.totalStars}★</span> spent
+                </>
+              )}
               {summary.lastCreatedAt &&
                 ` · Last created ${formatDistanceToNow(new Date(summary.lastCreatedAt), {
                   addSuffix: true,

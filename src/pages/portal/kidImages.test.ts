@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bucketFor,
   buildPromptsCsv,
+  GALLERY_FETCH_LIMIT,
   gallerySummary,
   groupImages,
   type KidImageArtifact,
@@ -58,8 +59,35 @@ describe('gallerySummary', () => {
       count: 3,
       totalStars: 11,
       lastCreatedAt: '2026-07-12T00:00:00Z',
+      capped: false,
+      limit: GALLERY_FETCH_LIMIT,
     });
-    expect(gallerySummary([])).toEqual({ count: 0, totalStars: 0, lastCreatedAt: null });
+    expect(gallerySummary([])).toEqual({
+      count: 0,
+      totalStars: 0,
+      lastCreatedAt: null,
+      capped: false,
+      limit: GALLERY_FETCH_LIMIT,
+    });
+  });
+
+  it('flags the list as capped when the backend returned exactly the requested limit', () => {
+    const under = [art({ id: 'a' }), art({ id: 'b' })];
+    expect(gallerySummary(under, 3).capped).toBe(false);
+
+    const atCap = [art({ id: 'a' }), art({ id: 'b' }), art({ id: 'c' })];
+    const summary = gallerySummary(atCap, 3);
+    expect(summary.capped).toBe(true);
+    expect(summary.limit).toBe(3);
+    // The totals still describe only what came back — the header must say so.
+    expect(summary.count).toBe(3);
+  });
+
+  it('defaults to the 200-row cap the gallery requests from the backend', () => {
+    expect(GALLERY_FETCH_LIMIT).toBe(200);
+    const full = Array.from({ length: GALLERY_FETCH_LIMIT }, (_, i) => art({ id: `a-${i}` }));
+    expect(gallerySummary(full).capped).toBe(true);
+    expect(gallerySummary(full.slice(0, -1)).capped).toBe(false);
   });
 });
 

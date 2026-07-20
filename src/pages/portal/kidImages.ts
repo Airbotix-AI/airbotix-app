@@ -56,22 +56,46 @@ export function groupImages(
   }));
 }
 
+/**
+ * How many pictures the gallery asks for. `GET /kids/:id/artifacts` caps its
+ * result set (default 40, max 200), so we request the maximum AND treat a
+ * full-length response as "possibly truncated" — see `GallerySummary.capped`.
+ */
+export const GALLERY_FETCH_LIMIT = 200;
+
 export interface GallerySummary {
   count: number;
-  /** Sum of `metadata.stars_charged` across all pictures (0★ hand-drawn rows count 0). */
+  /** Sum of `metadata.stars_charged` across the RETURNED pictures (0★ hand-drawn rows count 0). */
   totalStars: number;
   /** ISO timestamp of the newest picture, or null when there are none. */
   lastCreatedAt: string | null;
+  /**
+   * True when the backend returned exactly the requested cap, so older pictures
+   * (and the stars spent on them) are very likely missing from these totals.
+   * The header must then say "latest N" rather than claim an all-time total.
+   */
+  capped: boolean;
+  /** The cap that was requested — what "latest N" refers to when `capped`. */
+  limit: number;
 }
 
-export function gallerySummary(artifacts: KidImageArtifact[]): GallerySummary {
+export function gallerySummary(
+  artifacts: KidImageArtifact[],
+  limit: number = GALLERY_FETCH_LIMIT,
+): GallerySummary {
   let totalStars = 0;
   let last: string | null = null;
   for (const artifact of artifacts) {
     totalStars += artifact.metadata.stars_charged ?? 0;
     if (!last || artifact.created_at > last) last = artifact.created_at;
   }
-  return { count: artifacts.length, totalStars, lastCreatedAt: last };
+  return {
+    count: artifacts.length,
+    totalStars,
+    lastCreatedAt: last,
+    capped: artifacts.length >= limit,
+    limit,
+  };
 }
 
 /** RFC-4180-style quoting: wrap when the value holds a comma, quote or newline. */

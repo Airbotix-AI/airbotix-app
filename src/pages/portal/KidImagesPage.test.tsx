@@ -10,7 +10,10 @@ const { api } = vi.hoisted(() => ({ api: vi.fn() }));
 vi.mock('@/lib/api', () => ({ api }));
 
 import { KidImagesPage } from './KidImagesPage';
-import type { KidImageArtifact } from './kidImages';
+import { GALLERY_FETCH_LIMIT, type KidImageArtifact } from './kidImages';
+
+/** The gallery asks for the backend's maximum page rather than its default 40. */
+const IMAGES_PATH = `/kids/kid-1/artifacts?kind=image&limit=${GALLERY_FETCH_LIMIT}`;
 
 const TODAY_ART: KidImageArtifact = {
   id: 'art-1',
@@ -37,7 +40,7 @@ const OLDER_ART: KidImageArtifact = {
 function mockApi(artifacts: KidImageArtifact[]) {
   api.mockImplementation((path: string) => {
     if (path === '/kids/kid-1') return Promise.resolve({ id: 'kid-1', nickname: 'Mia' });
-    if (path === '/kids/kid-1/artifacts?kind=image') return Promise.resolve(artifacts);
+    if (path === IMAGES_PATH) return Promise.resolve(artifacts);
     if (path.endsWith('/download-url'))
       return Promise.resolve({ url: 'https://signed.example/img' });
     return Promise.reject(new Error(`unmocked ${path}`));
@@ -77,6 +80,11 @@ describe('KidImagesPage', () => {
     expect(screen.getByText(/2 pictures/)).toBeInTheDocument();
     expect(screen.getByText(/18★/)).toBeInTheDocument();
     expect(screen.getByText(/Last created/)).toBeInTheDocument();
+    // Under the cap, the header claims plain totals — no "latest N" hedging.
+    expect(screen.getByTestId('gallery-summary')).not.toHaveTextContent(/latest/i);
+
+    // The list is fetched with the backend's maximum page size, not its default 40.
+    expect(api).toHaveBeenCalledWith(IMAGES_PATH);
 
     // Date buckets: one picture today, one from earlier.
     expect(screen.getByText('Today')).toBeInTheDocument();
@@ -155,5 +163,40 @@ describe('KidImagesPage', () => {
     );
     expect(screen.getByRole('button', { name: /Retry/ })).toBeInTheDocument();
     expect(screen.queryByText('No pictures yet')).not.toBeInTheDocument();
+  });
+
+  it('says it is showing only the latest N when the backend returned a full page', async () => {
+    const full: KidImageArtifact[] = Array.from({ length: GALLERY_FETCH_LIMIT }, (_, i) => ({
+      ...TODAY_ART,
+      id: `art-${i}`,
+      metadata: { prompt: `Picture ${i}`, stars_charged: 9 },
+    }));
+    mockApi(full);
+    renderPage();
+
+    const summary = await screen.findByTestId('gallery-summary');
+    // Honest header: the totals below describe this page only, not all time.
+    expect(summary).toHaveTextContent(`Showing the latest ${GALLERY_FETCH_LIMIT} pictures`);
+    expect(summary).toHaveTextContent(`${GALLERY_FETCH_LIMIT * 9}★ spent on these`);
+    // It must NOT claim a bare all-time count/spend.
+    expect(summary).not.toHaveTextContent(new RegExp(`^${GALLERY_FETCH_LIMIT} pictures`));
+  });
+
+  it('surfaces a notice instead of a fabricated name when the kid lookup fails', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/kids/kid-1') return Promise.reject(new Error('kid boom'));
+      if (path === IMAGES_PATH) return Promise.resolve([TODAY_ART]);
+      if (path.endsWith('/download-url'))
+        return Promise.resolve({ url: 'https://signed.example/img' });
+      return Promise.reject(new Error(`unmocked ${path}`));
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('kid-name-error')).toBeInTheDocument();
+    // Never invents a nickname — heading falls back to the surface name.
+    expect(screen.getByRole('heading', { name: 'Art Studio pictures' })).toBeInTheDocument();
+    expect(screen.queryByText(/Your kid’s pictures|Your kid's pictures/)).not.toBeInTheDocument();
+    // The pictures themselves still render.
+    await waitFor(() => expect(screen.getAllByTestId('image-card')).toHaveLength(1));
   });
 });
