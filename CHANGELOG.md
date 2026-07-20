@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio tool rail v2 + new-picture keeps the old artwork)
+
+### Changed
+- The left tool rail is TWO columns (owner feedback): column 1 = the tools,
+  column 2 = only the picked tool's options — sticker grid for the stamp tool,
+  colours for painting tools, and stroke-width preview DOTS (in the current
+  ink) at the top instead of floating "S M L" letters.
+- "+ new picture" now snapshots an unsaved drawing into My Pictures BEFORE
+  resetting the canvas (原先的也保留) — also the first save path for a drawing
+  that never summoned the AI.
+
 ## 2026-07-20 (feat: Airbotix brand mark on the Art Studio bottom bar)
 
 ### Added

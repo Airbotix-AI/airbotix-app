@@ -48,10 +48,13 @@ const COLORS = [
   '#8b5a2b',
   '#ffffff',
 ];
+// Sizes render as PREVIEW DOTS in the current ink colour (owner feedback
+// 2026-07-20: floating "S M L" letters read as unrelated buttons) — the dot IS
+// the stroke width the kid will get. Stamps scale off the same size (×8).
 const BRUSH_SIZES = [
-  { id: 6, label: 'S' },
-  { id: 14, label: 'M' },
-  { id: 28, label: 'L' },
+  { id: 6, label: 'S', dot: 'h-1.5 w-1.5' },
+  { id: 14, label: 'M', dot: 'h-2.5 w-2.5' },
+  { id: 28, label: 'L', dot: 'h-4 w-4' },
 ];
 const TOOLS: { id: ToolId; emoji: string; label: string }[] = [
   { id: 'pencil', emoji: '✏️', label: 'Pencil' },
@@ -420,6 +423,41 @@ export function ArtStudioPage() {
     );
   };
 
+  // The ops array whose pixels were last uploaded — identity comparison works
+  // because every edit replaces the array. Lets "+ new picture" skip a duplicate
+  // snapshot when nothing changed since the last save.
+  const savedOpsRef = useRef<CanvasOp[] | null>(null);
+  const [savingNew, setSavingNew] = useState(false);
+
+  // "+ new picture" KEEPS the old artwork (owner: 原先的也保留): an unsaved
+  // drawing is snapshotted into My Pictures before the canvas resets — this is
+  // also the only save path for a drawing that never summoned the AI.
+  const onNewPicture = async () => {
+    if (savingNew) return;
+    setError(null);
+    if (hasInk && savedOpsRef.current !== ops) {
+      setSavingNew(true);
+      try {
+        const projectId = await ensureSaveProject();
+        await uploadCanvas(projectId);
+        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data?.project_id] });
+      } catch {
+        setError("Couldn't save this picture — it stays on the canvas. Try again.");
+        setSavingNew(false);
+        return;
+      }
+      setSavingNew(false);
+    }
+    setOps([]);
+    setBaseArtifactId(null);
+    setGhostArtifactId(null);
+    setSketchTakeId(null);
+    setTakes([]);
+    setLastLook(null);
+    setMaskMode(false);
+    setMaskOps([]);
+  };
+
   // ── ③ ✨ bring to life (9★): upload the kid's canvas → ref-based magic ──
   const uploadCanvas = async (projectId: string): Promise<{ id: string }> => {
     const bucketId = projectId;
@@ -430,7 +468,7 @@ export function ArtStudioPage() {
       { method: 'POST', body: { kind: 'image', mime_type: 'image/png', size_bytes: blob.size } },
     );
     await fetch(sign.url, { method: 'PUT', headers: sign.headers, body: blob });
-    return api<{ id: string }>(`/projects/${bucketId}/artifacts`, {
+    const artifact = await api<{ id: string }>(`/projects/${bucketId}/artifacts`, {
       method: 'POST',
       body: {
         kind: 'image',
@@ -440,6 +478,8 @@ export function ArtStudioPage() {
         metadata: { source: 'canvas-sketch' },
       },
     });
+    savedOpsRef.current = ops;
+    return artifact;
   };
 
   const onMagic = async () => {
@@ -566,69 +606,92 @@ export function ArtStudioPage() {
 
       {/* main: tools / canvas / AI */}
       <div className="flex-1 flex min-h-0 gap-2 px-3 pb-1">
-        {/* left tool rail */}
-        <div className="flex flex-col gap-1.5 py-1" data-testid="tool-rail">
-          {TOOLS.map((t) => (
-            <button
-              key={t.id}
-              aria-label={t.label}
-              onClick={() => setTool(t.id)}
-              className={`w-11 h-11 rounded-2xl text-[20px] transition-colors ${
-                tool === t.id ? 'bg-grad-bubblegum shadow-brand-bubblegum' : 'bg-surface'
-              }`}
-            >
-              {t.id === 'stamp' ? stampEmoji : t.emoji}
-            </button>
-          ))}
-          <button
-            aria-label="Undo"
-            onClick={() => setOps(ops.slice(0, -1))}
-            disabled={!hasInk}
-            className="w-11 h-11 rounded-2xl text-[20px] bg-surface disabled:opacity-40"
-          >
-            ↩️
-          </button>
-          <div className="mt-1 flex flex-col gap-1">
-            {COLORS.map((c) => (
+        {/* left tool rail — TWO columns (owner feedback 2026-07-20: one long
+            column pushed colors/stickers off-screen). Column 1 = the tools;
+            column 2 = only the PICKED tool's options: colors for anything that
+            paints, sizes for anything with a width (stamps scale off brushSize
+            too), and the sticker grid for the stamp tool. */}
+        <div className="flex gap-2 py-1" data-testid="tool-rail">
+          <div className="flex flex-col gap-1.5">
+            {TOOLS.map((t) => (
               <button
-                key={c}
-                aria-label={`color ${c}`}
-                onClick={() => setColor(c)}
-                className={`w-8 h-8 mx-auto rounded-full border-2 ${
-                  color === c ? 'border-ink scale-110' : 'border-black/10'
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
-          <div className="mt-1 flex flex-col gap-1">
-            {BRUSH_SIZES.map((b) => (
-              <button
-                key={b.id}
-                onClick={() => setBrushSize(b.id)}
-                className={`w-8 h-8 mx-auto rounded-full text-[11px] font-bold ${
-                  brushSize === b.id ? 'bg-grad-bubblegum text-white' : 'bg-surface text-ink-soft'
+                key={t.id}
+                aria-label={t.label}
+                onClick={() => setTool(t.id)}
+                className={`w-11 h-11 rounded-2xl text-[20px] transition-colors ${
+                  tool === t.id ? 'bg-grad-bubblegum shadow-brand-bubblegum' : 'bg-surface'
                 }`}
               >
-                {b.label}
+                {t.id === 'stamp' ? stampEmoji : t.emoji}
               </button>
             ))}
+            <button
+              aria-label="Undo"
+              onClick={() => setOps(ops.slice(0, -1))}
+              disabled={!hasInk}
+              className="w-11 h-11 rounded-2xl text-[20px] bg-surface disabled:opacity-40"
+            >
+              ↩️
+            </button>
           </div>
-          {tool === 'stamp' && (
-            <div className="mt-1 flex flex-col gap-1">
-              {STAMPS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStampEmoji(s)}
-                  className={`w-8 h-8 mx-auto rounded-xl text-[16px] ${
-                    stampEmoji === s ? 'bg-wash-bubblegum' : ''
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
+          <div
+            className="flex w-[76px] flex-col gap-2 overflow-y-auto rounded-2xl bg-surface/60 p-1"
+            data-testid="tool-options"
+          >
+            {/* "how big" sits at the TOP, right beside the tool the kid just
+                picked — a dot previewing the exact stroke width in the current
+                ink (grey for the eraser). */}
+            {tool !== 'fill' && (
+              <div className="flex items-center justify-around">
+                {BRUSH_SIZES.map((b) => (
+                  <button
+                    key={b.id}
+                    aria-label={`size ${b.label}`}
+                    onClick={() => setBrushSize(b.id)}
+                    className={`grid h-8 w-[22px] place-items-center rounded-lg ${
+                      brushSize === b.id ? 'bg-wash-bubblegum ring-1 ring-brand-bubblegum' : ''
+                    }`}
+                  >
+                    <span
+                      className={`rounded-full border border-black/20 ${b.dot}`}
+                      style={{ backgroundColor: tool === 'eraser' ? '#94a3b8' : color }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+            {tool === 'stamp' && (
+              <div className="grid grid-cols-2 gap-1" data-testid="stamp-grid">
+                {STAMPS.map((s) => (
+                  <button
+                    key={s}
+                    aria-label={`sticker ${s}`}
+                    onClick={() => setStampEmoji(s)}
+                    className={`h-8 w-8 rounded-xl text-[16px] ${
+                      stampEmoji === s ? 'bg-wash-bubblegum ring-2 ring-brand-bubblegum' : ''
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            {tool !== 'eraser' && tool !== 'stamp' && (
+              <div className="grid grid-cols-2 gap-1">
+                {COLORS.map((c) => (
+                  <button
+                    key={c}
+                    aria-label={`color ${c}`}
+                    onClick={() => setColor(c)}
+                    className={`h-8 w-8 rounded-full border-2 ${
+                      color === c ? 'border-ink scale-110' : 'border-black/10'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* canvas */}
@@ -1021,17 +1084,11 @@ export function ArtStudioPage() {
           />
         ))}
         <button
-          onClick={() => {
-            setOps([]);
-            setBaseArtifactId(null);
-            setGhostArtifactId(null);
-            setSketchTakeId(null);
-            setTakes([]);
-            setLastLook(null);
-          }}
-          className="shrink-0 rounded-xl border-2 border-dashed border-ink-soft/40 px-3 py-2 text-[12px] font-bold text-ink-soft"
+          onClick={() => void onNewPicture()}
+          disabled={savingNew}
+          className="shrink-0 rounded-xl border-2 border-dashed border-ink-soft/40 px-3 py-2 text-[12px] font-bold text-ink-soft disabled:opacity-50"
         >
-          ＋ new picture
+          {savingNew ? '💾 saving…' : '＋ new picture'}
         </button>
       </div>
       {summary && <SessionSummary summary={summary} onClose={dismiss} />}
