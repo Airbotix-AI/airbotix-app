@@ -27,6 +27,26 @@ describe('Academy Year 3 native question visuals', () => {
     );
   });
 
+  it('renders a three-column movie program table as native HTML', () => {
+    const spec: AcademyRenderSpec = {
+      kind: 'schedule_table',
+      title: 'Movie program',
+      columns: ['Movie', 'Start time', 'Length'],
+      rows: [
+        ['Blue Sky', '10:00 am, 12:30 pm, 3:30 pm', '1 hour 37 mins'],
+        ['The King', '11:00 am, 2:15 pm, 6:00 pm', '1 hour 40 mins'],
+      ],
+    };
+    render(<AcademyQuestionVisual spec={spec} />);
+
+    expect(screen.getByRole('table', { name: 'Movie program' })).toHaveTextContent(
+      'Blue Sky10:00 am, 12:30 pm, 3:30 pm1 hour 37 mins',
+    );
+    expect(screen.getByRole('table', { name: 'Movie program' })).toHaveTextContent(
+      'The King11:00 am, 2:15 pm, 6:00 pm1 hour 40 mins',
+    );
+  });
+
   it('renders the joined cone and cylinder as native SVG', () => {
     render(
       <AcademyQuestionVisual spec={{ kind: 'joined_solids', solids: ['cone', 'cylinder'] }} />,

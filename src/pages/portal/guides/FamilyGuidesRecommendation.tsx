@@ -22,11 +22,12 @@ interface FamilyWithLocation {
 /**
  * Dashboard "Family Guides" recommendation block (parent-portal-family-guides-prd
  * §5.2): 2–3 recommended guides + "View all" to /portal/guides. Phase 1 rule is
- * the pure frontend selector `selectRecommendedGuides` — featured guides matching
- * the family's known city/state (from the family profile query) and the kids'
- * ages first, then remaining featured, then newest. Renders nothing while
- * loading, on error, or when the catalogue is empty so the Dashboard never
- * breaks over guides.
+ * the pure frontend selector `selectRecommendedGuides` — English guides first
+ * (D-PFG-05, the Portal is an English product; 中文 only back-fills when the
+ * English pool runs short), then featured guides matching the family's known
+ * city/state (from the family profile query) and the kids' ages, then remaining
+ * featured, then newest. Renders nothing while loading, on error, or when the
+ * catalogue is empty so the Dashboard never breaks over guides.
  */
 export function FamilyGuidesRecommendation({ familyId }: { familyId: string | null }) {
   const guides = useQuery<ResourceGuidesResponse>({

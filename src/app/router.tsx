@@ -33,6 +33,7 @@ import { GuidesPage } from '@/pages/portal/guides/GuidesPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
 import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
+import { KidImagesPage } from '@/pages/portal/KidImagesPage';
 import { FamilyNewPage } from '@/pages/portal/FamilyNewPage';
 import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
 import { RegisterPage } from '@/pages/portal/RegisterPage';
@@ -125,8 +126,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <FindClassesPage /> },
-      { path: 'dashboard', element: <DashboardPage /> },
+      // Dashboard is the default landing after login (QPCD-1 reversed 2026-07-20);
+      // Find a class lives at /portal/classes. /portal/dashboard redirects for old links.
+      { index: true, element: <DashboardPage /> },
+      { path: 'dashboard', element: <Navigate to="/portal" replace /> },
       { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
       { path: 'academy', element: <AcademyPage /> },
@@ -138,6 +141,8 @@ export const router = createBrowserRouter([
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
       { path: 'family/:kidId', element: <KidGrowthPage /> },
+      // Art Studio picture gallery — parent oversight (image-studio-prd.md D-IS-5).
+      { path: 'family/:kidId/images', element: <KidImagesPage /> },
       { path: 'family/:kidId/settings', element: <FamilyDetailPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'wallet/topup', element: <WalletTopupPage /> },

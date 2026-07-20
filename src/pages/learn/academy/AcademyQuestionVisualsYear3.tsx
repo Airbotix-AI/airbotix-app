@@ -52,6 +52,10 @@ function VisualCard({ children }: { children: React.ReactNode }) {
 }
 
 function ScheduleTable({ spec }: { spec: Spec<'schedule_table'> }) {
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${spec.columns.length}, minmax(0, 1fr))`,
+  } as const
+
   return (
     <VisualCard>
       <div
@@ -64,7 +68,8 @@ function ScheduleTable({ spec }: { spec: Spec<'schedule_table'> }) {
         </div>
         <div
           role="row"
-          className="grid grid-cols-[110px_1fr] bg-brand-sky/20 text-sm font-black text-brand-navy sm:grid-cols-[150px_1fr]"
+          className="grid bg-brand-sky/20 text-sm font-black text-brand-navy"
+          style={gridStyle}
         >
           {spec.columns.map((column) => (
             <span role="columnheader" key={column} className="px-3 py-2">
@@ -72,21 +77,26 @@ function ScheduleTable({ spec }: { spec: Spec<'schedule_table'> }) {
             </span>
           ))}
         </div>
-        {spec.rows.map(([time, activity]) => (
+        {spec.rows.map((row, rowIndex) => (
           <div
             role="row"
-            key={`${time}-${activity}`}
-            className="grid grid-cols-[110px_1fr] border-t border-brand-navy/20 text-sm sm:grid-cols-[150px_1fr] sm:text-base"
+            key={`${spec.title}-${rowIndex}`}
+            className="grid border-t border-brand-navy/20 text-sm sm:text-base"
+            style={gridStyle}
           >
-            <span role="cell" className="px-3 py-2 font-black text-brand-navy">
-              {time}
-            </span>
-            <span
-              role="cell"
-              className="border-l border-brand-navy/20 px-3 py-2 font-bold text-slate2"
-            >
-              {activity}
-            </span>
+            {row.map((cell, columnIndex) => (
+              <span
+                role="cell"
+                key={`${rowIndex}-${columnIndex}-${cell}`}
+                className={
+                  columnIndex === 0
+                    ? 'px-3 py-2 font-black text-brand-navy'
+                    : 'border-l border-brand-navy/20 px-3 py-2 font-bold text-slate2'
+                }
+              >
+                {cell}
+              </span>
+            ))}
           </div>
         ))}
       </div>

@@ -1,5 +1,147 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
+
+### Added
+- **`/portal/family/:kidId/images`** — parent-facing Art Studio picture gallery
+  (image-studio-prd.md D-IS-5): header totals (picture count, ★ spent summed from
+  `metadata.stars_charged`, last-created relative date), responsive image grid
+  grouped Today / This week / Earlier, click-through lightbox with the full
+  prompt + timestamp + star cost, and a client-side "Export prompts" CSV
+  (date,prompt,stars). Read-only oversight — deliberately no delete. Presigned
+  view URLs are requested lazily per card via the existing
+  `POST /projects/:id/artifacts/:artifactId/download-url`.
+- Kid Growth page links to the gallery ("Art Studio pictures — see what {kid}
+  made →") from its quick-links card.
+- Pure helpers in `kidImages.ts` (bucketing, totals, RFC-4180 CSV) + component
+  and unit tests (`KidImagesPage.test.tsx`, `kidImages.test.ts`).
+
+### Fixed
+- **Honest totals on a capped list.** The gallery now requests
+  `?kind=image&limit=200` (the backend's maximum page; its default is 40) and,
+  when the response comes back exactly that long, the header says
+  "Showing the latest 200 pictures · N★ spent on these" instead of presenting a
+  truncated count and star spend as if they were the all-time totals.
+- The `/kids/:id` lookup failure no longer falls back to the fabricated name
+  "Your kid" — the page shows a small notice and titles itself
+  "Art Studio pictures" until the real nickname loads.
+- `groupImages` / `gallerySummary` are memoised with `useMemo` so a 200-picture
+  gallery doesn't regroup and re-total on every render.
+
+## 2026-07-20 (feat: Art Studio tool rail v2 + new-picture keeps the old artwork)
+
+### Changed
+- The left tool rail is TWO columns (owner feedback): column 1 = the tools,
+  column 2 = only the picked tool's options — sticker grid for the stamp tool,
+  colours for painting tools, and stroke-width preview DOTS (in the current
+  ink) at the top instead of floating "S M L" letters.
+- "+ new picture" now snapshots an unsaved drawing into My Pictures BEFORE
+  resetting the canvas (原先的也保留) — also the first save path for a drawing
+  that never summoned the AI.
+
+## 2026-07-20 (feat: Airbotix brand mark on the Art Studio bottom bar)
+
+### Added
+- The takes strip carries the Airbotix logo + surface name at its left edge —
+  the immersive page hides the Learn nav, so the brand rides the bottom bar
+  exactly like the Music Stage transport (owner call).
+
+## 2026-07-20 (feat: Art Studio goes live — un-paused everywhere it shows)
+
+### Changed
+- Art Studio left the coming-soon list (owner call after the canvas-first
+  rebuild): the Create tab now shows it as a live card, and the Workspace
+  studio picker's Image card became a link-out to `/learn/create/image`
+  (same pattern as Music -> the Stage; `?studio=image` deep links drop to the
+  picker). The in-class create sheet keeps it excluded (`noClassSheet`) —
+  missions are the class path for art.
+
+## 2026-07-20 (fix: Portal default landing back to Dashboard)
+
+### Changed
+- **`/portal` (post-login default landing) is Dashboard again** — owner reversed QPCD-1
+  (portal-class-discovery-prd.md v0.5): classes-first landing was never an owner decision.
+  **Find a class** moves to `/portal/classes` (already its explicit path) and drops to
+  second place in the nav drawer; `/portal/dashboard` redirects to `/portal` so old
+  links keep working.
+## 2026-07-20 (fix: Dashboard guide picks are English-first)
+
+### Changed
+- **Dashboard "Picked for your family" recommendations are English-first** (D-PFG-05):
+  `selectRecommendedGuides` now ranks every `en-AU` guide above guides in other
+  languages — the featured/city/age tiers apply within each language band — so 中文
+  cards can no longer appear on the English Portal dashboard unless fewer than 3
+  English guides exist (back-fill keeps the block from going empty). Fixes the
+  2026-07-20 report of the dashboard surfacing 中文 guides on the English platform.
+
+## 2026-07-20 (feat: Family Guides default to English with an EN/中文 toggle)
+
+### Changed
+- `/portal/guides` now opens in **English by default** (D-PFG-04, resolves Q-PFG-3) with a
+  prominent **English / 中文 toggle** replacing the language dropdown; the default keeps the
+  URL clean while 中文 lands in `?language=zh-CN` like the other filters. Topic / location /
+  age select options are scoped to the active language so they never dead-end across
+  languages. Clear filters returns to the English catalogue.
+## 2026-07-20 (fix: portal course list only shows courses actually on sale — D-6)
+
+### Fixed
+- The Portal course list showed every `is_published` pack, which is the LEARNING-side flag.
+  Unpriced marketing drafts (and teaching-only packs like `ai-pet-lab-v1`, which is not a sold
+  course at all) appeared to parents with a "Request a seat" button. Worse, they were dead
+  ends: "See class times" calls `GET /courses/:slug/classes`, which 404s unless the course is
+  `marketing_published`, so the parent got "No classes are open for online purchase yet" and
+  was pushed back to the seat request — which then landed in the DB for a course with no price.
+  The list now requests `/course-packs?bookable=true` (taught AND on sale); the backend rejects
+  the enrolment independently.
+- The Portal query key is now `['course-packs', 'bookable']`. It previously shared
+  `['course-packs']` with the learn-side catalog, which lists every published pack — same key
+  with different filters would have let whichever page loaded first serve its cache to the other.
+
+## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
+
+### Changed
+- `/learn/create/image` joins IMMERSIVE_ROUTES + AUTO_FULLSCREEN_ROUTES (owner
+  call: 肯定是全屏,就跟 Story Blocks 一样) — Learn nav gone, no page scroll,
+  auto browser-fullscreen on entry, own exit via "← All tools".
+
+## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
+
+### Added
+- **My Characters** (image-studio-prd D-IS-23): name the active take → saved as a
+  character (artifact metadata); a 👤 picker in the takes strip puts any saved
+  character back on the canvas as the base — characters grow across sessions and
+  pair with the build-on-yours mission template.
+- **Use in my game** (D-IS-25, P4 v1): send the active take into one of your own
+  game/code projects as a VFS asset (`assets/art/…`, direct-to-S3 + reference
+  save — merge semantics, never clobbers the game). The Art Studio becomes the
+  platform's asset forge; Story Blocks import stays a cross-studio follow-up.
+- Canvas artifact pixels now load through the same-origin bytes proxy
+  (D-IS-24) — kills S3-CORS taint on paint-over chaining and powers the game
+  hand-off.
+
+## 2026-07-20 (feat: 🪄 magic brush — paint the spot, say what it becomes)
+
+### Added
+- Region editing (image-studio-prd D-IS-18 ④ / P3a): once a magic take is on the
+  canvas, the 🪄 Magic brush toggle lets the kid PAINT a pink highlight over the
+  region to change and say what it becomes ("a golden crown") — sent as a mask
+  (transparent = edit region) with the reference, one image-tier charge. The
+  result lands as a new take; the highlight is never part of the picture.
+
+## 2026-07-20 (feat: Art Studio P2 finish — draw-along, checklist look, story time)
+
+### Added
+- **Draw-along** (image-studio-prd D-IS-21): art missions can carry
+  `steps_json.art.draw_along` steps — the task card walks the kid through them
+  ("Step 1/3: a big circle for the body") and each step summons its own 2★
+  ghost underlay. The core teach-to-draw mechanic.
+- **Checklist-grounded 👀 look** (D-IS-20): with `steps_json.art.checklist`, the
+  look asks the coach to tick which task elements it can SEE and what's missing —
+  encouragement-only, element presence never quality.
+- **📖 Story time (ignition ⑤, D-IS-18)**: after a magic take, a 1★ button asks
+  the coach for a tiny story + name for the picture — the bridge toward Voice
+  Booth reading and storybooks.
+
 ## 2026-07-20 (feat: add Tiny Star Village A4-D)
 
 ### Added

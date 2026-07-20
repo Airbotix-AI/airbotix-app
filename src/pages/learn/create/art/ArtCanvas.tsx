@@ -45,6 +45,10 @@ interface ArtCanvasProps {
   exportIncludesBase: boolean;
   /** Hold-to-compare: when true, only white + base sketch shows (no ops hidden — ops ARE the kid's). */
   compareUrl: string | null;
+  /** Magic-brush mode (D-IS-18 ④): strokes go to maskOps and render as a pink highlight. */
+  maskMode: boolean;
+  maskOps: CanvasOp[];
+  onMaskOpsChange(ops: CanvasOp[]): void;
 }
 
 const LAZY_RADIUS = 14;
@@ -62,6 +66,9 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     templateUrl,
     exportIncludesBase,
     compareUrl,
+    maskMode,
+    maskOps,
+    onMaskOpsChange,
   },
   ref,
 ) {
@@ -123,20 +130,25 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
       ctx.restore();
     }
     const live = liveStroke.current;
-    const all: CanvasOp[] = live
-      ? [
-          ...ops,
-          {
-            kind: 'stroke',
-            tool: tool as BrushTool,
-            color,
-            size: brushSize,
-            points: live,
-          },
-        ]
-      : ops;
-    renderOps(ctx, all);
-  }, [ops, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
+    const liveOp: CanvasOp | null = live
+      ? { kind: 'stroke', tool: tool as BrushTool, color, size: brushSize, points: live }
+      : null;
+    renderOps(ctx, liveOp && !maskMode ? [...ops, liveOp] : ops);
+    // Magic-brush highlight (never part of the picture): pink glow over the
+    // region the kid wants changed.
+    const maskAll = liveOp && maskMode ? [...maskOps, liveOp] : maskOps;
+    if (maskAll.length) {
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      renderOps(
+        ctx,
+        maskAll.map((m) =>
+          m.kind === 'stroke' ? { ...m, tool: 'marker', color: '#f277c3' } : m,
+        ),
+      );
+      ctx.restore();
+    }
+  }, [ops, maskOps, maskMode, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
 
   useEffect(() => {
     draw();
@@ -162,11 +174,11 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     if (compareUrl) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const [x, y] = toLogical(e);
-    if (tool === 'stamp') {
+    if (!maskMode && tool === 'stamp') {
       onOpsChange([...ops, { kind: 'stamp', emoji: stampEmoji, x, y, size: brushSize * 8 }]);
       return;
     }
-    if (tool === 'fill') {
+    if (!maskMode && tool === 'fill') {
       onOpsChange([...ops, { kind: 'fill', color, x, y }]);
       return;
     }
@@ -196,10 +208,15 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     const live = liveStroke.current;
     liveStroke.current = null;
     if (live && live.length > 1) {
-      onOpsChange([
-        ...ops,
-        { kind: 'stroke', tool: tool as BrushTool, color, size: brushSize, points: live },
-      ]);
+      const op: CanvasOp = {
+        kind: 'stroke',
+        tool: maskMode ? 'marker' : (tool as BrushTool),
+        color,
+        size: maskMode ? Math.max(brushSize, 20) : brushSize,
+        points: live,
+      };
+      if (maskMode) onMaskOpsChange([...maskOps, op]);
+      else onOpsChange([...ops, op]);
     } else {
       scheduleDraw();
     }

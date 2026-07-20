@@ -56,6 +56,26 @@ export function languageLabel(language: string): string {
   return LANGUAGE_LABELS[language] ?? language;
 }
 
+/**
+ * The catalogue language `/portal/guides` opens in when the URL carries no
+ * `language` param (D-PFG-04: English-first, with a visible 中文 toggle).
+ */
+export const DEFAULT_GUIDE_LANGUAGE = 'en-AU';
+
+// Toggle order: English first (the default), then 中文, then anything new the
+// manifest grows — so an unexpected language never becomes unreachable.
+const LANGUAGE_TOGGLE_ORDER = ['en-AU', 'zh-CN'];
+
+/** Languages present in the catalogue, ordered for the EN/中文 toggle. */
+export function languageToggleOptions(items: ResourceGuideItem[]): string[] {
+  const present = [...new Set(items.map((item) => item.language))];
+  const preferred = LANGUAGE_TOGGLE_ORDER.filter((language) => present.includes(language));
+  const extras = present
+    .filter((language) => !LANGUAGE_TOGGLE_ORDER.includes(language))
+    .sort((a, b) => a.localeCompare(b));
+  return [...preferred, ...extras];
+}
+
 /** Active filter state — `null` means "all" for that dimension. */
 export interface GuideFilters {
   category: string | null;
@@ -177,11 +197,22 @@ const byNewestVerified = (a: ResourceGuideItem, b: ResourceGuideItem): number =>
 
 export const RECOMMENDED_GUIDE_COUNT = 3;
 
+// One past the last same-language tier (0–4), so ANY guide in the preferred
+// language outranks EVERY guide in another language.
+const LANGUAGE_TIER_OFFSET = 5;
+
 /**
- * Phase 1 dashboard recommendation rule (PRD §5.2, frontend-only): among
- * `featured` guides, prefer entries matching the family's known city/state
- * (`locations`) and the kids' ages (`ageStages`), city above age — mirroring
- * the §6 Phase 2 backend ordering (城市匹配 > 年龄段匹配):
+ * Phase 1 dashboard recommendation rule (PRD §5.2, frontend-only).
+ *
+ * Language first (D-PFG-05): the Portal is an English product, so guides in
+ * `preferredLanguage` (default `en-AU`, D-PFG-04) always rank above other
+ * languages — a 中文 guide can only appear when fewer than `count` English
+ * guides exist, keeping the block full rather than empty.
+ *
+ * Within each language band, among `featured` guides prefer entries matching
+ * the family's known city/state (`locations`) and the kids' ages
+ * (`ageStages`), city above age — mirroring the §6 Phase 2 backend ordering
+ * (城市匹配 > 年龄段匹配):
  * 1. featured + location match + age match,
  * 2. featured + location match,
  * 3. featured + age match,
@@ -197,15 +228,17 @@ export function selectRecommendedGuides(
   kidAges: number[],
   familyLocation: FamilyLocation = NO_FAMILY_LOCATION,
   count: number = RECOMMENDED_GUIDE_COUNT,
+  preferredLanguage: string = DEFAULT_GUIDE_LANGUAGE,
 ): ResourceGuideItem[] {
   const tier = (item: ResourceGuideItem): number => {
-    if (!item.featured) return 4;
+    const languageOffset = item.language === preferredLanguage ? 0 : LANGUAGE_TIER_OFFSET;
+    if (!item.featured) return languageOffset + 4;
     const locationMatch = matchesFamilyLocation(item, familyLocation);
     const ageMatch = overlapsKidAges(item, kidAges);
-    if (locationMatch && ageMatch) return 0;
-    if (locationMatch) return 1;
-    if (ageMatch) return 2;
-    return 3;
+    if (locationMatch && ageMatch) return languageOffset;
+    if (locationMatch) return languageOffset + 1;
+    if (ageMatch) return languageOffset + 2;
+    return languageOffset + 3;
   };
   return [...items].sort((a, b) => tier(a) - tier(b) || byNewestVerified(a, b)).slice(0, count);
 }

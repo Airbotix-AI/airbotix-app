@@ -9,4 +9,4 @@
  * the top-bar "Lessons" entry, the home "Guided courses" card, the classroom
  * empty-state CTA and the /learn/missions routes — nothing was deleted.
  */
-export const SHOW_LESSONS_CATALOG = false;
+export const SHOW_LESSONS_CATALOG = true; // LOCAL DEMO ONLY — do not commit
