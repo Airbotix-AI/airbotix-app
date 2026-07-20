@@ -17,6 +17,8 @@ const {
   generateRealSongMock,
   renderScoreMock,
   triggerBlobDownloadMock,
+  requestGhostRiffMock,
+  requestRiffAdviceMock,
 } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
@@ -40,6 +42,8 @@ const {
   generateRealSongMock: vi.fn(),
   renderScoreMock: vi.fn(),
   triggerBlobDownloadMock: vi.fn(),
+  requestGhostRiffMock: vi.fn(),
+  requestRiffAdviceMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -70,6 +74,11 @@ vi.mock('./offlineRender', async (orig) => ({
 // Legacy audio-artifact fallback pulls in wavesurfer — irrelevant here.
 vi.mock('../MusicTrackList', () => ({
   MusicTrackList: () => <div data-testid="legacy-track-list" />,
+}));
+// Riff tutor network calls (§5A D-MS13) — pure fetch wrappers, stubbed here.
+vi.mock('./riffTutorApi', () => ({
+  requestGhostRiff: requestGhostRiffMock,
+  requestRiffAdvice: requestRiffAdviceMock,
 }));
 
 import { MusicStagePane } from './MusicStagePane';
@@ -938,5 +947,77 @@ describe('MusicStagePane — diff chips (§5A D-MS12)', () => {
   it('renders no chip row on the very first take', () => {
     renderPane([userMsg('a song'), scoreMsg(SCORE_V1)]);
     expect(screen.queryByTestId('diff-chips')).not.toBeInTheDocument();
+  });
+});
+
+// ── §5A D-MS13 P2a: the tutor (👻 ghost underlay + 👂 listen) ────
+
+describe('MusicStagePane — riff tutor (§5A D-MS13)', () => {
+  it('👻 requests a ghost with the typed idea and renders it as a faint, erasable underlay', async () => {
+    requestGhostRiffMock.mockResolvedValue({
+      riff: {
+        tempo: 100,
+        key: 'C major',
+        tracks: [
+          {
+            instrument: 'guitar',
+            role: 'lead',
+            notes: [
+              { time: 0, note: 'C4', duration: '8n' },
+              { time: 1, note: 'E4', duration: '8n' },
+            ],
+          },
+        ],
+      },
+      stars_charged: 2,
+      balance_after: 48,
+    });
+    renderPane([]);
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    fireEvent.change(screen.getByTestId('composer-input'), { target: { value: 'space idea' } });
+    fireEvent.click(screen.getByTestId('riff-ghost'));
+    await waitFor(() => expect(requestGhostRiffMock).toHaveBeenCalledWith('space idea'));
+    // Ghost cells render as the faint layer (C4 = melody row 7; steps 0 and 2).
+    await waitFor(() =>
+      expect(screen.getByTestId('riff-cell-m-7-0')).toHaveAttribute('data-ghost', 'true'),
+    );
+    expect(screen.getByTestId('riff-cell-m-5-2')).toHaveAttribute('data-ghost', 'true');
+    // The kid's own tap WINS the pixel — tracing turns ghost into a real note.
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    expect(screen.getByTestId('riff-cell-m-7-0')).not.toHaveAttribute('data-ghost');
+    expect(screen.getByTestId('riff-count')).toHaveTextContent('1 notes');
+    // One tap hides the tutor's layer — erasable, never sticky (iron rule 2).
+    fireEvent.click(screen.getByTestId('riff-ghost-dismiss'));
+    expect(screen.getByTestId('riff-cell-m-5-2')).not.toHaveAttribute('data-ghost');
+  });
+
+  it('👂 sends the kid’s riff and voices the ONE suggestion through the AI bubble', async () => {
+    requestRiffAdviceMock.mockResolvedValue({
+      advice: 'Try moving one note to the off-beat!',
+      stars_charged: 1,
+      balance_after: 49,
+    });
+    renderPane([]);
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    // Empty pad → nothing for the tutor to listen to.
+    expect(screen.getByTestId('riff-advice')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-advice'));
+    await waitFor(() => expect(requestRiffAdviceMock).toHaveBeenCalledTimes(1));
+    const sentRiff = requestRiffAdviceMock.mock.calls[0][0];
+    expect(sentRiff.tracks[0].notes[0]).toEqual({ time: 0, note: 'C4', duration: '8n' });
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-bubble')).toHaveTextContent(
+        'Try moving one note to the off-beat!',
+      ),
+    );
+  });
+
+  it('AC-8: unaffordable tutor clicks never reach the backend', () => {
+    renderPane([], 1); // 1⭐ < ghost 2⭐
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    fireEvent.click(screen.getByTestId('riff-ghost'));
+    expect(requestGhostRiffMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Not enough Stars');
   });
 });

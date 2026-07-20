@@ -37,10 +37,13 @@ import {
   emptyRiff,
   riffToSeedScore,
   seedToPlayableScore,
+  seedToRiffGrid,
   toggleRiffCell,
   RIFF_TEMPO,
+  type RiffGrid,
   type RiffSection,
 } from './riffPad';
+import { requestGhostRiff, requestRiffAdvice } from './riffTutorApi';
 import {
   INSTRUMENT_META,
   type InstrumentKind,
@@ -63,9 +66,14 @@ import {
   REAL_SONG_DONE_BUBBLE,
   REAL_SONG_FAILED_BUBBLE,
   REWRITE_VERSION_TAG,
+  RIFF_ADVICE_COST_STARS,
   RIFF_COMPOSE_SUBTITLE,
   RIFF_DEFAULT_PROMPT,
+  RIFF_GHOST_COST_STARS,
+  RIFF_GHOST_DEFAULT_IDEA,
+  RIFF_TUTOR_FAILED_BUBBLE,
   RIFF_VERSION_TAG,
+  riffTutorOutOfStarsBubble,
   rerollVersionTag,
   SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
@@ -164,6 +172,42 @@ export function MusicStagePane({
   // is a singleton, so audition swaps the played score rather than adding a
   // second engine.
   const [audition, setAudition] = useState<'pad' | 'seed' | null>(null);
+  // 👻 The tutor's faint starter underlay (§5A D-MS13) — a separate LAYER the
+  // kid traces over or hides; it never becomes the kid's notes by itself.
+  const [ghost, setGhost] = useState<RiffGrid | null>(null);
+
+  const ghostMut = useMutation({
+    mutationFn: (idea: string) => requestGhostRiff(idea),
+    onSuccess: (res) => {
+      setGhost(seedToRiffGrid(res.riff));
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : RIFF_TUTOR_FAILED_BUBBLE,
+      ),
+  });
+
+  const adviceMut = useMutation({
+    mutationFn: () => {
+      const seed = riffToSeedScore(riff);
+      if (!seed) throw new Error('empty riff');
+      return requestRiffAdvice(seed);
+    },
+    onSuccess: (res) => {
+      // The tutor's voice IS the AI bubble — one grounded suggestion (D-MS13).
+      setBubbleOverride(res.advice);
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : RIFF_TUTOR_FAILED_BUBBLE,
+      ),
+  });
 
   const pendingRef = useRef<VersionMeta | null>(null);
   const lastPromptRef = useRef<string | null>(null);
@@ -640,6 +684,25 @@ export function MusicStagePane({
             ? stepIndexAt(playback.position, RIFF_TEMPO)
             : null
         }
+        ghost={ghost}
+        onGhost={() => {
+          // AC-8 discipline: an unaffordable click never reaches the backend.
+          if (balance < RIFF_GHOST_COST_STARS) {
+            setBubbleOverride(riffTutorOutOfStarsBubble(RIFF_GHOST_COST_STARS, balance));
+            return;
+          }
+          ghostMut.mutate(input.trim() || RIFF_GHOST_DEFAULT_IDEA);
+        }}
+        onDismissGhost={() => setGhost(null)}
+        ghostBusy={ghostMut.isPending}
+        onAdvice={() => {
+          if (balance < RIFF_ADVICE_COST_STARS) {
+            setBubbleOverride(riffTutorOutOfStarsBubble(RIFF_ADVICE_COST_STARS, balance));
+            return;
+          }
+          adviceMut.mutate();
+        }}
+        adviceBusy={adviceMut.isPending}
       />
     ) : null;
 

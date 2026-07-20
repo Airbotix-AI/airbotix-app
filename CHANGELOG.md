@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
+
+### Added
+- **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−2⭐, price
+  tag on it) sends the composer idea (or a default) to `POST /llm/riff-ghost`; the
+  tutor's starter renders as a FAINT dashed underlay (`data-ghost`) strictly BELOW
+  the kid's notes — tracing a ghost cell turns it into the kid's own note, and
+  "👻 Hide ghost" erases the layer in one tap (D-IS-18 iron rules: summoned-only,
+  subordinate, erasable). Off-grid ghost notes are silently ignored
+  (`seedToRiffGrid`).
+- **👂 Listen (听一听)** — one button (−1⭐) sends the kid's ACTUAL riff to
+  `POST /llm/riff-advice`; the tutor's single note-grounded suggestion is voiced
+  through the AI bubble. Disabled while the pad is empty. AC-8 star gates on both
+  buttons (an unaffordable click never reaches the backend).
+
 ## 2026-07-20 (feat: Riff Pad — the kid's hand first, music-stage §5A P1)
 
 ### Added
