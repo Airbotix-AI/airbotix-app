@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Page } from './blocksModel';
-import { BlocksRunner, type SpriteHost, type SpriteState } from './interpreter';
+import { BlocksRunner, spritesTouch, type SpriteHost, type SpriteState } from './interpreter';
 
 const instantSleep = () => Promise.resolve();
 
@@ -38,6 +38,27 @@ function recordingHost() {
   };
   return { host, sprite, says, notes, sounds, pops: () => sounds.length, gotoPage: () => gotoPage };
 }
+
+describe('spritesTouch', () => {
+  const state = (gx: number, size = 1, visible = true): SpriteState => ({
+    gx,
+    gy: 5,
+    size,
+    rot: 0,
+    visible,
+  });
+
+  it('preserves the one-grid contact rule for default-size characters', () => {
+    expect(spritesTouch(state(0), state(0.99))).toBe(true);
+    expect(spritesTouch(state(0), state(1))).toBe(false);
+  });
+
+  it('gives a larger character a larger foot-zone without using its full visual square', () => {
+    expect(spritesTouch(state(0, 2.6), state(1.25))).toBe(true);
+    expect(spritesTouch(state(0, 2.6), state(1.4))).toBe(false);
+    expect(spritesTouch(state(0, 2.6, false), state(0.5))).toBe(false);
+  });
+});
 
 describe('BlocksRunner', () => {
   it('runs a 🚩 script sequentially: moves, says, clamps to the grid', async () => {

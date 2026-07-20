@@ -10,6 +10,10 @@ import { refreshAccessToken } from '@/lib/api';
 import { getSocket } from '@/lib/ws';
 import { useAuthStore } from './authStore';
 
+export function skipsAuthBootstrap(pathname: string): boolean {
+  return pathname.startsWith('/try/') || pathname.startsWith('/experiments/story-blocks/');
+}
+
 export function useBootstrap(): void {
   useEffect(() => {
     let cancelled = false;
@@ -17,7 +21,7 @@ export function useBootstrap(): void {
       // Public demo routes (/try/*) are anonymous BY DESIGN (try-demo-mode-prd
       // D-DEMO-01/02): skip the refresh attempts entirely — for the demo's
       // audience the two guaranteed 401s are nothing but scary console noise.
-      if (window.location.pathname.startsWith('/try/')) {
+      if (skipsAuthBootstrap(window.location.pathname)) {
         useAuthStore.getState().setBootstrapped(true);
         return;
       }

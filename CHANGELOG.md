@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Added a development-only Journey to the West C1 runtime preview that uses the real Story Blocks parser, runner, editor, Flower Fruit Mountain background, and Stone Monkey asset without backend or production-data writes.
+
 ## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
 
 ### Added

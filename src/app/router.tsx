@@ -93,6 +93,7 @@ import { PublicPlayPage } from '@/pages/play/PublicPlayPage';
 // tour overlay) — like /play/:shareId, deliberately NOT under <ProtectedRoute>.
 import { TryBlocksPage } from '@/pages/try/TryBlocksPage';
 import { TryPlaygroundPage } from '@/pages/try/TryPlaygroundPage';
+import { JourneyToWestC1PreviewPage } from '@/pages/experiments/JourneyToWestC1PreviewPage';
 
 export const router = createBrowserRouter([
   // Root redirect based on principal kind
@@ -111,7 +112,13 @@ export const router = createBrowserRouter([
   // DEV-only engine sandbox — verify the real 2D/3D runtime in a browser. Excluded
   // from the route table in production builds (learn-game-studio-3d-prd.md M3D-2).
   ...(import.meta.env.DEV
-    ? [{ path: '/playground-sandbox', element: <EngineSandboxDevPage /> }]
+    ? [
+        { path: '/playground-sandbox', element: <EngineSandboxDevPage /> },
+        {
+          path: '/experiments/story-blocks/journey-to-the-west/c1',
+          element: <JourneyToWestC1PreviewPage />,
+        },
+      ]
     : []),
 
   // Portal — parent surface

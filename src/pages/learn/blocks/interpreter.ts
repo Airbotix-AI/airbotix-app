@@ -48,6 +48,19 @@ const MAX_EVENT_LAUNCHES = 80; // safety cap on message/bump-triggered scripts p
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+const collisionRadius = (size: number) => 0.5 * Math.sqrt(clamp(size, 0.3, 3));
+
+/**
+ * A simple foot-zone collision for the grid runtime. Size 1 keeps the original
+ * one-grid contact rule; larger visuals gain reach without treating their full
+ * transparent square as a collider.
+ */
+export function spritesTouch(a: SpriteState, b: SpriteState): boolean {
+  if (!a.visible || !b.visible) return false;
+  const reach = collisionRadius(a.size) + collisionRadius(b.size);
+  return Math.abs(a.gx - b.gx) < reach && Math.abs(a.gy - b.gy) < reach;
+}
+
 export class BlocksRunner {
   private stopped = false;
   private stoppedChars = new Set<string>();
@@ -124,7 +137,7 @@ export class BlocksRunner {
       const b = this.states.get(other.id);
       if (!b) continue;
       const key = [mover.id, other.id].sort().join('|');
-      const overlap = a.visible && b.visible && Math.abs(a.gx - b.gx) < 1 && Math.abs(a.gy - b.gy) < 1;
+      const overlap = spritesTouch(a, b);
       if (overlap) {
         if (!this.touching.has(key)) {
           this.touching.add(key);
@@ -142,14 +155,7 @@ export class BlocksRunner {
     if (!targetId || targetId === charId) return false;
     const a = this.states.get(charId);
     const b = this.states.get(targetId);
-    return Boolean(
-      a &&
-        b &&
-        a.visible &&
-        b.visible &&
-        Math.abs(a.gx - b.gx) < 1 &&
-        Math.abs(a.gy - b.gy) < 1,
-    );
+    return Boolean(a && b && spritesTouch(a, b));
   }
 
   /** Run a tapped character's 👆 scripts. */
