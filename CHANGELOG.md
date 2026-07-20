@@ -68,6 +68,12 @@
   the coach for a tiny story + name for the picture — the bridge toward Voice
   Booth reading and storybooks.
 
+## 2026-07-20 (feat: add Tiny Star Village A4-D)
+
+### Added
+- Added Mission 15 with a required overshoot observation and a locked number-only
+  `Right 4` to `Right 3` repair before saved rerun completion.
+
 ## 2026-07-19 (feat: Portal Family Guides discovery layer)
 
 ### Added

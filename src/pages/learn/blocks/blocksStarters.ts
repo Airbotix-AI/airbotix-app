@@ -98,4 +98,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 14',
     desc: 'Change only the breakfast cart number from 1 to 3, save it, then run the real cart exactly to the table.',
   },
+  {
+    id: 'blocks_tsv_a4_d',
+    emoji: '🚙',
+    title: 'Tiny Star Village · Mission 15',
+    desc: 'Run the cart to see it overshoot, choose less, then change only Right 4 to Right 3 and test the saved repair.',
+  },
 ];

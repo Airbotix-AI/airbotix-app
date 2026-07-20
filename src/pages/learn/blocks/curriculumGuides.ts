@@ -875,6 +875,24 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '3️⃣', label: 'Right 3', order: 'Build' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '🍽️', label: 'At table', order: 'Run' }],
     completionWhy: 'The server-saved Start → Right 3 → End program ran from space 4 and finished at space 7.', next: 'Next, repair an overshoot by changing only its distance.',
   },
+  'tsv-s1-a4-d': {
+    mode: 'observe-fix', lessonId: 'tsv-s1-a4-d', celebrate: true,
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 4 · Mission 15', title: 'The cart went too far!',
+    storyPages: [
+      { emoji: '🚙✨', title: 'Breakfast starts moving', body: 'The saved delivery worked, but a windy sparkle changed Right 3 into Right 4.', speaker: 'Breakfast Cart', dialogue: 'I will test before guessing.', scene: 1 },
+      { emoji: '🍽️…🚙', title: 'Watch the first run', body: 'The table is at space 7. Run Right 4 from space 4 and watch the cart pass it to space 8.', speaker: 'Lumilo', dialogue: 'Does the number need more or less?', scene: 3, blocks: ['🚩 Start', '➡️ Right 4 → End'] },
+      { emoji: '4️⃣→3️⃣', title: 'Repair one number', body: 'Choose less, keep every block in place, and change only 4 to 3. Save and run again.', speaker: 'Breakfast Cart', dialogue: 'Right 3 stops beside breakfast.', scene: 5 },
+    ],
+    partnerLine: 'A number that is one too big carries the cart one space too far.',
+    mission: 'Press Go first. After the cart overshoots, choose less and change only Right 4 to Right 3.',
+    question: 'The cart passed the table. Does its number need more or less?', choices: [{ id: 'more', label: 'More', correct: false }, { id: 'less', label: 'Less', correct: true }],
+    retry: 'Run Right 4 first. Space 8 is past the table at space 7.', successTitle: 'You found the overshoot!', success: 'Four was one too many, so the distance needs less.',
+    fixTitle: 'Repair one number', fixPrompt: 'Keep Start, Right, and End. Tap 4 and choose 3.', workspaceIntro: 'Run the bug first. Then only the Right number can change.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Press Go and watch where Right 4 stops.', watch: 'The cart passed space 7 and stopped at 8.', sayFirst: 'Predict more or less after the first run.', sayThen: 'Less makes 4 become 3.', hopFirst: 'Keep every block in place.', hopThen: 'Only the distance number changes.', retry: 'First run Right 4, then choose less.', fix: 'Now tap the 4 and choose 3.', test: 'Saved? Run the repaired cart.', saving: 'The cart stopped at breakfast. Saving the repair…', complete: 'You fixed the overshoot with one parameter!' },
+    logicSteps: [{ icon: '▶️', label: 'Run 4', order: 'Observe' }, { icon: '➖', label: 'Choose less', order: 'Predict' }, { icon: '3️⃣', label: 'Right 3', order: 'Repair' }], logicWhy: 'Right 4 ends at space 8; reducing it to Right 3 ends at the table on space 7.',
+    completionTitle: 'Overshoot repaired! 🚙🍽️', completion: 'You observed the bug, changed only its distance, saved, and reran the real cart.', completionSteps: [{ icon: '8️⃣', label: 'Overshoot', order: 'See' }, { icon: '3️⃣', label: 'Distance', order: 'Fix' }, { icon: '🍽️', label: 'At table', order: 'Run' }], completionWhy: 'The server-saved Start → Right 3 → End repair ran from space 4 to space 7 after the original Right 4 run reached space 8.', next: 'Continue to A4-S and choose your own delivery stop.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

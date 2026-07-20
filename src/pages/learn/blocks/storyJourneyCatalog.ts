@@ -76,6 +76,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     missions: [
       { template: 'blocks_tsv_a4_h', lessonId: 'tsv-s1-a4-h', number: 13, title: 'How far is breakfast?', action: 'Try' },
       { template: 'blocks_tsv_a4_b', lessonId: 'tsv-s1-a4-b', number: 14, title: 'How many spaces?', action: 'Build' },
+      { template: 'blocks_tsv_a4_d', lessonId: 'tsv-s1-a4-d', number: 15, title: 'The cart went too far', action: 'Fix' },
     ],
   },
   {
