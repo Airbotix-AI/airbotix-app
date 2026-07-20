@@ -180,6 +180,21 @@ export const RIFF_CTA_EXIT_LABEL = '⌨️ Type an idea instead';
 /** Backend prompt is required (min 1 char); used when the kid types nothing. */
 export const RIFF_DEFAULT_PROMPT = 'A song built from my own riff';
 
+// ─── Riff Pad tutor (§5A D-MS13, P2a) ────────────────────────────────────────
+// Display/gate constants only — the backend Model rows charge (music-ghost /
+// kids-default text turn).
+// OQ-8 closed (owner 2026-07-20 「价格star可以涨」): 3★ — above the art
+// ghost-sketch, still the cheapest AI music action (compose is 5★).
+export const RIFF_GHOST_COST_STARS = 3;
+export const RIFF_ADVICE_COST_STARS = 1;
+/** Ghost idea when the composer input is empty — the backend requires ≥1 char. */
+export const RIFF_GHOST_DEFAULT_IDEA = 'a happy little tune';
+export const RIFF_TUTOR_FAILED_BUBBLE =
+  'The music tutor is having a nap and no Stars were charged — try again in a moment!';
+export function riffTutorOutOfStarsBubble(cost: number, balance: number): string {
+  return `⭐ Not enough Stars — that costs ${cost}⭐ and you have ${balance}⭐. Finish a mission to earn more!`;
+}
+
 /** Inspiration chips (mockup). The emoji stays in the chip, not the prompt. */
 export const IDEA_CHIPS: { emoji: string; prompt: string }[] = [
   { emoji: '🚀', prompt: 'A space puppy going on a big adventure' },
