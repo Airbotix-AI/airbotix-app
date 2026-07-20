@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-20 (feat: Airbotix brand mark on the Art Studio bottom bar)
+
+### Added
+- The takes strip carries the Airbotix logo + surface name at its left edge —
+  the immersive page hides the Learn nav, so the brand rides the bottom bar
+  exactly like the Music Stage transport (owner call).
+
 ## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
 
 ### Added

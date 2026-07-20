@@ -222,6 +222,9 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
     expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
+    // brand mark rides the bottom bar like the Music Stage (immersive page has no nav)
+    expect(screen.getByTestId('studio-brand')).toBeInTheDocument();
+    expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
     expect(screen.getByRole('button', { name: /Sketch it for me −2★/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Coach, look! −1★/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Bring it to life! −9★/ })).toBeInTheDocument();
