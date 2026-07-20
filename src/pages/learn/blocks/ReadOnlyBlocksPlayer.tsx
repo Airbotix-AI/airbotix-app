@@ -19,6 +19,7 @@ import './blocks.css';
 import { CharacterVisual } from './CharacterVisual';
 import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
+import { speechBubbleStyle } from './spriteLayout';
 
 export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
   const [pageIndex, setPageIndex] = useState(0);
@@ -122,16 +123,15 @@ export function ReadOnlyBlocksPlayer({ project }: { project: BlocksProject }) {
                 {say && (
                   <div
                     className="bsx-say"
-                    style={{
-                      left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
-                      top: `${((st.gy - 0.9) / GRID_H) * 100}%`,
-                    }}
+                    data-testid={`play-speech-bubble-${c.id}`}
+                    style={speechBubbleStyle(st, Boolean(c.asset))}
                   >
                     {say}
                   </div>
                 )}
                 <div
                   data-testid={`play-sprite-${c.id}`}
+                  data-character-id={c.id}
                   className="bsx-sprite"
                   style={{
                     cursor: 'pointer',

@@ -215,7 +215,8 @@ export const SCENES: SceneChoice[] = [
 ];
 
 const SCENE_IDS = new Set(SCENES.map((s) => s.id));
+const FIRST_PARTY_STORY_SCENE_IDS = new Set(['jtw-s1-c1-flower-fruit-stone']);
 /** Map any stored background to a known scene id (older docs used 'meadow'/'space'). */
 export function sceneId(bg: string | undefined): string {
-  return bg && SCENE_IDS.has(bg) ? bg : 'meadow';
+  return bg && (SCENE_IDS.has(bg) || FIRST_PARTY_STORY_SCENE_IDS.has(bg)) ? bg : 'meadow';
 }

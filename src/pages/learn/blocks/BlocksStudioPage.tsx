@@ -68,6 +68,7 @@ import { CharacterVisual } from './CharacterVisual';
 import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
+import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
@@ -1662,16 +1663,15 @@ export function BlocksStudioPage({
                   {say && (
                     <div
                       className="bsx-say"
-                      style={{
-                        left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
-                        top: `${((st.gy - 0.9) / GRID_H) * 100}%`,
-                      }}
+                      data-testid={`speech-bubble-${c.id}`}
+                      style={speechBubbleStyle(st, Boolean(c.asset))}
                     >
                       {say}
                     </div>
                   )}
                   <div
                     data-testid={`sprite-${c.id}`}
+                    data-character-id={c.id}
                     data-gx={st.gx}
                     data-gy={st.gy}
                     className={`bsx-sprite${dragging === c.id ? ' dragging' : ''}`}
