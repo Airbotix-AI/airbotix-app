@@ -893,6 +893,24 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '▶️', label: 'Run 4', order: 'Observe' }, { icon: '➖', label: 'Choose less', order: 'Predict' }, { icon: '3️⃣', label: 'Right 3', order: 'Repair' }], logicWhy: 'Right 4 ends at space 8; reducing it to Right 3 ends at the table on space 7.',
     completionTitle: 'Overshoot repaired! 🚙🍽️', completion: 'You observed the bug, changed only its distance, saved, and reran the real cart.', completionSteps: [{ icon: '8️⃣', label: 'Overshoot', order: 'See' }, { icon: '3️⃣', label: 'Distance', order: 'Fix' }, { icon: '🍽️', label: 'At table', order: 'Run' }], completionWhy: 'The server-saved Start → Right 3 → End repair ran from space 4 to space 7 after the original Right 4 run reached space 8.', next: 'Continue to A4-S and choose your own delivery stop.',
   },
+  'tsv-s1-a4-s': {
+    mode: 'complete', lessonId: 'tsv-s1-a4-s', celebrate: true,
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 4 · Mission 16', title: 'Where should breakfast stop?',
+    storyPages: [
+      { emoji: '🌅🚙', title: 'The village is waking', body: 'Lumilo, Tuan Tuan, and Dot Dot are waiting for one last delivery before they say good morning.', speaker: 'Lumilo', dialogue: 'You can choose where the cart stops.', scene: 1 },
+      { emoji: '🍎🎁⭐', title: 'Three useful stops', body: 'Apple breakfast is one space away, gift breakfast is two, and star breakfast is three.', speaker: 'Breakfast Cart', dialogue: 'My number must match your stop.', scene: 3, blocks: ['🚩 Start', '➡️ Right ? → End'] },
+      { emoji: '🚙🍽️💬', title: 'Deliver, then listen', body: 'Choose a stop, set the matching number, save, and run. The friends gather beside the delivered breakfast—then all begin speaking at once.', speaker: 'Dot Dot', dialogue: 'Three hellos together are hard to hear!', scene: 5 },
+    ],
+    partnerLine: 'Your endpoint choice changes which movement number is correct.',
+    mission: 'Choose a delivery stop, change Right to its matching 1, 2, or 3, wait for Saved, then run the real cart.',
+    question: 'What must match the stop you chose?', choices: [], retry: 'Count spaces from the cart at 4 to your chosen stop.',
+    successTitle: 'Your delivery arrived!', success: 'The saved movement number matched your chosen endpoint.',
+    fixTitle: 'Make this delivery yours', fixPrompt: 'Close this card, choose a stop, then edit the Right number to match.', workspaceIntro: 'The picker moves only the endpoint. You must change the real movement number yourself.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Choose a stop, then count from space 4.', watch: 'Watch whether the cart reaches your chosen delivery.', sayFirst: 'The endpoint comes first.', sayThen: 'Then the number must match.', hopFirst: 'Keep the cart moving Right.', hopThen: 'Only its distance needs to match.', retry: 'Your stop and movement number do not match yet.', fix: 'Tap the Right number and match your stop.', test: 'Saved? Press Go to deliver.', saving: 'The cart arrived. Saving your personal delivery…', complete: 'Your chosen breakfast is delivered!' },
+    logicSteps: [{ icon: '🎯', label: 'Choose stop', order: 'First' }, { icon: '1️⃣2️⃣3️⃣', label: 'Match number', order: 'Build' }, { icon: '▶️', label: 'Deliver', order: 'Run' }], logicWhy: 'A stop one, two, or three spaces right needs the same movement number.',
+    completionTitle: 'My delivery arrived! 🚙✨', completion: 'You chose an endpoint, matched its movement value, saved, and ran a visible delivery.', completionSteps: [{ icon: '🎯', label: 'My stop', order: 'Choose' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '🍽️', label: 'Delivered', order: 'Run' }], completionWhy: 'The server-saved Right distance matched the chosen stop and the real runner arrived there.', next: 'Breakfast is ready. In A5-H, notice why three friends speaking together is hard to understand.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

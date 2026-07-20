@@ -247,6 +247,7 @@ export function BlocksStudioPage({
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
+  const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -644,7 +645,9 @@ export function BlocksStudioPage({
           .gx;
         const reachedMissionTarget =
           (!requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx) &&
-          (!(isA4ParameterBuild || isA4ParameterDebug) || runner.state('breakfast-cart')?.gx === 7);
+          (!(isA4ParameterBuild || isA4ParameterDebug || isA4PersonalShip) ||
+            runner.state('breakfast-cart')?.gx ===
+              page.characters.find((character) => character.id === 'breakfast-table')?.start.gx);
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -694,6 +697,7 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
+    isA4PersonalShip,
     missionWrongRunObserved,
     missionAnswer,
     answeredCorrectly,
@@ -1525,6 +1529,32 @@ export function BlocksStudioPage({
                 <img src={asset} alt="" className="bsx-character-asset-thumb" /><strong>{name}</strong>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {isA4PersonalShip && (
+        <div className="bsx-home-picker" data-testid="a4-s-delivery-picker">
+          <div className="bsx-home-picker-title"><span aria-hidden>🚙</span><div><strong>Choose my delivery stop</strong><small>The stop changes the distance your code must match</small></div></div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my delivery stop">
+            {[
+              ['apple', 'Apple Breakfast', '🍎', 5],
+              ['gift', 'Gift Breakfast', '🎁', 6],
+              ['star', 'Star Breakfast', '⭐', 7],
+            ].map(([id, name, emoji, gx]) => {
+              const target = page.characters.find((character) => character.id === 'breakfast-table');
+              const selected = target?.name === name && target.start.gx === gx;
+              return (
+                <button key={id} type="button" data-testid={`a4-s-delivery-${id}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`} aria-pressed={selected}
+                  onClick={() => {
+                    useBlocksStore.getState().setCharacterIdentity('breakfast-table', String(name), String(emoji), '');
+                    useBlocksStore.getState().moveCharacter('breakfast-table', Number(gx), 10);
+                  }}>
+                  <span aria-hidden>{emoji}</span><strong>{Number(gx) - 4} {Number(gx) - 4 === 1 ? 'space' : 'spaces'}</strong>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

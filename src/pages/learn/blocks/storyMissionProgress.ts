@@ -176,6 +176,16 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
+  'tsv-s1-a4-s': {
+    pageId: 'tsv-a4-s-page',
+    background: 'meadow',
+    characterId: 'breakfast-cart',
+    scriptId: 'breakfast-cart-ship',
+    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: { id: 'breakfast-table', name: 'Star Breakfast', gx: 7, gy: 10, size: 0.9 },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -270,6 +280,21 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       blocks[1]?.op === direction && blocks[1]?.n === 1 &&
       blocks[2]?.op === direction && blocks[2]?.n === 1
     );
+  }
+  if (lessonId === 'tsv-s1-a4-s') {
+    const deliveries: Record<string, number> = {
+      'Apple Breakfast': 1,
+      'Gift Breakfast': 2,
+      'Star Breakfast': 3,
+    };
+    const distance = sceneTarget ? deliveries[sceneTarget.name] : undefined;
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      character?.asset === mission.asset && startMatches && page?.characters.length === 2 &&
+      sceneTarget?.start.gx === (distance === undefined ? undefined : 4 + distance) &&
+      sceneTarget?.start.gy === 10 && sceneTarget?.start.size === 0.9 &&
+      sceneTarget?.scripts.length === 0 && blocks.length === 3 &&
+      blocks[0]?.op === 'when_flag' && blocks[1]?.op === 'move_right' &&
+      blocks[1]?.n === distance && blocks[2]?.op === 'end';
   }
   return (
     project.lessonId === lessonId &&
