@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
+
+### Added
+- **`/portal/family/:kidId/images`** — parent-facing Art Studio picture gallery
+  (image-studio-prd.md D-IS-5): header totals (picture count, ★ spent summed from
+  `metadata.stars_charged`, last-created relative date), responsive image grid
+  grouped Today / This week / Earlier, click-through lightbox with the full
+  prompt + timestamp + star cost, and a client-side "Export prompts" CSV
+  (date,prompt,stars). Read-only oversight — deliberately no delete. Presigned
+  view URLs are requested lazily per card via the existing
+  `POST /projects/:id/artifacts/:artifactId/download-url`.
+- Kid Growth page links to the gallery ("Art Studio pictures — see what {kid}
+  made →") from its quick-links card.
+- Pure helpers in `kidImages.ts` (bucketing, totals, RFC-4180 CSV) + component
+  and unit tests (`KidImagesPage.test.tsx`, `kidImages.test.ts`).
+
+### Fixed
+- **Honest totals on a capped list.** The gallery now requests
+  `?kind=image&limit=200` (the backend's maximum page; its default is 40) and,
+  when the response comes back exactly that long, the header says
+  "Showing the latest 200 pictures · N★ spent on these" instead of presenting a
+  truncated count and star spend as if they were the all-time totals.
+- The `/kids/:id` lookup failure no longer falls back to the fabricated name
+  "Your kid" — the page shows a small notice and titles itself
+  "Art Studio pictures" until the real nickname loads.
+- `groupImages` / `gallerySummary` are memoised with `useMemo` so a 200-picture
+  gallery doesn't regroup and re-total on every render.
+
 ## 2026-07-20 (feat: Art Studio tool rail v2 + new-picture keeps the old artwork)
 
 ### Changed
