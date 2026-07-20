@@ -215,6 +215,12 @@ export function KidGrowthPage() {
       )}
 
       <div className="card-base flex flex-col gap-3" style={{ maxWidth: '520px' }}>
+        <Link
+          to={`/portal/family/${kidId}/images`}
+          className="text-[14px] font-semibold text-brand-bubblegum"
+        >
+          <span aria-hidden="true">🎨 </span>Art Studio pictures — see what {name} made →
+        </Link>
         <Link to={`/portal/usage/${kidId}`} className="text-[14px] font-semibold text-brand-coral">
           <span aria-hidden="true">⭐ </span>Want the detailed usage &amp; spend? View AI usage →
         </Link>

@@ -33,6 +33,7 @@ import { GuidesPage } from '@/pages/portal/guides/GuidesPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
 import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
+import { KidImagesPage } from '@/pages/portal/KidImagesPage';
 import { FamilyNewPage } from '@/pages/portal/FamilyNewPage';
 import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
 import { RegisterPage } from '@/pages/portal/RegisterPage';
@@ -140,6 +141,8 @@ export const router = createBrowserRouter([
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
       { path: 'family/:kidId', element: <KidGrowthPage /> },
+      // Art Studio picture gallery — parent oversight (image-studio-prd.md D-IS-5).
+      { path: 'family/:kidId/images', element: <KidImagesPage /> },
       { path: 'family/:kidId/settings', element: <FamilyDetailPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'wallet/topup', element: <WalletTopupPage /> },
