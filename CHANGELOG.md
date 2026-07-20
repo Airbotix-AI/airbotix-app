@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-20 (fix: Dashboard guide picks are English-first)
+
+### Changed
+- **Dashboard "Picked for your family" recommendations are English-first** (D-PFG-05):
+  `selectRecommendedGuides` now ranks every `en-AU` guide above guides in other
+  languages — the featured/city/age tiers apply within each language band — so 中文
+  cards can no longer appear on the English Portal dashboard unless fewer than 3
+  English guides exist (back-fill keeps the block from going empty). Fixes the
+  2026-07-20 report of the dashboard surfacing 中文 guides on the English platform.
+
 ## 2026-07-20 (feat: Family Guides default to English with an EN/中文 toggle)
 
 ### Changed

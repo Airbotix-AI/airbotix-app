@@ -245,6 +245,66 @@ describe('selectRecommendedGuides (Phase 1 rule)', () => {
     expect(result).toHaveLength(2);
     expect(input.map((i) => i.slug)).toEqual(items.map((i) => i.slug));
   });
+
+  it('ranks English guides above every 中文 guide, even featured city+age matches (D-PFG-05)', () => {
+    const mixed = [
+      guide({
+        slug: 'zh-featured-city-age',
+        featured: true,
+        locations: ['NSW / Sydney'],
+        ageStages: ['5-8'],
+        lastVerified: '2026-07-18',
+      }),
+      guide({ slug: 'en-plain', language: 'en-AU', lastVerified: '2026-01-01' }),
+      guide({ slug: 'en-featured', language: 'en-AU', featured: true, lastVerified: '2026-02-01' }),
+    ];
+    expect(
+      selectRecommendedGuides(mixed, [6], { city: 'Sydney', state: 'NSW' }).map((i) => i.slug),
+    ).toEqual(['en-featured', 'en-plain', 'zh-featured-city-age']);
+  });
+
+  it('applies the featured/city/age tiers within the English band', () => {
+    const english = [
+      guide({
+        slug: 'en-featured-new',
+        language: 'en-AU',
+        featured: true,
+        ageStages: ['0-3'],
+        lastVerified: '2026-07-01',
+      }),
+      guide({
+        slug: 'en-featured-city',
+        language: 'en-AU',
+        featured: true,
+        locations: ['NSW / Sydney'],
+        ageStages: ['0-3'],
+        lastVerified: '2026-01-01',
+      }),
+      guide({
+        slug: 'en-featured-age',
+        language: 'en-AU',
+        featured: true,
+        ageStages: ['5-8'],
+        lastVerified: '2026-03-01',
+      }),
+    ];
+    expect(
+      selectRecommendedGuides(english, [6], { city: 'Sydney', state: 'NSW' }).map((i) => i.slug),
+    ).toEqual(['en-featured-city', 'en-featured-age', 'en-featured-new']);
+  });
+
+  it('back-fills with 中文 guides only when the English pool runs short', () => {
+    const shortEnglish = [
+      guide({ slug: 'zh-a', featured: true, lastVerified: '2026-07-01' }),
+      guide({ slug: 'zh-b', lastVerified: '2026-07-02' }),
+      guide({ slug: 'en-only', language: 'en-AU', lastVerified: '2026-01-01' }),
+    ];
+    expect(selectRecommendedGuides(shortEnglish, []).map((i) => i.slug)).toEqual([
+      'en-only',
+      'zh-a',
+      'zh-b',
+    ]);
+  });
 });
 
 describe('languageToggleOptions', () => {
