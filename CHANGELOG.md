@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-07-20 (feat: Riff Pad — the kid's hand first, music-stage §5A P1)
+
+### Added
+- **Riff Pad (music-stage-prd v0.16 §5A D-MS11)** — the Music Stage's hand-first door:
+  a 16-step scale-locked grid (8 pentatonic melody rows C4–E5 + hat/snare/kick drum
+  rows) where the kid taps their OWN motif — 0⭐, no AI, loop audition on the shared
+  playback engine. Empty stage offers "🎹 Or tap out your own riff first — 0⭐"; with
+  a song the composer gains a third mode tab **🎹 From my riff**. "✨ Make it a song"
+  sends the riff as `seedScore` (words optional; genre pills steer the expansion) —
+  the backend keeps the motif verbatim in the lead melody. The riff persists as the
+  **permanent 🎹 frame-0 pill** (from message `metadata.seed`): tapping it A/Bs "just
+  MY riff" vs the full band — the authorship amplifier. Seeded takes get the
+  `🎹 From my riff` version tag and a bubble crediting the kid's notes.
+- **Musical diff chips + why-layer (§5A D-MS12)** — after every iteration the AiDeck
+  shows what actually changed in musical terms (`🕒 118→126 BPM`, `🥁 Drums busier
+  (16→24 notes)`, `➕ 🎸 Guitar joined`, key changes; capped at 4, tap/hover explains
+  in kid language), and every suggestion-card bubble now appends a "Why it works:"
+  line (tempo/density/heartbeat theory). All template-assembled from score metadata —
+  zero LLM calls, 0⭐.
+
+### Changed
+- `ComposeMode` extends to `'edit' | 'new' | 'riff'`; a landed take now always folds
+  back to ✏️ edit mode. Transport ⏹ also exits any audition so the loop doesn't
+  restart what the kid just stopped.
+
 ## 2026-07-19 (feat: Portal Family Guides discovery layer)
 
 ### Added

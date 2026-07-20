@@ -160,15 +160,25 @@ export function marqueeFor(scoreGenre: string | undefined, fallback: GenreId): s
 // ─── Composer bar ────────────────────────────────────────────────────────────
 
 export const PROMPT_MAX_LENGTH = 240;
-/** Composer mode once a song exists (D-MS10): typed text either EDITS the
- *  current version (existingScore rides the request) or starts a new song. */
-export type ComposeMode = 'edit' | 'new';
+/** Composer mode once a song exists (D-MS10 + §5A D-MS11): typed text either
+ *  EDITS the current version (existingScore rides the request), starts a new
+ *  song, or — riff mode — the kid taps their OWN motif first and the AI grows
+ *  it into the song (seedScore rides the request). */
+export type ComposeMode = 'edit' | 'new' | 'riff';
 export const PROMPT_PLACEHOLDER = 'e.g. A song about a space puppy adventure — make it epic!';
 /** Edit mode (D-MS10): typed text CHANGES the current song instead of starting over. */
 export const EDIT_PROMPT_PLACEHOLDER =
   'e.g. Make the chorus faster, or give the piano a sadder melody…';
+/** Riff mode (§5A D-MS11): the riff IS the brief; words are optional colour. */
+export const RIFF_PROMPT_PLACEHOLDER = 'What is your riff about? (optional)';
 export const COMPOSE_HEADER = 'Tell the AI what song you want';
 export const EDIT_HEADER = 'Tell the AI what to change';
+export const RIFF_HEADER = 'Tap a riff, then let the AI grow it';
+/** Empty-stage on-ramp into riff mode — the hand-first door (§5A D-MS11). */
+export const RIFF_CTA_LABEL = '🎹 Or tap out your own riff first — 0⭐';
+export const RIFF_CTA_EXIT_LABEL = '⌨️ Type an idea instead';
+/** Backend prompt is required (min 1 char); used when the kid types nothing. */
+export const RIFF_DEFAULT_PROMPT = 'A song built from my own riff';
 
 /** Inspiration chips (mockup). The emoji stays in the chip, not the prompt. */
 export const IDEA_CHIPS: { emoji: string; prompt: string }[] = [
@@ -211,6 +221,12 @@ export const FIRST_VERSION_TAG = 'First take';
 export const REWRITE_VERSION_TAG = 'Rewrite';
 /** Typed freeform edit on the current version (D-MS10). */
 export const EDIT_VERSION_TAG = '✏️ Edit';
+/** A song grown from the kid's own Riff Pad seed (§5A D-MS11). */
+export const RIFF_VERSION_TAG = '🎹 From my riff';
+/** The permanent frame-0 pill — the kid's raw riff, never overwritten. */
+export const RIFF_FRAME_LABEL = '🎹 My riff';
+export const RIFF_COMPOSE_SUBTITLE =
+  'Growing YOUR riff into the whole band — your notes stay the heart of it';
 
 /** Lane 🔄 single-track regeneration (track-editing PRD §3-A). */
 export function rerollVersionTag(instrumentLabel: string): string {
@@ -268,23 +284,44 @@ const MODIFIER_CHANGE_TEXT: Record<SuggestionKey, string> = {
   surprise: 'I rolled the dice and rebuilt the whole arrangement — same idea, new song 🎲',
 };
 
+/**
+ * The "why" layer (§5A D-MS12): every card explains the MUSIC BEHIND the
+ * change, so "hype" stops being magic and becomes tempo + density. Template
+ * text only — the theory is already encoded in the modifiers themselves.
+ */
+const MODIFIER_WHY_TEXT: Record<SuggestionKey, string> = {
+  'energy+1': 'Why it works: faster tempo + busier hi-hats is how music makes your heart race.',
+  'energy-1': 'Why it works: slower tempo and longer notes leave space — that space IS the calm.',
+  'drums+': 'Why it works: the kick drum is the song’s heartbeat — a heavier kick, a stronger pulse.',
+  guitar_solo: 'Why it works: giving the melody to one loud voice makes everyone listen to it.',
+  surprise: 'Why it works: arranging is a hundred small choices — I re-rolled all of them at once.',
+};
+
 export interface AiBubbleArgs {
   score: MusicScore;
   /** The suggestion card that produced this version, if any. */
   modifier?: SuggestionKey;
   /** True only for the very first song of the session. */
   isFirst: boolean;
+  /** True when this version grew from the kid's own Riff Pad seed (§5A). */
+  seeded?: boolean;
 }
 
 /**
  * "AI says" bubble — assembled from score metadata + the modifier on the
  * frontend (PRD §3.3: template only, never an extra LLM call).
  */
-export function buildAiBubble({ score, modifier, isFirst }: AiBubbleArgs): string {
+export function buildAiBubble({ score, modifier, isFirst, seeded }: AiBubbleArgs): string {
   const genreBit = score.genre ? ` ${score.genre}` : '';
   const head = `“${score.title}” is ready! ${score.key}, ${score.tempo} BPM${genreBit}.`;
   if (modifier) {
-    return `${head} ${MODIFIER_CHANGE_TEXT[modifier]} Not it? Pick another card or hop back a version.`;
+    return `${head} ${MODIFIER_CHANGE_TEXT[modifier]} ${MODIFIER_WHY_TEXT[modifier]} Not it? Pick another card or hop back a version.`;
+  }
+  if (seeded) {
+    return (
+      `${head} I grew YOUR riff into the whole band — the melody starts with your exact notes. ` +
+      `Tap ${RIFF_FRAME_LABEL} any time to hear just yours and compare!`
+    );
   }
   if (isFirst) {
     return (
@@ -293,4 +330,89 @@ export function buildAiBubble({ score, modifier, isFirst }: AiBubbleArgs): strin
     );
   }
   return `${head} A fresh take on your new idea — the cards below can push it further.`;
+}
+
+// ─── Musical diff chips (§5A D-MS12 — the cheapest theory lesson) ───────────
+//
+// After every iteration the kid sees WHAT actually changed in musical terms:
+// "⚡ more hype" becomes "BPM 112→120 · busier drums". Computed from the two
+// scores' metadata — template only, zero LLM calls, 0⭐.
+
+export interface DiffChip {
+  label: string;
+  /** One kid-friendly sentence shown on tap/hover — the theory bite. */
+  explain: string;
+}
+
+/** Keep the row readable — the biggest changes only. */
+export const MAX_DIFF_CHIPS = 4;
+/** Note-count change below this fraction is arrangement noise, not a story. */
+const DENSITY_STORY_THRESHOLD = 0.15;
+
+function trackNoteCounts(score: MusicScore): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const t of score.tracks) out.set(t.instrument, (out.get(t.instrument) ?? 0) + t.notes.length);
+  return out;
+}
+
+export function buildScoreDiff(prev: MusicScore, next: MusicScore): DiffChip[] {
+  const chips: DiffChip[] = [];
+  if (next.tempo !== prev.tempo) {
+    const faster = next.tempo > prev.tempo;
+    chips.push({
+      label: `🕒 ${prev.tempo}→${next.tempo} BPM`,
+      explain: faster
+        ? 'BPM is beats per minute — a bigger number means a faster heartbeat.'
+        : 'BPM is beats per minute — a smaller number slows the heartbeat down.',
+    });
+  }
+  if (next.key !== prev.key) {
+    chips.push({
+      label: `🎼 ${prev.key} → ${next.key}`,
+      explain: 'The key is the family of notes the song lives in — changing it changes the mood.',
+    });
+  }
+  const prevCounts = trackNoteCounts(prev);
+  const nextCounts = trackNoteCounts(next);
+  for (const [instrument, nextCount] of nextCounts) {
+    const meta = INSTRUMENT_META_LOOKUP(instrument);
+    const prevCount = prevCounts.get(instrument);
+    if (prevCount === undefined) {
+      chips.push({
+        label: `➕ ${meta} joined`,
+        explain: 'A new instrument means a new layer in the arrangement.',
+      });
+      continue;
+    }
+    const delta = nextCount - prevCount;
+    if (prevCount > 0 && Math.abs(delta) / prevCount >= DENSITY_STORY_THRESHOLD && Math.abs(delta) >= 3) {
+      chips.push({
+        label: `${meta} ${delta > 0 ? 'busier' : 'calmer'} (${prevCount}→${nextCount} notes)`,
+        explain:
+          delta > 0
+            ? 'More notes in the same time = denser rhythm = more energy.'
+            : 'Fewer notes leave gaps — rests are part of the music too.',
+      });
+    }
+  }
+  for (const instrument of prevCounts.keys()) {
+    if (!nextCounts.has(instrument)) {
+      chips.push({
+        label: `➖ ${INSTRUMENT_META_LOOKUP(instrument)} left`,
+        explain: 'Removing a layer thins the texture — quiet is a choice, too.',
+      });
+    }
+  }
+  return chips.slice(0, MAX_DIFF_CHIPS);
+}
+
+/** Emoji+label for a diff chip without importing INSTRUMENT_META (cycle-free). */
+function INSTRUMENT_META_LOOKUP(instrument: string): string {
+  const emoji: Record<string, string> = {
+    drums: '🥁', bass: '🎻', guitar: '🎸', piano: '🎹', keyboard: '🎛️',
+    percussion: '🪘', synth: '🎚', strings: '🎻', lead_vocals: '🎤',
+    backing_vocals: '🎙️', brass: '🎺', pad: '☁️', flute: '🪈', other: '🎵',
+  };
+  const label = instrument.replace(/_/g, ' ');
+  return `${emoji[instrument] ?? '🎵'} ${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }
