@@ -183,7 +183,9 @@ export const RIFF_DEFAULT_PROMPT = 'A song built from my own riff';
 // ─── Riff Pad tutor (§5A D-MS13, P2a) ────────────────────────────────────────
 // Display/gate constants only — the backend Model rows charge (music-ghost /
 // kids-default text turn).
-export const RIFF_GHOST_COST_STARS = 2;
+// OQ-8 closed (owner 2026-07-20 「价格star可以涨」): 3★ — above the art
+// ghost-sketch, still the cheapest AI music action (compose is 5★).
+export const RIFF_GHOST_COST_STARS = 3;
 export const RIFF_ADVICE_COST_STARS = 1;
 /** Ghost idea when the composer input is empty — the backend requires ≥1 char. */
 export const RIFF_GHOST_DEFAULT_IDEA = 'a happy little tune';

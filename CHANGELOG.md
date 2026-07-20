@@ -3,7 +3,7 @@
 ## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
 
 ### Added
-- **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−2⭐, price
+- **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−3⭐ — OQ-8 closed, owner 「价格star可以涨」; price
   tag on it) sends the composer idea (or a default) to `POST /llm/riff-ghost`; the
   tutor's starter renders as a FAINT dashed underlay (`data-ghost`) strictly BELOW
   the kid's notes — tracing a ghost cell turns it into the kid's own note, and
