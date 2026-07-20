@@ -17,6 +17,8 @@ interface Mission {
   steps_json?: {
     art?: {
       template?: { url: string; layer: 'underlay' | 'base'; magic?: 'with-base' | 'strokes-only' };
+      draw_along?: string[];
+      checklist?: string[];
     };
   } | null;
 }
@@ -142,6 +144,8 @@ export function PackLessonsPage() {
                                         title: m.title,
                                         description: m.description,
                                         template: m.steps_json.art.template,
+                                        draw_along: m.steps_json.art.draw_along,
+                                        checklist: m.steps_json.art.checklist,
                                       },
                                     },
                                   })
