@@ -8,6 +8,20 @@
   URL clean while 中文 lands in `?language=zh-CN` like the other filters. Topic / location /
   age select options are scoped to the active language so they never dead-end across
   languages. Clear filters returns to the English catalogue.
+## 2026-07-20 (fix: portal course list only shows courses actually on sale — D-6)
+
+### Fixed
+- The Portal course list showed every `is_published` pack, which is the LEARNING-side flag.
+  Unpriced marketing drafts (and teaching-only packs like `ai-pet-lab-v1`, which is not a sold
+  course at all) appeared to parents with a "Request a seat" button. Worse, they were dead
+  ends: "See class times" calls `GET /courses/:slug/classes`, which 404s unless the course is
+  `marketing_published`, so the parent got "No classes are open for online purchase yet" and
+  was pushed back to the seat request — which then landed in the DB for a course with no price.
+  The list now requests `/course-packs?bookable=true` (taught AND on sale); the backend rejects
+  the enrolment independently.
+- The Portal query key is now `['course-packs', 'bookable']`. It previously shared
+  `['course-packs']` with the learn-side catalog, which lists every published pack — same key
+  with different filters would have let whichever page loaded first serve its cache to the other.
 
 ## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
 

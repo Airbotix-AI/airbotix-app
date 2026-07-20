@@ -69,7 +69,9 @@ const CLASSES = [
 
 function wireApi(classes: unknown = CLASSES) {
   api.mockImplementation((path: string) => {
-    if (path === '/course-packs') return Promise.resolve(PACKS);
+    // The portal asks for the SELLABLE list only (bookable=true). A bare '/course-packs'
+    // request would be the pre-D-6 bug: unpriced drafts shown with a seat button.
+    if (path === '/course-packs?bookable=true') return Promise.resolve(PACKS);
     if (path === '/families/fam-1/kids') return Promise.resolve([]);
     if (path === '/families/fam-1/my-classes') {
       return Promise.resolve({ enrollments: [], pending_orders: [], booking_requests: [] });
@@ -93,6 +95,18 @@ function renderPage() {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+describe('CoursesPage publish gate (D-6)', () => {
+  it('requests only courses that are on sale, never the unfiltered pack list', async () => {
+    wireApi();
+    renderPage();
+
+    expect(await screen.findByText('Request a seat →')).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith('/course-packs?bookable=true');
+    // An unfiltered call would put a seat button on unpriced drafts whose class times 404.
+    expect(api).not.toHaveBeenCalledWith('/course-packs');
+  });
 });
 
 describe('CoursesPage pay-now CTA', () => {
