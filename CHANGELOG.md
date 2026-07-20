@@ -39,6 +39,50 @@
 - `ComposeMode` extends to `'edit' | 'new' | 'riff'`; a landed take now always folds
   back to ✏️ edit mode. Transport ⏹ also exits any audition so the loop doesn't
   restart what the kid just stopped.
+## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
+
+### Changed
+- `/learn/create/image` joins IMMERSIVE_ROUTES + AUTO_FULLSCREEN_ROUTES (owner
+  call: 肯定是全屏,就跟 Story Blocks 一样) — Learn nav gone, no page scroll,
+  auto browser-fullscreen on entry, own exit via "← All tools".
+
+## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
+
+### Added
+- **My Characters** (image-studio-prd D-IS-23): name the active take → saved as a
+  character (artifact metadata); a 👤 picker in the takes strip puts any saved
+  character back on the canvas as the base — characters grow across sessions and
+  pair with the build-on-yours mission template.
+- **Use in my game** (D-IS-25, P4 v1): send the active take into one of your own
+  game/code projects as a VFS asset (`assets/art/…`, direct-to-S3 + reference
+  save — merge semantics, never clobbers the game). The Art Studio becomes the
+  platform's asset forge; Story Blocks import stays a cross-studio follow-up.
+- Canvas artifact pixels now load through the same-origin bytes proxy
+  (D-IS-24) — kills S3-CORS taint on paint-over chaining and powers the game
+  hand-off.
+
+## 2026-07-20 (feat: 🪄 magic brush — paint the spot, say what it becomes)
+
+### Added
+- Region editing (image-studio-prd D-IS-18 ④ / P3a): once a magic take is on the
+  canvas, the 🪄 Magic brush toggle lets the kid PAINT a pink highlight over the
+  region to change and say what it becomes ("a golden crown") — sent as a mask
+  (transparent = edit region) with the reference, one image-tier charge. The
+  result lands as a new take; the highlight is never part of the picture.
+
+## 2026-07-20 (feat: Art Studio P2 finish — draw-along, checklist look, story time)
+
+### Added
+- **Draw-along** (image-studio-prd D-IS-21): art missions can carry
+  `steps_json.art.draw_along` steps — the task card walks the kid through them
+  ("Step 1/3: a big circle for the body") and each step summons its own 2★
+  ghost underlay. The core teach-to-draw mechanic.
+- **Checklist-grounded 👀 look** (D-IS-20): with `steps_json.art.checklist`, the
+  look asks the coach to tick which task elements it can SEE and what's missing —
+  encouragement-only, element presence never quality.
+- **📖 Story time (ignition ⑤, D-IS-18)**: after a magic take, a 1★ button asks
+  the coach for a tiny story + name for the picture — the bridge toward Voice
+  Booth reading and storybooks.
 
 ## 2026-07-19 (feat: Portal Family Guides discovery layer)
 

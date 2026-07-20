@@ -173,6 +173,35 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
+ * Export the magic-brush MASK (D-IS-18 ④): opaque black everywhere, TRANSPARENT
+ * where the kid painted the highlight — the gpt-image edits contract.
+ */
+export function exportMask(maskOps: CanvasOp[], scale = 1): string {
+  const size = Math.round(CANVAS_SIZE * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas 2d unavailable');
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, size, size);
+  ctx.scale(scale, scale);
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const op of maskOps) {
+    if (op.kind !== 'stroke') continue;
+    ctx.fill(
+      // Wide, fully-opaque punch-through regardless of the op's tool profile.
+      new Path2D(
+        strokeOutline({ ...op, tool: 'eraser' })
+          .map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0]} ${p[1]}`)
+          .join(' ') + ' Z',
+      ),
+    );
+  }
+  return canvas.toDataURL('image/png');
+}
+
+/**
  * Export the picture the kid actually made: white ground + base take (if any)
  * + the kid's ops. The ghost underlay is GUIDANCE, not content — deliberately
  * excluded (D-IS-18 ①: AI output stays subordinate).

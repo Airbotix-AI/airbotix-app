@@ -22,7 +22,13 @@ const putCalls: string[] = [];
 
 vi.mock('./ArtCanvas', () => ({
   ArtCanvas: forwardRef(function StubCanvas(
-    props: { ops: unknown[]; onOpsChange(ops: unknown[]): void; ghostUrl: string | null },
+    props: {
+      ops: unknown[];
+      onOpsChange(ops: unknown[]): void;
+      ghostUrl: string | null;
+      maskOps: unknown[];
+      onMaskOpsChange(ops: unknown[]): void;
+    },
     ref,
   ) {
     useImperativeHandle(ref, () => ({
@@ -41,12 +47,24 @@ vi.mock('./ArtCanvas', () => ({
         >
           draw
         </button>
+        <button
+          data-testid="stub-mask-draw"
+          onClick={() =>
+            props.onMaskOpsChange([
+              ...props.maskOps,
+              { kind: 'stroke', tool: 'marker', color: '#f277c3', size: 20, points: [[2, 2, 0.5]] },
+            ])
+          }
+        >
+          mask
+        </button>
       </div>
     );
   }),
 }));
 
 vi.mock('@/lib/api', () => ({
+  BASE_URL: 'http://api.test',
   api: vi.fn((path: string, opts?: { method?: string; body?: Record<string, unknown> }) => {
     apiCalls.push({ path, opts });
     if (path.endsWith('/create-buckets/resolve')) {
@@ -99,7 +117,29 @@ vi.mock('@/lib/api', () => ({
     if (path === '/projects/proj_mission/submit') {
       return Promise.resolve({ ok: true, stars_awarded: 3 });
     }
-    if (path === '/projects/proj_bucket/artifacts') return Promise.resolve([]);
+    if (path.startsWith('/projects/proj_bucket/artifacts/') && opts?.method === 'PATCH') {
+      return Promise.resolve({ id: 'art_magic', metadata: { character: 'Sparky' } });
+    }
+    if (path === '/kids/kid_1/projects') {
+      return Promise.resolve([
+        { id: 'g1', title: 'Space Pong', kind: 'game' },
+        { id: 'p2', title: 'My Pictures', kind: 'creative' },
+      ]);
+    }
+    if (path === '/projects/g1/vfs/assets/sign-upload') {
+      return Promise.resolve({ url: 'https://s3/put-game', headers: { 'Content-Type': 'image/png' }, s3_key: 'vfs/x' });
+    }
+    if (path === '/projects/g1' && (!opts || opts.method === undefined)) {
+      return Promise.resolve({ id: 'g1', vfs_version: 7 });
+    }
+    if (path === '/projects/g1/code/files') {
+      return Promise.resolve({ ok: true });
+    }
+    if (path === '/projects/proj_bucket/artifacts')
+      return Promise.resolve([
+        { id: 'art_magic', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+        { id: 'art_sketch', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+      ]);
     if (path.endsWith('/download-url')) return Promise.resolve({ url: 'https://signed' });
     if (path.includes('/wallet')) {
       return Promise.resolve({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false });
@@ -120,9 +160,18 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'kid', sub: 'kid_1', family_id: 'fam_1' } }),
 }));
+vi.mock('@/auth/authStore', () => ({
+  surfacePrincipal: () => 'kid',
+  useAuthStore: { getState: () => ({ tokens: { kid: 'tok', user: null } }) },
+}));
 vi.mock('../shared/useSession', () => ({
   useStudioSession: () => ({ summary: null, endNow: vi.fn(), dismiss: vi.fn() }),
 }));
+
+vi.mock('./strokeEngine', async (importOriginal) => {
+  const real = (await importOriginal()) as Record<string, unknown>;
+  return { ...real, exportMask: () => 'data:image/png;base64,TUFTSw==' }; // "MASK"
+});
 
 import { ArtStudioPage } from './ArtStudioPage';
 
@@ -143,6 +192,8 @@ const MISSION = {
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
   template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
+  draw_along: ['a big circle for the body', 'two small circles for the eyes'],
+  checklist: ['a robot', 'a garden', 'a happy feeling'],
 };
 
 describe('ArtStudioPage (canvas-first)', () => {
@@ -151,9 +202,12 @@ describe('ArtStudioPage (canvas-first)', () => {
     putCalls.length = 0;
     vi.stubGlobal(
       'fetch',
-      vi.fn((url: string) => {
-        putCalls.push(String(url));
-        return Promise.resolve({ ok: true } as Response);
+      vi.fn((url: string, init?: RequestInit) => {
+        putCalls.push(`${init?.method ?? 'GET'} ${url}`);
+        return Promise.resolve({
+          ok: true,
+          blob: () => Promise.resolve(new Blob([new Uint8Array([1])], { type: 'image/png' })),
+        } as unknown as Response);
       }),
     );
   });
@@ -220,7 +274,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
         true,
       );
-      expect(putCalls).toContain('https://s3/put-here');
+      expect(putCalls).toContain('PUT https://s3/put-here');
       const gen = apiCalls.find((c) => c.path === '/llm/image');
       expect(gen).toBeDefined();
       expect(gen!.opts?.body?.ref_artifact_id).toBe('art_sketch');
@@ -256,6 +310,99 @@ describe('ArtStudioPage (canvas-first)', () => {
     );
   });
 
+  describe('🪄 magic brush (D-IS-18 ④)', () => {
+    async function makeAMagicTake() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findAllByTestId('take-thumb');
+    }
+
+    it('is hidden until a magic take exists, then toggles mask mode with the apply bar', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      expect(screen.queryByTestId('mask-toggle')).not.toBeInTheDocument();
+      cleanup();
+
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      expect(screen.getByTestId('mask-bar')).toBeInTheDocument();
+    });
+
+    it('paint region + wish → /llm/image with ref_artifact_id AND mask_b64 (9★), then clears', async () => {
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      fireEvent.click(screen.getByTestId('stub-mask-draw'));
+      fireEvent.change(screen.getByPlaceholderText(/what it becomes/i), {
+        target: { value: 'a golden crown' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /🪄 −9★/ }));
+
+      await waitFor(() => {
+        const call = apiCalls.filter((c) => c.path === '/llm/image').at(-1)!;
+        expect(call.opts?.body?.ref_artifact_id).toBe('art_magic');
+        expect(call.opts?.body?.mask_b64).toBe('TUFTSw==');
+        expect(call.opts?.body?.prompt).toBe('a golden crown');
+      });
+      // a new take arrived and the mask UI reset
+      expect((await screen.findAllByTestId('take-thumb')).length).toBe(3);
+      await waitFor(() => expect(screen.queryByTestId('mask-bar')).not.toBeInTheDocument());
+    });
+  });
+
+  describe('👤 My Characters + 🎮 use in my game (D-IS-23/25)', () => {
+    async function makeAMagicTake() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findAllByTestId('take-thumb');
+    }
+
+    it('names the active take → PATCH artifact metadata.character', async () => {
+      await makeAMagicTake();
+      const nameInput = await screen.findByPlaceholderText(/Name them/);
+      fireEvent.change(nameInput, { target: { value: 'Sparky' } });
+      fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
+      await waitFor(() => {
+        const patch = apiCalls.find(
+          (c) => c.opts?.method === 'PATCH' && c.path.includes('/artifacts/'),
+        );
+        expect(patch).toBeDefined();
+        expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Sparky');
+      });
+      expect(await screen.findByText(/Sparky joined your characters/)).toBeInTheDocument();
+    });
+
+    it('🎮 sends the active take into a chosen game via the VFS asset flow', async () => {
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('use-in-game'));
+      await screen.findByTestId('game-sheet');
+      // only game/code projects offered — the creative bucket is filtered out
+      expect(screen.queryByText('My Pictures', { selector: 'button' })).not.toBeInTheDocument();
+      fireEvent.click(await screen.findByRole('button', { name: /Space Pong/ }));
+
+      expect(await screen.findByText(/Sent to .Space Pong/)).toBeInTheDocument();
+      expect(apiCalls.some((c) => c.path === '/projects/g1/vfs/assets/sign-upload')).toBe(true);
+      expect(putCalls.some((u) => u === 'PUT https://s3/put-game')).toBe(true);
+      const save = apiCalls.find((c) => c.path === '/projects/g1/code/files');
+      expect(save).toBeDefined();
+      const files = save!.opts?.body?.files as Array<{ path: string; uploaded: boolean }>;
+      expect(files[0].uploaded).toBe(true);
+      expect(files[0].path).toMatch(/^assets\/art\//);
+      expect(save!.opts?.body?.expected_version).toBe(7);
+    });
+  });
+
   describe('Mission Mode (D-IS-20/22)', () => {
     it('shows the task card and loads the template underlay', async () => {
       renderPage({ mission: MISSION });
@@ -285,6 +432,63 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(
         apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url'),
       ).toBe(false);
+    });
+
+    it('draw-along: shows steps, navigates, and each step summons its own 2★ ghost', async () => {
+      renderPage({ mission: MISSION });
+      const da = await screen.findByTestId('draw-along');
+      expect(da).toHaveTextContent('Step 1/2: a big circle for the body');
+
+      const showBtn = screen.getByRole('button', { name: /Show this step −2★/ });
+      await waitFor(() => expect(showBtn).toBeEnabled());
+      fireEvent.click(showBtn);
+      await waitFor(() => {
+        const ghost = apiCalls.find((c) => c.path === '/llm/image');
+        expect(ghost).toBeDefined();
+        expect((ghost!.opts?.body?.options as Record<string, unknown>).mode).toBe('ghost');
+        expect(ghost!.opts?.body?.prompt).toBe(
+          'a big circle for the body — part of: Draw your robot',
+        );
+        expect(ghost!.opts?.body?.project_id).toBe('proj_mission');
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: '→' }));
+      expect(screen.getByTestId('draw-along')).toHaveTextContent(
+        'Step 2/2: two small circles for the eyes',
+      );
+    });
+
+    it('👀 look embeds the mission checklist so the coach ticks elements', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+      await waitFor(() => {
+        const call = apiCalls.find((c) => c.path === '/llm/image-plan');
+        const messages = call!.opts?.body?.messages as Array<{ content: string }>;
+        expect(messages.at(-1)!.content).toContain('a robot, a garden, a happy feeling');
+        expect(call!.opts?.body?.canvas_b64).toBe('U1RVQg==');
+      });
+    });
+
+    it('📖 story time appears after a magic take and asks for a story + name (1★)', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+
+      const storyBtn = await screen.findByRole('button', { name: /Story time! −1★/ });
+      fireEvent.click(storyBtn);
+      await waitFor(() => {
+        const call = apiCalls.filter((c) => c.path === '/llm/image-plan').at(-1)!;
+        const messages = call.opts?.body?.messages as Array<{ content: string }>;
+        expect(messages.at(-1)!.content).toMatch(/story about this picture.*name/);
+        expect(call.opts?.body?.canvas_b64).toBe('U1RVQg==');
+      });
     });
 
     it('🚀 turn-in submits the mission project and celebrates +3★', async () => {

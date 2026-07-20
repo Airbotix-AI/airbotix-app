@@ -20,14 +20,16 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground', '/
 // the surface manages its own layout (Blocks Studio, a tablet-first app). The
 // hub `/learn/create/blocks` keeps the nav; only the studio `/learn/blocks/:id`
 // is immersive.
-const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music'];
+// The Art Studio is a full-screen easel like the Blocks studio (owner call
+// 2026-07-20: 肯定是全屏,就跟 Story Blocks 一样) — image-studio-prd v0.14.
+const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music', '/learn/create/image'];
 
 // Of the immersive surfaces, only the tablet-first Blocks Studio ALSO asks the
 // browser for OS fullscreen on the first tap. The Music Stage is immersive
 // (no nav, no page scroll) but stays a normal browser page — a desktop kid
 // composing a song shouldn't have their whole browser hijacked into fullscreen
 // (user decision, music-stage-prd D-MS7 refinement).
-const AUTO_FULLSCREEN_ROUTES = ['/learn/blocks/'];
+const AUTO_FULLSCREEN_ROUTES = ['/learn/blocks/', '/learn/create/image'];
 
 // Walk-in (unclaimed) workshop kids only see their class + their kid code
 // (auth-system-prd §5.2): the top-level catalog surfaces below bounce to the
