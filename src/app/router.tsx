@@ -125,8 +125,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <FindClassesPage /> },
-      { path: 'dashboard', element: <DashboardPage /> },
+      // Dashboard is the default landing after login (QPCD-1 reversed 2026-07-20);
+      // Find a class lives at /portal/classes. /portal/dashboard redirects for old links.
+      { index: true, element: <DashboardPage /> },
+      { path: 'dashboard', element: <Navigate to="/portal" replace /> },
       { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
       { path: 'academy', element: <AcademyPage /> },
