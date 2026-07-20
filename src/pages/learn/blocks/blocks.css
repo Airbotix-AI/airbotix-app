@@ -2427,19 +2427,55 @@
   text-align: center;
 }
 .bsx-mission-card.bsx-mission-complete {
-  width: min(760px, 100%);
+  width: min(820px, 100%);
 }
 .bsx-mission-complete .bsx-logic-proof-steps {
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 44px;
+  padding: 4px 10px 0;
 }
 .bsx-mission-complete .bsx-logic-proof-step {
-  flex: 1;
-  justify-content: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 5px;
   min-width: 0;
 }
+.bsx-mission-complete .bsx-logic-proof-step small {
+  line-height: 1;
+}
 .bsx-mission-complete .bsx-logic-proof-step strong {
+  min-height: 25px;
+  line-height: 25px;
   white-space: nowrap;
+}
+.bsx-mission-complete .bsx-logic-proof-step > span {
+  position: absolute;
+  top: 50%;
+  right: -30px;
+  transform: translate(50%, -10%);
+}
+.bsx-mission-complete .bsx-logic-proof > p {
+  width: 100%;
+  max-width: none;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #c7e4f5;
+}
+@media (max-width: 620px) {
+  .bsx-mission-complete .bsx-logic-proof-steps {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .bsx-mission-complete .bsx-logic-proof-step > span {
+    top: auto;
+    right: 50%;
+    bottom: -21px;
+    transform: translate(50%, 0) rotate(90deg);
+  }
 }
 .bsx-mission-close {
   position: absolute;
