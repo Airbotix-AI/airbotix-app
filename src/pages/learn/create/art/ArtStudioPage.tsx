@@ -92,6 +92,10 @@ export interface ArtMission {
   title: string;
   description?: string;
   template?: ArtMissionTemplate;
+  /** Draw-along steps (D-IS-21): each step can summon its own 2★ ghost. */
+  draw_along?: string[];
+  /** Element checklist (D-IS-20): grounds the 👀 look in the task. */
+  checklist?: string[];
 }
 
 export function ArtStudioPage() {
@@ -127,6 +131,7 @@ export function ArtStudioPage() {
   const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
+  const [stepIdx, setStepIdx] = useState(0);
 
   const { summary, endNow, dismiss } = useStudioSession('image');
   const bucket = useCreateBucket('image');
@@ -209,12 +214,62 @@ export function ArtStudioPage() {
     );
   };
 
+  // Draw-along (D-IS-21): each step summons its own ghost underlay.
+  const onStepGhost = () => {
+    const steps = mission?.draw_along;
+    if (!steps?.length) return;
+    setError(null);
+    void ensureSaveProject().then((projectId) =>
+      generate.mutate(
+        {
+          prompt: `${steps[stepIdx]} — part of: ${mission!.title}`,
+          options: { mode: 'ghost' },
+          project_id: projectId,
+        },
+        {
+          onSuccess: (r) => {
+            if (r.artifact_id) setGhostArtifactId(r.artifact_id);
+          },
+          onError: (e) => setError(friendlyError(e)),
+        },
+      ),
+    );
+  };
+
+  // ── ⑤ 📖 story time (1★): a tiny story + name for the picture (D-IS-18 ⑤) ──
+  const onStory = () => {
+    if (!canvasRef.current) return;
+    setError(null);
+    const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
+    const next = [
+      ...msgs,
+      {
+        role: 'user' as const,
+        content: 'Tell me a tiny three-sentence story about this picture, then suggest a fun name for it!',
+      },
+    ];
+    setMsgs(next);
+    coach.mutate(
+      { messages: next, canvas_b64: b64 },
+      {
+        onSuccess: (turn) => {
+          setMsgs([...next, { role: 'assistant', content: turn.reply }]);
+          setChips(turn.chips);
+        },
+        onError: (e) => setError(friendlyError(e)),
+      },
+    );
+  };
+
   // ── ② 👀 coach look (1★): vision on the canvas ──
   const onLook = () => {
     if (!canvasRef.current) return;
     setError(null);
     const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
-    const next = [...msgs, { role: 'user' as const, content: 'Coach, look at my canvas!' }];
+    const ask = mission?.checklist?.length
+      ? `Coach, look at my canvas! The task checklist: ${mission.checklist.join(', ')}. Tell me which ones you can see and what is still missing.`
+      : 'Coach, look at my canvas!';
+    const next = [...msgs, { role: 'user' as const, content: ask }];
     setMsgs(next);
     coach.mutate(
       { messages: next, canvas_b64: b64 },
@@ -495,6 +550,38 @@ export function ArtStudioPage() {
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
                 )}
+                {mission.draw_along && mission.draw_along.length > 0 && !missionDone && (
+                  <div className="mt-2" data-testid="draw-along">
+                    <div className="text-[11px] font-bold text-ink">
+                      Step {stepIdx + 1}/{mission.draw_along.length}: {mission.draw_along[stepIdx]}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <button
+                        onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                        disabled={stepIdx === 0}
+                        className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold disabled:opacity-40"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={onStepGhost}
+                        disabled={generate.isPending}
+                        className="btn-pill-secondary flex-1 text-[11px]"
+                      >
+                        👻 Show this step −{GHOST_COST}★
+                      </button>
+                      <button
+                        onClick={() =>
+                          setStepIdx((i) => Math.min((mission.draw_along as string[]).length - 1, i + 1))
+                        }
+                        disabled={stepIdx >= mission.draw_along.length - 1}
+                        className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold disabled:opacity-40"
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {takes.some((t) => t.kind === 'magic') && !missionDone && (
                   <button
                     onClick={() => void onTurnIn()}
@@ -567,6 +654,15 @@ export function ArtStudioPage() {
               >
                 ✨ Bring it to life! −{MAGIC_COST}★
               </button>
+              {takes.some((t) => t.kind === 'magic') && (
+                <button
+                  onClick={onStory}
+                  disabled={coach.isPending}
+                  className="btn-pill-secondary w-full text-[13px]"
+                >
+                  📖 Story time! −{CHAT_COST}★
+                </button>
+              )}
             </div>
           </div>
         ) : (

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio P2 finish — draw-along, checklist look, story time)
+
+### Added
+- **Draw-along** (image-studio-prd D-IS-21): art missions can carry
+  `steps_json.art.draw_along` steps — the task card walks the kid through them
+  ("Step 1/3: a big circle for the body") and each step summons its own 2★
+  ghost underlay. The core teach-to-draw mechanic.
+- **Checklist-grounded 👀 look** (D-IS-20): with `steps_json.art.checklist`, the
+  look asks the coach to tick which task elements it can SEE and what's missing —
+  encouragement-only, element presence never quality.
+- **📖 Story time (ignition ⑤, D-IS-18)**: after a magic take, a 1★ button asks
+  the coach for a tiny story + name for the picture — the bridge toward Voice
+  Booth reading and storybooks.
+
 ## 2026-07-19 (feat: Portal Family Guides discovery layer)
 
 ### Added

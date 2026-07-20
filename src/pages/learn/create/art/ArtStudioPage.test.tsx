@@ -143,6 +143,8 @@ const MISSION = {
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
   template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
+  draw_along: ['a big circle for the body', 'two small circles for the eyes'],
+  checklist: ['a robot', 'a garden', 'a happy feeling'],
 };
 
 describe('ArtStudioPage (canvas-first)', () => {
@@ -285,6 +287,63 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(
         apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url'),
       ).toBe(false);
+    });
+
+    it('draw-along: shows steps, navigates, and each step summons its own 2★ ghost', async () => {
+      renderPage({ mission: MISSION });
+      const da = await screen.findByTestId('draw-along');
+      expect(da).toHaveTextContent('Step 1/2: a big circle for the body');
+
+      const showBtn = screen.getByRole('button', { name: /Show this step −2★/ });
+      await waitFor(() => expect(showBtn).toBeEnabled());
+      fireEvent.click(showBtn);
+      await waitFor(() => {
+        const ghost = apiCalls.find((c) => c.path === '/llm/image');
+        expect(ghost).toBeDefined();
+        expect((ghost!.opts?.body?.options as Record<string, unknown>).mode).toBe('ghost');
+        expect(ghost!.opts?.body?.prompt).toBe(
+          'a big circle for the body — part of: Draw your robot',
+        );
+        expect(ghost!.opts?.body?.project_id).toBe('proj_mission');
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: '→' }));
+      expect(screen.getByTestId('draw-along')).toHaveTextContent(
+        'Step 2/2: two small circles for the eyes',
+      );
+    });
+
+    it('👀 look embeds the mission checklist so the coach ticks elements', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+      await waitFor(() => {
+        const call = apiCalls.find((c) => c.path === '/llm/image-plan');
+        const messages = call!.opts?.body?.messages as Array<{ content: string }>;
+        expect(messages.at(-1)!.content).toContain('a robot, a garden, a happy feeling');
+        expect(call!.opts?.body?.canvas_b64).toBe('U1RVQg==');
+      });
+    });
+
+    it('📖 story time appears after a magic take and asks for a story + name (1★)', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+
+      const storyBtn = await screen.findByRole('button', { name: /Story time! −1★/ });
+      fireEvent.click(storyBtn);
+      await waitFor(() => {
+        const call = apiCalls.filter((c) => c.path === '/llm/image-plan').at(-1)!;
+        const messages = call.opts?.body?.messages as Array<{ content: string }>;
+        expect(messages.at(-1)!.content).toMatch(/story about this picture.*name/);
+        expect(call.opts?.body?.canvas_b64).toBe('U1RVQg==');
+      });
     });
 
     it('🚀 turn-in submits the mission project and celebrates +3★', async () => {
