@@ -16,7 +16,7 @@ import {
   type Artifact,
 } from '../shared/useStudio';
 import { ArtCanvas, type ArtCanvasHandle } from './ArtCanvas';
-import { dataUrlToBlob, type CanvasOp, type ToolId } from './strokeEngine';
+import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
 
 // The Art Studio, canvas-first (image-studio-prd.md v0.9, D-IS-11…19):
 // 孩子的手在前,AI 的魔法在后. Four zones — left tool rail / center canvas /
@@ -109,6 +109,9 @@ export function ArtStudioPage() {
   const [baseArtifactId, setBaseArtifactId] = useState<string | null>(null);
   const [ghostArtifactId, setGhostArtifactId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
+  const [maskMode, setMaskMode] = useState(false);
+  const [maskOps, setMaskOps] = useState<CanvasOp[]>([]);
+  const [maskText, setMaskText] = useState('');
 
   // takes + magic
   const [takes, setTakes] = useState<Take[]>([]);
@@ -258,6 +261,41 @@ export function ArtStudioPage() {
         },
         onError: (e) => setError(friendlyError(e)),
       },
+    );
+  };
+
+  // ── ④ 🪄 magic brush (D-IS-18 ④): change ONLY the highlighted region ──
+  const onMaskApply = () => {
+    const wish = maskText.trim();
+    if (!wish || !baseArtifactId || maskOps.length === 0 || generate.isPending) return;
+    setError(null);
+    const mask = exportMask(maskOps).split(',')[1];
+    void ensureSaveProject().then((projectId) =>
+      generate.mutate(
+        {
+          prompt: wish,
+          options: { size: 'square' },
+          project_id: projectId,
+          ref_artifact_id: baseArtifactId,
+          mask_b64: mask,
+        },
+        {
+          onSuccess: (r) => {
+            setCelebrate(true);
+            if (r.artifact_id) {
+              setTakes((t) => [
+                ...t,
+                { artifactId: r.artifact_id as string, kind: 'magic', label: '🪄 magic brush' },
+              ]);
+              setBaseArtifactId(r.artifact_id);
+            }
+            setMaskOps([]);
+            setMaskText('');
+            setMaskMode(false);
+          },
+          onError: (e) => setError(friendlyError(e)),
+        },
+      ),
     );
   };
 
@@ -509,6 +547,9 @@ export function ArtStudioPage() {
               templateUrl={template?.layer === 'underlay' ? template.url : null}
               exportIncludesBase={exportIncludesBase}
               compareUrl={comparing ? sketchUrl : null}
+              maskMode={maskMode}
+              maskOps={maskOps}
+              onMaskOpsChange={setMaskOps}
             />
           </div>
           {ghostArtifactId && (
@@ -517,6 +558,20 @@ export function ArtStudioPage() {
               className="absolute top-2 left-2 rounded-full bg-surface px-3 py-1 text-[11px] font-bold text-ink-soft"
             >
               👻 hide the ghost ✕
+            </button>
+          )}
+          {baseArtifactId && (
+            <button
+              data-testid="mask-toggle"
+              onClick={() => {
+                setMaskMode((m) => !m);
+                if (maskMode) setMaskOps([]);
+              }}
+              className={`absolute top-2 right-2 rounded-full px-3 py-1 text-[11px] font-bold ${
+                maskMode ? 'bg-grad-bubblegum text-white' : 'bg-surface text-ink-soft'
+              }`}
+            >
+              🪄 Magic brush
             </button>
           )}
           {baseArtifactId && sketchTakeId && (
@@ -529,6 +584,27 @@ export function ArtStudioPage() {
             >
               👆 hold to see my sketch
             </button>
+          )}
+          {maskMode && (
+            <div
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 items-center card-base px-3 py-2 w-[90%] max-w-[440px]"
+              data-testid="mask-bar"
+            >
+              <input
+                value={maskText}
+                onChange={(e) => setMaskText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onMaskApply()}
+                placeholder="Paint the spot, then say what it becomes…"
+                className="input-k12 flex-1 text-[13px]"
+              />
+              <button
+                onClick={onMaskApply}
+                disabled={generate.isPending || !maskText.trim() || maskOps.length === 0}
+                className="btn-pill-primary text-[13px] whitespace-nowrap"
+              >
+                🪄 −{MAGIC_COST}★
+              </button>
+            </div>
           )}
         </div>
 

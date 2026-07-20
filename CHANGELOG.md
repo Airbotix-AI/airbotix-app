@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-20 (feat: 🪄 magic brush — paint the spot, say what it becomes)
+
+### Added
+- Region editing (image-studio-prd D-IS-18 ④ / P3a): once a magic take is on the
+  canvas, the 🪄 Magic brush toggle lets the kid PAINT a pink highlight over the
+  region to change and say what it becomes ("a golden crown") — sent as a mask
+  (transparent = edit region) with the reference, one image-tier charge. The
+  result lands as a new take; the highlight is never part of the picture.
+
 ## 2026-07-20 (feat: Art Studio P2 finish — draw-along, checklist look, story time)
 
 ### Added
