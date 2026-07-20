@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-20 (feat: Art Studio goes live — un-paused everywhere it shows)
+
+### Changed
+- Art Studio left the coming-soon list (owner call after the canvas-first
+  rebuild): the Create tab now shows it as a live card, and the Workspace
+  studio picker's Image card became a link-out to `/learn/create/image`
+  (same pattern as Music -> the Stage; `?studio=image` deep links drop to the
+  picker). The in-class create sheet keeps it excluded (`noClassSheet`) —
+  missions are the class path for art.
+
 ## 2026-07-20 (fix: Portal default landing back to Dashboard)
 
 ### Changed

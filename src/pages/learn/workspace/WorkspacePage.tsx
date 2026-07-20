@@ -66,9 +66,16 @@ export function WorkspacePage() {
   useEffect(() => {
     const wanted = searchParams.get('studio');
     if (!wanted) return;
-    // Paused (comingSoon) studios can't be armed via deep link either — the
-    // param is dropped and the kid lands on the normal picker.
-    if (wanted && wanted in STUDIO_BY_ID && !STUDIO_BY_ID[wanted as Studio].comingSoon) {
+    // Paused (comingSoon) and link-out (linkTo) studios can't be armed via deep
+    // link either — the param is dropped and the kid lands on the normal picker.
+    // (Link-out studios have their own surface; a chat-shell session for them
+    // would resurrect the retired form flow.)
+    if (
+      wanted &&
+      wanted in STUDIO_BY_ID &&
+      !STUDIO_BY_ID[wanted as Studio].comingSoon &&
+      !STUDIO_BY_ID[wanted as Studio].linkTo
+    ) {
       setPendingStudio(wanted as Studio);
       setAutoSelect(false);
     }
