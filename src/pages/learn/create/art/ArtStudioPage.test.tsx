@@ -233,6 +233,54 @@ describe('ArtStudioPage (canvas-first)', () => {
     );
   });
 
+  // Two-column rail (owner feedback 2026-07-20): column 2 shows only the picked
+  // tool's options — sticker grid for the stamp tool, colours for painting
+  // tools, size preview-dots always at the top (except the colour-only fill).
+  it('tool options live in a second column scoped to the picked tool', () => {
+    renderPage();
+    // default pencil: colours + size dots, no sticker grid
+    expect(screen.getByTestId('tool-options')).toBeInTheDocument();
+    expect(screen.getByLabelText('color #1f2437')).toBeInTheDocument();
+    expect(screen.getByLabelText('size S')).toBeInTheDocument();
+    expect(screen.queryByTestId('stamp-grid')).toBeNull();
+    // stamp tool: sticker grid appears, colours leave, sizes stay (stamps scale)
+    fireEvent.click(screen.getByLabelText('Stamp'));
+    expect(screen.getByTestId('stamp-grid')).toBeInTheDocument();
+    expect(screen.getByLabelText('sticker ❤️')).toBeInTheDocument();
+    expect(screen.queryByLabelText('color #1f2437')).toBeNull();
+    expect(screen.getByLabelText('size L')).toBeInTheDocument();
+    // fill tool: colours only — a bucket has no width
+    fireEvent.click(screen.getByLabelText('Fill'));
+    expect(screen.queryByLabelText('size S')).toBeNull();
+    expect(screen.getByLabelText('color #1f2437')).toBeInTheDocument();
+  });
+
+  // "+ new picture" keeps the old artwork (owner: 原先的也保留): an unsaved
+  // drawing is snapshotted into My Pictures before the canvas resets.
+  it('＋ new picture saves the unsaved drawing to the bucket before resetting', async () => {
+    renderPage();
+    await screen.findByTestId('ai-rail');
+    fireEvent.click(screen.getByTestId('stub-draw'));
+    fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
+    await waitFor(() =>
+      expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
+        true,
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        apiCalls.some(
+          (c) =>
+            c.path === '/projects/proj_bucket/artifacts' &&
+            (c.opts?.body as { metadata?: { source?: string } })?.metadata?.source ===
+              'canvas-sketch',
+        ),
+      ).toBe(true),
+    );
+    // strip reset for the fresh canvas
+    await waitFor(() => expect(screen.queryAllByTestId('take-thumb')).toHaveLength(0));
+  });
+
   it('👻 ghost: sends mode=ghost with the typed idea + bucket project_id', async () => {
     renderPage();
     await screen.findByTestId('ai-rail');
