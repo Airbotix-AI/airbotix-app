@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-20 (fix: Portal default landing back to Dashboard)
+
+### Changed
+- **`/portal` (post-login default landing) is Dashboard again** — owner reversed QPCD-1
+  (portal-class-discovery-prd.md v0.5): classes-first landing was never an owner decision.
+  **Find a class** moves to `/portal/classes` (already its explicit path) and drops to
+  second place in the nav drawer; `/portal/dashboard` redirects to `/portal` so old
+  links keep working.
 ## 2026-07-20 (fix: Dashboard guide picks are English-first)
 
 ### Changed
