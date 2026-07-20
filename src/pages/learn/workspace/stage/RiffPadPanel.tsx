@@ -29,6 +29,7 @@ function CellRow({
   row,
   cells,
   ghostCells,
+  templateCells,
   label,
   accent,
   activeStep,
@@ -39,6 +40,9 @@ function CellRow({
   cells: boolean[];
   /** Ghost underlay for this row (faint, erasable — §5A D-MS13 ①). */
   ghostCells: boolean[] | null;
+  /** Mission `base` template for this row — plays and seeds, but is IMMUTABLE
+   *  to the kid (§5A D-MS14 / D-IS-22 authorship boundary). */
+  templateCells: boolean[] | null;
   label: string;
   accent: 'mint' | 'sky';
   activeStep: number | null;
@@ -50,16 +54,21 @@ function CellRow({
       <div className="flex gap-[3px]">
         {STEP_INDICES.map((step) => {
           const on = cells[step];
-          // The kid's own note always wins the pixel — the ghost only shows
-          // through where the kid has not played (the hand is the top layer).
-          const ghost = !on && !!ghostCells?.[step];
+          // Layer priority: the kid's own note wins the pixel, then the
+          // mission template (solid, locked), then the ghost (faint, erasable).
+          const tpl = !on && !!templateCells?.[step];
+          const ghost = !on && !tpl && !!ghostCells?.[step];
           return (
             <button
               key={step}
               type="button"
               aria-label={`${label} step ${step + 1}`}
               aria-pressed={on}
-              onClick={() => onToggle(section, row, step)}
+              aria-disabled={tpl || undefined}
+              onClick={() => {
+                // Template steps are course content, not the kid's to edit.
+                if (!tpl) onToggle(section, row, step);
+              }}
               className={clsx(
                 'h-5 w-5 rounded-[5px] border transition',
                 // Beat guide: a stronger left edge on every 4th step (bar feel).
@@ -68,15 +77,18 @@ function CellRow({
                   ? accent === 'mint'
                     ? 'border-brand-mint bg-brand-mint shadow-brand-mint'
                     : 'border-brand-sky bg-brand-sky'
-                  : ghost
-                    ? accent === 'mint'
-                      ? 'border-dashed border-brand-mint/70 bg-wash-mint'
-                      : 'border-dashed border-brand-sky/70 bg-wash-sky'
-                    : 'border-hairline bg-canvas hover:border-brand-mint',
+                  : tpl
+                    ? 'cursor-default border-brand-sky/80 bg-brand-sky/50'
+                    : ghost
+                      ? accent === 'mint'
+                        ? 'border-dashed border-brand-mint/70 bg-wash-mint'
+                        : 'border-dashed border-brand-sky/70 bg-wash-sky'
+                      : 'border-hairline bg-canvas hover:border-brand-mint',
                 activeStep === step && 'ring-2 ring-brand-sunshine',
               )}
               data-testid={`riff-cell-${section === 'melody' ? 'm' : 'd'}-${row}-${step}`}
               {...(ghost ? { 'data-ghost': 'true' } : {})}
+              {...(tpl ? { 'data-template': 'true' } : {})}
             />
           );
         })}
@@ -98,6 +110,7 @@ export function RiffPadPanel({
   ghostBusy,
   onAdvice,
   adviceBusy,
+  template = null,
 }: {
   grid: RiffGrid;
   onToggle: (section: RiffSection, row: number, step: number) => void;
@@ -115,6 +128,8 @@ export function RiffPadPanel({
   /** 👂 "听一听" — one note-grounded suggestion in the AI bubble. */
   onAdvice: () => void;
   adviceBusy: boolean;
+  /** Mission `base` template layer — locked course content (§5A D-MS14). */
+  template?: RiffGrid | null;
 }) {
   const count = riffNoteCount(grid);
   return (
@@ -140,6 +155,7 @@ export function RiffPadPanel({
               row={row}
               cells={grid.melody[row]}
               ghostCells={ghost?.melody[row] ?? null}
+              templateCells={template?.melody[row] ?? null}
               label={pitch}
               accent="mint"
               activeStep={auditioning ? activeStep : null}
@@ -155,6 +171,7 @@ export function RiffPadPanel({
               row={row}
               cells={grid.drums[row]}
               ghostCells={ghost?.drums[row] ?? null}
+              templateCells={template?.drums[row] ?? null}
               label={`${drum.emoji} ${drum.label}`}
               accent="sky"
               activeStep={auditioning ? activeStep : null}

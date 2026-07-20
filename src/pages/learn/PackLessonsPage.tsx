@@ -20,6 +20,13 @@ interface Mission {
       draw_along?: string[];
       checklist?: string[];
     };
+    // Music missions open the Music Stage in Mission Mode (music-stage-prd
+    // §5A D-MS14) — riff template + deterministic riff checks.
+    music?: {
+      template?: { mode: 'base' | 'reference'; riff: unknown };
+      checklist?: string[];
+      accept?: Record<string, unknown>;
+    };
   } | null;
 }
 
@@ -149,9 +156,25 @@ export function PackLessonsPage() {
                                       },
                                     },
                                   })
-                                : nav('/learn/projects/new', {
-                                    state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
-                                  })
+                                : m.steps_json?.music
+                                  ? nav('/learn/music', {
+                                      // Music missions open the Music Stage in
+                                      // Mission Mode (music-stage-prd §5A D-MS14).
+                                      state: {
+                                        mission: {
+                                          id: m.id,
+                                          slug: m.slug,
+                                          title: m.title,
+                                          description: m.description,
+                                          template: m.steps_json.music.template,
+                                          checklist: m.steps_json.music.checklist,
+                                          accept: m.steps_json.music.accept,
+                                        },
+                                      },
+                                    })
+                                  : nav('/learn/projects/new', {
+                                      state: { mission_id: m.id, mission_slug: m.slug, title: m.title },
+                                    })
                             }
                             className="btn-pill-primary shrink-0"
                           >
