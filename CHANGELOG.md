@@ -38,6 +38,17 @@
   an upload failure keeps the drawing on the canvas with the friendly error (nothing reset);
   tapping a film-strip take activates it and clears working strokes; hold-to-compare shows the
   sketch pixels only while pressed (D-IS-19).
+## 2026-07-21 (feat: parents can request a private tutor from the Tutoring page)
+
+### Added
+- `/portal/tutoring` now starts with a **Book a teacher** panel. A parent selects one of
+  their active children, describes the learning goal, chooses a preferred time, and sends
+  an authenticated booking request. The page makes the non-instant contract explicit: the
+  team confirms teacher, format, price and exact time before a lesson is booked, and no
+  payment is taken at request time.
+- The same panel lists the family's recent teacher requests with parent-facing states
+  (request received, matching teacher, confirmed, closed), so the request does not disappear
+  after submission. Families without an active child are directed to child setup.
 
 ## 2026-07-21 (feat: Music Stage — professional timbres: MusyngKite kit + sung vocal tracks)
 

@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { formatAud } from '@/lib/money';
 
 import { startHostedCheckout } from './airwallex';
+import { BookTeacherPanel } from './BookTeacherPanel';
 
 interface LessonCharge {
   id: string;
@@ -98,15 +99,17 @@ export function TutoringPage() {
     <div>
       <div className="mb-8">
         <div className="eyebrow">Private tutoring</div>
-        <h1 className="section-heading">Tutoring bill</h1>
+        <h1 className="section-heading">Private tutoring</h1>
         <p className="lead-text mt-3">
-          Each private tutoring lesson is priced by that session's headcount (more students, lower per-head price) and billed per lesson. Here's your bill.
+          Request one-on-one support, see upcoming lessons and keep track of tutoring charges.
         </p>
       </div>
 
       {error && (
         <div className="mb-6 rounded-2xl bg-coral/10 px-4 py-3 text-[14px] font-semibold text-coral">{error}</div>
       )}
+
+      <BookTeacherPanel familyId={familyId} />
 
       {/* Class cards: teachers / schedule / outline */}
       {classes.length > 0 && (
@@ -171,6 +174,7 @@ export function TutoringPage() {
       )}
 
       <div className="mb-8 rounded-3xl bg-surface p-6 shadow-sm">
+        <h2 className="mb-4 text-[18px] font-bold">Tutoring bill</h2>
         <div className="text-[12px] font-bold uppercase tracking-[0.14em] opacity-70">Amount due</div>
         <div className="mt-1 text-[44px] font-extrabold leading-none">{formatAud(outstanding)}</div>
         {outstanding > 0 && (
