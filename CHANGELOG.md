@@ -40,7 +40,6 @@
   2026-07 sample-library outage go unnoticed for 9 days (CloudFront serves index.html as
   200 for missing objects); every published-origin check now fails on a `text/html`
   content-type.
->>>>>>> origin/main
 
 ## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
 
