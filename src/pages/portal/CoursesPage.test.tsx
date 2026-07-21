@@ -46,6 +46,23 @@ const PACKS = [
   },
 ];
 
+const CATALOG = [
+  {
+    slug: 'robotics-101',
+    title: 'Build and Drive a Robot',
+    series: 'Tech Lab',
+    format: null,
+    weeks_count: 4,
+    age_range: '8–12',
+    price_label: 'A$240',
+    price_note: '4 sessions · A$60 per session',
+    session_length: '90 min',
+    difficulty: 2,
+    compare_ship: 'A robot they can drive',
+    compare_best_for: 'Hands-on first-time coders',
+  },
+];
+
 const CLASSES = [
   {
     id: 'class-1',
@@ -67,12 +84,23 @@ const CLASSES = [
   },
 ];
 
-function wireApi(classes: unknown = CLASSES) {
+function wireApi({
+  classes = CLASSES,
+  packs = PACKS,
+  catalog = CATALOG,
+  kids = [],
+}: {
+  classes?: unknown;
+  packs?: typeof PACKS;
+  catalog?: typeof CATALOG;
+  kids?: Array<{ id: string; nickname: string; age: number }>;
+} = {}) {
   api.mockImplementation((path: string) => {
     // The portal asks for the SELLABLE list only (bookable=true). A bare '/course-packs'
     // request would be the pre-D-6 bug: unpriced drafts shown with a seat button.
-    if (path === '/course-packs?bookable=true') return Promise.resolve(PACKS);
-    if (path === '/families/fam-1/kids') return Promise.resolve([]);
+    if (path === '/course-packs?bookable=true') return Promise.resolve(packs);
+    if (path === '/courses') return Promise.resolve(catalog);
+    if (path === '/families/fam-1/kids') return Promise.resolve(kids);
     if (path === '/families/fam-1/my-classes') {
       return Promise.resolve({ enrollments: [], pending_orders: [], booking_requests: [] });
     }
@@ -102,10 +130,74 @@ describe('CoursesPage publish gate (D-6)', () => {
     wireApi();
     renderPage();
 
-    expect(await screen.findByText('Request a seat →')).toBeInTheDocument();
+    expect(await screen.findByText('Build and Drive a Robot')).toBeInTheDocument();
     expect(api).toHaveBeenCalledWith('/course-packs?bookable=true');
     // An unfiltered call would put a seat button on unpriced drafts whose class times 404.
     expect(api).not.toHaveBeenCalledWith('/course-packs');
+  });
+});
+
+describe('CoursesPage comparison', () => {
+  it('joins the runtime marketing comparison fields onto only the bookable packs', async () => {
+    wireApi();
+    renderPage();
+
+    expect(await screen.findByText('A robot they can drive')).toBeInTheDocument();
+    expect(screen.getByText('Hands-on first-time coders')).toBeInTheDocument();
+    expect(screen.getByText('A$240')).toBeInTheDocument();
+    expect(screen.getByText('4 weeks')).toBeInTheDocument();
+    expect(screen.getByTitle('Difficulty 2 out of 4')).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith('/courses');
+  });
+
+  it('defaults to the family child and recommends only honest age matches', async () => {
+    const olderPack = {
+      ...PACKS[0],
+      id: 'pack-2',
+      slug: 'advanced-code',
+      title: 'Advanced Code',
+      target_age_min: 13,
+      target_age_max: 17,
+    };
+    const olderCatalog = {
+      ...CATALOG[0],
+      slug: 'advanced-code',
+      title: 'Advanced Code Lab',
+      age_range: '13–17',
+      difficulty: 4,
+      compare_ship: 'A multiplayer game',
+      compare_best_for: 'Experienced teenage coders',
+    };
+    wireApi({
+      packs: [...PACKS, olderPack],
+      catalog: [...CATALOG, olderCatalog],
+      kids: [{ id: 'kid-1', nickname: 'Mia', age: 10 }],
+    });
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Top picks for Mia' })).toBeInTheDocument();
+    expect(screen.getByText(/Based on Mia's age \(10\)/)).toBeInTheDocument();
+    expect(screen.getAllByTestId('course-recommendation-card')).toHaveLength(1);
+    expect(await screen.findByText('1 course suitable for Mia')).toBeInTheDocument();
+    expect(screen.getByText('Good age fit for Mia')).toBeInTheDocument();
+    expect(screen.queryByText('Advanced Code Lab')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'All children' }));
+    expect(await screen.findByText('Advanced Code Lab')).toBeInTheDocument();
+    expect(screen.queryByTestId('course-recommendations')).not.toBeInTheDocument();
+  });
+
+  it('opens the recommended course and keeps the paired actions exactly the same size', async () => {
+    wireApi({ kids: [{ id: 'kid-1', nickname: 'Mia', age: 10 }] });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View course options' }));
+
+    const request = await screen.findByRole('button', { name: 'Request a seat →' });
+    const times = screen.getByRole('button', { name: 'See class times' });
+    for (const action of [request, times]) {
+      expect(action).toHaveClass('h-12', 'w-full', 'sm:w-[176px]');
+    }
   });
 });
 
@@ -114,26 +206,29 @@ describe('CoursesPage pay-now CTA', () => {
     wireApi();
     renderPage();
 
-    expect(await screen.findByText('Request a seat →')).toBeInTheDocument();
+    fireEvent.click(await screen.findByText('Choose this course'));
+    expect(screen.getByText('Request a seat →')).toBeInTheDocument();
     expect(api).not.toHaveBeenCalledWith('/courses/robotics-101/classes');
 
     fireEvent.click(screen.getByText('See class times'));
 
     const pay = await screen.findByRole('link', { name: /Pay now & lock a seat/ });
     expect(pay).toHaveAttribute('href', '/portal/checkout/class/class-1');
-    expect(screen.getByText(/starts/)).toHaveTextContent('Saturday AM');
+    expect(screen.getByText('Saturday AM')).toBeInTheDocument();
+    expect(screen.getByText(/Starts Sat.*1 Aug 2026/)).toBeInTheDocument();
     expect(screen.getByText('Chatswood Lab, Chatswood')).toBeInTheDocument();
     expect(screen.getByText('A$399')).toBeInTheDocument();
     // Non-purchasable classes never get a pay link.
     expect(screen.getAllByRole('link', { name: /Pay now & lock a seat/ })).toHaveLength(1);
-    // The reserve CTA is still there alongside.
+    // The reserve CTA is still there alongside the paid-class path.
     expect(screen.getByText('Request a seat →')).toBeInTheDocument();
   });
 
   it('explains when no class is open for online purchase', async () => {
-    wireApi([]);
+    wireApi({ classes: [] });
     renderPage();
 
+    fireEvent.click(await screen.findByText('Choose this course'));
     fireEvent.click(await screen.findByText('See class times'));
 
     expect(
