@@ -5,6 +5,7 @@ import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
+import { NowEnrollingPanel } from './NowEnrollingPanel';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
 import { openWelcomeTour } from './onboarding/welcomeTour';
@@ -128,6 +129,10 @@ export function DashboardPage() {
                 View activity
               </Link>
             </div>
+          </div>
+
+          <div className="mt-10">
+            <NowEnrollingPanel />
           </div>
 
           <FamilyGuidesRecommendation familyId={familyId} />
