@@ -155,10 +155,10 @@ export function useScorePlayback(
       if (!channel) return;
       const slot = stageSlotFor(t.instrument);
       const styleId = styles?.[slot] ?? defaultStyleFor(slot);
-      const spec = `${slot}|${styleId}`;
+      const spec = `${t.instrument}|${slot}|${styleId}`;
       if (voiceSpecsRef.current[idx] === spec && voicesRef.current[idx]) return;
       voicesRef.current[idx]?.dispose();
-      voicesRef.current[idx] = createTrackVoice(slot, styleId, channel);
+      voicesRef.current[idx] = createTrackVoice(slot, styleId, channel, t.instrument);
       voiceSpecsRef.current[idx] = spec;
     });
   }, [score, styles]);

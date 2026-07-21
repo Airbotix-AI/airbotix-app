@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-21 (feat: Music Stage — professional timbres: MusyngKite kit + sung vocal tracks)
+
+### Changed
+- **Music Stage timbres upgrade to the MusyngKite soundfont kit** (owner report: 音色明显
+  不对/太电子). `SOUNDFONT_KIT` switches from FluidR3_GM to gleitz's higher-fidelity
+  MusyngKite kit — same layout and per-program file names, audibly closer to real
+  instruments. `soundfonts.yml` now publishes the MusyngKite tree (FluidR3_GM objects stay
+  on the origin for previously-cached bundles).
+- **Vocal tracks now sing instead of playing piano/synth.** `lead_vocals`/`backing_vocals`
+  score tracks previously borrowed the piano/keys slot style — on the Pop preset the lead
+  melody rendered as a sawtooth synth lead. They now load dedicated sampled vocal programs
+  (GM 53 Choir Aahs / 54 Voice Oohs) via `VOCAL_GM_PROGRAMS` in `voices.ts`, overriding the
+  slot style (style = None still silences them); the compose-time preload warms both.
+
+### CI
+- **`soundfonts.yml` verify step now rejects the SPA fallback.** HTTP 200 alone let the
+  2026-07 sample-library outage go unnoticed for 9 days (CloudFront serves index.html as
+  200 for missing objects); every published-origin check now fails on a `text/html`
+  content-type.
+
 ## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
 
 ### Fixed

@@ -4,10 +4,12 @@
 # keeps the whole smplr path closed in production unless VITE_SOUNDFONT_BASE_URL
 # points at an origin we control — this workflow is what makes that origin exist.
 #
-# WHAT: the 11 GM programs the §5 style table uses (gleitz FluidR3_GM layout) plus
-# the 3 sampled drum machines (smpldsnds layout: dm.json + ogg/m4a samples). Each
-# dm.json carries an ABSOLUTE baseUrl back to the upstream host, so it is rewritten
-# to ours — otherwise hosting dm.json alone would still pull samples off-site.
+# WHAT: the GM programs the §5 style table + vocal tracks use (gleitz MusyngKite
+# layout — the higher-fidelity kit; FluidR3_GM objects from earlier runs stay on
+# the origin for previously-cached bundles) plus the 3 sampled drum machines
+# (smpldsnds layout: dm.json + ogg/m4a samples). Each dm.json carries an ABSOLUTE
+# baseUrl back to the upstream host, so it is rewritten to ours — otherwise
+# hosting dm.json alone would still pull samples off-site.
 #
 # WHERE: s3://airbotix-app-prod/soundfonts/ — the SPA's own bucket + CloudFront
 # distribution, so samples are same-origin (no CORS, no new infra). deploy.yml
@@ -16,8 +18,9 @@
 # WHEN: run once (workflow_dispatch); re-run only to add programs/kits. Sample
 # bytes are static and content-addressed by name, cached immutable for a year.
 #
-# SOURCES + LICENCE: FluidR3_GM soundfont (Frank Wen, MIT) via gleitz/midi-js-soundfonts;
-# drum machines via smpldsnds (samples released for free use by their authors).
+# SOURCES + LICENCE: MusyngKite soundfont (freely redistributable) via
+# gleitz/midi-js-soundfonts (repo MIT); drum machines via smpldsnds (samples
+# released for free use by their authors).
 name: Publish soundfonts
 
 on:
@@ -41,21 +44,22 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch the GM programs used by the §5 style table
-        # Keep this list in sync with GM_PROGRAM_SOUNDFONTS in
-        # src/pages/learn/workspace/stage/soundfont.ts.
+      - name: Fetch the GM programs used by the §5 style table + vocal tracks
+        # Keep this list (and SOUNDFONT_KIT) in sync with GM_PROGRAM_SOUNDFONTS
+        # in src/pages/learn/workspace/stage/soundfont.ts. choir_aahs/voice_oohs
+        # back the vocal-track override in voices.ts (VOCAL_GM_PROGRAMS).
         run: |
           set -euo pipefail
-          mkdir -p out/FluidR3_GM
+          mkdir -p out/MusyngKite
           for name in \
             acoustic_grand_piano electric_piano_1 music_box drawbar_organ \
             acoustic_guitar_steel electric_guitar_clean overdriven_guitar \
             electric_bass_finger electric_bass_pick synth_bass_1 \
-            lead_2_sawtooth pad_2_warm
+            lead_2_sawtooth pad_2_warm choir_aahs voice_oohs
           do
             echo "→ $name"
-            curl -fsSL "$SOUNDFONT_UPSTREAM/FluidR3_GM/${name}-mp3.js" \
-              -o "out/FluidR3_GM/${name}-mp3.js"
+            curl -fsSL "$SOUNDFONT_UPSTREAM/MusyngKite/${name}-mp3.js" \
+              -o "out/MusyngKite/${name}-mp3.js"
           done
 
       - name: Fetch the drum machines and re-home their dm.json baseUrl
@@ -116,9 +120,20 @@ jobs:
       - name: Verify the published origin
         # Prove the two things a kid's browser actually needs: a melodic program
         # loads, and a drum sample loads THROUGH the re-homed manifest's baseUrl.
+        # HTTP 200 alone is NOT proof: CloudFront's SPA error mapping serves
+        # index.html as 200 for any missing object (that masked the 2026-07
+        # sample-library outage for 9 days) — so every check also rejects
+        # text/html bodies.
         run: |
           set -euo pipefail
-          curl -fsSI "$PUBLIC_BASE/FluidR3_GM/acoustic_grand_piano-mp3.js" | head -1
+          not_spa_fallback() {
+            # $1 = URL. Fails when the origin answers with the SPA's index.html.
+            ct=$(curl -fsSI "$1" | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}')
+            echo "  $1 → ${ct}"
+            case "$ct" in text/html*) echo "✖ SPA fallback served for $1" >&2; return 1;; esac
+          }
+          not_spa_fallback "$PUBLIC_BASE/MusyngKite/acoustic_grand_piano-mp3.js"
+          not_spa_fallback "$PUBLIC_BASE/MusyngKite/choir_aahs-mp3.js"
           for machine in LM-2 Casio-RZ1 TR-808; do
             dm=$(curl -fsSL "$PUBLIC_BASE/drum-machines/$machine/dm.json")
             base=$(echo "$dm" | jq -r '.baseUrl')
@@ -127,5 +142,5 @@ jobs:
             # must never again pass for "the drums actually play".
             sample=$(echo "$dm" | jq -r '.samples[0]')
             echo "✓ $machine ← ${base}${sample}.ogg"
-            curl -fsSI "${base}${sample}.ogg" | head -1
+            not_spa_fallback "${base}${sample}.ogg"
           done

@@ -224,8 +224,9 @@ describe('MusicStagePane — generation', () => {
     });
     fireEvent.click(screen.getByTestId('composer-generate'));
     await screen.findByTestId('stage-composing');
-    // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17.
-    expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17]);
+    // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17,
+    // plus the vocal-track programs (Choir Aahs 53 / Voice Oohs 54).
+    expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17, 53, 54]);
   });
 
   // D-MS10: with a song on stage the composer defaults to EDIT mode — typed
