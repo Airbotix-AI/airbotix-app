@@ -150,9 +150,22 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     }
   }, [ops, maskOps, maskMode, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
 
+  // rAF repaints ALWAYS run the latest draw (D-ISF-1). A frame scheduled by the
+  // last pointermove used to capture that render's `draw` closure; firing after
+  // endStroke committed the ops it repainted the OLD (often empty) list — the
+  // just-finished stroke visually vanished. The ref makes a pending frame
+  // harmless: it repaints identical, current state.
+  const drawRef = useRef(draw);
   useEffect(() => {
+    drawRef.current = draw;
     draw();
   }, [draw]);
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
 
   const toLogical = (e: React.PointerEvent): [number, number] => {
     const rect = (canvasRef.current as HTMLCanvasElement).getBoundingClientRect();
@@ -166,7 +179,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     if (frame.current !== null) return;
     frame.current = requestAnimationFrame(() => {
       frame.current = null;
-      draw();
+      drawRef.current();
     });
   };
 
@@ -207,7 +220,9 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
   const endStroke = () => {
     const live = liveStroke.current;
     liveStroke.current = null;
-    if (live && live.length > 1) {
+    // A tap is a dot (D-ISF-2): a single-point stroke commits too —
+    // perfect-freehand renders the one-point outline as a dab.
+    if (live && live.length > 0) {
       const op: CanvasOp = {
         kind: 'stroke',
         tool: maskMode ? 'marker' : (tool as BrushTool),

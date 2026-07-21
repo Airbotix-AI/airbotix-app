@@ -155,8 +155,14 @@ export function renderOps(ctx: CanvasRenderingContext2D, ops: CanvasOp[]): void 
       ctx.fillText(op.emoji, op.x, op.y);
       ctx.restore();
     } else {
-      const image = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      floodFill(image.data, CANVAS_SIZE, CANVAS_SIZE, op.x, op.y, op.color);
+      // getImageData/putImageData ignore the context transform and work in
+      // DEVICE pixels — read the FULL backing bitmap and scale the tap point,
+      // or on Retina (dpr 2) the fill reads only the top-left quadrant and
+      // paints it back misaligned.
+      const { width, height } = ctx.canvas;
+      const scale = width / CANVAS_SIZE;
+      const image = ctx.getImageData(0, 0, width, height);
+      floodFill(image.data, width, height, op.x * scale, op.y * scale, op.color);
       ctx.putImageData(image, 0, 0);
     }
   }

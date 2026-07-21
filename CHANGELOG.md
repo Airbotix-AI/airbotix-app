@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
+
+### Fixed
+- **The just-finished stroke no longer vanishes after pen-up** (owner report: 一般第一笔,
+  画一下就消失了). An animation frame scheduled by the last `pointermove` captured the
+  previous render's `draw` closure; firing after `endStroke` committed the ops, it repainted
+  the OLD (usually empty) op list — visually wiping the stroke the kid just drew. rAF
+  repaints now run the latest `draw` via a ref, and pending frames are cancelled on unmount
+  (`ArtCanvas`, D-ISF-1, art-studio-canvas-and-intent-fix-prd).
+- **A tap now leaves a dot.** Single-point strokes (pointerdown + pointerup with no move)
+  were silently discarded; they now commit and render as a dab (D-ISF-2).
+- **🪣 fill works on Retina.** The flood fill read/wrote a 1024² LOGICAL-pixel window of a
+  dpr-scaled backing bitmap (`getImageData`/`putImageData` ignore the canvas transform), so
+  on dpr 2 it read only the top-left quadrant and painted it back misaligned. It now reads
+  the full device-pixel bitmap and scales the tap point (`strokeEngine.renderOps`).
+- **The coach's plan finally feeds ✨ Bring-to-life** (owner report: 画了马想换成牛,AI 不知道
+  要干嘛). `/llm/image-plan` distils the conversation into `plan.prompt`, but the studio
+  never read it — magic sent only the optional typed wish or the bare "my drawing". Prompt
+  precedence is now typed wish → coach plan → fallback; the plan's style pre-selects and the
+  magic sheet shows the plan sentence it is about to use (D-ISF-3).
+- **🪄 magic brush now works on a raw hand-drawing.** It was gated on an existing AI take
+  (`baseArtifactId`), so region-replace on a plain sketch had no entry point. With ink on
+  the canvas the toggle appears; applying a mask first snapshots the canvas as the reference
+  (same free upload ✨ uses), then edits with `ref_artifact_id` + `mask_b64` (D-ISF-4).
+- **Masked edits describe the intent, not a bare noun.** The wish now rides inside a
+  region-replace template ("Same picture, keep everything outside the highlighted region
+  unchanged; the highlighted region becomes: …") per the gpt-image edits contract (D-ISF-5).
+
 ## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
 
 ### Added

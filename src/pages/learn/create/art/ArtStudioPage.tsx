@@ -33,6 +33,12 @@ const MAGIC_COST = 9;
 const GHOST_COST = 2;
 const CHAT_COST = 1;
 
+// Masked edits (D-ISF-5): gpt-image /images/edits expects the prompt to describe
+// the desired full picture — a bare noun is frequently ignored. The kid's words
+// ride verbatim inside the template.
+const maskWishPrompt = (wish: string): string =>
+  `Same picture, keep everything outside the highlighted region unchanged; the highlighted region becomes: ${wish}`;
+
 const STYLES = ['cartoon', 'painting', 'pixel-art', 'photo', 'sketch', 'watercolor'] as const;
 type PlanStyle = (typeof STYLES)[number];
 
@@ -134,6 +140,9 @@ export function ArtStudioPage() {
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicStyle, setMagicStyle] = useState<PlanStyle>('cartoon');
   const [magicDesc, setMagicDesc] = useState('');
+  // The coach's distilled plan (D-ISF-3): what the kid and the coach agreed the
+  // picture should be. Feeds ✨ when the kid doesn't type an explicit wish.
+  const [plan, setPlan] = useState<PlanTurn['plan']>(null);
 
   // coach
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
@@ -253,6 +262,17 @@ export function ArtStudioPage() {
   const template = mission?.template ?? null;
   const exportIncludesBase = template?.magic !== 'strokes-only';
 
+  // The coach produced a plan → remember it and pre-select its style, so the ✨
+  // magic prompt finally says what the kid MEANT (D-ISF-3 — the plan used to be
+  // returned by /llm/image-plan and then thrown away).
+  const acceptPlan = (turn: PlanTurn) => {
+    if (!turn.plan) return;
+    setPlan(turn.plan);
+    if ((STYLES as readonly string[]).includes(turn.plan.style)) {
+      setMagicStyle(turn.plan.style as PlanStyle);
+    }
+  };
+
   // ── coach chat (sidekick — D-IS-15) ──
   const sendToCoach = (text: string) => {
     const idea = text.trim();
@@ -268,6 +288,7 @@ export function ArtStudioPage() {
         onSuccess: (turn) => {
           setMsgs([...next, { role: 'assistant', content: turn.reply }]);
           setChips(turn.chips);
+          acceptPlan(turn);
         },
         onError: (e) => setError(friendlyError(e)),
       },
@@ -349,37 +370,57 @@ export function ArtStudioPage() {
   // ── ④ 🪄 magic brush (D-IS-18 ④): change ONLY the highlighted region ──
   const onMaskApply = () => {
     const wish = maskText.trim();
-    if (!wish || !baseArtifactId || maskOps.length === 0 || generate.isPending) return;
+    if (!wish || maskOps.length === 0 || generate.isPending) return;
+    if (!baseArtifactId && !hasInk) return;
     setError(null);
     const mask = exportMask(maskOps).split(',')[1];
-    void ensureSaveProject().then((projectId) =>
-      generate.mutate(
-        {
-          prompt: wish,
-          options: { size: 'square' },
-          project_id: projectId,
-          ref_artifact_id: baseArtifactId,
-          mask_b64: mask,
-        },
-        {
-          onSuccess: (r) => {
-            setCelebrate(true);
-            if (r.artifact_id) {
-              setTakes((t) => [
-                ...t,
-                { artifactId: r.artifact_id as string, kind: 'magic', label: '🪄 magic brush' },
-              ]);
-              setBaseArtifactId(r.artifact_id);
-              setBaseRef(null); // the take (a bucket artifact) is the new base
-            }
-            setMaskOps([]);
-            setMaskText('');
-            setMaskMode(false);
+    void ensureSaveProject()
+      .then(async (projectId) => {
+        // A raw hand-drawing has no base artifact yet — snapshot the canvas as
+        // the reference first (free, the same upload ✨ does), so region-replace
+        // works on a plain sketch too (D-ISF-4: the horse→cow case).
+        let refId = baseArtifactId;
+        const isRawSketch = !refId;
+        if (!refId) {
+          const sketch = await uploadCanvas(projectId);
+          refId = sketch.id;
+          setSketchTakeId((prev) => prev ?? sketch.id);
+          setTakes((t) => [...t, { artifactId: sketch.id, kind: 'sketch', label: '✏️ my sketch' }]);
+          void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data?.project_id] });
+        }
+        generate.mutate(
+          {
+            // The edits contract wants the FULL desired picture described — a
+            // bare wish ("a cow") is often ignored (D-ISF-5).
+            prompt: maskWishPrompt(wish),
+            options: { size: 'square' },
+            project_id: projectId,
+            ref_artifact_id: refId,
+            mask_b64: mask,
           },
-          onError: (e) => setError(friendlyError(e)),
-        },
-      ),
-    );
+          {
+            onSuccess: (r) => {
+              setCelebrate(true);
+              if (r.artifact_id) {
+                setTakes((t) => [
+                  ...t,
+                  { artifactId: r.artifact_id as string, kind: 'magic', label: '🪄 magic brush' },
+                ]);
+                setBaseArtifactId(r.artifact_id);
+                setBaseRef(null); // the take (a bucket artifact) is the new base
+                // The raw sketch's strokes ARE the reference — clear them so
+                // they don't re-draw over the result (the sketch stays a take).
+                if (isRawSketch) setOps([]);
+              }
+              setMaskOps([]);
+              setMaskText('');
+              setMaskMode(false);
+            },
+            onError: (e) => setError(friendlyError(e)),
+          },
+        );
+      })
+      .catch((e) => setError(friendlyError(e)));
   };
 
   // ── 👤 My Characters (D-IS-23): save the active take as a named character ──
@@ -492,6 +533,7 @@ export function ArtStudioPage() {
           setMsgs([...next, { role: 'assistant', content: turn.reply }]);
           setChips(turn.chips);
           setLastLook(turn.reply);
+          acceptPlan(turn);
         },
         onError: (e) => setError(friendlyError(e)),
       },
@@ -530,6 +572,7 @@ export function ArtStudioPage() {
     setSketchTakeId(null);
     setTakes([]);
     setLastLook(null);
+    setPlan(null);
     setMaskMode(false);
     setMaskOps([]);
   };
@@ -572,7 +615,9 @@ export function ArtStudioPage() {
         setTakes((t) => [...t, { artifactId: sketch.id, kind: 'sketch', label: '✏️ my sketch' }]);
         void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
       }
-      const prompt = `${magicDesc.trim() || 'my drawing'}, ${magicStyle} style`;
+      // Prompt precedence (D-ISF-3): the kid's explicit wish wins, else the
+      // plan the coach distilled from the conversation, else the bare fallback.
+      const prompt = `${magicDesc.trim() || plan?.prompt.trim() || 'my drawing'}, ${magicStyle} style`;
       generate.mutate(
         // No ink at all = the pure-generation on-ramp (D-IS-15 bypass).
         {
@@ -831,7 +876,7 @@ export function ArtStudioPage() {
               👻 hide the ghost ✕
             </button>
           )}
-          {baseArtifactId && (
+          {(baseArtifactId || hasInk) && (
             <button
               data-testid="mask-toggle"
               onClick={() => {
@@ -1062,6 +1107,11 @@ export function ArtStudioPage() {
         <div className="absolute inset-0 bg-black/30 flex items-end sm:items-center justify-center z-20">
           <div className="card-base w-full sm:w-[420px] m-3 p-4" data-testid="magic-sheet">
             <span className="sticker-bubblegum">✨ Bring it to life</span>
+            {plan && (
+              <p className="text-[13px] text-ink mt-2" data-testid="magic-plan">
+                🗺 Coach's plan: “{plan.prompt}”
+              </p>
+            )}
             {lastLook ? (
               <p className="text-[13px] text-ink mt-2">🤖 Coach saw: “{lastLook}”</p>
             ) : hasInk ? (
