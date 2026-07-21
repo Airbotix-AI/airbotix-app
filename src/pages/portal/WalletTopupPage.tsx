@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { CliReturnBanner } from '@/components/CliReturnBanner';
 import { api, ApiError } from '@/lib/api';
+import { startHostedCheckout } from './airwallex';
 import { StarsExplainer } from './StarsExplainer';
 import { TopupLimitModal } from './TopupLimitModal';
 import { asTopupLimit, type TopupLimitInfo } from './walletTypes';
@@ -32,6 +33,7 @@ const PACKS: Pack[] = [
 interface TopupResponse {
   payment_id: string;
   payment_intent_id?: string;
+  client_secret?: string;
   checkout_url: string;
   pack: string;
   stars_credited_pending: number;
@@ -57,7 +59,7 @@ export function WalletTopupPage() {
       });
       // Dev: log the mock checkout url so we can verify it round-tripped.
       console.info('[topup]', res);
-      window.location.href = res.checkout_url;
+      await startHostedCheckout(res);
     } catch (e) {
       // Anti-fraud 429s (TOPUP_*) get the dedicated §4.4.2 limit modal; anything
       // else falls back to the inline error banner.
