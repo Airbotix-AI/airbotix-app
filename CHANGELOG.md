@@ -25,6 +25,13 @@
 ### Added
 - Added a development-only Journey to the West C1 runtime preview that uses the real Story Blocks parser, runner, editor, Flower Fruit Mountain background, and Stone Monkey asset without backend or production-data writes.
 
+### Fixed
+- Clicking the already-selected **Parent or guardian** identity on the login gateway no
+  longer clears the protected route that sent the parent there, so a marketing-site
+  **Pay & lock the seat** deep link returns to its class checkout after OTP verification
+  instead of falling back to the Portal dashboard.
+- Retrying the OTP request also carries the original checkout route back to the login form.
+
 ## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
 
 ### Added

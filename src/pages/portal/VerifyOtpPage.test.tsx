@@ -22,6 +22,12 @@ function RegisterProbe() {
   return <div>REGISTER from:{from?.pathname ?? 'none'}</div>;
 }
 
+function LoginProbe() {
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname: string } } | undefined)?.from;
+  return <div>LOGIN from:{from?.pathname ?? 'none'}</div>;
+}
+
 function renderPage() {
   return render(
     <MemoryRouter
@@ -31,6 +37,7 @@ function renderPage() {
     >
       <Routes>
         <Route path="/portal/verify" element={<VerifyOtpPage />} />
+        <Route path="/portal/login" element={<LoginProbe />} />
         <Route path="/portal/register" element={<RegisterProbe />} />
         <Route path="/portal/checkout/class/:classId" element={<div>CHECKOUT PAGE</div>} />
       </Routes>
@@ -67,5 +74,13 @@ describe('VerifyOtpPage return-to threading', () => {
     submitCode();
 
     expect(await screen.findByText('CHECKOUT PAGE')).toBeInTheDocument();
+  });
+
+  it('keeps `from` when the parent asks to retry the OTP flow', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /Try again/ }));
+
+    expect(await screen.findByText(`LOGIN from:${FROM.pathname}`)).toBeInTheDocument();
   });
 });
