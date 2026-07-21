@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
+
+### Added
+- **"Now enrolling" panel on the Portal Dashboard (`/portal`).** A freshly-logged-in parent
+  landed on the Dashboard but had no way to see which classes were actually open — course
+  discovery was buried one level down at `/portal/classes`, and that page defaults its city
+  filter to the family's own city, so a parent whose city had no open class saw a blank page.
+  The Dashboard now surfaces up to 3 currently-open classes (with price, seats, start, venue,
+  and a "Pay & lock a seat" CTA) directly on the landing page, right after Quick actions. It
+  queries **every city** (`GET /class-seats/classes` with no `?city=`), so parents always see
+  what is opening anywhere, then "See all classes" links to the full city-filtered browse.
+  (portal-class-discovery-prd D-PCD-11.)
+
+### Changed
+- Extracted the bookable-class card (`ClassCard` + `AvailableClass` shape) out of
+  `FindClassesPage` into shared `availableClasses.tsx` so the Dashboard panel and the
+  Find-a-class page render an open class identically and share one query cache key.
+
 ## 2026-07-21 (feat: Art Studio draft auto-save + reopen-to-edit + readable tools — owner feedback)
 
 ### Added
