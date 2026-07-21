@@ -72,6 +72,10 @@ import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
+  JourneyC1Part1Guide,
+  type JourneyC1Part1Evidence,
+} from './JourneyC1Part1Guide';
+import {
   storyMissionProgramMatches,
   storyMissionScriptId,
   TINY_STAR_GREETING_CHOICES,
@@ -205,6 +209,7 @@ export function BlocksStudioPage({
   const versionRef = useRef(0);
   const otherFilesRef = useRef<Awaited<ReturnType<typeof loadBlocksProject>>['otherFiles']>([]);
   const storyProgressRef = useRef<BlocksStoryProgress>({ schemaVersion: 1, completed: {} });
+  const completionEvidenceRef = useRef<JourneyC1Part1Evidence | undefined>(undefined);
   const completionSaveInFlightRef = useRef(false);
   const runnerRef = useRef<BlocksRunner | null>(null);
   // Autosave is serialized: only one save may be in flight. Overlapping saves
@@ -277,6 +282,7 @@ export function BlocksStudioPage({
     );
     setMissionHasRun(previouslyCompleted);
     setMissionAnswer(null);
+    completionEvidenceRef.current = undefined;
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
@@ -455,7 +461,12 @@ export function BlocksStudioPage({
       schemaVersion: 1,
       completed: {
         ...storyProgressRef.current.completed,
-        [storyMission.lessonId]: { completedAt: new Date().toISOString() },
+        [storyMission.lessonId]: {
+          completedAt: new Date().toISOString(),
+          ...(completionEvidenceRef.current
+            ? { evidence: completionEvidenceRef.current }
+            : {}),
+        },
       },
     };
     try {
@@ -511,6 +522,14 @@ export function BlocksStudioPage({
       completionSaveInFlightRef.current = false;
     }
   }, [projectId, storyMission]);
+
+  const completeJourneyC1Part1 = useCallback((evidence: JourneyC1Part1Evidence) => {
+    completionEvidenceRef.current = evidence;
+    setMissionCorrectRunFinished(true);
+    setMissionFixPersisted(true);
+    setStoryCoachCue('saving');
+    setNextMissionError(null);
+  }, []);
 
   useEffect(() => {
     if (
@@ -1530,7 +1549,16 @@ export function BlocksStudioPage({
         </div>
       )}
 
-      {storyMission && missionOpen && (
+      {storyMission && missionOpen && storyMission.lessonId === 'jtw-s1-c1-p1' && (
+        <JourneyC1Part1Guide
+          completed={missionCompleted}
+          saving={saveStatus === 'saving' || (missionCorrectRunFinished && !missionCompleted)}
+          error={nextMissionError}
+          onComplete={completeJourneyC1Part1}
+        />
+      )}
+
+      {storyMission && missionOpen && storyMission.lessonId !== 'jtw-s1-c1-p1' && (
         <StoryMissionGuide
           mission={storyMission}
           hasRun={missionHasRun}

@@ -23,11 +23,12 @@ describe('StoryJourneyMap', () => {
       'The Missing Morning Light',
     );
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
-      'The Monkey King’s New Journey',
+      'The Monkey King’s First Journey',
     );
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Alice in Wonderland');
     expect(screen.getByTestId('story-collection-shelf')).not.toHaveTextContent('Fable Forest');
-    expect(screen.getAllByText(/Planned/)).toHaveLength(2);
+    expect(screen.getAllByText(/Planned/)).toHaveLength(1);
+    expect(screen.getByTestId('blocks-starter-blocks_jtw_s1_c1_p1')).toBeInTheDocument();
     expect(screen.getByTestId('story-chapter-a1').querySelector('.bsx-lumilo')).toHaveAttribute(
       'data-performance',
       'idle',
@@ -56,6 +57,18 @@ describe('StoryJourneyMap', () => {
     fireEvent.click(screen.getByTestId('blocks-starter-blocks_tsv_a2_b'));
 
     expect(onStart).toHaveBeenCalledWith('blocks_tsv_a2_b', 'Tiny Star Village · Choose an arrow');
+  });
+
+  it('starts Journey to the West at Collection 1 Part 1 only', () => {
+    const onStart = vi.fn();
+    render(<StoryJourneyMap busy={null} onStart={onStart} />);
+
+    fireEvent.click(screen.getByTestId('blocks-starter-blocks_jtw_s1_c1_p1'));
+
+    expect(onStart).toHaveBeenCalledWith(
+      'blocks_jtw_s1_c1_p1',
+      'Journey to the West · Flower-Fruit Mountain Wakes',
+    );
   });
 
   it('keeps the story count derived from the playable mission catalogue', () => {

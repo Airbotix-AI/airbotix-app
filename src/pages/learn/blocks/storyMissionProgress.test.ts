@@ -3,6 +3,40 @@ import { describe, expect, it } from 'vitest';
 import { blankProject } from './blocksModel';
 import { storyMissionProgramMatches } from './storyMissionProgress';
 
+function journeyPart1Project() {
+  const project = blankProject('Journey to the West · Flower-Fruit Mountain Wakes');
+  project.lessonId = 'jtw-s1-c1-p1';
+  project.pages[0] = {
+    id: 'jtw-s1-c1-p1-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characters: [
+      {
+        id: 'stone-monkey',
+        name: 'Stone Monkey',
+        emoji: '🐵',
+        asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+        start: { gx: 8, gy: 9, size: 3, rot: 0 },
+        scripts: [
+          {
+            id: 'stone-monkey-arrival',
+            blocks: [
+              { op: 'when_flag' },
+              { op: 'hide' },
+              { op: 'play_sound', n: 2 },
+              { op: 'wait', n: 2 },
+              { op: 'show' },
+              { op: 'hop', n: 1 },
+              { op: 'say', text: "Hello! I'm new here!" },
+              { op: 'end' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  return project;
+}
+
 function correctedMissionProject() {
   const project = blankProject('Tiny Star Village');
   project.lessonId = 'tsv-s1-a1-h';
@@ -141,6 +175,13 @@ function tapResponseProject(response: { op: 'hop'; n: number } | { op: 'say'; te
 }
 
 describe('storyMissionProgramMatches', () => {
+  it('recognises the exact locked Journey C1 Part 1 starter and rejects drift', () => {
+    const project = journeyPart1Project();
+    expect(storyMissionProgramMatches(project, 'jtw-s1-c1-p1')).toBe(true);
+
+    project.pages[0].characters[0].scripts[0].blocks[4] = { op: 'hop', n: 1 };
+    expect(storyMissionProgramMatches(project, 'jtw-s1-c1-p1')).toBe(false);
+  });
   it('accepts only the exact saved Lumi mission program', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-h')).toBe(true);
   });

@@ -3,6 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { BLOCKS_STARTERS } from './blocksStarters';
 
 describe('BlocksHubPage curriculum starter copy', () => {
+  it('offers only Journey to the West C1 Part 1 as the first playable classic Part', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_jtw_s1_c1_p1');
+
+    expect(starter?.title).toBe('Journey to the West · Chapter 1 · Part 1');
+    expect(starter?.desc).toContain('three clues');
+    expect(starter?.desc).toContain('classic story order');
+    expect(BLOCKS_STARTERS.map((item) => String(item.id))).not.toContain('blocks_jtw_s1_c1_p2');
+  });
   it('introduces A1 as a story problem before giving an operation', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a1_h');
 

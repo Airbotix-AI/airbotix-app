@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-21
+
+- Add Journey to the West S1 C1 Part 1: formal Stone Monkey story cards, three visual clues, classic-order evidence, prediction, and server-saved P1-only progress.
+
 ## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
 
 ### Added
