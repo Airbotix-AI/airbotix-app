@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-21 (feat: Art Studio draft auto-save + reopen-to-edit + readable tools — owner feedback)
+
+### Added
+
+- **Draft auto-save — every mode.** The working canvas AND the picture it's built on
+  lived only in React state, so a refresh or leaving the studio lost an unsaved drawing.
+  The vector ops + base picture now auto-save to `localStorage` (keyed by the bucket)
+  and restore on return — free-play, reopened-picture, all of it; only missions opt out.
+  A `hydrated` flag sequences restore-before-autosave so the empty mount can't wipe the
+  draft it's about to load. Cleared when the canvas is emptied.
+- **Reopen a saved picture to keep drawing.** My Pictures images get a "🎨 Keep drawing"
+  action that reopens them on the Art Studio canvas as the base (loaded directly by
+  id+project via the same-origin bytes proxy, so it works for a picture in any project);
+  the kid draws on top and ✨ bring-to-life remixes it. Survives a refresh (base is in the
+  draft).
+
+### Changed
+
+- Coach input is now a larger multi-line textarea (Enter sends, Shift+Enter for a newline)
+  with Send on its own row — the old single-line box was pinched to ~80px.
+- Each left-rail tool shows its name (Pencil / Crayon / Marker / Eraser / Fill / Stamp /
+  Undo) under the icon — the emoji alone was unreadable.
+- Stamp tool offers 24 stickers instead of 6.
+
 ## 2026-07-21 (feat: warn parents opening the app inside WeChat that the login/registration code won't arrive)
 
 ### Added

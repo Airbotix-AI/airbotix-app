@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -64,7 +64,14 @@ const TOOLS: { id: ToolId; emoji: string; label: string }[] = [
   { id: 'fill', emoji: '🪣', label: 'Fill' },
   { id: 'stamp', emoji: '⭐', label: 'Stamp' },
 ];
-const STAMPS = ['⭐', '❤️', '🌸', '⚡', '🌈', '🎈'];
+// one row per theme: originals · sky/weather · nature · treats · fun/fantasy
+// prettier-ignore
+const STAMPS = [
+  '⭐', '❤️', '🌸', '⚡', '🌈', '🎈',
+  '☀️', '🌙', '☁️', '❄️', '🔥', '💧',
+  '🍀', '🍄', '🍓', '🧁', '⚽', '🎵',
+  '👑', '💎', '🚀', '🦄', '🦖', '🦋',
+];
 
 interface ChatMsg {
   role: 'user' | 'assistant';
@@ -140,6 +147,22 @@ export function ArtStudioPage() {
 
   const location = useLocation();
   const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
+  // Reopen a saved picture to keep drawing (owner: "重新打开到画布继续画"): the
+  // "🎨 Keep drawing" button in My Pictures passes the artifact's id + project. It
+  // becomes the canvas BASE (loaded directly by id+project, so it works for a
+  // picture in ANY project) and the ✨ bring-to-life remix ref.
+  const reopenState = location.state as { editArtifactId?: string; editProjectId?: string } | null;
+  const navReopen =
+    reopenState?.editArtifactId && reopenState?.editProjectId
+      ? { id: reopenState.editArtifactId, projectId: reopenState.editProjectId }
+      : null;
+  // A base picture that is NOT a bucket take (a reopened saved image). Kept in
+  // state (and the draft) so a refresh restores it, not just the strokes.
+  const [baseRef, setBaseRef] = useState<{ id: string; projectId: string } | null>(navReopen);
+  // Whether THIS mount arrived via Keep drawing (fresh reopen) — captured once so
+  // the hydrate effect can start clean on the chosen picture instead of restoring
+  // a stale draft over it.
+  const navReopenRef = useRef(navReopen);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -162,6 +185,56 @@ export function ArtStudioPage() {
   });
 
   const hasInk = ops.length > 0;
+
+  // ── Draft auto-save (owner: auto-save must ALWAYS work, incl. reopened edits) ──
+  // The working canvas AND which picture it's built on live only in React state,
+  // so a refresh lost them. Persist { ops, baseArtifactId, baseRef } to
+  // localStorage keyed by the bucket and restore on return — EVERY mode, not just
+  // free-play. Only missions (their own project/flow) opt out.
+  const draftKey = mission || !bucket.data ? null : `art-draft:v1:${bucket.data.project_id}`;
+  // `hydrated` sequences the two effects: restore reads the draft first and only
+  // THEN does auto-save arm. Without it the mount render (empty canvas) races the
+  // restore and wipes the very draft we're about to load. Functional setState
+  // keeps restore idempotent, so StrictMode's double-invoke is harmless.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (!draftKey) return;
+    // A fresh reopen starts clean on the chosen picture and REPLACES any stale
+    // draft — never restore old strokes onto a newly opened image.
+    if (!navReopenRef.current) {
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (raw) {
+          const d = JSON.parse(raw) as {
+            ops?: CanvasOp[];
+            baseArtifactId?: string | null;
+            baseRef?: { id: string; projectId: string } | null;
+          };
+          if (Array.isArray(d.ops) && d.ops.length > 0) setOps((cur) => (cur.length ? cur : d.ops!));
+          if (d.baseArtifactId) setBaseArtifactId((cur) => cur ?? d.baseArtifactId!);
+          if (d.baseRef) setBaseRef((cur) => cur ?? d.baseRef!);
+        }
+      } catch {
+        /* corrupt/unavailable draft — start clean */
+      }
+    }
+    setHydrated(true);
+  }, [draftKey]);
+  useEffect(() => {
+    if (!draftKey || !hydrated) return;
+    try {
+      if (ops.length === 0 && !baseArtifactId && !baseRef) localStorage.removeItem(draftKey);
+      else localStorage.setItem(draftKey, JSON.stringify({ ops, baseArtifactId, baseRef }));
+    } catch {
+      /* quota/unavailable — the work still lives in state */
+    }
+  }, [ops, baseArtifactId, baseRef, draftKey, hydrated]);
+
+  // A reopened picture drives the canvas base + remix ref (mask-brush,
+  // bring-to-life). Bucket takes set baseArtifactId directly and clear baseRef.
+  useEffect(() => {
+    if (baseRef) setBaseArtifactId((cur) => cur ?? baseRef.id);
+  }, [baseRef]);
 
   // Mission Mode: work saves to a mission-linked project (teacher-visible via
   // the existing chain) instead of the free-play bucket (D-IS-20). Created
@@ -297,6 +370,7 @@ export function ArtStudioPage() {
                 { artifactId: r.artifact_id as string, kind: 'magic', label: '🪄 magic brush' },
               ]);
               setBaseArtifactId(r.artifact_id);
+              setBaseRef(null); // the take (a bucket artifact) is the new base
             }
             setMaskOps([]);
             setMaskText('');
@@ -336,6 +410,7 @@ export function ArtStudioPage() {
 
   const pickCharacter = (a: Artifact) => {
     setBaseArtifactId(a.id);
+    setBaseRef(null);
     setOps([]);
     setCharOpen(false);
     const name = (a.metadata as { character?: string }).character ?? 'your character';
@@ -450,6 +525,7 @@ export function ArtStudioPage() {
     }
     setOps([]);
     setBaseArtifactId(null);
+    setBaseRef(null);
     setGhostArtifactId(null);
     setSketchTakeId(null);
     setTakes([]);
@@ -514,6 +590,7 @@ export function ArtStudioPage() {
                 { artifactId: r.artifact_id as string, kind: 'magic', label: '✨ magic' },
               ]);
               setBaseArtifactId(r.artifact_id);
+              setBaseRef(null); // the magic take (a bucket artifact) is the new base
               setOps([]);
               setGhostArtifactId(null);
             }
@@ -556,6 +633,7 @@ export function ArtStudioPage() {
 
   const activateTake = (take: Take) => {
     setBaseArtifactId(take.artifactId);
+    setBaseRef(null);
     setOps([]);
   };
 
@@ -567,6 +645,24 @@ export function ArtStudioPage() {
   const baseUrl = useArtifactBlobUrl(artifactById(baseArtifactId));
   const ghostUrlResolved = useArtifactBlobUrl(artifactById(ghostArtifactId));
   const sketchUrl = useArtifactBlobUrl(artifactById(sketchTakeId));
+
+  // Reopened picture pixels loaded DIRECTLY by id+project (owner: "keep drawing
+  // 无法加载原始的图片"). It may live in ANY project, so `artifactById`
+  // (bucket-only) can't resolve it — build the ref straight from baseRef, which is
+  // restored from the draft on refresh so the base survives a reload too.
+  const reopenArtifact: Artifact | undefined = baseRef
+    ? {
+        id: baseRef.id,
+        project_id: baseRef.projectId,
+        kind: 'image',
+        s3_key: '',
+        mime_type: 'image/png',
+        size_bytes: 0,
+        created_at: '',
+        metadata: {},
+      }
+    : undefined;
+  const reopenBaseUrl = useArtifactBlobUrl(reopenArtifact);
 
   return (
     <div className="h-dvh flex flex-col bg-canvas overflow-hidden" data-testid="art-studio">
@@ -618,20 +714,30 @@ export function ArtStudioPage() {
                 key={t.id}
                 aria-label={t.label}
                 onClick={() => setTool(t.id)}
-                className={`w-11 h-11 rounded-2xl text-[20px] transition-colors ${
+                className={`flex w-14 flex-col items-center gap-0.5 rounded-2xl py-1.5 transition-colors ${
                   tool === t.id ? 'bg-grad-bubblegum shadow-brand-bubblegum' : 'bg-surface'
                 }`}
               >
-                {t.id === 'stamp' ? stampEmoji : t.emoji}
+                <span className="text-[20px] leading-none">
+                  {t.id === 'stamp' ? stampEmoji : t.emoji}
+                </span>
+                <span
+                  className={`text-[10px] font-bold leading-none ${
+                    tool === t.id ? 'text-ink' : 'text-ink-soft'
+                  }`}
+                >
+                  {t.label}
+                </span>
               </button>
             ))}
             <button
               aria-label="Undo"
               onClick={() => setOps(ops.slice(0, -1))}
               disabled={!hasInk}
-              className="w-11 h-11 rounded-2xl text-[20px] bg-surface disabled:opacity-40"
+              className="flex w-14 flex-col items-center gap-0.5 rounded-2xl bg-surface py-1.5 disabled:opacity-40"
             >
-              ↩️
+              <span className="text-[20px] leading-none">↩️</span>
+              <span className="text-[10px] font-bold leading-none text-ink-soft">Undo</span>
             </button>
           </div>
           <div
@@ -705,7 +811,9 @@ export function ArtStudioPage() {
               color={color}
               brushSize={brushSize}
               stampEmoji={stampEmoji}
-              baseImageUrl={baseUrl ?? (template?.layer === 'base' ? template.url : null)}
+              baseImageUrl={
+                reopenBaseUrl ?? baseUrl ?? (template?.layer === 'base' ? template.url : null)
+              }
               ghostUrl={ghostUrlResolved}
               templateUrl={template?.layer === 'underlay' ? template.url : null}
               exportIncludesBase={exportIncludesBase}
@@ -774,7 +882,7 @@ export function ArtStudioPage() {
         {/* right AI rail */}
         {aiOpen ? (
           <div
-            className="w-[260px] shrink-0 card-base p-3 flex flex-col min-h-0"
+            className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0"
             data-testid="ai-rail"
           >
             <div className="flex items-center justify-between mb-2">
@@ -855,18 +963,25 @@ export function ArtStudioPage() {
                 ))}
               </div>
             )}
-            <div className="flex gap-1.5 mb-2">
-              <input
+            <div className="mb-2">
+              <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendToCoach(draft)}
-                placeholder="A friendly robot in space"
-                className="input-k12 flex-1 text-[13px]"
+                onKeyDown={(e) => {
+                  // Enter sends, Shift+Enter makes a new line (normal chat feel).
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendToCoach(draft);
+                  }
+                }}
+                rows={3}
+                placeholder="Tell the coach your idea… (e.g. a friendly robot in space). Shift+Enter for a new line."
+                className="input-k12 w-full resize-y text-[14px] leading-snug min-h-[76px]"
               />
               <button
                 onClick={() => sendToCoach(draft)}
                 disabled={coach.isPending || !draft.trim()}
-                className="btn-pill-secondary text-[12px] whitespace-nowrap"
+                className="btn-pill-secondary mt-1.5 w-full py-2.5 text-[13px]"
               >
                 Send −{CHAT_COST}★
               </button>
