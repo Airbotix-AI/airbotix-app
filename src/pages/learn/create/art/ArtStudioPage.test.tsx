@@ -78,10 +78,16 @@ vi.mock('@/lib/api', () => ({
     }
     if (path === '/llm/image-plan') {
       const hasCanvas = !!opts?.body?.canvas_b64;
+      // The coach reaches a plan when the kid states a subject swap (D-ISF-3
+      // tests use "cow"); otherwise it keeps asking.
+      const msgs = (opts?.body?.messages as Array<{ content: string }> | undefined) ?? [];
+      const wantsPlan = msgs.at(-1)?.content.includes('cow') ?? false;
       return Promise.resolve({
         reply: hasCanvas ? 'I can see it — a cat!' : 'Where does it happen?',
         chips: hasCanvas ? ['Add a sun'] : ['In space'],
-        plan: null,
+        plan: wantsPlan
+          ? { prompt: 'A friendly cow in a sunny meadow', style: 'watercolor', size: 'square' }
+          : null,
         stars_charged: 1,
         balance_after: 41,
       });
@@ -454,14 +460,13 @@ describe('ArtStudioPage (canvas-first)', () => {
       await screen.findAllByTestId('take-thumb');
     }
 
-    it('is hidden until a magic take exists, then toggles mask mode with the apply bar', async () => {
+    it('is hidden on an EMPTY canvas, appears as soon as there is ink (D-ISF-4)', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
       expect(screen.queryByTestId('mask-toggle')).not.toBeInTheDocument();
-      cleanup();
-
-      await makeAMagicTake();
-      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      expect(await screen.findByTestId('mask-toggle')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('mask-toggle'));
       expect(screen.getByTestId('mask-bar')).toBeInTheDocument();
     });
 
@@ -478,11 +483,91 @@ describe('ArtStudioPage (canvas-first)', () => {
         const call = apiCalls.filter((c) => c.path === '/llm/image').at(-1)!;
         expect(call.opts?.body?.ref_artifact_id).toBe('art_magic');
         expect(call.opts?.body?.mask_b64).toBe('TUFTSw==');
-        expect(call.opts?.body?.prompt).toBe('a golden crown');
+        // D-ISF-5: the wish rides inside the region-replace template
+        expect(call.opts?.body?.prompt).toBe(
+          'Same picture, keep everything outside the highlighted region unchanged; the highlighted region becomes: a golden crown',
+        );
       });
       // a new take arrived and the mask UI reset
       expect((await screen.findAllByTestId('take-thumb')).length).toBe(3);
       await waitFor(() => expect(screen.queryByTestId('mask-bar')).not.toBeInTheDocument());
+    });
+
+    // The reported horse→cow case: region-replace ON A RAW SKETCH (no AI take
+    // yet). The canvas is snapshotted as the reference first (D-ISF-4).
+    it('raw sketch: apply uploads the canvas as the ref, then edits with the mask', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /Bring it to life!/ })).toBeEnabled(),
+      );
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      fireEvent.click(await screen.findByTestId('mask-toggle'));
+      fireEvent.click(screen.getByTestId('stub-mask-draw'));
+      fireEvent.change(screen.getByPlaceholderText(/what it becomes/i), {
+        target: { value: 'a cow' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /🪄 −9★/ }));
+
+      await waitFor(() => {
+        // upload chain ran (sign → PUT → register) to mint the sketch ref
+        expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
+          true,
+        );
+        const call = apiCalls.filter((c) => c.path === '/llm/image').at(-1)!;
+        expect(call.opts?.body?.ref_artifact_id).toBe('art_sketch');
+        expect(call.opts?.body?.mask_b64).toBe('TUFTSw==');
+        expect(call.opts?.body?.prompt).toBe(
+          'Same picture, keep everything outside the highlighted region unchanged; the highlighted region becomes: a cow',
+        );
+      });
+      // sketch + magic takes, and the sketch strokes left the canvas (they'd
+      // otherwise re-draw the horse over the cow result)
+      expect((await screen.findAllByTestId('take-thumb')).length).toBe(2);
+      expect(screen.getByText('✏️ my sketch')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0'),
+      );
+    });
+  });
+
+  describe('coach plan feeds ✨ (D-ISF-3)', () => {
+    async function planFromCoach() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.change(screen.getByPlaceholderText(/friendly robot/i), {
+        target: { value: 'turn my horse into a cow' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+      await screen.findByText('Where does it happen?'); // coach turn landed (with a plan)
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+    }
+
+    it('with no typed wish, the plan IS the prompt (and its style pre-selects)', async () => {
+      await planFromCoach();
+      expect(screen.getByTestId('magic-plan')).toHaveTextContent('A friendly cow in a sunny meadow');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await waitFor(() => {
+        const gen = apiCalls.find((c) => c.path === '/llm/image');
+        expect(gen).toBeDefined();
+        expect(gen!.opts?.body?.prompt).toBe('A friendly cow in a sunny meadow, watercolor style');
+      });
+    });
+
+    it('a typed wish still beats the plan', async () => {
+      await planFromCoach();
+      fireEvent.change(screen.getByPlaceholderText(/mood or extra wish/i), {
+        target: { value: 'a purple dragon' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await waitFor(() => {
+        const gen = apiCalls.find((c) => c.path === '/llm/image');
+        expect(gen).toBeDefined();
+        expect(gen!.opts?.body?.prompt).toBe('a purple dragon, watercolor style');
+      });
     });
   });
 
