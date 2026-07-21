@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { useAuthStore } from '@/auth/authStore';
 import { useLogout, useMe } from '@/auth/useAuth';
+import { WeChatBrowserNotice } from '@/components/auth/WeChatBrowserNotice';
 import { api, ApiError, refreshAccessToken } from '@/lib/api';
 import { CityField } from './CityField';
 
@@ -298,6 +299,10 @@ export function RegisterPage() {
         <p className="lead-text mt-4">
           Takes about 90 seconds. You'll get a family code once you're done.
         </p>
+
+        <div className="mt-6">
+          <WeChatBrowserNotice />
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
           <section className="space-y-4">

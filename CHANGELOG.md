@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-21 (feat: warn parents opening the app inside WeChat that the login/registration code won't arrive)
+
+### Added
+- **WeChat in-app browser notice on the parent auth screens.** Parents who open
+  `app.airbotix.ai` from a link shared inside WeChat get stuck: WeChat's built-in webview
+  suppresses the email one-time code and can't leave to the inbox, so the login/registration
+  code "never arrives". A bilingual (中文 / English) warning banner now appears on
+  `/portal/login`, `/portal/verify-otp`, and `/portal/register` **only when the UA is WeChat**
+  (`MicroMessenger`), telling parents to tap `···` → **Open in Browser** and continue in
+  Safari/Chrome, with a one-tap "copy link" button. New `isWeChatBrowser()` UA helper
+  (`src/lib/inAppBrowser.ts`) + `WeChatBrowserNotice` component (`src/components/auth/`), both
+  unit-tested. Renders nothing outside WeChat, so normal sign-in is unchanged.
+
 ## 2026-07-21 (fix: checkout shows the card form immediately — Airwallex HPP via SDK, no more two-step Pay screen)
 
 ### Fixed

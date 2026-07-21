@@ -5,6 +5,7 @@ import { Navigate, useLocation, useNavigate, type Location } from 'react-router-
 import { z } from 'zod';
 
 import { verifyOtp } from '@/auth/useAuth';
+import { WeChatBrowserNotice } from '@/components/auth/WeChatBrowserNotice';
 import { ApiError } from '@/lib/api';
 
 const schema = z.object({
@@ -68,6 +69,10 @@ export function VerifyOtpPage() {
           We sent a 6-digit code to{' '}
           <span className="font-semibold text-ink">{email}</span>.
         </p>
+
+        <div className="mt-6">
+          <WeChatBrowserNotice />
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
           <div>
