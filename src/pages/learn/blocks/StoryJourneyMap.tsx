@@ -123,13 +123,35 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
             <strong>6 chapters · Ages 5–8</strong>
           </div>
         </article>
-        <article className="tsv-collection-card is-planned">
-          <div className="tsv-collection-avatar" aria-hidden="true">🐵</div>
+        <article className="tsv-collection-card is-open" data-testid="jtw-collection-card">
+          <div className="tsv-collection-avatar" aria-hidden="true">
+            <img
+              src="/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png"
+              alt=""
+            />
+          </div>
           <div>
-            <small>Planned classic adventure</small>
-            <h3>The Monkey King’s New Journey</h3>
-            <p>An original child-friendly coding adventure inspired by a public-domain classic.</p>
-            <strong>New avatars · New logic path</strong>
+            <small>Part 1 open · Public-domain adaptation</small>
+            <h3>The Monkey King’s First Journey</h3>
+            <p>Meet the Stone Monkey and find the clues that begin the classic story.</p>
+            <button
+              type="button"
+              className="tsv-mission-button"
+              data-testid="blocks-starter-blocks_jtw_s1_c1_p1"
+              disabled={busy !== null}
+              onClick={() =>
+                onStart(
+                  'blocks_jtw_s1_c1_p1',
+                  'Journey to the West · Flower-Fruit Mountain Wakes',
+                )
+              }
+            >
+              <span className="tsv-mission-name">
+                <small>Chapter 1 · Part 1 of 8</small>
+                Flower-Fruit Mountain wakes
+              </span>
+              <span className="tsv-mission-arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </article>
         <article className="tsv-collection-card is-planned">

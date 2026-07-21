@@ -20,7 +20,17 @@ export const BLOCKS_STORY_PROGRESS_FILE = 'project.blocks.progress.json';
 
 export interface BlocksStoryProgress {
   schemaVersion: 1;
-  completed: Record<string, { completedAt: string }>;
+  completed: Record<
+    string,
+    {
+      completedAt: string;
+      evidence?: {
+        clues: string[];
+        classicOrder: string[];
+        prediction: string;
+      };
+    }
+  >;
 }
 
 export const EMPTY_BLOCKS_STORY_PROGRESS: BlocksStoryProgress = {
@@ -37,7 +47,7 @@ function parseStoryProgress(raw: string | undefined): BlocksStoryProgress {
     }
     const completed = Object.fromEntries(
       Object.entries(doc.completed).filter(
-        (entry): entry is [string, { completedAt: string }] =>
+        (entry): entry is [string, BlocksStoryProgress['completed'][string]] =>
           typeof entry[1]?.completedAt === 'string',
       ),
     );
@@ -113,7 +123,8 @@ export type BlocksTemplateId =
   | 'blocks_tsv_a3_s'
   | 'blocks_tsv_a4_h'
   | 'blocks_tsv_a4_b'
-  | 'blocks_tsv_a4_d';
+  | 'blocks_tsv_a4_d'
+  | 'blocks_jtw_s1_c1_p1';
 
 export interface BlocksProjectMeta {
   id: string;

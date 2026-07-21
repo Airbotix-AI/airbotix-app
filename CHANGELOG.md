@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-25 (feat: add Journey to the West C1 Part 1)
+
+### Added
+- Added the first Journey to the West Story Part as a child-facing Read/Why mission with saved
+  evidence and adjacent Part unlock.
+
 ## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
 
 ### Added

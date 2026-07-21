@@ -1032,6 +1032,167 @@
   display: none;
 }
 
+.jtw-p1-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(31 27 45 / 78%);
+}
+
+.jtw-p1-card {
+  width: min(1040px, 96vw);
+  max-height: min(820px, 94vh);
+  overflow: auto;
+  border: 2px solid #ead7ad;
+  border-radius: 32px;
+  background: #fffef7;
+  padding: clamp(22px, 4vw, 48px);
+  box-shadow: 0 28px 80px rgb(31 27 45 / 35%);
+}
+
+.jtw-p1-kicker {
+  color: #85581f;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.jtw-p1-progress {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 24px;
+}
+
+.jtw-p1-progress span {
+  width: 42px;
+  height: 8px;
+  border-radius: 99px;
+  background: #eadfca;
+}
+
+.jtw-p1-progress span.on { background: #3dd9a9; }
+
+.jtw-p1-page {
+  display: grid;
+  grid-template-columns: minmax(240px, .85fr) minmax(300px, 1.15fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 64px);
+}
+
+.jtw-p1-page h2,
+.jtw-p1-card.is-complete h2 {
+  margin: 0 0 16px;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.05;
+}
+
+.jtw-p1-page p,
+.jtw-p1-card.is-complete p {
+  color: #514a62;
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.jtw-p1-hero {
+  display: block;
+  width: min(100%, 360px);
+  max-height: 430px;
+  margin: 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 20px rgb(80 54 23 / 20%));
+}
+
+.jtw-p1-primary {
+  min-height: 48px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #1f1b2d;
+  color: white;
+  padding: 13px 22px;
+  font: 850 15px/1.2 inherit;
+}
+
+.jtw-p1-primary:disabled { cursor: not-allowed; opacity: .45; }
+
+.jtw-p1-mountain {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp') center/cover no-repeat;
+}
+
+.jtw-p1-mountain button {
+  position: absolute;
+  border: 2px solid #fffef7;
+  border-radius: 999px;
+  background: rgb(31 27 45 / 82%);
+  color: white;
+  padding: 9px 12px;
+  font: 800 12px/1 inherit;
+  box-shadow: 0 4px 14px rgb(31 27 45 / 28%);
+}
+
+.jtw-p1-mountain button.is-found { background: #1a9d78; }
+.jtw-p1-mountain button:nth-child(1) { left: 25%; top: 30%; }
+.jtw-p1-mountain button:nth-child(2) { left: 42%; top: 48%; }
+.jtw-p1-mountain button:nth-child(3) { left: 54%; top: 60%; }
+.jtw-p1-mountain button:nth-child(4) { left: 72%; top: 28%; }
+.jtw-p1-mountain button:nth-child(5) { left: 18%; top: 13%; }
+
+.jtw-p1-prompt { font-weight: 850 !important; color: #1f1b2d !important; }
+.jtw-p1-found { color: #13775d; font-weight: 900; }
+.jtw-p1-hint { color: #85581f !important; font-size: 14px !important; }
+
+.jtw-p1-classic-card {
+  border: 2px solid #d8b879;
+  border-radius: 24px;
+  background: #fff5d9;
+  padding: 28px;
+  box-shadow: 8px 8px 0 #ead7ad;
+}
+
+.jtw-p1-classic-card strong { color: #85581f; text-transform: uppercase; letter-spacing: .1em; }
+.jtw-p1-order,
+.jtw-p1-predictions { display: grid; gap: 12px; }
+.jtw-p1-order button,
+.jtw-p1-predictions button {
+  border: 2px solid #d8d1e4;
+  border-radius: 18px;
+  background: white;
+  padding: 16px;
+  text-align: left;
+  font: 800 15px/1.35 inherit;
+}
+.jtw-p1-predictions button[aria-pressed='true'] { border-color: #1a9d78; background: #e3f8f1; }
+.jtw-p1-prediction-art { color: #85581f; font-size: clamp(42px, 8vw, 84px); font-weight: 950; text-align: center; }
+
+.jtw-p1-card.is-complete { max-width: 720px; text-align: center; }
+.jtw-p1-card.is-complete .jtw-p1-hero { max-height: 260px; }
+.jtw-p1-proof { display: grid; gap: 8px; margin: 22px auto; max-width: 460px; text-align: left; }
+.jtw-p1-proof span { border-radius: 12px; background: #e3f8f1; padding: 10px 14px; font-weight: 800; }
+.jtw-p1-next { border-radius: 18px; background: #fff5d9; padding: 18px; }
+.jtw-p1-next strong { display: block; margin-bottom: 4px; }
+
+@media (max-width: 760px) {
+  .jtw-p1-gate { padding: 10px; }
+  .jtw-p1-card { border-radius: 22px; padding: 20px; }
+  .jtw-p1-page { grid-template-columns: 1fr; }
+  .jtw-p1-hero { max-height: 260px; }
+  .jtw-p1-mountain { min-height: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jtw-p1-card,
+  .jtw-p1-hero { animation: none !important; transition: none !important; }
+}
+
 .bsx-character-asset {
   display: block;
   width: clamp(92px, 24cqh, 180px);

@@ -104,4 +104,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 15',
     desc: 'Run the cart to see it overshoot, choose less, then change only Right 4 to Right 3 and test the saved repair.',
   },
+  {
+    id: 'blocks_jtw_s1_c1_p1',
+    emoji: '🐵',
+    title: 'Journey to the West · Chapter 1 · Part 1',
+    desc: 'Meet the Stone Monkey, find three clues in Flower-Fruit Mountain, check the classic story order, and make an evidence-based prediction.',
+  },
 ];

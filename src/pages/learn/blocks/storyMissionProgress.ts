@@ -43,6 +43,24 @@ const LUMI_CONTRACT = {
 };
 
 const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> = {
+  'jtw-s1-c1-p1': {
+    pageId: 'jtw-s1-c1-p1-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-arrival',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'wait', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: "Hello! I'm new here!" },
+      { op: 'end' },
+    ],
+  },
   'tsv-s1-a1-h': { ...LUMI_CONTRACT, pageId: 'tsv-a1-h-page', target: LUMI_MORNING_TARGET },
   'tsv-s1-a1-b': { ...LUMI_CONTRACT, pageId: 'tsv-a1-b-page', target: LUMI_MORNING_TARGET },
   'tsv-s1-a1-d': { ...LUMI_CONTRACT, pageId: 'tsv-a1-d-page', target: LUMI_MORNING_TARGET },
