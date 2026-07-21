@@ -37,6 +37,17 @@
   (`src/lib/inAppBrowser.ts`) + `WeChatBrowserNotice` component (`src/components/auth/`), both
   unit-tested. Renders nothing outside WeChat, so normal sign-in is unchanged.
 
+## 2026-07-21 (feat: parent Dashboard class recovery and course introductions)
+
+### Added
+- The existing My Classes panel now appears directly on the parent Dashboard, above course
+  discovery, so pending `Payment open` bookings keep their `Resume checkout` action visible
+  and confirmed enrollments remain easy to find.
+- The parent Dashboard now includes a resilient course-introduction section with up to three
+  sellable previews: age fit, course length, price, project outcome, best-for guidance, and a
+  link into the full Portal catalogue. Loading, empty, and API-error states never block the
+  operational Dashboard.
+
 ## 2026-07-21 (fix: checkout shows the card form immediately — Airwallex HPP via SDK, no more two-step Pay screen)
 
 ### Fixed

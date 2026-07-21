@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
+import { CourseIntroSection } from './CourseIntroSection';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
+import { MyClassesPanel } from './MyClassesPanel';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
 import { openWelcomeTour } from './onboarding/welcomeTour';
@@ -130,9 +132,14 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <FamilyGuidesRecommendation familyId={familyId} />
+          <div className="mt-10">
+            <MyClassesPanel compact />
+          </div>
         </>
       )}
+
+      <CourseIntroSection />
+      {hasFamily && <FamilyGuidesRecommendation familyId={familyId} />}
     </div>
   );
 }
