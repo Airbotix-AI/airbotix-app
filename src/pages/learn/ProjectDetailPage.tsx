@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
@@ -547,6 +547,7 @@ function ArtifactTile({
   const [renameDraft, setRenameDraft] = useState('');
   const [textExpanded, setTextExpanded] = useState(false);
   const [replacing, setReplacing] = useState(false);
+  const navigate = useNavigate();
 
   // Map artifact kind to replaceable studio kind
   const replaceKind: 'image' | 'text' | 'audio' | 'video' | null =
@@ -615,6 +616,19 @@ function ArtifactTile({
           >
             ✏️ Rename
           </button>
+          {isImage && (
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                navigate('/learn/create/image', {
+                  state: { editArtifactId: artifact.id, editProjectId: projectId },
+                });
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-ink hover:bg-surface"
+            >
+              🎨 Keep drawing
+            </button>
+          )}
           {replaceKind && (
             <button
               onClick={() => { setReplacing(true); setMenuOpen(false); }}

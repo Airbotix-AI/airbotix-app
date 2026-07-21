@@ -26,6 +26,7 @@ vi.mock('./ArtCanvas', () => ({
       ops: unknown[];
       onOpsChange(ops: unknown[]): void;
       ghostUrl: string | null;
+      baseImageUrl: string | null;
       maskOps: unknown[];
       onMaskOpsChange(ops: unknown[]): void;
     },
@@ -35,7 +36,12 @@ vi.mock('./ArtCanvas', () => ({
       exportPng: () => 'data:image/png;base64,U1RVQg==', // "STUB"
     }));
     return (
-      <div data-testid="art-canvas-stub" data-ghost={props.ghostUrl ?? ''}>
+      <div
+        data-testid="art-canvas-stub"
+        data-ghost={props.ghostUrl ?? ''}
+        data-ops={props.ops.length}
+        data-base={props.baseImageUrl ?? ''}
+      >
         <button
           data-testid="stub-draw"
           onClick={() =>
@@ -200,6 +206,7 @@ describe('ArtStudioPage (canvas-first)', () => {
   beforeEach(() => {
     apiCalls.length = 0;
     putCalls.length = 0;
+    localStorage.clear();
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init?: RequestInit) => {
@@ -247,12 +254,85 @@ describe('ArtStudioPage (canvas-first)', () => {
     fireEvent.click(screen.getByLabelText('Stamp'));
     expect(screen.getByTestId('stamp-grid')).toBeInTheDocument();
     expect(screen.getByLabelText('sticker ❤️')).toBeInTheDocument();
+    // expanded sticker set (owner feedback 2026-07-21: 6 was too few) — 24 stamps
+    expect(screen.getByLabelText('sticker 🦄')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/^sticker /).length).toBe(24);
     expect(screen.queryByLabelText('color #1f2437')).toBeNull();
     expect(screen.getByLabelText('size L')).toBeInTheDocument();
     // fill tool: colours only — a bucket has no width
     fireEvent.click(screen.getByLabelText('Fill'));
     expect(screen.queryByLabelText('size S')).toBeNull();
     expect(screen.getByLabelText('color #1f2437')).toBeInTheDocument();
+  });
+
+  // Draft auto-save (owner: "我刷新的话，反正画都没了") — the working canvas
+  // persists to localStorage so a refresh/leave no longer loses an unsaved drawing.
+  describe('draft auto-save + reopen', () => {
+    const KEY = 'art-draft:v1:proj_bucket';
+
+    const stroke = { kind: 'stroke', tool: 'pencil', color: '#000', size: 14, points: [[1, 1, 0.5]] };
+
+    it('auto-saves { ops, base } to localStorage as the kid draws', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      expect(localStorage.getItem(KEY)).toBeNull();
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
+      const saved = JSON.parse(localStorage.getItem(KEY) as string);
+      expect(saved.ops).toHaveLength(1);
+    });
+
+    it('restores the saved draft on the next mount (survives refresh)', async () => {
+      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      // the restored stroke reaches the canvas (data-ops reflects props.ops.length)
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('1'),
+      );
+    });
+
+    it('clears the draft key once the canvas is emptied', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
+      // "+ new picture" resets the canvas → the draft key is removed.
+      fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
+      await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
+    });
+
+    it('a fresh reopen starts clean on the picture and auto-saves it (base persisted)', async () => {
+      // A stale free-play draft must NOT bleed onto the freshly opened picture…
+      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      renderPage({ editArtifactId: 'art_reopen_1', editProjectId: 'proj_saved_pics' });
+      await screen.findByTestId('ai-rail');
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
+      // the reopened picture is the canvas base (its magic-brush control shows)…
+      expect(screen.getByTestId('mask-toggle')).toBeInTheDocument();
+      // …and auto-save now records that base (so a refresh restores it too).
+      await waitFor(() => {
+        const saved = JSON.parse(localStorage.getItem(KEY) as string);
+        expect(saved.baseRef).toEqual({ id: 'art_reopen_1', projectId: 'proj_saved_pics' });
+      });
+    });
+
+    it('a REFRESH after reopening restores the base picture (no nav state)', async () => {
+      // What a fresh reopen persisted (base, no strokes yet). A plain reload has no
+      // nav state, so the base must come back from the draft alone.
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          ops: [],
+          baseArtifactId: 'art_reopen_1',
+          baseRef: { id: 'art_reopen_1', projectId: 'proj_saved_pics' },
+        }),
+      );
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      // base restored → the magic-brush control (gated on a base) is present again
+      await waitFor(() => expect(screen.getByTestId('mask-toggle')).toBeInTheDocument());
+    });
   });
 
   // "+ new picture" keeps the old artwork (owner: 原先的也保留): an unsaved
