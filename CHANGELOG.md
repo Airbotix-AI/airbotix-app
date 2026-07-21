@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-21 (fix: checkout shows the card form immediately — Airwallex HPP via SDK, no more two-step Pay screen)
+
+### Fixed
+- All four hosted checkouts (class seat, wallet top-up, per-session tutoring,
+  academy product) now launch the Airwallex Hosted Payment Page through the
+  Components SDK (`payments.redirectToCheckout`) on the intent the backend
+  already created, so the payment form renders **up-front**. Previously we sent
+  the browser to a hand-built `checkout.airwallex.com/#/standalone/checkout?...`
+  deep link whose built-in UX hid the form behind a "Pay AUD" click
+  (owner-reported). New shared `startHostedCheckout()` helper
+  (`src/pages/portal/airwallex.ts`) launches via the SDK and **gracefully falls
+  back** to the old `checkout_url` redirect whenever the SDK is unusable
+  (blocked/offline, missing `client_secret`, or a non-Airwallex mock host) — so
+  unit tests + the cross-repo harness (no CDN) keep today's behaviour and the
+  flow can never regress. The same intent is used, so backend webhook
+  reconciliation is untouched. Unit tests added (`airwallex.test.ts`).
+
+### Changed
+- Checkout response types carry optional `client_secret`.
+
 ## Unreleased
 
 ### Added

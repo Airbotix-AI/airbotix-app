@@ -5,6 +5,8 @@ import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { formatAud } from '@/lib/money';
 
+import { startHostedCheckout } from './airwallex';
+
 interface LessonCharge {
   id: string;
   class_id: string;
@@ -68,8 +70,12 @@ export function TutoringPage() {
     setBusy(true);
     setError(null);
     try {
-      const res = await api<{ checkout_url: string }>(`/tutoring/families/${familyId}/pay`, { method: 'POST' });
-      window.location.href = res.checkout_url;
+      const res = await api<{
+        payment_intent_id?: string;
+        client_secret?: string;
+        checkout_url: string;
+      }>(`/tutoring/families/${familyId}/pay`, { method: 'POST' });
+      await startHostedCheckout(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
       setBusy(false);

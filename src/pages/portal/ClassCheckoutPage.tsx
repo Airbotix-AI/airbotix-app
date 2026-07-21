@@ -15,6 +15,8 @@ import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { formatAud } from '@/lib/money';
 
+import { startHostedCheckout } from './airwallex';
+
 interface CheckoutVenue {
   name: string;
   address_line: string;
@@ -53,6 +55,7 @@ interface Kid {
 interface CheckoutResponse {
   booking_id: string;
   payment_intent_id: string;
+  client_secret?: string;
   checkout_url: string;
 }
 
@@ -326,7 +329,7 @@ export function ClassCheckoutPage() {
         : values.kid_nickname?.trim();
       sessionStorage.setItem(intentKey(classId), res.payment_intent_id);
       if (nickname) sessionStorage.setItem(kidNameKey(classId), nickname);
-      window.location.href = res.checkout_url;
+      await startHostedCheckout(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
     }

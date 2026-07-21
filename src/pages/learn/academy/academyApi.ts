@@ -246,7 +246,7 @@ export const listFamilyAcademyEntitlements = (familyId: string) =>
   api<AcademyEntitlement[]>(`/families/${familyId}/academy-entitlements`);
 
 export const startAcademyCheckout = (productId: string, kidId: string) =>
-  api<{ payment_intent_id: string; checkout_url: string }>('/academy/checkouts', {
+  api<{ payment_intent_id: string; client_secret?: string; checkout_url: string }>('/academy/checkouts', {
     method: 'POST',
     body: { product_id: productId, kid_id: kidId },
   });
