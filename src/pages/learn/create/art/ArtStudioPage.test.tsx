@@ -19,6 +19,9 @@ interface ApiCall {
 }
 const apiCalls: ApiCall[] = [];
 const putCalls: string[] = [];
+// One-shot failure switches the api mock consumes (set inside a test, reset in
+// beforeEach) — lets a spec exercise the error/dedup branches deterministically.
+const failNext = { image: false, upload: false };
 
 vi.mock('./ArtCanvas', () => ({
   ArtCanvas: forwardRef(function StubCanvas(
@@ -27,6 +30,7 @@ vi.mock('./ArtCanvas', () => ({
       onOpsChange(ops: unknown[]): void;
       ghostUrl: string | null;
       baseImageUrl: string | null;
+      compareUrl: string | null;
       maskOps: unknown[];
       onMaskOpsChange(ops: unknown[]): void;
     },
@@ -41,6 +45,7 @@ vi.mock('./ArtCanvas', () => ({
         data-ghost={props.ghostUrl ?? ''}
         data-ops={props.ops.length}
         data-base={props.baseImageUrl ?? ''}
+        data-compare={props.compareUrl ?? ''}
       >
         <button
           data-testid="stub-draw"
@@ -69,8 +74,19 @@ vi.mock('./ArtCanvas', () => ({
   }),
 }));
 
-vi.mock('@/lib/api', () => ({
+vi.mock('@/lib/api', () => {
+  class ApiErrorClass extends Error {
+    constructor(
+      public readonly status: number,
+      public readonly code: string,
+      message: string,
+    ) {
+      super(message);
+    }
+  }
+  return {
   BASE_URL: 'http://api.test',
+  ApiError: ApiErrorClass,
   api: vi.fn((path: string, opts?: { method?: string; body?: Record<string, unknown> }) => {
     apiCalls.push({ path, opts });
     if (path.endsWith('/create-buckets/resolve')) {
@@ -93,6 +109,10 @@ vi.mock('@/lib/api', () => ({
       });
     }
     if (path === '/llm/image') {
+      if (failNext.image) {
+        failNext.image = false;
+        return Promise.reject(new ApiErrorClass(502, 'UPSTREAM_FAILED', 'The magic fizzled.'));
+      }
       const ghost = (opts?.body?.options as Record<string, unknown>)?.mode === 'ghost';
       return Promise.resolve({
         id: 'gen_1',
@@ -104,6 +124,10 @@ vi.mock('@/lib/api', () => ({
       });
     }
     if (path === '/projects/proj_bucket/artifacts/upload-url') {
+      if (failNext.upload) {
+        failNext.upload = false;
+        return Promise.reject(new ApiErrorClass(500, 'SIGN_FAILED', 'no signature'));
+      }
       return Promise.resolve({
         url: 'https://s3/put-here',
         headers: { 'Content-Type': 'image/png' },
@@ -158,16 +182,8 @@ vi.mock('@/lib/api', () => ({
     }
     return Promise.resolve({});
   }),
-  ApiError: class ApiError extends Error {
-    constructor(
-      public readonly status: number,
-      public readonly code: string,
-      message: string,
-    ) {
-      super(message);
-    }
-  },
-}));
+  };
+});
 
 vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'kid', sub: 'kid_1', family_id: 'fam_1' } }),
@@ -212,7 +228,13 @@ describe('ArtStudioPage (canvas-first)', () => {
   beforeEach(() => {
     apiCalls.length = 0;
     putCalls.length = 0;
+    failNext.image = false;
+    failNext.upload = false;
     localStorage.clear();
+    // jsdom lacks createObjectURL; the bytes-proxy hook's output IS this value.
+    (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(
+      () => 'blob:pixels',
+    );
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string, init?: RequestInit) => {
@@ -568,6 +590,88 @@ describe('ArtStudioPage (canvas-first)', () => {
         expect(gen).toBeDefined();
         expect(gen!.opts?.body?.prompt).toBe('a purple dragon, watercolor style');
       });
+    });
+  });
+
+  // Save-path edges + the takes film-strip (D-IS-19 / owner ask 2026-07-21:
+  // 保存/新建/redraw 到底测了没有).
+  describe('save edges + takes film-strip', () => {
+    async function makeAMagicTake() {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findAllByTestId('take-thumb');
+    }
+    const uploads = () =>
+      apiCalls.filter((c) => c.path === '/projects/proj_bucket/artifacts/upload-url').length;
+
+    it('＋ new picture does NOT re-upload ops that were already snapshotted (savedOps dedup)', async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled());
+      // The sketch upload succeeds, the GENERATION fails — the exact state
+      // where the strokes survive on the canvas but are already in the bucket.
+      failNext.image = true;
+      fireEvent.click(magicBtn);
+      await screen.findByTestId('magic-sheet');
+      fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+      await screen.findByText('The magic fizzled.');
+      expect(uploads()).toBe(1);
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('1');
+
+      fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0'),
+      );
+      expect(uploads()).toBe(1); // no duplicate snapshot
+    });
+
+    it("＋ new picture upload failure keeps the drawing on the canvas with a friendly error", async () => {
+      renderPage();
+      await screen.findByTestId('ai-rail');
+      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      await waitFor(() => expect(magicBtn).toBeEnabled()); // bucket resolved
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      failNext.upload = true;
+      fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
+      await screen.findByText(/Couldn't save this picture/);
+      // nothing was reset — the kid's work is still there to retry
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('1');
+      expect(uploads()).toBe(1); // the one failed attempt
+    });
+
+    it('tapping a take on the film-strip activates it and clears working strokes', async () => {
+      await makeAMagicTake(); // sketch + magic takes; magic is the active base
+      fireEvent.click(screen.getByTestId('stub-draw')); // scribble on top
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('1');
+
+      const sketchThumb = screen.getByTitle('✏️ my sketch');
+      fireEvent.click(sketchThumb);
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
+      expect(sketchThumb.className).toContain('border-brand-bubblegum');
+      expect(screen.getByTitle('✨ magic').className).not.toContain('border-brand-bubblegum');
+    });
+
+    it('hold-to-compare shows the sketch pixels only while pressed (D-IS-19)', async () => {
+      await makeAMagicTake();
+      const hold = await screen.findByTestId('hold-compare');
+      fireEvent.pointerDown(hold);
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-compare')).toBe(
+          'blob:pixels',
+        ),
+      );
+      fireEvent.pointerUp(hold);
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-compare')).toBe(''),
+      );
     });
   });
 

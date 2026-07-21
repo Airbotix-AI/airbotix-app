@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-22 (test: Art Studio save/reopen coverage gaps closed)
+
+### Added
+- **First spec for `ProjectDetailPage`** — the "🎨 Keep drawing" reopen entry (the flow behind
+  the owner-reported "keep drawing 无法加载原始的图片" bug) finally has tests: an image
+  artifact's ⋯ menu offers Keep drawing and navigates to `/learn/create/image` with exactly
+  `{ editArtifactId, editProjectId }` (the state ArtStudioPage's reopen path consumes); a
+  non-image artifact does not offer it.
+- **First spec for `artifactBytes`** (D-IS-24 same-origin bytes proxy — the pixel loader behind
+  canvas bases, reopened pictures and "use in my game"): auth header on the `/bytes` request,
+  status-carrying error on failure, object-URL hook contract, no fetch without an artifact.
+- **`exportPng`/`exportMask` contracts** (`strokeEngine.export.test.ts`): white ground; base
+  included/excluded via the Mission `strokes-only` flag (D-IS-22); scale parameter; the mask is
+  opaque black with the painted region ERASED (destination-out — the gpt-image edits contract)
+  and stamps/fills cannot punch it.
+- **Art Studio save edges + takes strip** (`ArtStudioPage.test.tsx`): ＋ new picture does NOT
+  re-upload ops already snapshotted (savedOps dedup, exercised via upload-ok/generation-fail);
+  an upload failure keeps the drawing on the canvas with the friendly error (nothing reset);
+  tapping a film-strip take activates it and clears working strokes; hold-to-compare shows the
+  sketch pixels only while pressed (D-IS-19).
+
 ## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
 
 ### Fixed
