@@ -33,6 +33,8 @@ describe('shared login identity gateway', () => {
     expect(screen.getByRole('heading', { name: /Parent login or sign up/ })).toBeVisible();
     expect(screen.getByText('New to Airbotix?')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Send code & continue' })).toBeVisible();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument();
   });
 
   it('switches to the clearly labelled kid sign-in without a page reload', () => {
