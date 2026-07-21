@@ -2,7 +2,7 @@
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { LoginPage as KidLoginPage } from './learn/LoginPage';
@@ -17,6 +17,11 @@ function renderLogin(path: '/portal/login' | '/learn/login') {
       </Routes>
     </MemoryRouter>,
   );
+}
+
+function LocationStateProbe() {
+  const location = useLocation();
+  return <output data-testid="location-state">{JSON.stringify(location.state)}</output>;
 }
 
 describe('shared login identity gateway', () => {
@@ -57,6 +62,39 @@ describe('shared login identity gateway', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Password' }));
     expect(screen.getByLabelText('Password')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Log in' })).toBeVisible();
+  });
+
+  it('keeps the protected destination when the active parent role is re-selected', () => {
+    const from = {
+      pathname: '/portal/checkout/class/class_1',
+      search: '?source=classes',
+      hash: '',
+      state: null,
+      key: 'checkout',
+    };
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/portal/login', state: { from } }]}>
+        <Routes>
+          <Route
+            path="/portal/login"
+            element={
+              <>
+                <ParentLoginPage />
+                <LocationStateProbe />
+              </>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByTestId('auth-role-parent'));
+
+    expect(screen.getByTestId('location-state')).toHaveTextContent(
+      '/portal/checkout/class/class_1',
+    );
+    expect(screen.getByTestId('location-state')).toHaveTextContent('source=classes');
   });
 
   it('switches to the clearly labelled kid sign-in without a page reload', () => {

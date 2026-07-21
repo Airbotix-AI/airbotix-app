@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { HeartHandshake, Pause, Play, Rocket } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 type AuthRole = 'parent' | 'kid';
 
@@ -54,6 +54,7 @@ const FEATURED_CREATIONS = [
 const FEATURE_ROTATION_MS = 8_000;
 
 export function AuthIdentityLayout({ activeRole, children }: AuthIdentityLayoutProps) {
+  const location = useLocation();
   const [activeCreation, setActiveCreation] = useState(0);
   const [creationPaused, setCreationPaused] = useState(false);
   const featuredCreation = FEATURED_CREATIONS[activeCreation];
@@ -143,6 +144,7 @@ export function AuthIdentityLayout({ activeRole, children }: AuthIdentityLayoutP
                     <Link
                       key={option.role}
                       to={option.to}
+                      state={active ? location.state : undefined}
                       aria-current={active ? 'page' : undefined}
                       data-testid={`auth-role-${option.role}`}
                       className={clsx('auth-role-option', `auth-role-option-${option.role}`, {
