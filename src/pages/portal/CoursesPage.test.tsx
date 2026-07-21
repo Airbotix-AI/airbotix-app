@@ -150,7 +150,7 @@ describe('CoursesPage comparison', () => {
     expect(api).toHaveBeenCalledWith('/courses');
   });
 
-  it('defaults to the family child and recommends only honest age matches', async () => {
+  it('marks honest age matches without hiding any course from the family', async () => {
     const olderPack = {
       ...PACKS[0],
       id: 'pack-2',
@@ -178,13 +178,24 @@ describe('CoursesPage comparison', () => {
     expect(await screen.findByRole('heading', { name: 'Top picks for Mia' })).toBeInTheDocument();
     expect(screen.getByText(/Based on Mia's age \(10\)/)).toBeInTheDocument();
     expect(screen.getAllByTestId('course-recommendation-card')).toHaveLength(1);
-    expect(await screen.findByText('1 course suitable for Mia')).toBeInTheDocument();
-    expect(screen.getByText('Good age fit for Mia')).toBeInTheDocument();
-    expect(screen.queryByText('Advanced Code Lab')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('2 courses to compare · 1 recommended for Mia'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Recommended for Mia')).toBeInTheDocument();
+    expect(screen.getByText('Advanced Code Lab')).toBeInTheDocument();
+    expect(screen.getAllByTestId('course-comparison-row')).toHaveLength(2);
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'All children' }));
-    expect(await screen.findByText('Advanced Code Lab')).toBeInTheDocument();
-    expect(screen.queryByTestId('course-recommendations')).not.toBeInTheDocument();
+  it('keeps the full catalogue visible when the child has no exact age match', async () => {
+    wireApi({ kids: [{ id: 'kid-1', nickname: 'Mia', age: 7 }] });
+    renderPage();
+
+    expect(await screen.findByText('No exact age match is open yet')).toBeInTheDocument();
+    expect(screen.getByText(/The full catalogue is still listed below \(1 course\)\./)).toBeInTheDocument();
+    expect(screen.getByText('Build and Drive a Robot')).toBeInTheDocument();
+    expect(screen.getByText('1 course to compare · 0 recommended for Mia')).toBeInTheDocument();
+    expect(screen.getAllByTestId('course-comparison-row')).toHaveLength(1);
+    expect(screen.queryByText(/courses? suitable for Mia/)).not.toBeInTheDocument();
   });
 
   it('opens the recommended course and keeps the paired actions exactly the same size', async () => {

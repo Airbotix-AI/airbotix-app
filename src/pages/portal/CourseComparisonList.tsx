@@ -122,6 +122,8 @@ function CourseRow({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const isRecommended = selectedKid ? matchesKid(row, selectedKid) : false;
+
   return (
     <article
       id={`course-${row.pack.id}`}
@@ -130,6 +132,7 @@ function CourseRow({
       data-course-slug={row.pack.slug}
       data-age-min={row.ageMin ?? undefined}
       data-age-max={row.ageMax ?? undefined}
+      data-age-fit={selectedKid ? String(isRecommended) : undefined}
     >
       <div className="grid grid-cols-2 gap-x-4 gap-y-4 p-4 lg:min-w-[880px] lg:grid-cols-[minmax(150px,1.2fr)_48px_74px_80px_74px_minmax(110px,1fr)_minmax(110px,1fr)_176px] lg:items-start lg:gap-x-2 lg:px-5">
         <div className="col-span-2 lg:col-span-1" aria-label="Course">
@@ -137,9 +140,9 @@ function CourseRow({
             {row.series}
           </div>
           <h2 className="mt-1 text-[15px] font-bold leading-snug text-ink">{row.title}</h2>
-          {selectedKid && (
+          {selectedKid && isRecommended && (
             <div className="mt-2 inline-flex rounded-full bg-brand-mint/15 px-2.5 py-1 text-[11px] font-bold text-ink">
-              Good age fit for {selectedKid.nickname}
+              Recommended for {selectedKid.nickname}
             </div>
           )}
         </div>
@@ -182,7 +185,7 @@ function CourseRow({
           <CourseBookingActions
             pack={row.pack}
             kids={kids}
-            suggestedKidId={selectedKid?.id ?? ''}
+            suggestedKidId={isRecommended ? (selectedKid?.id ?? '') : ''}
             familyId={familyId}
             contactEmail={contactEmail}
           />
@@ -230,14 +233,15 @@ export function CourseComparisonList({
     () =>
       sortComparisonRows(
         rows.filter(
-          (row) =>
-            matchesKid(row, selectedKid) &&
-            (series === ALL || row.series === series) &&
-            matchesCommitment(row, commitment),
+          (row) => (series === ALL || row.series === series) && matchesCommitment(row, commitment),
         ),
         sortKey,
       ),
-    [commitment, rows, selectedKid, series, sortKey],
+    [commitment, rows, series, sortKey],
+  );
+  const recommendedVisibleCount = useMemo(
+    () => (selectedKid ? visibleRows.filter((row) => matchesKid(row, selectedKid)).length : 0),
+    [selectedKid, visibleRows],
   );
 
   const clearFilters = () => {
@@ -276,23 +280,14 @@ export function CourseComparisonList({
       <div className="rounded-3xl border border-hairline bg-surface p-5 shadow-card-soft">
         <div className="eyebrow eyebrow-sky">Compare courses</div>
         <h2 id="course-comparison-title" className="section-heading">
-          Start with the course that fits your child.
+          Compare every course. See what fits your child.
         </h2>
         <p className="mt-3 max-w-3xl text-[15px] font-medium leading-relaxed text-ink-soft">
-          Compare age, difficulty, time, price, what they will make, and who each course suits —
-          then open the class options you want.
+          Every course open for booking stays in this list. Courses matching your selected
+          child&apos;s age are clearly marked — choosing a child never hides the other courses.
         </p>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <FilterButtons
-            legend="Which child?"
-            options={[
-              { value: ALL, label: 'All children' },
-              ...kids.map((kid) => ({ value: kid.id, label: `${kid.nickname} (age ${kid.age})` })),
-            ]}
-            value={effectiveKidId}
-            onChange={setKidId}
-          />
+        <div className="mt-5 grid gap-5 lg:grid-cols-3">
           <FilterButtons
             legend="What are they into?"
             options={seriesOptions}
@@ -323,9 +318,8 @@ export function CourseComparisonList({
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-[14px] font-semibold text-ink-soft">
-          {selectedKid
-            ? `${visibleRows.length} ${visibleRows.length === 1 ? 'course' : 'courses'} suitable for ${selectedKid.nickname}`
-            : `${visibleRows.length} ${visibleRows.length === 1 ? 'course' : 'courses'} to compare`}
+          {`${visibleRows.length} ${visibleRows.length === 1 ? 'course' : 'courses'} to compare`}
+          {selectedKid && ` · ${recommendedVisibleCount} recommended for ${selectedKid.nickname}`}
         </p>
         {(series !== ALL || commitment !== 'any') && (
           <button type="button" onClick={clearFilters} className="btn-pill-ghost">
@@ -337,7 +331,7 @@ export function CourseComparisonList({
       {visibleRows.length === 0 ? (
         <div className="card-base mt-4 text-center">
           <span className="sticker-sunshine">No exact match</span>
-          <p className="lead-text mt-4">Try a different age, interest, or course length.</p>
+          <p className="lead-text mt-4">Try a different interest or course length.</p>
           <button type="button" onClick={clearFilters} className="btn-pill-primary mt-4">
             Show all courses
           </button>
