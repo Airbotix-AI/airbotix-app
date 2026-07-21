@@ -10,6 +10,10 @@ export interface UserPrincipal {
   display_name: string | null;
   role: Role;
   family_id: string | null;
+  // Whether this parent has opted into an email+password login (auth-system-prd
+  // §4.8). Drives the /portal/settings "Set" vs "Change" password control. OTP
+  // stays available regardless.
+  has_password?: boolean;
 }
 
 export interface KidPrincipal {
@@ -34,7 +38,14 @@ export type PrincipalKind = 'user' | 'kid';
 
 export interface MeResponse {
   role: Role | 'kid';
-  user?: { id: string; email: string; display_name: string | null; role: Role; family_id: string | null };
+  user?: {
+    id: string;
+    email: string;
+    display_name: string | null;
+    role: Role;
+    family_id: string | null;
+    has_password?: boolean;
+  };
   family?: { id: string; name: string; region: string } | null;
   kid_profiles?: Array<{ id: string; nickname: string; age: number }>;
   kid?: {
@@ -59,6 +70,10 @@ export interface VerifyOtpResponse {
     is_new_user: boolean;
   };
 }
+
+// Parent email+password login (auth-system-prd §4.8) returns the identical
+// token/user envelope as OTP verify — same downstream handling.
+export type PasswordLoginResponse = VerifyOtpResponse;
 
 export interface KidLoginResponse {
   access_token: string;

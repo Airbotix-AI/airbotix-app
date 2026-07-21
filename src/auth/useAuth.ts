@@ -39,6 +39,7 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
     display_name: raw.user.display_name,
     role: raw.user.role,
     family_id: raw.user.family_id,
+    has_password: raw.user.has_password ?? false,
   };
 }
 
@@ -76,6 +77,35 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
   useAuthStore.getState().setBootstrapped(true);
   // No portal WS consumer today, so the parent login does not open a socket.
   return res;
+}
+
+// ── Parent email+password login (auth-system-prd §4.8) ──────────────────────
+// Optional alternative to OTP for parents who have opted into a password. Same
+// token envelope + post-login handling as verifyOtp. OTP stays the recovery path,
+// so a wrong/forgotten password just falls back to "email me a code".
+
+export async function loginWithPassword(
+  email: string,
+  password: string,
+): Promise<VerifyOtpResponse> {
+  const res = await api<VerifyOtpResponse>('/auth/login-password', {
+    method: 'POST',
+    body: { email, password },
+    skipAuthRefresh: true,
+  });
+  useAuthStore.getState().setToken('user', res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
+  return res;
+}
+
+// Set/rotate the current parent's password (authenticated session, min 8 chars).
+// Surfaced from /portal/settings. Backend hashes with bcrypt; plaintext never
+// persisted client-side.
+export async function setPassword(password: string): Promise<void> {
+  await api<{ ok: true }>('/auth/set-password', {
+    method: 'POST',
+    body: { password },
+  });
 }
 
 // ── Kid family-code login ───────────────────────────────────────────────────

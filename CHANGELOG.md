@@ -27,6 +27,21 @@
 - **Masked edits describe the intent, not a bare noun.** The wish now rides inside a
   region-replace template ("Same picture, keep everything outside the highlighted region
   unchanged; the highlighted region becomes: …") per the gpt-image edits contract (D-ISF-5).
+## 2026-07-21 (feat: parent password login — explicit method choice on sign-in, D-AUTH-21)
+
+### Added
+- **Parent email+password login (`auth-system-prd §4.8`, D-AUTH-21).** `/portal/login` now gives
+  the parent an **explicit choice of sign-in method** — two first-class tabs, **Password** and
+  **Email code**. Password is the default-selected tab; Email code is one tap away and stays the
+  recovery path (a first-timer or forgotten password just uses a code — there is no separate reset
+  flow). New `loginWithPassword()` hits `POST /auth/login-password`.
+- **Set/change password in Settings.** `/portal/settings` "You" panel gains a Password control
+  (`setPassword()` → `POST /auth/set-password`); copy toggles Set ↔ Change from the new
+  `has_password` flag on `/auth/me`. Min 8 chars; a forgotten password just falls back to a code.
+
+### Changed
+- `UserPrincipal` / `MeResponse.user` carry `has_password`; `normaliseMe` defaults it to `false`.
+- Parent login page reworked into a Password/Email-code tab chooser; tests updated to match.
 
 ## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
 

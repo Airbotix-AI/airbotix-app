@@ -32,9 +32,31 @@ describe('shared login identity gateway', () => {
     expect(screen.getByTestId('auth-role-kid')).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('heading', { name: /Parent login or sign up/ })).toBeVisible();
     expect(screen.getByText('New to Airbotix?')).toBeVisible();
+    // The parent is offered an explicit choice of sign-in method (§4.8): both a
+    // Password tab and an Email code tab, side by side.
+    expect(screen.getByRole('tab', { name: 'Password' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Email code' })).toBeVisible();
+    // Password is the default tab — its form (and the "Log in" button) shows first.
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeVisible();
+  });
+
+  it('lets the parent choose between the password and email-code sign-in methods', () => {
+    renderLogin('/portal/login');
+
+    // Default tab is Password — its form shows.
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeVisible();
+
+    // Choosing the Email code tab swaps to the passwordless code form.
+    fireEvent.click(screen.getByRole('tab', { name: 'Email code' }));
     expect(screen.getByRole('button', { name: 'Send code & continue' })).toBeVisible();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument();
+
+    // And back to the Password tab.
+    fireEvent.click(screen.getByRole('tab', { name: 'Password' }));
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Log in' })).toBeVisible();
   });
 
   it('switches to the clearly labelled kid sign-in without a page reload', () => {
