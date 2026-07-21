@@ -101,7 +101,7 @@ export function VerifyOtpPage() {
           Didn't get the code?{' '}
           <button
             type="button"
-            onClick={() => nav('/portal/login')}
+            onClick={() => nav('/portal/login', { state: from ? { from } : undefined })}
             className="font-semibold text-brand-coral hover:underline"
           >
             Try again →
