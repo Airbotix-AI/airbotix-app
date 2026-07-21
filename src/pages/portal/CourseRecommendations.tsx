@@ -69,8 +69,10 @@ export function CourseRecommendations({
         <div className="mt-5 rounded-2xl border border-hairline bg-canvas-pure p-4">
           <div className="text-[15px] font-bold text-ink">No exact age match is open yet</div>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
-            We are not guessing with an unsuitable course. Use the full list below or request help
-            finding the right next class for {selectedKid.nickname}.
+            The full catalogue is still listed below ({rows.length}{' '}
+            {rows.length === 1 ? 'course' : 'courses'}). We will mark a recommendation here when an
+            exact age match opens for{' '}
+            {selectedKid.nickname}.
           </p>
         </div>
       ) : (
