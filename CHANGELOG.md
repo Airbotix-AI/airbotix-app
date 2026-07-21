@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-21 (feat: make all four creative studios discoverable to parents and kids)
+
+### Added
+- **Parent Dashboard creative-spaces guide.** Parents now see Story Blocks, Creative Code
+  Studio, Art Studio, and Music Stage together on `/portal`, with a plain-language explanation
+  of each product, the exact Learn-home path their child follows, and a link to My Family for
+  sign-in details.
+- **Four direct studio cards on the kid Home.** `/learn` now puts all four live studios in one
+  first-class grid with their real destinations; Art Studio and Music Stage are no longer hidden
+  behind the generic “Explore all studios” card.
+
+### Changed
+- Extended the shared create-tool registry with stable discovery IDs, parent descriptions, and
+  Learn paths so the parent and kid surfaces render from the same live/paused product truth.
+- Released the Story Blocks autosave mutex before showing “saved”, so a child who immediately
+  presses Go can persist mission completion instead of getting stuck on “Saving your personal
+  path…”.
+
 ## 2026-07-22 (test: Art Studio save/reopen coverage gaps closed)
 
 ### Added
@@ -83,7 +101,6 @@
 ### Changed
 - `UserPrincipal` / `MeResponse.user` carry `has_password`; `normaliseMe` defaults it to `false`.
 - Parent login page reworked into a Password/Email-code tab chooser; tests updated to match.
-
 ## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
 
 ### Added

@@ -340,6 +340,34 @@ describe('BlocksStudioPage zone labels', () => {
     expect(rightHome).toHaveAttribute('aria-pressed', 'true');
     expect(rightHome).toHaveClass('selected');
     expect(useBlocksStore.getState().project.pages[0].characters[1].start.gx).toBe(10);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const rightPalette = screen
+      .getByTestId('palette')
+      .querySelector('[data-testid="block-move_right"]');
+    expect(rightPalette).not.toBeNull();
+    fireEvent.pointerDown(rightPalette!);
+    fireEvent.pointerUp(rightPalette!);
+    fireEvent.pointerDown(rightPalette!);
+    fireEvent.pointerUp(rightPalette!);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'),
+    );
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(
+      await screen.findByTestId('story-mission-success', {}, { timeout: 3000 }),
+    ).toHaveTextContent('saved your personal story');
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a2-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('makes A2-B palette arrows fixed at 3, inserts before End, and completes only at gx11', async () => {

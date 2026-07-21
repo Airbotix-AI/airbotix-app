@@ -5,6 +5,7 @@ import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
+import { CreativeSpacesPanel } from './CreativeSpacesPanel';
 import { NowEnrollingPanel } from './NowEnrollingPanel';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
@@ -29,16 +30,12 @@ export function DashboardPage() {
   const hasFamily = familyId !== null && familyId !== undefined;
   const qc = useQueryClient();
 
-  useWsEvent(
-    'wallet.update',
-    () => qc.invalidateQueries({ queryKey: ['wallet', familyId] }),
-    [familyId],
-  );
-  useWsEvent(
-    'approval.new',
-    () => qc.invalidateQueries({ queryKey: ['approvals', familyId] }),
-    [familyId],
-  );
+  useWsEvent('wallet.update', () => qc.invalidateQueries({ queryKey: ['wallet', familyId] }), [
+    familyId,
+  ]);
+  useWsEvent('approval.new', () => qc.invalidateQueries({ queryKey: ['approvals', familyId] }), [
+    familyId,
+  ]);
   useWsEvent(
     'approval.resolved',
     () => qc.invalidateQueries({ queryKey: ['approvals', familyId] }),
@@ -65,9 +62,7 @@ export function DashboardPage() {
     <div>
       <div className="mb-10">
         <div className="eyebrow">Today</div>
-        <h1 className="section-heading">
-          Hello{displayName ? `, ${displayName}` : ''}.
-        </h1>
+        <h1 className="section-heading">Hello{displayName ? `, ${displayName}` : ''}.</h1>
         <p className="lead-text mt-3">
           5-second answer to "what's my kid doing and is everything OK?"
         </p>
@@ -96,18 +91,15 @@ export function DashboardPage() {
       ) : (
         <>
           <WelcomeWizard />
+          <CreativeSpacesPanel />
           <GettingStartedCard />
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
             <div className="stat-tile coral">
               <div className="stat-num text-brand-coral tabular-nums">{starsToday}</div>
-              <div className="stat-label">
-                Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}
-              </div>
+              <div className="stat-label">Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}</div>
             </div>
             <div className="stat-tile mint">
-              <div className="stat-num text-brand-mint tabular-nums">
-                {starsBalance ?? '—'}
-              </div>
+              <div className="stat-num text-brand-mint tabular-nums">{starsBalance ?? '—'}</div>
               <div className="stat-label">Stars balance</div>
             </div>
             <Link to="/portal/approvals" className="stat-tile sky">
@@ -116,7 +108,7 @@ export function DashboardPage() {
             </Link>
           </div>
 
-          <div className="card-base">
+          <div className="card-base mt-10">
             <div className="eyebrow eyebrow-sky">Quick actions</div>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link to="/portal/wallet/topup" className="btn-pill-primary">

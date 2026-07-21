@@ -420,12 +420,18 @@ export function BlocksStudioPage({
               storyProgressRef.current = result.storyProgress;
             }
           } while (pendingRef.current);
-          setSaveStatus('saved');
           if (storyMission) {
             setMissionFixPersisted(
               storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId),
             );
           }
+          // Release the save mutex before the UI says "saved". A kid can press
+          // Go as soon as that label appears; Story Mission completion then
+          // starts a second persisted save. Publishing "saved" while the mutex
+          // was still held made that completion effect return once and never
+          // retry, leaving the coach stuck on "Saving…".
+          savingRef.current = false;
+          setSaveStatus('saved');
           // refresh the Projects/My Works cover thumbnail (device-local)
           try {
             const cover = useBlocksStore.getState().project.pages[0];
@@ -434,9 +440,8 @@ export function BlocksStudioPage({
             // thumbnail is best-effort
           }
         } catch {
-          setSaveStatus('offline');
-        } finally {
           savingRef.current = false;
+          setSaveStatus('offline');
         }
       })();
     }, SAVE_DEBOUNCE_MS);

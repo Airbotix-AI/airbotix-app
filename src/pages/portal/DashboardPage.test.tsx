@@ -76,4 +76,27 @@ describe('DashboardPage', () => {
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
+
+  it('shows parents the four kid studios before Quick actions and class discovery', () => {
+    renderDashboard();
+
+    const creativeSpaces = screen.getByTestId('parent-creative-spaces');
+    const gettingStarted = screen.getByTestId('getting-started');
+    const quickActions = screen.getByText('Quick actions');
+    const nowEnrolling = screen.getByTestId('now-enrolling');
+
+    expect(creativeSpaces).toHaveTextContent('Story Blocks');
+    expect(creativeSpaces).toHaveTextContent('Creative Code Studio');
+    expect(creativeSpaces).toHaveTextContent('Art Studio');
+    expect(creativeSpaces).toHaveTextContent('Music Stage');
+    expect(creativeSpaces.compareDocumentPosition(gettingStarted)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(creativeSpaces.compareDocumentPosition(quickActions)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(creativeSpaces.compareDocumentPosition(nowEnrolling)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
 });
