@@ -41,6 +41,7 @@ import {
 } from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
+import { VOCAL_GM_PROGRAMS } from './voices';
 import {
   COMPOSE_FAILED_BUBBLE,
   EDIT_VERSION_TAG,
@@ -309,12 +310,15 @@ export function MusicStagePane({
       // first song uses the genre's preset styles (PRD §6.1).
       const styleSet =
         versions.length === 0 ? GENRE_BY_ID[genre].presetStyles : styles;
-      preloadPrograms(
-        STAGE_SLOTS.flatMap((slot) => {
+      preloadPrograms([
+        ...STAGE_SLOTS.flatMap((slot) => {
           const program = styleOf(slot.id, styleSet[slot.id])?.gmProgram;
           return program == null ? [] : [program];
         }),
-      );
+        // Vocal tracks bypass slot styles (voices.ts VOCAL_GM_PROGRAMS) — warm
+        // the choir/oohs programs too.
+        ...Object.values(VOCAL_GM_PROGRAMS),
+      ]);
       // The counter rides the request at send time (not capture time) so a
       // "Try again" retry reports switches made while looking at the error.
       const styleChanges = styleChangesRef.current;

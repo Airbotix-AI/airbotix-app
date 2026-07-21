@@ -105,6 +105,37 @@ describe('createTrackVoice', () => {
     expect(voice.engine).toBe('tone');
   });
 
+  it('vocal tracks sing via the choir programs, not the slot style', async () => {
+    h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+    h.loadMelodicSoundfont.mockResolvedValue(smplrVoice());
+    // A lead-vocal melody lands on the piano slot; the Pop preset's syntharp
+    // (GM 82) must NOT win — vocals load Choir Aahs (GM 53).
+    const lead = createTrackVoice('piano', 'syntharp', channel, 'lead_vocals');
+    await lead.ready;
+    expect(h.loadMelodicSoundfont).toHaveBeenCalledWith(53, channel);
+
+    h.loadMelodicSoundfont.mockClear();
+    const backing = createTrackVoice('keys', 'ep', channel, 'backing_vocals');
+    await backing.ready;
+    expect(h.loadMelodicSoundfont).toHaveBeenCalledWith(54, channel); // Voice Oohs
+  });
+
+  it('style = None silences vocal tracks too — the kid’s mute wins', async () => {
+    h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+    const voice = createTrackVoice('piano', 'none', channel, 'lead_vocals');
+    await voice.ready;
+    expect(h.loadMelodicSoundfont).not.toHaveBeenCalled();
+    expect(voice.engine).toBe('tone');
+  });
+
+  it('non-vocal tracks still follow the slot style (guitar stays guitar)', async () => {
+    h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+    h.loadMelodicSoundfont.mockResolvedValue(smplrVoice());
+    const voice = createTrackVoice('guitar', 'crunch', channel, 'guitar');
+    await voice.ready;
+    expect(h.loadMelodicSoundfont).toHaveBeenCalledWith(29, channel); // ⚡ Crunch
+  });
+
   it('disposing mid-load discards the late soundfont and mutes triggers', async () => {
     const fallback = fallbackVoice();
     const smplr = smplrVoice();

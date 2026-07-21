@@ -126,14 +126,14 @@ describe('style → GM mapping completeness (PRD §5: 15 styles + None per slot)
 describe('soundfontUrlFor', () => {
   it('builds the gleitz-layout URL from the default base', () => {
     expect(soundfontUrlFor(25)).toBe(
-      `${SOUNDFONT_DEFAULT_BASE_URL}/FluidR3_GM/acoustic_guitar_steel-mp3.js`,
+      `${SOUNDFONT_DEFAULT_BASE_URL}/MusyngKite/acoustic_guitar_steel-mp3.js`,
     );
   });
 
   it('honours VITE_SOUNDFONT_BASE_URL (our S3+CloudFront override)', () => {
     vi.stubEnv('VITE_SOUNDFONT_BASE_URL', 'https://cdn.airbotix.ai/soundfonts');
     expect(soundfontUrlFor(1)).toBe(
-      'https://cdn.airbotix.ai/soundfonts/FluidR3_GM/acoustic_grand_piano-mp3.js',
+      'https://cdn.airbotix.ai/soundfonts/MusyngKite/acoustic_grand_piano-mp3.js',
     );
   });
 
@@ -172,7 +172,7 @@ describe('production gating (music-stage-prd OQ-3 launch gate)', () => {
     expect(smplrEnabled()).toBe(true);
     // trailing slash normalised; drum machines live under the SAME origin.
     expect(soundfontUrlFor(1)).toBe(
-      'https://cdn.airbotix.ai/soundfonts/FluidR3_GM/acoustic_grand_piano-mp3.js',
+      'https://cdn.airbotix.ai/soundfonts/MusyngKite/acoustic_grand_piano-mp3.js',
     );
     expect(drumMachineUrlFor('lofikit')).toBe(
       'https://cdn.airbotix.ai/soundfonts/drum-machines/Casio-RZ1/dm.json',
