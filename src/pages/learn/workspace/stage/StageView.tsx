@@ -9,13 +9,17 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   COMPOSING_TITLE,
   EMPTY_STAGE_HINT,
+  INSTRUMENT_STYLES,
   type StageSlotId,
+  type StageStyles,
 } from './stageData';
 import { STAGE_STEPS } from './scoreUtils';
 import './stage.css';
 
 const PULSE_MS = 110; // glyph snap-back ≤120ms (PRD §3.1)
 const ENTER_STAGGER_MS = 80;
+const POP_WIDTH_PX = 248;
+const POP_HEIGHT_GAP_PX = 176; // pop bottom sits this far above the character top
 
 export interface StageSlotView {
   id: StageSlotId;
@@ -33,6 +37,10 @@ export function StageView({
   marquee,
   selected,
   onSelect,
+  pickerFor,
+  styles,
+  onStyle,
+  onClosePicker,
   activeStep,
   composingSubtitle,
   entering,
@@ -43,6 +51,13 @@ export function StageView({
   marquee: string;
   selected: StageSlotId | null;
   onSelect: (id: StageSlotId) => void;
+  /** Slot whose on-stage instrument pop is open, null when closed (D-MS20). */
+  pickerFor: StageSlotId | null;
+  /** Current style per slot — highlights the active pick in the pop. */
+  styles: StageStyles;
+  /** 0⭐ swap straight from the stage pop. */
+  onStyle: (slot: StageSlotId, styleId: string) => void;
+  onClosePicker: () => void;
   /** Lit walk-light index while playing, null when stopped. */
   activeStep: number | null;
   /** Non-null while a generation is in flight — shows the overlay. */
@@ -56,6 +71,7 @@ export function StageView({
   const instRefs = useRef<Partial<Record<StageSlotId, HTMLButtonElement | null>>>({});
   const pulseTimers = useRef<Partial<Record<StageSlotId, number>>>({});
   const [spot, setSpot] = useState<{ beamLeft: number; poolLeft: number; poolTop: number } | null>(null);
+  const [popAnchor, setPopAnchor] = useState<{ left: number; top: number } | null>(null);
 
   // Spotlight follows the selected instrument (450ms spring via CSS).
   useLayoutEffect(() => {
@@ -75,6 +91,22 @@ export function StageView({
     window.addEventListener('resize', moveSpot);
     return () => window.removeEventListener('resize', moveSpot);
   }, [selected, slots]);
+
+  // The instrument pop anchors above the tapped band member, clamped so it
+  // never leaves the stage (D-MS20 — swap feels like it happens ON stage).
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    const el = pickerFor ? instRefs.current[pickerFor] : null;
+    if (!stage || !el) {
+      setPopAnchor(null);
+      return;
+    }
+    const stageR = stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const half = POP_WIDTH_PX / 2;
+    const cx = Math.min(Math.max(r.left - stageR.left + r.width / 2, half + 8), stageR.width - half - 8);
+    setPopAnchor({ left: cx, top: Math.max(8, r.top - stageR.top - POP_HEIGHT_GAP_PX) });
+  }, [pickerFor, slots]);
 
   // Performance pulses arrive from the playback engine; toggling a CSS class
   // imperatively keeps 16th-note pulses from re-rendering the whole pane.
@@ -142,6 +174,43 @@ export function StageView({
           </button>
         ))}
       </div>
+
+      {pickerFor && popAnchor && (
+        <div
+          className="mstage-pop"
+          style={{ left: popAnchor.left, top: popAnchor.top, width: POP_WIDTH_PX }}
+          data-testid="stage-pop"
+        >
+          <div className="mstage-pop-head">
+            <span>
+              {slots.find((s) => s.id === pickerFor)?.label ?? ''} · pick an instrument
+            </span>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClosePicker}
+              data-testid="stage-pop-close"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="mstage-pop-grid">
+            {INSTRUMENT_STYLES[pickerFor].map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onStyle(pickerFor, s.id)}
+                className={clsx('mstage-pop-opt', styles[pickerFor] === s.id && 'is-active')}
+                data-testid={`stage-pop-${pickerFor}-${s.id}`}
+              >
+                <span className="mstage-pop-emoji" aria-hidden="true">{s.emoji}</span>
+                <span>{s.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="mstage-pop-hint">Swap sounds 0⭐ · instant</div>
+        </div>
+      )}
 
       {/* ONE line. The composer bar above already says "① Tell the AI what song
           you want"; the sub-line used to repeat it, and so did the AI bubble and

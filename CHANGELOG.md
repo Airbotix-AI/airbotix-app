@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-22 (feat: Music Stage — on-stage instrument pop + the swap replaces the character)
+
+### Added
+- **点乐器角色 → 舞台顶层弹出选择 pop（owner:"点击时右侧顶层有个 pop 直接选，这样有替换的感觉"）。**
+  Tapping a band member now opens a picker right above them on the stage (anchored to the
+  character, clamped inside the stage, 160ms pop-in, ✕ to close; opens only on an explicit
+  tap — never via the post-generation auto-select). The left-deck style row and lane
+  dropdown remain as alternate entries.
+- **The picked instrument visibly replaces the character.** Choosing a D-MS20 real
+  instrument swaps the stage glyph — pick the violin and a 🎻 stands where the guitarist
+  was (`InstrumentStyle.stageGlyph`; the original timbre styles keep the slot's character —
+  Electric Crunch is still a guitar). music-stage-prd v0.20.1.
+
 ## 2026-07-22 (feat: Music Stage — real-instrument palettes + in-lane sound picker)
 
 ### Added
