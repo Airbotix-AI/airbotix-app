@@ -118,6 +118,9 @@ export function MusicStagePane({
   // (D-MS10) — "every Compose starts over" was the exact complaint.
   const [composeMode, setComposeMode] = useState<ComposeMode>('edit');
   const [selectedSlot, setSelectedSlot] = useState<StageSlotId | null>(null);
+  // On-stage instrument pop (D-MS20): opens ONLY on an explicit stage tap,
+  // never via the post-generation auto-select or lane header selection.
+  const [stagePickerFor, setStagePickerFor] = useState<StageSlotId | null>(null);
   const [styles, setStyles] = useState<StageStyles>({ ...GENRE_BY_ID.rock.presetStyles });
   // null = follow the latest version; a number pins an older version (0⭐).
   const [pinnedVersion, setPinnedVersion] = useState<number | null>(null);
@@ -471,7 +474,9 @@ export function MusicStagePane({
     const isNone = styles[slot.id] === STYLE_NONE;
     return {
       id: slot.id,
-      emoji: slot.emoji,
+      // A D-MS20 real instrument visibly replaces the slot's character —
+      // pick the violin and a violin stands where the guitarist was.
+      emoji: (hasSong && !isNone ? style?.stageGlyph : null) ?? slot.emoji,
       label: slot.label,
       styleLabel: hasSong ? (style && !isNone ? `${style.emoji} ${style.label}` : '🚫 None') : null,
       off: hasSong && (isNone || allMuted),
@@ -514,7 +519,17 @@ export function MusicStagePane({
       empty={!hasSong}
       marquee={hasSong ? marqueeFor(score?.genre, genre) : EMPTY_MARQUEE}
       selected={hasSong ? selectedSlot : null}
-      onSelect={setSelectedSlot}
+      onSelect={(id) => {
+        setSelectedSlot(id);
+        setStagePickerFor(id);
+      }}
+      pickerFor={hasSong ? stagePickerFor : null}
+      styles={styles}
+      onStyle={(slot, styleId) => {
+        applyStyle(slot, styleId);
+        setStagePickerFor(null);
+      }}
+      onClosePicker={() => setStagePickerFor(null)}
       activeStep={activeStep}
       composingSubtitle={generation.isPending ? composeSubtitle : null}
       entering={entering}

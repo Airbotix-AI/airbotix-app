@@ -522,6 +522,31 @@ describe('MusicStagePane — versions (AC-7)', () => {
     expect(playbackMock.previewStyle).not.toHaveBeenCalled();
   });
 
+  it('tapping a band member opens the on-stage instrument pop; picking swaps the glyph (D-MS20)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // The pop opens only on an explicit tap — never via the post-generation
+    // auto-select.
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-inst-guitar'));
+    expect(screen.getByTestId('stage-pop')).toBeInTheDocument();
+    // Picking the violin: 0⭐ audition fires, the pop closes, and the violin
+    // visibly REPLACES the guitarist on stage.
+    fireEvent.click(screen.getByTestId('stage-pop-guitar-violin'));
+    expect(playbackMock.previewStyle).toHaveBeenCalledWith('guitar', 'violin');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stage-inst-guitar')).toHaveTextContent('🎻');
+  });
+
+  it('the stage pop closes on ✕ without touching the styles', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-inst-piano'));
+    expect(screen.getByTestId('stage-pop')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-pop-close'));
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    expect(playbackMock.previewStyle).not.toHaveBeenCalled();
+  });
+
   it('swaps the sound in place from the lane header (D-MS20)', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     // Guitar is track index 0 — its style label opens the in-lane picker.

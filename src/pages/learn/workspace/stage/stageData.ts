@@ -62,6 +62,13 @@ export interface InstrumentStyle {
   emoji: string;
   /** General MIDI program for smplr (PRD §6.1); null = None/silence. */
   gmProgram: number | null;
+  /**
+   * When set, the stage band member's glyph becomes this emoji — the D-MS20
+   * real instruments visibly REPLACE the slot's character (violin walks on
+   * where the guitarist stood). The original §5 timbre styles leave it unset:
+   * "Electric Crunch" is still a guitar.
+   */
+  stageGlyph?: string;
 }
 
 const NONE_STYLE: InstrumentStyle = { id: STYLE_NONE, label: 'None', emoji: '🚫', gmProgram: null };
@@ -76,17 +83,17 @@ export const INSTRUMENT_STYLES: Record<StageSlotId, InstrumentStyle[]> = {
     { id: 'acoustic', label: 'Acoustic',        emoji: '🪵', gmProgram: 25 },
     { id: 'crunch',   label: 'Electric Crunch', emoji: '⚡', gmProgram: 29 },
     { id: 'funk',     label: 'Clean Funk',      emoji: '🕺', gmProgram: 27 },
-    { id: 'violin',   label: 'Violin',          emoji: '🎻', gmProgram: 41 },
-    { id: 'sax',      label: 'Saxophone',       emoji: '🎷', gmProgram: 67 },
-    { id: 'trumpet',  label: 'Trumpet',         emoji: '🎺', gmProgram: 57 },
+    { id: 'violin',   label: 'Violin',          emoji: '🎻', gmProgram: 41, stageGlyph: '🎻' },
+    { id: 'sax',      label: 'Saxophone',       emoji: '🎷', gmProgram: 67, stageGlyph: '🎷' },
+    { id: 'trumpet',  label: 'Trumpet',         emoji: '🎺', gmProgram: 57, stageGlyph: '🎺' },
     NONE_STYLE,
   ],
   bass: [
     { id: 'round',  label: 'Round & Warm', emoji: '🫧', gmProgram: 33 },
     { id: 'picked', label: 'Picked Rock',  emoji: '🎯', gmProgram: 34 },
     { id: 'sub',    label: 'Deep Sub',     emoji: '🌊', gmProgram: 39 },
-    { id: 'cello',  label: 'Cello',        emoji: '🎼', gmProgram: 43 },
-    { id: 'tuba',   label: 'Tuba',         emoji: '📯', gmProgram: 59 },
+    { id: 'cello',  label: 'Cello',        emoji: '🎼', gmProgram: 43, stageGlyph: '🎼' },
+    { id: 'tuba',   label: 'Tuba',         emoji: '📯', gmProgram: 59, stageGlyph: '📯' },
     NONE_STYLE,
   ],
   drums: [
@@ -99,17 +106,17 @@ export const INSTRUMENT_STYLES: Record<StageSlotId, InstrumentStyle[]> = {
     { id: 'grand',    label: 'Grand',     emoji: '🎩', gmProgram: 1 },
     { id: 'musicbox', label: 'Music Box', emoji: '🎠', gmProgram: 11 },
     { id: 'syntharp', label: 'Synth Arp', emoji: '✨', gmProgram: 82 },
-    { id: 'harp',     label: 'Harp',      emoji: '🪄', gmProgram: 47 },
-    { id: 'marimba',  label: 'Marimba',   emoji: '🪘', gmProgram: 13 },
-    { id: 'flute',    label: 'Flute',     emoji: '🪈', gmProgram: 74 },
+    { id: 'harp',     label: 'Harp',      emoji: '🪄', gmProgram: 47, stageGlyph: '🪄' },
+    { id: 'marimba',  label: 'Marimba',   emoji: '🪘', gmProgram: 13, stageGlyph: '🪘' },
+    { id: 'flute',    label: 'Flute',     emoji: '🪈', gmProgram: 74, stageGlyph: '🪈' },
     NONE_STYLE,
   ],
   keys: [
     { id: 'organ',     label: 'Gritty Organ', emoji: '🌶️', gmProgram: 17 },
     { id: 'ep',        label: 'Dreamy EP',    emoji: '💭', gmProgram: 5 },
     { id: 'pad',       label: 'Cloud Pad',    emoji: '☁️', gmProgram: 90 },
-    { id: 'strings',   label: 'Strings',      emoji: '🎻', gmProgram: 49 },
-    { id: 'accordion', label: 'Accordion',    emoji: '🪗', gmProgram: 22 },
+    { id: 'strings',   label: 'Strings',      emoji: '🎻', gmProgram: 49, stageGlyph: '🎻' },
+    { id: 'accordion', label: 'Accordion',    emoji: '🪗', gmProgram: 22, stageGlyph: '🪗' },
     NONE_STYLE,
   ],
 };
