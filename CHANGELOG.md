@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-22 (fix: SpessaSynth worklet vs Tone's standardized-audio-context)
+
+### Fixed
+- **The SpessaSynth engine never actually started** — caught by a real-browser local test
+  (Playwright + level meter), not by unit tests: `Tone.getContext().rawContext` is a
+  standardized-audio-context WRAPPER, so native `new AudioWorkletNode(rawContext)` threw
+  `parameter 1 is not of type 'BaseAudioContext'` and every track silently degraded to the
+  smplr tier (AC-11 working exactly as designed, hiding the failure). The engine now goes
+  through Tone's own worklet API (`addAudioWorkletModule` + `createAudioWorkletNode`) —
+  the wrapper-aware path `audioNodeCreators` exists for. Local proof after the fix: all
+  three probe tracks (guitar/crunch, drums/rockkit, vocals/choir) report `engine: spessa`
+  with real output level (peaks 0.10–0.17) and zero console warnings.
+
 ## 2026-07-22 (feat: Art Studio → game hand-off loses the white paper)
 
 ### Added
