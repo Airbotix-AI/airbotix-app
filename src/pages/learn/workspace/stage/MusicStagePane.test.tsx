@@ -13,6 +13,7 @@ const {
   playbackMock,
   generateMusicScoreMock,
   preloadProgramsMock,
+  warmSpessaEngineMock,
   saveScoreToMyWorksMock,
   generateRealSongMock,
   renderScoreMock,
@@ -36,6 +37,7 @@ const {
   },
   generateMusicScoreMock: vi.fn(),
   preloadProgramsMock: vi.fn(),
+  warmSpessaEngineMock: vi.fn(),
   saveScoreToMyWorksMock: vi.fn(),
   generateRealSongMock: vi.fn(),
   renderScoreMock: vi.fn(),
@@ -58,6 +60,10 @@ vi.mock('./realSongApi', async (orig) => ({
 // smplr layer is exercised in soundfont.test.ts — here only the preload call.
 vi.mock('./soundfont', () => ({
   preloadPrograms: preloadProgramsMock,
+}));
+// spessa engine boot is worklet-bound — here only the warm call (D-MS19).
+vi.mock('./spessaEngine', () => ({
+  warmSpessaEngine: warmSpessaEngineMock,
 }));
 // Offline WAV rendering needs a real AudioContext — stub the render + the
 // download hand-off, keep the pure helpers (filenames, audibility) real.
@@ -227,6 +233,8 @@ describe('MusicStagePane — generation', () => {
     // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17,
     // plus the vocal-track programs (Choir Aahs 53 / Voice Oohs 54).
     expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17, 53, 54]);
+    // Tier-0 boots behind the same animation (D-MS19).
+    expect(warmSpessaEngineMock).toHaveBeenCalled();
   });
 
   // D-MS10: with a song on stage the composer defaults to EDIT mode — typed

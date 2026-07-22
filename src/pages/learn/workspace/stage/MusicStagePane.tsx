@@ -41,6 +41,7 @@ import {
 } from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
+import { warmSpessaEngine } from './spessaEngine';
 import { VOCAL_GM_PROGRAMS } from './voices';
 import {
   COMPOSE_FAILED_BUBBLE,
@@ -319,6 +320,9 @@ export function MusicStagePane({
         // the choir/oohs programs too.
         ...Object.values(VOCAL_GM_PROGRAMS),
       ]);
+      // Tier-0: boot the SpessaSynth engine (worklet + soundfont) behind the
+      // same animation. smplr programs above stay warm as the fallback tier.
+      warmSpessaEngine();
       // The counter rides the request at send time (not capture time) so a
       // "Try again" retry reports switches made while looking at the error.
       const styleChanges = styleChangesRef.current;

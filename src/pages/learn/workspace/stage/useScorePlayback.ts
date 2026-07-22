@@ -158,7 +158,7 @@ export function useScorePlayback(
       const spec = `${t.instrument}|${slot}|${styleId}`;
       if (voiceSpecsRef.current[idx] === spec && voicesRef.current[idx]) return;
       voicesRef.current[idx]?.dispose();
-      voicesRef.current[idx] = createTrackVoice(slot, styleId, channel, t.instrument);
+      voicesRef.current[idx] = createTrackVoice(slot, styleId, channel, t.instrument, idx);
       voiceSpecsRef.current[idx] = spec;
     });
   }, [score, styles]);

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-22 (feat: Music Stage — SpessaSynth SF2 engine (Tier-0) + GeneralUser GS)
+
+### Added
+- **SpessaSynth becomes the primary Music Stage timbre engine** (owner: "重新换"→ 换引擎;
+  music-stage-prd v0.19, D-MS19). A single `WorkletSynthesizer` (Apache-2.0) performs real
+  SoundFont synthesis — envelopes, loop points, filters, modulators — from the professional
+  **GeneralUser GS** soundfont (32MB, freely redistributable, self-hosted at
+  `/soundfonts/sf2/GeneralUser-GS.sf2`). The worklet's 16 per-MIDI-channel dry outputs are
+  routed one-per-track into the existing Tone.Channel strips, so mute / solo / volume / pan
+  keep working unchanged; the wet effects bus stays unrouted so a muted lane can never leak
+  reverb tails. Events schedule at exact AudioContext times (no timing regression vs smplr).
+  Engine tier order is now **spessa → smplr (MusyngKite) → Tone.js fallback**, each failure
+  degrading one tier (AC-11); the engine + soundfont boot behind the composing animation.
+  Vocal tracks keep their D-MS18 choir programs; drum tracks use real GM kits
+  (Standard/Room/Electronic) via `setDrums` + kit program.
+- `soundfonts.yml` publishes the sf2 (LFS-aware fetch + RIFF sanity check) and verifies it
+  through the SPA-fallback-rejecting check.
+
 ## 2026-07-21 (feat: make all four creative studios discoverable to parents and kids)
 
 ### Added

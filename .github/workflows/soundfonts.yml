@@ -4,12 +4,14 @@
 # keeps the whole smplr path closed in production unless VITE_SOUNDFONT_BASE_URL
 # points at an origin we control — this workflow is what makes that origin exist.
 #
-# WHAT: the GM programs the §5 style table + vocal tracks use (gleitz MusyngKite
-# layout — the higher-fidelity kit; FluidR3_GM objects from earlier runs stay on
-# the origin for previously-cached bundles) plus the 3 sampled drum machines
-# (smpldsnds layout: dm.json + ogg/m4a samples). Each dm.json carries an ABSOLUTE
-# baseUrl back to the upstream host, so it is rewritten to ours — otherwise
-# hosting dm.json alone would still pull samples off-site.
+# WHAT: three tiers of sound material. (1) `sf2/GeneralUser-GS.sf2` — the full
+# soundfont the SpessaSynth Tier-0 engine synthesizes from (D-MS19). (2) The GM
+# programs the §5 style table + vocal tracks use (gleitz MusyngKite layout —
+# the smplr fallback tier; FluidR3_GM objects from earlier runs stay on the
+# origin for previously-cached bundles). (3) The 3 sampled drum machines
+# (smpldsnds layout: dm.json + ogg/m4a samples). Each dm.json carries an
+# ABSOLUTE baseUrl back to the upstream host, so it is rewritten to ours —
+# otherwise hosting dm.json alone would still pull samples off-site.
 #
 # WHERE: s3://airbotix-app-prod/soundfonts/ — the SPA's own bucket + CloudFront
 # distribution, so samples are same-origin (no CORS, no new infra). deploy.yml
@@ -61,6 +63,25 @@ jobs:
             curl -fsSL "$SOUNDFONT_UPSTREAM/MusyngKite/${name}-mp3.js" \
               -o "out/MusyngKite/${name}-mp3.js"
           done
+
+      - name: Fetch the GeneralUser GS soundfont (SpessaSynth Tier-0 engine)
+        # music-stage-prd D-MS19: the SpessaSynth engine plays a real .sf2.
+        # GeneralUser GS (S. Christian Collins) is freely redistributable; the
+        # canonical copy is a plain git blob in mrbumpy409/GeneralUser-GS.
+        # Sanity-check size + RIFF magic so a pointer/error body can never be
+        # published as "the soundfont".
+        run: |
+          set -euo pipefail
+          mkdir -p out/sf2
+          curl -fsSL \
+            "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2" \
+            -o out/sf2/GeneralUser-GS.sf2
+          size=$(stat -c%s out/sf2/GeneralUser-GS.sf2)
+          if [ "$size" -lt 20000000 ]; then
+            echo "✖ GeneralUser-GS.sf2 is only ${size}B — truncated or an error body?" >&2
+            exit 1
+          fi
+          head -c 4 out/sf2/GeneralUser-GS.sf2 | grep -q "RIFF"
 
       - name: Fetch the drum machines and re-home their dm.json baseUrl
         run: |
@@ -134,6 +155,7 @@ jobs:
           }
           not_spa_fallback "$PUBLIC_BASE/MusyngKite/acoustic_grand_piano-mp3.js"
           not_spa_fallback "$PUBLIC_BASE/MusyngKite/choir_aahs-mp3.js"
+          not_spa_fallback "$PUBLIC_BASE/sf2/GeneralUser-GS.sf2"
           for machine in LM-2 Casio-RZ1 TR-808; do
             dm=$(curl -fsSL "$PUBLIC_BASE/drum-machines/$machine/dm.json")
             base=$(echo "$dm" | jq -r '.baseUrl')
