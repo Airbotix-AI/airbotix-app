@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-22 (fix: Music Stage brand logo shows at every width)
+
+### Fixed
+- **The Airbotix logo no longer vanishes on windows narrower than 900px** (owner report:
+  "左下角的 logo 没有显示"). The transport-bar brand block was wholesale-hidden below
+  900px; now the logo always renders and only the divider + "Music Stage" surface name
+  collapse on tight bars. The now-playing meta line also truncates on one line instead of
+  wrapping into a vertical sliver next to the play button (BPM · key hidden <900px).
+
 ## 2026-07-22 (feat: let parents see and safely try the creative studios)
 
 ### Added

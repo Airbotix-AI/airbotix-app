@@ -693,16 +693,18 @@ export function MusicStagePane({
         </button>
         {/* Airbotix brand mark + surface name — the immersive page hides the
             Learn nav (D-MS7), so the brand rides the transport bar exactly like
-            the playground's Taskbar. Hidden on narrow screens (the row is tight). */}
-        <div className="hidden shrink-0 items-center gap-2.5 min-[900px]:flex" data-testid="stage-brand">
+            the playground's Taskbar. The LOGO shows at every width (owner
+            report: "左下角的 logo 没有显示" on a <900px window); only the
+            divider + surface name collapse when the row gets tight. */}
+        <div className="flex shrink-0 items-center gap-2.5" data-testid="stage-brand">
           <img
             src="/logo-black-horizontal.png"
             alt="Airbotix"
             draggable={false}
             className="h-6 w-auto select-none"
           />
-          <span aria-hidden className="h-5 w-px bg-hairline" />
-          <span className="text-[13px] font-bold text-slate2">Music Stage</span>
+          <span aria-hidden className="hidden h-5 w-px bg-hairline min-[900px]:block" />
+          <span className="hidden text-[13px] font-bold text-slate2 min-[900px]:inline">Music Stage</span>
         </div>
         {import.meta.env.DEV && (
           // Local stacks run the deterministic mock LLM (DEEPROUTER_USE_MOCK):
@@ -730,7 +732,12 @@ export function MusicStagePane({
           {score ? (
             <>
               <span className="block truncate text-[14px] font-extrabold text-ink">“{score.title}”</span>
-              {score.tempo} BPM · {score.key} · {fmtTime(playback.position)} / {fmtTime(playback.totalDuration)}
+              {/* One line, truncating — on tight bars the meta must never wrap
+                  into a vertical sliver next to the play button. */}
+              <span className="block truncate">
+                <span className="hidden min-[900px]:inline">{score.tempo} BPM · {score.key} · </span>
+                {fmtTime(playback.position)} / {fmtTime(playback.totalDuration)}
+              </span>
             </>
           ) : (
             // One instruction only — the composer bar up top already says

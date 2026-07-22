@@ -757,8 +757,12 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
     expect(region).not.toHaveClass('hidden');
     expect(screen.getByTestId('music-stage')).not.toHaveClass('is-empty');
     // The immersive page hides the Learn nav (D-MS7), so the transport bar
-    // carries the Airbotix brand mark, like the playground's Taskbar.
-    expect(screen.getByTestId('stage-brand')).toContainElement(screen.getByAltText('Airbotix'));
+    // carries the Airbotix brand mark, like the playground's Taskbar. The LOGO
+    // must be visible at EVERY width — only the surface name may collapse
+    // (owner report: the <900px window showed no logo at all).
+    const brand = screen.getByTestId('stage-brand');
+    expect(brand).toContainElement(screen.getByAltText('Airbotix'));
+    expect(brand).not.toHaveClass('hidden');
   });
 
   // ── 🎧 Make it real (§2 step ⑥) — the score becomes actual audio ────────────
