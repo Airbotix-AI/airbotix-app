@@ -22,6 +22,14 @@ export interface ParentStudioGuide {
   aiAndStars: string;
   /** A useful conversation starter after the child creates something. */
   parentPrompt: string;
+  /** A real product capture so a parent can see the workspace before choosing it. */
+  previewImage: string;
+  /** Describes the visible product UI, not a marketing concept image. */
+  previewAlt: string;
+  /** Explains what the parent is looking at in concrete, non-technical language. */
+  previewCaption: string;
+  /** Public, no-auth real-studio demo when one exists. Never points at a protected kid route. */
+  publicDemoPath?: '/try/blocks' | '/try/playground';
 }
 
 export interface CreateTool {
@@ -88,6 +96,12 @@ export const CREATE_TOOLS: CreateTool[] = [
       skills: ['Sequencing', 'Events', 'Cause and effect', 'Story logic'],
       aiAndStars: 'There is no AI chat. Arranging blocks, playing and saving are free.',
       parentPrompt: 'What did you change, and what happened differently?',
+      previewImage: '/media/parent-studios/story-blocks.webp',
+      previewAlt:
+        'Story Blocks studio showing an animated cat and butterfly above colourful snap-together blocks.',
+      previewCaption:
+        'The child arranges picture blocks, presses Go and watches the characters perform the story.',
+      publicDemoPath: '/try/blocks',
     },
     color: 'mint',
     typeTag: 'Blocks',
@@ -119,6 +133,12 @@ export const CREATE_TOOLS: CreateTool[] = [
       aiAndStars:
         'AI can build or change code, but your child makes the decisions and checks every result. AI actions show their Star cost before use; playing and manual code changes are free.',
       parentPrompt: 'Show me one change you made and how it changed the creation.',
+      previewImage: '/media/parent-studios/creative-code-studio.webp',
+      previewAlt:
+        'Creative Code Studio showing an AI conversation, JavaScript workspace and a running Fruit Catcher game.',
+      previewCaption:
+        'The game runs beside the conversation and real code, so the child can test every change immediately.',
+      publicDemoPath: '/try/playground',
     },
     color: 'sky',
     typeTag: 'Code',
@@ -151,6 +171,11 @@ export const CREATE_TOOLS: CreateTool[] = [
       aiAndStars:
         'Drawing is free. AI is optional and only starts when your child presses a clearly priced Coach, guide or Bring it to life button.',
       parentPrompt: 'Which parts did you make, and what did you ask AI to help with?',
+      previewImage: '/media/parent-studios/art-studio.webp',
+      previewAlt:
+        'Art Studio showing drawing tools, the canvas, optional AI Coach and clearly priced Stars actions.',
+      previewCaption:
+        'The child draws on the canvas first; Coach and Bring it to life stay optional and show their Star cost.',
     },
     color: 'bubblegum',
     typeTag: 'Creative',
@@ -185,6 +210,11 @@ export const CREATE_TOOLS: CreateTool[] = [
       aiAndStars:
         'Composing or re-generating music uses Stars and the cost is shown before the action. Playing, comparing and trying available instrument styles are free.',
       parentPrompt: 'What did you change to make the song feel different?',
+      previewImage: '/media/parent-studios/music-stage.webp',
+      previewAlt:
+        'Music Stage showing a live stage, instruments, song tracks and controls for changing the mix.',
+      previewCaption:
+        'The child can hear the song, inspect each instrument lane and choose which version to keep.',
     },
     color: 'mint',
     typeTag: 'Creative',

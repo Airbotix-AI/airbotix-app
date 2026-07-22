@@ -12,6 +12,52 @@ const GUIDE_ACTION = {
   close: 'Hide the parent guide',
 } as const;
 
+function StudioPreview({ studio, guide }: { studio: CreateTool; guide: ParentStudioGuide }) {
+  return (
+    <div className="mt-4" data-testid={`parent-studio-preview-${studio.id}`}>
+      <div className="relative overflow-hidden rounded-2xl border border-hairline bg-canvas-pure">
+        <img
+          src={guide.previewImage}
+          alt={guide.previewAlt}
+          loading="lazy"
+          className="aspect-video w-full object-cover"
+        />
+        <span className="absolute left-3 top-3 rounded-full bg-ink/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white">
+          Real studio preview
+        </span>
+      </div>
+      <p className="mt-2 text-[12px] leading-relaxed text-ink-soft">{guide.previewCaption}</p>
+
+      {guide.publicDemoPath ? (
+        <Link
+          to={guide.publicDemoPath}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Try ${studio.title} yourself — free demo`}
+          className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-wash-mint px-4 py-3 transition hover:-translate-y-0.5"
+        >
+          <span>
+            <span className="block text-[13px] font-black text-ink">
+              Try {studio.title} yourself
+            </span>
+            <span className="mt-0.5 block text-[11px] font-semibold text-slate2">
+              No sign-in · no Stars · nothing saved
+            </span>
+          </span>
+          <span className="shrink-0 text-[12px] font-black text-ink">Open demo ↗</span>
+        </Link>
+      ) : (
+        <div className="mt-3 rounded-2xl bg-canvas-pure px-4 py-3">
+          <div className="text-[12px] font-black text-ink">Real preview available</div>
+          <div className="mt-0.5 text-[11px] font-semibold leading-relaxed text-slate2">
+            Creating here needs your child&apos;s Learn sign-in. We do not show a pretend demo.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ParentGuide({ guide }: { guide: ParentStudioGuide }) {
   return (
     <div className="mt-5 border-t border-hairline pt-5" data-testid="parent-guide-content">
@@ -89,6 +135,8 @@ function StudioCard({ studio }: { studio: CreateTool }) {
 
       {guide && (
         <>
+          <StudioPreview studio={studio} guide={guide} />
+
           <dl className="mt-4 space-y-3 rounded-2xl bg-canvas-pure p-4">
             <div>
               <dt className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
@@ -138,9 +186,9 @@ export function CreativeSpacesPanel() {
         Which creative space fits your child?
       </h2>
       <p className="lead-text mt-3" style={{ fontSize: '15px' }}>
-        Compare what your child will make, how they learn, where AI helps and what you can ask them
-        afterwards. These spaces live inside your child&apos;s Learn account; nothing starts from
-        this parent page.
+        See the real workspace before you choose. Story Blocks and Creative Code Studio have free,
+        no-sign-in demos; Art Studio and Music Stage show real previews and need your child&apos;s
+        Learn sign-in to create.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">

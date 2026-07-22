@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-22 (feat: let parents see and safely try the creative studios)
+
+### Added
+- **Real product previews on all four Parent Dashboard studio cards** — Story Blocks,
+  Creative Code Studio, Art Studio and Music Stage now show compressed captures of the actual
+  child workspace plus a plain-language explanation of what the parent is seeing.
+- **Safe parent try-outs where the product already supports them** — Story Blocks and Creative
+  Code Studio open their real public, no-sign-in demos in a new tab with an explicit “no Stars,
+  nothing saved” boundary. Art Studio and Music Stage honestly remain preview-only until they
+  have real public demo adapters; their cards explain that creating requires the child’s Learn
+  sign-in instead of linking a parent into protected kid routes or presenting a fake demo.
+
 ## 2026-07-22 (feat: Music Stage — on-stage instrument pop + the swap replaces the character)
 
 ### Added
