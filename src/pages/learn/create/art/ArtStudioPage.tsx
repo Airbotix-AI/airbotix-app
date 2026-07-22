@@ -350,7 +350,9 @@ export function ArtStudioPage() {
   const onStory = () => {
     if (!canvasRef.current) return;
     setError(null);
-    const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
+    // Vision snapshots composite on WHITE (D-ISF-7): saved art keeps its alpha,
+    // but downstream rasterizers composite transparency unpredictably.
+    const b64 = canvasRef.current.exportPng(0.5, 'white').split(',')[1];
     const next = [
       ...msgs,
       {
@@ -528,7 +530,9 @@ export function ArtStudioPage() {
   const onLook = () => {
     if (!canvasRef.current) return;
     setError(null);
-    const b64 = canvasRef.current.exportPng(0.5).split(',')[1];
+    // Vision snapshots composite on WHITE (D-ISF-7): saved art keeps its alpha,
+    // but downstream rasterizers composite transparency unpredictably.
+    const b64 = canvasRef.current.exportPng(0.5, 'white').split(',')[1];
     const ask = mission?.checklist?.length
       ? `Coach, look at my canvas! The task checklist: ${mission.checklist.join(', ')}. Tell me which ones you can see and what is still missing.`
       : 'Coach, look at my canvas!';

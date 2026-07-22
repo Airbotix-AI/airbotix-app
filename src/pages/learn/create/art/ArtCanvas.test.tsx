@@ -73,6 +73,7 @@ describe('ArtCanvas pointer pipeline', () => {
   const fakeCtx = {
     setTransform: vi.fn(),
     fillRect: vi.fn(),
+    clearRect: vi.fn(),
     drawImage: vi.fn(),
     save: vi.fn(),
     restore: vi.fn(),
@@ -111,6 +112,9 @@ describe('ArtCanvas pointer pipeline', () => {
     const lastOps = renderOpsMock.mock.calls.at(-1)?.[1] as CanvasOp[];
     expect(lastOps).toHaveLength(1);
     expect((lastOps[0] as StrokeOp).points.length).toBeGreaterThan(1);
+    // TRANSPARENT ground (D-ISF-7): repaints clear the bitmap, never fill white
+    expect(fakeCtx.clearRect).toHaveBeenCalled();
+    expect(fakeCtx.fillRect).not.toHaveBeenCalled();
   });
 
   // D-ISF-2: a tap (no pointermove) commits a single-point dot instead of

@@ -37,7 +37,10 @@ vi.mock('./ArtCanvas', () => ({
     ref,
   ) {
     useImperativeHandle(ref, () => ({
-      exportPng: () => 'data:image/png;base64,U1RVQg==', // "STUB"
+      // Ground-aware stub (D-ISF-7): saves stay transparent ("STUB"),
+      // model-bound snapshots composite white ("WHITE").
+      exportPng: (_scale?: number, ground?: string) =>
+        ground === 'white' ? 'data:image/png;base64,V0hJVEU=' : 'data:image/png;base64,U1RVQg==',
     }));
     return (
       <div
@@ -421,7 +424,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     await waitFor(() => {
       const call = apiCalls.find((c) => c.path === '/llm/image-plan');
       expect(call).toBeDefined();
-      expect(call!.opts?.body?.canvas_b64).toBe('U1RVQg==');
+      expect(call!.opts?.body?.canvas_b64).toBe('V0hJVEU=');
     });
     expect(await screen.findByText('I can see it — a cat!')).toBeInTheDocument();
   });
@@ -808,7 +811,7 @@ describe('ArtStudioPage (canvas-first)', () => {
         const call = apiCalls.find((c) => c.path === '/llm/image-plan');
         const messages = call!.opts?.body?.messages as Array<{ content: string }>;
         expect(messages.at(-1)!.content).toContain('a robot, a garden, a happy feeling');
-        expect(call!.opts?.body?.canvas_b64).toBe('U1RVQg==');
+        expect(call!.opts?.body?.canvas_b64).toBe('V0hJVEU=');
       });
     });
 
@@ -828,7 +831,7 @@ describe('ArtStudioPage (canvas-first)', () => {
         const call = apiCalls.filter((c) => c.path === '/llm/image-plan').at(-1)!;
         const messages = call.opts?.body?.messages as Array<{ content: string }>;
         expect(messages.at(-1)!.content).toMatch(/story about this picture.*name/);
-        expect(call.opts?.body?.canvas_b64).toBe('U1RVQg==');
+        expect(call.opts?.body?.canvas_b64).toBe('V0hJVEU=');
       });
     });
 
