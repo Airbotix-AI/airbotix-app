@@ -12,6 +12,7 @@ const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
   { to: '/portal', label: 'Dashboard', end: true },
   { to: '/portal/classes', label: 'Find a class' },
   { to: '/portal/courses', label: 'Courses' },
+  { to: '/portal/teachers', label: 'Teachers' },
   { to: '/portal/academy', label: 'Exam Prep' },
   { to: '/portal/tutoring', label: 'Tutoring' },
   { to: '/portal/guides', label: 'Family Guides' },

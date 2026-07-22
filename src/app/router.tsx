@@ -39,6 +39,8 @@ import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
 import { RegisterPage } from '@/pages/portal/RegisterPage';
 import { SettingsPage } from '@/pages/portal/SettingsPage';
 import { TutoringPage } from '@/pages/portal/TutoringPage';
+import { TeacherDetailPage } from '@/pages/portal/teachers/TeacherDetailPage';
+import { TeachersPage } from '@/pages/portal/teachers/TeachersPage';
 import { VerifyOtpPage } from '@/pages/portal/VerifyOtpPage';
 import { WalletPage } from '@/pages/portal/WalletPage';
 import { WalletTopupPage } from '@/pages/portal/WalletTopupPage';
@@ -139,6 +141,8 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <Navigate to="/portal" replace /> },
       { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
+      { path: 'teachers', element: <TeachersPage /> },
+      { path: 'teachers/:slug', element: <TeacherDetailPage /> },
       { path: 'academy', element: <AcademyPage /> },
       { path: 'academy/checkout/:sku', element: <AcademyCheckoutPage /> },
       { path: 'academy/orders/:intentId', element: <AcademyOrderPage /> },

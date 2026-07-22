@@ -68,6 +68,7 @@ describe('PortalMobileNav', () => {
 
     for (const label of [
       'Courses',
+      'Teachers',
       'Exam Prep',
       'Tutoring',
       'Family Guides',

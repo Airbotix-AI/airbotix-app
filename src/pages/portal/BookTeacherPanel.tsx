@@ -2,10 +2,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { api, ApiError } from '@/lib/api';
+import { getPublicTeacher } from './teachers/teacherApi';
 
 interface Kid {
   id: string;
@@ -27,7 +28,11 @@ interface TutoringRequest {
 
 const bookingSchema = z.object({
   kid_id: z.string().min(1, 'Choose a child.'),
-  subject_interest: z.string().trim().min(2, 'Tell us what your child would like help with.').max(120),
+  subject_interest: z
+    .string()
+    .trim()
+    .min(2, 'Tell us what your child would like help with.')
+    .max(120),
   preferred_start: z.string().min(1, 'Choose a preferred date and time.'),
   notes: z.string().trim().max(2000),
 });
@@ -57,8 +62,11 @@ const STATUS_COPY: Record<TutoringRequest['status'], { label: string; className:
 
 export function BookTeacherPanel({ familyId }: { familyId: string }) {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const preferredTeacherSlug = searchParams.get('teacher') ?? '';
+  const preferredCity = searchParams.get('city') ?? '';
   const requestQueryKey = ['tutoring-requests', familyId] as const;
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(Boolean(preferredTeacherSlug));
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +77,12 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
   const requests = useQuery<TutoringRequest[]>({
     queryKey: requestQueryKey,
     queryFn: () => api<TutoringRequest[]>('/bookings/tutoring-requests'),
+  });
+  const preferredTeacher = useQuery({
+    queryKey: ['public-teacher', preferredTeacherSlug],
+    queryFn: () => getPublicTeacher(preferredTeacherSlug),
+    enabled: Boolean(preferredTeacherSlug),
+    retry: false,
   });
 
   const form = useForm<BookingValues>({
@@ -90,6 +104,8 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
           subject_interest: values.subject_interest,
           preferred_start: new Date(values.preferred_start).toISOString(),
           notes: values.notes || undefined,
+          preferred_teacher_slug: preferredTeacher.data?.slug,
+          preferred_city: preferredTeacher.data && preferredCity ? preferredCity : undefined,
         },
       }),
     onSuccess: (request) => {
@@ -130,7 +146,9 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
       <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div>
           <div className="eyebrow eyebrow-sky">1-on-1 support</div>
-          <h2 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">Book a teacher</h2>
+          <h2 className="mt-2 text-[26px] font-extrabold tracking-tight text-ink">
+            Book a teacher
+          </h2>
           <p className="mt-2 max-w-2xl text-[15px] font-medium leading-relaxed text-ink-soft">
             Tell us who needs help, what they want to learn, and a preferred time. We’ll match an
             Airbotix teacher and confirm the session with you.
@@ -151,6 +169,23 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
       {success && (
         <div className="mx-6 mb-6 rounded-2xl border border-brand-mint/40 bg-wash-mint px-4 py-3 text-[14px] font-semibold text-ink sm:mx-8">
           {success}
+        </div>
+      )}
+
+      {preferredTeacher.data && (
+        <div className="mx-6 mb-6 rounded-2xl border border-brand-sky/30 bg-wash-sky px-4 py-3 text-[14px] text-ink sm:mx-8">
+          <strong>Preferred teacher: {preferredTeacher.data.display_name}</strong>
+          {preferredCity && <span> · {preferredCity}</span>}
+          <p className="mt-1 text-[12px] font-medium text-ink-soft">
+            We will record this preference, but the actual teacher, venue and time are confirmed
+            separately.
+          </p>
+        </div>
+      )}
+      {preferredTeacher.isError && (
+        <div className="mx-6 mb-6 rounded-2xl bg-wash-sunshine px-4 py-3 text-[14px] font-semibold text-ink sm:mx-8">
+          That teacher profile is no longer available. You can still send a general tutoring
+          request.
         </div>
       )}
 
@@ -197,7 +232,9 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
                   {...form.register('preferred_start')}
                 />
                 {form.formState.errors.preferred_start && (
-                  <span className="field-error">{form.formState.errors.preferred_start.message}</span>
+                  <span className="field-error">
+                    {form.formState.errors.preferred_start.message}
+                  </span>
                 )}
               </label>
 
@@ -209,7 +246,9 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
                   {...form.register('subject_interest')}
                 />
                 {form.formState.errors.subject_interest && (
-                  <span className="field-error">{form.formState.errors.subject_interest.message}</span>
+                  <span className="field-error">
+                    {form.formState.errors.subject_interest.message}
+                  </span>
                 )}
               </label>
 
@@ -266,7 +305,8 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
                     </div>
                     {request.preferred_date && (
                       <div className="mt-1 text-[13px] font-medium text-ink-soft">
-                        Preferred {new Date(request.preferred_date).toLocaleString('en-AU', {
+                        Preferred{' '}
+                        {new Date(request.preferred_date).toLocaleString('en-AU', {
                           weekday: 'short',
                           day: 'numeric',
                           month: 'short',
@@ -276,7 +316,9 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
                       </div>
                     )}
                   </div>
-                  <span className={`w-fit rounded-full px-3 py-1 text-[12px] font-bold ${status.className}`}>
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-[12px] font-bold ${status.className}`}
+                  >
                     {status.label}
                   </span>
                 </div>

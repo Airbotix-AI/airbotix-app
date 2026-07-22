@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 
 import { formatAud } from '@/lib/money';
 import { dateTimeLabel, type PortalVenue, venueLabel } from './myClasses';
+import { TeachingTeam } from './teachers/TeachingTeam';
+import type { PublicTeachingTeamMember } from './teachers/teacherApi';
 
 // Shared shape + card for a bookable class returned by `GET /class-seats/classes`.
 // Rendered on both the Dashboard "Now enrolling" panel and the Find-a-class page,
@@ -19,6 +21,7 @@ export interface AvailableClass {
   session_count: number | null;
   session_minutes: number | null;
   course_pack: { id: string; slug: string; title: string } | null;
+  teaching_team?: PublicTeachingTeamMember[];
 }
 
 export function ClassCard({ item }: { item: AvailableClass }) {
@@ -46,10 +49,7 @@ export function ClassCard({ item }: { item: AvailableClass }) {
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Fact label="Starts" value={dateTimeLabel(item.starts_at)} />
         <Fact label="Where" value={venueLabel(item.venue)} />
-        <Fact
-          label="Seats"
-          value={`${item.seats_remaining} of ${item.max_students} available`}
-        />
+        <Fact label="Seats" value={`${item.seats_remaining} of ${item.max_students} available`} />
         <Fact
           label="Format"
           value={
@@ -58,6 +58,11 @@ export function ClassCard({ item }: { item: AvailableClass }) {
               : item.delivery_mode.replace(/_/g, ' ')
           }
         />
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-wash-sky px-4 py-3 text-[13px]">
+        <span className="mr-2 font-bold text-ink">Teaching team:</span>
+        <TeachingTeam team={item.teaching_team ?? []} />
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
