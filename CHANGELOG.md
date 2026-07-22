@@ -13,6 +13,16 @@
   keeps the full scene for backgrounds. Client-side, 0★, PNG out. Pictures everywhere else
   (takes, My Pictures, portal) stay opaque.
 
+## 2026-07-22 (feat: explain the four creative spaces from a parent's perspective)
+
+### Changed
+- Reframed the Parent Dashboard creative-spaces panel around the decisions a family actually
+  needs to make: who each space suits, the concrete thing a child can create, the three-step
+  learning loop, skills practised, where AI and Stars enter, and a useful follow-up question.
+- Made every studio card independently expandable while keeping the parent surface read-only;
+  the guide still sends families through My Family for child sign-in rather than crossing the
+  parent/kid authentication boundary.
+
 ## 2026-07-22 (feat: Music Stage — SpessaSynth SF2 engine (Tier-0) + GeneralUser GS)
 
 ### Added
