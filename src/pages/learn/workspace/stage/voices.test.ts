@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-// Voice controller (PRD §6.1): instant Tone.js fallback, in-place smplr
-// upgrade, loud console degrade on load failure (AC-11), and safe disposal
-// mid-load. smplr + the fallback recipes are mocked — scheduling stays put.
+// Voice controller (PRD §6.1 + D-MS19): instant Tone.js fallback, in-place
+// upgrade to the best sampled engine (spessa → smplr), loud console degrade on
+// load failure (AC-11), and safe disposal mid-load. The engines + the fallback
+// recipes are mocked — scheduling stays put.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,6 +12,8 @@ const h = vi.hoisted(() => ({
   loadMelodicSoundfont: vi.fn(),
   loadDrumSoundfont: vi.fn(),
   smplrEnabled: vi.fn(() => true),
+  loadSpessaVoice: vi.fn(),
+  spessaEnabled: vi.fn(() => false),
 }));
 
 vi.mock('./toneFallbackVoices', () => ({ makeFallbackVoice: h.makeFallbackVoice }));
@@ -18,6 +21,10 @@ vi.mock('./soundfont', () => ({
   loadMelodicSoundfont: h.loadMelodicSoundfont,
   loadDrumSoundfont: h.loadDrumSoundfont,
   smplrEnabled: h.smplrEnabled,
+}));
+vi.mock('./spessaEngine', () => ({
+  loadSpessaVoice: h.loadSpessaVoice,
+  spessaEnabled: h.spessaEnabled,
 }));
 
 import { createTrackVoice } from './voices';
@@ -31,10 +38,14 @@ function fallbackVoice() {
 function smplrVoice() {
   return { engine: 'smplr' as const, trigger: vi.fn(), dispose: vi.fn() };
 }
+function spessaVoice() {
+  return { engine: 'spessa' as const, trigger: vi.fn(), dispose: vi.fn() };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
   h.smplrEnabled.mockReturnValue(true);
+  h.spessaEnabled.mockReturnValue(false);
 });
 
 describe('createTrackVoice', () => {
@@ -134,6 +145,66 @@ describe('createTrackVoice', () => {
     const voice = createTrackVoice('guitar', 'crunch', channel, 'guitar');
     await voice.ready;
     expect(h.loadMelodicSoundfont).toHaveBeenCalledWith(29, channel); // ⚡ Crunch
+  });
+
+  describe('SpessaSynth tier (D-MS19)', () => {
+    beforeEach(() => {
+      h.spessaEnabled.mockReturnValue(true);
+    });
+
+    it('prefers the spessa engine when a track index is known', async () => {
+      h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+      h.loadSpessaVoice.mockResolvedValue(spessaVoice());
+      const voice = createTrackVoice('guitar', 'crunch', channel, 'guitar', 4);
+      await voice.ready;
+      expect(h.loadSpessaVoice).toHaveBeenCalledWith(
+        4,
+        { kind: 'melodic', gmProgram1: 29 },
+        channel,
+      );
+      expect(h.loadMelodicSoundfont).not.toHaveBeenCalled();
+      expect(voice.engine).toBe('spessa');
+    });
+
+    it('drum tracks request a GM kit, vocals their choir program', async () => {
+      h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+      h.loadSpessaVoice.mockResolvedValue(spessaVoice());
+      await createTrackVoice('drums', 'electro', channel, 'drums', 2).ready;
+      expect(h.loadSpessaVoice).toHaveBeenCalledWith(2, { kind: 'drums', kit0: 24 }, channel);
+
+      h.loadSpessaVoice.mockClear();
+      await createTrackVoice('piano', 'syntharp', channel, 'lead_vocals', 0).ready;
+      expect(h.loadSpessaVoice).toHaveBeenCalledWith(
+        0,
+        { kind: 'melodic', gmProgram1: 53 },
+        channel,
+      );
+    });
+
+    it('a spessa failure degrades to the smplr tier, not the raw synth', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+      h.loadSpessaVoice.mockRejectedValue(new Error('sf2 offline'));
+      h.loadMelodicSoundfont.mockResolvedValue(smplrVoice());
+      const voice = createTrackVoice('guitar', 'crunch', channel, 'guitar', 1);
+      await voice.ready;
+      expect(voice.engine).toBe('smplr');
+      expect(h.loadMelodicSoundfont).toHaveBeenCalledWith(29, channel);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('spessa engine unavailable'),
+        expect.any(Error),
+      );
+      warn.mockRestore();
+    });
+
+    it('callers without a track index (style preview) skip the spessa tier', async () => {
+      h.makeFallbackVoice.mockReturnValue(fallbackVoice());
+      h.loadMelodicSoundfont.mockResolvedValue(smplrVoice());
+      const voice = createTrackVoice('guitar', 'crunch', channel, 'guitar');
+      await voice.ready;
+      expect(h.loadSpessaVoice).not.toHaveBeenCalled();
+      expect(voice.engine).toBe('smplr');
+    });
   });
 
   it('disposing mid-load discards the late soundfont and mutes triggers', async () => {
