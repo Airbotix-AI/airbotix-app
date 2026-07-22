@@ -108,17 +108,22 @@ async function createEngine(): Promise<SpessaEngine> {
     import('spessasynth_lib'),
     import('spessasynth_lib/dist/spessasynth_processor.min.js?url'),
   ]);
-  const ctx = Tone.getContext().rawContext as AudioContext;
-  await ctx.audioWorklet.addModule(worklet.default);
+  // Tone runs on standardized-audio-context, so `rawContext` is a WRAPPER, not
+  // a native BaseAudioContext — native `new AudioWorkletNode(rawContext)`
+  // throws. Go through Tone's own worklet API instead: it registers the module
+  // and constructs a wrapper AudioWorkletNode that Tone.connect understands.
+  // (audioNodeCreators exists in spessasynth precisely for wrapper libraries.)
+  const toneCtx = Tone.getContext();
+  await toneCtx.addAudioWorkletModule(worklet.default);
 
   // Capture the AudioWorkletNode the synth creates — its per-channel dry
   // outputs are the whole point of this integration, and the node is not
   // otherwise reachable on the public surface.
   let node: AudioWorkletNode | null = null;
-  const synth = new WorkletSynthesizer(ctx, {
+  const synth = new WorkletSynthesizer(toneCtx.rawContext as unknown as AudioContext, {
     audioNodeCreators: {
-      worklet: (c, name, options) => {
-        node = new AudioWorkletNode(c as AudioContext, name, options);
+      worklet: (_c, name, options) => {
+        node = toneCtx.createAudioWorkletNode(name, options);
         return node;
       },
     },
