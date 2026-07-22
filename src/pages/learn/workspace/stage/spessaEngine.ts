@@ -23,7 +23,7 @@ import { noteToMidi } from './scoreUtils';
 export const SPESSA_SF_PATH = 'sf2/GeneralUser-GS.sf2';
 /** DEV-build convenience only — production requires the self-hosted origin. */
 export const SPESSA_DEFAULT_SF_URL =
-  'https://media.githubusercontent.com/media/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2';
+  'https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2';
 /** 32MB over school wifi — generous, but bounded (AC-11). */
 export const SPESSA_LOAD_TIMEOUT_MS = 30_000;
 

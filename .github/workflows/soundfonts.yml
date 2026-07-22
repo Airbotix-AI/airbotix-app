@@ -67,18 +67,18 @@ jobs:
       - name: Fetch the GeneralUser GS soundfont (SpessaSynth Tier-0 engine)
         # music-stage-prd D-MS19: the SpessaSynth engine plays a real .sf2.
         # GeneralUser GS (S. Christian Collins) is freely redistributable; the
-        # canonical copy lives in mrbumpy409/GeneralUser-GS behind Git LFS, so
-        # fetch via media.githubusercontent and sanity-check we didn't download
-        # an LFS pointer file instead of the 32MB RIFF.
+        # canonical copy is a plain git blob in mrbumpy409/GeneralUser-GS.
+        # Sanity-check size + RIFF magic so a pointer/error body can never be
+        # published as "the soundfont".
         run: |
           set -euo pipefail
           mkdir -p out/sf2
           curl -fsSL \
-            "https://media.githubusercontent.com/media/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2" \
+            "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2" \
             -o out/sf2/GeneralUser-GS.sf2
           size=$(stat -c%s out/sf2/GeneralUser-GS.sf2)
           if [ "$size" -lt 20000000 ]; then
-            echo "✖ GeneralUser-GS.sf2 is only ${size}B — LFS pointer instead of the soundfont?" >&2
+            echo "✖ GeneralUser-GS.sf2 is only ${size}B — truncated or an error body?" >&2
             exit 1
           fi
           head -c 4 out/sf2/GeneralUser-GS.sf2 | grep -q "RIFF"
