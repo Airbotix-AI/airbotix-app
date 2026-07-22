@@ -208,15 +208,22 @@ export function exportMask(maskOps: CanvasOp[], scale = 1): string {
 }
 
 /**
- * Export the picture the kid actually made: white ground + base take (if any)
- * + the kid's ops. The ghost underlay is GUIDANCE, not content — deliberately
- * excluded (D-IS-18 ①: AI output stays subordinate).
+ * Export the picture the kid actually made: base take (if any) + the kid's ops
+ * on a TRANSPARENT ground — the artwork IS transparent, Photoshop-style
+ * (D-ISF-7, owner call 2026-07-22; supersedes the v0.1 white-paper ground).
+ * The ghost underlay is GUIDANCE, not content — deliberately excluded
+ * (D-IS-18 ①: AI output stays subordinate).
+ *
+ * `ground: 'white'` exists ONLY for model-bound snapshots (👀 coach vision):
+ * downstream rasterizers composite alpha unpredictably, so the coach gets
+ * deterministic paper while every SAVED pixel keeps its transparency.
  */
 export function exportPng(
   ops: CanvasOp[],
   baseImage: HTMLImageElement | null,
   scale = 1,
   includeBase = true,
+  ground: 'transparent' | 'white' = 'transparent',
 ): string {
   const size = Math.round(CANVAS_SIZE * scale);
   const canvas = document.createElement('canvas');
@@ -224,8 +231,10 @@ export function exportPng(
   canvas.height = size;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas 2d unavailable');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, size, size);
+  if (ground === 'white') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+  }
   ctx.scale(scale, scale);
   if (baseImage && includeBase) ctx.drawImage(baseImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
   renderOps(ctx, ops);

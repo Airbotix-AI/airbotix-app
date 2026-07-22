@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-22 (feat: Art Studio canvas is TRANSPARENT — Photoshop-style, D-ISF-7)
+
+### Changed
+- **The canvas ground is now TRANSPARENT, like Photoshop** (owner: 不是去白底,本身就是
+  透明 — D-ISF-7, art-studio-canvas-and-intent-fix-prd v0.4; supersedes the v0.1 white-paper
+  ground). The bitmap holds ONLY what the kid made; a design-token checkerboard
+  (`hairline`/`canvas.pure` via `theme()`) renders in CSS underneath, so the eraser reveals
+  transparency and white ink stays visible. **Every saved export keeps its alpha**: My
+  Pictures snapshots, ✨ magic refs and the 🎮 game hand-off are native transparent PNGs —
+  no matting needed for hand-drawn art (the D-ISF-6 ✂️ toggle stays for OPAQUE AI takes,
+  whose model, gpt-image-2, still cannot output transparency — image-studio-prd v0.5).
+  👀 coach vision snapshots composite on white (`exportPng(scale, 'white')`) because
+  downstream rasterizers composite alpha unpredictably — display and storage stay
+  transparent.
+
 ## 2026-07-22 (fix: SpessaSynth worklet vs Tone's standardized-audio-context)
 
 ### Fixed

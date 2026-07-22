@@ -87,13 +87,19 @@ describe('exportPng / exportMask (fake 2D context)', () => {
 
   const baseImage = { width: 1024, height: 1024 } as HTMLImageElement;
 
-  it('paints white ground, draws the base when included, and replays the ops', () => {
+  it('exports on a TRANSPARENT ground by default (D-ISF-7 — Photoshop-style alpha)', () => {
     const url = exportPng([stroke], baseImage, 1, true);
     expect(url).toBe('data:image/png;base64,RkFLRQ==');
-    // white ground covers the full canvas before anything else
-    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 1024, 1024);
+    // NO ground fill — unpainted pixels keep their alpha
+    expect(ctx.fillRect).not.toHaveBeenCalled();
     expect(ctx.drawImage).toHaveBeenCalledWith(baseImage, 0, 0, 1024, 1024);
     expect(ctx.fill).toHaveBeenCalled(); // the stroke outline
+  });
+
+  it("ground='white' composites paper ONLY for model-bound snapshots", () => {
+    exportPng([], null, 1, true, 'white'); // no ops → fillStyle stays the ground's
+    expect(ctx.fillStyle).toBe('#ffffff');
+    expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 1024, 1024);
   });
 
   it('excludes the base when includeBase=false (Mission strokes-only magic, D-IS-22)', () => {
@@ -103,7 +109,7 @@ describe('exportPng / exportMask (fake 2D context)', () => {
   });
 
   it('scales the export surface via the scale parameter', () => {
-    exportPng([stroke], null, 0.5, true);
+    exportPng([stroke], null, 0.5, true, 'white');
     expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, 512, 512);
     expect(ctx.scale).toHaveBeenCalledWith(0.5, 0.5);
   });
