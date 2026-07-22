@@ -57,7 +57,9 @@ jobs:
             acoustic_grand_piano electric_piano_1 music_box drawbar_organ \
             acoustic_guitar_steel electric_guitar_clean overdriven_guitar \
             electric_bass_finger electric_bass_pick synth_bass_1 \
-            lead_2_sawtooth pad_2_warm choir_aahs voice_oohs
+            lead_2_sawtooth pad_2_warm choir_aahs voice_oohs \
+            violin tenor_sax trumpet cello tuba \
+            orchestral_harp marimba flute string_ensemble_1 accordion
           do
             echo "→ $name"
             curl -fsSL "$SOUNDFONT_UPSTREAM/MusyngKite/${name}-mp3.js" \

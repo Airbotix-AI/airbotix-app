@@ -522,6 +522,34 @@ describe('MusicStagePane — versions (AC-7)', () => {
     expect(playbackMock.previewStyle).not.toHaveBeenCalled();
   });
 
+  it('swaps the sound in place from the lane header (D-MS20)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // Guitar is track index 0 — its style label opens the in-lane picker.
+    fireEvent.click(screen.getByTestId('lane-style-0'));
+    fireEvent.click(screen.getByTestId('lane-style-0-violin'));
+    // Same 0⭐ contract as the deck row: audition, no generation request.
+    expect(playbackMock.previewStyle).toHaveBeenCalledWith('guitar', 'violin');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('lane-style-0')).toHaveTextContent('Violin');
+    expect(screen.queryByTestId('lane-style-menu-0')).not.toBeInTheDocument();
+  });
+
+  it('vocal lanes state their fixed choir timbre, never the slot style (D-MS18)', () => {
+    const withVocals: MusicScore = {
+      ...SCORE_V1,
+      tracks: [
+        { instrument: 'lead_vocals', notes: [{ time: 0, note: 'C5', duration: '4n' }] },
+        ...SCORE_V1.tracks,
+      ],
+    };
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(withVocals)]);
+    const vocalStyle = screen.getByTestId('lane-style-0');
+    expect(vocalStyle).toHaveTextContent('Choir');
+    // Static label — no in-lane picker for vocal tracks.
+    fireEvent.click(vocalStyle);
+    expect(screen.queryByTestId('lane-style-menu-0')).not.toBeInTheDocument();
+  });
+
   it('marks style = None as an off (dimmed) instrument on stage', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('stage-inst-drums'));

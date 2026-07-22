@@ -399,6 +399,14 @@ export function MusicStagePane({
     setTweaks((m) => ({ ...m, [instrument]: { ...m[instrument], ...patch } }));
   }, []);
 
+  /** 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5, D-MS20).
+   *  Shared by the deck style row and the lane in-place picker. */
+  const applyStyle = (slot: StageSlotId, styleId: string) => {
+    if (styles[slot] !== styleId) styleChangesRef.current += 1;
+    setStyles((s) => ({ ...s, [slot]: styleId }));
+    if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
+  };
+
   /** Lane ↓ (PRD §3-A): render ONE track client-side and download it. 0⭐,
    *  zero network — mute/solo are bypassed on purpose (it's a stem export). */
   const downloadTrack = async (trackIndex: number) => {
@@ -532,12 +540,7 @@ export function MusicStagePane({
       onSuggestion={generateFromCard}
       selectedSlot={selectedSlot}
       styles={styles}
-      onStyle={(slot, styleId) => {
-        if (styles[slot] !== styleId) styleChangesRef.current += 1;
-        setStyles((s) => ({ ...s, [slot]: styleId }));
-        // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
-        if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
-      }}
+      onStyle={applyStyle}
     />
   );
 
@@ -594,6 +597,7 @@ export function MusicStagePane({
       styles={styles}
       selectedSlot={selectedSlot}
       onSelectSlot={setSelectedSlot}
+      onStyle={applyStyle}
       silenced={silenced}
       tweaks={tweaks}
       onTweak={applyTweak}

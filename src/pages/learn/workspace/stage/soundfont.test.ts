@@ -90,19 +90,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('style → GM mapping completeness (PRD §5: 15 styles + None per slot)', () => {
-  it('has exactly 3 styles + None per slot, 15 styled entries total', () => {
+describe('style → GM mapping completeness (PRD §5 + D-MS20 instrument palettes)', () => {
+  it('has ≥3 styles + exactly one None per slot (25 styled entries total)', () => {
     const slots = Object.keys(INSTRUMENT_STYLES);
     expect(slots).toHaveLength(5);
     let styled = 0;
     for (const styles of Object.values(INSTRUMENT_STYLES)) {
-      expect(styles).toHaveLength(4);
+      expect(styles.length).toBeGreaterThanOrEqual(4);
       const none = styles.filter((s) => s.id === STYLE_NONE);
       expect(none).toHaveLength(1);
       expect(none[0].gmProgram).toBeNull();
       styled += styles.filter((s) => s.id !== STYLE_NONE).length;
     }
-    expect(styled).toBe(15);
+    // 15 original §5 styles + 10 D-MS20 palette instruments.
+    expect(styled).toBe(25);
   });
 
   it('maps every melodic style to a soundfont and every drum style to a machine', () => {

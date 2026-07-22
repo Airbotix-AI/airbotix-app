@@ -23,6 +23,7 @@ import {
 } from './scoreTypes';
 import { isDrumNote, noteToMidi, parseDurationBeats } from './scoreUtils';
 import {
+  INSTRUMENT_STYLES,
   MUSIC_GENERATION_COST_STARS,
   stageSlotFor,
   styleOf,
@@ -35,6 +36,17 @@ const DRUM_LANE_ORDER = ['kick', 'tom', 'snare', 'clap', 'hat', 'ride'];
 const MUTED_NOTE_FILL = '#C7C0D5'; // stone2 token — greyed-out note blocks
 const MUTED_NOTE_EDGE = '#9C95AB'; // steel token
 const LANE_NAME_MAX = 24;
+
+// Vocal tracks always sing via their fixed choir programs (voices.ts
+// VOCAL_GM_PROGRAMS, D-MS18) — their lane must say so, not echo the slot style.
+const VOCAL_TIMBRE_LABELS: Partial<Record<InstrumentKind, string>> = {
+  lead_vocals: '🎤 Choir',
+  backing_vocals: '🎙️ Oohs',
+};
+
+function isVocal(instrument: InstrumentKind): boolean {
+  return instrument in VOCAL_TIMBRE_LABELS;
+}
 
 /** Per-track actions on the lane `⋯` menu (track-editing PRD §3-A). */
 export type LaneAction = 'download' | 'edit' | 'reroll';
@@ -51,6 +63,7 @@ export function TrackLanes({
   styles,
   selectedSlot,
   onSelectSlot,
+  onStyle,
   silenced,
   tweaks,
   onTweak,
@@ -63,6 +76,8 @@ export function TrackLanes({
   styles: StageStyles;
   selectedSlot: StageSlotId | null;
   onSelectSlot: (slot: StageSlotId) => void;
+  /** In-place 0⭐ sound swap from the lane header (D-MS20). */
+  onStyle: (slot: StageSlotId, styleId: string) => void;
   silenced: ReadonlySet<string>;
   /** Edit-drawer state per instrument kind (name/octave/pan, PRD §3-A). */
   tweaks: StageTweaks;
@@ -76,6 +91,7 @@ export function TrackLanes({
 }) {
   const [menuFor, setMenuFor] = useState<number | null>(null);
   const [editFor, setEditFor] = useState<number | null>(null);
+  const [styleMenuFor, setStyleMenuFor] = useState<number | null>(null);
   // Light the currently-sounding notes only while the transport runs (PRD §4).
   const activeAtSec = playback.isPlaying ? playback.position : null;
 
@@ -106,13 +122,68 @@ export function TrackLanes({
                 data-testid={`lane-select-${idx}`}
               >
                 <span className="text-[16px]" aria-hidden="true">{meta.emoji}</span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[12px] font-bold text-ink" data-testid={`lane-name-${idx}`}>{laneName}</span>
-                  <span className="block truncate text-[10px] font-semibold text-slate2" data-testid={`lane-style-${idx}`}>
-                    {style && style.gmProgram !== null ? style.label : 'None'}
-                  </span>
-                </span>
+                <span className="block min-w-0 truncate text-[12px] font-bold text-ink" data-testid={`lane-name-${idx}`}>{laneName}</span>
               </button>
+              {isVocal(track.instrument) ? (
+                // Vocal tracks sing via their fixed choir programs (D-MS18) —
+                // show the truth instead of the borrowed slot style, no picker.
+                <span
+                  className="block truncate px-1 text-[10px] font-semibold text-slate2"
+                  data-testid={`lane-style-${idx}`}
+                >
+                  {VOCAL_TIMBRE_LABELS[track.instrument]}
+                </span>
+              ) : (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setStyleMenuFor(styleMenuFor === idx ? null : idx)}
+                    className="flex w-full items-center gap-1 rounded-md px-1 py-0.5 text-left text-[10px] font-semibold text-slate2 transition hover:bg-surface hover:text-ink"
+                    title={`Change the ${meta.label} sound (0⭐)`}
+                    data-testid={`lane-style-${idx}`}
+                  >
+                    <span className="truncate">
+                      {style && style.gmProgram !== null ? `${style.emoji} ${style.label}` : '🚫 None'}
+                    </span>
+                    <span aria-hidden="true" className="text-[8px]">▾</span>
+                  </button>
+                  {styleMenuFor === idx && (
+                    <div
+                      className={clsx(
+                        'absolute left-0 z-30 w-44 rounded-xl border border-hairline bg-canvas-pure p-1 shadow-pop',
+                        // Bottom lanes flip the menu upward so the scroll
+                        // container can't clip it.
+                        idx >= score.tracks.length - 2 ? 'bottom-full mb-1' : 'top-full mt-1',
+                      )}
+                      data-testid={`lane-style-menu-${idx}`}
+                    >
+                      {INSTRUMENT_STYLES[slot].map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            onStyle(slot, s.id);
+                            setStyleMenuFor(null);
+                          }}
+                          className={clsx(
+                            'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] font-bold transition',
+                            styles[slot] === s.id
+                              ? 'bg-wash-mint text-ink'
+                              : 'text-ink-soft hover:bg-surface',
+                          )}
+                          data-testid={`lane-style-${idx}-${s.id}`}
+                        >
+                          <span aria-hidden="true">{s.emoji}</span>
+                          {s.label}
+                        </button>
+                      ))}
+                      <div className="px-2 py-1 text-[10px] font-semibold text-slate2">
+                        Swap sounds 0⭐ · instant
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="mt-1 flex items-center gap-1">
                 <button
                   type="button"

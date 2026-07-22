@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-22 (feat: Music Stage — real-instrument palettes + in-lane sound picker)
+
+### Added
+- **每个乐队位扩成真实乐器面板（D-MS20，owner:"既然引擎支持，是否可以更换乐器"）。**
+  The SpessaSynth engine already carries the full GM bank, so each slot's style list
+  grows from 3 timbres to a kid-curated instrument palette: guitar slot adds 🎻 Violin /
+  🎷 Saxophone / 🎺 Trumpet; bass adds 🎼 Cello / 📯 Tuba; piano adds 🪄 Harp / 🪘 Marimba /
+  🪈 Flute; keys adds 🎻 Strings / 🪗 Accordion (10 new GM programs, all published to the
+  smplr fallback tier too). Swaps stay 0⭐ + 1-beat audition.
+- **In-lane sound picker.** The style name in each track-lane header is now a dropdown —
+  swap sounds right where kids look, without hunting for the stage band member + left-deck
+  row (owner twice could not find the old entry). Bottom lanes flip the menu upward so the
+  scroll container can't clip it. The stage-tap → deck-row path still works.
+
+### Fixed
+- **Vocal lanes tell the truth**: Lead/Backing Vocals lanes showed the borrowed slot style
+  ("Grand" / "Gritty Organ") while actually singing the D-MS18 choir programs — they now
+  display 🎤 Choir / 🎙️ Oohs as fixed labels with no picker.
+
 ## 2026-07-22 (feat: Art Studio canvas is TRANSPARENT — Photoshop-style, D-ISF-7)
 
 ### Changed

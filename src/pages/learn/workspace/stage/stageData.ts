@@ -66,17 +66,27 @@ export interface InstrumentStyle {
 
 const NONE_STYLE: InstrumentStyle = { id: STYLE_NONE, label: 'None', emoji: '🚫', gmProgram: null };
 
+// Each slot's palette is a kid-curated slice of the full GM bank the
+// SpessaSynth engine already carries (D-MS20 — "换乐器"): the first three rows
+// are the original §5 styles, the rest are REAL instruments that fit the
+// slot's musical role. Adding one costs a single row here + a
+// GM_PROGRAM_SOUNDFONTS entry (smplr fallback tier) — the engine needs nothing.
 export const INSTRUMENT_STYLES: Record<StageSlotId, InstrumentStyle[]> = {
   guitar: [
     { id: 'acoustic', label: 'Acoustic',        emoji: '🪵', gmProgram: 25 },
     { id: 'crunch',   label: 'Electric Crunch', emoji: '⚡', gmProgram: 29 },
     { id: 'funk',     label: 'Clean Funk',      emoji: '🕺', gmProgram: 27 },
+    { id: 'violin',   label: 'Violin',          emoji: '🎻', gmProgram: 41 },
+    { id: 'sax',      label: 'Saxophone',       emoji: '🎷', gmProgram: 67 },
+    { id: 'trumpet',  label: 'Trumpet',         emoji: '🎺', gmProgram: 57 },
     NONE_STYLE,
   ],
   bass: [
     { id: 'round',  label: 'Round & Warm', emoji: '🫧', gmProgram: 33 },
     { id: 'picked', label: 'Picked Rock',  emoji: '🎯', gmProgram: 34 },
     { id: 'sub',    label: 'Deep Sub',     emoji: '🌊', gmProgram: 39 },
+    { id: 'cello',  label: 'Cello',        emoji: '🎼', gmProgram: 43 },
+    { id: 'tuba',   label: 'Tuba',         emoji: '📯', gmProgram: 59 },
     NONE_STYLE,
   ],
   drums: [
@@ -89,12 +99,17 @@ export const INSTRUMENT_STYLES: Record<StageSlotId, InstrumentStyle[]> = {
     { id: 'grand',    label: 'Grand',     emoji: '🎩', gmProgram: 1 },
     { id: 'musicbox', label: 'Music Box', emoji: '🎠', gmProgram: 11 },
     { id: 'syntharp', label: 'Synth Arp', emoji: '✨', gmProgram: 82 },
+    { id: 'harp',     label: 'Harp',      emoji: '🪄', gmProgram: 47 },
+    { id: 'marimba',  label: 'Marimba',   emoji: '🪘', gmProgram: 13 },
+    { id: 'flute',    label: 'Flute',     emoji: '🪈', gmProgram: 74 },
     NONE_STYLE,
   ],
   keys: [
-    { id: 'organ', label: 'Gritty Organ', emoji: '🌶️', gmProgram: 17 },
-    { id: 'ep',    label: 'Dreamy EP',    emoji: '💭', gmProgram: 5 },
-    { id: 'pad',   label: 'Cloud Pad',    emoji: '☁️', gmProgram: 90 },
+    { id: 'organ',     label: 'Gritty Organ', emoji: '🌶️', gmProgram: 17 },
+    { id: 'ep',        label: 'Dreamy EP',    emoji: '💭', gmProgram: 5 },
+    { id: 'pad',       label: 'Cloud Pad',    emoji: '☁️', gmProgram: 90 },
+    { id: 'strings',   label: 'Strings',      emoji: '🎻', gmProgram: 49 },
+    { id: 'accordion', label: 'Accordion',    emoji: '🪗', gmProgram: 22 },
     NONE_STYLE,
   ],
 };
