@@ -19,6 +19,7 @@ import {
 import { ArtCanvas, type ArtCanvasHandle } from './ArtCanvas';
 import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
 import { fetchArtifactBlob, useArtifactBlobUrl } from './artifactBytes';
+import { removeWhiteBackground } from './matting';
 
 // The Art Studio, canvas-first (image-studio-prd.md v0.9, D-IS-11…19):
 // 孩子的手在前,AI 的魔法在后. Four zones — left tool rail / center canvas /
@@ -133,6 +134,9 @@ export function ArtStudioPage() {
   const [charName, setCharName] = useState('');
   const [charOpen, setCharOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
+  // 🎮 hand-off matting (D-ISF-6): ON by default — sprites want the white
+  // paper gone; the kid can keep it for a full-scene background.
+  const [gameTransparent, setGameTransparent] = useState(true);
 
   // takes + magic
   const [takes, setTakes] = useState<Take[]>([]);
@@ -480,7 +484,11 @@ export function ArtStudioPage() {
     setGameOpen(false);
     setError(null);
     try {
-      const blob = await fetchArtifactBlob(art);
+      let blob = await fetchArtifactBlob(art);
+      // Art pictures are opaque by design (white ground; parent PRD v0.5) — a
+      // game sprite wants the paper GONE. Default-on matting erases only the
+      // edge-connected white, so white inside the drawing survives (D-ISF-6).
+      if (gameTransparent) blob = await removeWhiteBackground(blob);
       const path = `assets/art/${(
         (art.metadata as { character?: string }).character ?? 'my-art'
       )
@@ -1182,6 +1190,15 @@ export function ArtStudioPage() {
         <div className="absolute inset-0 bg-black/30 flex items-end sm:items-center justify-center z-20">
           <div className="card-base w-full sm:w-[420px] m-3 p-4" data-testid="game-sheet">
             <span className="sticker-bubblegum">🎮 Which game gets this art?</span>
+            <label className="mt-2 flex items-center gap-2 text-[13px] text-ink">
+              <input
+                type="checkbox"
+                data-testid="game-transparent"
+                checked={gameTransparent}
+                onChange={(e) => setGameTransparent(e.target.checked)}
+              />
+              ✂️ Remove the white background (best for characters)
+            </label>
             {gameProjects.isLoading ? (
               <p className="lead-text mt-3">Loading…</p>
             ) : (gameProjects.data?.length ?? 0) === 0 ? (

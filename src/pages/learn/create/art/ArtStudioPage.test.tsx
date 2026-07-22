@@ -201,6 +201,12 @@ vi.mock('./strokeEngine', async (importOriginal) => {
   return { ...real, exportMask: () => 'data:image/png;base64,TUFTSw==' }; // "MASK"
 });
 
+// D-ISF-6 matting: the pure core has its own spec; here only the call is asserted.
+const removeWhiteBackgroundMock = vi.fn((blob: Blob) => Promise.resolve(blob));
+vi.mock('./matting', () => ({
+  removeWhiteBackground: (blob: Blob) => removeWhiteBackgroundMock(blob),
+}));
+
 import { ArtStudioPage } from './ArtStudioPage';
 
 function renderPage(state?: Record<string, unknown>) {
@@ -228,6 +234,7 @@ describe('ArtStudioPage (canvas-first)', () => {
   beforeEach(() => {
     apiCalls.length = 0;
     putCalls.length = 0;
+    removeWhiteBackgroundMock.mockClear();
     failNext.image = false;
     failNext.upload = false;
     localStorage.clear();
@@ -720,6 +727,20 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(files[0].uploaded).toBe(true);
       expect(files[0].path).toMatch(/^assets\/art\//);
       expect(save!.opts?.body?.expected_version).toBe(7);
+      // matting is ON by default (D-ISF-6) — the sprite goes over without paper
+      expect(removeWhiteBackgroundMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('🎮 unchecking the ✂️ toggle sends the picture as-is (full-scene background)', async () => {
+      await makeAMagicTake();
+      fireEvent.click(await screen.findByTestId('use-in-game'));
+      await screen.findByTestId('game-sheet');
+      const toggle = screen.getByTestId('game-transparent') as HTMLInputElement;
+      expect(toggle.checked).toBe(true); // default ON
+      fireEvent.click(toggle);
+      fireEvent.click(await screen.findByRole('button', { name: /Space Pong/ }));
+      expect(await screen.findByText(/Sent to .Space Pong/)).toBeInTheDocument();
+      expect(removeWhiteBackgroundMock).not.toHaveBeenCalled();
     });
   });
 

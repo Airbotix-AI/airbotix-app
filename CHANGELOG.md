@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-22 (feat: Art Studio → game hand-off loses the white paper)
+
+### Added
+- **✂️ Default-on background removal when sending art into a game** (owner: art 应该是
+  透明背景 — D-ISF-6, art-studio-canvas-and-intent-fix-prd v0.3). Art Studio pictures are
+  opaque BY DESIGN (white canvas ground; gpt-image-2 rejects transparency — image-studio-prd
+  v0.5), so "🎮 use in my game" shipped sprites with a white box around them. The game sheet
+  now has a "✂️ Remove the white background" toggle (default ON): on send, near-white pixels
+  CONNECTED TO THE EDGES are erased (`matting.ts` — pure BFS core, unit-tested), so a white
+  eye highlight inside a character survives while the paper goes transparent; unchecking
+  keeps the full scene for backgrounds. Client-side, 0★, PNG out. Pictures everywhere else
+  (takes, My Pictures, portal) stay opaque.
+
 ## 2026-07-22 (feat: Music Stage — SpessaSynth SF2 engine (Tier-0) + GeneralUser GS)
 
 ### Added
