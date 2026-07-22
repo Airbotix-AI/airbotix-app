@@ -9,6 +9,21 @@
 
 export type ProjectKind = 'creative' | 'code' | 'game' | 'blocks';
 
+export interface ParentStudioGuide {
+  /** Helps a parent decide whether this space matches their child right now. */
+  bestFor: string;
+  /** The concrete creation a parent can expect the child to show them. */
+  outcome: string;
+  /** The child journey, kept to three observable steps for a quick parent scan. */
+  steps: readonly [string, string, string];
+  /** Learning language a parent can recognise without knowing the product. */
+  skills: readonly string[];
+  /** Clear boundary between the child's work, AI help, free actions and Stars. */
+  aiAndStars: string;
+  /** A useful conversation starter after the child creates something. */
+  parentPrompt: string;
+}
+
 export interface CreateTool {
   id:
     | 'story-blocks'
@@ -27,6 +42,8 @@ export interface CreateTool {
   parentDesc: string;
   /** Where the child finds the studio after signing into Learn. */
   learnPath: string;
+  /** Expanded decision guide shown only on the parent surface. */
+  parentGuide?: ParentStudioGuide;
   color: 'bubblegum' | 'mint' | 'sky' | 'sunshine';
   /** Project-kind label shown on the tool chip. */
   typeTag: 'Code' | 'Blocks' | 'Creative';
@@ -60,6 +77,18 @@ export const CREATE_TOOLS: CreateTool[] = [
     discoveryLabel: 'Ages 5–8 · Free',
     parentDesc: 'A storybook your child programs with picture blocks — no typing needed.',
     learnPath: 'Learn home → Story Blocks',
+    parentGuide: {
+      bestFor: 'Ages 5–8 who enjoy stories and are not ready to type code.',
+      outcome: 'A playable animated story scene they can replay and explain.',
+      steps: [
+        'Choose a story chapter and meet the character who needs help.',
+        'Put colourful blocks in order to control what the character says and does.',
+        'Press Go, watch the result, then change one block and try again.',
+      ],
+      skills: ['Sequencing', 'Events', 'Cause and effect', 'Story logic'],
+      aiAndStars: 'There is no AI chat. Arranging blocks, playing and saving are free.',
+      parentPrompt: 'What did you change, and what happened differently?',
+    },
     color: 'mint',
     typeTag: 'Blocks',
     projectKind: 'blocks',
@@ -77,6 +106,20 @@ export const CREATE_TOOLS: CreateTool[] = [
     parentDesc:
       'Ideas become interactive creations with AI and real JavaScript to inspect and improve.',
     learnPath: 'Learn home → Creative Code Studio',
+    parentGuide: {
+      bestFor:
+        'Ages 8–14 with ideas for games or interactive projects, including coding beginners.',
+      outcome: 'A playable JavaScript creation they can test, change and keep improving.',
+      steps: [
+        'Describe an idea in their own words and choose what the first version should do.',
+        'Play the creation, inspect the real JavaScript and check whether the AI got it right.',
+        'Ask for one change at a time, test again and debug anything that breaks.',
+      ],
+      skills: ['AI judgement', 'JavaScript', 'Debugging', 'Creative ownership'],
+      aiAndStars:
+        'AI can build or change code, but your child makes the decisions and checks every result. AI actions show their Star cost before use; playing and manual code changes are free.',
+      parentPrompt: 'Show me one change you made and how it changed the creation.',
+    },
     color: 'sky',
     typeTag: 'Code',
     projectKind: 'game',
@@ -95,6 +138,20 @@ export const CREATE_TOOLS: CreateTool[] = [
     discoveryLabel: 'Draw + AI',
     parentDesc: 'Your child draws first, then uses AI to bring their own picture to life.',
     learnPath: 'Learn home → Art Studio',
+    parentGuide: {
+      bestFor:
+        'Children who like drawing and want AI as a helper, not a replacement for their idea.',
+      outcome: 'Their own drawing plus optional AI-assisted versions they can compare and refine.',
+      steps: [
+        'Start on the real canvas with brushes, colours and stickers.',
+        'Ask the Coach for feedback or a faint guide only when help is wanted.',
+        'Choose whether to bring the drawing to life, compare versions and keep improving it.',
+      ],
+      skills: ['Visual planning', 'Drawing', 'Creative direction', 'Comparing versions'],
+      aiAndStars:
+        'Drawing is free. AI is optional and only starts when your child presses a clearly priced Coach, guide or Bring it to life button.',
+      parentPrompt: 'Which parts did you make, and what did you ask AI to help with?',
+    },
     color: 'bubblegum',
     typeTag: 'Creative',
     projectKind: 'creative',
@@ -115,6 +172,20 @@ export const CREATE_TOOLS: CreateTool[] = [
     parentDesc:
       'Your child builds a song track by track, plays it back, and records their own mix.',
     learnPath: 'Learn home → Music Stage',
+    parentGuide: {
+      bestFor:
+        'Children who enjoy music, rhythm and mood, even if they have never learned an instrument.',
+      outcome: 'A playable multi-track song they can remix, compare and record.',
+      steps: [
+        'Describe a song idea and choose a musical genre.',
+        'Hear the first arrangement, then explore the instruments and track lanes on the stage.',
+        'Change the mood or sound, compare versions and record the mix they prefer.',
+      ],
+      skills: ['Musical structure', 'Mood and genre', 'Listening', 'Iteration'],
+      aiAndStars:
+        'Composing or re-generating music uses Stars and the cost is shown before the action. Playing, comparing and trying available instrument styles are free.',
+      parentPrompt: 'What did you change to make the song feel different?',
+    },
     color: 'mint',
     typeTag: 'Creative',
     projectKind: 'creative',
