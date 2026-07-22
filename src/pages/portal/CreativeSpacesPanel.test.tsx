@@ -21,6 +21,10 @@ describe('CreativeSpacesPanel', () => {
       {
         id: 'story-blocks',
         name: 'Story Blocks',
+        preview: '/media/parent-studios/story-blocks.webp',
+        previewAlt: 'Story Blocks studio showing an animated cat and butterfly',
+        previewCaption: 'arranges picture blocks',
+        demo: '/try/blocks',
         fit: 'Ages 5–8 who enjoy stories',
         outcome: 'A playable animated story scene',
         step: 'Put colourful blocks in order',
@@ -31,6 +35,10 @@ describe('CreativeSpacesPanel', () => {
       {
         id: 'creative-code',
         name: 'Creative Code Studio',
+        preview: '/media/parent-studios/creative-code-studio.webp',
+        previewAlt: 'Creative Code Studio showing an AI conversation',
+        previewCaption: 'game runs beside the conversation and real code',
+        demo: '/try/playground',
         fit: 'Ages 8–14 with ideas for games or interactive projects',
         outcome: 'A playable JavaScript creation',
         step: 'inspect the real JavaScript',
@@ -41,6 +49,10 @@ describe('CreativeSpacesPanel', () => {
       {
         id: 'art-studio',
         name: 'Art Studio',
+        preview: '/media/parent-studios/art-studio.webp',
+        previewAlt: 'Art Studio showing drawing tools',
+        previewCaption: 'draws on the canvas first',
+        demo: undefined,
         fit: 'AI as a helper, not a replacement',
         outcome: 'Their own drawing plus optional AI-assisted versions',
         step: 'Start on the real canvas',
@@ -51,6 +63,10 @@ describe('CreativeSpacesPanel', () => {
       {
         id: 'music-stage',
         name: 'Music Stage',
+        preview: '/media/parent-studios/music-stage.webp',
+        previewAlt: 'Music Stage showing a live stage',
+        previewCaption: 'inspect each instrument lane',
+        demo: undefined,
         fit: 'even if they have never learned an instrument',
         outcome: 'A playable multi-track song',
         step: 'explore the instruments and track lanes',
@@ -59,12 +75,39 @@ describe('CreativeSpacesPanel', () => {
         prompt: 'What did you change to make the song feel different',
       },
     ];
-    for (const { id, name, fit, outcome, step, skill, ai, prompt } of expected) {
+    for (const {
+      id,
+      name,
+      preview,
+      previewAlt,
+      previewCaption,
+      demo,
+      fit,
+      outcome,
+      step,
+      skill,
+      ai,
+      prompt,
+    } of expected) {
       const card = screen.getByTestId(`parent-studio-${id}`);
       expect(card).toHaveTextContent(name);
       expect(card).toHaveTextContent('Learn home →');
       expect(card).toHaveTextContent(fit);
       expect(card).toHaveTextContent(outcome);
+      expect(within(card).getByRole('img', { name: new RegExp(previewAlt) })).toHaveAttribute(
+        'src',
+        preview,
+      );
+      expect(card).toHaveTextContent(previewCaption);
+
+      if (demo) {
+        expect(
+          within(card).getByRole('link', { name: new RegExp(`Try ${name} yourself`) }),
+        ).toHaveAttribute('href', demo);
+        expect(card).toHaveTextContent('No sign-in · no Stars · nothing saved');
+      } else {
+        expect(card).toHaveTextContent("Creating here needs your child's Learn sign-in");
+      }
 
       const guideButton = within(card).getByRole('button', { name: 'See the parent guide' });
       expect(guideButton).toHaveAttribute('aria-expanded', 'false');
@@ -79,7 +122,8 @@ describe('CreativeSpacesPanel', () => {
     }
 
     expect(screen.getAllByTestId('parent-guide-content')).toHaveLength(4);
-    expect(screen.getByText(/inside your child's Learn account/i)).toBeInTheDocument();
+    expect(screen.getAllByText('Real studio preview')).toHaveLength(4);
+    expect(screen.getByText(/See the real workspace before you choose/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open My Family →' })).toHaveAttribute(
       'href',
       '/portal/family',
