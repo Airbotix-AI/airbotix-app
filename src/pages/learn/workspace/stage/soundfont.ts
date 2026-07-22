@@ -80,15 +80,25 @@ export const GM_PROGRAM_SOUNDFONTS: Record<number, string> = {
   1: 'acoustic_grand_piano', // 🎹 Grand
   5: 'electric_piano_1', // 🎛️ Dreamy EP
   11: 'music_box', // 🎹 Music Box
+  13: 'marimba', // 🎹 Marimba
   17: 'drawbar_organ', // 🎛️ Gritty Organ
+  22: 'accordion', // 🎛️ Accordion
   25: 'acoustic_guitar_steel', // 🎸 Acoustic
   27: 'electric_guitar_clean', // 🎸 Clean Funk
   29: 'overdriven_guitar', // 🎸 Electric Crunch
   33: 'electric_bass_finger', // 🎻 Round & Warm
   34: 'electric_bass_pick', // 🎻 Picked Rock
   39: 'synth_bass_1', // 🎻 Deep Sub
+  41: 'violin', // 🎸-slot Violin
+  43: 'cello', // 🎻-slot Cello
+  47: 'orchestral_harp', // 🎹 Harp
+  49: 'string_ensemble_1', // 🎛️ Strings
   53: 'choir_aahs', // 🎤 Lead Vocals (sampled choir — vocal tracks, not a slot style)
   54: 'voice_oohs', // 🎙️ Backing Vocals (sampled oohs — vocal tracks, not a slot style)
+  57: 'trumpet', // 🎸-slot Trumpet
+  59: 'tuba', // 🎻-slot Tuba
+  67: 'tenor_sax', // 🎸-slot Saxophone
+  74: 'flute', // 🎹 Flute
   82: 'lead_2_sawtooth', // 🎹 Synth Arp
   90: 'pad_2_warm', // 🎛️ Cloud Pad
 };
