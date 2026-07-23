@@ -2,7 +2,9 @@ import type { BlocksTemplateId } from './blocksApi';
 import {
   PLAYABLE_STORY_MISSION_COUNT,
   storyMissionProjectTitle,
+  storyJourneyUnlockedLessonIds,
   TINY_STAR_VILLAGE_CHAPTERS,
+  type StoryJourneyProgress,
   type StoryJourneyChapter,
 } from './storyJourneyCatalog';
 import { CharacterVisual } from './CharacterVisual';
@@ -32,19 +34,26 @@ function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {
 
 interface StoryJourneyMapProps {
   busy: string | null;
+  progress: StoryJourneyProgress;
   onStart: (template: BlocksTemplateId, title: string) => void;
+  onResume: (projectId: string) => void;
 }
 
 function ChapterCard({
   chapter,
   busy,
   onStart,
+  onResume,
+  progress,
 }: {
   chapter: StoryJourneyChapter;
   busy: string | null;
   onStart: StoryJourneyMapProps['onStart'];
+  onResume: StoryJourneyMapProps['onResume'];
+  progress: StoryJourneyProgress;
 }) {
   const isPlayable = chapter.missions.length > 0;
+  const unlockedLessonIds = storyJourneyUnlockedLessonIds(progress);
 
   return (
     <article
@@ -69,23 +78,38 @@ function ChapterCard({
 
       {isPlayable ? (
         <div className="tsv-mission-list" aria-label={`Chapter ${chapter.number} scenes`}>
-          {chapter.missions.map((mission, index) => (
-            <button
-              key={mission.template}
-              type="button"
-              className="tsv-mission-button"
-              data-testid={`blocks-starter-${mission.template}`}
-              disabled={busy !== null}
-              onClick={() => onStart(mission.template, storyMissionProjectTitle(mission))}
-            >
-              <span className="tsv-mission-number">{index + 1}</span>
-              <span className="tsv-mission-name">
-                <small>Step {index + 1} of {chapter.missions.length} · {mission.action}</small>
-                {mission.title}
-              </span>
-              <span className="tsv-mission-arrow" aria-hidden="true">→</span>
-            </button>
-          ))}
+          {chapter.missions.map((mission, index) => {
+            const state = progress[mission.lessonId];
+            const locked = !unlockedLessonIds.has(mission.lessonId);
+            return (
+              <button
+                key={mission.template}
+                type="button"
+                className="tsv-mission-button"
+                data-testid={`blocks-starter-${mission.template}`}
+                disabled={busy !== null || locked}
+                aria-label={`${mission.title}${locked ? ' locked' : state?.completed ? ' completed' : ''}`}
+                onClick={() =>
+                  state?.projectId
+                    ? onResume(state.projectId)
+                    : onStart(mission.template, storyMissionProjectTitle(mission))
+                }
+              >
+                <span className="tsv-mission-number">
+                  {state?.completed ? '✓' : locked ? '🔒' : index + 1}
+                </span>
+                <span className="tsv-mission-name">
+                  <small>
+                    Step {index + 1} of {chapter.missions.length} · {mission.action}
+                  </small>
+                  {mission.title}
+                </span>
+                <span className="tsv-mission-arrow" aria-hidden="true">
+                  →
+                </span>
+              </button>
+            );
+          })}
           {chapter.id === 'a2' && (
             <div className="tsv-next-scene">
               <span aria-hidden="true">✨</span>
@@ -100,7 +124,7 @@ function ChapterCard({
   );
 }
 
-export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
+export function StoryJourneyMap({ busy, progress, onStart, onResume }: StoryJourneyMapProps) {
   return (
     <section className="tsv-journey" aria-labelledby="tiny-star-village-title">
       <div className="tsv-library-heading">
@@ -185,7 +209,14 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
 
       <div className="tsv-chapter-grid">
         {TINY_STAR_VILLAGE_CHAPTERS.map((chapter) => (
-          <ChapterCard key={chapter.id} chapter={chapter} busy={busy} onStart={onStart} />
+          <ChapterCard
+            key={chapter.id}
+            chapter={chapter}
+            busy={busy}
+            progress={progress}
+            onStart={onStart}
+            onResume={onResume}
+          />
         ))}
       </div>
     </section>

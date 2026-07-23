@@ -10,12 +10,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { useMe } from '@/auth/useAuth';
 import {
   createBlocksProject,
+  loadBlocksProject,
   listBlocksProjects,
   type BlocksProjectMeta,
   type BlocksTemplateId,
 } from './blocksApi';
 import { BLOCKS_STARTERS } from './blocksStarters';
 import { StoryJourneyMap } from './StoryJourneyMap';
+import { storyJourneyMissionStates } from './storyJourneyCatalog';
 import './blocks.css';
 
 export function BlocksHubPage() {
@@ -30,6 +32,27 @@ export function BlocksHubPage() {
     queryKey: ['kid', kidId, 'blocks-projects'],
     queryFn: () => listBlocksProjects(kidId!),
     enabled: !!kidId,
+  });
+  const storyProgress = useQuery({
+    queryKey: ['kid', kidId, 'story-journey-progress', projects.data],
+    queryFn: async () => {
+      const loaded = await Promise.all(
+        (projects.data ?? []).map(async (project) => {
+          try {
+            const snapshot = await loadBlocksProject(project.id);
+            return {
+              id: project.id,
+              lessonId: snapshot.project.lessonId,
+              completedLessonIds: Object.keys(snapshot.storyProgress?.completed ?? {}),
+            };
+          } catch {
+            return { id: project.id, completedLessonIds: [] };
+          }
+        }),
+      );
+      return storyJourneyMissionStates(loaded);
+    },
+    enabled: !!kidId && projects.isSuccess,
   });
 
   const start = async (template: BlocksTemplateId, title: string) => {
@@ -90,7 +113,12 @@ export function BlocksHubPage() {
         </section>
       )}
 
-      <StoryJourneyMap busy={busy} onStart={(template, title) => void start(template, title)} />
+      <StoryJourneyMap
+        busy={busy}
+        progress={storyProgress.data ?? {}}
+        onStart={(template, title) => void start(template, title)}
+        onResume={(projectId) => nav(`/learn/blocks/${projectId}`)}
+      />
 
       {freeStoryStarter && (
         <section className="my-12 rounded-[30px] border-2 border-dashed border-brand-mint/45 bg-canvas-pure p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">

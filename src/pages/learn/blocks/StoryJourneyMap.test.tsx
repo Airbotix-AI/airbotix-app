@@ -12,11 +12,11 @@ afterEach(cleanup);
 
 describe('StoryJourneyMap', () => {
   it('shows the complete six-chapter story while distinguishing playable scenes from previews', () => {
-    render(<StoryJourneyMap busy={null} onStart={vi.fn()} />);
+    render(<StoryJourneyMap busy={null} progress={{}} onStart={vi.fn()} onResume={vi.fn()} />);
 
     expect(screen.getByText('Bring back the morning light')).toBeInTheDocument();
     expect(screen.getAllByTestId(/story-chapter-/)).toHaveLength(6);
-    expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(21);
+    expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(24);
     expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a6')).toHaveTextContent('Ring in the morning light');
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
@@ -51,16 +51,50 @@ describe('StoryJourneyMap', () => {
 
   it('starts a scene with a meaningful project title', () => {
     const onStart = vi.fn();
-    render(<StoryJourneyMap busy={null} onStart={onStart} />);
+    render(
+      <StoryJourneyMap
+        busy={null}
+        progress={{ 'tsv-s1-a1-h': { completed: true } }}
+        onStart={onStart}
+        onResume={vi.fn()}
+      />,
+    );
 
-    fireEvent.click(screen.getByTestId('blocks-starter-blocks_tsv_a2_b'));
+    fireEvent.click(screen.getByTestId('blocks-starter-blocks_tsv_a1_b'));
 
-    expect(onStart).toHaveBeenCalledWith('blocks_tsv_a2_b', 'Tiny Star Village · Choose an arrow');
+    expect(onStart).toHaveBeenCalledWith(
+      'blocks_tsv_a1_b',
+      'Tiny Star Village · Wake up first',
+    );
   });
 
   it('keeps the story count derived from the playable mission catalogue', () => {
     const derived = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
-    expect(PLAYABLE_STORY_MISSION_COUNT).toBe(21);
+    expect(PLAYABLE_STORY_MISSION_COUNT).toBe(24);
     expect(derived).toHaveLength(PLAYABLE_STORY_MISSION_COUNT);
+  });
+
+  it('locks future scenes, unlocks the next scene, and resumes existing work', () => {
+    const onResume = vi.fn();
+    render(
+      <StoryJourneyMap
+        busy={null}
+        progress={{
+          'tsv-s1-a1-h': { completed: true, projectId: 'project-a1-h' },
+          'tsv-s1-a1-b': { completed: false, projectId: 'project-a1-b' },
+        }}
+        onStart={vi.fn()}
+        onResume={onResume}
+      />,
+    );
+
+    expect(screen.getByTestId('blocks-starter-blocks_tsv_a1_h')).toHaveAccessibleName(
+      /completed/,
+    );
+    expect(screen.getByTestId('blocks-starter-blocks_tsv_a1_b')).toBeEnabled();
+    expect(screen.getByTestId('blocks-starter-blocks_tsv_a1_d')).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('blocks-starter-blocks_tsv_a1_b'));
+    expect(onResume).toHaveBeenCalledWith('project-a1-b');
   });
 });

@@ -1,54 +1,51 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  nextStoryMissionForLesson,
-  storyJourneyPositionForLesson,
-  TINY_STAR_VILLAGE_CHAPTERS,
+  storyJourneyMissionStates,
+  storyJourneyUnlockedLessonIds,
 } from './storyJourneyCatalog';
 
-describe('storyJourneyCatalog progression', () => {
-  it('keeps every playable template and lesson id unique', () => {
-    const missions = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
+describe('Tiny Star Village season manifest', () => {
+  it('aggregates saved completion across separate scene projects', () => {
+    const progress = storyJourneyMissionStates([
+      {
+        id: 'newer-incomplete-a1-h-project',
+        lessonId: 'tsv-s1-a1-h',
+        completedLessonIds: [],
+      },
+      {
+        id: 'a1-h-project',
+        lessonId: 'tsv-s1-a1-h',
+        completedLessonIds: ['tsv-s1-a1-h'],
+      },
+      {
+        id: 'a1-b-project',
+        lessonId: 'tsv-s1-a1-b',
+        completedLessonIds: [],
+      },
+      { id: 'other-project', lessonId: 'other', completedLessonIds: ['other'] },
+    ]);
 
-    expect(new Set(missions.map((mission) => mission.template)).size).toBe(missions.length);
-    expect(new Set(missions.map((mission) => mission.lessonId)).size).toBe(missions.length);
+    expect(progress).toEqual({
+      'tsv-s1-a1-h': { completed: true, projectId: 'a1-h-project' },
+      'tsv-s1-a1-b': { completed: false, projectId: 'a1-b-project' },
+    });
+    expect([...storyJourneyUnlockedLessonIds(progress)]).toEqual([
+      'tsv-s1-a1-h',
+      'tsv-s1-a1-b',
+    ]);
   });
 
-  it('moves from the debug step to the personal story step in chapter 1', () => {
-    const next = nextStoryMissionForLesson('tsv-s1-a1-d');
+  it('keeps later scenes locked when a completion gap exists', () => {
+    const progress = storyJourneyMissionStates([
+      {
+        id: 'a1-b-project',
+        lessonId: 'tsv-s1-a1-b',
+        completedLessonIds: ['tsv-s1-a1-b'],
+      },
+    ]);
 
-    expect(next?.chapter.number).toBe(1);
-    expect(next?.mission.lessonId).toBe('tsv-s1-a1-s');
-    expect(next?.sceneNumber).toBe(4);
-  });
-
-  it('crosses the chapter boundary after the chapter 1 personal story', () => {
-    const next = nextStoryMissionForLesson('tsv-s1-a1-s');
-
-    expect(next?.chapter.number).toBe(2);
-    expect(next?.mission.lessonId).toBe('tsv-s1-a2-h');
-    expect(next?.sceneNumber).toBe(1);
-  });
-
-  it('returns no next mission after the last production-ready scene', () => {
-    expect(nextStoryMissionForLesson('tsv-s1-a2-d')?.mission.lessonId).toBe('tsv-s1-a2-s');
-    expect(nextStoryMissionForLesson('tsv-s1-a2-s')?.mission.lessonId).toBe('tsv-s1-a3-h');
-    expect(nextStoryMissionForLesson('tsv-s1-a3-h')?.mission.lessonId).toBe('tsv-s1-a3-b');
-    expect(nextStoryMissionForLesson('tsv-s1-a3-b')?.mission.lessonId).toBe('tsv-s1-a3-d');
-    expect(nextStoryMissionForLesson('tsv-s1-a3-d')?.mission.lessonId).toBe('tsv-s1-a3-s');
-    expect(nextStoryMissionForLesson('tsv-s1-a3-s')?.mission.lessonId).toBe('tsv-s1-a4-h');
-    expect(nextStoryMissionForLesson('tsv-s1-a4-h')?.mission.lessonId).toBe('tsv-s1-a4-b');
-    expect(nextStoryMissionForLesson('tsv-s1-a4-b')?.mission.lessonId).toBe('tsv-s1-a4-d');
-    expect(nextStoryMissionForLesson('tsv-s1-a4-d')?.mission.lessonId).toBe('tsv-s1-a4-s');
-    expect(nextStoryMissionForLesson('tsv-s1-a4-s')?.mission.lessonId).toBe('tsv-s1-a5-h');
-    expect(nextStoryMissionForLesson('tsv-s1-a5-h')?.mission.lessonId).toBe('tsv-s1-a5-b');
-    expect(nextStoryMissionForLesson('tsv-s1-a5-b')?.mission.lessonId).toBe('tsv-s1-a5-d');
-    expect(nextStoryMissionForLesson('tsv-s1-a5-d')?.mission.lessonId).toBe('tsv-s1-a5-s');
-    expect(nextStoryMissionForLesson('tsv-s1-a5-s')?.mission.lessonId).toBe('tsv-s1-a6-h');
-    expect(nextStoryMissionForLesson('tsv-s1-a6-h')?.mission.lessonId).toBe('tsv-s1-a6-b');
-    expect(nextStoryMissionForLesson('tsv-s1-a6-b')?.mission.lessonId).toBe('tsv-s1-a6-d');
-    expect(nextStoryMissionForLesson('tsv-s1-a6-d')?.mission.lessonId).toBe('tsv-s1-a6-s');
-    expect(nextStoryMissionForLesson('tsv-s1-a6-s')).toBeUndefined();
-    expect(storyJourneyPositionForLesson('unknown')).toBeUndefined();
+    expect(storyJourneyUnlockedLessonIds(progress).has('tsv-s1-a1-b')).toBe(false);
+    expect(storyJourneyUnlockedLessonIds(progress).has('tsv-s1-a1-d')).toBe(false);
   });
 });

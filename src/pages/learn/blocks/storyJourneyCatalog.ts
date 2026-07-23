@@ -8,6 +8,13 @@ export interface StoryJourneyMission {
   action: string;
 }
 
+export interface StoryJourneyMissionState {
+  completed: boolean;
+  projectId?: string;
+}
+
+export type StoryJourneyProgress = Record<string, StoryJourneyMissionState>;
+
 export interface StoryJourneyChapter {
   id: string;
   number: number;
@@ -116,6 +123,49 @@ export const PLAYABLE_STORY_MISSION_COUNT = TINY_STAR_VILLAGE_CHAPTERS.reduce(
   (total, chapter) => total + chapter.missions.length,
   0,
 );
+
+export const TINY_STAR_VILLAGE_MISSIONS = TINY_STAR_VILLAGE_CHAPTERS.flatMap(
+  (chapter) => chapter.missions,
+);
+
+export function storyJourneyMissionStates(
+  projects: Array<{
+    id: string;
+    lessonId?: string;
+    completedLessonIds: string[];
+  }>,
+): StoryJourneyProgress {
+  const states: StoryJourneyProgress = {};
+  for (const project of projects) {
+    if (
+      !project.lessonId ||
+      !TINY_STAR_VILLAGE_MISSIONS.some((mission) => mission.lessonId === project.lessonId)
+    ) {
+      continue;
+    }
+    const current = states[project.lessonId];
+    const projectCompleted = project.completedLessonIds.includes(project.lessonId);
+    states[project.lessonId] = {
+      projectId:
+        projectCompleted && !current?.completed ? project.id : current?.projectId ?? project.id,
+      completed: Boolean(current?.completed || projectCompleted),
+    };
+  }
+  return states;
+}
+
+export function storyJourneyUnlockedLessonIds(progress: StoryJourneyProgress): Set<string> {
+  const unlocked = new Set<string>();
+  let previousScenesComplete = true;
+  for (const [index, mission] of TINY_STAR_VILLAGE_MISSIONS.entries()) {
+    if (index === 0 || previousScenesComplete) {
+      unlocked.add(mission.lessonId);
+    }
+    previousScenesComplete =
+      previousScenesComplete && Boolean(progress[mission.lessonId]?.completed);
+  }
+  return unlocked;
+}
 
 export interface StoryJourneyPosition {
   chapter: StoryJourneyChapter;
