@@ -110,4 +110,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 16',
     desc: 'Choose an apple, gift, or star delivery stop, match the cart number to its distance, then run and save your own arrival.',
   },
+  {
+    id: 'blocks_tsv_a5_h',
+    emoji: '💬',
+    title: 'Tiny Star Village · Mission 17',
+    desc: 'Run two unchanged greetings together, notice that both friends speak at once, then choose who should take the first turn.',
+  },
 ];

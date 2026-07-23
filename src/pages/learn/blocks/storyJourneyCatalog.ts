@@ -88,7 +88,9 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'All the friends say good morning at once. Help each voice have its moment.',
     skill: 'Use Wait to make turns',
     art: 'greeting',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a5_h', lessonId: 'tsv-s1-a5-h', number: 17, title: 'Who is speaking?', action: 'Listen' },
+    ],
   },
   {
     id: 'a6',

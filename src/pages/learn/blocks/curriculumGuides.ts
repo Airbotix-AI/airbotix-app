@@ -911,6 +911,27 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '🎯', label: 'Choose stop', order: 'First' }, { icon: '1️⃣2️⃣3️⃣', label: 'Match number', order: 'Build' }, { icon: '▶️', label: 'Deliver', order: 'Run' }], logicWhy: 'A stop one, two, or three spaces right needs the same movement number.',
     completionTitle: 'My delivery arrived! 🚙✨', completion: 'You chose an endpoint, matched its movement value, saved, and ran a visible delivery.', completionSteps: [{ icon: '🎯', label: 'My stop', order: 'Choose' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '🍽️', label: 'Delivered', order: 'Run' }], completionWhy: 'The server-saved Right distance matched the chosen stop and the real runner arrived there.', next: 'Breakfast is ready. In A5-H, notice why three friends speaking together is hard to understand.',
   },
+  'tsv-s1-a5-h': {
+    mode: 'observe-only', lessonId: 'tsv-s1-a5-h', celebrate: false,
+    hero: { name: 'Lumilo', role: 'First Morning Greeter', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 17', title: 'Who is speaking?',
+    storyPages: [
+      { emoji: '🚙🍽️', title: 'Breakfast has arrived', body: 'Lumilo and Tuan Tuan gather beside breakfast. Both are excited to welcome the morning.', speaker: 'Lumilo', dialogue: 'Let us say good morning!', scene: 1 },
+      { emoji: '💬💬', title: 'Two voices start together', body: 'Both unchanged scripts begin at Start and say their greeting straight away.', speaker: 'Tuan Tuan', dialogue: 'Listen for whether there is a first voice.', scene: 3, blocks: ['🚩 Start → Say', '🚩 Start → Say'] },
+      { emoji: '⭐➡️🐻', title: 'A clear greeting needs turns', body: 'After you hear both voices together, choose Lumilo to speak first. The next mission will make Tuan Tuan wait.', speaker: 'Lumilo', dialogue: 'First me, then Tuan Tuan.', scene: 5 },
+    ],
+    partnerLine: 'Two Start scripts can run together, so their Say blocks happen at the same time.',
+    mission: 'Press Go without changing either script. Listen to both greetings, then choose who should speak first.',
+    question: 'Both friends spoke together. Who should take the first turn?', choices: [{ id: 'lumilo', label: 'Lumilo first', correct: true }, { id: 'tuan-tuan', label: 'Tuan Tuan first', correct: false }],
+    retry: 'Press Go first and notice that both speech bubbles appear together.', successTitle: 'You found the speaking problem!', success: 'Both scripts started together. Lumilo can speak first, then Tuan Tuan can wait.',
+    fixTitle: 'Story Hook complete', fixPrompt: 'Keep both programs unchanged. In A5-B you will add a wait for the second turn.', workspaceIntro: 'Do not edit the blocks. Run both Start → Say → End scripts and listen.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Press Go and listen to both friends.', watch: 'Both Say blocks started together.', sayFirst: 'The voices overlap because neither friend waits.', sayThen: 'The voices overlap because neither friend waits.', hopFirst: 'Keep both scripts unchanged.', hopThen: 'Keep both scripts unchanged.', retry: 'Run first, then choose Lumilo for the first turn.', fix: 'Lumilo first; Tuan Tuan can wait in the next mission.', test: 'Run the unchanged greetings.', saving: 'Saving your observation with both scripts unchanged…', complete: 'You noticed the overlap and chose a clear first speaker.' },
+    logicSteps: [{ icon: '▶️', label: 'Run together', order: 'Listen' }, { icon: '💬💬', label: 'Hear overlap', order: 'Notice' }, { icon: '⭐', label: 'Lumilo first', order: 'Choose' }],
+    logicWhy: 'Both scripts begin with Start and immediately Say, so neither voice waits for the other.',
+    completionTitle: 'Story Hook complete · Take turns!', completion: 'You ran the real concurrent scripts, heard both greetings together, and chose Lumilo to speak first.',
+    completionSteps: [{ icon: '💬💬', label: 'Together', order: 'Hear' }, { icon: '⭐', label: 'Lumilo', order: 'First' }, { icon: '🐻', label: 'Tuan Tuan', order: 'Then' }],
+    completionWhy: 'The exact unchanged two-character programs both reached Say from Start during the same run.', next: 'Next, add Wait so Tuan Tuan speaks after Lumilo.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

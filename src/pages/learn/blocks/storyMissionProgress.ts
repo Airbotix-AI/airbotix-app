@@ -186,6 +186,15 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: { id: 'breakfast-table', name: 'Star Breakfast', gx: 7, gy: 10, size: 0.9 },
   },
+  'tsv-s1-a5-h': {
+    pageId: 'tsv-a5-h-page',
+    background: 'meadow',
+    characterId: 'little-light',
+    scriptId: 'little-light-flag',
+    asset: LUMILO_ASSET,
+    start: { gx: 7, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -295,6 +304,20 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget?.scripts.length === 0 && blocks.length === 3 &&
       blocks[0]?.op === 'when_flag' && blocks[1]?.op === 'move_right' &&
       blocks[1]?.n === distance && blocks[2]?.op === 'end';
+  }
+  if (lessonId === 'tsv-s1-a5-h') {
+    const tuanTuan = page?.characters.find((candidate) => candidate.id === 'tuan-tuan');
+    const tuanScript = tuanTuan?.scripts.find((candidate) => candidate.id === 'tuan-tuan-flag');
+    const tuanBlocks = tuanScript?.blocks ?? [];
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      page.characters.length === 2 && character?.asset === mission.asset && startMatches &&
+      blocks.length === 3 && mission.target.every((target, index) =>
+        missionBlockMatches(blocks[index], target, mission)) &&
+      tuanTuan?.asset === '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' &&
+      tuanTuan.start.gx === 12 && tuanTuan.start.gy === 10 &&
+      tuanBlocks.length === 3 && tuanBlocks[0]?.op === 'when_flag' &&
+      tuanBlocks[1]?.op === 'say' && tuanBlocks[1]?.text === 'Me too!' &&
+      tuanBlocks[2]?.op === 'end';
   }
   return (
     project.lessonId === lessonId &&

@@ -389,6 +389,36 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-s')).toBe(false);
   });
 
+  it('accepts A5-H only with both unchanged simultaneous greeting scripts', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a5-h';
+    project.pages[0] = {
+      id: 'tsv-a5-h-page',
+      background: 'meadow',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 7, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'little-light-flag', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }] }],
+        },
+        {
+          id: 'tuan-tuan',
+          name: 'Tuan Tuan',
+          emoji: '🐻',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          start: { gx: 12, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Me too!' }, { op: 'end' }] }],
+        },
+      ],
+    };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-h')).toBe(true);
+    project.pages[0].characters[1].scripts[0].blocks.splice(1, 0, { op: 'wait', n: 5 });
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-h')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);
