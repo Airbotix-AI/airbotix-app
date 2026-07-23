@@ -134,4 +134,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 20',
     desc: 'Choose a clear three-friend greeting order, change real actions and waits, then save and run your own morning welcome.',
   },
+  {
+    id: 'blocks_tsv_a6_h',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 21',
+    desc: 'Run the unchanged walk-and-ring story, notice the bell rings without a jump, then identify Hop as the missing middle step.',
+  },
 ];

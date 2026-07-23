@@ -202,6 +202,16 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     start: { gx: 7, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
   },
+  'tsv-s1-a6-h': {
+    pageId: 'tsv-a6-h-page',
+    background: 'sunset',
+    characterId: 'little-light',
+    scriptId: 'little-light-bell-hook',
+    asset: LUMILO_ASSET,
+    start: { gx: 5, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }],
+    sceneTarget: { id: 'bell-tower', name: 'Bell Tower', gx: 8, gy: 7, size: 0.9 },
+  },
   'tsv-s1-a5-b': {
     pageId: 'tsv-a5-b-page',
     background: 'meadow',
@@ -383,6 +393,14 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       tuanBlocks.length === 3 && tuanBlocks[0]?.op === 'when_flag' &&
       tuanBlocks[1]?.op === 'say' && tuanBlocks[1]?.text === 'Me too!' &&
       tuanBlocks[2]?.op === 'end';
+  }
+  if (lessonId === 'tsv-s1-a6-h') {
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      page.characters.length === 2 && character?.asset === mission.asset && startMatches &&
+      sceneTarget?.name === 'Bell Tower' && sceneTarget.start.gx === 8 &&
+      sceneTarget.start.gy === 7 && sceneTarget.start.size === 0.9 &&
+      sceneTarget.scripts.length === 0 && blocks.length === mission.target.length &&
+      mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission));
   }
   if (lessonId === 'tsv-s1-a5-s') {
     const expected = [

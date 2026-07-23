@@ -68,6 +68,13 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.desc).toContain('save and run');
   });
 
+  it('offers A6-H as an observe-only missing-step hook', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a6_h');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 21');
+    expect(starter?.desc).toContain('bell rings without a jump');
+    expect(starter?.desc).toContain('Hop');
+  });
+
   it('offers A2-H as an observe-only direction story hook', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a2_h');
     expect(starter?.title).toBe('Tiny Star Village · Mission 5');

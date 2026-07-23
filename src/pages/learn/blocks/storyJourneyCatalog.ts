@@ -103,7 +103,9 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'Walk, hop, then ring the Bell Tower to bring sunrise back to the whole village.',
     skill: 'Build and fix a three-step story',
     art: 'tower',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a6_h', lessonId: 'tsv-s1-a6-h', number: 21, title: 'Which step is missing?', action: 'Notice' },
+    ],
   },
 ];
 

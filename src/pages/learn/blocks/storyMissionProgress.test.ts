@@ -419,6 +419,35 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a5-h')).toBe(false);
   });
 
+  it('accepts A6-H only with the unchanged missing-Hop Bell Tower sequence', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a6-h';
+    project.pages[0] = {
+      id: 'tsv-a6-h-page',
+      background: 'sunset',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 5, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'little-light-bell-hook', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }],
+        },
+        {
+          id: 'bell-tower',
+          name: 'Bell Tower',
+          emoji: '⭐',
+          start: { gx: 8, gy: 7, size: 0.9, rot: 0 },
+          scripts: [],
+        },
+      ],
+    };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-h')).toBe(true);
+    project.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-h')).toBe(false);
+  });
+
   it('accepts A5-B only when Tuan Tuan adds Wait 5 before Say', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a5-b';
