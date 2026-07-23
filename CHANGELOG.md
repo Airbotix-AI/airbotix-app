@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-23 (fix: restore Parent Portal mobile navigation)
+
+### Fixed
+- **Parent Portal navigation is reachable again on phones.** The existing bottom tabs and
+  overflow sheet are now mounted by the Portal layout, share the live approvals count with
+  the desktop drawer, reserve safe-area space above the fixed tabs, and use compact mobile
+  page padding without changing the desktop layout.
+
 ## 2026-07-22 (fix: Music Stage brand logo shows at every width)
 
 ### Fixed

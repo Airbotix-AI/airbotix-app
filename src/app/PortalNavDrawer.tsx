@@ -1,11 +1,7 @@
 import clsx from 'clsx';
 import { NavLink } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useLogout, useMe } from '@/auth/useAuth';
-import { api } from '@/lib/api';
-import { useWsEvent } from '@/lib/useWsEvent';
-import { listFamilyShareLinks, type FamilyShareLink } from '@/pages/learn/playground/sharingApi';
 
 // Matches parent-portal-prd.md §2 nav drawer.
 const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
@@ -27,40 +23,9 @@ const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
 
 const APPROVALS_PATH = '/portal/approvals';
 
-interface ApprovalLite {
-  status: string;
-}
-
-export function PortalNavDrawer() {
+export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
   const me = useMe();
   const logout = useLogout();
-  const qc = useQueryClient();
-  const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
-
-  // Pending-approval badge (§2 / §4.5). Shares the ['approvals', familyId] cache
-  // with ApprovalsPage, and live-updates via the same WS events.
-  const approvals = useQuery<ApprovalLite[]>({
-    queryKey: ['approvals', familyId],
-    queryFn: () => api<ApprovalLite[]>(`/families/${familyId}/approvals`),
-    enabled: !!familyId,
-  });
-  // Pending game share-link requests count toward the Approvals badge too (J8) —
-  // only `pending` (active links aren't waiting on the parent).
-  const shareLinks = useQuery<FamilyShareLink[]>({
-    queryKey: ['share-requests', familyId],
-    queryFn: () => listFamilyShareLinks(familyId!),
-    enabled: !!familyId,
-  });
-  const pendingCount =
-    (approvals.data?.filter((a) => a.status === 'pending').length ?? 0) +
-    (shareLinks.data?.filter((s) => s.status === 'pending').length ?? 0);
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ['approvals', familyId] });
-    qc.invalidateQueries({ queryKey: ['share-requests', familyId] });
-  };
-  useWsEvent('approval.new', invalidate, [familyId]);
-  useWsEvent('approval.resolved', invalidate, [familyId]);
 
   return (
     <nav className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 md:flex md:flex-col">
