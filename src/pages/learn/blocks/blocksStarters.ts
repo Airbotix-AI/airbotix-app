@@ -116,4 +116,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 17',
     desc: 'Run two unchanged greetings together, notice that both friends speak at once, then choose who should take the first turn.',
   },
+  {
+    id: 'blocks_tsv_a5_b',
+    emoji: '⏱️',
+    title: 'Tiny Star Village · Mission 18',
+    desc: 'Add Wait 5 to Tuan Tuan’s open turn, save, predict Lumilo first, then run the two real greeting scripts.',
+  },
 ];

@@ -20,6 +20,13 @@ interface StoryMissionProgramContract {
     gy: number;
     size: number;
   };
+  secondary?: {
+    characterId: string;
+    scriptId: string;
+    asset: string;
+    target: Block[];
+    start: { gx: number; gy: number; size: number; rot: number };
+  };
 }
 
 export const TINY_STAR_GREETING_CHOICES = [
@@ -195,6 +202,22 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     start: { gx: 7, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
   },
+  'tsv-s1-a5-b': {
+    pageId: 'tsv-a5-b-page',
+    background: 'meadow',
+    characterId: 'little-light',
+    scriptId: 'little-light-flag',
+    asset: LUMILO_ASSET,
+    start: { gx: 7, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
+    secondary: {
+      characterId: 'tuan-tuan',
+      scriptId: 'tuan-tuan-flag',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      start: { gx: 12, gy: 10, size: 1, rot: 0 },
+      target: [{ op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Me too!' }, { op: 'end' }],
+    },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -229,6 +252,23 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       character.start.gy === mission.start.gy &&
       character.start.size === mission.start.size &&
       character.start.rot === mission.start.rot);
+  const secondaryCharacter = mission.secondary
+    ? page?.characters.find((candidate) => candidate.id === mission.secondary?.characterId)
+    : undefined;
+  const secondaryScript = secondaryCharacter?.scripts.find(
+    (candidate) => candidate.id === mission.secondary?.scriptId,
+  );
+  const secondaryMatches =
+    !mission.secondary ||
+    (secondaryCharacter?.asset === mission.secondary.asset &&
+      secondaryCharacter.start.gx === mission.secondary.start.gx &&
+      secondaryCharacter.start.gy === mission.secondary.start.gy &&
+      secondaryCharacter.start.size === mission.secondary.start.size &&
+      secondaryCharacter.start.rot === mission.secondary.start.rot &&
+      secondaryScript?.blocks.length === mission.secondary.target.length &&
+      mission.secondary.target.every((target, index) =>
+        blockMatches(secondaryScript?.blocks[index], target),
+      ));
   const targetMatches =
     !mission.sceneTarget ||
     (sceneTarget?.name === mission.sceneTarget.name &&
@@ -324,6 +364,8 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     page?.background === mission.background &&
     character?.asset === mission.asset &&
     startMatches &&
+    secondaryMatches &&
+    (!mission.secondary || page?.characters.length === 2) &&
     targetMatches &&
     blocks.length === mission.target.length &&
     mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))

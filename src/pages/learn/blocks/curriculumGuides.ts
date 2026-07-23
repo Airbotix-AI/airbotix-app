@@ -932,6 +932,27 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '💬💬', label: 'Together', order: 'Hear' }, { icon: '⭐', label: 'Lumilo', order: 'First' }, { icon: '🐻', label: 'Tuan Tuan', order: 'Then' }],
     completionWhy: 'The exact unchanged two-character programs both reached Say from Start during the same run.', next: 'Next, add Wait so Tuan Tuan speaks after Lumilo.',
   },
+  'tsv-s1-a5-b': {
+    mode: 'complete', lessonId: 'tsv-s1-a5-b', celebrate: false,
+    hero: { name: 'Tuan Tuan', role: 'Second Morning Greeter', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 18', title: 'Wait for your turn',
+    storyPages: [
+      { emoji: '⭐💬🐻', title: 'Lumilo takes the first turn', body: 'Lumilo is ready to say good morning first. Tuan Tuan wants to answer without covering Lumilo’s words.', speaker: 'Tuan Tuan', dialogue: 'I can wait, then answer!', scene: 1 },
+      { emoji: '🚩⏱️💬', title: 'Make a space between voices', body: 'Tuan Tuan’s Start and Say have an open space. Add Wait 5 there so the second greeting begins later.', speaker: 'Lumilo', dialogue: 'My hello, then yours.', scene: 3, blocks: ['🚩 Start → Say → End', '🚩 Start → Wait 5 → Say → End'] },
+      { emoji: '▶️⭐➡️🐻', title: 'Predict, save, and listen', body: 'Predict Lumilo first. Save the real programs, press Go, and watch Tuan Tuan answer after the wait.', speaker: 'Tuan Tuan', dialogue: 'Now both greetings can be heard.', scene: 5 },
+    ],
+    partnerLine: 'Wait pauses only Tuan Tuan’s script, so Lumilo’s greeting begins first.',
+    mission: 'Add exactly Wait 5 between Tuan Tuan’s Start and Say, wait for Saved, predict Lumilo first, then press Go.',
+    question: 'After Wait 5 is added, who speaks first?', choices: [{ id: 'lumilo', label: 'Lumilo first', correct: true }, { id: 'tuan-tuan', label: 'Tuan Tuan first', correct: false }],
+    retry: 'Follow Tuan Tuan’s blocks from Start: Wait must come before Say.', successTitle: 'The greetings take turns!', success: 'Lumilo speaks first and Tuan Tuan answers after Wait 5.',
+    fixTitle: 'Build the second turn', fixPrompt: 'Keep Lumilo unchanged. Add only Wait 5 before Tuan Tuan’s Say.', workspaceIntro: 'Open Tuan Tuan’s script and place Wait 5 in the gap before Say.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Find Tuan Tuan’s Start and Say.', watch: 'Listen for Lumilo before Tuan Tuan.', sayFirst: 'Lumilo says good morning first.', sayThen: 'Tuan Tuan waits, then answers.', hopFirst: 'Keep Lumilo unchanged.', hopThen: 'Add Wait 5 only to Tuan Tuan.', retry: 'Wait belongs before Tuan Tuan’s Say.', fix: 'Use Start → Wait 5 → Say → End.', test: 'Saved? Predict Lumilo, then press Go.', saving: 'Saving the two speaking turns…', complete: 'Both friends greeted in a clear order.' },
+    logicSteps: [{ icon: '⭐', label: 'Lumilo speaks', order: 'First' }, { icon: '⏱️', label: 'Wait 5', order: 'Pause' }, { icon: '🐻', label: 'Tuan Tuan answers', order: 'Then' }],
+    logicWhy: 'Both scripts still start together, but Wait delays only Tuan Tuan’s Say.',
+    completionTitle: 'Logic Build complete · Clear turns!', completion: 'You added Wait 5 to the second character, predicted the order, saved, and ran both real scripts.',
+    completionSteps: [{ icon: '🧩', label: 'Wait 5', order: 'Build' }, { icon: '💾', label: 'Two scripts', order: 'Save' }, { icon: '▶️', label: 'Lumilo first', order: 'Run' }],
+    completionWhy: 'Lumilo kept Start → Say → End while Tuan Tuan used Start → Wait 5 → Say → End.', next: 'Next, repair a greeting that waits too long in A5-D.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {
