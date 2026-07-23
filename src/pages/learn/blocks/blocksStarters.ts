@@ -152,4 +152,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 23',
     desc: 'Run the bell-first bug, then move only Pop after the walk and Hop, save, predict, and rerun the whole chain.',
   },
+  {
+    id: 'blocks_tsv_a6_s',
+    emoji: '🌅',
+    title: 'Tiny Star Village · Mission 24',
+    desc: 'Choose the real bell ringer and ending, save, predict walk–hop–ring, then run and retell the complete morning.',
+  },
 ];

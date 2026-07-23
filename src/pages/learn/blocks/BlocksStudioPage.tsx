@@ -248,6 +248,7 @@ export function BlocksStudioPage({
   const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
   const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
+  const isA6PersonalShip = storyMission?.lessonId === 'tsv-s1-a6-s';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -1555,6 +1556,26 @@ export function BlocksStudioPage({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {isA6PersonalShip && (
+        <div className="bsx-home-picker" data-testid="a6-s-ringer-picker">
+          <div className="bsx-home-picker-title"><span aria-hidden>🔔</span><div><strong>Choose our bell ringer</strong><small>This changes the saved performer</small></div></div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose our bell ringer">
+            {[
+              ['Lumilo', '⭐', '/story-blocks/tiny-star-village/characters/little-light/resting.svg'],
+              ['Tuan Tuan', '🐻', '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg'],
+              ['Dot Dot', '🐱', '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg'],
+            ].map(([name, emoji, asset]) => (
+              <button key={name} type="button" data-testid={`a6-s-ringer-${name.toLowerCase().replaceAll(' ', '-')}`}
+                className={`bsx-home-choice${selectedChar.asset === asset ? ' selected' : ''}`}
+                aria-pressed={selectedChar.asset === asset}
+                onClick={() => useBlocksStore.getState().setCharacterIdentity('morning-ringer', name, emoji, asset)}>
+                <img src={asset} alt="" className="bsx-character-asset-thumb" /><strong>{name}</strong>
+              </button>
+            ))}
           </div>
         </div>
       )}

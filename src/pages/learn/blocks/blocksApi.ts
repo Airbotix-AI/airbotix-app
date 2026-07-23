@@ -121,7 +121,8 @@ export type BlocksTemplateId =
   | 'blocks_tsv_a5_s'
   | 'blocks_tsv_a6_h'
   | 'blocks_tsv_a6_b'
-  | 'blocks_tsv_a6_d';
+  | 'blocks_tsv_a6_d'
+  | 'blocks_tsv_a6_s';
 
 export interface BlocksProjectMeta {
   id: string;

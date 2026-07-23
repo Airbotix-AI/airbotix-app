@@ -232,6 +232,15 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' }],
     sceneTarget: { id: 'bell-tower', name: 'Bell Tower', gx: 8, gy: 7, size: 0.9 },
   },
+  'tsv-s1-a6-s': {
+    pageId: 'tsv-a6-s-page',
+    background: 'sunset',
+    characterId: 'morning-ringer',
+    scriptId: 'morning-ringer-flag',
+    asset: LUMILO_ASSET,
+    start: { gx: 5, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'hop', n: 1 }, { op: 'end' }],
+  },
   'tsv-s1-a5-b': {
     pageId: 'tsv-a5-b-page',
     background: 'meadow',
@@ -429,6 +438,29 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget.start.gy === 7 && sceneTarget.start.size === 0.9 &&
       sceneTarget.scripts.length === 0 && blocks.length === mission.target.length &&
       mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission));
+  }
+  if (lessonId === 'tsv-s1-a6-s') {
+    const allowedAssets = [
+      LUMILO_ASSET,
+      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    ];
+    const ending = blocks[4];
+    const allowedEnding =
+      (ending?.op === 'hop' && ending.n === 1) ||
+      (ending?.op === 'grow' && ending.n === 1) ||
+      (ending?.op === 'say' &&
+        ['Daylight!', 'Good morning!', 'We did it!'].includes(ending.text ?? ''));
+    const bell = page?.characters.find((candidate) => candidate.id === 'bell-tower');
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      page.characters.length === 4 && character?.name !== 'Choose our ringer' &&
+      allowedAssets.includes(character?.asset ?? '') && startMatches &&
+      bell?.name === 'Bell Tower' && bell.start.gx === 8 && bell.start.gy === 7 &&
+      bell.start.size === 0.9 && bell.scripts.length === 0 &&
+      blocks.length === 6 && blocks[0]?.op === 'when_flag' &&
+      blocks[1]?.op === 'move_right' && blocks[1]?.n === 3 &&
+      blocks[2]?.op === 'hop' && blocks[2]?.n === 1 &&
+      blocks[3]?.op === 'pop' && allowedEnding && blocks[5]?.op === 'end';
   }
   if (lessonId === 'tsv-s1-a5-s') {
     const expected = [

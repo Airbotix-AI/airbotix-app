@@ -499,6 +499,35 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a6-d')).toBe(false);
   });
 
+  it('accepts A6-S only after a real ringer and allowed ending are saved', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a6-s';
+    project.pages[0] = {
+      id: 'tsv-a6-s-page',
+      background: 'sunset',
+      characters: [
+        {
+          id: 'morning-ringer', name: 'Choose our ringer', emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 5, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'morning-ringer-flag', blocks: [
+            { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 },
+            { op: 'pop' }, { op: 'say', text: 'Choose our ending' }, { op: 'end' },
+          ] }],
+        },
+        { id: 'morning-friend-left', name: 'Tuan Tuan', emoji: '🐻', start: { gx: 2, gy: 10, size: 0.75, rot: 0 }, scripts: [] },
+        { id: 'morning-friend-right', name: 'Dot Dot', emoji: '🐱', start: { gx: 13, gy: 10, size: 0.75, rot: 0 }, scripts: [] },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '🔔', start: { gx: 8, gy: 7, size: 0.9, rot: 0 }, scripts: [] },
+      ],
+    };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-s')).toBe(false);
+    project.pages[0].characters[0].name = 'Lumilo';
+    project.pages[0].characters[0].scripts[0].blocks[4] = { op: 'hop', n: 1 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-s')).toBe(true);
+    project.pages[0].characters[0].scripts[0].blocks[2] = { op: 'hop', n: 2 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-s')).toBe(false);
+  });
+
   it('accepts A5-B only when Tuan Tuan adds Wait 5 before Say', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a5-b';

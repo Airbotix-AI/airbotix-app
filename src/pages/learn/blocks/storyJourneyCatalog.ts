@@ -107,6 +107,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
       { template: 'blocks_tsv_a6_h', lessonId: 'tsv-s1-a6-h', number: 21, title: 'Which step is missing?', action: 'Notice' },
       { template: 'blocks_tsv_a6_b', lessonId: 'tsv-s1-a6-b', number: 22, title: 'Add the missing Hop', action: 'Build' },
       { template: 'blocks_tsv_a6_d', lessonId: 'tsv-s1-a6-d', number: 23, title: 'The bell rang first', action: 'Fix' },
+      { template: 'blocks_tsv_a6_s', lessonId: 'tsv-s1-a6-s', number: 24, title: 'My daylight ending', action: 'Finish' },
     ],
   },
 ];
