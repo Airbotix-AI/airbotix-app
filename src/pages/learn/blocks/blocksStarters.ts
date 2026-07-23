@@ -140,4 +140,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 21',
     desc: 'Run the unchanged walk-and-ring story, notice the bell rings without a jump, then identify Hop as the missing middle step.',
   },
+  {
+    id: 'blocks_tsv_a6_b',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 22',
+    desc: 'Add Hop between the walk and bell sound, save the complete route, predict the order, then run it.',
+  },
 ];

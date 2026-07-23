@@ -105,6 +105,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     art: 'tower',
     missions: [
       { template: 'blocks_tsv_a6_h', lessonId: 'tsv-s1-a6-h', number: 21, title: 'Which step is missing?', action: 'Notice' },
+      { template: 'blocks_tsv_a6_b', lessonId: 'tsv-s1-a6-b', number: 22, title: 'Add the missing Hop', action: 'Build' },
     ],
   },
 ];
