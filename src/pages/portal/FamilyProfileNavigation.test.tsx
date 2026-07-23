@@ -127,29 +127,26 @@ describe('family profile navigation', () => {
     expect(await screen.findByText('Kid home')).toBeInTheDocument();
   });
 
-  it('offers edit profile directly from each kid card in My Family', async () => {
+  it('opens each kid growth page from their My Family card', async () => {
     wireApi();
     renderFamilyList();
 
     expect(await screen.findByText('Mia')).toBeInTheDocument();
-    const editProfile = screen.getByRole('link', { name: "Edit Mia's profile" });
-    expect(editProfile).toHaveAttribute('href', '/portal/family/kid-1/settings');
-    expect(editProfile).toHaveClass('btn-pill-primary');
-    expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Mia.*See growth/ })).toHaveAttribute(
       'href',
       '/portal/family/kid-1',
     );
   });
 
-  it('organises settings into plain-language profile, access and PIN sections', async () => {
+  it('organises settings into profile, access, PIN and removal controls', async () => {
     wireApi();
     renderRoute('/portal/family/kid-1/settings', <FamilyDetailPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Manage Mia' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Basic details' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Access & limits' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Set a new kid PIN' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save profile changes' })).toBeInTheDocument();
-    expect(screen.getByText('Need to remove this kid profile?')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
+    expect(screen.getByText('Edit profile')).toBeInTheDocument();
+    expect(screen.getByLabelText('Daily Stars cap (optional)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reset PIN' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete this kid' })).toBeInTheDocument();
   });
 });
