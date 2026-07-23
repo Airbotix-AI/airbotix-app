@@ -473,6 +473,32 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a6-b')).toBe(false);
   });
 
+  it('accepts A6-D only after Pop moves behind the walk and Hop', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a6-d';
+    project.pages[0] = {
+      id: 'tsv-a6-d-page',
+      background: 'sunset',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 5, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'little-light-bell-debug', blocks: [{ op: 'when_flag' }, { op: 'pop' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'end' }] }],
+        },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.9, rot: 0 }, scripts: [] },
+      ],
+    };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-d')).toBe(false);
+    project.pages[0].characters[0].scripts[0].blocks.splice(1, 1);
+    project.pages[0].characters[0].scripts[0].blocks.splice(3, 0, { op: 'pop' });
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-d')).toBe(true);
+    project.pages[0].characters[0].scripts[0].blocks[2] = { op: 'hop', n: 2 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a6-d')).toBe(false);
+  });
+
   it('accepts A5-B only when Tuan Tuan adds Wait 5 before Say', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a5-b';

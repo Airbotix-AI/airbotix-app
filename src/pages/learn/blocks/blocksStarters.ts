@@ -146,4 +146,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 22',
     desc: 'Add Hop between the walk and bell sound, save the complete route, predict the order, then run it.',
   },
+  {
+    id: 'blocks_tsv_a6_d',
+    emoji: '🛠️',
+    title: 'Tiny Star Village · Mission 23',
+    desc: 'Run the bell-first bug, then move only Pop after the walk and Hop, save, predict, and rerun the whole chain.',
+  },
 ];
