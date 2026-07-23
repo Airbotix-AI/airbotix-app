@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-23 (fix: restore Parent Portal mobile navigation)
+
+### Fixed
+- **Parent Portal navigation is reachable again on phones.** The existing bottom tabs and
+  overflow sheet are now mounted by the Portal layout, share the live approvals count with
+  the desktop drawer, reserve safe-area space above the fixed tabs, and use compact mobile
+  page padding without changing the desktop layout.
+- **Parent-to-kid handoff is reachable again from the Growth page.** A parent can open the
+  selected child's Learn session without re-entering a family code or PIN, while the separate
+  adult session remains available when they return to Portal. The profile edit action is also
+  restored beside the Growth heading.
+
 ## 2026-07-22 (fix: Music Stage brand logo shows at every width)
 
 ### Fixed

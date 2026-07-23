@@ -127,6 +127,22 @@ export async function kidLogin(
   return res;
 }
 
+// A signed-in parent can open one of their own children's Learn sessions
+// without re-entering the family code, nickname or PIN. The backend keeps the
+// adult and kid refresh cookies separate; only the kid access token changes.
+export function useParentKidLogin() {
+  return async (kidId: string): Promise<KidLoginResponse> => {
+    const res = await api<KidLoginResponse>(`/auth/parent/kids/${kidId}/login`, {
+      method: 'POST',
+      principal: 'user',
+    });
+    useAuthStore.getState().setToken('kid', res.access_token);
+    useAuthStore.getState().setBootstrapped(true);
+    setTimeout(() => getSocket('kid'), 0);
+    return res;
+  };
+}
+
 // ── Kid one-shot class-code login ───────────────────────────────────────────
 
 export async function classCodeLogin(
