@@ -122,4 +122,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 18',
     desc: 'Add Wait 5 to Tuan Tuan’s open turn, save, predict Lumilo first, then run the two real greeting scripts.',
   },
+  {
+    id: 'blocks_tsv_a5_d',
+    emoji: '🛠️',
+    title: 'Tiny Star Village · Mission 19',
+    desc: 'Run Tuan Tuan’s Wait 20 bug, choose a shorter pause, then change only Wait 20 to Wait 5 and rerun.',
+  },
 ];

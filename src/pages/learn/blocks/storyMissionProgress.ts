@@ -218,6 +218,22 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       target: [{ op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Me too!' }, { op: 'end' }],
     },
   },
+  'tsv-s1-a5-d': {
+    pageId: 'tsv-a5-d-page',
+    background: 'meadow',
+    characterId: 'little-light',
+    scriptId: 'little-light-flag',
+    asset: LUMILO_ASSET,
+    start: { gx: 7, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
+    secondary: {
+      characterId: 'tuan-tuan',
+      scriptId: 'tuan-tuan-flag',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      start: { gx: 12, gy: 10, size: 1, rot: 0 },
+      target: [{ op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Me too!' }, { op: 'end' }],
+    },
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {

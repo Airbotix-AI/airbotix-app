@@ -953,6 +953,27 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '🧩', label: 'Wait 5', order: 'Build' }, { icon: '💾', label: 'Two scripts', order: 'Save' }, { icon: '▶️', label: 'Lumilo first', order: 'Run' }],
     completionWhy: 'Lumilo kept Start → Say → End while Tuan Tuan used Start → Wait 5 → Say → End.', next: 'Next, repair a greeting that waits too long in A5-D.',
   },
+  'tsv-s1-a5-d': {
+    mode: 'manual-fix', lessonId: 'tsv-s1-a5-d', celebrate: false,
+    hero: { name: 'Tuan Tuan', role: 'Greeting Rhythm Debugger', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 19', title: 'The pause is too long',
+    storyPages: [
+      { emoji: '⭐💬', title: 'Lumilo says good morning', body: 'Lumilo’s greeting is clear, but Tuan Tuan’s answer does not come for a long time.', speaker: 'Lumilo', dialogue: 'Did Tuan Tuan hear me?', scene: 1 },
+      { emoji: '⏱️⏱️🐻', title: 'Wait 20 stretches the silence', body: 'Tuan Tuan’s script waits 20 before Say. Run it first and listen to the empty space.', speaker: 'Tuan Tuan', dialogue: 'My answer is getting lost!', scene: 3, blocks: ['⭐ Start → Say → End', '🐻 Start → Wait 20 → Say → End'] },
+      { emoji: '🛠️⏱️💬', title: 'Keep the turn, shorten the pause', body: 'Change only Wait 20 to Wait 5. Save and rerun so both greetings are separate but still feel connected.', speaker: 'Lumilo', dialogue: 'A short wait makes room without breaking our greeting.', scene: 5 },
+    ],
+    partnerLine: 'Wait 20 preserves the order but makes the response feel disconnected.',
+    mission: 'Run the Wait 20 bug, choose a shorter pause, then change only its number to 5, save, and rerun.',
+    question: 'Tuan Tuan answered much too late. What should change?', choices: [{ id: 'shorter', label: 'Use a shorter wait', correct: true }, { id: 'remove', label: 'Remove the wait', correct: false }],
+    retry: 'Keep a wait so the voices do not overlap; shorten only its number.', successTitle: 'You found the timing bug!', success: 'Wait 20 is too long. Wait 5 keeps a clear, connected turn.',
+    fixTitle: 'Repair the greeting rhythm', fixPrompt: 'Keep every block and change only Tuan Tuan’s Wait number from 20 to 5.', workspaceIntro: 'Run the long pause first. Then edit only Wait 20 → Wait 5.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Press Go before editing and listen to the long silence.', watch: 'Tuan Tuan answers much too late.', sayFirst: 'Lumilo speaks first.', sayThen: 'Tuan Tuan should answer after a short wait.', hopFirst: 'Keep both scripts and their order.', hopThen: 'Change only Wait 20 to Wait 5.', retry: 'Do not remove Wait; shorten its number.', fix: 'Tap Wait 20 and set it to 5.', test: 'Saved? Press Go and listen again.', saving: 'Saving the repaired greeting rhythm…', complete: 'The two greetings are separate and connected.' },
+    logicSteps: [{ icon: '▶️', label: 'Hear Wait 20', order: 'Run' }, { icon: '🛠️', label: 'Change to 5', order: 'Fix' }, { icon: '💬', label: 'Hear both turns', order: 'Rerun' }],
+    logicWhy: 'A short wait separates the voices; a very long wait makes the reply feel unrelated.',
+    completionTitle: 'Debug complete · Better timing!', completion: 'You observed the long-pause bug, changed only Wait 20 to Wait 5, saved, and reran.',
+    completionSteps: [{ icon: '⏱️', label: 'Wait 20', order: 'Observe' }, { icon: '5️⃣', label: 'Wait 5', order: 'Repair' }, { icon: '▶️', label: 'Clear turns', order: 'Verify' }],
+    completionWhy: 'The saved programs keep Lumilo first and shorten only Tuan Tuan’s pause.', next: 'Next, choose and save your own multi-character greeting order in A5-S.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

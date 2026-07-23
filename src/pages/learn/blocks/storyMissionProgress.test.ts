@@ -444,6 +444,31 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a5-b')).toBe(false);
   });
 
+  it('accepts A5-D only after Tuan Tuan changes Wait 20 to Wait 5', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a5-d';
+    project.pages[0].id = 'tsv-a5-d-page';
+    project.pages[0].background = 'meadow';
+    project.pages[0].characters[0].id = 'little-light';
+    project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+    project.pages[0].characters[0].start = { gx: 7, gy: 10, size: 1, rot: 0 };
+    project.pages[0].characters[0].scripts[0].id = 'little-light-flag';
+    project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }];
+    project.pages[0].characters.push({
+      id: 'tuan-tuan',
+      name: 'Tuan Tuan',
+      emoji: '🐻',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      start: { gx: 12, gy: 10, size: 1, rot: 0 },
+      scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 20 }, { op: 'say', text: 'Me too!' }, { op: 'end' }] }],
+    });
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-d')).toBe(false);
+    project.pages[0].characters[1].scripts[0].blocks[1] = { op: 'wait', n: 5 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-d')).toBe(true);
+    project.pages[0].characters[1].scripts[0].blocks.splice(1, 1);
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-d')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

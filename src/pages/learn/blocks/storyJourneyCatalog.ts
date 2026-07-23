@@ -91,6 +91,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     missions: [
       { template: 'blocks_tsv_a5_h', lessonId: 'tsv-s1-a5-h', number: 17, title: 'Who is speaking?', action: 'Listen' },
       { template: 'blocks_tsv_a5_b', lessonId: 'tsv-s1-a5-b', number: 18, title: 'Wait for your turn', action: 'Build' },
+      { template: 'blocks_tsv_a5_d', lessonId: 'tsv-s1-a5-d', number: 19, title: 'Fix the long pause', action: 'Fix' },
     ],
   },
   {
