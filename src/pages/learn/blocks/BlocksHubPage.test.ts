@@ -61,6 +61,13 @@ describe('BlocksHubPage curriculum starter copy', () => {
     expect(starter?.desc).toContain('run and save');
   });
 
+  it('offers A5-S as a saved three-character personal greeting', () => {
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a5_s');
+    expect(starter?.title).toBe('Tiny Star Village · Mission 20');
+    expect(starter?.desc).toContain('three-friend greeting order');
+    expect(starter?.desc).toContain('save and run');
+  });
+
   it('offers A2-H as an observe-only direction story hook', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a2_h');
     expect(starter?.title).toBe('Tiny Star Village · Mission 5');

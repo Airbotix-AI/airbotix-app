@@ -234,6 +234,15 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       target: [{ op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Me too!' }, { op: 'end' }],
     },
   },
+  'tsv-s1-a5-s': {
+    pageId: 'tsv-a5-s-page',
+    background: 'meadow',
+    characterId: 'little-light',
+    scriptId: 'little-light-flag',
+    asset: LUMILO_ASSET,
+    start: { gx: 7, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'say', text: 'Good morning!' }, { op: 'end' }],
+  },
 };
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
@@ -374,6 +383,26 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       tuanBlocks.length === 3 && tuanBlocks[0]?.op === 'when_flag' &&
       tuanBlocks[1]?.op === 'say' && tuanBlocks[1]?.text === 'Me too!' &&
       tuanBlocks[2]?.op === 'end';
+  }
+  if (lessonId === 'tsv-s1-a5-s') {
+    const expected = [
+      { id: 'little-light', wait: 0, actions: ['say', 'hop', 'pop'] },
+      { id: 'tuan-tuan', wait: 5, actions: ['say', 'hop'] },
+      { id: 'dot-dot', wait: 10, actions: ['say', 'hop'] },
+    ];
+    return project.lessonId === lessonId && page?.background === mission.background &&
+      page.characters.length === 3 && expected.every((entry) => {
+        const actor = page.characters.find((candidate) => candidate.id === entry.id);
+        const actorBlocks = actor?.scripts[0]?.blocks ?? [];
+        const actionIndex = entry.wait === 0 ? 1 : 2;
+        const action = actorBlocks[actionIndex];
+        const personalizedAction = action?.op !== 'say' || action.text !== 'Choose my greeting';
+        return actorBlocks.length === (entry.wait === 0 ? 3 : 4) &&
+          actorBlocks[0]?.op === 'when_flag' &&
+          (entry.wait === 0 || (actorBlocks[1]?.op === 'wait' && actorBlocks[1]?.n === entry.wait)) &&
+          entry.actions.includes(action?.op ?? '') && personalizedAction &&
+          actorBlocks[actionIndex + 1]?.op === 'end';
+      });
   }
   return (
     project.lessonId === lessonId &&

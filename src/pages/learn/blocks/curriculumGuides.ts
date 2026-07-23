@@ -974,6 +974,27 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionSteps: [{ icon: '⏱️', label: 'Wait 20', order: 'Observe' }, { icon: '5️⃣', label: 'Wait 5', order: 'Repair' }, { icon: '▶️', label: 'Clear turns', order: 'Verify' }],
     completionWhy: 'The saved programs keep Lumilo first and shorten only Tuan Tuan’s pause.', next: 'Next, choose and save your own multi-character greeting order in A5-S.',
   },
+  'tsv-s1-a5-s': {
+    mode: 'complete', lessonId: 'tsv-s1-a5-s', celebrate: true,
+    hero: { name: 'Dot Dot', role: 'Third Morning Greeter', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 20', title: 'Make our morning welcome',
+    storyPages: [
+      { emoji: '⭐🐻🐱', title: 'A third friend arrives', body: 'Dot Dot joins Lumilo and Tuan Tuan beside breakfast. Three friends want a welcome everyone can follow.', speaker: 'Dot Dot', dialogue: 'Can I have a turn too?', scene: 1 },
+      { emoji: '1️⃣2️⃣3️⃣', title: 'Choose three clear turns', body: 'Lumilo begins. Tuan Tuan waits 5 and Dot Dot waits 10. Choose a real action for each friend.', speaker: 'Lumilo', dialogue: 'Our waits make the order visible.', scene: 3, blocks: ['⭐ Start → action', '🐻 Wait 5 → action · 🐱 Wait 10 → action'] },
+      { emoji: '💾▶️🌅', title: 'Save and perform', body: 'Save all three scripts, predict the order, then run your welcome. The greeting rhythm reveals the path toward the Bell Tower.', speaker: 'Tuan Tuan', dialogue: 'Now the morning has a clear beat!', scene: 5 },
+    ],
+    partnerLine: 'Different waits let three scripts start together but perform in a clear order.',
+    mission: 'Choose one allowed action for each friend, keep waits at 0, 5, and 10, save, predict the order, then press Go.',
+    question: 'What makes the three turns stay in order?', choices: [{ id: 'waits', label: 'Different waits', correct: true }, { id: 'together', label: 'All speak together', correct: false }],
+    retry: 'Keep Lumilo first, Tuan Tuan at Wait 5, and Dot Dot at Wait 10.', successTitle: 'Your order is clear!', success: 'The three saved scripts perform one after another.',
+    fixTitle: 'Make the welcome yours', fixPrompt: 'Choose Say, Hop, or Pop for Lumilo; Say or Hop for the other friends.', workspaceIntro: 'Edit the real action blocks, keep the three waits, then save and run.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Choose each friend’s real action.', watch: 'Watch Lumilo, then Tuan Tuan, then Dot Dot.', sayFirst: 'Lumilo begins without a wait.', sayThen: 'Wait 5 and Wait 10 make later turns.', hopFirst: 'Your action choices make this your version.', hopThen: 'Keep the waits in increasing order.', retry: 'Use one allowed action and the exact wait for each friend.', fix: 'Edit the action blocks, not the story card.', test: 'Saved? Predict the order and press Go.', saving: 'Saving your three-character welcome…', complete: 'Your own greeting order is saved and performed!' },
+    logicSteps: [{ icon: '⭐', label: 'No wait', order: 'First' }, { icon: '🐻', label: 'Wait 5', order: 'Second' }, { icon: '🐱', label: 'Wait 10', order: 'Third' }],
+    logicWhy: 'The scripts start together, while increasing waits create a stable sequence.',
+    completionTitle: 'Personal Ship complete · Our welcome!', completion: 'You chose three real actions, saved the ordered scripts, and ran your own greeting.',
+    completionSteps: [{ icon: '🎭', label: 'My actions', order: 'Choose' }, { icon: '💾', label: 'Three scripts', order: 'Save' }, { icon: '▶️', label: 'Clear order', order: 'Run' }],
+    completionWhy: 'The server-saved scripts keep 0, 5, and 10 waits while preserving the child’s allowed action choices.', next: 'The greeting rhythm reveals a route. Continue to A6-H and find the missing Bell Tower step.',
+  },
 };
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {

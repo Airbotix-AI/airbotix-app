@@ -469,6 +469,44 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a5-d')).toBe(false);
   });
 
+  it('accepts A5-S only with three allowed actions in the saved 0, 5, 10 order', () => {
+    const project = correctedMissionProject();
+    project.lessonId = 'tsv-s1-a5-s';
+    project.pages[0] = {
+      id: 'tsv-a5-s-page',
+      background: 'meadow',
+      characters: [
+        {
+          id: 'little-light', name: 'Lumilo', emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 7, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'little-light-flag', blocks: [{ op: 'when_flag' }, { op: 'pop' }, { op: 'end' }] }],
+        },
+        {
+          id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          start: { gx: 12, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' }] }],
+        },
+        {
+          id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
+          asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+          start: { gx: 16, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'dot-dot-flag', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 10 }, { op: 'say', text: 'Good morning, friends!' }, { op: 'end' }] }],
+        },
+      ],
+    };
+    project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'say', text: 'Choose my greeting' };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-s')).toBe(false);
+    project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'pop' };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-s')).toBe(true);
+    project.pages[0].characters[2].scripts[0].blocks[1] = { op: 'wait', n: 5 };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-s')).toBe(false);
+    project.pages[0].characters[2].scripts[0].blocks[1] = { op: 'wait', n: 10 };
+    project.pages[0].characters[2].scripts[0].blocks[2] = { op: 'pop' };
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a5-s')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);
