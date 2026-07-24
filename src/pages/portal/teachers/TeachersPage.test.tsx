@@ -67,11 +67,53 @@ describe('TeachersPage', () => {
     );
   });
 
+  it('keeps long teacher content inside a compact summary card', async () => {
+    const longBio = 'Creative confidence '.repeat(20).trim();
+    api.mockResolvedValue([
+      {
+        ...AMY,
+        bio: longBio,
+        expertise_topics: ['Creative coding', 'Game design', 'Robotics'],
+      },
+    ]);
+    renderPage();
+
+    const card = await screen.findByTestId('teacher-card-amy-chen');
+    expect(card).toHaveClass('sm:grid-cols-[minmax(150px,34%)_1fr]');
+    expect(screen.getByAltText('Amy Chen, Airbotix teacher')).toHaveClass(
+      'aspect-square',
+      'max-w-48',
+    );
+    expect(screen.getByText(longBio)).toHaveClass('line-clamp-2');
+    expect(screen.getByText('Ages 7–12')).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Amy Chen expertise' })).toHaveTextContent(
+      'Creative coding',
+    );
+    expect(screen.queryByText('Robotics')).toBeNull();
+  });
+
+  it('keeps legacy profiles usable when no public age range is available', async () => {
+    api.mockResolvedValue([{ ...AMY, age_range: null }]);
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Amy Chen' })).toBeVisible();
+    expect(screen.queryByText(/^Ages /)).toBeNull();
+    expect(screen.getByRole('link', { name: 'View profile' })).toBeVisible();
+  });
+
   it('shows an honest error state without fabricated teacher identities', async () => {
     api.mockRejectedValue(new Error('offline'));
     renderPage();
 
     expect(await screen.findByText('Teacher profiles are unavailable right now.')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Amy Chen' })).toBeNull();
+  });
+
+  it('shows a useful empty state when no approved profile matches', async () => {
+    api.mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByText('No published teachers match these filters yet.')).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Amy Chen' })).toBeNull();
   });
 });

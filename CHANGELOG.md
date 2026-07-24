@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-24 (fix: make Parent Portal teacher profiles compact and useful)
+
+### Fixed
+
+- Teacher directory cards now use a compact responsive profile layout with a bounded square
+  portrait, two-line biography preview, age range and up to two expertise tags.
+- Teacher detail pages keep the portrait compact, surface location, age and languages, and move
+  the full biography into a dedicated About section.
+- Course capabilities now expose format and a course link; profiles with no scheduled class show
+  an honest availability state, and every profile explains the preference-only request process.
+
 ## 2026-07-23 (fix: restore Parent Portal mobile navigation)
 
 ### Fixed

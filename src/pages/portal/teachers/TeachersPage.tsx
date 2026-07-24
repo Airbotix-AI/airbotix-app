@@ -125,31 +125,60 @@ export function TeachersPage() {
         </div>
       )}
       {teachers.data && teachers.data.length > 0 && (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 xl:grid-cols-2">
           {teachers.data.map((teacher) => (
             <article
               key={teacher.slug}
-              className="overflow-hidden rounded-3xl bg-surface shadow-card-soft"
+              data-testid={`teacher-card-${teacher.slug}`}
+              className="group grid overflow-hidden rounded-3xl border border-hairline bg-canvas-pure shadow-card-soft transition-transform duration-200 hover:-translate-y-1 sm:grid-cols-[minmax(150px,34%)_1fr]"
             >
-              <img
-                src={teacher.avatar_url}
-                alt={`${teacher.display_name}, Airbotix teacher`}
-                className="aspect-[4/3] w-full object-cover"
-              />
-              <div className="p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate2">
-                  {teacher.service_areas.map((area) => area.city).join(' · ')}
+              <div className="flex items-center justify-center bg-wash-sky p-5 sm:p-4">
+                <img
+                  src={teacher.avatar_url}
+                  alt={`${teacher.display_name}, Airbotix teacher`}
+                  className="aspect-square w-full max-w-48 rounded-2xl object-cover shadow-card-soft"
+                />
+              </div>
+              <div className="flex min-w-0 flex-col p-5 sm:p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate2">
+                    {teacher.service_areas.map((area) => area.city).join(' · ')}
+                  </p>
+                  {teacher.age_range && (
+                    <span className="rounded-full bg-wash-mint px-2.5 py-1 text-[10px] font-bold text-ink-soft">
+                      Ages {teacher.age_range.min}–{teacher.age_range.max}
+                    </span>
+                  )}
+                </div>
+                <h2 className="mt-2 text-[23px] font-extrabold leading-tight text-ink">
+                  {teacher.display_name}
+                </h2>
+                <p className="mt-1 text-[14px] font-semibold leading-5 text-brand-sky">
+                  {teacher.headline}
                 </p>
-                <h2 className="mt-2 text-[24px] font-extrabold text-ink">{teacher.display_name}</h2>
-                <p className="mt-1 font-semibold text-brand-sky">{teacher.headline}</p>
-                <p className="mt-3 line-clamp-3 text-[14px] leading-6 text-ink-soft">
+                <p className="mt-3 line-clamp-2 text-[13px] leading-5 text-ink-soft">
                   {teacher.bio}
                 </p>
+                {teacher.expertise_topics.length > 0 && (
+                  <ul
+                    className="mt-4 flex flex-wrap gap-2"
+                    aria-label={`${teacher.display_name} expertise`}
+                  >
+                    {teacher.expertise_topics.slice(0, 2).map((topic) => (
+                      <li
+                        key={topic}
+                        className="rounded-full bg-surface px-3 py-1 text-[11px] font-semibold text-ink-soft"
+                      >
+                        {topic}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <Link
                   to={`/portal/teachers/${teacher.slug}${params.size ? `?from=${encodeURIComponent(params.toString())}` : ''}`}
-                  className="btn-pill-secondary mt-5 inline-flex"
+                  className="mt-5 inline-flex min-h-11 items-center self-start rounded-full border-2 border-ink px-5 py-2 text-[13px] font-bold text-ink transition-colors hover:bg-ink hover:text-canvas sm:mt-auto sm:pt-2"
                 >
-                  View profile
+                  View profile <span aria-hidden="true">→</span>
                 </Link>
               </div>
             </article>

@@ -68,14 +68,56 @@ describe('TeacherDetailPage', () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Amy Chen' })).toBeVisible();
+    expect(screen.getByTestId('teacher-profile-hero')).toHaveClass('lg:items-center');
+    expect(screen.getByAltText('Amy Chen, Airbotix teacher')).toHaveClass(
+      'aspect-square',
+      'max-w-44',
+    );
+    expect(screen.getByRole('heading', { name: 'About Amy Chen' })).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Amy Chen profile summary' })).toHaveTextContent(
+      /Brisbane, QLD.*Ages 7–12.*English/,
+    );
     expect(screen.getByRole('heading', { name: 'Approved course capabilities' })).toBeVisible();
+    expect(screen.getByText('Workshop')).toBeVisible();
+    expect(screen.getByText('Explore course →')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Upcoming classes' })).toBeVisible();
+    expect(screen.queryByTestId('teacher-availability-empty')).toBeNull();
     expect(screen.getByText('Lead teacher')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'How a teacher request works' })).toBeVisible();
+    expect(screen.getByText('We check availability')).toBeVisible();
     expect(screen.getByRole('link', { name: 'Request this teacher' })).toHaveAttribute(
       'href',
       '/portal/tutoring?teacher=amy-chen&city=Brisbane',
     );
     expect(screen.getByText(/records a preference only/i)).toBeVisible();
+  });
+
+  it('shows an honest next step when the teacher has no scheduled public class', async () => {
+    api.mockResolvedValue({
+      slug: 'amy-chen',
+      display_name: 'Amy Chen',
+      headline: 'Creative coding teacher',
+      bio: 'Reviewed public bio.',
+      avatar_url: 'https://example.com/amy.jpg',
+      hero_image_url: null,
+      spoken_languages: ['English'],
+      expertise_topics: ['Creative coding'],
+      age_range: { min: 7, max: 12 },
+      service_areas: [
+        { city: 'Brisbane', state: 'QLD', area_label: 'Southside', suburbs: [], is_primary: true },
+      ],
+      courses: [],
+      upcoming_classes: [],
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('teacher-availability-empty')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'No public class is scheduled yet' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Browse scheduled classes' })).toHaveAttribute(
+      'href',
+      '/portal/classes',
+    );
+    expect(screen.getAllByRole('link', { name: 'Request this teacher' })).toHaveLength(2);
   });
 
   it('uses a safe unavailable state for an unpublished or unknown slug', async () => {
