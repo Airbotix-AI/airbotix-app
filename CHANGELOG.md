@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-25 (feat: edit a kid's school from the settings page)
+
+### Added
+- The kid settings page (`/portal/family/:kidId/settings`) now lets a parent view and change the
+  kid's **School** — same `SchoolField` (ACARA autocomplete + free-text + AU state) as the Add-kid
+  form, prefilled from the kid and saved via `PATCH /kids/:id` (clearing the name sends null).
+
 ## 2026-07-25 (feat: optional school on the create-kid form)
 
 ### Added
