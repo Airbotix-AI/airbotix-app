@@ -1,7 +1,12 @@
 import { api } from '@/lib/api';
 
 export const ACADEMY_SET_SIZE = 20;
-export type AcademyAnswerType = 'choice' | 'value';
+export type AcademyAnswerType = 'choice' | 'value' | 'multi_value';
+export type AcademyValueInputsSpec = {
+  count: number;
+  separator?: string;
+  suffixes?: string[];
+};
 
 type TallyTableSpec = {
   kind: 'tally_table';
@@ -113,7 +118,7 @@ type SymbolPatternSpec = {
 };
 
 export type AcademyRenderSpec =
-  | { kind: 'none' }
+  | { kind: 'none'; value_inputs?: AcademyValueInputsSpec }
   | TallyTableSpec
   | {
       kind: 'number_range';
