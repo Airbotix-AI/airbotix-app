@@ -24,7 +24,9 @@ vi.mock('./onboarding/WelcomeWizard', () => ({
   WelcomeWizard: () => <div data-testid="welcome-wizard" />,
 }));
 vi.mock('./onboarding/GettingStartedCard', () => ({
-  GettingStartedCard: () => <div data-testid="getting-started" />,
+  GettingStartedCard: ({ variant }: { variant?: string }) => (
+    <div data-testid="getting-started" data-layout={variant} />
+  ),
 }));
 vi.mock('./NowEnrollingPanel', () => ({
   NowEnrollingPanel: () => <div data-testid="now-enrolling">open classes</div>,
@@ -77,7 +79,7 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('shows parents the four kid studios before Quick actions and class discovery', () => {
+  it('keeps setup and open classes ahead of the deeper creative-space guide', () => {
     renderDashboard();
 
     const creativeSpaces = screen.getByTestId('parent-creative-spaces');
@@ -89,14 +91,27 @@ describe('DashboardPage', () => {
     expect(creativeSpaces).toHaveTextContent('Creative Code Studio');
     expect(creativeSpaces).toHaveTextContent('Art Studio');
     expect(creativeSpaces).toHaveTextContent('Music Stage');
-    expect(creativeSpaces.compareDocumentPosition(gettingStarted)).toBe(
+    expect(gettingStarted.compareDocumentPosition(quickActions)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(creativeSpaces.compareDocumentPosition(quickActions)).toBe(
+    expect(quickActions.compareDocumentPosition(nowEnrolling)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(creativeSpaces.compareDocumentPosition(nowEnrolling)).toBe(
+    expect(nowEnrolling.compareDocumentPosition(creativeSpaces)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+  });
+
+  it('keeps onboarding in a compact sticky side rail on desktop', () => {
+    renderDashboard();
+
+    const dashboardGrid = screen.getByTestId('dashboard-grid');
+    const sideRail = screen.getByTestId('dashboard-side-rail');
+    const gettingStarted = screen.getByTestId('getting-started');
+
+    expect(dashboardGrid).toHaveClass('gap-x-6', 'lg:grid-cols-[minmax(0,1fr)_17rem]');
+    expect(sideRail).toHaveClass('lg:sticky', 'lg:top-8');
+    expect(sideRail).toContainElement(gettingStarted);
+    expect(gettingStarted).toHaveAttribute('data-layout', 'sidebar');
   });
 });

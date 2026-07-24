@@ -20,7 +20,10 @@ export function PortalLayout() {
         data-testid="portal-scroll-region"
       >
         <IncidentBanner />
-        <div className="mx-auto max-w-5xl px-4 py-6 md:px-8 md:py-10">
+        <div
+          className="w-full max-w-none py-6 pl-4 pr-3 md:py-10 md:pl-6 xl:pl-8 xl:pr-4"
+          data-testid="portal-content-frame"
+        >
           <Outlet />
         </div>
       </main>

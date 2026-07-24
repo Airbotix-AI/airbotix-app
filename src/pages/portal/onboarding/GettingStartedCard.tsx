@@ -21,40 +21,70 @@ function Row({
   sub,
   optional,
   action,
+  compact,
 }: {
   done: boolean;
   label: ReactNode;
   sub?: ReactNode;
   optional?: boolean;
   action?: ReactNode;
+  compact?: boolean;
 }) {
+  const statusSize = compact ? 'h-5 w-5' : 'h-6 w-6';
+
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
+    <div
+      className={`flex gap-3 ${compact ? 'flex-col py-2.5' : 'items-start justify-between py-3'}`}
+    >
       <div className="flex items-start gap-3">
         {done ? (
           <span
             role="img"
             aria-label="Completed"
-            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-mint text-white"
+            className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full bg-brand-mint text-white ${statusSize}`}
           >
-            <Check size={15} strokeWidth={3} />
+            <Check size={compact ? 12 : 15} strokeWidth={3} />
           </span>
         ) : (
           <span
             role="img"
             aria-label="Not done yet"
-            className="mt-0.5 h-6 w-6 shrink-0 rounded-full border-2 border-hairline"
+            className={`mt-0.5 shrink-0 rounded-full border-2 border-hairline ${statusSize}`}
           />
         )}
         <div>
-          <div className={`text-[15px] font-semibold ${done ? 'text-slate2 line-through' : 'text-ink'}`}>
+          <div
+            className={`${compact ? 'text-[13px]' : 'text-[15px]'} font-semibold ${
+              done ? 'text-slate2 line-through' : 'text-ink'
+            }`}
+          >
             {label}
-            {optional && <span className="ml-2 text-[12px] font-medium text-slate2">optional</span>}
+            {optional && (
+              <span
+                className={`ml-2 font-medium text-slate2 ${
+                  compact ? 'text-[10px]' : 'text-[12px]'
+                }`}
+              >
+                optional
+              </span>
+            )}
           </div>
-          {sub && !done && <div className="mt-0.5 text-[13px] text-slate2">{sub}</div>}
+          {sub && !done && (
+            <div className={`mt-0.5 text-slate2 ${compact ? 'text-[11px]' : 'text-[13px]'}`}>
+              {sub}
+            </div>
+          )}
         </div>
       </div>
-      {!done && action && <div className="shrink-0">{action}</div>}
+      {!done && action && (
+        <div
+          className={
+            compact ? 'ml-8 w-[calc(100%-2rem)] [&>a]:w-full [&>button]:w-full' : 'shrink-0'
+          }
+        >
+          {action}
+        </div>
+      )}
     </div>
   );
 }
@@ -65,9 +95,11 @@ function Row({
  * queries settle, on the no-family empty state, or once dismissed. Collapses to
  * an "All set" line once the two core steps (login + Stars) are done.
  */
-export function GettingStartedCard() {
+export function GettingStartedCard({ variant = 'default' }: { variant?: 'default' | 'sidebar' }) {
   const ob = useOnboardingState();
   const [helperOpen, setHelperOpen] = useState(false);
+  const compact = variant === 'sidebar';
+  const controlClass = (base: string) => `${base} ${compact ? '!px-3.5 !py-2 !text-[12px]' : ''}`;
 
   // Family code is only needed for the kid-login helper → fetch lazily on open.
   const family = useQuery<FamilyData>({
@@ -88,14 +120,23 @@ export function GettingStartedCard() {
   // or marking kidLoginShown could flip coreComplete and unmount the modal the
   // parent just opened.
   const helper = helperOpen ? (
-    <KidLoginHelper familyCode={family.data?.code ?? ''} kidName={ob.kidName} onClose={closeHelper} />
+    <KidLoginHelper
+      familyCode={family.data?.code ?? ''}
+      kidName={ob.kidName}
+      onClose={closeHelper}
+    />
   ) : null;
 
   // Once core is complete, collapse to a celebratory dismissible line.
   if (ob.state.coreComplete) {
     return (
       <>
-        <div className="card-base mb-8 flex items-center justify-between gap-4">
+        <div
+          className={`card-base flex items-center justify-between gap-4 ${
+            compact ? 'mb-0 !p-5' : 'mb-8'
+          }`}
+          data-layout={variant}
+        >
           <div className="flex items-center gap-3">
             <span className="text-[28px]" aria-hidden="true">
               🎉
@@ -105,7 +146,7 @@ export function GettingStartedCard() {
               <div className="text-[13px] text-slate2">{ob.kidName} is ready to create.</div>
             </div>
           </div>
-          <button onClick={ob.dismissChecklist} className="btn-pill-ghost">
+          <button onClick={ob.dismissChecklist} className={controlClass('btn-pill-ghost')}>
             Hide this
           </button>
         </div>
@@ -114,13 +155,16 @@ export function GettingStartedCard() {
     );
   }
 
-  const labels: Record<OnboardingItemId, { label: ReactNode; sub?: ReactNode; action?: ReactNode }> = {
+  const labels: Record<
+    OnboardingItemId,
+    { label: ReactNode; sub?: ReactNode; action?: ReactNode }
+  > = {
     familySetup: { label: 'Your family is set up' },
     kidAdded: { label: `${ob.kidName} is added` },
     kidLogin: {
       label: `Log ${ob.kidName} in on their device`,
       action: (
-        <button onClick={openHelper} className="btn-pill-secondary">
+        <button onClick={openHelper} className={controlClass('btn-pill-secondary')}>
           Show me how →
         </button>
       ),
@@ -129,7 +173,7 @@ export function GettingStartedCard() {
       label: `Add Stars so ${ob.kidName} can create`,
       sub: `Stars are like pocket money for AI — each thing ${ob.kidName} makes uses a few.`,
       action: (
-        <Link to="/portal/wallet/topup" className="btn-pill-primary">
+        <Link to="/portal/wallet/topup" className={controlClass('btn-pill-primary')}>
           Add Stars →
         </Link>
       ),
@@ -137,7 +181,11 @@ export function GettingStartedCard() {
     setLimits: {
       label: 'Set daily spending limits',
       action: (
-        <Link to="/portal/wallet/auto-topup" onClick={ob.markLimitsReviewed} className="btn-pill-secondary">
+        <Link
+          to="/portal/wallet/auto-topup"
+          onClick={ob.markLimitsReviewed}
+          className={controlClass('btn-pill-secondary')}
+        >
           Set limits →
         </Link>
       ),
@@ -146,7 +194,11 @@ export function GettingStartedCard() {
       label: 'Browse family guides',
       sub: '60+ free guides for Australian families — school, childcare, benefits and more.',
       action: (
-        <Link to="/portal/guides" onClick={ob.markGuidesBrowsed} className="btn-pill-secondary">
+        <Link
+          to="/portal/guides"
+          onClick={ob.markGuidesBrowsed}
+          className={controlClass('btn-pill-secondary')}
+        >
           Browse guides →
         </Link>
       ),
@@ -155,18 +207,21 @@ export function GettingStartedCard() {
 
   return (
     <>
-      <div className="card-base mb-8">
+      <div className={`card-base ${compact ? 'mb-0 !p-5' : 'mb-8'}`} data-layout={variant}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="sticker-mint">Getting started</span>
-            <h2 className="section-heading mt-4" style={{ fontSize: '24px' }}>
+            <h2 className="section-heading mt-3" style={{ fontSize: compact ? '18px' : '24px' }}>
               You&apos;re almost ready 🎉
             </h2>
-            <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
+            <p
+              className="lead-text mt-2"
+              style={{ fontSize: compact ? '13px' : '15px', lineHeight: compact ? 1.45 : 1.55 }}
+            >
               A couple of quick steps and {ob.kidName} can start creating.
             </p>
           </div>
-          <button onClick={ob.dismissChecklist} className="btn-pill-ghost shrink-0">
+          <button onClick={ob.dismissChecklist} className={controlClass('btn-pill-ghost shrink-0')}>
             Hide
           </button>
         </div>
@@ -182,6 +237,7 @@ export function GettingStartedCard() {
                 sub={cfg.sub}
                 optional={item.optional}
                 action={cfg.action}
+                compact={compact}
               />
             );
           })}
