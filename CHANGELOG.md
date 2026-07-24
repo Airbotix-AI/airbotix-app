@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-24 (fix: keep the Parent Portal sidebar in view)
+
+### Fixed
+- Parent Portal pages now keep document scrolling locked to the viewport and scroll only the
+  content region, so the desktop navigation background and account controls no longer move away
+  or leave a blank area when a long Courses page is scrolled.
+
 ## 2026-07-24 (fix: make Parent Portal teacher profiles compact and useful)
 
 ### Fixed
