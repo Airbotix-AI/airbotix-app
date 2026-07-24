@@ -27,6 +27,22 @@
 - Tightened side-rail typography, status marks, spacing and action buttons while preserving the
   existing full-size checklist presentation outside the dashboard rail.
 
+## 2026-07-25 (feat: add Parent Portal course detail pages)
+
+### Added
+- Parents can now open `/portal/courses/:courseSlug` for a complete course view backed by the
+  existing published course source of truth: age and logistics, learning goals, AI skills,
+  workshop/lesson outline, outcomes, FAQs, upcoming classes, teaching team, price and checkout.
+- Course detail links now appear consistently from Dashboard course previews, open-class cards,
+  the course comparison and recommendation views, My Classes, teacher capabilities and checkout.
+  Checkout remains a separate action, so parents can understand a course before paying.
+- Added component coverage for the full detail page, its unavailable state and every updated
+  parent entry point; the existing pre-deploy course-comparison journey now includes the detail
+  navigation assertion.
+- Weekly and workshop outline cards now render their source-authored image and accessible
+  alternative text. Relative course media is loaded from the marketing origin, so existing
+  per-week artwork such as all nine Super Mario lesson images is reused without duplication.
+
 ## 2026-07-24 (fix: open a kid's page in a new tab from the parent portal)
 
 ### Fixed

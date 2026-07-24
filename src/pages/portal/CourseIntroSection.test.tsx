@@ -122,6 +122,10 @@ describe('CourseIntroSection', () => {
       'href',
       '/portal/courses',
     );
+    expect(screen.getByRole('link', { name: 'View details for Robot Lab' })).toHaveAttribute(
+      'href',
+      '/portal/courses/robot-lab',
+    );
   });
 
   it('keeps the dashboard useful when course previews fail to load', async () => {

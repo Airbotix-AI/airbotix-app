@@ -145,6 +145,10 @@ describe('CoursesPage comparison', () => {
     expect(await screen.findByText('A robot they can drive')).toBeInTheDocument();
     expect(screen.getByText('Hands-on first-time coders')).toBeInTheDocument();
     expect(screen.getByText('A$240')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'View full details' })[0]).toHaveAttribute(
+      'href',
+      '/portal/courses/robotics-101',
+    );
     expect(screen.getByText('4 weeks')).toBeInTheDocument();
     expect(screen.getByTitle('Difficulty 2 out of 4')).toBeInTheDocument();
     expect(api).toHaveBeenCalledWith('/courses');
