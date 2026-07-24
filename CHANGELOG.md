@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-25 (feat: optional school on the create-kid form)
+
+### Added
+- The parent "Add kid" form (`FamilyNewPage`) now has an optional **School** field: a debounced
+  autocomplete over `GET /schools/search` (ACARA directory) with a free-text fallback and an AU
+  **State** select. Picking a suggestion fills suburb + state + the ACARA id; free-typing keeps the
+  text and lets the parent choose a state. New `SchoolField` component + `schoolValue` model.
+
 ## 2026-07-24 (fix: rebalance the Parent Portal dashboard)
 
 ### Changed
