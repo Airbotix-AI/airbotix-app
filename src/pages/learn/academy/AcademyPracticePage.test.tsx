@@ -57,6 +57,23 @@ const TALLY_Q = {
   },
 };
 
+const DOUBLE_VALUE_Q = {
+  ...TEXT_CHOICE_Q,
+  id: 'naplan-y3-2008-std-q33',
+  answer_type: 'multi_value' as const,
+  stem_text:
+    'Mario has this row of 15 cubes. He divides the row into two sections. One section is 3 cubes longer than the other section. How many cubes are in each section?',
+  options: null,
+  render_spec: {
+    kind: 'none' as const,
+    value_inputs: {
+      count: 2,
+      separator: 'and',
+      suffixes: ['cubes', 'cubes'],
+    },
+  },
+};
+
 function wireApi(questions: unknown[], attempt = { is_correct: true, correct_answer: 'A' }) {
   api.mockImplementation((path: string) => {
     if (path === '/academy/me/products/naplan-y5-numeracy')
@@ -196,6 +213,35 @@ describe('AcademyPracticePage', () => {
     expect(await screen.findByTestId('academy-native-visual')).toHaveTextContent('Basketball');
     expect(screen.getByLabelText('22 tally marks')).toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders two answer boxes for reviewed multi-value questions and submits both values', async () => {
+    wireApi([DOUBLE_VALUE_Q], { is_correct: true, correct_answer: '6 and 9' });
+    renderPage();
+
+    expect(await screen.findByTestId('academy-stem')).toHaveTextContent('Mario has this row of 15 cubes');
+    expect(screen.getByTestId('academy-value-input-1')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-value-input-2')).toBeInTheDocument();
+    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getAllByText('cubes')).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('academy-value-input-1'), { target: { value: '6' } });
+    fireEvent.change(screen.getByTestId('academy-value-input-2'), { target: { value: '9' } });
+    fireEvent.click(screen.getByTestId('academy-value-submit'));
+
+    const feedback = await screen.findByTestId('academy-feedback');
+    expect(feedback).toHaveTextContent('Correct!');
+    expect(feedback).toHaveTextContent('The answer is 6 and 9');
+    expect(api).toHaveBeenCalledWith(
+      '/academy/me/products/naplan-y5-numeracy/attempts',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({
+          question_id: 'naplan-y3-2008-std-q33',
+          submitted: '6|9',
+        }),
+      }),
+    );
   });
 
   it('renders a balance scale as native SVG', async () => {

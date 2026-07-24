@@ -12,14 +12,43 @@ import {
   submitProductAttempt,
   type AcademyProgress,
   type AcademyQuestion,
+  type AcademyValueInputsSpec,
 } from './academyApi';
 import { AcademyChoiceVisual, AcademyQuestionVisual } from './AcademyQuestionVisual';
 
 // Choice questions map option index → letter; the LETTER is what we submit.
 const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 const FALLBACK_CHOICE_COUNT = 4;
+const MULTI_VALUE_SEPARATOR = '|';
 
 type AnsweredResult = { is_correct: boolean; correct_answer: string; submitted: string };
+
+function valueInputConfig(question: AcademyQuestion): AcademyValueInputsSpec {
+  const spec = question.render_spec.kind === 'none' ? question.render_spec.value_inputs : undefined;
+  if (question.answer_type !== 'multi_value') {
+    return { count: 1, separator: spec?.separator, suffixes: spec?.suffixes };
+  }
+  return {
+    count: Math.max(spec?.count ?? 2, 2),
+    separator: spec?.separator ?? 'and',
+    suffixes: spec?.suffixes ?? [],
+  };
+}
+
+function decodeMultiValueDraft(draft: string, count: number) {
+  const parts = draft === '' ? [] : draft.split(MULTI_VALUE_SEPARATOR);
+  return Array.from({ length: count }, (_, index) => parts[index] ?? '');
+}
+
+function encodeMultiValueDraft(parts: string[]) {
+  return parts.join(MULTI_VALUE_SEPARATOR);
+}
+
+function isSubmissionComplete(question: AcademyQuestion, submitted: string) {
+  if (question.answer_type !== 'multi_value') return submitted.trim() !== '';
+  const config = valueInputConfig(question);
+  return decodeMultiValueDraft(submitted, config.count).every((part) => part.trim() !== '');
+}
 
 export function AcademyPracticePage() {
   const { productSlug = '' } = useParams<{ productSlug: string }>();
@@ -79,7 +108,7 @@ export function AcademyPracticePage() {
   const correctCount = Object.values(results).filter((r) => r.is_correct).length;
 
   const submit = async (submitted: string) => {
-    if (!current || answered || submitting || submitted.trim() === '') return;
+    if (!current || answered || submitting || !isSubmissionComplete(current, submitted)) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
@@ -304,6 +333,58 @@ function AnswerArea({
         </button>
       </form>
     );
+  }
+
+  if (question.answer_type === 'multi_value') {
+    const config = valueInputConfig(question)
+    const parts = decodeMultiValueDraft(draft, config.count)
+    const isComplete = parts.every((part) => part.trim() !== '')
+    return (
+      <form
+        className="flex flex-wrap items-center gap-3"
+        onSubmit={(e) => {
+          e.preventDefault()
+          onSubmit(encodeMultiValueDraft(parts))
+        }}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          {parts.map((part, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                data-testid={`academy-value-input-${index + 1}`}
+                value={part}
+                disabled={!!answered || submitting}
+                onChange={(e) => {
+                  const next = [...parts]
+                  next[index] = e.target.value
+                  onDraft(encodeMultiValueDraft(next))
+                }}
+                placeholder="Type your answer"
+                className="w-36 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3 text-[18px] font-bold text-ink outline-none focus:border-brand-sky disabled:opacity-60"
+              />
+              {config.suffixes?.[index] && (
+                <span className="text-[16px] font-bold text-ink">{config.suffixes[index]}</span>
+              )}
+              {index < parts.length - 1 && (
+                <span className="text-[16px] font-black text-slate2">
+                  {config.separator ?? 'and'}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        <button
+          type="submit"
+          data-testid="academy-value-submit"
+          disabled={!!answered || submitting || !isComplete}
+          className="btn-pill-primary disabled:opacity-60"
+        >
+          {submitting ? 'Checking…' : 'Check answer'}
+        </button>
+      </form>
+    )
   }
 
   const letters =
