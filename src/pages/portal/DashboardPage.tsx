@@ -91,43 +91,77 @@ export function DashboardPage() {
       ) : (
         <>
           <WelcomeWizard />
-          <CreativeSpacesPanel />
-          <GettingStartedCard />
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-10">
-            <div className="stat-tile coral">
-              <div className="stat-num text-brand-coral tabular-nums">{starsToday}</div>
-              <div className="stat-label">Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}</div>
+          <div
+            className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_17rem]"
+            data-testid="dashboard-grid"
+          >
+            <div className="min-w-0" data-testid="dashboard-primary">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="stat-tile coral !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8">
+                  <div className="stat-num !text-[36px] text-brand-coral tabular-nums sm:!text-[56px]">
+                    {starsToday}
+                  </div>
+                  <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
+                    Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}
+                  </div>
+                </div>
+                <div className="stat-tile mint !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8">
+                  <div className="stat-num !text-[36px] text-brand-mint tabular-nums sm:!text-[56px]">
+                    {starsBalance ?? '—'}
+                  </div>
+                  <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
+                    Stars balance
+                  </div>
+                </div>
+                <Link
+                  to="/portal/approvals"
+                  className="stat-tile sky !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8"
+                >
+                  <div className="stat-num !text-[36px] text-brand-sky tabular-nums sm:!text-[56px]">
+                    {pendingCount}
+                  </div>
+                  <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
+                    Approvals waiting
+                  </div>
+                </Link>
+              </div>
             </div>
-            <div className="stat-tile mint">
-              <div className="stat-num text-brand-mint tabular-nums">{starsBalance ?? '—'}</div>
-              <div className="stat-label">Stars balance</div>
+
+            <aside
+              className="min-w-0 lg:sticky lg:top-8 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start"
+              aria-label="Getting started"
+              data-testid="dashboard-side-rail"
+            >
+              <GettingStartedCard variant="sidebar" />
+            </aside>
+
+            <div className="min-w-0 lg:col-start-1 lg:row-start-2" data-testid="dashboard-actions">
+              <div className="card-base mb-10">
+                <div className="eyebrow eyebrow-sky">Quick actions</div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link to="/portal/wallet/topup" className="btn-pill-primary">
+                    Top up Stars
+                  </Link>
+                  <Link to="/portal/family" className="btn-pill-secondary">
+                    Manage kids
+                  </Link>
+                  <Link to="/portal/audit" className="btn-pill-secondary">
+                    View activity
+                  </Link>
+                </div>
+              </div>
+
+              <NowEnrollingPanel />
             </div>
-            <Link to="/portal/approvals" className="stat-tile sky">
-              <div className="stat-num text-brand-sky tabular-nums">{pendingCount}</div>
-              <div className="stat-label">Approvals waiting</div>
-            </Link>
-          </div>
 
-          <div className="card-base mt-10">
-            <div className="eyebrow eyebrow-sky">Quick actions</div>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <Link to="/portal/wallet/topup" className="btn-pill-primary">
-                Top up Stars
-              </Link>
-              <Link to="/portal/family" className="btn-pill-secondary">
-                Manage kids
-              </Link>
-              <Link to="/portal/audit" className="btn-pill-secondary">
-                View activity
-              </Link>
+            <div
+              className="min-w-0 lg:col-start-1 lg:row-start-3"
+              data-testid="dashboard-discovery"
+            >
+              <CreativeSpacesPanel />
+              <FamilyGuidesRecommendation familyId={familyId} />
             </div>
           </div>
-
-          <div className="mt-10">
-            <NowEnrollingPanel />
-          </div>
-
-          <FamilyGuidesRecommendation familyId={familyId} />
         </>
       )}
     </div>

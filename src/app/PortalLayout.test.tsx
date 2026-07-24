@@ -58,9 +58,11 @@ describe('PortalLayout', () => {
 
     const layout = screen.getByTestId('portal-layout');
     const scrollRegion = screen.getByTestId('portal-scroll-region');
+    const contentFrame = screen.getByTestId('portal-content-frame');
 
     expect(layout).toHaveClass('fixed', 'inset-0', 'h-dvh', 'min-h-0', 'overflow-hidden');
     expect(scrollRegion).toHaveClass('min-h-0', 'min-w-0', 'overflow-y-auto');
+    expect(contentFrame).toHaveClass('w-full', 'max-w-none', 'pr-3', 'xl:pr-4');
     expect(within(scrollRegion).getByText('Course comparison')).toBeInTheDocument();
     expect(screen.getByTestId('desktop-navigation')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Parent Portal mobile' })).toBeInTheDocument();

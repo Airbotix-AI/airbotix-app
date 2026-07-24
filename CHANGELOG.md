@@ -8,6 +8,18 @@
   **State** select. Picking a suggestion fills suburb + state + the ACARA id; free-typing keeps the
   text and lets the parent choose a state. New `SchoolField` component + `schoolValue` model.
 
+## 2026-07-24 (fix: rebalance the Parent Portal dashboard)
+
+### Changed
+
+- The Parent Portal dashboard now uses a wide primary column and a compact sticky Getting started
+  rail. Status, setup, quick actions and open classes lead the responsive reading order; the
+  deeper creative-space guide follows without squeezing the central content.
+- Removed the Portal content frame’s centered width cap and excess right padding. The right rail
+  is 17rem with a 24px column gap, returning the reclaimed desktop width to the main content.
+- Tightened side-rail typography, status marks, spacing and action buttons while preserving the
+  existing full-size checklist presentation outside the dashboard rail.
+
 ## 2026-07-24 (fix: open a kid's page in a new tab from the parent portal)
 
 ### Fixed
