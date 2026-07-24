@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-24 (fix: open a kid's page in a new tab from the parent portal)
+
+### Fixed
+- The "Open kids page" action on a kid's growth report (`/portal/family/:kidId`) now opens the
+  kid's Learn surface in a **new browser tab** instead of replacing the current parent tab. The
+  parent stays on the portal page; the new tab bootstraps the kid session from its own refresh
+  cookie (dual session). Falls back to same-tab navigation if the browser blocks the popup. New
+  shared helper `src/auth/openKidPage.ts`.
+
 ## 2026-07-24 (fix: keep the Parent Portal sidebar in view)
 
 ### Fixed

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { useMe, useParentKidLogin } from '@/auth/useAuth';
+import { openKidPageInNewTab } from '@/auth/openKidPage';
 import { api } from '@/lib/api';
 import { TrendBars } from '@/components/TrendBars';
 import { GROWTH_WINDOW_DAYS, summarize, growthHeadline, studioMeta } from './kidGrowth';
@@ -106,8 +107,10 @@ export function KidGrowthPage() {
     setOpeningKidPage(true);
     setKidLoginError('');
     try {
-      await parentKidLogin(kidId);
-      navigate('/learn');
+      // Opens the kid's Learn surface in a NEW tab so this parent tab stays on
+      // the growth report (dual session — see openKidPageInNewTab).
+      await openKidPageInNewTab(parentKidLogin, kidId, navigate);
+      setOpeningKidPage(false);
     } catch {
       setKidLoginError(`Could not open ${name}'s page. Please try again.`);
       setOpeningKidPage(false);

@@ -111,13 +111,39 @@ describe('family profile navigation', () => {
     expect(editProfile).toHaveClass('btn-pill-primary');
   });
 
-  it('opens the selected kid session directly from the parent growth page', async () => {
+  it('opens the kid Learn surface in a NEW tab and keeps the parent tab on the growth page', async () => {
     wireApi();
     parentKidLogin.mockResolvedValue({
       access_token: 'kid-token',
       expires_in: 900,
       kid: { id: 'kid-1', nickname: 'Mia', age: 9, family_id: 'family-1' },
     });
+    const kidTab = { location: { href: '' }, closed: false, close: vi.fn() };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(kidTab as unknown as Window);
+    renderRoute('/portal/family/kid-1', <KidGrowthPage />);
+
+    const quickLogin = await screen.findByRole('button', { name: "Open Mia's kids page" });
+    fireEvent.click(quickLogin);
+
+    await waitFor(() => expect(parentKidLogin).toHaveBeenCalledWith('kid-1'));
+    // A blank tab is opened synchronously (inside the gesture) then pointed at /learn.
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    await waitFor(() => expect(kidTab.location.href).toMatch(/\/learn$/));
+    // The parent tab must NOT have navigated away — it still shows the growth report.
+    expect(screen.getByRole('heading', { name: "Mia's growth" })).toBeInTheDocument();
+    expect(screen.queryByText('Kid home')).not.toBeInTheDocument();
+
+    openSpy.mockRestore();
+  });
+
+  it('falls back to same-tab navigation when the browser blocks the popup', async () => {
+    wireApi();
+    parentKidLogin.mockResolvedValue({
+      access_token: 'kid-token',
+      expires_in: 900,
+      kid: { id: 'kid-1', nickname: 'Mia', age: 9, family_id: 'family-1' },
+    });
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
     renderRoute('/portal/family/kid-1', <KidGrowthPage />);
 
     const quickLogin = await screen.findByRole('button', { name: "Open Mia's kids page" });
@@ -125,6 +151,8 @@ describe('family profile navigation', () => {
 
     await waitFor(() => expect(parentKidLogin).toHaveBeenCalledWith('kid-1'));
     expect(await screen.findByText('Kid home')).toBeInTheDocument();
+
+    openSpy.mockRestore();
   });
 
   it('opens each kid growth page from their My Family card', async () => {
