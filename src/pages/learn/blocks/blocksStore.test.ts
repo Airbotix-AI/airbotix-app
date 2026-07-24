@@ -217,6 +217,21 @@ describe('blocksStore', () => {
     expect(char().scripts[0].blocks.map((b) => b.op)).toEqual(['when_flag', 'hop', 'move_right']);
   });
 
+  it('moveBlockAcross keeps the visual slot when moving forward in one track', () => {
+    store().addBlock('when_flag');
+    store().addBlock('move_right');
+    store().addBlock('hop');
+    store().addBlock('pop');
+    store().addBlock('end');
+    const id = char().scripts[0].id;
+
+    store().moveBlockAcross(id, 1, id, 4);
+
+    expect(char().scripts[0].blocks.map((block) => block.op)).toEqual([
+      'when_flag', 'hop', 'pop', 'move_right', 'end',
+    ]);
+  });
+
   it('adds, moves, and removes If as one paired structural group', () => {
     store().addBlock('when_flag');
     store().addBlock('if_touching');

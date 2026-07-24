@@ -19,6 +19,7 @@ import {
   MAX_NOTE,
   MAX_PAGES,
   MAX_PARAM,
+  maxParamForOp,
   MAX_SOUND,
   MAX_SPEED,
   blankProject,
@@ -51,7 +52,7 @@ function newBlock(op: BlockOp, chosenN?: number): Block {
         ? MAX_COLOR
         : def.param === 'speed'
           ? MAX_SPEED
-          : MAX_PARAM;
+          : maxParamForOp(op);
     block.n = Math.min(max, Math.max(1, Math.round(chosenN ?? fallback ?? 1)));
   }
   if (op === 'say') block.text = 'Hi!';
@@ -564,7 +565,8 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
               if (sc.id !== fromScriptId) return sc;
               const arr = [...sc.blocks];
               arr.splice(fromIndex, 1);
-              const dest = Math.min(Math.max(1, toIndex), arr.length);
+              const adjustedIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+              const dest = Math.min(Math.max(1, adjustedIndex), arr.length);
               arr.splice(dest, 0, moved);
               return { ...sc, blocks: arr };
             }),

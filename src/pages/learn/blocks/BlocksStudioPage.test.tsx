@@ -820,7 +820,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
       project: personal, version: 1, history: { past: [], future: [] }, otherFiles: [],
     });
 
-    await renderStudio();
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
     fireEvent.click(screen.getByTestId('a3-s-character-tuan-tuan'));
     expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
       name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',

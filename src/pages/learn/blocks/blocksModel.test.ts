@@ -79,7 +79,12 @@ describe('blocksModel', () => {
               scripts: [
                 {
                   id: 's',
-                  blocks: [{ op: 'when_flag' }, { op: 'evil_op' }, { op: 'move_right', n: 999 }],
+                  blocks: [
+                    { op: 'when_flag' },
+                    { op: 'evil_op' },
+                    { op: 'move_right', n: 999 },
+                    { op: 'wait', n: 999 },
+                  ],
                 },
                 { id: 'headless', blocks: [{ op: 'move_left', n: 1 }] }, // no trigger → dropped
               ],
@@ -93,7 +98,11 @@ describe('blocksModel', () => {
     expect(char.start.gx).toBe(19); // clamped to grid
     expect(char.start.gy).toBe(0);
     expect(char.scripts).toHaveLength(1); // headless script dropped
-    expect(char.scripts[0].blocks).toEqual([{ op: 'when_flag' }, { op: 'move_right', n: 9 }]);
+    expect(char.scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'move_right', n: 9 },
+      { op: 'wait', n: 20 },
+    ]);
 
     expect(parseProject('not json').pages).toHaveLength(1); // blank fallback
     expect(parseProject('{"version":2}').pages).toHaveLength(1);

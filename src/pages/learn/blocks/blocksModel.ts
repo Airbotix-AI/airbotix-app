@@ -15,6 +15,11 @@ export const GRID_H = 15;
 // child will hit.
 export const MAX_PAGES = 50;
 export const MAX_PARAM = 9;
+export const MAX_WAIT_PARAM = 20;
+
+export function maxParamForOp(op: BlockOp): number {
+  return op === 'wait' ? MAX_WAIT_PARAM : MAX_PARAM;
+}
 
 // ── Block catalogue (v1 set — control `repeat` C-block lands with M3) ───────
 export type BlockCategory = 'trigger' | 'motion' | 'looks' | 'sound' | 'control' | 'end';
@@ -338,7 +343,7 @@ export function parseProject(raw: string): BlocksProject {
                 if (b.op === 'end_if') return { op: 'end_if' as const };
                 const def = blockDef(b.op);
                 const out: Block = { op: b.op };
-                if (def.hasN) out.n = clampN(b.n, 1, MAX_PARAM, def.defaultN ?? 1);
+                if (def.hasN) out.n = clampN(b.n, 1, maxParamForOp(b.op), def.defaultN ?? 1);
                 if (b.n !== undefined && def.param === 'speed') out.n = clampN(b.n, 1, MAX_SPEED, 2);
                 if (b.n !== undefined && def.param === 'color') out.n = clampN(b.n, 1, MAX_COLOR, 1);
                 if (b.n !== undefined && def.param === 'note') out.n = clampN(b.n, 1, MAX_NOTE, 1);

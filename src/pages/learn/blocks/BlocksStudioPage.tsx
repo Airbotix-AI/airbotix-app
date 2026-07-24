@@ -43,6 +43,7 @@ import {
   MAX_NOTE,
   MAX_PAGES,
   MAX_PARAM,
+  maxParamForOp,
   MAX_SPEED,
   MAX_SOUND,
   blockDef,
@@ -249,6 +250,8 @@ export function BlocksStudioPage({
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
   const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
   const isA6PersonalShip = storyMission?.lessonId === 'tsv-s1-a6-s';
+  const hasHomePicker =
+    isA2PersonalShip || isA3PersonalShip || isA4PersonalShip || isA6PersonalShip;
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -1287,7 +1290,11 @@ export function BlocksStudioPage({
   })();
   // the Page block targets an existing page only, so its stepper caps at the page
   // count; every other number tile uses the generic 1..MAX_PARAM range.
-  const editMax = editing?.block.op === 'goto_page' ? project.pages.length : MAX_PARAM;
+  const editMax = editing?.block.op === 'goto_page'
+    ? project.pages.length
+    : editing
+      ? maxParamForOp(editing.block.op)
+      : MAX_PARAM;
   // the block under the pointer while dragging — rendered as a fixed clone
   const draggingBlock = (() => {
     if (!dragBlk) return null;
@@ -1344,7 +1351,7 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${hasHomePicker ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
       data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
