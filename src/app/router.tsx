@@ -27,6 +27,7 @@ import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 import { AcademyOrderPage } from '@/pages/portal/AcademyOrderPage';
 import { AcademyPage } from '@/pages/portal/AcademyPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
+import { CourseDetailPage } from '@/pages/portal/CourseDetailPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
 import { FindClassesPage } from '@/pages/portal/FindClassesPage';
 import { GuidesPage } from '@/pages/portal/guides/GuidesPage';
@@ -141,6 +142,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <Navigate to="/portal" replace /> },
       { path: 'classes', element: <FindClassesPage /> },
       { path: 'courses', element: <CoursesPage /> },
+      { path: 'courses/:courseSlug', element: <CourseDetailPage /> },
       { path: 'teachers', element: <TeachersPage /> },
       { path: 'teachers/:slug', element: <TeacherDetailPage /> },
       { path: 'academy', element: <AcademyPage /> },

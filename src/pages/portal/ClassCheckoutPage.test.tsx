@@ -255,4 +255,13 @@ describe('ClassCheckoutPage', () => {
     );
     expect(screen.queryByRole('button', { name: /lock the seat/ })).not.toBeInTheDocument();
   });
+
+  it('keeps the course details reachable before a parent pays', async () => {
+    wireApi();
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', { name: 'View details for Robotics 101' }),
+    ).toHaveAttribute('href', '/portal/courses/robotics-101');
+  });
 });

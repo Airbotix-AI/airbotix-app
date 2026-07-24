@@ -167,11 +167,11 @@ export function CourseIntroSection() {
                   <span className="text-brand-coral">Best for:</span> {row.bestFor}
                 </div>
                 <Link
-                  to="/portal/courses"
-                  aria-label={`View ${row.title} in Courses`}
+                  to={`/portal/courses/${row.pack.slug}`}
+                  aria-label={`View details for ${row.title}`}
                   className="mt-5 inline-flex text-[14px] font-bold text-ink underline decoration-brand-coral decoration-2 underline-offset-4"
                 >
-                  See course options →
+                  View course details →
                 </Link>
               </div>
             </article>
