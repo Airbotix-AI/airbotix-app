@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { ClaimKidForm } from './ClaimKidForm';
+import { SchoolField } from './SchoolField';
+import { EMPTY_SCHOOL, type SchoolValue } from './schoolValue';
 
 const schema = z.object({
   nickname: z.string().min(1).max(40),
@@ -26,6 +28,9 @@ export function FamilyNewPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  // Optional school attribution — kept outside react-hook-form because it is a
+  // composite (autocomplete + state) rather than a single registered input.
+  const [school, setSchool] = useState<SchoolValue>(EMPTY_SCHOOL);
   // 'new' = create a fresh kid; 'claim' = claim a walk-in workshop kid by kid
   // code (auth-system-prd §5.2).
   const [mode, setMode] = useState<'new' | 'claim'>('new');
@@ -51,6 +56,7 @@ export function FamilyNewPage() {
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
+      const schoolName = school.name.trim();
       await api(`/families/${familyId}/kids`, {
         method: 'POST',
         body: {
@@ -58,6 +64,11 @@ export function FamilyNewPage() {
           age: values.age,
           pin: values.pin,
           ...(values.daily_star_cap !== undefined ? { daily_star_cap: values.daily_star_cap } : {}),
+          // Only send school fields that carry a value.
+          ...(schoolName ? { school_name: schoolName } : {}),
+          ...(school.suburb ? { school_suburb: school.suburb } : {}),
+          ...(school.state ? { school_state: school.state } : {}),
+          ...(school.acara_id ? { school_acara_id: school.acara_id } : {}),
         },
       });
       await qc.invalidateQueries({ queryKey: ['family', familyId, 'kids'] });
@@ -149,6 +160,8 @@ export function FamilyNewPage() {
           />
           {errors.daily_star_cap && <span className="field-error">{errors.daily_star_cap.message}</span>}
         </label>
+
+        <SchoolField value={school} onChange={setSchool} />
 
         {error && (
           <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
