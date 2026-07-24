@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { getAcademyCatalog, listFamilyAcademyEntitlements } from '@/pages/learn/academy/academyApi';
-
-const money = (cents: number) =>
-  new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cents / 100);
+import { AcademyProductCard } from './AcademyProductCard';
+import { AcademySalesIntro } from './AcademySalesIntro';
 
 export function AcademyPage() {
   const me = useMe();
@@ -27,63 +25,41 @@ export function AcademyPage() {
 
   return (
     <div>
-      <header className="mb-10 max-w-3xl">
-        <div className="eyebrow eyebrow-sky">Airbotix Academy</div>
-        <h1 className="hero-display">
-          Choose the right <span className="squiggle-word">exam</span>.
-        </h1>
-        <p className="lead-text mt-4">
-          Start with the exam series, then choose the year and subject your child is preparing for.
-          Each card is a separate product for one child.
-        </p>
-      </header>
+      <AcademySalesIntro />
 
       {catalog.isLoading && <p className="lead-text">Loading exam products…</p>}
-      {catalog.isError && <p className="lead-text">We couldn&apos;t load exam prep right now.</p>}
+      {catalog.isError && (
+        <div className="card-base max-w-2xl">
+          <span className="sticker-sunshine">Please try again</span>
+          <p className="lead-text mt-4">We couldn&apos;t load NAPLAN products right now.</p>
+        </div>
+      )}
 
       {(catalog.data ?? []).map((exam) => (
-        <section key={exam.slug} className="mb-10" data-testid={`academy-exam-${exam.slug}`}>
-          <div className="mb-4">
-            <div className="eyebrow eyebrow-bubblegum">Exam series</div>
-            <h2 className="section-heading mt-2">{exam.title}</h2>
-            <p className="lead-text mt-2">Which Year/Level is your child preparing for?</p>
+        <section
+          key={exam.slug}
+          id={exam.slug === 'naplan' ? 'choose-naplan-year' : undefined}
+          className="mb-12 scroll-mt-8"
+          data-testid={`academy-exam-${exam.slug}`}
+        >
+          <div className="mb-6 max-w-3xl">
+            <div className="eyebrow eyebrow-bubblegum">{exam.title} Numeracy</div>
+            <h2 className="section-heading mt-2">Which Year is your child preparing for?</h2>
+            <p className="lead-text mt-3">
+              Choose carefully: each Year is a separate product and stays fixed for the child you
+              select at checkout.
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {exam.products.map((product) => {
               const owners = ownersByProduct.get(product.id) ?? [];
               return (
-                <article key={product.id} className="card-base">
-                  <div className="text-[11px] font-black uppercase tracking-[0.13em] text-brand-sky">
-                    {product.level_key} · {product.subject_key}
-                  </div>
-                  <h3 className="mt-3 text-[22px] font-black leading-tight text-ink">
-                    {product.title}
-                  </h3>
-                  <div className="mt-4 flex items-end justify-between gap-4">
-                    <div>
-                      <div className="text-[24px] font-black text-ink">
-                        {money(product.price_aud_cents)}
-                      </div>
-                      <div className="text-[12px] font-bold text-slate2">
-                        {product.access_days} days access
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {owners.length > 0 && (
-                        <div className="mb-2 text-[12px] font-black text-brand-mint">
-                          Owned by {owners.join(', ')}
-                        </div>
-                      )}
-                      <Link
-                        to={`/portal/academy/checkout/${product.slug}`}
-                        className="btn-pill-primary"
-                        data-testid={`academy-buy-${product.slug}`}
-                      >
-                        {owners.length > 0 ? 'Choose another child →' : 'Choose child →'}
-                      </Link>
-                    </div>
-                  </div>
-                </article>
+                <AcademyProductCard
+                  key={product.id}
+                  examTitle={exam.title}
+                  owners={owners}
+                  product={product}
+                />
               );
             })}
           </div>
@@ -93,9 +69,30 @@ export function AcademyPage() {
       {!catalog.isLoading && !catalog.isError && catalog.data?.length === 0 && (
         <div className="card-base max-w-2xl text-center">
           <span className="sticker-sunshine">Coming soon</span>
-          <p className="lead-text mt-4">Exam products will appear here once they are ready.</p>
+          <p className="lead-text mt-4">NAPLAN products will appear here once they are ready.</p>
         </div>
       )}
+
+      <section className="card-feature mt-12 grid gap-5 md:grid-cols-[0.8fr_1.2fr]">
+        <div>
+          <div className="eyebrow eyebrow-sky">Before you buy</div>
+          <h2 className="text-[26px] font-black leading-tight text-ink">What happens next?</h2>
+        </div>
+        <ol className="grid gap-4 text-[14px] font-medium leading-relaxed text-ink-soft sm:grid-cols-3">
+          <li>
+            <strong className="block text-ink">1. Choose a Year</strong>Pick the product that
+            matches your child.
+          </li>
+          <li>
+            <strong className="block text-ink">2. Choose a child</strong>Access belongs to that
+            child&apos;s profile.
+          </li>
+          <li>
+            <strong className="block text-ink">3. Start practising</strong>They open it from My Exam
+            Prep.
+          </li>
+        </ol>
+      </section>
     </div>
   );
 }

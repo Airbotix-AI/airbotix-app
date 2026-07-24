@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-25 (feat: explain NAPLAN value to parents)
+
+### Changed
+- Reworked Parent Portal Exam Prep into a clear NAPLAN sales page that explains the current
+  product, one-child/one-Year access, live question count and path from purchase to practice.
+
 ## 2026-07-25 (feat: edit a kid's school from the settings page)
 
 ### Added
