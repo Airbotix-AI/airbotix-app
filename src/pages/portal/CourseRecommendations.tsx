@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 import { COURSE_CTA_SIZE } from './courseCtaStyles';
 import { recommendCoursesForKid, type CourseComparisonRow, type Kid } from './courseComparison';
 
@@ -101,6 +103,12 @@ export function CourseRecommendations({
                 <strong className="text-ink">They will make:</strong> {row.ship}
               </p>
               <div className="mt-auto pt-4">
+                <Link
+                  to={`/portal/courses/${row.pack.slug}`}
+                  className="mb-3 inline-flex text-[13px] font-bold text-ink underline decoration-brand-coral decoration-2 underline-offset-4"
+                >
+                  View course details
+                </Link>
                 <button
                   type="button"
                   onClick={() => onChooseCourse(row)}

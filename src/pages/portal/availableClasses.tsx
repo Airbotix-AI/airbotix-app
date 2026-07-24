@@ -66,6 +66,14 @@ export function ClassCard({ item }: { item: AvailableClass }) {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
+        {item.course_pack && (
+          <Link
+            to={`/portal/courses/${item.course_pack.slug}`}
+            className="btn-pill-secondary"
+          >
+            View course details
+          </Link>
+        )}
         <Link to={`/portal/checkout/class/${item.id}`} className="btn-pill-primary">
           Pay & lock a seat
         </Link>

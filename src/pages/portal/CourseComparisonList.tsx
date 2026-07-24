@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { CourseBookingActions } from './CourseBookingActions';
 import { COURSE_CTA_SIZE } from './courseCtaStyles';
@@ -139,7 +140,14 @@ function CourseRow({
           <div className="text-[11px] font-bold uppercase tracking-[0.09em] text-brand-bubblegum">
             {row.series}
           </div>
-          <h2 className="mt-1 text-[15px] font-bold leading-snug text-ink">{row.title}</h2>
+          <h2 className="mt-1 text-[15px] font-bold leading-snug text-ink">
+            <Link
+              to={`/portal/courses/${row.pack.slug}`}
+              className="underline decoration-brand-coral decoration-2 underline-offset-4"
+            >
+              {row.title}
+            </Link>
+          </h2>
           {selectedKid && isRecommended && (
             <div className="mt-2 inline-flex rounded-full bg-brand-mint/15 px-2.5 py-1 text-[11px] font-bold text-ink">
               Recommended for {selectedKid.nickname}
@@ -169,6 +177,12 @@ function CourseRow({
           <strong>{row.bestFor}</strong>
         </ComparisonCell>
         <div className="col-span-2 self-center lg:col-span-1" aria-label="Course actions">
+          <Link
+            to={`/portal/courses/${row.pack.slug}`}
+            className="mb-2 inline-flex text-[12px] font-bold text-ink underline decoration-brand-coral decoration-2 underline-offset-4"
+          >
+            View full details
+          </Link>
           <button
             type="button"
             aria-expanded={expanded}

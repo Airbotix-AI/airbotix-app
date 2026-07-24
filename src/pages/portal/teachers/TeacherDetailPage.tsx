@@ -132,7 +132,8 @@ export function TeacherDetailPage() {
           {profile.courses.map((course) => (
             <Link
               key={course.slug}
-              to={`/portal/courses?course=${encodeURIComponent(course.slug)}`}
+              to={`/portal/courses/${course.slug}`}
+              aria-label={`View details for ${course.title}`}
               className="group/course flex items-center gap-4 rounded-2xl bg-wash-sky p-4 transition-transform hover:-translate-y-0.5"
             >
               {course.cover_image_url ? (

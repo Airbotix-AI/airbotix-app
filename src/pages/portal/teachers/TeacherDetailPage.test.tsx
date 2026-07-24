@@ -80,6 +80,10 @@ describe('TeacherDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Approved course capabilities' })).toBeVisible();
     expect(screen.getByText('Workshop')).toBeVisible();
     expect(screen.getByText('Explore course →')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'View details for Rhythm Game' })).toHaveAttribute(
+      'href',
+      '/portal/courses/rhythm-game',
+    );
     expect(screen.getByRole('heading', { name: 'Upcoming classes' })).toBeVisible();
     expect(screen.queryByTestId('teacher-availability-empty')).toBeNull();
     expect(screen.getByText('Lead teacher')).toBeVisible();
