@@ -10,7 +10,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from '@/lib/api';
 import { createBlocksProject, loadBlocksProject, saveBlocksProject } from './blocksApi';
+import { completeStoryPart } from './story-parts/storyPartsApi';
 import { blankProject } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksStudioPage } from './BlocksStudioPage';
@@ -27,6 +29,12 @@ vi.mock('./blocksApi', () => ({
 }));
 vi.mock('../playground/projectPersistence', () => ({
   saveThumbnail: vi.fn(async () => undefined),
+}));
+// The season chain (Task 25): a finished Tiny Star scene records itself against
+// the kid's server-side progression before the next scene may be offered.
+vi.mock('./story-parts/storyPartsApi', () => ({
+  completeStoryPart: vi.fn(async () => ({ part_id: 'part', completed_at: 'now' })),
+  fetchStoryLineProgress: vi.fn(),
 }));
 
 afterEach(() => {
@@ -223,7 +231,7 @@ describe('BlocksStudioPage zone labels', () => {
     );
   });
 
-  it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
+  const directionHookProject = () => {
     const directionProject = blankProject('Tiny Star Village · Which Way?');
     directionProject.lessonId = 'tsv-s1-a2-h';
     directionProject.pages[0] = {
@@ -252,6 +260,20 @@ describe('BlocksStudioPage zone labels', () => {
         },
       ],
     };
+    return directionProject;
+  };
+
+  /** Play A2-H to completion: the unchanged wrong-way run, then "farther". */
+  const playDirectionHook = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    await screen.findByTestId('story-mission-question', {}, { timeout: 3000 });
+    fireEvent.click(screen.getByTestId('story-choice-farther'));
+    return screen.findByTestId('story-hook-complete');
+  };
+
+  it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
+    const directionProject = directionHookProject();
     vi.mocked(loadBlocksProject).mockResolvedValueOnce({
       project: directionProject,
       version: 1,
@@ -294,6 +316,44 @@ describe('BlocksStudioPage zone labels', () => {
         }),
       }),
     );
+    // Task 25: the finished scene advances the season chain, and its evidence is
+    // the saved project the studio just verified — never a page boolean.
+    await waitFor(() =>
+      expect(completeStoryPart).toHaveBeenCalledWith('tiny-star-village-s1', 'tsv-s1-a2-h', {
+        schema_version: 1,
+        selections: { saved_project: ['p1'] },
+      }),
+    );
+    expect(await screen.findByTestId('story-next-mission')).toHaveTextContent('Choose an arrow');
+  });
+
+  it('does not open the next scene when the season chain refuses a scene played early', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: directionHookProject(),
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+    vi.mocked(completeStoryPart).mockRejectedValueOnce(
+      new ApiError(403, 'STORY_PART_LOCKED', 'Finish the previous story part first.'),
+    );
+
+    await renderStudio();
+    expect(await playDirectionHook()).toBeInTheDocument();
+
+    // The child's own work is still saved…
+    await waitFor(() => expect(completeStoryPart).toHaveBeenCalled());
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a2-h': expect.anything() }),
+        }),
+      }),
+    );
+    // …but the scene after it stays shut, with the reason in the child's words.
+    expect(await screen.findByRole('alert')).toHaveTextContent('opens scenes in order');
+    expect(screen.queryByTestId('story-next-mission')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-back-to-collection')).toBeInTheDocument();
   });
 
   it('keeps the A2-S home picker compact and shows the selected star route', async () => {
