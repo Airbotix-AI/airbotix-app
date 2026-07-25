@@ -82,7 +82,7 @@ export function AcademyProductDetailPage() {
           </h2>
           <p className="mt-2 text-[14px] font-medium leading-relaxed text-ink-soft sm:text-[16px]">
             Try four original samples across different skills. Tap any answer and the Tutor
-            immediately responds with a question-specific explanation.
+            diagnoses the thinking, explains the strategy and finishes with a fresh check question.
           </p>
         </div>
         <AcademyParentDemo />
@@ -99,7 +99,7 @@ export function AcademyProductDetailPage() {
         />
         <ValueCard
           title="Airo Tutor is included"
-          body="After the child attempts a question, a short explanation appears automatically at no extra Stars cost."
+          body="It explains what the question asks, why the method works, where thinking may have slipped, and what to try next."
         />
       </section>
 
