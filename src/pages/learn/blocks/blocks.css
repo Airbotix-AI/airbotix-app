@@ -1027,8 +1027,15 @@
   background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
     center / cover no-repeat;
 }
+.bsx-stage[data-scene='jtw-s1-c2-stage-base'] {
+  background: #d8cfad
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c2/stage-base-v01.webp') center / cover
+    no-repeat;
+}
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-hill,
-.bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco {
+.bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c2-stage-base'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c2-stage-base'] .bsx-deco {
   display: none;
 }
 

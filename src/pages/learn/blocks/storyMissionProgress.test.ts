@@ -886,3 +886,99 @@ describe('Journey to the West C1-P7 personal-arrival contract', () => {
     ).toBe(false);
   });
 });
+
+describe('Journey to the West C2-P5 dual bump-response contract', () => {
+  const route = [
+    { op: 'when_flag' },
+    { op: 'move_right', n: 1 },
+    { op: 'move_right', n: 1 },
+    { op: 'move_up', n: 1 },
+    { op: 'move_right', n: 1 },
+    { op: 'move_right', n: 1 },
+    { op: 'end' },
+  ];
+  const build = (
+    curtainBlocks = [
+      { op: 'when_bump' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'end' },
+    ],
+    caveBlocks = [
+      { op: 'when_bump' },
+      { op: 'show' },
+      { op: 'say', text: '桥、干地、石座、清水。' },
+      { op: 'end' },
+    ],
+  ) =>
+    ({
+      version: 1,
+      name: 'C2-P5',
+      lessonId: 'jtw-s1-c2-p5',
+      pages: [
+        {
+          id: 'jtw-c2-p5-page',
+          background: 'jtw-s1-c2-stage-base',
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              start: { gx: 2, gy: 8, size: 3, rot: 0 },
+              scripts: [{ id: 'stone-monkey-route-to-curtain', blocks: route }],
+            },
+            {
+              id: 'water-curtain-trigger',
+              name: 'Water Curtain',
+              emoji: '💦',
+              asset:
+                '/story-blocks/journey-to-the-west/props/water-curtain-trigger/initial-v01.png',
+              start: { gx: 6, gy: 7, size: 3, rot: 0, reach: 0.5 },
+              scripts: [{ id: 'water-curtain-open', blocks: curtainBlocks }],
+            },
+            {
+              id: 'cave-entrance',
+              name: 'Cave Entrance',
+              emoji: '🪨',
+              asset:
+                '/story-blocks/journey-to-the-west/props/cave-entrance/revealed-v01.png',
+              start: { gx: 6, gy: 7, size: 3, rot: 0, visible: false, reach: 0.5 },
+              scripts: [{ id: 'cave-entrance-reveal', blocks: caveBlocks }],
+            },
+          ],
+        },
+      ],
+    }) as never;
+
+  it('accepts only the two correctly owned response edits with the retained route', () => {
+    expect(storyMissionProgramMatches(build(), 'jtw-s1-c2-p5')).toBe(true);
+    expect(
+      storyMissionProgramMatches(
+        build(
+          [{ op: 'when_bump' }, { op: 'play_sound', n: 2 }, { op: 'end' }],
+          undefined,
+        ),
+        'jtw-s1-c2-p5',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        build(undefined, [
+          { op: 'when_bump' },
+          { op: 'say', text: '桥、干地、石座、清水。' },
+          { op: 'end' },
+        ]),
+        'jtw-s1-c2-p5',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        build(
+          [{ op: 'when_bump' }, { op: 'show' }, { op: 'play_sound', n: 2 }, { op: 'end' }],
+          [{ op: 'when_bump' }, { op: 'hide' }, { op: 'say', text: '桥、干地、石座、清水。' }, { op: 'end' }],
+        ),
+        'jtw-s1-c2-p5',
+      ),
+    ).toBe(false);
+  });
+});

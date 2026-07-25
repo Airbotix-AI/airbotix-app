@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-25 (feat: implement JtW C2-P5 dual bump response)
+
+### Added
+- Journey to the West C2-P5 now has an internal-only curtain-free stage, separate water-curtain
+  and warm cave props, a real three-actor Blocks starter, strict Hide/Show ownership matching,
+  saved-run gating, child prediction and cave-evidence persistence, and adjacent-only C2-P6
+  unlock. The assets remain `draft_unapproved`; no public release is authorized.
+
 ## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
 
 ### Added

@@ -174,6 +174,12 @@ export const JTW_C2_BACKGROUND_ASSET =
 /** Same composition, cave mouth warm-lit — chapter two's resolved state. */
 export const JTW_C2_RESOLVED_BACKGROUND_ASSET =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c2/resolved-v01.webp';
+export const JTW_C2_STAGE_BASE_ASSET =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c2/stage-base-v01.webp';
+export const JTW_C2_WATER_CURTAIN_ASSET =
+  '/story-blocks/journey-to-the-west/props/water-curtain-trigger/initial-v01.png';
+export const JTW_C2_CAVE_ENTRANCE_ASSET =
+  '/story-blocks/journey-to-the-west/props/cave-entrance/revealed-v01.png';
 
 /**
  * The read-only system preview chain (scene-specs C1-P1): the stone's sound is
@@ -1148,3 +1154,28 @@ export const C2_P4_RESOLVED_WORLD_CHANGE =
 export const C2_P4_STORY_AFTER =
   '石猴到达了，水帘却没有分开。下一条线索：必须连接“碰到以后”的回应。';
 export const C2_P4_CONTINUE_LABEL = '让水帘听见碰撞';
+
+// C2-P5 · 水帘分开以后 — Build 2. The P4 route stays fixed; the child makes
+// two genuine edits on two real bump-event tracks, then runs and reads the
+// resolved cave evidence. Completion unlocks only P6.
+export const C2_P5_STORY_BEFORE: readonly [string, string, string] = [
+  '石猴已经碰到水帘，说明路线正确；可是瀑布没有回应。新问题从“怎样到达”转为“碰到以后，水帘应该做什么”。',
+  '水帘脚本和洞口脚本都只留下了一个空位。石猴仍按上一段五块路线前进；真正的碰撞发生后，水帘要隐藏，洞口要出现，铃声和洞内对白才会让伙伴看清结果。',
+  '运行前分别预测：如果只隐藏水帘却不显示洞口，伙伴只能看见空的崖壁，不能找到石桥、干爽地面、石座和清水这些“适合进入”的证据。',
+];
+export const C2_P5_EVIDENCE_OPTIONS: JtwEvidenceOption[] = [
+  { id: 'stone-bridge', label: '石桥', correct: true },
+  { id: 'dry-ground', label: '干爽地面', correct: true },
+  { id: 'stone-seat', label: '石座', correct: true },
+  { id: 'clear-water', label: '清水', correct: true },
+  { id: 'gold-treasure', label: '满地金银', correct: false },
+];
+export const C2_P5_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
+  { id: 'empty-cliff', label: '只看见空的崖壁，找不到洞内证据', correct: true },
+  { id: 'cave-visible', label: '洞口会自己出现，不需要 Show', correct: false },
+];
+export const C2_P5_RESOLVED_WORLD_CHANGE =
+  '真实碰撞同时启动两个 On Bump 轨：水帘隐藏，暖光洞口出现；静音时也能看见石桥、干地、石座和清水。';
+export const C2_P5_STORY_AFTER =
+  '石猴确认洞里有安全的落脚处和清水，决定遵守约定，沿原路回去告诉伙伴。';
+export const C2_P5_CONTINUE_LABEL = '沿原路回去';

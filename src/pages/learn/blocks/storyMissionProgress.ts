@@ -277,6 +277,19 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       { op: 'end' },
     ],
   },
+  'jtw-s1-c2-p5': {
+    pageId: 'jtw-c2-p5-page',
+    background: 'jtw-s1-c2-stage-base',
+    characterId: 'water-curtain-trigger',
+    scriptId: 'water-curtain-open',
+    asset: '/story-blocks/journey-to-the-west/props/water-curtain-trigger/initial-v01.png',
+    target: [
+      { op: 'when_bump' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'end' },
+    ],
+  },
   // Journey to the West S1/C1-P6 — Twist & Debug, the stable order bug
   // (scene-specs JTW-S1-C1-P6). The starter ships Say → Hop → Show; ONLY the
   // exact repaired order passes. The exact-target match rejects the shipped
@@ -509,6 +522,50 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       character?.asset === mission.asset &&
       startMatches &&
       jtwPersonalArrivalDesign(blocks) !== null
+    );
+  }
+
+  if (lessonId === 'jtw-s1-c2-p5') {
+    const monkey = page?.characters.find((candidate) => candidate.id === 'stone-monkey');
+    const curtain = page?.characters.find(
+      (candidate) => candidate.id === 'water-curtain-trigger',
+    );
+    const cave = page?.characters.find((candidate) => candidate.id === 'cave-entrance');
+    const route = monkey?.scripts.find(
+      (candidate) => candidate.id === 'stone-monkey-route-to-curtain',
+    )?.blocks;
+    const curtainBlocks = curtain?.scripts.find(
+      (candidate) => candidate.id === 'water-curtain-open',
+    )?.blocks;
+    const caveBlocks = cave?.scripts.find(
+      (candidate) => candidate.id === 'cave-entrance-reveal',
+    )?.blocks;
+    const routeTarget = TINY_STAR_MISSION_CONTRACTS['jtw-s1-c2-p4'].target;
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === 3 &&
+      monkey?.start.gx === 2 &&
+      monkey.start.gy === 8 &&
+      route?.length === routeTarget.length &&
+      routeTarget.every((target, index) => blockMatches(route[index], target)) &&
+      curtain?.asset === mission.asset &&
+      curtain.start.visible !== false &&
+      curtain.start.reach === 0.5 &&
+      curtainBlocks?.length === 4 &&
+      blockMatches(curtainBlocks[0], { op: 'when_bump' }) &&
+      blockMatches(curtainBlocks[1], { op: 'hide' }) &&
+      blockMatches(curtainBlocks[2], { op: 'play_sound', n: 2 }) &&
+      blockMatches(curtainBlocks[3], { op: 'end' }) &&
+      cave?.asset ===
+        '/story-blocks/journey-to-the-west/props/cave-entrance/revealed-v01.png' &&
+      cave.start.visible === false &&
+      cave.start.reach === 0.5 &&
+      caveBlocks?.length === 4 &&
+      blockMatches(caveBlocks[0], { op: 'when_bump' }) &&
+      blockMatches(caveBlocks[1], { op: 'show' }) &&
+      blockMatches(caveBlocks[2], { op: 'say', text: '桥、干地、石座、清水。' }) &&
+      blockMatches(caveBlocks[3], { op: 'end' })
     );
   }
 
