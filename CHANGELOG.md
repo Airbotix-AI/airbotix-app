@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-25 (feat: demonstrate diagnostic Tutor feedback)
+
+### Changed
+- The parent-facing NAPLAN demo now teaches through six explicit stages: interpret the question,
+  choose a strategy, work it out, justify the answer, diagnose the selected misconception, and
+  try a short transfer question.
+- Each wrong demo option has its own likely misconception instead of receiving generic
+  "not quite" feedback, showing parents how Airo Tutor supports understanding beyond answer drills.
+
 ## 2026-07-25 (feat: show varied Academy Tutor demos)
 
 ### Changed

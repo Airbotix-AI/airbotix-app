@@ -85,12 +85,33 @@ describe('AcademyProductDetailPage', () => {
     expect(screen.getByTestId('academy-demo-feedback')).toHaveTextContent(
       '$2.70 isn’t the answer yet',
     );
-    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('290 cents is $2.90');
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'What is the question asking?',
+    );
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('Step 1 · How to think');
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('Step 2 · Work it out');
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'Why this answer is correct',
+    );
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'Where your thinking may have slipped',
+    );
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'counted only one 20c coin',
+    );
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'Mia adds another 10c coin',
+    );
 
     fireEvent.click(screen.getByTestId('academy-demo-question-data'));
     expect(screen.getByRole('img', { name: /bar chart showing dogs 8/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '5' }));
-    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('8 − 3 = 5 students');
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'What you understood',
+    );
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'compare by subtraction',
+    );
 
     fireEvent.click(screen.getByTestId('academy-demo-question-time'));
     expect(
