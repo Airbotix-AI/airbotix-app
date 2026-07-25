@@ -5,6 +5,13 @@ import { getAcademyCatalog, listFamilyAcademyEntitlements } from '@/pages/learn/
 import { AcademyProductCard } from './AcademyProductCard';
 import { AcademySalesIntro } from './AcademySalesIntro';
 
+// An exam series can span subjects — UK SATs sells Mathematics and English
+// Grammar & Punctuation side by side — so the subject line is derived from the
+// products on offer rather than hard-coded.
+function subjectsOf(exam: { products: { subject_key: string }[] }): string {
+  return [...new Set(exam.products.map((product) => product.subject_key))].join(' · ');
+}
+
 export function AcademyPage() {
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
@@ -31,7 +38,7 @@ export function AcademyPage() {
       {catalog.isError && (
         <div className="card-base max-w-2xl">
           <span className="sticker-sunshine">Please try again</span>
-          <p className="lead-text mt-4">We couldn&apos;t load NAPLAN products right now.</p>
+          <p className="lead-text mt-4">We couldn&apos;t load exam prep products right now.</p>
         </div>
       )}
 
@@ -44,7 +51,7 @@ export function AcademyPage() {
         >
           <div className="mb-5 max-w-3xl sm:mb-6">
             <div className="eyebrow eyebrow-bubblegum mb-2 text-[10px] sm:mb-3 sm:text-[12px]">
-              {exam.title} Numeracy
+              {exam.title} · {subjectsOf(exam)}
             </div>
             <h2 className="text-[25px] font-bold leading-[1.15] text-ink sm:text-[40px]">
               Which Year is your child preparing for?
@@ -73,7 +80,7 @@ export function AcademyPage() {
       {!catalog.isLoading && !catalog.isError && catalog.data?.length === 0 && (
         <div className="card-base max-w-2xl text-center">
           <span className="sticker-sunshine">Coming soon</span>
-          <p className="lead-text mt-4">NAPLAN products will appear here once they are ready.</p>
+          <p className="lead-text mt-4">Exam prep products will appear here once they are ready.</p>
         </div>
       )}
 

@@ -65,6 +65,41 @@ const NAPLAN_CATALOG = [
   },
 ];
 
+// A second exam series alongside NAPLAN, spanning two subjects — the catalogue
+// must not assume one exam or one subject.
+const UK_SATS_EXAM = {
+  slug: 'uk-sats',
+  title: 'UK SATs',
+  provider: 'Standards and Testing Agency',
+  brand_config: {},
+  products: [
+    {
+      id: 'product-uk-y6-maths',
+      sku: 'uk-sats-y6-maths',
+      slug: 'uk-sats-y6-maths',
+      title: 'UK SATs Year 6 Maths Prep',
+      level_key: 'Year 6',
+      subject_key: 'Mathematics',
+      edition: 'current',
+      price_aud_cents: 3900,
+      access_days: 365,
+      sales_config: {},
+    },
+    {
+      id: 'product-uk-y6-gps',
+      sku: 'uk-sats-y6-english-gps',
+      slug: 'uk-sats-y6-english-gps',
+      title: 'UK SATs Year 6 Grammar & Punctuation Prep',
+      level_key: 'Year 6',
+      subject_key: 'English Grammar & Punctuation',
+      edition: 'current',
+      price_aud_cents: 3900,
+      access_days: 365,
+      sales_config: {},
+    },
+  ],
+};
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -95,6 +130,32 @@ afterEach(() => {
 });
 
 describe('AcademyPage parent sales experience', () => {
+  it('lists every exam series with its own subjects, not just NAPLAN', async () => {
+    getAcademyProduct.mockResolvedValue({ _count: { question_links: 0 } });
+    getAcademyCatalog.mockResolvedValue([...NAPLAN_CATALOG, UK_SATS_EXAM]);
+    listFamilyAcademyEntitlements.mockResolvedValue([]);
+
+    renderPage();
+
+    expect(await screen.findByTestId('academy-exam-naplan')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-exam-uk-sats')).toBeInTheDocument();
+    expect(screen.getByText('NAPLAN · Numeracy')).toBeInTheDocument();
+    // Both subjects surface, de-duplicated, instead of a hard-coded "Numeracy".
+    expect(
+      screen.getByText('UK SATs · Mathematics · English Grammar & Punctuation'),
+    ).toBeInTheDocument();
+    // Two products share Year 6, so the subject is what tells them apart on the card.
+    expect(screen.getByTestId('academy-product-card-uk-sats-y6-maths')).toHaveTextContent(
+      'Mathematics practice',
+    );
+    expect(screen.getByTestId('academy-product-card-uk-sats-y6-english-gps')).toHaveTextContent(
+      'English Grammar & Punctuation practice',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Choose UK SATs Year 6 Maths Prep for a child' }),
+    ).toHaveTextContent('Choose Year 6 Mathematics');
+  });
+
   it('explains the product before asking a parent to choose a Year', async () => {
     wireProductDetails();
     getAcademyCatalog.mockResolvedValue(NAPLAN_CATALOG);
