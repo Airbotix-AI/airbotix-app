@@ -75,6 +75,11 @@ import {
   storyMissionProgramMatches,
   storyMissionSayChoices,
   storyMissionScriptId,
+  TINY_STAR_DELIVERY_DISTANCES,
+  TINY_STAR_DELIVERY_PARCELS,
+  TINY_STAR_DELIVERY_START_GX,
+  TINY_STAR_DELIVERY_STOP_GY,
+  TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
 } from './storyMissionProgress';
 import {
@@ -258,6 +263,12 @@ export function BlocksStudioPage({
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
+  // A4-S Personal Ship: the child owns the stop, the parcel and the number, so
+  // the arrival square is read from the scene instead of being a fixed answer.
+  const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
+  const deliveryStop = page.characters.find(
+    (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
+  );
   // JtW C1-P6: the starter ships the Say→Hop→Show order bug. The mission only
   // completes after the child has RUN the bug at least once (the wrong-run
   // observation) and then rerun the repaired exact chain — mirroring the
@@ -663,9 +674,18 @@ export function BlocksStudioPage({
         );
         const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
           .gx;
+        // A4-S has no fixed arrival square: the cart must finish on whichever
+        // stop the child placed, which is also the distance its number encodes.
+        const deliveryStopGx = page.characters.find(
+          (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
+        )?.start.gx;
         const reachedMissionTarget =
           (!requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx) &&
-          (!(isA4ParameterBuild || isA4ParameterDebug) || runner.state('breakfast-cart')?.gx === 7);
+          (!(isA4ParameterBuild || isA4ParameterDebug) ||
+            runner.state('breakfast-cart')?.gx === 7) &&
+          (!isA4PersonalShip ||
+            (deliveryStopGx !== undefined &&
+              runner.state('breakfast-cart')?.gx === deliveryStopGx));
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -723,6 +743,7 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
+    isA4PersonalShip,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
@@ -1165,16 +1186,20 @@ export function BlocksStudioPage({
       setIfBodyTarget(null);
       return;
     }
-    const isA2Direction =
-      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+    // Age A route missions keep the terminal End last and seed the smallest
+    // sensible distance, so a direction block dropped anywhere still lands in a
+    // runnable chain. A2-B fixes the distance at three; A2-S and A4-S start at
+    // one space and let the child raise the number.
+    const isRouteChoice =
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip || isA4PersonalShip) &&
       (op === 'move_left' || op === 'move_right');
-    if (isA2Direction && missionScript) {
+    if (isRouteChoice && missionScript) {
       const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
       store.insertBlock(
         op,
         missionScript.id,
         endIndex >= 1 ? endIndex : missionScript.blocks.length,
-        isA2PersonalShip ? 1 : 3,
+        isA2PersonalShip || isA4PersonalShip ? 1 : 3,
       );
       return;
     }
@@ -1370,7 +1395,7 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
       data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
@@ -1556,6 +1581,70 @@ export function BlocksStudioPage({
                 <img src={asset} alt="" className="bsx-character-asset-thumb" /><strong>{name}</strong>
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {isA4PersonalShip && (
+        <div className="bsx-home-picker bsx-delivery-picker" data-testid="a4-s-delivery-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>📦</span>
+            <div>
+              <strong>Choose my delivery stop</strong>
+              <small>Then match the Right number to it</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my delivery stop">
+            {TINY_STAR_DELIVERY_DISTANCES.map((distance) => {
+              const gx = TINY_STAR_DELIVERY_START_GX + distance;
+              const selected = deliveryStop?.start.gx === gx;
+              return (
+                <button
+                  key={distance}
+                  type="button"
+                  data-testid={`a4-s-stop-${distance}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .moveCharacter(TINY_STAR_DELIVERY_STOP_ID, gx, TINY_STAR_DELIVERY_STOP_GY)
+                  }
+                >
+                  <span aria-hidden>➡️</span>
+                  <strong>
+                    {distance} {distance === 1 ? 'space' : 'spaces'}
+                  </strong>
+                </button>
+              );
+            })}
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose what I deliver">
+            {TINY_STAR_DELIVERY_PARCELS.map((parcel) => {
+              const selected = deliveryStop?.name === parcel.name;
+              return (
+                <button
+                  key={parcel.id}
+                  type="button"
+                  data-testid={`a4-s-parcel-${parcel.id}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setCharacterIdentity(
+                        TINY_STAR_DELIVERY_STOP_ID,
+                        parcel.name,
+                        parcel.emoji,
+                        '',
+                      )
+                  }
+                >
+                  <span aria-hidden>{parcel.emoji}</span>
+                  <strong>{parcel.label}</strong>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

@@ -893,6 +893,37 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '▶️', label: 'Run 4', order: 'Observe' }, { icon: '➖', label: 'Choose less', order: 'Predict' }, { icon: '3️⃣', label: 'Right 3', order: 'Repair' }], logicWhy: 'Right 4 ends at space 8; reducing it to Right 3 ends at the table on space 7.',
     completionTitle: 'Overshoot repaired! 🚙🍽️', completion: 'You observed the bug, changed only its distance, saved, and reran the real cart.', completionSteps: [{ icon: '8️⃣', label: 'Overshoot', order: 'See' }, { icon: '3️⃣', label: 'Distance', order: 'Fix' }, { icon: '🍽️', label: 'At table', order: 'Run' }], completionWhy: 'The server-saved Start → Right 3 → End repair ran from space 4 to space 7 after the original Right 4 run reached space 8.', next: 'Continue to A4-S and choose your own delivery stop.',
   },
+  'tsv-s1-a4-s': {
+    mode: 'personal-ship', lessonId: 'tsv-s1-a4-s', celebrate: true,
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 4 · Mission 16', title: 'My delivery stop',
+    storyPages: [
+      { emoji: '🚙📦', title: 'Where should breakfast stop?', body: 'The cart always starts at space 4. Put your delivery stop 1, 2 or 3 spaces to the right and the story becomes yours.', speaker: 'Breakfast Cart', dialogue: 'Tell me where to stop today.', scene: 1 },
+      { emoji: '🍎🎁⭐', title: 'Choose what you deliver', body: 'Pick the apple breakfast, the gift breakfast or the star breakfast. The parcel buttons only rename your stop — they never add a block.', speaker: 'Lumilo', dialogue: 'Your parcel, your stop, your number.', scene: 3 },
+      { emoji: '➡️🔢', title: 'Match the number to the distance', body: 'Add one Right block yourself, then tap its number until it matches how many spaces you chose. Press Go and the cart must stop exactly on your parcel.', speaker: 'Breakfast Cart', dialogue: 'One space, two spaces or three — you decide!', scene: 5, blocks: ['🚩 Start', '➡️ Right ? → End'] },
+    ],
+    partnerLine: 'A different stop needs a different number, so there is no single right answer here.',
+    mission: 'Choose your stop and your parcel, add one Right block, set its number to the same distance, then press Go.',
+    question: 'How far will your breakfast travel?', choices: [],
+    retry: 'Your number must match your stop: 1 space is Right 1, 2 spaces is Right 2, 3 spaces is Right 3.',
+    successTitle: 'Your delivery arrived!', success: 'The saved Right block carried the cart exactly onto the stop you chose.',
+    fixTitle: 'Design your delivery', fixPrompt: 'Close this card, choose a stop and a parcel below the stage, then build the Right block.',
+    workspaceIntro: 'The stop and parcel buttons never add blocks. You must add the Right block and set its number yourself.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Choose your stop and parcel, then add one Right block.', watch: 'Watch whether the cart stops on your parcel.',
+      sayFirst: 'Count the spaces out loud.', sayThen: 'Count the spaces out loud.',
+      hopFirst: 'The cart always starts at space 4.', hopThen: 'The cart always starts at space 4.',
+      retry: 'More spaces need a bigger number; fewer spaces need a smaller one.', fix: 'Add one Right block and set its number to your distance.',
+      test: 'Your number matches your stop. Press Go!', saving: 'Breakfast arrived. Saving your own delivery…',
+      complete: 'Your saved cart stopped exactly where you decided!',
+    },
+    logicSteps: [{ icon: '📦', label: 'Choose stop', order: 'Mine' }, { icon: '🍎', label: 'Choose parcel', order: 'Mine' }, { icon: '➡️', label: 'Match number', order: 'Build' }],
+    logicWhy: 'The cart starts at space 4, so a stop 1, 2 or 3 spaces away needs Right 1, Right 2 or Right 3.',
+    completionTitle: 'Chapter 4 complete! 🚙📦', completion: 'You chose the stop, chose the parcel, built the matching Right block, ran the cart and saved your own delivery.',
+    completionSteps: [{ icon: '📦', label: 'My stop', order: '1' }, { icon: '🍎', label: 'My parcel', order: '2' }, { icon: '➡️', label: 'My number', order: '3' }, { icon: '🍽️', label: 'Arrived', order: '4' }],
+    completionWhy: 'The server-saved project holds your stop, your parcel and a movement number equal to the distance, and the real runner finished on that square.',
+    next: 'Breakfast is delivered and all three friends start saying good morning at once. Next, help them take turns.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

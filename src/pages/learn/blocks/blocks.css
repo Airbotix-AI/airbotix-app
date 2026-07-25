@@ -2090,6 +2090,15 @@
     0 4px 0 color-mix(in srgb, var(--bsx-cat-trigger) 42%, var(--bsx-border)),
     0 0 0 3px color-mix(in srgb, var(--bsx-cat-trigger) 16%, transparent);
 }
+/* A4-S carries two choice groups (distance + parcel) in one picker row, so its
+   buttons are narrower and the row wraps instead of pushing the stage sideways. */
+.bsx-delivery-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-delivery-picker .bsx-home-choice {
+  min-width: 96px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);

@@ -104,4 +104,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 15',
     desc: 'Run the cart to see it overshoot, choose less, then change only Right 4 to Right 3 and test the saved repair.',
   },
+  {
+    id: 'blocks_tsv_a4_s',
+    emoji: '📦',
+    title: 'Tiny Star Village · Mission 16',
+    desc: 'Put your delivery stop 1, 2 or 3 spaces away, choose the apple, gift or star breakfast, then build the Right block whose number matches.',
+  },
 ];

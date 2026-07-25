@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A4-S — my delivery stop)
+
+### Added
+- Tiny Star Village Personal Ship scene A4-S (`tsv-s1-a4-s`, `blocks_tsv_a4_s`, Mission 16). The
+  child places their delivery stop 1, 2 or 3 spaces right of the breakfast cart, chooses the
+  apple / gift / star breakfast it carries, then authors the single `Right` block and raises its
+  number until it matches that distance.
+- A4-S delivery picker below the stage (`a4-s-stop-1|2|3`, `a4-s-parcel-apple|gift|star`). Like the
+  A2-S endpoint picker and the A3-S character picker, it only moves and renames the scene target —
+  it never inserts an answer block. The `Right` block still comes from the real palette (dropped
+  before the terminal End at one space) and its number from the real number editor.
+
+### Changed
+- The story journey map now offers 16 playable Tiny Star Village scenes; chapter 4 is complete and
+  A4-D advances to A4-S.
+- Mission completion for A4-S has no fixed arrival square: the run must finish on whichever stop
+  the child placed, and the saved movement number must equal that distance. Extra blocks, a
+  reversed direction, a moved cart, a resized stop and unapproved parcels all fail the contract.
+
 ## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
 
 ### Added

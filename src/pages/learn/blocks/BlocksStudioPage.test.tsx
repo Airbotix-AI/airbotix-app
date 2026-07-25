@@ -961,6 +961,61 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     ]);
   });
 
+  it('lets A4-S choose its own stop, parcel and matching movement number', async () => {
+    const delivery = blankProject('Tiny Star Village · My Delivery Stop');
+    delivery.lessonId = 'tsv-s1-a4-s';
+    delivery.pages[0] = {
+      id: 'tsv-a4-s-page', background: 'meadow', characters: [
+        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-ship', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'breakfast-table', name: 'My Delivery Stop', emoji: '📦', start: { gx: 4, gy: 10, size: 0.9, rot: 0 }, scripts: [] },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: delivery, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    const stopTwo = screen.getByTestId('a4-s-stop-2');
+    expect(stopTwo).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(stopTwo);
+    fireEvent.click(screen.getByTestId('a4-s-parcel-gift'));
+    expect(stopTwo).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
+      name: 'Gift Breakfast', emoji: '🎁', start: expect.objectContaining({ gx: 6, gy: 10 }),
+    });
+    // The picker never inserts a block — the route is still empty.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'end' },
+    ]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const rightPalette = screen.getByTestId('palette').querySelector('[data-testid="block-move_right"]');
+    fireEvent.pointerDown(rightPalette!);
+    fireEvent.pointerUp(rightPalette!);
+    // The route block lands before End at one space; the child raises it to two.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' },
+    ]);
+    fireEvent.click(screen.getAllByTestId('block-move_right').at(-1)!);
+    fireEvent.click(screen.getByTestId('num-plus'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 2 }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a4-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';

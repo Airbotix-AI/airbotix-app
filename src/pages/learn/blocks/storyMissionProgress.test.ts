@@ -369,6 +369,52 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-d')).toBe(false);
   });
 
+  it('accepts A4-S only when the movement number matches the chosen delivery stop', () => {
+    const deliveryProject = (stopGx: number, stopName: string, stopEmoji: string, n: number) => {
+      const project = correctedMissionProject();
+      project.lessonId = 'tsv-s1-a4-s';
+      project.pages[0].id = 'tsv-a4-s-page';
+      project.pages[0].background = 'meadow';
+      project.pages[0].characters[0].id = 'breakfast-cart';
+      project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+      project.pages[0].characters[0].start.gx = 4;
+      project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-ship';
+      project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n }, { op: 'end' }];
+      project.pages[0].characters.push({ id: 'breakfast-table', name: stopName, emoji: stopEmoji, start: { gx: stopGx, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
+      return project;
+    };
+
+    // Every legal (stop, number) pair completes — there is no single answer.
+    expect(storyMissionProgramMatches(deliveryProject(5, 'Apple Breakfast', '🍎', 1), 'tsv-s1-a4-s')).toBe(true);
+    expect(storyMissionProgramMatches(deliveryProject(6, 'Gift Breakfast', '🎁', 2), 'tsv-s1-a4-s')).toBe(true);
+    expect(storyMissionProgramMatches(deliveryProject(7, 'Star Breakfast', '⭐', 3), 'tsv-s1-a4-s')).toBe(true);
+
+    // A mismatched number, the unchosen starter stop, an out-of-band stop, an
+    // unapproved parcel, a mismatched emoji and a wrong direction all fail.
+    expect(storyMissionProgramMatches(deliveryProject(7, 'Star Breakfast', '⭐', 2), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(4, 'My Delivery Stop', '📦', 0), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(8, 'Star Breakfast', '⭐', 4), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(6, 'Cake Breakfast', '🍰', 2), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(6, 'Gift Breakfast', '🍎', 2), 'tsv-s1-a4-s')).toBe(false);
+
+    const leftward = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    leftward.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_left', n: 2 };
+    expect(storyMissionProgramMatches(leftward, 'tsv-s1-a4-s')).toBe(false);
+
+    // Extra blocks, a moved cart and a scripted stop are all rejected.
+    const extra = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    extra.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
+    expect(storyMissionProgramMatches(extra, 'tsv-s1-a4-s')).toBe(false);
+
+    const movedCart = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    movedCart.pages[0].characters[0].start.gx = 5;
+    expect(storyMissionProgramMatches(movedCart, 'tsv-s1-a4-s')).toBe(false);
+
+    const scriptedStop = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    scriptedStop.pages[0].characters[1].scripts.push({ id: 'stop-flag', blocks: [{ op: 'when_flag' }, { op: 'end' }] });
+    expect(storyMissionProgramMatches(scriptedStop, 'tsv-s1-a4-s')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

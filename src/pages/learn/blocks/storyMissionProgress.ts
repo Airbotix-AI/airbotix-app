@@ -1,4 +1,4 @@
-import type { Block, BlocksProject } from './blocksModel';
+import type { Block, BlocksProject, Character } from './blocksModel';
 
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
@@ -34,6 +34,34 @@ export const TINY_STAR_GREETING_CHOICES = [
   "I'm awake!",
   "Let's go!",
 ] as const;
+
+/** A4-S: the scene-fixed identity and geometry of the child's delivery stop. */
+export const TINY_STAR_DELIVERY_STOP_ID = 'breakfast-table';
+export const TINY_STAR_DELIVERY_STOP_GY = 10;
+export const TINY_STAR_DELIVERY_STOP_SIZE = 0.9;
+/** A4-S: the breakfast cart never moves off this square before the run. */
+export const TINY_STAR_DELIVERY_START_GX = 4;
+
+/**
+ * A4-S: the three parcels the child can deliver (scene-specs A4-S 送达主题).
+ * They are emoji proxies on the shipped stage — no new background variant and
+ * no extra script-less character is introduced.
+ */
+export const TINY_STAR_DELIVERY_PARCELS = [
+  { id: 'apple', label: 'Apple', name: 'Apple Breakfast', emoji: '🍎' },
+  { id: 'gift', label: 'Gift', name: 'Gift Breakfast', emoji: '🎁' },
+  { id: 'star', label: 'Star', name: 'Star Breakfast', emoji: '⭐' },
+] as const;
+
+/** A4-S: the Age A distances (scene-specs §1.2 limits movement to 1–3). */
+export const TINY_STAR_DELIVERY_DISTANCES = [1, 2, 3] as const;
+
+export interface TinyStarDeliveryDesign {
+  /** How many spaces right of the cart the child put the stop (1..3). */
+  distance: number;
+  /** The parcel the child chose. */
+  parcel: (typeof TINY_STAR_DELIVERY_PARCELS)[number];
+}
 
 const LUMI_MORNING_TARGET: Block[] = [
   { op: 'when_flag' },
@@ -182,6 +210,27 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     start: { gx: 4, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
+  },
+  // Tiny Star Village S1/A4-S — the chapter's Personal Ship (scene-specs A4-S).
+  // Three things are the CHILD's: where the delivery stop sits (1–3 spaces right
+  // of the cart), which parcel it carries, and the movement number. The bespoke
+  // branch below validates that the number matches the chosen distance, so there
+  // is no single correct answer; `target` records one legal example for tooling.
+  'tsv-s1-a4-s': {
+    pageId: 'tsv-a4-s-page',
+    background: 'meadow',
+    characterId: 'breakfast-cart',
+    scriptId: 'breakfast-cart-ship',
+    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    start: { gx: TINY_STAR_DELIVERY_START_GX, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: {
+      id: TINY_STAR_DELIVERY_STOP_ID,
+      name: 'Star Breakfast',
+      gx: 7,
+      gy: 10,
+      size: TINY_STAR_DELIVERY_STOP_SIZE,
+    },
   },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
@@ -380,6 +429,24 @@ export function jtwPersonalArrivalDesign(
   };
 }
 
+/**
+ * Parse the child's A4-S delivery design from the saved scene target. Returns
+ * null while nothing has been decided (the starter puts the stop ON the cart at
+ * gx=4, which is not a legal endpoint), and for any stop that was dragged off
+ * the 1–3 space band or off the cart's row, given a parcel outside the three
+ * presets, resized, or turned into a scripted actor.
+ */
+export function tinyStarDeliveryDesign(stop: Character | undefined): TinyStarDeliveryDesign | null {
+  if (!stop || stop.scripts.length > 0) return null;
+  if (stop.start.gy !== TINY_STAR_DELIVERY_STOP_GY) return null;
+  if (stop.start.size !== TINY_STAR_DELIVERY_STOP_SIZE) return null;
+  const parcel = TINY_STAR_DELIVERY_PARCELS.find((candidate) => candidate.name === stop.name);
+  if (!parcel || stop.emoji !== parcel.emoji) return null;
+  const distance = stop.start.gx - TINY_STAR_DELIVERY_START_GX;
+  if (!(TINY_STAR_DELIVERY_DISTANCES as readonly number[]).includes(distance)) return null;
+  return { distance, parcel };
+}
+
 function blockMatches(actual: Block | undefined, target: Block): boolean {
   return actual?.op === target.op && actual.n === target.n && actual.text === target.text;
 }
@@ -473,6 +540,27 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       blocks[2]?.op === direction && blocks[2]?.n === 1
     );
   }
+  if (lessonId === 'tsv-s1-a4-s') {
+    // Personal Ship: the endpoint, the parcel and the number are all the
+    // child's, so there is no exact target — the saved movement number must
+    // simply equal the distance the child put between the cart and the stop.
+    const design = tinyStarDeliveryDesign(sceneTarget);
+    const move = blocks[1];
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === 2 &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      design !== null &&
+      blocks.length === 3 &&
+      blocks[0]?.op === 'when_flag' &&
+      move?.op === 'move_right' &&
+      move.n === design.distance &&
+      blocks[2]?.op === 'end'
+    );
+  }
+
   if (lessonId === 'jtw-s1-c1-p5') {
     // Both greeting orders are valid; the verified prefix (incl. Show) and the
     // End are mandatory, and the Say must be one of the preset greetings.
