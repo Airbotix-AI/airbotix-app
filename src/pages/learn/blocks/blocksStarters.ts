@@ -110,4 +110,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 16',
     desc: 'Put your delivery stop 1, 2 or 3 spaces away, choose the apple, gift or star breakfast, then build the Right block whose number matches.',
   },
+  {
+    id: 'blocks_tsv_a5_h',
+    emoji: '💬',
+    title: 'Tiny Star Village · Mission 17',
+    desc: 'Lumilo and Tuan Tuan both came to say good morning. Press Go, watch the two speech bubbles, and work out who spoke first.',
+  },
 ];

@@ -81,6 +81,7 @@ import {
   TINY_STAR_DELIVERY_STOP_GY,
   TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
+  TINY_STAR_OVERLAPPING_VOICES,
 } from './storyMissionProgress';
 import {
   nextStoryMissionForLesson,
@@ -177,6 +178,11 @@ export function BlocksStudioPage({
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionTapObserved, setMissionTapObserved] = useState(false);
   const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
+  // A5-H: the Hook's evidence is that the real interpreter held BOTH speech
+  // bubbles open at the same instant. The ref is read synchronously when the run
+  // settles; the state drives the answer gate and the coach cue.
+  const [missionVoicesOverlapped, setMissionVoicesOverlapped] = useState(false);
+  const voicesOverlappedRef = useRef(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -306,6 +312,10 @@ export function BlocksStudioPage({
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
+    // Runtime evidence never survives a reload: A5-H's overlap must be seen in
+    // a run of THIS session before the child's answer can count.
+    setMissionVoicesOverlapped(false);
+    voicesOverlappedRef.current = false;
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
@@ -603,6 +613,11 @@ export function BlocksStudioPage({
 
   // ── run ───────────────────────────────────────────────────────────────────
   const makeRunner = useCallback(() => {
+    // Which characters have a bubble open right now, tracked per RUN. When two
+    // are open at once the parallel greetings really did collide — that is the
+    // only thing A5-H accepts as proof, and it comes from the interpreter, not
+    // from the page or the story card.
+    const openBubbles = new Set<string>();
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -610,13 +625,22 @@ export function BlocksStudioPage({
           next.set(id, { st, dur });
           return next;
         }),
-      onSay: (id, text) =>
+      onSay: (id, text) => {
+        if (text === null) openBubbles.delete(id);
+        else {
+          openBubbles.add(id);
+          if (openBubbles.size >= TINY_STAR_OVERLAPPING_VOICES) {
+            voicesOverlappedRef.current = true;
+            setMissionVoicesOverlapped(true);
+          }
+        }
         setSays((prev) => {
           const next = new Map(prev);
           if (text === null) next.delete(id);
           else next.set(id, text);
           return next;
-        }),
+        });
+      },
       onNote: sfx.playNote,
       onSound: sfx.playSound,
       onGotoPage: (idx) => {
@@ -704,7 +728,14 @@ export function BlocksStudioPage({
             storyMission.lessonId === 'tsv-s1-a4-h' &&
             missionAnswer === 'three' &&
             runner.state('breakfast-cart')?.gx === 5;
-          if (completedDistanceHook) {
+          // A5-H: only a run in which both bubbles were open together proves
+          // "nobody waited". The answer usually comes after the run (handled in
+          // answerStoryMission); this covers a rerun with the answer already in.
+          const completedGreetingHook =
+            storyMission.lessonId === 'tsv-s1-a5-h' &&
+            missionAnswer === 'together' &&
+            voicesOverlappedRef.current;
+          if (completedDistanceHook || completedGreetingHook) {
             setMissionCorrectRunFinished(true);
             setStoryCoachCue('saving');
             setMissionOpen(false);
@@ -757,6 +788,9 @@ export function BlocksStudioPage({
       setMissionAnswer(choiceId);
       if (storyMission?.mode !== 'observe-only' || !missionHasRun || !missionTargetFixed) return;
       if (storyMission.lessonId === 'tsv-s1-a3-h' && !missionTapObserved) return;
+      // A5-H: naming the overlap only counts once the child has actually seen
+      // the two bubbles collide in a real run.
+      if (storyMission.lessonId === 'tsv-s1-a5-h' && !missionVoicesOverlapped) return;
       const correct = storyMission.choices.some(
         (choice) => choice.id === choiceId && choice.correct,
       );
@@ -768,7 +802,7 @@ export function BlocksStudioPage({
       setStoryCoachCue('saving');
       setMissionOpen(false);
     },
-    [missionHasRun, missionTapObserved, missionTargetFixed, storyMission],
+    [missionHasRun, missionTapObserved, missionTargetFixed, missionVoicesOverlapped, storyMission],
   );
 
   const applyMissionFix = useCallback(() => {

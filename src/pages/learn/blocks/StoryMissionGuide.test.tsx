@@ -14,6 +14,7 @@ const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
 const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 const breakfastHookMission = storyMissionFor('tsv-s1-a4-h')!;
 const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
+const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
 
 afterEach(cleanup);
 
@@ -43,6 +44,43 @@ describe('StoryMissionGuide', () => {
     fireEvent.click(screen.getByTestId('story-choice-three'));
     expect(onAnswer).toHaveBeenCalledWith('three');
     expect(screen.getByRole('button', { name: 'Start the mission ▶' })).toBeInTheDocument();
+  });
+
+  it('keeps the A5-H "who spoke first" question behind the run', () => {
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={greetingHookMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    // Unlike A4-H there is no pre-run prediction: the two chains look identical,
+    // so the child can only answer after watching them collide.
+    expect(screen.queryByTestId('story-prerun-prediction')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('story-choice-together')).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={greetingHookMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent('Who spoke first?');
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(onAnswer).toHaveBeenCalledWith('together');
   });
 
   it('turns a completed mission into a clear saved proof and next-scene action', () => {

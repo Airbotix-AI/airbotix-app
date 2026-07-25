@@ -56,6 +56,36 @@ export const TINY_STAR_DELIVERY_PARCELS = [
 /** A4-S: the Age A distances (scene-specs §1.2 limits movement to 1–3). */
 export const TINY_STAR_DELIVERY_DISTANCES = [1, 2, 3] as const;
 
+/** A5-H: the greeting stage keeps both friends on one row (scene-specs §6). */
+export const TINY_STAR_GREETING_GY = 10;
+
+/**
+ * A5-H: the two greeting voices the Explore stage ships (scene-specs §6/A5-H).
+ * Both chains are already complete and identical in shape, so the real runner
+ * starts them in the same tick — the collision IS the lesson. The Hook only
+ * counts as observed while BOTH chains are still the untouched ones below; the
+ * Wait block that separates them belongs to A5-B.
+ */
+export const TINY_STAR_GREETING_VOICES = [
+  {
+    characterId: LUMILO_CHARACTER,
+    scriptId: 'little-light-greeting',
+    asset: LUMILO_ASSET,
+    gx: 7,
+    text: 'Morning!',
+  },
+  {
+    characterId: 'tuan-tuan',
+    scriptId: 'tuan-tuan-greeting',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    gx: 12,
+    text: 'Morning too!',
+  },
+] as const;
+
+/** A5-H: how many speech bubbles must be open at once to prove the overlap. */
+export const TINY_STAR_OVERLAPPING_VOICES = TINY_STAR_GREETING_VOICES.length;
+
 export interface TinyStarDeliveryDesign {
   /** How many spaces right of the cart the child put the stop (1..3). */
   distance: number;
@@ -231,6 +261,24 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       gy: 10,
       size: TINY_STAR_DELIVERY_STOP_SIZE,
     },
+  },
+  // Tiny Star Village S1/A5-H — chapter five's Story Hook (scene-specs A5-H).
+  // The page carries TWO scripted voices, so the generic single-character match
+  // is not enough: the bespoke branch below checks both chains. `characterId` /
+  // `scriptId` / `target` name Lumilo's half for the shared tooling (script
+  // lookup, coach cues) and are not the whole contract.
+  'tsv-s1-a5-h': {
+    pageId: 'tsv-a5-h-page',
+    background: 'candy',
+    characterId: LUMILO_CHARACTER,
+    scriptId: TINY_STAR_GREETING_VOICES[0].scriptId,
+    asset: LUMILO_ASSET,
+    start: { gx: TINY_STAR_GREETING_VOICES[0].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'say', text: TINY_STAR_GREETING_VOICES[0].text },
+      { op: 'end' },
+    ],
   },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
@@ -447,6 +495,31 @@ export function tinyStarDeliveryDesign(stop: Character | undefined): TinyStarDel
   return { distance, parcel };
 }
 
+/**
+ * A5-H: is one of the two greeting voices still exactly what the starter
+ * shipped? The overlap the child observes only means "nobody waits" while both
+ * chains are untouched — an edited chain (a Wait, a swapped block, a retyped
+ * greeting, a moved friend) makes the observation unprovable, so the Hook does
+ * not complete.
+ */
+function tinyStarGreetingVoiceUnchanged(
+  voice: (typeof TINY_STAR_GREETING_VOICES)[number],
+  characters: readonly Character[] | undefined,
+): boolean {
+  const actor = characters?.find((candidate) => candidate.id === voice.characterId);
+  if (!actor || actor.asset !== voice.asset || actor.scripts.length !== 1) return false;
+  if (actor.start.gx !== voice.gx || actor.start.gy !== TINY_STAR_GREETING_GY) return false;
+  if (actor.start.size !== 1 || actor.start.rot !== 0) return false;
+  const blocks = actor.scripts.find((script) => script.id === voice.scriptId)?.blocks ?? [];
+  return (
+    blocks.length === 3 &&
+    blocks[0]?.op === 'when_flag' &&
+    blocks[1]?.op === 'say' &&
+    blocks[1].text === voice.text &&
+    blocks[2]?.op === 'end'
+  );
+}
+
 function blockMatches(actual: Block | undefined, target: Block): boolean {
   return actual?.op === target.op && actual.n === target.n && actual.text === target.text;
 }
@@ -558,6 +631,21 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       move?.op === 'move_right' &&
       move.n === design.distance &&
       blocks[2]?.op === 'end'
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-h') {
+    // Explore: nothing may be built or repaired here, so the contract is "both
+    // greeting chains are still the ones the starter shipped, on the shipped
+    // two-friend stage". The child's evidence is the RUN (two bubbles open at
+    // once), which BlocksStudioPage reads from the real interpreter.
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_GREETING_VOICES.length &&
+      TINY_STAR_GREETING_VOICES.every((voice) =>
+        tinyStarGreetingVoiceUnchanged(voice, page.characters),
+      )
     );
   }
 

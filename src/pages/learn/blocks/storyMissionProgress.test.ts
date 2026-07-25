@@ -415,6 +415,90 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(scriptedStop, 'tsv-s1-a4-s')).toBe(false);
   });
 
+  it('accepts A5-H only while both greeting chains are the untouched ones', () => {
+    const greetingHookProject = () => {
+      const project = blankProject('Tiny Star Village · Who Is Speaking?');
+      project.lessonId = 'tsv-s1-a5-h';
+      project.pages[0] = {
+        id: 'tsv-a5-h-page',
+        background: 'candy',
+        characters: [
+          {
+            id: 'little-light',
+            name: 'Lumilo',
+            emoji: '⭐',
+            asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+            start: { gx: 7, gy: 10, size: 1, rot: 0 },
+            scripts: [
+              {
+                id: 'little-light-greeting',
+                blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }],
+              },
+            ],
+          },
+          {
+            id: 'tuan-tuan',
+            name: 'Tuan Tuan',
+            emoji: '🐻',
+            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+            start: { gx: 12, gy: 10, size: 1, rot: 0 },
+            scripts: [
+              {
+                id: 'tuan-tuan-greeting',
+                blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }],
+              },
+            ],
+          },
+        ],
+      };
+      return project;
+    };
+
+    expect(storyMissionProgramMatches(greetingHookProject(), 'tsv-s1-a5-h')).toBe(true);
+
+    // The Explore scene is for looking only: inserting the A5-B Wait, dropping a
+    // block, retyping a greeting, silencing one friend, moving a friend off the
+    // shipped square or deleting one of the two voices all break the contract.
+    const waited = greetingHookProject();
+    waited.pages[0].characters[1].scripts[0].blocks.splice(1, 0, { op: 'wait', n: 5 });
+    expect(storyMissionProgramMatches(waited, 'tsv-s1-a5-h')).toBe(false);
+
+    const shortened = greetingHookProject();
+    shortened.pages[0].characters[0].scripts[0].blocks.splice(1, 1);
+    expect(storyMissionProgramMatches(shortened, 'tsv-s1-a5-h')).toBe(false);
+
+    const retyped = greetingHookProject();
+    retyped.pages[0].characters[1].scripts[0].blocks[1] = { op: 'say', text: 'Hello!' };
+    expect(storyMissionProgramMatches(retyped, 'tsv-s1-a5-h')).toBe(false);
+
+    const hopping = greetingHookProject();
+    hopping.pages[0].characters[0].scripts[0].blocks[1] = { op: 'hop', n: 1 };
+    expect(storyMissionProgramMatches(hopping, 'tsv-s1-a5-h')).toBe(false);
+
+    const moved = greetingHookProject();
+    moved.pages[0].characters[1].start.gx = 9;
+    expect(storyMissionProgramMatches(moved, 'tsv-s1-a5-h')).toBe(false);
+
+    const soloed = greetingHookProject();
+    soloed.pages[0].characters.pop();
+    expect(storyMissionProgramMatches(soloed, 'tsv-s1-a5-h')).toBe(false);
+
+    const secondScript = greetingHookProject();
+    secondScript.pages[0].characters[0].scripts.push({
+      id: 'little-light-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(secondScript, 'tsv-s1-a5-h')).toBe(false);
+
+    const wrongAsset = greetingHookProject();
+    wrongAsset.pages[0].characters[1].asset = '/unapproved.svg';
+    expect(storyMissionProgramMatches(wrongAsset, 'tsv-s1-a5-h')).toBe(false);
+
+    const wrongStage = greetingHookProject();
+    wrongStage.pages[0].background = 'meadow';
+    expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-h')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

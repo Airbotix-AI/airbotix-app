@@ -1016,6 +1016,89 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   });
 
+  // Tiny Star Village A5-H — chapter five's Story Hook. Both friends ship a
+  // finished `Start → Say → End`, so the real runner opens both speech bubbles
+  // in the same tick. That overlap is the ONLY evidence the Hook accepts.
+  const greetingHookProject = () => {
+    const greeting = blankProject('Tiny Star Village · Who Is Speaking?');
+    greeting.lessonId = 'tsv-s1-a5-h';
+    greeting.pages[0] = {
+      id: 'tsv-a5-h-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      ],
+    };
+    return greeting;
+  };
+
+  it('completes A5-H only after a run whose two greetings overlapped', async () => {
+    const greeting = greetingHookProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '7');
+    expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '12');
+    expect(screen.queryByTestId('speech-bubble-little-light')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Both bubbles are open together — the collision the child has to name.
+    expect(await screen.findByTestId('speech-bubble-little-light')).toHaveTextContent('Morning!');
+    expect(screen.getByTestId('speech-bubble-tuan-tuan')).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    // Naming one friend as the first speaker is wrong: nobody went first.
+    fireEvent.click(screen.getByTestId('story-choice-lumilo'));
+    expect(screen.getByRole('status')).toHaveTextContent('Did one of them wait');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-tuan-tuan'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('both bubbles open at once');
+    // An Explore hook stays quiet: no chapter celebration.
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+    // Observation only — neither program was touched.
+    expect(useBlocksStore.getState().project.pages[0].characters.map((c) => c.scripts[0].blocks)).toEqual([
+      [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }],
+      [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }],
+    ]);
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-h': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('refuses A5-H once a child has edited one of the shipped greeting chains', async () => {
+    const greeting = greetingHookProject();
+    // The A5-B Wait belongs to the NEXT scene; adding it here means the child is
+    // no longer observing the collision the Hook ships.
+    greeting.pages[0].characters[1].scripts[0].blocks.splice(1, 0, { op: 'wait', n: 5 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-h': expect.anything() }),
+        }),
+      }),
+    );
+  });
+
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';

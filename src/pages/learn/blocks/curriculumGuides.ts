@@ -924,6 +924,47 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The server-saved project holds your stop, your parcel and a movement number equal to the distance, and the real runner finished on that square.',
     next: 'Breakfast is delivered and all three friends start saying good morning at once. Next, help them take turns.',
   },
+  // Tiny Star Village S1/A5-H — chapter five's Story Hook (scene-specs A5-H,
+  // teaching script §7.2 "早安挤在一起"). Nothing is broken and nothing is
+  // missing: the child runs a finished two-friend program and discovers that
+  // both greetings start together. The question can only be answered AFTER the
+  // run, because the two chains look identical on the page.
+  'tsv-s1-a5-h': {
+    mode: 'observe-only', lessonId: 'tsv-s1-a5-h', celebrate: false,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 17', title: 'Who is speaking?',
+    storyPages: [
+      { emoji: '⭐🐻', title: 'Two friends, one good morning', body: 'Breakfast arrived, so Lumilo and Tuan Tuan both came to say good morning. Each friend has a finished program of their own.', speaker: 'Lumilo', dialogue: 'Tuan Tuan is here too!', scene: 1 },
+      { emoji: '🚩🚩', title: 'Both programs wait for the same Go', body: 'Look at the two chains. Neither one is broken and neither one is missing a block — but both of them start on the same green flag.', speaker: 'Lumilo', dialogue: 'We both start when you press Go.', scene: 3, blocks: ['🚩 Start', '💬 Say → End'] },
+      { emoji: '💬💬', title: 'Press Go and listen', body: 'Run the story and watch the two speech bubbles. Do not change any block — this mission is only for looking.', speaker: 'Dot Dot', dialogue: 'I hear two voices squashed together!', scene: 5 },
+    ],
+    partnerLine: 'Two Start blocks on one page begin at the same moment, so both friends speak at once.',
+    mission: 'Press Go and watch both friends. Then say who spoke first. Do not change any block.',
+    question: 'Who spoke first?',
+    choices: [
+      { id: 'lumilo', label: 'Lumilo spoke first', correct: false },
+      { id: 'tuan-tuan', label: 'Tuan Tuan spoke first', correct: false },
+      { id: 'together', label: 'They both spoke at the same time', correct: true },
+    ],
+    retry: 'Press Go again and watch both bubbles. Did one of them wait for the other?',
+    successTitle: 'Nobody waited!', success: 'Both bubbles opened on the same Go, so the two good mornings squashed together.',
+    fixTitle: 'Story Hook complete', fixPrompt: 'Keep both programs exactly as they are. In the next mission you will give Tuan Tuan a Wait.',
+    workspaceIntro: 'Do not change the blocks. Press Go, watch both bubbles, then answer who spoke first.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Press Go and watch both friends at the same time.', watch: 'Two bubbles at once. Is anyone waiting?',
+      sayFirst: 'Both friends are speaking right now.', sayThen: 'Both friends are speaking right now.',
+      hopFirst: 'Keep both programs unchanged.', hopThen: 'Keep both programs unchanged.',
+      retry: 'Watch the run again. Neither friend waited for the other.', fix: 'You saw both bubbles open together. Now answer who spoke first.',
+      test: 'Press Go to hear the two good mornings.', saving: 'Saving your observation with both programs unchanged…',
+      complete: 'Both friends start on the same Go, so nobody goes first.',
+    },
+    logicSteps: [{ icon: '▶️', label: 'Press Go', order: 'First' }, { icon: '💬💬', label: 'Two bubbles', order: 'Watch' }, { icon: '🤝', label: 'Same moment', order: 'Explain' }],
+    logicWhy: 'Both chains hang off the same green flag, so the runner starts them together and neither greeting waits.',
+    completionTitle: 'Story Hook complete · They spoke together!', completion: 'You ran the two-friend greeting, saw both bubbles open at once, and named the problem: nobody took a turn.',
+    completionSteps: [{ icon: '🚩', label: 'One Go', order: 'Start' }, { icon: '💬💬', label: 'Both talk', order: 'Run' }, { icon: '⏱', label: 'Needs a wait', order: 'Idea' }],
+    completionWhy: 'The two unchanged Start → Say → End chains both ran from the same flag, and the real runner held both speech bubbles open at the same time.',
+    next: 'Next, give Tuan Tuan a Wait block so the two good mornings take turns.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

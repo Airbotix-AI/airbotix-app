@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A5-H — who is speaking?)
+
+### Added
+- Tiny Star Village Story Hook scene A5-H (`tsv-s1-a5-h`, `blocks_tsv_a5_h`, Mission 17), chapter
+  five's Explore opener. Two friends arrive with two finished programs, both hanging off the same
+  green flag, so one real Go opens both speech bubbles at the same instant. The child's job is to
+  notice that nobody took a turn.
+
+### Changed
+- The story journey map now offers 17 playable Tiny Star Village scenes; chapter 5 opens and A4-S
+  advances to A5-H.
+- Mission completion for A5-H is derived from the real interpreter, not a page flag: the run must
+  hold two speech bubbles open at once (tracked through the runner's `onSay` host callback) before
+  the "who spoke first?" answer counts, and the answer must be "they both spoke at the same time".
+  Naming either friend as the first speaker is rejected. Because it is an Explore hook it completes
+  quietly, with the observation proof card and no chapter celebration.
+- The A5-H contract checks BOTH greeting chains, so an Explore scene cannot be completed after the
+  child has edited the program: inserting the A5-B `Wait`, deleting a block, retyping a greeting,
+  swapping in another action, moving a friend, adding a script or changing the stage all fail.
+
 ## 2026-07-25 (feat: Tiny Star Village A4-S — my delivery stop)
 
 ### Added
