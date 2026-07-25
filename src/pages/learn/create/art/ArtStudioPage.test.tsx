@@ -266,16 +266,30 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(screen.getByTestId('tool-rail')).toBeInTheDocument();
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
     expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
+    expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-state', 'idle');
+    expect(screen.getByText('Boti')).toBeInTheDocument();
+    expect(
+      screen.getByAltText('Boti, the Airbotix robot-cat art tutor'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
     // brand mark rides the bottom bar like the Music Stage (immersive page has no nav)
     expect(screen.getByTestId('studio-brand')).toBeInTheDocument();
     expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
-    expect(screen.getByRole('button', { name: /Sketch it for me −2★/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Coach, look! −1★/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sketch −2★/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Look −1★/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Bring it to life! −9★/ })).toBeInTheDocument();
     await waitFor(() =>
       expect(apiCalls.some((c) => c.path === '/kids/kid_1/create-buckets/resolve')).toBe(true),
     );
+  });
+
+  it('collapses the coach rail into the branded tutor avatar', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Boti' }));
+
+    expect(screen.queryByTestId('ai-rail')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Boti' })).toBeInTheDocument();
+    expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-name-is-temporary', 'true');
   });
 
   // Two-column rail (owner feedback 2026-07-20): column 2 shows only the picked
@@ -405,7 +419,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     fireEvent.change(screen.getByPlaceholderText(/friendly robot/i), {
       target: { value: 'a dinosaur' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sketch it for me/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Sketch −2★/ }));
     await waitFor(() => {
       const call = apiCalls.find((c) => c.path === '/llm/image');
       expect(call).toBeDefined();
@@ -420,7 +434,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     renderPage();
     await screen.findByTestId('ai-rail');
     fireEvent.click(screen.getByTestId('stub-draw')); // put ink down
-    fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Look −1★/ }));
     await waitFor(() => {
       const call = apiCalls.find((c) => c.path === '/llm/image-plan');
       expect(call).toBeDefined();
@@ -572,7 +586,8 @@ describe('ArtStudioPage (canvas-first)', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
       await screen.findByText('Where does it happen?'); // coach turn landed (with a plan)
-      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      // plan set → the single primary paint button now reads "Paint this!"
+      const magicBtn = screen.getByRole('button', { name: /Paint this!/ });
       await waitFor(() => expect(magicBtn).toBeEnabled());
       fireEvent.click(magicBtn);
       await screen.findByTestId('magic-sheet');
@@ -700,7 +715,7 @@ describe('ArtStudioPage (canvas-first)', () => {
 
     it('names the active take → PATCH artifact metadata.character', async () => {
       await makeAMagicTake();
-      const nameInput = await screen.findByPlaceholderText(/Name them/);
+      const nameInput = await screen.findByPlaceholderText(/Name it/);
       fireEvent.change(nameInput, { target: { value: 'Sparky' } });
       fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
       await waitFor(() => {
@@ -710,7 +725,26 @@ describe('ArtStudioPage (canvas-first)', () => {
         expect(patch).toBeDefined();
         expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Sparky');
       });
-      expect(await screen.findByText(/Sparky joined your characters/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sparky is saved to your characters/)).toBeInTheDocument();
+    });
+
+    it('names a base that is NOT in the bucket cache (reopened image) — no silent no-op', async () => {
+      // Regression (owner 2026-07-25): naming an artifact absent from bucketArtifacts
+      // used to return early with no request. Reopened image lives in another project.
+      renderPage({ editArtifactId: 'art_reopen_1', editProjectId: 'proj_saved_pics' });
+      await screen.findByTestId('ai-rail');
+      const nameInput = await screen.findByPlaceholderText(/Name it/);
+      fireEvent.change(nameInput, { target: { value: 'Rex' } });
+      fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
+      await waitFor(() => {
+        const patch = apiCalls.find(
+          (c) =>
+            c.opts?.method === 'PATCH' &&
+            c.path === '/projects/proj_saved_pics/artifacts/art_reopen_1',
+        );
+        expect(patch).toBeDefined();
+        expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Rex');
+      });
     });
 
     it('🎮 sends the active take into a chosen game via the VFS asset flow', async () => {
@@ -806,7 +840,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       renderPage({ mission: MISSION });
       await screen.findByTestId('ai-rail');
       fireEvent.click(screen.getByTestId('stub-draw'));
-      fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Look −1★/ }));
       await waitFor(() => {
         const call = apiCalls.find((c) => c.path === '/llm/image-plan');
         const messages = call!.opts?.body?.messages as Array<{ content: string }>;
@@ -825,7 +859,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       await screen.findByTestId('magic-sheet');
       fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
 
-      const storyBtn = await screen.findByRole('button', { name: /Story time! −1★/ });
+      const storyBtn = await screen.findByRole('button', { name: /Story −1★/ });
       fireEvent.click(storyBtn);
       await waitFor(() => {
         const call = apiCalls.filter((c) => c.path === '/llm/image-plan').at(-1)!;
