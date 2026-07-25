@@ -122,6 +122,7 @@ export type BlocksTemplateId =
   | 'blocks_tsv_a6_h'
   | 'blocks_tsv_a6_b'
   | 'blocks_tsv_a6_d'
+  | 'blocks_tsv_a6_s'
   | 'blocks_jtw_c1_p4'
   | 'blocks_jtw_c1_p5'
   | 'blocks_jtw_c1_p6'

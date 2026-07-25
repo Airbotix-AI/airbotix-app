@@ -23,13 +23,26 @@ import {
   TINY_STAR_BELL_TOWER_ID,
   TINY_STAR_BELL_TOWER_NAME,
   TINY_STAR_BELL_TOWER_SIZE,
+  TINY_STAR_BELL_CAST,
+  TINY_STAR_BELL_FINALE_TARGET,
   TINY_STAR_BELL_WALK_N,
+  TINY_STAR_FINALE_ENDINGS,
+  TINY_STAR_FINALE_ENDING_INDEX,
+  TINY_STAR_FINALE_ENDING_MAX_N,
+  TINY_STAR_FINALE_LINES,
+  TINY_STAR_FINALE_RINGER_ID,
+  TINY_STAR_FINALE_RINGER_SCRIPT_ID,
+  TINY_STAR_FINALE_UNCAST_EMOJI,
+  TINY_STAR_FINALE_UNCAST_NAME,
   tinyStarBellOrderRepaired,
   tinyStarBellRangAfterHop,
   tinyStarBellRangBeforeHop,
   tinyStarBellRangWithoutHop,
   tinyStarBellRouteUnchanged,
   tinyStarBellStepAdded,
+  tinyStarFinaleDesign,
+  tinyStarFinaleEndedAfterBell,
+  tinyStarFinaleEndingOf,
 } from './tinyStarBellTower';
 
 const SHIPPED_ROUTE: Block[] = [
@@ -530,5 +543,250 @@ describe('tinyStarBellRangBeforeHop', () => {
     for (const run of runs) {
       expect(tinyStarBellRangBeforeHop(run)).toBe(!tinyStarBellRangAfterHop(run));
     }
+  });
+});
+
+// ── A6-S · 我的晨光结局 (Personal Ship, and the season's last scene) ─────────
+// The three-step core ships built and settled; the child chooses WHO rings the
+// bell and what happens when the morning light comes back.
+const CAST = TINY_STAR_BELL_CAST[1]; // Tuan Tuan — nobody's default
+
+function finalePage(options?: {
+  ending?: Block | null;
+  cast?: (typeof TINY_STAR_BELL_CAST)[number] | null;
+  core?: Block[];
+}): Page {
+  const cast = options?.cast === undefined ? CAST : options.cast;
+  const ending = options?.ending === undefined ? { op: 'say', text: TINY_STAR_FINALE_LINES[0] } : options.ending;
+  const core = options?.core ?? [...TINY_STAR_BELL_BUILD_ROUTE];
+  const blocks = core.map((block) => ({ ...block })) as Block[];
+  if (ending) blocks.splice(TINY_STAR_FINALE_ENDING_INDEX, 0, { ...ending } as Block);
+  const page = bellTowerPage();
+  page.id = 'tsv-a6-s-page';
+  page.characters[0] = {
+    id: TINY_STAR_FINALE_RINGER_ID,
+    name: cast ? cast.name : TINY_STAR_FINALE_UNCAST_NAME,
+    emoji: cast ? cast.emoji : TINY_STAR_FINALE_UNCAST_EMOJI,
+    asset: cast ? cast.asset : undefined,
+    start: { gx: TINY_STAR_BELL_RINGER_GX, gy: TINY_STAR_BELL_GY, size: 1, rot: 0 },
+    scripts: [{ id: TINY_STAR_FINALE_RINGER_SCRIPT_ID, blocks }],
+  };
+  return page;
+}
+
+describe('tinyStarFinaleEndingOf', () => {
+  it('accepts each ending the scene offers, at any Age A size', () => {
+    for (const line of TINY_STAR_FINALE_LINES) {
+      expect(tinyStarFinaleEndingOf({ op: 'say', text: line })?.op).toBe('say');
+    }
+    for (const op of ['hop', 'grow'] as const) {
+      for (let n = 1; n <= TINY_STAR_FINALE_ENDING_MAX_N; n += 1) {
+        expect(tinyStarFinaleEndingOf({ op, n })?.op).toBe(op);
+      }
+    }
+    // Every offered ending is really parseable, and none is outside §1.3.
+    expect(TINY_STAR_FINALE_ENDINGS.map((ending) => ending.op).sort()).toEqual([
+      'grow',
+      'hop',
+      'say',
+    ]);
+  });
+
+  it('rejects free-typed words, oversized flourishes and blocks that are not endings', () => {
+    expect(tinyStarFinaleEndingOf({ op: 'say', text: 'Hi!' })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'say' })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'hop', n: TINY_STAR_FINALE_ENDING_MAX_N + 1 })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'grow', n: 0 })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'hop' })).toBeNull();
+    // `pop` is `legacy: true` and in no child-facing palette, and the bell the
+    // story needs already ships inside the fixed core.
+    expect(tinyStarFinaleEndingOf({ op: 'pop' })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'wait', n: 2 })).toBeNull();
+    expect(tinyStarFinaleEndingOf({ op: 'end' })).toBeNull();
+    expect(tinyStarFinaleEndingOf(undefined)).toBeNull();
+  });
+});
+
+describe('tinyStarFinaleDesign', () => {
+  it('derives the finale from the route chapter six settled', () => {
+    // The core is A6-B's/A6-D's own route, and the ending slot is where the
+    // terminal End sat — i.e. exactly where a palette tap lands a block.
+    expect(TINY_STAR_FINALE_ENDING_INDEX).toBe(TINY_STAR_BELL_BUILD_ROUTE.length - 1);
+    expect(TINY_STAR_BELL_BUILD_ROUTE[TINY_STAR_FINALE_ENDING_INDEX].op).toBe('end');
+    expect(TINY_STAR_BELL_FINALE_TARGET).toHaveLength(TINY_STAR_BELL_BUILD_ROUTE.length + 1);
+    expect(tinyStarFinaleDesign(finalePage())).not.toBeNull();
+  });
+
+  it('reads back every ringer and every ending the child can choose', () => {
+    for (const friend of TINY_STAR_BELL_CAST) {
+      for (const line of TINY_STAR_FINALE_LINES) {
+        const design = tinyStarFinaleDesign(
+          finalePage({ cast: friend, ending: { op: 'say', text: line } }),
+        );
+        expect(design?.ringer.id).toBe(friend.id);
+        expect(design?.ending.op).toBe('say');
+      }
+      for (const op of ['hop', 'grow'] as const) {
+        const design = tinyStarFinaleDesign(finalePage({ cast: friend, ending: { op, n: 2 } }));
+        expect(design?.ringer.id).toBe(friend.id);
+        expect(design?.ending.op).toBe(op);
+      }
+    }
+  });
+
+  it('refuses the shipped starter — nobody is cast and there is no ending', () => {
+    expect(tinyStarFinaleDesign(finalePage({ cast: null, ending: null }))).toBeNull();
+    // Each half alone is still not a finale.
+    expect(tinyStarFinaleDesign(finalePage({ cast: null }))).toBeNull();
+    expect(tinyStarFinaleDesign(finalePage({ ending: null }))).toBeNull();
+  });
+
+  it('refuses an ending that is in the wrong place, doubled, or not the child’s', () => {
+    // Before the bell: the ending would happen before the morning light is back.
+    const early = finalePage({ ending: null });
+    early.characters[0].scripts[0].blocks.splice(3, 0, { op: 'say', text: TINY_STAR_FINALE_LINES[0] });
+    expect(tinyStarFinaleDesign(early)).toBeNull();
+
+    const doubled = finalePage();
+    doubled.characters[0].scripts[0].blocks.splice(5, 0, { op: 'hop', n: 1 });
+    expect(tinyStarFinaleDesign(doubled)).toBeNull();
+
+    // Free-typed words are not one of §8.7's very short endings.
+    expect(tinyStarFinaleDesign(finalePage({ ending: { op: 'say', text: 'Hi!' } }))).toBeNull();
+    // A Wait is chapter five's model, not chapter six's.
+    expect(tinyStarFinaleDesign(finalePage({ ending: { op: 'wait', n: 5 } }))).toBeNull();
+    expect(
+      tinyStarFinaleDesign(finalePage({ ending: { op: 'hop', n: TINY_STAR_FINALE_ENDING_MAX_N + 1 } })),
+    ).toBeNull();
+
+    // Dropped past the terminal End.
+    const afterEnd = finalePage({ ending: null });
+    afterEnd.characters[0].scripts[0].blocks.push({ op: 'grow', n: 2 });
+    expect(tinyStarFinaleDesign(afterEnd)).toBeNull();
+  });
+
+  it('keeps the settled three-step core out of the child’s reach', () => {
+    const retunedWalk = finalePage({
+      core: [
+        { op: 'when_flag' },
+        { op: 'move_right', n: 2 },
+        { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+        { op: 'pop' },
+        { op: 'end' },
+      ],
+    });
+    expect(tinyStarFinaleDesign(retunedWalk)).toBeNull();
+
+    const retunedJump = finalePage({
+      core: [
+        { op: 'when_flag' },
+        { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+        { op: 'hop', n: 2 },
+        { op: 'pop' },
+        { op: 'end' },
+      ],
+    });
+    expect(tinyStarFinaleDesign(retunedJump)).toBeNull();
+
+    // A6-D's bug, brought back: the bell rings before anybody arrives.
+    const bellFirst = finalePage({ core: [...TINY_STAR_BELL_BUG_ROUTE] as Block[] });
+    expect(tinyStarFinaleDesign(bellFirst)).toBeNull();
+
+    // The silent route of A6-H: no bell to end after.
+    const noBell = finalePage({
+      core: [
+        { op: 'when_flag' },
+        { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+        { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+        { op: 'end' },
+      ],
+    });
+    expect(tinyStarFinaleDesign(noBell)).toBeNull();
+  });
+
+  it('keeps chapter six’s stage out of the child’s reach', () => {
+    const walked = finalePage();
+    walked.characters[0].start.gx = TINY_STAR_BELL_TOWER_GX;
+    expect(tinyStarFinaleDesign(walked)).toBeNull();
+
+    const resized = finalePage();
+    resized.characters[0].start.size = 2;
+    expect(tinyStarFinaleDesign(resized)).toBeNull();
+
+    const draggedTower = finalePage();
+    draggedTower.characters[1].start.gy = TINY_STAR_BELL_GY;
+    expect(tinyStarFinaleDesign(draggedTower)).toBeNull();
+
+    const scriptedTower = finalePage();
+    scriptedTower.characters[1].scripts.push({
+      id: 'bell-tower-tap',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(tinyStarFinaleDesign(scriptedTower)).toBeNull();
+
+    const restaged = finalePage();
+    restaged.background = 'candy';
+    expect(tinyStarFinaleDesign(restaged)).toBeNull();
+
+    const reskinned = finalePage();
+    reskinned.characters[0].asset = '/unapproved.svg';
+    expect(tinyStarFinaleDesign(reskinned)).toBeNull();
+
+    const secondScript = finalePage();
+    secondScript.characters[0].scripts.push({
+      id: 'bell-ringer-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+    });
+    expect(tinyStarFinaleDesign(secondScript)).toBeNull();
+
+    const crowded = finalePage();
+    crowded.characters.push({
+      id: 'extra-friend',
+      name: 'Dot Dot',
+      emoji: '🐱',
+      start: { gx: 2, gy: 10, size: 1, rot: 0 },
+      scripts: [],
+    });
+    expect(tinyStarFinaleDesign(crowded)).toBeNull();
+
+    // The chapter's earlier scenes cannot stand in for the finale: their ringer
+    // is a different slot on a different script.
+    expect(tinyStarFinaleDesign(bellTowerPage([...TINY_STAR_BELL_BUILD_ROUTE] as Block[]))).toBeNull();
+    // …and the finale never satisfies them either.
+    expect(tinyStarBellStepAdded(finalePage())).toBe(false);
+    expect(tinyStarBellOrderRepaired(finalePage())).toBe(false);
+    expect(tinyStarBellRouteUnchanged(finalePage())).toBe(false);
+
+    expect(tinyStarFinaleDesign(undefined)).toBeNull();
+  });
+});
+
+describe('tinyStarFinaleEndedAfterBell', () => {
+  const say = TINY_STAR_FINALE_ENDINGS[0];
+  const hop = TINY_STAR_FINALE_ENDINGS[1];
+
+  it('accepts a run that walked, hopped, rang and then played the child’s ending', () => {
+    expect(
+      tinyStarFinaleEndedAfterBell(['when_flag', 'move_right', 'hop', 'pop', 'say', 'end'], say),
+    ).toBe(true);
+    // A hop ending shares its op with the core's jump — the LAST one is the one
+    // that has to come after the bell.
+    expect(
+      tinyStarFinaleEndedAfterBell(['when_flag', 'move_right', 'hop', 'pop', 'hop', 'end'], hop),
+    ).toBe(true);
+  });
+
+  it('rejects a run that never rang in order, or never reached the ending', () => {
+    // The bell rang first: chapter six's own bug.
+    expect(
+      tinyStarFinaleEndedAfterBell(['when_flag', 'pop', 'move_right', 'hop', 'say', 'end'], say),
+    ).toBe(false);
+    // Stopped at the bell — the ending never played.
+    expect(tinyStarFinaleEndedAfterBell(['when_flag', 'move_right', 'hop', 'pop'], say)).toBe(false);
+    // The core's own jump is not the child's hop ending.
+    expect(
+      tinyStarFinaleEndedAfterBell(['when_flag', 'move_right', 'hop', 'pop', 'end'], hop),
+    ).toBe(false);
+    expect(tinyStarFinaleEndedAfterBell([], say)).toBe(false);
   });
 });

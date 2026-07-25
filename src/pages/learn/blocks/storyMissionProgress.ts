@@ -3,13 +3,19 @@ import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArr
 import {
   TINY_STAR_BELL_BUILD_PAGE_ID,
   TINY_STAR_BELL_BUILD_ROUTE,
+  TINY_STAR_BELL_FINALE_PAGE_ID,
+  TINY_STAR_BELL_FINALE_TARGET,
   TINY_STAR_BELL_FIX_PAGE_ID,
   TINY_STAR_BELL_HOOK_PAGE_ID,
   TINY_STAR_BELL_HOOK_ROUTE,
   TINY_STAR_BELL_STAGE_CONTRACT,
+  TINY_STAR_FINALE_LINES,
+  TINY_STAR_FINALE_RINGER_ID,
+  TINY_STAR_FINALE_RINGER_SCRIPT_ID,
   tinyStarBellOrderRepaired,
   tinyStarBellRouteUnchanged,
   tinyStarBellStepAdded,
+  tinyStarFinaleDesign,
 } from './tinyStarBellTower';
 import {
   TINY_STAR_DUET_GREETINGS,
@@ -475,6 +481,20 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     pageId: TINY_STAR_BELL_FIX_PAGE_ID,
     target: [...TINY_STAR_BELL_BUILD_ROUTE],
   },
+  // A6-S (Personal Ship, and the season's last scene): the three-step core is
+  // settled so it ships built — with NOBODY cast as the ringer and no ending.
+  // The bespoke branch below hands the whole page to `tinyStarFinaleDesign`;
+  // `asset` is the starter's (an uncast slot has none) and `target` records one
+  // legal finale for tooling.
+  'tsv-s1-a6-s': {
+    ...TINY_STAR_BELL_STAGE_CONTRACT,
+    pageId: TINY_STAR_BELL_FINALE_PAGE_ID,
+    characterId: TINY_STAR_FINALE_RINGER_ID,
+    scriptId: TINY_STAR_FINALE_RINGER_SCRIPT_ID,
+    asset: '',
+    allowedSayText: TINY_STAR_FINALE_LINES,
+    target: [...TINY_STAR_BELL_FINALE_TARGET],
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
   // palette (grow/turn are live distractors the exact-target match rejects) and
@@ -908,6 +928,14 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // and any stage edit all keep the mission open. The run must additionally
     // have played the hop BEFORE the bell (BlocksStudioPage measures it).
     return project.lessonId === lessonId && tinyStarBellOrderRepaired(page);
+  }
+
+  if (lessonId === 'tsv-s1-a6-s') {
+    // Personal Ship: the ringer and the ending are the child's, so the whole
+    // page goes to the finale parser — which rejects an uncast ringer, a missing
+    // or duplicated ending, an ending before the bell, a free-typed line, a
+    // retuned core and any stage edit.
+    return project.lessonId === lessonId && tinyStarFinaleDesign(page) !== null;
   }
 
   if (lessonId === 'jtw-s1-c1-p5') {
