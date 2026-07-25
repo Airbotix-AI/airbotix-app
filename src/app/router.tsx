@@ -64,6 +64,8 @@ import { CreateHubPage } from '@/pages/learn/create/CreateHubPage';
 import { CodeHubPage } from '@/pages/learn/code/CodeHubPage';
 import { BlocksHubPage } from '@/pages/learn/blocks/BlocksHubPage';
 import { BlocksStudioPage } from '@/pages/learn/blocks/BlocksStudioPage';
+import { JourneyWestMapPage } from '@/pages/learn/blocks/story-parts/JourneyWestMapPage';
+import { JourneyWestPartRoute } from '@/pages/learn/blocks/story-parts/JourneyWestPartPage';
 import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
 import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
 import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
@@ -251,6 +253,9 @@ export const router = createBrowserRouter([
       // Blocks Studio (junior block coder, learn-blocks-studio-prd.md §2)
       { path: 'create/blocks', element: <BlocksHubPage /> },
       { path: 'blocks/:projectId', element: <BlocksStudioPage /> },
+      // Journey to the West story parts (Story Blocks JtW S1, one part per build task)
+      { path: 'story/journey-west', element: <JourneyWestMapPage /> },
+      { path: 'story/journey-west/:partId', element: <JourneyWestPartRoute /> },
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full
