@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-25 (feat: put every child on the Parent Dashboard)
+
+### Added
+- The Parent Dashboard now leads with a family-scoped **My kids** panel before Stars, approvals
+  and discovery content. Each child card shows an accessible avatar, age, active/paused status
+  and 28-day growth teaser, with direct growth and supervised kid-page actions.
+- Added resilient loading, empty-family, retryable fetch-error and per-child handoff-error states.
+  Paused kids remain visible but cannot open a kid session; popup failures keep the parent on the
+  Dashboard instead of silently replacing the adult page.
 ## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
 
 ### Added
