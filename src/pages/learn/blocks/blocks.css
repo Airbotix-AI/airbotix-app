@@ -2099,6 +2099,22 @@
 .bsx-delivery-picker .bsx-home-choice {
   min-width: 96px;
 }
+/* A5-S carries two cast rows (who greets first / who waits), each holding the
+   same three friends. The rows wrap under the title on narrow screens instead
+   of pushing the stage sideways, and each button stays a comfortable tap target
+   with room for the friend's portrait beside their name. */
+.bsx-cast-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-cast-picker .bsx-home-choice {
+  min-width: 118px;
+  gap: 6px;
+}
+.bsx-cast-picker .bsx-character-asset-thumb {
+  width: 26px;
+  height: 26px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);

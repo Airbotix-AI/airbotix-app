@@ -87,6 +87,14 @@ import {
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
+  TINY_STAR_DUET_CAST,
+  TINY_STAR_DUET_FIRST_ID,
+  TINY_STAR_DUET_HOP_N,
+  TINY_STAR_DUET_SECOND_ID,
+  tinyStarDuetDesign,
+  tinyStarDuetTookTurns,
+} from './tinyStarDuet';
+import {
   nextStoryMissionForLesson,
   storyJourneyPositionForLesson,
   storyMissionProjectTitle,
@@ -196,6 +204,9 @@ export function BlocksStudioPage({
   // stage stood empty for longer than that). Both are measured per RUN.
   const bounceRelayInTimeRef = useRef(false);
   const bounceRelayTooLateRef = useRef(false);
+  // A5-S: the same measurement for the child's OWN duet — the band comes from
+  // whichever greeting they gave the friend who goes first. Judged per RUN.
+  const duetTookTurnsRef = useRef(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -292,6 +303,12 @@ export function BlocksStudioPage({
   // Wait number is wrong. Like A4-D, the child must run the bug first, name the
   // direction of the repair, and may then edit that one number and nothing else.
   const isA5RelayDebug = storyMission?.lessonId === 'tsv-s1-a5-d';
+  // A5-S Personal Ship: the child casts two of the three friends, decides which
+  // one greets first, builds both chains and chooses the Wait. Nothing on the
+  // page is a fixed answer, so the contract is read from the saved page itself.
+  const isA5PersonalShip = storyMission?.lessonId === 'tsv-s1-a5-s';
+  const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
+  const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
   const deliveryStop = page.characters.find(
     (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
   );
@@ -339,6 +356,7 @@ export function BlocksStudioPage({
     greetingTookTurnsRef.current = false;
     bounceRelayInTimeRef.current = false;
     bounceRelayTooLateRef.current = false;
+    duetTookTurnsRef.current = false;
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
@@ -649,9 +667,15 @@ export function BlocksStudioPage({
     // the interpreter's own step callback. The gap between the two entries is
     // the pause the child is tuning.
     const bounceStartedAt = new Map<string, number>();
+    // A5-S: when each stage slot FIRST reached its greeting block in this run —
+    // Say or Hop, whichever the child chose. The band this gap is judged against
+    // comes from the duet on the page right now, so a rebuilt chain is re-judged.
+    const duetGreetedAt = new Map<string, number>();
+    const duetDesign = tinyStarDuetDesign(page);
     greetingTookTurnsRef.current = false;
     bounceRelayInTimeRef.current = false;
     bounceRelayTooLateRef.current = false;
+    duetTookTurnsRef.current = false;
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -697,6 +721,10 @@ export function BlocksStudioPage({
           bounceStartedAt.set(stepCharId, Date.now());
           bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
           bounceRelayTooLateRef.current = tinyStarBounceRelayTooLate(bounceStartedAt);
+        }
+        if (duetDesign && (op === 'say' || op === 'hop') && !duetGreetedAt.has(stepCharId)) {
+          duetGreetedAt.set(stepCharId, Date.now());
+          duetTookTurnsRef.current = tinyStarDuetTookTurns(duetGreetedAt, duetDesign.firstAction);
         }
         setCharacterPerformances((prev) => {
           const next = new Map(prev);
@@ -758,7 +786,10 @@ export function BlocksStudioPage({
           (!isA5TurnBuild || greetingTookTurnsRef.current) &&
           // A5-D: the repair is only real if THIS run's two bounces landed in
           // the relay window — a saved number alone proves nothing.
-          (!isA5RelayDebug || bounceRelayInTimeRef.current);
+          (!isA5RelayDebug || bounceRelayInTimeRef.current) &&
+          // A5-S: the child's own duet only counts once a run has measured the
+          // second greeting arriving after the first, inside its own band.
+          (!isA5PersonalShip || duetTookTurnsRef.current);
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -830,6 +861,7 @@ export function BlocksStudioPage({
     isA4PersonalShip,
     isA5TurnBuild,
     isA5RelayDebug,
+    isA5PersonalShip,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
@@ -1292,11 +1324,16 @@ export function BlocksStudioPage({
       );
       return;
     }
+    // A5-S: a bounce greeting is always one space (scene-specs A5-S writes
+    // `hop 1`), so the Hop arrives at its smallest value exactly as A2-S/A4-S
+    // seed their route blocks. The number this scene teaches is the Wait, and
+    // that one still comes from the block's own default for the child to tune.
+    const seededN = isA5PersonalShip && op === 'hop' ? TINY_STAR_DUET_HOP_N : n;
     if (drop) {
-      store.insertBlock(op, drop.scriptId, drop.slot, n);
+      store.insertBlock(op, drop.scriptId, drop.slot, seededN);
       return;
     }
-    store.addBlock(op, n);
+    store.addBlock(op, seededN);
   };
   const endPalDrag = (op: BlockOp, n: number | undefined, commit: boolean) => {
     window.clearTimeout(palLP.current);
@@ -1487,7 +1524,7 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip ? ' has-home-picker' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip || isA5PersonalShip ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
       data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
@@ -1738,6 +1775,47 @@ export function BlocksStudioPage({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {isA5PersonalShip && (
+        <div className="bsx-home-picker bsx-cast-picker" data-testid="a5-s-cast-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>⭐🐻🐱</span>
+            <div>
+              <strong>Choose my two friends</strong>
+              <small>The first one greets; the second one waits</small>
+            </div>
+          </div>
+          {(
+            [
+              { slot: 'first', charId: TINY_STAR_DUET_FIRST_ID, actor: duetFirst, label: 'Who greets first' },
+              { slot: 'second', charId: TINY_STAR_DUET_SECOND_ID, actor: duetSecond, label: 'Who waits, then greets' },
+            ] as const
+          ).map((row) => (
+            <div key={row.slot} className="bsx-home-choices" role="group" aria-label={row.label}>
+              {TINY_STAR_DUET_CAST.map((friend) => {
+                const selected = row.actor?.asset === friend.asset;
+                return (
+                  <button
+                    key={friend.id}
+                    type="button"
+                    data-testid={`a5-s-${row.slot}-${friend.id}`}
+                    className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() =>
+                      useBlocksStore
+                        .getState()
+                        .setCharacterIdentity(row.charId, friend.name, friend.emoji, friend.asset)
+                    }
+                  >
+                    <img src={friend.asset} alt="" className="bsx-character-asset-thumb" />
+                    <strong>{friend.name}</strong>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
 

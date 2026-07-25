@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import { type Block, blankProject } from './blocksModel';
 import {
+  TINY_STAR_DUET_CAST,
+  TINY_STAR_DUET_FIRST_GX,
+  TINY_STAR_DUET_FIRST_ID,
+  TINY_STAR_DUET_FIRST_SCRIPT,
+  TINY_STAR_DUET_GREETINGS,
+  TINY_STAR_DUET_GY,
+  TINY_STAR_DUET_HOP_N,
+  TINY_STAR_DUET_SECOND_GX,
+  TINY_STAR_DUET_SECOND_ID,
+  TINY_STAR_DUET_SECOND_SCRIPT,
+} from './tinyStarDuet';
+import {
   TINY_STAR_BOUNCE_MS,
   TINY_STAR_RELAY_BUG_WAIT_N,
   TINY_STAR_RELAY_MAX_GAP_MS,
@@ -888,6 +900,186 @@ describe('storyMissionProgramMatches', () => {
     // off before the first has landed, and the shipped bug really is outside it.
     expect(TINY_STAR_RELAY_MIN_GAP_MS).toBe(TINY_STAR_BOUNCE_MS);
     expect(TINY_STAR_RELAY_BUG_WAIT_N * 100).toBeGreaterThan(TINY_STAR_RELAY_MAX_GAP_MS);
+  });
+
+  // ── A5-S · 我的双人问候 (Personal Ship) ───────────────────────────────────
+  // Nothing here is a fixed answer: the child casts two of the three friends,
+  // decides which of them greets first, builds both hellos and chooses the Wait.
+  // The starter deliberately casts ONE friend into BOTH spots.
+  const duetProject = (options: {
+    first?: (typeof TINY_STAR_DUET_CAST)[number];
+    second?: (typeof TINY_STAR_DUET_CAST)[number];
+    firstBlocks?: Block[];
+    secondBlocks?: Block[];
+  }) => {
+    const first = options.first ?? TINY_STAR_DUET_CAST[0];
+    const second = options.second ?? TINY_STAR_DUET_CAST[1];
+    const project = blankProject('Tiny Star Village · My Two-Friend Greeting');
+    project.lessonId = 'tsv-s1-a5-s';
+    project.pages[0] = {
+      id: 'tsv-a5-s-page',
+      background: 'candy',
+      characters: [
+        {
+          id: TINY_STAR_DUET_FIRST_ID,
+          name: first.name,
+          emoji: first.emoji,
+          asset: first.asset,
+          start: { gx: TINY_STAR_DUET_FIRST_GX, gy: TINY_STAR_DUET_GY, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: TINY_STAR_DUET_FIRST_SCRIPT,
+              blocks: options.firstBlocks ?? [
+                { op: 'when_flag' },
+                { op: 'hop', n: TINY_STAR_DUET_HOP_N },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+        {
+          id: TINY_STAR_DUET_SECOND_ID,
+          name: second.name,
+          emoji: second.emoji,
+          asset: second.asset,
+          start: { gx: TINY_STAR_DUET_SECOND_GX, gy: TINY_STAR_DUET_GY, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: TINY_STAR_DUET_SECOND_SCRIPT,
+              blocks: options.secondBlocks ?? [
+                { op: 'when_flag' },
+                { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+                { op: 'say', text: TINY_STAR_DUET_GREETINGS[1] },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    return project;
+  };
+
+  it('accepts A5-S for any legal cast, order, greeting pair and Wait', () => {
+    // A bounce leading a spoken answer, a spoken lead answered by a bounce, and
+    // a swapped cast are all equally complete: the scene has no single answer.
+    expect(storyMissionProgramMatches(duetProject({}), 'tsv-s1-a5-s')).toBe(true);
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          first: TINY_STAR_DUET_CAST[2],
+          second: TINY_STAR_DUET_CAST[0],
+          firstBlocks: [
+            { op: 'when_flag' },
+            { op: 'say', text: TINY_STAR_DUET_GREETINGS[0] },
+            { op: 'end' },
+          ],
+          secondBlocks: [
+            { op: 'when_flag' },
+            { op: 'wait', n: 9 },
+            { op: 'hop', n: TINY_STAR_DUET_HOP_N },
+            { op: 'end' },
+          ],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(true);
+  });
+
+  it('refuses an A5-S duet that is unbuilt, one-friend or out of band', () => {
+    // The shipped starter: one friend in both spots and two empty chains.
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          first: TINY_STAR_DUET_CAST[0],
+          second: TINY_STAR_DUET_CAST[0],
+          firstBlocks: [{ op: 'when_flag' }, { op: 'end' }],
+          secondBlocks: [{ op: 'when_flag' }, { op: 'end' }],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    // Casting the same friend twice never becomes a duet, however well built.
+    expect(
+      storyMissionProgramMatches(
+        duetProject({ first: TINY_STAR_DUET_CAST[1], second: TINY_STAR_DUET_CAST[1] }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    // No Wait at all is the A5-H collision; a Wait behind the greeting is the
+    // A5-B wrong answer; a bounce answered too late is the A5-D bug.
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          secondBlocks: [
+            { op: 'when_flag' },
+            { op: 'say', text: TINY_STAR_DUET_GREETINGS[1] },
+            { op: 'end' },
+          ],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          secondBlocks: [
+            { op: 'when_flag' },
+            { op: 'say', text: TINY_STAR_DUET_GREETINGS[1] },
+            { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+            { op: 'end' },
+          ],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          secondBlocks: [
+            { op: 'when_flag' },
+            { op: 'wait', n: TINY_STAR_RELAY_BUG_WAIT_N },
+            { op: 'hop', n: TINY_STAR_DUET_HOP_N },
+            { op: 'end' },
+          ],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    // Free-typed dialogue is not one of the preset greetings.
+    expect(
+      storyMissionProgramMatches(
+        duetProject({
+          firstBlocks: [{ op: 'when_flag' }, { op: 'say', text: 'hi there' }, { op: 'end' }],
+        }),
+        'tsv-s1-a5-s',
+      ),
+    ).toBe(false);
+    // A moved friend, a restaged page and a crowded stage all fail.
+    const moved = duetProject({});
+    moved.pages[0].characters[1].start.gx = 9;
+    expect(storyMissionProgramMatches(moved, 'tsv-s1-a5-s')).toBe(false);
+
+    const restaged = duetProject({});
+    restaged.pages[0].background = 'meadow';
+    expect(storyMissionProgramMatches(restaged, 'tsv-s1-a5-s')).toBe(false);
+
+    const crowded = duetProject({});
+    crowded.pages[0].characters.push({
+      id: 'plaza-target',
+      name: 'Plaza Star',
+      emoji: '⭐',
+      start: { gx: 2, gy: 10, size: 0.8, rot: 0 },
+      scripts: [],
+    });
+    expect(storyMissionProgramMatches(crowded, 'tsv-s1-a5-s')).toBe(false);
+
+    // A5-S and the rest of chapter five never satisfy each other.
+    const otherPage = duetProject({});
+    otherPage.pages[0].id = 'tsv-a5-b-page';
+    expect(storyMissionProgramMatches(otherPage, 'tsv-s1-a5-s')).toBe(false);
+    expect(storyMissionProgramMatches(duetProject({}), 'tsv-s1-a5-d')).toBe(false);
+    expect(storyMissionProgramMatches(relayProject(relayChain(5)), 'tsv-s1-a5-s')).toBe(false);
   });
 
   it('does not confuse A1-H and A1-B page identities', () => {

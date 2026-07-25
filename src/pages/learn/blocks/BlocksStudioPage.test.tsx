@@ -1189,6 +1189,121 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   }, 30_000);
 
+  // Tiny Star Village A5-S — chapter five's Personal Ship. The starter casts ONE
+  // friend into BOTH spots and ships two empty chains, so nothing but the
+  // child's own cast, greetings and Wait can complete it.
+  const duetShipProject = () => {
+    const duet = blankProject('Tiny Star Village · My Two-Friend Greeting');
+    duet.lessonId = 'tsv-s1-a5-s';
+    duet.pages[0] = {
+      id: 'tsv-a5-s-page', background: 'candy', characters: [
+        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+      ],
+    };
+    return duet;
+  };
+  const duetBlocks = (index: number) =>
+    useBlocksStore.getState().project.pages[0].characters[index].scripts[0].blocks;
+
+  it('lets A5-S cast two friends, build both hellos and celebrate a run that took turns', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: duetShipProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One friend is standing in both spots — that is not a duet.
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('a5-s-second-tuan-tuan'));
+    expect(screen.getByTestId('a5-s-second-tuan-tuan')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('a5-s-first-lumilo')).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
+      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    });
+    // The cast buttons never insert a block — both chains are still empty.
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
+    expect(duetBlocks(1)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
+
+    // Lumi greets first, out loud. The Say arrives with the block's own 'Hi!',
+    // which is NOT a village greeting, so the child picks a real one.
+    fireEvent.click(screen.getByTestId('cat-looks'));
+    const sayPalette = screen.getByTestId('palette').querySelector('[data-testid="block-say"]');
+    fireEvent.pointerDown(sayPalette!);
+    fireEvent.pointerUp(sayPalette!);
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'say', text: 'Hi!' }, { op: 'end' }]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getAllByTestId('block-say').at(-1)!);
+    const greetings = screen.getByTestId('story-greeting-picker').querySelectorAll('button');
+    fireEvent.click(greetings[0]);
+    expect(duetBlocks(0)).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' },
+    ]);
+
+    // Tuan Tuan waits, then bounces back. The Hop arrives at one space because
+    // the number this scene teaches is the Wait.
+    fireEvent.click(screen.getByTestId('char-thumb-greeter-two'));
+    fireEvent.click(screen.getByTestId('cat-control'));
+    const waitPalette = screen.getByTestId('palette').querySelector('[data-testid="block-wait"]');
+    fireEvent.pointerDown(waitPalette!);
+    fireEvent.pointerUp(waitPalette!);
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(duetBlocks(1)).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Lumi speaks alone before Tuan Tuan answers half a second later.
+    expect(await screen.findByTestId('speech-bubble-greeter-one', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses an A5-S duet in which one friend is cast in both spots', async () => {
+    const duet = duetShipProject();
+    // Both chains are perfectly built — but they belong to the same friend, so
+    // nobody is greeting anybody.
+    duet.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    duet.pages[0].characters[1].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: duet, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-s': expect.anything() }),
+        }),
+      }),
+    );
+
+    // Casting a second friend is the missing piece, and it needs no new block.
+    fireEvent.click(screen.getByTestId('a5-s-second-dot-dot'));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }]);
+  }, 30_000);
+
   // Tiny Star Village A5-D — chapter five's Twist & Debug. Every block is in the
   // right order; only Tuan Tuan's Wait number is wrong. The child must run the
   // too-long pause for real, name the direction of the repair, and may then edit

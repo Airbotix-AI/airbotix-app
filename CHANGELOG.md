@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A5-S — my two-friend greeting)
+
+### Added
+- Tiny Star Village Personal Ship scene A5-S (`tsv-s1-a5-s`, `blocks_tsv_a5_s`, Mission 20), chapter
+  five's Build scaffold and the last scene of the chapter. Four things are genuinely the child's:
+  which two of Lumilo / Tuan Tuan / Dot Dot perform, which of them greets first, what each of them
+  does, and how long the second one waits.
+- `tinyStarDuet.ts` — the A5-S domain: the three-friend cast, the two greeting actions, the Wait
+  band maths, the saved-duet parser and the run measurement. It is its own module because
+  `storyMissionProgress.ts` had reached the umbrella's 1000-line-per-file rule.
+- An A5-S cast picker below the stage. Like the A3-S friend picker and the A4-S delivery picker it
+  only renames and re-skins a stage slot — it never inserts a block.
+
+### Changed
+- The story journey map now offers 20 playable Tiny Star Village scenes; A5-D advances to A5-S and
+  chapter 5 reads "4 scenes ready".
+- The stage slot IS the turn: `greeter-one` greets the moment Go is pressed and `greeter-two` waits
+  first, so "who goes first" is a casting decision and no block ever has to be swapped.
+- Mission completion for A5-S is read from the saved page plus the real run, never a page boolean:
+  two DIFFERENT cast friends on the shipped squares, the first on `Start→<greeting>→End`, the second
+  on `Start→Wait N→<greeting>→End`, a successful server save, and a run in which the interpreter's
+  own `onStep` callback measured the second greeting starting inside the band. The measurement is
+  cleared whenever a runner is built, so an earlier rhythm cannot vouch for this run.
+- Adding a Hop in A5-S seeds it at one space, the way A2-S and A4-S already seed their route blocks.
+  The number this scene teaches is the Wait, and that one keeps the block's own default.
+
+### Notes
+- **The legal Wait depends on what the FIRST friend does**, and the band is derived rather than
+  chosen. Floor: wait until your friend's turn is over — unless that turn outlives every Wait this
+  runtime has, in which case fall back to the 250 ms head start A5-B measured. Ceiling: the stage may
+  not stand empty for longer than that first turn lasted. So a bounce lead allows `wait 4..7`
+  (value-for-value the A5-D relay band, reached here from the action's own 360 ms duration) while a
+  spoken lead allows `wait 3..9`, because a 1400 ms bubble is still on stage the whole time and there
+  is nothing to stand empty against. The same number can be right behind one greeting and wrong
+  behind the other — which is the chapter's whole point.
+- **`pop` is not offered, and that is a recorded decision.** scene-specs A5-S lists it, but `pop` is
+  `legacy: true` in `BLOCK_DEFS` and appears in no child-facing palette. Offering it would have meant
+  either un-legacying a block for every project in the product or adding a button that inserts a
+  block on the child's behalf, which the A4-S scaffold boundary forbids. A5-S ships the two greeting
+  actions this runtime actually lets a child build; no new op was added to the season's whitelist.
+- The starter casts ONE friend into BOTH spots and ships two empty chains, so it cannot complete
+  itself — the same device as A4-S's delivery stop parked on top of the cart.
+
 ## 2026-07-25 (feat: Tiny Star Village A5-D — that wait was too long)
 
 ### Added

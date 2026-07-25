@@ -1026,6 +1026,42 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     logicSteps: [{ icon: '▶️', label: 'Run Wait 9', order: 'Observe' }, { icon: '➖', label: 'Choose less', order: 'Predict' }, { icon: '⏱', label: 'Just-right wait', order: 'Repair' }], logicWhy: 'A bounce takes about as long as Wait 4. Wait 9 leaves the stage empty for a whole extra bounce, and Wait 1 makes both friends bounce at once.',
     completionTitle: 'A just-right morning bounce! ⭐🐻', completion: 'You watched the too-long wait, changed only its number, saved it, and reran the real bounces.', completionSteps: [{ icon: '9️⃣', label: 'Too long', order: 'See' }, { icon: '⏱', label: 'Number', order: 'Fix' }, { icon: '⭐→🐻', label: 'In time', order: 'Run' }], completionWhy: 'The server-saved Start → Wait → Hop 1 → End chain kept every block in place beside Lumilo’s untouched bounce, and the run measured Tuan Tuan lifting off after Lumi landed but before the stage had stood still for another bounce.', next: 'Next, both friends will be yours to choose in your own two-friend greeting.',
   },
+  // Tiny Star Village S1/A5-S — chapter five's Personal Ship (scene-specs A5-S,
+  // teaching script §7.7 "我的双人问候"). Four things are genuinely the child's:
+  // which two friends perform, which of them greets first, what each of them
+  // does, and how long the second one waits. The starter casts ONE friend into
+  // both spots and ships two empty chains, so it cannot complete itself.
+  'tsv-s1-a5-s': {
+    mode: 'personal-ship', lessonId: 'tsv-s1-a5-s', celebrate: true,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 20', title: 'My two-friend greeting',
+    storyPages: [
+      { emoji: '⭐⭐', title: 'Two Lumis? That is not a duet', body: 'The greeting stage is set, but the same friend is standing in both spots. Choose two different friends: Lumi, Tuan Tuan or Dot Dot.', speaker: 'Lumilo', dialogue: 'A duet needs two of us!', scene: 1 },
+      { emoji: '1️⃣2️⃣', title: 'You decide who goes first', body: 'The friend on the left greets the moment you press Go. The friend on the right waits first, so whoever you put on the left is the one who starts.', speaker: 'Dot Dot', dialogue: 'Put me first and I will start the morning.', scene: 3 },
+      { emoji: '💬🦘⏱', title: 'Build both hellos', body: 'Give the first friend a Say or a Hop. Give the second friend a Wait and then a Say or a Hop. Press Go and watch: can a grown-up tell who greeted first?', speaker: 'Lumilo', dialogue: 'Not together, and not too late.', scene: 5, blocks: ['🚩 Start → 💬 Say', '🚩 Start → ⏱ Wait → 🦘 Hop'] },
+    ],
+    partnerLine: 'Every child’s duet is different, so there is no single right answer — only a greeting a grown-up can follow.',
+    mission: 'Cast two different friends, build one greeting for each, and set the Wait so the second friend clearly comes after the first.',
+    question: 'Who will greet your village first?', choices: [],
+    retry: 'Check three things: two DIFFERENT friends, a greeting for each, and a Wait long enough to hear who started.',
+    successTitle: 'Your friends took turns!', success: 'The run really did put one greeting before the other.',
+    fixTitle: 'Design my duet', fixPrompt: 'Close this card, cast your two friends below the stage, then build a chain for each of them.',
+    workspaceIntro: 'The friend buttons only change who is standing there — they never add a block. Both chains are yours to build.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Cast two different friends, then build a greeting for each.', watch: 'Watch which friend goes first.',
+      sayFirst: 'That hello came first.', sayThen: 'That hello came after the wait.',
+      hopFirst: 'That bounce came first.', hopThen: 'That bounce came after the wait.',
+      retry: 'Two different friends, one greeting each, and a Wait in between.', fix: 'Add a Wait to the second friend, then their greeting.',
+      test: 'Both chains are ready. Press Go!', saving: 'They took turns. Saving your duet…',
+      complete: 'Your saved duet greets the village one friend at a time!',
+    },
+    logicSteps: [{ icon: '⭐🐻', label: 'My two friends', order: 'Mine' }, { icon: '1️⃣', label: 'Who first', order: 'Mine' }, { icon: '⏱', label: 'How long', order: 'Mine' }],
+    logicWhy: 'The second friend starts as late as their Wait says, so the Wait is what turns two greetings into a turn-taking duet.',
+    completionTitle: 'Chapter 5 complete! ⭐🐻🐱', completion: 'You cast your two friends, decided who greets first, built both hellos, and chose the wait that keeps them apart.',
+    completionSteps: [{ icon: '⭐🐻', label: 'My cast', order: '1' }, { icon: '💬', label: 'My hellos', order: '2' }, { icon: '⏱', label: 'My wait', order: '3' }, { icon: '👂', label: 'Took turns', order: '4' }],
+    completionWhy: 'The server-saved project holds two different friends, a greeting for each and your own Wait, and the run measured the second greeting starting after the first without leaving the stage empty.',
+    next: 'A clear greeting makes three footprints glow on the Bell Tower path — but the middle one keeps flickering. Chapter 6 is next.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

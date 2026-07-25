@@ -1,4 +1,12 @@
 import type { Block, BlocksProject, Character } from './blocksModel';
+import {
+  TINY_STAR_DUET_GREETINGS,
+  TINY_STAR_DUET_HOP_N,
+  TINY_STAR_DUET_SECOND_GX,
+  TINY_STAR_DUET_SECOND_ID,
+  TINY_STAR_DUET_SECOND_SCRIPT,
+  tinyStarDuetDesign,
+} from './tinyStarDuet';
 
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
@@ -404,6 +412,29 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       { op: 'when_flag' },
       { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
       { op: 'hop', n: 1 },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-S — chapter five's Personal Ship (scene-specs A5-S).
+  // NOTHING here is a fixed answer: the child casts two of the three friends,
+  // decides which of them greets first, picks each friend's greeting and chooses
+  // how long the second one waits. The bespoke branch below hands the whole page
+  // to `tinyStarDuetDesign`; the fields here name the waiting half for shared
+  // tooling (script lookup, the Say preset picker) and `target` records one legal
+  // example. `asset` is the starter's — which casts ONE friend into BOTH slots,
+  // so the starter is not a legal duet and cannot complete itself.
+  'tsv-s1-a5-s': {
+    pageId: 'tsv-a5-s-page',
+    background: 'candy',
+    characterId: TINY_STAR_DUET_SECOND_ID,
+    scriptId: TINY_STAR_DUET_SECOND_SCRIPT,
+    asset: LUMILO_ASSET,
+    start: { gx: TINY_STAR_DUET_SECOND_GX, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    allowedSayText: TINY_STAR_DUET_GREETINGS,
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'hop', n: TINY_STAR_DUET_HOP_N },
       { op: 'end' },
     ],
   },
@@ -881,6 +912,15 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       hop.n === 1 &&
       blocks[3]?.op === 'end'
     );
+  }
+
+  if (lessonId === 'tsv-s1-a5-s') {
+    // Personal Ship: the cast, the running order, both greetings and the length
+    // of the pause are all the child's, so there is no exact target — the whole
+    // page is handed to the duet parser, which rejects a one-friend duet, an
+    // unbuilt or over-built chain, a Wait outside the band the first friend's
+    // action allows, a moved friend and any greeting that is not a preset.
+    return project.lessonId === lessonId && tinyStarDuetDesign(page) !== null;
   }
 
   if (lessonId === 'jtw-s1-c1-p5') {

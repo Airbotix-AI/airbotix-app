@@ -92,6 +92,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
       { template: 'blocks_tsv_a5_h', lessonId: 'tsv-s1-a5-h', number: 17, title: 'Who is speaking?', action: 'Try' },
       { template: 'blocks_tsv_a5_b', lessonId: 'tsv-s1-a5-b', number: 18, title: 'Wait a moment', action: 'Build' },
       { template: 'blocks_tsv_a5_d', lessonId: 'tsv-s1-a5-d', number: 19, title: 'That wait was too long', action: 'Fix' },
+      { template: 'blocks_tsv_a5_s', lessonId: 'tsv-s1-a5-s', number: 20, title: 'My two-friend greeting', action: 'Make mine' },
     ],
   },
   {

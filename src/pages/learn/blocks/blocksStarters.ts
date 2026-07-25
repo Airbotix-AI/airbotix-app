@@ -128,4 +128,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 19',
     desc: 'The good morning is a bounce now, but Tuan Tuan’s hourglass is set to 9. Run the long empty pause, then lower only that number until the two bounces answer each other.',
   },
+  {
+    id: 'blocks_tsv_a5_s',
+    emoji: '⭐🐻',
+    title: 'Tiny Star Village · Mission 20',
+    desc: 'One friend is standing in both spots. Cast two of Lumi, Tuan Tuan and Dot Dot, decide who greets first, give each of them a hello, and choose how long the second one waits.',
+  },
 ];
