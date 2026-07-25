@@ -64,13 +64,15 @@ describe('AcademyProductDetailPage', () => {
       '/portal/academy/checkout/naplan-y3-numeracy',
     )
     expect(screen.getByRole('img', { name: '6 cars with 3 people in each' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Airo Tutor demo')).toHaveTextContent('Choose an answer first')
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
+      'Six cars means 6 equal groups',
+    )
 
     fireEvent.click(screen.getByRole('button', { name: '18' }))
     fireEvent.click(screen.getByRole('button', { name: 'Check answer' }))
 
     expect(screen.getByText('Correct — 6 × 3 = 18.')).toBeInTheDocument()
-    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('Six cars means 6 equal groups')
+    expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent('6 × 3 = 18 people')
     expect(screen.getByText(/does not expose a paid question/i)).toBeInTheDocument()
   })
 })

@@ -178,15 +178,13 @@ describe('AcademyPracticePage', () => {
     );
   });
 
-  it('unlocks the real Airo Tutor only after an attempt and shows its explanation', async () => {
+  it('automatically shows the real Airo Tutor explanation after an attempt', async () => {
     wireApi([TEXT_CHOICE_Q], { is_correct: false, correct_answer: 'B' });
     renderPage();
 
     expect(await screen.findByTestId('academy-tutor')).toHaveTextContent('Have a go first');
-    expect(screen.queryByTestId('academy-ask-tutor')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('academy-option-A'));
-    fireEvent.click(await screen.findByTestId('academy-ask-tutor'));
 
     expect(await screen.findByTestId('academy-tutor-explanation')).toHaveTextContent(
       'Ten groups of 19 cents',
