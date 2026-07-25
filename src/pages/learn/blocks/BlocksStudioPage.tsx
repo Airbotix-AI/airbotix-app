@@ -87,12 +87,17 @@ import {
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
+  TINY_STAR_BELL_CAST,
   TINY_STAR_BELL_MISSING_CARD_ID,
   TINY_STAR_BELL_RINGER_ID,
+  TINY_STAR_BELL_RINGER_IDS,
   TINY_STAR_BELL_TOWER_GX,
+  TINY_STAR_FINALE_RINGER_ID,
   tinyStarBellRangAfterHop,
   tinyStarBellRangBeforeHop,
   tinyStarBellRangWithoutHop,
+  tinyStarFinaleDesign,
+  tinyStarFinaleEndedAfterBell,
 } from './tinyStarBellTower';
 import {
   TINY_STAR_DUET_CAST,
@@ -340,6 +345,14 @@ export function BlocksStudioPage({
   // A6-B and A6-D end in the same place: the run itself must have played the hop
   // before the bell, with the ringer standing at the foot of the tower.
   const needsBellOrderRun = isA6StepBuild || isA6OrderDebug;
+  // A6-S Personal Ship, and the last scene of the season: the three-step core is
+  // settled and ships built, so what is the child's is WHO rings the bell and
+  // what the village does once the morning light is back. Nothing on the page is
+  // a fixed answer, so the contract is read from the saved page itself.
+  const isA6Finale = storyMission?.lessonId === 'tsv-s1-a6-s';
+  const finaleRinger = page.characters.find(
+    (character) => character.id === TINY_STAR_FINALE_RINGER_ID,
+  );
   const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
   const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
   const deliveryStop = page.characters.find(
@@ -756,7 +769,9 @@ export function BlocksStudioPage({
           .flatMap((character) => character.scripts)
           .find((candidate) => candidate.id === scriptId);
         const op = index >= 0 ? script?.blocks[index]?.op : undefined;
-        if (op && stepCharId === TINY_STAR_BELL_RINGER_ID) bellPlayedOpsRef.current.push(op);
+        if (op && TINY_STAR_BELL_RINGER_IDS.includes(stepCharId)) {
+          bellPlayedOpsRef.current.push(op);
+        }
         if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
           bounceStartedAt.set(stepCharId, Date.now());
           bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
@@ -814,6 +829,9 @@ export function BlocksStudioPage({
         const deliveryStopGx = page.characters.find(
           (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
         )?.start.gx;
+        // A6-S has no fixed ending either: which op has to play last is read
+        // from the finale the child built on the page they just ran.
+        const finaleDesign = tinyStarFinaleDesign(page);
         const reachedMissionTarget =
           (!requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx) &&
           (!(isA4ParameterBuild || isA4ParameterDebug) ||
@@ -834,7 +852,14 @@ export function BlocksStudioPage({
           // the hop BEFORE the bell and left the ringer standing at the tower.
           (!needsBellOrderRun ||
             (tinyStarBellRangAfterHop(bellPlayedOpsRef.current) &&
-              runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX));
+              runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX)) &&
+          // A6-S: the season's own ending only counts once a run walked, hopped,
+          // rang, and THEN played the ending the child chose — with their ringer
+          // standing at the foot of the tower.
+          (!isA6Finale ||
+            (finaleDesign !== null &&
+              tinyStarFinaleEndedAfterBell(bellPlayedOpsRef.current, finaleDesign.ending) &&
+              runner.state(TINY_STAR_FINALE_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX));
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -938,13 +963,14 @@ export function BlocksStudioPage({
     isA5RelayDebug,
     isA5PersonalShip,
     isA6OrderDebug,
+    isA6Finale,
     needsBellOrderRun,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
     answeredCorrectly,
-    page.characters,
+    page,
   ]);
 
   const answerStoryMission = useCallback(
@@ -1627,7 +1653,7 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip || isA5PersonalShip ? ' has-home-picker' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip || isA5PersonalShip || isA6Finale ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
       data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
@@ -1919,6 +1945,45 @@ export function BlocksStudioPage({
               })}
             </div>
           ))}
+        </div>
+      )}
+
+      {isA6Finale && (
+        <div className="bsx-home-picker bsx-cast-picker" data-testid="a6-s-cast-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>🔔</span>
+            <div>
+              <strong>Who rings the bell?</strong>
+              <small>Choose the friend who brings the morning light back</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Who rings the bell">
+            {TINY_STAR_BELL_CAST.map((friend) => {
+              const selected = finaleRinger?.asset === friend.asset;
+              return (
+                <button
+                  key={friend.id}
+                  type="button"
+                  data-testid={`a6-s-ringer-${friend.id}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setCharacterIdentity(
+                        TINY_STAR_FINALE_RINGER_ID,
+                        friend.name,
+                        friend.emoji,
+                        friend.asset,
+                      )
+                  }
+                >
+                  <img src={friend.asset} alt="" className="bsx-character-asset-thumb" />
+                  <strong>{friend.name}</strong>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

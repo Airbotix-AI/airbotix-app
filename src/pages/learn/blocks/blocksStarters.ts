@@ -152,4 +152,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 23',
     desc: 'All three cards are here, but the bell is first — it rings before Lumi has walked or jumped. Run it, then drag only the Pop to the end.',
   },
+  {
+    id: 'blocks_tsv_a6_s',
+    emoji: '🌅',
+    title: 'Tiny Star Village · Mission 24',
+    desc: 'The Bell Tower route is ready and nobody is standing there. Choose who rings it, add one ending after the bell, and finish your morning-light story.',
+  },
 ];

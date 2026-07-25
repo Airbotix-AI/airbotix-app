@@ -1503,6 +1503,173 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a6-d')).toBe(false);
   });
 
+  // ── A6-S · 我的晨光结局 (Personal Ship, and the season's last scene) ────────
+  // The three-step core ships built and settled; the child chooses who rings the
+  // bell and what happens once the morning light is back. The run-time half
+  // ("this run rang, then played my ending") lives in `tinyStarBellTower.test.ts`
+  // and `BlocksStudioPage.test.tsx`.
+  const bellFinaleProject = (
+    options: {
+      ending?: Block | null;
+      cast?: { name: string; emoji: string; asset: string } | null;
+    } = {},
+  ) => {
+    const cast = options.cast === undefined ? TINY_STAR_DUET_CAST[2] : options.cast;
+    const ending =
+      options.ending === undefined ? ({ op: 'say', text: 'We did it!' } as Block) : options.ending;
+    const project = bellHookProject();
+    project.lessonId = 'tsv-s1-a6-s';
+    project.pages[0].id = 'tsv-a6-s-page';
+    const blocks: Block[] = [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 3 },
+      { op: 'hop', n: 1 },
+      { op: 'pop' },
+      { op: 'end' },
+    ];
+    if (ending) blocks.splice(4, 0, ending);
+    project.pages[0].characters[0] = {
+      id: 'bell-ringer',
+      name: cast ? cast.name : 'Who will ring it?',
+      emoji: cast ? cast.emoji : '❓',
+      asset: cast ? cast.asset : undefined,
+      start: { gx: 5, gy: 10, size: 1, rot: 0 },
+      scripts: [{ id: 'bell-ringer-finale', blocks }],
+    };
+    return project;
+  };
+
+  it('accepts A6-S once a friend rings the bell and the child owns the ending', () => {
+    expect(storyMissionProgramMatches(bellFinaleProject(), 'tsv-s1-a6-s')).toBe(true);
+    // Every cast member and every ending the scene offers really completes it.
+    for (const friend of TINY_STAR_DUET_CAST) {
+      expect(storyMissionProgramMatches(bellFinaleProject({ cast: friend }), 'tsv-s1-a6-s')).toBe(
+        true,
+      );
+      expect(
+        storyMissionProgramMatches(
+          bellFinaleProject({ cast: friend, ending: { op: 'hop', n: 2 } }),
+          'tsv-s1-a6-s',
+        ),
+      ).toBe(true);
+      expect(
+        storyMissionProgramMatches(
+          bellFinaleProject({ cast: friend, ending: { op: 'grow', n: 2 } }),
+          'tsv-s1-a6-s',
+        ),
+      ).toBe(true);
+    }
+
+    // The shipped starter: the route runs, but nobody is standing there and the
+    // morning has no ending — neither of the child's decisions can be inherited.
+    expect(
+      storyMissionProgramMatches(bellFinaleProject({ cast: null, ending: null }), 'tsv-s1-a6-s'),
+    ).toBe(false);
+    expect(storyMissionProgramMatches(bellFinaleProject({ cast: null }), 'tsv-s1-a6-s')).toBe(false);
+    expect(storyMissionProgramMatches(bellFinaleProject({ ending: null }), 'tsv-s1-a6-s')).toBe(
+      false,
+    );
+    // Free-typed words are not one of teaching script §8.7's short endings.
+    expect(
+      storyMissionProgramMatches(
+        bellFinaleProject({ ending: { op: 'say', text: 'Hi!' } }),
+        'tsv-s1-a6-s',
+      ),
+    ).toBe(false);
+    // Chapter five's timing model is not chapter six's ending.
+    expect(
+      storyMissionProgramMatches(bellFinaleProject({ ending: { op: 'wait', n: 5 } }), 'tsv-s1-a6-s'),
+    ).toBe(false);
+    // Bigger than the Age A band §1.2 allows.
+    expect(
+      storyMissionProgramMatches(bellFinaleProject({ ending: { op: 'grow', n: 5 } }), 'tsv-s1-a6-s'),
+    ).toBe(false);
+  });
+
+  it('keeps A6-S’s settled core and its stage out of the child’s reach', () => {
+    // The ending belongs after the bell: before it, the last word happens while
+    // the morning light is still missing.
+    const early = bellFinaleProject({ ending: null });
+    early.pages[0].characters[0].scripts[0].blocks.splice(3, 0, {
+      op: 'say',
+      text: 'We did it!',
+    } as Block);
+    expect(storyMissionProgramMatches(early, 'tsv-s1-a6-s')).toBe(false);
+
+    const doubled = bellFinaleProject();
+    doubled.pages[0].characters[0].scripts[0].blocks.splice(5, 0, { op: 'hop', n: 1 } as Block);
+    expect(storyMissionProgramMatches(doubled, 'tsv-s1-a6-s')).toBe(false);
+
+    // A6-D's own bug, brought back into the finale.
+    const bellFirst = bellFinaleProject({ ending: null });
+    bellFirst.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' },
+      { op: 'pop' },
+      { op: 'move_right', n: 3 },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: 'We did it!' },
+      { op: 'end' },
+    ] as Block[];
+    expect(storyMissionProgramMatches(bellFirst, 'tsv-s1-a6-s')).toBe(false);
+
+    const retuned = bellFinaleProject({ ending: null });
+    retuned.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 2 },
+      { op: 'hop', n: 1 },
+      { op: 'pop' },
+      { op: 'say', text: 'We did it!' },
+      { op: 'end' },
+    ] as Block[];
+    expect(storyMissionProgramMatches(retuned, 'tsv-s1-a6-s')).toBe(false);
+
+    const walked = bellFinaleProject();
+    walked.pages[0].characters[0].start.gx = 8;
+    expect(storyMissionProgramMatches(walked, 'tsv-s1-a6-s')).toBe(false);
+
+    const draggedTower = bellFinaleProject();
+    draggedTower.pages[0].characters[1].start.gy = 10;
+    expect(storyMissionProgramMatches(draggedTower, 'tsv-s1-a6-s')).toBe(false);
+
+    const scriptedTower = bellFinaleProject();
+    scriptedTower.pages[0].characters[1].scripts.push({
+      id: 'bell-tower-tap',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(scriptedTower, 'tsv-s1-a6-s')).toBe(false);
+
+    const restaged = bellFinaleProject();
+    restaged.pages[0].background = 'candy';
+    expect(storyMissionProgramMatches(restaged, 'tsv-s1-a6-s')).toBe(false);
+
+    const crowded = bellFinaleProject();
+    crowded.pages[0].characters.push({
+      id: 'extra-friend',
+      name: 'Tuan Tuan',
+      emoji: '🐻',
+      start: { gx: 2, gy: 10, size: 1, rot: 0 },
+      scripts: [],
+    });
+    expect(storyMissionProgramMatches(crowded, 'tsv-s1-a6-s')).toBe(false);
+
+    const secondScript = bellFinaleProject();
+    secondScript.pages[0].characters[0].scripts.push({
+      id: 'bell-ringer-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(secondScript, 'tsv-s1-a6-s')).toBe(false);
+
+    // Chapter six's four scenes never satisfy each other.
+    const fixPage = bellFinaleProject();
+    fixPage.pages[0].id = 'tsv-a6-d-page';
+    expect(storyMissionProgramMatches(fixPage, 'tsv-s1-a6-s')).toBe(false);
+    expect(storyMissionProgramMatches(bellFinaleProject(), 'tsv-s1-a6-b')).toBe(false);
+    expect(storyMissionProgramMatches(bellFinaleProject(), 'tsv-s1-a6-d')).toBe(false);
+    expect(storyMissionProgramMatches(bellFinaleProject(), 'tsv-s1-a6-h')).toBe(false);
+    expect(storyMissionProgramMatches(bellFixProject(), 'tsv-s1-a6-s')).toBe(false);
+    expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a6-s')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

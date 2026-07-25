@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
+
+### Added
+- Tiny Star Village Personal Ship scene A6-S (`tsv-s1-a6-s`, `blocks_tsv_a6_s`, Mission 24), chapter
+  six's Build scaffold and the LAST scene of the season. The three-step core ships built and settled;
+  nobody is cast as the ringer and there is no ending, so the two things the child owns are WHO rings
+  the bell and what the village does once the morning light is back.
+- `tinyStarFinaleDesign` / `tinyStarFinaleEndingOf` / `tinyStarFinaleEndedAfterBell` in
+  `tinyStarBellTower.ts` — the saved contract for a finished finale, the ending parser, and the run
+  measurement that proves this run walked, hopped, rang and THEN played the child's own ending.
+- `TINY_STAR_BELL_CAST` (A5-S's `TINY_STAR_DUET_CAST`, imported rather than restated),
+  `TINY_STAR_FINALE_LINES` (teaching script §8.7's three very short endings) and
+  `TINY_STAR_FINALE_ENDING_INDEX`, DERIVED from `TINY_STAR_BELL_BUILD_ROUTE` as the index the
+  terminal `end` occupied — which is exactly where a palette tap lands a block.
+- An A6-S ringer picker in `BlocksStudioPage`, alongside A4-S's delivery picker and A5-S's cast
+  picker. Like both of them it only renames and re-skins a slot; it never inserts a block.
+
+### Changed
+- `BlocksStudioPage` gained `isA6Finale`, and chapter six's ordered `onStep` op record now follows
+  `TINY_STAR_BELL_RINGER_IDS` (the shipped ringer plus the finale's cast slot) instead of one id.
+- `storyJourneyCatalog` carries all 24 Tiny Star Village missions: A6-D now has a next scene, and
+  A6-S has none — it is the end of the season.
+
+### Notes
+- **The starter cannot complete itself.** Its core is literally the route A6-D repairs, so it runs
+  perfectly — but the ringer slot is a nameless `❓` with no formal asset (matching no cast friend)
+  and there is no ending block anywhere on the page.
+- **Neither decision can be inherited.** A Say arrives with the editor's own "Hi!", which is not one
+  of the village's endings, so a preset must actually be chosen.
+- **The ending's number is a band (1–3), not one answer**, and the block's own default of 2 is inside
+  it. The size of a flourish is expressive, not a teaching point ("不引入新教学目标"); A4-S's number
+  stayed exact because there the number WAS the lesson.
+- **No drag is required, and that is deliberate** — the season's last mission is about choosing, not
+  placing. An ending placed before the bell, or dragged past the `end`, still does not complete.
+- **The four A6 scenes cannot impersonate each other**: A6-S's ringer is its own slot on its own
+  script id (`bell-ringer-finale`), asserted in both directions.
+- **Nothing was invented**: the `sunset` stage, the ringer square and the script-less `⭐` Bell Tower
+  proxy are A6-H's, unchanged; the page holds exactly two characters (§1.2); `pop` stays
+  `legacy: true` and out of every child-facing palette and is not offered as an ending (the bell the
+  story needs already ships inside the fixed core); no `wait` appears — chapter A6 is about order.
+- `storyMissionProgress.ts` is now 999 lines against the umbrella's 1000-line rule; extract before
+  adding to it again.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
 
 ### Added
