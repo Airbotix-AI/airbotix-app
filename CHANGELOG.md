@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A5-D — that wait was too long)
+
+### Added
+- Tiny Star Village Twist & Debug scene A5-D (`tsv-s1-a5-d`, `blocks_tsv_a5_d`, Mission 19), chapter
+  five's Fix scaffold. The good morning is a bounce relay now, and Tuan Tuan's hourglass is turned
+  all the way up to 9 — every block is in the right place and only the number is wrong.
+
+### Changed
+- The story journey map now offers 19 playable Tiny Star Village scenes; A5-B advances to A5-D.
+- Mission completion for A5-D combines the saved chain with a measurement of the real run: Lumilo
+  must still hold the untouched `Start→Hop 1→End`, Tuan Tuan must hold `Start→Wait N→Hop 1→End`
+  with `N` in the just-right band, and the interpreter must have recorded Tuan Tuan's first hop
+  between one and two bounces after Lumilo's. The timestamps come from the runner's `onStep` host
+  callback and are re-judged every run.
+- A5-D unlocks in the same order A4-D does: the child runs the bug, answers "Less" (choosing "More"
+  changes nothing), and only then can tap the Wait. Every other block refuses to open an editor, and
+  dragging, palette taps and palette drops are disabled, so blocks cannot be added, moved or deleted
+  and Lumilo cannot be edited.
+
+### Notes
+- The scene deliberately uses a bounce rather than two Says. Measured against the shipped runtime:
+  `hop 1` lasts `2 * STEP_MS = 360 ms`, `say` holds a bubble for `SAY_MS = 1400 ms`, `wait n` sleeps
+  `n * 100 ms` and `MAX_PARAM` caps Wait at 900 ms. With two Says no legal Wait is ever "too long"
+  (the bubbles always overlap) and the spec's `wait 20` is clamped to 9, whereas a bounce is short
+  enough for a 900 ms wait to leave a visibly empty stage.
+- Several numbers are correct on purpose (`wait 4..7`): the chapter asks the child to find a
+  just-right wait, not to believe bigger is better. `wait 8` leaves a whole extra bounce of silence,
+  `wait 1..3` makes Tuan Tuan jump before Lumilo lands, and both are rejected — as are a deleted or
+  reordered block, a duplicated Wait, a `hop 2`, a Say in place of the bounce, an edited Lumilo, a
+  second track, a moved friend and a changed stage.
+
 ## 2026-07-25 (feat: Tiny Star Village A5-B — wait a moment)
 
 ### Added

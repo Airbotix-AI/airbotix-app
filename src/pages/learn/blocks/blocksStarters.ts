@@ -122,4 +122,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 18',
     desc: 'Tuan Tuan wants to go second. Add one Wait block before Tuan Tuan’s Say so Lumi can start the morning alone.',
   },
+  {
+    id: 'blocks_tsv_a5_d',
+    emoji: '⏳',
+    title: 'Tiny Star Village · Mission 19',
+    desc: 'The good morning is a bounce now, but Tuan Tuan’s hourglass is set to 9. Run the long empty pause, then lower only that number until the two bounces answer each other.',
+  },
 ];

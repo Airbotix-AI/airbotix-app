@@ -1000,7 +1000,31 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionTitle: 'They took turns! ⭐🐻', completion: 'You gave Tuan Tuan a Wait, saved it, and the real run let Lumi start first.',
     completionSteps: [{ icon: '⏱', label: 'Wait added', order: 'Build' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '⭐→🐻', label: 'Lumi first', order: 'Run' }],
     completionWhy: 'The server-saved Start → Wait → Say → End chain ran beside Lumilo’s untouched greeting, and the run measured Tuan Tuan’s bubble opening after Lumi’s.',
-    next: 'Next, a Wait that is far too long pulls the two good mornings apart again.',
+    next: 'Next, the friends turn their good morning into a bounce — and Tuan Tuan’s hourglass is turned up far too high.',
+  },
+  // Tiny Star Village S1/A5-D — chapter five's Twist & Debug (scene-specs A5-D,
+  // teaching script §7.6 "团团等到早餐都凉了"). The greeting became a bounce on
+  // purpose: a speech bubble lives 1400 ms and the longest Wait this runtime can
+  // express is 900 ms, so two Says can never be pulled apart, while a 360 ms
+  // bounce can. Every block is already in the right order — only the number is
+  // wrong, and several numbers are right, which is the whole Checkpoint B point.
+  'tsv-s1-a5-d': {
+    mode: 'observe-fix', lessonId: 'tsv-s1-a5-d', celebrate: true,
+    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 19', title: 'That wait was too long!',
+    storyPages: [
+      { emoji: '⭐🦘🐻', title: 'A bouncing good morning', body: 'Taking turns worked so well that Lumi and Tuan Tuan now say good morning with a bounce. Lumi bounces first, then Tuan Tuan bounces back.', speaker: 'Lumilo', dialogue: 'You can SEE a bounce take its turn.', scene: 1 },
+      { emoji: '⏱9️⃣', title: 'The hourglass is turned up too high', body: 'Tuan Tuan’s Wait is set to 9. Press Go and watch: Lumi bounces, lands, and then nothing happens for a long, empty moment.', speaker: 'Tuan Tuan', dialogue: 'Was I supposed to go already?', scene: 3, blocks: ['🚩 Start', '⏱ Wait 9 → 🦘 Hop 1 → End'] },
+      { emoji: '9️⃣➖', title: 'Find a just-right wait', body: 'Do not move any block. Tap the number on Wait and make it smaller, until Tuan Tuan bounces back right after Lumi lands.', speaker: 'Lumilo', dialogue: 'Not together, and not too late.', scene: 5 },
+    ],
+    partnerLine: 'A wait that is too long is just as hard to follow as no wait at all.',
+    mission: 'Press Go first. After the long empty pause, choose less and make the Wait number smaller until the two bounces answer each other.',
+    question: 'Tuan Tuan bounced back long after Lumi landed. Does the hourglass need more or less?', choices: [{ id: 'more', label: 'More', correct: false }, { id: 'less', label: 'Less', correct: true }],
+    retry: 'Run Wait 9 first and watch the empty stage between the two bounces.', successTitle: 'You heard the gap!', success: 'Nine was far too long, so the waiting number needs less.',
+    fixTitle: 'Retune the hourglass', fixPrompt: 'Keep every block where it is. Tap the number on Wait and lower it until the bounces answer each other.', workspaceIntro: 'Run the bug first. Then only Tuan Tuan’s Wait number can change — no block may be added, moved or removed.', fixChoices: [], fixRetry: '',
+    coach: { ready: 'Press Go and watch the long pause after Lumi lands.', watch: 'Count the empty moment between the two bounces.', sayFirst: 'This morning is bounces, not words.', sayThen: 'This morning is bounces, not words.', hopFirst: 'Lumi bounces first.', hopThen: 'Tuan Tuan bounces after the wait.', retry: 'Too big leaves a hole; too small makes them bounce together.', fix: 'Now tap the 9 on Wait and make it smaller.', test: 'Saved? Press Go and watch the two bounces.', saving: 'The bounces answered each other. Saving the repair…', complete: 'You found a just-right wait!' },
+    logicSteps: [{ icon: '▶️', label: 'Run Wait 9', order: 'Observe' }, { icon: '➖', label: 'Choose less', order: 'Predict' }, { icon: '⏱', label: 'Just-right wait', order: 'Repair' }], logicWhy: 'A bounce takes about as long as Wait 4. Wait 9 leaves the stage empty for a whole extra bounce, and Wait 1 makes both friends bounce at once.',
+    completionTitle: 'A just-right morning bounce! ⭐🐻', completion: 'You watched the too-long wait, changed only its number, saved it, and reran the real bounces.', completionSteps: [{ icon: '9️⃣', label: 'Too long', order: 'See' }, { icon: '⏱', label: 'Number', order: 'Fix' }, { icon: '⭐→🐻', label: 'In time', order: 'Run' }], completionWhy: 'The server-saved Start → Wait → Hop 1 → End chain kept every block in place beside Lumilo’s untouched bounce, and the run measured Tuan Tuan lifting off after Lumi landed but before the stage had stood still for another bounce.', next: 'Next, both friends will be yours to choose in your own two-friend greeting.',
   },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks

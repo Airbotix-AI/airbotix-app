@@ -1189,6 +1189,99 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   }, 30_000);
 
+  // Tiny Star Village A5-D — chapter five's Twist & Debug. Every block is in the
+  // right order; only Tuan Tuan's Wait number is wrong. The child must run the
+  // too-long pause for real, name the direction of the repair, and may then edit
+  // that one number — nothing else on the page is editable.
+  const relayDebugProject = () => {
+    const relay = blankProject('Tiny Star Village · That Wait Was Too Long');
+    relay.lessonId = 'tsv-s1-a5-d';
+    relay.pages[0] = {
+      id: 'tsv-a5-d-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+      ],
+    };
+    return relay;
+  };
+  const tuanTuanRelay = () =>
+    useBlocksStore.getState().project.pages[0].characters[1].scripts[0].blocks;
+
+  it('makes A5-D run the too-long Wait before its number can be retuned', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: relayDebugProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('char-thumb-tuan-tuan'));
+    // Before the bug has been watched, the hourglass will not open.
+    fireEvent.click(screen.getAllByTestId('block-wait').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One real Go: Lumilo bounces, lands, and the stage stands empty for the
+    // rest of the 900 ms before Tuan Tuan answers.
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    // Guessing "more" does not open the repair.
+    fireEvent.click(screen.getByTestId('story-choice-more'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-less'));
+    expect(await screen.findByTestId('story-fix-task')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Only the Wait is editable, and only its number changes.
+    fireEvent.click(screen.getAllByTestId('block-hop').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByTestId('block-wait').at(-1)!);
+    expect(screen.getByTestId('num-value')).toHaveTextContent('9');
+    for (let step = 0; step < 4; step += 1) fireEvent.click(screen.getByTestId('num-minus'));
+    expect(tuanTuanRelay()).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // Lumilo's half of the relay was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-d': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses A5-D when the retuned Wait makes both friends bounce at once', async () => {
+    const relay = relayDebugProject();
+    // The child overshot the repair: Wait 1 puts the two bounces back on top of
+    // each other, which is the A5-B collision all over again.
+    relay.pages[0].characters[1].scripts[0].blocks[1] = { op: 'wait', n: 1 };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: relay, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-d': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';

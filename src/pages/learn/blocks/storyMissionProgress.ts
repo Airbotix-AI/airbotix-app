@@ -108,6 +108,70 @@ export const TINY_STAR_TURN_WAIT_N = 5;
  */
 export const TINY_STAR_TURN_MIN_GAP_MS = (TINY_STAR_TURN_WAIT_N * 100) / 2;
 
+/**
+ * A5-D: how long one `hop 1` lasts, measured against `interpreter.ts` — the hop
+ * sleeps `STEP_MS * n` up and `STEP_MS * n` down, so a one-space bounce occupies
+ * `2 * 180 = 360 ms`. Everything this scene judges is expressed in bounces.
+ *
+ * A5-D is the chapter's Fix scene and it deliberately does NOT use Say. A5-B
+ * measured the ceiling: a bubble lives `SAY_MS = 1400 ms` while `MAX_PARAM`
+ * caps Wait at 900 ms, so with two Says NO Wait this runtime can express is
+ * "too long" — the bubbles overlap at every legal value, and the spec's
+ * `wait 20` is clamped to 9 by `parseProject`. The bounce IS shorter than the
+ * longest Wait, so the action relay that scene-specs §6 ("主反馈使用Hop/Pop动作
+ * 接力") and teaching script §7.5 already sanction is the only shape in which
+ * "等太久了" is a real, measurable difference rather than a bigger number.
+ */
+export const TINY_STAR_BOUNCE_MS = 360;
+
+/**
+ * A5-D: the Wait values that make the second bounce land in time, in the block's
+ * own units (`wait n` sleeps `n * 100 ms`). The rule the child learns is
+ * "bounce back after your friend lands, before the stage has stood still as long
+ * as a bounce lasts", i.e. a delay inside
+ * `[TINY_STAR_BOUNCE_MS, 2 * TINY_STAR_BOUNCE_MS]` = 360…720 ms. There is
+ * deliberately no single right number: teaching script §7.6 Checkpoint B asks
+ * the child to find a "just right" wait, not to believe bigger is better.
+ */
+export const TINY_STAR_RELAY_WAITS = [4, 5, 6, 7] as const;
+
+/** A5-D: the Wait the starter ships — `MAX_PARAM`, the longest this runtime has. */
+export const TINY_STAR_RELAY_BUG_WAIT_N = 9;
+
+/** A5-D: the second bounce may not lift off before the first one has landed. */
+export const TINY_STAR_RELAY_MIN_GAP_MS = TINY_STAR_BOUNCE_MS;
+
+/**
+ * A5-D: measurement slack on the ceiling only. A sleeping timer can fire late
+ * but never early, so a measured gap is always ≥ the modelled one: the floor
+ * needs no allowance, while the ceiling would otherwise punish a child whose
+ * correct `wait 7` (700 ms) was delayed by a slow frame.
+ */
+export const TINY_STAR_RELAY_JITTER_MS = 120;
+
+/** A5-D: past this the stage has been empty for a whole extra bounce. */
+export const TINY_STAR_RELAY_MAX_GAP_MS = 2 * TINY_STAR_BOUNCE_MS + TINY_STAR_RELAY_JITTER_MS;
+
+/**
+ * A5-D: the two friends of the bounce relay. Lumilo leads with a plain
+ * `Start → Hop 1 → End` and is the fixed half of the scene — the child may only
+ * retune Tuan Tuan's hourglass, exactly as A4-D let them retune only a distance.
+ */
+export const TINY_STAR_BOUNCE_ACTORS = [
+  {
+    characterId: LUMILO_CHARACTER,
+    scriptId: 'little-light-bounce',
+    asset: LUMILO_ASSET,
+    gx: TINY_STAR_GREETING_VOICES[0].gx,
+  },
+  {
+    characterId: TINY_STAR_GREETING_VOICES[1].characterId,
+    scriptId: 'tuan-tuan-bounce',
+    asset: TINY_STAR_GREETING_VOICES[1].asset,
+    gx: TINY_STAR_GREETING_VOICES[1].gx,
+  },
+] as const;
+
 export interface TinyStarDeliveryDesign {
   /** How many spaces right of the cart the child put the stop (1..3). */
   distance: number;
@@ -318,6 +382,28 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       { op: 'when_flag' },
       { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
       { op: 'say', text: TINY_STAR_GREETING_VOICES[1].text },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-D — chapter five's Twist & Debug (scene-specs A5-D).
+  // The greeting stage keeps its friends and its `candy` background, but the
+  // morning hello is now a BOUNCE relay: the runtime cannot make two Says stop
+  // overlapping (see TINY_STAR_BOUNCE_MS), and a bounce is short enough that
+  // "waited too long" becomes a real, watchable pause. The starter ships
+  // Tuan Tuan on `wait 9` and the child may only retune that number, so several
+  // values are correct — the bespoke branch below validates the band and
+  // `target` records one legal example for tooling.
+  'tsv-s1-a5-d': {
+    pageId: 'tsv-a5-d-page',
+    background: 'candy',
+    characterId: TINY_STAR_BOUNCE_ACTORS[1].characterId,
+    scriptId: TINY_STAR_BOUNCE_ACTORS[1].scriptId,
+    asset: TINY_STAR_BOUNCE_ACTORS[1].asset,
+    start: { gx: TINY_STAR_BOUNCE_ACTORS[1].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'hop', n: 1 },
       { op: 'end' },
     ],
   },
@@ -576,6 +662,55 @@ export function tinyStarGreetingTookTurns(openedAt: ReadonlyMap<string, number>)
   return second - first >= TINY_STAR_TURN_MIN_GAP_MS;
 }
 
+/**
+ * A5-D: is Lumilo still the untouched first bouncer? The relay only means
+ * anything while the leader is exactly `Start → Hop 1 → End` on its shipped
+ * square — a second bounce, a Wait of its own or a moved friend would change the
+ * beat the child is timing against.
+ */
+function tinyStarBounceLeaderUnchanged(characters: readonly Character[] | undefined): boolean {
+  const leader = TINY_STAR_BOUNCE_ACTORS[0];
+  const actor = characters?.find((candidate) => candidate.id === leader.characterId);
+  if (!actor || actor.asset !== leader.asset || actor.scripts.length !== 1) return false;
+  if (actor.start.gx !== leader.gx || actor.start.gy !== TINY_STAR_GREETING_GY) return false;
+  if (actor.start.size !== 1 || actor.start.rot !== 0) return false;
+  const blocks = actor.scripts.find((script) => script.id === leader.scriptId)?.blocks ?? [];
+  return (
+    blocks.length === 3 &&
+    blocks[0]?.op === 'when_flag' &&
+    blocks[1]?.op === 'hop' &&
+    blocks[1].n === 1 &&
+    blocks[2]?.op === 'end'
+  );
+}
+
+/**
+ * A5-D: how long after Lumilo's bounce Tuan Tuan's bounce started in THIS run.
+ * `hoppedAt` holds the moment each friend FIRST reached its Hop block, recorded
+ * by the studio from the interpreter's own `onStep` host callback — a
+ * measurement of the runtime, never a page flag. `null` means the run did not
+ * produce two bounces in the relay order at all.
+ */
+export function tinyStarBounceGapMs(hoppedAt: ReadonlyMap<string, number>): number | null {
+  const first = hoppedAt.get(TINY_STAR_BOUNCE_ACTORS[0].characterId);
+  const second = hoppedAt.get(TINY_STAR_BOUNCE_ACTORS[1].characterId);
+  if (first === undefined || second === undefined) return null;
+  const gap = second - first;
+  return gap >= 0 ? gap : null;
+}
+
+/** A5-D: the repaired rhythm — Tuan Tuan bounces after Lumi lands, but in time. */
+export function tinyStarBounceRelayInTime(hoppedAt: ReadonlyMap<string, number>): boolean {
+  const gap = tinyStarBounceGapMs(hoppedAt);
+  return gap !== null && gap >= TINY_STAR_RELAY_MIN_GAP_MS && gap <= TINY_STAR_RELAY_MAX_GAP_MS;
+}
+
+/** A5-D: the shipped bug — the stage stood empty for longer than a whole bounce. */
+export function tinyStarBounceRelayTooLate(hoppedAt: ReadonlyMap<string, number>): boolean {
+  const gap = tinyStarBounceGapMs(hoppedAt);
+  return gap !== null && gap > TINY_STAR_RELAY_MAX_GAP_MS;
+}
+
 function blockMatches(actual: Block | undefined, target: Block): boolean {
   return actual?.op === target.op && actual.n === target.n && actual.text === target.text;
 }
@@ -720,6 +855,31 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       startMatches &&
       blocks.length === mission.target.length &&
       mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-d') {
+    // Twist & Debug: every block is already there and in the right order — only
+    // Tuan Tuan's Wait number is wrong. Several numbers repair the rhythm, so
+    // the contract is the band, not one answer; the run still has to prove the
+    // relay really happened (BlocksStudioPage measures it).
+    const wait = blocks[1];
+    const hop = blocks[2];
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_BOUNCE_ACTORS.length &&
+      tinyStarBounceLeaderUnchanged(page.characters) &&
+      character?.asset === mission.asset &&
+      character.scripts.length === 1 &&
+      startMatches &&
+      blocks.length === 4 &&
+      blocks[0]?.op === 'when_flag' &&
+      wait?.op === 'wait' &&
+      (TINY_STAR_RELAY_WAITS as readonly number[]).includes(wait.n ?? 0) &&
+      hop?.op === 'hop' &&
+      hop.n === 1 &&
+      blocks[3]?.op === 'end'
     );
   }
 

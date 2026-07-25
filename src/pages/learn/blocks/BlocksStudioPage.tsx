@@ -82,6 +82,8 @@ import {
   TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
   TINY_STAR_OVERLAPPING_VOICES,
+  tinyStarBounceRelayInTime,
+  tinyStarBounceRelayTooLate,
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
@@ -188,6 +190,12 @@ export function BlocksStudioPage({
   // two greetings. Judged per RUN (the ref is cleared when a runner is built),
   // because an earlier head start says nothing about the chain on the page now.
   const greetingTookTurnsRef = useRef(false);
+  // A5-D: the same idea one scene later, with a floor AND a ceiling. The run
+  // either produced the repaired relay (second bounce after the first lands,
+  // still inside a bounce's worth of quiet) or reproduced the shipped bug (the
+  // stage stood empty for longer than that). Both are measured per RUN.
+  const bounceRelayInTimeRef = useRef(false);
+  const bounceRelayTooLateRef = useRef(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -280,6 +288,10 @@ export function BlocksStudioPage({
   // A5-B Logic Build: there is no arrival square to check — the runtime proof is
   // that the second greeting really started later than the first.
   const isA5TurnBuild = storyMission?.lessonId === 'tsv-s1-a5-b';
+  // A5-D Twist & Debug: the chain is complete and correctly ordered — only the
+  // Wait number is wrong. Like A4-D, the child must run the bug first, name the
+  // direction of the repair, and may then edit that one number and nothing else.
+  const isA5RelayDebug = storyMission?.lessonId === 'tsv-s1-a5-d';
   const deliveryStop = page.characters.find(
     (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
   );
@@ -325,6 +337,8 @@ export function BlocksStudioPage({
     setMissionVoicesOverlapped(false);
     voicesOverlappedRef.current = false;
     greetingTookTurnsRef.current = false;
+    bounceRelayInTimeRef.current = false;
+    bounceRelayTooLateRef.current = false;
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
@@ -631,7 +645,13 @@ export function BlocksStudioPage({
     // the two entries is the head start the inserted Wait produced, measured on
     // the real clock the interpreter sleeps against.
     const bubbleOpenedAt = new Map<string, number>();
+    // A5-D: when each friend FIRST reached its Hop block in this run, read from
+    // the interpreter's own step callback. The gap between the two entries is
+    // the pause the child is tuning.
+    const bounceStartedAt = new Map<string, number>();
     greetingTookTurnsRef.current = false;
+    bounceRelayInTimeRef.current = false;
+    bounceRelayTooLateRef.current = false;
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -673,6 +693,11 @@ export function BlocksStudioPage({
           .flatMap((character) => character.scripts)
           .find((candidate) => candidate.id === scriptId);
         const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
+          bounceStartedAt.set(stepCharId, Date.now());
+          bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
+          bounceRelayTooLateRef.current = tinyStarBounceRelayTooLate(bounceStartedAt);
+        }
         setCharacterPerformances((prev) => {
           const next = new Map(prev);
           next.set(stepCharId, performanceForBlock(op));
@@ -730,10 +755,16 @@ export function BlocksStudioPage({
               runner.state('breakfast-cart')?.gx === deliveryStopGx)) &&
           // A5-B: the saved chain can only be judged by what the run sounded
           // like — Lumilo's bubble first, Tuan Tuan's a measured moment later.
-          (!isA5TurnBuild || greetingTookTurnsRef.current);
+          (!isA5TurnBuild || greetingTookTurnsRef.current) &&
+          // A5-D: the repair is only real if THIS run's two bounces landed in
+          // the relay window — a saved number alone proves nothing.
+          (!isA5RelayDebug || bounceRelayInTimeRef.current);
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
+        // A5-D: the shipped `wait 9` really did leave the stage empty for longer
+        // than a whole bounce — that run IS the bug run this scene requires.
+        const observedLateBounce = isA5RelayDebug && bounceRelayTooLateRef.current;
         // JtW C1-P6: pressing Go while Say still precedes Show reproduces the
         // "voice from thin air" bug — that run IS the required bug run.
         const jtwSayIndex = missionScript?.blocks.findIndex((block) => block.op === 'say') ?? -1;
@@ -744,6 +775,7 @@ export function BlocksStudioPage({
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
+        if (observedLateBounce) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           const completedDistanceHook =
             storyMission.lessonId === 'tsv-s1-a4-h' &&
@@ -767,9 +799,9 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
-          (!(isA2DirectionDebug || isA4ParameterDebug || isJtwOrderDebug) ||
+          (!(isA2DirectionDebug || isA4ParameterDebug || isA5RelayDebug || isJtwOrderDebug) ||
             missionWrongRunObserved) &&
-          (!isA4ParameterDebug || answeredCorrectly)
+          (!(isA4ParameterDebug || isA5RelayDebug) || answeredCorrectly)
         ) {
           setMissionCorrectRunFinished(true);
           if (missionCompleted) {
@@ -797,6 +829,7 @@ export function BlocksStudioPage({
     isA4ParameterDebug,
     isA4PersonalShip,
     isA5TurnBuild,
+    isA5RelayDebug,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
@@ -1061,7 +1094,7 @@ export function BlocksStudioPage({
     });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug) return;
+    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1236,7 +1269,7 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
@@ -1307,7 +1340,10 @@ export function BlocksStudioPage({
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
     if ((isA4ParameterBuild || isA4ParameterDebug) && op !== 'move_right') return;
-    if (isA4ParameterDebug && !missionWrongRunObserved) {
+    // A5-D: only Tuan Tuan's hourglass may be retuned, and only after the child
+    // has watched the too-long pause happen for real.
+    if (isA5RelayDebug && op !== 'wait') return;
+    if ((isA4ParameterDebug || isA5RelayDebug) && !missionWrongRunObserved) {
       setStoryCoachCue('retry');
       setMissionOpen(true);
       return;

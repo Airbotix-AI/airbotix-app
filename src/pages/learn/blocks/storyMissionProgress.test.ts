@@ -2,9 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import { type Block, blankProject } from './blocksModel';
 import {
+  TINY_STAR_BOUNCE_MS,
+  TINY_STAR_RELAY_BUG_WAIT_N,
+  TINY_STAR_RELAY_MAX_GAP_MS,
+  TINY_STAR_RELAY_MIN_GAP_MS,
+  TINY_STAR_RELAY_WAITS,
   TINY_STAR_TURN_MIN_GAP_MS,
   TINY_STAR_TURN_WAIT_N,
   storyMissionProgramMatches,
+  tinyStarBounceGapMs,
+  tinyStarBounceRelayInTime,
+  tinyStarBounceRelayTooLate,
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 
@@ -692,6 +700,194 @@ describe('storyMissionProgramMatches', () => {
     ).toBe(true);
     // The gap the shipped Wait actually produces (500 ms) clears the bar.
     expect(TINY_STAR_TURN_MIN_GAP_MS).toBeLessThan(TINY_STAR_TURN_WAIT_N * 100);
+  });
+
+  // ── A5-D · 等太久了 (Twist & Debug) ────────────────────────────────────────
+  // The chain is complete and correctly ordered; only Tuan Tuan's Wait number is
+  // wrong. Several numbers repair the rhythm, so the contract is a band, and the
+  // relay itself is measured from the real run in BlocksStudioPage.
+  const relayProject = (tuanTuanBlocks: Block[]) => {
+    const project = blankProject('Tiny Star Village · That Wait Was Too Long');
+    project.lessonId = 'tsv-s1-a5-d';
+    project.pages[0] = {
+      id: 'tsv-a5-d-page',
+      background: 'candy',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 7, gy: 10, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'little-light-bounce',
+              blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }],
+            },
+          ],
+        },
+        {
+          id: 'tuan-tuan',
+          name: 'Tuan Tuan',
+          emoji: '🐻',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          start: { gx: 12, gy: 10, size: 1, rot: 0 },
+          scripts: [{ id: 'tuan-tuan-bounce', blocks: tuanTuanBlocks }],
+        },
+      ],
+    };
+    return project;
+  };
+  const relayChain = (n: number): Block[] => [
+    { op: 'when_flag' },
+    { op: 'wait', n },
+    { op: 'hop', n: 1 },
+    { op: 'end' },
+  ];
+
+  it('accepts A5-D only for a Wait number inside the just-right relay band', () => {
+    // Every value the band allows repairs the rhythm — the scene deliberately
+    // has no single right answer (teaching script §7.6 Checkpoint B).
+    for (const n of TINY_STAR_RELAY_WAITS) {
+      expect(storyMissionProgramMatches(relayProject(relayChain(n)), 'tsv-s1-a5-d')).toBe(true);
+    }
+
+    // The shipped bug must not complete itself, and neither may a child who
+    // decides bigger is better or drops the wait to nothing.
+    expect(
+      storyMissionProgramMatches(relayProject(relayChain(TINY_STAR_RELAY_BUG_WAIT_N)), 'tsv-s1-a5-d'),
+    ).toBe(false);
+    expect(storyMissionProgramMatches(relayProject(relayChain(8)), 'tsv-s1-a5-d')).toBe(false);
+    expect(storyMissionProgramMatches(relayProject(relayChain(3)), 'tsv-s1-a5-d')).toBe(false);
+    expect(storyMissionProgramMatches(relayProject(relayChain(1)), 'tsv-s1-a5-d')).toBe(false);
+
+    // Only the NUMBER may change: deleting, reordering, duplicating or swapping
+    // a block all fail even when the remaining number is legal.
+    expect(
+      storyMissionProgramMatches(
+        relayProject([{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }]),
+        'tsv-s1-a5-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        relayProject([
+          { op: 'when_flag' },
+          { op: 'hop', n: 1 },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        relayProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'hop', n: 1 },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        relayProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-d',
+      ),
+    ).toBe(false);
+    // A taller bounce is a different beat: the relay window is measured against
+    // a one-space hop.
+    expect(
+      storyMissionProgramMatches(
+        relayProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'hop', n: 2 },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-d',
+      ),
+    ).toBe(false);
+
+    // Lumilo is the fixed half of the relay — the beat the child times against.
+    const leaderWaited = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    leaderWaited.pages[0].characters[0].scripts[0].blocks.splice(1, 0, { op: 'wait', n: 1 });
+    expect(storyMissionProgramMatches(leaderWaited, 'tsv-s1-a5-d')).toBe(false);
+
+    const leaderSilent = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    leaderSilent.pages[0].characters[0].scripts[0].blocks.splice(1, 1);
+    expect(storyMissionProgramMatches(leaderSilent, 'tsv-s1-a5-d')).toBe(false);
+
+    const leaderMoved = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    leaderMoved.pages[0].characters[0].start.gx = 4;
+    expect(storyMissionProgramMatches(leaderMoved, 'tsv-s1-a5-d')).toBe(false);
+
+    // A second track, a moved friend, a dropped friend and a restaged page fail.
+    const extraTrack = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    extraTrack.pages[0].characters[1].scripts.push({
+      id: 'tuan-tuan-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(extraTrack, 'tsv-s1-a5-d')).toBe(false);
+
+    const moved = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    moved.pages[0].characters[1].start.gx = 9;
+    expect(storyMissionProgramMatches(moved, 'tsv-s1-a5-d')).toBe(false);
+
+    const soloed = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    soloed.pages[0].characters.pop();
+    expect(storyMissionProgramMatches(soloed, 'tsv-s1-a5-d')).toBe(false);
+
+    const wrongStage = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    wrongStage.pages[0].background = 'meadow';
+    expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-d')).toBe(false);
+
+    // A5-B and A5-D never satisfy each other.
+    const buildPage = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
+    buildPage.pages[0].id = 'tsv-a5-b-page';
+    expect(storyMissionProgramMatches(buildPage, 'tsv-s1-a5-d')).toBe(false);
+    expect(
+      storyMissionProgramMatches(relayProject(relayChain(TINY_STAR_TURN_WAIT_N)), 'tsv-s1-a5-b'),
+    ).toBe(false);
+  });
+
+  it('reads the A5-D repair from the measured gap between the two bounces', () => {
+    const gap = (ms: number) =>
+      new Map([
+        ['little-light', 1_000],
+        ['tuan-tuan', 1_000 + ms],
+      ]);
+
+    // One bouncer alone is not a relay, and neither is Tuan Tuan jumping first.
+    expect(tinyStarBounceGapMs(new Map([['little-light', 1_000]]))).toBeNull();
+    expect(tinyStarBounceGapMs(gap(-50))).toBeNull();
+    expect(tinyStarBounceRelayInTime(gap(-50))).toBe(false);
+    expect(tinyStarBounceRelayTooLate(gap(-50))).toBe(false);
+
+    // Bouncing together (the A5-B collision shape) is too early; the repaired
+    // numbers all land inside the window; the shipped bug is past its ceiling.
+    expect(tinyStarBounceRelayInTime(gap(0))).toBe(false);
+    expect(tinyStarBounceRelayInTime(gap(TINY_STAR_RELAY_MIN_GAP_MS - 1))).toBe(false);
+    for (const n of TINY_STAR_RELAY_WAITS) {
+      expect(tinyStarBounceRelayInTime(gap(n * 100))).toBe(true);
+      expect(tinyStarBounceRelayTooLate(gap(n * 100))).toBe(false);
+    }
+    expect(tinyStarBounceRelayInTime(gap(TINY_STAR_RELAY_BUG_WAIT_N * 100))).toBe(false);
+    expect(tinyStarBounceRelayTooLate(gap(TINY_STAR_RELAY_BUG_WAIT_N * 100))).toBe(true);
+    expect(tinyStarBounceRelayTooLate(gap(TINY_STAR_RELAY_MAX_GAP_MS))).toBe(false);
+
+    // The window is anchored to the real bounce: the second friend may not lift
+    // off before the first has landed, and the shipped bug really is outside it.
+    expect(TINY_STAR_RELAY_MIN_GAP_MS).toBe(TINY_STAR_BOUNCE_MS);
+    expect(TINY_STAR_RELAY_BUG_WAIT_N * 100).toBeGreaterThan(TINY_STAR_RELAY_MAX_GAP_MS);
   });
 
   it('does not confuse A1-H and A1-B page identities', () => {
