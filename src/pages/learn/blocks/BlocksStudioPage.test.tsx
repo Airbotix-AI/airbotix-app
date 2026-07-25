@@ -1365,6 +1365,122 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   }, 30_000);
 
+  // Tiny Star Village A6-S — the season's Personal Ship. The three-step core
+  // ships built and settled; nobody is cast as the ringer and there is no
+  // ending, so only the child's two decisions can finish the season.
+  const bellFinaleProject = () => {
+    const bell = blankProject('Tiny Star Village · My Morning-Light Ending');
+    bell.lessonId = 'tsv-s1-a6-s';
+    bell.pages[0] = {
+      id: 'tsv-a6-s-page', background: 'sunset', characters: [
+        { id: 'bell-ringer', name: 'Who will ring it?', emoji: '❓', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'bell-ringer-finale', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' }] }] },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
+      ],
+    };
+    return bell;
+  };
+  const finaleRoute = () =>
+    useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks;
+
+  it('completes A6-S once the child casts a ringer and adds their own ending', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellFinaleProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // The route runs, but nobody is standing at the tower and the morning has
+    // no ending — the starter cannot complete itself.
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('a6-s-ringer-dot-dot'));
+    expect(screen.getByTestId('a6-s-ringer-dot-dot')).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
+      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    });
+    // The ringer buttons never insert a block: the core is still the settled one.
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // The ending comes from the real Looks palette. A tap lands it before the
+    // terminal End — i.e. after the bell, which is exactly where it belongs —
+    // and it arrives with the editor's own 'Hi!', which is not an ending line.
+    fireEvent.click(screen.getByTestId('cat-looks'));
+    const sayPalette = screen.getByTestId('palette').querySelector('[data-testid="block-say"]');
+    fireEvent.pointerDown(sayPalette!);
+    fireEvent.pointerUp(sayPalette!);
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'say', text: 'Hi!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    fireEvent.click(screen.getAllByTestId('block-say').at(-1)!);
+    const endings = screen.getByTestId('story-greeting-picker').querySelectorAll('button');
+    expect(endings).toHaveLength(3);
+    fireEvent.click(endings[2]);
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'say', text: 'We did it!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-bell-ringer')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('speech-bubble-bell-ringer', {}, { timeout: 5000 })).toHaveTextContent('We did it!');
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses an A6-S ending that happens before the bell, and finishes once it is cast', async () => {
+    const bell = bellFinaleProject();
+    // A perfectly good ending block — in front of the bell, so the last word
+    // happens while the morning light is still missing. And nobody is cast.
+    bell.pages[0].characters[0].scripts[0].blocks.splice(3, 0, { op: 'grow', n: 2 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-bell-ringer')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-s': expect.anything() }),
+        }),
+      }),
+    );
+
+    // Casting a ringer is not enough while the ending is still in front of the
+    // bell; moving it behind the Pop is what finishes the season.
+    fireEvent.click(screen.getByTestId('a6-s-ringer-lumilo'));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    act(() => useBlocksStore.getState().moveBlock('bell-ringer-finale', 3, 4));
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'grow', n: 2 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+  }, 40_000);
+
   // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
   // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
   // and has to put it BEFORE the Say. Completion needs the exact saved chain AND

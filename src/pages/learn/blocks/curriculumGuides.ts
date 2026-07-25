@@ -1184,6 +1184,44 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The server-saved Start → Right 3 → Hop 1 → Pop → End route holds the same five blocks the bug shipped, and the rerun reached the Hop before the bell with Lumi standing at the foot of the tower.',
     next: 'The Bell Tower works. Next, the last mission of the season: choose who rings it and how the morning ends.',
   },
+  // Tiny Star Village S1/A6-S — the season's Personal Ship (scene-specs A6-S,
+  // teaching script §8.7 "我的晨光结局"). The three-step core is settled: the
+  // child built it in A6-B and repaired it in A6-D, so it ships built and fixed
+  // ("固定核心"). What is genuinely theirs is who rings the bell (§8.7 "敲钟角
+  // 色") and what happens when the morning light comes back (§8.7 "晨光出现后的
+  // 一个动作：Hop、Grow或Say" plus the very short ending line). The starter casts
+  // NOBODY as the ringer and ships no ending, so it cannot complete itself.
+  'tsv-s1-a6-s': {
+    mode: 'personal-ship', lessonId: 'tsv-s1-a6-s', celebrate: true,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 6 · Mission 24', title: 'My morning-light ending',
+    storyPages: [
+      { emoji: '🔔❓', title: 'The route is ready. Nobody is standing there.', body: 'Walk three spaces, hop up, ring the bell — you built that story and you fixed it. It is waiting at the tower, and this time it is empty: no friend has been chosen to ring it.', speaker: 'Lumilo', dialogue: 'Someone has to bring the morning back. Who will it be?', scene: 1 },
+      { emoji: '⭐🐻🐱', title: 'Choose your ringer', body: 'Lumi, Tuan Tuan or Dot Dot — you have built the whole season with all three. Pick the friend who gets to ring the Bell Tower, and they will walk, hop and ring your route.', speaker: 'Dot Dot', dialogue: 'Pick me and the whole village will hear it!', scene: 3 },
+      { emoji: '💬🦘🔼', title: 'Then choose how the morning ends', body: 'Add ONE last block after the 🫧 Pop: a 💬 Say with your own ending words, a 🦘 Hop for joy, or a 🔼 Grow to shine bigger. Then press Go and tell someone your three steps.', speaker: 'Lumilo', dialogue: 'First I walk, then I jump, then it rings — and then this is mine.', scene: 5, blocks: ['🚩 Start → ➡️ Right 3 → 🦘 Hop 1', '🫧 Pop → 💬 Say → End'] },
+    ],
+    partnerLine: 'Every child’s morning ends differently, so there is no single right answer — only a story you can tell out loud.',
+    mission: 'Choose your ringer, add one ending block after the Pop, wait for Saved, then press Go and tell someone your three steps.',
+    question: 'Who will ring in your morning?', choices: [],
+    retry: 'Two things finish the season: a friend at the tower, and ONE ending block after the 🫧 Pop.',
+    successTitle: 'Your morning came back!', success: 'The bell rang, and then your own ending happened.',
+    fixTitle: 'Make the ending mine', fixPrompt: 'Close this card, choose your ringer below the stage, then add one ending block after the 🫧 Pop.',
+    workspaceIntro: 'The friend buttons only choose who is standing there — they never add a block. Walk, hop and ring stay exactly as you built them; the last block is yours.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Choose your ringer, then add one ending block after the Pop.', watch: 'Watch for your own ending after the bell.',
+      sayFirst: 'Your ending words belong after the bell.', sayThen: 'That was your ending.',
+      hopFirst: 'That hop belongs to the tower, not the ending.', hopThen: 'A jump for joy — the morning is back.',
+      retry: 'A friend at the tower, and one ending block AFTER the 🫧 Pop.', fix: 'Pick your ringer, then add the last block.',
+      test: 'Your ending is ready. Press Go!', saving: 'The bell rang, then your ending. Saving your season…',
+      complete: 'Your saved morning-light story ends exactly the way you chose!',
+    },
+    logicSteps: [{ icon: '⭐🐻🐱', label: 'My ringer', order: 'Mine' }, { icon: '🚶🦘🔔', label: 'Walk, hop, ring', order: 'Fixed' }, { icon: '💬', label: 'My ending', order: 'Mine' }],
+    logicWhy: 'The three steps have to stay in order for the bell to ring at all — so your ending is the block that comes after them, not instead of them.',
+    completionTitle: 'Season 1 complete! ⭐🔔🌅', completion: 'You chose who rings the Bell Tower, kept the walk, the hop and the ring in order, added your own ending, and ran the whole morning-light story.',
+    completionSteps: [{ icon: '⭐', label: 'My ringer', order: '1' }, { icon: '🚶', label: 'Walk 3', order: '2' }, { icon: '🦘', label: 'Hop 1', order: '3' }, { icon: '🔔', label: 'Bell rings', order: '4' }, { icon: '💬', label: 'My ending', order: '5' }],
+    completionWhy: 'The server-saved project holds your chosen friend at the tower on the untouched Start → Right 3 → Hop 1 → Pop core with your own ending block after it, and the run played the hop before the bell and your ending after it, with your ringer standing at the foot of the tower.',
+    next: 'The morning light is back for good. Show your four-page story to your family and tell them what you made, what you fixed, and who you let ring the bell.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

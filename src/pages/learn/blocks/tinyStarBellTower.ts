@@ -19,8 +19,13 @@
 // A6-D is the chapter's Twist & Debug: all three cards are finally on the page,
 // but the bell has slipped to the FRONT of the chain, so it rings before anybody
 // has walked or jumped. The child moves that one card to the end.
+//
+// A6-S closes the season: the three-step core is settled and fixed, and what is
+// left is the child's — who rings the bell, and what the village does when the
+// morning light comes back.
 
 import type { Block, Character, Page } from './blocksModel';
+import { TINY_STAR_DUET_CAST, tinyStarDuetFriendOf, type TinyStarDuetFriend } from './tinyStarDuet';
 
 /** A6: the shared stage of scene-specs §7 — the sunset Bell Tower square. */
 export const TINY_STAR_BELL_BACKGROUND = 'sunset';
@@ -64,8 +69,29 @@ export const TINY_STAR_BELL_HOOK_PAGE_ID = 'tsv-a6-h-page';
 export const TINY_STAR_BELL_BUILD_PAGE_ID = 'tsv-a6-b-page';
 /** A6-D: the page of the chapter's Twist & Debug — the same stage once more. */
 export const TINY_STAR_BELL_FIX_PAGE_ID = 'tsv-a6-d-page';
+/** A6-S: the page of the season's Personal Ship — the chapter stage one last time. */
+export const TINY_STAR_BELL_FINALE_PAGE_ID = 'tsv-a6-s-page';
 /** A6: every chapter-six scene walks the SAME route, so it keeps one script id. */
 export const TINY_STAR_BELL_ROUTE_SCRIPT_ID = 'little-light-bell-route';
+
+/**
+ * A6-S: the ringer is a SLOT, not a fixed friend — the child decides who rings
+ * the bell (scene-specs A6-S "敲钟角色三选一"), so the character keeps a neutral
+ * id the way A5-S's `greeter-one` / `greeter-two` do. The route it runs is the
+ * chapter's, but on its own script id, so no A6-S page can impersonate the
+ * scenes that came before it.
+ */
+export const TINY_STAR_FINALE_RINGER_ID = 'bell-ringer';
+export const TINY_STAR_FINALE_RINGER_SCRIPT_ID = 'bell-ringer-finale';
+
+/**
+ * A6: every character whose executed ops chapter six measures. A6-H/A6-B/A6-D
+ * ship Lumilo as the ringer; A6-S ships an uncast slot the child fills.
+ */
+export const TINY_STAR_BELL_RINGER_IDS: readonly string[] = [
+  TINY_STAR_BELL_RINGER_ID,
+  TINY_STAR_FINALE_RINGER_ID,
+];
 
 /**
  * A6-H: the shipped Story Hook route (scene-specs A6-H "Initial"). It runs to
@@ -121,6 +147,89 @@ export const TINY_STAR_BELL_BUG_ROUTE: readonly Block[] = [
   ...TINY_STAR_BELL_ROUTE_WITHOUT_POP.slice(0, TINY_STAR_BELL_POP_BUG_INDEX),
   { op: 'pop' },
   ...TINY_STAR_BELL_ROUTE_WITHOUT_POP.slice(TINY_STAR_BELL_POP_BUG_INDEX),
+];
+
+/**
+ * A6-S: the season's cast — the three friends the child has been building the
+ * village with since A1. It is A5-S's cast, imported rather than restated, so
+ * "the friend I saved this season" means the same thing in both scenes and the
+ * two lists cannot drift apart. No new character art is introduced.
+ */
+export const TINY_STAR_BELL_CAST = TINY_STAR_DUET_CAST;
+
+/**
+ * A6-S: the uncast ringer the starter ships. Nobody is standing at the tower
+ * yet — the slot is a question mark with no formal asset — so the shipped page
+ * is NOT a legal finale and cannot complete itself, the same way A4-S parks the
+ * delivery stop on top of the cart and A5-S casts one friend into both slots.
+ */
+export const TINY_STAR_FINALE_UNCAST_NAME = 'Who will ring it?';
+export const TINY_STAR_FINALE_UNCAST_EMOJI = '❓';
+
+/**
+ * A6-S: the very short ending lines of teaching script §8.7 ("天亮啦" / "早上好"
+ * / "我们做到啦"). They are presets, not free text: the Say block arrives with
+ * the editor's own "Hi!", which is not one of them, so choosing an ending line
+ * is a real decision the child makes rather than a default they inherit.
+ */
+export const TINY_STAR_FINALE_LINES = [
+  'The sun is up!',
+  'Good morning!',
+  'We did it!',
+] as const;
+
+/**
+ * A6-S: how big the child's ending flourish may be. scene-specs §1.2 keeps Age A
+ * parameters at 1–3, and the block's own default of 2 sits inside that — so a
+ * plain palette tap already lands a legal ending and the number editor is
+ * optional. The size of the flourish is expressive, not a teaching point
+ * (scene-specs A6-S "不引入新教学目标"), which is why it is a band and not one
+ * answer; A4-S's exact number stayed exact because THERE the number was the
+ * lesson.
+ */
+export const TINY_STAR_FINALE_ENDING_MIN_N = 1;
+export const TINY_STAR_FINALE_ENDING_MAX_N = 3;
+
+export interface TinyStarFinaleEnding {
+  op: 'say' | 'hop' | 'grow';
+  label: string;
+  emoji: string;
+}
+
+/**
+ * A6-S: what the ringer does once the morning light is back — teaching script
+ * §8.7's "晨光出现后的一个动作：Hop、Grow或Say". All three are inside the season
+ * whitelist (scene-specs §1.3) and all three are blocks the child can really
+ * find in the shipped palette, so nothing here is offered that the product
+ * cannot deliver. `pop` is deliberately NOT among them: it is `legacy: true` in
+ * `BLOCK_DEFS` and appears in no child-facing palette (recorded by A5-S and
+ * A6-H), and the bell the story needs already ships inside the fixed core.
+ */
+export const TINY_STAR_FINALE_ENDINGS: readonly TinyStarFinaleEnding[] = [
+  { op: 'say', label: 'Say a last word', emoji: '💬' },
+  { op: 'hop', label: 'Jump for joy', emoji: '🦘' },
+  { op: 'grow', label: 'Shine bigger', emoji: '🔼' },
+] as const;
+
+/**
+ * A6-S: where the child's ending block belongs — straight after the bell and
+ * before the terminal `end`, i.e. at the index the `end` of the chapter's built
+ * route occupies. It is DERIVED from that route, so the finale cannot drift away
+ * from the story A6-B and A6-D settled. It is also exactly where a palette tap
+ * lands a block, which is why this scene needs no drag: the season's last
+ * mission is about choosing, not about placing.
+ */
+export const TINY_STAR_FINALE_ENDING_INDEX = TINY_STAR_BELL_BUILD_ROUTE.length - 1;
+
+/**
+ * A6-S: one legal finished finale, for tooling that wants a concrete `target`
+ * (the real contract is `tinyStarFinaleDesign`, because the ringer and the
+ * ending are the child's).
+ */
+export const TINY_STAR_BELL_FINALE_TARGET: readonly Block[] = [
+  ...TINY_STAR_BELL_BUILD_ROUTE.slice(0, TINY_STAR_FINALE_ENDING_INDEX),
+  { op: 'say', text: TINY_STAR_FINALE_LINES[0] },
+  ...TINY_STAR_BELL_BUILD_ROUTE.slice(TINY_STAR_FINALE_ENDING_INDEX),
 ];
 
 /**
@@ -298,4 +407,91 @@ export function tinyStarBellRangBeforeHop(playedOps: readonly string[]): boolean
   const hopAt = playedOps.indexOf('hop');
   const popAt = playedOps.indexOf('pop');
   return popAt >= 0 && (hopAt < 0 || popAt < hopAt);
+}
+
+/** A6-S: which ending a saved block is, or null if it is not one of the three. */
+export function tinyStarFinaleEndingOf(block: Block | undefined): TinyStarFinaleEnding | null {
+  if (!block) return null;
+  if (block.op === 'say') {
+    const chosen = (TINY_STAR_FINALE_LINES as readonly string[]).includes(block.text ?? '');
+    return chosen ? (TINY_STAR_FINALE_ENDINGS[0] ?? null) : null;
+  }
+  if (block.op !== 'hop' && block.op !== 'grow') return null;
+  const n = block.n ?? 0;
+  if (n < TINY_STAR_FINALE_ENDING_MIN_N || n > TINY_STAR_FINALE_ENDING_MAX_N) return null;
+  return TINY_STAR_FINALE_ENDINGS.find((ending) => ending.op === block.op) ?? null;
+}
+
+export interface TinyStarFinaleDesign {
+  /** The friend the child sent to the tower. */
+  ringer: TinyStarDuetFriend;
+  /** What that friend does once the morning light is back. */
+  ending: TinyStarFinaleEnding;
+}
+
+/**
+ * A6-S: parse the child's season finale off the saved page. Returns null while
+ * the work is not a finished finale — which the starter deliberately is not: it
+ * ships the chapter's settled three-step core with NOBODY cast as the ringer and
+ * no ending at all, so neither of the child's two decisions can be inherited.
+ *
+ * A finished finale is: chapter six's untouched `sunset` stage (the ringer on
+ * its shipped square with one script, the script-less `⭐` Bell Tower on its own
+ * square, two characters and nothing else), one of the three season friends cast
+ * as the ringer, the fixed core `Start → Right 3 → Hop 1 → Pop` exactly as A6-B
+ * and A6-D left it, and then ONE ending block before the terminal `end`.
+ *
+ * A retuned walk or jump, a bell moved back to the front, a missing ending, two
+ * endings, an ending placed before the bell, a free-typed line, an ending
+ * outside the Age A band and an uncast ringer all keep the mission open.
+ */
+export function tinyStarFinaleDesign(page: Page | undefined): TinyStarFinaleDesign | null {
+  if (!page || page.background !== TINY_STAR_BELL_BACKGROUND) return null;
+  if (page.characters.length !== 2) return null;
+  const tower = page.characters.find((candidate) => candidate.id === TINY_STAR_BELL_TOWER_ID);
+  if (!bellTowerUnchanged(tower)) return null;
+
+  const actor = page.characters.find((candidate) => candidate.id === TINY_STAR_FINALE_RINGER_ID);
+  const ringer = tinyStarDuetFriendOf(actor);
+  if (!actor || !ringer || actor.scripts.length !== 1) return null;
+  if (actor.start.gx !== TINY_STAR_BELL_RINGER_GX || actor.start.gy !== TINY_STAR_BELL_GY) {
+    return null;
+  }
+  if (actor.start.size !== 1 || actor.start.rot !== 0) return null;
+  const script = actor.scripts[0];
+  if (script.id !== TINY_STAR_FINALE_RINGER_SCRIPT_ID) return null;
+
+  const blocks = script.blocks;
+  if (blocks.length !== TINY_STAR_BELL_BUILD_ROUTE.length + 1) return null;
+  // The core is fixed: every block up to the bell is the chapter's own route.
+  const coreOk = TINY_STAR_BELL_BUILD_ROUTE.slice(0, TINY_STAR_FINALE_ENDING_INDEX).every(
+    (target, index) =>
+      blocks[index]?.op === target.op &&
+      blocks[index]?.n === target.n &&
+      blocks[index]?.text === target.text,
+  );
+  if (!coreOk) return null;
+  if (blocks[blocks.length - 1]?.op !== 'end') return null;
+
+  const ending = tinyStarFinaleEndingOf(blocks[TINY_STAR_FINALE_ENDING_INDEX]);
+  return ending ? { ringer, ending } : null;
+}
+
+/**
+ * A6-S: did THIS run tell the whole season's story?
+ *
+ * Read off the same ordered `onStep` record the rest of chapter six uses, so it
+ * is a measurement of the runtime and never a page flag: the ringer reached the
+ * jump before the bell (the three-step core really played in order) and the
+ * child's own ending really happened AFTER the bell rang. A finale that was only
+ * ever saved, or one whose ending played before the morning light came back,
+ * does not complete the season.
+ */
+export function tinyStarFinaleEndedAfterBell(
+  playedOps: readonly string[],
+  ending: TinyStarFinaleEnding,
+): boolean {
+  if (!tinyStarBellRangAfterHop(playedOps)) return false;
+  const popAt = playedOps.indexOf('pop');
+  return playedOps.lastIndexOf(ending.op) > popAt;
 }

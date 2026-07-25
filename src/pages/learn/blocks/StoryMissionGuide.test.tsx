@@ -18,6 +18,7 @@ const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
 const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
 const bellBuildMission = storyMissionFor('tsv-s1-a6-b')!;
 const bellFixMission = storyMissionFor('tsv-s1-a6-d')!;
+const bellFinaleMission = storyMissionFor('tsv-s1-a6-s')!;
 
 afterEach(cleanup);
 
@@ -206,6 +207,44 @@ describe('StoryMissionGuide', () => {
     fireEvent.click(screen.getByTestId('story-choice-walk'));
     expect(onAnswer).toHaveBeenCalledWith('walk');
     // Naming the card is all the card does — it never moves a block.
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
+  it('leaves A6-S’s two decisions to the child and never edits the finale', () => {
+    const onApplyFix = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellFinaleMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('The route is ready. Nobody is standing there.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Choose your ringer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Then choose how the morning ends')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellFinaleMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    // A Personal Ship has no right answer to pick and no block to be given.
+    expect(screen.getByTestId('story-build-task')).toHaveTextContent('one ending block after the');
+    expect(screen.queryByTestId(/story-choice-/)).not.toBeInTheDocument();
     expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
     expect(onApplyFix).not.toHaveBeenCalled();
   });
