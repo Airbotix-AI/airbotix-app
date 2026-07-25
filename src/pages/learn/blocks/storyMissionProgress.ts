@@ -2,19 +2,22 @@ import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
 import {
   TINY_STAR_BELL_BACKGROUND,
+  TINY_STAR_BELL_BUILD_PAGE_ID,
+  TINY_STAR_BELL_BUILD_ROUTE,
   TINY_STAR_BELL_GY,
   TINY_STAR_BELL_HOOK_PAGE_ID,
-  TINY_STAR_BELL_HOOK_SCRIPT_ID,
+  TINY_STAR_BELL_HOOK_ROUTE,
   TINY_STAR_BELL_RINGER_ASSET,
   TINY_STAR_BELL_RINGER_GX,
   TINY_STAR_BELL_RINGER_ID,
+  TINY_STAR_BELL_ROUTE_SCRIPT_ID,
   TINY_STAR_BELL_TOWER_GX,
   TINY_STAR_BELL_TOWER_GY,
   TINY_STAR_BELL_TOWER_ID,
   TINY_STAR_BELL_TOWER_NAME,
   TINY_STAR_BELL_TOWER_SIZE,
-  TINY_STAR_BELL_WALK_N,
   tinyStarBellRouteUnchanged,
+  tinyStarBellStepAdded,
 } from './tinyStarBellTower';
 import {
   TINY_STAR_DUET_GREETINGS,
@@ -459,15 +462,32 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     pageId: TINY_STAR_BELL_HOOK_PAGE_ID,
     background: TINY_STAR_BELL_BACKGROUND,
     characterId: TINY_STAR_BELL_RINGER_ID,
-    scriptId: TINY_STAR_BELL_HOOK_SCRIPT_ID,
+    scriptId: TINY_STAR_BELL_ROUTE_SCRIPT_ID,
     asset: TINY_STAR_BELL_RINGER_ASSET,
     start: { gx: TINY_STAR_BELL_RINGER_GX, gy: TINY_STAR_BELL_GY, size: 1, rot: 0 },
-    target: [
-      { op: 'when_flag' },
-      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
-      { op: 'pop' },
-      { op: 'end' },
-    ],
+    target: [...TINY_STAR_BELL_HOOK_ROUTE],
+    sceneTarget: {
+      id: TINY_STAR_BELL_TOWER_ID,
+      name: TINY_STAR_BELL_TOWER_NAME,
+      gx: TINY_STAR_BELL_TOWER_GX,
+      gy: TINY_STAR_BELL_TOWER_GY,
+      size: TINY_STAR_BELL_TOWER_SIZE,
+    },
+  },
+  // Tiny Star Village S1/A6-B — chapter six's Logic Build (scene-specs A6-B).
+  // The Hook's stage and route return on a page of their own, and the child puts
+  // the missing middle card back: a `hop 1` BETWEEN the walk and the bell. Only
+  // that one position tells the story (the bell must ring because someone
+  // reached it), so `target` is exact; the bespoke branch below additionally
+  // holds the rest of the chapter's stage still.
+  'tsv-s1-a6-b': {
+    pageId: TINY_STAR_BELL_BUILD_PAGE_ID,
+    background: TINY_STAR_BELL_BACKGROUND,
+    characterId: TINY_STAR_BELL_RINGER_ID,
+    scriptId: TINY_STAR_BELL_ROUTE_SCRIPT_ID,
+    asset: TINY_STAR_BELL_RINGER_ASSET,
+    start: { gx: TINY_STAR_BELL_RINGER_GX, gy: TINY_STAR_BELL_GY, size: 1, rot: 0 },
+    target: [...TINY_STAR_BELL_BUILD_ROUTE],
     sceneTarget: {
       id: TINY_STAR_BELL_TOWER_ID,
       name: TINY_STAR_BELL_TOWER_NAME,
@@ -889,6 +909,15 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // (the bell rings and nobody hops), which BlocksStudioPage measures from
     // the real interpreter.
     return project.lessonId === lessonId && tinyStarBellRouteUnchanged(page);
+  }
+
+  if (lessonId === 'tsv-s1-a6-b') {
+    // Logic Build: the child owns exactly one block — the Hop that belongs
+    // between the walk and the bell. Everything else about chapter six's stage
+    // is still held still, so a Hop appended after the Pop (where a palette tap
+    // lands it), a `hop 2` left on the block's default, a retuned walk, a
+    // deleted Pop or a moved tower all keep the mission open.
+    return project.lessonId === lessonId && tinyStarBellStepAdded(page);
   }
 
   if (lessonId === 'jtw-s1-c1-p5') {

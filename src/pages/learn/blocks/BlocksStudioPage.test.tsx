@@ -1182,6 +1182,92 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   });
 
+  // Tiny Star Village A6-B — chapter six's Logic Build. The same Bell Tower
+  // route returns with the same missing middle card, and this time the child
+  // puts it back. Completion needs the exact saved route AND a run in which the
+  // interpreter really reached the Hop before the bell.
+  const bellBuildProject = () => {
+    const bell = bellHookProject();
+    bell.lessonId = 'tsv-s1-a6-b';
+    bell.pages[0].id = 'tsv-a6-b-page';
+    return bell;
+  };
+  const bellRoute = () =>
+    useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks;
+
+  it('completes A6-B once the child puts the Hop between the walk and the bell', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellBuildProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // The child taps Hop in the real Motion palette. A tap appends before the
+    // terminal End — i.e. AFTER the bell — and on the block's own default of 2.
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'hop', n: 2 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Dragging it in front of the Pop and dialling it to one space is the move
+    // the mission is about.
+    act(() => useBlocksStore.getState().moveBlock('little-light-bell-route', 3, 2));
+    act(() => useBlocksStore.getState().setParam('little-light-bell-route', 2, 1));
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-b': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses A6-B while the Hop still sits after the bell', async () => {
+    const bell = bellBuildProject();
+    // The block is there, but behind the Pop — the bell still rings first.
+    bell.pages[0].characters[0].scripts[0].blocks.splice(3, 0, { op: 'hop', n: 1 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-b': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
   // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
   // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
   // and has to put it BEFORE the Say. Completion needs the exact saved chain AND

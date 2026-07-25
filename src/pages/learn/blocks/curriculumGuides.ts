@@ -1103,6 +1103,43 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The unchanged Start → Right 3 → Pop → End program walked Lumi to the tower and the real runner played the bell without ever reaching a Hop block.',
     next: 'Next, add the missing Hop between the walk and the bell.',
   },
+  // Tiny Star Village S1/A6-B — chapter six's Logic Build (scene-specs A6-B,
+  // teaching script §8.4 "补上那一步"). The floor cards come back with the middle
+  // one in the child's hand: the same route runs, and they put the Hop back
+  // between the walk and the bell. Tapping Hop in the Motion palette appends it
+  // AFTER the Pop and on its own default of 2, so both the position and the
+  // number are genuinely the child's moves — the product supplies neither.
+  'tsv-s1-a6-b': {
+    mode: 'complete', lessonId: 'tsv-s1-a6-b', celebrate: true,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 6 · Mission 22', title: 'Add the missing step',
+    storyPages: [
+      { emoji: '🚶❓🔔', title: 'The middle card is in your hand', body: 'You found it last time: Lumi walks to the Bell Tower and the bell rings, but nobody ever jumps up to touch it. The hop card is still missing from the program.', speaker: 'Lumilo', dialogue: 'I never actually reached the bell.', scene: 1 },
+      { emoji: '🦘', title: 'Find Hop in Move', body: 'Open the Move blocks and tap 🦘 Hop. It joins the end of the chain, after the bell — that is not where the story needs it yet.', speaker: 'Dot Dot', dialogue: 'A hop after the bell is too late!', scene: 3, blocks: ['🚩 Start → ➡️ Right 3', '🦘 Hop 1 → 🫧 Pop → End'] },
+      { emoji: '1️⃣2️⃣3️⃣', title: 'Walk, hop, ring', body: 'Drag the Hop in front of the Pop, and change its number to 1 so Lumi jumps one space. Then save, press Go, and watch all three cards happen in order.', speaker: 'Lumilo', dialogue: 'First I walk, then I jump, then it rings!', scene: 5 },
+    ],
+    partnerLine: 'A missing step does not stop a program running — it stops the story making sense.',
+    mission: 'Add a Hop between Right 3 and Pop, set its number to 1, wait for Saved, then press Go.',
+    question: 'Where does the hop belong?', choices: [],
+    retry: 'The Hop has to sit between the walk and the bell, and it hops 1 space.',
+    successTitle: 'Walk, hop, ring!', success: 'Lumi walked to the tower, jumped up to the bell, and the bell rang because someone reached it.',
+    fixTitle: 'Put the middle card back', fixPrompt: 'Close this card, open 🦘 Move, tap Hop, then drag it in front of Pop and change its number to 1.',
+    workspaceIntro: 'Start, Right 3 and Pop stay exactly as they are. Only the missing Hop is yours to add.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Open Move and tap Hop, then drag it in front of Pop.', watch: 'Watch for a jump before the bell.',
+      sayFirst: 'This route has no words — walk, hop, ring.', sayThen: 'This route has no words — walk, hop, ring.',
+      hopFirst: 'The hop must come after the walk, not before it.', hopThen: 'Lumi jumped up to the bell.',
+      retry: 'Put the Hop between Right 3 and Pop, and make it Hop 1.', fix: 'The route still goes straight from the walk to the bell.',
+      test: 'Saved? Press Go and watch all three steps.', saving: 'The bell rang after the jump. Saving the repaired route…',
+      complete: 'Walk, hop, ring — the whole morning happened in order.',
+    },
+    logicSteps: [{ icon: '🦘', label: 'Tap Hop', order: 'Add' }, { icon: '↔️', label: 'Before Pop', order: 'Place' }, { icon: '▶️', label: 'Run', order: 'Test' }],
+    logicWhy: 'Blocks run left to right, so a Hop after the Pop happens after the bell has already rung. Only a Hop between the walk and the bell makes the ringing something Lumi caused.',
+    completionTitle: 'The Bell Tower is complete! ⭐🔔', completion: 'You added the missing Hop, put it between the walk and the bell, saved it, and ran the whole three-step morning.',
+    completionSteps: [{ icon: '🚶', label: 'Walk 3', order: 'First' }, { icon: '🦘', label: 'Hop 1', order: 'Then' }, { icon: '🔔', label: 'Bell rings', order: 'Last' }],
+    completionWhy: 'The server-saved Start → Right 3 → Hop 1 → Pop → End route ran on the unchanged Bell Tower stage, and the run reached the Hop before the bell with Lumi standing at the foot of the tower.',
+    next: 'Next, the same three steps arrive in the wrong order — the bell rings first.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

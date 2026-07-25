@@ -140,4 +140,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 21',
     desc: 'Walk, hop, ring — but this route rings the bell with nobody jumping. Press Go, watch all three Bell Tower cards, and find the one that never happened.',
   },
+  {
+    id: 'blocks_tsv_a6_b',
+    emoji: '🦘',
+    title: 'Tiny Star Village · Mission 22',
+    desc: 'The hop card is still missing. Add a Hop between Right 3 and Pop, set it to 1 space, and run the whole walk-hop-ring morning.',
+  },
 ];

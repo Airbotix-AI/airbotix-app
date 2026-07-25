@@ -90,6 +90,7 @@ import {
   TINY_STAR_BELL_MISSING_CARD_ID,
   TINY_STAR_BELL_RINGER_ID,
   TINY_STAR_BELL_TOWER_GX,
+  tinyStarBellRangAfterHop,
   tinyStarBellRangWithoutHop,
 } from './tinyStarBellTower';
 import {
@@ -219,8 +220,12 @@ export function BlocksStudioPage({
   // forbids editing the program at all), and cleared when a project loads.
   const [missionBellRangAlone, setMissionBellRangAlone] = useState(false);
   const bellRangAloneRef = useRef(false);
-  /** A6-H: the block ops the ringer's script actually reached in THIS run. */
-  const bellPlayedOpsRef = useRef<Set<string>>(new Set());
+  /**
+   * A6: the block ops the ringer's script actually reached in THIS run, in the
+   * order the interpreter reached them. A6-H reads a negative off it (a bell
+   * with no hop before it); A6-B reads the repaired order (hop, then bell).
+   */
+  const bellPlayedOpsRef = useRef<string[]>([]);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -321,6 +326,10 @@ export function BlocksStudioPage({
   // one greets first, builds both chains and chooses the Wait. Nothing on the
   // page is a fixed answer, so the contract is read from the saved page itself.
   const isA5PersonalShip = storyMission?.lessonId === 'tsv-s1-a5-s';
+  // A6-B Logic Build: the child adds the Hop the chapter's Hook was missing. The
+  // saved chain pins WHERE the block sits; the run has to show what the village
+  // saw — the ringer reaching the tower, jumping, and only then the bell.
+  const isA6StepBuild = storyMission?.lessonId === 'tsv-s1-a6-b';
   const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
   const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
   const deliveryStop = page.characters.find(
@@ -692,10 +701,10 @@ export function BlocksStudioPage({
     bounceRelayInTimeRef.current = false;
     bounceRelayTooLateRef.current = false;
     duetTookTurnsRef.current = false;
-    // A6-H: which ops the ringer really performed this run. The Hook's claim is
-    // "the bell rang and the hop never happened", so the ops the interpreter
-    // reached — not the blocks on the page — are what decides it.
-    bellPlayedOpsRef.current = new Set<string>();
+    // A6: which ops the ringer really performed this run, in order. Chapter six
+    // is about the order of three steps, so the ops the interpreter reached —
+    // not the blocks sitting on the page — are what decides both A6 scenes.
+    bellPlayedOpsRef.current = [];
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -737,7 +746,7 @@ export function BlocksStudioPage({
           .flatMap((character) => character.scripts)
           .find((candidate) => candidate.id === scriptId);
         const op = index >= 0 ? script?.blocks[index]?.op : undefined;
-        if (op && stepCharId === TINY_STAR_BELL_RINGER_ID) bellPlayedOpsRef.current.add(op);
+        if (op && stepCharId === TINY_STAR_BELL_RINGER_ID) bellPlayedOpsRef.current.push(op);
         if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
           bounceStartedAt.set(stepCharId, Date.now());
           bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
@@ -810,7 +819,12 @@ export function BlocksStudioPage({
           (!isA5RelayDebug || bounceRelayInTimeRef.current) &&
           // A5-S: the child's own duet only counts once a run has measured the
           // second greeting arriving after the first, inside its own band.
-          (!isA5PersonalShip || duetTookTurnsRef.current);
+          (!isA5PersonalShip || duetTookTurnsRef.current) &&
+          // A6-B: the repaired route only counts once a run really played the
+          // hop BEFORE the bell and left the ringer standing at the tower.
+          (!isA6StepBuild ||
+            (tinyStarBellRangAfterHop(bellPlayedOpsRef.current) &&
+              runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX));
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -901,6 +915,7 @@ export function BlocksStudioPage({
     isA5TurnBuild,
     isA5RelayDebug,
     isA5PersonalShip,
+    isA6StepBuild,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,

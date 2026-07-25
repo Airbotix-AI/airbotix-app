@@ -12,8 +12,11 @@
 // program is `Start → Right 3 → Pop → End`, so the ringer really walks to the
 // foot of the tower and the bell really rings — with nobody ever jumping up to
 // touch it. The child's job is to find the card that is missing from the middle.
+//
+// A6-B is the Logic Build that follows: the same route, the same stage, and now
+// the child puts the missing Hop card back — between the walk and the bell.
 
-import type { Character, Page } from './blocksModel';
+import type { Block, Character, Page } from './blocksModel';
 
 /** A6: the shared stage of scene-specs §7 — the sunset Bell Tower square. */
 export const TINY_STAR_BELL_BACKGROUND = 'sunset';
@@ -51,9 +54,44 @@ export const TINY_STAR_BELL_WALK_N = TINY_STAR_BELL_TOWER_GX - TINY_STAR_BELL_RI
 /** A6: the hop is always one space (scene-specs A6-B writes `hop 1`). */
 export const TINY_STAR_BELL_HOP_N = 1;
 
-/** A6-H: the scene ids of the chapter's Story Hook. */
+/** A6-H: the page of the chapter's Story Hook. */
 export const TINY_STAR_BELL_HOOK_PAGE_ID = 'tsv-a6-h-page';
-export const TINY_STAR_BELL_HOOK_SCRIPT_ID = 'little-light-bell-route';
+/** A6-B: the page of the chapter's Logic Build — the same stage, one scene on. */
+export const TINY_STAR_BELL_BUILD_PAGE_ID = 'tsv-a6-b-page';
+/** A6: every chapter-six scene walks the SAME route, so it keeps one script id. */
+export const TINY_STAR_BELL_ROUTE_SCRIPT_ID = 'little-light-bell-route';
+
+/**
+ * A6-H: the shipped Story Hook route (scene-specs A6-H "Initial"). It runs to
+ * the end and still misses its middle step — the walk arrives, the bell rings,
+ * and nobody ever jumps up to touch it.
+ */
+export const TINY_STAR_BELL_HOOK_ROUTE: readonly Block[] = [
+  { op: 'when_flag' },
+  { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+  { op: 'pop' },
+  { op: 'end' },
+] as const;
+
+/**
+ * A6-B: where the missing Hop belongs — scene-specs A6-B asserts "Hop索引在Move
+ * 与Pop之间", so the index is DERIVED from where the bell rings in the Hook
+ * route rather than hand-written. If the shipped route ever changes shape, the
+ * build target follows it instead of silently drifting.
+ */
+export const TINY_STAR_BELL_HOP_INDEX = TINY_STAR_BELL_HOOK_ROUTE.findIndex(
+  (block) => block.op === 'pop',
+);
+
+/**
+ * A6-B: the repaired route (scene-specs A6-B "Target") — the Hook route with
+ * the chapter's missing middle card put back between the walk and the bell.
+ */
+export const TINY_STAR_BELL_BUILD_ROUTE: readonly Block[] = [
+  ...TINY_STAR_BELL_HOOK_ROUTE.slice(0, TINY_STAR_BELL_HOP_INDEX),
+  { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+  ...TINY_STAR_BELL_HOOK_ROUTE.slice(TINY_STAR_BELL_HOP_INDEX),
+];
 
 export interface TinyStarBellCard {
   /** The choice id the Story Hook question uses. */
@@ -91,14 +129,34 @@ export const TINY_STAR_BELL_MISSING_CARD_ID = 'hop';
  * the observation unprovable, so the Hook does not complete.
  */
 export function tinyStarBellRouteUnchanged(page: Page | undefined): boolean {
+  return bellRouteIs(page, TINY_STAR_BELL_HOOK_ROUTE);
+}
+
+/**
+ * A6-B: has the child put the missing middle card back?
+ *
+ * The Logic Build shares the Hook's stage, so everything around the route is
+ * still held fixed — the ringer's square, size and formal asset, the one script
+ * it owns, the script-less Bell Tower on its own square and the two-character
+ * `sunset` page. The route itself must be exactly the Hook's route plus a
+ * `hop 1` between the walk and the bell: a Hop appended after the Pop (which is
+ * where a palette tap lands it), a second Hop, a `hop 2` left on the block's
+ * default, a retuned walk or a deleted Pop all fail.
+ */
+export function tinyStarBellStepAdded(page: Page | undefined): boolean {
+  return bellRouteIs(page, TINY_STAR_BELL_BUILD_ROUTE);
+}
+
+/** A6: the chapter's shared stage plus one exact route on the ringer. */
+function bellRouteIs(page: Page | undefined, route: readonly Block[]): boolean {
   if (!page || page.background !== TINY_STAR_BELL_BACKGROUND) return false;
   if (page.characters.length !== 2) return false;
   const ringer = page.characters.find((candidate) => candidate.id === TINY_STAR_BELL_RINGER_ID);
   const tower = page.characters.find((candidate) => candidate.id === TINY_STAR_BELL_TOWER_ID);
-  return bellRingerUnchanged(ringer) && bellTowerUnchanged(tower);
+  return bellRingerRuns(ringer, route) && bellTowerUnchanged(tower);
 }
 
-function bellRingerUnchanged(ringer: Character | undefined): boolean {
+function bellRingerRuns(ringer: Character | undefined, route: readonly Block[]): boolean {
   if (!ringer || ringer.asset !== TINY_STAR_BELL_RINGER_ASSET) return false;
   if (ringer.scripts.length !== 1) return false;
   if (ringer.start.gx !== TINY_STAR_BELL_RINGER_GX || ringer.start.gy !== TINY_STAR_BELL_GY) {
@@ -106,15 +164,16 @@ function bellRingerUnchanged(ringer: Character | undefined): boolean {
   }
   if (ringer.start.size !== 1 || ringer.start.rot !== 0) return false;
   const script = ringer.scripts[0];
-  if (script.id !== TINY_STAR_BELL_HOOK_SCRIPT_ID) return false;
+  if (script.id !== TINY_STAR_BELL_ROUTE_SCRIPT_ID) return false;
   const blocks = script.blocks;
   return (
-    blocks.length === 4 &&
-    blocks[0]?.op === 'when_flag' &&
-    blocks[1]?.op === 'move_right' &&
-    blocks[1].n === TINY_STAR_BELL_WALK_N &&
-    blocks[2]?.op === 'pop' &&
-    blocks[3]?.op === 'end'
+    blocks.length === route.length &&
+    route.every(
+      (target, index) =>
+        blocks[index]?.op === target.op &&
+        blocks[index]?.n === target.n &&
+        blocks[index]?.text === target.text,
+    )
   );
 }
 
@@ -133,12 +192,27 @@ function bellTowerUnchanged(tower: Character | undefined): boolean {
 /**
  * A6-H: did THIS run really ring the bell without anyone hopping?
  *
- * `playedOps` is the set of block ops the ringer's script actually reached in
- * this run, recorded by the studio from the interpreter's own `onStep` host
- * callback — so this is a measurement of the runtime, never a page flag. The
- * scene's whole claim is "the bell rang, but the hop never happened", and that
- * is exactly what is asserted here: a Pop was played and no Hop was.
+ * `playedOps` is the block ops the ringer's script actually reached in this run,
+ * IN THE ORDER the interpreter reached them, recorded by the studio from its own
+ * `onStep` host callback — so this is a measurement of the runtime, never a page
+ * flag. The scene's whole claim is "the bell rang, but the hop never happened",
+ * and that is exactly what is asserted here: a Pop was played and no Hop was.
  */
-export function tinyStarBellRangWithoutHop(playedOps: ReadonlySet<string>): boolean {
-  return playedOps.has('pop') && !playedOps.has('hop');
+export function tinyStarBellRangWithoutHop(playedOps: readonly string[]): boolean {
+  return playedOps.includes('pop') && !playedOps.includes('hop');
+}
+
+/**
+ * A6-B: did THIS run play the three steps in the story's order?
+ *
+ * The build target already pins the block order on the page, but the scene's
+ * claim is about what the village SAW — the ringer reached the tower, jumped,
+ * and only then did the bell ring. Reading that back off the same ordered
+ * `onStep` record keeps the evidence in the runtime: a saved chain the child
+ * never ran, or a run that rang before the hop, does not complete the mission.
+ */
+export function tinyStarBellRangAfterHop(playedOps: readonly string[]): boolean {
+  const hopAt = playedOps.indexOf('hop');
+  const popAt = playedOps.indexOf('pop');
+  return hopAt >= 0 && popAt >= 0 && hopAt < popAt;
 }

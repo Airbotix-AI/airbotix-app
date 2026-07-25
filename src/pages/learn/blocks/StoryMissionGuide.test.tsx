@@ -16,6 +16,7 @@ const breakfastHookMission = storyMissionFor('tsv-s1-a4-h')!;
 const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
 const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
 const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
+const bellBuildMission = storyMissionFor('tsv-s1-a6-b')!;
 
 afterEach(cleanup);
 
@@ -124,6 +125,47 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-choice-ring')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('story-choice-hop'));
     expect(onAnswer).toHaveBeenCalledWith('hop');
+  });
+
+  it('makes A6-B a real build task with no answer button that inserts the Hop', () => {
+    const onApplyFix = vi.fn();
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellBuildMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={onClose}
+      />,
+    );
+    expect(screen.getByText('The middle card is in your hand')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    // The card names where a palette tap really lands the block, so the child is
+    // told the truth about the editor rather than a tidier story.
+    expect(screen.getByText(/joins the end of the chain, after the bell/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Walk, hop, ring')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellBuildMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={onClose}
+      />,
+    );
+    expect(screen.getByTestId('story-build-task')).toHaveTextContent('drag it in front of Pop');
+    // Nothing in the card edits the program on the child's behalf.
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(/story-choice-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
   });
 
   it('turns a completed mission into a clear saved proof and next-scene action', () => {

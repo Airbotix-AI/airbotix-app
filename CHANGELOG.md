@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A6-B — add the missing step)
+
+### Added
+- Tiny Star Village Logic Build scene A6-B (`tsv-s1-a6-b`, `blocks_tsv_a6_b`, Mission 22), chapter
+  six's Complete scaffold. A6-H's Bell Tower route returns block for block on its own page, still
+  missing the same middle card, and the child puts it back: a `hop 1` between the walk and the bell.
+- `tinyStarBellStepAdded` / `tinyStarBellRangAfterHop` in `tinyStarBellTower.ts` — the saved-route
+  contract and the run measurement for the repaired walk → hop → ring order.
+- `TINY_STAR_BELL_BUILD_ROUTE`, derived from `TINY_STAR_BELL_HOOK_ROUTE` by splicing a `hop 1` in at
+  `TINY_STAR_BELL_HOP_INDEX` (the index of the Pop). That index IS scene-specs A6-B's assertion
+  "the Hop sits between the Move and the Pop", so the Hook and the Build cannot drift apart.
+
+### Changed
+- The story journey map now offers 22 playable Tiny Star Village scenes; A6-H advances to A6-B.
+- The ringer's played-op record kept for chapter six is now ORDERED (an array rather than a set) —
+  A6-H still reads its negative off it (a bell with no hop), and A6-B reads the repaired order (hop
+  before bell) from the same interpreter `onStep` callback. Pure generalisation.
+- `TINY_STAR_BELL_HOOK_SCRIPT_ID` renamed to `TINY_STAR_BELL_ROUTE_SCRIPT_ID`: both A6 scenes walk
+  the same route, so the script id belongs to the chapter, not to the Hook.
+
+### Notes
+- The starter cannot complete itself and offers nothing to copy: the route runs to the end, and the
+  block the child must add is seeded nowhere in the document. Tapping Hop in the Motion palette
+  appends it AFTER the Pop and on the block's own default of 2, so both the placement and the number
+  are the child's own moves — there is no answer button, and the story card says exactly where a tap
+  really lands the block.
+- Completion needs the exact saved route on the untouched chapter stage AND a run in which the
+  interpreter reached the Hop before the Pop with the ringer standing on the tower square. A saved
+  chain that was never run, or a run that rang before the jump, does not complete the mission.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-H — three Bell Tower cards)
 
 ### Added
