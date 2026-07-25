@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
+
+### Added
+- Each NAPLAN Year card now opens a complete parent-facing product detail page with the live
+  question count, access terms, a safe interactive original sample and an Airo Tutor preview.
+- Purchased practice now keeps Airo Tutor beside the question on desktop (and below it on
+  phones). A child can request a short explanation only after attempting the question, with no
+  extra Stars charged.
+
+## 2026-07-25 (fix: compact the NAPLAN sales page on phones)
+
+### Changed
+- Reduced phone-only NAPLAN hero, section, benefit and product-card typography and spacing while
+  retaining the existing tablet and desktop scale.
+- Kept purchase actions comfortably tappable and added component coverage for the responsive
+  sizing contract.
+
+## 2026-07-25 (feat: explain NAPLAN value to parents)
+
+### Changed
+- Reworked Parent Portal Exam Prep into a clear NAPLAN sales page that explains the current
+  product, one-child/one-Year access, live question count and path from purchase to practice.
+
 ## 2026-07-25 (feat: edit a kid's school from the settings page)
 
 ### Added

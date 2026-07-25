@@ -91,6 +91,12 @@ function wireApi(questions: unknown[], attempt = { is_correct: true, correct_ans
       return Promise.resolve(questions);
     if (path === '/academy/me/products/naplan-y5-numeracy/attempts')
       return Promise.resolve(attempt);
+    if (path === '/academy/me/products/naplan-y5-numeracy/tutor')
+      return Promise.resolve({
+        explanation: '1. Ten groups of 19 cents means 10 × 19.\\n2. That is 190 cents, or $1.90.',
+        model: 'kids-default',
+        stars_charged: 0,
+      });
     if (path === '/academy/me/products/naplan-y5-numeracy/progress')
       return Promise.resolve({ attempts: 3, correct: 2, accuracy: 0.67 });
     return Promise.resolve(undefined);
@@ -170,6 +176,26 @@ describe('AcademyPracticePage', () => {
         body: expect.objectContaining({ question_id: 'q1', submitted: 'A' }),
       }),
     );
+  });
+
+  it('unlocks the real Airo Tutor only after an attempt and shows its explanation', async () => {
+    wireApi([TEXT_CHOICE_Q], { is_correct: false, correct_answer: 'B' });
+    renderPage();
+
+    expect(await screen.findByTestId('academy-tutor')).toHaveTextContent('Have a go first');
+    expect(screen.queryByTestId('academy-ask-tutor')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('academy-option-A'));
+    fireEvent.click(await screen.findByTestId('academy-ask-tutor'));
+
+    expect(await screen.findByTestId('academy-tutor-explanation')).toHaveTextContent(
+      'Ten groups of 19 cents',
+    );
+    expect(api).toHaveBeenCalledWith('/academy/me/products/naplan-y5-numeracy/tutor', {
+      method: 'POST',
+      body: { question_id: 'q1' },
+    });
+    expect(screen.getByTestId('academy-tutor')).toHaveTextContent('no extra Stars');
   });
 
   it('scrolls the next question back to the top on mobile', async () => {

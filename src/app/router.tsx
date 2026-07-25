@@ -26,6 +26,7 @@ import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
 import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 import { AcademyOrderPage } from '@/pages/portal/AcademyOrderPage';
 import { AcademyPage } from '@/pages/portal/AcademyPage';
+import { AcademyProductDetailPage } from '@/pages/portal/AcademyProductDetailPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { CourseDetailPage } from '@/pages/portal/CourseDetailPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
@@ -146,6 +147,7 @@ export const router = createBrowserRouter([
       { path: 'teachers', element: <TeachersPage /> },
       { path: 'teachers/:slug', element: <TeacherDetailPage /> },
       { path: 'academy', element: <AcademyPage /> },
+      { path: 'academy/products/:slug', element: <AcademyProductDetailPage /> },
       { path: 'academy/checkout/:sku', element: <AcademyCheckoutPage /> },
       { path: 'academy/orders/:intentId', element: <AcademyOrderPage /> },
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
