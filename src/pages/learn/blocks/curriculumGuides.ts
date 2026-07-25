@@ -1062,6 +1062,47 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The server-saved project holds two different friends, a greeting for each and your own Wait, and the run measured the second greeting starting after the first without leaving the stage empty.',
     next: 'A clear greeting makes three footprints glow on the Bell Tower path — but the middle one keeps flickering. Chapter 6 is next.',
   },
+  // Tiny Star Village S1/A6-H — chapter six's Story Hook (scene-specs A6-H,
+  // teaching script §8.2/§8.3 "钟楼三步身体剧"). The class lays three cards on
+  // the floor — walk, hop, ring — and the teacher takes the middle one away.
+  // On screen the same thing has happened: the route runs, the bell rings, and
+  // nobody ever jumped up to touch it. Nothing is edited here; the child looks.
+  'tsv-s1-a6-h': {
+    mode: 'observe-only', lessonId: 'tsv-s1-a6-h', celebrate: false,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 6 · Mission 21', title: 'Three Bell Tower cards',
+    storyPages: [
+      { emoji: '⭐🔔', title: 'The last stop is the Bell Tower', body: 'Order, direction, tapping, distance and taking turns — five chapters of clues have reached the tower. Lumi only has to ring the bell to bring the morning light back.', speaker: 'Lumilo', dialogue: 'The whole village is waiting for one bell.', scene: 1 },
+      { emoji: '🚶🦘🔔', title: 'Three cards tell the story', body: 'Walk to the tower. Hop up to the bell. Hear the bell ring. Those three cards are the whole morning — first, then, last.', speaker: 'Dot Dot', dialogue: 'Three cards, always in that order.', scene: 3, blocks: ['🚩 Start → ➡️ Right 3', '🫧 Pop → End'] },
+      { emoji: '🚶❓🔔', title: 'Press Go and watch', body: 'One of the three cards is missing from this program. Run it and watch what really happens. Do not change any block — this mission is only for looking.', speaker: 'Lumilo', dialogue: 'The bell rang… but did I touch it?', scene: 5 },
+    ],
+    partnerLine: 'A story can run to the end and still be missing a step in the middle.',
+    mission: 'Press Go and watch the whole route. Then choose the card that never happened. Do not change any block.',
+    question: 'Which Bell Tower card is missing?',
+    choices: [
+      { id: 'walk', label: '🚶 Walk to the tower', correct: false },
+      { id: 'hop', label: '🦘 Hop up to the bell', correct: true },
+      { id: 'ring', label: '🔔 Hear the bell ring', correct: false },
+    ],
+    retry: 'Press Go again. Lumi really walked, and the bell really rang. Which card never happened at all?',
+    successTitle: 'Nobody touched the bell!', success: 'Lumi walked to the tower and the bell rang by itself — the hop in the middle is missing.',
+    fixTitle: 'Story Hook complete', fixPrompt: 'Keep the program exactly as it is. In the next mission you will add the missing Hop.',
+    workspaceIntro: 'Do not change the blocks. Press Go, watch the route, then choose the missing card.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Press Go and watch all three cards — or only two of them.', watch: 'Lumi is walking. Watch for a hop before the bell.',
+      sayFirst: 'Keep the bell program unchanged.', sayThen: 'Keep the bell program unchanged.',
+      hopFirst: 'Keep the bell program unchanged.', hopThen: 'Keep the bell program unchanged.',
+      retry: 'Watch the run again. Walk happened, ring happened — what did not?', fix: 'You saw the bell ring with nobody jumping. Now choose the missing card.',
+      test: 'Press Go to watch the route to the tower.', saving: 'Saving your observation with the program unchanged…',
+      complete: 'The bell rang without a hop, so the middle card is missing.',
+    },
+    logicSteps: [{ icon: '🚶', label: 'Walk 3', order: 'First' }, { icon: '❓', label: 'Nothing', order: 'Then' }, { icon: '🔔', label: 'Bell rings', order: 'Last' }],
+    logicWhy: 'The program goes straight from the walk to the bell, so the tower rings without anyone reaching it.',
+    completionTitle: 'Story Hook complete · The Hop is missing!', completion: 'You ran the Bell Tower route, heard the bell ring with nobody jumping, and found the card that is missing from the middle.',
+    completionSteps: [{ icon: '🚶', label: 'Walk to tower', order: 'Run' }, { icon: '🦘', label: 'Hop missing', order: 'Find' }, { icon: '🔔', label: 'Bell rang anyway', order: 'Explain' }],
+    completionWhy: 'The unchanged Start → Right 3 → Pop → End program walked Lumi to the tower and the real runner played the bell without ever reaching a Hop block.',
+    next: 'Next, add the missing Hop between the walk and the bell.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

@@ -134,4 +134,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 20',
     desc: 'One friend is standing in both spots. Cast two of Lumi, Tuan Tuan and Dot Dot, decide who greets first, give each of them a hello, and choose how long the second one waits.',
   },
+  {
+    id: 'blocks_tsv_a6_h',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 21',
+    desc: 'Walk, hop, ring — but this route rings the bell with nobody jumping. Press Go, watch all three Bell Tower cards, and find the one that never happened.',
+  },
 ];

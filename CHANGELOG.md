@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A6-H — three Bell Tower cards)
+
+### Added
+- Tiny Star Village Story Hook scene A6-H (`tsv-s1-a6-h`, `blocks_tsv_a6_h`, Mission 21), chapter
+  six's Explore scaffold. The shipped route walks to the Bell Tower and rings the bell with no Hop
+  in between, so the program itself is the question: the child runs it once and names the card that
+  never happened.
+- `tinyStarBellTower.ts` — chapter six's domain: the sunset stage geometry, the three physical Bell
+  Tower cards, the untouched-route contract and the run measurement. It is its own module because
+  `storyMissionProgress.ts` is at the umbrella's 1000-line-per-file rule.
+- `jtwPersonalArrival.ts` — the Journey to the West C1-P7 personal-arrival parser, moved out of
+  `storyMissionProgress.ts` for the same reason. Pure relocation, no behaviour change.
+
+### Changed
+- The story journey map now offers 21 playable Tiny Star Village scenes; A5-S advances to A6-H and
+  chapter 6 stops being empty.
+- Mission completion for A6-H is read from the saved page plus the real run, never a page boolean:
+  the interpreter's own `onStep` callback must show the ringer's script reaching a Pop and never a
+  Hop, `runner.state()` must put the ringer on the tower square, and the saved route must still be
+  exactly `Start → Right 3 → Pop → End` on the shipped two-character stage. The measurement is
+  cleared when a project loads, so runtime evidence never survives a reload.
+- Being an Explore hook, A6-H completes quietly with the observation proof card and no chapter
+  celebration — the same treatment A2-H, A3-H, A4-H and A5-H already get.
+
+### Notes
+- The two wrong cards are the two steps that DID run, which is what makes finding the missing middle
+  card a real discrimination. Like A5-H and unlike A4-H there is no pre-run prediction, because
+  before the run there is no honest way to know whether the bell rang.
+- The Bell Tower is a script-less `⭐` proxy: scene-specs §1.1 records that no bell art exists yet,
+  so none was invented, and the page still holds exactly two characters.
+
 ## 2026-07-25 (feat: Tiny Star Village A5-S — my two-friend greeting)
 
 ### Added

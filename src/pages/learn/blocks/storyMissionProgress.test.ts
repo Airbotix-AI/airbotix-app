@@ -1082,6 +1082,101 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(relayProject(relayChain(5)), 'tsv-s1-a5-s')).toBe(false);
   });
 
+  // ── A6-H · 三张钟楼卡 (Story Hook) ────────────────────────────────────────
+  // The chapter's Explore scene ships a route that runs to the end while
+  // skipping its middle step. Nothing may be built or repaired, so the saved
+  // contract is "the shipped Bell Tower stage is untouched"; the run-time proof
+  // lives in `tinyStarBellTower.test.ts` and `BlocksStudioPage.test.tsx`.
+  const bellHookProject = () => {
+    const project = blankProject('Tiny Star Village · Three Bell Tower Cards');
+    project.lessonId = 'tsv-s1-a6-h';
+    project.pages[0] = {
+      id: 'tsv-a6-h-page',
+      background: 'sunset',
+      characters: [
+        {
+          id: 'little-light',
+          name: 'Lumilo',
+          emoji: '⭐',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          start: { gx: 5, gy: 10, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'little-light-bell-route',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'move_right', n: 3 },
+                { op: 'pop' },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'bell-tower',
+          name: 'Bell Tower',
+          emoji: '⭐',
+          start: { gx: 8, gy: 7, size: 0.8, rot: 0 },
+          scripts: [],
+        },
+      ],
+    };
+    return project;
+  };
+
+  it('accepts A6-H only while the shipped Bell Tower route is untouched', () => {
+    expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a6-h')).toBe(true);
+
+    // Adding the missing Hop is A6-B's lesson, not this one.
+    const repaired = bellHookProject();
+    repaired.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a6-h')).toBe(false);
+
+    // Nor may the child silence the bell, retune the walk, reorder the route,
+    // move the ringer or the tower, or give the tower a script of its own.
+    const silenced = bellHookProject();
+    silenced.pages[0].characters[0].scripts[0].blocks.splice(2, 1);
+    expect(storyMissionProgramMatches(silenced, 'tsv-s1-a6-h')).toBe(false);
+
+    const retuned = bellHookProject();
+    retuned.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 2 };
+    expect(storyMissionProgramMatches(retuned, 'tsv-s1-a6-h')).toBe(false);
+
+    const reordered = bellHookProject();
+    const route = reordered.pages[0].characters[0].scripts[0].blocks;
+    [route[1], route[2]] = [route[2], route[1]];
+    expect(storyMissionProgramMatches(reordered, 'tsv-s1-a6-h')).toBe(false);
+
+    const walked = bellHookProject();
+    walked.pages[0].characters[0].start.gx = 8;
+    expect(storyMissionProgramMatches(walked, 'tsv-s1-a6-h')).toBe(false);
+
+    const draggedTower = bellHookProject();
+    draggedTower.pages[0].characters[1].start.gy = 10;
+    expect(storyMissionProgramMatches(draggedTower, 'tsv-s1-a6-h')).toBe(false);
+
+    const scriptedTower = bellHookProject();
+    scriptedTower.pages[0].characters[1].scripts.push({
+      id: 'bell-tower-tap',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(scriptedTower, 'tsv-s1-a6-h')).toBe(false);
+
+    const restaged = bellHookProject();
+    restaged.pages[0].background = 'candy';
+    expect(storyMissionProgramMatches(restaged, 'tsv-s1-a6-h')).toBe(false);
+
+    const reskinned = bellHookProject();
+    reskinned.pages[0].characters[0].asset = '/unapproved.svg';
+    expect(storyMissionProgramMatches(reskinned, 'tsv-s1-a6-h')).toBe(false);
+
+    // Chapter six's Hook and chapter five's scenes never satisfy each other.
+    const otherPage = bellHookProject();
+    otherPage.pages[0].id = 'tsv-a6-b-page';
+    expect(storyMissionProgramMatches(otherPage, 'tsv-s1-a6-h')).toBe(false);
+    expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a5-h')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

@@ -87,6 +87,12 @@ import {
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
+  TINY_STAR_BELL_MISSING_CARD_ID,
+  TINY_STAR_BELL_RINGER_ID,
+  TINY_STAR_BELL_TOWER_GX,
+  tinyStarBellRangWithoutHop,
+} from './tinyStarBellTower';
+import {
   TINY_STAR_DUET_CAST,
   TINY_STAR_DUET_FIRST_ID,
   TINY_STAR_DUET_HOP_N,
@@ -207,6 +213,14 @@ export function BlocksStudioPage({
   // A5-S: the same measurement for the child's OWN duet — the band comes from
   // whichever greeting they gave the friend who goes first. Judged per RUN.
   const duetTookTurnsRef = useRef(false);
+  // A6-H: chapter six's Hook proves a NEGATIVE — the interpreter played the
+  // bell and never reached a Hop, with the ringer standing at the tower. Like
+  // A5-H's overlap this is observed once per session (the Explore contract
+  // forbids editing the program at all), and cleared when a project loads.
+  const [missionBellRangAlone, setMissionBellRangAlone] = useState(false);
+  const bellRangAloneRef = useRef(false);
+  /** A6-H: the block ops the ringer's script actually reached in THIS run. */
+  const bellPlayedOpsRef = useRef<Set<string>>(new Set());
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -353,6 +367,8 @@ export function BlocksStudioPage({
     // a run of THIS session before the child's answer can count.
     setMissionVoicesOverlapped(false);
     voicesOverlappedRef.current = false;
+    setMissionBellRangAlone(false);
+    bellRangAloneRef.current = false;
     greetingTookTurnsRef.current = false;
     bounceRelayInTimeRef.current = false;
     bounceRelayTooLateRef.current = false;
@@ -676,6 +692,10 @@ export function BlocksStudioPage({
     bounceRelayInTimeRef.current = false;
     bounceRelayTooLateRef.current = false;
     duetTookTurnsRef.current = false;
+    // A6-H: which ops the ringer really performed this run. The Hook's claim is
+    // "the bell rang and the hop never happened", so the ops the interpreter
+    // reached — not the blocks on the page — are what decides it.
+    bellPlayedOpsRef.current = new Set<string>();
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -717,6 +737,7 @@ export function BlocksStudioPage({
           .flatMap((character) => character.scripts)
           .find((candidate) => candidate.id === scriptId);
         const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        if (op && stepCharId === TINY_STAR_BELL_RINGER_ID) bellPlayedOpsRef.current.add(op);
         if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
           bounceStartedAt.set(stepCharId, Date.now());
           bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
@@ -802,6 +823,18 @@ export function BlocksStudioPage({
         const jtwShowIndex = missionScript?.blocks.findIndex((block) => block.op === 'show') ?? -1;
         const observedOrderBug =
           isJtwOrderDebug && jtwSayIndex >= 0 && (jtwShowIndex < 0 || jtwSayIndex < jtwShowIndex);
+        // A6-H: the Hook's proof is the run itself — the interpreter played the
+        // bell, never reached a Hop, and left the ringer standing at the foot of
+        // the tower. Recorded so the "which card is missing?" answer can only be
+        // judged against a run the child has actually watched.
+        if (
+          storyMission.lessonId === 'tsv-s1-a6-h' &&
+          tinyStarBellRangWithoutHop(bellPlayedOpsRef.current) &&
+          runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX
+        ) {
+          bellRangAloneRef.current = true;
+          setMissionBellRangAlone(true);
+        }
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
@@ -819,7 +852,13 @@ export function BlocksStudioPage({
             storyMission.lessonId === 'tsv-s1-a5-h' &&
             missionAnswer === 'together' &&
             voicesOverlappedRef.current;
-          if (completedDistanceHook || completedGreetingHook) {
+          // A6-H: same shape one chapter later — the missing card only counts
+          // once a run has really rung the bell with no hop in it.
+          const completedBellHook =
+            storyMission.lessonId === 'tsv-s1-a6-h' &&
+            missionAnswer === TINY_STAR_BELL_MISSING_CARD_ID &&
+            bellRangAloneRef.current;
+          if (completedDistanceHook || completedGreetingHook || completedBellHook) {
             setMissionCorrectRunFinished(true);
             setStoryCoachCue('saving');
             setMissionOpen(false);
@@ -878,6 +917,9 @@ export function BlocksStudioPage({
       // A5-H: naming the overlap only counts once the child has actually seen
       // the two bubbles collide in a real run.
       if (storyMission.lessonId === 'tsv-s1-a5-h' && !missionVoicesOverlapped) return;
+      // A6-H: naming the missing card only counts once the child has actually
+      // watched the bell ring with nobody hopping.
+      if (storyMission.lessonId === 'tsv-s1-a6-h' && !missionBellRangAlone) return;
       const correct = storyMission.choices.some(
         (choice) => choice.id === choiceId && choice.correct,
       );
@@ -889,7 +931,14 @@ export function BlocksStudioPage({
       setStoryCoachCue('saving');
       setMissionOpen(false);
     },
-    [missionHasRun, missionTapObserved, missionTargetFixed, missionVoicesOverlapped, storyMission],
+    [
+      missionBellRangAlone,
+      missionHasRun,
+      missionTapObserved,
+      missionTargetFixed,
+      missionVoicesOverlapped,
+      storyMission,
+    ],
   );
 
   const applyMissionFix = useCallback(() => {

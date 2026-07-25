@@ -16,7 +16,7 @@ describe('StoryJourneyMap', () => {
 
     expect(screen.getByText('Bring back the morning light')).toBeInTheDocument();
     expect(screen.getAllByTestId(/story-chapter-/)).toHaveLength(6);
-    expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(20);
+    expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(21);
     expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a4')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a5')).toHaveTextContent('4 scenes ready');
@@ -62,7 +62,7 @@ describe('StoryJourneyMap', () => {
 
   it('keeps the story count derived from the playable mission catalogue', () => {
     const derived = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
-    expect(PLAYABLE_STORY_MISSION_COUNT).toBe(20);
+    expect(PLAYABLE_STORY_MISSION_COUNT).toBe(21);
     expect(derived).toHaveLength(PLAYABLE_STORY_MISSION_COUNT);
   });
 });

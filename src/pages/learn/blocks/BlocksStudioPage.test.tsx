@@ -1099,6 +1099,89 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   });
 
+  // Tiny Star Village A6-H — chapter six's Story Hook. The shipped route walks
+  // to the tower and rings the bell with no Hop in between, so the run itself is
+  // the question. The Hook accepts one proof only: the interpreter played the
+  // bell, never reached a Hop, and left the ringer at the foot of the tower.
+  const bellHookProject = () => {
+    const bell = blankProject('Tiny Star Village · Three Bell Tower Cards');
+    bell.lessonId = 'tsv-s1-a6-h';
+    bell.pages[0] = {
+      id: 'tsv-a6-h-page', background: 'sunset', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
+      ],
+    };
+    return bell;
+  };
+
+  it('completes A6-H only after a run that rang the bell with nobody hopping', async () => {
+    const bell = bellHookProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '5');
+    expect(screen.getByTestId('sprite-bell-tower')).toHaveAttribute('data-gx', '8');
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    // The walk really happens: the ringer ends at the foot of the tower.
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 3000 },
+    );
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    // The two cards that DID happen are the distractors.
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(screen.getByRole('status')).toHaveTextContent('never happened');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-ring'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('missing from the middle');
+    // An Explore hook stays quiet: no chapter celebration.
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+    // Observation only — the route was never edited.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-h': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('refuses A6-H once the missing Hop has been added — that is the next scene', async () => {
+    const bell = bellHookProject();
+    bell.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
+
+    // This run DID reach a Hop, so there is no "the bell rang alone" evidence
+    // and the saved route is no longer the one the Explore scene ships.
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-h': expect.anything() }),
+        }),
+      }),
+    );
+  });
+
   // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
   // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
   // and has to put it BEFORE the Say. Completion needs the exact saved chain AND

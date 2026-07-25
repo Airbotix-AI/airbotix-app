@@ -15,6 +15,7 @@ const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 const breakfastHookMission = storyMissionFor('tsv-s1-a4-h')!;
 const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
 const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
+const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
 
 afterEach(cleanup);
 
@@ -81,6 +82,48 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-mission-question')).toHaveTextContent('Who spoke first?');
     fireEvent.click(screen.getByTestId('story-choice-together'));
     expect(onAnswer).toHaveBeenCalledWith('together');
+  });
+
+  it('keeps the A6-H "missing card" question behind the run and offers all three cards', () => {
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellHookMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    // Like A5-H and unlike A4-H there is no pre-run prediction: the child has to
+    // watch the bell ring with nobody hopping before the cards mean anything.
+    expect(screen.queryByTestId('story-prerun-prediction')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('story-choice-hop')).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellHookMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    // All three physical Bell Tower cards are on offer, not just the answer.
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent(
+      'Which Bell Tower card is missing?',
+    );
+    expect(screen.getByTestId('story-choice-walk')).toBeInTheDocument();
+    expect(screen.getByTestId('story-choice-ring')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(onAnswer).toHaveBeenCalledWith('hop');
   });
 
   it('turns a completed mission into a clear saved proof and next-scene action', () => {
