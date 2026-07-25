@@ -163,6 +163,17 @@ export const JTW_STONE_MONKEY_ASSET =
   '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png';
 export const JTW_C1_BACKGROUND_ASSET =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp';
+/**
+ * Chapter two's own stage: the waterfall, the pool and the wet stepping stones
+ * the C2-P4 route crosses, with the curtain closed and the cave mouth still dark
+ * behind it. Chapter one's flower-fruit background is a different scene — the
+ * waterfall only appears there as distant scenery.
+ */
+export const JTW_C2_BACKGROUND_ASSET =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c2/before-v01.webp';
+/** Same composition, cave mouth warm-lit — chapter two's resolved state. */
+export const JTW_C2_RESOLVED_BACKGROUND_ASSET =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c2/resolved-v01.webp';
 
 /**
  * The read-only system preview chain (scene-specs C1-P1): the stone's sound is

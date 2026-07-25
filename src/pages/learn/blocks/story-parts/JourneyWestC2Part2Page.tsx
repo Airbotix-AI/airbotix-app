@@ -34,7 +34,7 @@ import {
   C2_P2_STORY_AFTER,
   C2_P2_STORY_BEFORE,
   C2_P2_STORY_BRIDGE,
-  JTW_C1_BACKGROUND_ASSET,
+  JTW_C2_BACKGROUND_ASSET,
   JTW_S1_STORY_LINE_ID,
   JTW_STONE_MONKEY_ASSET,
 } from './journeyWestSeason1';
@@ -61,7 +61,7 @@ function AgreementStage({ resolved }: { resolved: boolean }) {
       data-testid="jtw-c2p2-stage"
     >
       <img
-        src={JTW_C1_BACKGROUND_ASSET}
+        src={JTW_C2_BACKGROUND_ASSET}
         alt="瀑布前：石猴面对合着的白色水帘，三只群猴退到干燥的高石上等待，洞口仍藏在水帘后面"
         className="absolute inset-0 h-full w-full object-cover"
       />

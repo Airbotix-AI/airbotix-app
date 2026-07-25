@@ -42,7 +42,7 @@ import {
   C2_P4_STORY_BRIDGE,
   C2_P4_TARGET_TRACE,
   c2p4RouteTrace,
-  JTW_C1_BACKGROUND_ASSET,
+  JTW_C2_BACKGROUND_ASSET,
   JTW_S1_STORY_LINE_ID,
   JTW_STONE_MONKEY_ASSET,
 } from './journeyWestSeason1';
@@ -109,7 +109,7 @@ function RouteStage({ resolved }: { resolved: boolean }) {
       data-testid="jtw-c2p4-stage"
     >
       <img
-        src={JTW_C1_BACKGROUND_ASSET}
+        src={JTW_C2_BACKGROUND_ASSET}
         alt="瀑布前的湿石路：石猴站在左边的起点，白色水帘仍然合着，等着一条五块的真实路线"
         className="absolute inset-0 h-full w-full object-cover"
       />

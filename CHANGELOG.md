@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
+
+### Added
+- Runtime capability `CharacterStart.visible`: a character can be declared hidden at the start
+  of a run. It is not drawn, but it stays a trigger zone — its On Bump track still fires — so a
+  cave mouth waiting behind a water curtain can run the child's Show on contact. A character
+  hidden mid-run by the child's own Hide block is unchanged: gone means untouchable. The two
+  rules are separate functions (`spritesBump` for contact, `spritesTouch` for the child-facing
+  "is touching?" sensing block), so the sensing semantics kids already learned did not move.
+- Runtime capability `CharacterStart.reach`: an explicit collision reach in grid cells,
+  decoupling the foot zone from the drawn size. A stage-filling visual (a water curtain across
+  the falls) can now keep a one-cell foot zone, so C2-P4's "one square short never reaches"
+  evidence stays true when the curtain becomes a real actor. Without the field the foot zone is
+  still derived from size exactly as before.
+- Chapter two's own background assets (`backgrounds/s1/c2/before-v01.webp` +
+  `resolved-v01.webp`) integrated into `public/`, per the S1 internal-build integration
+  authorisation in the Journey to the West saga asset bible.
+
+### Fixed
+- **JtW C2 parts P1–P4 were rendering chapter ONE's background.** Only the C1 background had
+  ever been copied into `public/`, so the water-curtain chapter was showing the flower-fruit
+  stone-egg scene — where the waterfall is only distant scenery — while the copy talked about
+  the falls, the pool and the wet stepping stones. All four parts now use the real chapter-two
+  stage, which is also the scene C2-P4's five-stone route actually crosses.
 ## 2026-07-25 (feat: demonstrate diagnostic Tutor feedback)
 
 ### Changed
