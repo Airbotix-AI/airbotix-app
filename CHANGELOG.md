@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-25 (feat: show varied Academy Tutor demos)
+
+### Changed
+- The NAPLAN product detail demo now includes four original, switchable Numeracy samples:
+  equal groups, money, data and time.
+- Tapping any answer immediately updates Airo Tutor with answer feedback, a question-specific
+  worked explanation and a simple way to check the result. All demo figures are native HTML/SVG.
+
 ## 2026-07-25 (fix: make Academy explanations automatic)
 
 ### Changed
