@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-26 (fix: restore the Art Studio hub shell)
+
+### Fixed
+- `/learn/create/image` now keeps the Kids navigation, centered reading column
+  and page scrolling. Only `/learn/create/image/canvas` uses the immersive
+  fullscreen easel.
 ## 2026-07-26 (fix: Blocks Studio cast pickers were clipped on a small phone)
 
 ### Fixed
