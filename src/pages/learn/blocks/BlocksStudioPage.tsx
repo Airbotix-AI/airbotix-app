@@ -112,6 +112,11 @@ import {
   storyJourneyPositionForLesson,
   storyMissionProjectTitle,
 } from './storyJourneyCatalog';
+import {
+  recordTinyStarSeasonScene,
+  TINY_STAR_SEASON_LOCKED_MESSAGE,
+  TINY_STAR_SEASON_OFFLINE_MESSAGE,
+} from './tinyStarSeason';
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -239,6 +244,9 @@ export function BlocksStudioPage({
   const [missionCompleted, setMissionCompleted] = useState(false);
   const [nextMissionBusy, setNextMissionBusy] = useState(false);
   const [nextMissionError, setNextMissionError] = useState<string | null>(null);
+  // The season chain refused this scene (it was opened out of order): the
+  // project still saved, but the story map must not offer the scene after it.
+  const [seasonSceneLocked, setSeasonSceneLocked] = useState(false);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
@@ -409,6 +417,7 @@ export function BlocksStudioPage({
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
     setNextMissionError(null);
+    setSeasonSceneLocked(false);
     setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission, missionTargetFixed]);
@@ -626,6 +635,17 @@ export function BlocksStudioPage({
         setMissionCompleted(true);
         setStoryCoachCue('complete');
         setMissionOpen(true);
+        // Advance the season chain (Task 25). The saved project is the evidence;
+        // the server re-checks the previous scene, so a scene played out of
+        // order saves but never opens the one after it.
+        if (!demo) {
+          const seasonRecord = await recordTinyStarSeasonScene(storyMission.lessonId, projectId);
+          setSeasonSceneLocked(seasonRecord === 'locked');
+          if (seasonRecord === 'locked') setNextMissionError(TINY_STAR_SEASON_LOCKED_MESSAGE);
+          else if (seasonRecord === 'unavailable') {
+            setNextMissionError(TINY_STAR_SEASON_OFFLINE_MESSAGE);
+          }
+        }
       }
       setSaveStatus('saved');
     } catch {
@@ -640,7 +660,7 @@ export function BlocksStudioPage({
       savingRef.current = false;
       completionSaveInFlightRef.current = false;
     }
-  }, [projectId, storyMission]);
+  }, [demo, projectId, storyMission]);
 
   useEffect(() => {
     if (
@@ -2008,7 +2028,11 @@ export function BlocksStudioPage({
           }
           nextBusy={nextMissionBusy}
           nextError={nextMissionError}
-          onNext={nextJourneyPosition && !readOnly && !demo ? startNextStoryMission : undefined}
+          onNext={
+            nextJourneyPosition && !readOnly && !demo && !seasonSceneLocked
+              ? startNextStoryMission
+              : undefined
+          }
           onBackToCollection={() => navigate('/learn/create/blocks')}
         />
       )}

@@ -6,6 +6,55 @@
 - `/learn/create/image` now keeps the Kids navigation, centered reading column
   and page scrolling. Only `/learn/create/image/canvas` uses the immersive
   fullscreen easel.
+## 2026-07-26 (fix: Blocks Studio cast pickers were clipped on a small phone)
+
+### Fixed
+- **A5-S and A6-S were unwinnable below ~400px wide.** Both ship a row of three cast buttons at
+  `min-width:118px`; `.bsx-home-choices` never wrapped and `.bsx-app` is `overflow:hidden`, so the
+  third friend was **clipped off the edge with no way to scroll to it** — and A5-S requires picking
+  two DIFFERENT friends while A6-S requires picking the ringer. The portrait media query already
+  reset `.bsx-home-choice { min-width: 0 }`, but `.bsx-cast-picker .bsx-home-choice` (specificity
+  0,2,0) out-ranks it (0,1,0) — a media query adds no specificity. The narrow branch now restates
+  the reset for the cast and delivery pickers and lets a row of friends wrap. CSS only: no mission
+  contract, starter, stage or copy changed.
+
+### Notes
+- Found by the Task 26 responsive audit, which read the code and the design tokens; real-browser
+  evidence belongs to the owner-triggered harness sweep and was not run.
+- Two files in this directory remain over the umbrella 1000-line hard limit —
+  `src/pages/learn/blocks/BlocksStudioPage.tsx` (2993) and `curriculumGuides.ts` (1646). Recorded as
+  Q2 in `docs/product/curriculum/story-blocks/tiny-star-village-season-1-implementation-status.md`,
+  not fixed here: a 24-scene refactor is the wrong shape for a quality-gate task and has no harness
+  to catch regressions.
+
+## 2026-07-26 (feat: Tiny Star Village season progression, resume and locked next scene)
+
+### Added
+- Tiny Star Village Season 1 is now ONE sequential season, not 24 independent scenes.
+  `tinyStarSeason.ts` holds the season manifest (derived from `storyJourneyCatalog`, never a second
+  copy of the order), projects the server's unlock answer onto the 24 scenes, names the scene to
+  resume, and records a finished scene against the kid's chain.
+- Story map scene states: `completed` (✓, replayable for ever), `open` (the one scene the season is
+  waiting on) and `locked` (🔒, disabled). A chapter never opens wholesale — finishing A1-S opens
+  A2-H and nothing else.
+- "Continue the story" card on the story map: it names the open scene (`Chapter 2 · Which way is the
+  plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child's own project** for
+  that scene when they already started it, instead of creating a second empty copy; only an
+  unstarted scene creates one. Finishing all 24 shows the season card.
+- A finished Tiny Star scene now records itself against `/story-parts/tiny-star-village-s1` with
+  `selections.saved_project = [projectId]` — the VFS the studio just verified, never a page boolean.
+
+### Changed
+- `BlocksStudioPage` no longer offers "Next scene" when the season chain refused this scene
+  (`403 STORY_PART_LOCKED`, i.e. it was opened out of order): the child's own work still saves, and
+  the card explains in their words that the map opens scenes in order.
+
+### Notes
+- The unlock truth is the server (the same adjacent-unlock service Journey to the West uses); the
+  client only renders it. Until that answer arrives — loading, offline, or a non-kid session —
+  **nothing is locked**, so a network blip can never shut a child out of a scene they earned.
+- The per-project `project.blocks.progress.json` sidecar is unchanged; it still makes a single scene
+  reopen finished. The season needed a kid-scoped chain because every scene is its own project.
 
 ## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
 

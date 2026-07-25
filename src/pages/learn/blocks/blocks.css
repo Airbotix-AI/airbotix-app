@@ -2225,12 +2225,24 @@
   }
   .bsx-home-choices {
     gap: 6px;
+    /* a row of friends must be able to wrap: .bsx-app is overflow:hidden, so an
+       unwrappable row is CLIPPED, not scrolled — the third friend would simply
+       be unreachable on a phone (A5-S and A6-S both need all three). */
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .bsx-home-choice {
     min-width: 0;
     min-height: 40px;
     padding: 6px 9px;
     font-size: 12px;
+  }
+  /* the cast (A5-S/A6-S) and delivery (A4-S) pickers set their own min-width
+     with a two-class selector, which out-specifies the reset above no matter
+     that this rule lives in a media query — restate it for them. */
+  .bsx-cast-picker .bsx-home-choice,
+  .bsx-delivery-picker .bsx-home-choice {
+    min-width: 0;
   }
   .bsx-middle {
     grid-template-columns: 1fr 1fr;
