@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
+
+### Added
+- Each NAPLAN Year card now opens a complete parent-facing product detail page with the live
+  question count, access terms, a safe interactive original sample and an Airo Tutor preview.
+- Purchased practice now keeps Airo Tutor beside the question on desktop (and below it on
+  phones). A child can request a short explanation only after attempting the question, with no
+  extra Stars charged.
+
 ## 2026-07-25 (fix: compact the NAPLAN sales page on phones)
 
 ### Changed

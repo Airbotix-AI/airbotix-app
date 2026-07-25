@@ -125,7 +125,7 @@ describe('AcademyPage parent sales experience', () => {
     expect(screen.getByText('180 days · one child')).toBeInTheDocument();
     expect(screen.getByTestId('academy-buy-naplan-y3-numeracy')).toHaveAttribute(
       'href',
-      '/portal/academy/checkout/naplan-y3-numeracy',
+      '/portal/academy/products/naplan-y3-numeracy',
     );
   });
 
@@ -156,7 +156,7 @@ describe('AcademyPage parent sales experience', () => {
     expect(await screen.findByText('Already unlocked for Mia')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Choose NAPLAN Year 3 Numeracy Prep for a child' }),
-    ).toHaveTextContent('Choose another child');
+    ).toHaveTextContent('View product');
   });
 
   it('does not sell unfinished mock tests or wrong-question review as current benefits', async () => {
