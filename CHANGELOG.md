@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-26 (fix: Blocks Studio cast pickers were clipped on a small phone)
+
+### Fixed
+- **A5-S and A6-S were unwinnable below ~400px wide.** Both ship a row of three cast buttons at
+  `min-width:118px`; `.bsx-home-choices` never wrapped and `.bsx-app` is `overflow:hidden`, so the
+  third friend was **clipped off the edge with no way to scroll to it** — and A5-S requires picking
+  two DIFFERENT friends while A6-S requires picking the ringer. The portrait media query already
+  reset `.bsx-home-choice { min-width: 0 }`, but `.bsx-cast-picker .bsx-home-choice` (specificity
+  0,2,0) out-ranks it (0,1,0) — a media query adds no specificity. The narrow branch now restates
+  the reset for the cast and delivery pickers and lets a row of friends wrap. CSS only: no mission
+  contract, starter, stage or copy changed.
+
+### Notes
+- Found by the Task 26 responsive audit, which read the code and the design tokens; real-browser
+  evidence belongs to the owner-triggered harness sweep and was not run.
+- Two files in this directory remain over the umbrella 1000-line hard limit —
+  `src/pages/learn/blocks/BlocksStudioPage.tsx` (2993) and `curriculumGuides.ts` (1646). Recorded as
+  Q2 in `docs/product/curriculum/story-blocks/tiny-star-village-season-1-implementation-status.md`,
+  not fixed here: a 24-scene refactor is the wrong shape for a quality-gate task and has no harness
+  to catch regressions.
+
 ## 2026-07-26 (feat: Tiny Star Village season progression, resume and locked next scene)
 
 ### Added
