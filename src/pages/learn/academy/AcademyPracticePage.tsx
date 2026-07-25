@@ -115,6 +115,20 @@ export function AcademyPracticePage() {
   const doneCount = Object.keys(results).length;
   const correctCount = Object.values(results).filter((r) => r.is_correct).length;
 
+  const loadTutor = async (questionId: string) => {
+    if (tutorLoading || tutorExplanation) return;
+    setTutorLoading(true);
+    setTutorError(null);
+    try {
+      const response = await getAcademyTutorExplanation({ productSlug, questionId });
+      setTutorExplanation(response.explanation);
+    } catch {
+      setTutorError("Airo couldn't explain this one right now. Try again in a moment.");
+    } finally {
+      setTutorLoading(false);
+    }
+  };
+
   const submit = async (submitted: string) => {
     if (!current || answered || submitting || !isSubmissionComplete(current, submitted)) return;
     setSubmitting(true);
@@ -127,6 +141,7 @@ export function AcademyPracticePage() {
         timeMs: Date.now() - startedAt.current,
       });
       setResults((prev) => ({ ...prev, [idx]: { ...res, submitted } }));
+      void loadTutor(current.id);
     } catch {
       setSubmitError("Couldn't check your answer — try again in a moment.");
     } finally {
@@ -137,23 +152,6 @@ export function AcademyPracticePage() {
   const next = () => {
     if (idx + 1 < total) setIdx(idx + 1);
     else setPhase('summary');
-  };
-
-  const askTutor = async () => {
-    if (!current || !answered || tutorLoading || tutorExplanation) return;
-    setTutorLoading(true);
-    setTutorError(null);
-    try {
-      const response = await getAcademyTutorExplanation({
-        productSlug,
-        questionId: current.id,
-      });
-      setTutorExplanation(response.explanation);
-    } catch {
-      setTutorError("Airo couldn't explain this one right now. Try again in a moment.");
-    } finally {
-      setTutorLoading(false);
-    }
   };
 
   const practiseMore = () => setSetNo((n) => n + 1);
@@ -256,7 +254,7 @@ export function AcademyPracticePage() {
                 explanation={tutorExplanation}
                 loading={tutorLoading}
                 error={tutorError}
-                onAsk={() => void askTutor()}
+                onRetry={() => void loadTutor(current.id)}
               />
             </div>
           </div>
@@ -329,13 +327,13 @@ function TutorPanel({
   explanation,
   loading,
   error,
-  onAsk,
+  onRetry,
 }: {
   answered: AnsweredResult | undefined;
   explanation: string | null;
   loading: boolean;
   error: string | null;
-  onAsk: () => void;
+  onRetry: () => void;
 }) {
   return (
     <aside
@@ -364,19 +362,23 @@ function TutorPanel({
         </p>
       )}
 
-      {answered && !explanation && (
+      {answered && loading && (
         <div className="mt-5">
           <p className="text-[14px] font-semibold leading-relaxed text-ink-soft">
-            You&apos;ve had a go. Ask me to explain the thinking, step by step.
+            Airo is turning your answer into a short, step-by-step explanation…
           </p>
+        </div>
+      )}
+
+      {answered && !loading && !explanation && error && (
+        <div className="mt-5">
           <button
             type="button"
             className="btn-pill-primary mt-4 w-full"
-            onClick={onAsk}
-            disabled={loading}
-            data-testid="academy-ask-tutor"
+            onClick={onRetry}
+            data-testid="academy-retry-tutor"
           >
-            {loading ? 'Airo is thinking…' : 'Explain this question'}
+            Try the explanation again
           </button>
         </div>
       )}

@@ -55,7 +55,8 @@ export function AcademyProductDetailPage() {
             </h1>
             <p className="mt-4 max-w-2xl text-[15px] font-medium leading-relaxed text-white/75 sm:text-[18px]">
               Your child works through reviewed, Year-specific questions and gets immediate
-              feedback. After every attempt, Airo Tutor can explain the thinking in small steps.
+              feedback. After every attempt, Airo Tutor automatically explains the thinking in
+              small steps.
             </p>
           </div>
           <div className="rounded-[22px] bg-white/10 p-5 lg:min-w-[240px]">
@@ -98,7 +99,7 @@ export function AcademyProductDetailPage() {
         />
         <ValueCard
           title="Airo Tutor is included"
-          body="After the child attempts a question, they can ask for a short explanation at no extra Stars cost."
+          body="After the child attempts a question, a short explanation appears automatically at no extra Stars cost."
         />
       </section>
 
@@ -186,20 +187,14 @@ function AcademyParentDemo() {
             <h3 className="text-[20px] font-black text-ink">Let&apos;s make it click.</h3>
           </div>
         </div>
-        {!checked ? (
-          <p className="mt-6 text-[15px] font-semibold leading-relaxed text-ink-soft">
-            Choose an answer first. In the real product, Tutor help unlocks after your child has a go.
-          </p>
-        ) : (
-          <div className="mt-6 space-y-3 text-[14px] font-semibold leading-relaxed text-ink" data-testid="academy-demo-tutor">
-            <p><strong>1.</strong> Six cars means 6 equal groups.</p>
-            <p><strong>2.</strong> Each group has 3 people.</p>
-            <p><strong>3.</strong> Multiply: 6 × 3 = 18 people.</p>
-            <p className="rounded-2xl bg-white/70 p-3">Can you check it by counting 3, 6, 9 … up to 18?</p>
-          </div>
-        )}
+        <div className="mt-6 space-y-3 text-[14px] font-semibold leading-relaxed text-ink" data-testid="academy-demo-tutor">
+          <p><strong>1.</strong> Six cars means 6 equal groups.</p>
+          <p><strong>2.</strong> Each group has 3 people.</p>
+          <p><strong>3.</strong> Multiply: 6 × 3 = 18 people.</p>
+          <p className="rounded-2xl bg-white/70 p-3">Can you check it by counting 3, 6, 9 … up to 18?</p>
+        </div>
         <p className="mt-6 text-[11px] font-bold leading-relaxed text-ink-soft">
-          The purchased product generates a fresh, age-aligned explanation after each attempt.
+          In the purchased product, this explanation appears automatically after each attempt.
         </p>
       </aside>
     </div>

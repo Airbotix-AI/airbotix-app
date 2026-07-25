@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-25 (fix: make Academy explanations automatic)
+
+### Changed
+- The Parent Portal product demo now shows a complete worked Airo Tutor explanation immediately,
+  so parents can see the core learning value before purchase.
+- Purchased practice automatically generates the Tutor explanation after every submitted answer;
+  children no longer need to discover or press a separate Explain button. A failed generation
+  keeps a clear retry action.
+
 ## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
 
 ### Added
