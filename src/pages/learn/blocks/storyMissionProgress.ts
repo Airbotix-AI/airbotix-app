@@ -86,6 +86,28 @@ export const TINY_STAR_GREETING_VOICES = [
 /** A5-H: how many speech bubbles must be open at once to prove the overlap. */
 export const TINY_STAR_OVERLAPPING_VOICES = TINY_STAR_GREETING_VOICES.length;
 
+/**
+ * A5-B: the Wait the child gives Tuan Tuan, in the block's own units (tenths of
+ * a second — the interpreter sleeps `n * 100 ms`). Five is the Wait block's
+ * shipped default, so a child who taps Wait in the Control palette never has to
+ * open the number editor; tuning the number is A5-D's lesson, not this one.
+ */
+export const TINY_STAR_TURN_WAIT_N = 5;
+
+/**
+ * A5-B: the head start a real run must measure between the two greetings before
+ * the turn counts. Half the modelled 500 ms absorbs timer jitter while staying
+ * far above the sub-millisecond gap the A5-H collision produces, where both
+ * chains open their bubbles inside one interpreter tick.
+ *
+ * Runtime ceiling worth knowing (measured against `interpreter.ts`): a speech
+ * bubble stays up for `SAY_MS = 1400 ms` and `MAX_PARAM` caps Wait at 9, i.e.
+ * 900 ms — so no Wait this runtime can express makes the two bubbles stop
+ * overlapping. A5-B therefore proves "Tuan Tuan starts later", which is the
+ * scene's own assertion, and never claims the bubbles are separated.
+ */
+export const TINY_STAR_TURN_MIN_GAP_MS = (TINY_STAR_TURN_WAIT_N * 100) / 2;
+
 export interface TinyStarDeliveryDesign {
   /** How many spaces right of the cart the child put the stop (1..3). */
   distance: number;
@@ -277,6 +299,25 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [
       { op: 'when_flag' },
       { op: 'say', text: TINY_STAR_GREETING_VOICES[0].text },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-B — chapter five's Logic Build (scene-specs A5-B).
+  // The stage is A5-H's, but Tuan Tuan's chain is the one under construction:
+  // the child adds the Wait and decides where it goes. Only a Wait BEFORE the
+  // Say delays the second greeting, so `target` is exact; the bespoke branch
+  // below additionally keeps Lumilo's chain out of bounds.
+  'tsv-s1-a5-b': {
+    pageId: 'tsv-a5-b-page',
+    background: 'candy',
+    characterId: TINY_STAR_GREETING_VOICES[1].characterId,
+    scriptId: TINY_STAR_GREETING_VOICES[1].scriptId,
+    asset: TINY_STAR_GREETING_VOICES[1].asset,
+    start: { gx: TINY_STAR_GREETING_VOICES[1].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'say', text: TINY_STAR_GREETING_VOICES[1].text },
       { op: 'end' },
     ],
   },
@@ -520,6 +561,21 @@ function tinyStarGreetingVoiceUnchanged(
   );
 }
 
+/**
+ * A5-B: did the two greetings really take turns in THIS run? `openedAt` holds
+ * the moment each friend FIRST opened a speech bubble, recorded by the studio
+ * from the interpreter's own `onSay` host callback — so this is a measurement of
+ * the runtime, never a page flag. The turn counts only when Lumilo opened first
+ * and Tuan Tuan's greeting followed at least a real `TINY_STAR_TURN_MIN_GAP_MS`
+ * later; the A5-H collision opens both inside one tick and fails here.
+ */
+export function tinyStarGreetingTookTurns(openedAt: ReadonlyMap<string, number>): boolean {
+  const first = openedAt.get(TINY_STAR_GREETING_VOICES[0].characterId);
+  const second = openedAt.get(TINY_STAR_GREETING_VOICES[1].characterId);
+  if (first === undefined || second === undefined) return false;
+  return second - first >= TINY_STAR_TURN_MIN_GAP_MS;
+}
+
 function blockMatches(actual: Block | undefined, target: Block): boolean {
   return actual?.op === target.op && actual.n === target.n && actual.text === target.text;
 }
@@ -646,6 +702,24 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       TINY_STAR_GREETING_VOICES.every((voice) =>
         tinyStarGreetingVoiceUnchanged(voice, page.characters),
       )
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-b') {
+    // Logic Build: the child owns Tuan Tuan's chain — and only a Wait placed
+    // BEFORE the Say delays the second greeting, so the target is exact. Lumilo
+    // is the fixed half of the duet: the head start is only meaningful while the
+    // first voice is still the untouched `Start → Say "Morning!" → End`.
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_GREETING_VOICES.length &&
+      tinyStarGreetingVoiceUnchanged(TINY_STAR_GREETING_VOICES[0], page.characters) &&
+      character?.asset === mission.asset &&
+      character.scripts.length === 1 &&
+      startMatches &&
+      blocks.length === mission.target.length &&
+      mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))
     );
   }
 

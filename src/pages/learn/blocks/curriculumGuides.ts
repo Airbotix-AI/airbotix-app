@@ -965,6 +965,43 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The two unchanged Start → Say → End chains both ran from the same flag, and the real runner held both speech bubbles open at the same time.',
     next: 'Next, give Tuan Tuan a Wait block so the two good mornings take turns.',
   },
+  // Tiny Star Village S1/A5-B — chapter five's Logic Build (scene-specs A5-B,
+  // teaching script §7.4 "给团团一只沙漏"). A5-H's stage returns with one block
+  // missing from Tuan Tuan's chain. The child adds the Wait AND decides where it
+  // goes: after the Say it changes nothing, before the Say it hands Lumilo the
+  // first turn. Tapping Wait in the palette lands it after the Say, so the
+  // placement is genuinely the child's move, not the product's.
+  'tsv-s1-a5-b': {
+    mode: 'complete', lessonId: 'tsv-s1-a5-b', celebrate: true,
+    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 5 · Mission 18', title: 'Wait a moment',
+    storyPages: [
+      { emoji: '💬💬', title: 'Two good mornings at once', body: 'Last time both friends spoke on the same Go and nobody could hear either one. Tuan Tuan would like to go second this time.', speaker: 'Tuan Tuan', dialogue: 'I do not mind waiting for Lumi.', scene: 1 },
+      { emoji: '⏱', title: 'An hourglass for Tuan Tuan', body: 'Open Tuan Tuan and look at the chain. There is room between Start and Say — that is where a Wait block belongs.', speaker: 'Lumilo', dialogue: 'Wait, then say it.', scene: 3, blocks: ['🚩 Start', '⏱ Wait → 💬 Say'] },
+      { emoji: '⭐➡️🐻', title: 'Where you drop it matters', body: 'A Wait after the Say changes nothing — Tuan Tuan still speaks straight away. Put the Wait first, press Go, and listen for Lumi starting alone.', speaker: 'Tuan Tuan', dialogue: 'Lumi first, then me!', scene: 5 },
+    ],
+    partnerLine: 'Wait does not stop a friend — it makes that friend start later.',
+    mission: 'Choose Tuan Tuan, add one Wait block BEFORE the Say, wait for Saved, then press Go.',
+    question: 'Who will speak first now?', choices: [],
+    retry: 'Tuan Tuan still starts with Lumi. The Wait has to sit between Start and Say.',
+    successTitle: 'Lumi went first!', success: 'The saved Wait held Tuan Tuan back, so the two good mornings started one after the other.',
+    fixTitle: 'Give Tuan Tuan a Wait', fixPrompt: 'Close this card, tap Tuan Tuan, open ⏱ Control, and put a Wait between Start and Say.',
+    workspaceIntro: 'Lumilo’s chain stays exactly as it is. Only Tuan Tuan needs the new block.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Tap Tuan Tuan, then add a Wait before the Say.', watch: 'Listen for who starts first.',
+      sayFirst: 'Lumi is speaking first.', sayThen: 'Tuan Tuan speaks after the wait.',
+      hopFirst: 'Leave Lumilo’s chain alone.', hopThen: 'Leave Lumilo’s chain alone.',
+      retry: 'Move the Wait in front of the Say and run it again.', fix: 'Tuan Tuan still needs a Wait before the Say.',
+      test: 'Saved? Press Go and listen to the turns.', saving: 'Lumi started first. Saving the two-friend greeting…',
+      complete: 'Tuan Tuan waited, so both good mornings could be heard.',
+    },
+    logicSteps: [{ icon: '🐻', label: 'Choose Tuan Tuan', order: 'First' }, { icon: '⏱', label: 'Wait before Say', order: 'Add' }, { icon: '▶️', label: 'Run', order: 'Test' }],
+    logicWhy: 'Both chains still start on the same green flag, so only a Wait in front of the Say can push the second greeting later.',
+    completionTitle: 'They took turns! ⭐🐻', completion: 'You gave Tuan Tuan a Wait, saved it, and the real run let Lumi start first.',
+    completionSteps: [{ icon: '⏱', label: 'Wait added', order: 'Build' }, { icon: '💾', label: 'Saved', order: 'Prove' }, { icon: '⭐→🐻', label: 'Lumi first', order: 'Run' }],
+    completionWhy: 'The server-saved Start → Wait → Say → End chain ran beside Lumilo’s untouched greeting, and the run measured Tuan Tuan’s bubble opening after Lumi’s.',
+    next: 'Next, a Wait that is far too long pulls the two good mornings apart again.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.

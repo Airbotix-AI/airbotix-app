@@ -1099,6 +1099,96 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   });
 
+  // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
+  // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
+  // and has to put it BEFORE the Say. Completion needs the exact saved chain AND
+  // a run in which the interpreter really opened Tuan Tuan's bubble later.
+  const greetingBuildProject = () => {
+    const greeting = blankProject('Tiny Star Village · Wait a Moment');
+    greeting.lessonId = 'tsv-s1-a5-b';
+    greeting.pages[0] = {
+      id: 'tsv-a5-b-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      ],
+    };
+    return greeting;
+  };
+  const tuanTuanBlocks = () =>
+    useBlocksStore.getState().project.pages[0].characters[1].scripts[0].blocks;
+
+  it('completes A5-B once the child moves the Wait in front of Tuan Tuan’s Say', async () => {
+    const greeting = greetingBuildProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    // The child opens Tuan Tuan and taps Wait in the real Control palette. A tap
+    // appends before the terminal End — i.e. AFTER the Say, which changes nothing.
+    fireEvent.click(screen.getByTestId('char-thumb-tuan-tuan'));
+    fireEvent.click(screen.getByTestId('cat-control'));
+    const waitPalette = screen.getByTestId('palette').querySelector('[data-testid="block-wait"]');
+    fireEvent.pointerDown(waitPalette!);
+    fireEvent.pointerUp(waitPalette!);
+    expect(tuanTuanBlocks()).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'wait', n: 5 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Dragging it in front of the Say is the move the mission is about.
+    act(() => useBlocksStore.getState().moveBlock('tuan-tuan-greeting', 2, 1));
+    expect(tuanTuanBlocks()).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Morning too!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // Lumilo's half of the duet was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Lumi opens alone; Tuan Tuan's greeting arrives a real half-second later.
+    expect(await screen.findByTestId('speech-bubble-little-light', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(screen.queryByTestId('speech-bubble-tuan-tuan')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('speech-bubble-tuan-tuan', {}, { timeout: 5000 })).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-b': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses A5-B while the Wait still sits after Tuan Tuan’s Say', async () => {
+    const greeting = greetingBuildProject();
+    // The block is there, but behind the Say — both friends still open together.
+    greeting.pages[0].characters[1].scripts[0].blocks.splice(2, 0, { op: 'wait', n: 5 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('speech-bubble-little-light', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(screen.getByTestId('speech-bubble-tuan-tuan')).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-b': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';

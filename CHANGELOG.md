@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A5-B — wait a moment)
+
+### Added
+- Tiny Star Village Logic Build scene A5-B (`tsv-s1-a5-b`, `blocks_tsv_a5_b`, Mission 18), chapter
+  five's Complete scaffold. Tuan Tuan wants to go second, so the child gives Tuan Tuan one Wait
+  block — and has to put it in front of the Say for it to mean anything.
+
+### Changed
+- The story journey map now offers 18 playable Tiny Star Village scenes; A5-H advances to A5-B.
+- Mission completion for A5-B combines the exact saved chain with a measurement of the real run:
+  Lumilo must still hold the untouched `Start→Say "Morning!"→End`, Tuan Tuan must hold exactly
+  `Start→Wait 5→Say "Morning too!"→End`, and the interpreter must have opened Lumilo's bubble at
+  least 250 ms before Tuan Tuan's. The gap is read from the runner's `onSay` host callback and is
+  re-judged on every run, so an earlier good run cannot vouch for the chain now on the page.
+- A Wait placed AFTER the Say is the scene's real wrong answer and is rejected: the block is there,
+  but both friends still open their mouths on the same tick. A retuned Wait number (A5-D's lesson),
+  an extra block, a silent stand-in, a retyped greeting, a Wait added to Lumilo as well, a second
+  track, a moved friend or a changed stage all fail too.
+
+### Notes
+- Wait timing measured against the shipped runtime while building this scene: `wait n` sleeps
+  `n * 100 ms`, a speech bubble lives `SAY_MS = 1400 ms`, and `MAX_PARAM` caps Wait at 9 (900 ms).
+  No Wait value can therefore stop the two bubbles overlapping, so A5-B claims only that Tuan Tuan
+  starts later — visible as Lumilo speaking alone for the first half second — and never that the
+  greetings were separated.
+
 ## 2026-07-25 (feat: Tiny Star Village A5-H — who is speaking?)
 
 ### Added

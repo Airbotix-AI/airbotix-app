@@ -82,6 +82,7 @@ import {
   TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
   TINY_STAR_OVERLAPPING_VOICES,
+  tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
   nextStoryMissionForLesson,
@@ -183,6 +184,10 @@ export function BlocksStudioPage({
   // settles; the state drives the answer gate and the coach cue.
   const [missionVoicesOverlapped, setMissionVoicesOverlapped] = useState(false);
   const voicesOverlappedRef = useRef(false);
+  // A5-B: the opposite proof — the run measured a real head start between the
+  // two greetings. Judged per RUN (the ref is cleared when a runner is built),
+  // because an earlier head start says nothing about the chain on the page now.
+  const greetingTookTurnsRef = useRef(false);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -272,6 +277,9 @@ export function BlocksStudioPage({
   // A4-S Personal Ship: the child owns the stop, the parcel and the number, so
   // the arrival square is read from the scene instead of being a fixed answer.
   const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
+  // A5-B Logic Build: there is no arrival square to check — the runtime proof is
+  // that the second greeting really started later than the first.
+  const isA5TurnBuild = storyMission?.lessonId === 'tsv-s1-a5-b';
   const deliveryStop = page.characters.find(
     (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
   );
@@ -316,6 +324,7 @@ export function BlocksStudioPage({
     // a run of THIS session before the child's answer can count.
     setMissionVoicesOverlapped(false);
     voicesOverlappedRef.current = false;
+    greetingTookTurnsRef.current = false;
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
@@ -618,6 +627,11 @@ export function BlocksStudioPage({
     // only thing A5-H accepts as proof, and it comes from the interpreter, not
     // from the page or the story card.
     const openBubbles = new Set<string>();
+    // A5-B: when each voice FIRST opened a bubble in this run. The gap between
+    // the two entries is the head start the inserted Wait produced, measured on
+    // the real clock the interpreter sleeps against.
+    const bubbleOpenedAt = new Map<string, number>();
+    greetingTookTurnsRef.current = false;
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -629,6 +643,10 @@ export function BlocksStudioPage({
         if (text === null) openBubbles.delete(id);
         else {
           openBubbles.add(id);
+          if (!bubbleOpenedAt.has(id)) {
+            bubbleOpenedAt.set(id, Date.now());
+            if (tinyStarGreetingTookTurns(bubbleOpenedAt)) greetingTookTurnsRef.current = true;
+          }
           if (openBubbles.size >= TINY_STAR_OVERLAPPING_VOICES) {
             voicesOverlappedRef.current = true;
             setMissionVoicesOverlapped(true);
@@ -709,7 +727,10 @@ export function BlocksStudioPage({
             runner.state('breakfast-cart')?.gx === 7) &&
           (!isA4PersonalShip ||
             (deliveryStopGx !== undefined &&
-              runner.state('breakfast-cart')?.gx === deliveryStopGx));
+              runner.state('breakfast-cart')?.gx === deliveryStopGx)) &&
+          // A5-B: the saved chain can only be judged by what the run sounded
+          // like — Lumilo's bubble first, Tuan Tuan's a measured moment later.
+          (!isA5TurnBuild || greetingTookTurnsRef.current);
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
@@ -775,6 +796,7 @@ export function BlocksStudioPage({
     isA4ParameterBuild,
     isA4ParameterDebug,
     isA4PersonalShip,
+    isA5TurnBuild,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,

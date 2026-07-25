@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { blankProject } from './blocksModel';
-import { storyMissionProgramMatches } from './storyMissionProgress';
+import { type Block, blankProject } from './blocksModel';
+import {
+  TINY_STAR_TURN_MIN_GAP_MS,
+  TINY_STAR_TURN_WAIT_N,
+  storyMissionProgramMatches,
+  tinyStarGreetingTookTurns,
+} from './storyMissionProgress';
 
 function correctedMissionProject() {
   const project = blankProject('Tiny Star Village');
@@ -497,6 +502,196 @@ describe('storyMissionProgramMatches', () => {
     const wrongStage = greetingHookProject();
     wrongStage.pages[0].background = 'meadow';
     expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-h')).toBe(false);
+  });
+
+  it('accepts A5-B only when the Wait sits before Tuan Tuan’s Say', () => {
+    const turnBuildProject = (tuanTuanBlocks: Block[]) => {
+      const project = blankProject('Tiny Star Village · Wait a Moment');
+      project.lessonId = 'tsv-s1-a5-b';
+      project.pages[0] = {
+        id: 'tsv-a5-b-page',
+        background: 'candy',
+        characters: [
+          {
+            id: 'little-light',
+            name: 'Lumilo',
+            emoji: '⭐',
+            asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+            start: { gx: 7, gy: 10, size: 1, rot: 0 },
+            scripts: [
+              {
+                id: 'little-light-greeting',
+                blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }],
+              },
+            ],
+          },
+          {
+            id: 'tuan-tuan',
+            name: 'Tuan Tuan',
+            emoji: '🐻',
+            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+            start: { gx: 12, gy: 10, size: 1, rot: 0 },
+            scripts: [{ id: 'tuan-tuan-greeting', blocks: tuanTuanBlocks }],
+          },
+        ],
+      };
+      return project;
+    };
+    const built: Block[] = [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'say', text: 'Morning too!' },
+      { op: 'end' },
+    ];
+
+    expect(storyMissionProgramMatches(turnBuildProject(built), 'tsv-s1-a5-b')).toBe(true);
+
+    // The shipped starter is the A5-H collision — it must not complete itself.
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+
+    // A Wait AFTER the Say is the scene's real wrong answer: the block exists,
+    // but Tuan Tuan still opens its mouth on the same tick as Lumilo.
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+
+    // A retuned number belongs to A5-D, an extra block breaks the exact chain,
+    // and swapping the Wait for a silent stand-in never delays anything.
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: 9 },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'hop', n: 1 },
+          { op: 'say', text: 'Morning too!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        turnBuildProject([
+          { op: 'when_flag' },
+          { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+          { op: 'say', text: 'Hello!' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a5-b',
+      ),
+    ).toBe(false);
+
+    // Lumilo is the fixed half: giving the first voice a Wait too, or silencing
+    // it, destroys the head start the scene is supposed to prove.
+    const lumiloWaited = turnBuildProject(built);
+    lumiloWaited.pages[0].characters[0].scripts[0].blocks.splice(1, 0, {
+      op: 'wait',
+      n: TINY_STAR_TURN_WAIT_N,
+    });
+    expect(storyMissionProgramMatches(lumiloWaited, 'tsv-s1-a5-b')).toBe(false);
+
+    const lumiloSilenced = turnBuildProject(built);
+    lumiloSilenced.pages[0].characters[0].scripts[0].blocks.splice(1, 1);
+    expect(storyMissionProgramMatches(lumiloSilenced, 'tsv-s1-a5-b')).toBe(false);
+
+    // A second track on Tuan Tuan, a moved friend, a dropped friend and a
+    // different stage all fail.
+    const extraTrack = turnBuildProject(built);
+    extraTrack.pages[0].characters[1].scripts.push({
+      id: 'tuan-tuan-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(extraTrack, 'tsv-s1-a5-b')).toBe(false);
+
+    const moved = turnBuildProject(built);
+    moved.pages[0].characters[1].start.gx = 9;
+    expect(storyMissionProgramMatches(moved, 'tsv-s1-a5-b')).toBe(false);
+
+    const soloed = turnBuildProject(built);
+    soloed.pages[0].characters.pop();
+    expect(storyMissionProgramMatches(soloed, 'tsv-s1-a5-b')).toBe(false);
+
+    const wrongStage = turnBuildProject(built);
+    wrongStage.pages[0].background = 'meadow';
+    expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-b')).toBe(false);
+
+    // The A5-H stage never satisfies A5-B and vice versa.
+    const hookPage = turnBuildProject(built);
+    hookPage.pages[0].id = 'tsv-a5-h-page';
+    expect(storyMissionProgramMatches(hookPage, 'tsv-s1-a5-b')).toBe(false);
+    expect(storyMissionProgramMatches(turnBuildProject(built), 'tsv-s1-a5-h')).toBe(false);
+  });
+
+  it('reads the A5-B turn from the measured gap between the two greetings', () => {
+    // One voice alone proves nothing, and the A5-H collision opens both bubbles
+    // inside the same interpreter tick — neither is a turn.
+    expect(tinyStarGreetingTookTurns(new Map([['little-light', 1_000]]))).toBe(false);
+    expect(
+      tinyStarGreetingTookTurns(
+        new Map([
+          ['little-light', 1_000],
+          ['tuan-tuan', 1_001],
+        ]),
+      ),
+    ).toBe(false);
+    // Tuan Tuan starting FIRST is not the turn this scene asks for either.
+    expect(
+      tinyStarGreetingTookTurns(
+        new Map([
+          ['tuan-tuan', 1_000],
+          ['little-light', 1_000 + TINY_STAR_TURN_MIN_GAP_MS],
+        ]),
+      ),
+    ).toBe(false);
+    expect(
+      tinyStarGreetingTookTurns(
+        new Map([
+          ['little-light', 1_000],
+          ['tuan-tuan', 1_000 + TINY_STAR_TURN_MIN_GAP_MS],
+        ]),
+      ),
+    ).toBe(true);
+    // The gap the shipped Wait actually produces (500 ms) clears the bar.
+    expect(TINY_STAR_TURN_MIN_GAP_MS).toBeLessThan(TINY_STAR_TURN_WAIT_N * 100);
   });
 
   it('does not confuse A1-H and A1-B page identities', () => {
