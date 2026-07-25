@@ -31,6 +31,9 @@ vi.mock('./onboarding/GettingStartedCard', () => ({
 vi.mock('./NowEnrollingPanel', () => ({
   NowEnrollingPanel: () => <div data-testid="now-enrolling">open classes</div>,
 }));
+vi.mock('./DashboardKidsPanel', () => ({
+  DashboardKidsPanel: () => <div data-testid="dashboard-kids">my kids</div>,
+}));
 vi.mock('./guides/FamilyGuidesRecommendation', () => ({
   FamilyGuidesRecommendation: () => <div data-testid="family-guides">family guides</div>,
 }));
@@ -62,6 +65,19 @@ afterEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('puts My kids before family stats and every discovery section', () => {
+    renderDashboard();
+
+    const kids = screen.getByTestId('dashboard-kids');
+    const stats = screen.getByTestId('dashboard-primary');
+    const quickActions = screen.getByText('Quick actions');
+    const nowEnrolling = screen.getByTestId('now-enrolling');
+
+    expect(kids.compareDocumentPosition(stats)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(kids.compareDocumentPosition(quickActions)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(kids.compareDocumentPosition(nowEnrolling)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('surfaces open classes to enrol in right after Quick actions', () => {
     renderDashboard();
 
