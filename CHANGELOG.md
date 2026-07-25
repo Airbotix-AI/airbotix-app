@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-26 (fix: restore the Art Studio hub shell)
+
+### Fixed
+- `/learn/create/image` now keeps the Kids navigation, centered reading column
+  and page scrolling. Only `/learn/create/image/canvas` uses the immersive
+  fullscreen easel.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
 
 ### Added
