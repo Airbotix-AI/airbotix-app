@@ -402,3 +402,487 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(noAsset, 'tsv-s1-a1-h')).toBe(false);
   });
 });
+
+describe('Journey to the West C1-P4 arrival build contract', () => {
+  function jtwBuildProject(middle: Array<{ op: string; n?: number; text?: string }>) {
+    return {
+      version: 1,
+      name: '西游记 · 搭出完整出世链',
+      lessonId: 'jtw-s1-c1-p4',
+      pages: [
+        {
+          id: 'jtw-c1-p4-page',
+          background: 'jtw-s1-c1-flower-fruit-stone',
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+              start: { gx: 8, gy: 9, size: 3, rot: 0 },
+              scripts: [
+                {
+                  id: 'stone-monkey-arrival-build',
+                  blocks: [{ op: 'when_flag' }, { op: 'hide' }, ...middle, { op: 'end' }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+  }
+  const target = [
+    { op: 'play_sound', n: 2 },
+    { op: 'show' },
+    { op: 'hop', n: 1 },
+    { op: 'say', text: '你好，我刚刚来到这里。' },
+  ];
+
+  it('accepts exactly the six-block arrival chain', () => {
+    expect(storyMissionProgramMatches(jtwBuildProject(target), 'jtw-s1-c1-p4')).toBe(true);
+  });
+
+  it('rejects distractor blocks and wrong order (Show must precede Hop/Say)', () => {
+    const grow = [...target];
+    grow[1] = { op: 'grow', n: 2 }; // Grow instead of Show
+    expect(storyMissionProgramMatches(jtwBuildProject(grow), 'jtw-s1-c1-p4')).toBe(false);
+
+    const turned = [...target, { op: 'turn_right', n: 3 }]; // extra distractor
+    expect(storyMissionProgramMatches(jtwBuildProject(turned), 'jtw-s1-c1-p4')).toBe(false);
+
+    const sayBeforeShow = [target[0], target[3], target[1], target[2]];
+    expect(storyMissionProgramMatches(jtwBuildProject(sayBeforeShow), 'jtw-s1-c1-p4')).toBe(false);
+
+    const wrongWords = [...target];
+    wrongWords[3] = { op: 'say', text: 'Hello!' };
+    expect(storyMissionProgramMatches(jtwBuildProject(wrongWords), 'jtw-s1-c1-p4')).toBe(false);
+  });
+});
+
+describe('Journey to the West C2-P4 five-block route contract', () => {
+  function routeProject(
+    middle: Array<{ op: string; n?: number; text?: string }>,
+    start: { gx: number; gy: number; size: number; rot: number } = { gx: 2, gy: 8, size: 3, rot: 0 },
+  ) {
+    return {
+      version: 1,
+      name: '西游记 · 刚好到达，不多也不少',
+      lessonId: 'jtw-s1-c2-p4',
+      pages: [
+        {
+          id: 'jtw-c2-p4-page',
+          background: 'jtw-s1-c1-flower-fruit-stone',
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+              start,
+              scripts: [
+                {
+                  id: 'stone-monkey-route-to-curtain',
+                  blocks: [{ op: 'when_flag' }, ...middle, { op: 'end' }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+  }
+  const right1 = { op: 'move_right', n: 1 };
+  const up1 = { op: 'move_up', n: 1 };
+  const target = [right1, right1, up1, right1, right1];
+
+  it('accepts exactly the five child-placed one-step blocks in route order', () => {
+    expect(storyMissionProgramMatches(routeProject(target), 'jtw-s1-c2-p4')).toBe(true);
+  });
+
+  it('rejects the shipped bare frame and the parameter-merged 右2/上1/右2 shortcut', () => {
+    expect(storyMissionProgramMatches(routeProject([]), 'jtw-s1-c2-p4')).toBe(false);
+    // 只改参数不通过: three merged blocks reach the same cell but are not the
+    // five blocks the child must own.
+    const merged = [
+      { op: 'move_right', n: 2 },
+      { op: 'move_up', n: 1 },
+      { op: 'move_right', n: 2 },
+    ];
+    expect(storyMissionProgramMatches(routeProject(merged), 'jtw-s1-c2-p4')).toBe(false);
+  });
+
+  it('rejects wrong orders — Up first or Up last stops on the wrong stones', () => {
+    expect(
+      storyMissionProgramMatches(routeProject([up1, right1, right1, right1, right1]), 'jtw-s1-c2-p4'),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(routeProject([right1, right1, right1, right1, up1]), 'jtw-s1-c2-p4'),
+    ).toBe(false);
+  });
+
+  it('rejects one step short and one step over — no overshoot tolerance exists', () => {
+    expect(
+      storyMissionProgramMatches(routeProject([right1, right1, up1, right1]), 'jtw-s1-c2-p4'),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        routeProject([right1, right1, up1, right1, right1, right1]),
+        'jtw-s1-c2-p4',
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects live distractors (Left/Down/Wait) inside the chain', () => {
+    expect(
+      storyMissionProgramMatches(
+        routeProject([right1, right1, { op: 'move_down', n: 1 }, right1, right1]),
+        'jtw-s1-c2-p4',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        routeProject([right1, { op: 'wait', n: 1 }, up1, right1, right1]),
+        'jtw-s1-c2-p4',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        routeProject([right1, right1, up1, right1, { op: 'move_left', n: 1 }]),
+        'jtw-s1-c2-p4',
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects a moved start — the 2/8 wet-stone start is part of the contract', () => {
+    expect(
+      storyMissionProgramMatches(
+        routeProject(target, { gx: 8, gy: 9, size: 3, rot: 0 }),
+        'jtw-s1-c2-p4',
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('Journey to the West C1-P5 greeting-order contract', () => {
+  function p5Project(middle: Array<{ op: string; n?: number; text?: string }>) {
+    return {
+      version: 1,
+      name: '西游记 · 我的第一次问候',
+      lessonId: 'jtw-s1-c1-p5',
+      pages: [
+        {
+          id: 'jtw-c1-p5-page',
+          background: 'jtw-s1-c1-flower-fruit-stone',
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+              start: { gx: 8, gy: 9, size: 3, rot: 0 },
+              scripts: [
+                {
+                  id: 'stone-monkey-first-greeting',
+                  blocks: [
+                    { op: 'when_flag' },
+                    { op: 'hide' },
+                    { op: 'play_sound', n: 2 },
+                    { op: 'show' },
+                    ...middle,
+                    { op: 'end' },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+  }
+  const hop = { op: 'hop', n: 1 };
+  const say = { op: 'say', text: '你们好，我可以过来吗？' };
+
+  it('accepts BOTH valid greeting orders (Hop→Say and Say→Hop)', () => {
+    expect(storyMissionProgramMatches(p5Project([hop, say]), 'jtw-s1-c1-p5')).toBe(true);
+    expect(storyMissionProgramMatches(p5Project([say, hop]), 'jtw-s1-c1-p5')).toBe(true);
+  });
+
+  it('rejects removed Show, non-preset dialogue and other orders', () => {
+    // Show deleted: prefix broken.
+    const noShow = p5Project([hop, say]) as { pages: Array<{ characters: Array<{ scripts: Array<{ blocks: Array<{ op: string }> }> }> }> };
+    noShow.pages[0].characters[0].scripts[0].blocks.splice(3, 1);
+    expect(storyMissionProgramMatches(noShow as never, 'jtw-s1-c1-p5')).toBe(false);
+
+    // Free-typed dialogue is not a preset.
+    expect(
+      storyMissionProgramMatches(p5Project([hop, { op: 'say', text: '随便写的' }]), 'jtw-s1-c1-p5'),
+    ).toBe(false);
+
+    // Doubling a block or adding a distractor fails the exact length.
+    expect(storyMissionProgramMatches(p5Project([hop, hop]), 'jtw-s1-c1-p5')).toBe(false);
+    expect(
+      storyMissionProgramMatches(p5Project([hop, say, { op: 'grow', n: 2 }]), 'jtw-s1-c1-p5'),
+    ).toBe(false);
+  });
+});
+
+describe('Journey to the West C1-P6 order-debug contract', () => {
+  function p6Project(blocks: Array<{ op: string; n?: number; text?: string }>) {
+    return {
+      version: 1,
+      name: '西游记 · 修好乱序的亮相',
+      lessonId: 'jtw-s1-c1-p6',
+      pages: [
+        {
+          id: 'jtw-c1-p6-page',
+          background: 'jtw-s1-c1-flower-fruit-stone',
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+              start: { gx: 8, gy: 9, size: 3, rot: 0 },
+              scripts: [{ id: 'stone-monkey-arrival-debug', blocks }],
+            },
+          ],
+        },
+      ],
+    } as never;
+  }
+  const prefix = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 2 }];
+  const show = { op: 'show' };
+  const hop = { op: 'hop', n: 1 };
+  const say = { op: 'say', text: '你好，我刚刚来到这里。' };
+  const end = { op: 'end' };
+
+  it('accepts ONLY the repaired order Show → Hop → Say', () => {
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, show, hop, say, end]), 'jtw-s1-c1-p6'),
+    ).toBe(true);
+  });
+
+  it('rejects the shipped bug order and every partial reorder', () => {
+    // The starter's bug (Say → Hop → Show) never passes as-is.
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, say, hop, show, end]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+    // Half-fixed orders still hide a cause from the audience.
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, show, say, hop, end]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, hop, show, say, end]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+  });
+
+  it('rejects sound/endpoint tampering, deletions and rebuild shortcuts', () => {
+    // Changing the sound to dodge the order problem is forbidden.
+    const otherSound = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 4 }];
+    expect(
+      storyMissionProgramMatches(p6Project([...otherSound, show, hop, say, end]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+    // Deleting a block (no Hop) fails the exact chain.
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, show, say, end]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+    // Dropping the End endpoint fails.
+    expect(
+      storyMissionProgramMatches(p6Project([...prefix, show, hop, say]), 'jtw-s1-c1-p6'),
+    ).toBe(false);
+    // Rebuilding with a changed greeting is not "move only the target blocks".
+    expect(
+      storyMissionProgramMatches(
+        p6Project([...prefix, show, hop, { op: 'say', text: '大家好！' }, end]),
+        'jtw-s1-c1-p6',
+      ),
+    ).toBe(false);
+    // Adding a distractor fails the exact length.
+    expect(
+      storyMissionProgramMatches(
+        p6Project([...prefix, show, hop, say, { op: 'grow', n: 2 }, end]),
+        'jtw-s1-c1-p6',
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('Journey to the West C1-P7 personal-arrival contract', () => {
+  function p7Project(
+    blocks: Array<{ op: string; n?: number; text?: string }>,
+    background = 'jtw-s1-c1-flower-fruit-stone',
+  ) {
+    return {
+      version: 1,
+      name: '西游记 · 我的石猴亮相',
+      lessonId: 'jtw-s1-c1-p7',
+      pages: [
+        {
+          id: 'jtw-c1-p7-page',
+          background,
+          characters: [
+            {
+              id: 'stone-monkey',
+              name: 'Stone Monkey',
+              emoji: '🐵',
+              asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+              start: { gx: 8, gy: 9, size: 3, rot: 0 },
+              scripts: [{ id: 'stone-monkey-personal-arrival', blocks }],
+            },
+          ],
+        },
+      ],
+    } as never;
+  }
+  const prefix = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 2 }, { op: 'show' }];
+  const say = { op: 'say', text: '你好，我刚刚来到这里。' };
+  const end = { op: 'end' };
+  const hop = { op: 'hop', n: 2 };
+  const grow = { op: 'grow', n: 2 };
+
+  it('accepts the child-owned designs: any two visible actions, either order, any of the six sounds', () => {
+    expect(
+      storyMissionProgramMatches(p7Project([...prefix, hop, grow, say, end]), 'jtw-s1-c1-p7'),
+    ).toBe(true);
+    expect(
+      storyMissionProgramMatches(p7Project([...prefix, grow, hop, say, end]), 'jtw-s1-c1-p7'),
+    ).toBe(true);
+    // A different sound cue and a different preset greeting are the child's call.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([
+          { op: 'when_flag' },
+          { op: 'hide' },
+          { op: 'play_sound', n: 5 },
+          { op: 'show' },
+          { op: 'turn_right', n: 3 },
+          { op: 'shrink', n: 2 },
+          { op: 'say', text: '你们好，我可以过来吗？' },
+          end,
+        ]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(true);
+  });
+
+  it('accepts the optional wait(1..3) ONLY between the two actions', () => {
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, { op: 'wait', n: 2 }, grow, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(true);
+    // Wait out of range (per the contract 1..3).
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, { op: 'wait', n: 5 }, grow, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // Wait outside the between-actions slot.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, { op: 'wait', n: 2 }, hop, grow, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+  });
+
+  it('reset_size only counts as visible straight after a grow/shrink', () => {
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, grow, { op: 'reset_size' }, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(true);
+    // Nothing changed size before it — an invisible non-action.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, { op: 'reset_size' }, hop, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects a single action, invisible fillers and ops outside the allowed set', () => {
+    // Only one visible action.
+    expect(storyMissionProgramMatches(p7Project([...prefix, hop, say, end]), 'jtw-s1-c1-p7')).toBe(
+      false,
+    );
+    // A sound is not a visible personality action.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, { op: 'play_sound', n: 3 }, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // move_right is not in the allowed action set.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, { op: 'move_right', n: 2 }, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // A third action overflows the 8–9 block frame.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, grow, { op: 'turn_left', n: 3 }, say, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects frame tampering: removed Show/hide, free-typed dialogue, missing End, swapped stage', () => {
+    // Show deleted — the greeting would come from thin air again.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([
+          { op: 'when_flag' },
+          { op: 'hide' },
+          { op: 'play_sound', n: 2 },
+          hop,
+          grow,
+          { op: 'wait', n: 1 },
+          say,
+          end,
+        ]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // hide deleted breaks the fixed frame.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([
+          { op: 'when_flag' },
+          { op: 'play_sound', n: 2 },
+          { op: 'show' },
+          hop,
+          { op: 'wait', n: 1 },
+          grow,
+          say,
+          end,
+        ]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // Free-typed dialogue is not a preset greeting.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, grow, { op: 'say', text: '随便写的' }, end]),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+    // Dropping the End endpoint fails.
+    expect(
+      storyMissionProgramMatches(p7Project([...prefix, hop, grow, say]), 'jtw-s1-c1-p7'),
+    ).toBe(false);
+    // Only swapping the background is NOT a personal design.
+    expect(
+      storyMissionProgramMatches(
+        p7Project([...prefix, hop, grow, say, end], 'meadow'),
+        'jtw-s1-c1-p7',
+      ),
+    ).toBe(false);
+  });
+});
