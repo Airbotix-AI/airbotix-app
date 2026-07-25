@@ -28,7 +28,7 @@ describe('StoryJourneyMap', () => {
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Alice in Wonderland');
     expect(screen.getByTestId('story-collection-shelf')).not.toHaveTextContent('Fable Forest');
     expect(screen.getAllByText(/Planned/)).toHaveLength(1);
-    expect(screen.getByTestId('blocks-starter-blocks_jtw_s1_c1_p1')).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-starter-blocks_jtw_c1_p1')).toBeInTheDocument();
     expect(screen.getByTestId('story-chapter-a1').querySelector('.bsx-lumilo')).toHaveAttribute(
       'data-performance',
       'idle',
@@ -63,10 +63,10 @@ describe('StoryJourneyMap', () => {
     const onStart = vi.fn();
     render(<StoryJourneyMap busy={null} onStart={onStart} />);
 
-    fireEvent.click(screen.getByTestId('blocks-starter-blocks_jtw_s1_c1_p1'));
+    fireEvent.click(screen.getByTestId('blocks-starter-blocks_jtw_c1_p1'));
 
     expect(onStart).toHaveBeenCalledWith(
-      'blocks_jtw_s1_c1_p1',
+      'blocks_jtw_c1_p1',
       'Journey to the West · Flower-Fruit Mountain Wakes',
     );
   });

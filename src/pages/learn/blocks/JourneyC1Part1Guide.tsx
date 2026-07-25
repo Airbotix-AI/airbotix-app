@@ -8,9 +8,11 @@ export interface JourneyC1Part1Evidence {
 
 interface JourneyC1Part1GuideProps {
   completed: boolean;
+  hasRun: boolean;
   saving: boolean;
   error?: string | null;
   onComplete: (evidence: JourneyC1Part1Evidence) => void;
+  onClose: () => void;
 }
 
 const CORRECT_CLUES = ['warm-light', 'bright-crack', 'soft-sound'] as const;
@@ -24,9 +26,11 @@ const CLUES = [
 
 export function JourneyC1Part1Guide({
   completed,
+  hasRun,
   saving,
   error,
   onComplete,
+  onClose,
 }: JourneyC1Part1GuideProps) {
   const [page, setPage] = useState(0);
   const [clues, setClues] = useState<string[]>([]);
@@ -37,7 +41,7 @@ export function JourneyC1Part1Guide({
   const clueReady = CORRECT_CLUES.every((clue) => clues.includes(clue));
   const classicReady = classicOrder.join('|') === 'stone-monkey|sun-wukong';
   const predictionReady = prediction === 'stone-monkey-because-clues';
-  const ready = clueReady && classicReady && predictionReady;
+  const ready = clueReady && classicReady && predictionReady && hasRun;
   const progress = useMemo(
     () => [clueReady, classicReady, predictionReady].filter(Boolean).length,
     [classicReady, clueReady, predictionReady],
@@ -96,6 +100,9 @@ export function JourneyC1Part1Guide({
   return (
     <div className="jtw-p1-gate" data-testid="jtw-p1-reading-gate">
       <section className="jtw-p1-card" role="dialog" aria-modal="true" aria-labelledby="jtw-p1-title">
+        <button type="button" className="bsx-mission-close" onClick={onClose} aria-label="Close story mission">
+          ✕
+        </button>
         <div className="jtw-p1-kicker">Journey to the West · Chapter 1 · Part 1 of 8</div>
         <div className="jtw-p1-progress" aria-label={`Evidence ${progress} of 3 complete`}>
           {[0, 1, 2].map((index) => <span key={index} className={index < progress ? 'on' : ''} />)}
@@ -199,6 +206,12 @@ export function JourneyC1Part1Guide({
               </div>
               {prediction && !predictionReady && <p className="jtw-p1-hint">Use today’s picture and story clues. The name Sun Wukong comes later.</p>}
               {error && <p className="jtw-p1-hint" role="alert">{error}</p>}
+              {!hasRun && (
+                <p className="jtw-p1-hint" role="status">
+                  Close this story, press Go to run the read-only Chime preview, then return to
+                  save your prediction.
+                </p>
+              )}
               <button
                 type="button"
                 data-testid="jtw-p1-complete-button"

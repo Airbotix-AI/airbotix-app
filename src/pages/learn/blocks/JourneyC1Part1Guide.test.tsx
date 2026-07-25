@@ -11,7 +11,13 @@ describe('JourneyC1Part1Guide', () => {
   it('requires three real clues, the classic order, and an evidence-based prediction', () => {
     const onComplete = vi.fn();
     render(
-      <JourneyC1Part1Guide completed={false} saving={false} onComplete={onComplete} />,
+      <JourneyC1Part1Guide
+        completed={false}
+        hasRun
+        saving={false}
+        onComplete={onComplete}
+        onClose={vi.fn()}
+      />,
     );
 
     expect(screen.getByAltText('Stone Monkey')).toBeInTheDocument();
@@ -44,7 +50,15 @@ describe('JourneyC1Part1Guide', () => {
   });
 
   it('shows the saved story continuation without a chapter celebration', () => {
-    render(<JourneyC1Part1Guide completed saving={false} onComplete={vi.fn()} />);
+    render(
+      <JourneyC1Part1Guide
+        completed
+        hasRun
+        saving={false}
+        onComplete={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
 
     expect(screen.getByTestId('jtw-p1-saved-proof')).toHaveTextContent('Saved on the server');
     expect(screen.getByText(/soft thump comes from inside the stone/i)).toBeInTheDocument();

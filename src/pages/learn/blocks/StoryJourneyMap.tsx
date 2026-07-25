@@ -137,11 +137,11 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
             <button
               type="button"
               className="tsv-mission-button"
-              data-testid="blocks-starter-blocks_jtw_s1_c1_p1"
+              data-testid="blocks-starter-blocks_jtw_c1_p1"
               disabled={busy !== null}
               onClick={() =>
                 onStart(
-                  'blocks_jtw_s1_c1_p1',
+                  'blocks_jtw_c1_p1',
                   'Journey to the West · Flower-Fruit Mountain Wakes',
                 )
               }

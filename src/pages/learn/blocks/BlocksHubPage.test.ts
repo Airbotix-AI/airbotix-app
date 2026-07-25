@@ -4,7 +4,7 @@ import { BLOCKS_STARTERS } from './blocksStarters';
 
 describe('BlocksHubPage curriculum starter copy', () => {
   it('offers only Journey to the West C1 Part 1 as the first playable classic Part', () => {
-    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_jtw_s1_c1_p1');
+    const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_jtw_c1_p1');
 
     expect(starter?.title).toBe('Journey to the West · Chapter 1 · Part 1');
     expect(starter?.desc).toContain('three clues');

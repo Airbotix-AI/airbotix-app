@@ -1557,9 +1557,11 @@ export function BlocksStudioPage({
       {storyMission && missionOpen && storyMission.lessonId === 'jtw-s1-c1-p1' && (
         <JourneyC1Part1Guide
           completed={missionCompleted}
+          hasRun={missionHasRun}
           saving={saveStatus === 'saving' || (missionCorrectRunFinished && !missionCompleted)}
           error={nextMissionError}
           onComplete={completeJourneyC1Part1}
+          onClose={() => setMissionOpen(false)}
         />
       )}
 
