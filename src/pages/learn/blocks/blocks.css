@@ -2090,6 +2090,31 @@
     0 4px 0 color-mix(in srgb, var(--bsx-cat-trigger) 42%, var(--bsx-border)),
     0 0 0 3px color-mix(in srgb, var(--bsx-cat-trigger) 16%, transparent);
 }
+/* A4-S carries two choice groups (distance + parcel) in one picker row, so its
+   buttons are narrower and the row wraps instead of pushing the stage sideways. */
+.bsx-delivery-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-delivery-picker .bsx-home-choice {
+  min-width: 96px;
+}
+/* A5-S carries two cast rows (who greets first / who waits), each holding the
+   same three friends. The rows wrap under the title on narrow screens instead
+   of pushing the stage sideways, and each button stays a comfortable tap target
+   with room for the friend's portrait beside their name. */
+.bsx-cast-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-cast-picker .bsx-home-choice {
+  min-width: 118px;
+  gap: 6px;
+}
+.bsx-cast-picker .bsx-character-asset-thumb {
+  width: 26px;
+  height: 26px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);

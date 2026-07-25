@@ -77,6 +77,7 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
       { template: 'blocks_tsv_a4_h', lessonId: 'tsv-s1-a4-h', number: 13, title: 'How far is breakfast?', action: 'Try' },
       { template: 'blocks_tsv_a4_b', lessonId: 'tsv-s1-a4-b', number: 14, title: 'How many spaces?', action: 'Build' },
       { template: 'blocks_tsv_a4_d', lessonId: 'tsv-s1-a4-d', number: 15, title: 'The cart went too far', action: 'Fix' },
+      { template: 'blocks_tsv_a4_s', lessonId: 'tsv-s1-a4-s', number: 16, title: 'My delivery stop', action: 'Make mine' },
     ],
   },
   {
@@ -87,7 +88,12 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'All the friends say good morning at once. Help each voice have its moment.',
     skill: 'Use Wait to make turns',
     art: 'greeting',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a5_h', lessonId: 'tsv-s1-a5-h', number: 17, title: 'Who is speaking?', action: 'Try' },
+      { template: 'blocks_tsv_a5_b', lessonId: 'tsv-s1-a5-b', number: 18, title: 'Wait a moment', action: 'Build' },
+      { template: 'blocks_tsv_a5_d', lessonId: 'tsv-s1-a5-d', number: 19, title: 'That wait was too long', action: 'Fix' },
+      { template: 'blocks_tsv_a5_s', lessonId: 'tsv-s1-a5-s', number: 20, title: 'My two-friend greeting', action: 'Make mine' },
+    ],
   },
   {
     id: 'a6',
@@ -97,7 +103,11 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     story: 'Walk, hop, then ring the Bell Tower to bring sunrise back to the whole village.',
     skill: 'Build and fix a three-step story',
     art: 'tower',
-    missions: [],
+    missions: [
+      { template: 'blocks_tsv_a6_h', lessonId: 'tsv-s1-a6-h', number: 21, title: 'Three Bell Tower cards', action: 'Try' },
+      { template: 'blocks_tsv_a6_b', lessonId: 'tsv-s1-a6-b', number: 22, title: 'Add the missing step', action: 'Build' },
+      { template: 'blocks_tsv_a6_d', lessonId: 'tsv-s1-a6-d', number: 23, title: 'The bell rang first', action: 'Fix' },
+    ],
   },
 ];
 

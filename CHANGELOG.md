@@ -9,6 +9,245 @@
 - Added resilient loading, empty-family, retryable fetch-error and per-child handoff-error states.
   Paused kids remain visible but cannot open a kid session; popup failures keep the parent on the
   Dashboard instead of silently replacing the adult page.
+## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
+
+### Added
+- Tiny Star Village Twist & Debug scene A6-D (`tsv-s1-a6-d`, `blocks_tsv_a6_d`, Mission 23), chapter
+  six's Fix scaffold. All three Bell Tower cards are on the page at last, and the bell has slipped to
+  the FRONT: it rings while Lumi is still three spaces away, then the walk happens, then the jump
+  lands on a bell that already rang. The child moves that ONE card behind the Hop.
+- `tinyStarBellOrderRepaired` / `tinyStarBellRangBeforeHop` in `tinyStarBellTower.ts` — the saved
+  contract for the repaired order, and the run measurement that proves this run really did ring
+  before anybody reached the bell (read off the interpreter's own ordered `onStep` record).
+- `TINY_STAR_BELL_BUG_ROUTE`, DERIVED from `TINY_STAR_BELL_BUILD_ROUTE` by lifting the `pop` out and
+  re-inserting it at `TINY_STAR_BELL_POP_BUG_INDEX` — the structured form of scene-specs A6-D's own
+  diff. The bug and its repair can only ever differ by where the bell sits.
+- `TINY_STAR_BELL_STAGE_CONTRACT`: chapter six's shared stage, written once and spread by all three
+  A6 mission contracts (the same treatment chapter one's `LUMI_CONTRACT` already gets).
+
+### Changed
+- `BlocksStudioPage` gained `isA6OrderDebug`: the Motion palette is closed for this scene and the
+  number editor never opens (Right 3 and Hop 1 are already correct), while block DRAGGING stays on —
+  because moving a block is the repair. Dragging and tapping are both gated on a real bug run, the
+  same "run it first" contract A2-D/A4-D/A5-D use.
+- `storyMissionProgress.ts` shrank 981 → 971 lines: the three A6 contracts now spread the shared
+  stage instead of repeating it.
+
+### Notes
+- **Nothing is missing and nothing is spare.** The starter's five blocks are exactly A6-B's finished
+  five in the wrong order, so there is nothing to add (that was A6-B) and nothing to delete — the
+  only available action is a move. The starter cannot complete itself and offers nothing to copy.
+- **The three floor cards are the question.** "Which card must come LAST?" — 🚶 walk and 🦘 hop are
+  real distractors because they genuinely do belong earlier. That question IS scene-specs A6-D's
+  "学习证据：能用三张卡表达先/然后/最后", and it can only be answered after the bug run.
+- **Completion is derived, never a page boolean.** The saved route must be exactly
+  `Start → Right 3 → Hop 1 → Pop → End` on the untouched chapter stage, AND the run must have played
+  the Hop before the Pop with Lumi standing on the tower square.
+- **A6-B and A6-D end on the same route** — chapter six has one correct Bell Tower story — so the
+  `lessonId` and the page id are what keep them apart; tests assert non-impersonation both ways.
+- **No art was invented and no op was added.** The `sunset` stage, Lumilo's formal asset and the
+  script-less `⭐` Bell Tower proxy are A6-H's, unchanged; the page still holds exactly two
+  characters (§1.2). Chapter A6 is about order, not timing — nothing here reaches for a Wait.
+
+## 2026-07-25 (feat: Tiny Star Village A6-B — add the missing step)
+
+### Added
+- Tiny Star Village Logic Build scene A6-B (`tsv-s1-a6-b`, `blocks_tsv_a6_b`, Mission 22), chapter
+  six's Complete scaffold. A6-H's Bell Tower route returns block for block on its own page, still
+  missing the same middle card, and the child puts it back: a `hop 1` between the walk and the bell.
+- `tinyStarBellStepAdded` / `tinyStarBellRangAfterHop` in `tinyStarBellTower.ts` — the saved-route
+  contract and the run measurement for the repaired walk → hop → ring order.
+- `TINY_STAR_BELL_BUILD_ROUTE`, derived from `TINY_STAR_BELL_HOOK_ROUTE` by splicing a `hop 1` in at
+  `TINY_STAR_BELL_HOP_INDEX` (the index of the Pop). That index IS scene-specs A6-B's assertion
+  "the Hop sits between the Move and the Pop", so the Hook and the Build cannot drift apart.
+
+### Changed
+- The story journey map now offers 22 playable Tiny Star Village scenes; A6-H advances to A6-B.
+- The ringer's played-op record kept for chapter six is now ORDERED (an array rather than a set) —
+  A6-H still reads its negative off it (a bell with no hop), and A6-B reads the repaired order (hop
+  before bell) from the same interpreter `onStep` callback. Pure generalisation.
+- `TINY_STAR_BELL_HOOK_SCRIPT_ID` renamed to `TINY_STAR_BELL_ROUTE_SCRIPT_ID`: both A6 scenes walk
+  the same route, so the script id belongs to the chapter, not to the Hook.
+
+### Notes
+- The starter cannot complete itself and offers nothing to copy: the route runs to the end, and the
+  block the child must add is seeded nowhere in the document. Tapping Hop in the Motion palette
+  appends it AFTER the Pop and on the block's own default of 2, so both the placement and the number
+  are the child's own moves — there is no answer button, and the story card says exactly where a tap
+  really lands the block.
+- Completion needs the exact saved route on the untouched chapter stage AND a run in which the
+  interpreter reached the Hop before the Pop with the ringer standing on the tower square. A saved
+  chain that was never run, or a run that rang before the jump, does not complete the mission.
+
+## 2026-07-25 (feat: Tiny Star Village A6-H — three Bell Tower cards)
+
+### Added
+- Tiny Star Village Story Hook scene A6-H (`tsv-s1-a6-h`, `blocks_tsv_a6_h`, Mission 21), chapter
+  six's Explore scaffold. The shipped route walks to the Bell Tower and rings the bell with no Hop
+  in between, so the program itself is the question: the child runs it once and names the card that
+  never happened.
+- `tinyStarBellTower.ts` — chapter six's domain: the sunset stage geometry, the three physical Bell
+  Tower cards, the untouched-route contract and the run measurement. It is its own module because
+  `storyMissionProgress.ts` is at the umbrella's 1000-line-per-file rule.
+- `jtwPersonalArrival.ts` — the Journey to the West C1-P7 personal-arrival parser, moved out of
+  `storyMissionProgress.ts` for the same reason. Pure relocation, no behaviour change.
+
+### Changed
+- The story journey map now offers 21 playable Tiny Star Village scenes; A5-S advances to A6-H and
+  chapter 6 stops being empty.
+- Mission completion for A6-H is read from the saved page plus the real run, never a page boolean:
+  the interpreter's own `onStep` callback must show the ringer's script reaching a Pop and never a
+  Hop, `runner.state()` must put the ringer on the tower square, and the saved route must still be
+  exactly `Start → Right 3 → Pop → End` on the shipped two-character stage. The measurement is
+  cleared when a project loads, so runtime evidence never survives a reload.
+- Being an Explore hook, A6-H completes quietly with the observation proof card and no chapter
+  celebration — the same treatment A2-H, A3-H, A4-H and A5-H already get.
+
+### Notes
+- The two wrong cards are the two steps that DID run, which is what makes finding the missing middle
+  card a real discrimination. Like A5-H and unlike A4-H there is no pre-run prediction, because
+  before the run there is no honest way to know whether the bell rang.
+- The Bell Tower is a script-less `⭐` proxy: scene-specs §1.1 records that no bell art exists yet,
+  so none was invented, and the page still holds exactly two characters.
+
+## 2026-07-25 (feat: Tiny Star Village A5-S — my two-friend greeting)
+
+### Added
+- Tiny Star Village Personal Ship scene A5-S (`tsv-s1-a5-s`, `blocks_tsv_a5_s`, Mission 20), chapter
+  five's Build scaffold and the last scene of the chapter. Four things are genuinely the child's:
+  which two of Lumilo / Tuan Tuan / Dot Dot perform, which of them greets first, what each of them
+  does, and how long the second one waits.
+- `tinyStarDuet.ts` — the A5-S domain: the three-friend cast, the two greeting actions, the Wait
+  band maths, the saved-duet parser and the run measurement. It is its own module because
+  `storyMissionProgress.ts` had reached the umbrella's 1000-line-per-file rule.
+- An A5-S cast picker below the stage. Like the A3-S friend picker and the A4-S delivery picker it
+  only renames and re-skins a stage slot — it never inserts a block.
+
+### Changed
+- The story journey map now offers 20 playable Tiny Star Village scenes; A5-D advances to A5-S and
+  chapter 5 reads "4 scenes ready".
+- The stage slot IS the turn: `greeter-one` greets the moment Go is pressed and `greeter-two` waits
+  first, so "who goes first" is a casting decision and no block ever has to be swapped.
+- Mission completion for A5-S is read from the saved page plus the real run, never a page boolean:
+  two DIFFERENT cast friends on the shipped squares, the first on `Start→<greeting>→End`, the second
+  on `Start→Wait N→<greeting>→End`, a successful server save, and a run in which the interpreter's
+  own `onStep` callback measured the second greeting starting inside the band. The measurement is
+  cleared whenever a runner is built, so an earlier rhythm cannot vouch for this run.
+- Adding a Hop in A5-S seeds it at one space, the way A2-S and A4-S already seed their route blocks.
+  The number this scene teaches is the Wait, and that one keeps the block's own default.
+
+### Notes
+- **The legal Wait depends on what the FIRST friend does**, and the band is derived rather than
+  chosen. Floor: wait until your friend's turn is over — unless that turn outlives every Wait this
+  runtime has, in which case fall back to the 250 ms head start A5-B measured. Ceiling: the stage may
+  not stand empty for longer than that first turn lasted. So a bounce lead allows `wait 4..7`
+  (value-for-value the A5-D relay band, reached here from the action's own 360 ms duration) while a
+  spoken lead allows `wait 3..9`, because a 1400 ms bubble is still on stage the whole time and there
+  is nothing to stand empty against. The same number can be right behind one greeting and wrong
+  behind the other — which is the chapter's whole point.
+- **`pop` is not offered, and that is a recorded decision.** scene-specs A5-S lists it, but `pop` is
+  `legacy: true` in `BLOCK_DEFS` and appears in no child-facing palette. Offering it would have meant
+  either un-legacying a block for every project in the product or adding a button that inserts a
+  block on the child's behalf, which the A4-S scaffold boundary forbids. A5-S ships the two greeting
+  actions this runtime actually lets a child build; no new op was added to the season's whitelist.
+- The starter casts ONE friend into BOTH spots and ships two empty chains, so it cannot complete
+  itself — the same device as A4-S's delivery stop parked on top of the cart.
+
+## 2026-07-25 (feat: Tiny Star Village A5-D — that wait was too long)
+
+### Added
+- Tiny Star Village Twist & Debug scene A5-D (`tsv-s1-a5-d`, `blocks_tsv_a5_d`, Mission 19), chapter
+  five's Fix scaffold. The good morning is a bounce relay now, and Tuan Tuan's hourglass is turned
+  all the way up to 9 — every block is in the right place and only the number is wrong.
+
+### Changed
+- The story journey map now offers 19 playable Tiny Star Village scenes; A5-B advances to A5-D.
+- Mission completion for A5-D combines the saved chain with a measurement of the real run: Lumilo
+  must still hold the untouched `Start→Hop 1→End`, Tuan Tuan must hold `Start→Wait N→Hop 1→End`
+  with `N` in the just-right band, and the interpreter must have recorded Tuan Tuan's first hop
+  between one and two bounces after Lumilo's. The timestamps come from the runner's `onStep` host
+  callback and are re-judged every run.
+- A5-D unlocks in the same order A4-D does: the child runs the bug, answers "Less" (choosing "More"
+  changes nothing), and only then can tap the Wait. Every other block refuses to open an editor, and
+  dragging, palette taps and palette drops are disabled, so blocks cannot be added, moved or deleted
+  and Lumilo cannot be edited.
+
+### Notes
+- The scene deliberately uses a bounce rather than two Says. Measured against the shipped runtime:
+  `hop 1` lasts `2 * STEP_MS = 360 ms`, `say` holds a bubble for `SAY_MS = 1400 ms`, `wait n` sleeps
+  `n * 100 ms` and `MAX_PARAM` caps Wait at 900 ms. With two Says no legal Wait is ever "too long"
+  (the bubbles always overlap) and the spec's `wait 20` is clamped to 9, whereas a bounce is short
+  enough for a 900 ms wait to leave a visibly empty stage.
+- Several numbers are correct on purpose (`wait 4..7`): the chapter asks the child to find a
+  just-right wait, not to believe bigger is better. `wait 8` leaves a whole extra bounce of silence,
+  `wait 1..3` makes Tuan Tuan jump before Lumilo lands, and both are rejected — as are a deleted or
+  reordered block, a duplicated Wait, a `hop 2`, a Say in place of the bounce, an edited Lumilo, a
+  second track, a moved friend and a changed stage.
+
+## 2026-07-25 (feat: Tiny Star Village A5-B — wait a moment)
+
+### Added
+- Tiny Star Village Logic Build scene A5-B (`tsv-s1-a5-b`, `blocks_tsv_a5_b`, Mission 18), chapter
+  five's Complete scaffold. Tuan Tuan wants to go second, so the child gives Tuan Tuan one Wait
+  block — and has to put it in front of the Say for it to mean anything.
+
+### Changed
+- The story journey map now offers 18 playable Tiny Star Village scenes; A5-H advances to A5-B.
+- Mission completion for A5-B combines the exact saved chain with a measurement of the real run:
+  Lumilo must still hold the untouched `Start→Say "Morning!"→End`, Tuan Tuan must hold exactly
+  `Start→Wait 5→Say "Morning too!"→End`, and the interpreter must have opened Lumilo's bubble at
+  least 250 ms before Tuan Tuan's. The gap is read from the runner's `onSay` host callback and is
+  re-judged on every run, so an earlier good run cannot vouch for the chain now on the page.
+- A Wait placed AFTER the Say is the scene's real wrong answer and is rejected: the block is there,
+  but both friends still open their mouths on the same tick. A retuned Wait number (A5-D's lesson),
+  an extra block, a silent stand-in, a retyped greeting, a Wait added to Lumilo as well, a second
+  track, a moved friend or a changed stage all fail too.
+
+### Notes
+- Wait timing measured against the shipped runtime while building this scene: `wait n` sleeps
+  `n * 100 ms`, a speech bubble lives `SAY_MS = 1400 ms`, and `MAX_PARAM` caps Wait at 9 (900 ms).
+  No Wait value can therefore stop the two bubbles overlapping, so A5-B claims only that Tuan Tuan
+  starts later — visible as Lumilo speaking alone for the first half second — and never that the
+  greetings were separated.
+
+## 2026-07-25 (feat: Tiny Star Village A5-H — who is speaking?)
+
+### Added
+- Tiny Star Village Story Hook scene A5-H (`tsv-s1-a5-h`, `blocks_tsv_a5_h`, Mission 17), chapter
+  five's Explore opener. Two friends arrive with two finished programs, both hanging off the same
+  green flag, so one real Go opens both speech bubbles at the same instant. The child's job is to
+  notice that nobody took a turn.
+
+### Changed
+- The story journey map now offers 17 playable Tiny Star Village scenes; chapter 5 opens and A4-S
+  advances to A5-H.
+- Mission completion for A5-H is derived from the real interpreter, not a page flag: the run must
+  hold two speech bubbles open at once (tracked through the runner's `onSay` host callback) before
+  the "who spoke first?" answer counts, and the answer must be "they both spoke at the same time".
+  Naming either friend as the first speaker is rejected. Because it is an Explore hook it completes
+  quietly, with the observation proof card and no chapter celebration.
+- The A5-H contract checks BOTH greeting chains, so an Explore scene cannot be completed after the
+  child has edited the program: inserting the A5-B `Wait`, deleting a block, retyping a greeting,
+  swapping in another action, moving a friend, adding a script or changing the stage all fail.
+
+## 2026-07-25 (feat: Tiny Star Village A4-S — my delivery stop)
+
+### Added
+- Tiny Star Village Personal Ship scene A4-S (`tsv-s1-a4-s`, `blocks_tsv_a4_s`, Mission 16). The
+  child places their delivery stop 1, 2 or 3 spaces right of the breakfast cart, chooses the
+  apple / gift / star breakfast it carries, then authors the single `Right` block and raises its
+  number until it matches that distance.
+- A4-S delivery picker below the stage (`a4-s-stop-1|2|3`, `a4-s-parcel-apple|gift|star`). Like the
+  A2-S endpoint picker and the A3-S character picker, it only moves and renames the scene target —
+  it never inserts an answer block. The `Right` block still comes from the real palette (dropped
+  before the terminal End at one space) and its number from the real number editor.
+
+### Changed
+- The story journey map now offers 16 playable Tiny Star Village scenes; chapter 4 is complete and
+  A4-D advances to A4-S.
+- Mission completion for A4-S has no fixed arrival square: the run must finish on whichever stop
+  the child placed, and the saved movement number must equal that distance. Extra blocks, a
+  reversed direction, a moved cart, a resized stop and unapproved parcels all fail the contract.
 
 ## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
 
