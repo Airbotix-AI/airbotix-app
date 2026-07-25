@@ -9,6 +9,8 @@ import {
   TINY_STAR_BELL_HOOK_ROUTE,
   TINY_STAR_BELL_HOP_INDEX,
   TINY_STAR_BELL_HOP_N,
+  TINY_STAR_BELL_BUG_ROUTE,
+  TINY_STAR_BELL_POP_BUG_INDEX,
   TINY_STAR_BELL_MISSING_CARD_ID,
   TINY_STAR_BELL_RINGER_ASSET,
   TINY_STAR_BELL_RINGER_GX,
@@ -22,7 +24,9 @@ import {
   TINY_STAR_BELL_TOWER_NAME,
   TINY_STAR_BELL_TOWER_SIZE,
   TINY_STAR_BELL_WALK_N,
+  tinyStarBellOrderRepaired,
   tinyStarBellRangAfterHop,
+  tinyStarBellRangBeforeHop,
   tinyStarBellRangWithoutHop,
   tinyStarBellRouteUnchanged,
   tinyStarBellStepAdded,
@@ -362,5 +366,169 @@ describe('tinyStarBellRangAfterHop', () => {
     expect(tinyStarBellRangAfterHop(['move_right', 'pop', 'end'])).toBe(false);
     expect(tinyStarBellRangAfterHop(['move_right', 'hop', 'end'])).toBe(false);
     expect(tinyStarBellRangAfterHop([])).toBe(false);
+  });
+});
+
+// ── A6-D · 钟先响了 (Twist & Debug) ────────────────────────────────────────
+describe('A6-D bug route', () => {
+  it('derives the shipped bug from the repaired route by moving only the bell', () => {
+    // scene-specs A6-D's diff removes the `pop` from the end and re-adds it at
+    // the front, so the bug is generated FROM the repair rather than typed out
+    // beside it: the two can only differ by where the bell sits.
+    expect(TINY_STAR_BELL_BUG_ROUTE.map((block) => block.op)).toEqual([
+      'when_flag',
+      'pop',
+      'move_right',
+      'hop',
+      'end',
+    ]);
+    expect(TINY_STAR_BELL_BUG_ROUTE[TINY_STAR_BELL_POP_BUG_INDEX]).toEqual({ op: 'pop' });
+    // Same blocks, same numbers, same length — nothing is missing or spare, so
+    // the only repair available is a MOVE.
+    expect(TINY_STAR_BELL_BUG_ROUTE).toHaveLength(TINY_STAR_BELL_BUILD_ROUTE.length);
+    const key = (blocks: readonly Block[]) =>
+      blocks.map((block) => `${block.op}:${block.n ?? ''}`).sort();
+    expect(key(TINY_STAR_BELL_BUG_ROUTE)).toEqual(key(TINY_STAR_BELL_BUILD_ROUTE));
+    // The bug really does ring before the walk and the jump.
+    const ops = TINY_STAR_BELL_BUG_ROUTE.map((block) => block.op);
+    expect(ops.indexOf('pop')).toBeLessThan(ops.indexOf('move_right'));
+    expect(ops.indexOf('pop')).toBeLessThan(ops.indexOf('hop'));
+  });
+});
+
+describe('tinyStarBellOrderRepaired', () => {
+  const repaired = () => bellTowerPage([...TINY_STAR_BELL_BUILD_ROUTE] as Block[]);
+  const shipped = () => bellTowerPage([...TINY_STAR_BELL_BUG_ROUTE] as Block[]);
+
+  it('accepts the one true Bell Tower story — walk, hop, ring', () => {
+    expect(tinyStarBellOrderRepaired(repaired())).toBe(true);
+    // Chapter six has ONE correct route, so the Fix lands on A6-B's target.
+    expect(tinyStarBellStepAdded(repaired())).toBe(true);
+  });
+
+  it('rejects the shipped bug and every other place the bell could sit', () => {
+    expect(tinyStarBellOrderRepaired(shipped())).toBe(false);
+
+    // Moved, but not far enough: the bell still rings before the jump.
+    const halfway = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+      { op: 'pop' },
+      { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+      { op: 'end' },
+    ]);
+    expect(tinyStarBellOrderRepaired(halfway)).toBe(false);
+
+    // Dragged past the End — the bell never rings in the story at all.
+    const afterEnd = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+      { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+      { op: 'end' },
+      { op: 'pop' },
+    ]);
+    expect(tinyStarBellOrderRepaired(afterEnd)).toBe(false);
+  });
+
+  it('rejects rebuilding instead of moving (§8.6 forbids a redo)', () => {
+    // Deleting the early bell and adding a fresh one is a rebuild, not a move —
+    // but it lands on the same shape, so what actually stops a redo is that the
+    // scene ships every block already. Deleting one, duplicating one, or
+    // retuning the walk or the jump all fail.
+    const deleted = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+      { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+      { op: 'end' },
+    ]);
+    expect(tinyStarBellOrderRepaired(deleted)).toBe(false);
+
+    const doubled = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'pop' },
+      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+      { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+      { op: 'pop' },
+      { op: 'end' },
+    ]);
+    expect(tinyStarBellOrderRepaired(doubled)).toBe(false);
+
+    const retuned = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'move_right', n: 1 },
+      { op: 'hop', n: TINY_STAR_BELL_HOP_N },
+      { op: 'pop' },
+      { op: 'end' },
+    ]);
+    expect(tinyStarBellOrderRepaired(retuned)).toBe(false);
+
+    const higherJump = bellTowerPage([
+      { op: 'when_flag' },
+      { op: 'move_right', n: TINY_STAR_BELL_WALK_N },
+      { op: 'hop', n: 2 },
+      { op: 'pop' },
+      { op: 'end' },
+    ]);
+    expect(tinyStarBellOrderRepaired(higherJump)).toBe(false);
+  });
+
+  it('still holds the rest of chapter six’s stage still', () => {
+    const walked = repaired();
+    walked.characters[0].start.gx = TINY_STAR_BELL_TOWER_GX;
+    expect(tinyStarBellOrderRepaired(walked)).toBe(false);
+
+    const draggedTower = repaired();
+    draggedTower.characters[1].start.gy = TINY_STAR_BELL_GY;
+    expect(tinyStarBellOrderRepaired(draggedTower)).toBe(false);
+
+    const scriptedTower = repaired();
+    scriptedTower.characters[1].scripts.push({
+      id: 'bell-tower-tap',
+      blocks: [{ op: 'when_tap' }, { op: 'pop' }, { op: 'end' }],
+    });
+    expect(tinyStarBellOrderRepaired(scriptedTower)).toBe(false);
+
+    const restaged = repaired();
+    restaged.background = 'candy';
+    expect(tinyStarBellOrderRepaired(restaged)).toBe(false);
+
+    const reskinned = repaired();
+    reskinned.characters[0].asset = '/unapproved.svg';
+    expect(tinyStarBellOrderRepaired(reskinned)).toBe(false);
+
+    const secondScript = repaired();
+    secondScript.characters[0].scripts.push({
+      id: 'little-light-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'pop' }, { op: 'end' }],
+    });
+    expect(tinyStarBellOrderRepaired(secondScript)).toBe(false);
+
+    expect(tinyStarBellOrderRepaired(undefined)).toBe(false);
+  });
+});
+
+describe('tinyStarBellRangBeforeHop', () => {
+  it('accepts the run the shipped A6-D bug produces', () => {
+    expect(tinyStarBellRangBeforeHop(['pop', 'move_right', 'hop', 'end'])).toBe(true);
+    // A6-H's route rings with no hop at all — still a bell nobody touched.
+    expect(tinyStarBellRangBeforeHop(['move_right', 'pop', 'end'])).toBe(true);
+  });
+
+  it('rejects a run that already told the story in order, or never rang', () => {
+    expect(tinyStarBellRangBeforeHop(['move_right', 'hop', 'pop', 'end'])).toBe(false);
+    expect(tinyStarBellRangBeforeHop(['move_right', 'hop', 'end'])).toBe(false);
+    expect(tinyStarBellRangBeforeHop([])).toBe(false);
+  });
+
+  it('is the exact opposite of the repaired order on any run that rings', () => {
+    const runs = [
+      ['pop', 'move_right', 'hop', 'end'],
+      ['move_right', 'pop', 'hop', 'end'],
+      ['move_right', 'hop', 'pop', 'end'],
+      ['move_right', 'pop', 'end'],
+    ];
+    for (const run of runs) {
+      expect(tinyStarBellRangBeforeHop(run)).toBe(!tinyStarBellRangAfterHop(run));
+    }
   });
 });

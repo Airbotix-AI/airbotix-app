@@ -91,6 +91,7 @@ import {
   TINY_STAR_BELL_RINGER_ID,
   TINY_STAR_BELL_TOWER_GX,
   tinyStarBellRangAfterHop,
+  tinyStarBellRangBeforeHop,
   tinyStarBellRangWithoutHop,
 } from './tinyStarBellTower';
 import {
@@ -330,6 +331,15 @@ export function BlocksStudioPage({
   // saved chain pins WHERE the block sits; the run has to show what the village
   // saw — the ringer reaching the tower, jumping, and only then the bell.
   const isA6StepBuild = storyMission?.lessonId === 'tsv-s1-a6-b';
+  // A6-D Twist & Debug: all five blocks are already on the page and only the Pop
+  // is in the wrong place. Like A2-D/A4-D/A5-D the child must run the bug first;
+  // unlike them the repair is a DRAG, not a number, so block dragging stays on
+  // (once the bug has been watched) while the palette and the number editor stay
+  // shut — teaching script §8.6 forbids rebuilding the chain.
+  const isA6OrderDebug = storyMission?.lessonId === 'tsv-s1-a6-d';
+  // A6-B and A6-D end in the same place: the run itself must have played the hop
+  // before the bell, with the ringer standing at the foot of the tower.
+  const needsBellOrderRun = isA6StepBuild || isA6OrderDebug;
   const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
   const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
   const deliveryStop = page.characters.find(
@@ -820,9 +830,9 @@ export function BlocksStudioPage({
           // A5-S: the child's own duet only counts once a run has measured the
           // second greeting arriving after the first, inside its own band.
           (!isA5PersonalShip || duetTookTurnsRef.current) &&
-          // A6-B: the repaired route only counts once a run really played the
-          // hop BEFORE the bell and left the ringer standing at the tower.
-          (!isA6StepBuild ||
+          // A6-B/A6-D: the repaired route only counts once a run really played
+          // the hop BEFORE the bell and left the ringer standing at the tower.
+          (!needsBellOrderRun ||
             (tinyStarBellRangAfterHop(bellPlayedOpsRef.current) &&
               runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX));
         const observedWrongDirection =
@@ -831,6 +841,11 @@ export function BlocksStudioPage({
         // A5-D: the shipped `wait 9` really did leave the stage empty for longer
         // than a whole bounce — that run IS the bug run this scene requires.
         const observedLateBounce = isA5RelayDebug && bounceRelayTooLateRef.current;
+        // A6-D: the shipped Pop really did ring before anybody reached the bell —
+        // that run IS the bug run this scene requires before the chain may be
+        // touched. Measured from the interpreter's own ordered op record.
+        const observedEarlyBell =
+          isA6OrderDebug && tinyStarBellRangBeforeHop(bellPlayedOpsRef.current);
         // JtW C1-P6: pressing Go while Say still precedes Show reproduces the
         // "voice from thin air" bug — that run IS the required bug run.
         const jtwSayIndex = missionScript?.blocks.findIndex((block) => block.op === 'say') ?? -1;
@@ -854,6 +869,7 @@ export function BlocksStudioPage({
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
         if (observedLateBounce) setMissionWrongRunObserved(true);
+        if (observedEarlyBell) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           const completedDistanceHook =
             storyMission.lessonId === 'tsv-s1-a4-h' &&
@@ -883,9 +899,15 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
-          (!(isA2DirectionDebug || isA4ParameterDebug || isA5RelayDebug || isJtwOrderDebug) ||
+          (!(
+            isA2DirectionDebug ||
+            isA4ParameterDebug ||
+            isA5RelayDebug ||
+            isA6OrderDebug ||
+            isJtwOrderDebug
+          ) ||
             missionWrongRunObserved) &&
-          (!(isA4ParameterDebug || isA5RelayDebug) || answeredCorrectly)
+          (!(isA4ParameterDebug || isA5RelayDebug || isA6OrderDebug) || answeredCorrectly)
         ) {
           setMissionCorrectRunFinished(true);
           if (missionCompleted) {
@@ -915,7 +937,8 @@ export function BlocksStudioPage({
     isA5TurnBuild,
     isA5RelayDebug,
     isA5PersonalShip,
-    isA6StepBuild,
+    isA6OrderDebug,
+    needsBellOrderRun,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
@@ -1191,6 +1214,9 @@ export function BlocksStudioPage({
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
     if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
+    // A6-D: moving a block IS the repair, so dragging stays on — but only after
+    // the child has watched the bell ring too early for real (§8.6 runs first).
+    if (isA6OrderDebug && !missionWrongRunObserved) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1366,6 +1392,9 @@ export function BlocksStudioPage({
     drop?: { scriptId: string; slot: number },
   ) => {
     if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
+    // A6-D repairs an ORDER: every block the story needs already ships, so no
+    // new one may be dropped in (teaching script §8.6 "不允许一次全部重做").
+    if (isA6OrderDebug) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
@@ -1447,6 +1476,16 @@ export function BlocksStudioPage({
     if ((isA4ParameterDebug || isA5RelayDebug) && !missionWrongRunObserved) {
       setStoryCoachCue('retry');
       setMissionOpen(true);
+      return;
+    }
+    // A6-D: the walk is already 3 and the jump is already 1 — the only thing
+    // wrong is WHERE the bell sits, so no number editor opens in this scene. A
+    // tap before the bug has been watched sends the child back to the story card.
+    if (isA6OrderDebug) {
+      if (!missionWrongRunObserved) {
+        setStoryCoachCue('retry');
+        setMissionOpen(true);
+      }
       return;
     }
     if (

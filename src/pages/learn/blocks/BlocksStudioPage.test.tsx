@@ -1268,6 +1268,103 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
   }, 30_000);
 
+  // Tiny Star Village A6-D — chapter six's Twist & Debug. All five blocks ship,
+  // with the bell at the FRONT. The child must run the wrong order for real,
+  // name the card that belongs last, and may then MOVE the Pop — nothing may be
+  // added, deleted or retuned, and no number editor opens at all.
+  const bellFixProject = () => {
+    const bell = bellHookProject();
+    bell.lessonId = 'tsv-s1-a6-d';
+    bell.pages[0].id = 'tsv-a6-d-page';
+    bell.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'pop' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    return bell;
+  };
+
+  it('makes A6-D run the early bell before the Pop may be moved', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellFixProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Before the bug has been watched the chain will not budge: tapping a block
+    // opens no number editor, it sends the child back to the story card.
+    fireEvent.click(screen.getAllByTestId('block-move_right').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One real Go: the bell rings while the ringer is still three spaces away.
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    // The two cards that really do belong earlier are the distractors.
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-ring'));
+    expect(await screen.findByTestId('story-fix-task')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Even now nothing may be ADDED: the Motion palette is shut for this scene.
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(bellRoute()).toHaveLength(5);
+
+    // The whole repair is one move: the bell goes behind the jump.
+    act(() => useBlocksStore.getState().moveBlock('little-light-bell-route', 1, 3));
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-d': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses A6-D while the bell still rings before the jump', async () => {
+    const bell = bellFixProject();
+    // Moved one slot only: after the walk, but still before the hop.
+    bell.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-d': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
   // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
   // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
   // and has to put it BEFORE the Say. Completion needs the exact saved chain AND

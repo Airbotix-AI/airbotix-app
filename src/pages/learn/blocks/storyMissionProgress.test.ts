@@ -1344,6 +1344,165 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a6-b')).toBe(false);
   });
 
+  // ── A6-D · 钟先响了 (Twist & Debug) ──────────────────────────────────────
+  // All three cards are on the page at last, but the bell has slipped to the
+  // FRONT of the chain. The child moves that one card behind the Hop and may
+  // change nothing else. The run-time half ("this run really rang before the
+  // jump") lives in `tinyStarBellTower.test.ts` and `BlocksStudioPage.test.tsx`.
+  const bellFixProject = (route?: Array<{ op: string; n?: number; text?: string }>) => {
+    const project = bellHookProject();
+    project.lessonId = 'tsv-s1-a6-d';
+    project.pages[0].id = 'tsv-a6-d-page';
+    project.pages[0].characters[0].scripts[0].blocks = (route ?? [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 3 },
+      { op: 'hop', n: 1 },
+      { op: 'pop' },
+      { op: 'end' },
+    ]) as Block[];
+    return project;
+  };
+
+  it('accepts A6-D only when the bell has moved behind the jump', () => {
+    expect(storyMissionProgramMatches(bellFixProject(), 'tsv-s1-a6-d')).toBe(true);
+
+    // The shipped bug: every block is present, and the bell rings first.
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'pop' },
+          { op: 'move_right', n: 3 },
+          { op: 'hop', n: 1 },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+
+    // Dragged one slot only — the bell still rings before the jump.
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'move_right', n: 3 },
+          { op: 'pop' },
+          { op: 'hop', n: 1 },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+
+    // Dragged past the terminal End — the story never rings.
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'move_right', n: 3 },
+          { op: 'hop', n: 1 },
+          { op: 'end' },
+          { op: 'pop' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+
+    // Rebuilding instead of moving: a deleted bell, a duplicated bell, a
+    // retuned walk and a retuned jump all keep the mission open.
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'move_right', n: 3 },
+          { op: 'hop', n: 1 },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'pop' },
+          { op: 'move_right', n: 3 },
+          { op: 'hop', n: 1 },
+          { op: 'pop' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'move_right', n: 1 },
+          { op: 'hop', n: 1 },
+          { op: 'pop' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+    expect(
+      storyMissionProgramMatches(
+        bellFixProject([
+          { op: 'when_flag' },
+          { op: 'move_right', n: 3 },
+          { op: 'hop', n: 2 },
+          { op: 'pop' },
+          { op: 'end' },
+        ]),
+        'tsv-s1-a6-d',
+      ),
+    ).toBe(false);
+  });
+
+  it('keeps the rest of chapter six’s stage out of the child’s reach in A6-D', () => {
+    const walked = bellFixProject();
+    walked.pages[0].characters[0].start.gx = 8;
+    expect(storyMissionProgramMatches(walked, 'tsv-s1-a6-d')).toBe(false);
+
+    const draggedTower = bellFixProject();
+    draggedTower.pages[0].characters[1].start.gy = 10;
+    expect(storyMissionProgramMatches(draggedTower, 'tsv-s1-a6-d')).toBe(false);
+
+    const scriptedTower = bellFixProject();
+    scriptedTower.pages[0].characters[1].scripts.push({
+      id: 'bell-tower-tap',
+      blocks: [{ op: 'when_tap' }, { op: 'pop' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(scriptedTower, 'tsv-s1-a6-d')).toBe(false);
+
+    const restaged = bellFixProject();
+    restaged.pages[0].background = 'candy';
+    expect(storyMissionProgramMatches(restaged, 'tsv-s1-a6-d')).toBe(false);
+
+    const reskinned = bellFixProject();
+    reskinned.pages[0].characters[0].asset = '/unapproved.svg';
+    expect(storyMissionProgramMatches(reskinned, 'tsv-s1-a6-d')).toBe(false);
+
+    const secondScript = bellFixProject();
+    secondScript.pages[0].characters[0].scripts.push({
+      id: 'little-light-extra',
+      blocks: [{ op: 'when_tap' }, { op: 'pop' }, { op: 'end' }],
+    });
+    expect(storyMissionProgramMatches(secondScript, 'tsv-s1-a6-d')).toBe(false);
+
+    // Chapter six's three scenes never satisfy each other. A6-B and A6-D end on
+    // the SAME route, so only the page and the lesson keep them apart — and they
+    // do, on both sides.
+    const buildPage = bellFixProject();
+    buildPage.pages[0].id = 'tsv-a6-b-page';
+    expect(storyMissionProgramMatches(buildPage, 'tsv-s1-a6-d')).toBe(false);
+    expect(storyMissionProgramMatches(bellFixProject(), 'tsv-s1-a6-b')).toBe(false);
+    expect(storyMissionProgramMatches(bellFixProject(), 'tsv-s1-a6-h')).toBe(false);
+    expect(storyMissionProgramMatches(bellBuildProject(), 'tsv-s1-a6-d')).toBe(false);
+    expect(storyMissionProgramMatches(bellHookProject(), 'tsv-s1-a6-d')).toBe(false);
+  });
+
   it('does not confuse A1-H and A1-B page identities', () => {
     expect(storyMissionProgramMatches(correctedMissionProject(), 'tsv-s1-a1-b')).toBe(false);
     expect(storyMissionProgramMatches(completedBuildMissionProject(), 'tsv-s1-a1-h')).toBe(false);

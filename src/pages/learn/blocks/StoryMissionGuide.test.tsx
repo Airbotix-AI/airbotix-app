@@ -17,6 +17,7 @@ const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
 const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
 const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
 const bellBuildMission = storyMissionFor('tsv-s1-a6-b')!;
+const bellFixMission = storyMissionFor('tsv-s1-a6-d')!;
 
 afterEach(cleanup);
 
@@ -165,6 +166,47 @@ describe('StoryMissionGuide', () => {
     // Nothing in the card edits the program on the child's behalf.
     expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
     expect(screen.queryByTestId(/story-choice-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
+  it('makes A6-D ask which card comes last and never edits the chain for the child', () => {
+    const onApplyFix = vi.fn();
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellFixMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('All three cards are here')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText(/rings while Lumi is still three spaces away/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Move one card only')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellFixMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    // The three floor cards are the answer set, and only the bell belongs last.
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent('must come LAST');
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(onAnswer).toHaveBeenCalledWith('walk');
+    // Naming the card is all the card does — it never moves a block.
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
     expect(onApplyFix).not.toHaveBeenCalled();
   });
 

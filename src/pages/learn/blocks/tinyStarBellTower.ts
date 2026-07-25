@@ -15,6 +15,10 @@
 //
 // A6-B is the Logic Build that follows: the same route, the same stage, and now
 // the child puts the missing Hop card back — between the walk and the bell.
+//
+// A6-D is the chapter's Twist & Debug: all three cards are finally on the page,
+// but the bell has slipped to the FRONT of the chain, so it rings before anybody
+// has walked or jumped. The child moves that one card to the end.
 
 import type { Block, Character, Page } from './blocksModel';
 
@@ -58,6 +62,8 @@ export const TINY_STAR_BELL_HOP_N = 1;
 export const TINY_STAR_BELL_HOOK_PAGE_ID = 'tsv-a6-h-page';
 /** A6-B: the page of the chapter's Logic Build — the same stage, one scene on. */
 export const TINY_STAR_BELL_BUILD_PAGE_ID = 'tsv-a6-b-page';
+/** A6-D: the page of the chapter's Twist & Debug — the same stage once more. */
+export const TINY_STAR_BELL_FIX_PAGE_ID = 'tsv-a6-d-page';
 /** A6: every chapter-six scene walks the SAME route, so it keeps one script id. */
 export const TINY_STAR_BELL_ROUTE_SCRIPT_ID = 'little-light-bell-route';
 
@@ -92,6 +98,52 @@ export const TINY_STAR_BELL_BUILD_ROUTE: readonly Block[] = [
   { op: 'hop', n: TINY_STAR_BELL_HOP_N },
   ...TINY_STAR_BELL_HOOK_ROUTE.slice(TINY_STAR_BELL_HOP_INDEX),
 ];
+
+/** A6-D: the chapter's three cards, with the bell lifted out of the chain. */
+const TINY_STAR_BELL_ROUTE_WITHOUT_POP = TINY_STAR_BELL_BUILD_ROUTE.filter(
+  (block) => block.op !== 'pop',
+);
+
+/**
+ * A6-D: where the shipped bug drops the bell — straight after the `when_flag`,
+ * i.e. before a single step of the story has happened (scene-specs A6-D "Bug").
+ */
+export const TINY_STAR_BELL_POP_BUG_INDEX = 1;
+
+/**
+ * A6-D: the shipped Twist & Debug route (scene-specs A6-D "Bug") —
+ * `when_flag → pop → move_right 3 → hop 1 → end`. It is DERIVED from the
+ * repaired route by lifting the `pop` out and dropping it back in at the front,
+ * so the bug and its repair can only ever differ by where the bell sits: exactly
+ * the one move the child makes, and nothing else can silently drift.
+ */
+export const TINY_STAR_BELL_BUG_ROUTE: readonly Block[] = [
+  ...TINY_STAR_BELL_ROUTE_WITHOUT_POP.slice(0, TINY_STAR_BELL_POP_BUG_INDEX),
+  { op: 'pop' },
+  ...TINY_STAR_BELL_ROUTE_WITHOUT_POP.slice(TINY_STAR_BELL_POP_BUG_INDEX),
+];
+
+/**
+ * A6: chapter six's stage, in the shape `storyMissionProgress`'s contract map
+ * expects. All three scenes stand on the SAME `sunset` Bell Tower square with
+ * the same ringer and the same script-less tower — only the page and the route
+ * differ — so the stage is written once here and spread there, exactly as the
+ * chapter-one scenes share `LUMI_CONTRACT`.
+ */
+export const TINY_STAR_BELL_STAGE_CONTRACT = {
+  background: TINY_STAR_BELL_BACKGROUND,
+  characterId: TINY_STAR_BELL_RINGER_ID,
+  scriptId: TINY_STAR_BELL_ROUTE_SCRIPT_ID,
+  asset: TINY_STAR_BELL_RINGER_ASSET,
+  start: { gx: TINY_STAR_BELL_RINGER_GX, gy: TINY_STAR_BELL_GY, size: 1, rot: 0 },
+  sceneTarget: {
+    id: TINY_STAR_BELL_TOWER_ID,
+    name: TINY_STAR_BELL_TOWER_NAME,
+    gx: TINY_STAR_BELL_TOWER_GX,
+    gy: TINY_STAR_BELL_TOWER_GY,
+    size: TINY_STAR_BELL_TOWER_SIZE,
+  },
+};
 
 export interface TinyStarBellCard {
   /** The choice id the Story Hook question uses. */
@@ -144,6 +196,21 @@ export function tinyStarBellRouteUnchanged(page: Page | undefined): boolean {
  * default, a retuned walk or a deleted Pop all fail.
  */
 export function tinyStarBellStepAdded(page: Page | undefined): boolean {
+  return bellRouteIs(page, TINY_STAR_BELL_BUILD_ROUTE);
+}
+
+/**
+ * A6-D: has the child put the bell back where it belongs?
+ *
+ * Chapter six only has ONE correct Bell Tower story, so the repaired Fix route
+ * is deliberately the same chain A6-B builds — but nothing is added here. All
+ * five blocks already ship; only the `pop` is in the wrong place, and the single
+ * legal edit is to move it behind the Hop (scene-specs A6-D "只移动Pop到Hop之
+ * 后"). The shipped bug, a bell left anywhere before the walk or the jump, a
+ * deleted or re-added block, a retuned walk or hop, a moved ringer or tower and
+ * any stage edit all keep the mission open.
+ */
+export function tinyStarBellOrderRepaired(page: Page | undefined): boolean {
   return bellRouteIs(page, TINY_STAR_BELL_BUILD_ROUTE);
 }
 
@@ -215,4 +282,20 @@ export function tinyStarBellRangAfterHop(playedOps: readonly string[]): boolean 
   const hopAt = playedOps.indexOf('hop');
   const popAt = playedOps.indexOf('pop');
   return hopAt >= 0 && popAt >= 0 && hopAt < popAt;
+}
+
+/**
+ * A6-D: did THIS run reproduce the shipped bug — the bell ringing first?
+ *
+ * The Fix scene may not be repaired from the story card alone: like A2-D, A4-D
+ * and A5-D, the child has to watch the wrong thing happen before the editor
+ * opens. Read off the same ordered `onStep` record, so it is a measurement of
+ * the runtime and not a page flag: this run really did play the `pop` before it
+ * ever reached the `hop` (a run with no hop at all counts too — the bell still
+ * rang without anybody touching it).
+ */
+export function tinyStarBellRangBeforeHop(playedOps: readonly string[]): boolean {
+  const hopAt = playedOps.indexOf('hop');
+  const popAt = playedOps.indexOf('pop');
+  return popAt >= 0 && (hopAt < 0 || popAt < hopAt);
 }

@@ -146,4 +146,10 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 22',
     desc: 'The hop card is still missing. Add a Hop between Right 3 and Pop, set it to 1 space, and run the whole walk-hop-ring morning.',
   },
+  {
+    id: 'blocks_tsv_a6_d',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 23',
+    desc: 'All three cards are here, but the bell is first — it rings before Lumi has walked or jumped. Run it, then drag only the Pop to the end.',
+  },
 ];

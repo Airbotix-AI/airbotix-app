@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
+
+### Added
+- Tiny Star Village Twist & Debug scene A6-D (`tsv-s1-a6-d`, `blocks_tsv_a6_d`, Mission 23), chapter
+  six's Fix scaffold. All three Bell Tower cards are on the page at last, and the bell has slipped to
+  the FRONT: it rings while Lumi is still three spaces away, then the walk happens, then the jump
+  lands on a bell that already rang. The child moves that ONE card behind the Hop.
+- `tinyStarBellOrderRepaired` / `tinyStarBellRangBeforeHop` in `tinyStarBellTower.ts` — the saved
+  contract for the repaired order, and the run measurement that proves this run really did ring
+  before anybody reached the bell (read off the interpreter's own ordered `onStep` record).
+- `TINY_STAR_BELL_BUG_ROUTE`, DERIVED from `TINY_STAR_BELL_BUILD_ROUTE` by lifting the `pop` out and
+  re-inserting it at `TINY_STAR_BELL_POP_BUG_INDEX` — the structured form of scene-specs A6-D's own
+  diff. The bug and its repair can only ever differ by where the bell sits.
+- `TINY_STAR_BELL_STAGE_CONTRACT`: chapter six's shared stage, written once and spread by all three
+  A6 mission contracts (the same treatment chapter one's `LUMI_CONTRACT` already gets).
+
+### Changed
+- `BlocksStudioPage` gained `isA6OrderDebug`: the Motion palette is closed for this scene and the
+  number editor never opens (Right 3 and Hop 1 are already correct), while block DRAGGING stays on —
+  because moving a block is the repair. Dragging and tapping are both gated on a real bug run, the
+  same "run it first" contract A2-D/A4-D/A5-D use.
+- `storyMissionProgress.ts` shrank 981 → 971 lines: the three A6 contracts now spread the shared
+  stage instead of repeating it.
+
+### Notes
+- **Nothing is missing and nothing is spare.** The starter's five blocks are exactly A6-B's finished
+  five in the wrong order, so there is nothing to add (that was A6-B) and nothing to delete — the
+  only available action is a move. The starter cannot complete itself and offers nothing to copy.
+- **The three floor cards are the question.** "Which card must come LAST?" — 🚶 walk and 🦘 hop are
+  real distractors because they genuinely do belong earlier. That question IS scene-specs A6-D's
+  "学习证据：能用三张卡表达先/然后/最后", and it can only be answered after the bug run.
+- **Completion is derived, never a page boolean.** The saved route must be exactly
+  `Start → Right 3 → Hop 1 → Pop → End` on the untouched chapter stage, AND the run must have played
+  the Hop before the Pop with Lumi standing on the tower square.
+- **A6-B and A6-D end on the same route** — chapter six has one correct Bell Tower story — so the
+  `lessonId` and the page id are what keep them apart; tests assert non-impersonation both ways.
+- **No art was invented and no op was added.** The `sunset` stage, Lumilo's formal asset and the
+  script-less `⭐` Bell Tower proxy are A6-H's, unchanged; the page still holds exactly two
+  characters (§1.2). Chapter A6 is about order, not timing — nothing here reaches for a Wait.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-B — add the missing step)
 
 ### Added

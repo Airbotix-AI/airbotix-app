@@ -1140,6 +1140,50 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
     completionWhy: 'The server-saved Start → Right 3 → Hop 1 → Pop → End route ran on the unchanged Bell Tower stage, and the run reached the Hop before the bell with Lumi standing at the foot of the tower.',
     next: 'Next, the same three steps arrive in the wrong order — the bell rings first.',
   },
+  // Tiny Star Village S1/A6-D — chapter six's Twist & Debug (scene-specs A6-D,
+  // teaching script §8.6 "钟先响了"). All three cards are on the page at last —
+  // and the bell has slipped to the FRONT, so it rings before anybody has walked
+  // or jumped. §8.6 forbids rebuilding the chain: run it, name the card that
+  // belongs last, move that ONE card, check the Hop is still in the middle, run
+  // again. So no block may be added, deleted or retuned here — the single legal
+  // edit is where the Pop sits.
+  'tsv-s1-a6-d': {
+    mode: 'observe-fix', lessonId: 'tsv-s1-a6-d', celebrate: true,
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    eyebrow: 'Tiny Star Village · Chapter 6 · Mission 23', title: 'The bell rang first!',
+    storyPages: [
+      { emoji: '🔔🚶🦘', title: 'All three cards are here', body: 'Walk to the tower, hop up to the bell, hear the bell ring. Every card the morning needs is finally in the program — but the village woke up confused.', speaker: 'Lumilo', dialogue: 'Something happened in the wrong order.', scene: 1 },
+      { emoji: '🔔❓', title: 'Press Go and listen', body: 'The bell is the FIRST block, so it rings while Lumi is still three spaces away. Then Lumi walks. Then Lumi jumps at a bell that already rang.', speaker: 'Dot Dot', dialogue: 'Who rang it? Nobody was even there!', scene: 3, blocks: ['🚩 Start → 🫧 Pop', '➡️ Right 3 → 🦘 Hop 1 → End'] },
+      { emoji: '🫧➡️', title: 'Move one card only', body: 'Do not add a block, do not delete one, do not change a number. Drag the 🫧 Pop down past the Hop so the bell is the last thing that happens, then run it again.', speaker: 'Lumilo', dialogue: 'First I walk, then I jump, THEN it rings.', scene: 5 },
+    ],
+    partnerLine: 'The same blocks in a different order tell a different story.',
+    mission: 'Press Go first. After the bell rings too early, choose the card that must come last, then drag only the Pop behind the Hop.',
+    question: 'The bell rang before Lumi arrived. Which card must come LAST?',
+    choices: [
+      { id: 'walk', label: '🚶 Walk to the tower', correct: false },
+      { id: 'hop', label: '🦘 Hop up to the bell', correct: false },
+      { id: 'ring', label: '🔔 Hear the bell ring', correct: true },
+    ],
+    retry: 'Press Go again. The walking and the jumping have to happen before a bell can ring for them.',
+    successTitle: 'The ring belongs at the end!', success: 'A bell rings because somebody reached it, so hearing it is the last card, not the first.',
+    fixTitle: 'Move the bell to the end', fixPrompt: 'Close this card, then drag the 🫧 Pop down past the 🦘 Hop. Nothing else may change.',
+    workspaceIntro: 'Run the bug first. Then the only legal edit is moving the Pop — no block may be added, deleted or retuned.', fixChoices: [], fixRetry: '',
+    coach: {
+      ready: 'Press Go and listen for when the bell rings.', watch: 'The bell rang already — Lumi has not even moved.',
+      sayFirst: 'This route has no words — walk, hop, ring.', sayThen: 'This route has no words — walk, hop, ring.',
+      hopFirst: 'The jump has to come before the bell, not after it.', hopThen: 'Lumi jumped up to the bell.',
+      retry: 'Keep all five blocks. Only the Pop moves, and it moves to the end.',
+      fix: 'Now drag the Pop down past the Hop.',
+      test: 'Saved? Press Go and listen again.', saving: 'The bell rang last this time. Saving the repair…',
+      complete: 'Walk, hop, ring — in that order at last!',
+    },
+    logicSteps: [{ icon: '▶️', label: 'Run the bug', order: 'Observe' }, { icon: '🔔', label: 'Ring is last', order: 'Predict' }, { icon: '🫧', label: 'Move the Pop', order: 'Repair' }],
+    logicWhy: 'Blocks run left to right, so a Pop at the front rings before the walk and the hop have happened. Moving it behind the Hop makes the bell the thing Lumi caused.',
+    completionTitle: 'The morning is in order! ⭐🔔', completion: 'You ran the wrong order, named the card that belongs last, moved only the Pop, saved it, and reran the whole three-step morning.',
+    completionSteps: [{ icon: '🚶', label: 'Walk 3', order: 'First' }, { icon: '🦘', label: 'Hop 1', order: 'Then' }, { icon: '🔔', label: 'Bell rings', order: 'Last' }],
+    completionWhy: 'The server-saved Start → Right 3 → Hop 1 → Pop → End route holds the same five blocks the bug shipped, and the rerun reached the Hop before the bell with Lumi standing at the foot of the tower.',
+    next: 'The Bell Tower works. Next, the last mission of the season: choose who rings it and how the morning ends.',
+  },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). Chinese story world; the child picks the four core blocks
   // from a palette that also offers Grow/Turn distractors.
