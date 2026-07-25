@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-07-26 (feat: Tiny Star Village season progression, resume and locked next scene)
+
+### Added
+- Tiny Star Village Season 1 is now ONE sequential season, not 24 independent scenes.
+  `tinyStarSeason.ts` holds the season manifest (derived from `storyJourneyCatalog`, never a second
+  copy of the order), projects the server's unlock answer onto the 24 scenes, names the scene to
+  resume, and records a finished scene against the kid's chain.
+- Story map scene states: `completed` (✓, replayable for ever), `open` (the one scene the season is
+  waiting on) and `locked` (🔒, disabled). A chapter never opens wholesale — finishing A1-S opens
+  A2-H and nothing else.
+- "Continue the story" card on the story map: it names the open scene (`Chapter 2 · Which way is the
+  plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child's own project** for
+  that scene when they already started it, instead of creating a second empty copy; only an
+  unstarted scene creates one. Finishing all 24 shows the season card.
+- A finished Tiny Star scene now records itself against `/story-parts/tiny-star-village-s1` with
+  `selections.saved_project = [projectId]` — the VFS the studio just verified, never a page boolean.
+
+### Changed
+- `BlocksStudioPage` no longer offers "Next scene" when the season chain refused this scene
+  (`403 STORY_PART_LOCKED`, i.e. it was opened out of order): the child's own work still saves, and
+  the card explains in their words that the map opens scenes in order.
+
+### Notes
+- The unlock truth is the server (the same adjacent-unlock service Journey to the West uses); the
+  client only renders it. Until that answer arrives — loading, offline, or a non-kid session —
+  **nothing is locked**, so a network blip can never shut a child out of a scene they earned.
+- The per-project `project.blocks.progress.json` sidecar is unchanged; it still makes a single scene
+  reopen finished. The season needed a kid-scoped chain because every scene is its own project.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
 
 ### Added

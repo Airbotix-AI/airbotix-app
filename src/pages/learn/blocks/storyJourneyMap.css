@@ -377,6 +377,84 @@
 }
 
 .tsv-mission-button:disabled { cursor: wait; opacity: 0.6; }
+
+/* Season progression (Task 25): a scene is finished, the one open scene, or
+   still locked behind an unfinished scene. The server decides which. */
+.tsv-mission-button.is-completed {
+  border-color: #b6e3c8;
+  background: #f2fbf5;
+}
+.tsv-mission-button.is-completed .tsv-mission-number {
+  background: #d9f4e4;
+  color: #2f7d52;
+}
+.tsv-mission-button.is-open {
+  border-color: #9b7fe4;
+  box-shadow: 0 0 0 2px rgba(155, 127, 228, 0.22);
+}
+.tsv-mission-button.is-locked {
+  cursor: not-allowed;
+  border-style: dashed;
+  background: #f6f4fa;
+  color: #8a7f9c;
+}
+.tsv-mission-button.is-locked .tsv-mission-number {
+  background: #ece8f3;
+  color: #8a7f9c;
+}
+
+.tsv-resume {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 1px solid #c8b7f2;
+  border-radius: 20px;
+  background: #f5f0ff;
+  padding: 14px 16px;
+}
+.tsv-resume.is-complete {
+  border-color: #b6e3c8;
+  background: #f2fbf5;
+}
+.tsv-resume-copy small {
+  color: #6947bd;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tsv-resume-copy strong {
+  display: block;
+  margin-top: 3px;
+  color: #2c2542;
+  font-size: 17px;
+  font-weight: 900;
+}
+.tsv-resume-copy span {
+  display: block;
+  margin-top: 2px;
+  color: #6e657d;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tsv-resume-button {
+  justify-self: start;
+  border-radius: 999px;
+  background: #6947bd;
+  padding: 11px 20px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+.tsv-resume-button:disabled { cursor: wait; opacity: 0.6; }
+
+@media (min-width: 640px) {
+  .tsv-resume {
+    grid-template-columns: 1fr auto;
+  }
+  .tsv-resume-button { justify-self: end; }
+}
 .tsv-mission-number {
   display: grid;
   width: 34px;
