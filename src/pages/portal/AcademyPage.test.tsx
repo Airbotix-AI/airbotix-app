@@ -170,4 +170,32 @@ describe('AcademyPage parent sales experience', () => {
     expect(screen.queryByText(/mock tests/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/wrong questions/i)).not.toBeInTheDocument();
   });
+
+  it('uses compact mobile typography and spacing without shrinking the desktop layout', async () => {
+    wireProductDetails();
+    getAcademyCatalog.mockResolvedValue(NAPLAN_CATALOG);
+    listFamilyAcademyEntitlements.mockResolvedValue([]);
+
+    renderPage();
+
+    expect(screen.getByTestId('academy-sales-hero')).toHaveClass(
+      'rounded-[24px]',
+      'px-5',
+      'py-6',
+      'sm:rounded-[32px]',
+      'sm:px-10',
+      'sm:py-12',
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: 'Help your child practise with the questions that match their Year.',
+      }),
+    ).toHaveClass('text-[32px]', 'sm:text-[58px]');
+    expect(await screen.findByTestId('academy-product-card-naplan-y3-numeracy')).toHaveClass(
+      'min-h-0',
+      'p-5',
+      'sm:min-h-[330px]',
+      'sm:p-8',
+    );
+  });
 });

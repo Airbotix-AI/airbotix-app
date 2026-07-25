@@ -39,13 +39,17 @@ export function AcademyPage() {
         <section
           key={exam.slug}
           id={exam.slug === 'naplan' ? 'choose-naplan-year' : undefined}
-          className="mb-12 scroll-mt-8"
+          className="mb-9 scroll-mt-6 sm:mb-12 sm:scroll-mt-8"
           data-testid={`academy-exam-${exam.slug}`}
         >
-          <div className="mb-6 max-w-3xl">
-            <div className="eyebrow eyebrow-bubblegum">{exam.title} Numeracy</div>
-            <h2 className="section-heading mt-2">Which Year is your child preparing for?</h2>
-            <p className="lead-text mt-3">
+          <div className="mb-5 max-w-3xl sm:mb-6">
+            <div className="eyebrow eyebrow-bubblegum mb-2 text-[10px] sm:mb-3 sm:text-[12px]">
+              {exam.title} Numeracy
+            </div>
+            <h2 className="text-[25px] font-bold leading-[1.15] text-ink sm:text-[40px]">
+              Which Year is your child preparing for?
+            </h2>
+            <p className="mt-2.5 text-[15px] font-medium leading-relaxed text-ink-soft sm:mt-3 sm:text-[18px]">
               Choose carefully: each Year is a separate product and stays fixed for the child you
               select at checkout.
             </p>
@@ -73,12 +77,16 @@ export function AcademyPage() {
         </div>
       )}
 
-      <section className="card-feature mt-12 grid gap-5 md:grid-cols-[0.8fr_1.2fr]">
+      <section className="card-feature mt-9 grid gap-4 p-5 sm:mt-12 sm:gap-5 sm:p-8 md:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <div className="eyebrow eyebrow-sky">Before you buy</div>
-          <h2 className="text-[26px] font-black leading-tight text-ink">What happens next?</h2>
+          <div className="eyebrow eyebrow-sky mb-2 text-[10px] sm:mb-3 sm:text-[12px]">
+            Before you buy
+          </div>
+          <h2 className="text-[22px] font-black leading-tight text-ink sm:text-[26px]">
+            What happens next?
+          </h2>
         </div>
-        <ol className="grid gap-4 text-[14px] font-medium leading-relaxed text-ink-soft sm:grid-cols-3">
+        <ol className="grid gap-3 text-[13px] font-medium leading-relaxed text-ink-soft sm:grid-cols-3 sm:gap-4 sm:text-[14px]">
           <li>
             <strong className="block text-ink">1. Choose a Year</strong>Pick the product that
             matches your child.

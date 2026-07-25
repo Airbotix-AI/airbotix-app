@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-25 (fix: compact the NAPLAN sales page on phones)
+
+### Changed
+- Reduced phone-only NAPLAN hero, section, benefit and product-card typography and spacing while
+  retaining the existing tablet and desktop scale.
+- Kept purchase actions comfortably tappable and added component coverage for the responsive
+  sizing contract.
+
 ## 2026-07-25 (feat: explain NAPLAN value to parents)
 
 ### Changed
