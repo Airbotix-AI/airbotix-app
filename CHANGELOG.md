@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P1 — why he leaves a happy home)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p1` — chapter three's Read & Why entry** (scene-specs
+  JTW-S1-C3-P1). The monkey king stands on the C3 Page 1 home shore at the shared contract's
+  `gx=3 / gy=9`, `size=3`, the mountain behind him and the open sea to his right. 故事卡A and
+  故事卡B are read in FULL across two screens, plus the two original dialogue lines, the classic
+  card (第一回漂洋求师 — not treasure, not the pilgrimage, and not "he disliked Flower-Fruit
+  Mountain") and the three-page 因果桥.
+- **Reading is a gate, not a hint.** The motive cards are not rendered at all until BOTH story
+  screens have really been read, and which screens were read is persisted (`story_screens`) — so
+  "未读正文不能只猜卡完成" is structural rather than a warning message.
+- **同屏地图** shows 花果山 / 水帘洞 / 海面 on one screen, each with its OWN real artwork
+  (`c1/before`, `c2/resolved`, `c3/page1-before`); all three must be pointed at. The 音频重放 is
+  the existing synthesized `play_sound` Whoosh, and the stage draws three wind lines so the sound
+  stays readable with the device muted.
+- **Evidence gates**: the two real motive cards must be ordered `珍惜现在的家 → 仍愿意远行学习`
+  (`想拿宝物`/`不喜欢伙伴` are refused with the story's own words, and the right two cards in the
+  wrong order also fail); both halves of `虽然这里很快乐，但是他想到…，所以决定…` are judged
+  separately; the prediction accepts only "我会记得从哪里出发，也会认真寻找答案。" as the line that
+  would stop being true, with a text-grounded retry hint.
+- **Resolved** swaps to the same-camera `c3/page1-resolved` (the sea-route light reaching the
+  horizon) and shows the friends group. `一起造木筏` unlocks ONLY `jtw-s1-c3-p2`, writes no project
+  and completes no chapter. C3-P1 added to the map's playable set.
+- **`jtwC3Stage.ts`** — chapter three's stage identity (Page 1 backgrounds, the `monkey-king`
+  sprite/size that reuses the `char-stone-monkey` master, the `gx=3 / gy=9` start cell, the sea-wind
+  sound id) in one place, mirroring `jtwC2Stage.ts`.
+
+### Changed
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125 lines) were **not grown** —
+  both are already over the 1000-line hard rule, so all C3-P1 content lives in
+  `journeyWestC3Part1Program.ts`.
+
+### Notes
+- **First chapter-three artwork in `public/`**: `backgrounds/s1/c3/page1-before-v01.webp` and
+  `page1-resolved-v01.webp` copied from `design-system/`. Only Page 1 — the Page 2/3 states stay in
+  `design-system/` until the Part that stages them lands, so no constant points at a missing file.
+- **Deliberately NOT faked** (recorded in the saga asset bible): the scene's "猴王先出现于洞口" —
+  the shipped shore has no cave mouth and the C2 cave art has no sea, so the cave is pointed at
+  through the map's REAL C2 image instead of being painted onto the shore; the 通向木筏材料的脚印 in
+  `resolved_world_change` — there is no footprint or loose-wood prop, and `prop-raft-neutral-v01` is
+  a FINISHED raft, i.e. the very result the friends have not built yet; and 伙伴从玩耍转为准备 — the
+  friends exist only as one neutral group image. No emoji, CSS shape or page boolean stands in, and
+  none of the three carries completion evidence.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 205 files / 1647 tests.
+
 ## 2026-07-27 (feat: Journey West C2-P8 — keeping the promise, and the chapter seal)
 
 ### Added
