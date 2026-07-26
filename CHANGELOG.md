@@ -1,5 +1,57 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P2 — the page exit that sends the raft home)
+
+### Added
+- **Finite-step page-flow runs (`src/pages/learn/blocks/pageFlowRun.ts`).** `BlocksRunner` runs ONE
+  page: `goto_page` calls `onGotoPage` and ends that page's run, and the Studio simply selects the
+  target page — enough for editing, but not enough for a chapter whose subject is "the exit number
+  decides the next page". `PageFlowRunner` drives the REAL interpreter page by page, records each
+  visit's enter cell, exit cell and requested exit page, follows the exit the run really asked for,
+  and STOPS the moment the route re-enters a page it has already visited — recording that entry
+  without running it again, so a Page 2 exit pointing back at Page 1 reads as a stable `1 → 2 → 1`
+  instead of an endless flicker. A `PAGE_FLOW_MAX_VISITS = 6` teaching budget bounds longer cycles,
+  an out-of-range exit number reports `missing_page` rather than silently ending, and `stop()`
+  abandons an in-flight run on unmount. 8 unit tests cover every stop reason.
+- **`/learn/story/journey-west/jtw-s1-c3-p2` — chapter three's Story Hook** (scene-specs
+  JTW-S1-C3-P2). The starter is a FRONTEND read-only three-page program — no backend template, no
+  editor, no project write — so "P2 不允许保存为已修复状态" is structurally impossible rather than a
+  rule to remember: Page 1 `when_flag→move_right(4)→goto_page(2)`, Page 2
+  `when_flag→play_sound(Whoosh)→move_right(4)→goto_page(1)`, Page 3 `when_flag→say(clue)→end`, on
+  the C3 contract's `3/9`, `2/8`, `2/9` start cells and using only the ops the chapter declares.
+- **The plan comes before the run.** Three page cards must be ordered 花果山海岸→海上中段→彼岸山林
+  and two exit arrows placed (`Page 1→2`, `Page 2→3`); the `Page 2 的出口 → 1` arrow is refused as
+  "the problem, not the plan". The prediction is READ off the number on the Page 2 exit block — the
+  "故事总会自己往下一页走" answer gets the `Page 2 那一块写的是 1` hint. Go stays disabled until all
+  three are in place.
+- **One real run, real footprints.** Pressing Go walks the unmodified starter through the real
+  runtime: the trace is `1 → 2 → 1`, Page 2 is circled, the footprints are measured off the runner
+  (`3-9→7-9` exit → Page 2, `2-8→6-8` exit → Page 1, then the stop), 彼岸山林 never opens, and the
+  stage stops on Page 1. **The first-deviation picker is not rendered at all before that run**, so
+  "未运行只点 Page 2 不通过" is structural; Page 1 and Page 3 are refused with a page-by-page hint.
+- Evidence `story_screens / expected_page_order / expected_exits / page_trace / run_footprints /
+  first_deviation` + the prediction is persisted through `/story-parts`; a refresh restores it by
+  decoding the stored footprint strings (malformed rows are dropped, never guessed). `走页面路口`
+  unlocks ONLY `jtw-s1-c3-p3`, writes no project and lights no chapter seal.
+
+### Assets
+- `backgrounds/s1/c3/page2-morning-before-v01.webp`, `backgrounds/s1/c3/page3-before-v01.webp` and
+  `props/raft/neutral-v01.png` copied from design-system into `public/` — only what this Part
+  actually renders. The raft is a REAL stage actor (asset bible §6 forbids baking it into the
+  background): it waits where the Page 1 walk ends, carries the monkey king across the open sea on
+  Page 2 with its own `when_flag→move_right(4)→end` (without it §2.4's "feet on readable ground, a
+  raft or a safe stepping stone" cannot hold on open water) and lies beached on the Page 3 landing.
+  It runs no story logic and carries no completion evidence. Page 2 ships the morning-mist sea
+  because the shared chain's own Whoosh IS its sea wind; the starry pair (C3-P5's second choice)
+  and both Page 2/3 `resolved` states stay in design-system until a Part stages them. Nothing was
+  faked, and no emoji or CSS shape stands in for artwork.
+
+### Notes
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in `journeyWestC3Part2Program.ts`
+  and the page-flow capability in its own module.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 207 files / 1666 tests all green.
+
 ## 2026-07-27 (feat: Journey West C3-P1 — why he leaves a happy home)
 
 ### Added
