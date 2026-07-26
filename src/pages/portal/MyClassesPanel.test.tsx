@@ -90,12 +90,20 @@ describe('MyClassesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Kids AI Game Lab')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Kids AI Game Lab' })).toHaveAttribute(
+      'href',
+      '/portal/courses/game-lab',
+    );
     expect(screen.getByText(/Mia/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Resume checkout/ })).toHaveAttribute(
       'href',
       '/portal/checkout/class/class-2',
     );
     expect(screen.getByText('Rhythm Game')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rhythm Game' })).toHaveAttribute(
+      'href',
+      '/portal/courses/rhythm-game',
+    );
     expect(screen.getByText(/within 1 business day/)).toBeInTheDocument();
   });
 

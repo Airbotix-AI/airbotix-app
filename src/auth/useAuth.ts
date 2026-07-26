@@ -39,6 +39,7 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
     display_name: raw.user.display_name,
     role: raw.user.role,
     family_id: raw.user.family_id,
+    has_password: raw.user.has_password ?? false,
   };
 }
 
@@ -78,6 +79,35 @@ export async function verifyOtp(email: string, code: string): Promise<VerifyOtpR
   return res;
 }
 
+// ── Parent email+password login (auth-system-prd §4.8) ──────────────────────
+// Optional alternative to OTP for parents who have opted into a password. Same
+// token envelope + post-login handling as verifyOtp. OTP stays the recovery path,
+// so a wrong/forgotten password just falls back to "email me a code".
+
+export async function loginWithPassword(
+  email: string,
+  password: string,
+): Promise<VerifyOtpResponse> {
+  const res = await api<VerifyOtpResponse>('/auth/login-password', {
+    method: 'POST',
+    body: { email, password },
+    skipAuthRefresh: true,
+  });
+  useAuthStore.getState().setToken('user', res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
+  return res;
+}
+
+// Set/rotate the current parent's password (authenticated session, min 8 chars).
+// Surfaced from /portal/settings. Backend hashes with bcrypt; plaintext never
+// persisted client-side.
+export async function setPassword(password: string): Promise<void> {
+  await api<{ ok: true }>('/auth/set-password', {
+    method: 'POST',
+    body: { password },
+  });
+}
+
 // ── Kid family-code login ───────────────────────────────────────────────────
 
 export async function kidLogin(
@@ -95,6 +125,22 @@ export async function kidLogin(
   // Trigger WS connect with the new kid token
   setTimeout(() => getSocket('kid'), 0);
   return res;
+}
+
+// A signed-in parent can open one of their own children's Learn sessions
+// without re-entering the family code, nickname or PIN. The backend keeps the
+// adult and kid refresh cookies separate; only the kid access token changes.
+export function useParentKidLogin() {
+  return async (kidId: string): Promise<KidLoginResponse> => {
+    const res = await api<KidLoginResponse>(`/auth/parent/kids/${kidId}/login`, {
+      method: 'POST',
+      principal: 'user',
+    });
+    useAuthStore.getState().setToken('kid', res.access_token);
+    useAuthStore.getState().setBootstrapped(true);
+    setTimeout(() => getSocket('kid'), 0);
+    return res;
+  };
 }
 
 // ── Kid one-shot class-code login ───────────────────────────────────────────

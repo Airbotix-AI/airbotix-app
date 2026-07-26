@@ -3,7 +3,15 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { dataUrlToBlob, floodFill, strokeOutline, type StrokeOp } from './strokeEngine';
+import {
+  CANVAS_SIZE,
+  dataUrlToBlob,
+  floodFill,
+  renderOps,
+  strokeOutline,
+  type FillOp,
+  type StrokeOp,
+} from './strokeEngine';
 
 const stroke = (tool: StrokeOp['tool']): StrokeOp => ({
   kind: 'stroke',
@@ -74,6 +82,45 @@ describe('floodFill (pure pixel-buffer scanline)', () => {
     const data = make();
     floodFill(data, 4, 4, -1, 99, '#ff0000');
     expect(px(data, 0, 0)).toEqual([255, 255, 255]);
+  });
+});
+
+describe('renderOps fill on a scaled backing bitmap (Retina)', () => {
+  it('reads the FULL device-pixel bitmap and scales the tap point (dpr 2)', () => {
+    const dpr = 2;
+    const width = CANVAS_SIZE * dpr;
+    const height = CANVAS_SIZE * dpr;
+    // All-white bitmap with a red 2×2 island at DEVICE (20,20) — the flood
+    // target. A logical tap at (10,10) must land on it only if the fill scales.
+    const data = new Uint8ClampedArray(width * height * 4).fill(255);
+    for (const [x, y] of [[20, 20], [21, 20], [20, 21], [21, 21]]) {
+      const i = (y * width + x) * 4;
+      data[i + 1] = 0;
+      data[i + 2] = 0; // red: (255, 0, 0)
+    }
+    const putCalls: Array<{ w: number; h: number; x: number; y: number }> = [];
+    const ctx = {
+      canvas: { width, height },
+      getImageData: (_x: number, _y: number, w: number, h: number) => ({ data, width: w, height: h }),
+      putImageData: (image: { width: number; height: number }, x: number, y: number) =>
+        putCalls.push({ w: image.width, h: image.height, x, y }),
+    } as unknown as CanvasRenderingContext2D;
+
+    const fill: FillOp = { kind: 'fill', color: '#3fa7e9', x: 10, y: 10 };
+    renderOps(ctx, [fill]);
+
+    const px = (x: number, y: number) => {
+      const i = (y * width + x) * 4;
+      return [data[i], data[i + 1], data[i + 2]];
+    };
+    // the red island (device pixels) took the fill colour…
+    expect(px(20, 20)).toEqual([0x3f, 0xa7, 0xe9]);
+    expect(px(21, 21)).toEqual([0x3f, 0xa7, 0xe9]);
+    // …the white ground outside it did not (red↔white is beyond tolerance)
+    expect(px(0, 0)).toEqual([255, 255, 255]);
+    expect(px(200, 200)).toEqual([255, 255, 255]);
+    // and the write-back covered the whole backing bitmap, not a quadrant
+    expect(putCalls).toEqual([{ w: width, h: height, x: 0, y: 0 }]);
   });
 });
 

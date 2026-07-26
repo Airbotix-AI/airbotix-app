@@ -3,12 +3,8 @@ import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
-import {
-  bookingStatusCopy,
-  dateTimeLabel,
-  type MyClassesResponse,
-  venueLabel,
-} from './myClasses';
+import { bookingStatusCopy, dateTimeLabel, type MyClassesResponse, venueLabel } from './myClasses';
+import { TeachingTeam } from './teachers/TeachingTeam';
 
 export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
   const me = useMe();
@@ -46,11 +42,7 @@ export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
           <p className="mt-1 text-[13px] text-slate2">
             This is a temporary hiccup on our side — your bookings are safe. Please try again.
           </p>
-          <button
-            type="button"
-            onClick={() => myClasses.refetch()}
-            className="btn-pill-ghost mt-3"
-          >
+          <button type="button" onClick={() => myClasses.refetch()} className="btn-pill-ghost mt-3">
             Retry
           </button>
         </div>
@@ -70,11 +62,26 @@ export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
           {enrollments.slice(0, compact ? 2 : 4).map((item) => (
             <div key={item.id} className="rounded-2xl border border-hairline bg-canvas-pure p-4">
               <span className="sticker-mint">Locked</span>
-              <h3 className="mt-4 text-[17px] font-bold leading-snug">{item.class.name}</h3>
+              <h3 className="mt-4 text-[17px] font-bold leading-snug">
+                {item.class.course_pack ? (
+                  <Link
+                    to={`/portal/courses/${item.class.course_pack.slug}`}
+                    className="underline decoration-brand-coral decoration-2 underline-offset-4"
+                  >
+                    {item.class.name}
+                  </Link>
+                ) : (
+                  item.class.name
+                )}
+              </h3>
               <p className="mt-2 text-[13px] font-semibold text-ink-soft">
                 {item.kid.nickname} · {dateTimeLabel(item.class.starts_at)}
               </p>
               <p className="mt-1 text-[12px] text-slate2">{venueLabel(item.class.venue)}</p>
+              <p className="mt-3 text-[12px] text-slate2">
+                <span className="mr-1 font-bold text-ink">Teacher:</span>
+                <TeachingTeam team={item.class.teaching_team ?? []} />
+              </p>
             </div>
           ))}
 
@@ -108,7 +115,16 @@ export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
                 {bookingStatusCopy[item.parent_status] ?? 'Received'}
               </span>
               <h3 className="mt-4 text-[17px] font-bold leading-snug">
-                {item.course_pack?.title ?? 'Class request'}
+                {item.course_pack ? (
+                  <Link
+                    to={`/portal/courses/${item.course_pack.slug}`}
+                    className="underline decoration-brand-coral decoration-2 underline-offset-4"
+                  >
+                    {item.course_pack.title}
+                  </Link>
+                ) : (
+                  'Class request'
+                )}
               </h3>
               <p className="mt-2 text-[13px] text-slate2">
                 {item.parent_status === 'received'

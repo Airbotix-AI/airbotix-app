@@ -6,7 +6,7 @@ import { Copy, Download, LogOut, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
-import { useLogout, useMe } from '@/auth/useAuth';
+import { setPassword, useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { clearOnboardingFlag } from '@/lib/onboardingStorage';
 import { CityField } from './CityField';
@@ -355,6 +355,7 @@ export function SettingsPage() {
                   <Row label="Email" value={me.data.email} />
                   <DisplayNameEditor current={me.data.display_name} />
                   <Row label="Role" value={me.data.role} />
+                  <PasswordEditor hasPassword={me.data.has_password ?? false} />
                 </>
               )}
             </div>
@@ -481,6 +482,70 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="grid gap-1 border-b border-hairline pb-3 last:border-b-0 last:pb-0">
       <span className="text-slate2 font-medium">{label}</span>
       <span className="min-w-0 break-words font-semibold text-ink">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * Set or change the parent's optional login password (auth-system-prd §4.8).
+ * OTP stays available, so this is purely a convenience — a forgotten password is
+ * recovered by signing in with a code, not a reset flow. `hasPassword` toggles the
+ * copy between "Set" and "Change"; on success we invalidate /auth/me so the flag
+ * flips without a reload.
+ */
+function PasswordEditor({ hasPassword }: { hasPassword: boolean }) {
+  const qc = useQueryClient();
+  const [value, setValue] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: (password: string) => setPassword(password),
+    onSuccess: () => {
+      setErr(null);
+      setValue('');
+      qc.invalidateQueries({ queryKey: ['auth', 'me'] });
+    },
+    onError: (e: unknown) => setErr(e instanceof ApiError ? e.message : 'Could not save password.'),
+  });
+
+  const tooShort = value.length > 0 && value.length < 8;
+  const canSave = value.length >= 8 && !mut.isPending;
+
+  return (
+    <div className="border-b border-hairline pb-4 last:border-b-0 last:pb-0">
+      <div className="space-y-2">
+        <span className="text-slate2 font-medium">Password</span>
+        <p className="text-[12px] font-medium leading-snug text-slate2">
+          {hasPassword
+            ? 'Log in faster with your email + password. You can still use a code anytime.'
+            : 'Optional — set a password to log in without waiting for a code each time.'}
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            className="input-k12 min-w-0 py-2 text-[14px]"
+            type="password"
+            autoComplete="new-password"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={hasPassword ? 'New password' : 'At least 8 characters'}
+            maxLength={200}
+          />
+          <button
+            type="button"
+            disabled={!canSave}
+            onClick={() => mut.mutate(value)}
+            className="btn-pill-secondary px-5 py-2 text-[13px]"
+          >
+            {mut.isPending ? 'Saving…' : hasPassword ? 'Change' : 'Set password'}
+          </button>
+        </div>
+      </div>
+      {tooShort && <p className="field-error mt-1">At least 8 characters.</p>}
+      {err && <p className="field-error mt-1 text-right">{err}</p>}
+      {mut.isSuccess && !err && (
+        <p className="text-[12px] font-semibold text-brand-mint mt-1 text-right">
+          Password saved ✓
+        </p>
+      )}
     </div>
   );
 }

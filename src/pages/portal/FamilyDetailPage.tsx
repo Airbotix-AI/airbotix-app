@@ -1,11 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { api, ApiError } from '@/lib/api';
+import { SchoolField } from './SchoolField';
+import { EMPTY_SCHOOL, type SchoolValue } from './schoolValue';
 
 interface Kid {
   id: string;
@@ -15,6 +17,18 @@ interface Kid {
   daily_star_cap: number | null;
   is_active: boolean;
   family_id: string | null;
+  school_name: string | null;
+  school_suburb: string | null;
+  school_state: string | null;
+  school_acara_id: string | null;
+}
+
+// School fields sent on PATCH — always present (nullable) so clearing works.
+interface SchoolPatch {
+  school_name: string | null;
+  school_suburb: string | null;
+  school_state: string | null;
+  school_acara_id: string | null;
 }
 
 const editSchema = z.object({
@@ -40,12 +54,25 @@ export function FamilyDetailPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [pinError, setPinError] = useState<string | null>(null);
   const [pinSuccess, setPinSuccess] = useState(false);
+  // Optional school — a composite (autocomplete + state), so kept outside RHF and
+  // seeded from the loaded kid.
+  const [school, setSchool] = useState<SchoolValue>(EMPTY_SCHOOL);
 
   const kid = useQuery<Kid>({
     queryKey: ['kid', kidId],
     queryFn: () => api<Kid>(`/kids/${kidId}`),
     enabled: !!kidId,
   });
+
+  useEffect(() => {
+    if (!kid.data) return;
+    setSchool({
+      name: kid.data.school_name ?? '',
+      suburb: kid.data.school_suburb ?? '',
+      state: kid.data.school_state ?? '',
+      acara_id: kid.data.school_acara_id ?? '',
+    });
+  }, [kid.data]);
 
   const editForm = useForm<EditValues>({
     resolver: zodResolver(editSchema),
@@ -62,7 +89,7 @@ export function FamilyDetailPage() {
   const pinForm = useForm<PinValues>({ resolver: zodResolver(pinSchema) });
 
   const editMutation = useMutation({
-    mutationFn: (values: EditValues) =>
+    mutationFn: (values: EditValues & SchoolPatch) =>
       api(`/kids/${kidId}`, { method: 'PATCH', body: values }),
     onSuccess: async () => {
       setEditError(null);
@@ -124,7 +151,16 @@ export function FamilyDetailPage() {
       </div>
 
       <form
-        onSubmit={editForm.handleSubmit((v) => editMutation.mutate(v))}
+        onSubmit={editForm.handleSubmit((v) =>
+          editMutation.mutate({
+            ...v,
+            // Empty → null so a cleared school field is actually cleared.
+            school_name: school.name.trim() || null,
+            school_suburb: school.suburb.trim() || null,
+            school_state: school.state || null,
+            school_acara_id: school.acara_id || null,
+          }),
+        )}
         className="card-base space-y-5 mb-8"
         style={{ maxWidth: '520px' }}
       >
@@ -155,6 +191,9 @@ export function FamilyDetailPage() {
             {...editForm.register('daily_star_cap')}
           />
         </label>
+
+        <SchoolField value={school} onChange={setSchool} />
+
         <label className="flex items-center gap-3">
           <input type="checkbox" className="h-5 w-5 rounded accent-brand-coral" {...editForm.register('is_active')} />
           <span className="text-[14px] font-semibold text-ink">Active (kid can sign in)</span>

@@ -98,6 +98,10 @@ describe('FindClassesPage', () => {
       'href',
       '/portal/checkout/class/class-1',
     );
+    expect(screen.getByRole('link', { name: 'View course details' })).toHaveAttribute(
+      'href',
+      '/portal/courses/game-lab',
+    );
     expect(screen.getByLabelText('City')).toHaveValue('Gold Coast');
     expect(api).toHaveBeenCalledWith('/class-seats/classes?city=Gold%20Coast');
   });

@@ -90,19 +90,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('style → GM mapping completeness (PRD §5: 15 styles + None per slot)', () => {
-  it('has exactly 3 styles + None per slot, 15 styled entries total', () => {
+describe('style → GM mapping completeness (PRD §5 + D-MS20 instrument palettes)', () => {
+  it('has ≥3 styles + exactly one None per slot (25 styled entries total)', () => {
     const slots = Object.keys(INSTRUMENT_STYLES);
     expect(slots).toHaveLength(5);
     let styled = 0;
     for (const styles of Object.values(INSTRUMENT_STYLES)) {
-      expect(styles).toHaveLength(4);
+      expect(styles.length).toBeGreaterThanOrEqual(4);
       const none = styles.filter((s) => s.id === STYLE_NONE);
       expect(none).toHaveLength(1);
       expect(none[0].gmProgram).toBeNull();
       styled += styles.filter((s) => s.id !== STYLE_NONE).length;
     }
-    expect(styled).toBe(15);
+    // 15 original §5 styles + 10 D-MS20 palette instruments.
+    expect(styled).toBe(25);
   });
 
   it('maps every melodic style to a soundfont and every drum style to a machine', () => {
@@ -126,14 +127,14 @@ describe('style → GM mapping completeness (PRD §5: 15 styles + None per slot)
 describe('soundfontUrlFor', () => {
   it('builds the gleitz-layout URL from the default base', () => {
     expect(soundfontUrlFor(25)).toBe(
-      `${SOUNDFONT_DEFAULT_BASE_URL}/FluidR3_GM/acoustic_guitar_steel-mp3.js`,
+      `${SOUNDFONT_DEFAULT_BASE_URL}/MusyngKite/acoustic_guitar_steel-mp3.js`,
     );
   });
 
   it('honours VITE_SOUNDFONT_BASE_URL (our S3+CloudFront override)', () => {
     vi.stubEnv('VITE_SOUNDFONT_BASE_URL', 'https://cdn.airbotix.ai/soundfonts');
     expect(soundfontUrlFor(1)).toBe(
-      'https://cdn.airbotix.ai/soundfonts/FluidR3_GM/acoustic_grand_piano-mp3.js',
+      'https://cdn.airbotix.ai/soundfonts/MusyngKite/acoustic_grand_piano-mp3.js',
     );
   });
 
@@ -172,7 +173,7 @@ describe('production gating (music-stage-prd OQ-3 launch gate)', () => {
     expect(smplrEnabled()).toBe(true);
     // trailing slash normalised; drum machines live under the SAME origin.
     expect(soundfontUrlFor(1)).toBe(
-      'https://cdn.airbotix.ai/soundfonts/FluidR3_GM/acoustic_grand_piano-mp3.js',
+      'https://cdn.airbotix.ai/soundfonts/MusyngKite/acoustic_grand_piano-mp3.js',
     );
     expect(drumMachineUrlFor('lofikit')).toBe(
       'https://cdn.airbotix.ai/soundfonts/drum-machines/Casio-RZ1/dm.json',

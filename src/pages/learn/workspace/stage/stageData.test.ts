@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { SUPPORTED_INSTRUMENTS, type MusicScore } from './scoreTypes';
+import { GM_PROGRAM_SOUNDFONTS } from './soundfont';
 import {
   GENRES,
   INSTRUMENT_STYLES,
@@ -39,12 +40,28 @@ describe('stageSlotFor', () => {
 });
 
 describe('instrument styles', () => {
-  it('offers 3 styles + None per stage slot (PRD §5)', () => {
+  it('offers a real-instrument palette + None per stage slot (PRD §5 + D-MS20)', () => {
     for (const slot of STAGE_SLOTS) {
       const styles = INSTRUMENT_STYLES[slot.id];
-      expect(styles).toHaveLength(4);
+      // At least the original three §5 styles, always closed by None.
+      expect(styles.length).toBeGreaterThanOrEqual(4);
       expect(styles[styles.length - 1].id).toBe(STYLE_NONE);
       expect(styles[styles.length - 1].gmProgram).toBeNull();
+      // Ids stay unique within a slot — they key StageStyles persistence.
+      expect(new Set(styles.map((s) => s.id)).size).toBe(styles.length);
+    }
+  });
+
+  it('every melodic style maps to a published soundfont program (D-MS20 drift guard)', () => {
+    for (const slot of STAGE_SLOTS) {
+      if (slot.id === 'drums') continue; // kits resolve via DRUM_MACHINE_FOR_STYLE
+      for (const style of INSTRUMENT_STYLES[slot.id]) {
+        if (style.gmProgram === null) continue;
+        expect(
+          GM_PROGRAM_SOUNDFONTS[style.gmProgram],
+          `style ${slot.id}/${style.id} (GM ${style.gmProgram}) has no soundfont mapping`,
+        ).toBeTruthy();
+      }
     }
   });
 

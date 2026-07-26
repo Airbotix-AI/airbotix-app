@@ -13,6 +13,7 @@ const {
   playbackMock,
   generateMusicScoreMock,
   preloadProgramsMock,
+  warmSpessaEngineMock,
   saveScoreToMyWorksMock,
   generateRealSongMock,
   renderScoreMock,
@@ -36,6 +37,7 @@ const {
   },
   generateMusicScoreMock: vi.fn(),
   preloadProgramsMock: vi.fn(),
+  warmSpessaEngineMock: vi.fn(),
   saveScoreToMyWorksMock: vi.fn(),
   generateRealSongMock: vi.fn(),
   renderScoreMock: vi.fn(),
@@ -58,6 +60,10 @@ vi.mock('./realSongApi', async (orig) => ({
 // smplr layer is exercised in soundfont.test.ts — here only the preload call.
 vi.mock('./soundfont', () => ({
   preloadPrograms: preloadProgramsMock,
+}));
+// spessa engine boot is worklet-bound — here only the warm call (D-MS19).
+vi.mock('./spessaEngine', () => ({
+  warmSpessaEngine: warmSpessaEngineMock,
 }));
 // Offline WAV rendering needs a real AudioContext — stub the render + the
 // download hand-off, keep the pure helpers (filenames, audibility) real.
@@ -224,8 +230,11 @@ describe('MusicStagePane — generation', () => {
     });
     fireEvent.click(screen.getByTestId('composer-generate'));
     await screen.findByTestId('stage-composing');
-    // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17.
-    expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17]);
+    // Rock preset: Crunch 29 / Picked 34 / Rock Kit 0 / Grand 1 / Organ 17,
+    // plus the vocal-track programs (Choir Aahs 53 / Voice Oohs 54).
+    expect(preloadProgramsMock).toHaveBeenCalledWith([29, 34, 0, 1, 17, 53, 54]);
+    // Tier-0 boots behind the same animation (D-MS19).
+    expect(warmSpessaEngineMock).toHaveBeenCalled();
   });
 
   // D-MS10: with a song on stage the composer defaults to EDIT mode — typed
@@ -513,6 +522,59 @@ describe('MusicStagePane — versions (AC-7)', () => {
     expect(playbackMock.previewStyle).not.toHaveBeenCalled();
   });
 
+  it('tapping a band member opens the on-stage instrument pop; picking swaps the glyph (D-MS20)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // The pop opens only on an explicit tap — never via the post-generation
+    // auto-select.
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-inst-guitar'));
+    expect(screen.getByTestId('stage-pop')).toBeInTheDocument();
+    // Picking the violin: 0⭐ audition fires, the pop closes, and the violin
+    // visibly REPLACES the guitarist on stage.
+    fireEvent.click(screen.getByTestId('stage-pop-guitar-violin'));
+    expect(playbackMock.previewStyle).toHaveBeenCalledWith('guitar', 'violin');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stage-inst-guitar')).toHaveTextContent('🎻');
+  });
+
+  it('the stage pop closes on ✕ without touching the styles', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    fireEvent.click(screen.getByTestId('stage-inst-piano'));
+    expect(screen.getByTestId('stage-pop')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('stage-pop-close'));
+    expect(screen.queryByTestId('stage-pop')).not.toBeInTheDocument();
+    expect(playbackMock.previewStyle).not.toHaveBeenCalled();
+  });
+
+  it('swaps the sound in place from the lane header (D-MS20)', () => {
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
+    // Guitar is track index 0 — its style label opens the in-lane picker.
+    fireEvent.click(screen.getByTestId('lane-style-0'));
+    fireEvent.click(screen.getByTestId('lane-style-0-violin'));
+    // Same 0⭐ contract as the deck row: audition, no generation request.
+    expect(playbackMock.previewStyle).toHaveBeenCalledWith('guitar', 'violin');
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('lane-style-0')).toHaveTextContent('Violin');
+    expect(screen.queryByTestId('lane-style-menu-0')).not.toBeInTheDocument();
+  });
+
+  it('vocal lanes state their fixed choir timbre, never the slot style (D-MS18)', () => {
+    const withVocals: MusicScore = {
+      ...SCORE_V1,
+      tracks: [
+        { instrument: 'lead_vocals', notes: [{ time: 0, note: 'C5', duration: '4n' }] },
+        ...SCORE_V1.tracks,
+      ],
+    };
+    renderPane([userMsg('a space puppy adventure'), scoreMsg(withVocals)]);
+    const vocalStyle = screen.getByTestId('lane-style-0');
+    expect(vocalStyle).toHaveTextContent('Choir');
+    // Static label — no in-lane picker for vocal tracks.
+    fireEvent.click(vocalStyle);
+    expect(screen.queryByTestId('lane-style-menu-0')).not.toBeInTheDocument();
+  });
+
   it('marks style = None as an off (dimmed) instrument on stage', () => {
     renderPane([userMsg('a space puppy adventure'), scoreMsg(SCORE_V1)]);
     fireEvent.click(screen.getByTestId('stage-inst-drums'));
@@ -695,8 +757,12 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
     expect(region).not.toHaveClass('hidden');
     expect(screen.getByTestId('music-stage')).not.toHaveClass('is-empty');
     // The immersive page hides the Learn nav (D-MS7), so the transport bar
-    // carries the Airbotix brand mark, like the playground's Taskbar.
-    expect(screen.getByTestId('stage-brand')).toContainElement(screen.getByAltText('Airbotix'));
+    // carries the Airbotix brand mark, like the playground's Taskbar. The LOGO
+    // must be visible at EVERY width — only the surface name may collapse
+    // (owner report: the <900px window showed no logo at all).
+    const brand = screen.getByTestId('stage-brand');
+    expect(brand).toContainElement(screen.getByAltText('Airbotix'));
+    expect(brand).not.toHaveClass('hidden');
   });
 
   // ── 🎧 Make it real (§2 step ⑥) — the score becomes actual audio ────────────

@@ -1031,6 +1031,14 @@
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco {
   display: none;
 }
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] {
+  background: #d8c79f url('/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png')
+    center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-deco {
+  display: none;
+}
 
 .bsx-character-asset {
   display: block;
@@ -2090,6 +2098,31 @@
     0 4px 0 color-mix(in srgb, var(--bsx-cat-trigger) 42%, var(--bsx-border)),
     0 0 0 3px color-mix(in srgb, var(--bsx-cat-trigger) 16%, transparent);
 }
+/* A4-S carries two choice groups (distance + parcel) in one picker row, so its
+   buttons are narrower and the row wraps instead of pushing the stage sideways. */
+.bsx-delivery-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-delivery-picker .bsx-home-choice {
+  min-width: 96px;
+}
+/* A5-S carries two cast rows (who greets first / who waits), each holding the
+   same three friends. The rows wrap under the title on narrow screens instead
+   of pushing the stage sideways, and each button stays a comfortable tap target
+   with room for the friend's portrait beside their name. */
+.bsx-cast-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-cast-picker .bsx-home-choice {
+  min-width: 118px;
+  gap: 6px;
+}
+.bsx-cast-picker .bsx-character-asset-thumb {
+  width: 26px;
+  height: 26px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);
@@ -2200,12 +2233,24 @@
   }
   .bsx-home-choices {
     gap: 6px;
+    /* a row of friends must be able to wrap: .bsx-app is overflow:hidden, so an
+       unwrappable row is CLIPPED, not scrolled — the third friend would simply
+       be unreachable on a phone (A5-S and A6-S both need all three). */
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .bsx-home-choice {
     min-width: 0;
     min-height: 40px;
     padding: 6px 9px;
     font-size: 12px;
+  }
+  /* the cast (A5-S/A6-S) and delivery (A4-S) pickers set their own min-width
+     with a two-class selector, which out-specifies the reset above no matter
+     that this rule lives in a media query — restate it for them. */
+  .bsx-cast-picker .bsx-home-choice,
+  .bsx-delivery-picker .bsx-home-choice {
+    min-width: 0;
   }
   .bsx-middle {
     grid-template-columns: 1fr 1fr;

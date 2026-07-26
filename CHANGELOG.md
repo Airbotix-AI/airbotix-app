@@ -1,5 +1,1041 @@
 # Changelog
 
+## 2026-07-25 (fix: the Art Studio hub's entry points reach the canvas again)
+
+### Fixed
+- **"🎨 Keep drawing" and a course's art task now open the CANVAS, not the hub.** Splitting the
+  studio into a hub (`/learn/create/image`) and a canvas (`/learn/create/image/canvas`) left
+  both deep-link entries pointing at the old path, which is now the hub. The hub does not read
+  their router state, so: reopening a saved picture landed on a generic landing page instead of
+  that picture, and an art Mission's "Start" **silently dropped Mission Mode entirely** — no
+  template, no draw-along, no checklist, no turn-in. Both now target the canvas, which already
+  consumes `{ editArtifactId, editProjectId }` and `{ mission }`.
+
+### Changed
+- The canvas's back link returns to the Art Studio hub ("← My art") instead of the all-tools
+  list — from the canvas the child's own tasks and pictures are one level up, not two.
+- The Workspace picker's Art Studio card promises the hub it now opens ("Your tasks, pictures
+  and a new canvas") rather than "Opens your own art studio", which read as "a blank canvas".
+## 2026-07-26 (fix: ship the complete Boti tutor pose pack)
+
+### Fixed
+
+- Added the six checked-in WebP poses referenced by `ArtTutorAvatar` so a clean
+  checkout renders Boti instead of requesting missing `/media/art-tutor/*`
+  files.
+- Restored the tutor motion CSS for the idle pose loop and reactive thinking,
+  looking, creating, celebrating and compact states, including the reduced-motion
+  fallback.
+- Added a component regression check that fails when any referenced pose asset
+  is absent from `public/media/art-tutor`.
+
+## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
+
+### Changed
+
+- **`curriculumGuides.ts` split from 1646 lines into a 57-line facade plus nine chapter
+  modules** (`guides/`, largest 344 lines) — `rules/file-organization.md` sets a 1000-line hard
+  rule and this file was 65% over it. The mission data now lives one file per curriculum
+  chapter (`tinyStarA1`..`A6`, `journeyWestC1`/`C2`) with the shared types in `guides/types.ts`;
+  `curriculumGuides.ts` remains the only import site every other module uses, so no call site
+  changed. Proven data-identical: a throwaway equivalence test deep-compared all 29 missions
+  against the pre-split file before it was deleted, and a permanent guard now fails if two
+  chapter modules ever declare the same lesson id (a spread-merge would silently shadow one) or
+  if a guide's own `lessonId` stops matching the key it is filed under.
+- **Studio chrome extracted from `BlocksStudioPage.tsx`** into `blocksStudioChrome.ts` (drag
+  tuning constants, the non-passive touch-scroll lock, the read-only treatment, `SaveStatus`)
+  and `ZoneTag.tsx`. Split across two files because `react-refresh/only-export-components`
+  forbids a component file from also exporting constants.
+
+### Known
+
+- `BlocksStudioPage.tsx` is still **2960** lines, far over the same hard rule. The remaining
+  bulk is 1320 lines of JSX (toolbar, stage, coding band, editor popover) plus three pointer
+  drag subsystems, all closely coupled to component state — the tap-to-edit popover alone
+  references 171 identifiers. Dismantling it safely needs its own staged pass and a pre-deploy
+  harness run, so it is deliberately NOT attempted here.
+
+## 2026-07-26 (fix: restore the Art Studio hub shell)
+
+### Fixed
+- `/learn/create/image` now keeps the Kids navigation, centered reading column
+  and page scrolling. Only `/learn/create/image/canvas` uses the immersive
+  fullscreen easel.
+## 2026-07-26 (fix: Blocks Studio cast pickers were clipped on a small phone)
+
+### Fixed
+- **A5-S and A6-S were unwinnable below ~400px wide.** Both ship a row of three cast buttons at
+  `min-width:118px`; `.bsx-home-choices` never wrapped and `.bsx-app` is `overflow:hidden`, so the
+  third friend was **clipped off the edge with no way to scroll to it** — and A5-S requires picking
+  two DIFFERENT friends while A6-S requires picking the ringer. The portrait media query already
+  reset `.bsx-home-choice { min-width: 0 }`, but `.bsx-cast-picker .bsx-home-choice` (specificity
+  0,2,0) out-ranks it (0,1,0) — a media query adds no specificity. The narrow branch now restates
+  the reset for the cast and delivery pickers and lets a row of friends wrap. CSS only: no mission
+  contract, starter, stage or copy changed.
+
+### Notes
+- Found by the Task 26 responsive audit, which read the code and the design tokens; real-browser
+  evidence belongs to the owner-triggered harness sweep and was not run.
+- Two files in this directory remain over the umbrella 1000-line hard limit —
+  `src/pages/learn/blocks/BlocksStudioPage.tsx` (2993) and `curriculumGuides.ts` (1646). Recorded as
+  Q2 in `docs/product/curriculum/story-blocks/tiny-star-village-season-1-implementation-status.md`,
+  not fixed here: a 24-scene refactor is the wrong shape for a quality-gate task and has no harness
+  to catch regressions.
+
+## 2026-07-26 (feat: Tiny Star Village season progression, resume and locked next scene)
+
+### Added
+- Tiny Star Village Season 1 is now ONE sequential season, not 24 independent scenes.
+  `tinyStarSeason.ts` holds the season manifest (derived from `storyJourneyCatalog`, never a second
+  copy of the order), projects the server's unlock answer onto the 24 scenes, names the scene to
+  resume, and records a finished scene against the kid's chain.
+- Story map scene states: `completed` (✓, replayable for ever), `open` (the one scene the season is
+  waiting on) and `locked` (🔒, disabled). A chapter never opens wholesale — finishing A1-S opens
+  A2-H and nothing else.
+- "Continue the story" card on the story map: it names the open scene (`Chapter 2 · Which way is the
+  plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child's own project** for
+  that scene when they already started it, instead of creating a second empty copy; only an
+  unstarted scene creates one. Finishing all 24 shows the season card.
+- A finished Tiny Star scene now records itself against `/story-parts/tiny-star-village-s1` with
+  `selections.saved_project = [projectId]` — the VFS the studio just verified, never a page boolean.
+
+### Changed
+- `BlocksStudioPage` no longer offers "Next scene" when the season chain refused this scene
+  (`403 STORY_PART_LOCKED`, i.e. it was opened out of order): the child's own work still saves, and
+  the card explains in their words that the map opens scenes in order.
+
+### Notes
+- The unlock truth is the server (the same adjacent-unlock service Journey to the West uses); the
+  client only renders it. Until that answer arrives — loading, offline, or a non-kid session —
+  **nothing is locked**, so a network blip can never shut a child out of a scene they earned.
+- The per-project `project.blocks.progress.json` sidecar is unchanged; it still makes a single scene
+  reopen finished. The season needed a kid-scoped chain because every scene is its own project.
+
+## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
+
+### Added
+- Tiny Star Village Personal Ship scene A6-S (`tsv-s1-a6-s`, `blocks_tsv_a6_s`, Mission 24), chapter
+  six's Build scaffold and the LAST scene of the season. The three-step core ships built and settled;
+  nobody is cast as the ringer and there is no ending, so the two things the child owns are WHO rings
+  the bell and what the village does once the morning light is back.
+- `tinyStarFinaleDesign` / `tinyStarFinaleEndingOf` / `tinyStarFinaleEndedAfterBell` in
+  `tinyStarBellTower.ts` — the saved contract for a finished finale, the ending parser, and the run
+  measurement that proves this run walked, hopped, rang and THEN played the child's own ending.
+- `TINY_STAR_BELL_CAST` (A5-S's `TINY_STAR_DUET_CAST`, imported rather than restated),
+  `TINY_STAR_FINALE_LINES` (teaching script §8.7's three very short endings) and
+  `TINY_STAR_FINALE_ENDING_INDEX`, DERIVED from `TINY_STAR_BELL_BUILD_ROUTE` as the index the
+  terminal `end` occupied — which is exactly where a palette tap lands a block.
+- An A6-S ringer picker in `BlocksStudioPage`, alongside A4-S's delivery picker and A5-S's cast
+  picker. Like both of them it only renames and re-skins a slot; it never inserts a block.
+
+### Changed
+- `BlocksStudioPage` gained `isA6Finale`, and chapter six's ordered `onStep` op record now follows
+  `TINY_STAR_BELL_RINGER_IDS` (the shipped ringer plus the finale's cast slot) instead of one id.
+- `storyJourneyCatalog` carries all 24 Tiny Star Village missions: A6-D now has a next scene, and
+  A6-S has none — it is the end of the season.
+
+### Notes
+- **The starter cannot complete itself.** Its core is literally the route A6-D repairs, so it runs
+  perfectly — but the ringer slot is a nameless `❓` with no formal asset (matching no cast friend)
+  and there is no ending block anywhere on the page.
+- **Neither decision can be inherited.** A Say arrives with the editor's own "Hi!", which is not one
+  of the village's endings, so a preset must actually be chosen.
+- **The ending's number is a band (1–3), not one answer**, and the block's own default of 2 is inside
+  it. The size of a flourish is expressive, not a teaching point ("不引入新教学目标"); A4-S's number
+  stayed exact because there the number WAS the lesson.
+- **No drag is required, and that is deliberate** — the season's last mission is about choosing, not
+  placing. An ending placed before the bell, or dragged past the `end`, still does not complete.
+- **The four A6 scenes cannot impersonate each other**: A6-S's ringer is its own slot on its own
+  script id (`bell-ringer-finale`), asserted in both directions.
+- **Nothing was invented**: the `sunset` stage, the ringer square and the script-less `⭐` Bell Tower
+  proxy are A6-H's, unchanged; the page holds exactly two characters (§1.2); `pop` stays
+  `legacy: true` and out of every child-facing palette and is not offered as an ending (the bell the
+  story needs already ships inside the fixed core); no `wait` appears — chapter A6 is about order.
+- `storyMissionProgress.ts` is now 999 lines against the umbrella's 1000-line rule; extract before
+  adding to it again.
+
+## 2026-07-25 (feat: put every child on the Parent Dashboard)
+
+### Added
+- The Parent Dashboard now leads with a family-scoped **My kids** panel before Stars, approvals
+  and discovery content. Each child card shows an accessible avatar, age, active/paused status
+  and 28-day growth teaser, with direct growth and supervised kid-page actions.
+- Added resilient loading, empty-family, retryable fetch-error and per-child handoff-error states.
+  Paused kids remain visible but cannot open a kid session; popup failures keep the parent on the
+  Dashboard instead of silently replacing the adult page.
+## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
+
+### Added
+- Tiny Star Village Twist & Debug scene A6-D (`tsv-s1-a6-d`, `blocks_tsv_a6_d`, Mission 23), chapter
+  six's Fix scaffold. All three Bell Tower cards are on the page at last, and the bell has slipped to
+  the FRONT: it rings while Lumi is still three spaces away, then the walk happens, then the jump
+  lands on a bell that already rang. The child moves that ONE card behind the Hop.
+- `tinyStarBellOrderRepaired` / `tinyStarBellRangBeforeHop` in `tinyStarBellTower.ts` — the saved
+  contract for the repaired order, and the run measurement that proves this run really did ring
+  before anybody reached the bell (read off the interpreter's own ordered `onStep` record).
+- `TINY_STAR_BELL_BUG_ROUTE`, DERIVED from `TINY_STAR_BELL_BUILD_ROUTE` by lifting the `pop` out and
+  re-inserting it at `TINY_STAR_BELL_POP_BUG_INDEX` — the structured form of scene-specs A6-D's own
+  diff. The bug and its repair can only ever differ by where the bell sits.
+- `TINY_STAR_BELL_STAGE_CONTRACT`: chapter six's shared stage, written once and spread by all three
+  A6 mission contracts (the same treatment chapter one's `LUMI_CONTRACT` already gets).
+
+### Changed
+- `BlocksStudioPage` gained `isA6OrderDebug`: the Motion palette is closed for this scene and the
+  number editor never opens (Right 3 and Hop 1 are already correct), while block DRAGGING stays on —
+  because moving a block is the repair. Dragging and tapping are both gated on a real bug run, the
+  same "run it first" contract A2-D/A4-D/A5-D use.
+- `storyMissionProgress.ts` shrank 981 → 971 lines: the three A6 contracts now spread the shared
+  stage instead of repeating it.
+
+### Notes
+- **Nothing is missing and nothing is spare.** The starter's five blocks are exactly A6-B's finished
+  five in the wrong order, so there is nothing to add (that was A6-B) and nothing to delete — the
+  only available action is a move. The starter cannot complete itself and offers nothing to copy.
+- **The three floor cards are the question.** "Which card must come LAST?" — 🚶 walk and 🦘 hop are
+  real distractors because they genuinely do belong earlier. That question IS scene-specs A6-D's
+  "学习证据：能用三张卡表达先/然后/最后", and it can only be answered after the bug run.
+- **Completion is derived, never a page boolean.** The saved route must be exactly
+  `Start → Right 3 → Hop 1 → Pop → End` on the untouched chapter stage, AND the run must have played
+  the Hop before the Pop with Lumi standing on the tower square.
+- **A6-B and A6-D end on the same route** — chapter six has one correct Bell Tower story — so the
+  `lessonId` and the page id are what keep them apart; tests assert non-impersonation both ways.
+- **No art was invented and no op was added.** The `sunset` stage, Lumilo's formal asset and the
+  script-less `⭐` Bell Tower proxy are A6-H's, unchanged; the page still holds exactly two
+  characters (§1.2). Chapter A6 is about order, not timing — nothing here reaches for a Wait.
+
+## 2026-07-25 (feat: Tiny Star Village A6-B — add the missing step)
+
+### Added
+- Tiny Star Village Logic Build scene A6-B (`tsv-s1-a6-b`, `blocks_tsv_a6_b`, Mission 22), chapter
+  six's Complete scaffold. A6-H's Bell Tower route returns block for block on its own page, still
+  missing the same middle card, and the child puts it back: a `hop 1` between the walk and the bell.
+- `tinyStarBellStepAdded` / `tinyStarBellRangAfterHop` in `tinyStarBellTower.ts` — the saved-route
+  contract and the run measurement for the repaired walk → hop → ring order.
+- `TINY_STAR_BELL_BUILD_ROUTE`, derived from `TINY_STAR_BELL_HOOK_ROUTE` by splicing a `hop 1` in at
+  `TINY_STAR_BELL_HOP_INDEX` (the index of the Pop). That index IS scene-specs A6-B's assertion
+  "the Hop sits between the Move and the Pop", so the Hook and the Build cannot drift apart.
+
+### Changed
+- The story journey map now offers 22 playable Tiny Star Village scenes; A6-H advances to A6-B.
+- The ringer's played-op record kept for chapter six is now ORDERED (an array rather than a set) —
+  A6-H still reads its negative off it (a bell with no hop), and A6-B reads the repaired order (hop
+  before bell) from the same interpreter `onStep` callback. Pure generalisation.
+- `TINY_STAR_BELL_HOOK_SCRIPT_ID` renamed to `TINY_STAR_BELL_ROUTE_SCRIPT_ID`: both A6 scenes walk
+  the same route, so the script id belongs to the chapter, not to the Hook.
+
+### Notes
+- The starter cannot complete itself and offers nothing to copy: the route runs to the end, and the
+  block the child must add is seeded nowhere in the document. Tapping Hop in the Motion palette
+  appends it AFTER the Pop and on the block's own default of 2, so both the placement and the number
+  are the child's own moves — there is no answer button, and the story card says exactly where a tap
+  really lands the block.
+- Completion needs the exact saved route on the untouched chapter stage AND a run in which the
+  interpreter reached the Hop before the Pop with the ringer standing on the tower square. A saved
+  chain that was never run, or a run that rang before the jump, does not complete the mission.
+
+## 2026-07-25 (feat: Tiny Star Village A6-H — three Bell Tower cards)
+
+### Added
+- Tiny Star Village Story Hook scene A6-H (`tsv-s1-a6-h`, `blocks_tsv_a6_h`, Mission 21), chapter
+  six's Explore scaffold. The shipped route walks to the Bell Tower and rings the bell with no Hop
+  in between, so the program itself is the question: the child runs it once and names the card that
+  never happened.
+- `tinyStarBellTower.ts` — chapter six's domain: the sunset stage geometry, the three physical Bell
+  Tower cards, the untouched-route contract and the run measurement. It is its own module because
+  `storyMissionProgress.ts` is at the umbrella's 1000-line-per-file rule.
+- `jtwPersonalArrival.ts` — the Journey to the West C1-P7 personal-arrival parser, moved out of
+  `storyMissionProgress.ts` for the same reason. Pure relocation, no behaviour change.
+
+### Changed
+- The story journey map now offers 21 playable Tiny Star Village scenes; A5-S advances to A6-H and
+  chapter 6 stops being empty.
+- Mission completion for A6-H is read from the saved page plus the real run, never a page boolean:
+  the interpreter's own `onStep` callback must show the ringer's script reaching a Pop and never a
+  Hop, `runner.state()` must put the ringer on the tower square, and the saved route must still be
+  exactly `Start → Right 3 → Pop → End` on the shipped two-character stage. The measurement is
+  cleared when a project loads, so runtime evidence never survives a reload.
+- Being an Explore hook, A6-H completes quietly with the observation proof card and no chapter
+  celebration — the same treatment A2-H, A3-H, A4-H and A5-H already get.
+
+### Notes
+- The two wrong cards are the two steps that DID run, which is what makes finding the missing middle
+  card a real discrimination. Like A5-H and unlike A4-H there is no pre-run prediction, because
+  before the run there is no honest way to know whether the bell rang.
+- The Bell Tower is a script-less `⭐` proxy: scene-specs §1.1 records that no bell art exists yet,
+  so none was invented, and the page still holds exactly two characters.
+
+## 2026-07-25 (feat: Tiny Star Village A5-S — my two-friend greeting)
+
+### Added
+- Tiny Star Village Personal Ship scene A5-S (`tsv-s1-a5-s`, `blocks_tsv_a5_s`, Mission 20), chapter
+  five's Build scaffold and the last scene of the chapter. Four things are genuinely the child's:
+  which two of Lumilo / Tuan Tuan / Dot Dot perform, which of them greets first, what each of them
+  does, and how long the second one waits.
+- `tinyStarDuet.ts` — the A5-S domain: the three-friend cast, the two greeting actions, the Wait
+  band maths, the saved-duet parser and the run measurement. It is its own module because
+  `storyMissionProgress.ts` had reached the umbrella's 1000-line-per-file rule.
+- An A5-S cast picker below the stage. Like the A3-S friend picker and the A4-S delivery picker it
+  only renames and re-skins a stage slot — it never inserts a block.
+
+### Changed
+- The story journey map now offers 20 playable Tiny Star Village scenes; A5-D advances to A5-S and
+  chapter 5 reads "4 scenes ready".
+- The stage slot IS the turn: `greeter-one` greets the moment Go is pressed and `greeter-two` waits
+  first, so "who goes first" is a casting decision and no block ever has to be swapped.
+- Mission completion for A5-S is read from the saved page plus the real run, never a page boolean:
+  two DIFFERENT cast friends on the shipped squares, the first on `Start→<greeting>→End`, the second
+  on `Start→Wait N→<greeting>→End`, a successful server save, and a run in which the interpreter's
+  own `onStep` callback measured the second greeting starting inside the band. The measurement is
+  cleared whenever a runner is built, so an earlier rhythm cannot vouch for this run.
+- Adding a Hop in A5-S seeds it at one space, the way A2-S and A4-S already seed their route blocks.
+  The number this scene teaches is the Wait, and that one keeps the block's own default.
+
+### Notes
+- **The legal Wait depends on what the FIRST friend does**, and the band is derived rather than
+  chosen. Floor: wait until your friend's turn is over — unless that turn outlives every Wait this
+  runtime has, in which case fall back to the 250 ms head start A5-B measured. Ceiling: the stage may
+  not stand empty for longer than that first turn lasted. So a bounce lead allows `wait 4..7`
+  (value-for-value the A5-D relay band, reached here from the action's own 360 ms duration) while a
+  spoken lead allows `wait 3..9`, because a 1400 ms bubble is still on stage the whole time and there
+  is nothing to stand empty against. The same number can be right behind one greeting and wrong
+  behind the other — which is the chapter's whole point.
+- **`pop` is not offered, and that is a recorded decision.** scene-specs A5-S lists it, but `pop` is
+  `legacy: true` in `BLOCK_DEFS` and appears in no child-facing palette. Offering it would have meant
+  either un-legacying a block for every project in the product or adding a button that inserts a
+  block on the child's behalf, which the A4-S scaffold boundary forbids. A5-S ships the two greeting
+  actions this runtime actually lets a child build; no new op was added to the season's whitelist.
+- The starter casts ONE friend into BOTH spots and ships two empty chains, so it cannot complete
+  itself — the same device as A4-S's delivery stop parked on top of the cart.
+
+## 2026-07-25 (feat: Tiny Star Village A5-D — that wait was too long)
+
+### Added
+- Tiny Star Village Twist & Debug scene A5-D (`tsv-s1-a5-d`, `blocks_tsv_a5_d`, Mission 19), chapter
+  five's Fix scaffold. The good morning is a bounce relay now, and Tuan Tuan's hourglass is turned
+  all the way up to 9 — every block is in the right place and only the number is wrong.
+
+### Changed
+- The story journey map now offers 19 playable Tiny Star Village scenes; A5-B advances to A5-D.
+- Mission completion for A5-D combines the saved chain with a measurement of the real run: Lumilo
+  must still hold the untouched `Start→Hop 1→End`, Tuan Tuan must hold `Start→Wait N→Hop 1→End`
+  with `N` in the just-right band, and the interpreter must have recorded Tuan Tuan's first hop
+  between one and two bounces after Lumilo's. The timestamps come from the runner's `onStep` host
+  callback and are re-judged every run.
+- A5-D unlocks in the same order A4-D does: the child runs the bug, answers "Less" (choosing "More"
+  changes nothing), and only then can tap the Wait. Every other block refuses to open an editor, and
+  dragging, palette taps and palette drops are disabled, so blocks cannot be added, moved or deleted
+  and Lumilo cannot be edited.
+
+### Notes
+- The scene deliberately uses a bounce rather than two Says. Measured against the shipped runtime:
+  `hop 1` lasts `2 * STEP_MS = 360 ms`, `say` holds a bubble for `SAY_MS = 1400 ms`, `wait n` sleeps
+  `n * 100 ms` and `MAX_PARAM` caps Wait at 900 ms. With two Says no legal Wait is ever "too long"
+  (the bubbles always overlap) and the spec's `wait 20` is clamped to 9, whereas a bounce is short
+  enough for a 900 ms wait to leave a visibly empty stage.
+- Several numbers are correct on purpose (`wait 4..7`): the chapter asks the child to find a
+  just-right wait, not to believe bigger is better. `wait 8` leaves a whole extra bounce of silence,
+  `wait 1..3` makes Tuan Tuan jump before Lumilo lands, and both are rejected — as are a deleted or
+  reordered block, a duplicated Wait, a `hop 2`, a Say in place of the bounce, an edited Lumilo, a
+  second track, a moved friend and a changed stage.
+
+## 2026-07-25 (feat: Tiny Star Village A5-B — wait a moment)
+
+### Added
+- Tiny Star Village Logic Build scene A5-B (`tsv-s1-a5-b`, `blocks_tsv_a5_b`, Mission 18), chapter
+  five's Complete scaffold. Tuan Tuan wants to go second, so the child gives Tuan Tuan one Wait
+  block — and has to put it in front of the Say for it to mean anything.
+
+### Changed
+- The story journey map now offers 18 playable Tiny Star Village scenes; A5-H advances to A5-B.
+- Mission completion for A5-B combines the exact saved chain with a measurement of the real run:
+  Lumilo must still hold the untouched `Start→Say "Morning!"→End`, Tuan Tuan must hold exactly
+  `Start→Wait 5→Say "Morning too!"→End`, and the interpreter must have opened Lumilo's bubble at
+  least 250 ms before Tuan Tuan's. The gap is read from the runner's `onSay` host callback and is
+  re-judged on every run, so an earlier good run cannot vouch for the chain now on the page.
+- A Wait placed AFTER the Say is the scene's real wrong answer and is rejected: the block is there,
+  but both friends still open their mouths on the same tick. A retuned Wait number (A5-D's lesson),
+  an extra block, a silent stand-in, a retyped greeting, a Wait added to Lumilo as well, a second
+  track, a moved friend or a changed stage all fail too.
+
+### Notes
+- Wait timing measured against the shipped runtime while building this scene: `wait n` sleeps
+  `n * 100 ms`, a speech bubble lives `SAY_MS = 1400 ms`, and `MAX_PARAM` caps Wait at 9 (900 ms).
+  No Wait value can therefore stop the two bubbles overlapping, so A5-B claims only that Tuan Tuan
+  starts later — visible as Lumilo speaking alone for the first half second — and never that the
+  greetings were separated.
+
+## 2026-07-25 (feat: Tiny Star Village A5-H — who is speaking?)
+
+### Added
+- Tiny Star Village Story Hook scene A5-H (`tsv-s1-a5-h`, `blocks_tsv_a5_h`, Mission 17), chapter
+  five's Explore opener. Two friends arrive with two finished programs, both hanging off the same
+  green flag, so one real Go opens both speech bubbles at the same instant. The child's job is to
+  notice that nobody took a turn.
+
+### Changed
+- The story journey map now offers 17 playable Tiny Star Village scenes; chapter 5 opens and A4-S
+  advances to A5-H.
+- Mission completion for A5-H is derived from the real interpreter, not a page flag: the run must
+  hold two speech bubbles open at once (tracked through the runner's `onSay` host callback) before
+  the "who spoke first?" answer counts, and the answer must be "they both spoke at the same time".
+  Naming either friend as the first speaker is rejected. Because it is an Explore hook it completes
+  quietly, with the observation proof card and no chapter celebration.
+- The A5-H contract checks BOTH greeting chains, so an Explore scene cannot be completed after the
+  child has edited the program: inserting the A5-B `Wait`, deleting a block, retyping a greeting,
+  swapping in another action, moving a friend, adding a script or changing the stage all fail.
+
+## 2026-07-25 (feat: Tiny Star Village A4-S — my delivery stop)
+
+### Added
+- Tiny Star Village Personal Ship scene A4-S (`tsv-s1-a4-s`, `blocks_tsv_a4_s`, Mission 16). The
+  child places their delivery stop 1, 2 or 3 spaces right of the breakfast cart, chooses the
+  apple / gift / star breakfast it carries, then authors the single `Right` block and raises its
+  number until it matches that distance.
+- A4-S delivery picker below the stage (`a4-s-stop-1|2|3`, `a4-s-parcel-apple|gift|star`). Like the
+  A2-S endpoint picker and the A3-S character picker, it only moves and renames the scene target —
+  it never inserts an answer block. The `Right` block still comes from the real palette (dropped
+  before the terminal End at one space) and its number from the real number editor.
+
+### Changed
+- The story journey map now offers 16 playable Tiny Star Village scenes; chapter 4 is complete and
+  A4-D advances to A4-S.
+- Mission completion for A4-S has no fixed arrival square: the run must finish on whichever stop
+  the child placed, and the saved movement number must equal that distance. Extra blocks, a
+  reversed direction, a moved cart, a resized stop and unapproved parcels all fail the contract.
+
+## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
+
+### Added
+- Runtime capability `CharacterStart.visible`: a character can be declared hidden at the start
+  of a run. It is not drawn, but it stays a trigger zone — its On Bump track still fires — so a
+  cave mouth waiting behind a water curtain can run the child's Show on contact. A character
+  hidden mid-run by the child's own Hide block is unchanged: gone means untouchable. The two
+  rules are separate functions (`spritesBump` for contact, `spritesTouch` for the child-facing
+  "is touching?" sensing block), so the sensing semantics kids already learned did not move.
+- Runtime capability `CharacterStart.reach`: an explicit collision reach in grid cells,
+  decoupling the foot zone from the drawn size. A stage-filling visual (a water curtain across
+  the falls) can now keep a one-cell foot zone, so C2-P4's "one square short never reaches"
+  evidence stays true when the curtain becomes a real actor. Without the field the foot zone is
+  still derived from size exactly as before.
+- Chapter two's own background assets (`backgrounds/s1/c2/before-v01.webp` +
+  `resolved-v01.webp`) integrated into `public/`, per the S1 internal-build integration
+  authorisation in the Journey to the West saga asset bible.
+
+### Fixed
+- **JtW C2 parts P1–P4 were rendering chapter ONE's background.** Only the C1 background had
+  ever been copied into `public/`, so the water-curtain chapter was showing the flower-fruit
+  stone-egg scene — where the waterfall is only distant scenery — while the copy talked about
+  the falls, the pool and the wet stepping stones. All four parts now use the real chapter-two
+  stage, which is also the scene C2-P4's five-stone route actually crosses.
+## 2026-07-25 (feat: demonstrate diagnostic Tutor feedback)
+
+### Changed
+- The parent-facing NAPLAN demo now teaches through six explicit stages: interpret the question,
+  choose a strategy, work it out, justify the answer, diagnose the selected misconception, and
+  try a short transfer question.
+- Each wrong demo option has its own likely misconception instead of receiving generic
+  "not quite" feedback, showing parents how Airo Tutor supports understanding beyond answer drills.
+
+## 2026-07-25 (feat: show varied Academy Tutor demos)
+
+### Changed
+- The NAPLAN product detail demo now includes four original, switchable Numeracy samples:
+  equal groups, money, data and time.
+- Tapping any answer immediately updates Airo Tutor with answer feedback, a question-specific
+  worked explanation and a simple way to check the result. All demo figures are native HTML/SVG.
+
+## 2026-07-25 (fix: make Academy explanations automatic)
+
+### Changed
+- The Parent Portal product demo now shows a complete worked Airo Tutor explanation immediately,
+  so parents can see the core learning value before purchase.
+- Purchased practice automatically generates the Tutor explanation after every submitted answer;
+  children no longer need to discover or press a separate Explain button. A failed generation
+  keeps a clear retry action.
+
+## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
+
+### Added
+- Each NAPLAN Year card now opens a complete parent-facing product detail page with the live
+  question count, access terms, a safe interactive original sample and an Airo Tutor preview.
+- Purchased practice now keeps Airo Tutor beside the question on desktop (and below it on
+  phones). A child can request a short explanation only after attempting the question, with no
+  extra Stars charged.
+
+## 2026-07-25 (fix: compact the NAPLAN sales page on phones)
+
+### Changed
+- Reduced phone-only NAPLAN hero, section, benefit and product-card typography and spacing while
+  retaining the existing tablet and desktop scale.
+- Kept purchase actions comfortably tappable and added component coverage for the responsive
+  sizing contract.
+
+## 2026-07-25 (feat: explain NAPLAN value to parents)
+
+### Changed
+- Reworked Parent Portal Exam Prep into a clear NAPLAN sales page that explains the current
+  product, one-child/one-Year access, live question count and path from purchase to practice.
+
+## 2026-07-25 (feat: edit a kid's school from the settings page)
+## 2026-07-25 (feat: Journey to the West C2-P4 exact five-block route Build)
+
+### Added
+- Twelfth Journey to the West Story Part (`jtw-s1-c2-p4` 刚好到达，不多也不少): chapter two's
+  main Build. Part page `/learn/story/journey-west/jtw-s1-c2-p4` ships 教学脚本 Story Screen 4
+  IN FULL plus the five-one-step 因果桥 (the shared 右2→上1→右2 route split into five
+  child-owned one-step blocks with the three leaf stops still observable) over the same
+  closed-curtain waterfall stage at the `2/8` start (cave mouth stays a hidden
+  `data-visible=false` marker). The build happens in the REAL Blocks Studio: new template
+  `blocks_jtw_c2_p4` ships ONLY Start/End (no pre-filled chain to "just edit a number" on) and
+  the exact mission contract accepts ONLY
+  `move_right(1)×2 → move_up(1) → move_right(1)×2` — the parameter-merged 右2/上1/右2
+  shortcut, wrong orders, one step short, one step over (no overshoot tolerance), Left/Down/
+  Wait distractors and a moved start all fail. The part page verifies completion FROM THE
+  SAVED BlocksProject plus the studio run marker (frontend state never substitutes), reads the
+  real project diff and the full five-stop run trace `3-8→4-8→4-7→5-7→6-7` back from the saved
+  work into the evidence, and gates on the 少一格 (stops at 5-7, misses the entrance) /
+  多一格 (passes the 6-7 entrance cell) / "到达≠发现洞穴" comparisons with picture-grounded
+  retry hints. Resolved shows the five footprints stable while the curtain stays closed — the
+  bump response chain is P5's job; `让水帘听见碰撞` persists the evidence server-side and
+  unlocks ONLY `jtw-s1-c2-p5`; no chapter completes. Kids without C2-P3 get the locked screen
+  (server truth); refresh restores the saved comparison evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P3 wet-stone route planning)
+
+### Added
+- Eleventh Journey to the West Story Part (`jtw-s1-c2-p3` 三段湿石路): chapter two's off-screen
+  prediction before Code. Part page `/learn/story/journey-west/jtw-s1-c2-p3` shows the stone
+  monkey at the `2/8` start on the same waterfall before-background (cave mouth kept hidden as
+  a `data-visible=false` marker, curtain closed), ships 教学脚本 Story Screen 3 IN FULL plus
+  the 圆叶/尖叶/长叶 因果桥 (圆叶=右2 / 尖叶=上1 / 长叶=右2). The child states the motive
+  (讲清每一段的停点让伙伴能预测，不是乱跳), orders the three route cards through the
+  accessible replayable tap-to-order component — ONLY `圆叶→尖叶→长叶` (右2→上1→右2) opens
+  the grid prediction overlay — places the three prediction footprints on the leaf stops
+  `4-8 → 4-7 → 6-7` in visit order (a water drop gets the leaf-grounded hint), then compares
+  `右2→上1→右2` with `右2→右2→上1` through a real toggle: the wrong version's second segment
+  leaves the wet stones and halts at `6-8` in the water, so the two versions end at different
+  places and the wrong version never passes; the first-deviation question only accepts 第二段
+  (wrong picks get the segment-by-segment retry hint). The target chain renders read-only and
+  never runs — the sorted cards never impersonate a real Blocks project. Resolved world change
+  lights the three predicted stops in sequence while the curtain stays closed; `让石猴真的走`
+  persists the planning evidence server-side and unlocks ONLY `jtw-s1-c2-p4` — no blocks are
+  edited, no project is written and no chapter completes. Kids without C2-P2 get the locked
+  screen (server truth); refresh restores the saved route evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P2 waterfall agreement Why + planning)
+
+### Added
+- Tenth Journey to the West Story Part (`jtw-s1-c2-p2` 瀑布前的约定): chapter two's Why +
+  off-screen planning. Part page `/learn/story/journey-west/jtw-s1-c2-p2` shows the stone monkey
+  facing the CLOSED curtain (`data-facing=curtain`) on the same waterfall before-background with
+  the troop waiting on the dry high rock (cave mouth kept hidden as a `data-visible=false`
+  marker), ships 故事卡B IN FULL plus the two 原创对白 lines, the classic card (still 第一回 —
+  no 孙悟空 name) and the four-cell story—程序桥 (进去=去程 / 看清=碰撞回应 / 回来=回程 Debug /
+  分享=Retell). The child picks the TWO motives that hold together (好奇里面 + 回来分享) from
+  the dialogue — 被夸奖/最快 are rejected with a dialogue-grounded hint that locks continue —
+  orders the four agreement cards through the accessible replayable tap-to-order component
+  where ONLY `进去→看清→回来→分享` passes (wrong orders never open the explanation), explains
+  why "进去" alone never completes the agreement, and answers the what-if-he-never-returns
+  prediction (wrong answer gets the agreement-grounded retry hint). Resolved world change pins
+  the four-cell agreement track to the STAGE SIDE as the evidence rail the later parts will
+  light; `先把路线摆清楚` persists the Why-only evidence server-side and unlocks ONLY
+  `jtw-s1-c2-p3` — no blocks are edited, no project is written and no chapter completes. Kids
+  without C2-P1 get the locked screen (server truth); refresh restores the saved evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P1 water-sound read-&-why entry)
+
+### Added
+- Ninth Journey to the West Story Part and the first of chapter two (`jtw-s1-c2-p1`
+  水声把大家带到哪里): the C2 Read & Why entry. Part page
+  `/learn/story/journey-west/jtw-s1-c2-p1` joins the C1 clear-spring viewpoint to the SAME
+  waterfall before-background (stone monkey waiting at the left, entrance not highlighted, cave
+  mouth kept hidden as a `data-visible=false` marker), ships 故事卡A IN FULL over two screens
+  plus the classic card (still 第一回 — no 孙悟空 name) and the On Bump story—程序桥, and
+  collects the motive, the three environment clues (水声变大/石头变湿/水雾变浓 — 看见洞口 is
+  rejected with a hint and blocks continue) and the 因为—所以 sentence. The read-only
+  `when_flag→play_sound(Chime)→wait(2)→end` preview runs through the REAL BlocksRunner with
+  three water-ripple rings appearing on the chime so the sound stays readable in mute; the
+  wrong "已经知道洞口" prediction gets the picture-grounded retry hint. Resolved world change
+  lights the three clue types near-to-far with the gaze resting on the CLOSED curtain;
+  `听一听大家的约定` persists the evidence server-side and unlocks ONLY `jtw-s1-c2-p2`. Kids
+  without C1-P8 get the locked screen (server truth); refresh restores the saved Read/Why
+  evidence; no blocks are edited and no project is written in this part.
+
+## 2026-07-25 (feat: Journey to the West C1-P8 chapter retell + server-aggregated 出世印)
+
+### Added
+- Eighth Journey to the West Story Part (`jtw-s1-c1-p8` 新伙伴听见了水声): the chapter's Run 后
+  Retell 与章节聚合. Part page `/learn/story/journey-west/jtw-s1-c1-p8` ships the full story
+  text + classic card + original dialogue, the motive question, five cause-effect cards
+  (仙石动静→石猴出现→伙伴看见→第一次问好→听见水声) that must be ordered BEFORE the run, and the
+  因为—所以—结果—后来 retell (a block-name recital is rejected with a four-node hint). The page
+  loads the kid's SAVED P7 BlocksProject from the VFS and executes it with the REAL BlocksRunner
+  from Start to End — no new answer project is ever created; a missing saved work points back to
+  Part 7 and blocks completion.
+- The C1 出世印 renders ONLY from the server's `chapter_seals` aggregation on `/story-parts`
+  (new `StoryChapterSeal` type): frontend state can never light it, an unlit server verdict shows
+  the missing-evidence message even when P8 itself is complete, the lit state uses a static
+  border with a motion-safe pulse, and the chapter never auto-advances — `现在去看水帘` /
+  `以后继续` both return to the map with only C2-P1 unlocked.
+
+## 2026-07-25 (feat: Journey to the West C1-P7 personal-arrival ship)
+
+### Added
+- Seventh Journey to the West Story Part (`jtw-s1-c1-p7` 我的石猴亮相): the chapter's Personal
+  Ship. New structural mission contract `jtwPersonalArrivalDesign`: the `blocks_jtw_c1_p7` frame
+  (Start·hide·sound·Show … preset Say·End) is fixed while the CHILD owns the sound (any of six),
+  the two VISIBLE actions (hop/turn/grow/shrink/reset_size, their order) and an optional
+  wait(1..3) between them — single actions, invisible fillers, out-of-set ops, free-typed
+  dialogue, frame deletions and background-only swaps are all rejected (reset_size only counts
+  straight after a grow/shrink). New personal-ship mission guide in Chinese.
+- Part page `/learn/story/journey-west/jtw-s1-c1-p7`: full story text, motive, real Studio
+  open/reuse, detection of the SAVED design (sound/actions/wait/greeting rendered from the real
+  BlocksProject + run marker — frontend state never substitutes), the saved VFS version id
+  recorded in the evidence, and choice-reason / save-close-reopen / peer-retell questions with
+  retry hints. Continue unlocks ONLY P8.
+
+## 2026-07-25 (feat: Journey to the West C1-P6 order-bug debug)
+
+### Added
+- Sixth Journey to the West Story Part (`jtw-s1-c1-p6` 声音怎么从空中来了): the chapter's Twist &
+  Debug. The `blocks_jtw_c1_p6` starter ships the STABLE bug (Say→Hop→Show — the greeting sounds
+  from thin air, the hop is invisible). The part page carries the full story, the expectation
+  question, a REAL BlocksRunner bug reproduction (`data-voice-from-air` latches when Say fires
+  while the monkey is hidden), the trace first-deviation pick with a retry hint, and persists the
+  five-segment 预期/实际/第一次偏离/修改/重跑结果 explanation WITH the real project diff computed
+  from the SAVED BlocksProject. Continue unlocks ONLY P7.
+- Studio debug gating for `jtw-s1-c1-p6`: the mission completes ONLY after the child has RUN the
+  bug (wrong-run observation, same contract as the A2-D/A4-D debugs) and then rerun the repaired
+  exact chain — fixing the order before ever running the bug does not succeed. New manual-fix
+  mission guide in Chinese; the exact-target contract rejects the shipped bug order, half-fixed
+  orders, changed sounds, deletions, endpoint drops, rewritten dialogue and distractors.
+
+### Added
+- The kid settings page (`/portal/family/:kidId/settings`) now lets a parent view and change the
+  kid's **School** — same `SchoolField` (ACARA autocomplete + free-text + AU state) as the Add-kid
+  form, prefilled from the kid and saved via `PATCH /kids/:id` (clearing the name sends null).
+
+## 2026-07-25 (feat: optional school on the create-kid form)
+
+### Added
+- The parent "Add kid" form (`FamilyNewPage`) now has an optional **School** field: a debounced
+  autocomplete over `GET /schools/search` (ACARA directory) with a free-text fallback and an AU
+  **State** select. Picking a suggestion fills suburb + state + the ACARA id; free-typing keeps the
+  text and lets the parent choose a state. New `SchoolField` component + `schoolValue` model.
+
+## 2026-07-24 (fix: rebalance the Parent Portal dashboard)
+
+### Changed
+
+- The Parent Portal dashboard now uses a wide primary column and a compact sticky Getting started
+  rail. Status, setup, quick actions and open classes lead the responsive reading order; the
+  deeper creative-space guide follows without squeezing the central content.
+- Removed the Portal content frame’s centered width cap and excess right padding. The right rail
+  is 17rem with a 24px column gap, returning the reclaimed desktop width to the main content.
+- Tightened side-rail typography, status marks, spacing and action buttons while preserving the
+  existing full-size checklist presentation outside the dashboard rail.
+## 2026-07-25 (feat: Journey to the West C1-P5 greeting-order choice)
+
+### Added
+- Fifth Journey to the West Story Part (`jtw-s1-c1-p5` 两种真诚的问候): a choice Build where BOTH
+  orders are valid. The verified arrival prefix ships in the `blocks_jtw_c1_p5` starter; the child
+  adds Hop 1 + a PRESET greeting (the Say editor's greeting picker is now driven by the mission
+  contract's allowed texts) in their chosen order, runs and compares both versions, and keeps one.
+  The part page detects the kept version from the SAVED project, offers the version-matching
+  story sentence, shows the version-matching monkey response, nudges kids who only ran one
+  version, and unlocks ONLY P6. Contract tests prove both valid orders pass while removing Show,
+  free-typed dialogue and distractor blocks all fail.
+
+## 2026-07-25 (feat: Journey to the West C1-P4 — the first real JtW kid Build)
+
+### Added
+- Fourth Journey to the West Story Part (`jtw-s1-c1-p4` 搭出完整出世链): a REAL Blocks Studio
+  build. The part page carries the full build story, per-block cause-effect evidence and the
+  Show-first prediction, then opens (or resumes) a real `blocks_jtw_c1_p4` project — the starter
+  ships only `Start + hide + End`, the palette keeps Grow/Turn as live distractors, and the new
+  Studio mission contract accepts ONLY the exact 7-block arrival chain (Chime → Show → Hop 1 →
+  the exact Chinese Say). A full Chinese mission guide drives the studio flow. The part page
+  verifies completion from the SAVED BlocksProject plus the studio's run marker before continue
+  unlocks ONLY P5 — no frontend state can substitute for the real project diff.
+
+## 2026-07-25 (feat: add Parent Portal course detail pages)
+
+### Added
+- Parents can now open `/portal/courses/:courseSlug` for a complete course view backed by the
+  existing published course source of truth: age and logistics, learning goals, AI skills,
+  workshop/lesson outline, outcomes, FAQs, upcoming classes, teaching team, price and checkout.
+- Course detail links now appear consistently from Dashboard course previews, open-class cards,
+  the course comparison and recommendation views, My Classes, teacher capabilities and checkout.
+  Checkout remains a separate action, so parents can understand a course before paying.
+- Added component coverage for the full detail page, its unavailable state and every updated
+  parent entry point; the existing pre-deploy course-comparison journey now includes the detail
+  navigation assertion.
+- Weekly and workshop outline cards now render their source-authored image and accessible
+  alternative text. Relative course media is loaded from the marketing origin, so existing
+  per-week artwork such as all nine Super Mario lesson images is reused without duplication.
+
+## 2026-07-25 (feat: Journey to the West C1-P3 rehearsal part)
+
+### Added
+- Third Journey to the West Story Part (`jtw-s1-c1-p3` 树叶后的顺序排练): full rehearsal story
+  text, motive evidence, four rehearsal cards mapping 1:1 onto Chime/Show/Hop/Say via the
+  accessible tap-to-order component, a replayable Hop/Say swap experiment (toggle swaps and
+  restores the rehearsal line), still-works + voice-from-thin-air explanation questions, the
+  Say-before-Show prediction with retry hint, and the read-only preset chain (displayed only —
+  never run, never a Build). Continue persists the evidence and unlocks ONLY P4.
+
+## 2026-07-25 (feat: Journey to the West C1-P2 arrival demo part)
+
+### Added
+- Second Journey to the West Story Part (`jtw-s1-c1-p2` 石猴出世运行示范): English story hook +
+  classic card, tap-to-order story cards (sound→appear→jump→hello), first/last block naming, a
+  Show-before-Hop/Say prediction with retry hint, and a REAL BlocksRunner demo of the full arrival
+  chain (`when_flag→hide→play_sound(Chime)→wait(2)→show→hop(1)→say→end`) with grid-positioned
+  sprite, hello bubble and per-block highlight. Continue persists the evidence and unlocks ONLY
+  P3; kids who have not finished P1 see a locked screen. Shared part-UI primitives extracted and
+  the story map now marks P2 playable.
+
+## 2026-07-25 (feat: Journey to the West C1-P1 story part + story-part unlock framework)
+
+### Added
+- First Journey to the West Story Part: `/learn/story/journey-west` map (all 50 S1 parts with
+  server-driven lock states) and the `jtw-s1-c1-p1` 清晨的花果山 part player — full two-screen
+  child-facing story text + 原著卡, 3-of-5 environment evidence + two motive reasons + 因为/所以
+  sentence, a REAL read-only BlocksRunner preview (`when_flag→hide→play_sound(Chime)→wait(2)→end`,
+  stone monkey stays hidden throughout), a picture-grounded prediction with gentle retry, the
+  resolved world change (light onto the stone, one leaf, second chime; reduced-motion safe),
+  story_after, and a continue action that persists the evidence server-side and unlocks ONLY
+  `jtw-s1-c1-p2`. Saved Read/Why evidence is restored after refresh. Blocks hub gains the
+  西游记 entry card. Parts without a shipped build bounce back to the story map.
+
+## 2026-07-24 (fix: open a kid's page in a new tab from the parent portal)
+
+### Fixed
+- The "Open kids page" action on a kid's growth report (`/portal/family/:kidId`) now opens the
+  kid's Learn surface in a **new browser tab** instead of replacing the current parent tab. The
+  parent stays on the portal page; the new tab bootstraps the kid session from its own refresh
+  cookie (dual session). Falls back to same-tab navigation if the browser blocks the popup. New
+  shared helper `src/auth/openKidPage.ts`.
+
+## 2026-07-24 (fix: keep the Parent Portal sidebar in view)
+
+### Fixed
+- Parent Portal pages now keep document scrolling locked to the viewport and scroll only the
+  content region, so the desktop navigation background and account controls no longer move away
+  or leave a blank area when a long Courses page is scrolled.
+
+## 2026-07-24 (fix: make Parent Portal teacher profiles compact and useful)
+
+### Fixed
+
+- Teacher directory cards now use a compact responsive profile layout with a bounded square
+  portrait, two-line biography preview, age range and up to two expertise tags.
+- Teacher detail pages keep the portrait compact, surface location, age and languages, and move
+  the full biography into a dedicated About section.
+- Course capabilities now expose format and a course link; profiles with no scheduled class show
+  an honest availability state, and every profile explains the preference-only request process.
+
+## 2026-07-23 (fix: restore Parent Portal mobile navigation)
+
+### Fixed
+- **Parent Portal navigation is reachable again on phones.** The existing bottom tabs and
+  overflow sheet are now mounted by the Portal layout, share the live approvals count with
+  the desktop drawer, reserve safe-area space above the fixed tabs, and use compact mobile
+  page padding without changing the desktop layout.
+- **Parent-to-kid handoff is reachable again from the Growth page.** A parent can open the
+  selected child's Learn session without re-entering a family code or PIN, while the separate
+  adult session remains available when they return to Portal. The profile edit action is also
+  restored beside the Growth heading.
+
+## 2026-07-22 (fix: Music Stage brand logo shows at every width)
+
+### Fixed
+- **The Airbotix logo no longer vanishes on windows narrower than 900px** (owner report:
+  "左下角的 logo 没有显示"). The transport-bar brand block was wholesale-hidden below
+  900px; now the logo always renders and only the divider + "Music Stage" surface name
+  collapse on tight bars. The now-playing meta line also truncates on one line instead of
+  wrapping into a vertical sliver next to the play button (BPM · key hidden <900px).
+
+## 2026-07-22 (feat: let parents see and safely try the creative studios)
+
+### Added
+- **Real product previews on all four Parent Dashboard studio cards** — Story Blocks,
+  Creative Code Studio, Art Studio and Music Stage now show compressed captures of the actual
+  child workspace plus a plain-language explanation of what the parent is seeing.
+- **Safe parent try-outs where the product already supports them** — Story Blocks and Creative
+  Code Studio open their real public, no-sign-in demos in a new tab with an explicit “no Stars,
+  nothing saved” boundary. Art Studio and Music Stage honestly remain preview-only until they
+  have real public demo adapters; their cards explain that creating requires the child’s Learn
+  sign-in instead of linking a parent into protected kid routes or presenting a fake demo.
+
+## 2026-07-22 (feat: Music Stage — on-stage instrument pop + the swap replaces the character)
+
+### Added
+- **点乐器角色 → 舞台顶层弹出选择 pop（owner:"点击时右侧顶层有个 pop 直接选，这样有替换的感觉"）。**
+  Tapping a band member now opens a picker right above them on the stage (anchored to the
+  character, clamped inside the stage, 160ms pop-in, ✕ to close; opens only on an explicit
+  tap — never via the post-generation auto-select). The left-deck style row and lane
+  dropdown remain as alternate entries.
+- **The picked instrument visibly replaces the character.** Choosing a D-MS20 real
+  instrument swaps the stage glyph — pick the violin and a 🎻 stands where the guitarist
+  was (`InstrumentStyle.stageGlyph`; the original timbre styles keep the slot's character —
+  Electric Crunch is still a guitar). music-stage-prd v0.20.1.
+
+## 2026-07-22 (feat: Music Stage — real-instrument palettes + in-lane sound picker)
+
+### Added
+- **每个乐队位扩成真实乐器面板（D-MS20，owner:"既然引擎支持，是否可以更换乐器"）。**
+  The SpessaSynth engine already carries the full GM bank, so each slot's style list
+  grows from 3 timbres to a kid-curated instrument palette: guitar slot adds 🎻 Violin /
+  🎷 Saxophone / 🎺 Trumpet; bass adds 🎼 Cello / 📯 Tuba; piano adds 🪄 Harp / 🪘 Marimba /
+  🪈 Flute; keys adds 🎻 Strings / 🪗 Accordion (10 new GM programs, all published to the
+  smplr fallback tier too). Swaps stay 0⭐ + 1-beat audition.
+- **In-lane sound picker.** The style name in each track-lane header is now a dropdown —
+  swap sounds right where kids look, without hunting for the stage band member + left-deck
+  row (owner twice could not find the old entry). Bottom lanes flip the menu upward so the
+  scroll container can't clip it. The stage-tap → deck-row path still works.
+
+### Fixed
+- **Vocal lanes tell the truth**: Lead/Backing Vocals lanes showed the borrowed slot style
+  ("Grand" / "Gritty Organ") while actually singing the D-MS18 choir programs — they now
+  display 🎤 Choir / 🎙️ Oohs as fixed labels with no picker.
+
+## 2026-07-22 (feat: Art Studio canvas is TRANSPARENT — Photoshop-style, D-ISF-7)
+
+### Changed
+- **The canvas ground is now TRANSPARENT, like Photoshop** (owner: 不是去白底,本身就是
+  透明 — D-ISF-7, art-studio-canvas-and-intent-fix-prd v0.4; supersedes the v0.1 white-paper
+  ground). The bitmap holds ONLY what the kid made; a design-token checkerboard
+  (`hairline`/`canvas.pure` via `theme()`) renders in CSS underneath, so the eraser reveals
+  transparency and white ink stays visible. **Every saved export keeps its alpha**: My
+  Pictures snapshots, ✨ magic refs and the 🎮 game hand-off are native transparent PNGs —
+  no matting needed for hand-drawn art (the D-ISF-6 ✂️ toggle stays for OPAQUE AI takes,
+  whose model, gpt-image-2, still cannot output transparency — image-studio-prd v0.5).
+  👀 coach vision snapshots composite on white (`exportPng(scale, 'white')`) because
+  downstream rasterizers composite alpha unpredictably — display and storage stay
+  transparent.
+
+## 2026-07-22 (fix: SpessaSynth worklet vs Tone's standardized-audio-context)
+
+### Fixed
+- **The SpessaSynth engine never actually started** — caught by a real-browser local test
+  (Playwright + level meter), not by unit tests: `Tone.getContext().rawContext` is a
+  standardized-audio-context WRAPPER, so native `new AudioWorkletNode(rawContext)` threw
+  `parameter 1 is not of type 'BaseAudioContext'` and every track silently degraded to the
+  smplr tier (AC-11 working exactly as designed, hiding the failure). The engine now goes
+  through Tone's own worklet API (`addAudioWorkletModule` + `createAudioWorkletNode`) —
+  the wrapper-aware path `audioNodeCreators` exists for. Local proof after the fix: all
+  three probe tracks (guitar/crunch, drums/rockkit, vocals/choir) report `engine: spessa`
+  with real output level (peaks 0.10–0.17) and zero console warnings.
+
+## 2026-07-22 (feat: Art Studio → game hand-off loses the white paper)
+
+### Added
+- **✂️ Default-on background removal when sending art into a game** (owner: art 应该是
+  透明背景 — D-ISF-6, art-studio-canvas-and-intent-fix-prd v0.3). Art Studio pictures are
+  opaque BY DESIGN (white canvas ground; gpt-image-2 rejects transparency — image-studio-prd
+  v0.5), so "🎮 use in my game" shipped sprites with a white box around them. The game sheet
+  now has a "✂️ Remove the white background" toggle (default ON): on send, near-white pixels
+  CONNECTED TO THE EDGES are erased (`matting.ts` — pure BFS core, unit-tested), so a white
+  eye highlight inside a character survives while the paper goes transparent; unchecking
+  keeps the full scene for backgrounds. Client-side, 0★, PNG out. Pictures everywhere else
+  (takes, My Pictures, portal) stay opaque.
+
+## 2026-07-22 (feat: explain the four creative spaces from a parent's perspective)
+
+### Changed
+- Reframed the Parent Dashboard creative-spaces panel around the decisions a family actually
+  needs to make: who each space suits, the concrete thing a child can create, the three-step
+  learning loop, skills practised, where AI and Stars enter, and a useful follow-up question.
+- Made every studio card independently expandable while keeping the parent surface read-only;
+  the guide still sends families through My Family for child sign-in rather than crossing the
+  parent/kid authentication boundary.
+
+## 2026-07-22 (feat: Music Stage — SpessaSynth SF2 engine (Tier-0) + GeneralUser GS)
+
+### Added
+- **SpessaSynth becomes the primary Music Stage timbre engine** (owner: "重新换"→ 换引擎;
+  music-stage-prd v0.19, D-MS19). A single `WorkletSynthesizer` (Apache-2.0) performs real
+  SoundFont synthesis — envelopes, loop points, filters, modulators — from the professional
+  **GeneralUser GS** soundfont (32MB, freely redistributable, self-hosted at
+  `/soundfonts/sf2/GeneralUser-GS.sf2`). The worklet's 16 per-MIDI-channel dry outputs are
+  routed one-per-track into the existing Tone.Channel strips, so mute / solo / volume / pan
+  keep working unchanged; the wet effects bus stays unrouted so a muted lane can never leak
+  reverb tails. Events schedule at exact AudioContext times (no timing regression vs smplr).
+  Engine tier order is now **spessa → smplr (MusyngKite) → Tone.js fallback**, each failure
+  degrading one tier (AC-11); the engine + soundfont boot behind the composing animation.
+  Vocal tracks keep their D-MS18 choir programs; drum tracks use real GM kits
+  (Standard/Room/Electronic) via `setDrums` + kit program.
+- `soundfonts.yml` publishes the sf2 (LFS-aware fetch + RIFF sanity check) and verifies it
+  through the SPA-fallback-rejecting check.
+
+## 2026-07-21 (feat: make all four creative studios discoverable to parents and kids)
+
+### Added
+- **Parent Dashboard creative-spaces guide.** Parents now see Story Blocks, Creative Code
+  Studio, Art Studio, and Music Stage together on `/portal`, with a plain-language explanation
+  of each product, the exact Learn-home path their child follows, and a link to My Family for
+  sign-in details.
+- **Four direct studio cards on the kid Home.** `/learn` now puts all four live studios in one
+  first-class grid with their real destinations; Art Studio and Music Stage are no longer hidden
+  behind the generic “Explore all studios” card.
+
+### Changed
+- Extended the shared create-tool registry with stable discovery IDs, parent descriptions, and
+  Learn paths so the parent and kid surfaces render from the same live/paused product truth.
+- Released the Story Blocks autosave mutex before showing “saved”, so a child who immediately
+  presses Go can persist mission completion instead of getting stuck on “Saving your personal
+  path…”.
+
+## 2026-07-22 (test: Art Studio save/reopen coverage gaps closed)
+
+### Added
+- **First spec for `ProjectDetailPage`** — the "🎨 Keep drawing" reopen entry (the flow behind
+  the owner-reported "keep drawing 无法加载原始的图片" bug) finally has tests: an image
+  artifact's ⋯ menu offers Keep drawing and navigates to `/learn/create/image` with exactly
+  `{ editArtifactId, editProjectId }` (the state ArtStudioPage's reopen path consumes); a
+  non-image artifact does not offer it.
+- **First spec for `artifactBytes`** (D-IS-24 same-origin bytes proxy — the pixel loader behind
+  canvas bases, reopened pictures and "use in my game"): auth header on the `/bytes` request,
+  status-carrying error on failure, object-URL hook contract, no fetch without an artifact.
+- **`exportPng`/`exportMask` contracts** (`strokeEngine.export.test.ts`): white ground; base
+  included/excluded via the Mission `strokes-only` flag (D-IS-22); scale parameter; the mask is
+  opaque black with the painted region ERASED (destination-out — the gpt-image edits contract)
+  and stamps/fills cannot punch it.
+- **Art Studio save edges + takes strip** (`ArtStudioPage.test.tsx`): ＋ new picture does NOT
+  re-upload ops already snapshotted (savedOps dedup, exercised via upload-ok/generation-fail);
+  an upload failure keeps the drawing on the canvas with the friendly error (nothing reset);
+  tapping a film-strip take activates it and clears working strokes; hold-to-compare shows the
+  sketch pixels only while pressed (D-IS-19).
+## 2026-07-21 (feat: parents can request a private tutor from the Tutoring page)
+
+### Added
+- `/portal/tutoring` now starts with a **Book a teacher** panel. A parent selects one of
+  their active children, describes the learning goal, chooses a preferred time, and sends
+  an authenticated booking request. The page makes the non-instant contract explicit: the
+  team confirms teacher, format, price and exact time before a lesson is booked, and no
+  payment is taken at request time.
+- The same panel lists the family's recent teacher requests with parent-facing states
+  (request received, matching teacher, confirmed, closed), so the request does not disappear
+  after submission. Families without an active child are directed to child setup.
+
+## 2026-07-21 (feat: Music Stage — professional timbres: MusyngKite kit + sung vocal tracks)
+
+### Changed
+- **Music Stage timbres upgrade to the MusyngKite soundfont kit** (owner report: 音色明显
+  不对/太电子). `SOUNDFONT_KIT` switches from FluidR3_GM to gleitz's higher-fidelity
+  MusyngKite kit — same layout and per-program file names, audibly closer to real
+  instruments. `soundfonts.yml` now publishes the MusyngKite tree (FluidR3_GM objects stay
+  on the origin for previously-cached bundles).
+- **Vocal tracks now sing instead of playing piano/synth.** `lead_vocals`/`backing_vocals`
+  score tracks previously borrowed the piano/keys slot style — on the Pop preset the lead
+  melody rendered as a sawtooth synth lead. They now load dedicated sampled vocal programs
+  (GM 53 Choir Aahs / 54 Voice Oohs) via `VOCAL_GM_PROGRAMS` in `voices.ts`, overriding the
+  slot style (style = None still silences them); the compose-time preload warms both.
+
+### CI
+- **`soundfonts.yml` verify step now rejects the SPA fallback.** HTTP 200 alone let the
+  2026-07 sample-library outage go unnoticed for 9 days (CloudFront serves index.html as
+  200 for missing objects); every published-origin check now fails on a `text/html`
+  content-type.
+
+## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
+
+### Fixed
+- **The just-finished stroke no longer vanishes after pen-up** (owner report: 一般第一笔,
+  画一下就消失了). An animation frame scheduled by the last `pointermove` captured the
+  previous render's `draw` closure; firing after `endStroke` committed the ops, it repainted
+  the OLD (usually empty) op list — visually wiping the stroke the kid just drew. rAF
+  repaints now run the latest `draw` via a ref, and pending frames are cancelled on unmount
+  (`ArtCanvas`, D-ISF-1, art-studio-canvas-and-intent-fix-prd).
+- **A tap now leaves a dot.** Single-point strokes (pointerdown + pointerup with no move)
+  were silently discarded; they now commit and render as a dab (D-ISF-2).
+- **🪣 fill works on Retina.** The flood fill read/wrote a 1024² LOGICAL-pixel window of a
+  dpr-scaled backing bitmap (`getImageData`/`putImageData` ignore the canvas transform), so
+  on dpr 2 it read only the top-left quadrant and painted it back misaligned. It now reads
+  the full device-pixel bitmap and scales the tap point (`strokeEngine.renderOps`).
+- **The coach's plan finally feeds ✨ Bring-to-life** (owner report: 画了马想换成牛,AI 不知道
+  要干嘛). `/llm/image-plan` distils the conversation into `plan.prompt`, but the studio
+  never read it — magic sent only the optional typed wish or the bare "my drawing". Prompt
+  precedence is now typed wish → coach plan → fallback; the plan's style pre-selects and the
+  magic sheet shows the plan sentence it is about to use (D-ISF-3).
+- **🪄 magic brush now works on a raw hand-drawing.** It was gated on an existing AI take
+  (`baseArtifactId`), so region-replace on a plain sketch had no entry point. With ink on
+  the canvas the toggle appears; applying a mask first snapshots the canvas as the reference
+  (same free upload ✨ uses), then edits with `ref_artifact_id` + `mask_b64` (D-ISF-4).
+- **Masked edits describe the intent, not a bare noun.** The wish now rides inside a
+  region-replace template ("Same picture, keep everything outside the highlighted region
+  unchanged; the highlighted region becomes: …") per the gpt-image edits contract (D-ISF-5).
+## 2026-07-21 (feat: parent password login — explicit method choice on sign-in, D-AUTH-21)
+
+### Added
+- **Parent email+password login (`auth-system-prd §4.8`, D-AUTH-21).** `/portal/login` now gives
+  the parent an **explicit choice of sign-in method** — two first-class tabs, **Password** and
+  **Email code**. Password is the default-selected tab; Email code is one tap away and stays the
+  recovery path (a first-timer or forgotten password just uses a code — there is no separate reset
+  flow). New `loginWithPassword()` hits `POST /auth/login-password`.
+- **Set/change password in Settings.** `/portal/settings` "You" panel gains a Password control
+  (`setPassword()` → `POST /auth/set-password`); copy toggles Set ↔ Change from the new
+  `has_password` flag on `/auth/me`. Min 8 chars; a forgotten password just falls back to a code.
+
+### Changed
+- `UserPrincipal` / `MeResponse.user` carry `has_password`; `normaliseMe` defaults it to `false`.
+- Parent login page reworked into a Password/Email-code tab chooser; tests updated to match.
+## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
+
+### Added
+- **"Now enrolling" panel on the Portal Dashboard (`/portal`).** A freshly-logged-in parent
+  landed on the Dashboard but had no way to see which classes were actually open — course
+  discovery was buried one level down at `/portal/classes`, and that page defaults its city
+  filter to the family's own city, so a parent whose city had no open class saw a blank page.
+  The Dashboard now surfaces up to 3 currently-open classes (with price, seats, start, venue,
+  and a "Pay & lock a seat" CTA) directly on the landing page, right after Quick actions. It
+  queries **every city** (`GET /class-seats/classes` with no `?city=`), so parents always see
+  what is opening anywhere, then "See all classes" links to the full city-filtered browse.
+  (portal-class-discovery-prd D-PCD-11.)
+
+### Changed
+- Extracted the bookable-class card (`ClassCard` + `AvailableClass` shape) out of
+  `FindClassesPage` into shared `availableClasses.tsx` so the Dashboard panel and the
+  Find-a-class page render an open class identically and share one query cache key.
+
+## 2026-07-21 (feat: Art Studio draft auto-save + reopen-to-edit + readable tools — owner feedback)
+
+### Added
+
+- **Draft auto-save — every mode.** The working canvas AND the picture it's built on
+  lived only in React state, so a refresh or leaving the studio lost an unsaved drawing.
+  The vector ops + base picture now auto-save to `localStorage` (keyed by the bucket)
+  and restore on return — free-play, reopened-picture, all of it; only missions opt out.
+  A `hydrated` flag sequences restore-before-autosave so the empty mount can't wipe the
+  draft it's about to load. Cleared when the canvas is emptied.
+- **Reopen a saved picture to keep drawing.** My Pictures images get a "🎨 Keep drawing"
+  action that reopens them on the Art Studio canvas as the base (loaded directly by
+  id+project via the same-origin bytes proxy, so it works for a picture in any project);
+  the kid draws on top and ✨ bring-to-life remixes it. Survives a refresh (base is in the
+  draft).
+
+### Changed
+
+- Coach input is now a larger multi-line textarea (Enter sends, Shift+Enter for a newline)
+  with Send on its own row — the old single-line box was pinched to ~80px.
+- Each left-rail tool shows its name (Pencil / Crayon / Marker / Eraser / Fill / Stamp /
+  Undo) under the icon — the emoji alone was unreadable.
+- Stamp tool offers 24 stickers instead of 6.
+
+## 2026-07-21 (feat: warn parents opening the app inside WeChat that the login/registration code won't arrive)
+
+### Added
+- **WeChat in-app browser notice on the parent auth screens.** Parents who open
+  `app.airbotix.ai` from a link shared inside WeChat get stuck: WeChat's built-in webview
+  suppresses the email one-time code and can't leave to the inbox, so the login/registration
+  code "never arrives". A bilingual (中文 / English) warning banner now appears on
+  `/portal/login`, `/portal/verify-otp`, and `/portal/register` **only when the UA is WeChat**
+  (`MicroMessenger`), telling parents to tap `···` → **Open in Browser** and continue in
+  Safari/Chrome, with a one-tap "copy link" button. New `isWeChatBrowser()` UA helper
+  (`src/lib/inAppBrowser.ts`) + `WeChatBrowserNotice` component (`src/components/auth/`), both
+  unit-tested. Renders nothing outside WeChat, so normal sign-in is unchanged.
+
 ## 2026-07-21 (fix: checkout shows the card form immediately — Airwallex HPP via SDK, no more two-step Pay screen)
 
 ### Fixed

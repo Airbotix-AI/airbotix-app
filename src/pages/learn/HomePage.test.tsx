@@ -16,21 +16,37 @@ import { CREATE_TOOLS } from './create/createTools';
 import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 
 describe('Learn home', () => {
-  it('puts both core age pathways, courses, and all studios directly on the first screen', () => {
+  it('puts all four live studios directly on the first screen', () => {
     render(
       <MemoryRouter>
         <HomePage />
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('home-story-blocks')).toHaveAttribute('href', '/learn/create/blocks');
-    expect(screen.getByTestId('home-story-blocks')).toHaveTextContent('Story Blocks');
-    expect(screen.getByTestId('home-story-blocks')).toHaveTextContent('Ages 5–8');
+    const expected = [
+      ['story-blocks', 'Story Blocks', '/learn/create/blocks'],
+      ['creative-code', 'Creative Code Studio', '/learn/playground/new'],
+      ['art-studio', 'Art Studio', '/learn/create/image'],
+      ['music-stage', 'Music Stage', '/learn/music'],
+    ];
+    for (const [id, name, href] of expected) {
+      const card = screen.getByTestId(`home-${id}`);
+      expect(card).toHaveAttribute('href', href);
+      expect(card).toHaveTextContent(name);
+    }
+    expect(screen.getByTestId('home-studio-grid')).toHaveTextContent('Pick one and start making');
+    expect(screen.getByRole('link', { name: 'All tools →' })).toHaveAttribute(
+      'href',
+      '/learn/create',
+    );
+
     // Creative Code Studio jumps STRAIGHT to the game playground prompt (no
     // intermediate "pick a starting point" menu).
-    expect(screen.getByTestId('home-creative-code')).toHaveAttribute('href', '/learn/playground/new');
-    expect(screen.getByTestId('home-creative-code')).toHaveTextContent('Creative Code Studio');
-    expect(screen.getByTestId('home-creative-code')).toHaveTextContent('Ages 8–14');
+    expect(screen.getByTestId('home-creative-code')).toHaveAttribute(
+      'href',
+      '/learn/playground/new',
+    );
+
     // The Guided-courses card follows the Lessons-catalog switch (features.ts):
     // hidden while the catalog is off, back with the same href when it's on.
     if (SHOW_LESSONS_CATALOG) {
@@ -38,7 +54,6 @@ describe('Learn home', () => {
     } else {
       expect(screen.queryByTestId('home-courses')).not.toBeInTheDocument();
     }
-    expect(screen.getByTestId('home-studios')).toHaveAttribute('href', '/learn/create');
   });
 
   it('uses the canonical Story Blocks name in the studio catalogue', () => {
