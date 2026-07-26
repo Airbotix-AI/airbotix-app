@@ -19,6 +19,7 @@ const {
   triggerBlobDownloadMock,
   requestGhostRiffMock,
   requestRiffAdviceMock,
+  apiMock,
 } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
@@ -44,6 +45,7 @@ const {
   triggerBlobDownloadMock: vi.fn(),
   requestGhostRiffMock: vi.fn(),
   requestRiffAdviceMock: vi.fn(),
+  apiMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -79,6 +81,12 @@ vi.mock('../MusicTrackList', () => ({
 vi.mock('./riffTutorApi', () => ({
   requestGhostRiff: requestGhostRiffMock,
   requestRiffAdvice: requestRiffAdviceMock,
+}));
+// Mission turn-in POSTs /projects/:id/submit straight through the api client
+// (§5A D-MS14) — stub the transport, keep ApiError real.
+vi.mock('@/lib/api', async (orig) => ({
+  ...(await orig<typeof import('@/lib/api')>()),
+  api: apiMock,
 }));
 
 import { MusicStagePane } from './MusicStagePane';
@@ -141,7 +149,12 @@ function scoreMsg(score: MusicScore): Message {
   };
 }
 
-function renderPane(messages: Message[], balance = 50, classId: string | null = null) {
+function renderPane(
+  messages: Message[],
+  balance = 50,
+  classId: string | null = null,
+  mission: import('./musicMission').MusicMission | null = null,
+) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -152,6 +165,7 @@ function renderPane(messages: Message[], balance = 50, classId: string | null = 
         kidId="k1"
         familyId="f1"
         classId={classId}
+        mission={mission}
         onExit={() => {}}
         onImportTrack={() => {}}
       />
@@ -1019,5 +1033,92 @@ describe('MusicStagePane — riff tutor (§5A D-MS13)', () => {
     fireEvent.click(screen.getByTestId('riff-ghost'));
     expect(requestGhostRiffMock).not.toHaveBeenCalled();
     expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Not enough Stars');
+  });
+});
+
+// ── §5A D-MS14 P2b: Music Mission Mode ──────────────────────────
+
+const MUSIC_MISSION: import('./musicMission').MusicMission = {
+  id: 'mission_m1',
+  title: 'Write a melody over the groove',
+  description: 'The drums are ready — add your own tune on top!',
+  template: {
+    mode: 'base',
+    riff: {
+      tempo: 100,
+      key: 'C major',
+      tracks: [
+        {
+          instrument: 'drums',
+          role: 'percussion',
+          notes: [
+            { time: 0, note: 'kick', duration: '8n' },
+            { time: 1, note: 'snare', duration: '8n' },
+          ],
+        },
+      ],
+    },
+  },
+  accept: { min_melody_notes: 2 },
+};
+
+describe('MusicStagePane — Music Mission Mode (§5A D-MS14)', () => {
+  it('opens on the pad with the task card, a LOCKED template layer and live checks', () => {
+    renderPane([], 50, null, MUSIC_MISSION);
+    expect(screen.getByTestId('mission-card')).toHaveTextContent('Write a melody over the groove');
+    // Mission entry lands straight in riff mode — the task is hand-first.
+    expect(screen.getByTestId('riff-pad')).toBeInTheDocument();
+    // Template drums render locked (kick @ step 0 = drums row 2).
+    const tplCell = screen.getByTestId('riff-cell-d-2-0');
+    expect(tplCell).toHaveAttribute('data-template', 'true');
+    fireEvent.click(tplCell); // course content is not the kid's to edit
+    expect(screen.getByTestId('riff-cell-d-2-0')).toHaveAttribute('data-template', 'true');
+    expect(screen.getByTestId('riff-count')).toHaveTextContent('0 notes');
+    // Checks flip as the kid taps their OWN notes.
+    expect(screen.getByTestId('mission-check-0')).toHaveAttribute('data-ok', 'false');
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-5-2'));
+    expect(screen.getByTestId('mission-check-0')).toHaveAttribute('data-ok', 'true');
+    // No song yet → turn-in stays gated with the hint.
+    expect(screen.getByTestId('mission-turn-in')).toBeDisabled();
+    expect(screen.getByTestId('mission-hint')).toBeInTheDocument();
+  });
+
+  it('riff compose carries the base template WITH the kid notes in seedScore', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([], 50, null, MUSIC_MISSION);
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    const req = generateMusicScoreMock.mock.calls[0][0];
+    expect(req.prompt).toBe(MUSIC_MISSION.title);
+    const instruments = req.seedScore.tracks.map((t: { instrument: string }) => t.instrument);
+    expect(instruments).toEqual(['guitar', 'drums']);
+  });
+
+  it('turn-in saves a mission-linked project, submits it and celebrates +3⭐', async () => {
+    saveScoreToMyWorksMock.mockResolvedValue({ project_id: 'proj_m1', artifact_id: 'a1' });
+    apiMock.mockResolvedValue({ ok: true, stars_awarded: 3, balance_after: 53 });
+    renderPane([userMsg('riff song'), scoreMsg(SCORE_V1)], 50, null, MUSIC_MISSION);
+    // Meet the deterministic checks first.
+    fireEvent.click(screen.getByTestId('compose-mode-riff'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-5-2'));
+    const btn = screen.getByTestId('mission-turn-in');
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(saveScoreToMyWorksMock).toHaveBeenCalledWith(SCORE_V1, null, 'mission_m1'),
+    );
+    expect(apiMock).toHaveBeenCalledWith('/projects/proj_m1/submit', { method: 'POST' });
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Mission complete'),
+    );
+    expect(screen.getByTestId('mission-turn-in')).toHaveTextContent('✓ Complete!');
+  });
+
+  it('free play renders no mission chrome', () => {
+    renderPane([]);
+    expect(screen.queryByTestId('mission-card')).not.toBeInTheDocument();
   });
 });
