@@ -139,7 +139,11 @@ export type BlocksTemplateId =
   // C3-P6 carries the child's own C3-P5 weather forward, so it needs the same
   // two whitelisted branches — only Page 2's start cell ships wrong.
   | 'blocks_jtw_c3_p6_starry'
-  | 'blocks_jtw_c3_p6_morning';
+  | 'blocks_jtw_c3_p6_morning'
+  // C3-P7 is the Personal Ship, and 星夜/晨雾 is one of its four real choices, so
+  // the whitelist repeats once more — this time over an EMPTY three-page route.
+  | 'blocks_jtw_c3_p7_starry'
+  | 'blocks_jtw_c3_p7_morning';
 
 export interface BlocksProjectMeta {
   id: string;

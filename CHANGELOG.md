@@ -1,5 +1,64 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P7 — my own three-page road to a master)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p7` — chapter three's Personal Ship** (scene-specs
+  JTW-S1-C3-P7, teaching script C3 Part 7). C3-P6 finished the PUBLIC route; here the whole
+  three-page journey is handed over. All three script slots ship with nothing but a Start, so every
+  meaningful action on every page, both page exits and the closing End are blocks the child places
+  — 至少七块 — and 星夜/晨雾, the wait rhythm, the preset dialogue and how the raft's leg is paced are
+  four real choices. The work is named `Across the Sea to Learn`.
+- **`jtwC3PersonalRoute.ts` — the personal three-page route GRAMMAR.** This is the first C3 Part
+  with no target chain at all: the scene prints a minimum STRUCTURE, so the contract parses a saved
+  `BlocksProject` into the design the child really built and returns null the moment a rule breaks.
+  That is what makes the scene's own assertions structural rather than advisory — 循环 (Page 1's
+  exit must be 2 and Page 2's must be 3), 死页 (Page 3 must End), 空Page 2 (每页 2–4 块动作, and the
+  sea page additionally needs a Wait or a Speed, because the C3 shared contract gives it
+  观察、前进与停顿) and 未保存 each fail here. 求师而非寻宝/取经 is structural too: the Say editor only
+  offers the mission contract's four preset lines, so no other sentence can reach a saved document.
+- **连续木筏/地标, as arithmetic instead of prose.** Page 1's raft is really beached on `7-9`, so the
+  child's own walk has to total four cells to board it; Page 2's raft carries the deck four cells,
+  so the sea walk has to total four to keep his feet on it (asset bible §2.4). HOW those cells are
+  split, and how long he pauses, are the child's.
+- **Completion is MEASURED FOUR TIMES, never asserted.** (a) The SAVED project must satisfy the
+  grammar AND carry the studio's own run+save marker. (b) The peer predicts every page from the
+  landmarks, start cells and exit numbers alone, and those predictions are compared against a REAL
+  run — the Part names the FIRST page they disagree on and says 只修这一页, so 第一次不一致 is measured
+  rather than keyed. (c) `关闭并重新打开` really re-fetches the document from the server and compares
+  the two loads byte for byte (`jtwC3RouteFingerprint` over the canonical serialization), citing the
+  server's own version id twice. (d) The rerun walks THAT reopened document from Page 1 through the
+  real `PageFlowRunner`, requiring `1 → 2 → 3`, `stoppedBy === 'end'` and every boundary continuous.
+- **Order is enforced by the product, not suggested.** No sea → no studio; nothing saved → no design
+  and no peer section; no peer answers → the reopen button is disabled; no matching reopen → the run
+  button is disabled.
+- Evidence `story_screens / weather_version / route_ops / route_exits / block_ledger /
+  build_project / saved_version / reopen_version / reopen_match / peer_predictions / first_mismatch
+  / page_trace / run_footprints / run_boundaries / run_stop / exit_page / reopen_rerun` persists via
+  `/story-parts` and is restored on refresh (malformed rows dropped, not guessed). `沿歌声上山`
+  unlocks ONLY jtw-s1-c3-p8, and no seal element exists on the page — 远行印 is C3-P8's server-side
+  aggregation, and the resolved panel says so.
+
+### Changed
+- `storyMissionProgress.ts` gained ONE delegating branch for `jtw-s1-c3-p7`;
+  `storyMissionContracts.jtw.ts` gained the lesson's `scriptId` and its four `allowedSayText`
+  presets. `guides/journeyWestC3.ts` gained the studio guide, `blocksApi.ts` the two new template
+  ids, `JourneyWestPartPage.tsx` the route and `JourneyWestMapPage.tsx` the playable entry.
+  Continuity is measured with C3-P6's existing boundary helpers, unchanged.
+- `BlocksStudioPage.tsx` (~2958 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule in `rules/file-organization.md` — so the grammar lives in
+  `jtwC3PersonalRoute.ts` and the Part content in `journeyWestC3Part7Program.ts`.
+
+### Assets
+- **Nothing new was copied, and nothing was invented.** §6's whole `jtw-s1-c3-three-seas-route`
+  entry landed across C3-P1…P5; this Part stages only the monkey king and the raft, and its resolved
+  panel reuses the already-integrated `backgrounds/s1/c3/page3-resolved-v01.webp` — the far shore's
+  lit stepping path and the master's gate, which is exactly the scene's 彼岸山路和石牌完整出现.
+
+### Verified
+- `npx tsc --noEmit` clean · `npx eslint . --max-warnings 0` clean · `npx vitest run` 216 files /
+  1804 tests green (no documented flake reproduced).
+
 ## 2026-07-27 (feat: Journey West C3-P6 — the raft jumped sides)
 
 ### Added

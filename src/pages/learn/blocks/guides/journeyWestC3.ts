@@ -278,4 +278,94 @@ export const JTW_C3_MISSIONS: Record<string, StoryMission> = {
       '两次跑的都是同一条路线、同一片海、同一串积木，只有一格不一样——而故事读不读得通，就差这一格。',
     next: '公共路线修好了。下一个 Part：做一条能保存、能重开的个人三页求师路。',
   },
+  // Journey to the West S1/C3-P7 — chapter three's Personal Ship (scene-specs
+  // JTW-S1-C3-P7, teaching script C3 Part 7). Nothing is pre-built: all three
+  // script slots ship with a bare Start, so every meaningful action, both page
+  // exits and the closing End are blocks the child places. The guide therefore
+  // talks about a STRUCTURE (每页 2–4 个动作、两个出口、一个 End) instead of a
+  // chain, and about the four real choices — 星夜/晨雾、等待节奏、预设对白、木筏路径.
+  'jtw-s1-c3-p7': {
+    mode: 'personal-ship',
+    lessonId: 'jtw-s1-c3-p7',
+    celebrate: true,
+    hero: {
+      name: '美猴王',
+      role: '自己写三页求师路的人',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第三章 · Personal Ship',
+    title: '我的三页求师路',
+    storyPages: [
+      {
+        emoji: '📖🛶',
+        title: '这一次三页都是空的',
+        body: '前面几个 Part 里，总有一两页是发给你的。这一次不一样：Page 1、Page 2、Page 3 的脚本槽里都只有一个 Start。离家、观察、到达三段故事，全部由你来写——作品的名字叫 Across the Sea to Learn。',
+        speaker: '美猴王',
+        dialogue: '这条路是我自己的，我要让别人也看得懂。',
+        scene: 1,
+      },
+      {
+        emoji: '🧩7️⃣',
+        title: '至少七块，而且每页都要有内容',
+        body: '每一页放 2–4 块有意义的动作：➡️ Right 走路、💨/✨ 声音、⏱ Wait 或 🐢 Speed 的节奏、💬 预设的一句话。再加上 Page 1 和 Page 2 各一块 📄 Page 出口，还有 Page 3 的 🏁 End——加起来至少七块。哪一页只放一块出口，那一页就是空壳。',
+        speaker: '群猴',
+        dialogue: '每一页都要真的发生一件事，别人才读得下去。',
+        scene: 3,
+        blocks: ['➡️ Right · 💨 声音', '⏱ Wait · 📄 Page · 🏁 End'],
+      },
+      {
+        emoji: '🛶📍',
+        title: '木筏在哪里，你就得走到哪里',
+        body: 'Page 1 的木筏停在你右边第 4 格，所以这一页的移动加起来要正好 4 格，他才上得了筏。Page 2 的木筏自己向右走 4 格，所以海上那一页的移动加起来也要正好 4 格，他的脚才一直在筏上。剩下的怎么讲，全是你的选择。',
+        speaker: '美猴王',
+        dialogue: '故事可以有很多种讲法，脚下的木筏只有一个。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '同伴只看三页的地标、起点和出口数字，逐页预测；然后你从 Page 1 跑一遍给他看。',
+    mission:
+      '三页各放 2–4 块动作：Page 1 走满 4 格上木筏，Page 2 走满 4 格并且要有 ⏱ Wait 或 🐢 Speed，Page 3 要说一句预设的话。Page 1 的 📄 Page 点成 2，Page 2 的点成 3，Page 3 用 🏁 End 收尾。至少要有两块移动、一个声音和一个 Wait/Speed，然后按 Go 跑一次保存。',
+    question: '哪一页可以只放一块出口？',
+    choices: [],
+    retry:
+      '还差一点：检查每一页是不是都有 2–4 块动作，Page 1 和 Page 2 的移动是不是都正好 4 格，海上那一页有没有 Wait 或 Speed，彼岸有没有说话，出口是不是 2 和 3，最后一页是不是 End。',
+    successTitle: '三页都是你写的！⭐',
+    success: '离家、观察、到达——三段各有内容，出口一路把故事交下去，最后稳稳地结束。',
+    fixTitle: '把三页都写完整',
+    fixPrompt: '关掉这张卡，从 Page 1 开始，一页一页放上你的动作、出口和结尾。',
+    workspaceIntro: '三个 Start，三页空白。这一次没有示范链可以照抄——路线由你决定。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先在 Page 1 放上走到木筏的路，再点一块 📄 Page，把数字点成 2。',
+      watch: '一页一页看：这一页发生了什么？他接着去了哪里？',
+      sayFirst: '先说预测：同伴看着你的出口数字，会说他接下来翻到哪一页？',
+      sayThen: '跑出来的和同伴说的一样吗？不一样的那一页，就是要改的地方。',
+      hopFirst: 'Page 1 的木筏在右边第 4 格，走满 4 格他才上得去。',
+      hopThen: 'Page 2 的木筏自己走 4 格，你的移动也要正好 4 格。',
+      retry: '还不成立：每页 2–4 块动作，出口 2 和 3，最后一页 End，至少七块。',
+      fix: '在真正的工作区里一页一页搭——这一次没有按钮会替你放好任何一块。',
+      test: '三页都写好了。按 Go 跑一次保存，再回 Part 页面重开并从 Page 1 跑一遍！',
+      saving: '这是你自己的求师路。我在保存 Across the Sea to Learn……',
+      complete: '保存下来的这一份，关掉再打开还是一模一样——别人也能照着跑一遍。',
+    },
+    logicSteps: [
+      { icon: '🏝', label: 'Page 1 离家', order: '先' },
+      { icon: '🌊', label: 'Page 2 观察', order: '再' },
+      { icon: '⛰', label: 'Page 3 到达', order: '最后' },
+    ],
+    logicWhy:
+      '每一页负责一段故事，出口数字把它交给下一段，End 说明"讲完了"。三样缺一样，读的人就接不上：没有内容是空壳，没有出口是死页，没有 End 是停不下来。',
+    completionTitle: 'Personal Ship 完成！🛶',
+    completion:
+      '你自己写满了三页、放好了两个出口和一个 End，保存下来，关掉再打开——三页、天气、位置和脚本都还是原样，从 Page 1 又跑通了一次 1 → 2 → 3。',
+    completionSteps: [
+      { icon: '🧩', label: '七块以上都是你放的', order: '先' },
+      { icon: '💾', label: '保存 · 关闭 · 重开', order: '再' },
+      { icon: '🏁', label: '重开后再跑一遍', order: '最后' },
+    ],
+    completionWhy:
+      '能保存、能重开、重开后还一样，作品才真的属于你——不然它只是这一次运行时碰巧出现过的画面。',
+    next: '你的求师路能重开了。下一个 Part：讲回整章，说清楚到达为什么还不是学会。',
+  },
 };

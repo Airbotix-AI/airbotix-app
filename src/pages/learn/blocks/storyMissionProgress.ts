@@ -2,6 +2,7 @@ import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
 import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
 import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
+import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
 import {
@@ -881,6 +882,17 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // both actors and every `size` still exactly as shipped. So "改Page 1出口"、
     // "删除天气链"、"加更响声音" and "同时改多个页面" all keep the mission open.
     return jtwC3JumpFixComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p7') {
+    // Chapter three's Personal Ship has no target chain at all: the child owns
+    // every meaningful action on all THREE pages, both exits and the End
+    // ("孩子必须主导至少七块"). The whole project therefore goes to the personal
+    // route grammar, which refuses a Goto that loops home, a page left as a bare
+    // Goto shell, a sea page with no observation in it, a walk that misses the
+    // raft, a free-typed line and any stage edit — while still accepting every
+    // legal 星夜/晨雾, wait-rhythm, dialogue and raft-pacing choice.
+    return jtwC3RouteComplete(project);
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {

@@ -28,6 +28,12 @@ import {
   JTW_C3_P6_TARGET_START_CELL,
 } from './jtwC3JumpFix';
 import {
+  JTW_C3_P7_LESSON_ID,
+  JTW_C3_P7_PAGE_IDS,
+  JTW_C3_P7_SAY_CHOICES,
+  JTW_C3_P7_SCRIPT_IDS,
+} from './jtwC3PersonalRoute';
+import {
   JTW_C3_LISTEN_CLUE,
   JTW_C3_P5_LESSON_ID,
   JTW_C3_P5_PAGE_IDS,
@@ -301,5 +307,32 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       rot: 0,
     },
     target: [...JTW_C3_P5_STARTER_CHAIN],
+  },
+  // Journey to the West S1/C3-P7 — chapter three's Personal Ship (scene-specs
+  // JTW-S1-C3-P7). There IS no target here: the scene prints a minimum
+  // STRUCTURE, and the child owns every meaningful action on all three pages
+  // plus both exits and the End. The bespoke branch in `storyMissionProgress.ts`
+  // therefore hands the whole PROJECT to `jtwC3RouteComplete`. Two fields are
+  // really read for this lesson — `scriptId`, so the studio can find the script
+  // on the page the child has open, and `allowedSayText`, so 预设对白 stays a
+  // tap instead of asking a six-year-old to type (and so no sentence outside the
+  // scene's 求师 motive lock can ever reach a saved document). `background`,
+  // `start` and `target` describe the SHIPPED sea page (the default sea and its
+  // bare Start) and never judge a C3-P7 build: the child's own weather branch
+  // decides the first, and the grammar decides the rest.
+  [JTW_C3_P7_LESSON_ID]: {
+    pageId: JTW_C3_P7_PAGE_IDS[1],
+    background: JTW_C3_PAGE2_SCENE,
+    characterId: JTW_C3_MONKEY_KING_ID,
+    scriptId: JTW_C3_P7_SCRIPT_IDS.seaLeg,
+    asset: JTW_C3_MONKEY_KING_SPRITE,
+    allowedSayText: JTW_C3_P7_SAY_CHOICES,
+    start: {
+      gx: JTW_C3_PAGE2_START_CELL.gx,
+      gy: JTW_C3_PAGE2_START_CELL.gy,
+      size: JTW_C3_MONKEY_KING_SIZE,
+      rot: 0,
+    },
+    target: [{ op: 'when_flag' }],
   },
 };
