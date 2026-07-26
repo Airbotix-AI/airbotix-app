@@ -762,8 +762,13 @@ export function ArtStudioPage() {
       {/* header */}
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link to="/learn/create" className="text-[13px] font-bold text-ink-soft hover:text-ink">
-            ← All tools
+          {/* Back to the Art Studio HUB (D-IS-28), not the all-tools list: from the
+              canvas the kid's own tasks and pictures are one level up, not two. */}
+          <Link
+            to="/learn/create/image"
+            className="text-[13px] font-bold text-ink-soft hover:text-ink"
+          >
+            ← My art
           </Link>
           <span className="text-[16px] font-bold text-ink">🎨 Art Studio</span>
         </div>
