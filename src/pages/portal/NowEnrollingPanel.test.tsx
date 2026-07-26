@@ -76,8 +76,12 @@ describe('NowEnrollingPanel', () => {
     expect(screen.queryByText('Class D')).not.toBeInTheDocument();
 
     const panel = screen.getByTestId('now-enrolling');
+    expect(panel.querySelector('.md\\:grid-cols-2')).toBeInTheDocument();
+    expect(within(panel).getAllByTestId('available-class-card')[0]).toHaveClass('p-4', 'sm:p-5');
     const payLinks = within(panel).getAllByRole('link', { name: 'Pay & lock a seat' });
     expect(payLinks[0]).toHaveAttribute('href', '/portal/checkout/class/a');
+    const detailLinks = within(panel).getAllByRole('link', { name: 'View course details' });
+    expect(detailLinks[0]).toHaveAttribute('href', '/portal/courses/rhythm-game');
     expect(within(panel).getByRole('link', { name: 'See all classes' })).toHaveAttribute(
       'href',
       '/portal/classes',

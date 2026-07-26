@@ -31,6 +31,9 @@ vi.mock('./onboarding/GettingStartedCard', () => ({
 vi.mock('./NowEnrollingPanel', () => ({
   NowEnrollingPanel: () => <div data-testid="now-enrolling">open classes</div>,
 }));
+vi.mock('./DashboardKidsPanel', () => ({
+  DashboardKidsPanel: () => <div data-testid="dashboard-kids">my kids</div>,
+}));
 vi.mock('./guides/FamilyGuidesRecommendation', () => ({
   FamilyGuidesRecommendation: () => <div data-testid="family-guides">family guides</div>,
 }));
@@ -62,6 +65,38 @@ afterEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('uses a compact mobile intro and puts actions ahead of onboarding below desktop', () => {
+    renderDashboard();
+
+    expect(screen.getByTestId('dashboard-intro')).toHaveClass(
+      'grid',
+      'grid-cols-[minmax(0,1fr)_auto]',
+      'mb-4',
+      'sm:mb-6',
+    );
+    expect(screen.getByRole('button', { name: 'How it works' })).toHaveClass(
+      'col-start-2',
+      'row-start-1',
+    );
+    expect(screen.getByTestId('dashboard-primary')).toHaveClass('order-1');
+    expect(screen.getByTestId('dashboard-actions')).toHaveClass('order-2');
+    expect(screen.getByTestId('dashboard-side-rail')).toHaveClass('order-3');
+    expect(screen.getByTestId('dashboard-discovery')).toHaveClass('order-4');
+  });
+
+  it('puts My kids before family stats and every discovery section', () => {
+    renderDashboard();
+
+    const kids = screen.getByTestId('dashboard-kids');
+    const stats = screen.getByTestId('dashboard-primary');
+    const quickActions = screen.getByText('Quick actions');
+    const nowEnrolling = screen.getByTestId('now-enrolling');
+
+    expect(kids.compareDocumentPosition(stats)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(kids.compareDocumentPosition(quickActions)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(kids.compareDocumentPosition(nowEnrolling)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('surfaces open classes to enrol in right after Quick actions', () => {
     renderDashboard();
 
@@ -79,7 +114,7 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('keeps setup and open classes ahead of the deeper creative-space guide', () => {
+  it('keeps open classes ahead of the deeper creative-space guide', () => {
     renderDashboard();
 
     const creativeSpaces = screen.getByTestId('parent-creative-spaces');
@@ -102,15 +137,15 @@ describe('DashboardPage', () => {
     );
   });
 
-  it('keeps onboarding in a compact sticky side rail on desktop', () => {
+  it('keeps onboarding in a dedicated sticky side rail on desktop', () => {
     renderDashboard();
 
     const dashboardGrid = screen.getByTestId('dashboard-grid');
     const sideRail = screen.getByTestId('dashboard-side-rail');
     const gettingStarted = screen.getByTestId('getting-started');
 
-    expect(dashboardGrid).toHaveClass('gap-x-6', 'lg:grid-cols-[minmax(0,1fr)_17rem]');
-    expect(sideRail).toHaveClass('lg:sticky', 'lg:top-8');
+    expect(dashboardGrid).toHaveClass('gap-x-6', 'min-[900px]:grid-cols-[minmax(0,1fr)_17rem]');
+    expect(sideRail).toHaveClass('min-[900px]:sticky', 'min-[900px]:top-8');
     expect(sideRail).toContainElement(gettingStarted);
     expect(gettingStarted).toHaveAttribute('data-layout', 'sidebar');
   });

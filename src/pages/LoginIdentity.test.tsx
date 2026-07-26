@@ -97,7 +97,7 @@ describe('shared login identity gateway', () => {
     expect(screen.getByTestId('location-state')).toHaveTextContent('source=classes');
   });
 
-  it('switches to the clearly labelled kid sign-in without a page reload', () => {
+  it('switches to the clearly labelled two-step kid sign-in without a page reload', async () => {
     renderLogin('/portal/login');
 
     fireEvent.click(screen.getByTestId('auth-role-kid'));
@@ -106,7 +106,10 @@ describe('shared login identity gateway', () => {
     expect(screen.getByTestId('auth-role-parent')).not.toHaveAttribute('aria-current');
     expect(screen.getByText('Kids sign in here')).toBeVisible();
     expect(screen.getByPlaceholderText('WANG')).toBeVisible();
-    expect(screen.getByPlaceholderText('••••')).toBeVisible();
+    expect(screen.queryByPlaceholderText('••••')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('WANG'), { target: { value: 'TEST01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Next →' }));
+    expect(await screen.findByPlaceholderText('••••')).toBeVisible();
   });
 
   it('lets families browse and pause the featured creations', () => {

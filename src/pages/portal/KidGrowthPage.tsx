@@ -6,12 +6,15 @@ import { useMe, useParentKidLogin } from '@/auth/useAuth';
 import { openKidPageInNewTab } from '@/auth/openKidPage';
 import { api } from '@/lib/api';
 import { TrendBars } from '@/components/TrendBars';
+import { KidAvatar } from '@/components/KidAvatar';
+import { KidDeviceHandoff } from '@/components/KidDeviceHandoff';
 import { GROWTH_WINDOW_DAYS, summarize, growthHeadline, studioMeta } from './kidGrowth';
 import type { KidUsageDetail, UsageTrendPoint } from './walletTypes';
 
 interface Kid {
   id: string;
   nickname: string;
+  avatar_id: string | null;
   age: number;
   is_active: boolean;
   family_id: string | null;
@@ -37,13 +40,13 @@ function growthBounds(): { from: string; to: string } {
  */
 export function KidGrowthPage() {
   const { kidId } = useParams<{ kidId: string }>();
-  const navigate = useNavigate();
+  const nav = useNavigate();
   const me = useMe();
   const parentKidLogin = useParentKidLogin();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   const [copied, setCopied] = useState(false);
-  const [openingKidPage, setOpeningKidPage] = useState(false);
-  const [kidLoginError, setKidLoginError] = useState('');
+  const [openingKid, setOpeningKid] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const { from, to } = growthBounds();
 
   const kid = useQuery<Kid>({
@@ -102,18 +105,18 @@ export function KidGrowthPage() {
     window.setTimeout(() => setCopied(false), 2000);
   };
 
-  const openKidPage = async () => {
-    if (!kidId || openingKidPage) return;
-    setOpeningKidPage(true);
-    setKidLoginError('');
+  const openKidsPage = async () => {
+    if (!kidId || !isActive) return;
+    setOpeningKid(true);
+    setOpenError(null);
     try {
       // Opens the kid's Learn surface in a NEW tab so this parent tab stays on
       // the growth report (dual session — see openKidPageInNewTab).
-      await openKidPageInNewTab(parentKidLogin, kidId, navigate);
-      setOpeningKidPage(false);
+      await openKidPageInNewTab(parentKidLogin, kidId, nav);
+      setOpeningKid(false);
     } catch {
-      setKidLoginError(`Could not open ${name}'s page. Please try again.`);
-      setOpeningKidPage(false);
+      setOpenError(`Could not open ${name}'s kids page. Please try again.`);
+      setOpeningKid(false);
     }
   };
 
@@ -121,37 +124,43 @@ export function KidGrowthPage() {
     <div>
       <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">← Family</Link>
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row">
+        <div className="flex items-center gap-4">
+          <KidAvatar avatarId={kid.data.avatar_id} nickname={name} size="lg" />
+          <div>
           <div className="eyebrow eyebrow-bubblegum">Growth</div>
           <h1 className="section-heading">{name}&apos;s growth</h1>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Link
-            to={`/portal/family/${kidId}/settings`}
-            aria-label={`Edit ${name}'s profile`}
-            className="btn-pill-primary"
-          >
-            Edit profile
-          </Link>
-          <button
-            type="button"
-            className="btn-pill-secondary"
-            onClick={openKidPage}
-            disabled={openingKidPage || !isActive}
-          >
-            {openingKidPage ? 'Opening…' : `Open ${name}'s kids page`}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
           <span className={`sticker-${isActive ? 'mint' : 'sunshine'}`}>
             {isActive ? 'Active' : 'Paused'}
           </span>
+          <button
+            type="button"
+            onClick={openKidsPage}
+            disabled={!isActive || openingKid}
+            className="btn-pill-primary"
+            aria-label={`Open ${name}'s kids page`}
+          >
+            {openingKid ? 'Opening…' : `Open ${name}'s page →`}
+          </button>
+          <KidDeviceHandoff
+            kidId={kid.data.id}
+            nickname={name}
+            avatarId={kid.data.avatar_id}
+            disabled={!isActive}
+          />
+          <Link
+            to={`/portal/family/${kidId}/settings`}
+            className="btn-pill-primary"
+            aria-label={`Edit ${name}'s profile`}
+          >
+            Edit profile
+          </Link>
         </div>
       </div>
-      {kidLoginError && (
-        <p role="alert" className="mb-4 text-[13px] font-semibold text-danger-600">
-          {kidLoginError}
-        </p>
-      )}
+      {openError && <p className="field-error mb-4" role="alert">{openError}</p>}
 
       {detail.isLoading ? (
         <p className="lead-text">Loading {name}&apos;s growth…</p>

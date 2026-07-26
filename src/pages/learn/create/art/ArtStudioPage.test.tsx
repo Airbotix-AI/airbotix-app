@@ -9,7 +9,7 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forwardRef, useImperativeHandle } from 'react';
 
@@ -212,12 +212,22 @@ vi.mock('./matting', () => ({
 
 import { ArtStudioPage } from './ArtStudioPage';
 
+// Reports the live router state, so a spec can assert the page consumed a
+// one-shot nav intent (`fresh` / reopen) instead of leaving it in the history
+// entry where a refresh would replay it.
+let routerState: unknown = undefined;
+function StateProbe() {
+  routerState = useLocation().state;
+  return null;
+}
+
 function renderPage(state?: Record<string, unknown>) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/learn/create/image', state }]}>
       <QueryClientProvider client={qc}>
         <ArtStudioPage />
+        <StateProbe />
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -228,6 +238,20 @@ const MISSION = {
   slug: 'draw-your-robot',
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
+  steps: [
+    {
+      id: 'step_1',
+      title: "Your hero's character sheet",
+      instruction_md: 'Make front, side and jumping poses that all look like the same hero.',
+      widget: 'image_create' as const,
+    },
+    {
+      id: 'step_2',
+      title: 'Boot your title screen',
+      instruction_md: 'Put your hero in the world and make the game open here.',
+      widget: 'code' as const,
+    },
+  ],
   template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
   draw_along: ['a big circle for the body', 'two small circles for the eyes'],
   checklist: ['a robot', 'a garden', 'a happy feeling'],
@@ -267,6 +291,10 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
     expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
+    const startGuide = screen.getByTestId('art-studio-start-guide');
+    expect(startGuide).toHaveTextContent('Start here — make your first picture');
+    expect(startGuide).toHaveTextContent('Tell Boti what you want to make');
+    expect(startGuide).toHaveTextContent('Bring it to life');
     // brand mark rides the bottom bar like the Music Stage (immersive page has no nav)
     expect(screen.getByTestId('studio-brand')).toBeInTheDocument();
     expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
@@ -353,6 +381,31 @@ describe('ArtStudioPage (canvas-first)', () => {
         const saved = JSON.parse(localStorage.getItem(KEY) as string);
         expect(saved.baseRef).toEqual({ id: 'art_reopen_1', projectId: 'proj_saved_pics' });
       });
+    });
+
+    // The hub's "Draw a new picture" (owner 2026-07-26: 点 Draw a new picture
+    // 出来的是之前画过的). Draft restore is right for a refresh and wrong for an
+    // explicit new drawing — `fresh` is how the canvas tells the two apart.
+    it('starts blank and drops the draft when the hub asks for a NEW picture', async () => {
+      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      renderPage({ fresh: true });
+      await screen.findByTestId('ai-rail');
+      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
+      await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
+      // No stale base either — the reopened-picture controls stay away.
+      expect(screen.queryByTestId('mask-toggle')).toBeNull();
+    });
+
+    it('consumes the one-shot nav intent so a later refresh keeps the NEW work', async () => {
+      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      renderPage({ fresh: true });
+      await screen.findByTestId('ai-rail');
+      // `fresh` is gone from the history entry: a reload now restores the draft…
+      await waitFor(() => expect(routerState).toBeNull());
+      // …and the draft is the work done AFTER the fresh start, not the old one.
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
+      expect(JSON.parse(localStorage.getItem(KEY) as string).ops).toHaveLength(1);
     });
 
     it('a REFRESH after reopening restores the base picture (no nav state)', async () => {
@@ -753,6 +806,12 @@ describe('ArtStudioPage (canvas-first)', () => {
       const card = await screen.findByTestId('mission-card');
       expect(card).toHaveTextContent('Draw your robot');
       expect(card).toHaveTextContent('A robot with a happy face!');
+      const learningSteps = screen.getByTestId('mission-learning-steps');
+      expect(learningSteps).toHaveTextContent('Learn & make · 2 steps');
+      expect(learningSteps).toHaveTextContent("Your hero's character sheet");
+      expect(learningSteps).toHaveTextContent('Boot your title screen');
+      expect(learningSteps).toHaveTextContent('Creative Code Studio');
+      expect(screen.queryByTestId('art-studio-start-guide')).not.toBeInTheDocument();
     });
 
     it('magic creates a MISSION project (not the bucket) and saves there', async () => {

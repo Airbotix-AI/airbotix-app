@@ -128,6 +128,60 @@
     font-weight: 500;
   }
 
+  /* === Parent Portal responsive density ===
+     The parent surface is an operational app, not a marketing page. Below the
+     wide-desktop shell it uses a compact native-app scale while preserving the
+     K-12 palette, touch targets and rounded geometry. */
+  .portal-shell {
+    font-size: 16px;
+  }
+
+  @media (max-width: 1279px) {
+    .portal-shell .section-heading {
+      font-size: clamp(26px, 3.2vw, 32px);
+      line-height: 1.12;
+    }
+    .portal-shell .hero-display {
+      font-size: clamp(32px, 5vw, 44px);
+      line-height: 1.08;
+    }
+    .portal-shell .lead-text {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .portal-shell .eyebrow {
+      margin-bottom: 8px;
+      font-size: 10px;
+    }
+    .portal-shell .card-base,
+    .portal-shell .card-feature {
+      padding: 20px;
+    }
+    .portal-shell .btn-pill-primary,
+    .portal-shell .btn-pill-secondary {
+      min-height: 44px;
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+    .portal-shell .btn-pill-ghost {
+      min-height: 44px;
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .portal-shell .section-heading {
+      font-size: 26px;
+    }
+    .portal-shell .hero-display {
+      font-size: 32px;
+    }
+    .portal-shell .card-base,
+    .portal-shell .card-feature {
+      padding: 16px;
+    }
+  }
+
   /* === Cards === */
   .card-base {
     @apply bg-canvas-pure rounded-2xl shadow-card-soft;
@@ -853,10 +907,10 @@
   }
 
   /* === Nav drawer === */
-  .nav-link {
-    @apply block rounded-2xl px-4 py-2.5 text-[14px] font-medium text-ink-soft hover:bg-wash-coral hover:text-ink transition-colors;
+  .portal-shell .nav-link {
+    @apply block rounded-xl px-3 py-2 text-[13px] font-medium text-ink-soft hover:bg-wash-coral hover:text-ink transition-colors;
   }
-  .nav-link-active {
+  .portal-shell .nav-link-active {
     @apply bg-wash-coral text-ink font-semibold;
   }
 
@@ -896,5 +950,107 @@
   }
   .pack-card.sunshine .pack-blob {
     background: rgba(31, 27, 45, 0.08);
+  }
+
+  /* === Art Studio tutor pose animation === */
+  .art-tutor-sprite {
+    transform-origin: 50% 84%;
+    will-change: transform, opacity;
+  }
+  .art-tutor-sprite--idle {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-float 1.4s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--thinking {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-think 2.8s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--looking {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-look 2.2s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--creating {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-create 1.5s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--celebrating {
+    animation:
+      art-tutor-enter 200ms ease-out both,
+      art-tutor-celebrate 760ms ease-in-out 200ms infinite;
+  }
+  .art-tutor-sprite--compact {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-float 4s ease-in-out 240ms infinite;
+  }
+
+  @keyframes art-tutor-enter {
+    from {
+      opacity: 0;
+      transform: translateY(5px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes art-tutor-float {
+    0%,
+    100% {
+      transform: translateY(1px) rotate(-1.5deg) scale(0.98);
+    }
+    50% {
+      transform: translateY(-6px) rotate(1.5deg) scale(1.04);
+    }
+  }
+  @keyframes art-tutor-think {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    50% {
+      transform: translateY(-3px) rotate(-4deg) scale(1.03);
+    }
+  }
+  @keyframes art-tutor-look {
+    0%,
+    100% {
+      transform: translateX(0) rotate(0);
+    }
+    50% {
+      transform: translateX(-4px) translateY(-2px) rotate(-3deg) scale(1.03);
+    }
+  }
+  @keyframes art-tutor-create {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 0 rgba(93, 174, 255, 0));
+      transform: translateY(0);
+    }
+    50% {
+      filter: drop-shadow(0 0 8px rgba(93, 174, 255, 0.45));
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes art-tutor-celebrate {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    45% {
+      transform: translateY(-7px) scale(1.04);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art-tutor-sprite {
+      animation: none;
+      transform: none;
+      transition-duration: 1ms;
+    }
   }
 }

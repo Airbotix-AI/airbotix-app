@@ -73,6 +73,7 @@ import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
+  storyMissionSayChoices,
   storyMissionScriptId,
   TINY_STAR_GREETING_CHOICES,
 } from './storyMissionProgress';
@@ -222,6 +223,15 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  // Preset dialogue choices for the Say editor: the mission contract's allowed
+  // texts (JtW greeting choice), falling back to the Tiny Star greetings for
+  // personal-ship missions that predate contract-driven choices.
+  const missionSayChoices = useMemo(
+    () =>
+      storyMissionSayChoices(project.lessonId) ??
+      (storyMission?.mode === 'personal-ship' ? TINY_STAR_GREETING_CHOICES : null),
+    [project.lessonId, storyMission?.mode],
+  );
   const journeyPosition = useMemo(
     () => storyJourneyPositionForLesson(project.lessonId),
     [project.lessonId],
@@ -248,6 +258,11 @@ export function BlocksStudioPage({
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
+  // JtW C1-P6: the starter ships the Say→Hop→Show order bug. The mission only
+  // completes after the child has RUN the bug at least once (the wrong-run
+  // observation) and then rerun the repaired exact chain — mirroring the
+  // A2-D/A4-D debug contract "bug run and fixed run must both exist".
+  const isJtwOrderDebug = storyMission?.lessonId === 'jtw-s1-c1-p6';
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -654,9 +669,16 @@ export function BlocksStudioPage({
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
+        // JtW C1-P6: pressing Go while Say still precedes Show reproduces the
+        // "voice from thin air" bug — that run IS the required bug run.
+        const jtwSayIndex = missionScript?.blocks.findIndex((block) => block.op === 'say') ?? -1;
+        const jtwShowIndex = missionScript?.blocks.findIndex((block) => block.op === 'show') ?? -1;
+        const observedOrderBug =
+          isJtwOrderDebug && jtwSayIndex >= 0 && (jtwShowIndex < 0 || jtwSayIndex < jtwShowIndex);
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
+        if (observedOrderBug) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           const completedDistanceHook =
             storyMission.lessonId === 'tsv-s1-a4-h' &&
@@ -673,7 +695,8 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
-          (!(isA2DirectionDebug || isA4ParameterDebug) || missionWrongRunObserved) &&
+          (!(isA2DirectionDebug || isA4ParameterDebug || isJtwOrderDebug) ||
+            missionWrongRunObserved) &&
           (!isA4ParameterDebug || answeredCorrectly)
         ) {
           setMissionCorrectRunFinished(true);
@@ -700,6 +723,8 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
+    isJtwOrderDebug,
+    missionScript,
     missionWrongRunObserved,
     missionAnswer,
     answeredCorrectly,
@@ -2243,9 +2268,9 @@ export function BlocksStudioPage({
                   onKeyDown={(e) => e.key === 'Enter' && setEditBlk(null)}
                   className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
                 />
-                {storyMission?.mode === 'personal-ship' && (
+                {missionSayChoices && (
                   <div className="mt-2 grid gap-1.5" data-testid="story-greeting-picker">
-                    {TINY_STAR_GREETING_CHOICES.map((greeting) => (
+                    {missionSayChoices.map((greeting) => (
                       <button
                         key={greeting}
                         type="button"

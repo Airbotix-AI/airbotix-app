@@ -1,13 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
-import { useMe } from '@/auth/useAuth';
+import { useMe, useParentKidLogin } from '@/auth/useAuth';
+import { openKidPageInNewTab } from '@/auth/openKidPage';
 import { api } from '@/lib/api';
+import { KidAvatar } from '@/components/KidAvatar';
+import { KidDeviceHandoff } from '@/components/KidDeviceHandoff';
 import { KidGrowthTeaser } from './KidGrowthTeaser';
 
 interface Kid {
   id: string;
   nickname: string;
+  avatar_id: string | null;
   age: number;
   is_active: boolean;
   daily_star_cap: number | null;
@@ -24,7 +29,11 @@ interface FamilyData {
 }
 
 export function FamilyListPage() {
+  const nav = useNavigate();
   const me = useMe();
+  const parentKidLogin = useParentKidLogin();
+  const [openingKidId, setOpeningKidId] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
 
   const family = useQuery<FamilyData>({
@@ -72,23 +81,68 @@ export function FamilyListPage() {
             const palette = ['coral', 'bubblegum', 'sunshine', 'sky', 'mint'] as const;
             const color = palette[i % palette.length];
             return (
-              <Link
+              <div
                 key={kid.id}
-                to={`/portal/family/${kid.id}`}
                 className={`stat-tile ${color} block text-left transition-transform hover:-translate-y-0.5`}
               >
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex items-center gap-3">
+                    <KidAvatar avatarId={kid.avatar_id} nickname={kid.nickname} size="lg" />
+                    <div>
                     <div className="text-[28px] font-bold text-ink leading-tight">{kid.nickname}</div>
                     <div className="text-[13px] text-slate2 mt-1">Age {kid.age}</div>
+                    </div>
                   </div>
                   <span className={`sticker-${color}`}>{kid.is_active ? 'Active' : 'Paused'}</span>
                 </div>
 
                 <KidGrowthTeaser kidId={kid.id} name={kid.nickname} />
 
-                <div className="mt-5 text-[13px] font-semibold text-brand-coral">See growth →</div>
-              </Link>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={!kid.is_active || openingKidId !== null}
+                    onClick={async () => {
+                      setOpeningKidId(kid.id);
+                      setOpenError(null);
+                      try {
+                        // Opens the kid's Learn surface in a NEW tab so this
+                        // parent tab stays on My Family (dual session — see
+                        // openKidPageInNewTab).
+                        await openKidPageInNewTab(parentKidLogin, kid.id, nav);
+                        setOpeningKidId(null);
+                      } catch {
+                        setOpenError(`Could not open ${kid.nickname}'s kids page. Please try again.`);
+                        setOpeningKidId(null);
+                      }
+                    }}
+                    className="btn-pill-primary"
+                    aria-label={`Open ${kid.nickname}'s kids page`}
+                  >
+                    {openingKidId === kid.id ? 'Opening…' : 'Open kids page →'}
+                  </button>
+                  <Link
+                    to={`/portal/family/${kid.id}`}
+                    className="btn-pill-secondary"
+                    aria-label={`See ${kid.nickname}'s growth`}
+                  >
+                    See growth
+                  </Link>
+                  <KidDeviceHandoff
+                    kidId={kid.id}
+                    nickname={kid.nickname}
+                    avatarId={kid.avatar_id}
+                    disabled={!kid.is_active}
+                  />
+                  <Link
+                    to={`/portal/family/${kid.id}/settings`}
+                    className="btn-pill-primary"
+                    aria-label={`Edit ${kid.nickname}'s profile`}
+                  >
+                    Edit profile
+                  </Link>
+                </div>
+              </div>
             );
           })}
         </div>
@@ -104,6 +158,8 @@ export function FamilyListPage() {
           <Link to="/portal/family/new" className="btn-pill-primary mt-6">+ Add kid</Link>
         </div>
       )}
+
+      {openError && <p className="field-error mt-4" role="alert">{openError}</p>}
 
       {family.data && (
         <div className="card-base mt-8 flex items-center justify-between gap-6">

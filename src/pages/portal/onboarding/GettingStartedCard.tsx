@@ -4,6 +4,7 @@ import { Check } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
+import { MobileNumberEditor } from '../MobileNumberEditor';
 import { KidLoginHelper } from './KidLoginHelper';
 import { useOnboardingState } from './useOnboardingState';
 import type { OnboardingItemId } from './onboardingState';
@@ -19,6 +20,7 @@ function Row({
   done,
   label,
   sub,
+  detail,
   optional,
   action,
   compact,
@@ -26,6 +28,7 @@ function Row({
   done: boolean;
   label: ReactNode;
   sub?: ReactNode;
+  detail?: ReactNode;
   optional?: boolean;
   action?: ReactNode;
   compact?: boolean;
@@ -74,12 +77,15 @@ function Row({
               {sub}
             </div>
           )}
+          {detail && !done && detail}
         </div>
       </div>
       {!done && action && (
         <div
           className={
-            compact ? 'ml-8 w-[calc(100%-2rem)] [&>a]:w-full [&>button]:w-full' : 'shrink-0'
+            compact
+              ? 'ml-8 w-[calc(100%-2rem)] [&>a]:w-full [&>button]:w-full [&>div]:items-stretch'
+              : 'shrink-0'
           }
         >
           {action}
@@ -98,6 +104,7 @@ function Row({
 export function GettingStartedCard({ variant = 'default' }: { variant?: 'default' | 'sidebar' }) {
   const ob = useOnboardingState();
   const [helperOpen, setHelperOpen] = useState(false);
+  const [phoneEditorOpen, setPhoneEditorOpen] = useState(false);
   const compact = variant === 'sidebar';
   const controlClass = (base: string) => `${base} ${compact ? '!px-3.5 !py-2 !text-[12px]' : ''}`;
 
@@ -108,7 +115,13 @@ export function GettingStartedCard({ variant = 'default' }: { variant?: 'default
     enabled: helperOpen && ob.hasFamily,
   });
 
-  if (!ob.isReady || !ob.hasFamily || ob.checklistDismissed) return null;
+  const phonePromptActive = !ob.state.profileComplete && !ob.phonePromptDismissed;
+  if (!ob.isReady || !ob.hasFamily || (ob.checklistDismissed && !phonePromptActive)) return null;
+
+  const hideCard = () => {
+    ob.dismissChecklist();
+    if (!ob.state.profileComplete) ob.deferPhonePrompt();
+  };
 
   const openHelper = () => setHelperOpen(true);
   const closeHelper = () => {
@@ -128,7 +141,7 @@ export function GettingStartedCard({ variant = 'default' }: { variant?: 'default
   ) : null;
 
   // Once core is complete, collapse to a celebratory dismissible line.
-  if (ob.state.coreComplete) {
+  if (ob.state.coreComplete && (ob.state.profileComplete || ob.phonePromptDismissed)) {
     return (
       <>
         <div
@@ -157,10 +170,34 @@ export function GettingStartedCard({ variant = 'default' }: { variant?: 'default
 
   const labels: Record<
     OnboardingItemId,
-    { label: ReactNode; sub?: ReactNode; action?: ReactNode }
+    { label: ReactNode; sub?: ReactNode; detail?: ReactNode; action?: ReactNode }
   > = {
     familySetup: { label: 'Your family is set up' },
     kidAdded: { label: `${ob.kidName} is added` },
+    phoneAdded: {
+      label: 'Add your mobile number',
+      sub: 'For class updates and support. No SMS verification yet.',
+      detail: phoneEditorOpen ? (
+        <MobileNumberEditor
+          current={null}
+          allowClear={false}
+          onSaved={() => setPhoneEditorOpen(false)}
+        />
+      ) : undefined,
+      action: !phoneEditorOpen ? (
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={() => setPhoneEditorOpen(true)}
+            className={controlClass('btn-pill-secondary')}
+          >
+            Add mobile →
+          </button>
+          <button onClick={ob.deferPhonePrompt} className={controlClass('btn-pill-ghost !py-1')}>
+            Not now
+          </button>
+        </div>
+      ) : undefined,
+    },
     kidLogin: {
       label: `Log ${ob.kidName} in on their device`,
       action: (
@@ -205,29 +242,40 @@ export function GettingStartedCard({ variant = 'default' }: { variant?: 'default
     },
   };
 
+  const legacyPhoneOnly = ob.checklistDismissed && phonePromptActive;
+  const visibleItems = ob.state.items.filter((item) => {
+    if (legacyPhoneOnly) return item.id === 'phoneAdded';
+    if (item.id === 'phoneAdded' && ob.phonePromptDismissed) return false;
+    return true;
+  });
+
   return (
     <>
       <div className={`card-base ${compact ? 'mb-0 !p-5' : 'mb-8'}`} data-layout={variant}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <span className="sticker-mint">Getting started</span>
+            <span className="sticker-mint">
+              {legacyPhoneOnly ? 'Contact details' : 'Getting started'}
+            </span>
             <h2 className="section-heading mt-3" style={{ fontSize: compact ? '18px' : '24px' }}>
-              You&apos;re almost ready 🎉
+              {legacyPhoneOnly ? 'Add your mobile number' : "You're almost ready 🎉"}
             </h2>
             <p
               className="lead-text mt-2"
               style={{ fontSize: compact ? '13px' : '15px', lineHeight: compact ? 1.45 : 1.55 }}
             >
-              A couple of quick steps and {ob.kidName} can start creating.
+              {legacyPhoneOnly
+                ? 'Keep your contact details ready for class updates and support.'
+                : `A couple of quick steps and ${ob.kidName} can start creating.`}
             </p>
           </div>
-          <button onClick={ob.dismissChecklist} className={controlClass('btn-pill-ghost shrink-0')}>
+          <button onClick={hideCard} className={controlClass('btn-pill-ghost shrink-0')}>
             Hide
           </button>
         </div>
 
         <div className="mt-4 divide-y divide-hairline">
-          {ob.state.items.map((item) => {
+          {visibleItems.map((item) => {
             const cfg = labels[item.id];
             return (
               <Row
@@ -235,6 +283,7 @@ export function GettingStartedCard({ variant = 'default' }: { variant?: 'default
                 done={item.done}
                 label={cfg.label}
                 sub={cfg.sub}
+                detail={cfg.detail}
                 optional={item.optional}
                 action={cfg.action}
                 compact={compact}

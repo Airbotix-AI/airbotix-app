@@ -23,11 +23,13 @@ export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
   const hasAnything = enrollments.length + pending.length + requests.length > 0;
 
   return (
-    <section className={compact ? 'mb-8' : 'mb-10'}>
+    <section className={compact ? 'mb-7' : 'mb-10'} data-testid="my-classes-panel">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="eyebrow eyebrow-mint">My classes</div>
-          <h2 className="text-[28px] font-bold leading-tight text-ink">Booked and requested</h2>
+          <h2 className="text-[24px] font-bold leading-tight text-ink sm:text-[26px]">
+            Booked and requested
+          </h2>
         </div>
         <Link to="/portal/classes" className="btn-pill-ghost">
           Find a class
@@ -58,7 +60,10 @@ export function MyClassesPanel({ compact = false }: { compact?: boolean }) {
       )}
 
       {hasAnything && (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        <div
+          className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"
+          data-testid="my-classes-grid"
+        >
           {enrollments.slice(0, compact ? 2 : 4).map((item) => (
             <div key={item.id} className="rounded-2xl border border-hairline bg-canvas-pure p-4">
               <span className="sticker-mint">Locked</span>
