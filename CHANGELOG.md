@@ -16,6 +16,18 @@
   list — from the canvas the child's own tasks and pictures are one level up, not two.
 - The Workspace picker's Art Studio card promises the hub it now opens ("Your tasks, pictures
   and a new canvas") rather than "Opens your own art studio", which read as "a blank canvas".
+## 2026-07-26 (fix: ship the complete Boti tutor pose pack)
+
+### Fixed
+
+- Added the six checked-in WebP poses referenced by `ArtTutorAvatar` so a clean
+  checkout renders Boti instead of requesting missing `/media/art-tutor/*`
+  files.
+- Restored the tutor motion CSS for the idle pose loop and reactive thinking,
+  looking, creating, celebrating and compact states, including the reduced-motion
+  fallback.
+- Added a component regression check that fails when any referenced pose asset
+  is absent from `public/media/art-tutor`.
 
 ## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
 
