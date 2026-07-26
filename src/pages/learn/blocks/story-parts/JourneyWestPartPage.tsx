@@ -39,6 +39,17 @@ import { JourneyWestC2Part2Page } from './JourneyWestC2Part2Page';
 import { JourneyWestC2Part3Page } from './JourneyWestC2Part3Page';
 import { JourneyWestC2Part4Page } from './JourneyWestC2Part4Page';
 import { JourneyWestC2Part5Page } from './JourneyWestC2Part5Page';
+import { JourneyWestC2Part6Page } from './JourneyWestC2Part6Page';
+import { JourneyWestC2Part7Page } from './JourneyWestC2Part7Page';
+import { JourneyWestC2Part8Page } from './JourneyWestC2Part8Page';
+import { JourneyWestC3Part1Page } from './JourneyWestC3Part1Page';
+import { JourneyWestC3Part2Page } from './JourneyWestC3Part2Page';
+import { JourneyWestC3Part3Page } from './JourneyWestC3Part3Page';
+import { JourneyWestC3Part4Page } from './JourneyWestC3Part4Page';
+import { JourneyWestC3Part5Page } from './JourneyWestC3Part5Page';
+import { JourneyWestC3Part6Page } from './JourneyWestC3Part6Page';
+import { JourneyWestC3Part7Page } from './JourneyWestC3Part7Page';
+import { JourneyWestC3Part8Page } from './JourneyWestC3Part8Page';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -60,6 +71,17 @@ export function JourneyWestPartRoute() {
   if (partId === 'jtw-s1-c2-p3') return <JourneyWestC2Part3Page />;
   if (partId === 'jtw-s1-c2-p4') return <JourneyWestC2Part4Page />;
   if (partId === 'jtw-s1-c2-p5') return <JourneyWestC2Part5Page />;
+  if (partId === 'jtw-s1-c2-p6') return <JourneyWestC2Part6Page />;
+  if (partId === 'jtw-s1-c2-p7') return <JourneyWestC2Part7Page />;
+  if (partId === 'jtw-s1-c2-p8') return <JourneyWestC2Part8Page />;
+  if (partId === 'jtw-s1-c3-p1') return <JourneyWestC3Part1Page />;
+  if (partId === 'jtw-s1-c3-p2') return <JourneyWestC3Part2Page />;
+  if (partId === 'jtw-s1-c3-p3') return <JourneyWestC3Part3Page />;
+  if (partId === 'jtw-s1-c3-p4') return <JourneyWestC3Part4Page />;
+  if (partId === 'jtw-s1-c3-p5') return <JourneyWestC3Part5Page />;
+  if (partId === 'jtw-s1-c3-p6') return <JourneyWestC3Part6Page />;
+  if (partId === 'jtw-s1-c3-p7') return <JourneyWestC3Part7Page />;
+  if (partId === 'jtw-s1-c3-p8') return <JourneyWestC3Part8Page />;
   return <Navigate to="/learn/story/journey-west" replace />;
 }
 

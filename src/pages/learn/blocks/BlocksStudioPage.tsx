@@ -68,6 +68,7 @@ import { CharacterVisual } from './CharacterVisual';
 import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
+import { isJtwOrderDebugLesson, jtwOrderBugObserved } from './jtwOrderDebug';
 import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -337,7 +338,7 @@ export function BlocksStudioPage({
   // completes after the child has RUN the bug at least once (the wrong-run
   // observation) and then rerun the repaired exact chain — mirroring the
   // A2-D/A4-D debug contract "bug run and fixed run must both exist".
-  const isJtwOrderDebug = storyMission?.lessonId === 'jtw-s1-c1-p6';
+  const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -858,12 +859,9 @@ export function BlocksStudioPage({
         // touched. Measured from the interpreter's own ordered op record.
         const observedEarlyBell =
           isA6OrderDebug && tinyStarBellRangBeforeHop(bellPlayedOpsRef.current);
-        // JtW C1-P6: pressing Go while Say still precedes Show reproduces the
-        // "voice from thin air" bug — that run IS the required bug run.
-        const jtwSayIndex = missionScript?.blocks.findIndex((block) => block.op === 'say') ?? -1;
-        const jtwShowIndex = missionScript?.blocks.findIndex((block) => block.op === 'show') ?? -1;
-        const observedOrderBug =
-          isJtwOrderDebug && jtwSayIndex >= 0 && (jtwShowIndex < 0 || jtwSayIndex < jtwShowIndex);
+        // JtW C1-P6 / C2-P6: pressing Go while the shipped order bug is still
+        // in the chain reproduces it — that run IS the required bug run.
+        const observedOrderBug = jtwOrderBugObserved(storyMission.lessonId, missionScript?.blocks);
         // A6-H: the Hook's proof is the run itself — the interpreter played the
         // bell, never reached a Hop, and left the ringer standing at the foot of
         // the tower. Recorded so the "which card is missing?" answer can only be

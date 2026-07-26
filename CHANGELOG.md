@@ -117,6 +117,571 @@
   fallback.
 - Added a component regression check that fails when any referenced pose asset
   is absent from `public/media/art-tutor`.
+## 2026-07-27 (feat: Journey West C3-P8 — arriving is not learning)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p8` — chapter three's Retell and the server-side chapter
+  aggregation** (scene-specs JTW-S1-C3-P8, teaching script C3 故事卡D + Part 8). This Part ships NO
+  starter, and that is the point: it reopens the C3-P7 Personal Ship the child really saved through
+  the SAME VFS read path C3-P7 uses, so the scene's "不得另载答案项目" is structural rather than a
+  promise — there is no template this page could create. With no saved work, or a saved document
+  that no longer satisfies the C3-P7 grammar (a leg one cell short, a page whose actions were
+  deleted, an exit pointing home), the page points back at Part 7 and completes nothing.
+- **The gate order is the scene's.** 故事卡D in full + the 漂洋求师 classic card + the two shore
+  lines; then the FIVE cause cards `为什么离开→伙伴造筏→Page 2出口错误→修复顺序与位置→到达师门` must
+  be ordered BEFORE the run button opens (putting 到达师门 in front of 修复顺序与位置 keeps it
+  disabled); then the SAVED document is walked from Page 1 to Page 3's End through the real
+  `PageFlowRunner`, requiring `1 → 2 → 3`, `stoppedBy === 'end'` and both page boundaries
+  continuous; and only that run opens the retell.
+- **两类证据, measured separately.** The TEXT motive card must come from the story and say why he
+  left — 寻宝 is refused (the motive lock) and so is "Page 1 的出口写着 2", which is program evidence,
+  not text. The PROGRAM card is judged ONLY by the run that just happened:
+  `c3p8ProgramEvidenceMeasured` admits `trace-1-2-3 / exit-page2-is-3 / page3-ends /
+  boundaries-continuous` solely when the run and the saved design really produced them, so the
+  master's line and "木筏自己知道该去哪一页" are not mis-marked options — they are things that cannot
+  be measured. The retell itself refuses a block-name recital AND "后来他就学会本领了", which is the
+  scene's own "到达只证明完成寻找与修正，不表示已学会本领".
+- **远行印 is lit by the SERVER alone.** The page renders `chapter_seals[].lit` from `/story-parts`
+  and, when dark, names how many evidence groups the server still reports missing. `现在去敲门`
+  opens ONLY jtw-s1-c4-p1 and goes to the map; `以后继续` writes the resume position onto the same
+  evidence row and does NOT navigate, which a refresh restores. Neither auto-advances a chapter.
+- **`journeyWestC3RouteRun.ts` (`useJtwC3RouteRun`) and `JourneyWestC3BoundaryTable.tsx`** — the
+  cross-page run driver and the measured-boundary table, extracted from the copies C3-P6 and C3-P7
+  each carried and now shared by C3-P6/P7/P8. `findC3PersonalRouteBuild` moved into
+  `journeyWestC3Part7Program.ts` so both Parts read the saved work the same way.
+
+### Changed
+- C3-P7's page uses the shared run hook, the shared boundary table and the shared loader; its
+  behaviour, test ids and copy are unchanged and it shrank 857 → 738 lines (C3-P6 851 → 817).
+  `BlocksStudioPage.tsx` (~2958 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so all C3-P8 content lives in `journeyWestC3Part8Program.ts`.
+
+### Notes
+- No new asset, and nothing invented. The resolved panel reuses the already-integrated
+  `backgrounds/s1/c3/page3-resolved-v01.webp` — the lit stepping path and the master's stone gate
+  out of the mist, which IS the scene's 师门石牌点亮. 远行印 itself has no artwork in the asset
+  bible §6 and none was faked: it is drawn in type and a lit border, with no fireworks, because the
+  scene forbids implying the skills are learned.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 217 files / 1818 tests green — no
+  documented flake reproduced.
+
+## 2026-07-27 (feat: Journey West C3-P7 — my own three-page road to a master)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p7` — chapter three's Personal Ship** (scene-specs
+  JTW-S1-C3-P7, teaching script C3 Part 7). C3-P6 finished the PUBLIC route; here the whole
+  three-page journey is handed over. All three script slots ship with nothing but a Start, so every
+  meaningful action on every page, both page exits and the closing End are blocks the child places
+  — 至少七块 — and 星夜/晨雾, the wait rhythm, the preset dialogue and how the raft's leg is paced are
+  four real choices. The work is named `Across the Sea to Learn`.
+- **`jtwC3PersonalRoute.ts` — the personal three-page route GRAMMAR.** This is the first C3 Part
+  with no target chain at all: the scene prints a minimum STRUCTURE, so the contract parses a saved
+  `BlocksProject` into the design the child really built and returns null the moment a rule breaks.
+  That is what makes the scene's own assertions structural rather than advisory — 循环 (Page 1's
+  exit must be 2 and Page 2's must be 3), 死页 (Page 3 must End), 空Page 2 (每页 2–4 块动作, and the
+  sea page additionally needs a Wait or a Speed, because the C3 shared contract gives it
+  观察、前进与停顿) and 未保存 each fail here. 求师而非寻宝/取经 is structural too: the Say editor only
+  offers the mission contract's four preset lines, so no other sentence can reach a saved document.
+- **连续木筏/地标, as arithmetic instead of prose.** Page 1's raft is really beached on `7-9`, so the
+  child's own walk has to total four cells to board it; Page 2's raft carries the deck four cells,
+  so the sea walk has to total four to keep his feet on it (asset bible §2.4). HOW those cells are
+  split, and how long he pauses, are the child's.
+- **Completion is MEASURED FOUR TIMES, never asserted.** (a) The SAVED project must satisfy the
+  grammar AND carry the studio's own run+save marker. (b) The peer predicts every page from the
+  landmarks, start cells and exit numbers alone, and those predictions are compared against a REAL
+  run — the Part names the FIRST page they disagree on and says 只修这一页, so 第一次不一致 is measured
+  rather than keyed. (c) `关闭并重新打开` really re-fetches the document from the server and compares
+  the two loads byte for byte (`jtwC3RouteFingerprint` over the canonical serialization), citing the
+  server's own version id twice. (d) The rerun walks THAT reopened document from Page 1 through the
+  real `PageFlowRunner`, requiring `1 → 2 → 3`, `stoppedBy === 'end'` and every boundary continuous.
+- **Order is enforced by the product, not suggested.** No sea → no studio; nothing saved → no design
+  and no peer section; no peer answers → the reopen button is disabled; no matching reopen → the run
+  button is disabled.
+- Evidence `story_screens / weather_version / route_ops / route_exits / block_ledger /
+  build_project / saved_version / reopen_version / reopen_match / peer_predictions / first_mismatch
+  / page_trace / run_footprints / run_boundaries / run_stop / exit_page / reopen_rerun` persists via
+  `/story-parts` and is restored on refresh (malformed rows dropped, not guessed). `沿歌声上山`
+  unlocks ONLY jtw-s1-c3-p8, and no seal element exists on the page — 远行印 is C3-P8's server-side
+  aggregation, and the resolved panel says so.
+
+### Changed
+- `storyMissionProgress.ts` gained ONE delegating branch for `jtw-s1-c3-p7`;
+  `storyMissionContracts.jtw.ts` gained the lesson's `scriptId` and its four `allowedSayText`
+  presets. `guides/journeyWestC3.ts` gained the studio guide, `blocksApi.ts` the two new template
+  ids, `JourneyWestPartPage.tsx` the route and `JourneyWestMapPage.tsx` the playable entry.
+  Continuity is measured with C3-P6's existing boundary helpers, unchanged.
+- `BlocksStudioPage.tsx` (~2958 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule in `rules/file-organization.md` — so the grammar lives in
+  `jtwC3PersonalRoute.ts` and the Part content in `journeyWestC3Part7Program.ts`.
+
+### Assets
+- **Nothing new was copied, and nothing was invented.** §6's whole `jtw-s1-c3-three-seas-route`
+  entry landed across C3-P1…P5; this Part stages only the monkey king and the raft, and its resolved
+  panel reuses the already-integrated `backgrounds/s1/c3/page3-resolved-v01.webp` — the far shore's
+  lit stepping path and the master's gate, which is exactly the scene's 彼岸山路和石牌完整出现.
+
+### Verified
+- `npx tsc --noEmit` clean · `npx eslint . --max-warnings 0` clean · `npx vitest run` 216 files /
+  1804 tests green (no documented flake reproduced).
+
+## 2026-07-27 (feat: Journey West C3-P6 — the raft jumped sides)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p6` — chapter three's Fix** (scene-specs JTW-S1-C3-P6,
+  teaching script C3 Part 6). The route runs, the exits are right and the weather chain the child
+  built in C3-P5 is right — and the picture still breaks, because Page 2's start cell ships as
+  `16/8` instead of the route contract's `2/8`, so the raft leaves Page 1 on the right and turns up
+  on Page 2 on the right again. This is the season's first scene whose bug is a stage POSITION
+  rather than a block, a number or an exit.
+- **`jtwC3JumpFix.ts` — the cross-page position contract.** It reproduces the exact program the two
+  whitelisted starters seed (so the Part can run the bug for real instead of narrating it), accepts
+  a repair ONLY when Page 2's two actors are on the contract cell with every other page, chain,
+  exit, background, actor and `size` still the shipped one, and measures cross-page continuity off
+  a real `PageFlowRunResult`: the next page's entry cell must be strictly LEFT of the last page's
+  exit cell, because the whole journey travels rightwards. 20 unit tests, including two real
+  page-flow runs per branch: the shipped bug still traces `1 → 2 → 3` and still ends on `end`,
+  while `page1→page2` is discontinuous and `page2→page3` is not — so **"it got there" is measured
+  not to be the evidence**.
+- **`journeyWestC3Part6Program.ts`** — the two story screens, the expectation stated BEFORE the
+  buggy run, the first-discontinuity pick, the minimal-fix choice, the peer's picture-only
+  continuity reading, and the copy around both runs.
+
+### Changed
+- **The order is structural, not advisory.** The bug-run button is disabled until the expectation
+  has been stated ("从右边离开，就从下一页的右边继续" is refused with the story's own line); the
+  first-discontinuity picker does not render until the bug has really been run; the minimal-fix
+  question does not render until the discontinuity is right; and the studio button stays disabled
+  until the minimal fix is named. 改 Page 1 的退出位置 is refused with its reason.
+- **The repair is a real DRAG, and the runtime already had it.** `BlocksStudioPage`'s existing
+  sprite drag (`moveCharacter`) is the whole task-level start editor the scene asks for, so NO
+  studio branching was added: `storyMissionProgress.ts` grew by one delegating branch to
+  `jtwC3JumpFixComplete` and nothing else. The store's `Math.round` snapping is what makes 精确
+  坐标容差 both exact (only `2/8` passes) and reachable by a six-year-old. 视觉尺寸与碰撞/边界校准
+  分离 is enforced too — `size` stays the asset bible §2.3 alpha-compensation `3.0`, and shrinking
+  the sprite instead of moving it is refused.
+- **Completion is measured twice.** The SAVED `BlocksProject` must satisfy the repair contract AND
+  carry the studio's own run+save marker; then, because the studio's runner only ever runs ONE
+  page, the Part page walks that same saved document through the real `PageFlowRunner` from Page 1
+  and requires `1 → 2 → 3`, `stoppedBy === 'end'` and EVERY boundary continuous. The single
+  position row (`page2-start:16-8->2-8`) is read off the saved document, never off page state.
+- **The sea being debugged is the child's own.** `blocks_jtw_c3_p6_starry` /
+  `blocks_jtw_c3_p6_morning` are two branches of one lesson, and which one seeds the project is
+  decided by the `weather_version` C3-P5 really stored — so "P5天气链保持正确" means their chain,
+  not a default one. When that row cannot be read the Part says so and offers no studio; it never
+  guesses a sea. `blocksApi.ts` learned the two template ids; `JourneyWestPartPage.tsx` and
+  `JourneyWestMapPage.tsx` learned the route.
+- **No seal is drawn, and the page says why.** The scene's own `resolved_world_change` line claims
+  远行印完整点亮 while its assertions in the same section say P6不完成Chapter; the C3 shared
+  contract requires P1–P8. The product follows the contract and the assertions, and the resolved
+  panel states out loud that the seal waits for C3-P8's server-side aggregation.
+- **No file over the hard rule was grown.** `BlocksStudioPage.tsx` (~2958 lines) and
+  `journeyWestSeason1.ts` (1125) are untouched by this Part's content; the guide sits beside
+  C3-P4/P5's in `guides/journeyWestC3.ts`.
+
+### Assets
+- **Nothing new was copied, and nothing was invented.** C3-P6 stages only the monkey king and the
+  raft, both already integrated; §6's whole `jtw-s1-c3-three-seas-route` entry landed across
+  C3-P1…P5. `16/8` sits inside asset bible §2.4's 12–88% safe band, so the bug is visibly on the
+  wrong side rather than clipped, and both Page 2 actors carry it because §2.4 forbids leaving his
+  feet on open water.
+
+### Verified
+- tsc clean, eslint zero-warning across the app, vitest 214 files / 1773 tests green.
+
+## 2026-07-27 (feat: Journey West C3-P5 — star-night and morning-mist both need looking)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p5` — chapter three's expression choice** (scene-specs
+  JTW-S1-C3-P5, teaching script C3 Part 5 · 故事选择：中间的海). Teaching text in full across two
+  screens (both versions valid; then the multi-year compression the three pages stand for), the
+  classic card, the 故事—程序桥, two weather cards each rendering the sea it really is, the
+  "看不清时为什么不是越快越好" explanation, and the peer prediction judged AGAINST THE CARD (what
+  will be heard, when the raft moves, which page it ends on).
+- **`jtwC3WeatherBuild.ts` — the two-branch middle-sea contract.** 星夜 is
+  `play_sound(Sparkle) → wait(2)` and 晨雾 is `set_speed(1) → play_sound(Whoosh) → say(preset)`,
+  both in FRONT of the shared `move_right(4) → goto_page(3)` route neither may touch.
+  `jtwC3WeatherBuildVersion` reads which version a SAVED project is by requiring the sea the page
+  paints and the chain the monkey king runs to AGREE — which is what makes the scene's
+  "只换背景不通过" structural: a repainted sea over the bare shipped route matches no branch, and
+  neither does a starry chain saved on the mist sea. A deleted Goto, an exit back at 1, a
+  reordered or half-built expression, a hand-typed Say and a mist version left at normal speed are
+  all refused as well. 14 unit tests cover both versions independently, including two real
+  page-flow runs.
+- **Two whitelisted starter branches** (`blocks_jtw_c3_p5_starry` / `blocks_jtw_c3_p5_morning`,
+  taught to `blocksApi.ts`). The weather card decides which starter creates the project, so the sea
+  the child chose is the sea the studio paints and the sea the saved document stores — never a page
+  boolean. `library.ts` and `blocks.css` learned the starry Page 2 scene id for the same reason.
+- **The mist version's preset line** is offered through the mission contract's `allowedSayText`, so
+  the Say editor shows it as a button and the contract accepts nothing else — "预设Say不得要求
+  低龄孩子自由输入" holds without a free-text requirement.
+- **`guides/journeyWestC3.ts`** gained the C3-P5 studio mission beside C3-P4's; without a guide the
+  studio would never record a run marker for the lesson.
+
+### Changed
+- **`JourneyWestC3Stage.tsx`** takes an optional `backgroundSrc`/`backgroundAlt`, so a Part that
+  legitimately paints another state of the same page (C3-P5's starry middle sea) swaps artwork
+  instead of forking the shared stage.
+- **`jtwC3Stage.ts`** gained the starry `before`/`resolved` paths, the starry scene id and
+  `JTW_C3_STORY_SCENES`; the morning constants now say which sea they are.
+- **`storyMissionProgress.ts`** grew by exactly one delegating branch.
+  `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in
+  `journeyWestC3Part5Program.ts` and the contract in `jtwC3WeatherBuild.ts`.
+
+### Assets
+- `backgrounds/s1/c3/page2-starry-before-v01.webp` and `page2-starry-resolved-v01.webp` copied into
+  `public/` (both 1672×941 RGB WebP) — the second middle sea, which C3-P2 and C3-P4 both
+  deliberately left in `design-system/` "until C3-P5, where the child really chooses". With them
+  the whole `jtw-s1-c3-three-seas-route` registry entry is integrated. Nothing was substituted.
+
+### Recorded gaps (not lowered)
+- Changing version means starting a new project: the runtime has no kid-facing way to repaint a
+  saved page's background (the studio scene picker only offers the generic scenes), so the chosen
+  sea is locked on the Part page and says so, rather than being silently swappable.
+- As with C3-P4, "积木托盘仅限制任务范围" is still not a task-scoped palette; task scope is enforced
+  by exact AST comparison instead.
+
+### Verified
+- tsc clean, eslint zero-warning across the app, vitest 212 files / 1735 tests green.
+
+## 2026-07-27 (feat: Journey West C3-P4 — a story AND an exit in the middle of the sea)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p4` — chapter three's main Build** (scene-specs
+  JTW-S1-C3-P4, teaching script C3 Part 4). C3-P3 proved the exit number is an address; here the
+  child finally OWNS a page. Teaching script Part 4 in full across two screens, the classic card
+  and the 故事—程序桥, the two READ-ONLY demo chains for Pages 1 and 3 shown beside the target
+  chain, the four block-role mappings (声音/移动/停顿/出口) and the "where does the raft leave
+  Page 2" prediction.
+- **`jtwC3SeaBuild.ts` — the season's first THREE-page mission contract.** The single-page
+  `StoryMissionProgramContract` cannot express "the child owns Page 2 while Pages 1 and 3 keep
+  read-only demo chains", so the whole project goes to `jtwC3SeaBuildComplete`: it rejects a
+  missing block, a Wait/Move swap, a `move_right` that is not 4, an exit of 1 or 2, a deleted
+  Page 3, an edited Page 1/Page 3 demo chain, a dragged start, a deleted raft and a repainted
+  background. `storyMissionProgress.ts` gained exactly one delegating branch.
+- **A real cross-page run, measured on the Part page.** The studio's runner only ever runs ONE
+  page, so completion needs both halves: the SAVED `BlocksProject` must match the contract AND
+  carry the studio's run+save marker ("只在编辑器里摆对未运行不通过"), and this page then walks the
+  child's own saved document through `PageFlowRunner` from Page 1, requiring a measured
+  `1 → 2 → 3` that stopped because Page 3 ENDED. The footprints
+  `page1:3-9->7-9:page2 · page2:2-8->6-8:page3 · page3:2-9->2-9:stop` are runtime facts, and the
+  exit-cell prediction is checked against the measured `6-8`.
+- **The three C3 page scenes are now paintable in the studio.** `library.ts` accepts
+  `jtw-s1-c3-page1-before-v01`, `jtw-s1-c3-page2-morning-before-v01` and
+  `jtw-s1-c3-page3-before-v01` as first-party story scenes and `blocks.css` paints them, so a C3
+  build shows its own three shores instead of falling back to the generic meadow.
+- **`guides/journeyWestC3.ts`** — the studio mission guide for C3-P4 (mode `complete`), registered
+  through `curriculumGuides.ts`. Without it the studio would never record a run marker for the
+  lesson.
+- Evidence `story_screens / block_roles / build_project / target_chain / page_target / page_trace
+  / run_footprints / run_stop / exit_cell` ＋ prediction persists through `/story-parts` and is
+  restored on refresh; `选择海的样子` unlocks ONLY `jtw-s1-c3-p5`. The half-lit 远行印 is a progress
+  note that says outright the seal is C3-P8's server-side aggregation — it is not a seal and
+  carries no evidence.
+
+### Changed
+- `jtwC3Stage.ts` gained the two `resolved` background paths and the three stable page scene ids;
+  `blocksApi.ts` learned the `blocks_jtw_c3_p4` template id; the map marks C3-P4 playable and the
+  part route dispatches it.
+- Assets copied into `public/`: `backgrounds/s1/c3/page2-morning-resolved-v01.webp` and
+  `page3-resolved-v01.webp` — exactly the two halves of this Part's `resolved_world_change` (the
+  sea route drawn across the middle sea, and the far shallows with the lit path up to the master's
+  gate), and exactly what C3-P3 deliberately deferred to this Part. The starry Page 2 pair stays in
+  `design-system/` until C3-P5 makes it a real choice.
+
+### Notes
+- Recorded gaps, deliberately not papered over: the scene's "积木托盘仅限制任务范围" is NOT a
+  task-scoped palette — the studio palette is category-based over the whole `BLOCK_DEFS`, exactly
+  as C1-P4/C2-P4 shipped, and task scope is enforced by exact AST comparison instead. "Page 1/3
+  示范链不可被孩子删除" has no editor-level lock either: the runtime has no per-script lock, so a
+  project with a broken demo chain is judged incomplete and told so rather than prevented.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in
+  `journeyWestC3Part4Program.ts` and the contract in `jtwC3SeaBuild.ts`.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 210 files / 1703 tests green.
+
+## 2026-07-27 (feat: Journey West C3-P3 — the exit number is an address, not a plaque)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p3` — chapter three's page-model Complete** (scene-specs
+  JTW-S1-C3-P3). C3-P2 found WHERE the route breaks; C3-P3 builds the model behind it. Teaching
+  script Part 3「离屏活动：页面就是路口」in full across two screens, plus the classic card and the
+  故事—程序桥.
+- **Part 2's footprints are READ BACK, not re-narrated.** The "系统预置的 P2 只读脚印" is the
+  C3-P2 evidence row fetched from `/story-parts`, decoded and rendered read-only; the starter is
+  never re-run here. A row that cannot be decoded shows "请先回到 Part 2 再跑一次"
+  (`jtw-c3p3-no-part2`) instead of guessing a trace.
+- **Every candidate outcome is measured, not asserted.** Tapping an exit card runs the REAL
+  `PageFlowRunner` over a fresh copy of the C3-P2 starter with that ONE `goto_page` number swapped,
+  so the scene's own assertions are runtime facts: card 1 → `1 → 2 → 1` (loop), card 2 →
+  `1 → 2 → 2` (loop; 彼岸山林 never opens), card 3 → `1 → 2 → 3` (end). Resolved needs card 3 AND
+  a real arrival that ended on Page 3 — then `Page 2 的出口 → 3 · 通向彼岸山林` connects and the
+  `→ 1` return arrow fades out struck through.
+- **Predict before you try.** With any of the three predictions missing, every try button is
+  disabled, so "不先说出你以为会发生什么，试出来的结果就不算证据" is structural rather than a
+  warning. The model gates are grounded in the footprints themselves: the 木筏走得太快 excuse is
+  refused with `2-8→6-8` (one cell, no more), 页面卡摆错顺序 with Page 1's correct exit, and
+  换 Page 1 / 换 Page 3 / 三页全部重做 each with the row that contradicts them. The floor walk must
+  reproduce the trace Part 2 really measured, so the tidier-looking `1 → 2 → 3` fails and only
+  `1 → 2 → 1` passes. The 走得越快越先到 password is refused with "用加速把循环遮起来，木筏还是会
+  回到花果山海岸".
+- Evidence `story_screens / deviation_reason / card_to_swap / floor_walk / password /
+  candidate_predictions / chosen_exit_card / rehearsal_trace / rehearsal_footprints` + prediction
+  persists through `/story-parts` and is restored on refresh. `搭海上故事` unlocks ONLY
+  `jtw-s1-c3-p4`, writes no project and lights no chapter seal.
+
+### Changed
+- **The three-page C3 stage is now shared** (`story-parts/JourneyWestC3Stage.tsx`) instead of being
+  copied into each Part: one page on screen at a time, the raft as its own layer under the monkey
+  king (asset bible §6/§2.4). It takes a `testIdPrefix`, so C3-P2's `jtw-c3p2-*` ids are unchanged.
+  The page backgrounds and their alt text moved to `jtwC3Stage.ts` with the chapter's other stage
+  constants.
+- `partUi.tsx`'s `Choice` now accepts an id/label card, because C3-P3's outcome cards have no
+  correctness of their own — which one is right depends on the exit card being predicted.
+
+### Notes
+- **No new asset.** Everything C3-P3 renders (the three `before` page backgrounds, the raft prop,
+  the stone-monkey sprite) was integrated by C3-P1/C3-P2. `page3-resolved-v01.webp` was
+  deliberately NOT copied: the far shore's world change belongs to C3-P4, where the sea leg finally
+  has a story in it. Recorded in the saga asset bible §8.
+- **Nothing is written to a project.** The candidate projects are throwaway copies (unit-tested:
+  Pages 1/3 stay the same objects and the shipped `goto_page` is still 1), no editor opens, and the
+  page shows "starter 现在的样子（出口 1）" beside "这次演练用的卡（出口 3）" so the difference is
+  never ambiguous.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in `journeyWestC3Part3Program.ts`.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 208 files / 1679 tests all green
+  (no documented flake reproduced).
+
+## 2026-07-27 (feat: Journey West C3-P2 — the page exit that sends the raft home)
+
+### Added
+- **Finite-step page-flow runs (`src/pages/learn/blocks/pageFlowRun.ts`).** `BlocksRunner` runs ONE
+  page: `goto_page` calls `onGotoPage` and ends that page's run, and the Studio simply selects the
+  target page — enough for editing, but not enough for a chapter whose subject is "the exit number
+  decides the next page". `PageFlowRunner` drives the REAL interpreter page by page, records each
+  visit's enter cell, exit cell and requested exit page, follows the exit the run really asked for,
+  and STOPS the moment the route re-enters a page it has already visited — recording that entry
+  without running it again, so a Page 2 exit pointing back at Page 1 reads as a stable `1 → 2 → 1`
+  instead of an endless flicker. A `PAGE_FLOW_MAX_VISITS = 6` teaching budget bounds longer cycles,
+  an out-of-range exit number reports `missing_page` rather than silently ending, and `stop()`
+  abandons an in-flight run on unmount. 8 unit tests cover every stop reason.
+- **`/learn/story/journey-west/jtw-s1-c3-p2` — chapter three's Story Hook** (scene-specs
+  JTW-S1-C3-P2). The starter is a FRONTEND read-only three-page program — no backend template, no
+  editor, no project write — so "P2 不允许保存为已修复状态" is structurally impossible rather than a
+  rule to remember: Page 1 `when_flag→move_right(4)→goto_page(2)`, Page 2
+  `when_flag→play_sound(Whoosh)→move_right(4)→goto_page(1)`, Page 3 `when_flag→say(clue)→end`, on
+  the C3 contract's `3/9`, `2/8`, `2/9` start cells and using only the ops the chapter declares.
+- **The plan comes before the run.** Three page cards must be ordered 花果山海岸→海上中段→彼岸山林
+  and two exit arrows placed (`Page 1→2`, `Page 2→3`); the `Page 2 的出口 → 1` arrow is refused as
+  "the problem, not the plan". The prediction is READ off the number on the Page 2 exit block — the
+  "故事总会自己往下一页走" answer gets the `Page 2 那一块写的是 1` hint. Go stays disabled until all
+  three are in place.
+- **One real run, real footprints.** Pressing Go walks the unmodified starter through the real
+  runtime: the trace is `1 → 2 → 1`, Page 2 is circled, the footprints are measured off the runner
+  (`3-9→7-9` exit → Page 2, `2-8→6-8` exit → Page 1, then the stop), 彼岸山林 never opens, and the
+  stage stops on Page 1. **The first-deviation picker is not rendered at all before that run**, so
+  "未运行只点 Page 2 不通过" is structural; Page 1 and Page 3 are refused with a page-by-page hint.
+- Evidence `story_screens / expected_page_order / expected_exits / page_trace / run_footprints /
+  first_deviation` + the prediction is persisted through `/story-parts`; a refresh restores it by
+  decoding the stored footprint strings (malformed rows are dropped, never guessed). `走页面路口`
+  unlocks ONLY `jtw-s1-c3-p3`, writes no project and lights no chapter seal.
+
+### Assets
+- `backgrounds/s1/c3/page2-morning-before-v01.webp`, `backgrounds/s1/c3/page3-before-v01.webp` and
+  `props/raft/neutral-v01.png` copied from design-system into `public/` — only what this Part
+  actually renders. The raft is a REAL stage actor (asset bible §6 forbids baking it into the
+  background): it waits where the Page 1 walk ends, carries the monkey king across the open sea on
+  Page 2 with its own `when_flag→move_right(4)→end` (without it §2.4's "feet on readable ground, a
+  raft or a safe stepping stone" cannot hold on open water) and lies beached on the Page 3 landing.
+  It runs no story logic and carries no completion evidence. Page 2 ships the morning-mist sea
+  because the shared chain's own Whoosh IS its sea wind; the starry pair (C3-P5's second choice)
+  and both Page 2/3 `resolved` states stay in design-system until a Part stages them. Nothing was
+  faked, and no emoji or CSS shape stands in for artwork.
+
+### Notes
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in `journeyWestC3Part2Program.ts`
+  and the page-flow capability in its own module.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 207 files / 1666 tests all green.
+
+## 2026-07-27 (feat: Journey West C3-P1 — why he leaves a happy home)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p1` — chapter three's Read & Why entry** (scene-specs
+  JTW-S1-C3-P1). The monkey king stands on the C3 Page 1 home shore at the shared contract's
+  `gx=3 / gy=9`, `size=3`, the mountain behind him and the open sea to his right. 故事卡A and
+  故事卡B are read in FULL across two screens, plus the two original dialogue lines, the classic
+  card (第一回漂洋求师 — not treasure, not the pilgrimage, and not "he disliked Flower-Fruit
+  Mountain") and the three-page 因果桥.
+- **Reading is a gate, not a hint.** The motive cards are not rendered at all until BOTH story
+  screens have really been read, and which screens were read is persisted (`story_screens`) — so
+  "未读正文不能只猜卡完成" is structural rather than a warning message.
+- **同屏地图** shows 花果山 / 水帘洞 / 海面 on one screen, each with its OWN real artwork
+  (`c1/before`, `c2/resolved`, `c3/page1-before`); all three must be pointed at. The 音频重放 is
+  the existing synthesized `play_sound` Whoosh, and the stage draws three wind lines so the sound
+  stays readable with the device muted.
+- **Evidence gates**: the two real motive cards must be ordered `珍惜现在的家 → 仍愿意远行学习`
+  (`想拿宝物`/`不喜欢伙伴` are refused with the story's own words, and the right two cards in the
+  wrong order also fail); both halves of `虽然这里很快乐，但是他想到…，所以决定…` are judged
+  separately; the prediction accepts only "我会记得从哪里出发，也会认真寻找答案。" as the line that
+  would stop being true, with a text-grounded retry hint.
+- **Resolved** swaps to the same-camera `c3/page1-resolved` (the sea-route light reaching the
+  horizon) and shows the friends group. `一起造木筏` unlocks ONLY `jtw-s1-c3-p2`, writes no project
+  and completes no chapter. C3-P1 added to the map's playable set.
+- **`jtwC3Stage.ts`** — chapter three's stage identity (Page 1 backgrounds, the `monkey-king`
+  sprite/size that reuses the `char-stone-monkey` master, the `gx=3 / gy=9` start cell, the sea-wind
+  sound id) in one place, mirroring `jtwC2Stage.ts`.
+
+### Changed
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125 lines) were **not grown** —
+  both are already over the 1000-line hard rule, so all C3-P1 content lives in
+  `journeyWestC3Part1Program.ts`.
+
+### Notes
+- **First chapter-three artwork in `public/`**: `backgrounds/s1/c3/page1-before-v01.webp` and
+  `page1-resolved-v01.webp` copied from `design-system/`. Only Page 1 — the Page 2/3 states stay in
+  `design-system/` until the Part that stages them lands, so no constant points at a missing file.
+- **Deliberately NOT faked** (recorded in the saga asset bible): the scene's "猴王先出现于洞口" —
+  the shipped shore has no cave mouth and the C2 cave art has no sea, so the cave is pointed at
+  through the map's REAL C2 image instead of being painted onto the shore; the 通向木筏材料的脚印 in
+  `resolved_world_change` — there is no footprint or loose-wood prop, and `prop-raft-neutral-v01` is
+  a FINISHED raft, i.e. the very result the friends have not built yet; and 伙伴从玩耍转为准备 — the
+  friends exist only as one neutral group image. No emoji, CSS shape or page boolean stands in, and
+  none of the three carries completion evidence.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 205 files / 1647 tests.
+
+## 2026-07-27 (feat: Journey West C2-P8 — keeping the promise, and the chapter seal)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p8` — chapter two's Retell and aggregation**
+  (scene-specs JTW-S1-C2-P8). This Part ships **no starter of its own**: it reopens the C2-P7
+  Personal Ship the child really saved, through the SAME server read path P7 uses, so
+  "不得另载答案项目" is structural rather than a promise — there is no template this page could
+  create. With no saved work, or a saved page that no longer satisfies the P7 contract (a route
+  one cell short, a deleted response chain), the page points back at Part 7 and completes nothing.
+- **The gate order is the scene's.** 故事卡D in full + the classic card + the two waterfall lines
+  the chapter has to keep → the SEVEN cause cards `水声线索→瀑布约定→精确路线→水帘回应→修好回程→
+  带伙伴进入→成为猴王` must be ordered **before the run button opens** → the SAVED page runs
+  Start → End on a real `BlocksRunner` → only a run that reproduces the saved design opens the
+  retell. The run is measured: the curtain hides, the cave shows and says the very line the saved
+  JSON carries, and the monkey stops on **his own bank's** knock cell (left `6-7`, right `8-7` —
+  both covered, so a right-bank child never retells a left-bank result).
+- **Retell** accepts only the sentence linking the human choice (the waterfall promise) to the
+  program evidence (route, On Bump response, repaired return). A block-name recital and a
+  cause-free "他就成了美猴王" are both refused with the four-node hint.
+- **水帘洞印 is lit by the SERVER only.** The page renders `chapter_seals[].lit` from
+  `/story-parts` and nothing else; when it is dark it names how many evidence groups the server
+  still reports missing.
+- **Continue**: `现在看海边` opens ONLY `jtw-s1-c3-p1` and goes to the map; `以后继续` writes the
+  resume position onto the same evidence row (`continue_choice`) and stays on the C2 ending, which
+  a refresh restores. Neither button auto-advances a chapter. C2-P8 added to the map's playable set.
+
+### Changed
+- **`JourneyWestC2EntryStage.tsx` + `journeyWestC2EntryRun.ts`** extracted from the C2-P7 page:
+  the saved-entry stage, the run reader and the "did this run match the saved design" rule are
+  now shared by P7's reopen-and-rerun and P8's retell run instead of duplicated. The saved-project
+  loader moved into `journeyWestC2Part7Program.ts` as `findC2EntryBuild`. P7's behaviour, test ids
+  and copy are unchanged.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125 lines) were **not grown** —
+  both are already over the 1000-line hard rule, so all C2-P8 content lives in
+  `journeyWestC2Part8Program.ts`.
+
+### Notes
+- **No new asset.** The 木头线索 named in the scene's `resolved_world_change` has no artwork:
+  `prop-raft-neutral-v01` is a FINISHED raft the asset bible assigns to C3 (whose script has the
+  friends build it from loose wood), and `backgrounds/s1/c2/resolved-v01.webp` contains no sea at
+  all. The resolved copy therefore describes only what the shipped art really shows; no emoji, CSS
+  shape or page boolean stands in, and the beat carries no completion evidence. Recorded in the
+  saga asset bible.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 204 files / 1638 tests — the only
+  red is the documented `FamilyDetailPage — kid school editor` load flake, green when re-run alone.
+
+## 2026-07-27 (feat: Journey West C2-P7 — the personal entry route)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p7` — chapter two's Personal Ship** (scene-specs
+  JTW-S1-C2-P7). The first Journey to the West Part in which the ROUTE is the child's design.
+  In the real Blocks Studio they choose **which bank the friends enter from** (stay on the left
+  `2/8`, or drag the monkey to the right shore `12/9` — the studio's own sprite drag is the start
+  switch), build **that bank's own exact chain**, and pick a `Wait 1|2` plus one preset evidence
+  line. The banks are NOT one chain mirrored: the left is five one-step blocks
+  (`Right 1 ×2 → Up 1 → Right 1 ×2`, stops `3-8→4-8→4-7→5-7→6-7`) and the right shore sits a row
+  lower, so it needs six (`Up 1 → Left 1 ×2 → Up 1 → Left 1 ×2`, stops
+  `12-8→11-8→10-8→10-7→9-7→8-7`). Both stop ONE cell from the `7/7` door, so either bank makes a
+  real bump — and one step short opens nothing, which a unit test re-proves against the real
+  interpreter for both banks (C2-P4's 刚好到达 rule).
+- **The save/close/reopen evidence is measured, not claimed.** The part page RELOADS the saved
+  project from the server (that load IS the reopen), reads the design and the **VFS version id**
+  out of the returned JSON, takes the partner's prediction first (a wrong pick gets its hint and
+  keeps the rerun shut), and then hands THAT SAVED PAGE to a real `BlocksRunner`: the curtain
+  really hides, the cave really shows itself and says the very line the saved JSON carries, and
+  the monkey finishes on that bank's knock cell. Completion needs the saved `BlocksProject` + the
+  studio's run marker; continue unlocks ONLY `jtw-s1-c2-p8` and no chapter completes.
+- **`jtwPersonalEntry.ts`** — the personal-entry grammar, next to C1-P7's `jtwPersonalArrival.ts`.
+  It rejects a start on neither bank, the **mashup** (one bank's start with the other bank's
+  route), a route that stops short of or overshoots the door, the merged `Right 2` parameter
+  shortcut, a reordered route, a missing/out-of-band Wait, a Wait before the walk, a
+  deleted/shortened/reordered curtain or cave response chain, a cave that no longer starts hidden,
+  a moved door actor and a free-typed line.
+- **`jtwC2Stage.ts`** — chapter two's shared stage identity (the actor-free background, the three
+  sprites, the `7/7` door cell, its sizes and one-cell reach, the Chime). The contracts, the entry
+  parser and the part page now agree on ONE set of ids, and the parser has no import cycle with
+  `storyMissionContracts.jtw.ts`.
+- **`story-parts/journeyWestC2Part7Program.ts`** — the Part's story text, evidence questions and
+  the read-back that turns a saved project + VFS version into Part evidence.
+- **Asset:** `characters/monkey-friends/group-neutral-v01.png` copied into `public/` for the
+  resolved state (`draft_unapproved`, internal build/test only). It is ONE image of all three
+  friends, so it is scenery and carries no completion evidence.
+
+### Changed
+- `storyMissionProgress.ts` gains the bespoke `jtw-s1-c2-p7` branch (the whole page goes to the
+  entry parser — there is no exact target and, deliberately, no fixed start).
+- `guides/journeyWestC2.ts` gains the C2-P7 `personal-ship` mission; `blocksApi.ts` gains the
+  `blocks_jtw_c2_p7` template id; the part route and `PLAYABLE_PART_IDS` gain C2-P7.
+- **`BlocksStudioPage.tsx` was NOT touched.** The personal-ship mission runs through the existing
+  generic path and the runtime proof this Part needs lives in the part page's own rerun, so the
+  file (already ~2958 lines, over the 1000-line hard rule) did not grow.
+
+### Known / not done
+- The 果篮 named in the scene's `resolved_world_change` has no artwork (`prop-fruit-basket` was
+  never generated) and three separable friend sprites for an ordered entry do not exist either.
+  Neither is faked with an emoji, a CSS shape or a page boolean; the resolved copy describes only
+  the stone seat and clear water the shipped cave art really shows. Recorded in the asset bible.
+
+
+## 2026-07-26 (feat: Journey West C2-P6 — the return-route order bug)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p6` — chapter two's Fix part** (scene-specs
+  JTW-S1-C2-P6). The child states the expected three return stops, **runs the shipped bug through
+  the REAL `BlocksRunner` on the page** (the monkey visibly leaves the wet-stone route and stops
+  at `2-7`, flagged as `data-left-route` on the stage), compares the two footprint rows
+  (`4-7→2-7→2-8` vs `4-7→4-8→2-8` — same endpoint, only one touches the `4-8` low stone), marks
+  the first deviation, predicts "down or left first", and then repairs the order in the actual
+  Blocks Studio. Completion is read from the **SAVED `BlocksProject` + the studio's run marker**;
+  the stored evidence carries the real project diff (`move_down:1:3->2 · move_left:2:2->3`) and
+  both run traces. Continue unlocks ONLY `jtw-s1-c2-p7`; no chapter completes.
+- **`jtwOrderDebug.ts`** — the "reproduce the bug before you may fix it" rule, now shared by
+  C1-P6 and C2-P6 instead of living inline in `BlocksStudioPage.tsx`.
+- **`storyMissionContracts.jtw.ts`** — the Journey to the West saved-program contracts, including
+  C2-P6's exact repaired order. The bug order, `move_left 4`, a `set_speed`/`go_home` shortcut,
+  delete-and-rebuild and a moved `6/7` start are all rejected.
+- **`story-parts/journeyWestC2Route.ts`** — chapter two's shared wet-stone geometry and route
+  walker, used by both the outbound C2-P4 build and the C2-P6 return.
+
+### Changed
+- `BlocksStudioPage.tsx` **shrank by two lines** (2960 → 2958) by delegating the C1-P6 order-bug
+  check to `jtwOrderDebug.ts`, which now also serves C2-P6 — the new scene added no lines to it.
+- `storyMissionProgress.ts` is **872 lines** (was 999) after the JtW contracts moved out, and
+  `journeyWestSeason1.ts` is **1125** (was 1150) after the route walker and the duplicated stone-cell
+  set moved to `journeyWestC2Route.ts`. Both files were already over the 1000-line hard rule in
+  `rules/file-organization.md`; neither grew for this part.
+
+### Known
+- **C2-P5 cannot complete in the product** and this change does not fix it: it ships neither a
+  Story Mission guide nor a program contract, so `storyProgress.completed['jtw-s1-c2-p5']` is
+  never written and its part page's `buildDone` can never become true. C2-P6 ships both.
 
 ## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
 

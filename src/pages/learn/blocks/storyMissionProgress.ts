@@ -1,5 +1,14 @@
 import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
+import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
+import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
+import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
+import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
+import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
+import {
+  JTW_MISSION_CONTRACTS,
+  type StoryMissionProgramContract,
+} from './storyMissionContracts.jtw';
 import {
   TINY_STAR_BELL_BUILD_PAGE_ID,
   TINY_STAR_BELL_BUILD_ROUTE,
@@ -29,24 +38,6 @@ import {
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
 const LUMILO_ASSET = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
-
-interface StoryMissionProgramContract {
-  pageId: string;
-  background: string;
-  characterId: string;
-  scriptId: string;
-  asset: string;
-  target: Block[];
-  allowedSayText?: readonly string[];
-  start?: { gx: number; gy: number; size: number; rot: number };
-  sceneTarget?: {
-    id: string;
-    name: string;
-    gx: number;
-    gy: number;
-    size: number;
-  };
-}
 
 export const TINY_STAR_GREETING_CHOICES = [
   'Good morning, village!',
@@ -495,122 +486,9 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     allowedSayText: TINY_STAR_FINALE_LINES,
     target: [...TINY_STAR_BELL_FINALE_TARGET],
   },
-  // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
-  // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
-  // palette (grow/turn are live distractors the exact-target match rejects) and
-  // orders them between the reserved when_flag+hide and end.
-  'jtw-s1-c1-p4': {
-    pageId: 'jtw-c1-p4-page',
-    background: 'jtw-s1-c1-flower-fruit-stone',
-    characterId: 'stone-monkey',
-    scriptId: 'stone-monkey-arrival-build',
-    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
-    start: { gx: 8, gy: 9, size: 3, rot: 0 },
-    target: [
-      { op: 'when_flag' },
-      { op: 'hide' },
-      { op: 'play_sound', n: 2 },
-      { op: 'show' },
-      { op: 'hop', n: 1 },
-      { op: 'say', text: '你好，我刚刚来到这里。' },
-      { op: 'end' },
-    ],
-  },
-  // Journey to the West S1/C1-P5 — Build 2, the greeting-order choice
-  // (scene-specs JTW-S1-C1-P5). TWO orders are valid (Hop→Say or Say→Hop);
-  // the bespoke matcher below enforces the verified prefix, forbids removing
-  // Show, and accepts only the preset greetings. `target` records order A for
-  // tooling; matching is handled by the bespoke branch.
-  'jtw-s1-c1-p5': {
-    pageId: 'jtw-c1-p5-page',
-    background: 'jtw-s1-c1-flower-fruit-stone',
-    characterId: 'stone-monkey',
-    scriptId: 'stone-monkey-first-greeting',
-    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
-    start: { gx: 8, gy: 9, size: 3, rot: 0 },
-    allowedSayText: JTW_GREETING_CHOICES,
-    target: [
-      { op: 'when_flag' },
-      { op: 'hide' },
-      { op: 'play_sound', n: 2 },
-      { op: 'show' },
-      { op: 'hop', n: 1 },
-      { op: 'say', text: '你好，我也是刚刚认识这个世界。' },
-      { op: 'end' },
-    ],
-  },
-  // Journey to the West S1/C1-P7 — the Personal Ship (scene-specs
-  // JTW-S1-C1-P7). The frame is fixed (Start·hide·sound·Show … Say(preset)·End)
-  // but the CHILD owns the sound, the two visible actions (order + optional
-  // wait between them) and the preset greeting — the bespoke branch below
-  // validates the structure instead of an exact target. `target` records one
-  // canonical example for tooling.
-  'jtw-s1-c1-p7': {
-    pageId: 'jtw-c1-p7-page',
-    background: 'jtw-s1-c1-flower-fruit-stone',
-    characterId: 'stone-monkey',
-    scriptId: 'stone-monkey-personal-arrival',
-    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
-    start: { gx: 8, gy: 9, size: 3, rot: 0 },
-    allowedSayText: JTW_GREETING_CHOICES,
-    target: [
-      { op: 'when_flag' },
-      { op: 'hide' },
-      { op: 'play_sound', n: 2 },
-      { op: 'show' },
-      { op: 'hop', n: 1 },
-      { op: 'grow', n: 2 },
-      { op: 'say', text: '你好，我刚刚来到这里。' },
-      { op: 'end' },
-    ],
-  },
-  // Journey to the West S1/C2-P4 — chapter two's main Build (scene-specs
-  // JTW-S1-C2-P4). The starter ships ONLY Start/End; the child selects and
-  // orders the five one-step route blocks Right 1 · Right 1 · Up 1 · Right 1 ·
-  // Right 1 from a palette that also offers Left/Down/Wait as live
-  // distractors. The exact-target match rejects the parameter-merged
-  // Right 2/Up 1/Right 2 shortcut, any wrong order, a missing or extra step
-  // (no overshoot tolerance) and a moved start — the child owns all five
-  // blocks, never "just a number edit".
-  'jtw-s1-c2-p4': {
-    pageId: 'jtw-c2-p4-page',
-    background: 'jtw-s1-c1-flower-fruit-stone',
-    characterId: 'stone-monkey',
-    scriptId: 'stone-monkey-route-to-curtain',
-    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
-    start: { gx: 2, gy: 8, size: 3, rot: 0 },
-    target: [
-      { op: 'when_flag' },
-      { op: 'move_right', n: 1 },
-      { op: 'move_right', n: 1 },
-      { op: 'move_up', n: 1 },
-      { op: 'move_right', n: 1 },
-      { op: 'move_right', n: 1 },
-      { op: 'end' },
-    ],
-  },
-  // Journey to the West S1/C1-P6 — Twist & Debug, the stable order bug
-  // (scene-specs JTW-S1-C1-P6). The starter ships Say → Hop → Show; ONLY the
-  // exact repaired order passes. The exact-target match rejects the shipped
-  // bug order, any delete-and-rebuild shortcut, a changed sound and free-typed
-  // dialogue — the child may only move the Show/Hop/Say target blocks.
-  'jtw-s1-c1-p6': {
-    pageId: 'jtw-c1-p6-page',
-    background: 'jtw-s1-c1-flower-fruit-stone',
-    characterId: 'stone-monkey',
-    scriptId: 'stone-monkey-arrival-debug',
-    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
-    start: { gx: 8, gy: 9, size: 3, rot: 0 },
-    target: [
-      { op: 'when_flag' },
-      { op: 'hide' },
-      { op: 'play_sound', n: 2 },
-      { op: 'show' },
-      { op: 'hop', n: 1 },
-      { op: 'say', text: '你好，我刚刚来到这里。' },
-      { op: 'end' },
-    ],
-  },
+  // Journey to the West's contracts live in their own module (file-organization
+  // rule); lesson ids never overlap, so the spread can shadow nothing.
+  ...JTW_MISSION_CONTRACTS,
 };
 
 /**
@@ -962,6 +840,59 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       prefixOk &&
       greetingOk
     );
+  }
+
+  if (lessonId === 'jtw-s1-c2-p7') {
+    // Personal Ship: the bank, the route that bank needs, the wait and the
+    // evidence line are all the child's, so there is no exact target and no
+    // fixed start — the whole page goes to the entry parser, which rejects a
+    // start on neither bank, the OTHER bank's route (the mashup case), a route
+    // that stops short of or overshoots the door, a missing/out-of-band Wait,
+    // a deleted or reordered curtain/cave response chain, a cave that no longer
+    // starts hidden, a moved door actor and a free-typed line.
+    return project.lessonId === lessonId && jtwPersonalEntryDesign(page) !== null;
+  }
+
+  if (lessonId === 'jtw-s1-c3-p4') {
+    // Chapter three's main Build spans THREE pages: the child owns Page 2's
+    // five-block sea chain while Pages 1 and 3 keep read-only demo chains
+    // ("Page 1/3示范链不可被孩子删除"). A single-page match cannot see the other
+    // two pages, so the whole project goes to the C3 sea-build contract, which
+    // rejects a missing block, a wrong order, an exit that is not 3, a broken
+    // demo chain, a deleted page and a moved start.
+    return jtwC3SeaBuildComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p5') {
+    // Chapter three's expression choice has TWO valid saved programs on TWO
+    // different Page 2 seas ("断言两版均可独立成功"), which a single exact target
+    // cannot express. The whole project goes to the weather contract, which
+    // accepts a starry or a mist build only when the sea the page paints and
+    // the chain the monkey king runs agree — so repainting the background
+    // alone, dropping the Goto or pointing it back at 1 all keep it open.
+    return jtwC3WeatherBuildComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p6') {
+    // Chapter three's Fix repairs a stage POSITION, not a chain, and the page it
+    // repairs is one of three — neither of which a single-page, single-target
+    // record can express. The whole project goes to the jump contract, which
+    // accepts ONLY Page 2's start moved to the contract cell with the child's
+    // own C3-P5 weather chain, both exits, both demo chains, both backgrounds,
+    // both actors and every `size` still exactly as shipped. So "改Page 1出口"、
+    // "删除天气链"、"加更响声音" and "同时改多个页面" all keep the mission open.
+    return jtwC3JumpFixComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p7') {
+    // Chapter three's Personal Ship has no target chain at all: the child owns
+    // every meaningful action on all THREE pages, both exits and the End
+    // ("孩子必须主导至少七块"). The whole project therefore goes to the personal
+    // route grammar, which refuses a Goto that loops home, a page left as a bare
+    // Goto shell, a sea page with no observation in it, a walk that misses the
+    // raft, a free-typed line and any stage edit — while still accepting every
+    // legal 星夜/晨雾, wait-rhythm, dialogue and raft-pacing choice.
+    return jtwC3RouteComplete(project);
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {

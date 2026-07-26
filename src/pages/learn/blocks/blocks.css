@@ -1039,6 +1039,40 @@
 .bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-deco {
   display: none;
 }
+/* Journey to the West C3 — the three pages of `jtw-s1-c3-three-seas-route`.
+   A C3 build is edited in the real studio, so each page paints its own shore
+   (asset bible §6: the raft is an actor and is never baked in here). */
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] {
+  background: #e6d6ab
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page1-before-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] {
+  background: #dfe7cf
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-before-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] {
+  background: #e4d9b2
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-before-v01.webp') center / cover
+    no-repeat;
+}
+/* C3-P5's second middle sea — the same Page 2 under a moonlit sky. */
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] {
+  background: #1d3566
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-starry-before-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-deco {
+  display: none;
+}
 
 .bsx-character-asset {
   display: block;

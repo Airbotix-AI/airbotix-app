@@ -7,6 +7,7 @@
 
 import { JTW_C1_MISSIONS } from './guides/journeyWestC1';
 import { JTW_C2_MISSIONS } from './guides/journeyWestC2';
+import { JTW_C3_MISSIONS } from './guides/journeyWestC3';
 import { TSV_A1_MISSIONS } from './guides/tinyStarA1';
 import { TSV_A2_MISSIONS } from './guides/tinyStarA2';
 import { TSV_A3_MISSIONS } from './guides/tinyStarA3';
@@ -38,6 +39,7 @@ const STORY_MISSIONS: Record<string, StoryMission> = {
   ...TSV_A6_MISSIONS,
   ...JTW_C1_MISSIONS,
   ...JTW_C2_MISSIONS,
+  ...JTW_C3_MISSIONS,
 };
 
 /** Chapter modules in curriculum order — used by the no-shadowing guard. */
@@ -50,6 +52,7 @@ export const STORY_MISSION_CHAPTERS: ReadonlyArray<Record<string, StoryMission>>
   TSV_A6_MISSIONS,
   JTW_C1_MISSIONS,
   JTW_C2_MISSIONS,
+  JTW_C3_MISSIONS,
 ];
 
 export function storyMissionFor(lessonId: string | undefined): StoryMission | undefined {
