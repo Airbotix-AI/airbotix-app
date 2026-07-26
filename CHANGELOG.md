@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-26 (feat: show verified HSC source figures in practice)
+
+### Added
+- Academy practice renders `source_figure` questions from their verified
+  `figure_keys`, with accessible alternative text and responsive,
+  no-horizontal-overflow sizing at phone widths.
+- Shared source material renders once above each current question, preserving
+  stable material IDs across consecutive HSC/VCE questions and supporting
+  reviewed text or source-PDF figures.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed

@@ -10,6 +10,25 @@ import type { AcademyRenderSpec } from './academyApi';
 afterEach(cleanup);
 
 describe('Academy Year 3 native question visuals', () => {
+  it('renders a verified source figure as a responsive accessible image', () => {
+    render(
+      <AcademyQuestionVisual
+        spec={{ kind: 'source_figure', alt: 'A nuclear fusion diagram' }}
+        figureKeys={['figures/hsc/physics/2021-hsc-physics-q06.png']}
+      />,
+    );
+
+    const image = screen.getByRole('img', { name: 'A nuclear fusion diagram' });
+    expect(image.getAttribute('src')).toContain(
+      '/academy/assets/figures/hsc/physics/2021-hsc-physics-q06.png',
+    );
+    expect(image).toHaveClass('max-w-full', 'object-contain');
+    expect(screen.getByTestId('academy-source-figure')).toHaveClass(
+      'max-w-full',
+      'overflow-hidden',
+    );
+  });
+
   it('renders the trip schedule as an accessible native table', () => {
     const spec: AcademyRenderSpec = {
       kind: 'schedule_table',
