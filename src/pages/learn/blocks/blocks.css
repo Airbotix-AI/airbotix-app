@@ -1031,6 +1031,14 @@
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco {
   display: none;
 }
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] {
+  background: #d8c79f url('/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png')
+    center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-deco {
+  display: none;
+}
 
 .bsx-character-asset {
   display: block;

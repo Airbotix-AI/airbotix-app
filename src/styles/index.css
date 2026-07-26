@@ -897,4 +897,106 @@
   .pack-card.sunshine .pack-blob {
     background: rgba(31, 27, 45, 0.08);
   }
+
+  /* === Art Studio tutor pose animation === */
+  .art-tutor-sprite {
+    transform-origin: 50% 84%;
+    will-change: transform, opacity;
+  }
+  .art-tutor-sprite--idle {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-float 1.4s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--thinking {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-think 2.8s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--looking {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-look 2.2s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--creating {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-create 1.5s ease-in-out 240ms infinite;
+  }
+  .art-tutor-sprite--celebrating {
+    animation:
+      art-tutor-enter 200ms ease-out both,
+      art-tutor-celebrate 760ms ease-in-out 200ms infinite;
+  }
+  .art-tutor-sprite--compact {
+    animation:
+      art-tutor-enter 240ms ease-out both,
+      art-tutor-float 4s ease-in-out 240ms infinite;
+  }
+
+  @keyframes art-tutor-enter {
+    from {
+      opacity: 0;
+      transform: translateY(5px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes art-tutor-float {
+    0%,
+    100% {
+      transform: translateY(1px) rotate(-1.5deg) scale(0.98);
+    }
+    50% {
+      transform: translateY(-6px) rotate(1.5deg) scale(1.04);
+    }
+  }
+  @keyframes art-tutor-think {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    50% {
+      transform: translateY(-3px) rotate(-4deg) scale(1.03);
+    }
+  }
+  @keyframes art-tutor-look {
+    0%,
+    100% {
+      transform: translateX(0) rotate(0);
+    }
+    50% {
+      transform: translateX(-4px) translateY(-2px) rotate(-3deg) scale(1.03);
+    }
+  }
+  @keyframes art-tutor-create {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 0 rgba(93, 174, 255, 0));
+      transform: translateY(0);
+    }
+    50% {
+      filter: drop-shadow(0 0 8px rgba(93, 174, 255, 0.45));
+      transform: translateY(-2px);
+    }
+  }
+  @keyframes art-tutor-celebrate {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    45% {
+      transform: translateY(-7px) scale(1.04);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art-tutor-sprite {
+      animation: none;
+      transform: none;
+      transition-duration: 1ms;
+    }
+  }
 }

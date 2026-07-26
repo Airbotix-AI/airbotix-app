@@ -31,6 +31,34 @@
     one shared property.
   - **Silent in dev and under automation.** Nothing is sent unless `import.meta.env.PROD`, and
     `navigator.webdriver` suppresses it so the cross-repo harness and CI never pollute prod data.
+## 2026-07-25 (fix: the Art Studio hub's entry points reach the canvas again)
+
+### Fixed
+- **"🎨 Keep drawing" and a course's art task now open the CANVAS, not the hub.** Splitting the
+  studio into a hub (`/learn/create/image`) and a canvas (`/learn/create/image/canvas`) left
+  both deep-link entries pointing at the old path, which is now the hub. The hub does not read
+  their router state, so: reopening a saved picture landed on a generic landing page instead of
+  that picture, and an art Mission's "Start" **silently dropped Mission Mode entirely** — no
+  template, no draw-along, no checklist, no turn-in. Both now target the canvas, which already
+  consumes `{ editArtifactId, editProjectId }` and `{ mission }`.
+
+### Changed
+- The canvas's back link returns to the Art Studio hub ("← My art") instead of the all-tools
+  list — from the canvas the child's own tasks and pictures are one level up, not two.
+- The Workspace picker's Art Studio card promises the hub it now opens ("Your tasks, pictures
+  and a new canvas") rather than "Opens your own art studio", which read as "a blank canvas".
+## 2026-07-26 (fix: ship the complete Boti tutor pose pack)
+
+### Fixed
+
+- Added the six checked-in WebP poses referenced by `ArtTutorAvatar` so a clean
+  checkout renders Boti instead of requesting missing `/media/art-tutor/*`
+  files.
+- Restored the tutor motion CSS for the idle pose loop and reactive thinking,
+  looking, creating, celebrating and compact states, including the reduced-motion
+  fallback.
+- Added a component regression check that fails when any referenced pose asset
+  is absent from `public/media/art-tutor`.
 
 ## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
 
@@ -1063,6 +1091,13 @@
 
 ### Added
 - Added a development-only Journey to the West C1 runtime preview that uses the real Story Blocks parser, runner, editor, Flower Fruit Mountain background, and Stone Monkey asset without backend or production-data writes.
+
+### Fixed
+- Clicking the already-selected **Parent or guardian** identity on the login gateway no
+  longer clears the protected route that sent the parent there, so a marketing-site
+  **Pay & lock the seat** deep link returns to its class checkout after OTP verification
+  instead of falling back to the Portal dashboard.
+- Retrying the OTP request also carries the original checkout route back to the login form.
 
 ## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
 
