@@ -25,19 +25,15 @@
 // Continue persists the evidence server-side and unlocks ONLY jtw-s1-c3-p8. No
 // seal element exists on this page: 远行印 is C3-P8's server-side aggregation.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
 import { BlockChip } from '../BlockChip';
-import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi';
+import { createBlocksProject, loadBlocksProject } from '../blocksApi';
 import type { BlocksProject } from '../blocksModel';
-import { startState, type SpriteState } from '../interpreter';
-import { PageFlowRunner, type PageFlowRunResult } from '../pageFlowRun';
-import { sfx } from '../sounds';
-import { storyMissionProgramMatches } from '../storyMissionProgress';
 // Continuity is measured with chapter three's existing boundary helpers — they
 // take a page-flow result and know nothing about C3-P6 in particular.
 import {
@@ -49,28 +45,25 @@ import {
 } from '../jtwC3JumpFix';
 import {
   JTW_C3_P7_TEMPLATES,
-  jtwC3RouteDesign,
   jtwC3RouteEncodeExits,
   jtwC3RouteEncodeLedger,
   jtwC3RouteEncodeOps,
   jtwC3RouteFingerprint,
-  jtwC3RouteSavedWeather,
-  type JtwC3RouteDesign,
 } from '../jtwC3PersonalRoute';
 import { JTW_C3_FAR_SHORE_PAGE } from '../jtwC3SeaBuild';
-import { JTW_C3_MONKEY_KING_ID, JTW_C3_PAGE3_RESOLVED_BACKGROUND } from '../jtwC3Stage';
+import { JTW_C3_PAGE3_RESOLVED_BACKGROUND } from '../jtwC3Stage';
 import {
   jtwC3ParseWeather,
   jtwC3WeatherVersion,
   JTW_C3_WEATHER_VERSIONS,
   type JtwC3Weather,
 } from '../jtwC3WeatherBuild';
+import { JourneyWestC3BoundaryTable } from './JourneyWestC3BoundaryTable';
 import { JourneyWestC3Stage } from './JourneyWestC3Stage';
+import { useJtwC3RouteRun } from './journeyWestC3RouteRun';
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
 import { c3p2EncodeFootprints, c3p2FootprintsOf, c3p2PageLabel } from './journeyWestC3Part2Program';
 import {
-  C3_P7_BOUNDARY_BREAK,
-  C3_P7_BOUNDARY_OK,
   C3_P7_BOUNDARY_TITLE,
   C3_P7_BUILD_DONE_LABEL,
   C3_P7_BUILD_NOTE,
@@ -81,7 +74,6 @@ import {
   C3_P7_CREATE_ERROR,
   C3_P7_DESIGN_TITLE,
   C3_P7_LEDGER_TITLE,
-  C3_P7_LESSON_ID,
   C3_P7_LOADING_HINT,
   C3_P7_LOCKED_HINT,
   C3_P7_MISMATCH_MATCHED,
@@ -99,7 +91,6 @@ import {
   C3_P7_PEER_TITLE,
   C3_P7_PREV_SCREEN_LABEL,
   C3_P7_PROJECT_TITLE,
-  C3_P7_RECENT_PROJECTS_TO_SCAN,
   C3_P7_REOPEN_AGAIN_LABEL,
   C3_P7_REOPEN_BUSY_LABEL,
   C3_P7_REOPEN_DIFFERS,
@@ -134,6 +125,7 @@ import {
   C3_P7_WEATHER_NOTE,
   C3_P7_WEATHER_TITLE,
   C3_P7_WORK_NAME,
+  c3p7BuildDone,
   c3p7DecodePeer,
   c3p7EncodePeer,
   c3p7FirstMismatch,
@@ -141,35 +133,10 @@ import {
   c3p7MismatchHint,
   c3p7PeerAnswered,
   c3p7StoryRead,
+  findC3PersonalRouteBuild,
 } from './journeyWestC3Part7Program';
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi';
 import { Choice } from './partUi';
-
-interface RouteBuildStatus {
-  projectId: string | null;
-  /** The SAVED project, exactly as the server has it. */
-  project: BlocksProject | null;
-  /** Server VFS version — the version id the Part's evidence cites. */
-  savedVersion: number | null;
-  /** The parsed personal route, or null while the structure is unfinished. */
-  design: JtwC3RouteDesign | null;
-  /** The sea the saved Page 2 paints, even before the route is finished. */
-  startedWeather: JtwC3Weather | null;
-  /** The saved document satisfies the personal-route grammar. */
-  programMatches: boolean;
-  /** The studio recorded a finished run + save for this lesson. */
-  runCompleted: boolean;
-}
-
-const NO_BUILD: RouteBuildStatus = {
-  projectId: null,
-  project: null,
-  savedVersion: null,
-  design: null,
-  startedWeather: null,
-  programMatches: false,
-  runCompleted: false,
-};
 
 /** What the explicit 关闭重开 really measured. */
 interface ReopenResult {
@@ -178,68 +145,6 @@ interface ReopenResult {
   project: BlocksProject;
   /** The two loads serialized to the same bytes. */
   identical: boolean;
-}
-
-/** Find the kid's REAL saved personal route for this lesson by reading the VFS. */
-async function findPersonalRoute(kidId: string): Promise<RouteBuildStatus> {
-  const projects = (await listBlocksProjects(kidId)).slice(0, C3_P7_RECENT_PROJECTS_TO_SCAN);
-  for (const meta of projects) {
-    try {
-      const loaded = await loadBlocksProject(meta.id);
-      if (loaded.project.lessonId !== C3_P7_LESSON_ID) continue;
-      return {
-        projectId: meta.id,
-        project: loaded.project,
-        savedVersion: loaded.version,
-        design: jtwC3RouteDesign(loaded.project),
-        startedWeather: jtwC3RouteSavedWeather(loaded.project),
-        programMatches: storyMissionProgramMatches(loaded.project, C3_P7_LESSON_ID),
-        runCompleted: Boolean(loaded.storyProgress?.completed[C3_P7_LESSON_ID]),
-      };
-    } catch {
-      // Unreadable/legacy project — keep scanning.
-    }
-  }
-  return NO_BUILD;
-}
-
-/** Every sprite of a page in its start pose (what a page entry shows). */
-function startSprites(project: BlocksProject, pageNumber: number): Record<string, SpriteState> {
-  const page = project.pages[pageNumber - 1];
-  const sprites: Record<string, SpriteState> = {};
-  for (const character of page?.characters ?? []) sprites[character.id] = startState(character);
-  return sprites;
-}
-
-/** The measured page boundaries of one real cross-page run. */
-function BoundaryTable({ boundaries }: { boundaries: readonly JtwC3Boundary[] }) {
-  return (
-    <ul className="flex flex-col gap-1" data-testid="jtw-c3p7-boundaries">
-      {boundaries.map((boundary) => (
-        <li
-          key={`${boundary.from}-${boundary.to}`}
-          data-boundary={`${boundary.from}-${boundary.to}`}
-          data-exit={boundary.exitCell}
-          data-enter={boundary.enterCell}
-          data-continuous={boundary.continuous ? '1' : '0'}
-          className={clsx(
-            'rounded-2xl border px-3 py-2 text-[13px]',
-            boundary.continuous
-              ? 'border-brand-mint/50 bg-wash-mint text-ink'
-              : 'border-brand-coral/50 bg-canvas-pure text-ink',
-          )}
-        >
-          <span className="font-bold">
-            Page {boundary.from} → Page {boundary.to}
-          </span>
-          <span className="ml-2 font-semibold text-ink-soft">
-            {boundary.exitCell} 离开 → {boundary.enterCell} 出现 ·{' '}
-            {boundary.continuous ? C3_P7_BOUNDARY_OK : C3_P7_BOUNDARY_BREAK}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 export function JourneyWestC3Part7Page({
@@ -259,7 +164,7 @@ export function JourneyWestC3Part7Page({
   });
   const build = useQuery({
     queryKey: ['jtw-c3-p7-build', kidId],
-    queryFn: () => findPersonalRoute(kidId!),
+    queryFn: () => findC3PersonalRouteBuild(kidId!),
     enabled: !!kidId,
   });
 
@@ -276,16 +181,10 @@ export function JourneyWestC3Part7Page({
   const [reopen, setReopen] = useState<ReopenResult | null>(null);
   const [savedReopenOk, setSavedReopenOk] = useState(false);
 
-  const [stagePage, setStagePage] = useState(1);
-  const [sprites, setSprites] = useState<Record<string, SpriteState>>({});
-  const [saying, setSaying] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
-  const [run, setRun] = useState<PageFlowRunResult | null>(null);
+  const { stagePage, sprites, saying, running, run, runProject, clearRun } =
+    useJtwC3RouteRun(previewSleep);
   const [savedTrace, setSavedTrace] = useState<number[]>([]);
   const [savedBoundaries, setSavedBoundaries] = useState<JtwC3Boundary[]>([]);
-  const runnerRef = useRef<PageFlowRunner | null>(null);
-
-  useEffect(() => () => runnerRef.current?.stop(), []);
 
   const savedEntry = progress.data?.completed.find((entry) => entry.part_id === C3_P7_PART_ID);
   const unlocked = progress.data?.unlocked_part_ids.includes(C3_P7_PART_ID) ?? false;
@@ -315,7 +214,7 @@ export function JourneyWestC3Part7Page({
   const design = build.data?.design ?? null;
   // VFS truth only: the SAVED document must satisfy the whole structure AND the
   // studio must have recorded its own verified run + save for this lesson.
-  const buildDone = Boolean(design && build.data?.programMatches && build.data.runCompleted);
+  const buildDone = c3p7BuildDone(build.data);
   const peerAnswered = c3p7PeerAnswered(peer);
   const reopenOk = reopen ? reopen.identical : savedReopenOk;
 
@@ -368,7 +267,7 @@ export function JourneyWestC3Part7Page({
     setReopening(true);
     setReopenError(false);
     // A reopen invalidates whatever the previous document was measured to do.
-    setRun(null);
+    clearRun();
     try {
       const loaded = await loadBlocksProject(projectId);
       setReopen({
@@ -382,34 +281,13 @@ export function JourneyWestC3Part7Page({
       setReopenError(true);
     }
     setReopening(false);
-  }, [build.data?.project, build.data?.projectId, build.data?.savedVersion, reopening]);
+  }, [build.data?.project, build.data?.projectId, build.data?.savedVersion, clearRun, reopening]);
 
   /** Walk the REOPENED document from Page 1 through the real page-flow runner. */
   const runReopened = useCallback(async () => {
-    const project = reopen?.project;
-    if (!project || running) return;
-    setRunning(true);
-    setSaying(null);
-    const runner = new PageFlowRunner(project, {
-      trackCharacterId: JTW_C3_MONKEY_KING_ID,
-      sleep: previewSleep,
-      onPageEnter: (page) => {
-        setStagePage(page);
-        setSprites(startSprites(project, page));
-        setSaying(null);
-      },
-      host: {
-        onSprite: (charId, state) => setSprites((current) => ({ ...current, [charId]: state })),
-        onSay: (_charId, text) => setSaying(text),
-        onSound: (soundId) => sfx.playSound(soundId),
-      },
-    });
-    runnerRef.current = runner;
-    const result = await runner.run();
-    runnerRef.current = null;
-    setRun(result);
-    setRunning(false);
-  }, [previewSleep, reopen?.project, running]);
+    if (!reopen?.project) return;
+    await runProject(reopen.project);
+  }, [reopen?.project, runProject]);
 
   const complete = useMutation({
     mutationFn: () =>
@@ -784,7 +662,10 @@ export function JourneyWestC3Part7Page({
                 {boundaries.length > 0 && (
                   <>
                     <p className="text-[13px] font-bold text-ink">{C3_P7_BOUNDARY_TITLE}</p>
-                    <BoundaryTable boundaries={boundaries} />
+                    <JourneyWestC3BoundaryTable
+                      boundaries={boundaries}
+                      testId="jtw-c3p7-boundaries"
+                    />
                   </>
                 )}
               </div>

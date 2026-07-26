@@ -28,7 +28,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clsx from 'clsx';
 
 import { useMe } from '@/auth/useAuth';
 import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi';
@@ -55,12 +54,11 @@ import {
 import { JTW_C3_FAR_SHORE_PAGE, JTW_C3_SEA_PAGE } from '../jtwC3SeaBuild';
 import { JTW_C3_MONKEY_KING_ID } from '../jtwC3Stage';
 import { jtwC3ParseWeather, jtwC3WeatherVersion, type JtwC3Weather } from '../jtwC3WeatherBuild';
+import { JourneyWestC3BoundaryTable } from './JourneyWestC3BoundaryTable';
 import { JourneyWestC3Stage } from './JourneyWestC3Stage';
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
-import { c3p2EncodeFootprints, c3p2FootprintsOf, c3p2PageLabel } from './journeyWestC3Part2Program';
+import { c3p2EncodeFootprints, c3p2FootprintsOf } from './journeyWestC3Part2Program';
 import {
-  C3_P6_BOUNDARY_BREAK,
-  C3_P6_BOUNDARY_OK,
   C3_P6_BOUNDARY_TITLE,
   C3_P6_BREAK_OPTIONS,
   C3_P6_BREAK_QUESTION,
@@ -185,44 +183,6 @@ function startSprites(project: BlocksProject, pageNumber: number): Record<string
   const sprites: Record<string, SpriteState> = {};
   for (const character of page?.characters ?? []) sprites[character.id] = startState(character);
   return sprites;
-}
-
-/** The measured page boundaries of one real cross-page run. */
-function BoundaryTable({
-  boundaries,
-  testId,
-}: {
-  boundaries: readonly JtwC3Boundary[];
-  testId: string;
-}) {
-  return (
-    <ul className="flex flex-col gap-1" data-testid={testId}>
-      {boundaries.map((boundary) => (
-        <li
-          key={`${boundary.from}-${boundary.to}`}
-          data-boundary={`${boundary.from}-${boundary.to}`}
-          data-exit={boundary.exitCell}
-          data-enter={boundary.enterCell}
-          data-continuous={boundary.continuous ? '1' : '0'}
-          className={clsx(
-            'rounded-2xl border px-3 py-2 text-[13px]',
-            boundary.continuous
-              ? 'border-brand-mint/50 bg-wash-mint text-ink'
-              : 'border-brand-coral/50 bg-canvas-pure text-ink',
-          )}
-        >
-          <span className="font-bold">
-            Page {boundary.from} · {c3p2PageLabel(boundary.from)} → Page {boundary.to} ·{' '}
-            {c3p2PageLabel(boundary.to)}
-          </span>
-          <span className="ml-2 font-semibold text-ink-soft">
-            {boundary.exitCell} 离开 → {boundary.enterCell} 出现 ·{' '}
-            {boundary.continuous ? C3_P6_BOUNDARY_OK : C3_P6_BOUNDARY_BREAK}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 export function JourneyWestC3Part6Page({
@@ -581,7 +541,10 @@ export function JourneyWestC3Part6Page({
             <p className="text-[13px] font-bold text-ink">
               {C3_P6_BUG_TRACE_TITLE} · {C3_P6_BOUNDARY_TITLE}
             </p>
-            <BoundaryTable boundaries={bugBoundaries} testId="jtw-c3p6-bug-boundaries" />
+            <JourneyWestC3BoundaryTable
+              boundaries={bugBoundaries}
+              testId="jtw-c3p6-bug-boundaries"
+            />
             {bugBreak && (
               <p
                 className="text-[13px] font-semibold text-brand-coral"
@@ -759,7 +722,10 @@ export function JourneyWestC3Part6Page({
             <p className="text-[13px] font-bold text-ink">
               {C3_P6_FIXED_TRACE_TITLE} · {trace.map((page) => `Page ${page}`).join(' → ')}
             </p>
-            <BoundaryTable boundaries={fixBoundaries} testId="jtw-c3p6-fix-boundaries" />
+            <JourneyWestC3BoundaryTable
+              boundaries={fixBoundaries}
+              testId="jtw-c3p6-fix-boundaries"
+            />
           </div>
         )}
         {fixBoundaries.length > 0 && !fixRunDone && (

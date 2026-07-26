@@ -17,15 +17,22 @@
 // rules/file-organization.md (`journeyWestSeason1.ts` and `BlocksStudioPage.tsx`
 // are already over it, so no chapter-three content is added to either).
 
+import { listBlocksProjects, loadBlocksProject } from '../blocksApi';
+import type { BlocksProject } from '../blocksModel';
 import type { PageFlowRunResult } from '../pageFlowRun';
 import {
+  jtwC3RouteDesign,
+  jtwC3RouteSavedWeather,
   JTW_C3_P7_BOARD_LEG,
   JTW_C3_P7_MAX_ACTIONS,
   JTW_C3_P7_MIN_ACTIONS,
   JTW_C3_P7_MIN_CHILD_BLOCKS,
   JTW_C3_P7_PAGE1_RAFT_CELL,
+  type JtwC3RouteDesign,
 } from '../jtwC3PersonalRoute';
 import { JTW_C3_FAR_SHORE_PAGE, JTW_C3_SEA_LEG, JTW_C3_SEA_PAGE } from '../jtwC3SeaBuild';
+import type { JtwC3Weather } from '../jtwC3WeatherBuild';
+import { storyMissionProgramMatches } from '../storyMissionProgress';
 import { c3p2PageLabel } from './journeyWestC3Part2Program';
 
 export const C3_P7_LESSON_ID = 'jtw-s1-c3-p7';
@@ -40,6 +47,65 @@ export const C3_P7_RECENT_PROJECTS_TO_SCAN = 8;
 
 /** The route every valid personal build has to walk. */
 export const C3_P7_TARGET_TRACE: readonly number[] = [1, JTW_C3_SEA_PAGE, JTW_C3_FAR_SHORE_PAGE];
+
+// ─── the saved Personal Ship, read straight off the VFS ─────────────────────
+// C3-P8 reopens the SAME work through the SAME read path, which is what makes
+// its "不得另载答案项目" structural: there is no template either Part can create
+// to stand in for a route the child never saved.
+
+export interface C3PersonalRouteBuild {
+  projectId: string | null;
+  /** The SAVED project, exactly as the server has it. */
+  project: BlocksProject | null;
+  /** Server VFS version — the version id a Part's evidence cites. */
+  savedVersion: number | null;
+  /** The parsed personal route, or null while the structure is unfinished. */
+  design: JtwC3RouteDesign | null;
+  /** The sea the saved Page 2 paints, even before the route is finished. */
+  startedWeather: JtwC3Weather | null;
+  /** The saved document satisfies the personal-route grammar. */
+  programMatches: boolean;
+  /** The studio recorded a finished run + save for this lesson. */
+  runCompleted: boolean;
+}
+
+export const C3_P7_NO_BUILD: C3PersonalRouteBuild = {
+  projectId: null,
+  project: null,
+  savedVersion: null,
+  design: null,
+  startedWeather: null,
+  programMatches: false,
+  runCompleted: false,
+};
+
+/** Find the kid's REAL saved personal route for this lesson by reading the VFS. */
+export async function findC3PersonalRouteBuild(kidId: string): Promise<C3PersonalRouteBuild> {
+  const projects = (await listBlocksProjects(kidId)).slice(0, C3_P7_RECENT_PROJECTS_TO_SCAN);
+  for (const meta of projects) {
+    try {
+      const loaded = await loadBlocksProject(meta.id);
+      if (loaded.project.lessonId !== C3_P7_LESSON_ID) continue;
+      return {
+        projectId: meta.id,
+        project: loaded.project,
+        savedVersion: loaded.version,
+        design: jtwC3RouteDesign(loaded.project),
+        startedWeather: jtwC3RouteSavedWeather(loaded.project),
+        programMatches: storyMissionProgramMatches(loaded.project, C3_P7_LESSON_ID),
+        runCompleted: Boolean(loaded.storyProgress?.completed[C3_P7_LESSON_ID]),
+      };
+    } catch {
+      // Unreadable/legacy project — keep scanning.
+    }
+  }
+  return C3_P7_NO_BUILD;
+}
+
+/** The saved work really is a finished, run-and-saved personal route. */
+export function c3p7BuildDone(build: C3PersonalRouteBuild | undefined): boolean {
+  return Boolean(build?.design && build.programMatches && build.runCompleted);
+}
 
 // ─── story_before — teaching script C3 Part 7, two screens ───────────────────
 
@@ -241,8 +307,6 @@ export const C3_P7_RUN_BUSY_LABEL = '木筏正在走…';
 export const C3_P7_RUN_LOCKED_HINT = '先把作品关掉重开一次，再跑这一遍——不然它就不是"重开以后"的运行。';
 export const C3_P7_RUN_TRACE_TITLE = '这一遍真的走过的三页';
 export const C3_P7_BOUNDARY_TITLE = '每一次跨页：他在哪一格离开，又在哪一格出现';
-export const C3_P7_BOUNDARY_OK = '接得上';
-export const C3_P7_BOUNDARY_BREAK = '断开了';
 export const C3_P7_TRACE_MISMATCH_HINT =
   '这一遍没有走成 1 → 2 → 3，或者最后一页没有稳稳结束，又或者有一处跨页断开了。回工作区检查两个出口数字和最后那块 End，再重开重跑。';
 

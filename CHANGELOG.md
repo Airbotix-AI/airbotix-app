@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P8 — arriving is not learning)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p8` — chapter three's Retell and the server-side chapter
+  aggregation** (scene-specs JTW-S1-C3-P8, teaching script C3 故事卡D + Part 8). This Part ships NO
+  starter, and that is the point: it reopens the C3-P7 Personal Ship the child really saved through
+  the SAME VFS read path C3-P7 uses, so the scene's "不得另载答案项目" is structural rather than a
+  promise — there is no template this page could create. With no saved work, or a saved document
+  that no longer satisfies the C3-P7 grammar (a leg one cell short, a page whose actions were
+  deleted, an exit pointing home), the page points back at Part 7 and completes nothing.
+- **The gate order is the scene's.** 故事卡D in full + the 漂洋求师 classic card + the two shore
+  lines; then the FIVE cause cards `为什么离开→伙伴造筏→Page 2出口错误→修复顺序与位置→到达师门` must
+  be ordered BEFORE the run button opens (putting 到达师门 in front of 修复顺序与位置 keeps it
+  disabled); then the SAVED document is walked from Page 1 to Page 3's End through the real
+  `PageFlowRunner`, requiring `1 → 2 → 3`, `stoppedBy === 'end'` and both page boundaries
+  continuous; and only that run opens the retell.
+- **两类证据, measured separately.** The TEXT motive card must come from the story and say why he
+  left — 寻宝 is refused (the motive lock) and so is "Page 1 的出口写着 2", which is program evidence,
+  not text. The PROGRAM card is judged ONLY by the run that just happened:
+  `c3p8ProgramEvidenceMeasured` admits `trace-1-2-3 / exit-page2-is-3 / page3-ends /
+  boundaries-continuous` solely when the run and the saved design really produced them, so the
+  master's line and "木筏自己知道该去哪一页" are not mis-marked options — they are things that cannot
+  be measured. The retell itself refuses a block-name recital AND "后来他就学会本领了", which is the
+  scene's own "到达只证明完成寻找与修正，不表示已学会本领".
+- **远行印 is lit by the SERVER alone.** The page renders `chapter_seals[].lit` from `/story-parts`
+  and, when dark, names how many evidence groups the server still reports missing. `现在去敲门`
+  opens ONLY jtw-s1-c4-p1 and goes to the map; `以后继续` writes the resume position onto the same
+  evidence row and does NOT navigate, which a refresh restores. Neither auto-advances a chapter.
+- **`journeyWestC3RouteRun.ts` (`useJtwC3RouteRun`) and `JourneyWestC3BoundaryTable.tsx`** — the
+  cross-page run driver and the measured-boundary table, extracted from the copies C3-P6 and C3-P7
+  each carried and now shared by C3-P6/P7/P8. `findC3PersonalRouteBuild` moved into
+  `journeyWestC3Part7Program.ts` so both Parts read the saved work the same way.
+
+### Changed
+- C3-P7's page uses the shared run hook, the shared boundary table and the shared loader; its
+  behaviour, test ids and copy are unchanged and it shrank 857 → 738 lines (C3-P6 851 → 817).
+  `BlocksStudioPage.tsx` (~2958 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so all C3-P8 content lives in `journeyWestC3Part8Program.ts`.
+
+### Notes
+- No new asset, and nothing invented. The resolved panel reuses the already-integrated
+  `backgrounds/s1/c3/page3-resolved-v01.webp` — the lit stepping path and the master's stone gate
+  out of the mist, which IS the scene's 师门石牌点亮. 远行印 itself has no artwork in the asset
+  bible §6 and none was faked: it is drawn in type and a lit border, with no fireworks, because the
+  scene forbids implying the skills are learned.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 217 files / 1818 tests green — no
+  documented flake reproduced.
+
 ## 2026-07-27 (feat: Journey West C3-P7 — my own three-page road to a master)
 
 ### Added

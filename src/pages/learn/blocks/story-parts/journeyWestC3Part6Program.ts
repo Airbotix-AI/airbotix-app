@@ -99,8 +99,6 @@ export const C3_P6_BUG_RUN_BUSY_LABEL = '木筏正在走…';
 export const C3_P6_BUG_RUN_LOCKED_HINT = '先说出你的预期，再运行——不然看到什么都像是对的。';
 
 export const C3_P6_BOUNDARY_TITLE = '每一次跨页：他在哪一格离开，又在哪一格出现';
-export const C3_P6_BOUNDARY_OK = '接得上';
-export const C3_P6_BOUNDARY_BREAK = '断开了';
 
 // ─── ③第一次不连续（只有真的跑过错误版才打开） ──────────────────────────────
 
