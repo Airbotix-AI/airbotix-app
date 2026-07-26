@@ -12,12 +12,10 @@
 // rules/file-organization.md.
 
 import type { BlocksProject, Page } from '../blocksModel';
-import type { SpriteState } from '../interpreter';
+import { listBlocksProjects, loadBlocksProject } from '../blocksApi';
+import { storyMissionProgramMatches } from '../storyMissionProgress';
 import {
-  JTW_C2_P7_CAVE_ID,
-  JTW_C2_P7_CURTAIN_ID,
   JTW_C2_P7_LESSON_ID,
-  JTW_C2_P7_MONKEY_ID,
   JTW_C2_P7_PAGE_ID,
   jtwPersonalEntryDesign,
   type JtwPersonalEntryDesign,
@@ -125,49 +123,30 @@ export function c2p7BuildFrom(
   };
 }
 
-/** What the part page's reopen-and-rerun actually measured on the real runner. */
-export interface C2P7RerunResult {
-  /** The cell the monkey finished on, in the `gx-gy` form the stops use. */
-  endCell: string;
-  /** The curtain's own On Bump ran its Hide. */
-  curtainHidden: boolean;
-  /** The cave's own On Bump ran its Show. */
-  caveShown: boolean;
-  /** The evidence line the cave really said during this run, if any. */
-  saidLine: string | null;
-}
-
-/** Read the rerun's outcome off the runner's final sprite states. */
-export function c2p7RerunResult(
-  stateOf: (charId: string) => SpriteState | undefined,
-  saidLine: string | null,
-): C2P7RerunResult {
-  const monkey = stateOf(JTW_C2_P7_MONKEY_ID);
-  const curtain = stateOf(JTW_C2_P7_CURTAIN_ID);
-  const cave = stateOf(JTW_C2_P7_CAVE_ID);
-  return {
-    endCell: monkey ? `${monkey.gx}-${monkey.gy}` : '',
-    curtainHidden: curtain?.visible === false,
-    caveShown: cave?.visible === true,
-    saidLine,
-  };
-}
+/** How far back through the kid's recent work the entry project is searched. */
+const RECENT_PROJECTS_TO_SCAN = 8;
 
 /**
- * Is the reopened project's rerun the SAME result the child saved? This is the
- * scene's "关闭重开、结果一致" evidence: the monkey finished on the knock cell
- * of the bank he is standing on, the curtain really hid, the cave really showed
- * itself, and it said the very line the saved project carries.
+ * Reopen the kid's SAVED Personal Ship straight from the server. Both C2-P7 and
+ * C2-P8 start from this load — for P7 it IS the "关闭重开", and for P8 it is the
+ * scene's "加载P7真实保存版本" (never an answer project this page built).
  */
-export function c2p7RerunMatches(
-  design: JtwPersonalEntryDesign | null,
-  result: C2P7RerunResult | null,
-): boolean {
-  if (!design || !result) return false;
-  return (
-    result.endCell === design.side.knockCell &&
-    result.curtainHidden &&
-    result.caveShown &&
-    result.saidLine === design.evidenceLine
-  );
+export async function findC2EntryBuild(kidId: string): Promise<C2P7EntryBuild> {
+  const projects = (await listBlocksProjects(kidId)).slice(0, RECENT_PROJECTS_TO_SCAN);
+  for (const meta of projects) {
+    try {
+      const loaded = await loadBlocksProject(meta.id);
+      if (loaded.project.lessonId !== C2_P7_LESSON_ID) continue;
+      return c2p7BuildFrom(
+        meta.id,
+        loaded.project,
+        loaded.version,
+        Boolean(loaded.storyProgress?.completed[C2_P7_LESSON_ID]) &&
+          storyMissionProgramMatches(loaded.project, C2_P7_LESSON_ID),
+      );
+    } catch {
+      // Unreadable/legacy project — keep scanning.
+    }
+  }
+  return C2_P7_EMPTY_BUILD;
 }

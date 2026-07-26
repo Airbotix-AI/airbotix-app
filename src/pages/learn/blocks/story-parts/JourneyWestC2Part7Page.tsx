@@ -10,28 +10,20 @@
 // prediction, the wait reason and a matching rerun; continue unlocks ONLY
 // jtw-s1-c2-p8 and no chapter completes.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
 import { BlockChip } from '../BlockChip';
-import { GRID_H, GRID_W, type Page } from '../blocksModel';
-import { BlocksRunner, startState, type SpriteState } from '../interpreter';
-import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi';
-import { storyMissionProgramMatches } from '../storyMissionProgress';
-import {
-  JTW_C2_P7_CAVE_ID,
-  JTW_C2_P7_CURTAIN_ID,
-  JTW_C2_P7_MONKEY_ID,
-} from '../jtwPersonalEntry';
+import { createBlocksProject } from '../blocksApi';
 import { JTW_MONKEY_FRIENDS_SPRITE } from '../jtwC2Stage';
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
+import { c2EntryRunMatches, type C2EntryRunResult } from './journeyWestC2EntryRun';
+import { JourneyWestC2EntryStage } from './JourneyWestC2EntryStage';
 import {
   C2_P7_CONTINUE_LABEL,
-  C2_P7_EMPTY_BUILD,
-  C2_P7_LESSON_ID,
   C2_P7_MOTIVE,
   C2_P7_PREDICTION_OPTIONS,
   C2_P7_PREDICTION_QUESTION,
@@ -45,167 +37,18 @@ import {
   C2_P7_WAIT_OPTIONS,
   C2_P7_WAIT_QUESTION,
   C2_P7_WAIT_RETRY_HINT,
-  c2p7BuildFrom,
-  c2p7RerunMatches,
-  c2p7RerunResult,
-  type C2P7EntryBuild,
-  type C2P7RerunResult,
+  findC2EntryBuild,
 } from './journeyWestC2Part7Program';
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi';
 import { Choice } from './partUi';
 
 const PART_ID = 'jtw-s1-c2-p7';
 const NEXT_PART_ID = 'jtw-s1-c2-p8';
-const RECENT_PROJECTS_TO_SCAN = 8;
-const BASE_ASSET = '/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png';
-
-/** Reopen the kid's SAVED Personal Ship straight from the server (VFS truth). */
-async function findEntryBuild(kidId: string): Promise<C2P7EntryBuild> {
-  const projects = (await listBlocksProjects(kidId)).slice(0, RECENT_PROJECTS_TO_SCAN);
-  for (const meta of projects) {
-    try {
-      const loaded = await loadBlocksProject(meta.id);
-      if (loaded.project.lessonId !== C2_P7_LESSON_ID) continue;
-      return c2p7BuildFrom(
-        meta.id,
-        loaded.project,
-        loaded.version,
-        Boolean(loaded.storyProgress?.completed[C2_P7_LESSON_ID]) &&
-          storyMissionProgramMatches(loaded.project, C2_P7_LESSON_ID),
-      );
-    } catch {
-      // Unreadable/legacy project — keep scanning.
-    }
-  }
-  return C2_P7_EMPTY_BUILD;
-}
-
-/**
- * The reopen-and-rerun: the SAVED page (never a page-built copy of it) is
- * handed to the real BlocksRunner, so the curtain hiding, the cave showing and
- * the evidence line are things the interpreter did, not things this page drew.
- */
-function JourneyWestEntryRerun({
-  page,
-  onResult,
-  sleep,
-}: {
-  page: Page;
-  onResult: (result: C2P7RerunResult) => void;
-  /** Injectable for tests (mirrors BlocksRunner's injectable sleep). */
-  sleep?: (ms: number) => Promise<void>;
-}) {
-  const [running, setRunning] = useState(false);
-  const [ran, setRan] = useState(false);
-  const [sprites, setSprites] = useState<Map<string, SpriteState>>(
-    () => new Map(page.characters.map((character) => [character.id, startState(character)])),
-  );
-  const [saidLine, setSaidLine] = useState<string | null>(null);
-  const runnerRef = useRef<BlocksRunner | null>(null);
-
-  useEffect(() => () => runnerRef.current?.stopAll(), []);
-
-  const run = useCallback(async () => {
-    if (running) return;
-    setRunning(true);
-    setSaidLine(null);
-    setSprites(new Map(page.characters.map((character) => [character.id, startState(character)])));
-    let heardLine: string | null = null;
-    const runner = new BlocksRunner(
-      page,
-      {
-        onSprite: (charId, state) =>
-          setSprites((previous) => new Map(previous).set(charId, state)),
-        onSay: (charId, text) => {
-          if (charId !== JTW_C2_P7_CAVE_ID || text === null) return;
-          heardLine = text;
-          setSaidLine(text);
-        },
-        onNote: () => undefined,
-        onSound: () => undefined,
-        onGotoPage: () => undefined,
-        onStep: () => undefined,
-      },
-      sleep,
-    );
-    runnerRef.current = runner;
-    await runner.runFlag();
-    setRunning(false);
-    setRan(true);
-    onResult(c2p7RerunResult((charId) => runner.state(charId), heardLine));
-  }, [onResult, page, running, sleep]);
-
-  const monkey = page.characters.find((character) => character.id === JTW_C2_P7_MONKEY_ID);
-  const monkeyState = sprites.get(JTW_C2_P7_MONKEY_ID);
-  const curtainVisible = sprites.get(JTW_C2_P7_CURTAIN_ID)?.visible !== false;
-  const caveVisible = sprites.get(JTW_C2_P7_CAVE_ID)?.visible === true;
-  const curtain = page.characters.find((character) => character.id === JTW_C2_P7_CURTAIN_ID);
-  const cave = page.characters.find((character) => character.id === JTW_C2_P7_CAVE_ID);
-
-  return (
-    <div className="space-y-4">
-      <div
-        className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-hairline"
-        data-testid="jtw-c2p7-stage"
-        data-world-state={caveVisible ? 'cave-revealed' : 'curtain-closed'}
-      >
-        <img
-          src={BASE_ASSET}
-          alt="水帘前的湿石路：左岸的石阶和右岸的花丛石滩都通向同一个入口"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        {curtain && curtainVisible && (
-          <img
-            src={curtain.asset}
-            alt="合着的水帘"
-            data-testid="jtw-c2p7-curtain"
-            data-visible="true"
-            className="absolute right-[5%] top-[3%] h-[68%] w-[49%] object-contain"
-          />
-        )}
-        {cave && caveVisible && (
-          <img
-            src={cave.asset}
-            alt="暖光洞口，里面有石桥、干地、石座和清水"
-            data-testid="jtw-c2p7-cave"
-            data-visible="true"
-            className="absolute right-[12%] top-[12%] h-[61%] w-[38%] object-contain"
-          />
-        )}
-        {monkey && monkeyState && (
-          <img
-            src={monkey.asset}
-            alt="Stone Monkey"
-            data-testid="jtw-c2p7-stone-monkey"
-            data-gx={monkeyState.gx}
-            data-gy={monkeyState.gy}
-            className="absolute w-[14%] -translate-x-1/2 -translate-y-full transition-all duration-200"
-            style={{
-              left: `${(monkeyState.gx / (GRID_W - 1)) * 100}%`,
-              top: `${(monkeyState.gy / (GRID_H - 1)) * 100}%`,
-            }}
-          />
-        )}
-      </div>
-
-      {saidLine && (
-        <p className="text-[14px] font-semibold text-ink" data-testid="jtw-c2p7-said-line">
-          洞口说：「{saidLine}」
-        </p>
-      )}
-
-      <button
-        type="button"
-        className="btn-pill-primary"
-        disabled={running}
-        onClick={() => void run()}
-        data-testid="jtw-c2p7-rerun"
-      >
-        {running ? '重跑中…' : ran ? '▶ 再跑一次' : '▶ 重开以后再跑一次'}
-      </button>
-    </div>
-  );
-}
+const RERUN_LABELS = {
+  idle: '▶ 重开以后再跑一次',
+  running: '重跑中…',
+  again: '▶ 再跑一次',
+} as const;
 
 export function JourneyWestC2Part7Page({
   previewSleep,
@@ -224,7 +67,7 @@ export function JourneyWestC2Part7Page({
   });
   const build = useQuery({
     queryKey: ['jtw-c2-p7-build', kidId],
-    queryFn: () => findEntryBuild(kidId!),
+    queryFn: () => findC2EntryBuild(kidId!),
     enabled: !!kidId,
   });
 
@@ -232,7 +75,7 @@ export function JourneyWestC2Part7Page({
   const [predictionMissed, setPredictionMissed] = useState(false);
   const [waitReason, setWaitReason] = useState<string | null>(null);
   const [waitMissed, setWaitMissed] = useState(false);
-  const [rerun, setRerun] = useState<C2P7RerunResult | null>(null);
+  const [rerun, setRerun] = useState<C2EntryRunResult | null>(null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -255,7 +98,7 @@ export function JourneyWestC2Part7Page({
   const predictionDone =
     C2_P7_PREDICTION_OPTIONS.find((option) => option.id === prediction)?.correct === true;
   const waitDone = C2_P7_WAIT_OPTIONS.find((option) => option.id === waitReason)?.correct === true;
-  const rerunOk = c2p7RerunMatches(design, rerun);
+  const rerunOk = c2EntryRunMatches(design, rerun);
   const completed = Boolean(savedEntry);
   const resolved = buildDone && predictionDone && rerunOk && waitDone;
 
@@ -481,8 +324,10 @@ export function JourneyWestC2Part7Page({
               <h2 className="text-[15px] font-bold text-ink">
                 这一页是刚从服务器重新打开的作品。再跑一次，看结果是不是一样：
               </h2>
-              <JourneyWestEntryRerun
+              <JourneyWestC2EntryStage
                 page={build.data.page}
+                testIdPrefix="jtw-c2p7"
+                labels={RERUN_LABELS}
                 onResult={setRerun}
                 sleep={previewSleep}
               />

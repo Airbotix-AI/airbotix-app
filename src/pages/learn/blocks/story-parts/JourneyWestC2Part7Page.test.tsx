@@ -19,7 +19,7 @@ import {
   JTW_STONE_MONKEY_SPRITE,
 } from '../jtwC2Stage';
 import { JourneyWestC2Part7Page } from './JourneyWestC2Part7Page';
-import { c2p7RerunMatches, c2p7RerunResult } from './journeyWestC2Part7Program';
+import { c2EntryRunMatches, c2EntryRunResult } from './journeyWestC2EntryRun';
 import * as blocksApi from '../blocksApi';
 import * as storyPartsApi from './storyPartsApi';
 import type { StoryLineProgress } from './storyPartsApi';
@@ -377,7 +377,7 @@ describe('C2-P7 · the real interpreter answers both banks', () => {
     );
     for (const character of page.characters) sprites.set(character.id, startState(character));
     await runner.runFlag();
-    return c2p7RerunResult((charId) => runner.state(charId), line);
+    return c2EntryRunResult((charId) => runner.state(charId), line);
   }
 
   it('opens the curtain from EITHER bank, and only on the knock cell', async () => {
@@ -398,6 +398,6 @@ describe('C2-P7 · the real interpreter answers both banks', () => {
     expect(result.endCell).toBe(LEFT.shortOfDoorCell);
     expect(result.curtainHidden).toBe(false);
     expect(result.caveShown).toBe(false);
-    expect(c2p7RerunMatches({ side: LEFT, waitN: 2, evidenceLine: '' }, result)).toBe(false);
+    expect(c2EntryRunMatches({ side: LEFT, waitN: 2, evidenceLine: '' }, result)).toBe(false);
   });
 });

@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C2-P8 — keeping the promise, and the chapter seal)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p8` — chapter two's Retell and aggregation**
+  (scene-specs JTW-S1-C2-P8). This Part ships **no starter of its own**: it reopens the C2-P7
+  Personal Ship the child really saved, through the SAME server read path P7 uses, so
+  "不得另载答案项目" is structural rather than a promise — there is no template this page could
+  create. With no saved work, or a saved page that no longer satisfies the P7 contract (a route
+  one cell short, a deleted response chain), the page points back at Part 7 and completes nothing.
+- **The gate order is the scene's.** 故事卡D in full + the classic card + the two waterfall lines
+  the chapter has to keep → the SEVEN cause cards `水声线索→瀑布约定→精确路线→水帘回应→修好回程→
+  带伙伴进入→成为猴王` must be ordered **before the run button opens** → the SAVED page runs
+  Start → End on a real `BlocksRunner` → only a run that reproduces the saved design opens the
+  retell. The run is measured: the curtain hides, the cave shows and says the very line the saved
+  JSON carries, and the monkey stops on **his own bank's** knock cell (left `6-7`, right `8-7` —
+  both covered, so a right-bank child never retells a left-bank result).
+- **Retell** accepts only the sentence linking the human choice (the waterfall promise) to the
+  program evidence (route, On Bump response, repaired return). A block-name recital and a
+  cause-free "他就成了美猴王" are both refused with the four-node hint.
+- **水帘洞印 is lit by the SERVER only.** The page renders `chapter_seals[].lit` from
+  `/story-parts` and nothing else; when it is dark it names how many evidence groups the server
+  still reports missing.
+- **Continue**: `现在看海边` opens ONLY `jtw-s1-c3-p1` and goes to the map; `以后继续` writes the
+  resume position onto the same evidence row (`continue_choice`) and stays on the C2 ending, which
+  a refresh restores. Neither button auto-advances a chapter. C2-P8 added to the map's playable set.
+
+### Changed
+- **`JourneyWestC2EntryStage.tsx` + `journeyWestC2EntryRun.ts`** extracted from the C2-P7 page:
+  the saved-entry stage, the run reader and the "did this run match the saved design" rule are
+  now shared by P7's reopen-and-rerun and P8's retell run instead of duplicated. The saved-project
+  loader moved into `journeyWestC2Part7Program.ts` as `findC2EntryBuild`. P7's behaviour, test ids
+  and copy are unchanged.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125 lines) were **not grown** —
+  both are already over the 1000-line hard rule, so all C2-P8 content lives in
+  `journeyWestC2Part8Program.ts`.
+
+### Notes
+- **No new asset.** The 木头线索 named in the scene's `resolved_world_change` has no artwork:
+  `prop-raft-neutral-v01` is a FINISHED raft the asset bible assigns to C3 (whose script has the
+  friends build it from loose wood), and `backgrounds/s1/c2/resolved-v01.webp` contains no sea at
+  all. The resolved copy therefore describes only what the shipped art really shows; no emoji, CSS
+  shape or page boolean stands in, and the beat carries no completion evidence. Recorded in the
+  saga asset bible.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 204 files / 1638 tests — the only
+  red is the documented `FamilyDetailPage — kid school editor` load flake, green when re-run alone.
+
 ## 2026-07-27 (feat: Journey West C2-P7 — the personal entry route)
 
 ### Added
