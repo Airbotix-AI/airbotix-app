@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
+
+### Changed
+
+- **`curriculumGuides.ts` split from 1646 lines into a 57-line facade plus nine chapter
+  modules** (`guides/`, largest 344 lines) — `rules/file-organization.md` sets a 1000-line hard
+  rule and this file was 65% over it. The mission data now lives one file per curriculum
+  chapter (`tinyStarA1`..`A6`, `journeyWestC1`/`C2`) with the shared types in `guides/types.ts`;
+  `curriculumGuides.ts` remains the only import site every other module uses, so no call site
+  changed. Proven data-identical: a throwaway equivalence test deep-compared all 29 missions
+  against the pre-split file before it was deleted, and a permanent guard now fails if two
+  chapter modules ever declare the same lesson id (a spread-merge would silently shadow one) or
+  if a guide's own `lessonId` stops matching the key it is filed under.
+- **Studio chrome extracted from `BlocksStudioPage.tsx`** into `blocksStudioChrome.ts` (drag
+  tuning constants, the non-passive touch-scroll lock, the read-only treatment, `SaveStatus`)
+  and `ZoneTag.tsx`. Split across two files because `react-refresh/only-export-components`
+  forbids a component file from also exporting constants.
+
+### Known
+
+- `BlocksStudioPage.tsx` is still **2960** lines, far over the same hard rule. The remaining
+  bulk is 1320 lines of JSX (toolbar, stage, coding band, editor popover) plus three pointer
+  drag subsystems, all closely coupled to component state — the tap-to-edit popover alone
+  references 171 identifiers. Dismantling it safely needs its own staged pass and a pre-deploy
+  harness run, so it is deliberately NOT attempted here.
+
 ## 2026-07-26 (fix: restore the Art Studio hub shell)
 
 ### Fixed

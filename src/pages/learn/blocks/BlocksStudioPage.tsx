@@ -117,50 +117,17 @@ import {
   TINY_STAR_SEASON_LOCKED_MESSAGE,
   TINY_STAR_SEASON_OFFLINE_MESSAGE,
 } from './tinyStarSeason';
-
-const SAVE_DEBOUNCE_MS = 800;
-
-// ── block drag tuning (touch-first) ──────────────────────────────────────────
-// On a tablet a finger that starts on a block must be free to SCROLL the list;
-// only a deliberate HOLD lifts the block to drag. So: touch waits for a short
-// long-press (and cancels if the finger moves first = a scroll); mouse starts
-// on a tiny move threshold. While a drag is active we lock page scrolling with a
-// non-passive touchmove listener (touch-action alone can't be flipped mid-touch).
-const LONGPRESS_MS = 180;
-const TOUCH_CANCEL_PX = 12; // finger travels this far before the hold fires → it's a scroll
-const MOUSE_DRAG_PX = 6; // mouse moves this far → start dragging
-const preventTouchMove = (e: TouchEvent) => {
-  if (e.cancelable) e.preventDefault();
-};
-function lockTouchScroll() {
-  document.addEventListener('touchmove', preventTouchMove, { passive: false });
-}
-function unlockTouchScroll() {
-  document.removeEventListener('touchmove', preventTouchMove);
-}
-
-type SaveStatus = 'saved' | 'saving' | 'offline';
-
-// Teacher read-only viewer (D-LV-6): edit controls are RENDERED-but-DISABLED, not
-// hidden, so the read-only layout is byte-for-byte the kid's (no empty bands, no
-// missing palette). Edit controls get this consistent inert + dimmed treatment;
-// the CONTENT the teacher is viewing (stage, characters, script chain, page
-// thumbnails) stays full-opacity. Mutation handlers are already store-gated.
-const READONLY_EDIT_DISABLED = 'pointer-events-none cursor-default opacity-60';
-
-// ── zone label chip (clarity pass) ───────────────────────────────────────────
-// Kids 5–8 (many pre-readers) couldn't tell what each studio area was for, so
-// every zone wears a tiny emoji-first name tag. Chips are decoration only:
-// pointer-events:none, aria-hidden (the zones carry matching aria-labels), and
-// blocks.css hides them in present mode / while a block drag is live.
-function ZoneTag({ zone, emoji, label }: { zone: string; emoji: string; label: string }) {
-  return (
-    <span className={`bsx-zonetag zt-${zone}`} data-testid={`zone-${zone}`} aria-hidden>
-      <span className="zt-ic">{emoji}</span>
-      <span className="zt-txt">{label}</span>
-    </span>
-  );
-}
+import { ZoneTag } from './ZoneTag';
+import {
+  LONGPRESS_MS,
+  MOUSE_DRAG_PX,
+  READONLY_EDIT_DISABLED,
+  SAVE_DEBOUNCE_MS,
+  TOUCH_CANCEL_PX,
+  lockTouchScroll,
+  unlockTouchScroll,
+  type SaveStatus,
+} from './blocksStudioChrome';
 
 export function BlocksStudioPage({
   projectId: projectIdProp,
