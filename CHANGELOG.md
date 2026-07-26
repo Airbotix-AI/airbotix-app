@@ -1,5 +1,58 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C2-P7 — the personal entry route)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p7` — chapter two's Personal Ship** (scene-specs
+  JTW-S1-C2-P7). The first Journey to the West Part in which the ROUTE is the child's design.
+  In the real Blocks Studio they choose **which bank the friends enter from** (stay on the left
+  `2/8`, or drag the monkey to the right shore `12/9` — the studio's own sprite drag is the start
+  switch), build **that bank's own exact chain**, and pick a `Wait 1|2` plus one preset evidence
+  line. The banks are NOT one chain mirrored: the left is five one-step blocks
+  (`Right 1 ×2 → Up 1 → Right 1 ×2`, stops `3-8→4-8→4-7→5-7→6-7`) and the right shore sits a row
+  lower, so it needs six (`Up 1 → Left 1 ×2 → Up 1 → Left 1 ×2`, stops
+  `12-8→11-8→10-8→10-7→9-7→8-7`). Both stop ONE cell from the `7/7` door, so either bank makes a
+  real bump — and one step short opens nothing, which a unit test re-proves against the real
+  interpreter for both banks (C2-P4's 刚好到达 rule).
+- **The save/close/reopen evidence is measured, not claimed.** The part page RELOADS the saved
+  project from the server (that load IS the reopen), reads the design and the **VFS version id**
+  out of the returned JSON, takes the partner's prediction first (a wrong pick gets its hint and
+  keeps the rerun shut), and then hands THAT SAVED PAGE to a real `BlocksRunner`: the curtain
+  really hides, the cave really shows itself and says the very line the saved JSON carries, and
+  the monkey finishes on that bank's knock cell. Completion needs the saved `BlocksProject` + the
+  studio's run marker; continue unlocks ONLY `jtw-s1-c2-p8` and no chapter completes.
+- **`jtwPersonalEntry.ts`** — the personal-entry grammar, next to C1-P7's `jtwPersonalArrival.ts`.
+  It rejects a start on neither bank, the **mashup** (one bank's start with the other bank's
+  route), a route that stops short of or overshoots the door, the merged `Right 2` parameter
+  shortcut, a reordered route, a missing/out-of-band Wait, a Wait before the walk, a
+  deleted/shortened/reordered curtain or cave response chain, a cave that no longer starts hidden,
+  a moved door actor and a free-typed line.
+- **`jtwC2Stage.ts`** — chapter two's shared stage identity (the actor-free background, the three
+  sprites, the `7/7` door cell, its sizes and one-cell reach, the Chime). The contracts, the entry
+  parser and the part page now agree on ONE set of ids, and the parser has no import cycle with
+  `storyMissionContracts.jtw.ts`.
+- **`story-parts/journeyWestC2Part7Program.ts`** — the Part's story text, evidence questions and
+  the read-back that turns a saved project + VFS version into Part evidence.
+- **Asset:** `characters/monkey-friends/group-neutral-v01.png` copied into `public/` for the
+  resolved state (`draft_unapproved`, internal build/test only). It is ONE image of all three
+  friends, so it is scenery and carries no completion evidence.
+
+### Changed
+- `storyMissionProgress.ts` gains the bespoke `jtw-s1-c2-p7` branch (the whole page goes to the
+  entry parser — there is no exact target and, deliberately, no fixed start).
+- `guides/journeyWestC2.ts` gains the C2-P7 `personal-ship` mission; `blocksApi.ts` gains the
+  `blocks_jtw_c2_p7` template id; the part route and `PLAYABLE_PART_IDS` gain C2-P7.
+- **`BlocksStudioPage.tsx` was NOT touched.** The personal-ship mission runs through the existing
+  generic path and the runtime proof this Part needs lives in the part page's own rerun, so the
+  file (already ~2958 lines, over the 1000-line hard rule) did not grow.
+
+### Known / not done
+- The 果篮 named in the scene's `resolved_world_change` has no artwork (`prop-fruit-basket` was
+  never generated) and three separable friend sprites for an ordered entry do not exist either.
+  Neither is faked with an emoji, a CSS shape or a page boolean; the resolved copy describes only
+  the stone seat and clear water the shipped cave art really shows. Recorded in the asset bible.
+
+
 ## 2026-07-26 (feat: Journey West C2-P6 — the return-route order bug)
 
 ### Added

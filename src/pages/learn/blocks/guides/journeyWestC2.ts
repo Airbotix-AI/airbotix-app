@@ -169,4 +169,92 @@ export const JTW_C2_MISSIONS: Record<string, StoryMission> = {
     completionWhy: '两次的终点都是 2-8，可只有修好的那次经过 4-8——伙伴要跟的正是那块低石。',
     next: '石猴回到伙伴面前说明了发现。下一个 Part：把这条路线变成大家都能走的路。',
   },
+
+  // Journey to the West S1/C2-P7 — chapter two's Personal Ship. The route is
+  // the child's own design: which bank the friends enter from, the exact chain
+  // that bank needs, how long the door is held open and which evidence line the
+  // cave says. Only the story lock (到达 → 碰到 → 回应 → 等待) is fixed.
+  'jtw-s1-c2-p7': {
+    mode: 'personal-ship',
+    lessonId: 'jtw-s1-c2-p7',
+    celebrate: true,
+    hero: {
+      name: '石猴',
+      role: '给伙伴带路的人',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第二章 · Personal Ship',
+    title: '把发现变成大家的路',
+    storyPages: [
+      {
+        emoji: '🐒🗺️',
+        title: '一个人走过，不等于大家都能走',
+        body: '石猴已经知道洞里安全，可伙伴们还站在水边。他要做的不是再走一次自己的路，而是设计一条伙伴照着就能走、每一步都能预测的路线。',
+        speaker: '石猴',
+        dialogue: '我先站好起点，再把每一步说清楚。',
+        scene: 1,
+      },
+      {
+        emoji: '↔️🪨',
+        title: '左岸还是右岸？两条路不一样',
+        body: '左岸是来时那条湿石路，起点在 2/8，五块一步移动就到入口格 6-7。右岸的花丛石滩低一排，起点在 12/9，要先向上再向左，一共六块，最后停在 8-7。把石猴拖到哪一岸，路线就要按哪一岸重新算——方向和块数都不一样。',
+        speaker: '群猴',
+        dialogue: '我们跟着你的脚印走，别让我们踩空！',
+        scene: 3,
+        blocks: ['左岸：➡️➡️⬆️➡️➡️（5 块）', '右岸：⬆️⬅️⬅️⬆️⬅️⬅️（6 块）'],
+      },
+      {
+        emoji: '⏳🕳️',
+        title: '碰到以后，还要等伙伴',
+        body: '水帘和洞口的回应轨已经接好，一块都不能删。你要加的是最后那块 Wait：等 1 拍还是 2 拍，让伙伴来得及跟上。洞口说哪一句发现，也由你从三句里挑。',
+        speaker: '石猴',
+        dialogue: '门开着，我等你们进来。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '先让同伴只看起点和积木预测，再按 Go——预测和脚印要对得上。',
+    mission:
+      '选一岸站好（左岸 2/8 或把石猴拖到右岸 12/9），把那一岸需要的一步移动块按顺序接到 Start 和 End 之间，末尾放一块 Wait 1 或 Wait 2，再挑一句洞口的发现对白。水帘和洞口的 On Bump 轨不能删。搭好按 Go：脚底刚好碰到水帘，水帘隐藏、洞口出现，然后石猴等着伙伴。',
+    question: '路线的最后一步应该停在哪里？',
+    choices: [],
+    retry:
+      '还没成立。检查三件事：石猴是不是站在某一岸的起点格上、这一岸的每一步是不是都对、末尾有没有一块 Wait 1 或 Wait 2。',
+    successTitle: '这条路大家都能走！⭐',
+    success: '石猴刚好碰到水帘，水帘隐藏、洞口亮起，他还留在门口等伙伴——这是一条可以重复走的路。',
+    fixTitle: '把你的路线搭完整',
+    fixPrompt: '关掉这张卡，先决定从哪一岸出发，再一步一步把这一岸的移动块接上，最后加一块 Wait。',
+    workspaceIntro: '两岸都可以，但每一岸有自己的路线——先选岸，再算步数。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先决定从哪一岸出发：留在左岸 2/8，还是把石猴拖到右岸 12/9？',
+      watch: '看着脚印：每一步都落在石头上吗？最后一步碰到水帘了吗？',
+      sayFirst: '洞口说出了你挑的那一句发现。',
+      sayThen: '发现说完了——伙伴知道里面有什么了。',
+      hopFirst: '石猴动起来了，第一步已经离开起点。',
+      hopThen: '接着按你排的顺序往入口走。',
+      retry: '路线还不成立：起点、这一岸的步数顺序、末尾的 Wait，三样都要对。',
+      fix: '在工作区里一步一步接上这一岸的移动块，最后放一块 Wait 1 或 Wait 2。',
+      test: '路线接好了。按 Go，看水帘会不会因为你的路线分开！',
+      saving: '刚好碰到，门也开着。我在保存你设计的路线……',
+      complete: '伙伴们照着你的路线进来了——发现变成了大家的家。',
+    },
+    logicSteps: [
+      { icon: '🧭', label: '选一岸', order: '先' },
+      { icon: '👣', label: '算这一岸的步数', order: '再' },
+      { icon: '⏳', label: '等 1–2 拍', order: '最后' },
+    ],
+    logicWhy:
+      '两岸的起点不在同一排，所以不是把方向反过来就行：左岸五块、右岸六块，块数和方向都要重新算。等待放在碰撞之后，门才是为伙伴开着的。',
+    completionTitle: 'Personal Ship 完成！🗺️',
+    completion:
+      '你选定了一岸、算出了那一岸的每一步、让水帘因为真实碰撞而分开，并留了 1–2 拍等伙伴进来。',
+    completionSteps: [
+      { icon: '🧭', label: '我的起点', order: '先' },
+      { icon: '💥', label: '刚好碰到', order: '再' },
+      { icon: '⏳', label: '等伙伴', order: '最后' },
+    ],
+    completionWhy: '一条能被预测、能被重复走的路线，才是可以交给伙伴的路。',
+    next: '群猴按你的路线进来了。下一个 Part：回头看看瀑布前的约定完成了吗。',
+  },
 };

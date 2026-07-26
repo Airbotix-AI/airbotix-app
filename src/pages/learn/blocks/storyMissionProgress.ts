@@ -1,5 +1,6 @@
 import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
+import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -835,6 +836,17 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       prefixOk &&
       greetingOk
     );
+  }
+
+  if (lessonId === 'jtw-s1-c2-p7') {
+    // Personal Ship: the bank, the route that bank needs, the wait and the
+    // evidence line are all the child's, so there is no exact target and no
+    // fixed start — the whole page goes to the entry parser, which rejects a
+    // start on neither bank, the OTHER bank's route (the mashup case), a route
+    // that stops short of or overshoots the door, a missing/out-of-band Wait,
+    // a deleted or reordered curtain/cave response chain, a cave that no longer
+    // starts hidden, a moved door actor and a free-typed line.
+    return project.lessonId === lessonId && jtwPersonalEntryDesign(page) !== null;
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {

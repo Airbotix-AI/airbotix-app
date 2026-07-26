@@ -8,6 +8,13 @@
 
 import type { Block } from './blocksModel';
 import { JTW_GREETING_CHOICES } from './jtwPersonalArrival';
+import { JTW_C2_ACTOR_FREE_BACKGROUND, JTW_STONE_MONKEY_SPRITE } from './jtwC2Stage';
+import {
+  JTW_C2_P7_EVIDENCE_LINES,
+  JTW_C2_P7_MONKEY_SCRIPT_ID,
+  JTW_C2_P7_PAGE_ID,
+  JTW_C2_P7_SIDES,
+} from './jtwPersonalEntry';
 
 export interface StoryMissionProgramContract {
   pageId: string;
@@ -27,11 +34,7 @@ export interface StoryMissionProgramContract {
   };
 }
 
-const STONE_MONKEY_ASSET =
-  '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png';
-
-/** The C2 stage the P5 asset split produced: no curtain or cave baked in. */
-export const JTW_C2_ACTOR_FREE_BACKGROUND = 'jtw-s1-c2-water-curtain-actor-free';
+const STONE_MONKEY_ASSET = JTW_STONE_MONKEY_SPRITE;
 
 export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> = {
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
@@ -169,6 +172,32 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'move_left', n: 2 },
       { op: 'move_down', n: 1 },
       { op: 'move_left', n: 2 },
+      { op: 'end' },
+    ],
+  },
+  // Journey to the West S1/C2-P7 — chapter two's Personal Ship (scene-specs
+  // JTW-S1-C2-P7). NOTHING about the route is a fixed answer: the child picks
+  // which BANK the friends will enter from, and each bank needs its own exact
+  // chain (five one-step blocks from the left, six from the right, because the
+  // right shore sits a row lower). They also choose how long the monkey holds
+  // the door open and which preset evidence line the cave says. The bespoke
+  // branch in `storyMissionProgress.ts` therefore hands the whole page to
+  // `jtwPersonalEntryDesign`, which is what rejects the "错误混搭" case (one
+  // bank's start with the other bank's route) as well as a deleted response
+  // chain, a moved door actor and a free-typed line. `start` is deliberately
+  // ABSENT — two starts are legal — and `target` records the left bank's
+  // version for tooling only.
+  'jtw-s1-c2-p7': {
+    pageId: JTW_C2_P7_PAGE_ID,
+    background: JTW_C2_ACTOR_FREE_BACKGROUND,
+    characterId: 'stone-monkey',
+    scriptId: JTW_C2_P7_MONKEY_SCRIPT_ID,
+    asset: STONE_MONKEY_ASSET,
+    allowedSayText: JTW_C2_P7_EVIDENCE_LINES,
+    target: [
+      { op: 'when_flag' },
+      ...JTW_C2_P7_SIDES[0].route,
+      { op: 'wait', n: 1 },
       { op: 'end' },
     ],
   },
