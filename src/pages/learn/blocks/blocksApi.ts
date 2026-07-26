@@ -131,7 +131,11 @@ export type BlocksTemplateId =
   | 'blocks_jtw_c2_p5'
   | 'blocks_jtw_c2_p6'
   | 'blocks_jtw_c2_p7'
-  | 'blocks_jtw_c3_p4';
+  | 'blocks_jtw_c3_p4'
+  // C3-P5's two weather branches — the scene's 模板分支白名单. Same lesson, same
+  // route, two middle seas; which one is seeded is the child's choice.
+  | 'blocks_jtw_c3_p5_starry'
+  | 'blocks_jtw_c3_p5_morning';
 
 export interface BlocksProjectMeta {
   id: string;

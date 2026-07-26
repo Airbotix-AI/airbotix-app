@@ -22,6 +22,13 @@ import {
   JTW_C3_SEA_TARGET,
 } from './jtwC3SeaBuild';
 import {
+  JTW_C3_LISTEN_CLUE,
+  JTW_C3_P5_LESSON_ID,
+  JTW_C3_P5_PAGE_IDS,
+  JTW_C3_P5_SCRIPT_IDS,
+  JTW_C3_P5_STARTER_CHAIN,
+} from './jtwC3WeatherBuild';
+import {
   JTW_C3_MONKEY_KING_ID,
   JTW_C3_MONKEY_KING_SIZE,
   JTW_C3_MONKEY_KING_SPRITE,
@@ -235,5 +242,31 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       rot: 0,
     },
     target: [...JTW_C3_SEA_TARGET],
+  },
+  // Journey to the West S1/C3-P5 — the chapter's expression choice (scene-specs
+  // JTW-S1-C3-P5). It has TWO valid saved programs on TWO different Page 2 seas,
+  // which this single-page, single-target record cannot express, so the bespoke
+  // branch in `storyMissionProgress.ts` hands the whole PROJECT to
+  // `jtwC3WeatherBuildVersion`. Only two fields here are read for this lesson:
+  // `scriptId`, so the studio can find the script the child edits, and
+  // `allowedSayText`, so the Say editor offers the mist version's preset line
+  // instead of asking a six-year-old to type it. `background` and `target`
+  // describe the SHIPPED starter both branches begin from (the shared route on
+  // the default sea) and are never used to judge a C3-P5 build — the child's own
+  // weather choice decides both.
+  [JTW_C3_P5_LESSON_ID]: {
+    pageId: JTW_C3_P5_PAGE_IDS[1],
+    background: JTW_C3_PAGE2_SCENE,
+    characterId: JTW_C3_MONKEY_KING_ID,
+    scriptId: JTW_C3_P5_SCRIPT_IDS.seaLeg,
+    asset: JTW_C3_MONKEY_KING_SPRITE,
+    allowedSayText: [JTW_C3_LISTEN_CLUE],
+    start: {
+      gx: JTW_C3_PAGE2_START_CELL.gx,
+      gy: JTW_C3_PAGE2_START_CELL.gy,
+      size: JTW_C3_MONKEY_KING_SIZE,
+      rot: 0,
+    },
+    target: [...JTW_C3_P5_STARTER_CHAIN],
   },
 };

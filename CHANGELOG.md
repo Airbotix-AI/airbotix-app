@@ -1,5 +1,61 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P5 — star-night and morning-mist both need looking)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p5` — chapter three's expression choice** (scene-specs
+  JTW-S1-C3-P5, teaching script C3 Part 5 · 故事选择：中间的海). Teaching text in full across two
+  screens (both versions valid; then the multi-year compression the three pages stand for), the
+  classic card, the 故事—程序桥, two weather cards each rendering the sea it really is, the
+  "看不清时为什么不是越快越好" explanation, and the peer prediction judged AGAINST THE CARD (what
+  will be heard, when the raft moves, which page it ends on).
+- **`jtwC3WeatherBuild.ts` — the two-branch middle-sea contract.** 星夜 is
+  `play_sound(Sparkle) → wait(2)` and 晨雾 is `set_speed(1) → play_sound(Whoosh) → say(preset)`,
+  both in FRONT of the shared `move_right(4) → goto_page(3)` route neither may touch.
+  `jtwC3WeatherBuildVersion` reads which version a SAVED project is by requiring the sea the page
+  paints and the chain the monkey king runs to AGREE — which is what makes the scene's
+  "只换背景不通过" structural: a repainted sea over the bare shipped route matches no branch, and
+  neither does a starry chain saved on the mist sea. A deleted Goto, an exit back at 1, a
+  reordered or half-built expression, a hand-typed Say and a mist version left at normal speed are
+  all refused as well. 14 unit tests cover both versions independently, including two real
+  page-flow runs.
+- **Two whitelisted starter branches** (`blocks_jtw_c3_p5_starry` / `blocks_jtw_c3_p5_morning`,
+  taught to `blocksApi.ts`). The weather card decides which starter creates the project, so the sea
+  the child chose is the sea the studio paints and the sea the saved document stores — never a page
+  boolean. `library.ts` and `blocks.css` learned the starry Page 2 scene id for the same reason.
+- **The mist version's preset line** is offered through the mission contract's `allowedSayText`, so
+  the Say editor shows it as a button and the contract accepts nothing else — "预设Say不得要求
+  低龄孩子自由输入" holds without a free-text requirement.
+- **`guides/journeyWestC3.ts`** gained the C3-P5 studio mission beside C3-P4's; without a guide the
+  studio would never record a run marker for the lesson.
+
+### Changed
+- **`JourneyWestC3Stage.tsx`** takes an optional `backgroundSrc`/`backgroundAlt`, so a Part that
+  legitimately paints another state of the same page (C3-P5's starry middle sea) swaps artwork
+  instead of forking the shared stage.
+- **`jtwC3Stage.ts`** gained the starry `before`/`resolved` paths, the starry scene id and
+  `JTW_C3_STORY_SCENES`; the morning constants now say which sea they are.
+- **`storyMissionProgress.ts`** grew by exactly one delegating branch.
+  `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in
+  `journeyWestC3Part5Program.ts` and the contract in `jtwC3WeatherBuild.ts`.
+
+### Assets
+- `backgrounds/s1/c3/page2-starry-before-v01.webp` and `page2-starry-resolved-v01.webp` copied into
+  `public/` (both 1672×941 RGB WebP) — the second middle sea, which C3-P2 and C3-P4 both
+  deliberately left in `design-system/` "until C3-P5, where the child really chooses". With them
+  the whole `jtw-s1-c3-three-seas-route` registry entry is integrated. Nothing was substituted.
+
+### Recorded gaps (not lowered)
+- Changing version means starting a new project: the runtime has no kid-facing way to repaint a
+  saved page's background (the studio scene picker only offers the generic scenes), so the chosen
+  sea is locked on the Part page and says so, rather than being silently swappable.
+- As with C3-P4, "积木托盘仅限制任务范围" is still not a task-scoped palette; task scope is enforced
+  by exact AST comparison instead.
+
+### Verified
+- tsc clean, eslint zero-warning across the app, vitest 212 files / 1735 tests green.
+
 ## 2026-07-27 (feat: Journey West C3-P4 — a story AND an exit in the middle of the sea)
 
 ### Added

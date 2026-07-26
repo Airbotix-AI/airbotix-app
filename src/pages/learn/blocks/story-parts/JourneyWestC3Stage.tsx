@@ -6,9 +6,12 @@
 // asset bible §6 forbids baking it into a background and §2.4 forbids leaving
 // his feet on open water.
 //
-// C3-P2 (the Story Hook) and C3-P3 (the page-model rehearsal) both render it, so
-// it lives here rather than being copied into each page. `testIdPrefix` keeps
-// each Part's own test ids (`jtw-c3p2-stage`, `jtw-c3p3-stage`, …) stable.
+// C3-P2 (the Story Hook), C3-P3 (the page-model rehearsal), C3-P4 (the sea
+// build) and C3-P5 (the weather choice) all render it, so it lives here rather
+// than being copied into each page. `testIdPrefix` keeps each Part's own test
+// ids (`jtw-c3p2-stage`, `jtw-c3p3-stage`, …) stable, and `backgroundSrc` lets a
+// Part that legitimately paints another state of the same page — C3-P5's starry
+// middle sea — swap the artwork without forking the stage.
 
 import { GRID_H, GRID_W } from '../blocksModel';
 import type { SpriteState } from '../interpreter';
@@ -28,6 +31,8 @@ export function JourneyWestC3Stage({
   pageNumber,
   sprites,
   saying,
+  backgroundSrc,
+  backgroundAlt,
 }: {
   /** Per-Part test id prefix, e.g. `jtw-c3p3` → `jtw-c3p3-stage`. */
   testIdPrefix: string;
@@ -35,6 +40,10 @@ export function JourneyWestC3Stage({
   pageNumber: number;
   sprites: Record<string, SpriteState>;
   saying: string | null;
+  /** Override artwork for this page (C3-P5's starry middle sea). */
+  backgroundSrc?: string;
+  /** Alt text that goes with `backgroundSrc`; required when it is given. */
+  backgroundAlt?: string;
 }) {
   const monkey = sprites[JTW_C3_MONKEY_KING_ID];
   const raft = sprites[JTW_C3_RAFT_ID];
@@ -45,8 +54,9 @@ export function JourneyWestC3Stage({
       data-page={pageNumber}
     >
       <img
-        src={JTW_C3_PAGE_BACKGROUNDS[pageNumber - 1]}
-        alt={JTW_C3_PAGE_ALTS[pageNumber - 1]}
+        src={backgroundSrc ?? JTW_C3_PAGE_BACKGROUNDS[pageNumber - 1]}
+        alt={backgroundSrc ? (backgroundAlt ?? '') : JTW_C3_PAGE_ALTS[pageNumber - 1]}
+        data-testid={`${testIdPrefix}-stage-bg`}
         className="absolute inset-0 h-full w-full object-cover"
       />
       {raft?.visible && (

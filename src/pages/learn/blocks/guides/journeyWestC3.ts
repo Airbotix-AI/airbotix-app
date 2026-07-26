@@ -98,4 +98,94 @@ export const JTW_C3_MISSIONS: Record<string, StoryMission> = {
       '三页现在各做各的事：Page 1 离家、Page 2 观察前进、Page 3 到达。远行印亮了一半——另一半要等木筏跨页时也站对位置。',
     next: '路线接通了。下一个 Part：选择星夜还是晨雾，来表达旅程的中段。',
   },
+  // Journey to the West S1/C3-P5 — the chapter's expression choice (scene-specs
+  // JTW-S1-C3-P5, teaching script C3 Part 5). ONE lesson, TWO valid saved
+  // programs on TWO different Page 2 seas, so the guide talks about both: which
+  // sea the studio paints was already decided on the Part page (each branch has
+  // its own whitelisted starter), and the work in here is the SAME either way —
+  // add this version's 2–3 expression blocks in front of the shared
+  // `Right 4 → Page 3` route, which neither version may touch.
+  'jtw-s1-c3-p5': {
+    mode: 'complete',
+    lessonId: 'jtw-s1-c3-p5',
+    hero: {
+      name: '美猴王',
+      role: '中间那片海的木筏手',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第三章 · 故事选择',
+    title: '星夜和晨雾都需要观察',
+    storyPages: [
+      {
+        emoji: '🌙🌫',
+        title: '两片海都是对的',
+        body: '你已经选好了这一程要走哪一片海。星夜的海上有月亮，可云还压在天边；晨雾的海上白蒙蒙的，眼睛帮不上忙。两种海讲的是同一件事：看不清的时候，要先观察，再继续。',
+        speaker: '美猴王',
+        dialogue: '海还是这条海，我只是换一种方式让你们看清楚。',
+        scene: 1,
+      },
+      {
+        emoji: '🧩✨',
+        title: '把这一版的表达接在 Right 4 前面',
+        body: '星夜版接两块：✨ Sparkle 让星光响一下，⏱ Wait 2 停两拍等云散开。晨雾版接三块：🐢 Speed 点成最慢，💨 Whoosh 是海风，💬 Say 的文字点一下就能从预设里选（不用打字）。',
+        speaker: '群猴',
+        dialogue: '先观察，再前进——两版都是这个顺序。',
+        scene: 3,
+        blocks: ['✨ Sparkle → ⏱ Wait 2', '🐢 Speed → 💨 Whoosh → 💬 Say'],
+      },
+      {
+        emoji: '➡️📄',
+        title: '➡️ Right 4 和 📄 Page 3 一块都不要动',
+        body: '脚本槽里已经有 ➡️ Right 4 → 📄 Page 3 了，那是两版共用的路线。表达积木要接在 Right 4 的前面；把 Page 改回 1、把 Page 删掉，或者只换了背景没接积木，海中央就不再是"观察后继续"。',
+        speaker: '美猴王',
+        dialogue: '节奏我可以选，去哪一页不能选。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '同伴只看你的天气卡：他会听见什么？木筏什么时候才动？最后去哪一页？',
+    mission:
+      '在 ➡️ Right 4 前面接上这一版的表达积木：星夜是 ✨ Sparkle → ⏱ Wait 2，晨雾是 🐢 Speed（最慢）→ 💨 Whoosh → 💬 那句预设的话。Right 4 和 📄 Page 3 一块都不要动，然后从 Page 1 按 Go 完整跑一次。',
+    question: '哪两块是这一页可以由你决定的？',
+    choices: [],
+    retry:
+      '还差一点：表达积木要接在 ➡️ Right 4 的前面，顺序不能乱；Right 4 还是 4，📄 Page 还是 3，Page 1 和 Page 3 的示范链也要保持原样。',
+    successTitle: '这一版的海站住了！⭐',
+    success: '观察发生了，路线一点没变——木筏还是从这一页交给了彼岸山林。',
+    fixTitle: '把这一版的表达接完整',
+    fixPrompt: '关掉这张卡，在 Start 和 ➡️ Right 4 之间接上这一版的表达积木。',
+    workspaceIntro: '路线已经在那里了。你要加的是"他怎样观察"，不是"他去哪里"。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '在 Start 和 ➡️ Right 4 之间，接上这一版的表达积木。',
+      watch: '看着这一页：观察真的发生了吗？他是观察完才走的吗？',
+      sayFirst: '先说预测：同伴会听见什么？',
+      sayThen: '真的听见的和你说的一样吗？',
+      hopFirst: '星夜要等云散开，晨雾要放慢听浪——都是先观察。',
+      hopThen: '观察完了，➡️ Right 4 才把他送过这一段海。',
+      retry: '顺序或数字还不对。表达积木在前，➡️ Right 4 → 📄 Page 3 在后，Page 上写的还是 3。',
+      fix: '在真正的工作区里接积木——没有按钮会替你装好这一版。',
+      test: '接好了。回到 Page 1 按 Go，看这一版是不是也走到了彼岸山林！',
+      saving: '这一片海有它自己的样子了。我在保存你选的版本……',
+      complete: '观众读得出来：他先观察，然后继续——而且还是到了 Page 3。',
+    },
+    logicSteps: [
+      { icon: '👀', label: '先观察', order: '先' },
+      { icon: '➡️', label: 'Right 4 前进', order: '再' },
+      { icon: '📄', label: 'Page 3 出口', order: '最后' },
+    ],
+    logicWhy:
+      '声音、速度和停顿改变的是节奏，➡️ 和 📄 改变的是路线。所以两版都成立：它们换的是"怎样讲"，不是"讲的是哪条路"。看不清的时候走得更快，只是更快地走错。',
+    completionTitle: '故事选择完成！🌙🌫',
+    completionSteps: [
+      { icon: '🎴', label: '选了一片海', order: '先' },
+      { icon: '👀', label: '观察真的发生', order: '再' },
+      { icon: '🏁', label: '出口仍是 3', order: '最后' },
+    ],
+    completion:
+      '你选了一片海，给它接上了自己的表达积木，并且从 Page 1 完整跑了一次：观察发生了，路线还是 1 → 2 → 3。',
+    completionWhy:
+      '同一条路线可以有两种讲法，两种都对——因为你换的是节奏，不是出口。下一步：木筏跨页的时候还站错了边。',
+    next: '天气和路线都清楚了。下一个 Part：找出木筏为什么会跳到另一边。',
+  },
 };

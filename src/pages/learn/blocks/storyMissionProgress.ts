@@ -2,6 +2,7 @@ import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
 import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
+import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -858,6 +859,16 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // rejects a missing block, a wrong order, an exit that is not 3, a broken
     // demo chain, a deleted page and a moved start.
     return jtwC3SeaBuildComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p5') {
+    // Chapter three's expression choice has TWO valid saved programs on TWO
+    // different Page 2 seas ("断言两版均可独立成功"), which a single exact target
+    // cannot express. The whole project goes to the weather contract, which
+    // accepts a starry or a mist build only when the sea the page paints and
+    // the chain the monkey king runs agree — so repainting the background
+    // alone, dropping the Goto or pointing it back at 1 all keep it open.
+    return jtwC3WeatherBuildComplete(project);
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {

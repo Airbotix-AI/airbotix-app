@@ -9,12 +9,13 @@
 // Artwork is copied into `public/` one Part at a time, as a Part actually
 // renders it: C3-P1 brought the Page 1 pair, C3-P2 (which runs all three pages)
 // brought the Page 2 morning-mist `before` state, the Page 3 `before` state and
-// the raft prop, and C3-P4 — the Part whose build finally gives the sea leg a
-// story and lands the raft on the far shallows — brought the morning-mist Page 2
-// `resolved` state and the Page 3 `resolved` state. The state no shipped Part
-// renders yet, the starry Page 2 pair (C3-P5's second choice), stays in
-// `design-system/assets/...`: a constant pointing at a file `public/` does not
-// have would be a broken path, not a plan.
+// the raft prop, C3-P4 — the Part whose build finally gives the sea leg a story
+// and lands the raft on the far shallows — brought the morning-mist Page 2
+// `resolved` state and the Page 3 `resolved` state, and C3-P5 — where the child
+// really chooses which middle sea the journey crosses — brought the starry Page
+// 2 pair. With that the whole `jtw-s1-c3-three-seas-route` registry entry is
+// integrated; a constant pointing at a file `public/` does not have would be a
+// broken path, not a plan.
 
 /** Page 1 花果山海岸 — the home shore the monkey king leaves from. */
 export const JTW_C3_PAGE1_BACKGROUND =
@@ -25,12 +26,29 @@ export const JTW_C3_PAGE1_RESOLVED_BACKGROUND =
 
 /**
  * Page 2 海上中段 — open sea between the two shores. Chapter three ships two
- * middle seas (asset bible §6): the morning-mist one is the starter's, because
- * the shared Page 2 chain's own `play_sound(Whoosh)` IS its sea wind. The
- * starry alternative arrives with C3-P5, where the child really chooses.
+ * middle seas (asset bible §6): the morning-mist one is C3-P1..P4's, because the
+ * shared Page 2 chain's own `play_sound(Whoosh)` IS its sea wind. From C3-P5 on
+ * it is one of two branches the child picks between, so it keeps a name that
+ * says which sea it is.
  */
-export const JTW_C3_PAGE2_BACKGROUND =
+export const JTW_C3_PAGE2_MORNING_BACKGROUND =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-before-v01.webp';
+/** The default Page 2 sea for every Part that does not offer the choice. */
+export const JTW_C3_PAGE2_BACKGROUND = JTW_C3_PAGE2_MORNING_BACKGROUND;
+/**
+ * Page 2 星夜海面 — the same middle sea under a moonlit night, with cloud banks
+ * still lying across the horizon. It is C3-P5's second valid version
+ * ("星夜版保留主路线并使用 `play_sound(Sparkle) → wait(2)` 表现等云散开").
+ */
+export const JTW_C3_PAGE2_STARRY_BACKGROUND =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-starry-before-v01.webp';
+/**
+ * Page 2 星夜 after the version really ran: same camera, same moon — the clouds
+ * have drawn back and a lit sea route runs from this side of the water to the
+ * far landing light.
+ */
+export const JTW_C3_PAGE2_STARRY_RESOLVED_BACKGROUND =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-starry-resolved-v01.webp';
 /**
  * Page 2 after C3-P4's build really ran: same camera, same mist — the sea route
  * is now drawn across the water, because the middle of the sea finally has a
@@ -63,6 +81,10 @@ export const JTW_C3_PAGE_ALTS: readonly string[] = [
   '彼岸山林：靠岸的浅滩、上山的小路，山上是师门的石门',
 ];
 
+/** Alt text for the starry middle sea (C3-P5's second version). */
+export const JTW_C3_PAGE2_STARRY_ALT =
+  '海上中段的星夜：月亮挂在右边，海面上有月光，云还压在天边的岛上';
+
 /**
  * Stable scene ids a saved `BlocksProject` stores as a page background. The
  * Blocks Studio resolves them through `library.ts` `sceneId()` and paints them
@@ -71,7 +93,11 @@ export const JTW_C3_PAGE_ALTS: readonly string[] = [
  * above because a stored document must never contain a file path.
  */
 export const JTW_C3_PAGE1_SCENE = 'jtw-s1-c3-page1-before-v01';
-export const JTW_C3_PAGE2_SCENE = 'jtw-s1-c3-page2-morning-before-v01';
+export const JTW_C3_PAGE2_MORNING_SCENE = 'jtw-s1-c3-page2-morning-before-v01';
+/** The default Page 2 scene — the morning mist C3-P1..P4 all ship. */
+export const JTW_C3_PAGE2_SCENE = JTW_C3_PAGE2_MORNING_SCENE;
+/** C3-P5's second middle sea, saved on the page when the child picks 星夜. */
+export const JTW_C3_PAGE2_STARRY_SCENE = 'jtw-s1-c3-page2-starry-before-v01';
 export const JTW_C3_PAGE3_SCENE = 'jtw-s1-c3-page3-before-v01';
 
 /** The three page scene ids, in page order (index = page − 1). */
@@ -79,6 +105,16 @@ export const JTW_C3_PAGE_SCENES: readonly string[] = [
   JTW_C3_PAGE1_SCENE,
   JTW_C3_PAGE2_SCENE,
   JTW_C3_PAGE3_SCENE,
+];
+
+/**
+ * Every C3 scene id a saved document may legally carry — the three default
+ * pages plus the starry Page 2 branch. `library.ts` needs the whole set so the
+ * real studio paints a starry build's middle sea instead of the generic meadow.
+ */
+export const JTW_C3_STORY_SCENES: readonly string[] = [
+  ...JTW_C3_PAGE_SCENES,
+  JTW_C3_PAGE2_STARRY_SCENE,
 ];
 
 /**

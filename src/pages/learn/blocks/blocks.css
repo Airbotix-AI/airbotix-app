@@ -1057,10 +1057,18 @@
     url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-before-v01.webp') center / cover
     no-repeat;
 }
+/* C3-P5's second middle sea — the same Page 2 under a moonlit sky. */
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] {
+  background: #1d3566
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-starry-before-v01.webp') center /
+    cover no-repeat;
+}
 .bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-hill,
 .bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-deco,
 .bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-hill,
 .bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-deco,
 .bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-hill,
 .bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-deco {
   display: none;
