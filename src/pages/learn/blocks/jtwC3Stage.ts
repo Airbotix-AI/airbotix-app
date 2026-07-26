@@ -9,8 +9,10 @@
 // Artwork is copied into `public/` one Part at a time, as a Part actually
 // renders it: C3-P1 brought the Page 1 pair, C3-P2 (which runs all three pages)
 // brought the Page 2 morning-mist `before` state, the Page 3 `before` state and
-// the raft prop. The states no shipped Part stages yet — the starry Page 2 pair
-// (C3-P5's second choice) and both `resolved` states of Pages 2/3 — stay in
+// the raft prop, and C3-P4 — the Part whose build finally gives the sea leg a
+// story and lands the raft on the far shallows — brought the morning-mist Page 2
+// `resolved` state and the Page 3 `resolved` state. The state no shipped Part
+// renders yet, the starry Page 2 pair (C3-P5's second choice), stays in
 // `design-system/assets/...`: a constant pointing at a file `public/` does not
 // have would be a broken path, not a plan.
 
@@ -29,9 +31,23 @@ export const JTW_C3_PAGE1_RESOLVED_BACKGROUND =
  */
 export const JTW_C3_PAGE2_BACKGROUND =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-before-v01.webp';
+/**
+ * Page 2 after C3-P4's build really ran: same camera, same mist — the sea route
+ * is now drawn across the water, because the middle of the sea finally has a
+ * sound, a move and a pause in it (scene-specs JTW-S1-C3-P4
+ * `resolved_world_change`).
+ */
+export const JTW_C3_PAGE2_RESOLVED_BACKGROUND =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-resolved-v01.webp';
 /** Page 3 彼岸山林 — the far shore, its path and the master's gate above it. */
 export const JTW_C3_PAGE3_BACKGROUND =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-before-v01.webp';
+/**
+ * Page 3 after the raft really arrives: same shore, the stepping path up to the
+ * master's gate lit and the gate itself warm — the 山林歌声 the scene names.
+ */
+export const JTW_C3_PAGE3_RESOLVED_BACKGROUND =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-resolved-v01.webp';
 
 /** The three integrated `before` states, in page order (index = page − 1). */
 export const JTW_C3_PAGE_BACKGROUNDS: readonly string[] = [
@@ -45,6 +61,24 @@ export const JTW_C3_PAGE_ALTS: readonly string[] = [
   '花果山海岸：左边是长着桃树的山，右边的海一直连到天边',
   '海上中段：晨雾里的海面，远处的岛一层一层退向天边',
   '彼岸山林：靠岸的浅滩、上山的小路，山上是师门的石门',
+];
+
+/**
+ * Stable scene ids a saved `BlocksProject` stores as a page background. The
+ * Blocks Studio resolves them through `library.ts` `sceneId()` and paints them
+ * from `blocks.css`, so the studio, the read-only part stages and the backend
+ * starter all name the SAME three pages. They stay separate from the asset paths
+ * above because a stored document must never contain a file path.
+ */
+export const JTW_C3_PAGE1_SCENE = 'jtw-s1-c3-page1-before-v01';
+export const JTW_C3_PAGE2_SCENE = 'jtw-s1-c3-page2-morning-before-v01';
+export const JTW_C3_PAGE3_SCENE = 'jtw-s1-c3-page3-before-v01';
+
+/** The three page scene ids, in page order (index = page − 1). */
+export const JTW_C3_PAGE_SCENES: readonly string[] = [
+  JTW_C3_PAGE1_SCENE,
+  JTW_C3_PAGE2_SCENE,
+  JTW_C3_PAGE3_SCENE,
 ];
 
 /**

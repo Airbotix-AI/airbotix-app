@@ -15,6 +15,19 @@ import {
   JTW_C2_P7_PAGE_ID,
   JTW_C2_P7_SIDES,
 } from './jtwPersonalEntry';
+import {
+  JTW_C3_P4_LESSON_ID,
+  JTW_C3_P4_PAGE_IDS,
+  JTW_C3_P4_SCRIPT_IDS,
+  JTW_C3_SEA_TARGET,
+} from './jtwC3SeaBuild';
+import {
+  JTW_C3_MONKEY_KING_ID,
+  JTW_C3_MONKEY_KING_SIZE,
+  JTW_C3_MONKEY_KING_SPRITE,
+  JTW_C3_PAGE2_SCENE,
+  JTW_C3_PAGE2_START_CELL,
+} from './jtwC3Stage';
 
 export interface StoryMissionProgramContract {
   pageId: string;
@@ -200,5 +213,27 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'wait', n: 1 },
       { op: 'end' },
     ],
+  },
+  // Journey to the West S1/C3-P4 — chapter three's main Build (scene-specs
+  // JTW-S1-C3-P4), and the season's first mission that spans THREE pages. The
+  // child owns Page 2's five-block sea chain; Pages 1 and 3 keep read-only demo
+  // chains ("Page 1/3示范链不可被孩子删除") this single-page record cannot see, so
+  // the bespoke branch in `storyMissionProgress.ts` hands the whole PROJECT to
+  // `jtwC3SeaBuildComplete`. The fields below still describe the page the child
+  // edits, which is what the studio's Say editor and script lookup need; the
+  // `target` is the scene's exact chain (no `end` — `goto_page` is terminal).
+  [JTW_C3_P4_LESSON_ID]: {
+    pageId: JTW_C3_P4_PAGE_IDS[1],
+    background: JTW_C3_PAGE2_SCENE,
+    characterId: JTW_C3_MONKEY_KING_ID,
+    scriptId: JTW_C3_P4_SCRIPT_IDS.seaLeg,
+    asset: JTW_C3_MONKEY_KING_SPRITE,
+    start: {
+      gx: JTW_C3_PAGE2_START_CELL.gx,
+      gy: JTW_C3_PAGE2_START_CELL.gy,
+      size: JTW_C3_MONKEY_KING_SIZE,
+      rot: 0,
+    },
+    target: [...JTW_C3_SEA_TARGET],
   },
 };

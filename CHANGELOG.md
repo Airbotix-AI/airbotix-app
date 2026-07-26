@@ -1,5 +1,61 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P4 — a story AND an exit in the middle of the sea)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p4` — chapter three's main Build** (scene-specs
+  JTW-S1-C3-P4, teaching script C3 Part 4). C3-P3 proved the exit number is an address; here the
+  child finally OWNS a page. Teaching script Part 4 in full across two screens, the classic card
+  and the 故事—程序桥, the two READ-ONLY demo chains for Pages 1 and 3 shown beside the target
+  chain, the four block-role mappings (声音/移动/停顿/出口) and the "where does the raft leave
+  Page 2" prediction.
+- **`jtwC3SeaBuild.ts` — the season's first THREE-page mission contract.** The single-page
+  `StoryMissionProgramContract` cannot express "the child owns Page 2 while Pages 1 and 3 keep
+  read-only demo chains", so the whole project goes to `jtwC3SeaBuildComplete`: it rejects a
+  missing block, a Wait/Move swap, a `move_right` that is not 4, an exit of 1 or 2, a deleted
+  Page 3, an edited Page 1/Page 3 demo chain, a dragged start, a deleted raft and a repainted
+  background. `storyMissionProgress.ts` gained exactly one delegating branch.
+- **A real cross-page run, measured on the Part page.** The studio's runner only ever runs ONE
+  page, so completion needs both halves: the SAVED `BlocksProject` must match the contract AND
+  carry the studio's run+save marker ("只在编辑器里摆对未运行不通过"), and this page then walks the
+  child's own saved document through `PageFlowRunner` from Page 1, requiring a measured
+  `1 → 2 → 3` that stopped because Page 3 ENDED. The footprints
+  `page1:3-9->7-9:page2 · page2:2-8->6-8:page3 · page3:2-9->2-9:stop` are runtime facts, and the
+  exit-cell prediction is checked against the measured `6-8`.
+- **The three C3 page scenes are now paintable in the studio.** `library.ts` accepts
+  `jtw-s1-c3-page1-before-v01`, `jtw-s1-c3-page2-morning-before-v01` and
+  `jtw-s1-c3-page3-before-v01` as first-party story scenes and `blocks.css` paints them, so a C3
+  build shows its own three shores instead of falling back to the generic meadow.
+- **`guides/journeyWestC3.ts`** — the studio mission guide for C3-P4 (mode `complete`), registered
+  through `curriculumGuides.ts`. Without it the studio would never record a run marker for the
+  lesson.
+- Evidence `story_screens / block_roles / build_project / target_chain / page_target / page_trace
+  / run_footprints / run_stop / exit_cell` ＋ prediction persists through `/story-parts` and is
+  restored on refresh; `选择海的样子` unlocks ONLY `jtw-s1-c3-p5`. The half-lit 远行印 is a progress
+  note that says outright the seal is C3-P8's server-side aggregation — it is not a seal and
+  carries no evidence.
+
+### Changed
+- `jtwC3Stage.ts` gained the two `resolved` background paths and the three stable page scene ids;
+  `blocksApi.ts` learned the `blocks_jtw_c3_p4` template id; the map marks C3-P4 playable and the
+  part route dispatches it.
+- Assets copied into `public/`: `backgrounds/s1/c3/page2-morning-resolved-v01.webp` and
+  `page3-resolved-v01.webp` — exactly the two halves of this Part's `resolved_world_change` (the
+  sea route drawn across the middle sea, and the far shallows with the lit path up to the master's
+  gate), and exactly what C3-P3 deliberately deferred to this Part. The starry Page 2 pair stays in
+  `design-system/` until C3-P5 makes it a real choice.
+
+### Notes
+- Recorded gaps, deliberately not papered over: the scene's "积木托盘仅限制任务范围" is NOT a
+  task-scoped palette — the studio palette is category-based over the whole `BLOCK_DEFS`, exactly
+  as C1-P4/C2-P4 shipped, and task scope is enforced by exact AST comparison instead. "Page 1/3
+  示范链不可被孩子删除" has no editor-level lock either: the runtime has no per-script lock, so a
+  project with a broken demo chain is judged incomplete and told so rather than prevented.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in
+  `journeyWestC3Part4Program.ts` and the contract in `jtwC3SeaBuild.ts`.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 210 files / 1703 tests green.
+
 ## 2026-07-27 (feat: Journey West C3-P3 — the exit number is an address, not a plaque)
 
 ### Added

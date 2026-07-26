@@ -1,6 +1,7 @@
 import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
 import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
+import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -847,6 +848,16 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // a deleted or reordered curtain/cave response chain, a cave that no longer
     // starts hidden, a moved door actor and a free-typed line.
     return project.lessonId === lessonId && jtwPersonalEntryDesign(page) !== null;
+  }
+
+  if (lessonId === 'jtw-s1-c3-p4') {
+    // Chapter three's main Build spans THREE pages: the child owns Page 2's
+    // five-block sea chain while Pages 1 and 3 keep read-only demo chains
+    // ("Page 1/3示范链不可被孩子删除"). A single-page match cannot see the other
+    // two pages, so the whole project goes to the C3 sea-build contract, which
+    // rejects a missing block, a wrong order, an exit that is not 3, a broken
+    // demo chain, a deleted page and a moved start.
+    return jtwC3SeaBuildComplete(project);
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {
