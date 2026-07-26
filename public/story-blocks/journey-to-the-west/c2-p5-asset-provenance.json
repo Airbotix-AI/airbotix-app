@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "story_id": "journey-to-the-west-s1",
+  "part_id": "jtw-s1-c2-p5",
+  "status": "draft_unapproved",
+  "scope": "internal_build_test_only",
+  "generated_at": "2026-07-26",
+  "source_reference": "backgrounds/s1/c2/before-v01.webp",
+  "assets": [
+    "backgrounds/s1/c2/base-v01.webp",
+    "characters/water-curtain-trigger/closed-v01.png",
+    "characters/cave-entrance/revealed-v01.png"
+  ],
+  "notes": "Original Airbotix composition edited into separate actor-free base, water-curtain actor and cave actor. Public release, sale and real-child trial remain prohibited pending owner, culture, legal and trademark review."
+}

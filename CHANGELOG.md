@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-26 (feat: Journey to the West C2-P5 water-curtain response)
+
+### Added
+- `/learn/story/journey-west/jtw-s1-c2-p5` carries forward the exact P4 route and requires the
+  child to place Hide and Show on two separate On Bump tracks in a saved, actually-run
+  `blocks_jtw_c2_p5` project.
+- Child-facing prediction, three-of-four cave dwelling evidence, resolved story continuation,
+  persistence and adjacent-only C2-P6 unlock.
+- Internal-only actor-free C2 base plus separate 2048×2048 RGBA water-curtain and cave actors.
+
 ## 2026-07-26 (fix: restore the Art Studio hub shell)
 
 ### Fixed
