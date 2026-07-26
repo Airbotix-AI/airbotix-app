@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026-07-26 (feat: Journey West C2-P6 — the return-route order bug)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c2-p6` — chapter two's Fix part** (scene-specs
+  JTW-S1-C2-P6). The child states the expected three return stops, **runs the shipped bug through
+  the REAL `BlocksRunner` on the page** (the monkey visibly leaves the wet-stone route and stops
+  at `2-7`, flagged as `data-left-route` on the stage), compares the two footprint rows
+  (`4-7→2-7→2-8` vs `4-7→4-8→2-8` — same endpoint, only one touches the `4-8` low stone), marks
+  the first deviation, predicts "down or left first", and then repairs the order in the actual
+  Blocks Studio. Completion is read from the **SAVED `BlocksProject` + the studio's run marker**;
+  the stored evidence carries the real project diff (`move_down:1:3->2 · move_left:2:2->3`) and
+  both run traces. Continue unlocks ONLY `jtw-s1-c2-p7`; no chapter completes.
+- **`jtwOrderDebug.ts`** — the "reproduce the bug before you may fix it" rule, now shared by
+  C1-P6 and C2-P6 instead of living inline in `BlocksStudioPage.tsx`.
+- **`storyMissionContracts.jtw.ts`** — the Journey to the West saved-program contracts, including
+  C2-P6's exact repaired order. The bug order, `move_left 4`, a `set_speed`/`go_home` shortcut,
+  delete-and-rebuild and a moved `6/7` start are all rejected.
+- **`story-parts/journeyWestC2Route.ts`** — chapter two's shared wet-stone geometry and route
+  walker, used by both the outbound C2-P4 build and the C2-P6 return.
+
+### Changed
+- `BlocksStudioPage.tsx` **shrank by two lines** (2960 → 2958) by delegating the C1-P6 order-bug
+  check to `jtwOrderDebug.ts`, which now also serves C2-P6 — the new scene added no lines to it.
+- `storyMissionProgress.ts` is **872 lines** (was 999) after the JtW contracts moved out, and
+  `journeyWestSeason1.ts` is **1125** (was 1150) after the route walker and the duplicated stone-cell
+  set moved to `journeyWestC2Route.ts`. Both files were already over the 1000-line hard rule in
+  `rules/file-organization.md`; neither grew for this part.
+
+### Known
+- **C2-P5 cannot complete in the product** and this change does not fix it: it ships neither a
+  Story Mission guide nor a program contract, so `storyProgress.completed['jtw-s1-c2-p5']` is
+  never written and its part page's `buildDone` can never become true. C2-P6 ships both.
+
 ## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
 
 ### Changed
