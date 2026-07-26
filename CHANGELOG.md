@@ -1,5 +1,63 @@
 # Changelog
 
+## 2026-07-20 (feat: Music Mission Mode — task card + template + turn-in, music-stage §5A D-MS14 P2b)
+
+### Added
+- **Music Mission Mode (music-stage-prd §5A D-MS14)** — the Music Stage end of the
+  four-layer course machinery, mirroring art missions: `Mission.steps_json.music`
+  (`{ template?: { mode: 'base'|'reference', riff }, checklist?, accept? }`) opens
+  `/learn/music` in Mission Mode via router state (PackLessonsPage music branch;
+  the mission survives the session redirect). Task card pins atop the deck with
+  **live deterministic checks** on the kid's OWN notes (min melody notes / distinct
+  pitches / needs drums / needs off-beat — a riff is JSON, zero LLM verification
+  cost; labels say what to ADD, never a grade). A `base` template pre-loads the pad
+  as a LOCKED layer below the kid's notes (plays + rides the seed — populate-it 配器);
+  a `reference` template loads as the erasable ghost (copy-it 临摹, excluded from the
+  seed). Mission entry lands straight in riff mode; the seeded compose prompt
+  defaults to the mission title. **🚀 Turn it in! +3⭐** saves the song into a
+  mission-linked project (`saveScoreToMyWorks` gains `mission_id`) and rides the
+  existing `POST /projects/:id/submit` acceptance chain (D-M3 reward, backend
+  untouched).
+
+## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
+
+### Added
+- **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−3⭐ — OQ-8 closed, owner 「价格star可以涨」; price
+  tag on it) sends the composer idea (or a default) to `POST /llm/riff-ghost`; the
+  tutor's starter renders as a FAINT dashed underlay (`data-ghost`) strictly BELOW
+  the kid's notes — tracing a ghost cell turns it into the kid's own note, and
+  "👻 Hide ghost" erases the layer in one tap (D-IS-18 iron rules: summoned-only,
+  subordinate, erasable). Off-grid ghost notes are silently ignored
+  (`seedToRiffGrid`).
+- **👂 Listen (听一听)** — one button (−1⭐) sends the kid's ACTUAL riff to
+  `POST /llm/riff-advice`; the tutor's single note-grounded suggestion is voiced
+  through the AI bubble. Disabled while the pad is empty. AC-8 star gates on both
+  buttons (an unaffordable click never reaches the backend).
+
+## 2026-07-20 (feat: Riff Pad — the kid's hand first, music-stage §5A P1)
+
+### Added
+- **Riff Pad (music-stage-prd v0.16 §5A D-MS11)** — the Music Stage's hand-first door:
+  a 16-step scale-locked grid (8 pentatonic melody rows C4–E5 + hat/snare/kick drum
+  rows) where the kid taps their OWN motif — 0⭐, no AI, loop audition on the shared
+  playback engine. Empty stage offers "🎹 Or tap out your own riff first — 0⭐"; with
+  a song the composer gains a third mode tab **🎹 From my riff**. "✨ Make it a song"
+  sends the riff as `seedScore` (words optional; genre pills steer the expansion) —
+  the backend keeps the motif verbatim in the lead melody. The riff persists as the
+  **permanent 🎹 frame-0 pill** (from message `metadata.seed`): tapping it A/Bs "just
+  MY riff" vs the full band — the authorship amplifier. Seeded takes get the
+  `🎹 From my riff` version tag and a bubble crediting the kid's notes.
+- **Musical diff chips + why-layer (§5A D-MS12)** — after every iteration the AiDeck
+  shows what actually changed in musical terms (`🕒 118→126 BPM`, `🥁 Drums busier
+  (16→24 notes)`, `➕ 🎸 Guitar joined`, key changes; capped at 4, tap/hover explains
+  in kid language), and every suggestion-card bubble now appends a "Why it works:"
+  line (tempo/density/heartbeat theory). All template-assembled from score metadata —
+  zero LLM calls, 0⭐.
+
+### Changed
+- `ComposeMode` extends to `'edit' | 'new' | 'riff'`; a landed take now always folds
+  back to ✏️ edit mode. Transport ⏹ also exits any audition so the loop doesn't
+  restart what the kid just stopped.
 ## 2026-07-26 (feat: GA4 page_view reporting — parent Portal only, never kids)
 
 ### Added

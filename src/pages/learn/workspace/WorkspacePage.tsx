@@ -28,7 +28,7 @@ export interface Message {
    * carry the composed score here (music-stage-prd §3.5 — versions aggregate
    * from session messages, and free-play sessions have no project/Artifact).
    */
-  metadata?: { score?: MusicScore } | null;
+  metadata?: { score?: MusicScore; seed?: unknown } | null;
   artifact?: {
     id: string;
     kind: 'image' | 'audio' | 'video' | 'text' | 'code_file' | 'project_export';
