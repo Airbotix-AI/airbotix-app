@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-07-26 (feat: GA4 page_view reporting — parent Portal only, never kids)
+
+### Added
+
+- **Google Analytics 4 page_view reporting for `/portal/*` only** (`src/lib/analytics.ts`). This
+  app hosts both the parent Portal and the kid Learn surface, and `docs/legal/privacy-policy.md`
+  (§8, §10) promises users that Google Analytics never runs on a surface used by children — so
+  the kid boundary is enforced in code, not by convention:
+  - `isPortalSurface()` admits `/portal` and `/portal/…` only. `/learn/*`, `/try/*` (no-signup kid
+    demos), `/play/*` (public share-play) and `/teacher/*` are refused. Teacher activity is
+    measured in teacher-console instead, which keeps this app's rule simple and auditable:
+    **only `/portal/*` is ever sent.**
+  - Enforced at **both** ends deliberately — gtag.js is not injected until a Portal route is
+    reached, and every individual hit re-checks. A parent who browses the Portal and then hands
+    the same tab to their child still sends nothing for the kid's route. A future route or layout
+    change cannot silently start reporting a child; it would have to delete an explicit guard.
+    Covered by a test that drives the real gtag bootstrap with every other gate green and asserts
+    no script tag, no `window.gtag` and no dataLayer at all on kid routes.
+  - **Opt-in per parent.** `PortalAnalyticsConsentBanner` (rendered by `PortalLayout`, so it can
+    never appear on a kid surface) asks once; nothing loads until Allow. Both answers are sticky.
+  - **Route patterns, not URLs.** gtag.js auto-collects `location.href`, `document.referrer` and
+    `document.title` unless each is explicitly overridden, so normalising `page_path` alone would
+    have leaked the raw URL regardless. Every hit overrides all four, and the path is first reduced
+    to its route pattern (`/portal/family/cjld2…` → `/portal/family/:id`) with the query string
+    dropped — those ids identify a real child, and `/portal/verify-otp?email=…` carries a parent's
+    address. Kebab-case content slugs are preserved; they are the reporting signal.
+  - **Own data stream.** `VITE_GA4_MEASUREMENT_ID` with **no hardcoded fallback** — an
+    unconfigured build is completely inert. Each frontend has its own GA4 data stream inside the
+    one shared property.
+  - **Silent in dev and under automation.** Nothing is sent unless `import.meta.env.PROD`, and
+    `navigator.webdriver` suppresses it so the cross-repo harness and CI never pollute prod data.
+
 ## 2026-07-26 (refactor: split the curriculum guides towards the 1000-line rule)
 
 ### Changed
