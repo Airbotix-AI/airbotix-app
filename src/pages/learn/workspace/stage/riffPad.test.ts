@@ -6,6 +6,7 @@ import {
   riffToSeedScore,
   seedRiffFromMetadata,
   seedToPlayableScore,
+  seedToRiffGrid,
   toggleRiffCell,
   RIFF_DRUM_ROWS,
   RIFF_KEY,
@@ -104,5 +105,46 @@ describe('seedToPlayableScore / seedRiffFromMetadata (frame 0)', () => {
     expect(seedRiffFromMetadata('nope')).toBeNull();
     expect(seedRiffFromMetadata({ tracks: [] })).toBeNull();
     expect(seedRiffFromMetadata({ tracks: [{ notes: [] }] })).toBeNull();
+  });
+});
+
+describe('seedToRiffGrid (👻 ghost underlay mapping, §5A D-MS13)', () => {
+  it('maps a seed onto grid booleans, melody rows + drum rows', () => {
+    let g = emptyRiff();
+    g = toggleRiffCell(g, 'melody', 7, 0); // C4 @ step 0
+    g = toggleRiffCell(g, 'drums', 2, 4); // kick @ step 4
+    const seed = riffToSeedScore(g);
+    const grid = seedToRiffGrid(seed);
+    expect(grid?.melody[7][0]).toBe(true);
+    expect(grid?.drums[2][4]).toBe(true);
+    expect(riffNoteCount(grid!)).toBe(2);
+  });
+
+  it('silently ignores off-grid notes (unknown pitch / off-step time) — a ghost is a suggestion, never an error', () => {
+    const grid = seedToRiffGrid({
+      tracks: [
+        {
+          instrument: 'guitar',
+          role: 'lead',
+          notes: [
+            { time: 0, note: 'C4', duration: '8n' }, // on grid
+            { time: 0.33, note: 'C4', duration: '8n' }, // off-step
+            { time: 2, note: 'F#4', duration: '8n' }, // not pentatonic
+            { time: 99, note: 'C4', duration: '8n' }, // beyond the grid
+          ],
+        },
+      ],
+    });
+    expect(riffNoteCount(grid!)).toBe(1);
+    expect(grid?.melody[7][0]).toBe(true);
+  });
+
+  it('returns null for null input or a seed with nothing renderable', () => {
+    expect(seedToRiffGrid(null)).toBeNull();
+    expect(
+      seedToRiffGrid({
+        tracks: [{ instrument: 'guitar', role: 'lead', notes: [{ time: 0.25, note: 'B9', duration: '8n' }] }],
+      }),
+    ).toBeNull();
   });
 });

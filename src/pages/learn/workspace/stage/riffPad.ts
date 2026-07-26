@@ -122,6 +122,39 @@ export function seedToPlayableScore(seed: SeedScore | null): MusicScore | null {
 }
 
 /**
+ * Map a seed-shaped riff (e.g. the 👻 ghost the tutor returns) onto the pad's
+ * boolean grid so it can render as a faint underlay the kid traces. Notes off
+ * the grid (unknown pitch / off-step time) are simply ignored — the ghost is
+ * a suggestion layer, never an error source.
+ */
+export function seedToRiffGrid(seed: SeedScore | null): RiffGrid | null {
+  if (!seed) return null;
+  const grid = emptyRiff();
+  let any = false;
+  for (const track of seed.tracks) {
+    const isDrums = track.instrument === 'drums' || track.instrument === 'percussion';
+    for (const note of track.notes) {
+      const step = note.time / RIFF_STEP_BEATS;
+      if (!Number.isInteger(step) || step < 0 || step >= RIFF_STEPS) continue;
+      if (isDrums) {
+        const row = RIFF_DRUM_ROWS.findIndex((d) => d.hit === note.note);
+        if (row !== -1) {
+          grid.drums[row][step] = true;
+          any = true;
+        }
+      } else {
+        const row = (RIFF_MELODY_PITCHES as readonly string[]).indexOf(note.note);
+        if (row !== -1) {
+          grid.melody[row][step] = true;
+          any = true;
+        }
+      }
+    }
+  }
+  return any ? grid : null;
+}
+
+/**
  * Parse a persisted frame-0 seed off session-message metadata (the backend
  * echoes `seedScore` there — llm.service musicScore). Defensive: metadata is
  * server JSON, not a typed contract on this side.

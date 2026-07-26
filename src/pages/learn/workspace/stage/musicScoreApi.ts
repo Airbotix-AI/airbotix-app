@@ -96,12 +96,16 @@ export async function saveScoreToMyWorks(
    *  Stage owns no project until Save, so the class placement happens HERE or the
    *  song never becomes teacher-visible class work. */
   classId?: string | null,
+  /** Mission Mode (music-stage §5A D-MS14): links the project to the Mission so
+   *  turn-in (`POST /projects/:id/submit`) can pay the +3★ reward (D-M3). */
+  missionId?: string | null,
 ): Promise<SaveScoreResult> {
   const project = await api<{ id: string }>('/projects', {
     method: 'POST',
     body: {
       title: (score.title.trim() || 'My Song').slice(0, 120),
       product_line: 'line_a_creative',
+      ...(missionId ? { mission_id: missionId } : {}),
     },
   });
 

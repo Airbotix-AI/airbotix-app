@@ -11,7 +11,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import clsx from 'clsx';
 
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { friendlyError } from '../../create/shared/useStudio';
 import type { Message } from '../WorkspacePage';
 import { MusicTrackList } from '../MusicTrackList';
@@ -37,10 +37,21 @@ import {
   emptyRiff,
   riffToSeedScore,
   seedToPlayableScore,
+  seedToRiffGrid,
   toggleRiffCell,
   RIFF_TEMPO,
+  type RiffGrid,
   type RiffSection,
 } from './riffPad';
+import { requestGhostRiff, requestRiffAdvice } from './riffTutorApi';
+import {
+  evaluateMusicMission,
+  missionChecksMet,
+  missionSeed,
+  missionTemplateGrid,
+  unionRiffGrids,
+  type MusicMission,
+} from './musicMission';
 import {
   INSTRUMENT_META,
   type InstrumentKind,
@@ -59,13 +70,21 @@ import {
   GENRE_BY_ID,
   EMPTY_MARQUEE,
   INITIAL_BUBBLE,
+  MISSION_DONE_BUBBLE,
+  MISSION_REWARD_STARS_DISPLAY,
+  MISSION_TURNIN_FAILED_BUBBLE,
   MUSIC_GENERATION_COST_STARS,
   REAL_SONG_DONE_BUBBLE,
   REAL_SONG_FAILED_BUBBLE,
   REWRITE_VERSION_TAG,
+  RIFF_ADVICE_COST_STARS,
   RIFF_COMPOSE_SUBTITLE,
   RIFF_DEFAULT_PROMPT,
+  RIFF_GHOST_COST_STARS,
+  RIFF_GHOST_DEFAULT_IDEA,
+  RIFF_TUTOR_FAILED_BUBBLE,
   RIFF_VERSION_TAG,
+  riffTutorOutOfStarsBubble,
   rerollVersionTag,
   SAVE_FAILED_BUBBLE,
   STAGE_SLOTS,
@@ -106,6 +125,7 @@ export function MusicStagePane({
   kidId,
   familyId,
   classId,
+  mission = null,
   onExit,
   onImportTrack,
 }: {
@@ -116,6 +136,8 @@ export function MusicStagePane({
   familyId: string | null;
   /** Set when the kid arrived via "create for class" — Save attaches the song to it. */
   classId: string | null;
+  /** Music Mission Mode (§5A D-MS14): task card + template + turn-in. */
+  mission?: MusicMission | null;
   /** Immersive surface: the Learn nav bar is hidden, so the stage owns the way out. */
   onExit: () => void;
   onImportTrack: () => void;
@@ -127,7 +149,8 @@ export function MusicStagePane({
   const [genre, setGenre] = useState<GenreId>('rock');
   // Once a song exists, typed text EDITS the current version by default
   // (D-MS10) — "every Compose starts over" was the exact complaint.
-  const [composeMode, setComposeMode] = useState<ComposeMode>('edit');
+  // A Mission opens straight onto the Riff Pad — the task IS hand-first work.
+  const [composeMode, setComposeMode] = useState<ComposeMode>(mission ? 'riff' : 'edit');
   const [selectedSlot, setSelectedSlot] = useState<StageSlotId | null>(null);
   const [styles, setStyles] = useState<StageStyles>({ ...GENRE_BY_ID.rock.presetStyles });
   // null = follow the latest version; a number pins an older version (0⭐).
@@ -164,6 +187,85 @@ export function MusicStagePane({
   // is a singleton, so audition swaps the played score rather than adding a
   // second engine.
   const [audition, setAudition] = useState<'pad' | 'seed' | null>(null);
+  // 👻 The tutor's faint starter underlay (§5A D-MS13) — a separate LAYER the
+  // kid traces over or hides; it never becomes the kid's notes by itself.
+  // A `reference` mission template (copy-it 临摹) IS the initial ghost layer:
+  // visible to trace, excluded from playback and the seed (§5A D-MS14).
+  const [ghost, setGhost] = useState<RiffGrid | null>(() =>
+    mission?.template?.mode === 'reference' ? missionTemplateGrid(mission) : null,
+  );
+  // Turned-in missions stay done for the visit (server side is idempotent).
+  const [missionDone, setMissionDone] = useState(false);
+
+  const ghostMut = useMutation({
+    mutationFn: (idea: string) => requestGhostRiff(idea),
+    onSuccess: (res) => {
+      setGhost(seedToRiffGrid(res.riff));
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : RIFF_TUTOR_FAILED_BUBBLE,
+      ),
+  });
+
+  const adviceMut = useMutation({
+    mutationFn: () => {
+      const seed = riffToSeedScore(riff);
+      if (!seed) throw new Error('empty riff');
+      return requestRiffAdvice(seed);
+    },
+    onSuccess: (res) => {
+      // The tutor's voice IS the AI bubble — one grounded suggestion (D-MS13).
+      setBubbleOverride(res.advice);
+      qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : RIFF_TUTOR_FAILED_BUBBLE,
+      ),
+  });
+
+  // 🚀 Mission turn-in (§5A D-MS14): save the current song into a project
+  // LINKED to the Mission, then ride the existing submit/acceptance chain —
+  // the server checks the saved score artifact and pays the +3★ (D-M3).
+  interface MissionSubmitResult {
+    ok: boolean;
+    stars_awarded?: number;
+    balance_after?: number;
+    missing?: string[];
+  }
+  const turnIn = useMutation({
+    mutationFn: async () => {
+      if (!score || !mission) throw new Error('nothing to turn in');
+      const saved = await saveScoreToMyWorks(score, classId, mission.id);
+      const res = await api<MissionSubmitResult>(`/projects/${saved.project_id}/submit`, {
+        method: 'POST',
+      });
+      return { saved, res };
+    },
+    onSuccess: ({ saved, res }) => {
+      setSongProjectId(saved.project_id);
+      qc.invalidateQueries({ queryKey: ['projects', 'kid', kidId] });
+      if (res.ok) {
+        setMissionDone(true);
+        setBubbleOverride(MISSION_DONE_BUBBLE);
+        qc.invalidateQueries({ queryKey: ['wallet', familyId] });
+      } else {
+        setBubbleOverride(MISSION_TURNIN_FAILED_BUBBLE);
+      }
+    },
+    onError: (e: unknown) =>
+      setBubbleOverride(
+        e instanceof ApiError && !e.code.startsWith('HTTP_')
+          ? friendlyError(e)
+          : MISSION_TURNIN_FAILED_BUBBLE,
+      ),
+  });
 
   const pendingRef = useRef<VersionMeta | null>(null);
   const lastPromptRef = useRef<string | null>(null);
@@ -182,9 +284,27 @@ export function MusicStagePane({
   const score = versions[currentVersion]?.score ?? null;
   const hasSong = score !== null;
 
-  // ── Riff Pad derivations (§5A D-MS11) ────────────────────────────────────
+  // ── Riff Pad derivations (§5A D-MS11 / D-MS14) ───────────────────────────
+  // Kid-only seed: gates the generate button and feeds the mission checks —
+  // the template never counts toward what the KID added.
   const riffSeed = useMemo(() => riffToSeedScore(riff), [riff]);
-  const riffPlayable = useMemo(() => seedToPlayableScore(riffSeed), [riffSeed]);
+  // A `base` mission template is an immutable layer that plays and seeds.
+  const missionTemplate = useMemo(
+    () => (mission?.template?.mode === 'base' ? missionTemplateGrid(mission) : null),
+    [mission],
+  );
+  const composeSeed = useMemo(() => missionSeed(riff, mission), [riff, mission]);
+  const riffPlayable = useMemo(
+    () => seedToPlayableScore(riffToSeedScore(unionRiffGrids(riff, missionTemplate))),
+    [riff, missionTemplate],
+  );
+  // Deterministic acceptance on the kid's OWN notes (§5A D-MS14) — a riff is
+  // JSON, so unlike the art vision look this costs zero LLM calls.
+  const missionChecks = useMemo(
+    () => (mission ? evaluateMusicMission(mission.accept, riff) : []),
+    [mission, riff],
+  );
+  const missionReady = missionChecksMet(missionChecks);
   // The persisted frame 0 — the riff this session's song actually grew from.
   const seedRiff = useMemo(() => aggregateSeedRiff(messages), [messages]);
   const seedPlayable = useMemo(() => seedToPlayableScore(seedRiff), [seedRiff]);
@@ -396,14 +516,16 @@ export function MusicStagePane({
     // Riff mode (§5A D-MS11): the kid's tapped motif IS the brief — it rides
     // the request as seedScore and the words are optional colour.
     if (composeMode === 'riff') {
-      if (!riffSeed) return;
-      const prompt = input.trim() || RIFF_DEFAULT_PROMPT;
+      if (!riffSeed || !composeSeed) return;
+      const prompt = input.trim() || (mission ? mission.title : RIFF_DEFAULT_PROMPT);
       lastPromptRef.current = prompt;
       fire(
         {
           prompt,
+          // Mission Mode: a `base` template rides WITH the kid's notes — the
+          // whole scene grows into the song (populate-it, §5A D-MS14).
+          seedScore: composeSeed,
           options: { genre: GENRE_BY_ID[genre].promptLabel },
-          seedScore: riffSeed,
         },
         { label: RIFF_VERSION_TAG },
         RIFF_COMPOSE_SUBTITLE,
@@ -620,6 +742,58 @@ export function MusicStagePane({
     />
   );
 
+  // Mission task card (§5A D-MS14) — pinned at the top of the deck column.
+  const missionCard = mission ? (
+    <div className="border-b border-hairline bg-wash-sunshine/60 px-5 py-3" data-testid="mission-card">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate2">🎯 Mission</p>
+      <p className="mt-0.5 text-[14px] font-extrabold text-ink">{mission.title}</p>
+      {mission.description && (
+        <p className="mt-0.5 text-[12px] font-semibold leading-snug text-ink-soft">
+          {mission.description}
+        </p>
+      )}
+      {(missionChecks.length > 0 || (mission.checklist?.length ?? 0) > 0) && (
+        <ul className="mt-1.5 grid gap-0.5">
+          {missionChecks.map((check, i) => (
+            <li
+              key={check.label}
+              className="text-[12px] font-semibold text-ink"
+              data-testid={`mission-check-${i}`}
+              data-ok={check.ok ? 'true' : 'false'}
+            >
+              {check.ok ? '✅' : '⬜'} {check.label}
+            </li>
+          ))}
+          {(mission.checklist ?? []).map((line) => (
+            <li key={line} className="text-[12px] font-semibold text-slate2">
+              • {line}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => turnIn.mutate()}
+          disabled={missionDone || turnIn.isPending || !hasSong || !missionReady}
+          className="btn-pill-primary inline-flex items-center gap-1.5 disabled:opacity-60"
+          data-testid="mission-turn-in"
+        >
+          {missionDone
+            ? `✓ Complete! +${MISSION_REWARD_STARS_DISPLAY}⭐`
+            : turnIn.isPending
+              ? '🚀 Turning in…'
+              : `🚀 Turn it in! +${MISSION_REWARD_STARS_DISPLAY}⭐`}
+        </button>
+        {!hasSong && (
+          <span className="text-[11px] font-semibold text-slate2" data-testid="mission-hint">
+            Tap your riff, then ✨ make it a song to turn in
+          </span>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   // Riff Pad panel (§5A D-MS11) — docked above the composer while riff mode is
   // on, so "tap → loop → make it a song" reads top-to-bottom in one column.
   const riffPanel =
@@ -640,6 +814,26 @@ export function MusicStagePane({
             ? stepIndexAt(playback.position, RIFF_TEMPO)
             : null
         }
+        ghost={ghost}
+        onGhost={() => {
+          // AC-8 discipline: an unaffordable click never reaches the backend.
+          if (balance < RIFF_GHOST_COST_STARS) {
+            setBubbleOverride(riffTutorOutOfStarsBubble(RIFF_GHOST_COST_STARS, balance));
+            return;
+          }
+          ghostMut.mutate(input.trim() || RIFF_GHOST_DEFAULT_IDEA);
+        }}
+        onDismissGhost={() => setGhost(null)}
+        ghostBusy={ghostMut.isPending}
+        onAdvice={() => {
+          if (balance < RIFF_ADVICE_COST_STARS) {
+            setBubbleOverride(riffTutorOutOfStarsBubble(RIFF_ADVICE_COST_STARS, balance));
+            return;
+          }
+          adviceMut.mutate();
+        }}
+        adviceBusy={adviceMut.isPending}
+        template={missionTemplate}
       />
     ) : null;
 
@@ -715,6 +909,7 @@ export function MusicStagePane({
             <Panel defaultSize={36} minSize={26} className="min-w-0">
               <section className="flex h-full min-h-0 flex-col bg-canvas-pure" data-testid="stage-deck">
                 <div className="min-h-0 flex-1 overflow-y-auto">
+                  {missionCard}
                   {aiDeck}
                   {trackListRegion}
                 </div>
@@ -748,6 +943,7 @@ export function MusicStagePane({
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="shrink-0">{stageView}</div>
           <div className="min-h-0 flex-1 overflow-y-auto bg-canvas-pure">
+            {missionCard}
             {riffPanel}
             {composerDock}
             {aiDeck}
