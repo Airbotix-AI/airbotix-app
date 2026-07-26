@@ -611,6 +611,21 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
       { op: 'end' },
     ],
   },
+  'jtw-s1-c2-p6': {
+    pageId: 'jtw-c2-p6-return-page',
+    background: 'jtw-s1-c2-actor-free-base',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-return-debug',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 6, gy: 7, size: 3, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'move_left', n: 2 },
+      { op: 'move_down', n: 1 },
+      { op: 'move_left', n: 2 },
+      { op: 'end' },
+    ],
+  },
 };
 
 /**
