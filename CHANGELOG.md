@@ -1,5 +1,122 @@
 # Changelog
 
+## 2026-07-20 (feat: Music Mission Mode — task card + template + turn-in, music-stage §5A D-MS14 P2b)
+
+### Added
+- **Music Mission Mode (music-stage-prd §5A D-MS14)** — the Music Stage end of the
+  four-layer course machinery, mirroring art missions: `Mission.steps_json.music`
+  (`{ template?: { mode: 'base'|'reference', riff }, checklist?, accept? }`) opens
+  `/learn/music` in Mission Mode via router state (PackLessonsPage music branch;
+  the mission survives the session redirect). Task card pins atop the deck with
+  **live deterministic checks** on the kid's OWN notes (min melody notes / distinct
+  pitches / needs drums / needs off-beat — a riff is JSON, zero LLM verification
+  cost; labels say what to ADD, never a grade). A `base` template pre-loads the pad
+  as a LOCKED layer below the kid's notes (plays + rides the seed — populate-it 配器);
+  a `reference` template loads as the erasable ghost (copy-it 临摹, excluded from the
+  seed). Mission entry lands straight in riff mode; the seeded compose prompt
+  defaults to the mission title. **🚀 Turn it in! +3⭐** saves the song into a
+  mission-linked project (`saveScoreToMyWorks` gains `mission_id`) and rides the
+  existing `POST /projects/:id/submit` acceptance chain (D-M3 reward, backend
+  untouched).
+
+## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
+
+### Added
+- **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−3⭐ — OQ-8 closed, owner 「价格star可以涨」; price
+  tag on it) sends the composer idea (or a default) to `POST /llm/riff-ghost`; the
+  tutor's starter renders as a FAINT dashed underlay (`data-ghost`) strictly BELOW
+  the kid's notes — tracing a ghost cell turns it into the kid's own note, and
+  "👻 Hide ghost" erases the layer in one tap (D-IS-18 iron rules: summoned-only,
+  subordinate, erasable). Off-grid ghost notes are silently ignored
+  (`seedToRiffGrid`).
+- **👂 Listen (听一听)** — one button (−1⭐) sends the kid's ACTUAL riff to
+  `POST /llm/riff-advice`; the tutor's single note-grounded suggestion is voiced
+  through the AI bubble. Disabled while the pad is empty. AC-8 star gates on both
+  buttons (an unaffordable click never reaches the backend).
+
+## 2026-07-20 (feat: Riff Pad — the kid's hand first, music-stage §5A P1)
+
+### Added
+- **Riff Pad (music-stage-prd v0.16 §5A D-MS11)** — the Music Stage's hand-first door:
+  a 16-step scale-locked grid (8 pentatonic melody rows C4–E5 + hat/snare/kick drum
+  rows) where the kid taps their OWN motif — 0⭐, no AI, loop audition on the shared
+  playback engine. Empty stage offers "🎹 Or tap out your own riff first — 0⭐"; with
+  a song the composer gains a third mode tab **🎹 From my riff**. "✨ Make it a song"
+  sends the riff as `seedScore` (words optional; genre pills steer the expansion) —
+  the backend keeps the motif verbatim in the lead melody. The riff persists as the
+  **permanent 🎹 frame-0 pill** (from message `metadata.seed`): tapping it A/Bs "just
+  MY riff" vs the full band — the authorship amplifier. Seeded takes get the
+  `🎹 From my riff` version tag and a bubble crediting the kid's notes.
+- **Musical diff chips + why-layer (§5A D-MS12)** — after every iteration the AiDeck
+  shows what actually changed in musical terms (`🕒 118→126 BPM`, `🥁 Drums busier
+  (16→24 notes)`, `➕ 🎸 Guitar joined`, key changes; capped at 4, tap/hover explains
+  in kid language), and every suggestion-card bubble now appends a "Why it works:"
+  line (tempo/density/heartbeat theory). All template-assembled from score metadata —
+  zero LLM calls, 0⭐.
+
+### Changed
+- `ComposeMode` extends to `'edit' | 'new' | 'riff'`; a landed take now always folds
+  back to ✏️ edit mode. Transport ⏹ also exits any audition so the loop doesn't
+  restart what the kid just stopped.
+## 2026-07-26 (feat: GA4 page_view reporting — parent Portal only, never kids)
+
+### Added
+
+- **Google Analytics 4 page_view reporting for `/portal/*` only** (`src/lib/analytics.ts`). This
+  app hosts both the parent Portal and the kid Learn surface, and `docs/legal/privacy-policy.md`
+  (§8, §10) promises users that Google Analytics never runs on a surface used by children — so
+  the kid boundary is enforced in code, not by convention:
+  - `isPortalSurface()` admits `/portal` and `/portal/…` only. `/learn/*`, `/try/*` (no-signup kid
+    demos), `/play/*` (public share-play) and `/teacher/*` are refused. Teacher activity is
+    measured in teacher-console instead, which keeps this app's rule simple and auditable:
+    **only `/portal/*` is ever sent.**
+  - Enforced at **both** ends deliberately — gtag.js is not injected until a Portal route is
+    reached, and every individual hit re-checks. A parent who browses the Portal and then hands
+    the same tab to their child still sends nothing for the kid's route. A future route or layout
+    change cannot silently start reporting a child; it would have to delete an explicit guard.
+    Covered by a test that drives the real gtag bootstrap with every other gate green and asserts
+    no script tag, no `window.gtag` and no dataLayer at all on kid routes.
+  - **Opt-in per parent.** `PortalAnalyticsConsentBanner` (rendered by `PortalLayout`, so it can
+    never appear on a kid surface) asks once; nothing loads until Allow. Both answers are sticky.
+  - **Route patterns, not URLs.** gtag.js auto-collects `location.href`, `document.referrer` and
+    `document.title` unless each is explicitly overridden, so normalising `page_path` alone would
+    have leaked the raw URL regardless. Every hit overrides all four, and the path is first reduced
+    to its route pattern (`/portal/family/cjld2…` → `/portal/family/:id`) with the query string
+    dropped — those ids identify a real child, and `/portal/verify-otp?email=…` carries a parent's
+    address. Kebab-case content slugs are preserved; they are the reporting signal.
+  - **Own data stream.** `VITE_GA4_MEASUREMENT_ID` with **no hardcoded fallback** — an
+    unconfigured build is completely inert. Each frontend has its own GA4 data stream inside the
+    one shared property.
+  - **Silent in dev and under automation.** Nothing is sent unless `import.meta.env.PROD`, and
+    `navigator.webdriver` suppresses it so the cross-repo harness and CI never pollute prod data.
+## 2026-07-25 (fix: the Art Studio hub's entry points reach the canvas again)
+
+### Fixed
+- **"🎨 Keep drawing" and a course's art task now open the CANVAS, not the hub.** Splitting the
+  studio into a hub (`/learn/create/image`) and a canvas (`/learn/create/image/canvas`) left
+  both deep-link entries pointing at the old path, which is now the hub. The hub does not read
+  their router state, so: reopening a saved picture landed on a generic landing page instead of
+  that picture, and an art Mission's "Start" **silently dropped Mission Mode entirely** — no
+  template, no draw-along, no checklist, no turn-in. Both now target the canvas, which already
+  consumes `{ editArtifactId, editProjectId }` and `{ mission }`.
+
+### Changed
+- The canvas's back link returns to the Art Studio hub ("← My art") instead of the all-tools
+  list — from the canvas the child's own tasks and pictures are one level up, not two.
+- The Workspace picker's Art Studio card promises the hub it now opens ("Your tasks, pictures
+  and a new canvas") rather than "Opens your own art studio", which read as "a blank canvas".
+## 2026-07-26 (fix: ship the complete Boti tutor pose pack)
+
+### Fixed
+
+- Added the six checked-in WebP poses referenced by `ArtTutorAvatar` so a clean
+  checkout renders Boti instead of requesting missing `/media/art-tutor/*`
+  files.
+- Restored the tutor motion CSS for the idle pose loop and reactive thinking,
+  looking, creating, celebrating and compact states, including the reduced-motion
+  fallback.
+- Added a component regression check that fails when any referenced pose asset
+  is absent from `public/media/art-tutor`.
 ## 2026-07-27 (feat: Journey West C3-P8 — arriving is not learning)
 
 ### Added
@@ -1597,6 +1714,13 @@
 
 ### Added
 - Added a development-only Journey to the West C1 runtime preview that uses the real Story Blocks parser, runner, editor, Flower Fruit Mountain background, and Stone Monkey asset without backend or production-data writes.
+
+### Fixed
+- Clicking the already-selected **Parent or guardian** identity on the login gateway no
+  longer clears the protected route that sent the parent there, so a marketing-site
+  **Pay & lock the seat** deep link returns to its class checkout after OTP verification
+  instead of falling back to the Portal dashboard.
+- Retrying the OTP request also carries the original checkout route back to the login form.
 
 ## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
 

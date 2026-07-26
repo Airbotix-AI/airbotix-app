@@ -20,6 +20,10 @@ import {
   MUSIC_GENERATION_COST_STARS,
   PROMPT_MAX_LENGTH,
   PROMPT_PLACEHOLDER,
+  RIFF_CTA_EXIT_LABEL,
+  RIFF_CTA_LABEL,
+  RIFF_HEADER,
+  RIFF_PROMPT_PLACEHOLDER,
   type ComposeMode,
   type GenreId,
 } from './stageData';
@@ -35,6 +39,7 @@ export function ComposerBar({
   hasSong,
   mode,
   onMode,
+  riffEmpty,
   inputRef,
 }: {
   value: string;
@@ -46,9 +51,11 @@ export function ComposerBar({
   balance: number;
   /** A song is on the stage → the edit/new mode toggle appears. */
   hasSong: boolean;
-  /** Compose mode (D-MS10). Only meaningful when hasSong. */
+  /** Compose mode (D-MS10 + §5A riff). Riff mode is reachable without a song. */
   mode: ComposeMode;
   onMode: (m: ComposeMode) => void;
+  /** Riff mode gate: nothing tapped yet → generate stays disabled (§5A). */
+  riffEmpty: boolean;
   inputRef?: React.RefObject<HTMLTextAreaElement>;
 }) {
   // TODO(D-WFA-01): show "Free during workshop" + skip the `short` (balance) gate
@@ -58,13 +65,22 @@ export function ComposerBar({
   // available before the paid turn. The backend enforces the waiver regardless.
   const short = balance < MUSIC_GENERATION_COST_STARS;
   const editing = hasSong && mode === 'edit';
+  const riffing = mode === 'riff';
+  const header = riffing ? RIFF_HEADER : editing ? EDIT_HEADER : COMPOSE_HEADER;
+  const placeholder = riffing
+    ? RIFF_PROMPT_PLACEHOLDER
+    : editing
+      ? EDIT_PROMPT_PLACEHOLDER
+      : PROMPT_PLACEHOLDER;
+  // Riff mode: the riff is the brief — words optional, but an empty pad can't seed.
+  const generateDisabled = busy || (riffing ? riffEmpty : !value.trim());
   return (
     // Docked at the BOTTOM of the deck column (D-MS9) — border on top.
     <div className="shrink-0 border-t border-hairline bg-canvas-pure px-5 py-4">
       <div className="flex items-center justify-between mb-2.5">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate2">
           <span className="inline-grid place-items-center w-[20px] h-[20px] rounded-full bg-brand-mint text-white text-[11px] mr-1.5 align-middle">1</span>
-          {editing ? EDIT_HEADER : COMPOSE_HEADER}
+          {header}
         </span>
         <span
           className={clsx(
@@ -77,16 +93,17 @@ export function ComposerBar({
         </span>
       </div>
 
-      {hasSong && (
+      {hasSong ? (
         <div
           className="mb-2.5 flex gap-1 rounded-full bg-surface p-1"
           role="tablist"
-          aria-label="Change this song or start a new one?"
+          aria-label="Change this song, start a new one, or tap a riff?"
         >
           {(
             [
               { id: 'edit', label: '✏️ Change this song' },
               { id: 'new', label: '✨ New song' },
+              { id: 'riff', label: '🎹 From my riff' },
             ] as const
           ).map((m) => (
             <button
@@ -105,6 +122,17 @@ export function ComposerBar({
             </button>
           ))}
         </div>
+      ) : (
+        // Empty stage: the hand-first door (§5A D-MS11) — one tap flips the
+        // composer between "describe it" and "tap it yourself" (0⭐).
+        <button
+          type="button"
+          onClick={() => onMode(riffing ? 'new' : 'riff')}
+          className="mb-2.5 rounded-full border-2 border-hairline bg-canvas px-3.5 py-1.5 text-[12px] font-extrabold text-ink transition hover:border-brand-mint"
+          data-testid="riff-cta"
+        >
+          {riffing ? RIFF_CTA_EXIT_LABEL : RIFF_CTA_LABEL}
+        </button>
       )}
 
       <div className="flex flex-wrap items-end gap-2">
@@ -112,15 +140,15 @@ export function ComposerBar({
           ref={inputRef}
           value={value}
           maxLength={PROMPT_MAX_LENGTH}
-          placeholder={editing ? EDIT_PROMPT_PLACEHOLDER : PROMPT_PLACEHOLDER}
+          placeholder={placeholder}
           autoFocus
-          rows={editing ? 3 : 2}
+          rows={editing ? 3 : riffing ? 1 : 2}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             // Enter sends (kid-friendly); Shift+Enter makes a new line.
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              if (value.trim() && !busy) onGenerate();
+              if (!generateDisabled) onGenerate();
             }
           }}
           className="min-w-[220px] flex-1 resize-none rounded-2xl border-2 border-hairline bg-canvas px-4 py-3 text-[14px] font-semibold leading-snug text-ink placeholder:font-medium placeholder:text-steel focus:border-brand-mint focus:outline-none"
@@ -129,19 +157,19 @@ export function ComposerBar({
         <button
           type="button"
           onClick={onGenerate}
-          disabled={busy || !value.trim()}
+          disabled={generateDisabled}
           title={short ? `Need ${MUSIC_GENERATION_COST_STARS}★, have ${balance}★` : ''}
           className="btn-pill-primary shrink-0 inline-flex items-center gap-2 disabled:opacity-60"
           data-testid="composer-generate"
         >
-          {busy ? '…' : editing ? '🎼 Update' : '🎵 Compose'}
+          {busy ? '…' : riffing ? '✨ Make it a song' : editing ? '🎼 Update' : '🎵 Compose'}
           <span className="rounded-full bg-canvas-pure/25 px-2 py-0.5 text-[11px] font-bold">
             −{MUSIC_GENERATION_COST_STARS}⭐
           </span>
         </button>
       </div>
 
-      {!editing && (
+      {!editing && !riffing && (
         <>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {IDEA_CHIPS.map((idea, i) => (
@@ -159,26 +187,29 @@ export function ComposerBar({
               </button>
             ))}
           </div>
-
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {GENRES.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => onGenre(g.id)}
-                className={clsx(
-                  'rounded-full px-4 py-1.5 text-[13px] font-extrabold transition',
-                  genre === g.id
-                    ? 'bg-grad-sky text-white shadow-brand-sky'
-                    : 'border-2 border-hairline bg-canvas-pure text-ink-soft hover:border-brand-coral',
-                )}
-                data-testid={`genre-${g.id}`}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
         </>
+      )}
+
+      {/* Genre pills steer the riff EXPANSION too — only edit mode hides them. */}
+      {!editing && (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {GENRES.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => onGenre(g.id)}
+              className={clsx(
+                'rounded-full px-4 py-1.5 text-[13px] font-extrabold transition',
+                genre === g.id
+                  ? 'bg-grad-sky text-white shadow-brand-sky'
+                  : 'border-2 border-hairline bg-canvas-pure text-ink-soft hover:border-brand-coral',
+              )}
+              data-testid={`genre-${g.id}`}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

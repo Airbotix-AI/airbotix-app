@@ -147,6 +147,7 @@ export function AuthIdentityLayout({ activeRole, children }: AuthIdentityLayoutP
                       state={active ? location.state : undefined}
                       aria-current={active ? 'page' : undefined}
                       data-testid={`auth-role-${option.role}`}
+                      onClick={active ? (event) => event.preventDefault() : undefined}
                       className={clsx('auth-role-option', `auth-role-option-${option.role}`, {
                         'auth-role-option-active': active,
                       })}

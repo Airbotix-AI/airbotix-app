@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
 
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -11,6 +14,24 @@ describe('ArtTutorAvatar', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+  });
+
+  it('ships every pose file referenced by the tutor component', () => {
+    const poseFiles = [
+      'idle.webp',
+      'thinking.webp',
+      'looking.webp',
+      'creating.webp',
+      'celebrating.webp',
+      'compact.webp',
+    ];
+
+    for (const poseFile of poseFiles) {
+      expect(
+        existsSync(resolve(process.cwd(), 'public/media/art-tutor', poseFile)),
+        `${poseFile} is missing from the checked-in tutor pose pack`,
+      ).toBe(true);
+    }
   });
 
   it('uses the approved Airbotix robot-cat pose pack and keeps its name explicitly temporary', () => {
