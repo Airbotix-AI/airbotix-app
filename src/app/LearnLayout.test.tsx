@@ -68,12 +68,25 @@ describe('LearnLayout', () => {
   // the nav hid and page scroll locked while the "fullscreen" stage stayed
   // letterboxed inside the max-w-5xl reading column. Immersive must imply
   // full-bleed — there is no surface that wants both.
-  it.each(['/learn/music', '/learn/music/s1', '/learn/blocks/p1', '/learn/create/image'])(
+  it.each(['/learn/music', '/learn/music/s1', '/learn/blocks/p1', '/learn/create/image/canvas'])(
     'gives the immersive surface %s the whole viewport — no nav, no reading column',
     (path) => {
       const { container, queryByTestId } = mount(path);
       expect(queryByTestId('learn-nav')).toBeNull();
       expect(readingColumn(container)).toBeNull();
+    },
+  );
+
+  // Only the CANVAS is immersive (D-IS-28). The Art Studio HUB is an ordinary
+  // landing page: hiding the nav there would strand a kid inside a page whose
+  // whole job is navigating to their tasks and pictures — the same posture as
+  // the Story Blocks hub at /learn/create/blocks.
+  it.each(['/learn/create/image', '/learn/create/blocks'])(
+    'keeps the studio hub %s an ordinary page — nav visible, reading column intact',
+    (path) => {
+      const { container, getByTestId } = mount(path);
+      expect(getByTestId('learn-nav')).toBeInTheDocument();
+      expect(readingColumn(container)).toBeTruthy();
     },
   );
 

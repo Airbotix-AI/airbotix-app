@@ -620,7 +620,9 @@ function ArtifactTile({
             <button
               onClick={() => {
                 setMenuOpen(false);
-                navigate('/learn/create/image', {
+                // Straight to the CANVAS — the kid already picked the picture, so
+                // routing through the Art Studio hub would ask them to pick again.
+                navigate('/learn/create/image/canvas', {
                   state: { editArtifactId: artifact.id, editProjectId: projectId },
                 });
               }}

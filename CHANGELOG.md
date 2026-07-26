@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-25 (feat: the Art Studio remembers what you already drew)
+
+### Added
+- **Art Studio hub** at `/learn/create/image` (image-studio-prd D-IS-28). Opening the studio
+  used to drop the child on a blank canvas, so the pictures they had already made were
+  invisible from inside the studio — the only way back was Learn home → My Works → My Pictures
+  → a picture → ⋯ → "Keep drawing". The hub now answers what a child arrives asking: their
+  **art tasks** (from the new `GET /course-packs/art-missions` — every mission that asks them to
+  hand in a picture), the **art courses** that live next to the studio (the making/creative
+  line, with lesson and task counts), **how the studio works** (the three AI powers at their
+  real prices — 👻 2★ · 👀 1★ · ✨ 9★), and **their pictures**, newest first, each opening on
+  the canvas as an editable base. Drawing a new picture is one action among these, not the only
+  one.
+- A "continue where you left off" card for the most recent picture.
+
+### Changed
+- The canvas moved to `/learn/create/image/canvas` and remains the immersive, nav-free
+  full-screen easel. The hub keeps the Learn nav and reading column — the same split Story
+  Blocks already uses (`/learn/create/blocks` hub → `/learn/blocks/:id` studio).
+- Entries that have already chosen their work deep-link straight to the canvas, past the hub:
+  "🎨 Keep drawing" in My Pictures, and an art Mission's "Start" in a course.
+- The canvas's back link now returns to the Art Studio hub ("← My art") instead of the
+  all-tools list, and the Workspace picker card promises the hub it now opens.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed
