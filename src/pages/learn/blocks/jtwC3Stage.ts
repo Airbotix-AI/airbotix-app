@@ -33,6 +33,20 @@ export const JTW_C3_PAGE2_BACKGROUND =
 export const JTW_C3_PAGE3_BACKGROUND =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-before-v01.webp';
 
+/** The three integrated `before` states, in page order (index = page − 1). */
+export const JTW_C3_PAGE_BACKGROUNDS: readonly string[] = [
+  JTW_C3_PAGE1_BACKGROUND,
+  JTW_C3_PAGE2_BACKGROUND,
+  JTW_C3_PAGE3_BACKGROUND,
+];
+
+/** Alt text describing what each page's artwork really shows. */
+export const JTW_C3_PAGE_ALTS: readonly string[] = [
+  '花果山海岸：左边是长着桃树的山，右边的海一直连到天边',
+  '海上中段：晨雾里的海面，远处的岛一层一层退向天边',
+  '彼岸山林：靠岸的浅滩、上山的小路，山上是师门的石门',
+];
+
 /**
  * 正式角色 `monkey-king` reuses the `char-stone-monkey` master (scene-specs
  * "C3共享实现合同"), so chapter three stages the very sprite chapters one and two

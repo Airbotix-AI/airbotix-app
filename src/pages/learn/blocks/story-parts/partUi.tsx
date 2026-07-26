@@ -52,7 +52,10 @@ export function Choice({
   active,
   onPick,
 }: {
-  option: JtwEvidenceOption;
+  /** Only the label is rendered, so `correct` is optional: a card whose
+   *  correctness lives elsewhere (C3-P3's outcome cards, where the right answer
+   *  depends on which exit card is being predicted) passes an id/label pair. */
+  option: { id: string; label: string; correct?: boolean };
   active: boolean;
   onPick: () => void;
 }) {

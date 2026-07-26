@@ -19,19 +19,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { BlockChip } from '../BlockChip';
-import { GRID_H, GRID_W } from '../blocksModel';
 import { startState, type SpriteState } from '../interpreter';
 import { PageFlowRunner, type PageFlowRunResult } from '../pageFlowRun';
 import { sfx } from '../sounds';
-import {
-  JTW_C3_MONKEY_KING_ID,
-  JTW_C3_MONKEY_KING_SPRITE,
-  JTW_C3_PAGE1_BACKGROUND,
-  JTW_C3_PAGE2_BACKGROUND,
-  JTW_C3_PAGE3_BACKGROUND,
-  JTW_C3_RAFT_ID,
-  JTW_C3_RAFT_SPRITE,
-} from '../jtwC3Stage';
+import { JTW_C3_MONKEY_KING_ID } from '../jtwC3Stage';
+import { JourneyWestC3Stage } from './JourneyWestC3Stage';
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
 import {
   C3_P2_ACTUAL_TRACE_TITLE,
@@ -88,89 +80,12 @@ import { Choice, OrderCards } from './partUi';
 const PART_ID = 'jtw-s1-c3-p2';
 const NEXT_PART_ID = 'jtw-s1-c3-p3';
 
-const PAGE_BACKGROUNDS: readonly string[] = [
-  JTW_C3_PAGE1_BACKGROUND,
-  JTW_C3_PAGE2_BACKGROUND,
-  JTW_C3_PAGE3_BACKGROUND,
-];
-const PAGE_ALTS: readonly string[] = [
-  '花果山海岸：左边是长着桃树的山，右边的海一直连到天边',
-  '海上中段：晨雾里的海面，远处的岛一层一层退向天边',
-  '彼岸山林：靠岸的浅滩、上山的小路，山上是师门的石门',
-];
-
 /** Every sprite of a page in its start pose (what a page entry shows). */
 function startSprites(pageNumber: number): Record<string, SpriteState> {
   const page = C3_P2_STARTER_PROJECT.pages[pageNumber - 1];
   const sprites: Record<string, SpriteState> = {};
   for (const character of page?.characters ?? []) sprites[character.id] = startState(character);
   return sprites;
-}
-
-const percent = (value: number, span: number) => `${(value / (span - 1)) * 100}%`;
-
-/**
- * The three-page stage. One page is on screen at a time — exactly what the
- * runtime does — with the raft as its own layer under the monkey king, because
- * asset bible §6 forbids baking it into the background and §2.4 forbids leaving
- * his feet on open water.
- */
-function ThreePageStage({
-  pageNumber,
-  sprites,
-  saying,
-}: {
-  pageNumber: number;
-  sprites: Record<string, SpriteState>;
-  saying: string | null;
-}) {
-  const monkey = sprites[JTW_C3_MONKEY_KING_ID];
-  const raft = sprites[JTW_C3_RAFT_ID];
-  return (
-    <div
-      className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-hairline"
-      data-testid="jtw-c3p2-stage"
-      data-page={pageNumber}
-    >
-      <img
-        src={PAGE_BACKGROUNDS[pageNumber - 1]}
-        alt={PAGE_ALTS[pageNumber - 1]}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {raft?.visible && (
-        <img
-          src={JTW_C3_RAFT_SPRITE}
-          alt=""
-          aria-hidden
-          data-testid="jtw-c3p2-raft"
-          data-gx={raft.gx}
-          data-gy={raft.gy}
-          className="absolute w-[22%] -translate-x-1/2 -translate-y-1/2 transition-all duration-200"
-          style={{ left: percent(raft.gx, GRID_W), top: percent(raft.gy, GRID_H) }}
-        />
-      )}
-      {monkey?.visible && (
-        <img
-          src={JTW_C3_MONKEY_KING_SPRITE}
-          alt="Monkey King"
-          data-testid="jtw-c3p2-monkey-king"
-          data-gx={monkey.gx}
-          data-gy={monkey.gy}
-          data-size={monkey.size}
-          className="absolute w-[14%] -translate-x-1/2 -translate-y-full transition-all duration-200"
-          style={{ left: percent(monkey.gx, GRID_W), top: percent(monkey.gy, GRID_H) }}
-        />
-      )}
-      {saying && (
-        <span
-          data-testid="jtw-c3p2-say"
-          className="absolute left-1/2 top-[8%] max-w-[52%] -translate-x-1/2 rounded-2xl border border-hairline bg-canvas-pure px-3 py-1 text-[13px] font-semibold text-ink"
-        >
-          {saying}
-        </span>
-      )}
-    </div>
-  );
 }
 
 /** One page's read-only starter track — the exits are visible, never editable. */
@@ -513,7 +428,12 @@ export function JourneyWestC3Part2Page({
 
       {/* ── 舞台 + 三页只读 starter 轨道 + Go ──────────────────────────── */}
       <section className="space-y-4">
-        <ThreePageStage pageNumber={stagePage} sprites={sprites} saying={saying} />
+        <JourneyWestC3Stage
+          testIdPrefix="jtw-c3p2"
+          pageNumber={stagePage}
+          sprites={sprites}
+          saying={saying}
+        />
         <div className="space-y-3 rounded-2xl border border-hairline bg-canvas-pure p-4">
           {C3_P2_STARTER_PROJECT.pages.map((page, index) => (
             <StarterTrack key={page.id} pageNumber={index + 1} lit={lit} />

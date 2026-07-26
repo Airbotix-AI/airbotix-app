@@ -1,5 +1,58 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P3 — the exit number is an address, not a plaque)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p3` — chapter three's page-model Complete** (scene-specs
+  JTW-S1-C3-P3). C3-P2 found WHERE the route breaks; C3-P3 builds the model behind it. Teaching
+  script Part 3「离屏活动：页面就是路口」in full across two screens, plus the classic card and the
+  故事—程序桥.
+- **Part 2's footprints are READ BACK, not re-narrated.** The "系统预置的 P2 只读脚印" is the
+  C3-P2 evidence row fetched from `/story-parts`, decoded and rendered read-only; the starter is
+  never re-run here. A row that cannot be decoded shows "请先回到 Part 2 再跑一次"
+  (`jtw-c3p3-no-part2`) instead of guessing a trace.
+- **Every candidate outcome is measured, not asserted.** Tapping an exit card runs the REAL
+  `PageFlowRunner` over a fresh copy of the C3-P2 starter with that ONE `goto_page` number swapped,
+  so the scene's own assertions are runtime facts: card 1 → `1 → 2 → 1` (loop), card 2 →
+  `1 → 2 → 2` (loop; 彼岸山林 never opens), card 3 → `1 → 2 → 3` (end). Resolved needs card 3 AND
+  a real arrival that ended on Page 3 — then `Page 2 的出口 → 3 · 通向彼岸山林` connects and the
+  `→ 1` return arrow fades out struck through.
+- **Predict before you try.** With any of the three predictions missing, every try button is
+  disabled, so "不先说出你以为会发生什么，试出来的结果就不算证据" is structural rather than a
+  warning. The model gates are grounded in the footprints themselves: the 木筏走得太快 excuse is
+  refused with `2-8→6-8` (one cell, no more), 页面卡摆错顺序 with Page 1's correct exit, and
+  换 Page 1 / 换 Page 3 / 三页全部重做 each with the row that contradicts them. The floor walk must
+  reproduce the trace Part 2 really measured, so the tidier-looking `1 → 2 → 3` fails and only
+  `1 → 2 → 1` passes. The 走得越快越先到 password is refused with "用加速把循环遮起来，木筏还是会
+  回到花果山海岸".
+- Evidence `story_screens / deviation_reason / card_to_swap / floor_walk / password /
+  candidate_predictions / chosen_exit_card / rehearsal_trace / rehearsal_footprints` + prediction
+  persists through `/story-parts` and is restored on refresh. `搭海上故事` unlocks ONLY
+  `jtw-s1-c3-p4`, writes no project and lights no chapter seal.
+
+### Changed
+- **The three-page C3 stage is now shared** (`story-parts/JourneyWestC3Stage.tsx`) instead of being
+  copied into each Part: one page on screen at a time, the raft as its own layer under the monkey
+  king (asset bible §6/§2.4). It takes a `testIdPrefix`, so C3-P2's `jtw-c3p2-*` ids are unchanged.
+  The page backgrounds and their alt text moved to `jtwC3Stage.ts` with the chapter's other stage
+  constants.
+- `partUi.tsx`'s `Choice` now accepts an id/label card, because C3-P3's outcome cards have no
+  correctness of their own — which one is right depends on the exit card being predicted.
+
+### Notes
+- **No new asset.** Everything C3-P3 renders (the three `before` page backgrounds, the raft prop,
+  the stone-monkey sprite) was integrated by C3-P1/C3-P2. `page3-resolved-v01.webp` was
+  deliberately NOT copied: the far shore's world change belongs to C3-P4, where the sea leg finally
+  has a story in it. Recorded in the saga asset bible §8.
+- **Nothing is written to a project.** The candidate projects are throwaway copies (unit-tested:
+  Pages 1/3 stay the same objects and the shipped `goto_page` is still 1), no editor opens, and the
+  page shows "starter 现在的样子（出口 1）" beside "这次演练用的卡（出口 3）" so the difference is
+  never ambiguous.
+- `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
+  already over the 1000-line hard rule — so the Part content lives in `journeyWestC3Part3Program.ts`.
+- Verified: tsc clean, eslint zero-warning across the app, vitest 208 files / 1679 tests all green
+  (no documented flake reproduced).
+
 ## 2026-07-27 (feat: Journey West C3-P2 — the page exit that sends the raft home)
 
 ### Added
