@@ -22,6 +22,12 @@ import {
   JTW_C3_SEA_TARGET,
 } from './jtwC3SeaBuild';
 import {
+  JTW_C3_P6_LESSON_ID,
+  JTW_C3_P6_PAGE_IDS,
+  JTW_C3_P6_SCRIPT_IDS,
+  JTW_C3_P6_TARGET_START_CELL,
+} from './jtwC3JumpFix';
+import {
   JTW_C3_LISTEN_CLUE,
   JTW_C3_P5_LESSON_ID,
   JTW_C3_P5_PAGE_IDS,
@@ -264,6 +270,33 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
     start: {
       gx: JTW_C3_PAGE2_START_CELL.gx,
       gy: JTW_C3_PAGE2_START_CELL.gy,
+      size: JTW_C3_MONKEY_KING_SIZE,
+      rot: 0,
+    },
+    target: [...JTW_C3_P5_STARTER_CHAIN],
+  },
+  // Journey to the West S1/C3-P6 — chapter three's Fix (scene-specs
+  // JTW-S1-C3-P6). Nothing in the PROGRAM is wrong here: the repair is a stage
+  // POSITION, so the only field this record can express is `start` — and even
+  // that would only describe one of the page's two actors. The bespoke branch in
+  // `storyMissionProgress.ts` therefore hands the whole PROJECT to
+  // `jtwC3JumpFixComplete`, which requires Page 2's start cell to be exactly the
+  // contract's `2/8` while every other page, chain, exit, background, actor and
+  // `size` is still the shipped one. `background`, `target` and `allowedSayText`
+  // describe the SHIPPED starter (the default sea and the shared route) so the
+  // studio can find the script and offer the mist version's preset line; a
+  // C3-P6 build is never judged against them, because the child's own C3-P5
+  // weather decides both.
+  [JTW_C3_P6_LESSON_ID]: {
+    pageId: JTW_C3_P6_PAGE_IDS[1],
+    background: JTW_C3_PAGE2_SCENE,
+    characterId: JTW_C3_MONKEY_KING_ID,
+    scriptId: JTW_C3_P6_SCRIPT_IDS.seaLeg,
+    asset: JTW_C3_MONKEY_KING_SPRITE,
+    allowedSayText: [JTW_C3_LISTEN_CLUE],
+    start: {
+      gx: JTW_C3_P6_TARGET_START_CELL.gx,
+      gy: JTW_C3_P6_TARGET_START_CELL.gy,
       size: JTW_C3_MONKEY_KING_SIZE,
       rot: 0,
     },

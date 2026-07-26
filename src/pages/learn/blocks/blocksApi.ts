@@ -135,7 +135,11 @@ export type BlocksTemplateId =
   // C3-P5's two weather branches — the scene's 模板分支白名单. Same lesson, same
   // route, two middle seas; which one is seeded is the child's choice.
   | 'blocks_jtw_c3_p5_starry'
-  | 'blocks_jtw_c3_p5_morning';
+  | 'blocks_jtw_c3_p5_morning'
+  // C3-P6 carries the child's own C3-P5 weather forward, so it needs the same
+  // two whitelisted branches — only Page 2's start cell ships wrong.
+  | 'blocks_jtw_c3_p6_starry'
+  | 'blocks_jtw_c3_p6_morning';
 
 export interface BlocksProjectMeta {
   id: string;

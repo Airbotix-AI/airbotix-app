@@ -188,4 +188,94 @@ export const JTW_C3_MISSIONS: Record<string, StoryMission> = {
       '同一条路线可以有两种讲法，两种都对——因为你换的是节奏，不是出口。下一步：木筏跨页的时候还站错了边。',
     next: '天气和路线都清楚了。下一个 Part：找出木筏为什么会跳到另一边。',
   },
+  // Journey to the West S1/C3-P6 — chapter three's Fix (scene-specs
+  // JTW-S1-C3-P6, teaching script C3 Part 6). Every block on all three pages is
+  // right, including the child's own C3-P5 weather chain and both exits; what is
+  // wrong is a stage POSITION — Page 2's start cell ships as 16/8 instead of
+  // 2/8, so the raft appears on the far side of the sea. The repair is a DRAG,
+  // not a block edit: the child pulls the raft and the monkey king standing on
+  // it back to the calibrated cell and reruns.
+  'jtw-s1-c3-p6': {
+    mode: 'manual-fix',
+    lessonId: 'jtw-s1-c3-p6',
+    hero: {
+      name: '美猴王',
+      role: '跨页时站错边的木筏手',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第三章 · Debug',
+    title: '木筏跳了位置',
+    storyPages: [
+      {
+        emoji: '🛶↔️',
+        title: '积木都对，画面却接不上',
+        body: '三页的积木、数字和出口都没问题：你选的那片海还在，表达链一块没少，木筏照样走完 1 → 2 → 3。可他明明从第一页的右边划出去，翻到第二页又出现在右边——观众会以为有人把木筏搬过去了。',
+        speaker: '群猴',
+        dialogue: '你怎么又跑到海的那一头去了？',
+        scene: 1,
+      },
+      {
+        emoji: '📍2️⃣',
+        title: '错的是起点格，不是积木',
+        body: 'Page 2 的起点写着 16-8，那是海面的右边；这条路线约定的起点是 2-8，海面的左边。积木决定这一页发生什么，出口数字决定翻到哪一页，起点格决定他在下一页的哪个位置出现——这次错的是第三件。',
+        speaker: '美猴王',
+        dialogue: '我一直朝右走，就该从左边接着上路。',
+        scene: 3,
+        blocks: ['📍 起点 16-8 · 右边出现', '📍 起点 2-8 · 左边接着走'],
+      },
+      {
+        emoji: '🖐️🛶',
+        title: '拖回来，只动这一处',
+        body: '翻到 Page 2，把木筏和站在木筏上的猴王一起拖到海面左边的 2-8 格——松手时会自己吸到格子上。别改 Page 1 的出口，别删表达积木，别加更响的声音，也别去动另外两页。拖好以后按 Go。',
+        speaker: '美猴王',
+        dialogue: '一处就够了，多改一处故事就又乱了。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '同伴只看画面：他从哪里来，往哪里去？接得上，才说明起点对了。',
+    mission:
+      '翻到 Page 2，把木筏和猴王一起拖回海面左边的 2-8 格，然后按 Go 跑一次。三页的积木、出口和你选的那片海都要保持原样——这一次只准改这一个位置。',
+    question: '哪一处是这条路线真正的问题？',
+    choices: [],
+    retry:
+      '还没修好：Page 2 的起点要正好落在 2-8，木筏和猴王都要在那一格；积木、出口、背景和另外两页都不能动。',
+    successTitle: '木筏不再跳位了！⭐',
+    success: '他从海面左边接着走——三页的边界连成了一条不断开的方向线。',
+    fixTitle: '把 Page 2 的起点拖回来',
+    fixPrompt: '关掉这张卡，翻到 Page 2，把木筏和猴王一起拖到海面左边的 2-8 格。',
+    workspaceIntro: '积木一块都不用改。要动的是舞台上那一格——木筏站错了边。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先翻到 Page 2，看看木筏这一页是从哪一边开始的。',
+      watch: '盯住每一页刚打开的那一瞬间：他站在左边还是右边？',
+      sayFirst: '先说预期：上一页从右边离开，下一页应该从哪边进来？',
+      sayThen: '真的进来的那一边，和你说的一样吗？',
+      hopFirst: 'Page 1 他走到 7-9 才离开，那是右边。',
+      hopThen: 'Page 2 却从 16-8 开始——那还是右边，所以画面断了。',
+      retry: '起点还没落在 2-8。木筏和猴王要一起在那一格，别的什么都不要动。',
+      fix: '用手把木筏拖到海面左边——没有按钮会替你放好它。',
+      test: '起点回来了。按 Go 跑一次，再回 Part 页面从 Page 1 重跑整条路线！',
+      saving: '这一页终于从左边开始了。我在保存你的修复……',
+      complete: '一个位置换回来，三页就接成了一条路——观众读得出这是同一个人走过去的。',
+    },
+    logicSteps: [
+      { icon: '▶️', label: '先跑错误版', order: '复现' },
+      { icon: '🔍', label: 'Page 1 → Page 2 断开', order: '定位' },
+      { icon: '📍', label: '起点拖回 2-8', order: '修复' },
+    ],
+    logicWhy:
+      '积木管这一页做什么，出口数字管翻到哪一页，起点格管他在下一页的哪个位置出现。三件事分开，才能只改一处：这一次积木和出口都是对的，改它们只会把好的地方也弄坏。',
+    completionTitle: 'Debug 完成！🔧',
+    completion:
+      '你先跑出了错误版，指出 Page 1 → Page 2 是第一处断开，只把 Page 2 的起点拖回 2-8，再从 Page 1 重跑验证了三处边界。',
+    completionSteps: [
+      { icon: '🛶', label: '右边又出现', order: '复现' },
+      { icon: '📍', label: '起点 16-8', order: '定位' },
+      { icon: '➡️', label: '左边接着走', order: '修复' },
+    ],
+    completionWhy:
+      '两次跑的都是同一条路线、同一片海、同一串积木，只有一格不一样——而故事读不读得通，就差这一格。',
+    next: '公共路线修好了。下一个 Part：做一条能保存、能重开的个人三页求师路。',
+  },
 };

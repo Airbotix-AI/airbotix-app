@@ -1,6 +1,7 @@
 import type { Block, BlocksProject, Character } from './blocksModel';
 import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
 import { jtwPersonalEntryDesign } from './jtwPersonalEntry';
+import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
 import {
@@ -869,6 +870,17 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // the chain the monkey king runs agree — so repainting the background
     // alone, dropping the Goto or pointing it back at 1 all keep it open.
     return jtwC3WeatherBuildComplete(project);
+  }
+
+  if (lessonId === 'jtw-s1-c3-p6') {
+    // Chapter three's Fix repairs a stage POSITION, not a chain, and the page it
+    // repairs is one of three — neither of which a single-page, single-target
+    // record can express. The whole project goes to the jump contract, which
+    // accepts ONLY Page 2's start moved to the contract cell with the child's
+    // own C3-P5 weather chain, both exits, both demo chains, both backgrounds,
+    // both actors and every `size` still exactly as shipped. So "改Page 1出口"、
+    // "删除天气链"、"加更响声音" and "同时改多个页面" all keep the mission open.
+    return jtwC3JumpFixComplete(project);
   }
 
   if (lessonId === 'jtw-s1-c1-p7') {

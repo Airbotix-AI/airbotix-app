@@ -1,5 +1,69 @@
 # Changelog
 
+## 2026-07-27 (feat: Journey West C3-P6 — the raft jumped sides)
+
+### Added
+- **`/learn/story/journey-west/jtw-s1-c3-p6` — chapter three's Fix** (scene-specs JTW-S1-C3-P6,
+  teaching script C3 Part 6). The route runs, the exits are right and the weather chain the child
+  built in C3-P5 is right — and the picture still breaks, because Page 2's start cell ships as
+  `16/8` instead of the route contract's `2/8`, so the raft leaves Page 1 on the right and turns up
+  on Page 2 on the right again. This is the season's first scene whose bug is a stage POSITION
+  rather than a block, a number or an exit.
+- **`jtwC3JumpFix.ts` — the cross-page position contract.** It reproduces the exact program the two
+  whitelisted starters seed (so the Part can run the bug for real instead of narrating it), accepts
+  a repair ONLY when Page 2's two actors are on the contract cell with every other page, chain,
+  exit, background, actor and `size` still the shipped one, and measures cross-page continuity off
+  a real `PageFlowRunResult`: the next page's entry cell must be strictly LEFT of the last page's
+  exit cell, because the whole journey travels rightwards. 20 unit tests, including two real
+  page-flow runs per branch: the shipped bug still traces `1 → 2 → 3` and still ends on `end`,
+  while `page1→page2` is discontinuous and `page2→page3` is not — so **"it got there" is measured
+  not to be the evidence**.
+- **`journeyWestC3Part6Program.ts`** — the two story screens, the expectation stated BEFORE the
+  buggy run, the first-discontinuity pick, the minimal-fix choice, the peer's picture-only
+  continuity reading, and the copy around both runs.
+
+### Changed
+- **The order is structural, not advisory.** The bug-run button is disabled until the expectation
+  has been stated ("从右边离开，就从下一页的右边继续" is refused with the story's own line); the
+  first-discontinuity picker does not render until the bug has really been run; the minimal-fix
+  question does not render until the discontinuity is right; and the studio button stays disabled
+  until the minimal fix is named. 改 Page 1 的退出位置 is refused with its reason.
+- **The repair is a real DRAG, and the runtime already had it.** `BlocksStudioPage`'s existing
+  sprite drag (`moveCharacter`) is the whole task-level start editor the scene asks for, so NO
+  studio branching was added: `storyMissionProgress.ts` grew by one delegating branch to
+  `jtwC3JumpFixComplete` and nothing else. The store's `Math.round` snapping is what makes 精确
+  坐标容差 both exact (only `2/8` passes) and reachable by a six-year-old. 视觉尺寸与碰撞/边界校准
+  分离 is enforced too — `size` stays the asset bible §2.3 alpha-compensation `3.0`, and shrinking
+  the sprite instead of moving it is refused.
+- **Completion is measured twice.** The SAVED `BlocksProject` must satisfy the repair contract AND
+  carry the studio's own run+save marker; then, because the studio's runner only ever runs ONE
+  page, the Part page walks that same saved document through the real `PageFlowRunner` from Page 1
+  and requires `1 → 2 → 3`, `stoppedBy === 'end'` and EVERY boundary continuous. The single
+  position row (`page2-start:16-8->2-8`) is read off the saved document, never off page state.
+- **The sea being debugged is the child's own.** `blocks_jtw_c3_p6_starry` /
+  `blocks_jtw_c3_p6_morning` are two branches of one lesson, and which one seeds the project is
+  decided by the `weather_version` C3-P5 really stored — so "P5天气链保持正确" means their chain,
+  not a default one. When that row cannot be read the Part says so and offers no studio; it never
+  guesses a sea. `blocksApi.ts` learned the two template ids; `JourneyWestPartPage.tsx` and
+  `JourneyWestMapPage.tsx` learned the route.
+- **No seal is drawn, and the page says why.** The scene's own `resolved_world_change` line claims
+  远行印完整点亮 while its assertions in the same section say P6不完成Chapter; the C3 shared
+  contract requires P1–P8. The product follows the contract and the assertions, and the resolved
+  panel states out loud that the seal waits for C3-P8's server-side aggregation.
+- **No file over the hard rule was grown.** `BlocksStudioPage.tsx` (~2958 lines) and
+  `journeyWestSeason1.ts` (1125) are untouched by this Part's content; the guide sits beside
+  C3-P4/P5's in `guides/journeyWestC3.ts`.
+
+### Assets
+- **Nothing new was copied, and nothing was invented.** C3-P6 stages only the monkey king and the
+  raft, both already integrated; §6's whole `jtw-s1-c3-three-seas-route` entry landed across
+  C3-P1…P5. `16/8` sits inside asset bible §2.4's 12–88% safe band, so the bug is visibly on the
+  wrong side rather than clipped, and both Page 2 actors carry it because §2.4 forbids leaving his
+  feet on open water.
+
+### Verified
+- tsc clean, eslint zero-warning across the app, vitest 214 files / 1773 tests green.
+
 ## 2026-07-27 (feat: Journey West C3-P5 — star-night and morning-mist both need looking)
 
 ### Added
