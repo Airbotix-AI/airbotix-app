@@ -10,6 +10,12 @@ interface ImportMetaEnv {
    * smplr's official source; point at our S3+CloudFront host before launch.
    */
   readonly VITE_SOUNDFONT_BASE_URL?: string;
+  /**
+   * GA4 measurement id for the PARENT PORTAL data stream. Unset → analytics
+   * stays completely inert (there is no fallback id). Kid surfaces are never
+   * measured regardless of this value — see `src/lib/analytics.ts`.
+   */
+  readonly VITE_GA4_MEASUREMENT_ID?: string;
 }
 
 interface ImportMeta {
