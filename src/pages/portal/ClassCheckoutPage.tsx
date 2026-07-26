@@ -15,6 +15,8 @@ import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { formatAud } from '@/lib/money';
 
+import { startHostedCheckout } from './airwallex';
+
 interface CheckoutVenue {
   name: string;
   address_line: string;
@@ -53,6 +55,7 @@ interface Kid {
 interface CheckoutResponse {
   booking_id: string;
   payment_intent_id: string;
+  client_secret?: string;
   checkout_url: string;
 }
 
@@ -326,7 +329,7 @@ export function ClassCheckoutPage() {
         : values.kid_nickname?.trim();
       sessionStorage.setItem(intentKey(classId), res.payment_intent_id);
       if (nickname) sessionStorage.setItem(kidNameKey(classId), nickname);
-      window.location.href = res.checkout_url;
+      await startHostedCheckout(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
     }
@@ -426,9 +429,13 @@ function ClassSummaryCard({ c }: { c: CheckoutClass }) {
   return (
     <div className="card-base mt-6">
       {c.course_pack && (
-        <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate2">
+        <Link
+          to={`/portal/courses/${c.course_pack.slug}`}
+          aria-label={`View details for ${c.course_pack.title}`}
+          className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate2 underline decoration-brand-coral decoration-2 underline-offset-4"
+        >
           {c.course_pack.title}
-        </div>
+        </Link>
       )}
       <h2 className="mt-1 text-[22px] font-bold leading-tight">{c.name}</h2>
       <div className="mt-3 space-y-1 text-[14px]">

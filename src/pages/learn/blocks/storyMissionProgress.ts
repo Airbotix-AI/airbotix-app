@@ -1,4 +1,30 @@
-import type { Block, BlocksProject } from './blocksModel';
+import type { Block, BlocksProject, Character } from './blocksModel';
+import { JTW_GREETING_CHOICES, jtwPersonalArrivalDesign } from './jtwPersonalArrival';
+import {
+  TINY_STAR_BELL_BUILD_PAGE_ID,
+  TINY_STAR_BELL_BUILD_ROUTE,
+  TINY_STAR_BELL_FINALE_PAGE_ID,
+  TINY_STAR_BELL_FINALE_TARGET,
+  TINY_STAR_BELL_FIX_PAGE_ID,
+  TINY_STAR_BELL_HOOK_PAGE_ID,
+  TINY_STAR_BELL_HOOK_ROUTE,
+  TINY_STAR_BELL_STAGE_CONTRACT,
+  TINY_STAR_FINALE_LINES,
+  TINY_STAR_FINALE_RINGER_ID,
+  TINY_STAR_FINALE_RINGER_SCRIPT_ID,
+  tinyStarBellOrderRepaired,
+  tinyStarBellRouteUnchanged,
+  tinyStarBellStepAdded,
+  tinyStarFinaleDesign,
+} from './tinyStarBellTower';
+import {
+  TINY_STAR_DUET_GREETINGS,
+  TINY_STAR_DUET_HOP_N,
+  TINY_STAR_DUET_SECOND_GX,
+  TINY_STAR_DUET_SECOND_ID,
+  TINY_STAR_DUET_SECOND_SCRIPT,
+  tinyStarDuetDesign,
+} from './tinyStarDuet';
 
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
@@ -27,6 +53,150 @@ export const TINY_STAR_GREETING_CHOICES = [
   "I'm awake!",
   "Let's go!",
 ] as const;
+
+/** A4-S: the scene-fixed identity and geometry of the child's delivery stop. */
+export const TINY_STAR_DELIVERY_STOP_ID = 'breakfast-table';
+export const TINY_STAR_DELIVERY_STOP_GY = 10;
+export const TINY_STAR_DELIVERY_STOP_SIZE = 0.9;
+/** A4-S: the breakfast cart never moves off this square before the run. */
+export const TINY_STAR_DELIVERY_START_GX = 4;
+
+/**
+ * A4-S: the three parcels the child can deliver (scene-specs A4-S 送达主题).
+ * They are emoji proxies on the shipped stage — no new background variant and
+ * no extra script-less character is introduced.
+ */
+export const TINY_STAR_DELIVERY_PARCELS = [
+  { id: 'apple', label: 'Apple', name: 'Apple Breakfast', emoji: '🍎' },
+  { id: 'gift', label: 'Gift', name: 'Gift Breakfast', emoji: '🎁' },
+  { id: 'star', label: 'Star', name: 'Star Breakfast', emoji: '⭐' },
+] as const;
+
+/** A4-S: the Age A distances (scene-specs §1.2 limits movement to 1–3). */
+export const TINY_STAR_DELIVERY_DISTANCES = [1, 2, 3] as const;
+
+/** A5-H: the greeting stage keeps both friends on one row (scene-specs §6). */
+export const TINY_STAR_GREETING_GY = 10;
+
+/**
+ * A5-H: the two greeting voices the Explore stage ships (scene-specs §6/A5-H).
+ * Both chains are already complete and identical in shape, so the real runner
+ * starts them in the same tick — the collision IS the lesson. The Hook only
+ * counts as observed while BOTH chains are still the untouched ones below; the
+ * Wait block that separates them belongs to A5-B.
+ */
+export const TINY_STAR_GREETING_VOICES = [
+  {
+    characterId: LUMILO_CHARACTER,
+    scriptId: 'little-light-greeting',
+    asset: LUMILO_ASSET,
+    gx: 7,
+    text: 'Morning!',
+  },
+  {
+    characterId: 'tuan-tuan',
+    scriptId: 'tuan-tuan-greeting',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    gx: 12,
+    text: 'Morning too!',
+  },
+] as const;
+
+/** A5-H: how many speech bubbles must be open at once to prove the overlap. */
+export const TINY_STAR_OVERLAPPING_VOICES = TINY_STAR_GREETING_VOICES.length;
+
+/**
+ * A5-B: the Wait the child gives Tuan Tuan, in the block's own units (tenths of
+ * a second — the interpreter sleeps `n * 100 ms`). Five is the Wait block's
+ * shipped default, so a child who taps Wait in the Control palette never has to
+ * open the number editor; tuning the number is A5-D's lesson, not this one.
+ */
+export const TINY_STAR_TURN_WAIT_N = 5;
+
+/**
+ * A5-B: the head start a real run must measure between the two greetings before
+ * the turn counts. Half the modelled 500 ms absorbs timer jitter while staying
+ * far above the sub-millisecond gap the A5-H collision produces, where both
+ * chains open their bubbles inside one interpreter tick.
+ *
+ * Runtime ceiling worth knowing (measured against `interpreter.ts`): a speech
+ * bubble stays up for `SAY_MS = 1400 ms` and `MAX_PARAM` caps Wait at 9, i.e.
+ * 900 ms — so no Wait this runtime can express makes the two bubbles stop
+ * overlapping. A5-B therefore proves "Tuan Tuan starts later", which is the
+ * scene's own assertion, and never claims the bubbles are separated.
+ */
+export const TINY_STAR_TURN_MIN_GAP_MS = (TINY_STAR_TURN_WAIT_N * 100) / 2;
+
+/**
+ * A5-D: how long one `hop 1` lasts, measured against `interpreter.ts` — the hop
+ * sleeps `STEP_MS * n` up and `STEP_MS * n` down, so a one-space bounce occupies
+ * `2 * 180 = 360 ms`. Everything this scene judges is expressed in bounces.
+ *
+ * A5-D is the chapter's Fix scene and it deliberately does NOT use Say. A5-B
+ * measured the ceiling: a bubble lives `SAY_MS = 1400 ms` while `MAX_PARAM`
+ * caps Wait at 900 ms, so with two Says NO Wait this runtime can express is
+ * "too long" — the bubbles overlap at every legal value, and the spec's
+ * `wait 20` is clamped to 9 by `parseProject`. The bounce IS shorter than the
+ * longest Wait, so the action relay that scene-specs §6 ("主反馈使用Hop/Pop动作
+ * 接力") and teaching script §7.5 already sanction is the only shape in which
+ * "等太久了" is a real, measurable difference rather than a bigger number.
+ */
+export const TINY_STAR_BOUNCE_MS = 360;
+
+/**
+ * A5-D: the Wait values that make the second bounce land in time, in the block's
+ * own units (`wait n` sleeps `n * 100 ms`). The rule the child learns is
+ * "bounce back after your friend lands, before the stage has stood still as long
+ * as a bounce lasts", i.e. a delay inside
+ * `[TINY_STAR_BOUNCE_MS, 2 * TINY_STAR_BOUNCE_MS]` = 360…720 ms. There is
+ * deliberately no single right number: teaching script §7.6 Checkpoint B asks
+ * the child to find a "just right" wait, not to believe bigger is better.
+ */
+export const TINY_STAR_RELAY_WAITS = [4, 5, 6, 7] as const;
+
+/** A5-D: the Wait the starter ships — `MAX_PARAM`, the longest this runtime has. */
+export const TINY_STAR_RELAY_BUG_WAIT_N = 9;
+
+/** A5-D: the second bounce may not lift off before the first one has landed. */
+export const TINY_STAR_RELAY_MIN_GAP_MS = TINY_STAR_BOUNCE_MS;
+
+/**
+ * A5-D: measurement slack on the ceiling only. A sleeping timer can fire late
+ * but never early, so a measured gap is always ≥ the modelled one: the floor
+ * needs no allowance, while the ceiling would otherwise punish a child whose
+ * correct `wait 7` (700 ms) was delayed by a slow frame.
+ */
+export const TINY_STAR_RELAY_JITTER_MS = 120;
+
+/** A5-D: past this the stage has been empty for a whole extra bounce. */
+export const TINY_STAR_RELAY_MAX_GAP_MS = 2 * TINY_STAR_BOUNCE_MS + TINY_STAR_RELAY_JITTER_MS;
+
+/**
+ * A5-D: the two friends of the bounce relay. Lumilo leads with a plain
+ * `Start → Hop 1 → End` and is the fixed half of the scene — the child may only
+ * retune Tuan Tuan's hourglass, exactly as A4-D let them retune only a distance.
+ */
+export const TINY_STAR_BOUNCE_ACTORS = [
+  {
+    characterId: LUMILO_CHARACTER,
+    scriptId: 'little-light-bounce',
+    asset: LUMILO_ASSET,
+    gx: TINY_STAR_GREETING_VOICES[0].gx,
+  },
+  {
+    characterId: TINY_STAR_GREETING_VOICES[1].characterId,
+    scriptId: 'tuan-tuan-bounce',
+    asset: TINY_STAR_GREETING_VOICES[1].asset,
+    gx: TINY_STAR_GREETING_VOICES[1].gx,
+  },
+] as const;
+
+export interface TinyStarDeliveryDesign {
+  /** How many spaces right of the cart the child put the stop (1..3). */
+  distance: number;
+  /** The parcel the child chose. */
+  parcel: (typeof TINY_STAR_DELIVERY_PARCELS)[number];
+}
 
 const LUMI_MORNING_TARGET: Block[] = [
   { op: 'when_flag' },
@@ -166,7 +336,389 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
+  'tsv-s1-a4-d': {
+    pageId: 'tsv-a4-d-page',
+    background: 'meadow',
+    characterId: 'breakfast-cart',
+    scriptId: 'breakfast-cart-debug',
+    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
+  },
+  // Tiny Star Village S1/A4-S — the chapter's Personal Ship (scene-specs A4-S).
+  // Three things are the CHILD's: where the delivery stop sits (1–3 spaces right
+  // of the cart), which parcel it carries, and the movement number. The bespoke
+  // branch below validates that the number matches the chosen distance, so there
+  // is no single correct answer; `target` records one legal example for tooling.
+  'tsv-s1-a4-s': {
+    pageId: 'tsv-a4-s-page',
+    background: 'meadow',
+    characterId: 'breakfast-cart',
+    scriptId: 'breakfast-cart-ship',
+    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    start: { gx: TINY_STAR_DELIVERY_START_GX, gy: 10, size: 1, rot: 0 },
+    target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
+    sceneTarget: {
+      id: TINY_STAR_DELIVERY_STOP_ID,
+      name: 'Star Breakfast',
+      gx: 7,
+      gy: 10,
+      size: TINY_STAR_DELIVERY_STOP_SIZE,
+    },
+  },
+  // Tiny Star Village S1/A5-H — chapter five's Story Hook (scene-specs A5-H).
+  // The page carries TWO scripted voices, so the generic single-character match
+  // is not enough: the bespoke branch below checks both chains. `characterId` /
+  // `scriptId` / `target` name Lumilo's half for the shared tooling (script
+  // lookup, coach cues) and are not the whole contract.
+  'tsv-s1-a5-h': {
+    pageId: 'tsv-a5-h-page',
+    background: 'candy',
+    characterId: LUMILO_CHARACTER,
+    scriptId: TINY_STAR_GREETING_VOICES[0].scriptId,
+    asset: LUMILO_ASSET,
+    start: { gx: TINY_STAR_GREETING_VOICES[0].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'say', text: TINY_STAR_GREETING_VOICES[0].text },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-B — chapter five's Logic Build (scene-specs A5-B).
+  // The stage is A5-H's, but Tuan Tuan's chain is the one under construction:
+  // the child adds the Wait and decides where it goes. Only a Wait BEFORE the
+  // Say delays the second greeting, so `target` is exact; the bespoke branch
+  // below additionally keeps Lumilo's chain out of bounds.
+  'tsv-s1-a5-b': {
+    pageId: 'tsv-a5-b-page',
+    background: 'candy',
+    characterId: TINY_STAR_GREETING_VOICES[1].characterId,
+    scriptId: TINY_STAR_GREETING_VOICES[1].scriptId,
+    asset: TINY_STAR_GREETING_VOICES[1].asset,
+    start: { gx: TINY_STAR_GREETING_VOICES[1].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'say', text: TINY_STAR_GREETING_VOICES[1].text },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-D — chapter five's Twist & Debug (scene-specs A5-D).
+  // The greeting stage keeps its friends and its `candy` background, but the
+  // morning hello is now a BOUNCE relay: the runtime cannot make two Says stop
+  // overlapping (see TINY_STAR_BOUNCE_MS), and a bounce is short enough that
+  // "waited too long" becomes a real, watchable pause. The starter ships
+  // Tuan Tuan on `wait 9` and the child may only retune that number, so several
+  // values are correct — the bespoke branch below validates the band and
+  // `target` records one legal example for tooling.
+  'tsv-s1-a5-d': {
+    pageId: 'tsv-a5-d-page',
+    background: 'candy',
+    characterId: TINY_STAR_BOUNCE_ACTORS[1].characterId,
+    scriptId: TINY_STAR_BOUNCE_ACTORS[1].scriptId,
+    asset: TINY_STAR_BOUNCE_ACTORS[1].asset,
+    start: { gx: TINY_STAR_BOUNCE_ACTORS[1].gx, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'hop', n: 1 },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A5-S — chapter five's Personal Ship (scene-specs A5-S).
+  // NOTHING here is a fixed answer: the child casts two of the three friends,
+  // decides which of them greets first, picks each friend's greeting and chooses
+  // how long the second one waits. The bespoke branch below hands the whole page
+  // to `tinyStarDuetDesign`; the fields here name the waiting half for shared
+  // tooling (script lookup, the Say preset picker) and `target` records one legal
+  // example. `asset` is the starter's — which casts ONE friend into BOTH slots,
+  // so the starter is not a legal duet and cannot complete itself.
+  'tsv-s1-a5-s': {
+    pageId: 'tsv-a5-s-page',
+    background: 'candy',
+    characterId: TINY_STAR_DUET_SECOND_ID,
+    scriptId: TINY_STAR_DUET_SECOND_SCRIPT,
+    asset: LUMILO_ASSET,
+    start: { gx: TINY_STAR_DUET_SECOND_GX, gy: TINY_STAR_GREETING_GY, size: 1, rot: 0 },
+    allowedSayText: TINY_STAR_DUET_GREETINGS,
+    target: [
+      { op: 'when_flag' },
+      { op: 'wait', n: TINY_STAR_TURN_WAIT_N },
+      { op: 'hop', n: TINY_STAR_DUET_HOP_N },
+      { op: 'end' },
+    ],
+  },
+  // Tiny Star Village S1/A6 — chapter six's three scenes all stand on the same
+  // `sunset` Bell Tower stage (`TINY_STAR_BELL_STAGE_CONTRACT`: the ringer, its
+  // one script, its square, and the script-less `⭐` tower on its own square).
+  // Only the page and the route differ, and each scene's bespoke branch below
+  // hands the whole page to the chapter module rather than to the generic match.
+  //
+  // A6-H (Story Hook): the shipped route walks to the tower and rings the bell
+  // with no hop in between, so the program IS the question. Nothing may be built
+  // or repaired here.
+  'tsv-s1-a6-h': {
+    ...TINY_STAR_BELL_STAGE_CONTRACT,
+    pageId: TINY_STAR_BELL_HOOK_PAGE_ID,
+    target: [...TINY_STAR_BELL_HOOK_ROUTE],
+  },
+  // A6-B (Logic Build): the same route on a page of its own, and the child puts
+  // the missing middle card back — a `hop 1` BETWEEN the walk and the bell. Only
+  // that one position tells the story (the bell must ring because someone
+  // reached it), so `target` is exact.
+  'tsv-s1-a6-b': {
+    ...TINY_STAR_BELL_STAGE_CONTRACT,
+    pageId: TINY_STAR_BELL_BUILD_PAGE_ID,
+    target: [...TINY_STAR_BELL_BUILD_ROUTE],
+  },
+  // A6-D (Twist & Debug): all three cards are on the page at last, but the bell
+  // has slipped to the front of the chain and rings before anybody has walked or
+  // jumped. Nothing is added or removed — the child MOVES the Pop behind the Hop
+  // — so the repaired route is A6-B's, and `target` stays exact.
+  'tsv-s1-a6-d': {
+    ...TINY_STAR_BELL_STAGE_CONTRACT,
+    pageId: TINY_STAR_BELL_FIX_PAGE_ID,
+    target: [...TINY_STAR_BELL_BUILD_ROUTE],
+  },
+  // A6-S (Personal Ship, and the season's last scene): the three-step core is
+  // settled so it ships built — with NOBODY cast as the ringer and no ending.
+  // The bespoke branch below hands the whole page to `tinyStarFinaleDesign`;
+  // `asset` is the starter's (an uncast slot has none) and `target` records one
+  // legal finale for tooling.
+  'tsv-s1-a6-s': {
+    ...TINY_STAR_BELL_STAGE_CONTRACT,
+    pageId: TINY_STAR_BELL_FINALE_PAGE_ID,
+    characterId: TINY_STAR_FINALE_RINGER_ID,
+    scriptId: TINY_STAR_FINALE_RINGER_SCRIPT_ID,
+    asset: '',
+    allowedSayText: TINY_STAR_FINALE_LINES,
+    target: [...TINY_STAR_BELL_FINALE_TARGET],
+  },
+  // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
+  // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
+  // palette (grow/turn are live distractors the exact-target match rejects) and
+  // orders them between the reserved when_flag+hide and end.
+  'jtw-s1-c1-p4': {
+    pageId: 'jtw-c1-p4-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-arrival-build',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'end' },
+    ],
+  },
+  // Journey to the West S1/C1-P5 — Build 2, the greeting-order choice
+  // (scene-specs JTW-S1-C1-P5). TWO orders are valid (Hop→Say or Say→Hop);
+  // the bespoke matcher below enforces the verified prefix, forbids removing
+  // Show, and accepts only the preset greetings. `target` records order A for
+  // tooling; matching is handled by the bespoke branch.
+  'jtw-s1-c1-p5': {
+    pageId: 'jtw-c1-p5-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-first-greeting',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    allowedSayText: JTW_GREETING_CHOICES,
+    target: [
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: '你好，我也是刚刚认识这个世界。' },
+      { op: 'end' },
+    ],
+  },
+  // Journey to the West S1/C1-P7 — the Personal Ship (scene-specs
+  // JTW-S1-C1-P7). The frame is fixed (Start·hide·sound·Show … Say(preset)·End)
+  // but the CHILD owns the sound, the two visible actions (order + optional
+  // wait between them) and the preset greeting — the bespoke branch below
+  // validates the structure instead of an exact target. `target` records one
+  // canonical example for tooling.
+  'jtw-s1-c1-p7': {
+    pageId: 'jtw-c1-p7-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-personal-arrival',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    allowedSayText: JTW_GREETING_CHOICES,
+    target: [
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'grow', n: 2 },
+      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'end' },
+    ],
+  },
+  // Journey to the West S1/C2-P4 — chapter two's main Build (scene-specs
+  // JTW-S1-C2-P4). The starter ships ONLY Start/End; the child selects and
+  // orders the five one-step route blocks Right 1 · Right 1 · Up 1 · Right 1 ·
+  // Right 1 from a palette that also offers Left/Down/Wait as live
+  // distractors. The exact-target match rejects the parameter-merged
+  // Right 2/Up 1/Right 2 shortcut, any wrong order, a missing or extra step
+  // (no overshoot tolerance) and a moved start — the child owns all five
+  // blocks, never "just a number edit".
+  'jtw-s1-c2-p4': {
+    pageId: 'jtw-c2-p4-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-route-to-curtain',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 2, gy: 8, size: 3, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 1 },
+      { op: 'move_right', n: 1 },
+      { op: 'move_up', n: 1 },
+      { op: 'move_right', n: 1 },
+      { op: 'move_right', n: 1 },
+      { op: 'end' },
+    ],
+  },
+  // Journey to the West S1/C1-P6 — Twist & Debug, the stable order bug
+  // (scene-specs JTW-S1-C1-P6). The starter ships Say → Hop → Show; ONLY the
+  // exact repaired order passes. The exact-target match rejects the shipped
+  // bug order, any delete-and-rebuild shortcut, a changed sound and free-typed
+  // dialogue — the child may only move the Show/Hop/Say target blocks.
+  'jtw-s1-c1-p6': {
+    pageId: 'jtw-c1-p6-page',
+    background: 'jtw-s1-c1-flower-fruit-stone',
+    characterId: 'stone-monkey',
+    scriptId: 'stone-monkey-arrival-debug',
+    asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    target: [
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'end' },
+    ],
+  },
 };
+
+/**
+ * Parse the child's A4-S delivery design from the saved scene target. Returns
+ * null while nothing has been decided (the starter puts the stop ON the cart at
+ * gx=4, which is not a legal endpoint), and for any stop that was dragged off
+ * the 1–3 space band or off the cart's row, given a parcel outside the three
+ * presets, resized, or turned into a scripted actor.
+ */
+export function tinyStarDeliveryDesign(stop: Character | undefined): TinyStarDeliveryDesign | null {
+  if (!stop || stop.scripts.length > 0) return null;
+  if (stop.start.gy !== TINY_STAR_DELIVERY_STOP_GY) return null;
+  if (stop.start.size !== TINY_STAR_DELIVERY_STOP_SIZE) return null;
+  const parcel = TINY_STAR_DELIVERY_PARCELS.find((candidate) => candidate.name === stop.name);
+  if (!parcel || stop.emoji !== parcel.emoji) return null;
+  const distance = stop.start.gx - TINY_STAR_DELIVERY_START_GX;
+  if (!(TINY_STAR_DELIVERY_DISTANCES as readonly number[]).includes(distance)) return null;
+  return { distance, parcel };
+}
+
+/**
+ * A5-H: is one of the two greeting voices still exactly what the starter
+ * shipped? The overlap the child observes only means "nobody waits" while both
+ * chains are untouched — an edited chain (a Wait, a swapped block, a retyped
+ * greeting, a moved friend) makes the observation unprovable, so the Hook does
+ * not complete.
+ */
+function tinyStarGreetingVoiceUnchanged(
+  voice: (typeof TINY_STAR_GREETING_VOICES)[number],
+  characters: readonly Character[] | undefined,
+): boolean {
+  const actor = characters?.find((candidate) => candidate.id === voice.characterId);
+  if (!actor || actor.asset !== voice.asset || actor.scripts.length !== 1) return false;
+  if (actor.start.gx !== voice.gx || actor.start.gy !== TINY_STAR_GREETING_GY) return false;
+  if (actor.start.size !== 1 || actor.start.rot !== 0) return false;
+  const blocks = actor.scripts.find((script) => script.id === voice.scriptId)?.blocks ?? [];
+  return (
+    blocks.length === 3 &&
+    blocks[0]?.op === 'when_flag' &&
+    blocks[1]?.op === 'say' &&
+    blocks[1].text === voice.text &&
+    blocks[2]?.op === 'end'
+  );
+}
+
+/**
+ * A5-B: did the two greetings really take turns in THIS run? `openedAt` holds
+ * the moment each friend FIRST opened a speech bubble, recorded by the studio
+ * from the interpreter's own `onSay` host callback — so this is a measurement of
+ * the runtime, never a page flag. The turn counts only when Lumilo opened first
+ * and Tuan Tuan's greeting followed at least a real `TINY_STAR_TURN_MIN_GAP_MS`
+ * later; the A5-H collision opens both inside one tick and fails here.
+ */
+export function tinyStarGreetingTookTurns(openedAt: ReadonlyMap<string, number>): boolean {
+  const first = openedAt.get(TINY_STAR_GREETING_VOICES[0].characterId);
+  const second = openedAt.get(TINY_STAR_GREETING_VOICES[1].characterId);
+  if (first === undefined || second === undefined) return false;
+  return second - first >= TINY_STAR_TURN_MIN_GAP_MS;
+}
+
+/**
+ * A5-D: is Lumilo still the untouched first bouncer? The relay only means
+ * anything while the leader is exactly `Start → Hop 1 → End` on its shipped
+ * square — a second bounce, a Wait of its own or a moved friend would change the
+ * beat the child is timing against.
+ */
+function tinyStarBounceLeaderUnchanged(characters: readonly Character[] | undefined): boolean {
+  const leader = TINY_STAR_BOUNCE_ACTORS[0];
+  const actor = characters?.find((candidate) => candidate.id === leader.characterId);
+  if (!actor || actor.asset !== leader.asset || actor.scripts.length !== 1) return false;
+  if (actor.start.gx !== leader.gx || actor.start.gy !== TINY_STAR_GREETING_GY) return false;
+  if (actor.start.size !== 1 || actor.start.rot !== 0) return false;
+  const blocks = actor.scripts.find((script) => script.id === leader.scriptId)?.blocks ?? [];
+  return (
+    blocks.length === 3 &&
+    blocks[0]?.op === 'when_flag' &&
+    blocks[1]?.op === 'hop' &&
+    blocks[1].n === 1 &&
+    blocks[2]?.op === 'end'
+  );
+}
+
+/**
+ * A5-D: how long after Lumilo's bounce Tuan Tuan's bounce started in THIS run.
+ * `hoppedAt` holds the moment each friend FIRST reached its Hop block, recorded
+ * by the studio from the interpreter's own `onStep` host callback — a
+ * measurement of the runtime, never a page flag. `null` means the run did not
+ * produce two bounces in the relay order at all.
+ */
+export function tinyStarBounceGapMs(hoppedAt: ReadonlyMap<string, number>): number | null {
+  const first = hoppedAt.get(TINY_STAR_BOUNCE_ACTORS[0].characterId);
+  const second = hoppedAt.get(TINY_STAR_BOUNCE_ACTORS[1].characterId);
+  if (first === undefined || second === undefined) return null;
+  const gap = second - first;
+  return gap >= 0 ? gap : null;
+}
+
+/** A5-D: the repaired rhythm — Tuan Tuan bounces after Lumi lands, but in time. */
+export function tinyStarBounceRelayInTime(hoppedAt: ReadonlyMap<string, number>): boolean {
+  const gap = tinyStarBounceGapMs(hoppedAt);
+  return gap !== null && gap >= TINY_STAR_RELAY_MIN_GAP_MS && gap <= TINY_STAR_RELAY_MAX_GAP_MS;
+}
+
+/** A5-D: the shipped bug — the stage stood empty for longer than a whole bounce. */
+export function tinyStarBounceRelayTooLate(hoppedAt: ReadonlyMap<string, number>): boolean {
+  const gap = tinyStarBounceGapMs(hoppedAt);
+  return gap !== null && gap > TINY_STAR_RELAY_MAX_GAP_MS;
+}
 
 function blockMatches(actual: Block | undefined, target: Block): boolean {
   return actual?.op === target.op && actual.n === target.n && actual.text === target.text;
@@ -261,6 +813,170 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       blocks[2]?.op === direction && blocks[2]?.n === 1
     );
   }
+  if (lessonId === 'tsv-s1-a4-s') {
+    // Personal Ship: the endpoint, the parcel and the number are all the
+    // child's, so there is no exact target — the saved movement number must
+    // simply equal the distance the child put between the cart and the stop.
+    const design = tinyStarDeliveryDesign(sceneTarget);
+    const move = blocks[1];
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === 2 &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      design !== null &&
+      blocks.length === 3 &&
+      blocks[0]?.op === 'when_flag' &&
+      move?.op === 'move_right' &&
+      move.n === design.distance &&
+      blocks[2]?.op === 'end'
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-h') {
+    // Explore: nothing may be built or repaired here, so the contract is "both
+    // greeting chains are still the ones the starter shipped, on the shipped
+    // two-friend stage". The child's evidence is the RUN (two bubbles open at
+    // once), which BlocksStudioPage reads from the real interpreter.
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_GREETING_VOICES.length &&
+      TINY_STAR_GREETING_VOICES.every((voice) =>
+        tinyStarGreetingVoiceUnchanged(voice, page.characters),
+      )
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-b') {
+    // Logic Build: the child owns Tuan Tuan's chain — and only a Wait placed
+    // BEFORE the Say delays the second greeting, so the target is exact. Lumilo
+    // is the fixed half of the duet: the head start is only meaningful while the
+    // first voice is still the untouched `Start → Say "Morning!" → End`.
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_GREETING_VOICES.length &&
+      tinyStarGreetingVoiceUnchanged(TINY_STAR_GREETING_VOICES[0], page.characters) &&
+      character?.asset === mission.asset &&
+      character.scripts.length === 1 &&
+      startMatches &&
+      blocks.length === mission.target.length &&
+      mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-d') {
+    // Twist & Debug: every block is already there and in the right order — only
+    // Tuan Tuan's Wait number is wrong. Several numbers repair the rhythm, so
+    // the contract is the band, not one answer; the run still has to prove the
+    // relay really happened (BlocksStudioPage measures it).
+    const wait = blocks[1];
+    const hop = blocks[2];
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === TINY_STAR_BOUNCE_ACTORS.length &&
+      tinyStarBounceLeaderUnchanged(page.characters) &&
+      character?.asset === mission.asset &&
+      character.scripts.length === 1 &&
+      startMatches &&
+      blocks.length === 4 &&
+      blocks[0]?.op === 'when_flag' &&
+      wait?.op === 'wait' &&
+      (TINY_STAR_RELAY_WAITS as readonly number[]).includes(wait.n ?? 0) &&
+      hop?.op === 'hop' &&
+      hop.n === 1 &&
+      blocks[3]?.op === 'end'
+    );
+  }
+
+  if (lessonId === 'tsv-s1-a5-s') {
+    // Personal Ship: the cast, the running order, both greetings and the length
+    // of the pause are all the child's, so there is no exact target — the whole
+    // page is handed to the duet parser, which rejects a one-friend duet, an
+    // unbuilt or over-built chain, a Wait outside the band the first friend's
+    // action allows, a moved friend and any greeting that is not a preset.
+    return project.lessonId === lessonId && tinyStarDuetDesign(page) !== null;
+  }
+
+  if (lessonId === 'tsv-s1-a6-h') {
+    // Explore: chapter six opens with a route that already runs, so there is
+    // nothing to build and nothing to repair — the contract is "the shipped
+    // Bell Tower route is still untouched". The child's evidence is the RUN
+    // (the bell rings and nobody hops), which BlocksStudioPage measures from
+    // the real interpreter.
+    return project.lessonId === lessonId && tinyStarBellRouteUnchanged(page);
+  }
+
+  if (lessonId === 'tsv-s1-a6-b') {
+    // Logic Build: the child owns exactly one block — the Hop that belongs
+    // between the walk and the bell. Everything else about chapter six's stage
+    // is still held still, so a Hop appended after the Pop (where a palette tap
+    // lands it), a `hop 2` left on the block's default, a retuned walk, a
+    // deleted Pop or a moved tower all keep the mission open.
+    return project.lessonId === lessonId && tinyStarBellStepAdded(page);
+  }
+
+  if (lessonId === 'tsv-s1-a6-d') {
+    // Twist & Debug: every block the story needs is already on the page — only
+    // the bell is in the wrong place. The child MOVES the Pop behind the Hop and
+    // may change nothing else, so the same exact-shape contract applies: the
+    // shipped `Start → Pop → Right 3 → Hop 1 → End`, a bell left anywhere before
+    // the walk or the jump, a deleted or duplicated block, a retuned walk or hop
+    // and any stage edit all keep the mission open. The run must additionally
+    // have played the hop BEFORE the bell (BlocksStudioPage measures it).
+    return project.lessonId === lessonId && tinyStarBellOrderRepaired(page);
+  }
+
+  if (lessonId === 'tsv-s1-a6-s') {
+    // Personal Ship: the ringer and the ending are the child's, so the whole
+    // page goes to the finale parser — which rejects an uncast ringer, a missing
+    // or duplicated ending, an ending before the bell, a free-typed line, a
+    // retuned core and any stage edit.
+    return project.lessonId === lessonId && tinyStarFinaleDesign(page) !== null;
+  }
+
+  if (lessonId === 'jtw-s1-c1-p5') {
+    // Both greeting orders are valid; the verified prefix (incl. Show) and the
+    // End are mandatory, and the Say must be one of the preset greetings.
+    const prefixOk =
+      blocks.length === 7 &&
+      blocks[0]?.op === 'when_flag' &&
+      blocks[1]?.op === 'hide' &&
+      blocks[2]?.op === 'play_sound' &&
+      blocks[2]?.n === 2 &&
+      blocks[3]?.op === 'show' &&
+      blocks[6]?.op === 'end';
+    const sayOk = (block: Block | undefined) =>
+      block?.op === 'say' && (JTW_GREETING_CHOICES as readonly string[]).includes(block.text ?? '');
+    const hopOk = (block: Block | undefined) => block?.op === 'hop' && block.n === 1;
+    const greetingOk =
+      (hopOk(blocks[4]) && sayOk(blocks[5])) || (sayOk(blocks[4]) && hopOk(blocks[5]));
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      prefixOk &&
+      greetingOk
+    );
+  }
+
+  if (lessonId === 'jtw-s1-c1-p7') {
+    // Personal Ship: the child's own two actions vary, so there is no exact
+    // target — the fixed frame, the visible-action rules, the optional wait
+    // and the preset greeting are enforced structurally.
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      jtwPersonalArrivalDesign(blocks) !== null
+    );
+  }
+
   return (
     project.lessonId === lessonId &&
     page?.background === mission.background &&
@@ -270,6 +986,12 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     blocks.length === mission.target.length &&
     mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))
   );
+}
+
+/** Preset dialogue choices the Say editor offers for a mission, if any. */
+export function storyMissionSayChoices(lessonId: string | undefined): readonly string[] | null {
+  if (!lessonId) return null;
+  return TINY_STAR_MISSION_CONTRACTS[lessonId]?.allowedSayText ?? null;
 }
 
 export function storyMissionScriptId(lessonId: string): string | undefined {

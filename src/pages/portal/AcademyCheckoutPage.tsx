@@ -10,6 +10,7 @@ import {
   listFamilyAcademyEntitlements,
   startAcademyCheckout,
 } from '@/pages/learn/academy/academyApi';
+import { startHostedCheckout } from './airwallex';
 
 interface Kid {
   id: string;
@@ -97,7 +98,7 @@ export function AcademyCheckoutPage() {
     try {
       const order = await startAcademyCheckout(p.id, kidId);
       sessionStorage.setItem(`academy-intent:${p.slug}`, order.payment_intent_id);
-      window.location.href = order.checkout_url;
+      await startHostedCheckout(order);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
       setSubmitting(false);

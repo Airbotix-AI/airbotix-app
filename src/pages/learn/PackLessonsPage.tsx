@@ -141,9 +141,13 @@ export function PackLessonsPage() {
                           <button
                             onClick={() =>
                               m.steps_json?.art
-                                ? nav('/learn/create/image', {
-                                    // Art missions open the Art Studio in Mission
-                                    // Mode (image-studio-prd D-IS-20/22).
+                                ? nav('/learn/create/image/canvas', {
+                                    // Art missions open the Art Studio CANVAS in
+                                    // Mission Mode (image-studio-prd D-IS-20/22).
+                                    // The task is already chosen, so this skips the
+                                    // hub at `/learn/create/image` — which does not
+                                    // read this state, so routing there silently
+                                    // dropped Mission Mode entirely (D-IS-28).
                                     state: {
                                       mission: {
                                         id: m.id,

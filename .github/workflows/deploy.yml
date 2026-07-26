@@ -41,6 +41,15 @@ jobs:
           VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}
           VITE_WS_URL: ${{ env.VITE_WS_URL }}
           VITE_SOUNDFONT_BASE_URL: ${{ env.VITE_SOUNDFONT_BASE_URL }}
+          # GA4 data stream for the PARENT PORTAL. Empty until the repo secret
+          # exists → analytics completely inert (no fallback measurement id).
+          #
+          # ⚠️ DO NOT create this secret yet. Measuring the parent dashboard is a
+          # material privacy-policy change (privacy-policy.md v0.3, §11) and
+          # requires emailing all active family accounts at least 30 days before
+          # it takes effect. See product-analytics-instrumentation-prd.md §6.
+          # Kid surfaces (/learn, /try, /play) are never measured regardless.
+          VITE_GA4_MEASUREMENT_ID: ${{ secrets.GA4_MEASUREMENT_ID }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4

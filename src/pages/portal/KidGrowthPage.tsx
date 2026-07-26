@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
-import { useMe } from '@/auth/useAuth';
+import { useMe, useParentKidLogin } from '@/auth/useAuth';
+import { openKidPageInNewTab } from '@/auth/openKidPage';
 import { api } from '@/lib/api';
 import { TrendBars } from '@/components/TrendBars';
 import { GROWTH_WINDOW_DAYS, summarize, growthHeadline, studioMeta } from './kidGrowth';
@@ -36,9 +37,13 @@ function growthBounds(): { from: string; to: string } {
  */
 export function KidGrowthPage() {
   const { kidId } = useParams<{ kidId: string }>();
+  const navigate = useNavigate();
   const me = useMe();
+  const parentKidLogin = useParentKidLogin();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
   const [copied, setCopied] = useState(false);
+  const [openingKidPage, setOpeningKidPage] = useState(false);
+  const [kidLoginError, setKidLoginError] = useState('');
   const { from, to } = growthBounds();
 
   const kid = useQuery<Kid>({
@@ -97,17 +102,56 @@ export function KidGrowthPage() {
     window.setTimeout(() => setCopied(false), 2000);
   };
 
+  const openKidPage = async () => {
+    if (!kidId || openingKidPage) return;
+    setOpeningKidPage(true);
+    setKidLoginError('');
+    try {
+      // Opens the kid's Learn surface in a NEW tab so this parent tab stays on
+      // the growth report (dual session — see openKidPageInNewTab).
+      await openKidPageInNewTab(parentKidLogin, kidId, navigate);
+      setOpeningKidPage(false);
+    } catch {
+      setKidLoginError(`Could not open ${name}'s page. Please try again.`);
+      setOpeningKidPage(false);
+    }
+  };
+
   return (
     <div>
       <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">← Family</Link>
 
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-bubblegum">Growth</div>
           <h1 className="section-heading">{name}&apos;s growth</h1>
         </div>
-        <span className={`sticker-${isActive ? 'mint' : 'sunshine'}`}>{isActive ? 'Active' : 'Paused'}</span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link
+            to={`/portal/family/${kidId}/settings`}
+            aria-label={`Edit ${name}'s profile`}
+            className="btn-pill-primary"
+          >
+            Edit profile
+          </Link>
+          <button
+            type="button"
+            className="btn-pill-secondary"
+            onClick={openKidPage}
+            disabled={openingKidPage || !isActive}
+          >
+            {openingKidPage ? 'Opening…' : `Open ${name}'s kids page`}
+          </button>
+          <span className={`sticker-${isActive ? 'mint' : 'sunshine'}`}>
+            {isActive ? 'Active' : 'Paused'}
+          </span>
+        </div>
       </div>
+      {kidLoginError && (
+        <p role="alert" className="mb-4 text-[13px] font-semibold text-danger-600">
+          {kidLoginError}
+        </p>
+      )}
 
       {detail.isLoading ? (
         <p className="lead-text">Loading {name}&apos;s growth…</p>
@@ -215,6 +259,12 @@ export function KidGrowthPage() {
       )}
 
       <div className="card-base flex flex-col gap-3" style={{ maxWidth: '520px' }}>
+        <Link
+          to={`/portal/family/${kidId}/images`}
+          className="text-[14px] font-semibold text-brand-bubblegum"
+        >
+          <span aria-hidden="true">🎨 </span>Art Studio pictures — see what {name} made →
+        </Link>
         <Link to={`/portal/usage/${kidId}`} className="text-[14px] font-semibold text-brand-coral">
           <span aria-hidden="true">⭐ </span>Want the detailed usage &amp; spend? View AI usage →
         </Link>

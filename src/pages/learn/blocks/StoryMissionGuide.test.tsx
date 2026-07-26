@@ -14,6 +14,11 @@ const directionHookMission = storyMissionFor('tsv-s1-a2-h')!;
 const directionBuildMission = storyMissionFor('tsv-s1-a2-b')!;
 const breakfastHookMission = storyMissionFor('tsv-s1-a4-h')!;
 const breakfastBuildMission = storyMissionFor('tsv-s1-a4-b')!;
+const greetingHookMission = storyMissionFor('tsv-s1-a5-h')!;
+const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
+const bellBuildMission = storyMissionFor('tsv-s1-a6-b')!;
+const bellFixMission = storyMissionFor('tsv-s1-a6-d')!;
+const bellFinaleMission = storyMissionFor('tsv-s1-a6-s')!;
 
 afterEach(cleanup);
 
@@ -45,6 +50,205 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByRole('button', { name: 'Start the mission ▶' })).toBeInTheDocument();
   });
 
+  it('keeps the A5-H "who spoke first" question behind the run', () => {
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={greetingHookMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
+    // Unlike A4-H there is no pre-run prediction: the two chains look identical,
+    // so the child can only answer after watching them collide.
+    expect(screen.queryByTestId('story-prerun-prediction')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('story-choice-together')).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={greetingHookMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent('Who spoke first?');
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(onAnswer).toHaveBeenCalledWith('together');
+  });
+
+  it('keeps the A6-H "missing card" question behind the run and offers all three cards', () => {
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellHookMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    // Like A5-H and unlike A4-H there is no pre-run prediction: the child has to
+    // watch the bell ring with nobody hopping before the cards mean anything.
+    expect(screen.queryByTestId('story-prerun-prediction')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('story-choice-hop')).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellHookMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    // All three physical Bell Tower cards are on offer, not just the answer.
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent(
+      'Which Bell Tower card is missing?',
+    );
+    expect(screen.getByTestId('story-choice-walk')).toBeInTheDocument();
+    expect(screen.getByTestId('story-choice-ring')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(onAnswer).toHaveBeenCalledWith('hop');
+  });
+
+  it('makes A6-B a real build task with no answer button that inserts the Hop', () => {
+    const onApplyFix = vi.fn();
+    const onClose = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellBuildMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={onClose}
+      />,
+    );
+    expect(screen.getByText('The middle card is in your hand')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    // The card names where a palette tap really lands the block, so the child is
+    // told the truth about the editor rather than a tidier story.
+    expect(screen.getByText(/joins the end of the chain, after the bell/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Walk, hop, ring')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellBuildMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={onClose}
+      />,
+    );
+    expect(screen.getByTestId('story-build-task')).toHaveTextContent('drag it in front of Pop');
+    // Nothing in the card edits the program on the child's behalf.
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(/story-choice-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
+  it('makes A6-D ask which card comes last and never edits the chain for the child', () => {
+    const onApplyFix = vi.fn();
+    const onAnswer = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellFixMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('All three cards are here')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText(/rings while Lumi is still three spaces away/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Move one card only')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellFixMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={onAnswer}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    // The three floor cards are the answer set, and only the bell belongs last.
+    expect(screen.getByTestId('story-mission-question')).toHaveTextContent('must come LAST');
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(onAnswer).toHaveBeenCalledWith('walk');
+    // Naming the card is all the card does — it never moves a block.
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
+  it('leaves A6-S’s two decisions to the child and never edits the finale', () => {
+    const onApplyFix = vi.fn();
+    const { unmount } = render(
+      <StoryMissionGuide
+        mission={bellFinaleMission}
+        hasRun={false}
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('The route is ready. Nobody is standing there.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Choose your ringer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next page \u2192' }));
+    expect(screen.getByText('Then choose how the morning ends')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StoryMissionGuide
+        mission={bellFinaleMission}
+        hasRun
+        completed={false}
+        answerId={null}
+        onAnswer={vi.fn()}
+        onApplyFix={onApplyFix}
+        onClose={vi.fn()}
+      />,
+    );
+    // A Personal Ship has no right answer to pick and no block to be given.
+    expect(screen.getByTestId('story-build-task')).toHaveTextContent('one ending block after the');
+    expect(screen.queryByTestId(/story-choice-/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(/story-fix-/)).not.toBeInTheDocument();
+    expect(onApplyFix).not.toHaveBeenCalled();
+  });
+
   it('turns a completed mission into a clear saved proof and next-scene action', () => {
     const onNext = vi.fn();
     render(
@@ -65,6 +269,10 @@ describe('StoryMissionGuide', () => {
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Blocks ready');
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Story played');
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
+    expect(screen.getByTestId('story-mission')).toHaveClass('bsx-mission-complete');
+    expect(
+      screen.getByTestId('story-logic-proof').querySelectorAll('.bsx-logic-proof-connector'),
+    ).toHaveLength(manualFixMission.completionSteps.length - 1);
     expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('story-next-mission'));
     expect(onNext).toHaveBeenCalledOnce();

@@ -24,8 +24,11 @@ import {
 // stroke grows — plain, predictable, fast enough at 1024².
 
 export interface ArtCanvasHandle {
-  /** Export what the kid made (white ground + base + ops; NO ghost). */
-  exportPng(scale?: number): string;
+  /**
+   * Export what the kid made (base + ops on a TRANSPARENT ground; NO ghost —
+   * D-ISF-7). `ground: 'white'` is for model-bound snapshots only.
+   */
+  exportPng(scale?: number, ground?: 'transparent' | 'white'): string;
 }
 
 interface ArtCanvasProps {
@@ -107,8 +110,10 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
       canvas.height = CANVAS_SIZE * dpr;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    // TRANSPARENT ground (D-ISF-7): the bitmap holds only what the kid made —
+    // the Photoshop-style checkerboard behind it is CSS on the element, so the
+    // eraser reveals transparency and every export keeps its alpha.
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     if (compareImage) {
       // Hold-to-compare (D-IS-19): show the kid's original sketch take.
@@ -150,9 +155,22 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     }
   }, [ops, maskOps, maskMode, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
 
+  // rAF repaints ALWAYS run the latest draw (D-ISF-1). A frame scheduled by the
+  // last pointermove used to capture that render's `draw` closure; firing after
+  // endStroke committed the ops it repainted the OLD (often empty) list — the
+  // just-finished stroke visually vanished. The ref makes a pending frame
+  // harmless: it repaints identical, current state.
+  const drawRef = useRef(draw);
   useEffect(() => {
+    drawRef.current = draw;
     draw();
   }, [draw]);
+  useEffect(
+    () => () => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+    },
+    [],
+  );
 
   const toLogical = (e: React.PointerEvent): [number, number] => {
     const rect = (canvasRef.current as HTMLCanvasElement).getBoundingClientRect();
@@ -166,7 +184,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     if (frame.current !== null) return;
     frame.current = requestAnimationFrame(() => {
       frame.current = null;
-      draw();
+      drawRef.current();
     });
   };
 
@@ -207,7 +225,9 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
   const endStroke = () => {
     const live = liveStroke.current;
     liveStroke.current = null;
-    if (live && live.length > 1) {
+    // A tap is a dot (D-ISF-2): a single-point stroke commits too —
+    // perfect-freehand renders the one-point outline as a dab.
+    if (live && live.length > 0) {
       const op: CanvasOp = {
         kind: 'stroke',
         tool: maskMode ? 'marker' : (tool as BrushTool),
@@ -223,14 +243,17 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
   };
 
   useImperativeHandle(ref, () => ({
-    exportPng: (scale = 1) => exportPng(ops, baseImage, scale, exportIncludesBase),
+    exportPng: (scale = 1, ground = 'transparent') =>
+      exportPng(ops, baseImage, scale, exportIncludesBase, ground),
   }));
 
   return (
     <canvas
       ref={canvasRef}
       data-testid="art-canvas"
-      className="w-full h-full max-h-full max-w-full rounded-2xl bg-white touch-none select-none shadow-inner"
+      // Photoshop-style transparency checkerboard (D-ISF-7) — design-token
+      // greys via theme(), rendered by CSS UNDER the transparent bitmap.
+      className="w-full h-full max-h-full max-w-full rounded-2xl touch-none select-none shadow-inner bg-[length:16px_16px] bg-[repeating-conic-gradient(theme(colors.hairline.DEFAULT)_0%_25%,theme(colors.canvas.pure)_0%_50%)]"
       style={{ aspectRatio: '1 / 1', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

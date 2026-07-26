@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { Fragment, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { StoryMission } from './curriculumGuides';
@@ -90,7 +90,7 @@ export function StoryMissionGuide({
         )}
       <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
         <section
-          className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}`}
+          className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}${completed ? ' bsx-mission-complete' : ''}`}
           role="dialog"
           aria-modal="true"
           aria-labelledby="story-mission-title"
@@ -332,13 +332,19 @@ export function StoryMissionGuide({
               >
                 <div className="bsx-logic-proof-steps">
                   {mission.completionSteps.map((step, index) => (
-                    <div key={step.label} className="bsx-logic-proof-step">
-                      <small>{step.order}</small>
-                      <strong>
-                        {step.icon} {step.label}
-                      </strong>
-                      {index < mission.completionSteps.length - 1 && <span aria-hidden>→</span>}
-                    </div>
+                    <Fragment key={step.label}>
+                      <div className="bsx-logic-proof-step">
+                        <small>{step.order}</small>
+                        <strong>
+                          {step.icon} {step.label}
+                        </strong>
+                      </div>
+                      {index < mission.completionSteps.length - 1 && (
+                        <span className="bsx-logic-proof-connector" aria-hidden>
+                          →
+                        </span>
+                      )}
+                    </Fragment>
                   ))}
                 </div>
                 <p>{mission.completionWhy}</p>

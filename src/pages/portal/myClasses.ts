@@ -16,6 +16,7 @@ export interface PortalClassSummary {
   delivery_mode: string;
   venue: PortalVenue | null;
   course_pack: { id: string; slug: string; title: string } | null;
+  teaching_team?: import('./teachers/teacherApi').PublicTeachingTeamMember[];
 }
 
 export interface MyClassesResponse {
@@ -60,6 +61,4 @@ export const dateTimeLabel = (iso: string) =>
   });
 
 export const venueLabel = (venue: PortalVenue | null) =>
-  venue
-    ? `${venue.name}, ${venue.suburb}${venue.city ? `, ${venue.city}` : ''}`
-    : 'Online';
+  venue ? `${venue.name}, ${venue.suburb}${venue.city ? `, ${venue.city}` : ''}` : 'Online';

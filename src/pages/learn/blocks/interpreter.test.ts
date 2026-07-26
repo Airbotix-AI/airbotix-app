@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Page } from './blocksModel';
-import { BlocksRunner, type SpriteHost, type SpriteState } from './interpreter';
+import {
+  BlocksRunner,
+  spritesBump,
+  spritesTouch,
+  type SpriteHost,
+  type SpriteState,
+} from './interpreter';
 
 const instantSleep = () => Promise.resolve();
 
@@ -38,6 +44,47 @@ function recordingHost() {
   };
   return { host, sprite, says, notes, sounds, pops: () => sounds.length, gotoPage: () => gotoPage };
 }
+
+describe('spritesTouch', () => {
+  const state = (gx: number, size = 1, visible = true): SpriteState => ({
+    gx,
+    gy: 5,
+    size,
+    rot: 0,
+    visible,
+  });
+
+  it('preserves the one-grid contact rule for default-size characters', () => {
+    expect(spritesTouch(state(0), state(0.99))).toBe(true);
+    expect(spritesTouch(state(0), state(1))).toBe(false);
+  });
+
+  it('On Bump reaches a start-hidden trigger zone but not a character hidden mid-run', () => {
+    const hiddenTrigger: SpriteState = { ...state(0.99), visible: false, trigger: true };
+    const hiddenMidRun: SpriteState = { ...state(0.99), visible: false };
+
+    expect(spritesBump(state(0), hiddenTrigger)).toBe(true);
+    expect(spritesBump(state(0), hiddenMidRun)).toBe(false);
+    // the child-facing "is touching?" sensing rule is unchanged by either
+    expect(spritesTouch(state(0), hiddenTrigger)).toBe(false);
+    expect(spritesTouch(state(0), hiddenMidRun)).toBe(false);
+  });
+
+  it('an explicit reach decouples the foot zone from the drawn size', () => {
+    // A stage-filling water curtain must still only answer on the cell the P4
+    // route ends on, or "one square short never reaches" stops being true.
+    const wide = { ...state(1, 3), reach: 0.5 };
+    expect(spritesTouch(state(0), wide)).toBe(false); // one square short
+    expect(spritesTouch(state(0.99), wide)).toBe(true); // arrived
+    expect(spritesTouch(state(0), state(1, 3))).toBe(true); // size-derived reach, unchanged
+  });
+
+  it('gives a larger character a larger foot-zone without using its full visual square', () => {
+    expect(spritesTouch(state(0, 2.6), state(1.25))).toBe(true);
+    expect(spritesTouch(state(0, 2.6), state(1.4))).toBe(false);
+    expect(spritesTouch(state(0, 2.6, false), state(0.5))).toBe(false);
+  });
+});
 
 describe('BlocksRunner', () => {
   it('runs a 🚩 script sequentially: moves, says, clamps to the grid', async () => {
@@ -242,6 +289,57 @@ describe('BlocksRunner', () => {
     const runner = new BlocksRunner(page, r.host, instantSleep);
     await runner.runFlag();
     expect(r.pops()).toBeGreaterThanOrEqual(1); // cat lands on the ball → bump → pop
+  });
+
+  it('a character declared hidden at the start is not drawn but still runs its On Bump', async () => {
+    // JtW C2-P5 stage contract: the cave mouth waits hidden behind the water and
+    // the child's Show sits on its own On Bump track, so the bump has to land
+    // while the actor is still invisible.
+    const page: Page = {
+      id: 'p',
+      background: 'meadow',
+      characters: [
+        {
+          id: 'monkey',
+          name: 'monkey',
+          emoji: '🐵',
+          start: { gx: 0, gy: 5, size: 1, rot: 0 },
+          scripts: [
+            {
+              id: 'm1',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'move_right', n: 3 },
+              ] as Page['characters'][number]['scripts'][number]['blocks'],
+            },
+          ],
+        },
+        {
+          id: 'cave',
+          name: 'cave',
+          emoji: '🕳️',
+          start: { gx: 3, gy: 5, size: 1, rot: 0, visible: false },
+          scripts: [
+            {
+              id: 'v1',
+              blocks: [
+                { op: 'when_bump' },
+                { op: 'show' },
+              ] as Page['characters'][number]['scripts'][number]['blocks'],
+            },
+          ],
+        },
+      ],
+    };
+    const r = recordingHost();
+    const runner = new BlocksRunner(page, r.host, instantSleep);
+    const first = r.sprite.filter((s) => s.charId === 'cave')[0];
+    await runner.runFlag();
+    const caveStates = r.sprite.filter((s) => s.charId === 'cave');
+
+    expect(first).toBeUndefined(); // nothing emitted before the run
+    expect(caveStates.length).toBeGreaterThanOrEqual(1); // the bump ran its Show
+    expect(caveStates[caveStates.length - 1].state.visible).toBe(true);
   });
 
   it('hide/show + grow/shrink mutate state; go_home and resetAll restore the start pose', async () => {

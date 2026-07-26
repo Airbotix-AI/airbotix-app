@@ -61,6 +61,8 @@ import {
 } from './scoreTypes';
 import { preloadPrograms } from './soundfont';
 import { fmtTime, stepIndexAt } from './scoreUtils';
+import { warmSpessaEngine } from './spessaEngine';
+import { VOCAL_GM_PROGRAMS } from './voices';
 import {
   COMPOSE_FAILED_BUBBLE,
   EDIT_VERSION_TAG,
@@ -152,6 +154,9 @@ export function MusicStagePane({
   // A Mission opens straight onto the Riff Pad — the task IS hand-first work.
   const [composeMode, setComposeMode] = useState<ComposeMode>(mission ? 'riff' : 'edit');
   const [selectedSlot, setSelectedSlot] = useState<StageSlotId | null>(null);
+  // On-stage instrument pop (D-MS20): opens ONLY on an explicit stage tap,
+  // never via the post-generation auto-select or lane header selection.
+  const [stagePickerFor, setStagePickerFor] = useState<StageSlotId | null>(null);
   const [styles, setStyles] = useState<StageStyles>({ ...GENRE_BY_ID.rock.presetStyles });
   // null = follow the latest version; a number pins an older version (0⭐).
   const [pinnedVersion, setPinnedVersion] = useState<number | null>(null);
@@ -490,12 +495,18 @@ export function MusicStagePane({
       // first song uses the genre's preset styles (PRD §6.1).
       const styleSet =
         versions.length === 0 ? GENRE_BY_ID[genre].presetStyles : styles;
-      preloadPrograms(
-        STAGE_SLOTS.flatMap((slot) => {
+      preloadPrograms([
+        ...STAGE_SLOTS.flatMap((slot) => {
           const program = styleOf(slot.id, styleSet[slot.id])?.gmProgram;
           return program == null ? [] : [program];
         }),
-      );
+        // Vocal tracks bypass slot styles (voices.ts VOCAL_GM_PROGRAMS) — warm
+        // the choir/oohs programs too.
+        ...Object.values(VOCAL_GM_PROGRAMS),
+      ]);
+      // Tier-0: boot the SpessaSynth engine (worklet + soundfont) behind the
+      // same animation. smplr programs above stay warm as the fallback tier.
+      warmSpessaEngine();
       // The counter rides the request at send time (not capture time) so a
       // "Try again" retry reports switches made while looking at the error.
       const styleChanges = styleChangesRef.current;
@@ -591,6 +602,14 @@ export function MusicStagePane({
     setTweaks((m) => ({ ...m, [instrument]: { ...m[instrument], ...patch } }));
   }, []);
 
+  /** 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5, D-MS20).
+   *  Shared by the deck style row and the lane in-place picker. */
+  const applyStyle = (slot: StageSlotId, styleId: string) => {
+    if (styles[slot] !== styleId) styleChangesRef.current += 1;
+    setStyles((s) => ({ ...s, [slot]: styleId }));
+    if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
+  };
+
   /** Lane ↓ (PRD §3-A): render ONE track client-side and download it. 0⭐,
    *  zero network — mute/solo are bypassed on purpose (it's a stem export). */
   const downloadTrack = async (trackIndex: number) => {
@@ -655,7 +674,9 @@ export function MusicStagePane({
     const isNone = styles[slot.id] === STYLE_NONE;
     return {
       id: slot.id,
-      emoji: slot.emoji,
+      // A D-MS20 real instrument visibly replaces the slot's character —
+      // pick the violin and a violin stands where the guitarist was.
+      emoji: (hasSong && !isNone ? style?.stageGlyph : null) ?? slot.emoji,
       label: slot.label,
       styleLabel: hasSong ? (style && !isNone ? `${style.emoji} ${style.label}` : '🚫 None') : null,
       off: hasSong && (isNone || allMuted),
@@ -703,7 +724,17 @@ export function MusicStagePane({
       empty={!hasSong}
       marquee={hasSong ? marqueeFor(score?.genre, genre) : EMPTY_MARQUEE}
       selected={hasSong ? selectedSlot : null}
-      onSelect={setSelectedSlot}
+      onSelect={(id) => {
+        setSelectedSlot(id);
+        setStagePickerFor(id);
+      }}
+      pickerFor={hasSong ? stagePickerFor : null}
+      styles={styles}
+      onStyle={(slot, styleId) => {
+        applyStyle(slot, styleId);
+        setStagePickerFor(null);
+      }}
+      onClosePicker={() => setStagePickerFor(null)}
       activeStep={activeStep}
       composingSubtitle={generation.isPending ? composeSubtitle : null}
       entering={entering}
@@ -729,12 +760,7 @@ export function MusicStagePane({
       onSuggestion={generateFromCard}
       selectedSlot={selectedSlot}
       styles={styles}
-      onStyle={(slot, styleId) => {
-        if (styles[slot] !== styleId) styleChangesRef.current += 1;
-        setStyles((s) => ({ ...s, [slot]: styleId }));
-        // 0⭐ instant timbre swap + 1-beat audition when idle (PRD §5).
-        if (styleId !== STYLE_NONE) void playback.previewStyle(slot, styleId);
-      }}
+      onStyle={applyStyle}
       diffChips={diffChips}
       hasSeedFrame={seedRiff !== null}
       seedAuditioning={audition === 'seed'}
@@ -891,6 +917,7 @@ export function MusicStagePane({
       styles={styles}
       selectedSlot={selectedSlot}
       onSelectSlot={setSelectedSlot}
+      onStyle={applyStyle}
       silenced={silenced}
       tweaks={tweaks}
       onTweak={applyTweak}
@@ -975,16 +1002,18 @@ export function MusicStagePane({
         </button>
         {/* Airbotix brand mark + surface name — the immersive page hides the
             Learn nav (D-MS7), so the brand rides the transport bar exactly like
-            the playground's Taskbar. Hidden on narrow screens (the row is tight). */}
-        <div className="hidden shrink-0 items-center gap-2.5 min-[900px]:flex" data-testid="stage-brand">
+            the playground's Taskbar. The LOGO shows at every width (owner
+            report: "左下角的 logo 没有显示" on a <900px window); only the
+            divider + surface name collapse when the row gets tight. */}
+        <div className="flex shrink-0 items-center gap-2.5" data-testid="stage-brand">
           <img
             src="/logo-black-horizontal.png"
             alt="Airbotix"
             draggable={false}
             className="h-6 w-auto select-none"
           />
-          <span aria-hidden className="h-5 w-px bg-hairline" />
-          <span className="text-[13px] font-bold text-slate2">Music Stage</span>
+          <span aria-hidden className="hidden h-5 w-px bg-hairline min-[900px]:block" />
+          <span className="hidden text-[13px] font-bold text-slate2 min-[900px]:inline">Music Stage</span>
         </div>
         {import.meta.env.DEV && (
           // Local stacks run the deterministic mock LLM (DEEPROUTER_USE_MOCK):
@@ -1021,7 +1050,12 @@ export function MusicStagePane({
           {score ? (
             <>
               <span className="block truncate text-[14px] font-extrabold text-ink">“{score.title}”</span>
-              {score.tempo} BPM · {score.key} · {fmtTime(playback.position)} / {fmtTime(playback.totalDuration)}
+              {/* One line, truncating — on tight bars the meta must never wrap
+                  into a vertical sliver next to the play button. */}
+              <span className="block truncate">
+                <span className="hidden min-[900px]:inline">{score.tempo} BPM · {score.key} · </span>
+                {fmtTime(playback.position)} / {fmtTime(playback.totalDuration)}
+              </span>
             </>
           ) : (
             // One instruction only — the composer bar up top already says

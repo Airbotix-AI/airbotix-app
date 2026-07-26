@@ -57,6 +57,23 @@ const TALLY_Q = {
   },
 };
 
+const DOUBLE_VALUE_Q = {
+  ...TEXT_CHOICE_Q,
+  id: 'naplan-y3-2008-std-q33',
+  answer_type: 'multi_value' as const,
+  stem_text:
+    'Mario has this row of 15 cubes. He divides the row into two sections. One section is 3 cubes longer than the other section. How many cubes are in each section?',
+  options: null,
+  render_spec: {
+    kind: 'none' as const,
+    value_inputs: {
+      count: 2,
+      separator: 'and',
+      suffixes: ['cubes', 'cubes'],
+    },
+  },
+};
+
 function wireApi(questions: unknown[], attempt = { is_correct: true, correct_answer: 'A' }) {
   api.mockImplementation((path: string) => {
     if (path === '/academy/me/products/naplan-y5-numeracy')
@@ -74,6 +91,12 @@ function wireApi(questions: unknown[], attempt = { is_correct: true, correct_ans
       return Promise.resolve(questions);
     if (path === '/academy/me/products/naplan-y5-numeracy/attempts')
       return Promise.resolve(attempt);
+    if (path === '/academy/me/products/naplan-y5-numeracy/tutor')
+      return Promise.resolve({
+        explanation: '1. Ten groups of 19 cents means 10 × 19.\\n2. That is 190 cents, or $1.90.',
+        model: 'kids-default',
+        stars_charged: 0,
+      });
     if (path === '/academy/me/products/naplan-y5-numeracy/progress')
       return Promise.resolve({ attempts: 3, correct: 2, accuracy: 0.67 });
     return Promise.resolve(undefined);
@@ -155,6 +178,24 @@ describe('AcademyPracticePage', () => {
     );
   });
 
+  it('automatically shows the real Airo Tutor explanation after an attempt', async () => {
+    wireApi([TEXT_CHOICE_Q], { is_correct: false, correct_answer: 'B' });
+    renderPage();
+
+    expect(await screen.findByTestId('academy-tutor')).toHaveTextContent('Have a go first');
+
+    fireEvent.click(screen.getByTestId('academy-option-A'));
+
+    expect(await screen.findByTestId('academy-tutor-explanation')).toHaveTextContent(
+      'Ten groups of 19 cents',
+    );
+    expect(api).toHaveBeenCalledWith('/academy/me/products/naplan-y5-numeracy/tutor', {
+      method: 'POST',
+      body: { question_id: 'q1' },
+    });
+    expect(screen.getByTestId('academy-tutor')).toHaveTextContent('no extra Stars');
+  });
+
   it('scrolls the next question back to the top on mobile', async () => {
     const scrollIntoView = vi.fn();
     const original = HTMLElement.prototype.scrollIntoView;
@@ -196,6 +237,35 @@ describe('AcademyPracticePage', () => {
     expect(await screen.findByTestId('academy-native-visual')).toHaveTextContent('Basketball');
     expect(screen.getByLabelText('22 tally marks')).toBeInTheDocument();
     expect(screen.queryByTestId('academy-question-image')).not.toBeInTheDocument();
+  });
+
+  it('renders two answer boxes for reviewed multi-value questions and submits both values', async () => {
+    wireApi([DOUBLE_VALUE_Q], { is_correct: true, correct_answer: '6 and 9' });
+    renderPage();
+
+    expect(await screen.findByTestId('academy-stem')).toHaveTextContent('Mario has this row of 15 cubes');
+    expect(screen.getByTestId('academy-value-input-1')).toBeInTheDocument();
+    expect(screen.getByTestId('academy-value-input-2')).toBeInTheDocument();
+    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getAllByText('cubes')).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('academy-value-input-1'), { target: { value: '6' } });
+    fireEvent.change(screen.getByTestId('academy-value-input-2'), { target: { value: '9' } });
+    fireEvent.click(screen.getByTestId('academy-value-submit'));
+
+    const feedback = await screen.findByTestId('academy-feedback');
+    expect(feedback).toHaveTextContent('Correct!');
+    expect(feedback).toHaveTextContent('The answer is 6 and 9');
+    expect(api).toHaveBeenCalledWith(
+      '/academy/me/products/naplan-y5-numeracy/attempts',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({
+          question_id: 'naplan-y3-2008-std-q33',
+          submitted: '6|9',
+        }),
+      }),
+    );
   });
 
   it('renders a balance scale as native SVG', async () => {

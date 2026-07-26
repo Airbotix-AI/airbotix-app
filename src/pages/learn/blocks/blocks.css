@@ -466,7 +466,9 @@
 .bsx-if-body.is-target {
   border-color: var(--c);
   background: color-mix(in srgb, var(--c) 9%, white);
-  box-shadow: inset 0 0 0 3px #fff, 0 0 0 3px color-mix(in srgb, var(--c) 48%, transparent);
+  box-shadow:
+    inset 0 0 0 3px #fff,
+    0 0 0 3px color-mix(in srgb, var(--c) 48%, transparent);
 }
 .bsx-if-add {
   display: inline-flex;
@@ -1019,6 +1021,22 @@
 }
 .bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-hill,
 .bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
+  background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
+    center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] {
+  background: #d8c79f url('/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png')
+    center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-deco {
   display: none;
 }
 
@@ -2080,6 +2098,31 @@
     0 4px 0 color-mix(in srgb, var(--bsx-cat-trigger) 42%, var(--bsx-border)),
     0 0 0 3px color-mix(in srgb, var(--bsx-cat-trigger) 16%, transparent);
 }
+/* A4-S carries two choice groups (distance + parcel) in one picker row, so its
+   buttons are narrower and the row wraps instead of pushing the stage sideways. */
+.bsx-delivery-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-delivery-picker .bsx-home-choice {
+  min-width: 96px;
+}
+/* A5-S carries two cast rows (who greets first / who waits), each holding the
+   same three friends. The rows wrap under the title on narrow screens instead
+   of pushing the stage sideways, and each button stays a comfortable tap target
+   with room for the friend's portrait beside their name. */
+.bsx-cast-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-cast-picker .bsx-home-choice {
+  min-width: 118px;
+  gap: 6px;
+}
+.bsx-cast-picker .bsx-character-asset-thumb {
+  width: 26px;
+  height: 26px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);
@@ -2190,12 +2233,24 @@
   }
   .bsx-home-choices {
     gap: 6px;
+    /* a row of friends must be able to wrap: .bsx-app is overflow:hidden, so an
+       unwrappable row is CLIPPED, not scrolled — the third friend would simply
+       be unreachable on a phone (A5-S and A6-S both need all three). */
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .bsx-home-choice {
     min-width: 0;
     min-height: 40px;
     padding: 6px 9px;
     font-size: 12px;
+  }
+  /* the cast (A5-S/A6-S) and delivery (A4-S) pickers set their own min-width
+     with a two-class selector, which out-specifies the reset above no matter
+     that this rule lives in a media query — restate it for them. */
+  .bsx-cast-picker .bsx-home-choice,
+  .bsx-delivery-picker .bsx-home-choice {
+    min-width: 0;
   }
   .bsx-middle {
     grid-template-columns: 1fr 1fr;
@@ -2425,6 +2480,104 @@
   color: #25304f;
   box-shadow: 0 24px 70px rgb(10 18 40 / 35%);
   text-align: center;
+}
+.bsx-mission-card.bsx-mission-complete {
+  width: min(52rem, 100%);
+}
+.bsx-mission-complete .bsx-logic-proof-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(0.5rem, 2cqi, 1.25rem);
+  padding: 0.25rem clamp(0rem, 1cqi, 0.5rem) 0;
+}
+.bsx-mission-complete .bsx-logic-proof-step {
+  display: grid;
+  grid-template-rows: auto minmax(1.6rem, auto);
+  justify-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.bsx-mission-complete .bsx-logic-proof-step small {
+  line-height: 1;
+}
+.bsx-mission-complete .bsx-logic-proof-step strong {
+  line-height: 1.6rem;
+  text-wrap: balance;
+}
+.bsx-mission-complete .bsx-logic-proof-connector {
+  align-self: end;
+  justify-self: center;
+  min-width: 1.6rem;
+  line-height: 1.6rem;
+}
+.bsx-mission-complete .bsx-logic-proof > p {
+  width: 100%;
+  max-width: none;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #c7e4f5;
+}
+@container logic-proof (max-width: 34rem) {
+  .bsx-mission-complete .bsx-logic-proof-steps {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+  .bsx-mission-complete .bsx-logic-proof-connector {
+    align-self: center;
+    line-height: 1;
+    transform: rotate(90deg);
+  }
+}
+@media (max-width: 620px) {
+  .bsx-mission-backdrop {
+    padding: 10px;
+  }
+  .bsx-mission-card.bsx-mission-complete {
+    max-height: calc(100dvh - 20px);
+    padding: 18px 20px 20px;
+    border-radius: 24px;
+  }
+  .bsx-mission-complete .bsx-mission-book {
+    font-size: 32px;
+  }
+  .bsx-mission-complete h2 {
+    margin: 4px 0 10px;
+    font-size: 28px;
+  }
+  .bsx-mission-complete .bsx-mission-success > p {
+    margin-bottom: 12px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .bsx-mission-complete .bsx-mission-journey-label {
+    margin-bottom: 8px;
+  }
+  .bsx-mission-complete .bsx-mission-evidence {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .bsx-mission-complete .bsx-mission-evidence span {
+    padding: 5px 8px;
+  }
+  .bsx-mission-complete .bsx-logic-proof {
+    margin-bottom: 12px;
+    padding: 10px;
+  }
+  .bsx-mission-complete .bsx-logic-proof > p {
+    margin-bottom: 0;
+    padding-top: 9px;
+  }
+  .bsx-mission-complete .bsx-mission-next {
+    margin: 6px 0 10px;
+    padding: 11px 12px;
+  }
+  .bsx-mission-complete .bsx-mission-success > :is(.bsx-mission-primary, .bsx-mission-secondary) {
+    min-height: 48px;
+  }
+  .bsx-mission-complete .bsx-mission-secondary {
+    margin-top: 0;
+  }
 }
 .bsx-mission-close {
   position: absolute;
@@ -3239,6 +3392,8 @@
   box-shadow: 0 4px 0 #238456;
 }
 .bsx-logic-proof {
+  container-name: logic-proof;
+  container-type: inline-size;
   margin: 0 0 18px;
   padding: 14px;
   border: 2px solid #a9d7f4;

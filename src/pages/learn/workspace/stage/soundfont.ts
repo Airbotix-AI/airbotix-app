@@ -21,7 +21,11 @@ import { noteToMidi } from './scoreUtils';
 // the whole smplr path closed and plays the Tone.js fallback voices (AC-11).
 export const SOUNDFONT_DEFAULT_BASE_URL = 'https://gleitz.github.io/midi-js-soundfonts';
 export const DRUM_MACHINE_DEFAULT_BASE_URL = 'https://smpldsnds.github.io/drum-machines';
-export const SOUNDFONT_KIT = 'FluidR3_GM';
+// MusyngKite is the higher-fidelity gleitz kit (same layout as FluidR3_GM, same
+// per-program file names) — the audible difference is large enough that FluidR3
+// reads as "MIDI", MusyngKite as an instrument. Old FluidR3_GM objects stay on
+// the origin for previously-cached bundles; soundfonts.yml publishes this kit.
+export const SOUNDFONT_KIT = 'MusyngKite';
 export const SOUNDFONT_LOAD_TIMEOUT_MS = 8000;
 
 const MIDI_VELOCITY_MAX = 127;
@@ -76,13 +80,25 @@ export const GM_PROGRAM_SOUNDFONTS: Record<number, string> = {
   1: 'acoustic_grand_piano', // 🎹 Grand
   5: 'electric_piano_1', // 🎛️ Dreamy EP
   11: 'music_box', // 🎹 Music Box
+  13: 'marimba', // 🎹 Marimba
   17: 'drawbar_organ', // 🎛️ Gritty Organ
+  22: 'accordion', // 🎛️ Accordion
   25: 'acoustic_guitar_steel', // 🎸 Acoustic
   27: 'electric_guitar_clean', // 🎸 Clean Funk
   29: 'overdriven_guitar', // 🎸 Electric Crunch
   33: 'electric_bass_finger', // 🎻 Round & Warm
   34: 'electric_bass_pick', // 🎻 Picked Rock
   39: 'synth_bass_1', // 🎻 Deep Sub
+  41: 'violin', // 🎸-slot Violin
+  43: 'cello', // 🎻-slot Cello
+  47: 'orchestral_harp', // 🎹 Harp
+  49: 'string_ensemble_1', // 🎛️ Strings
+  53: 'choir_aahs', // 🎤 Lead Vocals (sampled choir — vocal tracks, not a slot style)
+  54: 'voice_oohs', // 🎙️ Backing Vocals (sampled oohs — vocal tracks, not a slot style)
+  57: 'trumpet', // 🎸-slot Trumpet
+  59: 'tuba', // 🎻-slot Tuba
+  67: 'tenor_sax', // 🎸-slot Saxophone
+  74: 'flute', // 🎹 Flute
   82: 'lead_2_sawtooth', // 🎹 Synth Arp
   90: 'pad_2_warm', // 🎛️ Cloud Pad
 };

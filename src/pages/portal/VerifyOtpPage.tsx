@@ -5,6 +5,7 @@ import { Navigate, useLocation, useNavigate, type Location } from 'react-router-
 import { z } from 'zod';
 
 import { verifyOtp } from '@/auth/useAuth';
+import { WeChatBrowserNotice } from '@/components/auth/WeChatBrowserNotice';
 import { ApiError } from '@/lib/api';
 
 const schema = z.object({
@@ -69,6 +70,10 @@ export function VerifyOtpPage() {
           <span className="font-semibold text-ink">{email}</span>.
         </p>
 
+        <div className="mt-6">
+          <WeChatBrowserNotice />
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
           <div>
             <label htmlFor="code" className="label-k12">6-digit code</label>
@@ -101,7 +106,7 @@ export function VerifyOtpPage() {
           Didn't get the code?{' '}
           <button
             type="button"
-            onClick={() => nav('/portal/login')}
+            onClick={() => nav('/portal/login', { state: from ? { from } : undefined })}
             className="font-semibold text-brand-coral hover:underline"
           >
             Try again →

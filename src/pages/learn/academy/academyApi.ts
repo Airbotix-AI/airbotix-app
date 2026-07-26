@@ -1,7 +1,12 @@
 import { api } from '@/lib/api';
 
 export const ACADEMY_SET_SIZE = 20;
-export type AcademyAnswerType = 'choice' | 'value';
+export type AcademyAnswerType = 'choice' | 'value' | 'multi_value';
+export type AcademyValueInputsSpec = {
+  count: number;
+  separator?: string;
+  suffixes?: string[];
+};
 
 type TallyTableSpec = {
   kind: 'tally_table';
@@ -113,7 +118,7 @@ type SymbolPatternSpec = {
 };
 
 export type AcademyRenderSpec =
-  | { kind: 'none' }
+  | { kind: 'none'; value_inputs?: AcademyValueInputsSpec }
   | TallyTableSpec
   | {
       kind: 'number_range';
@@ -160,6 +165,12 @@ export interface AcademyQuestion {
 export interface AcademyAttemptResult {
   is_correct: boolean;
   correct_answer: string;
+}
+
+export interface AcademyTutorResult {
+  explanation: string;
+  model: string;
+  stars_charged: 0;
 }
 
 export interface AcademyProgress {
@@ -234,6 +245,15 @@ export const submitProductAttempt = (args: {
     },
   });
 
+export const getAcademyTutorExplanation = (args: {
+  productSlug: string;
+  questionId: string;
+}) =>
+  api<AcademyTutorResult>(`/academy/me/products/${args.productSlug}/tutor`, {
+    method: 'POST',
+    body: { question_id: args.questionId },
+  });
+
 export const getProductProgress = (productSlug: string) =>
   api<AcademyProgress>(`/academy/me/products/${productSlug}/progress`);
 
@@ -246,7 +266,7 @@ export const listFamilyAcademyEntitlements = (familyId: string) =>
   api<AcademyEntitlement[]>(`/families/${familyId}/academy-entitlements`);
 
 export const startAcademyCheckout = (productId: string, kidId: string) =>
-  api<{ payment_intent_id: string; checkout_url: string }>('/academy/checkouts', {
+  api<{ payment_intent_id: string; client_secret?: string; checkout_url: string }>('/academy/checkouts', {
     method: 'POST',
     body: { product_id: productId, kid_id: kidId },
   });
