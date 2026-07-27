@@ -8,7 +8,10 @@ import { z } from 'zod';
 import { useAuthStore } from '@/auth/authStore';
 import { useLogout, useMe } from '@/auth/useAuth';
 import { WeChatBrowserNotice } from '@/components/auth/WeChatBrowserNotice';
+import { KidAvatarPicker } from '@/components/KidAvatarPicker';
 import { api, ApiError, refreshAccessToken } from '@/lib/api';
+import { DEFAULT_KID_AVATAR_ID, type KidAvatarId } from '@/lib/kidAvatars';
+import { australianMobileSchema } from '@/lib/phone';
 import { CityField } from './CityField';
 
 import {
@@ -27,6 +30,7 @@ const schema = z
     // The parent's own name (§3.1 wizard step "[1] Your name"). Written to
     // User.display_name via PATCH /auth/me before the family is created.
     your_name: z.string().min(1).max(120),
+    phone: australianMobileSchema,
     family_name: z.string().min(1).max(80),
     region: z.string().min(2).max(8),
     city: z.string().max(80).optional(),
@@ -41,9 +45,13 @@ const schema = z
     // their workshop projects into this new family.
     kid_mode: z.enum(['new', 'claim']),
     kid_nickname: z.string().max(40).optional(),
+    kid_avatar_id: z.string(),
     // Backend minimum age is 6 (D-SP8 / C2 compliance) — keep the client aligned.
     kid_age: z.coerce.number().int().min(6, 'Airbotix is for ages 6+').max(17),
-    kid_pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
+    kid_pin: z
+      .string()
+      .length(4)
+      .regex(/^\d{4}$/, '4 digits'),
     kid_claim_code: z.string().trim().max(20).optional(),
     // Registration consent (terms-of-service.md §2.1): must be affirmatively
     // ticked; the backend rejects POST /families without accept_terms: true.
@@ -114,7 +122,12 @@ export function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { region: 'AU', preferred_language: detectPreferredLanguage(), kid_mode: 'new' },
+    defaultValues: {
+      region: 'AU',
+      preferred_language: detectPreferredLanguage(),
+      kid_mode: 'new',
+      kid_avatar_id: DEFAULT_KID_AVATAR_ID,
+    },
   });
   const kidMode = watch('kid_mode');
 
@@ -126,9 +139,7 @@ export function RegisterPage() {
   // (Kept after all hooks so the Rules of Hooks hold on every render path.)
   if (!bootstrapped || (accessToken && me.isLoading)) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500">
-        Loading session…
-      </div>
+      <div className="flex h-full items-center justify-center text-slate-500">Loading session…</div>
     );
   }
   if (!accessToken) {
@@ -151,8 +162,8 @@ export function RegisterPage() {
           </div>
           <h1 className="hero-display mt-6">Family setup is for parents.</h1>
           <p className="lead-text mt-4">
-            You're signed in as <strong>{me.data.role}</strong> ({me.data.email}). Creating a
-            family needs a parent account. Sign out and register with a different email.
+            You're signed in as <strong>{me.data.role}</strong> ({me.data.email}). Creating a family
+            needs a parent account. Sign out and register with a different email.
           </p>
           <button
             onClick={async () => {
@@ -175,7 +186,7 @@ export function RegisterPage() {
       // account has an identity before the family exists.
       await api('/auth/me', {
         method: 'PATCH',
-        body: { display_name: values.your_name.trim() },
+        body: { display_name: values.your_name.trim(), phone: values.phone.trim() },
       });
       const city = values.city?.trim();
       const postcode = values.postcode?.trim();
@@ -210,6 +221,7 @@ export function RegisterPage() {
               claim_code: values.kid_claim_code,
               age: values.kid_age,
               pin: values.kid_pin,
+              avatar_id: values.kid_avatar_id,
               ...(values.kid_nickname?.trim() ? { nickname: values.kid_nickname.trim() } : {}),
             },
           });
@@ -225,6 +237,7 @@ export function RegisterPage() {
           method: 'POST',
           body: {
             nickname: values.kid_nickname,
+            avatar_id: values.kid_avatar_id,
             age: values.kid_age,
             pin: values.kid_pin,
           },
@@ -264,7 +277,10 @@ export function RegisterPage() {
             <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
               Family code
             </div>
-            <div className="mt-3 font-mono font-extrabold tracking-[0.3em]" style={{ fontSize: '56px', letterSpacing: '0.2em' }}>
+            <div
+              className="mt-3 font-mono font-extrabold tracking-[0.3em]"
+              style={{ fontSize: '56px', letterSpacing: '0.2em' }}
+            >
               {created.code}
             </div>
             <div className="mt-2 text-[14px] opacity-90">{created.name}</div>
@@ -314,6 +330,18 @@ export function RegisterPage() {
                 autoComplete="name"
                 {...register('your_name')}
               />
+            </Field>
+            <Field label="Mobile number" error={errors.phone?.message}>
+              <input
+                className="input-k12"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="0400 000 000"
+                {...register('phone')}
+              />
+              <span className="mt-1 block text-[12px] font-medium text-slate2">
+                Used for class updates and support. We won&apos;t send a verification code yet.
+              </span>
             </Field>
             <Field label="Family name" error={errors.family_name?.message}>
               <input
@@ -416,8 +444,8 @@ export function RegisterPage() {
             {kidMode === 'claim' && (
               <>
                 <p className="text-[13px] text-slate2">
-                  The kid code links the account your kid used at the workshop — and everything
-                  they made — to your new family.
+                  The kid code links the account your kid used at the workshop — and everything they
+                  made — to your new family.
                 </p>
                 <Field label="Kid code" error={errors.kid_claim_code?.message}>
                   <input
@@ -430,11 +458,20 @@ export function RegisterPage() {
               </>
             )}
             <Field
-              label={kidMode === 'claim' ? 'Nickname (optional — keeps the workshop one)' : 'Nickname'}
+              label={
+                kidMode === 'claim' ? 'Nickname (optional — keeps the workshop one)' : 'Nickname'
+              }
               error={errors.kid_nickname?.message}
             >
               <input className="input-k12" placeholder="Mia" {...register('kid_nickname')} />
             </Field>
+            <Controller
+              name="kid_avatar_id"
+              control={control}
+              render={({ field }) => (
+                <KidAvatarPicker value={field.value as KidAvatarId} onChange={field.onChange} />
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <Field label="Age" error={errors.kid_age?.message}>
                 <input
@@ -466,8 +503,7 @@ export function RegisterPage() {
                 {...register('accept_terms')}
               />
               <span className="text-[13px] text-ink-soft">
-                I am the parent or legal guardian of the kids on this account, and I agree to
-                the{' '}
+                I am the parent or legal guardian of the kids on this account, and I agree to the{' '}
                 <a
                   href="https://airbotix.ai/terms"
                   target="_blank"
@@ -513,8 +549,8 @@ export function RegisterPage() {
           </button>
 
           <p className="text-[12px] leading-relaxed text-slate2">
-            We record the date and document version of your agreement. You can export or delete
-            all your family's data anytime from Settings.
+            We record the date and document version of your agreement. You can export or delete all
+            your family's data anytime from Settings.
           </p>
         </form>
       </div>

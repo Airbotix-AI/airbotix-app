@@ -620,7 +620,7 @@ function ArtifactTile({
             <button
               onClick={() => {
                 setMenuOpen(false);
-                navigate('/learn/create/image', {
+                navigate('/learn/create/image/canvas', {
                   state: { editArtifactId: artifact.id, editProjectId: projectId },
                 });
               }}

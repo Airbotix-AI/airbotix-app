@@ -37,7 +37,7 @@ describe('StudioPicker', () => {
     const image = screen.getByTestId('studio-pick-image');
     expect(image).toHaveAttribute('href', '/learn/create/image');
     expect(image).toHaveTextContent('Art Studio');
-    expect(image).toHaveTextContent('Opens your own art studio');
+    expect(image).toHaveTextContent('Your tasks, pictures and a new canvas');
   });
 
   // Voice / Video are paused (studios.ts `comingSoon`, learn PRD v0.7):

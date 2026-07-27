@@ -68,7 +68,7 @@ describe('LearnLayout', () => {
   // the nav hid and page scroll locked while the "fullscreen" stage stayed
   // letterboxed inside the max-w-5xl reading column. Immersive must imply
   // full-bleed — there is no surface that wants both.
-  it.each(['/learn/music', '/learn/music/s1', '/learn/blocks/p1', '/learn/create/image'])(
+  it.each(['/learn/music', '/learn/music/s1', '/learn/blocks/p1', '/learn/create/image/canvas'])(
     'gives the immersive surface %s the whole viewport — no nav, no reading column',
     (path) => {
       const { container, queryByTestId } = mount(path);
@@ -76,6 +76,12 @@ describe('LearnLayout', () => {
       expect(readingColumn(container)).toBeNull();
     },
   );
+
+  it('keeps the Art Studio task hub in the ordinary Learn layout', () => {
+    const { container, getByTestId } = mount('/learn/create/image');
+    expect(getByTestId('learn-nav')).toBeInTheDocument();
+    expect(readingColumn(container)).toBeTruthy();
+  });
 
   // The bug this locks: immersive <main> was h-full (100% of the layout column),
   // so anything rendering above it — the NudgeBanner deliberately surfaces over

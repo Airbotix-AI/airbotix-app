@@ -11,6 +11,7 @@
 export type OnboardingItemId =
   | 'familySetup'
   | 'kidAdded'
+  | 'phoneAdded'
   | 'kidLogin'
   | 'addStars'
   | 'setLimits'
@@ -21,6 +22,8 @@ export interface OnboardingInputs {
   hasFamily: boolean;
   /** number of kids on the family (>= 1 expected post-register) */
   kidCount: number;
+  /** current adult User.phone is present */
+  hasPhone: boolean;
   /** wallet stars balance; null = unknown / endpoint 404 for a brand-new family */
   starsBalance: number | null;
   /** saved payment methods count */
@@ -43,10 +46,12 @@ export interface OnboardingItem {
 }
 
 export interface OnboardingState {
-  /** fixed order: familySetup, kidAdded, kidLogin, addStars, setLimits, browseGuides */
+  /** fixed order: familySetup, kidAdded, phoneAdded, kidLogin, addStars, setLimits, browseGuides */
   items: OnboardingItem[];
   /** the two steps that gate "ready to create": kidLogin && addStars */
   coreComplete: boolean;
+  /** adult contact profile completion, independent of child readiness */
+  profileComplete: boolean;
 }
 
 export function computeOnboardingState(i: OnboardingInputs): OnboardingState {
@@ -55,6 +60,7 @@ export function computeOnboardingState(i: OnboardingInputs): OnboardingState {
 
   const familySetup = i.hasFamily;
   const kidAdded = i.kidCount >= 1;
+  const phoneAdded = i.hasPhone;
   const kidLogin = i.kidLoginShown;
   const addStars = hasStars || i.paymentMethodCount > 0;
   const setLimits = i.autoTopupEnabled || i.limitsReviewed;
@@ -63,11 +69,12 @@ export function computeOnboardingState(i: OnboardingInputs): OnboardingState {
   const items: OnboardingItem[] = [
     { id: 'familySetup', done: familySetup, optional: false },
     { id: 'kidAdded', done: kidAdded, optional: false },
+    { id: 'phoneAdded', done: phoneAdded, optional: false },
     { id: 'kidLogin', done: kidLogin, optional: false },
     { id: 'addStars', done: addStars, optional: false },
     { id: 'setLimits', done: setLimits, optional: true },
     { id: 'browseGuides', done: browseGuides, optional: true },
   ];
 
-  return { items, coreComplete: kidLogin && addStars };
+  return { items, coreComplete: kidLogin && addStars, profileComplete: phoneAdded };
 }

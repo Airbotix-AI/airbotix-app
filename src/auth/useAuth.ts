@@ -8,6 +8,10 @@ import type {
   ClassCodeLoginResponse,
   ClassLoginPollResponse,
   ClassLoginRequestCreateResponse,
+  KidDeviceIdentity,
+  KidHandoffCreateResponse,
+  KidHandoffPreviewResponse,
+  KidHandoffRedeemResponse,
   KidLoginResponse,
   MeResponse,
   PrincipalKind,
@@ -21,6 +25,7 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
       kind: 'kid',
       sub: raw.kid.id,
       nickname: raw.kid.nickname,
+      avatar_id: raw.kid.avatar_id,
       age: raw.kid.age,
       family_id: raw.kid.family_id,
       // Walk-in (unclaimed) kids get the restricted Learn surface (§5.2); the
@@ -37,6 +42,7 @@ function normaliseMe(raw: MeResponse): AuthPrincipal {
     sub: raw.user.id,
     email: raw.user.email,
     display_name: raw.user.display_name,
+    phone: raw.user.phone,
     role: raw.user.role,
     family_id: raw.user.family_id,
     has_password: raw.user.has_password ?? false,
@@ -127,10 +133,76 @@ export async function kidLogin(
   return res;
 }
 
-// A signed-in parent can open one of their own children's Learn sessions
-// without re-entering the family code, nickname or PIN. The backend keeps the
-// adult and kid refresh cookies separate; only the kid access token changes.
+function acceptKidSession<T extends KidLoginResponse>(res: T): T {
+  useAuthStore.getState().setToken('kid', res.access_token);
+  useAuthStore.getState().setBootstrapped(true);
+  setTimeout(() => getSocket('kid'), 0);
+  return res;
+}
+
+export async function createKidHandoff(
+  kidId: string,
+  rememberDevice: boolean,
+): Promise<KidHandoffCreateResponse> {
+  return api<KidHandoffCreateResponse>(`/auth/parent/kids/${kidId}/handoff`, {
+    method: 'POST',
+    body: { remember_device: rememberDevice },
+    principal: 'user',
+  });
+}
+
+export async function previewKidHandoff(token: string): Promise<KidHandoffPreviewResponse> {
+  return api<KidHandoffPreviewResponse>('/auth/kid-handoff/preview', {
+    method: 'POST',
+    body: { token },
+    skipAuthRefresh: true,
+  });
+}
+
+export async function redeemKidHandoff(token: string): Promise<KidHandoffRedeemResponse> {
+  const res = await api<KidHandoffRedeemResponse>('/auth/kid-handoff/redeem', {
+    method: 'POST',
+    body: { token },
+    skipAuthRefresh: true,
+  });
+  return acceptKidSession(res);
+}
+
+export async function previewKidDevice(deviceHint: string): Promise<KidDeviceIdentity> {
+  const res = await api<{ kid: KidDeviceIdentity }>('/auth/kid-device/preview', {
+    method: 'POST',
+    body: { device_hint: deviceHint },
+    skipAuthRefresh: true,
+  });
+  return res.kid;
+}
+
+export async function kidDeviceLogin(
+  deviceHint: string,
+  pin: string,
+): Promise<KidLoginResponse> {
+  const res = await api<KidLoginResponse>('/auth/kid-device/login', {
+    method: 'POST',
+    body: { device_hint: deviceHint, pin },
+    skipAuthRefresh: true,
+  });
+  return acceptKidSession(res);
+}
+
+export async function revokeKidDevices(kidId: string): Promise<number> {
+  const res = await api<{ revoked: number }>(
+    `/auth/parent/kids/${kidId}/trusted-devices/revoke-all`,
+    { method: 'POST', principal: 'user' },
+  );
+  return res.revoked;
+}
+
+// A signed-in parent can open one of their own kids on this browser without
+// re-entering the family code, nickname or PIN. The backend family-scopes the
+// request and writes only the dedicated kid refresh cookie, so the adult portal
+// session remains available in parallel.
 export function useParentKidLogin() {
+  const qc = useQueryClient();
   return async (kidId: string): Promise<KidLoginResponse> => {
     const res = await api<KidLoginResponse>(`/auth/parent/kids/${kidId}/login`, {
       method: 'POST',
@@ -138,6 +210,7 @@ export function useParentKidLogin() {
     });
     useAuthStore.getState().setToken('kid', res.access_token);
     useAuthStore.getState().setBootstrapped(true);
+    qc.removeQueries({ queryKey: ['auth', 'me', 'kid'] });
     setTimeout(() => getSocket('kid'), 0);
     return res;
   };

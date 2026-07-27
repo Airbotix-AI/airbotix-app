@@ -3,35 +3,22 @@ import { NavLink } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 
-// Matches parent-portal-prd.md §2 nav drawer.
-const ITEMS: Array<{ to: string; label: string; end?: boolean }> = [
-  { to: '/portal', label: 'Dashboard', end: true },
-  { to: '/portal/classes', label: 'Find a class' },
-  { to: '/portal/courses', label: 'Courses' },
-  { to: '/portal/teachers', label: 'Teachers' },
-  { to: '/portal/academy', label: 'Exam Prep' },
-  { to: '/portal/tutoring', label: 'Tutoring' },
-  { to: '/portal/guides', label: 'Family Guides' },
-  { to: '/portal/family', label: 'My Family' },
-  { to: '/portal/wallet', label: 'Wallet' },
-  { to: '/portal/usage', label: 'Usage' },
-  { to: '/portal/approvals', label: 'Approvals' },
-  { to: '/portal/audit', label: 'Activity' },
-  { to: '/portal/billing', label: 'Billing' },
-  { to: '/portal/settings', label: 'Settings' },
-];
+import { PORTAL_NAV_SECTIONS } from './portalNavigation';
 
-const APPROVALS_PATH = '/portal/approvals';
+const APPROVALS_ID = 'approvals';
 
 export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
   const me = useMe();
   const logout = useLogout();
 
   return (
-    <nav className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 md:flex md:flex-col">
-      <div className="mb-8 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-coral shadow-brand-coral">
-          <span className="text-[18px] font-extrabold text-white">A</span>
+    <nav
+      aria-label="Parent Portal desktop"
+      className="hidden w-56 shrink-0 border-r border-hairline bg-canvas-pure p-4 xl:flex xl:flex-col"
+    >
+      <div className="mb-5 flex items-center gap-2 px-2 pt-1">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-grad-coral shadow-brand-coral">
+          <span className="text-[16px] font-extrabold text-white">A</span>
         </div>
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.10em] text-slate2">
@@ -41,34 +28,52 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
         </div>
       </div>
 
-      <ul className="space-y-1">
-        {ITEMS.map((item) => {
-          const showBadge = item.to === APPROVALS_PATH && pendingCount > 0;
-          return (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  clsx('nav-link flex items-center justify-between', isActive && 'nav-link-active')
-                }
-              >
-                <span>{item.label}</span>
-                {showBadge && (
-                  <span
-                    className="ml-2 inline-flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-coral px-1.5 text-[11px] font-bold text-white"
-                    aria-label={`${pendingCount} pending approvals`}
-                  >
-                    {pendingCount}
-                  </span>
-                )}
-              </NavLink>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="min-h-0 space-y-4 overflow-y-auto">
+        {PORTAL_NAV_SECTIONS.map((section) => (
+          <div key={section.id}>
+            {section.label && (
+              <div className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate2">
+                {section.label}
+              </div>
+            )}
+            <ul className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const showBadge = item.id === APPROVALS_ID && pendingCount > 0;
+                return (
+                  <li key={item.to}>
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) =>
+                        clsx(
+                          'nav-link flex items-center justify-between',
+                          isActive && 'nav-link-active',
+                        )
+                      }
+                    >
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </span>
+                      {showBadge && (
+                        <span
+                          className="ml-2 inline-flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-coral px-1.5 text-[11px] font-bold text-white"
+                          aria-label={`${pendingCount} pending approvals`}
+                        >
+                          {pendingCount}
+                        </span>
+                      )}
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
 
-      <div className="mt-auto pt-6 border-t border-hairline">
+      <div className="mt-auto border-t border-hairline px-2 pt-4">
         {me.data?.kind === 'user' && (
           <div className="mb-3">
             <div className="text-[14px] font-semibold text-ink truncate">

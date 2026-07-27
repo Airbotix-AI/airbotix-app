@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
+import { KidAvatar } from '@/components/KidAvatar';
 import { SHOW_LESSONS_CATALOG } from '@/lib/features';
 import { usePlaygroundStore } from '@/pages/learn/playground/playgroundStore';
 import { useBlocksTheme } from '@/pages/learn/blocks/blocksTheme';
@@ -48,6 +49,7 @@ export function LearnTopBar() {
   const me = useMe();
   const logout = useLogout();
   const nickname = me.data?.kind === 'kid' ? me.data.nickname : null;
+  const avatarId = me.data?.kind === 'kid' ? me.data.avatar_id : null;
   const isWalkIn = me.data?.kind === 'kid' && me.data.is_ephemeral === true;
   const navItems = isWalkIn ? WALK_IN_NAV_ITEMS : VISIBLE_NAV_ITEMS;
   const { pathname } = useLocation();
@@ -109,14 +111,12 @@ export function LearnTopBar() {
         </div>
         <div className="flex items-center gap-3">
           {nickname && (
-            <div
-              className={clsx(
-                'hidden sm:block text-[14px]',
-                themed ? 'text-pg-text-dim' : 'text-ink-soft',
-              )}
-            >
-              I'm{' '}
-              <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>{nickname}</span>
+            <div className="hidden items-center gap-2 sm:flex">
+              <KidAvatar avatarId={avatarId} nickname={nickname} size="sm" />
+              <div className={clsx('text-[14px]', themed ? 'text-pg-text-dim' : 'text-ink-soft')}>
+                I'm{' '}
+                <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>{nickname}</span>
+              </div>
             </div>
           )}
           <button

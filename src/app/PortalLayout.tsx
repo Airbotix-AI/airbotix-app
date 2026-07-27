@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 
 import { IncidentBanner } from '@/components/IncidentBanner';
 
+import { PortalMobileHeader } from './PortalMobileHeader';
 import { PortalMobileNav } from './PortalMobileNav';
 import { PortalNavDrawer } from './PortalNavDrawer';
 import { usePortalPendingCount } from './usePortalPendingCount';
@@ -11,17 +12,19 @@ export function PortalLayout() {
 
   return (
     <div
-      className="fixed inset-0 flex h-dvh min-h-0 overflow-hidden bg-canvas"
+      className="portal-shell fixed inset-0 flex h-dvh min-h-0 overflow-hidden bg-canvas"
+      data-portal-shell="true"
       data-testid="portal-layout"
     >
       <PortalNavDrawer pendingCount={pendingCount} />
       <main
-        className="min-h-0 min-w-0 flex-1 overflow-y-auto pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0"
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain pb-[calc(4.5rem+env(safe-area-inset-bottom))] xl:pb-0"
         data-testid="portal-scroll-region"
       >
+        <PortalMobileHeader />
         <IncidentBanner />
         <div
-          className="w-full max-w-none py-6 pl-4 pr-3 md:py-10 md:pl-6 xl:pl-8 xl:pr-4"
+          className="portal-content-frame mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 sm:py-7 xl:px-8 xl:py-9"
           data-testid="portal-content-frame"
         >
           <Outlet />

@@ -45,6 +45,7 @@ describe('PortalMobileNav', () => {
     renderNavigation();
 
     const navigation = screen.getByRole('navigation', { name: 'Parent Portal mobile' });
+    expect(navigation).toHaveClass('xl:hidden');
     expect(within(navigation).getAllByRole('link')).toHaveLength(4);
     expect(within(navigation).getByRole('link', { name: 'Home' })).toHaveAttribute(
       'aria-current',
@@ -65,7 +66,11 @@ describe('PortalMobileNav', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /More/ }));
     const sheet = screen.getByRole('dialog', { name: 'More Parent Portal navigation' });
+    expect(sheet).toHaveClass('max-w-xl', 'xl:hidden');
 
+    for (const heading of ['Explore', 'Family', 'Account']) {
+      expect(within(sheet).getByText(heading)).toBeVisible();
+    }
     for (const label of [
       'Courses',
       'Teachers',

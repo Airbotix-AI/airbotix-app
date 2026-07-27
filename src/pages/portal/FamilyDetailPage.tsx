@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -8,10 +8,14 @@ import { z } from 'zod';
 import { api, ApiError } from '@/lib/api';
 import { SchoolField } from './SchoolField';
 import { EMPTY_SCHOOL, type SchoolValue } from './schoolValue';
+import { KidAvatar } from '@/components/KidAvatar';
+import { KidAvatarPicker } from '@/components/KidAvatarPicker';
+import { DEFAULT_KID_AVATAR_ID, type KidAvatarId } from '@/lib/kidAvatars';
 
 interface Kid {
   id: string;
   nickname: string;
+  avatar_id: string | null;
   age: number;
   real_name: string | null;
   daily_star_cap: number | null;
@@ -31,8 +35,11 @@ interface SchoolPatch {
   school_acara_id: string | null;
 }
 
+interface KidAvatarSummary { id: string; avatar_id: string | null }
+
 const editSchema = z.object({
   nickname: z.string().min(1).max(40),
+  avatar_id: z.string(),
   age: z.coerce.number().int().min(4).max(17),
   daily_star_cap: z
     .union([z.literal(''), z.coerce.number().int().min(0).max(1000), z.null()])
@@ -63,6 +70,11 @@ export function FamilyDetailPage() {
     queryFn: () => api<Kid>(`/kids/${kidId}`),
     enabled: !!kidId,
   });
+  const siblingAvatars = useQuery<KidAvatarSummary[]>({
+    queryKey: ['family', kid.data?.family_id, 'kids'],
+    queryFn: () => api<KidAvatarSummary[]>(`/families/${kid.data!.family_id}/kids`),
+    enabled: !!kid.data?.family_id,
+  });
 
   useEffect(() => {
     if (!kid.data) return;
@@ -79,6 +91,7 @@ export function FamilyDetailPage() {
     values: kid.data
       ? {
           nickname: kid.data.nickname,
+          avatar_id: kid.data.avatar_id ?? DEFAULT_KID_AVATAR_ID,
           age: kid.data.age,
           daily_star_cap: kid.data.daily_star_cap,
           is_active: kid.data.is_active,
@@ -138,12 +151,15 @@ export function FamilyDetailPage() {
       <Link to={`/portal/family/${kidId}`} className="btn-pill-ghost mb-4 -ml-3">← Growth</Link>
 
       <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-4">
+          <KidAvatar avatarId={kid.data.avatar_id} nickname={kid.data.nickname} size="lg" />
+          <div>
           <div className="eyebrow eyebrow-bubblegum">Kid profile</div>
-          <h1 className="section-heading">{kid.data.nickname}</h1>
+          <h1 className="section-heading">Manage {kid.data.nickname}</h1>
           <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
             Age {kid.data.age} {kid.data.is_active ? '· Active' : '· Paused'}
           </p>
+          </div>
         </div>
         <span className={`sticker-${kid.data.is_active ? 'mint' : 'sunshine'}`}>
           {kid.data.is_active ? 'Active' : 'Paused'}
@@ -164,7 +180,7 @@ export function FamilyDetailPage() {
         className="card-base space-y-5 mb-8"
         style={{ maxWidth: '520px' }}
       >
-        <div className="eyebrow eyebrow-sky">Edit profile</div>
+        <h2 className="text-[20px] font-bold text-ink">Basic details</h2>
 
         <label className="block">
           <span className="label-k12">Nickname</span>
@@ -173,6 +189,19 @@ export function FamilyDetailPage() {
             <span className="field-error">{editForm.formState.errors.nickname.message}</span>
           )}
         </label>
+        <Controller
+          name="avatar_id"
+          control={editForm.control}
+          render={({ field }) => (
+            <KidAvatarPicker
+              value={field.value as KidAvatarId}
+              onChange={field.onChange}
+              usedAvatarIds={(siblingAvatars.data ?? [])
+                .filter((sibling) => sibling.id !== kidId)
+                .map((sibling) => sibling.avatar_id ?? '')}
+            />
+          )}
+        />
         <label className="block">
           <span className="label-k12">Age</span>
           <input type="number" min={4} max={17} className="input-k12" {...editForm.register('age')} />
@@ -180,6 +209,9 @@ export function FamilyDetailPage() {
             <span className="field-error">{editForm.formState.errors.age.message}</span>
           )}
         </label>
+        <h2 className="border-t border-ink/10 pt-5 text-[20px] font-bold text-ink">
+          Access &amp; limits
+        </h2>
         <label className="block">
           <span className="label-k12">Daily Stars cap (optional)</span>
           <input
@@ -211,7 +243,7 @@ export function FamilyDetailPage() {
         )}
 
         <button type="submit" disabled={editMutation.isPending} className="btn-pill-primary">
-          {editMutation.isPending ? 'Saving…' : 'Save changes'}
+          {editMutation.isPending ? 'Saving…' : 'Save profile changes'}
         </button>
       </form>
 
@@ -220,7 +252,7 @@ export function FamilyDetailPage() {
         className="card-base space-y-5 mb-8"
         style={{ maxWidth: '520px' }}
       >
-        <div className="eyebrow eyebrow-sunshine">Reset PIN</div>
+        <h2 className="text-[20px] font-bold text-ink">Set a new kid PIN</h2>
         <p className="text-[13px] text-slate2 -mt-2">
           Resetting the PIN signs out all of this kid's devices.
         </p>
@@ -255,7 +287,7 @@ export function FamilyDetailPage() {
       </form>
 
       <div className="card-base" style={{ maxWidth: '520px' }}>
-        <div className="eyebrow">Danger zone</div>
+        <div className="eyebrow">Need to remove this kid profile?</div>
         <h3 className="text-[18px] font-bold text-ink mt-1">Delete this kid</h3>
         <p className="text-[13px] text-slate2 mt-2">
           Soft-deletes the profile and signs them out. You can restore from admin within 30 days.

@@ -10,6 +10,7 @@ import { setPassword, useLogout, useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
 import { clearOnboardingFlag } from '@/lib/onboardingStorage';
 import { CityField } from './CityField';
+import { MobileNumberEditor } from './MobileNumberEditor';
 
 import {
   AU_STATES,
@@ -30,7 +31,6 @@ interface FamilyData {
   school_name: string | null;
   preferred_language: PreferredLanguage | null;
   marketing_opt_in: boolean | null;
-  phone: string | null;
   parent_occupation: string | null;
   parent_industry: string | null;
   primary_email: string;
@@ -45,7 +45,6 @@ const schema = z.object({
   school_name: z.string().max(120),
   preferred_language: z.enum(PREFERRED_LANGUAGES),
   marketing_opt_in: z.boolean(),
-  phone: z.string().max(40),
   parent_occupation: z.string().max(120),
   parent_industry: z.string().max(120),
 });
@@ -85,7 +84,6 @@ export function SettingsPage() {
           school_name: family.data.school_name ?? '',
           preferred_language: family.data.preferred_language ?? 'en',
           marketing_opt_in: family.data.marketing_opt_in ?? false,
-          phone: family.data.phone ?? '',
           parent_occupation: family.data.parent_occupation ?? '',
           parent_industry: family.data.parent_industry ?? '',
         }
@@ -105,7 +103,6 @@ export function SettingsPage() {
           school_name: nullable(v.school_name),
           preferred_language: v.preferred_language,
           marketing_opt_in: v.marketing_opt_in,
-          phone: nullable(v.phone),
           parent_occupation: nullable(v.parent_occupation),
           parent_industry: nullable(v.parent_industry),
         },
@@ -287,16 +284,6 @@ export function SettingsPage() {
                 </summary>
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
                   <label className="block">
-                    <span className="label-k12">Phone (optional)</span>
-                    <input
-                      className="input-k12"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="0400 000 000"
-                      {...form.register('phone')}
-                    />
-                  </label>
-                  <label className="block">
                     <span className="label-k12">Your occupation (optional)</span>
                     <input
                       className="input-k12"
@@ -354,6 +341,10 @@ export function SettingsPage() {
                 <>
                   <Row label="Email" value={me.data.email} />
                   <DisplayNameEditor current={me.data.display_name} />
+                  <div className="border-b border-hairline pb-4">
+                    <span className="text-slate2 font-medium">Mobile number</span>
+                    <MobileNumberEditor current={me.data.phone ?? null} />
+                  </div>
                   <Row label="Role" value={me.data.role} />
                   <PasswordEditor hasPassword={me.data.has_password ?? false} />
                 </>

@@ -124,6 +124,18 @@ describe('CreativeSpacesPanel', () => {
     expect(screen.getAllByTestId('parent-guide-content')).toHaveLength(4);
     expect(screen.getAllByText('Real studio preview')).toHaveLength(4);
     expect(screen.getByText(/See the real workspace before you choose/i)).toBeInTheDocument();
+    expect(screen.getByText('Swipe to compare all four →')).toHaveClass('sm:hidden');
+    const studioGrid = screen.getByTestId('parent-studio-story-blocks').parentElement;
+    expect(studioGrid).toHaveClass(
+      'grid-flow-col',
+      'overflow-x-auto',
+      'sm:grid-flow-row',
+      'sm:grid-cols-2',
+      'sm:overflow-visible',
+    );
+    for (const { id } of expected) {
+      expect(screen.getByTestId(`parent-studio-${id}`)).toHaveClass('snap-start');
+    }
     expect(screen.getByRole('link', { name: 'Open My Family →' })).toHaveAttribute(
       'href',
       '/portal/family',

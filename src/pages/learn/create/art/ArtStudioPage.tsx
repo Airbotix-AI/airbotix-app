@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
@@ -19,6 +19,7 @@ import {
 import { ArtCanvas, type ArtCanvasHandle } from './ArtCanvas';
 import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
 import { fetchArtifactBlob, useArtifactBlobUrl } from './artifactBytes';
+import { clearArtDraft, readArtDraft, writeArtDraft } from './artDraft';
 import { removeWhiteBackground } from './matting';
 
 // The Art Studio, canvas-first (image-studio-prd.md v0.9, D-IS-11…19):
@@ -105,11 +106,19 @@ export interface ArtMissionTemplate {
   layer: 'underlay' | 'base';
   magic?: 'with-base' | 'strokes-only';
 }
+export interface ArtMissionStep {
+  id?: string;
+  title: string;
+  instruction_md?: string;
+  widget?: string;
+}
 export interface ArtMission {
   id: string;
   slug?: string;
   title: string;
   description?: string;
+  /** The authored learning sequence shown beside the canvas. */
+  steps?: ArtMissionStep[];
   template?: ArtMissionTemplate;
   /** Draw-along steps (D-IS-21): each step can summon its own 2★ ghost. */
   draw_along?: string[];
@@ -159,6 +168,7 @@ export function ArtStudioPage() {
   const [celebrate, setCelebrate] = useState(false);
 
   const location = useLocation();
+  const nav = useNavigate();
   const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
   // Reopen a saved picture to keep drawing (owner: "重新打开到画布继续画"): the
   // "🎨 Keep drawing" button in My Pictures passes the artifact's id + project. It
@@ -176,6 +186,11 @@ export function ArtStudioPage() {
   // the hydrate effect can start clean on the chosen picture instead of restoring
   // a stale draft over it.
   const navReopenRef = useRef(navReopen);
+  // The hub's "Draw a new picture" says NEW, out loud (owner 2026-07-26: 点
+  // Draw a new picture 出来的是之前画过的). Without this flag the canvas cannot
+  // tell that click apart from a refresh, so the draft-restore below handed the
+  // kid their previous drawing back. Captured once, then consumed (see below).
+  const navFreshRef = useRef(Boolean((location.state as { fresh?: boolean } | null)?.fresh));
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -204,44 +219,49 @@ export function ArtStudioPage() {
   // so a refresh lost them. Persist { ops, baseArtifactId, baseRef } to
   // localStorage keyed by the bucket and restore on return — EVERY mode, not just
   // free-play. Only missions (their own project/flow) opt out.
-  const draftKey = mission || !bucket.data ? null : `art-draft:v1:${bucket.data.project_id}`;
+  const draftProjectId = mission
+    ? undefined
+    : (bucket.data as { project_id: string } | undefined)?.project_id;
   // `hydrated` sequences the two effects: restore reads the draft first and only
   // THEN does auto-save arm. Without it the mount render (empty canvas) races the
   // restore and wipes the very draft we're about to load. Functional setState
   // keeps restore idempotent, so StrictMode's double-invoke is harmless.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (!draftKey) return;
-    // A fresh reopen starts clean on the chosen picture and REPLACES any stale
-    // draft — never restore old strokes onto a newly opened image.
-    if (!navReopenRef.current) {
-      try {
-        const raw = localStorage.getItem(draftKey);
-        if (raw) {
-          const d = JSON.parse(raw) as {
-            ops?: CanvasOp[];
-            baseArtifactId?: string | null;
-            baseRef?: { id: string; projectId: string } | null;
-          };
-          if (Array.isArray(d.ops) && d.ops.length > 0) setOps((cur) => (cur.length ? cur : d.ops!));
-          if (d.baseArtifactId) setBaseArtifactId((cur) => cur ?? d.baseArtifactId!);
-          if (d.baseRef) setBaseRef((cur) => cur ?? d.baseRef!);
-        }
-      } catch {
-        /* corrupt/unavailable draft — start clean */
+    if (!draftProjectId) return;
+    if (navFreshRef.current) {
+      // "Draw a new picture" — blank paper. The old draft is deliberately dropped
+      // here rather than left to reappear on the next visit; the hub offers it
+      // back ("Keep drawing your unfinished picture") right up until this click.
+      clearArtDraft(draftProjectId);
+    } else if (!navReopenRef.current) {
+      // A fresh reopen starts clean on the chosen picture and REPLACES any stale
+      // draft — never restore old strokes onto a newly opened image.
+      const d = readArtDraft(draftProjectId);
+      if (d) {
+        if (d.ops.length > 0) setOps((cur) => (cur.length ? cur : d.ops));
+        if (d.baseArtifactId) setBaseArtifactId((cur) => cur ?? d.baseArtifactId);
+        if (d.baseRef) setBaseRef((cur) => cur ?? d.baseRef);
       }
     }
     setHydrated(true);
-  }, [draftKey]);
+  }, [draftProjectId]);
+  // Both nav intents ("start blank", "open this picture") are ONE-SHOT: they
+  // describe the click, not the page. React Router keeps location.state in the
+  // history entry, so a later refresh would replay the intent and throw away the
+  // work done since. Consume it once and let the draft own every reload after.
   useEffect(() => {
-    if (!draftKey || !hydrated) return;
-    try {
-      if (ops.length === 0 && !baseArtifactId && !baseRef) localStorage.removeItem(draftKey);
-      else localStorage.setItem(draftKey, JSON.stringify({ ops, baseArtifactId, baseRef }));
-    } catch {
-      /* quota/unavailable — the work still lives in state */
+    if ((navFreshRef.current || navReopenRef.current) && location.state) {
+      nav(location.pathname, { replace: true, state: null });
     }
-  }, [ops, baseArtifactId, baseRef, draftKey, hydrated]);
+    // Mount-only: the refs are captured once and the replace must not re-fire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!draftProjectId || !hydrated) return;
+    if (ops.length === 0 && !baseArtifactId && !baseRef) clearArtDraft(draftProjectId);
+    else writeArtDraft(draftProjectId, { ops, baseArtifactId, baseRef });
+  }, [ops, baseArtifactId, baseRef, draftProjectId, hydrated]);
 
   // A reopened picture drives the canvas base + remix ref (mask-brush,
   // bring-to-life). Bucket takes set baseArtifactId directly and clear baseRef.
@@ -728,8 +748,13 @@ export function ArtStudioPage() {
       {/* header */}
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link to="/learn/create" className="text-[13px] font-bold text-ink-soft hover:text-ink">
-            ← All tools
+          {/* Back to the Art Studio HUB (D-IS-28), not the all-tools list: from the
+              canvas the kid's own tasks and pictures are one level up, not two. */}
+          <Link
+            to="/learn/create/image"
+            className="text-[13px] font-bold text-ink-soft hover:text-ink"
+          >
+            ← My art
           </Link>
           <span className="text-[16px] font-bold text-ink">🎨 Art Studio</span>
         </div>
@@ -954,6 +979,36 @@ export function ArtStudioPage() {
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
                 )}
+                {mission.steps && mission.steps.length > 0 && (
+                  <div
+                    className="mt-2 rounded-xl bg-canvas-pure/80 px-2.5 py-2"
+                    data-testid="mission-learning-steps"
+                  >
+                    <div className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
+                      Learn &amp; make · {mission.steps.length} steps
+                    </div>
+                    <ol className="mt-1.5 space-y-2">
+                      {mission.steps.map((step, index) => (
+                        <li key={step.id ?? `${step.title}-${index}`} className="flex gap-2">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-bubblegum text-[10px] font-black text-white">
+                            {index + 1}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[11px] font-bold text-ink">{step.title}</span>
+                            {step.instruction_md && (
+                              <span className="mt-0.5 block text-[10px] leading-snug text-ink-soft">
+                                {step.instruction_md}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="mt-2 text-[10px] font-semibold leading-snug text-brand-bubblegum">
+                      Code steps continue in Creative Code Studio after your art is ready.
+                    </p>
+                  </div>
+                )}
                 {mission.draw_along && mission.draw_along.length > 0 && !missionDone && (
                   <div className="mt-2" data-testid="draw-along">
                     <div className="text-[11px] font-bold text-ink">
@@ -997,6 +1052,22 @@ export function ArtStudioPage() {
                 {missionDone && (
                   <div className="text-[11px] font-bold text-brand-mint mt-1">✓ Complete! +3★</div>
                 )}
+              </div>
+            )}
+            {!mission && !hasInk && !baseArtifactId && !baseRef && takes.length === 0 && (
+              <div
+                className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum px-3 py-2.5"
+                data-testid="art-studio-start-guide"
+              >
+                <div className="text-[12px] font-black text-ink">Start here — make your first picture</div>
+                <ol className="mt-1.5 space-y-1 text-[11px] font-semibold leading-snug text-ink-soft">
+                  <li><strong className="text-ink">1.</strong> Tell Boti what you want to make.</li>
+                  <li><strong className="text-ink">2.</strong> Draw it yourself, or ask for a ghost sketch.</li>
+                  <li><strong className="text-ink">3.</strong> Press “Bring it to life” when your sketch is ready.</li>
+                </ol>
+                <p className="mt-1.5 text-[10px] font-bold text-slate2">
+                  Drawing is free. Every AI button shows its Star cost first.
+                </p>
               </div>
             )}
             <div className="flex-1 overflow-y-auto space-y-2 mb-2">
