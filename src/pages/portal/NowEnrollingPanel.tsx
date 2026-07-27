@@ -27,7 +27,9 @@ export function NowEnrollingPanel() {
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="eyebrow eyebrow-coral">Now enrolling</div>
-          <h2 className="text-[28px] font-bold leading-tight text-ink">Classes open right now</h2>
+          <h2 className="text-[24px] font-bold leading-tight text-ink sm:text-[26px]">
+            Classes open right now
+          </h2>
         </div>
         <Link to="/portal/classes" className="btn-pill-ghost">
           See all classes
@@ -61,7 +63,7 @@ export function NowEnrollingPanel() {
       )}
 
       {open.length > 0 && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {open.slice(0, DASHBOARD_LIMIT).map((item) => (
             <ClassCard key={item.id} item={item} />
           ))}

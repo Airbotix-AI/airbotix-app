@@ -26,17 +26,22 @@ export interface AvailableClass {
 
 export function ClassCard({ item }: { item: AvailableClass }) {
   return (
-    <article className="rounded-2xl border border-hairline bg-canvas-pure p-6 shadow-card-soft">
+    <article
+      className="rounded-2xl border border-hairline bg-canvas-pure p-4 shadow-card-soft sm:p-5"
+      data-testid="available-class-card"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate2">
             {item.course_pack?.title ?? 'Airbotix class'}
           </div>
-          <h2 className="mt-2 text-[22px] font-bold leading-tight text-ink">{item.name}</h2>
+          <h2 className="mt-1.5 text-[18px] font-bold leading-tight text-ink sm:text-[20px]">
+            {item.name}
+          </h2>
         </div>
         {item.course_total_aud_cents != null && (
-          <div className="rounded-2xl bg-wash-mint px-4 py-2 text-right">
-            <div className="text-[20px] font-extrabold text-ink">
+          <div className="rounded-2xl bg-wash-mint px-3 py-2 text-right">
+            <div className="text-[18px] font-extrabold text-ink">
               {formatAud(item.course_total_aud_cents)}
             </div>
             <div className="text-[11px] font-bold uppercase tracking-[0.10em] text-slate2">
@@ -46,7 +51,7 @@ export function ClassCard({ item }: { item: AvailableClass }) {
         )}
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
         <Fact label="Starts" value={dateTimeLabel(item.starts_at)} />
         <Fact label="Where" value={venueLabel(item.venue)} />
         <Fact label="Seats" value={`${item.seats_remaining} of ${item.max_students} available`} />
@@ -65,19 +70,22 @@ export function ClassCard({ item }: { item: AvailableClass }) {
         <TeachingTeam team={item.teaching_team ?? []} />
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mt-5 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
         {item.course_pack && (
           <Link
             to={`/portal/courses/${item.course_pack.slug}`}
-            className="btn-pill-secondary"
+            className="btn-pill-secondary w-full sm:w-auto"
           >
             View course details
           </Link>
         )}
-        <Link to={`/portal/checkout/class/${item.id}`} className="btn-pill-primary">
+        <Link
+          to={`/portal/checkout/class/${item.id}`}
+          className="btn-pill-primary w-full sm:w-auto"
+        >
           Pay & lock a seat
         </Link>
-        <Link to="/portal/courses" className="btn-pill-secondary">
+        <Link to="/portal/courses" className="btn-pill-secondary w-full sm:w-auto">
           Ask first
         </Link>
       </div>

@@ -17,7 +17,15 @@ function growthBounds(): { from: string; to: string } {
  * Always resilient: while loading shows a skeleton; on error or zero activity it
  * shows an encouraging "Ready to start" line — never a raw error.
  */
-export function KidGrowthTeaser({ kidId, name }: { kidId: string; name: string }) {
+export function KidGrowthTeaser({
+  kidId,
+  name,
+  compact = false,
+}: {
+  kidId: string;
+  name: string;
+  compact?: boolean;
+}) {
   const { from, to } = growthBounds();
 
   const detail = useQuery<KidUsageDetail>({
@@ -39,15 +47,21 @@ export function KidGrowthTeaser({ kidId, name }: { kidId: string; name: string }
   });
 
   if (detail.isLoading) {
-    return <div className="mt-4 h-4 w-2/3 animate-pulse rounded-full bg-ink/10" aria-hidden="true" />;
+    return (
+      <div
+        className={`${compact ? 'mt-3 h-3' : 'mt-4 h-4'} w-2/3 animate-pulse rounded-full bg-ink/10`}
+        aria-hidden="true"
+      />
+    );
   }
 
   const summary = summarize(detail.data, trend.data);
 
   if (detail.isError || summary.isEmpty) {
     return (
-      <div className="mt-4 text-[14px] font-semibold text-ink-soft">
-        <span aria-hidden="true">✨ </span>Ready to start — help {name} sign in
+      <div className={`${compact ? 'mt-3 text-[12px]' : 'mt-4 text-[14px]'} font-semibold text-ink-soft`}>
+        <span aria-hidden="true">✨ </span>
+        {compact ? 'Ready to create' : `Ready to start — help ${name} sign in`}
       </div>
     );
   }
@@ -58,12 +72,12 @@ export function KidGrowthTeaser({ kidId, name }: { kidId: string; name: string }
   else if (summary.activeDays >= 1) parts.push(`${summary.activeDays} active day${summary.activeDays === 1 ? '' : 's'}`);
 
   return (
-    <div className="mt-4">
-      <div className="text-[14px] font-semibold text-ink">
+    <div className={compact ? 'mt-3' : 'mt-4'}>
+      <div className={`${compact ? 'text-[12px]' : 'text-[14px]'} font-semibold text-ink`}>
         <span aria-hidden="true">{emoji} </span>
         {parts.join(' · ')}
       </div>
-      {trend.data && trend.data.length > 0 && (
+      {!compact && trend.data && trend.data.length > 0 && (
         <div className="mt-2">
           <TrendBars points={trend.data} className="h-10" />
           <div className="mt-1 text-[11px] font-medium text-slate2">last 4 weeks</div>

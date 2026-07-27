@@ -17,7 +17,8 @@ export type OnboardingFlag =
   | 'checklistDismissed'
   | 'kidLoginShown'
   | 'limitsReviewed'
-  | 'guidesBrowsed';
+  | 'guidesBrowsed'
+  | 'phonePromptDismissedV1';
 
 // Stable order — used to build the snapshot string for useSyncExternalStore.
 const FLAG_ORDER: OnboardingFlag[] = [
@@ -26,6 +27,7 @@ const FLAG_ORDER: OnboardingFlag[] = [
   'kidLoginShown',
   'limitsReviewed',
   'guidesBrowsed',
+  'phonePromptDismissedV1',
 ];
 
 /** All-unset snapshot — one slot per FLAG_ORDER entry. */

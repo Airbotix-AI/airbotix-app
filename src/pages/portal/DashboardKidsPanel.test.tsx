@@ -78,8 +78,10 @@ describe('DashboardKidsPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Leo' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: "Mia's avatar" })).toHaveTextContent('M');
-    expect(screen.getByRole('img', { name: "Leo's avatar" })).toHaveTextContent('L');
+    // The initial-letter placeholder is now a real picked avatar image, so the
+    // accessible name carries the avatar's own name after the child's.
+    expect(screen.getByRole('img', { name: /Mia's avatar/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Leo's avatar/ })).toBeInTheDocument();
     expect(screen.getByText('Mia growth')).toBeInTheDocument();
     expect(screen.getByText('Leo growth')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveAttribute(

@@ -1,18 +1,21 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
 import { api, ApiError } from '@/lib/api';
+import { KidAvatarPicker } from '@/components/KidAvatarPicker';
+import { DEFAULT_KID_AVATAR_ID, type KidAvatarId } from '@/lib/kidAvatars';
 import { ClaimKidForm } from './ClaimKidForm';
 import { SchoolField } from './SchoolField';
 import { EMPTY_SCHOOL, type SchoolValue } from './schoolValue';
 
 const schema = z.object({
   nickname: z.string().min(1).max(40),
+  avatar_id: z.string(),
   // Backend minimum age is 6 (D-SP8 / C2 compliance) — keep the client aligned.
   age: z.coerce.number().int().min(6, 'Airbotix is for ages 6+').max(17),
   pin: z.string().length(4).regex(/^\d{4}$/, '4 digits'),
@@ -22,6 +25,7 @@ const schema = z.object({
     .transform((v) => (v === '' || v === undefined ? undefined : v)),
 });
 type FormValues = z.infer<typeof schema>;
+interface ExistingKid { avatar_id: string | null }
 
 export function FamilyNewPage() {
   const me = useMe();
@@ -39,9 +43,15 @@ export function FamilyNewPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { avatar_id: DEFAULT_KID_AVATAR_ID } });
+  const existingKids = useQuery<ExistingKid[]>({
+    queryKey: ['family', familyId, 'kids'],
+    queryFn: () => api<ExistingKid[]>(`/families/${familyId}/kids`),
+    enabled: !!familyId,
+  });
 
   if (!familyId) {
     return (
@@ -61,6 +71,7 @@ export function FamilyNewPage() {
         method: 'POST',
         body: {
           nickname: values.nickname,
+          avatar_id: values.avatar_id,
           age: values.age,
           pin: values.pin,
           ...(values.daily_star_cap !== undefined ? { daily_star_cap: values.daily_star_cap } : {}),
@@ -128,6 +139,17 @@ export function FamilyNewPage() {
           <input className="input-k12" placeholder="Mia" autoComplete="off" {...register('nickname')} />
           {errors.nickname && <span className="field-error">{errors.nickname.message}</span>}
         </label>
+        <Controller
+          name="avatar_id"
+          control={control}
+          render={({ field }) => (
+            <KidAvatarPicker
+              value={field.value as KidAvatarId}
+              onChange={field.onChange}
+              usedAvatarIds={(existingKids.data ?? []).map((kid) => kid.avatar_id ?? '')}
+            />
+          )}
+        />
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="label-k12">Age</span>

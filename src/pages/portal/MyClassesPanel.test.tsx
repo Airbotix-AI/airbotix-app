@@ -90,6 +90,10 @@ describe('MyClassesPanel', () => {
     renderPanel();
 
     expect(await screen.findByText('Kids AI Game Lab')).toBeInTheDocument();
+    expect(screen.getByTestId('my-classes-grid')).toHaveClass(
+      'md:grid-cols-2',
+      'xl:grid-cols-3',
+    );
     expect(screen.getByRole('link', { name: 'Kids AI Game Lab' })).toHaveAttribute(
       'href',
       '/portal/courses/game-lab',

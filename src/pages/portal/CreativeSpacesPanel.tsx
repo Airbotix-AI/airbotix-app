@@ -121,7 +121,7 @@ function StudioCard({ studio }: { studio: CreateTool }) {
 
   return (
     <article
-      className="rounded-2xl border border-hairline bg-surface p-5"
+      className="snap-start rounded-2xl border border-hairline bg-surface p-5"
       data-testid={`parent-studio-${studio.id}`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -191,7 +191,11 @@ export function CreativeSpacesPanel() {
         Learn sign-in to create.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-slate2 sm:hidden">
+        Swipe to compare all four →
+      </p>
+
+      <div className="-mx-4 mt-4 grid auto-cols-[minmax(17rem,88%)] grid-flow-col gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:grid-flow-row sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">
         {LIVE_CREATE_TOOLS.map((studio) => (
           <StudioCard key={studio.id} studio={studio} />
         ))}
@@ -204,7 +208,7 @@ export function CreativeSpacesPanel() {
             My Family shows the family code and each child&apos;s sign-in details.
           </div>
         </div>
-        <Link to="/portal/family" className="btn-pill-primary shrink-0">
+        <Link to="/portal/family" className="btn-pill-primary w-full shrink-0 sm:w-auto">
           Open My Family →
         </Link>
       </div>

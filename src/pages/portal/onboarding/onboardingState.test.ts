@@ -6,6 +6,7 @@ import { computeOnboardingState, type OnboardingInputs } from './onboardingState
 const fresh: OnboardingInputs = {
   hasFamily: true,
   kidCount: 1,
+  hasPhone: true,
   starsBalance: null,
   paymentMethodCount: 0,
   autoTopupEnabled: false,
@@ -22,10 +23,12 @@ describe('computeOnboardingState', () => {
     const s = computeOnboardingState(fresh);
     expect(done(s, 'familySetup')).toBe(true);
     expect(done(s, 'kidAdded')).toBe(true);
+    expect(done(s, 'phoneAdded')).toBe(true);
     expect(done(s, 'kidLogin')).toBe(false);
     expect(done(s, 'addStars')).toBe(false);
     expect(done(s, 'setLimits')).toBe(false);
     expect(s.coreComplete).toBe(false);
+    expect(s.profileComplete).toBe(true);
   });
 
   it('null wallet balance is treated as not-done without throwing', () => {
@@ -39,13 +42,19 @@ describe('computeOnboardingState', () => {
 
   it('zero stars but a saved card completes addStars (OR branch)', () => {
     expect(
-      done(computeOnboardingState({ ...fresh, starsBalance: 0, paymentMethodCount: 1 }), 'addStars'),
+      done(
+        computeOnboardingState({ ...fresh, starsBalance: 0, paymentMethodCount: 1 }),
+        'addStars',
+      ),
     ).toBe(true);
   });
 
   it('null stars but a saved card completes addStars', () => {
     expect(
-      done(computeOnboardingState({ ...fresh, starsBalance: null, paymentMethodCount: 1 }), 'addStars'),
+      done(
+        computeOnboardingState({ ...fresh, starsBalance: null, paymentMethodCount: 1 }),
+        'addStars',
+      ),
     ).toBe(true);
   });
 
@@ -69,11 +78,25 @@ describe('computeOnboardingState', () => {
   });
 
   it('setLimits via the limitsReviewed flag is done', () => {
-    expect(done(computeOnboardingState({ ...fresh, limitsReviewed: true }), 'setLimits')).toBe(true);
+    expect(done(computeOnboardingState({ ...fresh, limitsReviewed: true }), 'setLimits')).toBe(
+      true,
+    );
   });
 
   it('no kid yet => kidAdded not done', () => {
     expect(done(computeOnboardingState({ ...fresh, kidCount: 0 }), 'kidAdded')).toBe(false);
+  });
+
+  it('keeps child readiness separate from a missing parent mobile', () => {
+    const s = computeOnboardingState({
+      ...fresh,
+      hasPhone: false,
+      kidLoginShown: true,
+      starsBalance: 10,
+    });
+    expect(s.coreComplete).toBe(true);
+    expect(s.profileComplete).toBe(false);
+    expect(done(s, 'phoneAdded')).toBe(false);
   });
 
   it('browseGuides is done via the guidesBrowsed flag, optional, no effect on core', () => {
@@ -84,11 +107,12 @@ describe('computeOnboardingState', () => {
     expect(s.coreComplete).toBe(false);
   });
 
-  it('returns exactly 6 items in the documented order, optional only on setLimits + browseGuides', () => {
+  it('returns exactly 7 items in the documented order, optional only on setLimits + browseGuides', () => {
     const s = computeOnboardingState(fresh);
     expect(s.items.map((it) => it.id)).toEqual([
       'familySetup',
       'kidAdded',
+      'phoneAdded',
       'kidLogin',
       'addStars',
       'setLimits',

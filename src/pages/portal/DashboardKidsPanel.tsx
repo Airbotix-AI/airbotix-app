@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { KidAvatar } from '@/components/KidAvatar';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -10,6 +11,7 @@ import { KidGrowthTeaser } from './KidGrowthTeaser';
 interface DashboardKid {
   id: string;
   nickname: string;
+  avatar_id: string | null;
   age: number;
   is_active: boolean;
 }
@@ -17,18 +19,6 @@ interface DashboardKid {
 interface OpenError {
   kidId: string;
   message: string;
-}
-
-function KidInitial({ nickname }: { nickname: string }) {
-  return (
-    <div
-      role="img"
-      aria-label={`${nickname}'s avatar`}
-      className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-sunshine/30 text-[34px] font-extrabold text-ink shadow-sm"
-    >
-      {nickname.trim().charAt(0).toLocaleUpperCase() || '★'}
-    </div>
-  );
 }
 
 export function DashboardKidsPanel({ familyId }: { familyId: string }) {
@@ -128,7 +118,7 @@ export function DashboardKidsPanel({ familyId }: { familyId: string }) {
               <article key={kid.id} className="card-base">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <KidInitial nickname={kid.nickname} />
+                    <KidAvatar avatarId={kid.avatar_id} nickname={kid.nickname} size="lg" />
                     <div className="min-w-0">
                       <h3 className="truncate text-[26px] font-bold leading-tight text-ink">
                         {kid.nickname}

@@ -43,6 +43,7 @@ afterEach(() => {
 describe('BookTeacherPanel', () => {
   it('submits a family child, learning goal, and preferred time as a tutoring request', async () => {
     api.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/teachers') return Promise.resolve([]);
       if (path === '/families/fam-1/kids') {
         return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
       }
@@ -92,6 +93,7 @@ describe('BookTeacherPanel', () => {
 
   it('shows existing request status and directs families without an active child to setup', async () => {
     api.mockImplementation((path: string) => {
+      if (path === '/teachers') return Promise.resolve([]);
       if (path === '/families/fam-1/kids') return Promise.resolve([]);
       if (path === '/bookings/tutoring-requests') {
         return Promise.resolve([
@@ -125,8 +127,22 @@ describe('BookTeacherPanel', () => {
 
   it('submits an approved teacher and city as a non-guaranteed preference', async () => {
     api.mockImplementation((path: string, options?: { method?: string }) => {
-      if (path === '/teachers/amy-chen')
-        return Promise.resolve({ slug: 'amy-chen', display_name: 'Amy Chen' });
+      if (path === '/teachers')
+        return Promise.resolve([
+          {
+            slug: 'amy-chen',
+            display_name: 'Amy Chen',
+            service_areas: [
+              {
+                city: 'Brisbane',
+                state: 'QLD',
+                area_label: 'Southside',
+                suburbs: [],
+                is_primary: true,
+              },
+            ],
+          },
+        ]);
       if (path === '/families/fam-1/kids')
         return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
       if (path === '/bookings/tutoring-requests' && options?.method === 'POST')
@@ -161,6 +177,67 @@ describe('BookTeacherPanel', () => {
         '/bookings/tutoring-requests',
         expect.objectContaining({
           method: 'POST',
+          body: expect.objectContaining({
+            preferred_teacher_slug: 'amy-chen',
+            preferred_city: 'Brisbane',
+          }),
+        }),
+      ),
+    );
+  });
+
+  it('lets a parent choose an approved teacher directly in the tutoring form', async () => {
+    api.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/teachers')
+        return Promise.resolve([
+          {
+            slug: 'amy-chen',
+            display_name: 'Amy Chen',
+            service_areas: [
+              {
+                city: 'Brisbane',
+                state: 'QLD',
+                area_label: 'Southside',
+                suburbs: [],
+                is_primary: true,
+              },
+            ],
+          },
+        ]);
+      if (path === '/families/fam-1/kids')
+        return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
+      if (path === '/bookings/tutoring-requests' && options?.method === 'POST')
+        return Promise.resolve({
+          id: 'booking-4',
+          status: 'new',
+          subject_interest: 'Python',
+          preferred_date: '2026-08-02T00:00:00.000Z',
+          notes: null,
+          created_at: '2026-07-22T00:00:00.000Z',
+          kid: { id: 'kid-1', nickname: 'Mia' },
+        });
+      if (path === '/bookings/tutoring-requests') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+
+    renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: 'Book a teacher →' }));
+    fireEvent.change(await screen.findByLabelText('Child'), { target: { value: 'kid-1' } });
+    fireEvent.change(screen.getByLabelText('Preferred teacher (optional)'), {
+      target: { value: 'amy-chen' },
+    });
+    fireEvent.change(screen.getByLabelText('What would your child like help with?'), {
+      target: { value: 'Python' },
+    });
+    fireEvent.change(screen.getByLabelText('Preferred date and time'), {
+      target: { value: '2026-08-02T10:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith(
+        '/bookings/tutoring-requests',
+        expect.objectContaining({
           body: expect.objectContaining({
             preferred_teacher_slug: 'amy-chen',
             preferred_city: 'Brisbane',

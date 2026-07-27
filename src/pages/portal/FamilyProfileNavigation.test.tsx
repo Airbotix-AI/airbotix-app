@@ -120,6 +120,7 @@ describe('family profile navigation', () => {
     });
     const kidTab = { location: { href: '' }, closed: false, close: vi.fn() };
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(kidTab as unknown as Window);
+
     renderRoute('/portal/family/kid-1', <KidGrowthPage />);
 
     const quickLogin = await screen.findByRole('button', { name: "Open Mia's kids page" });
@@ -144,6 +145,7 @@ describe('family profile navigation', () => {
       kid: { id: 'kid-1', nickname: 'Mia', age: 9, family_id: 'family-1' },
     });
     const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+
     renderRoute('/portal/family/kid-1', <KidGrowthPage />);
 
     const quickLogin = await screen.findByRole('button', { name: "Open Mia's kids page" });
@@ -160,7 +162,7 @@ describe('family profile navigation', () => {
     renderFamilyList();
 
     expect(await screen.findByText('Mia')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Mia.*See growth/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /See Mia's growth/ })).toHaveAttribute(
       'href',
       '/portal/family/kid-1',
     );
@@ -170,10 +172,10 @@ describe('family profile navigation', () => {
     wireApi();
     renderRoute('/portal/family/kid-1/settings', <FamilyDetailPage />);
 
-    expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
-    expect(screen.getByText('Edit profile')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Mia/ })).toBeInTheDocument();
+    expect(screen.getByText('Basic details')).toBeInTheDocument();
     expect(screen.getByLabelText('Daily Stars cap (optional)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Save (profile )?changes/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reset PIN' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Delete this kid' })).toBeInTheDocument();
   });
