@@ -228,6 +228,20 @@ const MISSION = {
   slug: 'draw-your-robot',
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
+  steps: [
+    {
+      id: 'step_1',
+      title: "Your hero's character sheet",
+      instruction_md: 'Make front, side and jumping poses that all look like the same hero.',
+      widget: 'image_create' as const,
+    },
+    {
+      id: 'step_2',
+      title: 'Boot your title screen',
+      instruction_md: 'Put your hero in the world and make the game open here.',
+      widget: 'code' as const,
+    },
+  ],
   template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
   draw_along: ['a big circle for the body', 'two small circles for the eyes'],
   checklist: ['a robot', 'a garden', 'a happy feeling'],
@@ -272,6 +286,10 @@ describe('ArtStudioPage (canvas-first)', () => {
       screen.getByAltText('Boti, the Airbotix robot-cat art tutor'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
+    const startGuide = screen.getByTestId('art-studio-start-guide');
+    expect(startGuide).toHaveTextContent('Start here — make your first picture');
+    expect(startGuide).toHaveTextContent('Tell Boti what you want to make');
+    expect(startGuide).toHaveTextContent('Bring it to life');
     // brand mark rides the bottom bar like the Music Stage (immersive page has no nav)
     expect(screen.getByTestId('studio-brand')).toBeInTheDocument();
     expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
@@ -787,6 +805,12 @@ describe('ArtStudioPage (canvas-first)', () => {
       const card = await screen.findByTestId('mission-card');
       expect(card).toHaveTextContent('Draw your robot');
       expect(card).toHaveTextContent('A robot with a happy face!');
+      const learningSteps = screen.getByTestId('mission-learning-steps');
+      expect(learningSteps).toHaveTextContent('Learn & make · 2 steps');
+      expect(learningSteps).toHaveTextContent("Your hero's character sheet");
+      expect(learningSteps).toHaveTextContent('Boot your title screen');
+      expect(learningSteps).toHaveTextContent('Creative Code Studio');
+      expect(screen.queryByTestId('art-studio-start-guide')).not.toBeInTheDocument();
     });
 
     it('magic creates a MISSION project (not the bucket) and saves there', async () => {
