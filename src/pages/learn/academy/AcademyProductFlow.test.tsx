@@ -37,7 +37,11 @@ const ENTITLEMENT = {
     title: 'NAPLAN Year 5 Numeracy Prep',
     level_key: 'Year 5',
     subject_key: 'Numeracy',
-    exam: { slug: 'naplan', title: 'NAPLAN' },
+    exam: {
+      slug: 'naplan',
+      title: 'NAPLAN',
+      brand_config: { supported_modes: ['practice', 'mock'] },
+    },
   },
 };
 
@@ -164,5 +168,38 @@ describe('Academy sellable product flow', () => {
       'href',
       '/learn/exams/naplan-y5-numeracy/mock/paper-1',
     );
+  });
+
+  it('does not promise a mock paper for a practice-only question library', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/academy/me/products/svamp-word-problems-y5')
+        return Promise.resolve({
+          ...ENTITLEMENT,
+          product: {
+            ...ENTITLEMENT.product,
+            slug: 'svamp-word-problems-y5',
+            title: 'SVAMP Year 5 Maths Word Problems',
+            exam: {
+              slug: 'svamp',
+              title: 'SVAMP',
+              brand_config: { supported_modes: ['practice'] },
+            },
+            _count: { question_links: 80 },
+            papers: [],
+          },
+        });
+      if (path === '/academy/me/products/svamp-word-problems-y5/progress')
+        return Promise.resolve({ attempts: 0, correct: 0, accuracy: 0 });
+      return Promise.resolve(undefined);
+    });
+
+    renderAt(
+      '/learn/exams/svamp-word-problems-y5',
+      <AcademyProductPage />,
+      '/learn/exams/:productSlug',
+    );
+
+    expect(await screen.findByText('Practice-only series')).toBeInTheDocument();
+    expect(screen.getByText(/not a fixed official-paper simulation/i)).toBeInTheDocument();
   });
 });

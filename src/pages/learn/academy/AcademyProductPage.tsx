@@ -33,6 +33,8 @@ export function AcademyProductPage() {
   }
 
   const p = product.data.product;
+  const supportedModes = p.exam.brand_config?.supported_modes ?? ['practice'];
+  const supportsMock = supportedModes.includes('mock');
   return (
     <div>
       <header className="mb-8 max-w-3xl">
@@ -85,7 +87,7 @@ export function AcademyProductPage() {
             <Stat label="Accuracy" value={`${Math.round((progress.data?.accuracy ?? 0) * 100)}%`} />
           </div>
         </section>
-        {(p.papers ?? []).length > 0 ? (
+        {supportsMock && (p.papers ?? []).length > 0 ? (
           <section className="card-base" data-testid="academy-mock-papers">
             <div className="eyebrow eyebrow-bubblegum">模拟考试 · Mock exam mode</div>
             <p className="mt-2 text-sm font-semibold text-slate2">
@@ -106,8 +108,16 @@ export function AcademyProductPage() {
               ))}
             </div>
           </section>
-        ) : (
+        ) : supportsMock ? (
           <ComingSoon title="Mock tests" copy="Timed papers built for this exact exam product." />
+        ) : (
+          <section className="card-base opacity-75">
+            <span className="sticker-mint">Practice-only series</span>
+            <h2 className="section-heading mt-4">No fixed exam-paper mode</h2>
+            <p className="lead-text mt-3">
+              This question library supports刷题 practice, not a fixed official-paper simulation.
+            </p>
+          </section>
         )}
         <ComingSoon title="Wrong questions" copy="Review only the questions you missed here." />
       </div>

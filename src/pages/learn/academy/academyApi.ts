@@ -197,7 +197,11 @@ export interface AcademyProductSummary {
   title: string;
   level_key: string;
   subject_key: string;
-  exam: { slug: string; title: string };
+  exam: {
+    slug: string;
+    title: string;
+    brand_config?: { supported_modes?: Array<'practice' | 'mock'> };
+  };
 }
 
 export interface AcademyPaperSummary {
@@ -331,7 +335,16 @@ export interface AcademyCatalogExam {
 }
 
 export interface AcademyPublicProduct extends AcademyCatalogProduct {
-  exam: { slug: string; title: string; provider: string | null };
+  exam: {
+    slug: string;
+    title: string;
+    provider: string | null;
+    brand_config?: {
+      assessment_family?: string;
+      supported_modes?: Array<'practice' | 'mock'>;
+      content_policy?: string;
+    };
+  };
   _count: { question_links: number };
 }
 

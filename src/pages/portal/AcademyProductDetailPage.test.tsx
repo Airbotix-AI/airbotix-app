@@ -43,7 +43,12 @@ describe('AcademyProductDetailPage', () => {
       price_aud_cents: 4900,
       access_days: 365,
       sales_config: {},
-      exam: { slug: 'naplan', title: 'NAPLAN', provider: 'ACARA' },
+      exam: {
+        slug: 'naplan',
+        title: 'NAPLAN',
+        provider: 'ACARA',
+        brand_config: { supported_modes: ['practice', 'mock'] },
+      },
       _count: { question_links: 130 },
     });
 
@@ -135,7 +140,11 @@ describe('AcademyProductDetailPage', () => {
       subject_key: 'Numeracy',
       price_aud_cents: 4900,
       access_days: 365,
-      exam: { slug: 'naplan', title: 'NAPLAN' },
+      exam: {
+        slug: 'naplan',
+        title: 'NAPLAN',
+        brand_config: { supported_modes: ['practice', 'mock'] },
+      },
       _count: { question_links: 130 },
     });
     renderPage();

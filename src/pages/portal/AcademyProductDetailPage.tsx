@@ -34,6 +34,7 @@ export function AcademyProductDetailPage() {
   }
 
   const item = product.data;
+  const supportsMock = (item.exam.brand_config?.supported_modes ?? ['practice']).includes('mock');
 
   return (
     <div data-testid="academy-product-detail">
@@ -97,16 +98,18 @@ export function AcademyProductDetailPage() {
           >
             Practice mode
           </button>
-          <button
-            type="button"
-            className={demoMode === 'mock' ? 'btn-pill-primary' : 'btn-pill-ghost'}
-            aria-pressed={demoMode === 'mock'}
-            onClick={() => setDemoMode('mock')}
-          >
-            Mock exam mode
-          </button>
+          {supportsMock && (
+            <button
+              type="button"
+              className={demoMode === 'mock' ? 'btn-pill-primary' : 'btn-pill-ghost'}
+              aria-pressed={demoMode === 'mock'}
+              onClick={() => setDemoMode('mock')}
+            >
+              Mock exam mode
+            </button>
+          )}
         </div>
-        {demoMode === 'practice' ? <AcademyParentDemo /> : <AcademyMockExamDemo />}
+        {demoMode === 'practice' || !supportsMock ? <AcademyParentDemo /> : <AcademyMockExamDemo />}
       </section>
 
       <section className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-3">

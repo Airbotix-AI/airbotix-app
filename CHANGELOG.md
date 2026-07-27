@@ -16,6 +16,8 @@
 
 ### Added
 
+- Product pages now obey each exam series' declared capabilities: true exam families can expose
+  Practice and Mock, while practice-only libraries no longer promise a fixed-paper mode.
 - Parent product details now switch between an original-question practice demo and a five-minute
   mock-paper demo with locked answers, submission, rubric self-assessment and a three-column report.
 - The entitled kid product page presents Practice and Mock exam as explicit modes with their
