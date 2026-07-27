@@ -4,6 +4,10 @@
 
 ### Added
 
+- Journey to the West C4-P2 now lets children compare two real event entries:
+  Go measures the deliberately premature Start-chain Hop, while a later character
+  tap runs only the On Tap turn. The prediction, both traces and the comparison
+  persist as Story Part evidence and unlock only C4-P3.
 - Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
   character pose plus the breakfast-cart and morning-bell states, and saves the selected first-party
   PNG into the project instead of falling back to an emoji.
