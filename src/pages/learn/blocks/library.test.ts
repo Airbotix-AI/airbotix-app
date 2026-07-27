@@ -9,5 +9,7 @@ describe('Tiny Star Village scene library', () => {
       emoji: '🌙',
     })
     expect(sceneId('tsv-rooftop')).toBe('tsv-rooftop')
+    expect(sceneId('tsv-greeting-stage')).toBe('tsv-greeting-stage')
+    expect(sceneId('tsv-clocktower-path')).toBe('tsv-clocktower-path')
   })
 })

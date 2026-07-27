@@ -1007,7 +1007,7 @@
   background: linear-gradient(180deg, #ffd3ee, #ffe9c7 60%, #ffd0e6);
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] {
-  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-dim.svg')
+  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-before-dim-v01.webp')
     center / cover no-repeat;
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-hill,
@@ -1030,6 +1030,25 @@
 }
 .bsx-stage[data-scene='tsv-rooftop'] .bsx-hill,
 .bsx-stage[data-scene='tsv-rooftop'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-hill,
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-deco {
+  display: none;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] {
+  background: url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-dim-v01.webp')
+    center / cover no-repeat;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-hill,
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-deco {
   display: none;
 }
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
