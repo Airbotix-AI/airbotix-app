@@ -2,17 +2,41 @@
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, type Location } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { LoginPage as KidLoginPage } from './learn/LoginPage';
 import { LoginPage as ParentLoginPage } from './portal/LoginPage';
 
-function renderLogin(path: '/portal/login' | '/learn/login') {
+interface LoginLocationState {
+  from?: Pick<Location, 'pathname'>;
+}
+
+function LoginLocationProbe() {
+  const location = useLocation();
+  const from = (location.state as LoginLocationState | null)?.from;
+
+  return <output data-testid="login-return-to">{from?.pathname ?? 'none'}</output>;
+}
+
+function renderLogin(
+  entry:
+    | '/portal/login'
+    | '/learn/login'
+    | { pathname: '/portal/login' | '/learn/login'; state?: LoginLocationState },
+) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
-        <Route path="/portal/login" element={<ParentLoginPage />} />
+        <Route
+          path="/portal/login"
+          element={
+            <>
+              <ParentLoginPage />
+              <LoginLocationProbe />
+            </>
+          }
+        />
         <Route path="/learn/login" element={<KidLoginPage />} />
       </Routes>
     </MemoryRouter>,
@@ -110,6 +134,20 @@ describe('shared login identity gateway', () => {
     fireEvent.change(screen.getByPlaceholderText('WANG'), { target: { value: 'TEST01' } });
     fireEvent.click(screen.getByRole('button', { name: 'Next →' }));
     expect(await screen.findByPlaceholderText('••••')).toBeVisible();
+  });
+
+  it('keeps the checkout return target when the active parent identity is clicked', () => {
+    const checkoutPath = '/portal/checkout/class/class-1';
+    renderLogin({
+      pathname: '/portal/login',
+      state: { from: { pathname: checkoutPath } },
+    });
+
+    expect(screen.getByTestId('login-return-to')).toHaveTextContent(checkoutPath);
+
+    fireEvent.click(screen.getByTestId('auth-role-parent'));
+
+    expect(screen.getByTestId('login-return-to')).toHaveTextContent(checkoutPath);
   });
 
   it('lets families browse and pause the featured creations', () => {

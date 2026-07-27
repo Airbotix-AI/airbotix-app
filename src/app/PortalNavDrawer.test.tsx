@@ -50,7 +50,7 @@ describe('PortalNavDrawer', () => {
     renderDrawer();
 
     const nav = screen.getByRole('navigation');
-    expect(nav).toHaveClass('hidden', 'w-56', 'p-4', 'xl:flex');
+    expect(nav).toHaveClass('hidden', 'xl:flex');
     expect(within(nav).getAllByRole('link')).toHaveLength(14);
     for (const heading of ['Explore', 'Family', 'Account']) {
       expect(within(nav).getByText(heading)).toBeVisible();

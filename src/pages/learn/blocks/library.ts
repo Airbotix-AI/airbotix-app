@@ -2,6 +2,8 @@
 // 5–8-year-old can pick by sight. Characters are emoji (no asset pipeline yet);
 // scenes are CSS-animated backgrounds keyed by id (see blocks.css `[data-scene]`).
 
+import { JTW_C3_STORY_SCENES } from './jtwC3Stage';
+
 export interface CharacterChoice {
   emoji: string;
   name: string;
@@ -215,7 +217,19 @@ export const SCENES: SceneChoice[] = [
 ];
 
 const SCENE_IDS = new Set(SCENES.map((s) => s.id));
-const FIRST_PARTY_STORY_SCENE_IDS = new Set(['jtw-s1-c1-flower-fruit-stone']);
+/**
+ * Story scenes that are NOT offered in the picker but are legal on a saved
+ * document, because a shipped starter uses them. Chapter three's three-page
+ * route (`jtw-s1-c3-three-seas-route`) contributes three: a C3 build is edited
+ * in the real studio, so every one of its pages must resolve to its own artwork
+ * instead of falling back to the generic meadow. C3-P5's starry middle sea is
+ * the fourth: the two weather branches paint the SAME page differently.
+ */
+const FIRST_PARTY_STORY_SCENE_IDS = new Set([
+  'jtw-s1-c1-flower-fruit-stone',
+  'jtw-s1-c2-water-curtain-actor-free',
+  ...JTW_C3_STORY_SCENES,
+]);
 /** Map any stored background to a known scene id (older docs used 'meadow'/'space'). */
 export function sceneId(bg: string | undefined): string {
   return bg && (SCENE_IDS.has(bg) || FIRST_PARTY_STORY_SCENE_IDS.has(bg)) ? bg : 'meadow';

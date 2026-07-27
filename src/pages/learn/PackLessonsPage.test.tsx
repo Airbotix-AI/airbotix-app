@@ -51,6 +51,7 @@ function renderPack() {
       <MemoryRouter initialEntries={['/learn/missions/creative-starter']}>
         <Routes>
           <Route path="/learn/missions/:id" element={<PackLessonsPage />} />
+          {/* An art task goes straight to the CANVAS, past the hub (D-IS-28). */}
           <Route path="/learn/create/image/canvas" element={<ArtMissionTarget />} />
           <Route path="/learn/create/image" element={<div data-testid="art-hub-route" />} />
         </Routes>
@@ -121,52 +122,11 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
           slug: 'draw-a-cat',
           title: 'Draw a cat',
           description: 'Make a picture.',
-          steps: [],
           template: {
             url: '/templates/robot.png',
             layer: 'underlay',
             magic: 'strokes-only',
           },
-        },
-      }),
-    );
-  });
-
-  it('opens a real steps-array image task in Art Studio with its learning sequence', async () => {
-    const steps = [
-      {
-        id: 'hero',
-        title: "Your hero's character sheet",
-        instruction_md: 'Draw front, side and jumping poses.',
-        widget: 'image_create',
-      },
-      {
-        id: 'world',
-        title: 'Pick your world',
-        instruction_md: 'Choose where the adventure happens.',
-        widget: 'choice',
-      },
-    ];
-    api.mockResolvedValue({
-      ...PACK,
-      lessons: [
-        {
-          ...PACK.lessons[0],
-          missions: [{ ...PACK.lessons[0].missions[0], steps_json: steps }],
-        },
-      ],
-    });
-    renderPack();
-    const task = (await screen.findByText('Draw a cat')).closest('li');
-    fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
-    expect(await screen.findByTestId('art-mission-state')).toHaveTextContent(
-      JSON.stringify({
-        mission: {
-          id: 'm1',
-          slug: 'draw-a-cat',
-          title: 'Draw a cat',
-          description: 'Make a picture.',
-          steps,
         },
       }),
     );

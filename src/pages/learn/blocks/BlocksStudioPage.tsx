@@ -68,6 +68,7 @@ import { CharacterVisual } from './CharacterVisual';
 import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
+import { isJtwOrderDebugLesson, jtwOrderBugObserved } from './jtwOrderDebug';
 import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -75,57 +76,59 @@ import {
   storyMissionProgramMatches,
   storyMissionSayChoices,
   storyMissionScriptId,
+  TINY_STAR_DELIVERY_DISTANCES,
+  TINY_STAR_DELIVERY_PARCELS,
+  TINY_STAR_DELIVERY_START_GX,
+  TINY_STAR_DELIVERY_STOP_GY,
+  TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
+  TINY_STAR_OVERLAPPING_VOICES,
+  tinyStarBounceRelayInTime,
+  tinyStarBounceRelayTooLate,
+  tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
+import {
+  TINY_STAR_BELL_CAST,
+  TINY_STAR_BELL_MISSING_CARD_ID,
+  TINY_STAR_BELL_RINGER_ID,
+  TINY_STAR_BELL_RINGER_IDS,
+  TINY_STAR_BELL_TOWER_GX,
+  TINY_STAR_FINALE_RINGER_ID,
+  tinyStarBellRangAfterHop,
+  tinyStarBellRangBeforeHop,
+  tinyStarBellRangWithoutHop,
+  tinyStarFinaleDesign,
+  tinyStarFinaleEndedAfterBell,
+} from './tinyStarBellTower';
+import {
+  TINY_STAR_DUET_CAST,
+  TINY_STAR_DUET_FIRST_ID,
+  TINY_STAR_DUET_HOP_N,
+  TINY_STAR_DUET_SECOND_ID,
+  tinyStarDuetDesign,
+  tinyStarDuetTookTurns,
+} from './tinyStarDuet';
 import {
   nextStoryMissionForLesson,
   storyJourneyPositionForLesson,
   storyMissionProjectTitle,
 } from './storyJourneyCatalog';
-
-const SAVE_DEBOUNCE_MS = 800;
-
-// ── block drag tuning (touch-first) ──────────────────────────────────────────
-// On a tablet a finger that starts on a block must be free to SCROLL the list;
-// only a deliberate HOLD lifts the block to drag. So: touch waits for a short
-// long-press (and cancels if the finger moves first = a scroll); mouse starts
-// on a tiny move threshold. While a drag is active we lock page scrolling with a
-// non-passive touchmove listener (touch-action alone can't be flipped mid-touch).
-const LONGPRESS_MS = 180;
-const TOUCH_CANCEL_PX = 12; // finger travels this far before the hold fires → it's a scroll
-const MOUSE_DRAG_PX = 6; // mouse moves this far → start dragging
-const preventTouchMove = (e: TouchEvent) => {
-  if (e.cancelable) e.preventDefault();
-};
-function lockTouchScroll() {
-  document.addEventListener('touchmove', preventTouchMove, { passive: false });
-}
-function unlockTouchScroll() {
-  document.removeEventListener('touchmove', preventTouchMove);
-}
-
-type SaveStatus = 'saved' | 'saving' | 'offline';
-
-// Teacher read-only viewer (D-LV-6): edit controls are RENDERED-but-DISABLED, not
-// hidden, so the read-only layout is byte-for-byte the kid's (no empty bands, no
-// missing palette). Edit controls get this consistent inert + dimmed treatment;
-// the CONTENT the teacher is viewing (stage, characters, script chain, page
-// thumbnails) stays full-opacity. Mutation handlers are already store-gated.
-const READONLY_EDIT_DISABLED = 'pointer-events-none cursor-default opacity-60';
-
-// ── zone label chip (clarity pass) ───────────────────────────────────────────
-// Kids 5–8 (many pre-readers) couldn't tell what each studio area was for, so
-// every zone wears a tiny emoji-first name tag. Chips are decoration only:
-// pointer-events:none, aria-hidden (the zones carry matching aria-labels), and
-// blocks.css hides them in present mode / while a block drag is live.
-function ZoneTag({ zone, emoji, label }: { zone: string; emoji: string; label: string }) {
-  return (
-    <span className={`bsx-zonetag zt-${zone}`} data-testid={`zone-${zone}`} aria-hidden>
-      <span className="zt-ic">{emoji}</span>
-      <span className="zt-txt">{label}</span>
-    </span>
-  );
-}
+import {
+  recordTinyStarSeasonScene,
+  TINY_STAR_SEASON_LOCKED_MESSAGE,
+  TINY_STAR_SEASON_OFFLINE_MESSAGE,
+} from './tinyStarSeason';
+import { ZoneTag } from './ZoneTag';
+import {
+  LONGPRESS_MS,
+  MOUSE_DRAG_PX,
+  READONLY_EDIT_DISABLED,
+  SAVE_DEBOUNCE_MS,
+  TOUCH_CANCEL_PX,
+  lockTouchScroll,
+  unlockTouchScroll,
+  type SaveStatus,
+} from './blocksStudioChrome';
 
 export function BlocksStudioPage({
   projectId: projectIdProp,
@@ -172,6 +175,36 @@ export function BlocksStudioPage({
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionTapObserved, setMissionTapObserved] = useState(false);
   const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
+  // A5-H: the Hook's evidence is that the real interpreter held BOTH speech
+  // bubbles open at the same instant. The ref is read synchronously when the run
+  // settles; the state drives the answer gate and the coach cue.
+  const [missionVoicesOverlapped, setMissionVoicesOverlapped] = useState(false);
+  const voicesOverlappedRef = useRef(false);
+  // A5-B: the opposite proof — the run measured a real head start between the
+  // two greetings. Judged per RUN (the ref is cleared when a runner is built),
+  // because an earlier head start says nothing about the chain on the page now.
+  const greetingTookTurnsRef = useRef(false);
+  // A5-D: the same idea one scene later, with a floor AND a ceiling. The run
+  // either produced the repaired relay (second bounce after the first lands,
+  // still inside a bounce's worth of quiet) or reproduced the shipped bug (the
+  // stage stood empty for longer than that). Both are measured per RUN.
+  const bounceRelayInTimeRef = useRef(false);
+  const bounceRelayTooLateRef = useRef(false);
+  // A5-S: the same measurement for the child's OWN duet — the band comes from
+  // whichever greeting they gave the friend who goes first. Judged per RUN.
+  const duetTookTurnsRef = useRef(false);
+  // A6-H: chapter six's Hook proves a NEGATIVE — the interpreter played the
+  // bell and never reached a Hop, with the ringer standing at the tower. Like
+  // A5-H's overlap this is observed once per session (the Explore contract
+  // forbids editing the program at all), and cleared when a project loads.
+  const [missionBellRangAlone, setMissionBellRangAlone] = useState(false);
+  const bellRangAloneRef = useRef(false);
+  /**
+   * A6: the block ops the ringer's script actually reached in THIS run, in the
+   * order the interpreter reached them. A6-H reads a negative off it (a bell
+   * with no hop before it); A6-B reads the repaired order (hop, then bell).
+   */
+  const bellPlayedOpsRef = useRef<string[]>([]);
   const [missionAnswer, setMissionAnswer] = useState<string | null>(null);
   const [missionFixApplied, setMissionFixApplied] = useState(false);
   const [missionCorrectRunFinished, setMissionCorrectRunFinished] = useState(false);
@@ -179,6 +212,9 @@ export function BlocksStudioPage({
   const [missionCompleted, setMissionCompleted] = useState(false);
   const [nextMissionBusy, setNextMissionBusy] = useState(false);
   const [nextMissionError, setNextMissionError] = useState<string | null>(null);
+  // The season chain refused this scene (it was opened out of order): the
+  // project still saved, but the story map must not offer the scene after it.
+  const [seasonSceneLocked, setSeasonSceneLocked] = useState(false);
   const [storyCoachCue, setStoryCoachCue] = useState<StoryCoachCue>('ready');
   // secondary toolbar actions collapse into a "⋯ More" menu so the bar stays
   // uncluttered (especially in portrait). Anchored below the button.
@@ -258,11 +294,51 @@ export function BlocksStudioPage({
   const isA3PersonalShip = storyMission?.lessonId === 'tsv-s1-a3-s';
   const isA4ParameterBuild = storyMission?.lessonId === 'tsv-s1-a4-b';
   const isA4ParameterDebug = storyMission?.lessonId === 'tsv-s1-a4-d';
+  // A4-S Personal Ship: the child owns the stop, the parcel and the number, so
+  // the arrival square is read from the scene instead of being a fixed answer.
+  const isA4PersonalShip = storyMission?.lessonId === 'tsv-s1-a4-s';
+  // A5-B Logic Build: there is no arrival square to check — the runtime proof is
+  // that the second greeting really started later than the first.
+  const isA5TurnBuild = storyMission?.lessonId === 'tsv-s1-a5-b';
+  // A5-D Twist & Debug: the chain is complete and correctly ordered — only the
+  // Wait number is wrong. Like A4-D, the child must run the bug first, name the
+  // direction of the repair, and may then edit that one number and nothing else.
+  const isA5RelayDebug = storyMission?.lessonId === 'tsv-s1-a5-d';
+  // A5-S Personal Ship: the child casts two of the three friends, decides which
+  // one greets first, builds both chains and chooses the Wait. Nothing on the
+  // page is a fixed answer, so the contract is read from the saved page itself.
+  const isA5PersonalShip = storyMission?.lessonId === 'tsv-s1-a5-s';
+  // A6-B Logic Build: the child adds the Hop the chapter's Hook was missing. The
+  // saved chain pins WHERE the block sits; the run has to show what the village
+  // saw — the ringer reaching the tower, jumping, and only then the bell.
+  const isA6StepBuild = storyMission?.lessonId === 'tsv-s1-a6-b';
+  // A6-D Twist & Debug: all five blocks are already on the page and only the Pop
+  // is in the wrong place. Like A2-D/A4-D/A5-D the child must run the bug first;
+  // unlike them the repair is a DRAG, not a number, so block dragging stays on
+  // (once the bug has been watched) while the palette and the number editor stay
+  // shut — teaching script §8.6 forbids rebuilding the chain.
+  const isA6OrderDebug = storyMission?.lessonId === 'tsv-s1-a6-d';
+  // A6-B and A6-D end in the same place: the run itself must have played the hop
+  // before the bell, with the ringer standing at the foot of the tower.
+  const needsBellOrderRun = isA6StepBuild || isA6OrderDebug;
+  // A6-S Personal Ship, and the last scene of the season: the three-step core is
+  // settled and ships built, so what is the child's is WHO rings the bell and
+  // what the village does once the morning light is back. Nothing on the page is
+  // a fixed answer, so the contract is read from the saved page itself.
+  const isA6Finale = storyMission?.lessonId === 'tsv-s1-a6-s';
+  const finaleRinger = page.characters.find(
+    (character) => character.id === TINY_STAR_FINALE_RINGER_ID,
+  );
+  const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
+  const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
+  const deliveryStop = page.characters.find(
+    (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
+  );
   // JtW C1-P6: the starter ships the Say→Hop→Show order bug. The mission only
   // completes after the child has RUN the bug at least once (the wrong-run
   // observation) and then rerun the repaired exact chain — mirroring the
   // A2-D/A4-D debug contract "bug run and fixed run must both exist".
-  const isJtwOrderDebug = storyMission?.lessonId === 'jtw-s1-c1-p6';
+  const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -295,10 +371,21 @@ export function BlocksStudioPage({
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
+    // Runtime evidence never survives a reload: A5-H's overlap must be seen in
+    // a run of THIS session before the child's answer can count.
+    setMissionVoicesOverlapped(false);
+    voicesOverlappedRef.current = false;
+    setMissionBellRangAlone(false);
+    bellRangAloneRef.current = false;
+    greetingTookTurnsRef.current = false;
+    bounceRelayInTimeRef.current = false;
+    bounceRelayTooLateRef.current = false;
+    duetTookTurnsRef.current = false;
     setMissionFixPersisted(missionTargetFixed);
     setMissionCompleted(previouslyCompleted);
     setNextMissionBusy(false);
     setNextMissionError(null);
+    setSeasonSceneLocked(false);
     setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
   }, [phase, projectId, storyMission, missionTargetFixed]);
@@ -516,6 +603,17 @@ export function BlocksStudioPage({
         setMissionCompleted(true);
         setStoryCoachCue('complete');
         setMissionOpen(true);
+        // Advance the season chain (Task 25). The saved project is the evidence;
+        // the server re-checks the previous scene, so a scene played out of
+        // order saves but never opens the one after it.
+        if (!demo) {
+          const seasonRecord = await recordTinyStarSeasonScene(storyMission.lessonId, projectId);
+          setSeasonSceneLocked(seasonRecord === 'locked');
+          if (seasonRecord === 'locked') setNextMissionError(TINY_STAR_SEASON_LOCKED_MESSAGE);
+          else if (seasonRecord === 'unavailable') {
+            setNextMissionError(TINY_STAR_SEASON_OFFLINE_MESSAGE);
+          }
+        }
       }
       setSaveStatus('saved');
     } catch {
@@ -530,7 +628,7 @@ export function BlocksStudioPage({
       savingRef.current = false;
       completionSaveInFlightRef.current = false;
     }
-  }, [projectId, storyMission]);
+  }, [demo, projectId, storyMission]);
 
   useEffect(() => {
     if (
@@ -592,6 +690,32 @@ export function BlocksStudioPage({
 
   // ── run ───────────────────────────────────────────────────────────────────
   const makeRunner = useCallback(() => {
+    // Which characters have a bubble open right now, tracked per RUN. When two
+    // are open at once the parallel greetings really did collide — that is the
+    // only thing A5-H accepts as proof, and it comes from the interpreter, not
+    // from the page or the story card.
+    const openBubbles = new Set<string>();
+    // A5-B: when each voice FIRST opened a bubble in this run. The gap between
+    // the two entries is the head start the inserted Wait produced, measured on
+    // the real clock the interpreter sleeps against.
+    const bubbleOpenedAt = new Map<string, number>();
+    // A5-D: when each friend FIRST reached its Hop block in this run, read from
+    // the interpreter's own step callback. The gap between the two entries is
+    // the pause the child is tuning.
+    const bounceStartedAt = new Map<string, number>();
+    // A5-S: when each stage slot FIRST reached its greeting block in this run —
+    // Say or Hop, whichever the child chose. The band this gap is judged against
+    // comes from the duet on the page right now, so a rebuilt chain is re-judged.
+    const duetGreetedAt = new Map<string, number>();
+    const duetDesign = tinyStarDuetDesign(page);
+    greetingTookTurnsRef.current = false;
+    bounceRelayInTimeRef.current = false;
+    bounceRelayTooLateRef.current = false;
+    duetTookTurnsRef.current = false;
+    // A6: which ops the ringer really performed this run, in order. Chapter six
+    // is about the order of three steps, so the ops the interpreter reached —
+    // not the blocks sitting on the page — are what decides both A6 scenes.
+    bellPlayedOpsRef.current = [];
     const runner = new BlocksRunner(page, {
       onSprite: (id, st, dur) =>
         setRunStates((prev) => {
@@ -599,13 +723,26 @@ export function BlocksStudioPage({
           next.set(id, { st, dur });
           return next;
         }),
-      onSay: (id, text) =>
+      onSay: (id, text) => {
+        if (text === null) openBubbles.delete(id);
+        else {
+          openBubbles.add(id);
+          if (!bubbleOpenedAt.has(id)) {
+            bubbleOpenedAt.set(id, Date.now());
+            if (tinyStarGreetingTookTurns(bubbleOpenedAt)) greetingTookTurnsRef.current = true;
+          }
+          if (openBubbles.size >= TINY_STAR_OVERLAPPING_VOICES) {
+            voicesOverlappedRef.current = true;
+            setMissionVoicesOverlapped(true);
+          }
+        }
         setSays((prev) => {
           const next = new Map(prev);
           if (text === null) next.delete(id);
           else next.set(id, text);
           return next;
-        }),
+        });
+      },
       onNote: sfx.playNote,
       onSound: sfx.playSound,
       onGotoPage: (idx) => {
@@ -620,6 +757,18 @@ export function BlocksStudioPage({
           .flatMap((character) => character.scripts)
           .find((candidate) => candidate.id === scriptId);
         const op = index >= 0 ? script?.blocks[index]?.op : undefined;
+        if (op && TINY_STAR_BELL_RINGER_IDS.includes(stepCharId)) {
+          bellPlayedOpsRef.current.push(op);
+        }
+        if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
+          bounceStartedAt.set(stepCharId, Date.now());
+          bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
+          bounceRelayTooLateRef.current = tinyStarBounceRelayTooLate(bounceStartedAt);
+        }
+        if (duetDesign && (op === 'say' || op === 'hop') && !duetGreetedAt.has(stepCharId)) {
+          duetGreetedAt.set(stepCharId, Date.now());
+          duetTookTurnsRef.current = tinyStarDuetTookTurns(duetGreetedAt, duetDesign.firstAction);
+        }
         setCharacterPerformances((prev) => {
           const next = new Map(prev);
           next.set(stepCharId, performanceForBlock(op));
@@ -663,28 +812,93 @@ export function BlocksStudioPage({
         );
         const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
           .gx;
+        // A4-S has no fixed arrival square: the cart must finish on whichever
+        // stop the child placed, which is also the distance its number encodes.
+        const deliveryStopGx = page.characters.find(
+          (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
+        )?.start.gx;
+        // A6-S has no fixed ending either: which op has to play last is read
+        // from the finale the child built on the page they just ran.
+        const finaleDesign = tinyStarFinaleDesign(page);
         const reachedMissionTarget =
           (!requiresPlazaArrival || runner.state('tuan-tuan')?.gx === targetGx) &&
-          (!(isA4ParameterBuild || isA4ParameterDebug) || runner.state('breakfast-cart')?.gx === 7);
+          (!(isA4ParameterBuild || isA4ParameterDebug) ||
+            runner.state('breakfast-cart')?.gx === 7) &&
+          (!isA4PersonalShip ||
+            (deliveryStopGx !== undefined &&
+              runner.state('breakfast-cart')?.gx === deliveryStopGx)) &&
+          // A5-B: the saved chain can only be judged by what the run sounded
+          // like — Lumilo's bubble first, Tuan Tuan's a measured moment later.
+          (!isA5TurnBuild || greetingTookTurnsRef.current) &&
+          // A5-D: the repair is only real if THIS run's two bounces landed in
+          // the relay window — a saved number alone proves nothing.
+          (!isA5RelayDebug || bounceRelayInTimeRef.current) &&
+          // A5-S: the child's own duet only counts once a run has measured the
+          // second greeting arriving after the first, inside its own band.
+          (!isA5PersonalShip || duetTookTurnsRef.current) &&
+          // A6-B/A6-D: the repaired route only counts once a run really played
+          // the hop BEFORE the bell and left the ringer standing at the tower.
+          (!needsBellOrderRun ||
+            (tinyStarBellRangAfterHop(bellPlayedOpsRef.current) &&
+              runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX)) &&
+          // A6-S: the season's own ending only counts once a run walked, hopped,
+          // rang, and THEN played the ending the child chose — with their ringer
+          // standing at the foot of the tower.
+          (!isA6Finale ||
+            (finaleDesign !== null &&
+              tinyStarFinaleEndedAfterBell(bellPlayedOpsRef.current, finaleDesign.ending) &&
+              runner.state(TINY_STAR_FINALE_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX));
         const observedWrongDirection =
           storyMission.lessonId === 'tsv-s1-a2-d' && runner.state('tuan-tuan')?.gx === 5;
         const observedOvershoot = isA4ParameterDebug && runner.state('breakfast-cart')?.gx === 8;
-        // JtW C1-P6: pressing Go while Say still precedes Show reproduces the
-        // "voice from thin air" bug — that run IS the required bug run.
-        const jtwSayIndex = missionScript?.blocks.findIndex((block) => block.op === 'say') ?? -1;
-        const jtwShowIndex = missionScript?.blocks.findIndex((block) => block.op === 'show') ?? -1;
-        const observedOrderBug =
-          isJtwOrderDebug && jtwSayIndex >= 0 && (jtwShowIndex < 0 || jtwSayIndex < jtwShowIndex);
+        // A5-D: the shipped `wait 9` really did leave the stage empty for longer
+        // than a whole bounce — that run IS the bug run this scene requires.
+        const observedLateBounce = isA5RelayDebug && bounceRelayTooLateRef.current;
+        // A6-D: the shipped Pop really did ring before anybody reached the bell —
+        // that run IS the bug run this scene requires before the chain may be
+        // touched. Measured from the interpreter's own ordered op record.
+        const observedEarlyBell =
+          isA6OrderDebug && tinyStarBellRangBeforeHop(bellPlayedOpsRef.current);
+        // JtW C1-P6 / C2-P6: pressing Go while the shipped order bug is still
+        // in the chain reproduces it — that run IS the required bug run.
+        const observedOrderBug = jtwOrderBugObserved(storyMission.lessonId, missionScript?.blocks);
+        // A6-H: the Hook's proof is the run itself — the interpreter played the
+        // bell, never reached a Hop, and left the ringer standing at the foot of
+        // the tower. Recorded so the "which card is missing?" answer can only be
+        // judged against a run the child has actually watched.
+        if (
+          storyMission.lessonId === 'tsv-s1-a6-h' &&
+          tinyStarBellRangWithoutHop(bellPlayedOpsRef.current) &&
+          runner.state(TINY_STAR_BELL_RINGER_ID)?.gx === TINY_STAR_BELL_TOWER_GX
+        ) {
+          bellRangAloneRef.current = true;
+          setMissionBellRangAlone(true);
+        }
         setMissionHasRun(true);
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
+        if (observedLateBounce) setMissionWrongRunObserved(true);
+        if (observedEarlyBell) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
           const completedDistanceHook =
             storyMission.lessonId === 'tsv-s1-a4-h' &&
             missionAnswer === 'three' &&
             runner.state('breakfast-cart')?.gx === 5;
-          if (completedDistanceHook) {
+          // A5-H: only a run in which both bubbles were open together proves
+          // "nobody waited". The answer usually comes after the run (handled in
+          // answerStoryMission); this covers a rerun with the answer already in.
+          const completedGreetingHook =
+            storyMission.lessonId === 'tsv-s1-a5-h' &&
+            missionAnswer === 'together' &&
+            voicesOverlappedRef.current;
+          // A6-H: same shape one chapter later — the missing card only counts
+          // once a run has really rung the bell with no hop in it.
+          const completedBellHook =
+            storyMission.lessonId === 'tsv-s1-a6-h' &&
+            missionAnswer === TINY_STAR_BELL_MISSING_CARD_ID &&
+            bellRangAloneRef.current;
+          if (completedDistanceHook || completedGreetingHook || completedBellHook) {
             setMissionCorrectRunFinished(true);
             setStoryCoachCue('saving');
             setMissionOpen(false);
@@ -695,9 +909,15 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
-          (!(isA2DirectionDebug || isA4ParameterDebug || isJtwOrderDebug) ||
+          (!(
+            isA2DirectionDebug ||
+            isA4ParameterDebug ||
+            isA5RelayDebug ||
+            isA6OrderDebug ||
+            isJtwOrderDebug
+          ) ||
             missionWrongRunObserved) &&
-          (!isA4ParameterDebug || answeredCorrectly)
+          (!(isA4ParameterDebug || isA5RelayDebug || isA6OrderDebug) || answeredCorrectly)
         ) {
           setMissionCorrectRunFinished(true);
           if (missionCompleted) {
@@ -723,12 +943,19 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
+    isA4PersonalShip,
+    isA5TurnBuild,
+    isA5RelayDebug,
+    isA5PersonalShip,
+    isA6OrderDebug,
+    isA6Finale,
+    needsBellOrderRun,
     isJtwOrderDebug,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
     answeredCorrectly,
-    page.characters,
+    page,
   ]);
 
   const answerStoryMission = useCallback(
@@ -736,6 +963,12 @@ export function BlocksStudioPage({
       setMissionAnswer(choiceId);
       if (storyMission?.mode !== 'observe-only' || !missionHasRun || !missionTargetFixed) return;
       if (storyMission.lessonId === 'tsv-s1-a3-h' && !missionTapObserved) return;
+      // A5-H: naming the overlap only counts once the child has actually seen
+      // the two bubbles collide in a real run.
+      if (storyMission.lessonId === 'tsv-s1-a5-h' && !missionVoicesOverlapped) return;
+      // A6-H: naming the missing card only counts once the child has actually
+      // watched the bell ring with nobody hopping.
+      if (storyMission.lessonId === 'tsv-s1-a6-h' && !missionBellRangAlone) return;
       const correct = storyMission.choices.some(
         (choice) => choice.id === choiceId && choice.correct,
       );
@@ -747,7 +980,14 @@ export function BlocksStudioPage({
       setStoryCoachCue('saving');
       setMissionOpen(false);
     },
-    [missionHasRun, missionTapObserved, missionTargetFixed, storyMission],
+    [
+      missionBellRangAlone,
+      missionHasRun,
+      missionTapObserved,
+      missionTargetFixed,
+      missionVoicesOverlapped,
+      storyMission,
+    ],
   );
 
   const applyMissionFix = useCallback(() => {
@@ -984,7 +1224,10 @@ export function BlocksStudioPage({
     });
   };
   const onBlockDown = (e: React.PointerEvent, scriptId: string, index: number) => {
-    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug) return;
+    if (running || present || readOnly || isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
+    // A6-D: moving a block IS the repair, so dragging stays on — but only after
+    // the child has watched the bell ring too early for real (§8.6 runs first).
+    if (isA6OrderDebug && !missionWrongRunObserved) return;
     const touch = e.pointerType === 'touch';
     const el = e.currentTarget as HTMLElement;
     const { pointerId, clientX: x0, clientY: y0 } = e;
@@ -1159,30 +1402,42 @@ export function BlocksStudioPage({
     n: number | undefined,
     drop?: { scriptId: string; slot: number },
   ) => {
-    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug) return;
+    if (isA2DirectionDebug || isA3EventDebug || isA4ParameterBuild || isA4ParameterDebug || isA5RelayDebug) return;
+    // A6-D repairs an ORDER: every block the story needs already ships, so no
+    // new one may be dropped in (teaching script §8.6 "不允许一次全部重做").
+    if (isA6OrderDebug) return;
     if (ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n);
       setIfBodyTarget(null);
       return;
     }
-    const isA2Direction =
-      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip) &&
+    // Age A route missions keep the terminal End last and seed the smallest
+    // sensible distance, so a direction block dropped anywhere still lands in a
+    // runnable chain. A2-B fixes the distance at three; A2-S and A4-S start at
+    // one space and let the child raise the number.
+    const isRouteChoice =
+      (storyMission?.lessonId === 'tsv-s1-a2-b' || isA2PersonalShip || isA4PersonalShip) &&
       (op === 'move_left' || op === 'move_right');
-    if (isA2Direction && missionScript) {
+    if (isRouteChoice && missionScript) {
       const endIndex = missionScript.blocks.findIndex((block) => block.op === 'end');
       store.insertBlock(
         op,
         missionScript.id,
         endIndex >= 1 ? endIndex : missionScript.blocks.length,
-        isA2PersonalShip ? 1 : 3,
+        isA2PersonalShip || isA4PersonalShip ? 1 : 3,
       );
       return;
     }
+    // A5-S: a bounce greeting is always one space (scene-specs A5-S writes
+    // `hop 1`), so the Hop arrives at its smallest value exactly as A2-S/A4-S
+    // seed their route blocks. The number this scene teaches is the Wait, and
+    // that one still comes from the block's own default for the child to tune.
+    const seededN = isA5PersonalShip && op === 'hop' ? TINY_STAR_DUET_HOP_N : n;
     if (drop) {
-      store.insertBlock(op, drop.scriptId, drop.slot, n);
+      store.insertBlock(op, drop.scriptId, drop.slot, seededN);
       return;
     }
-    store.addBlock(op, n);
+    store.addBlock(op, seededN);
   };
   const endPalDrag = (op: BlockOp, n: number | undefined, commit: boolean) => {
     window.clearTimeout(palLP.current);
@@ -1226,9 +1481,22 @@ export function BlocksStudioPage({
     if (readOnly) return; // teacher viewer — blocks aren't editable (D-LV-6)
     if (blockDidDrag.current) return; // it was a drag, not a tap
     if ((isA4ParameterBuild || isA4ParameterDebug) && op !== 'move_right') return;
-    if (isA4ParameterDebug && !missionWrongRunObserved) {
+    // A5-D: only Tuan Tuan's hourglass may be retuned, and only after the child
+    // has watched the too-long pause happen for real.
+    if (isA5RelayDebug && op !== 'wait') return;
+    if ((isA4ParameterDebug || isA5RelayDebug) && !missionWrongRunObserved) {
       setStoryCoachCue('retry');
       setMissionOpen(true);
+      return;
+    }
+    // A6-D: the walk is already 3 and the jump is already 1 — the only thing
+    // wrong is WHERE the bell sits, so no number editor opens in this scene. A
+    // tap before the bug has been watched sends the child back to the story card.
+    if (isA6OrderDebug) {
+      if (!missionWrongRunObserved) {
+        setStoryCoachCue('retry');
+        setMissionOpen(true);
+      }
       return;
     }
     if (
@@ -1370,7 +1638,7 @@ export function BlocksStudioPage({
 
   return (
     <div
-      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip ? ' has-home-picker' : ''}`}
+      className={`bsx bsx-app${present ? ' present' : ''}${dragBlk || palBlk ? ' bsx-dragging' : ''}${isA2PersonalShip || isA4PersonalShip || isA5PersonalShip || isA6Finale ? ' has-home-picker' : ''}`}
       data-theme={theme}
       data-story={storyMission ? 'true' : undefined}
       data-story-target-fixed={missionTargetFixed ? 'true' : 'false'}
@@ -1560,6 +1828,150 @@ export function BlocksStudioPage({
         </div>
       )}
 
+      {isA4PersonalShip && (
+        <div className="bsx-home-picker bsx-delivery-picker" data-testid="a4-s-delivery-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>📦</span>
+            <div>
+              <strong>Choose my delivery stop</strong>
+              <small>Then match the Right number to it</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose my delivery stop">
+            {TINY_STAR_DELIVERY_DISTANCES.map((distance) => {
+              const gx = TINY_STAR_DELIVERY_START_GX + distance;
+              const selected = deliveryStop?.start.gx === gx;
+              return (
+                <button
+                  key={distance}
+                  type="button"
+                  data-testid={`a4-s-stop-${distance}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .moveCharacter(TINY_STAR_DELIVERY_STOP_ID, gx, TINY_STAR_DELIVERY_STOP_GY)
+                  }
+                >
+                  <span aria-hidden>➡️</span>
+                  <strong>
+                    {distance} {distance === 1 ? 'space' : 'spaces'}
+                  </strong>
+                </button>
+              );
+            })}
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Choose what I deliver">
+            {TINY_STAR_DELIVERY_PARCELS.map((parcel) => {
+              const selected = deliveryStop?.name === parcel.name;
+              return (
+                <button
+                  key={parcel.id}
+                  type="button"
+                  data-testid={`a4-s-parcel-${parcel.id}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setCharacterIdentity(
+                        TINY_STAR_DELIVERY_STOP_ID,
+                        parcel.name,
+                        parcel.emoji,
+                        '',
+                      )
+                  }
+                >
+                  <span aria-hidden>{parcel.emoji}</span>
+                  <strong>{parcel.label}</strong>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {isA5PersonalShip && (
+        <div className="bsx-home-picker bsx-cast-picker" data-testid="a5-s-cast-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>⭐🐻🐱</span>
+            <div>
+              <strong>Choose my two friends</strong>
+              <small>The first one greets; the second one waits</small>
+            </div>
+          </div>
+          {(
+            [
+              { slot: 'first', charId: TINY_STAR_DUET_FIRST_ID, actor: duetFirst, label: 'Who greets first' },
+              { slot: 'second', charId: TINY_STAR_DUET_SECOND_ID, actor: duetSecond, label: 'Who waits, then greets' },
+            ] as const
+          ).map((row) => (
+            <div key={row.slot} className="bsx-home-choices" role="group" aria-label={row.label}>
+              {TINY_STAR_DUET_CAST.map((friend) => {
+                const selected = row.actor?.asset === friend.asset;
+                return (
+                  <button
+                    key={friend.id}
+                    type="button"
+                    data-testid={`a5-s-${row.slot}-${friend.id}`}
+                    className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() =>
+                      useBlocksStore
+                        .getState()
+                        .setCharacterIdentity(row.charId, friend.name, friend.emoji, friend.asset)
+                    }
+                  >
+                    <img src={friend.asset} alt="" className="bsx-character-asset-thumb" />
+                    <strong>{friend.name}</strong>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isA6Finale && (
+        <div className="bsx-home-picker bsx-cast-picker" data-testid="a6-s-cast-picker">
+          <div className="bsx-home-picker-title">
+            <span aria-hidden>🔔</span>
+            <div>
+              <strong>Who rings the bell?</strong>
+              <small>Choose the friend who brings the morning light back</small>
+            </div>
+          </div>
+          <div className="bsx-home-choices" role="group" aria-label="Who rings the bell">
+            {TINY_STAR_BELL_CAST.map((friend) => {
+              const selected = finaleRinger?.asset === friend.asset;
+              return (
+                <button
+                  key={friend.id}
+                  type="button"
+                  data-testid={`a6-s-ringer-${friend.id}`}
+                  className={`bsx-home-choice${selected ? ' selected' : ''}`}
+                  aria-pressed={selected}
+                  onClick={() =>
+                    useBlocksStore
+                      .getState()
+                      .setCharacterIdentity(
+                        TINY_STAR_FINALE_RINGER_ID,
+                        friend.name,
+                        friend.emoji,
+                        friend.asset,
+                      )
+                  }
+                >
+                  <img src={friend.asset} alt="" className="bsx-character-asset-thumb" />
+                  <strong>{friend.name}</strong>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {storyMission && missionOpen && (
         <StoryMissionGuide
           mission={storyMission}
@@ -1581,7 +1993,11 @@ export function BlocksStudioPage({
           }
           nextBusy={nextMissionBusy}
           nextError={nextMissionError}
-          onNext={nextJourneyPosition && !readOnly && !demo ? startNextStoryMission : undefined}
+          onNext={
+            nextJourneyPosition && !readOnly && !demo && !seasonSceneLocked
+              ? startNextStoryMission
+              : undefined
+          }
           onBackToCollection={() => navigate('/learn/create/blocks')}
         />
       )}

@@ -61,22 +61,14 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div
-        className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 sm:mb-6 sm:gap-x-6"
-        data-testid="dashboard-intro"
-      >
-        <div className="eyebrow col-start-1 row-start-1 self-center">Today</div>
-        <h1 className="section-heading col-span-2 row-start-2 sm:col-span-1">
-          Hello{displayName ? `, ${displayName}` : ''}.
-        </h1>
-        <p className="lead-text col-span-2 row-start-3 mt-2 max-w-2xl sm:col-span-1">
+      <div className="mb-10">
+        <div className="eyebrow">Today</div>
+        <h1 className="section-heading">Hello{displayName ? `, ${displayName}` : ''}.</h1>
+        <p className="lead-text mt-3">
           5-second answer to "what's my kid doing and is everything OK?"
         </p>
         {hasFamily && (
-          <button
-            onClick={openWelcomeTour}
-            className="btn-pill-ghost col-start-2 row-start-1 shrink-0 !px-2.5 sm:row-span-3 sm:!px-4"
-          >
+          <button onClick={openWelcomeTour} className="btn-pill-ghost mt-4">
             <span aria-hidden="true">✨ </span>How it works
           </button>
         )}
@@ -100,25 +92,25 @@ export function DashboardPage() {
       ) : (
         <>
           <WelcomeWizard />
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-8">
             <DashboardKidsPanel familyId={familyId} />
           </div>
           <div
-            className="grid items-start gap-x-6 gap-y-8 min-[900px]:grid-cols-[minmax(0,1fr)_17rem]"
+            className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_17rem]"
             data-testid="dashboard-grid"
           >
-            <div className="order-1 min-w-0 min-[900px]:order-none" data-testid="dashboard-primary">
+            <div className="min-w-0" data-testid="dashboard-primary">
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                <div className="stat-tile coral !rounded-2xl !px-2 !py-4 sm:!rounded-3xl sm:!px-5 sm:!py-6">
-                  <div className="stat-num !text-[32px] text-brand-coral tabular-nums sm:!text-[42px] xl:!text-[48px]">
+                <div className="stat-tile coral !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8">
+                  <div className="stat-num !text-[36px] text-brand-coral tabular-nums sm:!text-[56px]">
                     {starsToday}
                   </div>
                   <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
                     Stars today{dailyCap > 0 ? ` / ${dailyCap}` : ''}
                   </div>
                 </div>
-                <div className="stat-tile mint !rounded-2xl !px-2 !py-4 sm:!rounded-3xl sm:!px-5 sm:!py-6">
-                  <div className="stat-num !text-[32px] text-brand-mint tabular-nums sm:!text-[42px] xl:!text-[48px]">
+                <div className="stat-tile mint !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8">
+                  <div className="stat-num !text-[36px] text-brand-mint tabular-nums sm:!text-[56px]">
                     {starsBalance ?? '—'}
                   </div>
                   <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
@@ -127,9 +119,9 @@ export function DashboardPage() {
                 </div>
                 <Link
                   to="/portal/approvals"
-                  className="stat-tile sky !rounded-2xl !px-2 !py-4 sm:!rounded-3xl sm:!px-5 sm:!py-6"
+                  className="stat-tile sky !rounded-2xl !px-2 !py-5 sm:!rounded-3xl sm:!px-6 sm:!py-8"
                 >
-                  <div className="stat-num !text-[32px] text-brand-sky tabular-nums sm:!text-[42px] xl:!text-[48px]">
+                  <div className="stat-num !text-[36px] text-brand-sky tabular-nums sm:!text-[56px]">
                     {pendingCount}
                   </div>
                   <div className="stat-label !text-[9px] !leading-tight sm:!text-[11px]">
@@ -140,18 +132,15 @@ export function DashboardPage() {
             </div>
 
             <aside
-              className="order-3 min-w-0 min-[900px]:order-none min-[900px]:sticky min-[900px]:top-8 min-[900px]:col-start-2 min-[900px]:row-span-3 min-[900px]:row-start-1 min-[900px]:self-start"
+              className="min-w-0 lg:sticky lg:top-8 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start"
               aria-label="Getting started"
               data-testid="dashboard-side-rail"
             >
               <GettingStartedCard variant="sidebar" />
             </aside>
 
-            <div
-              className="order-2 min-w-0 min-[900px]:order-none min-[900px]:col-start-1 min-[900px]:row-start-2"
-              data-testid="dashboard-actions"
-            >
-              <div className="card-base mb-6 sm:mb-10">
+            <div className="min-w-0 lg:col-start-1 lg:row-start-2" data-testid="dashboard-actions">
+              <div className="card-base mb-10">
                 <div className="eyebrow eyebrow-sky">Quick actions</div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <Link to="/portal/wallet/topup" className="btn-pill-primary">
@@ -170,7 +159,7 @@ export function DashboardPage() {
             </div>
 
             <div
-              className="order-4 min-w-0 min-[900px]:order-none min-[900px]:col-start-1 min-[900px]:row-start-3"
+              className="min-w-0 lg:col-start-1 lg:row-start-3"
               data-testid="dashboard-discovery"
             >
               <CreativeSpacesPanel />

@@ -62,14 +62,6 @@ const artMission = (over: Record<string, unknown> = {}) => ({
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
   estimated_stars: 9,
-  steps: [
-    {
-      id: 'step_1',
-      title: "Your hero's character sheet",
-      instruction_md: 'Draw the same hero from three sides.',
-      widget: 'image_create',
-    },
-  ],
   art: { checklist: ['a robot'], draw_along: ['a big circle'] },
   lesson: { id: 'L1', title: 'Robot friends', order_index: 0 },
   course_pack: { slug: 'ai-comic-book', title: 'AI Comic Book', product_line: 'line_a_creative' },
@@ -118,7 +110,6 @@ function renderHub() {
 beforeEach(() => {
   apiCalls.length = 0;
   landed = null;
-  localStorage.clear();
   artifacts = [];
   artMissions = [];
   coursePacks = [];
@@ -163,39 +154,6 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     }));
   });
 
-  // An unsaved canvas is the only copy of that work, so the continue slot must
-  // offer it BEFORE the last saved picture — otherwise "Draw a new picture"
-  // (which now drops the draft) would be the kid's only way back to the canvas.
-  it('offers the unfinished canvas ahead of the last saved picture', async () => {
-    localStorage.setItem(
-      'art-draft:v1:proj_bucket',
-      JSON.stringify({ ops: [{ kind: 'stroke' }], baseArtifactId: null, baseRef: null }),
-    );
-    artifacts = [picture({ id: 'newest' })];
-    renderHub();
-    await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
-    expect(screen.getByTestId('art-hub-continue')).toHaveTextContent(
-      'Keep drawing your unfinished picture',
-    );
-    // No router state — the canvas restores the draft on a plain visit.
-    fireEvent.click(screen.getByTestId('art-hub-continue'));
-    await waitFor(() => expect(landed?.pathname).toBe('/learn/create/image/canvas'));
-    expect(landed?.state).toBeNull();
-  });
-
-  it('ignores an empty draft (no strokes, no base) in the continue slot', async () => {
-    localStorage.setItem(
-      'art-draft:v1:proj_bucket',
-      JSON.stringify({ ops: [], baseArtifactId: null, baseRef: null }),
-    );
-    artifacts = [picture({ id: 'newest' })];
-    renderHub();
-    await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
-    expect(screen.getByTestId('art-hub-continue')).toHaveTextContent(
-      'Keep drawing your last picture',
-    );
-  });
-
   it('hides the continue card and explains auto-save when nothing is drawn yet', async () => {
     renderHub();
     await waitFor(() =>
@@ -231,11 +189,11 @@ describe('ArtHubPage — art tasks', () => {
     expect(screen.getByText(/AI Comic Book · Robot friends · 9★/)).toBeInTheDocument();
   });
 
-  it('starts a task by clicking anywhere on the card and carries its learning steps', async () => {
+  it('starts a task on the canvas in Mission Mode with its art config', async () => {
     artMissions = [artMission()];
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('art-hub-task'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start →' }));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed?.pathname).toBe('/learn/create/image/canvas');
     expect(landed?.state).toEqual({
@@ -244,14 +202,6 @@ describe('ArtHubPage — art tasks', () => {
         slug: 'draw-your-robot',
         title: 'Draw your robot',
         description: 'A robot with a happy face!',
-        steps: [
-          {
-            id: 'step_1',
-            title: "Your hero's character sheet",
-            instruction_md: 'Draw the same hero from three sides.',
-            widget: 'image_create',
-          },
-        ],
         template: undefined,
         draw_along: ['a big circle'],
         checklist: ['a robot'],
@@ -266,7 +216,7 @@ describe('ArtHubPage — art tasks', () => {
     artMissions = [artMission({ art: null, title: 'Design your hero & world' })];
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('art-hub-task'));
+    fireEvent.click(screen.getByRole('button', { name: 'Start →' }));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed?.state).toEqual({
       mission: {
@@ -274,14 +224,6 @@ describe('ArtHubPage — art tasks', () => {
         slug: 'draw-your-robot',
         title: 'Design your hero & world',
         description: 'A robot with a happy face!',
-        steps: [
-          {
-            id: 'step_1',
-            title: "Your hero's character sheet",
-            instruction_md: 'Draw the same hero from three sides.',
-            widget: 'image_create',
-          },
-        ],
         template: undefined,
         draw_along: undefined,
         checklist: undefined,
@@ -343,13 +285,11 @@ describe('ArtHubPage — learning + new canvas', () => {
     expect(screen.getByText('Bring it to life').parentElement).toHaveTextContent('9★');
   });
 
-  // The bug (owner 2026-07-26): with no state the canvas restored its auto-saved
-  // draft, so "Draw a new picture" reopened the picture the kid drew last time.
-  it('asks the canvas for a BLANK page, not whatever was auto-saved', async () => {
+  it('opens a blank canvas with no router state', async () => {
     renderHub();
     fireEvent.click(screen.getByTestId('art-hub-new'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
-    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: { fresh: true } });
+    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: null });
   });
 
   // The hub is a landing page: it must not spend Stars or start a generation.

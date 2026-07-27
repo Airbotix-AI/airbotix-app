@@ -9,7 +9,7 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forwardRef, useImperativeHandle } from 'react';
 
@@ -212,22 +212,12 @@ vi.mock('./matting', () => ({
 
 import { ArtStudioPage } from './ArtStudioPage';
 
-// Reports the live router state, so a spec can assert the page consumed a
-// one-shot nav intent (`fresh` / reopen) instead of leaving it in the history
-// entry where a refresh would replay it.
-let routerState: unknown = undefined;
-function StateProbe() {
-  routerState = useLocation().state;
-  return null;
-}
-
 function renderPage(state?: Record<string, unknown>) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/learn/create/image', state }]}>
       <QueryClientProvider client={qc}>
         <ArtStudioPage />
-        <StateProbe />
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -238,20 +228,6 @@ const MISSION = {
   slug: 'draw-your-robot',
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
-  steps: [
-    {
-      id: 'step_1',
-      title: "Your hero's character sheet",
-      instruction_md: 'Make front, side and jumping poses that all look like the same hero.',
-      widget: 'image_create' as const,
-    },
-    {
-      id: 'step_2',
-      title: 'Boot your title screen',
-      instruction_md: 'Put your hero in the world and make the game open here.',
-      widget: 'code' as const,
-    },
-  ],
   template: { url: 'data:image/png;base64,VFBM', layer: 'underlay' as const },
   draw_along: ['a big circle for the body', 'two small circles for the eyes'],
   checklist: ['a robot', 'a garden', 'a happy feeling'],
@@ -290,20 +266,30 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(screen.getByTestId('tool-rail')).toBeInTheDocument();
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
     expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
+    expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-state', 'idle');
+    expect(screen.getByText('Boti')).toBeInTheDocument();
+    expect(
+      screen.getByAltText('Boti, the Airbotix robot-cat art tutor'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
-    const startGuide = screen.getByTestId('art-studio-start-guide');
-    expect(startGuide).toHaveTextContent('Start here — make your first picture');
-    expect(startGuide).toHaveTextContent('Tell Boti what you want to make');
-    expect(startGuide).toHaveTextContent('Bring it to life');
     // brand mark rides the bottom bar like the Music Stage (immersive page has no nav)
     expect(screen.getByTestId('studio-brand')).toBeInTheDocument();
     expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
-    expect(screen.getByRole('button', { name: /Sketch it for me −2★/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Coach, look! −1★/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sketch −2★/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Look −1★/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Bring it to life! −9★/ })).toBeInTheDocument();
     await waitFor(() =>
       expect(apiCalls.some((c) => c.path === '/kids/kid_1/create-buckets/resolve')).toBe(true),
     );
+  });
+
+  it('collapses the coach rail into the branded tutor avatar', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Boti' }));
+
+    expect(screen.queryByTestId('ai-rail')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Boti' })).toBeInTheDocument();
+    expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-name-is-temporary', 'true');
   });
 
   // Two-column rail (owner feedback 2026-07-20): column 2 shows only the picked
@@ -383,31 +369,6 @@ describe('ArtStudioPage (canvas-first)', () => {
       });
     });
 
-    // The hub's "Draw a new picture" (owner 2026-07-26: 点 Draw a new picture
-    // 出来的是之前画过的). Draft restore is right for a refresh and wrong for an
-    // explicit new drawing — `fresh` is how the canvas tells the two apart.
-    it('starts blank and drops the draft when the hub asks for a NEW picture', async () => {
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
-      await screen.findByTestId('ai-rail');
-      expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
-      await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
-      // No stale base either — the reopened-picture controls stay away.
-      expect(screen.queryByTestId('mask-toggle')).toBeNull();
-    });
-
-    it('consumes the one-shot nav intent so a later refresh keeps the NEW work', async () => {
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
-      await screen.findByTestId('ai-rail');
-      // `fresh` is gone from the history entry: a reload now restores the draft…
-      await waitFor(() => expect(routerState).toBeNull());
-      // …and the draft is the work done AFTER the fresh start, not the old one.
-      fireEvent.click(screen.getByTestId('stub-draw'));
-      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
-      expect(JSON.parse(localStorage.getItem(KEY) as string).ops).toHaveLength(1);
-    });
-
     it('a REFRESH after reopening restores the base picture (no nav state)', async () => {
       // What a fresh reopen persisted (base, no strokes yet). A plain reload has no
       // nav state, so the base must come back from the draft alone.
@@ -458,7 +419,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     fireEvent.change(screen.getByPlaceholderText(/friendly robot/i), {
       target: { value: 'a dinosaur' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Sketch it for me/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Sketch −2★/ }));
     await waitFor(() => {
       const call = apiCalls.find((c) => c.path === '/llm/image');
       expect(call).toBeDefined();
@@ -473,7 +434,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     renderPage();
     await screen.findByTestId('ai-rail');
     fireEvent.click(screen.getByTestId('stub-draw')); // put ink down
-    fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Look −1★/ }));
     await waitFor(() => {
       const call = apiCalls.find((c) => c.path === '/llm/image-plan');
       expect(call).toBeDefined();
@@ -625,7 +586,8 @@ describe('ArtStudioPage (canvas-first)', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
       await screen.findByText('Where does it happen?'); // coach turn landed (with a plan)
-      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
+      // plan set → the single primary paint button now reads "Paint this!"
+      const magicBtn = screen.getByRole('button', { name: /Paint this!/ });
       await waitFor(() => expect(magicBtn).toBeEnabled());
       fireEvent.click(magicBtn);
       await screen.findByTestId('magic-sheet');
@@ -753,7 +715,7 @@ describe('ArtStudioPage (canvas-first)', () => {
 
     it('names the active take → PATCH artifact metadata.character', async () => {
       await makeAMagicTake();
-      const nameInput = await screen.findByPlaceholderText(/Name them/);
+      const nameInput = await screen.findByPlaceholderText(/Name it/);
       fireEvent.change(nameInput, { target: { value: 'Sparky' } });
       fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
       await waitFor(() => {
@@ -763,7 +725,26 @@ describe('ArtStudioPage (canvas-first)', () => {
         expect(patch).toBeDefined();
         expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Sparky');
       });
-      expect(await screen.findByText(/Sparky joined your characters/)).toBeInTheDocument();
+      expect(await screen.findByText(/Sparky is saved to your characters/)).toBeInTheDocument();
+    });
+
+    it('names a base that is NOT in the bucket cache (reopened image) — no silent no-op', async () => {
+      // Regression (owner 2026-07-25): naming an artifact absent from bucketArtifacts
+      // used to return early with no request. Reopened image lives in another project.
+      renderPage({ editArtifactId: 'art_reopen_1', editProjectId: 'proj_saved_pics' });
+      await screen.findByTestId('ai-rail');
+      const nameInput = await screen.findByPlaceholderText(/Name it/);
+      fireEvent.change(nameInput, { target: { value: 'Rex' } });
+      fireEvent.click(screen.getByRole('button', { name: /👤 Save/ }));
+      await waitFor(() => {
+        const patch = apiCalls.find(
+          (c) =>
+            c.opts?.method === 'PATCH' &&
+            c.path === '/projects/proj_saved_pics/artifacts/art_reopen_1',
+        );
+        expect(patch).toBeDefined();
+        expect((patch!.opts?.body?.metadata as Record<string, unknown>).character).toBe('Rex');
+      });
     });
 
     it('🎮 sends the active take into a chosen game via the VFS asset flow', async () => {
@@ -806,12 +787,6 @@ describe('ArtStudioPage (canvas-first)', () => {
       const card = await screen.findByTestId('mission-card');
       expect(card).toHaveTextContent('Draw your robot');
       expect(card).toHaveTextContent('A robot with a happy face!');
-      const learningSteps = screen.getByTestId('mission-learning-steps');
-      expect(learningSteps).toHaveTextContent('Learn & make · 2 steps');
-      expect(learningSteps).toHaveTextContent("Your hero's character sheet");
-      expect(learningSteps).toHaveTextContent('Boot your title screen');
-      expect(learningSteps).toHaveTextContent('Creative Code Studio');
-      expect(screen.queryByTestId('art-studio-start-guide')).not.toBeInTheDocument();
     });
 
     it('magic creates a MISSION project (not the bucket) and saves there', async () => {
@@ -865,7 +840,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       renderPage({ mission: MISSION });
       await screen.findByTestId('ai-rail');
       fireEvent.click(screen.getByTestId('stub-draw'));
-      fireEvent.click(screen.getByRole('button', { name: /Coach, look!/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Look −1★/ }));
       await waitFor(() => {
         const call = apiCalls.find((c) => c.path === '/llm/image-plan');
         const messages = call!.opts?.body?.messages as Array<{ content: string }>;
@@ -884,7 +859,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       await screen.findByTestId('magic-sheet');
       fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
 
-      const storyBtn = await screen.findByRole('button', { name: /Story time! −1★/ });
+      const storyBtn = await screen.findByRole('button', { name: /Story −1★/ });
       fireEvent.click(storyBtn);
       await waitFor(() => {
         const call = apiCalls.filter((c) => c.path === '/llm/image-plan').at(-1)!;

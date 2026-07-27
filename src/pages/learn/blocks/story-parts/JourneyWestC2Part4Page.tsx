@@ -41,11 +41,11 @@ import {
   C2_P4_STORY_BEFORE,
   C2_P4_STORY_BRIDGE,
   C2_P4_TARGET_TRACE,
-  c2p4RouteTrace,
-  JTW_C1_BACKGROUND_ASSET,
+  JTW_C2_BACKGROUND_ASSET,
   JTW_S1_STORY_LINE_ID,
   JTW_STONE_MONKEY_ASSET,
 } from './journeyWestSeason1';
+import { jtwWetStoneTrace } from './journeyWestC2Route';
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi';
 import { Choice } from './partUi';
 
@@ -90,7 +90,7 @@ async function findRouteBuild(kidId: string): Promise<RouteBuildStatus> {
         programMatches: storyMissionProgramMatches(loaded.project, LESSON_ID),
         runCompleted: Boolean(loaded.storyProgress?.completed[LESSON_ID]),
         placedBlocks,
-        trace: c2p4RouteTrace(placedBlocks),
+        trace: jtwWetStoneTrace(placedBlocks),
       };
     } catch {
       // Unreadable/legacy project — keep scanning.
@@ -109,7 +109,7 @@ function RouteStage({ resolved }: { resolved: boolean }) {
       data-testid="jtw-c2p4-stage"
     >
       <img
-        src={JTW_C1_BACKGROUND_ASSET}
+        src={JTW_C2_BACKGROUND_ASSET}
         alt="瀑布前的湿石路：石猴站在左边的起点，白色水帘仍然合着，等着一条五块的真实路线"
         className="absolute inset-0 h-full w-full object-cover"
       />

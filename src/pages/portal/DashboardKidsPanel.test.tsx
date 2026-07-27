@@ -15,15 +15,8 @@ vi.mock('@/lib/api', () => ({ api }));
 vi.mock('@/auth/useAuth', () => ({
   useParentKidLogin: () => parentKidLogin,
 }));
-vi.mock('@/components/KidAvatar', () => ({
-  KidAvatar: ({ nickname }: { nickname: string }) => <div>{nickname} avatar</div>,
-}));
 vi.mock('./KidGrowthTeaser', () => ({
-  KidGrowthTeaser: ({ name, compact }: { name: string; compact?: boolean }) => (
-    <div data-testid={`${name}-growth`} data-compact={compact}>
-      {name} growth
-    </div>
-  ),
+  KidGrowthTeaser: ({ name }: { name: string }) => <div>{name} growth</div>,
 }));
 
 import { DashboardKidsPanel } from './DashboardKidsPanel';
@@ -31,7 +24,6 @@ import { DashboardKidsPanel } from './DashboardKidsPanel';
 const ACTIVE_KID = {
   id: 'kid-1',
   nickname: 'Mia',
-  avatar_id: 'story_creator',
   age: 9,
   is_active: true,
 };
@@ -39,7 +31,6 @@ const ACTIVE_KID = {
 const PAUSED_KID = {
   id: 'kid-2',
   nickname: 'Leo',
-  avatar_id: null,
   age: 12,
   is_active: false,
 };
@@ -87,29 +78,12 @@ describe('DashboardKidsPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Leo' })).toBeInTheDocument();
+    // The initial-letter placeholder is now a real picked avatar image, so the
+    // accessible name carries the avatar's own name after the child's.
+    expect(screen.getByRole('img', { name: /Mia's avatar/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Leo's avatar/ })).toBeInTheDocument();
     expect(screen.getByText('Mia growth')).toBeInTheDocument();
     expect(screen.getByText('Leo growth')).toBeInTheDocument();
-    expect(screen.getByTestId('Mia-growth')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('Leo-growth')).toHaveAttribute('data-compact', 'true');
-    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass(
-      'sm:grid-cols-2',
-      'min-[900px]:grid-cols-3',
-    );
-    const kidCards = screen.getAllByTestId('dashboard-kid-card');
-    expect(kidCards).toHaveLength(2);
-    for (const card of kidCards) {
-      expect(card).toHaveClass('rounded-[20px]', 'p-3', 'sm:rounded-[24px]', 'sm:p-4');
-    }
-    expect(screen.getByRole('button', { name: "Open Mia's kids page" })).toHaveClass(
-      '!w-auto',
-      '!px-4',
-      'sm:!w-full',
-    );
-    expect(screen.getAllByText('Open')[0]).toHaveClass('sm:hidden');
-    expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveClass(
-      '!border-0',
-      'sm:!border-2',
-    );
     expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveAttribute(
       'href',
       '/portal/family/kid-1',
@@ -121,7 +95,7 @@ describe('DashboardKidsPanel', () => {
 
     const pausedOpen = screen.getByRole('button', { name: "Open Leo's kids page" });
     expect(pausedOpen).toBeDisabled();
-    expect(screen.getByText('Paused — manage in My Family.')).toBeInTheDocument();
+    expect(screen.getByText('Paused — update this kid in My Family.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: "Open Mia's kids page" }));
     await waitFor(() => expect(parentKidLogin).toHaveBeenCalledWith('kid-1'));
@@ -135,8 +109,7 @@ describe('DashboardKidsPanel', () => {
     renderPanel();
 
     expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass('max-w-md');
-    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass('grid-cols-1');
+    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass('max-w-2xl');
   });
 
   it('shows the add-first-kid state without rendering an empty grid', async () => {

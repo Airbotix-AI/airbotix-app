@@ -14,11 +14,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMe } from '@/auth/useAuth';
 import { BUILT_IN_SOUNDS } from '../blocksModel';
 import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi';
-import {
-  jtwPersonalArrivalDesign,
-  storyMissionProgramMatches,
-  type JtwPersonalArrivalDesign,
-} from '../storyMissionProgress';
+import { storyMissionProgramMatches } from '../storyMissionProgress';
+import { jtwPersonalArrivalDesign, type JtwPersonalArrivalDesign } from '../jtwPersonalArrival';
 import {
   C1_P7_CONTINUE_LABEL,
   C1_P7_MOTIVE_OPTIONS,

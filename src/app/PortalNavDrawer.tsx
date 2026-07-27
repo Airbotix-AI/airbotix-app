@@ -14,11 +14,11 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
   return (
     <nav
       aria-label="Parent Portal desktop"
-      className="hidden w-56 shrink-0 border-r border-hairline bg-canvas-pure p-4 xl:flex xl:flex-col"
+      className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 xl:flex xl:flex-col"
     >
-      <div className="mb-5 flex items-center gap-2 px-2 pt-1">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-grad-coral shadow-brand-coral">
-          <span className="text-[16px] font-extrabold text-white">A</span>
+      <div className="mb-8 flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-coral shadow-brand-coral">
+          <span className="text-[18px] font-extrabold text-white">A</span>
         </div>
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.10em] text-slate2">
@@ -28,7 +28,7 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
         </div>
       </div>
 
-      <div className="min-h-0 space-y-4 overflow-y-auto">
+      <div className="space-y-5 overflow-y-auto">
         {PORTAL_NAV_SECTIONS.map((section) => (
           <div key={section.id}>
             {section.label && (
@@ -52,9 +52,9 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
                         )
                       }
                     >
-                      <span className="flex min-w-0 items-center gap-2.5">
-                        <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
-                        <span className="truncate">{item.label}</span>
+                      <span className="flex items-center gap-2.5">
+                        <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
+                        {item.label}
                       </span>
                       {showBadge && (
                         <span

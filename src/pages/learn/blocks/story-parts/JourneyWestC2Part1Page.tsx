@@ -1,6 +1,6 @@
 // Journey to the West · C2-P1 "水声把大家带到哪里" — chapter two's Read & Why
 // entry (scene-specs JTW-S1-C2-P1). The C1 clear-spring viewpoint joins the
-// SAME waterfall before-background: the stone monkey and the troop wait at the
+// chapter-two waterfall before-background: the stone monkey and the troop wait at the
 // left, the entrance is NOT highlighted and the cave mouth stays hidden. The
 // child reads 故事卡A in full, states the monkey's motive, collects the three
 // environment clues (水声变大/石头变湿/水雾变浓 — 看见洞口 is rejected),
@@ -34,7 +34,7 @@ import {
   C2_P1_STORY_AFTER,
   C2_P1_STORY_BEFORE,
   C2_P1_STORY_BRIDGE,
-  JTW_C1_BACKGROUND_ASSET,
+  JTW_C2_BACKGROUND_ASSET,
   JTW_S1_STORY_LINE_ID,
   JTW_STONE_MONKEY_ASSET,
 } from './journeyWestSeason1';
@@ -101,7 +101,7 @@ function WaterSoundPreview({
         data-testid="jtw-c2p1-stage"
       >
         <img
-          src={JTW_C1_BACKGROUND_ASSET}
+          src={JTW_C2_BACKGROUND_ASSET}
           alt="瀑布前：石猴和三只群猴停在湿石左侧，白色水帘合着，入口没有亮起，洞口藏在水帘后面"
           className="absolute inset-0 h-full w-full object-cover"
         />

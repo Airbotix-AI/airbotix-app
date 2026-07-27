@@ -37,6 +37,8 @@ describe('StudioPicker', () => {
     const image = screen.getByTestId('studio-pick-image');
     expect(image).toHaveAttribute('href', '/learn/create/image');
     expect(image).toHaveTextContent('Art Studio');
+    // The card promises the HUB it now opens (D-IS-28) — tasks + saved pictures +
+    // a new canvas — not just "a studio", which read as "a blank canvas".
     expect(image).toHaveTextContent('Your tasks, pictures and a new canvas');
   });
 

@@ -77,11 +77,14 @@ describe('LearnLayout', () => {
     },
   );
 
-  it('keeps the Art Studio task hub in the ordinary Learn layout', () => {
-    const { container, getByTestId } = mount('/learn/create/image');
-    expect(getByTestId('learn-nav')).toBeInTheDocument();
-    expect(readingColumn(container)).toBeTruthy();
-  });
+  it.each(['/learn/create/image', '/learn/create/blocks'])(
+    'keeps the studio hub %s in the scrollable kid shell',
+    (path) => {
+      const { container, getByTestId } = mount(path);
+      expect(getByTestId('learn-nav')).toBeInTheDocument();
+      expect(readingColumn(container)).toBeTruthy();
+    },
+  );
 
   // The bug this locks: immersive <main> was h-full (100% of the layout column),
   // so anything rendering above it — the NudgeBanner deliberately surfaces over

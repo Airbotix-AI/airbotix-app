@@ -25,7 +25,6 @@ import {
   useCreateBucket,
   type Artifact,
 } from '../shared/useStudio';
-import { readArtDraft } from './artDraft';
 import type { ArtMission } from './ArtStudioPage';
 
 /** Where the canvas itself lives, now that this hub owns `/learn/create/image`. */
@@ -47,7 +46,6 @@ interface ArtMissionRow {
   title: string;
   description: string;
   estimated_stars: number;
-  steps: ArtMission['steps'];
   art: {
     template?: ArtMission['template'];
     draw_along?: string[];
@@ -157,13 +155,6 @@ export function ArtHubPage() {
   const shown = allPictures.slice(0, HUB_PICTURE_LIMIT);
   const latest = allPictures[0];
 
-  // An unsaved canvas the kid walked away from. It outranks the last SAVED
-  // picture in the continue slot — it is the more recent work, and it is the
-  // only copy — and it is why "Draw a new picture" must say `fresh` below:
-  // the canvas restores this draft on any plain visit, which is exactly what
-  // made "new" reopen the previous drawing.
-  const draft = readArtDraft((bucket.data as { project_id: string } | undefined)?.project_id);
-
   // Reopening a saved picture is the SAME contract the "Keep drawing" menu item
   // in My Pictures uses: the artifact becomes the canvas base.
   const keepDrawing = (artifact: Artifact) =>
@@ -179,7 +170,6 @@ export function ArtHubPage() {
           slug: row.slug,
           title: row.title,
           description: row.description,
-          steps: row.steps,
           template: row.art?.template,
           draw_along: row.art?.draw_along,
           checklist: row.art?.checklist,
@@ -205,10 +195,7 @@ export function ArtHubPage() {
         <button
           type="button"
           data-testid="art-hub-new"
-          // `fresh` is NOT optional (D-IS-29): with no state the canvas reads the
-          // visit as a reload and restores its auto-saved draft, which handed the
-          // kid their previous drawing back instead of blank paper.
-          onClick={() => nav(ART_CANVAS_PATH, { state: { fresh: true } })}
+          onClick={() => nav(ART_CANVAS_PATH)}
           className="rounded-[26px] border-2 border-dashed border-brand-bubblegum/50 bg-wash-bubblegum p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
         >
           <div className="text-[40px]" aria-hidden="true">🎨</div>
@@ -218,39 +205,21 @@ export function ArtHubPage() {
           </p>
         </button>
 
-        {draft ? (
+        {latest && (
           <button
             type="button"
             data-testid="art-hub-continue"
-            // No nav state at all: the canvas restores the draft by itself.
-            onClick={() => nav(ART_CANVAS_PATH)}
+            onClick={() => keepDrawing(latest)}
             className="rounded-[26px] border border-brand-mint/35 bg-wash-mint p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
           >
             <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-              Still on your canvas
+              Continue where you left off
             </div>
-            <h2 className="mt-1 text-[22px] font-black">Keep drawing your unfinished picture</h2>
+            <h2 className="mt-1 text-[22px] font-black">Keep drawing your last picture</h2>
             <p className="mt-1 text-[13px] font-semibold text-slate2">
-              You have not saved this one yet — it is waiting exactly as you left it.
+              Made {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}.
             </p>
           </button>
-        ) : (
-          latest && (
-            <button
-              type="button"
-              data-testid="art-hub-continue"
-              onClick={() => keepDrawing(latest)}
-              className="rounded-[26px] border border-brand-mint/35 bg-wash-mint p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
-            >
-              <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-                Continue where you left off
-              </div>
-              <h2 className="mt-1 text-[22px] font-black">Keep drawing your last picture</h2>
-              <p className="mt-1 text-[13px] font-semibold text-slate2">
-                Made {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}.
-              </p>
-            </button>
-          )
         )}
       </section>
 
@@ -262,29 +231,27 @@ export function ArtHubPage() {
         ) : missions.data && missions.data.length > 0 ? (
           <ul className="mt-4 space-y-3">
             {missions.data.map((row) => (
-              <li key={row.id}>
+              <li
+                key={row.id}
+                data-testid="art-hub-task"
+                className="flex items-start gap-3 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3"
+              >
+                <span className="mt-0.5 shrink-0 text-[15px]">🎯</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-semibold text-ink">{row.title}</div>
+                  {row.description && (
+                    <p className="mt-1 text-[13px] text-ink-soft">{row.description}</p>
+                  )}
+                  <div className="mt-2 text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
+                    {row.course_pack.title} · {row.lesson.title} · {row.estimated_stars}★
+                  </div>
+                </div>
                 <button
                   type="button"
-                  data-testid="art-hub-task"
                   onClick={() => startMission(row)}
-                  className="group flex w-full items-start gap-3 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-brand-bubblegum/40 hover:shadow-card-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-bubblegum"
+                  className="btn-pill-primary shrink-0"
                 >
-                  <span className="mt-0.5 shrink-0 text-[15px]" aria-hidden="true">🎯</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-semibold text-ink">{row.title}</span>
-                    {row.description && (
-                      <span className="mt-1 block text-[13px] text-ink-soft">{row.description}</span>
-                    )}
-                    <span className="mt-2 block text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
-                      {row.course_pack.title} · {row.lesson.title} · {row.estimated_stars}★
-                    </span>
-                    <span className="mt-1 block text-[12px] font-semibold text-brand-bubblegum">
-                      Open the task to see every learning step beside your canvas.
-                    </span>
-                  </span>
-                  <span className="btn-pill-primary shrink-0" aria-hidden="true">
-                    Start →
-                  </span>
+                  Start →
                 </button>
               </li>
             ))}

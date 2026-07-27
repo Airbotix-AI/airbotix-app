@@ -16,6 +16,13 @@ import {
 } from './blocksApi';
 import { BLOCKS_STARTERS } from './blocksStarters';
 import { StoryJourneyMap } from './StoryJourneyMap';
+import { storyMissionProjectTitle } from './storyJourneyCatalog';
+import { fetchStoryLineProgress } from './story-parts/storyPartsApi';
+import {
+  TINY_STAR_STORY_LINE_ID,
+  tinyStarResumeProject,
+  tinyStarSeasonView,
+} from './tinyStarSeason';
 import './blocks.css';
 
 export function BlocksHubPage() {
@@ -32,6 +39,15 @@ export function BlocksHubPage() {
     enabled: !!kidId,
   });
 
+  // Tiny Star Village season progression — the server owns the unlock chain
+  // (/story-parts/tiny-star-village-s1). Until it answers, nothing is locked.
+  const seasonProgress = useQuery({
+    queryKey: ['story-parts', TINY_STAR_STORY_LINE_ID],
+    queryFn: () => fetchStoryLineProgress(TINY_STAR_STORY_LINE_ID),
+    enabled: !!kidId,
+  });
+  const season = tinyStarSeasonView(seasonProgress.data);
+
   const start = async (template: BlocksTemplateId, title: string) => {
     setBusy(template);
     setError(null);
@@ -42,6 +58,19 @@ export function BlocksHubPage() {
       setError("Couldn't start a new project — try again in a moment.");
       setBusy(null);
     }
+  };
+
+  // Resume the season: reopen the child's own project for the open scene when
+  // they already started it, otherwise begin that scene fresh.
+  const resumeSeason = () => {
+    const scene = season.resume;
+    if (!scene) return;
+    const existing = tinyStarResumeProject(projects.data ?? [], scene);
+    if (existing) {
+      nav(`/learn/blocks/${existing.id}`);
+      return;
+    }
+    void start(scene.mission.template, storyMissionProjectTitle(scene.mission));
   };
 
   const freeStoryStarter = BLOCKS_STARTERS.find((starter) => starter.id === 'blocks_story');
@@ -90,7 +119,35 @@ export function BlocksHubPage() {
         </section>
       )}
 
-      <StoryJourneyMap busy={busy} onStart={(template, title) => void start(template, title)} />
+      <StoryJourneyMap
+        busy={busy}
+        season={season}
+        onResume={resumeSeason}
+        onStart={(template, title) => void start(template, title)}
+      />
+
+      {/* Journey to the West story world — reading + evidence parts (JtW S1). */}
+      <section
+        className="my-8 rounded-[26px] border border-brand-sunshine/45 bg-wash-sunshine p-5 sm:flex sm:items-center sm:justify-between sm:gap-5"
+        data-testid="blocks-jtw-entry"
+      >
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
+            新故事世界
+          </div>
+          <h2 className="mt-1 text-[22px] font-black">西游记 · 石猴的第一程</h2>
+          <p className="mt-1 text-[13px] font-semibold text-slate2">
+            读故事、找证据、看仙石的清晨怎么运行。一次一个 Part。
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => nav('/learn/story/journey-west')}
+          className="mt-4 rounded-full bg-brand-sunshine px-5 py-3 text-[13px] font-black text-ink shadow-card-soft sm:mt-0"
+        >
+          进入花果山 →
+        </button>
+      </section>
 
       {/* Journey to the West story world — reading + evidence parts (JtW S1). */}
       <section

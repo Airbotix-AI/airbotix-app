@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import {
+  getAcademyTutorExplanation,
   getMyAcademyProduct,
   getProductProgress,
   listProductQuestions,
@@ -59,6 +60,9 @@ export function AcademyPracticePage() {
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [tutorExplanation, setTutorExplanation] = useState<string | null>(null);
+  const [tutorLoading, setTutorLoading] = useState(false);
+  const [tutorError, setTutorError] = useState<string | null>(null);
   const [phase, setPhase] = useState<'practice' | 'summary'>('practice');
   const startedAt = useRef<number>(Date.now());
   const questionTop = useRef<HTMLDivElement>(null);
@@ -89,6 +93,8 @@ export function AcademyPracticePage() {
     setResults({});
     setDraft('');
     setSubmitError(null);
+    setTutorExplanation(null);
+    setTutorError(null);
     setPhase('practice');
   }, [setNo]);
 
@@ -97,6 +103,8 @@ export function AcademyPracticePage() {
     startedAt.current = Date.now();
     setDraft('');
     setSubmitError(null);
+    setTutorExplanation(null);
+    setTutorError(null);
     questionTop.current?.scrollIntoView?.({ block: 'start' });
   }, [idx]);
 
@@ -106,6 +114,20 @@ export function AcademyPracticePage() {
   const answered = results[idx];
   const doneCount = Object.keys(results).length;
   const correctCount = Object.values(results).filter((r) => r.is_correct).length;
+
+  const loadTutor = async (questionId: string) => {
+    if (tutorLoading || tutorExplanation) return;
+    setTutorLoading(true);
+    setTutorError(null);
+    try {
+      const response = await getAcademyTutorExplanation({ productSlug, questionId });
+      setTutorExplanation(response.explanation);
+    } catch {
+      setTutorError("Airo couldn't explain this one right now. Try again in a moment.");
+    } finally {
+      setTutorLoading(false);
+    }
+  };
 
   const submit = async (submitted: string) => {
     if (!current || answered || submitting || !isSubmissionComplete(current, submitted)) return;
@@ -119,6 +141,7 @@ export function AcademyPracticePage() {
         timeMs: Date.now() - startedAt.current,
       });
       setResults((prev) => ({ ...prev, [idx]: { ...res, submitted } }));
+      void loadTutor(current.id);
     } catch {
       setSubmitError("Couldn't check your answer — try again in a moment.");
     } finally {
@@ -182,48 +205,58 @@ export function AcademyPracticePage() {
         total > 0 &&
         phase === 'practice' &&
         current && (
-          <div ref={questionTop} className="max-w-3xl">
+          <div ref={questionTop} className="max-w-6xl">
             <Scoreboard done={doneCount} correct={correctCount} idx={idx} total={total} />
 
-            <section className="card-base mt-6" data-testid="academy-question">
-              <QuestionBody question={current} />
+            <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+              <section className="card-base" data-testid="academy-question">
+                <QuestionBody question={current} />
 
-              <div className="mt-6">
-                <AnswerArea
-                  question={current}
-                  answered={answered}
-                  submitting={submitting}
-                  draft={draft}
-                  onDraft={setDraft}
-                  onSubmit={(value) => void submit(value)}
-                />
-              </div>
-
-              {submitError && (
-                <p className="mt-4 text-[14px] font-semibold text-brand-coral">{submitError}</p>
-              )}
-
-              {answered && (
-                <div className="mt-6" data-testid="academy-feedback">
-                  <div
-                    className={`rounded-2xl px-4 py-3 text-[15px] font-black ${
-                      answered.is_correct ? 'bg-wash-mint text-ink' : 'bg-wash-coral text-ink'
-                    }`}
-                  >
-                    {answered.is_correct ? '🎉 Correct!' : '💡 Not quite.'}{' '}
-                    <span className="font-semibold">The answer is {answered.correct_answer}.</span>
-                  </div>
-                  <button
-                    type="button"
-                    data-testid="academy-next"
-                    onClick={next}
-                    className="btn-pill-primary mt-5"
-                  >
-                    {idx + 1 < total ? 'Next question →' : 'See my results →'}
-                  </button>
+                <div className="mt-6">
+                  <AnswerArea
+                    question={current}
+                    answered={answered}
+                    submitting={submitting}
+                    draft={draft}
+                    onDraft={setDraft}
+                    onSubmit={(value) => void submit(value)}
+                  />
                 </div>
-              )}
-            </section>
+
+                {submitError && (
+                  <p className="mt-4 text-[14px] font-semibold text-brand-coral">{submitError}</p>
+                )}
+
+                {answered && (
+                  <div className="mt-6" data-testid="academy-feedback">
+                    <div
+                      className={`rounded-2xl px-4 py-3 text-[15px] font-black ${
+                        answered.is_correct ? 'bg-wash-mint text-ink' : 'bg-wash-coral text-ink'
+                      }`}
+                    >
+                      {answered.is_correct ? '🎉 Correct!' : '💡 Not quite.'}{' '}
+                      <span className="font-semibold">The answer is {answered.correct_answer}.</span>
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="academy-next"
+                      onClick={next}
+                      className="btn-pill-primary mt-5"
+                    >
+                      {idx + 1 < total ? 'Next question →' : 'See my results →'}
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <TutorPanel
+                answered={answered}
+                explanation={tutorExplanation}
+                loading={tutorLoading}
+                error={tutorError}
+                onRetry={() => void loadTutor(current.id)}
+              />
+            </div>
           </div>
         )}
 
@@ -286,6 +319,84 @@ function QuestionBody({ question }: { question: AcademyQuestion }) {
       </p>
       <AcademyQuestionVisual spec={question.render_spec} />
     </div>
+  );
+}
+
+function TutorPanel({
+  answered,
+  explanation,
+  loading,
+  error,
+  onRetry,
+}: {
+  answered: AnsweredResult | undefined;
+  explanation: string | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <aside
+      className="rounded-[24px] bg-wash-sun p-5 lg:sticky lg:top-5"
+      aria-label="Airo Tutor"
+      data-testid="academy-tutor"
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-sun text-[22px]"
+          aria-hidden="true"
+        >
+          ✦
+        </div>
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-wider text-ink-soft">
+            Airo Tutor
+          </div>
+          <h2 className="text-[20px] font-black text-ink">Need the “why”?</h2>
+        </div>
+      </div>
+
+      {!answered && (
+        <p className="mt-5 text-[14px] font-semibold leading-relaxed text-ink-soft">
+          Have a go first. After you answer, I can break the question into small steps.
+        </p>
+      )}
+
+      {answered && loading && (
+        <div className="mt-5">
+          <p className="text-[14px] font-semibold leading-relaxed text-ink-soft">
+            Airo is turning your answer into a short, step-by-step explanation…
+          </p>
+        </div>
+      )}
+
+      {answered && !loading && !explanation && error && (
+        <div className="mt-5">
+          <button
+            type="button"
+            className="btn-pill-primary mt-4 w-full"
+            onClick={onRetry}
+            data-testid="academy-retry-tutor"
+          >
+            Try the explanation again
+          </button>
+        </div>
+      )}
+
+      {explanation && (
+        <div
+          className="mt-5 whitespace-pre-line rounded-2xl bg-white/75 p-4 text-[14px] font-semibold leading-relaxed text-ink"
+          data-testid="academy-tutor-explanation"
+        >
+          {explanation}
+        </div>
+      )}
+
+      {error && <p className="mt-4 text-[13px] font-bold text-brand-coral">{error}</p>}
+      <p className="mt-5 text-[11px] font-bold leading-relaxed text-ink-soft">
+        Included with Exam Prep · no extra Stars
+      </p>
+    </aside>
   );
 }
 

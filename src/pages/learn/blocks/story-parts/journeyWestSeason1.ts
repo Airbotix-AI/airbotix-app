@@ -8,6 +8,7 @@
 // playable; later parts render as locked/coming until their build task lands.
 
 import type { Block, BlocksProject } from '../blocksModel';
+import { C2_STONE_CELLS } from './journeyWestC2Route';
 
 export const JTW_S1_STORY_LINE_ID = 'journey-to-the-west-s1';
 
@@ -163,6 +164,17 @@ export const JTW_STONE_MONKEY_ASSET =
   '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png';
 export const JTW_C1_BACKGROUND_ASSET =
   '/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp';
+/**
+ * Chapter two's own stage: the waterfall, the pool and the wet stepping stones
+ * the C2-P4 route crosses, with the curtain closed and the cave mouth still dark
+ * behind it. Chapter one's flower-fruit background is a different scene — the
+ * waterfall only appears there as distant scenery.
+ */
+export const JTW_C2_BACKGROUND_ASSET =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c2/before-v01.webp';
+/** Same composition, cave mouth warm-lit — chapter two's resolved state. */
+export const JTW_C2_RESOLVED_BACKGROUND_ASSET =
+  '/story-blocks/journey-to-the-west/backgrounds/s1/c2/resolved-v01.webp';
 
 /**
  * The read-only system preview chain (scene-specs C1-P1): the stone's sound is
@@ -964,15 +976,8 @@ export const C2_P3_TARGET_STOPS: ReadonlyArray<{
 ];
 export const C2_P3_TARGET_STOP_CELLS = C2_P3_TARGET_STOPS.map((stop) => stop.cell);
 
-/** 石头/高台格（能落脚）；其余格是水面，脚印放上去就落水。 */
-export const C2_P3_STONE_CELLS: ReadonlySet<string> = new Set([
-  '2-8',
-  '3-8',
-  '4-8',
-  '4-7',
-  '5-7',
-  '6-7',
-]);
+/** 石头/高台格（能落脚）；其余格是水面，脚印放上去就落水。C2 全章共用同一组。 */
+export const C2_P3_STONE_CELLS = C2_STONE_CELLS;
 
 export const C2_P3_FOOTPRINT_HINT =
   '再看看叶子标出的停点：第一段右2停在圆叶，上1跳上尖叶的高台，最后右2停在长叶的水帘入口——按到达顺序放三个脚印。';
@@ -1070,26 +1075,7 @@ export const C2_P4_TARGET_CHAIN: Block[] = [
 /** 五个可观察停点（每块一个脚印，按到达顺序）。 */
 export const C2_P4_TARGET_TRACE = ['3-8', '4-8', '4-7', '5-7', '6-7'] as const;
 
-/**
- * Simulate the saved route from the 2/8 start: one stop cell per move block.
- * Only the four move ops walk the grid (up = gy−1, per the C2 grid contract);
- * anything else contributes no stop. This derives the REAL run trace from the
- * SAVED BlocksProject — never from frontend state.
- */
-export function c2p4RouteTrace(moves: readonly Block[]): string[] {
-  let { gx, gy } = C2_P4_START;
-  const trace: string[] = [];
-  for (const block of moves) {
-    const n = block.n ?? 0;
-    if (block.op === 'move_right') gx += n;
-    else if (block.op === 'move_left') gx -= n;
-    else if (block.op === 'move_up') gy -= n;
-    else if (block.op === 'move_down') gy += n;
-    else continue;
-    trace.push(`${gx}-${gy}`);
-  }
-  return trace;
-}
+/** The wet-stone route walker lives in `journeyWestC2Route.ts` (file-organization rule). */
 
 /** 预测 A：最后少一个 Right，石猴会停在哪里？ */
 export const C2_P4_FEWER_QUESTION = '最后少一个 Right，石猴会停在哪里？';
