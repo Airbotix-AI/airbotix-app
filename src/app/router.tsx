@@ -26,6 +26,7 @@ import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
 import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 import { AcademyOrderPage } from '@/pages/portal/AcademyOrderPage';
 import { AcademyPage } from '@/pages/portal/AcademyPage';
+import { AcademyProductDetailPage } from '@/pages/portal/AcademyProductDetailPage';
 import { CoursesPage } from '@/pages/portal/CoursesPage';
 import { CourseDetailPage } from '@/pages/portal/CourseDetailPage';
 import { DashboardPage } from '@/pages/portal/DashboardPage';
@@ -63,6 +64,8 @@ import { CreateHubPage } from '@/pages/learn/create/CreateHubPage';
 import { CodeHubPage } from '@/pages/learn/code/CodeHubPage';
 import { BlocksHubPage } from '@/pages/learn/blocks/BlocksHubPage';
 import { BlocksStudioPage } from '@/pages/learn/blocks/BlocksStudioPage';
+import { JourneyWestMapPage } from '@/pages/learn/blocks/story-parts/JourneyWestMapPage';
+import { JourneyWestPartRoute } from '@/pages/learn/blocks/story-parts/JourneyWestPartPage';
 import { CodeStudioPage } from '@/pages/learn/code/CodeStudioPage';
 import { CodeRunPage } from '@/pages/learn/code/CodeRunPage';
 import { ClassroomListPage } from '@/pages/learn/classroom/ClassroomListPage';
@@ -83,6 +86,7 @@ import { TeacherProjectLivePage } from '@/pages/teacher/TeacherProjectLivePage';
 import { TeacherPrepStudioPage } from '@/pages/teacher/TeacherPrepStudioPage';
 import { AssessmentPage } from '@/pages/teacher/AssessmentPage';
 import { ArtStudioPage } from '@/pages/learn/create/art/ArtStudioPage';
+import { ArtHubPage } from '@/pages/learn/create/art/ArtHubPage';
 import { VoiceBoothPage } from '@/pages/learn/create/VoiceBoothPage';
 import { VideoStudioPage } from '@/pages/learn/create/VideoStudioPage';
 
@@ -146,6 +150,7 @@ export const router = createBrowserRouter([
       { path: 'teachers', element: <TeachersPage /> },
       { path: 'teachers/:slug', element: <TeacherDetailPage /> },
       { path: 'academy', element: <AcademyPage /> },
+      { path: 'academy/products/:slug', element: <AcademyProductDetailPage /> },
       { path: 'academy/checkout/:sku', element: <AcademyCheckoutPage /> },
       { path: 'academy/orders/:intentId', element: <AcademyOrderPage /> },
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
@@ -238,7 +243,11 @@ export const router = createBrowserRouter([
       // v0.7): every visible entry (Create hub, class sheet, workspace picker)
       // hides them, but the routes stay registered so deep links and the harness
       // wallet journeys (kid-create-image, wallet-pause) keep working.
-      { path: 'create/image', element: <ArtStudioPage /> },
+      // Art Studio: hub at `create/image` (tasks + how-it-works + my pictures),
+      // canvas at `create/image/canvas`. Landing straight on a blank canvas hid
+      // every picture the kid had already made.
+      { path: 'create/image', element: <ArtHubPage /> },
+      { path: 'create/image/canvas', element: <ArtStudioPage /> },
       // Music Maker is RETIRED — the Music Stage (studio=music in the Workspace)
       // is the single music surface (music-stage-prd §2). Kept as a redirect so
       // old links, bookmarks and class "create for class" rows still land somewhere.
@@ -249,6 +258,9 @@ export const router = createBrowserRouter([
       // Blocks Studio (junior block coder, learn-blocks-studio-prd.md §2)
       { path: 'create/blocks', element: <BlocksHubPage /> },
       { path: 'blocks/:projectId', element: <BlocksStudioPage /> },
+      // Journey to the West story parts (Story Blocks JtW S1, one part per build task)
+      { path: 'story/journey-west', element: <JourneyWestMapPage /> },
+      { path: 'story/journey-west/:partId', element: <JourneyWestPartRoute /> },
       { path: 'code/:projectId', element: <CodeStudioPage /> },
       { path: 'code/:projectId/run', element: <CodeRunPage /> },
       // Game studio (Phaser). A /learn child so it keeps the Learn top nav; full

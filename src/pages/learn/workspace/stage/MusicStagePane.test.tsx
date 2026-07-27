@@ -18,6 +18,9 @@ const {
   generateRealSongMock,
   renderScoreMock,
   triggerBlobDownloadMock,
+  requestGhostRiffMock,
+  requestRiffAdviceMock,
+  apiMock,
 } = vi.hoisted(() => ({
   playbackMock: {
     isPlaying: false,
@@ -42,6 +45,9 @@ const {
   generateRealSongMock: vi.fn(),
   renderScoreMock: vi.fn(),
   triggerBlobDownloadMock: vi.fn(),
+  requestGhostRiffMock: vi.fn(),
+  requestRiffAdviceMock: vi.fn(),
+  apiMock: vi.fn(),
 }));
 
 vi.mock('./useScorePlayback', () => ({
@@ -76,6 +82,17 @@ vi.mock('./offlineRender', async (orig) => ({
 // Legacy audio-artifact fallback pulls in wavesurfer — irrelevant here.
 vi.mock('../MusicTrackList', () => ({
   MusicTrackList: () => <div data-testid="legacy-track-list" />,
+}));
+// Riff tutor network calls (§5A D-MS13) — pure fetch wrappers, stubbed here.
+vi.mock('./riffTutorApi', () => ({
+  requestGhostRiff: requestGhostRiffMock,
+  requestRiffAdvice: requestRiffAdviceMock,
+}));
+// Mission turn-in POSTs /projects/:id/submit straight through the api client
+// (§5A D-MS14) — stub the transport, keep ApiError real.
+vi.mock('@/lib/api', async (orig) => ({
+  ...(await orig<typeof import('@/lib/api')>()),
+  api: apiMock,
 }));
 
 import { MusicStagePane } from './MusicStagePane';
@@ -138,7 +155,12 @@ function scoreMsg(score: MusicScore): Message {
   };
 }
 
-function renderPane(messages: Message[], balance = 50, classId: string | null = null) {
+function renderPane(
+  messages: Message[],
+  balance = 50,
+  classId: string | null = null,
+  mission: import('./musicMission').MusicMission | null = null,
+) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -149,6 +171,7 @@ function renderPane(messages: Message[], balance = 50, classId: string | null = 
         kidId="k1"
         familyId="f1"
         classId={classId}
+        mission={mission}
         onExit={() => {}}
         onImportTrack={() => {}}
       />
@@ -914,5 +937,254 @@ describe('MusicStagePane — Track Lanes (PRD §4)', () => {
       await waitFor(() => expect(saveScoreToMyWorksMock).toHaveBeenCalled());
       expect(saveScoreToMyWorksMock.mock.calls[0][1]).toBeNull();
     });
+  });
+});
+
+// ── §5A D-MS11/D-MS12: Riff Pad, frame 0, diff chips ────────────
+
+function seededScoreMsg(score: MusicScore, seed: unknown): Message {
+  const m = scoreMsg(score);
+  return { ...m, metadata: { score, seed } };
+}
+
+const SEED = {
+  tempo: 100,
+  key: 'C major',
+  tracks: [
+    {
+      instrument: 'guitar',
+      role: 'lead',
+      notes: [
+        { time: 0, note: 'C4', duration: '8n' },
+        { time: 0.5, note: 'E4', duration: '8n' },
+      ],
+    },
+  ],
+};
+
+describe('MusicStagePane — Riff Pad (§5A D-MS11)', () => {
+  it('empty stage offers the hand-first door: CTA opens the pad, generate stays gated until a note is tapped', () => {
+    renderPane([]);
+    expect(screen.queryByTestId('riff-pad')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    expect(screen.getByTestId('riff-pad')).toBeInTheDocument();
+    // Nothing tapped yet → the riff can't seed a song (and words are optional).
+    expect(screen.getByTestId('composer-generate')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    expect(screen.getByTestId('riff-count')).toHaveTextContent('1 notes · 0⭐');
+    expect(screen.getByTestId('composer-generate')).toBeEnabled();
+    // Tapping cells is 0⭐ hands-on work — no AI call, no request.
+    expect(generateMusicScoreMock).not.toHaveBeenCalled();
+  });
+
+  it('riff generate sends the tapped motif as seedScore with the default prompt', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([]);
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0')); // C4 @ step 0
+    fireEvent.click(screen.getByTestId('riff-cell-d-2-0')); // kick @ step 0
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    const req = generateMusicScoreMock.mock.calls[0][0];
+    expect(req.prompt.length).toBeGreaterThan(0);
+    expect(req.existingScore).toBeUndefined();
+    expect(req.seedScore).toMatchObject({ tempo: 100, key: 'C major' });
+    expect(req.seedScore.tracks[0]).toMatchObject({ instrument: 'guitar', role: 'lead' });
+    expect(req.seedScore.tracks[0].notes[0]).toEqual({ time: 0, note: 'C4', duration: '8n' });
+    expect(req.seedScore.tracks[1]).toMatchObject({ instrument: 'drums', role: 'percussion' });
+  });
+
+  it('a persisted seed renders the permanent 🎹 frame-0 pill and toggles the compare audition', async () => {
+    renderPane([userMsg('my riff song'), seededScoreMsg(SCORE_V1, SEED)]);
+    const pill = screen.getByTestId('riff-frame-pill');
+    expect(pill).toHaveTextContent('My riff');
+    fireEvent.click(pill);
+    // Audition swaps the played score and starts the loop on the ONE engine.
+    await waitFor(() => expect(playbackMock.play).toHaveBeenCalled());
+    expect(screen.getByTestId('riff-frame-pill')).toHaveTextContent('⏹');
+  });
+
+  it('a seeded first take tells the kid the melody starts with THEIR notes', () => {
+    renderPane([userMsg('my riff song'), seededScoreMsg(SCORE_V1, SEED)]);
+    expect(screen.getByTestId('ai-bubble')).toHaveTextContent('YOUR riff');
+  });
+
+  it('with a song on stage, the composer offers the 🎹 From my riff mode tab', () => {
+    renderPane([userMsg('a song'), scoreMsg(SCORE_V1)]);
+    expect(screen.queryByTestId('riff-pad')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('compose-mode-riff'));
+    expect(screen.getByTestId('riff-pad')).toBeInTheDocument();
+  });
+});
+
+describe('MusicStagePane — diff chips (§5A D-MS12)', () => {
+  it('shows what musically changed between the previous and current version', () => {
+    renderPane([userMsg('a song'), scoreMsg(SCORE_V1), scoreMsg(SCORE_V2)]);
+    expect(screen.getByTestId('diff-chips')).toBeInTheDocument();
+    expect(screen.getByTestId('diff-chip-0')).toHaveTextContent('118→126 BPM');
+  });
+
+  it('renders no chip row on the very first take', () => {
+    renderPane([userMsg('a song'), scoreMsg(SCORE_V1)]);
+    expect(screen.queryByTestId('diff-chips')).not.toBeInTheDocument();
+  });
+});
+
+// ── §5A D-MS13 P2a: the tutor (👻 ghost underlay + 👂 listen) ────
+
+describe('MusicStagePane — riff tutor (§5A D-MS13)', () => {
+  it('👻 requests a ghost with the typed idea and renders it as a faint, erasable underlay', async () => {
+    requestGhostRiffMock.mockResolvedValue({
+      riff: {
+        tempo: 100,
+        key: 'C major',
+        tracks: [
+          {
+            instrument: 'guitar',
+            role: 'lead',
+            notes: [
+              { time: 0, note: 'C4', duration: '8n' },
+              { time: 1, note: 'E4', duration: '8n' },
+            ],
+          },
+        ],
+      },
+      stars_charged: 2,
+      balance_after: 48,
+    });
+    renderPane([]);
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    fireEvent.change(screen.getByTestId('composer-input'), { target: { value: 'space idea' } });
+    fireEvent.click(screen.getByTestId('riff-ghost'));
+    await waitFor(() => expect(requestGhostRiffMock).toHaveBeenCalledWith('space idea'));
+    // Ghost cells render as the faint layer (C4 = melody row 7; steps 0 and 2).
+    await waitFor(() =>
+      expect(screen.getByTestId('riff-cell-m-7-0')).toHaveAttribute('data-ghost', 'true'),
+    );
+    expect(screen.getByTestId('riff-cell-m-5-2')).toHaveAttribute('data-ghost', 'true');
+    // The kid's own tap WINS the pixel — tracing turns ghost into a real note.
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    expect(screen.getByTestId('riff-cell-m-7-0')).not.toHaveAttribute('data-ghost');
+    expect(screen.getByTestId('riff-count')).toHaveTextContent('1 notes');
+    // One tap hides the tutor's layer — erasable, never sticky (iron rule 2).
+    fireEvent.click(screen.getByTestId('riff-ghost-dismiss'));
+    expect(screen.getByTestId('riff-cell-m-5-2')).not.toHaveAttribute('data-ghost');
+  });
+
+  it('👂 sends the kid’s riff and voices the ONE suggestion through the AI bubble', async () => {
+    requestRiffAdviceMock.mockResolvedValue({
+      advice: 'Try moving one note to the off-beat!',
+      stars_charged: 1,
+      balance_after: 49,
+    });
+    renderPane([]);
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    // Empty pad → nothing for the tutor to listen to.
+    expect(screen.getByTestId('riff-advice')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-advice'));
+    await waitFor(() => expect(requestRiffAdviceMock).toHaveBeenCalledTimes(1));
+    const sentRiff = requestRiffAdviceMock.mock.calls[0][0];
+    expect(sentRiff.tracks[0].notes[0]).toEqual({ time: 0, note: 'C4', duration: '8n' });
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-bubble')).toHaveTextContent(
+        'Try moving one note to the off-beat!',
+      ),
+    );
+  });
+
+  it('AC-8: unaffordable tutor clicks never reach the backend', () => {
+    renderPane([], 1); // 1⭐ < ghost 2⭐
+    fireEvent.click(screen.getByTestId('riff-cta'));
+    fireEvent.click(screen.getByTestId('riff-ghost'));
+    expect(requestGhostRiffMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Not enough Stars');
+  });
+});
+
+// ── §5A D-MS14 P2b: Music Mission Mode ──────────────────────────
+
+const MUSIC_MISSION: import('./musicMission').MusicMission = {
+  id: 'mission_m1',
+  title: 'Write a melody over the groove',
+  description: 'The drums are ready — add your own tune on top!',
+  template: {
+    mode: 'base',
+    riff: {
+      tempo: 100,
+      key: 'C major',
+      tracks: [
+        {
+          instrument: 'drums',
+          role: 'percussion',
+          notes: [
+            { time: 0, note: 'kick', duration: '8n' },
+            { time: 1, note: 'snare', duration: '8n' },
+          ],
+        },
+      ],
+    },
+  },
+  accept: { min_melody_notes: 2 },
+};
+
+describe('MusicStagePane — Music Mission Mode (§5A D-MS14)', () => {
+  it('opens on the pad with the task card, a LOCKED template layer and live checks', () => {
+    renderPane([], 50, null, MUSIC_MISSION);
+    expect(screen.getByTestId('mission-card')).toHaveTextContent('Write a melody over the groove');
+    // Mission entry lands straight in riff mode — the task is hand-first.
+    expect(screen.getByTestId('riff-pad')).toBeInTheDocument();
+    // Template drums render locked (kick @ step 0 = drums row 2).
+    const tplCell = screen.getByTestId('riff-cell-d-2-0');
+    expect(tplCell).toHaveAttribute('data-template', 'true');
+    fireEvent.click(tplCell); // course content is not the kid's to edit
+    expect(screen.getByTestId('riff-cell-d-2-0')).toHaveAttribute('data-template', 'true');
+    expect(screen.getByTestId('riff-count')).toHaveTextContent('0 notes');
+    // Checks flip as the kid taps their OWN notes.
+    expect(screen.getByTestId('mission-check-0')).toHaveAttribute('data-ok', 'false');
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-5-2'));
+    expect(screen.getByTestId('mission-check-0')).toHaveAttribute('data-ok', 'true');
+    // No song yet → turn-in stays gated with the hint.
+    expect(screen.getByTestId('mission-turn-in')).toBeDisabled();
+    expect(screen.getByTestId('mission-hint')).toBeInTheDocument();
+  });
+
+  it('riff compose carries the base template WITH the kid notes in seedScore', async () => {
+    generateMusicScoreMock.mockReturnValue(new Promise(() => {}));
+    renderPane([], 50, null, MUSIC_MISSION);
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('composer-generate'));
+    await waitFor(() => expect(generateMusicScoreMock).toHaveBeenCalledTimes(1));
+    const req = generateMusicScoreMock.mock.calls[0][0];
+    expect(req.prompt).toBe(MUSIC_MISSION.title);
+    const instruments = req.seedScore.tracks.map((t: { instrument: string }) => t.instrument);
+    expect(instruments).toEqual(['guitar', 'drums']);
+  });
+
+  it('turn-in saves a mission-linked project, submits it and celebrates +3⭐', async () => {
+    saveScoreToMyWorksMock.mockResolvedValue({ project_id: 'proj_m1', artifact_id: 'a1' });
+    apiMock.mockResolvedValue({ ok: true, stars_awarded: 3, balance_after: 53 });
+    renderPane([userMsg('riff song'), scoreMsg(SCORE_V1)], 50, null, MUSIC_MISSION);
+    // Meet the deterministic checks first.
+    fireEvent.click(screen.getByTestId('compose-mode-riff'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-7-0'));
+    fireEvent.click(screen.getByTestId('riff-cell-m-5-2'));
+    const btn = screen.getByTestId('mission-turn-in');
+    expect(btn).toBeEnabled();
+    fireEvent.click(btn);
+    await waitFor(() =>
+      expect(saveScoreToMyWorksMock).toHaveBeenCalledWith(SCORE_V1, null, 'mission_m1'),
+    );
+    expect(apiMock).toHaveBeenCalledWith('/projects/proj_m1/submit', { method: 'POST' });
+    await waitFor(() =>
+      expect(screen.getByTestId('ai-bubble')).toHaveTextContent('Mission complete'),
+    );
+    expect(screen.getByTestId('mission-turn-in')).toHaveTextContent('✓ Complete!');
+  });
+
+  it('free play renders no mission chrome', () => {
+    renderPane([]);
+    expect(screen.queryByTestId('mission-card')).not.toBeInTheDocument();
   });
 });

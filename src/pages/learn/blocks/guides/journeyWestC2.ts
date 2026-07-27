@@ -1,0 +1,260 @@
+// Journey to the West S1 C2｜水帘洞的约定 — Story Blocks mission guides.
+// Split out of curriculumGuides.ts to keep every file under the 1000-line
+// hard rule in rules/file-organization.md. curriculumGuides.ts stays the
+// public module and re-exports the assembled catalogue.
+
+import type { StoryMission } from './types';
+
+export const JTW_C2_MISSIONS: Record<string, StoryMission> = {
+  'jtw-s1-c2-p4': {
+    mode: 'complete',
+    lessonId: 'jtw-s1-c2-p4',
+    hero: {
+      name: '石猴',
+      role: '瀑布前的探路者',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第二章 · Build 1',
+    title: '刚好到达，不多也不少',
+    storyPages: [
+      {
+        emoji: '🌊🐒',
+        title: '路线说得通了，现在真的走',
+        body: '三片叶子还标着停点：圆叶在 4-8，尖叶在 4-7 的高台，长叶在 6-7 的水帘入口。石猴站在 2/8 的起点上，等程序带他一步一步走过去。',
+        speaker: '石猴',
+        dialogue: '排练过的路线，这次要让舞台真的照着做。',
+        scene: 1,
+      },
+      {
+        emoji: '🧩➡️',
+        title: '五块一步移动，都由你放',
+        body: '工作区里只有 Start 和 End。从候选里选出五块一步移动：Right 1、Right 1、Up 1、Right 1、Right 1——Left、Down 和 Wait 也在候选里，它们能运行，却会把石猴带离湿石路。',
+        speaker: '群猴',
+        dialogue: '一个方向或顺序错误，都会停在错误的湿石上！',
+        scene: 3,
+        blocks: ['➡️ Right 1 ×2 → ⬆️ Up 1', '➡️ Right 1 ×2 → 🏁 End'],
+      },
+      {
+        emoji: '👣🎯',
+        title: '先预测，再按 Go',
+        body: '运行前先逐块预测五个停点：3-8、4-8、4-7、5-7、6-7。少一个 Right 停在 5-7 碰不到入口；多一个 Right 会冲过 6-7——刚好碰到才算到达。',
+        speaker: '石猴',
+        dialogue: '不多也不少，我的脚底要刚好碰到入口格。',
+        scene: 4,
+      },
+    ],
+    partnerLine: 'P3 的预测在你手里，现在把它变成五块真实的路线主链！',
+    mission:
+      'Start 和 End 已经放好。从候选里选出五块一步移动 Right 1、Right 1、Up 1、Right 1、Right 1 按顺序接上，先预测五个停点，再按 Go 真实运行——不是改一个数字，五块都要你自己放。',
+    question: '哪一段必须在两个 Right 之后、后两个 Right 之前？',
+    choices: [],
+    retry: '想想三片叶子的顺序：先右2到圆叶，再上1跳上尖叶的高台，最后右2停在长叶的入口。',
+    successTitle: '刚好到达！⭐',
+    success: '五个脚印一步一个，石猴的脚底刚好碰到水帘入口格——不多也不少。',
+    fixTitle: '把五块路线搭完整',
+    fixPrompt: '关掉这张卡，把五块一步移动按 右1→右1→上1→右1→右1 接到 Start 和 End 之间。',
+    workspaceIntro: '湿石路等着你的五块移动——没有任何按钮会替你走这条路。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '搭路线：在 Start 和 End 之间按顺序接上五块一步移动。',
+      watch: '看石猴一步一个脚印地走——每一段都停在预测的停点上吗？',
+      sayFirst: '先说预测：五个停点分别在哪里？',
+      sayThen: '停点和脚印对上了——预测成立。',
+      hopFirst: '第一段右1，石猴踏上 3-8 的湿石！',
+      hopThen: '上1 跳上高台之后，还差两个 Right 才到入口。',
+      retry: '石猴停在了错误的湿石上。检查方向和顺序，把五块摆成 右1→右1→上1→右1→右1。',
+      fix: '在真正的工作区里放五块移动——合并成右2也不行，五块都要你自己排。',
+      test: '五块接好了。按 Go，看脚印是不是刚好到入口！',
+      saving: '刚好到达！我在保存你搭的路线……',
+      complete: '你的路线让我刚好碰到水帘入口——可水帘还没有回应。',
+    },
+    logicSteps: [
+      { icon: '➡️', label: 'Right 1 ×2', order: '第一段' },
+      { icon: '⬆️', label: 'Up 1', order: '第二段' },
+      { icon: '➡️', label: 'Right 1 ×2', order: '第三段' },
+    ],
+    logicWhy: '五块一步移动与 右2→上1→右2 等价，但每一步都留下一个可观察的停点——刚好到达，不多也不少。',
+    completionTitle: 'Build 1 完成！👣',
+    completion: '你选出五块真移动、按路线顺序接好并真实运行：五个脚印稳定显示，石猴的脚底刚好碰到水帘入口格。',
+    completionSteps: [
+      { icon: '👣', label: '五个脚印', order: '先' },
+      { icon: '🎯', label: '刚好到达', order: '再' },
+    ],
+    completionWhy: '少一个 Right 碰不到入口，多一个 Right 会冲过头——精确的五块顺序才让“到达”真实发生。',
+    next: '石猴到达了，水帘却没有分开。下一个 Part：连接“碰到以后”的回应。',
+  },
+
+  // Journey to the West S1/C2-P6 — the return-route order bug. Same blocks,
+  // same parameters; only the middle order is wrong, so the child must run the
+  // bug first, then swap exactly two blocks back.
+  'jtw-s1-c2-p6': {
+    mode: 'manual-fix',
+    lessonId: 'jtw-s1-c2-p6',
+    hero: {
+      name: '石猴',
+      role: '守约回来的探路者',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第二章 · Debug',
+    title: '回去的第一处偏离',
+    storyPages: [
+      {
+        emoji: '🕳️🐒',
+        title: '洞里安全，可他答应过要回去说',
+        body: '水帘分开了，石桥、干地、石座和清水都在。石猴记得瀑布前的约定：进去、看清、回来、分享。他站在 6-7 的入口格上，准备沿来时的湿石路退回伙伴那里。',
+        speaker: '石猴',
+        dialogue: '我得原路走回去，伙伴才知道该踩哪一块。',
+        scene: 1,
+      },
+      {
+        emoji: '🧩🌊',
+        title: '积木都对，第二段却冲出了湿石路',
+        body: '回程脚本是 Left 2 → Left 2 → Down 1。三块积木、三个数字都有用，只有中间顺序错了：第二段没有先向下踩上 4-8 的低石，而是继续向左，把石猴带到 2-7 的水面上方。',
+        speaker: '群猴',
+        dialogue: '你怎么从我们头顶上飘过去了？',
+        scene: 3,
+        blocks: ['⬅️ Left 2 → ⬅️ Left 2 → ⬇️ Down 1', '这是 bug 的顺序'],
+      },
+      {
+        emoji: '🔁👣',
+        title: '只交换两块，再跑一遍',
+        body: '先按 Go 完整跑一遍 bug，标出三个实际停点，找到第一处偏离；然后只把第二个 Left 2 和 Down 1 交换位置。不许改大数字、加 Set Speed、按 Go Home 或删掉重搭。',
+        speaker: '石猴',
+        dialogue: '先向下踩回低石，再向左——路才接得回去。',
+        scene: 4,
+        blocks: ['⬅️ Left 2 → ⬇️ Down 1 → ⬅️ Left 2', '这是修好的顺序'],
+      },
+    ],
+    partnerLine: '先跑 bug，再交换两块——去程那条五块路线一个字都别动。',
+    mission:
+      '先按 Go 运行这条回程，看石猴在第二段怎样冲出湿石路；然后只把第二个 Left 2 和 Down 1 交换位置，让顺序变成 Left 2 → Down 1 → Left 2，再按 Go 重跑，把两串脚印比一比。',
+    question: '第一处偏离在第几段？',
+    choices: [],
+    retry: '还没修好——只交换第二个 Left 2 和 Down 1，别改数字、别加新块，再按 Go 重跑。',
+    successTitle: '回程修好了！⭐',
+    success: '你先复现了 bug，又只交换两块把路接回去——这次石猴踩过了 4-8 的低石。',
+    fixTitle: '把回程顺序交换回来',
+    fixPrompt: '关掉这张卡，先按 Go 跑一遍 bug，再把 Down 1 移到两个 Left 2 中间。',
+    workspaceIntro: '乱序的回程在等你：先运行 bug，再只交换两块。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先按 Go 完整看一遍这条回程——先别急着修。',
+      watch: '盯住第二段：石猴的脚还落在湿石上吗？',
+      sayFirst: '第一段没问题：Left 2 把石猴退回 4-7 的高台。',
+      sayThen: '第二段应该向下，不是继续向左。',
+      hopFirst: '他冲到了 2-7——低石的上方，没有落脚点。',
+      hopThen: '交换以后，Down 1 先把他放回 4-8 的低石上。',
+      retry: '还没修好。只交换第二个 Left 2 和 Down 1，别改数字也别加块。',
+      fix: '把 Down 1 移到两个 Left 2 中间——只动这两块。',
+      test: '顺序换好了。按 Go 重跑，和刚才的脚印比一比！',
+      saving: '这一版每一步都踩在湿石上。我在保存你的修复……',
+      complete: '你修好了回程——伙伴照着这串脚印走，一步都不会踩空。',
+    },
+    logicSteps: [
+      { icon: '▶️', label: '先跑 bug', order: '复现' },
+      { icon: '🔍', label: '第二段偏离', order: '定位' },
+      { icon: '🔁', label: '交换两块', order: '修复' },
+    ],
+    logicWhy:
+      '三块积木都有用，数字也没错：错的是先向左还是先向下。顺序决定脚印落在哪里，速度和更大的数字都修不好方向顺序。',
+    completionTitle: 'Debug 完成！🔧',
+    completion: '你运行并复现了 bug，找到第二段这处偏离，只交换两块修好顺序，并重跑验证了脚印。',
+    completionSteps: [
+      { icon: '🌊', label: '冲出湿石路', order: '复现' },
+      { icon: '🔍', label: '第二段该向下', order: '定位' },
+      { icon: '👣', label: '踩回 4-8', order: '修复' },
+    ],
+    completionWhy: '两次的终点都是 2-8，可只有修好的那次经过 4-8——伙伴要跟的正是那块低石。',
+    next: '石猴回到伙伴面前说明了发现。下一个 Part：把这条路线变成大家都能走的路。',
+  },
+
+  // Journey to the West S1/C2-P7 — chapter two's Personal Ship. The route is
+  // the child's own design: which bank the friends enter from, the exact chain
+  // that bank needs, how long the door is held open and which evidence line the
+  // cave says. Only the story lock (到达 → 碰到 → 回应 → 等待) is fixed.
+  'jtw-s1-c2-p7': {
+    mode: 'personal-ship',
+    lessonId: 'jtw-s1-c2-p7',
+    celebrate: true,
+    hero: {
+      name: '石猴',
+      role: '给伙伴带路的人',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第二章 · Personal Ship',
+    title: '把发现变成大家的路',
+    storyPages: [
+      {
+        emoji: '🐒🗺️',
+        title: '一个人走过，不等于大家都能走',
+        body: '石猴已经知道洞里安全，可伙伴们还站在水边。他要做的不是再走一次自己的路，而是设计一条伙伴照着就能走、每一步都能预测的路线。',
+        speaker: '石猴',
+        dialogue: '我先站好起点，再把每一步说清楚。',
+        scene: 1,
+      },
+      {
+        emoji: '↔️🪨',
+        title: '左岸还是右岸？两条路不一样',
+        body: '左岸是来时那条湿石路，起点在 2/8，五块一步移动就到入口格 6-7。右岸的花丛石滩低一排，起点在 12/9，要先向上再向左，一共六块，最后停在 8-7。把石猴拖到哪一岸，路线就要按哪一岸重新算——方向和块数都不一样。',
+        speaker: '群猴',
+        dialogue: '我们跟着你的脚印走，别让我们踩空！',
+        scene: 3,
+        blocks: ['左岸：➡️➡️⬆️➡️➡️（5 块）', '右岸：⬆️⬅️⬅️⬆️⬅️⬅️（6 块）'],
+      },
+      {
+        emoji: '⏳🕳️',
+        title: '碰到以后，还要等伙伴',
+        body: '水帘和洞口的回应轨已经接好，一块都不能删。你要加的是最后那块 Wait：等 1 拍还是 2 拍，让伙伴来得及跟上。洞口说哪一句发现，也由你从三句里挑。',
+        speaker: '石猴',
+        dialogue: '门开着，我等你们进来。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '先让同伴只看起点和积木预测，再按 Go——预测和脚印要对得上。',
+    mission:
+      '选一岸站好（左岸 2/8 或把石猴拖到右岸 12/9），把那一岸需要的一步移动块按顺序接到 Start 和 End 之间，末尾放一块 Wait 1 或 Wait 2，再挑一句洞口的发现对白。水帘和洞口的 On Bump 轨不能删。搭好按 Go：脚底刚好碰到水帘，水帘隐藏、洞口出现，然后石猴等着伙伴。',
+    question: '路线的最后一步应该停在哪里？',
+    choices: [],
+    retry:
+      '还没成立。检查三件事：石猴是不是站在某一岸的起点格上、这一岸的每一步是不是都对、末尾有没有一块 Wait 1 或 Wait 2。',
+    successTitle: '这条路大家都能走！⭐',
+    success: '石猴刚好碰到水帘，水帘隐藏、洞口亮起，他还留在门口等伙伴——这是一条可以重复走的路。',
+    fixTitle: '把你的路线搭完整',
+    fixPrompt: '关掉这张卡，先决定从哪一岸出发，再一步一步把这一岸的移动块接上，最后加一块 Wait。',
+    workspaceIntro: '两岸都可以，但每一岸有自己的路线——先选岸，再算步数。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先决定从哪一岸出发：留在左岸 2/8，还是把石猴拖到右岸 12/9？',
+      watch: '看着脚印：每一步都落在石头上吗？最后一步碰到水帘了吗？',
+      sayFirst: '洞口说出了你挑的那一句发现。',
+      sayThen: '发现说完了——伙伴知道里面有什么了。',
+      hopFirst: '石猴动起来了，第一步已经离开起点。',
+      hopThen: '接着按你排的顺序往入口走。',
+      retry: '路线还不成立：起点、这一岸的步数顺序、末尾的 Wait，三样都要对。',
+      fix: '在工作区里一步一步接上这一岸的移动块，最后放一块 Wait 1 或 Wait 2。',
+      test: '路线接好了。按 Go，看水帘会不会因为你的路线分开！',
+      saving: '刚好碰到，门也开着。我在保存你设计的路线……',
+      complete: '伙伴们照着你的路线进来了——发现变成了大家的家。',
+    },
+    logicSteps: [
+      { icon: '🧭', label: '选一岸', order: '先' },
+      { icon: '👣', label: '算这一岸的步数', order: '再' },
+      { icon: '⏳', label: '等 1–2 拍', order: '最后' },
+    ],
+    logicWhy:
+      '两岸的起点不在同一排，所以不是把方向反过来就行：左岸五块、右岸六块，块数和方向都要重新算。等待放在碰撞之后，门才是为伙伴开着的。',
+    completionTitle: 'Personal Ship 完成！🗺️',
+    completion:
+      '你选定了一岸、算出了那一岸的每一步、让水帘因为真实碰撞而分开，并留了 1–2 拍等伙伴进来。',
+    completionSteps: [
+      { icon: '🧭', label: '我的起点', order: '先' },
+      { icon: '💥', label: '刚好碰到', order: '再' },
+      { icon: '⏳', label: '等伙伴', order: '最后' },
+    ],
+    completionWhy: '一条能被预测、能被重复走的路线，才是可以交给伙伴的路。',
+    next: '群猴按你的路线进来了。下一个 Part：回头看看瀑布前的约定完成了吗。',
+  },
+};

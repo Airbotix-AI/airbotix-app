@@ -174,6 +174,12 @@ export interface AcademyAttemptResult {
   correct_answer: string;
 }
 
+export interface AcademyTutorResult {
+  explanation: string;
+  model: string;
+  stars_charged: 0;
+}
+
 export interface AcademyProgress {
   attempts: number;
   correct: number;
@@ -244,6 +250,15 @@ export const submitProductAttempt = (args: {
       submitted: args.submitted,
       time_ms: args.timeMs,
     },
+  });
+
+export const getAcademyTutorExplanation = (args: {
+  productSlug: string;
+  questionId: string;
+}) =>
+  api<AcademyTutorResult>(`/academy/me/products/${args.productSlug}/tutor`, {
+    method: 'POST',
+    body: { question_id: args.questionId },
   });
 
 export const getProductProgress = (productSlug: string) =>

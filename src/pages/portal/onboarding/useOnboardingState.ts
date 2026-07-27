@@ -12,7 +12,11 @@ import {
   subscribeOnboardingFlags,
 } from '@/lib/onboardingStorage';
 import type { AutoTopupConfig, PaymentMethod } from '../walletTypes';
-import { computeOnboardingState, type OnboardingInputs, type OnboardingState } from './onboardingState';
+import {
+  computeOnboardingState,
+  type OnboardingInputs,
+  type OnboardingState,
+} from './onboardingState';
 
 interface WalletSummary {
   stars_balance: number;
@@ -45,11 +49,13 @@ export interface UseOnboardingState {
   sub: string;
   welcomeSeen: boolean;
   checklistDismissed: boolean;
+  phonePromptDismissed: boolean;
   markWelcomeSeen: () => void;
   markKidLoginShown: () => void;
   markLimitsReviewed: () => void;
   markGuidesBrowsed: () => void;
   dismissChecklist: () => void;
+  deferPhonePrompt: () => void;
   /** clears welcomeSeen so the wizard shows again (Settings → Replay intro) */
   replayWelcome: () => void;
 }
@@ -96,6 +102,7 @@ export function useOnboardingState(): UseOnboardingState {
   const inputs: OnboardingInputs = {
     hasFamily,
     kidCount: kids.data?.length ?? 0,
+    hasPhone: Boolean(user?.phone?.trim()),
     starsBalance: wallet.data?.stars_balance ?? null,
     paymentMethodCount: paymentMethods.data?.length ?? 0,
     autoTopupEnabled: autoTopup.data?.auto_topup_enabled ?? false,
@@ -123,11 +130,13 @@ export function useOnboardingState(): UseOnboardingState {
     sub,
     welcomeSeen: flags.welcomeSeen,
     checklistDismissed: flags.checklistDismissed,
+    phonePromptDismissed: flags.phonePromptDismissedV1,
     markWelcomeSeen: () => setOnboardingFlag(sub, 'welcomeSeen'),
     markKidLoginShown: () => setOnboardingFlag(sub, 'kidLoginShown'),
     markLimitsReviewed: () => setOnboardingFlag(sub, 'limitsReviewed'),
     markGuidesBrowsed: () => setOnboardingFlag(sub, 'guidesBrowsed'),
     dismissChecklist: () => setOnboardingFlag(sub, 'checklistDismissed'),
+    deferPhonePrompt: () => setOnboardingFlag(sub, 'phonePromptDismissedV1'),
     replayWelcome: () => clearOnboardingFlag(sub, 'welcomeSeen'),
   };
 }

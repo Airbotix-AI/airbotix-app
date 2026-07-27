@@ -51,7 +51,9 @@ function renderPack() {
       <MemoryRouter initialEntries={['/learn/missions/creative-starter']}>
         <Routes>
           <Route path="/learn/missions/:id" element={<PackLessonsPage />} />
-          <Route path="/learn/create/image" element={<ArtMissionTarget />} />
+          {/* An art task goes straight to the CANVAS, past the hub (D-IS-28). */}
+          <Route path="/learn/create/image/canvas" element={<ArtMissionTarget />} />
+          <Route path="/learn/create/image" element={<div data-testid="art-hub-route" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

@@ -113,7 +113,37 @@ export type BlocksTemplateId =
   | 'blocks_tsv_a3_s'
   | 'blocks_tsv_a4_h'
   | 'blocks_tsv_a4_b'
-  | 'blocks_tsv_a4_d';
+  | 'blocks_tsv_a4_d'
+  | 'blocks_tsv_a4_s'
+  | 'blocks_tsv_a5_h'
+  | 'blocks_tsv_a5_b'
+  | 'blocks_tsv_a5_d'
+  | 'blocks_tsv_a5_s'
+  | 'blocks_tsv_a6_h'
+  | 'blocks_tsv_a6_b'
+  | 'blocks_tsv_a6_d'
+  | 'blocks_tsv_a6_s'
+  | 'blocks_jtw_c1_p4'
+  | 'blocks_jtw_c1_p5'
+  | 'blocks_jtw_c1_p6'
+  | 'blocks_jtw_c1_p7'
+  | 'blocks_jtw_c2_p4'
+  | 'blocks_jtw_c2_p5'
+  | 'blocks_jtw_c2_p6'
+  | 'blocks_jtw_c2_p7'
+  | 'blocks_jtw_c3_p4'
+  // C3-P5's two weather branches — the scene's 模板分支白名单. Same lesson, same
+  // route, two middle seas; which one is seeded is the child's choice.
+  | 'blocks_jtw_c3_p5_starry'
+  | 'blocks_jtw_c3_p5_morning'
+  // C3-P6 carries the child's own C3-P5 weather forward, so it needs the same
+  // two whitelisted branches — only Page 2's start cell ships wrong.
+  | 'blocks_jtw_c3_p6_starry'
+  | 'blocks_jtw_c3_p6_morning'
+  // C3-P7 is the Personal Ship, and 星夜/晨雾 is one of its four real choices, so
+  // the whitelist repeats once more — this time over an EMPTY three-page route.
+  | 'blocks_jtw_c3_p7_starry'
+  | 'blocks_jtw_c3_p7_morning';
 
 export interface BlocksProjectMeta {
   id: string;

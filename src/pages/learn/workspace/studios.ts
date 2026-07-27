@@ -65,7 +65,7 @@ export const STUDIOS: StudioMeta[] = [
   {
     id: 'image',
     linkTo: '/learn/create/image',
-    linkCta: '🎨 Opens your own art studio →',
+    linkCta: '🎨 Your tasks, pictures and a new canvas →',
     emoji: '🎨',
     label: 'Art Studio',
     cost: 9,

@@ -10,7 +10,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from '@/lib/api';
 import { createBlocksProject, loadBlocksProject, saveBlocksProject } from './blocksApi';
+import { completeStoryPart } from './story-parts/storyPartsApi';
 import { blankProject } from './blocksModel';
 import { useBlocksStore } from './blocksStore';
 import { BlocksStudioPage } from './BlocksStudioPage';
@@ -27,6 +29,12 @@ vi.mock('./blocksApi', () => ({
 }));
 vi.mock('../playground/projectPersistence', () => ({
   saveThumbnail: vi.fn(async () => undefined),
+}));
+// The season chain (Task 25): a finished Tiny Star scene records itself against
+// the kid's server-side progression before the next scene may be offered.
+vi.mock('./story-parts/storyPartsApi', () => ({
+  completeStoryPart: vi.fn(async () => ({ part_id: 'part', completed_at: 'now' })),
+  fetchStoryLineProgress: vi.fn(),
 }));
 
 afterEach(() => {
@@ -223,7 +231,7 @@ describe('BlocksStudioPage zone labels', () => {
     );
   });
 
-  it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
+  const directionHookProject = () => {
     const directionProject = blankProject('Tiny Star Village · Which Way?');
     directionProject.lessonId = 'tsv-s1-a2-h';
     directionProject.pages[0] = {
@@ -252,6 +260,20 @@ describe('BlocksStudioPage zone labels', () => {
         },
       ],
     };
+    return directionProject;
+  };
+
+  /** Play A2-H to completion: the unchanged wrong-way run, then "farther". */
+  const playDirectionHook = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    await screen.findByTestId('story-mission-question', {}, { timeout: 3000 });
+    fireEvent.click(screen.getByTestId('story-choice-farther'));
+    return screen.findByTestId('story-hook-complete');
+  };
+
+  it('completes A2-H only after the unchanged wrong-way run and a farther observation', async () => {
+    const directionProject = directionHookProject();
     vi.mocked(loadBlocksProject).mockResolvedValueOnce({
       project: directionProject,
       version: 1,
@@ -294,6 +316,44 @@ describe('BlocksStudioPage zone labels', () => {
         }),
       }),
     );
+    // Task 25: the finished scene advances the season chain, and its evidence is
+    // the saved project the studio just verified — never a page boolean.
+    await waitFor(() =>
+      expect(completeStoryPart).toHaveBeenCalledWith('tiny-star-village-s1', 'tsv-s1-a2-h', {
+        schema_version: 1,
+        selections: { saved_project: ['p1'] },
+      }),
+    );
+    expect(await screen.findByTestId('story-next-mission')).toHaveTextContent('Choose an arrow');
+  });
+
+  it('does not open the next scene when the season chain refuses a scene played early', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: directionHookProject(),
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+    vi.mocked(completeStoryPart).mockRejectedValueOnce(
+      new ApiError(403, 'STORY_PART_LOCKED', 'Finish the previous story part first.'),
+    );
+
+    await renderStudio();
+    expect(await playDirectionHook()).toBeInTheDocument();
+
+    // The child's own work is still saved…
+    await waitFor(() => expect(completeStoryPart).toHaveBeenCalled());
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a2-h': expect.anything() }),
+        }),
+      }),
+    );
+    // …but the scene after it stays shut, with the reason in the child's words.
+    expect(await screen.findByRole('alert')).toHaveTextContent('opens scenes in order');
+    expect(screen.queryByTestId('story-next-mission')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-back-to-collection')).toBeInTheDocument();
   });
 
   it('keeps the A2-S home picker compact and shows the selected star route', async () => {
@@ -763,6 +823,134 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
   });
 
+  it('makes JtW C1-P6 run the order bug before a moved-blocks repair can succeed', { timeout: 20_000 }, async () => {
+    const orderDebug = blankProject('西游记 · 修好乱序的亮相');
+    orderDebug.lessonId = 'jtw-s1-c1-p6';
+    orderDebug.pages[0] = {
+      id: 'jtw-c1-p6-page',
+      background: 'jtw-s1-c1-flower-fruit-stone',
+      characters: [
+        {
+          id: 'stone-monkey',
+          name: 'Stone Monkey',
+          emoji: '🐵',
+          asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+          start: { gx: 8, gy: 9, size: 3, rot: 0 },
+          scripts: [
+            {
+              id: 'stone-monkey-arrival-debug',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'hide' },
+                { op: 'play_sound', n: 2 },
+                { op: 'say', text: '你好，我刚刚来到这里。' },
+                { op: 'hop', n: 1 },
+                { op: 'show' },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: orderDebug,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Run the SHIPPED bug first — the required wrong-run observation.
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(
+      await screen.findByTestId('story-build-task', {}, { timeout: 8000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep building ▶' }));
+
+    // Repair by MOVING only the target blocks: Show before Say, Hop before Say.
+    act(() => {
+      useBlocksStore.getState().moveBlock('stone-monkey-arrival-debug', 5, 3);
+      useBlocksStore.getState().moveBlock('stone-monkey-arrival-debug', 5, 4);
+    });
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'show' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'end' },
+    ]);
+    await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
+
+    // The rerun of the repaired chain now completes the debug mission.
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(
+      await screen.findByTestId('story-mission-success', {}, { timeout: 8000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
+  });
+
+  it('JtW C1-P6 refuses success when the repair lands without a prior bug run', { timeout: 20_000 }, async () => {
+    const orderDebug = blankProject('西游记 · 修好乱序的亮相');
+    orderDebug.lessonId = 'jtw-s1-c1-p6';
+    orderDebug.pages[0] = {
+      id: 'jtw-c1-p6-page',
+      background: 'jtw-s1-c1-flower-fruit-stone',
+      characters: [
+        {
+          id: 'stone-monkey',
+          name: 'Stone Monkey',
+          emoji: '🐵',
+          asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+          start: { gx: 8, gy: 9, size: 3, rot: 0 },
+          scripts: [
+            {
+              id: 'stone-monkey-arrival-debug',
+              blocks: [
+                { op: 'when_flag' },
+                { op: 'hide' },
+                { op: 'play_sound', n: 2 },
+                { op: 'say', text: '你好，我刚刚来到这里。' },
+                { op: 'hop', n: 1 },
+                { op: 'show' },
+                { op: 'end' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project: orderDebug,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Fix immediately — skipping the bug run.
+    act(() => {
+      useBlocksStore.getState().moveBlock('stone-monkey-arrival-debug', 5, 3);
+      useBlocksStore.getState().moveBlock('stone-monkey-arrival-debug', 5, 4);
+    });
+    await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    // The run finishes but the mission does NOT complete: the bug run is missing.
+    expect(
+      await screen.findByTestId('story-build-task', {}, { timeout: 8000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+  });
+
   it('makes A3-D observe a failed tap before replacing only Start with On Tap', async () => {
     const eventDebug = blankProject('Tiny Star Village · The Wrong Start Hat');
     eventDebug.lessonId = 'tsv-s1-a3-d';
@@ -832,6 +1020,824 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
       { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' },
     ]);
   });
+
+  it('lets A4-S choose its own stop, parcel and matching movement number', async () => {
+    const delivery = blankProject('Tiny Star Village · My Delivery Stop');
+    delivery.lessonId = 'tsv-s1-a4-s';
+    delivery.pages[0] = {
+      id: 'tsv-a4-s-page', background: 'meadow', characters: [
+        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-ship', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'breakfast-table', name: 'My Delivery Stop', emoji: '📦', start: { gx: 4, gy: 10, size: 0.9, rot: 0 }, scripts: [] },
+      ],
+    };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: delivery, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    const stopTwo = screen.getByTestId('a4-s-stop-2');
+    expect(stopTwo).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(stopTwo);
+    fireEvent.click(screen.getByTestId('a4-s-parcel-gift'));
+    expect(stopTwo).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
+      name: 'Gift Breakfast', emoji: '🎁', start: expect.objectContaining({ gx: 6, gy: 10 }),
+    });
+    // The picker never inserts a block — the route is still empty.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'end' },
+    ]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const rightPalette = screen.getByTestId('palette').querySelector('[data-testid="block-move_right"]');
+    fireEvent.pointerDown(rightPalette!);
+    fireEvent.pointerUp(rightPalette!);
+    // The route block lands before End at one space; the child raises it to two.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' },
+    ]);
+    fireEvent.click(screen.getAllByTestId('block-move_right').at(-1)!);
+    fireEvent.click(screen.getByTestId('num-plus'));
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 2 }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a4-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  // Tiny Star Village A5-H — chapter five's Story Hook. Both friends ship a
+  // finished `Start → Say → End`, so the real runner opens both speech bubbles
+  // in the same tick. That overlap is the ONLY evidence the Hook accepts.
+  const greetingHookProject = () => {
+    const greeting = blankProject('Tiny Star Village · Who Is Speaking?');
+    greeting.lessonId = 'tsv-s1-a5-h';
+    greeting.pages[0] = {
+      id: 'tsv-a5-h-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      ],
+    };
+    return greeting;
+  };
+
+  it('completes A5-H only after a run whose two greetings overlapped', async () => {
+    const greeting = greetingHookProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '7');
+    expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '12');
+    expect(screen.queryByTestId('speech-bubble-little-light')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Both bubbles are open together — the collision the child has to name.
+    expect(await screen.findByTestId('speech-bubble-little-light')).toHaveTextContent('Morning!');
+    expect(screen.getByTestId('speech-bubble-tuan-tuan')).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    // Naming one friend as the first speaker is wrong: nobody went first.
+    fireEvent.click(screen.getByTestId('story-choice-lumilo'));
+    expect(screen.getByRole('status')).toHaveTextContent('Did one of them wait');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-tuan-tuan'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('both bubbles open at once');
+    // An Explore hook stays quiet: no chapter celebration.
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+    // Observation only — neither program was touched.
+    expect(useBlocksStore.getState().project.pages[0].characters.map((c) => c.scripts[0].blocks)).toEqual([
+      [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }],
+      [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }],
+    ]);
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-h': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('refuses A5-H once a child has edited one of the shipped greeting chains', async () => {
+    const greeting = greetingHookProject();
+    // The A5-B Wait belongs to the NEXT scene; adding it here means the child is
+    // no longer observing the collision the Hook ships.
+    greeting.pages[0].characters[1].scripts[0].blocks.splice(1, 0, { op: 'wait', n: 5 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-together'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-h': expect.anything() }),
+        }),
+      }),
+    );
+  });
+
+  // Tiny Star Village A6-H — chapter six's Story Hook. The shipped route walks
+  // to the tower and rings the bell with no Hop in between, so the run itself is
+  // the question. The Hook accepts one proof only: the interpreter played the
+  // bell, never reached a Hop, and left the ringer at the foot of the tower.
+  const bellHookProject = () => {
+    const bell = blankProject('Tiny Star Village · Three Bell Tower Cards');
+    bell.lessonId = 'tsv-s1-a6-h';
+    bell.pages[0] = {
+      id: 'tsv-a6-h-page', background: 'sunset', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
+      ],
+    };
+    return bell;
+  };
+
+  it('completes A6-H only after a run that rang the bell with nobody hopping', async () => {
+    const bell = bellHookProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '5');
+    expect(screen.getByTestId('sprite-bell-tower')).toHaveAttribute('data-gx', '8');
+
+    fireEvent.click(screen.getByTestId('go-button'));
+    // The walk really happens: the ringer ends at the foot of the tower.
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 3000 },
+    );
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    // The two cards that DID happen are the distractors.
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(screen.getByRole('status')).toHaveTextContent('never happened');
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-ring'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('missing from the middle');
+    // An Explore hook stays quiet: no chapter celebration.
+    expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
+    // Observation only — the route was never edited.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-h': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('refuses A6-H once the missing Hop has been added — that is the next scene', async () => {
+    const bell = bellHookProject();
+    bell.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
+
+    // This run DID reach a Hop, so there is no "the bell rang alone" evidence
+    // and the saved route is no longer the one the Explore scene ships.
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-h': expect.anything() }),
+        }),
+      }),
+    );
+  });
+
+  // Tiny Star Village A6-B — chapter six's Logic Build. The same Bell Tower
+  // route returns with the same missing middle card, and this time the child
+  // puts it back. Completion needs the exact saved route AND a run in which the
+  // interpreter really reached the Hop before the bell.
+  const bellBuildProject = () => {
+    const bell = bellHookProject();
+    bell.lessonId = 'tsv-s1-a6-b';
+    bell.pages[0].id = 'tsv-a6-b-page';
+    return bell;
+  };
+  const bellRoute = () =>
+    useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks;
+
+  it('completes A6-B once the child puts the Hop between the walk and the bell', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellBuildProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // The child taps Hop in the real Motion palette. A tap appends before the
+    // terminal End — i.e. AFTER the bell — and on the block's own default of 2.
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'hop', n: 2 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Dragging it in front of the Pop and dialling it to one space is the move
+    // the mission is about.
+    act(() => useBlocksStore.getState().moveBlock('little-light-bell-route', 3, 2));
+    act(() => useBlocksStore.getState().setParam('little-light-bell-route', 2, 1));
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-b': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses A6-B while the Hop still sits after the bell', async () => {
+    const bell = bellBuildProject();
+    // The block is there, but behind the Pop — the bell still rings first.
+    bell.pages[0].characters[0].scripts[0].blocks.splice(3, 0, { op: 'hop', n: 1 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-b': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  // Tiny Star Village A6-D — chapter six's Twist & Debug. All five blocks ship,
+  // with the bell at the FRONT. The child must run the wrong order for real,
+  // name the card that belongs last, and may then MOVE the Pop — nothing may be
+  // added, deleted or retuned, and no number editor opens at all.
+  const bellFixProject = () => {
+    const bell = bellHookProject();
+    bell.lessonId = 'tsv-s1-a6-d';
+    bell.pages[0].id = 'tsv-a6-d-page';
+    bell.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'pop' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    return bell;
+  };
+
+  it('makes A6-D run the early bell before the Pop may be moved', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellFixProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Before the bug has been watched the chain will not budge: tapping a block
+    // opens no number editor, it sends the child back to the story card.
+    fireEvent.click(screen.getAllByTestId('block-move_right').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One real Go: the bell rings while the ringer is still three spaces away.
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    // The two cards that really do belong earlier are the distractors.
+    fireEvent.click(screen.getByTestId('story-choice-walk'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-hop'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-ring'));
+    expect(await screen.findByTestId('story-fix-task')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Even now nothing may be ADDED: the Motion palette is shut for this scene.
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(bellRoute()).toHaveLength(5);
+
+    // The whole repair is one move: the bell goes behind the jump.
+    act(() => useBlocksStore.getState().moveBlock('little-light-bell-route', 1, 3));
+    expect(bellRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-d': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses A6-D while the bell still rings before the jump', async () => {
+    const bell = bellFixProject();
+    // Moved one slot only: after the walk, but still before the hop.
+    bell.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-d': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  // Tiny Star Village A6-S — the season's Personal Ship. The three-step core
+  // ships built and settled; nobody is cast as the ringer and there is no
+  // ending, so only the child's two decisions can finish the season.
+  const bellFinaleProject = () => {
+    const bell = blankProject('Tiny Star Village · My Morning-Light Ending');
+    bell.lessonId = 'tsv-s1-a6-s';
+    bell.pages[0] = {
+      id: 'tsv-a6-s-page', background: 'sunset', characters: [
+        { id: 'bell-ringer', name: 'Who will ring it?', emoji: '❓', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'bell-ringer-finale', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' }] }] },
+        { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
+      ],
+    };
+    return bell;
+  };
+  const finaleRoute = () =>
+    useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks;
+
+  it('completes A6-S once the child casts a ringer and adds their own ending', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bellFinaleProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // The route runs, but nobody is standing at the tower and the morning has
+    // no ending — the starter cannot complete itself.
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('a6-s-ringer-dot-dot'));
+    expect(screen.getByTestId('a6-s-ringer-dot-dot')).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
+      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    });
+    // The ringer buttons never insert a block: the core is still the settled one.
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // The ending comes from the real Looks palette. A tap lands it before the
+    // terminal End — i.e. after the bell, which is exactly where it belongs —
+    // and it arrives with the editor's own 'Hi!', which is not an ending line.
+    fireEvent.click(screen.getByTestId('cat-looks'));
+    const sayPalette = screen.getByTestId('palette').querySelector('[data-testid="block-say"]');
+    fireEvent.pointerDown(sayPalette!);
+    fireEvent.pointerUp(sayPalette!);
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'say', text: 'Hi!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    fireEvent.click(screen.getAllByTestId('block-say').at(-1)!);
+    const endings = screen.getByTestId('story-greeting-picker').querySelectorAll('button');
+    expect(endings).toHaveLength(3);
+    fireEvent.click(endings[2]);
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'say', text: 'We did it!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // The script-less Bell Tower was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[1].scripts).toEqual([]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-bell-ringer')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('speech-bubble-bell-ringer', {}, { timeout: 5000 })).toHaveTextContent('We did it!');
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a6-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses an A6-S ending that happens before the bell, and finishes once it is cast', async () => {
+    const bell = bellFinaleProject();
+    // A perfectly good ending block — in front of the bell, so the last word
+    // happens while the morning light is still missing. And nobody is cast.
+    bell.pages[0].characters[0].scripts[0].blocks.splice(3, 0, { op: 'grow', n: 2 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: bell, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(screen.getByTestId('sprite-bell-ringer')).toHaveAttribute('data-gx', '8'),
+      { timeout: 5000 },
+    );
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a6-s': expect.anything() }),
+        }),
+      }),
+    );
+
+    // Casting a ringer is not enough while the ending is still in front of the
+    // bell; moving it behind the Pop is what finishes the season.
+    fireEvent.click(screen.getByTestId('a6-s-ringer-lumilo'));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    act(() => useBlocksStore.getState().moveBlock('bell-ringer-finale', 3, 4));
+    expect(finaleRoute()).toEqual([
+      { op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'grow', n: 2 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+  }, 40_000);
+
+  // Tiny Star Village A5-B — chapter five's Logic Build. The A5-H stage returns
+  // with Tuan Tuan's chain still in the collision shape; the child adds one Wait
+  // and has to put it BEFORE the Say. Completion needs the exact saved chain AND
+  // a run in which the interpreter really opened Tuan Tuan's bubble later.
+  const greetingBuildProject = () => {
+    const greeting = blankProject('Tiny Star Village · Wait a Moment');
+    greeting.lessonId = 'tsv-s1-a5-b';
+    greeting.pages[0] = {
+      id: 'tsv-a5-b-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      ],
+    };
+    return greeting;
+  };
+  const tuanTuanBlocks = () =>
+    useBlocksStore.getState().project.pages[0].characters[1].scripts[0].blocks;
+
+  it('completes A5-B once the child moves the Wait in front of Tuan Tuan’s Say', async () => {
+    const greeting = greetingBuildProject();
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    // The child opens Tuan Tuan and taps Wait in the real Control palette. A tap
+    // appends before the terminal End — i.e. AFTER the Say, which changes nothing.
+    fireEvent.click(screen.getByTestId('char-thumb-tuan-tuan'));
+    fireEvent.click(screen.getByTestId('cat-control'));
+    const waitPalette = screen.getByTestId('palette').querySelector('[data-testid="block-wait"]');
+    fireEvent.pointerDown(waitPalette!);
+    fireEvent.pointerUp(waitPalette!);
+    expect(tuanTuanBlocks()).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'wait', n: 5 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+
+    // Dragging it in front of the Say is the move the mission is about.
+    act(() => useBlocksStore.getState().moveBlock('tuan-tuan-greeting', 2, 1));
+    expect(tuanTuanBlocks()).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'say', text: 'Morning too!' }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // Lumilo's half of the duet was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Lumi opens alone; Tuan Tuan's greeting arrives a real half-second later.
+    expect(await screen.findByTestId('speech-bubble-little-light', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(screen.queryByTestId('speech-bubble-tuan-tuan')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('speech-bubble-tuan-tuan', {}, { timeout: 5000 })).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-b': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses A5-B while the Wait still sits after Tuan Tuan’s Say', async () => {
+    const greeting = greetingBuildProject();
+    // The block is there, but behind the Say — both friends still open together.
+    greeting.pages[0].characters[1].scripts[0].blocks.splice(2, 0, { op: 'wait', n: 5 });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: greeting, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('speech-bubble-little-light', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(screen.getByTestId('speech-bubble-tuan-tuan')).toHaveTextContent('Morning too!');
+
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-b': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  // Tiny Star Village A5-S — chapter five's Personal Ship. The starter casts ONE
+  // friend into BOTH spots and ships two empty chains, so nothing but the
+  // child's own cast, greetings and Wait can complete it.
+  const duetShipProject = () => {
+    const duet = blankProject('Tiny Star Village · My Two-Friend Greeting');
+    duet.lessonId = 'tsv-s1-a5-s';
+    duet.pages[0] = {
+      id: 'tsv-a5-s-page', background: 'candy', characters: [
+        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+      ],
+    };
+    return duet;
+  };
+  const duetBlocks = (index: number) =>
+    useBlocksStore.getState().project.pages[0].characters[index].scripts[0].blocks;
+
+  it('lets A5-S cast two friends, build both hellos and celebrate a run that took turns', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: duetShipProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    const studio = await renderStudio();
+    expect(studio).toHaveClass('has-home-picker');
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One friend is standing in both spots — that is not a duet.
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('a5-s-second-tuan-tuan'));
+    expect(screen.getByTestId('a5-s-second-tuan-tuan')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('a5-s-first-lumilo')).toHaveAttribute('aria-pressed', 'true');
+    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
+      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    });
+    // The cast buttons never insert a block — both chains are still empty.
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
+    expect(duetBlocks(1)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
+
+    // Lumi greets first, out loud. The Say arrives with the block's own 'Hi!',
+    // which is NOT a village greeting, so the child picks a real one.
+    fireEvent.click(screen.getByTestId('cat-looks'));
+    const sayPalette = screen.getByTestId('palette').querySelector('[data-testid="block-say"]');
+    fireEvent.pointerDown(sayPalette!);
+    fireEvent.pointerUp(sayPalette!);
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'say', text: 'Hi!' }, { op: 'end' }]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getAllByTestId('block-say').at(-1)!);
+    const greetings = screen.getByTestId('story-greeting-picker').querySelectorAll('button');
+    fireEvent.click(greetings[0]);
+    expect(duetBlocks(0)).toEqual([
+      { op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' },
+    ]);
+
+    // Tuan Tuan waits, then bounces back. The Hop arrives at one space because
+    // the number this scene teaches is the Wait.
+    fireEvent.click(screen.getByTestId('char-thumb-greeter-two'));
+    fireEvent.click(screen.getByTestId('cat-control'));
+    const waitPalette = screen.getByTestId('palette').querySelector('[data-testid="block-wait"]');
+    fireEvent.pointerDown(waitPalette!);
+    fireEvent.pointerUp(waitPalette!);
+    fireEvent.click(screen.getByTestId('cat-motion'));
+    const hopPalette = screen.getByTestId('palette').querySelector('[data-testid="block-hop"]');
+    fireEvent.pointerDown(hopPalette!);
+    fireEvent.pointerUp(hopPalette!);
+    expect(duetBlocks(1)).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    // Lumi speaks alone before Tuan Tuan answers half a second later.
+    expect(await screen.findByTestId('speech-bubble-greeter-one', {}, { timeout: 5000 })).toHaveTextContent('Morning!');
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-s': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 30_000);
+
+  it('refuses an A5-S duet in which one friend is cast in both spots', async () => {
+    const duet = duetShipProject();
+    // Both chains are perfectly built — but they belong to the same friend, so
+    // nobody is greeting anybody.
+    duet.pages[0].characters[0].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    duet.pages[0].characters[1].scripts[0].blocks = [
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ];
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: duet, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-build-task', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-s': expect.anything() }),
+        }),
+      }),
+    );
+
+    // Casting a second friend is the missing piece, and it needs no new block.
+    fireEvent.click(screen.getByTestId('a5-s-second-dot-dot'));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }]);
+  }, 30_000);
+
+  // Tiny Star Village A5-D — chapter five's Twist & Debug. Every block is in the
+  // right order; only Tuan Tuan's Wait number is wrong. The child must run the
+  // too-long pause for real, name the direction of the repair, and may then edit
+  // that one number — nothing else on the page is editable.
+  const relayDebugProject = () => {
+    const relay = blankProject('Tiny Star Village · That Wait Was Too Long');
+    relay.lessonId = 'tsv-s1-a5-d';
+    relay.pages[0] = {
+      id: 'tsv-a5-d-page', background: 'candy', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+      ],
+    };
+    return relay;
+  };
+  const tuanTuanRelay = () =>
+    useBlocksStore.getState().project.pages[0].characters[1].scripts[0].blocks;
+
+  it('makes A5-D run the too-long Wait before its number can be retuned', async () => {
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: relayDebugProject(), version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    fireEvent.click(screen.getByTestId('char-thumb-tuan-tuan'));
+    // Before the bug has been watched, the hourglass will not open.
+    fireEvent.click(screen.getAllByTestId('block-wait').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('story-mission')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // One real Go: Lumilo bounces, lands, and the stage stands empty for the
+    // rest of the 900 ms before Tuan Tuan answers.
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    // Guessing "more" does not open the repair.
+    fireEvent.click(screen.getByTestId('story-choice-more'));
+    expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('story-choice-less'));
+    expect(await screen.findByTestId('story-fix-task')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+
+    // Only the Wait is editable, and only its number changes.
+    fireEvent.click(screen.getAllByTestId('block-hop').at(-1)!);
+    expect(screen.queryByTestId('block-editor')).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByTestId('block-wait').at(-1)!);
+    expect(screen.getByTestId('num-value')).toHaveTextContent('9');
+    for (let step = 0; step < 4; step += 1) fireEvent.click(screen.getByTestId('num-minus'));
+    expect(tuanTuanRelay()).toEqual([
+      { op: 'when_flag' }, { op: 'wait', n: 5 }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'true');
+    // Lumilo's half of the relay was never touched.
+    expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
+      { op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' },
+    ]);
+
+    await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(saveBlocksProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({
+            'tsv-s1-a5-d': expect.objectContaining({ completedAt: expect.any(String) }),
+          }),
+        }),
+      }),
+    );
+  }, 40_000);
+
+  it('refuses A5-D when the retuned Wait makes both friends bounce at once', async () => {
+    const relay = relayDebugProject();
+    // The child overshot the repair: Wait 1 puts the two bounces back on top of
+    // each other, which is the A5-B collision all over again.
+    relay.pages[0].characters[1].scripts[0].blocks[1] = { op: 'wait', n: 1 };
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: relay, version: 1, history: { past: [], future: [] }, otherFiles: [] });
+
+    await renderStudio();
+    fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    fireEvent.click(screen.getByTestId('go-button'));
+    expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.queryByTestId('story-mission-success')).not.toBeInTheDocument();
+    expect(saveBlocksProject).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyProgress: expect.objectContaining({
+          completed: expect.objectContaining({ 'tsv-s1-a5-d': expect.anything() }),
+        }),
+      }),
+    );
+  }, 30_000);
 
   it('changes the saved A3-S character without inserting a response', async () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');

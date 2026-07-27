@@ -17,6 +17,7 @@ import {
   type Artifact,
 } from '../shared/useStudio';
 import { ArtCanvas, type ArtCanvasHandle } from './ArtCanvas';
+import { ART_TUTOR_TEMP_NAME, ArtTutorAvatar, type ArtTutorState } from './ArtTutorAvatar';
 import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
 import { fetchArtifactBlob, useArtifactBlobUrl } from './artifactBytes';
 import { removeWhiteBackground } from './matting';
@@ -33,6 +34,14 @@ import { removeWhiteBackground } from './matting';
 const MAGIC_COST = 9;
 const GHOST_COST = 2;
 const CHAT_COST = 1;
+
+// Quiet secondary "helper" pill — lighter than btn-pill-secondary so the primary
+// ✨ paint action stays the clear focus of the coach panel (declutter, 2026-07-25).
+const HELPER_PILL =
+  'rounded-full border border-hairline bg-surface/60 text-ink-soft text-[12px] font-semibold py-2 px-2 hover:bg-surface disabled:opacity-45 transition-colors';
+// Tiny group header so the coach panel reads as labelled sections, not a wall of
+// buttons (owner feedback 2026-07-25: 分类提醒/看不懂).
+const MICRO_LABEL = 'px-0.5 text-[10px] font-bold uppercase tracking-wider text-ink-soft/70';
 
 // Masked edits (D-ISF-5): gpt-image /images/edits expects the prompt to describe
 // the desired full picture — a bare noun is frequently ignored. The kid's words
@@ -154,6 +163,7 @@ export function ArtStudioPage() {
   const [draft, setDraft] = useState('');
   const [lastLook, setLastLook] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(true);
+  const [coachMode, setCoachMode] = useState<'planning' | 'looking'>('planning');
 
   const [error, setError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
@@ -198,6 +208,15 @@ export function ArtStudioPage() {
   });
 
   const hasInk = ops.length > 0;
+  const tutorState: ArtTutorState = celebrate
+    ? 'celebrating'
+    : generate.isPending
+      ? 'creating'
+      : coach.isPending
+        ? coachMode === 'looking'
+          ? 'looking'
+          : 'thinking'
+        : 'idle';
 
   // ── Draft auto-save (owner: auto-save must ALWAYS work, incl. reopened edits) ──
   // The working canvas AND which picture it's built on live only in React state,
@@ -283,6 +302,7 @@ export function ArtStudioPage() {
     if (!idea || coach.isPending) return;
     setError(null);
     setDraft('');
+    setCoachMode('planning');
     const next = [...msgs, { role: 'user' as const, content: idea.slice(0, 500) }];
     setMsgs(next);
     setChips([]);
@@ -350,6 +370,7 @@ export function ArtStudioPage() {
   const onStory = () => {
     if (!canvasRef.current) return;
     setError(null);
+    setCoachMode('planning');
     // Vision snapshots composite on WHITE (D-ISF-7): saved art keeps its alpha,
     // but downstream rasterizers composite transparency unpredictably.
     const b64 = canvasRef.current.exportPng(0.5, 'white').split(',')[1];
@@ -433,19 +454,31 @@ export function ArtStudioPage() {
   const onSaveCharacter = () => {
     const name = charName.trim().slice(0, 40);
     if (!name || !baseArtifactId) return;
-    const art = artifactById(baseArtifactId);
-    if (!art) return;
+    // Don't look the artifact up in the bucket cache (owner 2026-07-25: naming a
+    // just-generated take silently did nothing — the fresh take isn't in
+    // `bucketArtifacts` yet, so the old `artifactById` guard returned early with no
+    // request and no feedback). Derive the project the base lives in and PATCH by id
+    // directly; surface any failure instead of dropping it.
+    const projectId = baseRef?.projectId ?? missionProjectId ?? bucket.data?.project_id;
+    if (!projectId) {
+      setError("Couldn't save the name — make a picture first, then try again.");
+      return;
+    }
     setError(null);
-    void api(`/projects/${art.project_id}/artifacts/${art.id}`, {
+    void api(`/projects/${projectId}/artifacts/${baseArtifactId}`, {
       method: 'PATCH',
       body: { metadata: { character: name } },
     })
       .then(() => {
         setCharName('');
-        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', art.project_id] });
+        // Refetch so the newly-named character shows up in the Characters list.
+        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', projectId] });
+        if (bucket.data?.project_id && bucket.data.project_id !== projectId) {
+          void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
+        }
         setMsgs((m) => [
           ...m,
-          { role: 'assistant', content: `👤 ${name} joined your characters! Use them any time.` },
+          { role: 'assistant', content: `👤 ${name} is saved to your characters! Use them any time.` },
         ]);
       })
       .catch((e) => setError(friendlyError(e)));
@@ -530,6 +563,7 @@ export function ArtStudioPage() {
   const onLook = () => {
     if (!canvasRef.current) return;
     setError(null);
+    setCoachMode('looking');
     // Vision snapshots composite on WHITE (D-ISF-7): saved art keeps its alpha,
     // but downstream rasterizers composite transparency unpredictably.
     const b64 = canvasRef.current.exportPng(0.5, 'white').split(',')[1];
@@ -728,8 +762,13 @@ export function ArtStudioPage() {
       {/* header */}
       <div className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center gap-3">
-          <Link to="/learn/create" className="text-[13px] font-bold text-ink-soft hover:text-ink">
-            ← All tools
+          {/* Back to the Art Studio HUB (D-IS-28), not the all-tools list: from the
+              canvas the kid's own tasks and pictures are one level up, not two. */}
+          <Link
+            to="/learn/create/image"
+            className="text-[13px] font-bold text-ink-soft hover:text-ink"
+          >
+            ← My art
           </Link>
           <span className="text-[16px] font-bold text-ink">🎨 Art Studio</span>
         </div>
@@ -942,9 +981,13 @@ export function ArtStudioPage() {
             className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0"
             data-testid="ai-rail"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[13px] font-bold text-ink">🤖 Coach</span>
-              <button onClick={() => setAiOpen(false)} className="text-[12px] text-ink-soft">
+            <div className="mb-2 flex items-center justify-between rounded-2xl bg-wash-sky px-2.5 py-2">
+              <ArtTutorAvatar state={tutorState} />
+              <button
+                onClick={() => setAiOpen(false)}
+                className="rounded-full px-2 py-1 text-[12px] text-ink-soft hover:bg-surface"
+                aria-label={`Hide ${ART_TUTOR_TEMP_NAME}`}
+              >
                 ✕
               </button>
             </div>
@@ -1000,12 +1043,19 @@ export function ArtStudioPage() {
               </div>
             )}
             <div className="flex-1 overflow-y-auto space-y-2 mb-2">
-              <Bubble role="assistant" content="What should we paint today? Tell me your idea!" />
+              <Bubble
+                role="assistant"
+                content={`I'm ${ART_TUTOR_TEMP_NAME}. What should we paint today? Tell me your idea!`}
+              />
               {msgs.map((m, i) => (
                 <Bubble key={i} role={m.role} content={m.content} />
               ))}
-              {coach.isPending && <Bubble role="assistant" content="🎨 thinking…" />}
-              {generate.isPending && <Bubble role="assistant" content="🖌 painting…" />}
+              {coach.isPending && (
+                <Bubble role="assistant" content={`${ART_TUTOR_TEMP_NAME} is thinking…`} />
+              )}
+              {generate.isPending && (
+                <Bubble role="assistant" content={`${ART_TUTOR_TEMP_NAME} is creating…`} />
+              )}
             </div>
             {chips.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-2">
@@ -1043,73 +1093,94 @@ export function ArtStudioPage() {
                 Send −{CHAT_COST}★
               </button>
             </div>
-            <div className="space-y-1.5">
-              <button
-                onClick={onGhost}
-                disabled={generate.isPending || !bucket.data}
-                className="btn-pill-secondary w-full text-[13px]"
-              >
-                👻 Sketch it for me −{GHOST_COST}★
-              </button>
-              <button
-                onClick={onLook}
-                disabled={coach.isPending || !hasInk}
-                className="btn-pill-secondary w-full text-[13px]"
-              >
-                👀 Coach, look! −{CHAT_COST}★
-              </button>
+            <div className="space-y-2">
+              {/* ONE primary paint action (declutter — was two look-alike orange
+                  buttons). If the coach already has a plan, paint it in one tap;
+                  otherwise open the confirm sheet. */}
               <button
                 onClick={() => setMagicOpen(true)}
                 disabled={generate.isPending || !bucket.data}
-                className="btn-pill-primary w-full text-[14px]"
+                className="btn-pill-primary w-full text-[15px] py-3"
+                data-testid="paint-plan"
               >
-                ✨ Bring it to life! −{MAGIC_COST}★
+                ✨ {plan ? 'Paint this!' : 'Bring it to life!'} −{MAGIC_COST}★
               </button>
-              {takes.some((t) => t.kind === 'magic') && (
+
+              {/* Lightweight helpers — one row, visually quieter than the primary
+                  so they don't all compete for the same attention. */}
+              <div className={MICRO_LABEL}>Stuck? Boti can help</div>
+              <div className="flex gap-1.5">
                 <button
-                  onClick={onStory}
-                  disabled={coach.isPending}
-                  className="btn-pill-secondary w-full text-[13px]"
+                  onClick={onGhost}
+                  disabled={generate.isPending || !bucket.data}
+                  className={`${HELPER_PILL} flex-1`}
                 >
-                  📖 Story time! −{CHAT_COST}★
+                  👻 Sketch −{GHOST_COST}★
                 </button>
-              )}
-              {baseArtifactId && (
-                <div className="flex gap-1.5" data-testid="character-save">
-                  <input
-                    value={charName}
-                    onChange={(e) => setCharName(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && onSaveCharacter()}
-                    placeholder="Name them… (Sparky)"
-                    className="input-k12 flex-1 text-[12px]"
-                  />
+                <button
+                  onClick={onLook}
+                  disabled={coach.isPending || !hasInk}
+                  className={`${HELPER_PILL} flex-1`}
+                >
+                  👀 Look −{CHAT_COST}★
+                </button>
+                {takes.some((t) => t.kind === 'magic') && (
                   <button
-                    onClick={onSaveCharacter}
-                    disabled={!charName.trim()}
-                    className="btn-pill-secondary text-[12px] whitespace-nowrap"
+                    onClick={onStory}
+                    disabled={coach.isPending}
+                    className={`${HELPER_PILL} flex-1`}
                   >
-                    👤 Save
+                    📖 Story −{CHAT_COST}★
+                  </button>
+                )}
+              </div>
+
+              {/* After you make art — it's already the kid's, in THEIR collection.
+                  Owner feedback 2026-07-25: the art auto-saves to My Pictures (the
+                  kid's own assets) — surface that; a game is just one optional place
+                  to reuse it, not "where it's saved" (we don't only teach games). */}
+              {baseArtifactId && (
+                <div className="mt-1 space-y-1.5 border-t border-hairline pt-2">
+                  <div className={MICRO_LABEL}>Your artwork</div>
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-brand-mint">
+                    ✓ Saved to your My Pictures
+                  </div>
+                  {/* Optional: name it so it becomes a reusable character. */}
+                  <div className="flex gap-1.5" data-testid="character-save">
+                    <input
+                      value={charName}
+                      onChange={(e) => setCharName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && onSaveCharacter()}
+                      placeholder="Name it… (Sparky)"
+                      className="input-k12 flex-1 text-[12px]"
+                    />
+                    <button
+                      onClick={onSaveCharacter}
+                      disabled={!charName.trim()}
+                      className={`${HELPER_PILL} whitespace-nowrap px-3`}
+                    >
+                      👤 Save
+                    </button>
+                  </div>
+                  {/* Optional reuse — one of many, not the save itself. */}
+                  <button
+                    onClick={() => setGameOpen(true)}
+                    className={`${HELPER_PILL} w-full`}
+                    data-testid="use-in-game"
+                  >
+                    🎮 Also use it in a game
                   </button>
                 </div>
-              )}
-              {baseArtifactId && (
-                <button
-                  onClick={() => setGameOpen(true)}
-                  className="btn-pill-secondary w-full text-[13px]"
-                  data-testid="use-in-game"
-                >
-                  🎮 Use in my game
-                </button>
               )}
             </div>
           </div>
         ) : (
           <button
             onClick={() => setAiOpen(true)}
-            className="self-start mt-2 w-11 h-11 rounded-full bg-grad-bubblegum text-[20px] shadow-brand-bubblegum"
-            aria-label="Open coach"
+            className="mt-2 self-start rounded-full shadow-brand-sky transition-transform hover:scale-105"
+            aria-label={`Open ${ART_TUTOR_TEMP_NAME}`}
           >
-            🤖
+            <ArtTutorAvatar state={tutorState} compact />
           </button>
         )}
       </div>

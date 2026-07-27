@@ -61,16 +61,12 @@ export function AcademyProductCard({ examTitle, owners, product }: AcademyProduc
             </div>
           </div>
           <Link
-            to={`/portal/academy/checkout/${product.slug}`}
+            to={`/portal/academy/products/${product.slug}`}
             className="btn-pill-primary px-5 py-3 text-[14px] sm:px-7 sm:py-[14px] sm:text-[15px]"
             data-testid={`academy-buy-${product.slug}`}
             aria-label={`Choose ${product.title} for a child`}
           >
-            {/* Year alone is ambiguous once an exam sells two subjects at the same
-                level (UK SATs Year 6 Maths vs Grammar), so the subject is named too. */}
-            {owners.length > 0
-              ? 'Choose another child →'
-              : `Choose ${product.level_key} ${product.subject_key} →`}
+            {owners.length > 0 ? 'View product →' : `See ${product.level_key} →`}
           </Link>
         </div>
       </div>

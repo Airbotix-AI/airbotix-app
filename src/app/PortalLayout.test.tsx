@@ -26,6 +26,10 @@ vi.mock('./PortalMobileNav', () => ({
   ),
 }));
 
+vi.mock('./PortalMobileHeader', () => ({
+  PortalMobileHeader: () => <header>Mobile page title</header>,
+}));
+
 afterEach(cleanup);
 
 describe('PortalLayout', () => {
@@ -61,8 +65,21 @@ describe('PortalLayout', () => {
     const contentFrame = screen.getByTestId('portal-content-frame');
 
     expect(layout).toHaveClass('fixed', 'inset-0', 'h-dvh', 'min-h-0', 'overflow-hidden');
-    expect(scrollRegion).toHaveClass('min-h-0', 'min-w-0', 'overflow-y-auto');
-    expect(contentFrame).toHaveClass('w-full', 'max-w-none', 'pr-3', 'xl:pr-4');
+    expect(layout).toHaveClass('portal-shell');
+    expect(layout).toHaveAttribute('data-portal-shell', 'true');
+    expect(scrollRegion).toHaveClass(
+      'min-h-0',
+      'min-w-0',
+      'overflow-y-auto',
+      'xl:pb-0',
+    );
+    expect(contentFrame).toHaveClass(
+      'portal-content-frame',
+      'mx-auto',
+      'w-full',
+      'max-w-[1440px]',
+    );
+    expect(within(scrollRegion).getByText('Mobile page title')).toBeInTheDocument();
     expect(within(scrollRegion).getByText('Course comparison')).toBeInTheDocument();
     expect(screen.getByTestId('desktop-navigation')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Parent Portal mobile' })).toBeInTheDocument();

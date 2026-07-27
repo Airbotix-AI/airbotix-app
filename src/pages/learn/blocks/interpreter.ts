@@ -27,6 +27,15 @@ export interface SpriteState {
   size: number;
   rot: number;
   visible: boolean;
+  /** Collision reach override in grid cells (see CharacterStart.reach). */
+  reach?: number;
+  /**
+   * A stage actor declared hidden at the start of the run: it is a trigger zone
+   * the story reveals with Show, so it registers On Bump contact even while it
+   * is not drawn. A character hidden mid-run by the child's own Hide block is
+   * NOT a trigger zone and keeps the original "gone means untouchable" rule.
+   */
+  trigger?: boolean;
 }
 
 export interface SpriteHost {
@@ -50,15 +59,37 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 const collisionRadius = (size: number) => 0.5 * Math.sqrt(clamp(size, 0.3, 3));
 
+const spriteReach = (s: SpriteState) => s.reach ?? collisionRadius(s.size);
+
+/** Foot zones overlap — pure geometry, no visibility rule. */
+function zonesOverlap(a: SpriteState, b: SpriteState): boolean {
+  const reach = spriteReach(a) + spriteReach(b);
+  return Math.abs(a.gx - b.gx) < reach && Math.abs(a.gy - b.gy) < reach;
+}
+
 /**
  * A simple foot-zone collision for the grid runtime. Size 1 keeps the original
  * one-grid contact rule; larger visuals gain reach without treating their full
- * transparent square as a collider.
+ * transparent square as a collider — unless the character declares its own
+ * `reach`, which lets a stage-filling visual keep a one-cell foot zone.
+ *
+ * This is the child-facing "is touching?" sensing rule, so both characters must
+ * be on stage.
  */
 export function spritesTouch(a: SpriteState, b: SpriteState): boolean {
   if (!a.visible || !b.visible) return false;
-  const reach = collisionRadius(a.size) + collisionRadius(b.size);
-  return Math.abs(a.gx - b.gx) < reach && Math.abs(a.gy - b.gy) < reach;
+  return zonesOverlap(a, b);
+}
+
+/**
+ * Contact for On Bump. A character declared hidden at the start of the run is a
+ * trigger zone (a cave mouth waiting to be revealed), so it still registers the
+ * bump that runs its own Show. Everything else keeps the sensing rule.
+ */
+export function spritesBump(a: SpriteState, b: SpriteState): boolean {
+  const onStage = (s: SpriteState) => s.visible || s.trigger === true;
+  if (!onStage(a) || !onStage(b)) return false;
+  return zonesOverlap(a, b);
 }
 
 export class BlocksRunner {
@@ -137,7 +168,7 @@ export class BlocksRunner {
       const b = this.states.get(other.id);
       if (!b) continue;
       const key = [mover.id, other.id].sort().join('|');
-      const overlap = spritesTouch(a, b);
+      const overlap = spritesBump(a, b);
       if (overlap) {
         if (!this.touching.has(key)) {
           this.touching.add(key);
@@ -364,7 +395,16 @@ export class BlocksRunner {
 }
 
 export function startState(char: Character): SpriteState {
-  return { gx: char.start.gx, gy: char.start.gy, size: char.start.size, rot: char.start.rot, visible: true };
+  const visible = char.start.visible !== false;
+  return {
+    gx: char.start.gx,
+    gy: char.start.gy,
+    size: char.start.size,
+    rot: char.start.rot,
+    visible,
+    ...(char.start.reach !== undefined ? { reach: char.start.reach } : {}),
+    ...(visible ? {} : { trigger: true }),
+  };
 }
 
 /** The page a runner should run, by current page id (fallback: first page). */

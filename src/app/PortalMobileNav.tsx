@@ -7,6 +7,7 @@ import { useLogout, useMe } from '@/auth/useAuth';
 
 import {
   PORTAL_MOBILE_MORE_ITEMS,
+  PORTAL_MOBILE_MORE_SECTIONS,
   PORTAL_MOBILE_PRIMARY_ITEMS,
   type PortalNavItem,
 } from './portalNavigation';
@@ -91,7 +92,7 @@ export function PortalMobileNav({ pendingCount }: PortalMobileNavProps) {
           <button
             type="button"
             aria-label="Close more navigation"
-            className="fixed inset-0 z-40 bg-ink/30 md:hidden"
+            className="fixed inset-0 z-40 bg-ink/30 xl:hidden"
             onClick={() => setMoreOpen(false)}
           />
           <section
@@ -99,7 +100,7 @@ export function PortalMobileNav({ pendingCount }: PortalMobileNavProps) {
             role="dialog"
             aria-modal="true"
             aria-label="More Parent Portal navigation"
-            className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 max-h-[70dvh] overflow-y-auto rounded-t-[28px] border border-hairline bg-canvas-pure px-4 pb-5 pt-3 shadow-card-soft md:hidden"
+            className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto max-h-[72dvh] w-full max-w-xl overflow-y-auto rounded-t-[28px] border border-hairline bg-canvas-pure px-4 pb-5 pt-3 shadow-card-soft xl:hidden"
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-hairline" aria-hidden="true" />
             <div className="mb-3 flex items-center justify-between px-2">
@@ -119,15 +120,26 @@ export function PortalMobileNav({ pendingCount }: PortalMobileNavProps) {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-1">
-              {PORTAL_MOBILE_MORE_ITEMS.map((item) => (
-                <MobileNavLink
-                  key={item.id}
-                  item={item}
-                  pendingCount={pendingCount}
-                  onNavigate={() => setMoreOpen(false)}
-                  variant="sheet"
-                />
+            <div className="space-y-3">
+              {PORTAL_MOBILE_MORE_SECTIONS.map((section) => (
+                <div key={section.id}>
+                  {section.label && (
+                    <p className="mb-1 px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate2">
+                      {section.label}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-1">
+                    {section.items.map((item) => (
+                      <MobileNavLink
+                        key={item.id}
+                        item={item}
+                        pendingCount={pendingCount}
+                        onNavigate={() => setMoreOpen(false)}
+                        variant="sheet"
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -151,7 +163,7 @@ export function PortalMobileNav({ pendingCount }: PortalMobileNavProps) {
 
       <nav
         aria-label="Parent Portal mobile"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-canvas-pure/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-card-soft backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-hairline bg-canvas-pure/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-card-soft backdrop-blur xl:hidden"
       >
         <div className="mx-auto flex h-[72px] max-w-lg items-stretch gap-1 py-2">
           {PORTAL_MOBILE_PRIMARY_ITEMS.map((item) => (

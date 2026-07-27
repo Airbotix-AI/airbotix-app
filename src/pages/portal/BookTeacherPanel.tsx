@@ -6,7 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { api, ApiError } from '@/lib/api';
-import { getPublicTeacher } from './teachers/teacherApi';
+import { listPublicTeachers } from './teachers/teacherApi';
 
 interface Kid {
   id: string;
@@ -67,6 +67,7 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
   const preferredCity = searchParams.get('city') ?? '';
   const requestQueryKey = ['tutoring-requests', familyId] as const;
   const [formOpen, setFormOpen] = useState(Boolean(preferredTeacherSlug));
+  const [selectedTeacherSlug, setSelectedTeacherSlug] = useState(preferredTeacherSlug);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,12 +79,18 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
     queryKey: requestQueryKey,
     queryFn: () => api<TutoringRequest[]>('/bookings/tutoring-requests'),
   });
-  const preferredTeacher = useQuery({
-    queryKey: ['public-teacher', preferredTeacherSlug],
-    queryFn: () => getPublicTeacher(preferredTeacherSlug),
-    enabled: Boolean(preferredTeacherSlug),
-    retry: false,
+  const teachers = useQuery({
+    queryKey: ['public-teachers', 'tutoring-selector'],
+    queryFn: () => listPublicTeachers(),
   });
+  const selectedTeacher = (teachers.data ?? []).find(
+    (teacher) => teacher.slug === selectedTeacherSlug,
+  );
+  const selectedCity =
+    selectedTeacher && preferredTeacherSlug === selectedTeacher.slug && preferredCity
+      ? preferredCity
+      : selectedTeacher?.service_areas.find((area) => area.is_primary)?.city ??
+        selectedTeacher?.service_areas[0]?.city;
 
   const form = useForm<BookingValues>({
     resolver: zodResolver(bookingSchema),
@@ -104,8 +111,8 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
           subject_interest: values.subject_interest,
           preferred_start: new Date(values.preferred_start).toISOString(),
           notes: values.notes || undefined,
-          preferred_teacher_slug: preferredTeacher.data?.slug,
-          preferred_city: preferredTeacher.data && preferredCity ? preferredCity : undefined,
+          preferred_teacher_slug: selectedTeacher?.slug,
+          preferred_city: selectedTeacher ? selectedCity : undefined,
         },
       }),
     onSuccess: (request) => {
@@ -172,17 +179,17 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
         </div>
       )}
 
-      {preferredTeacher.data && (
+      {selectedTeacher && (
         <div className="mx-6 mb-6 rounded-2xl border border-brand-sky/30 bg-wash-sky px-4 py-3 text-[14px] text-ink sm:mx-8">
-          <strong>Preferred teacher: {preferredTeacher.data.display_name}</strong>
-          {preferredCity && <span> · {preferredCity}</span>}
+          <strong>Preferred teacher: {selectedTeacher.display_name}</strong>
+          {selectedCity && <span> · {selectedCity}</span>}
           <p className="mt-1 text-[12px] font-medium text-ink-soft">
             We will record this preference, but the actual teacher, venue and time are confirmed
             separately.
           </p>
         </div>
       )}
-      {preferredTeacher.isError && (
+      {!teachers.isLoading && preferredTeacherSlug && !selectedTeacher && (
         <div className="mx-6 mb-6 rounded-2xl bg-wash-sunshine px-4 py-3 text-[14px] font-semibold text-ink sm:mx-8">
           That teacher profile is no longer available. You can still send a general tutoring
           request.
@@ -237,6 +244,37 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
                   </span>
                 )}
               </label>
+
+              <div className="md:col-span-2">
+                <label htmlFor="preferred-teacher" className="label-k12">
+                  Preferred teacher (optional)
+                </label>
+                <select
+                  id="preferred-teacher"
+                  className="input-k12"
+                  value={selectedTeacher?.slug ?? ''}
+                  disabled={teachers.isLoading}
+                  onChange={(event) => setSelectedTeacherSlug(event.target.value)}
+                >
+                  <option value="">
+                    {teachers.isLoading ? 'Loading teachers…' : 'No preference — match for me'}
+                  </option>
+                  {(teachers.data ?? []).map((teacher) => (
+                    <option key={teacher.slug} value={teacher.slug}>
+                      {teacher.display_name}
+                      {teacher.service_areas.length
+                        ? ` · ${teacher.service_areas.map((area) => area.city).join(', ')}`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium text-ink-soft">
+                  <span>Your choice is a preference and is subject to availability.</span>
+                  <Link to="/portal/teachers" className="font-bold text-brand-sky hover:underline">
+                    View teacher profiles
+                  </Link>
+                </div>
+              </div>
 
               <label className="block md:col-span-2">
                 <span className="label-k12">What would your child like help with?</span>

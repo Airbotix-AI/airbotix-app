@@ -104,4 +104,58 @@ export const BLOCKS_STARTERS: BlocksStarter[] = [
     title: 'Tiny Star Village · Mission 15',
     desc: 'Run the cart to see it overshoot, choose less, then change only Right 4 to Right 3 and test the saved repair.',
   },
+  {
+    id: 'blocks_tsv_a4_s',
+    emoji: '📦',
+    title: 'Tiny Star Village · Mission 16',
+    desc: 'Put your delivery stop 1, 2 or 3 spaces away, choose the apple, gift or star breakfast, then build the Right block whose number matches.',
+  },
+  {
+    id: 'blocks_tsv_a5_h',
+    emoji: '💬',
+    title: 'Tiny Star Village · Mission 17',
+    desc: 'Lumilo and Tuan Tuan both came to say good morning. Press Go, watch the two speech bubbles, and work out who spoke first.',
+  },
+  {
+    id: 'blocks_tsv_a5_b',
+    emoji: '⏱',
+    title: 'Tiny Star Village · Mission 18',
+    desc: 'Tuan Tuan wants to go second. Add one Wait block before Tuan Tuan’s Say so Lumi can start the morning alone.',
+  },
+  {
+    id: 'blocks_tsv_a5_d',
+    emoji: '⏳',
+    title: 'Tiny Star Village · Mission 19',
+    desc: 'The good morning is a bounce now, but Tuan Tuan’s hourglass is set to 9. Run the long empty pause, then lower only that number until the two bounces answer each other.',
+  },
+  {
+    id: 'blocks_tsv_a5_s',
+    emoji: '⭐🐻',
+    title: 'Tiny Star Village · Mission 20',
+    desc: 'One friend is standing in both spots. Cast two of Lumi, Tuan Tuan and Dot Dot, decide who greets first, give each of them a hello, and choose how long the second one waits.',
+  },
+  {
+    id: 'blocks_tsv_a6_h',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 21',
+    desc: 'Walk, hop, ring — but this route rings the bell with nobody jumping. Press Go, watch all three Bell Tower cards, and find the one that never happened.',
+  },
+  {
+    id: 'blocks_tsv_a6_b',
+    emoji: '🦘',
+    title: 'Tiny Star Village · Mission 22',
+    desc: 'The hop card is still missing. Add a Hop between Right 3 and Pop, set it to 1 space, and run the whole walk-hop-ring morning.',
+  },
+  {
+    id: 'blocks_tsv_a6_d',
+    emoji: '🔔',
+    title: 'Tiny Star Village · Mission 23',
+    desc: 'All three cards are here, but the bell is first — it rings before Lumi has walked or jumped. Run it, then drag only the Pop to the end.',
+  },
+  {
+    id: 'blocks_tsv_a6_s',
+    emoji: '🌅',
+    title: 'Tiny Star Village · Mission 24',
+    desc: 'The Bell Tower route is ready and nobody is standing there. Choose who rings it, add one ending after the bell, and finish your morning-light story.',
+  },
 ];
