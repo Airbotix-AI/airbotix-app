@@ -144,7 +144,8 @@ export type BlocksTemplateId =
   // the whitelist repeats once more — this time over an EMPTY three-page route.
   | 'blocks_jtw_c3_p7_starry'
   | 'blocks_jtw_c3_p7_morning'
-  | 'blocks_jtw_c4_p2';
+  | 'blocks_jtw_c4_p2'
+  | 'blocks_jtw_c4_p4';
 
 export interface BlocksProjectMeta {
   id: string;
