@@ -27,6 +27,10 @@ import {
   tinyStarBounceRelayTooLate,
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
+import {
+  TINY_STAR_BREAKFAST_CART_ASSET,
+  TINY_STAR_BREAKFAST_CART_LEGACY_ASSET,
+} from './tinyStarStageTargets';
 
 function correctedMissionProject() {
   const project = blankProject('Tiny Star Village');
@@ -85,7 +89,7 @@ function directionHookProject() {
   project.lessonId = 'tsv-s1-a2-h';
   project.pages[0] = {
     id: 'tsv-a2-h-page',
-    background: 'tsv-cloud-path-meadow',
+    background: 'tsv-cloud-road-right',
     characters: [
       {
         id: 'tuan-tuan',
@@ -99,13 +103,6 @@ function directionHookProject() {
             blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
           },
         ],
-      },
-      {
-        id: 'plaza-target',
-        name: 'Plaza Star',
-        emoji: '⭐',
-        start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
-        scripts: [],
       },
     ],
   };
@@ -135,8 +132,8 @@ function personalDirectionProject(endpoint: 6 | 10 = 10) {
   const project = directionHookProject();
   project.lessonId = 'tsv-s1-a2-s';
   project.pages[0].id = 'tsv-a2-s-page';
-  project.pages[0].characters[1].name = 'My Home Star';
-  project.pages[0].characters[1].start.gx = endpoint;
+  project.pages[0].background =
+    endpoint === 6 ? 'tsv-cloud-road-left-target' : 'tsv-cloud-road-right';
   const op = endpoint === 6 ? 'move_left' : 'move_right';
   project.pages[0].characters[0].scripts[0].blocks = [
     { op: 'when_flag' }, { op, n: 1 }, { op, n: 1 }, { op: 'end' },
@@ -149,7 +146,7 @@ function tapResponseProject(response: { op: 'hop'; n: number } | { op: 'say'; te
   project.lessonId = 'tsv-s1-a3-b';
   project.pages = [{
     id: 'tsv-a3-b-page',
-    background: 'sunset',
+    background: 'tsv-rooftop',
     characters: [{
       id: 'dot-dot',
       name: 'Dot Dot',
@@ -198,16 +195,26 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(wrongOrder, 'tsv-s1-a1-s')).toBe(false);
   });
 
-  it('accepts A2-H only while the wrong-way starter, formal assets, and target stay exact', () => {
+  it('accepts A2-H only with the wrong-way starter and locked right-target background', () => {
     expect(storyMissionProgramMatches(directionHookProject(), 'tsv-s1-a2-h')).toBe(true);
 
     const fixedTooSoon = directionHookProject();
     fixedTooSoon.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
     expect(storyMissionProgramMatches(fixedTooSoon, 'tsv-s1-a2-h')).toBe(false);
 
-    const movedTarget = directionHookProject();
-    movedTarget.pages[0].characters[1].start.gx = 5;
-    expect(storyMissionProgramMatches(movedTarget, 'tsv-s1-a2-h')).toBe(false);
+    const wrongBackground = directionHookProject();
+    wrongBackground.pages[0].background = 'tsv-cloud-road-left-target';
+    expect(storyMissionProgramMatches(wrongBackground, 'tsv-s1-a2-h')).toBe(false);
+
+    const proxyTarget = directionHookProject();
+    proxyTarget.pages[0].characters.push({
+      id: 'plaza-target',
+      name: 'Plaza Star',
+      emoji: '⭐',
+      start: { gx: 10, gy: 10, size: 0.8, rot: 0 },
+      scripts: [],
+    });
+    expect(storyMissionProgramMatches(proxyTarget, 'tsv-s1-a2-h')).toBe(false);
 
     const movedBear = directionHookProject();
     movedBear.pages[0].characters[0].start.gx = 7;
@@ -218,7 +225,7 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(wrongAsset, 'tsv-s1-a2-h')).toBe(false);
   });
 
-  it('accepts A2-B only for the exact Right 3 path to the unchanged plaza target', () => {
+  it('accepts A2-B only for the exact Right 3 path on the locked target background', () => {
     expect(storyMissionProgramMatches(completedDirectionBuildProject(), 'tsv-s1-a2-b')).toBe(true);
 
     const left = completedDirectionBuildProject();
@@ -262,7 +269,7 @@ describe('storyMissionProgramMatches', () => {
     mixed.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_left', n: 1 };
     expect(storyMissionProgramMatches(mixed, 'tsv-s1-a2-s')).toBe(false);
     const neutral = personalDirectionProject(10);
-    neutral.pages[0].characters[1].start.gx = 8;
+    neutral.pages[0].background = 'meadow';
     expect(storyMissionProgramMatches(neutral, 'tsv-s1-a2-s')).toBe(false);
   });
 
@@ -271,7 +278,7 @@ describe('storyMissionProgramMatches', () => {
     project.lessonId = 'tsv-s1-a3-h';
     project.pages = [{
       id: 'tsv-a3-h-page',
-      background: 'sunset',
+      background: 'tsv-rooftop',
       characters: [{
         id: 'dot-dot',
         name: 'Dot Dot',
@@ -291,6 +298,9 @@ describe('storyMissionProgramMatches', () => {
     }];
     expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(true);
 
+    project.pages[0].background = 'sunset';
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(false);
+    project.pages[0].background = 'tsv-rooftop';
     project.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
     expect(storyMissionProgramMatches(project, 'tsv-s1-a3-h')).toBe(false);
   });
@@ -301,6 +311,8 @@ describe('storyMissionProgramMatches', () => {
 
     const say = tapResponseProject({ op: 'say', text: "I'm awake!" });
     expect(storyMissionProgramMatches(say, 'tsv-s1-a3-b')).toBe(true);
+    say.pages[0].background = 'sunset';
+    expect(storyMissionProgramMatches(say, 'tsv-s1-a3-b')).toBe(false);
 
     const both = tapResponseProject({ op: 'hop', n: 1 });
     both.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'say', text: "I'm awake!" });
@@ -319,6 +331,9 @@ describe('storyMissionProgramMatches', () => {
     repaired.pages[0].characters[0].scripts[0].id = 'dot-dot-event';
     expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(true);
 
+    repaired.pages[0].background = 'sunset';
+    expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
+    repaired.pages[0].background = 'tsv-rooftop';
     repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
     expect(storyMissionProgramMatches(repaired, 'tsv-s1-a3-d')).toBe(false);
     repaired.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_tap' };
@@ -335,6 +350,9 @@ describe('storyMissionProgramMatches', () => {
     personal.pages[0].characters[0].scripts[0].id = 'dot-dot-surprise';
     expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(true);
 
+    personal.pages[0].background = 'sunset';
+    expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
+    personal.pages[0].background = 'tsv-rooftop';
     personal.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'grow', n: 1 });
     expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(false);
     personal.pages[0].characters[0].scripts[0].blocks.splice(2, 1);
@@ -346,14 +364,16 @@ describe('storyMissionProgramMatches', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a4-h';
     project.pages[0].id = 'tsv-a4-h-page';
-    project.pages[0].background = 'meadow';
+    project.pages[0].background = 'tsv-breakfast-stop-distance-3';
     project.pages[0].characters[0].id = 'breakfast-cart';
-    project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+    project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_ASSET;
     project.pages[0].characters[0].start.gx = 4;
     project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-flag';
     project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }];
-    project.pages[0].characters.push({ id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-h')).toBe(true);
+    project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_LEGACY_ASSET;
+    expect(storyMissionProgramMatches(project, 'tsv-s1-a4-h')).toBe(true);
+    project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_ASSET;
     project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-h')).toBe(false);
   });
@@ -362,13 +382,12 @@ describe('storyMissionProgramMatches', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a4-b';
     project.pages[0].id = 'tsv-a4-b-page';
-    project.pages[0].background = 'meadow';
+    project.pages[0].background = 'tsv-breakfast-stop-distance-3';
     project.pages[0].characters[0].id = 'breakfast-cart';
-    project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+    project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_ASSET;
     project.pages[0].characters[0].start.gx = 4;
     project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-build';
     project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }];
-    project.pages[0].characters.push({ id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-b')).toBe(false);
     project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-b')).toBe(true);
@@ -380,13 +399,12 @@ describe('storyMissionProgramMatches', () => {
     const project = correctedMissionProject();
     project.lessonId = 'tsv-s1-a4-d';
     project.pages[0].id = 'tsv-a4-d-page';
-    project.pages[0].background = 'meadow';
+    project.pages[0].background = 'tsv-breakfast-stop-distance-3';
     project.pages[0].characters[0].id = 'breakfast-cart';
-    project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+    project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_ASSET;
     project.pages[0].characters[0].start.gx = 4;
     project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-debug';
     project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n: 4 }, { op: 'end' }];
-    project.pages[0].characters.push({ id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-d')).toBe(false);
     project.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_right', n: 3 };
     expect(storyMissionProgramMatches(project, 'tsv-s1-a4-d')).toBe(true);
@@ -395,49 +413,64 @@ describe('storyMissionProgramMatches', () => {
   });
 
   it('accepts A4-S only when the movement number matches the chosen delivery stop', () => {
-    const deliveryProject = (stopGx: number, stopName: string, stopEmoji: string, n: number) => {
+    const deliveryProject = (
+      distance: number,
+      parcelName: string,
+      parcelEmoji: string,
+      n: number,
+    ) => {
       const project = correctedMissionProject();
       project.lessonId = 'tsv-s1-a4-s';
       project.pages[0].id = 'tsv-a4-s-page';
-      project.pages[0].background = 'meadow';
+      project.pages[0].background = `tsv-breakfast-stop-distance-${distance}`;
       project.pages[0].characters[0].id = 'breakfast-cart';
-      project.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/props/breakfast-cart.svg';
+      project.pages[0].characters[0].name = parcelName;
+      project.pages[0].characters[0].emoji = parcelEmoji;
+      project.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_ASSET;
       project.pages[0].characters[0].start.gx = 4;
       project.pages[0].characters[0].scripts[0].id = 'breakfast-cart-ship';
       project.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }, { op: 'move_right', n }, { op: 'end' }];
-      project.pages[0].characters.push({ id: 'breakfast-table', name: stopName, emoji: stopEmoji, start: { gx: stopGx, gy: 10, size: 0.9, rot: 0 }, scripts: [] });
       return project;
     };
 
     // Every legal (stop, number) pair completes — there is no single answer.
-    expect(storyMissionProgramMatches(deliveryProject(5, 'Apple Breakfast', '🍎', 1), 'tsv-s1-a4-s')).toBe(true);
-    expect(storyMissionProgramMatches(deliveryProject(6, 'Gift Breakfast', '🎁', 2), 'tsv-s1-a4-s')).toBe(true);
-    expect(storyMissionProgramMatches(deliveryProject(7, 'Star Breakfast', '⭐', 3), 'tsv-s1-a4-s')).toBe(true);
+    expect(storyMissionProgramMatches(deliveryProject(1, 'Apple Breakfast', '🍎', 1), 'tsv-s1-a4-s')).toBe(true);
+    expect(storyMissionProgramMatches(deliveryProject(2, 'Gift Breakfast', '🎁', 2), 'tsv-s1-a4-s')).toBe(true);
+    expect(storyMissionProgramMatches(deliveryProject(3, 'Star Breakfast', '⭐', 3), 'tsv-s1-a4-s')).toBe(true);
+    const legacyDelivery = deliveryProject(2, 'Gift Breakfast', '🎁', 2);
+    legacyDelivery.pages[0].characters[0].asset = TINY_STAR_BREAKFAST_CART_LEGACY_ASSET;
+    expect(storyMissionProgramMatches(legacyDelivery, 'tsv-s1-a4-s')).toBe(true);
 
     // A mismatched number, the unchosen starter stop, an out-of-band stop, an
     // unapproved parcel, a mismatched emoji and a wrong direction all fail.
-    expect(storyMissionProgramMatches(deliveryProject(7, 'Star Breakfast', '⭐', 2), 'tsv-s1-a4-s')).toBe(false);
-    expect(storyMissionProgramMatches(deliveryProject(4, 'My Delivery Stop', '📦', 0), 'tsv-s1-a4-s')).toBe(false);
-    expect(storyMissionProgramMatches(deliveryProject(8, 'Star Breakfast', '⭐', 4), 'tsv-s1-a4-s')).toBe(false);
-    expect(storyMissionProgramMatches(deliveryProject(6, 'Cake Breakfast', '🍰', 2), 'tsv-s1-a4-s')).toBe(false);
-    expect(storyMissionProgramMatches(deliveryProject(6, 'Gift Breakfast', '🍎', 2), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(3, 'Star Breakfast', '⭐', 2), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(1, 'Breakfast Cart', '🚙', 1), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(4, 'Star Breakfast', '⭐', 4), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(2, 'Cake Breakfast', '🍰', 2), 'tsv-s1-a4-s')).toBe(false);
+    expect(storyMissionProgramMatches(deliveryProject(2, 'Gift Breakfast', '🍎', 2), 'tsv-s1-a4-s')).toBe(false);
 
-    const leftward = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    const leftward = deliveryProject(2, 'Gift Breakfast', '🎁', 2);
     leftward.pages[0].characters[0].scripts[0].blocks[1] = { op: 'move_left', n: 2 };
     expect(storyMissionProgramMatches(leftward, 'tsv-s1-a4-s')).toBe(false);
 
     // Extra blocks, a moved cart and a scripted stop are all rejected.
-    const extra = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    const extra = deliveryProject(2, 'Gift Breakfast', '🎁', 2);
     extra.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'hop', n: 1 });
     expect(storyMissionProgramMatches(extra, 'tsv-s1-a4-s')).toBe(false);
 
-    const movedCart = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
+    const movedCart = deliveryProject(2, 'Gift Breakfast', '🎁', 2);
     movedCart.pages[0].characters[0].start.gx = 5;
     expect(storyMissionProgramMatches(movedCart, 'tsv-s1-a4-s')).toBe(false);
 
-    const scriptedStop = deliveryProject(6, 'Gift Breakfast', '🎁', 2);
-    scriptedStop.pages[0].characters[1].scripts.push({ id: 'stop-flag', blocks: [{ op: 'when_flag' }, { op: 'end' }] });
-    expect(storyMissionProgramMatches(scriptedStop, 'tsv-s1-a4-s')).toBe(false);
+    const extraActor = deliveryProject(2, 'Gift Breakfast', '🎁', 2);
+    extraActor.pages[0].characters.push({
+      id: 'breakfast-table',
+      name: 'Breakfast Table',
+      emoji: '🍽️',
+      start: { gx: 6, gy: 10, size: 0.9, rot: 0 },
+      scripts: [],
+    });
+    expect(storyMissionProgramMatches(extraActor, 'tsv-s1-a4-s')).toBe(false);
   });
 
   it('accepts A5-H only while both greeting chains are the untouched ones', () => {
@@ -446,7 +479,7 @@ describe('storyMissionProgramMatches', () => {
       project.lessonId = 'tsv-s1-a5-h';
       project.pages[0] = {
         id: 'tsv-a5-h-page',
-        background: 'candy',
+        background: 'tsv-greeting-stage',
         characters: [
           {
             id: 'little-light',
@@ -520,7 +553,7 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(wrongAsset, 'tsv-s1-a5-h')).toBe(false);
 
     const wrongStage = greetingHookProject();
-    wrongStage.pages[0].background = 'meadow';
+    wrongStage.pages[0].background = 'candy';
     expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-h')).toBe(false);
   });
 
@@ -530,7 +563,7 @@ describe('storyMissionProgramMatches', () => {
       project.lessonId = 'tsv-s1-a5-b';
       project.pages[0] = {
         id: 'tsv-a5-b-page',
-        background: 'candy',
+        background: 'tsv-greeting-stage',
         characters: [
           {
             id: 'little-light',
@@ -671,7 +704,7 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(soloed, 'tsv-s1-a5-b')).toBe(false);
 
     const wrongStage = turnBuildProject(built);
-    wrongStage.pages[0].background = 'meadow';
+    wrongStage.pages[0].background = 'candy';
     expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-b')).toBe(false);
 
     // The A5-H stage never satisfies A5-B and vice versa.
@@ -723,7 +756,7 @@ describe('storyMissionProgramMatches', () => {
     project.lessonId = 'tsv-s1-a5-d';
     project.pages[0] = {
       id: 'tsv-a5-d-page',
-      background: 'candy',
+      background: 'tsv-greeting-stage',
       characters: [
         {
           id: 'little-light',
@@ -859,7 +892,7 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(soloed, 'tsv-s1-a5-d')).toBe(false);
 
     const wrongStage = relayProject(relayChain(TINY_STAR_TURN_WAIT_N));
-    wrongStage.pages[0].background = 'meadow';
+    wrongStage.pages[0].background = 'candy';
     expect(storyMissionProgramMatches(wrongStage, 'tsv-s1-a5-d')).toBe(false);
 
     // A5-B and A5-D never satisfy each other.
@@ -918,7 +951,7 @@ describe('storyMissionProgramMatches', () => {
     project.lessonId = 'tsv-s1-a5-s';
     project.pages[0] = {
       id: 'tsv-a5-s-page',
-      background: 'candy',
+      background: 'tsv-greeting-stage',
       characters: [
         {
           id: TINY_STAR_DUET_FIRST_ID,
@@ -1061,7 +1094,7 @@ describe('storyMissionProgramMatches', () => {
     expect(storyMissionProgramMatches(moved, 'tsv-s1-a5-s')).toBe(false);
 
     const restaged = duetProject({});
-    restaged.pages[0].background = 'meadow';
+    restaged.pages[0].background = 'candy';
     expect(storyMissionProgramMatches(restaged, 'tsv-s1-a5-s')).toBe(false);
 
     const crowded = duetProject({});
@@ -1092,7 +1125,7 @@ describe('storyMissionProgramMatches', () => {
     project.lessonId = 'tsv-s1-a6-h';
     project.pages[0] = {
       id: 'tsv-a6-h-page',
-      background: 'sunset',
+      background: 'tsv-clocktower-path',
       characters: [
         {
           id: 'little-light',

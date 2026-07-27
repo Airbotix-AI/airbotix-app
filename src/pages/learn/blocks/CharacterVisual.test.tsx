@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { CharacterVisual } from './CharacterVisual';
+import { TINY_STAR_SUCCESS_ASSETS } from './tinyStarPerformanceAssets';
 
 describe('CharacterVisual', () => {
   it('renders Lumilo as the canonical layered puppet with open-eyed idle by default', () => {
@@ -75,8 +76,46 @@ describe('CharacterVisual', () => {
         performance="success"
       />,
     );
-    expect(container.querySelector('svg')).toHaveAttribute('data-performance', 'success');
-    expect(container.querySelector('.bsx-tuan-arms-celebrate')).toBeInTheDocument();
+    const success = container.querySelector('img');
+    expect(success).toHaveAttribute('data-performance', 'success');
+    expect(success).toHaveAttribute('data-performance-asset', 'true');
+    expect(success).toHaveAttribute('src', TINY_STAR_SUCCESS_ASSETS.tuanTuan);
+  });
+
+  it('uses terminal pose art for every Tiny Star friend without changing transient puppets', () => {
+    const { container, rerender } = render(
+      <CharacterVisual
+        character={{
+          name: 'Lumilo',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
+        }}
+        performance="hopping"
+      />,
+    );
+    expect(container.querySelector('svg')).toHaveAttribute('data-performance', 'hopping');
+    expect(container.querySelector('img')).not.toBeInTheDocument();
+
+    rerender(
+      <CharacterVisual
+        character={{
+          name: 'Lumilo',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
+        }}
+        performance="success"
+      />,
+    );
+    expect(container.querySelector('img')).toHaveAttribute('src', TINY_STAR_SUCCESS_ASSETS.lumilo);
+
+    rerender(
+      <CharacterVisual
+        character={{
+          name: 'Dot Dot',
+          asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
+        }}
+        performance="success"
+      />,
+    );
+    expect(container.querySelector('img')).toHaveAttribute('src', TINY_STAR_SUCCESS_ASSETS.dotDot);
   });
 
   it('keeps emoji as the portable fallback', () => {

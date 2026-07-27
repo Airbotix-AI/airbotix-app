@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-27 (feat: Tiny Star terminal character poses)
+
+### Changed
+
+- Tiny Star Village now swaps the completing character to its formal success
+  pose after a verified mission run. Transient Hop, Say and movement steps keep
+  the existing layered puppets, and the A6 finale celebrates whichever friend
+  the child actually chose to ring the bell.
+- Chapter six now uses its formal clocktower-path background and overlays the
+  internal still/swing morning-bell frames only while Pop runs. The Bell Tower
+  remains a fixed, asset-less and script-less target in saved project data.
+- Chapters three and five now use their formal rooftop and greeting-stage
+  backgrounds across all four mission contracts. Chapter four uses the formal
+  right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
+  saved projects using the exact legacy cart SVG remain compatible.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed

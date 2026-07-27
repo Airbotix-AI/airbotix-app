@@ -22,7 +22,7 @@ import { MAX_PARAM, type Block, type Character, type Page } from './blocksModel'
 
 /** A5-S: the shipped greeting stage of A5-H/A5-B/A5-D (scene-specs §6). */
 export const TINY_STAR_DUET_PAGE_ID = 'tsv-a5-s-page';
-export const TINY_STAR_DUET_BACKGROUND = 'candy';
+export const TINY_STAR_DUET_BACKGROUND = 'tsv-greeting-stage';
 export const TINY_STAR_DUET_GY = 10;
 
 /**

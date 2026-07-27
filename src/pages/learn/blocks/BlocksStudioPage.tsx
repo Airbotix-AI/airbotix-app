@@ -76,11 +76,6 @@ import {
   storyMissionProgramMatches,
   storyMissionSayChoices,
   storyMissionScriptId,
-  TINY_STAR_DELIVERY_DISTANCES,
-  TINY_STAR_DELIVERY_PARCELS,
-  TINY_STAR_DELIVERY_START_GX,
-  TINY_STAR_DELIVERY_STOP_GY,
-  TINY_STAR_DELIVERY_STOP_ID,
   TINY_STAR_GREETING_CHOICES,
   TINY_STAR_OVERLAPPING_VOICES,
   tinyStarBounceRelayInTime,
@@ -88,12 +83,29 @@ import {
   tinyStarGreetingTookTurns,
 } from './storyMissionProgress';
 import {
+  TINY_STAR_A2_LEFT_BACKGROUND,
+  TINY_STAR_A2_RIGHT_BACKGROUND,
+  TINY_STAR_BREAKFAST_CART_ASSET,
+  TINY_STAR_BREAKFAST_CART_ID,
+  TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE,
+  TINY_STAR_DELIVERY_DISTANCES,
+  TINY_STAR_DELIVERY_PARCELS,
+  TINY_STAR_DELIVERY_START_GX,
+  tinyStarA2TargetGx,
+  tinyStarDeliveryDistance,
+} from './tinyStarStageTargets';
+import {
   TINY_STAR_BELL_CAST,
   TINY_STAR_BELL_MISSING_CARD_ID,
   TINY_STAR_BELL_RINGER_ID,
   TINY_STAR_BELL_RINGER_IDS,
+  TINY_STAR_BELL_STILL_ASSET,
+  TINY_STAR_BELL_SWING_ASSET,
+  TINY_STAR_BELL_SWING_MS,
+  TINY_STAR_BELL_TOWER_ID,
   TINY_STAR_BELL_TOWER_GX,
   TINY_STAR_FINALE_RINGER_ID,
+  isTinyStarBellPageId,
   tinyStarBellRangAfterHop,
   tinyStarBellRangBeforeHop,
   tinyStarBellRangWithoutHop,
@@ -199,6 +211,27 @@ export function BlocksStudioPage({
   // forbids editing the program at all), and cleared when a project loads.
   const [missionBellRangAlone, setMissionBellRangAlone] = useState(false);
   const bellRangAloneRef = useRef(false);
+  const [bellSwinging, setBellSwinging] = useState(false);
+  const bellSwingTimerRef = useRef<number | undefined>(undefined);
+  const resetBellVisual = useCallback(() => {
+    window.clearTimeout(bellSwingTimerRef.current);
+    bellSwingTimerRef.current = undefined;
+    setBellSwinging(false);
+  }, []);
+  const swingBell = useCallback(() => {
+    window.clearTimeout(bellSwingTimerRef.current);
+    setBellSwinging(true);
+    bellSwingTimerRef.current = window.setTimeout(() => {
+      bellSwingTimerRef.current = undefined;
+      setBellSwinging(false);
+    }, TINY_STAR_BELL_SWING_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(bellSwingTimerRef.current);
+    },
+    [],
+  );
   /**
    * A6: the block ops the ringer's script actually reached in THIS run, in the
    * order the interpreter reached them. A6-H reads a negative off it (a bell
@@ -331,16 +364,21 @@ export function BlocksStudioPage({
   );
   const duetFirst = page.characters.find((character) => character.id === TINY_STAR_DUET_FIRST_ID);
   const duetSecond = page.characters.find((character) => character.id === TINY_STAR_DUET_SECOND_ID);
-  const deliveryStop = page.characters.find(
-    (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
+  const deliveryCart = page.characters.find(
+    (character) => character.id === TINY_STAR_BREAKFAST_CART_ID,
   );
   // JtW C1-P6: the starter ships the Say→Hop→Show order bug. The mission only
   // completes after the child has RUN the bug at least once (the wrong-run
   // observation) and then rerun the repaired exact chain — mirroring the
   // A2-D/A4-D debug contract "bug run and fixed run must both exist".
   const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
-  const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
-    .gx;
+  const selectedHomeGx = tinyStarA2TargetGx(page.background, storyMission?.lessonId);
+  const selectedDeliveryDistance = tinyStarDeliveryDistance(page.background);
+  const lockedStageTargetGx =
+    selectedHomeGx ??
+    (selectedDeliveryDistance === undefined
+      ? undefined
+      : TINY_STAR_DELIVERY_START_GX + selectedDeliveryDistance);
   const visibleCoachCue: StoryCoachCue = missionCompleted
     ? 'complete'
     : missionCorrectRunFinished
@@ -680,16 +718,18 @@ export function BlocksStudioPage({
   useEffect(() => {
     runnerRef.current?.stopAll();
     runnerRef.current = null;
+    resetBellVisual();
     setRunStates(null);
     setSays(new Map());
     setActiveBlocks(new Map());
     setCharacterPerformances(new Map());
     setRunning(false);
     setStoryCoachCue('ready');
-  }, [dirty, pageId]);
+  }, [dirty, pageId, resetBellVisual]);
 
   // ── run ───────────────────────────────────────────────────────────────────
   const makeRunner = useCallback(() => {
+    resetBellVisual();
     // Which characters have a bubble open right now, tracked per RUN. When two
     // are open at once the parallel greetings really did collide — that is the
     // only thing A5-H accepts as proof, and it comes from the interpreter, not
@@ -760,6 +800,14 @@ export function BlocksStudioPage({
         if (op && TINY_STAR_BELL_RINGER_IDS.includes(stepCharId)) {
           bellPlayedOpsRef.current.push(op);
         }
+        if (
+          op === 'pop' &&
+          TINY_STAR_BELL_RINGER_IDS.includes(stepCharId) &&
+          isTinyStarBellPageId(page.id) &&
+          page.characters.some((character) => character.id === TINY_STAR_BELL_TOWER_ID)
+        ) {
+          swingBell();
+        }
         if (op === 'hop' && !bounceStartedAt.has(stepCharId)) {
           bounceStartedAt.set(stepCharId, Date.now());
           bounceRelayInTimeRef.current = tinyStarBounceRelayInTime(bounceStartedAt);
@@ -790,7 +838,7 @@ export function BlocksStudioPage({
     });
     runnerRef.current = runner;
     return runner;
-  }, [page, storyMission]);
+  }, [page, resetBellVisual, storyMission, swingBell]);
 
   // fast lookup for the "lit" glow: the set of "scriptId:index" running now
   const activeKeys = useMemo(() => new Set(activeBlocks.values()), [activeBlocks]);
@@ -810,13 +858,13 @@ export function BlocksStudioPage({
         const requiresPlazaArrival = ['tsv-s1-a2-b', 'tsv-s1-a2-d', 'tsv-s1-a2-s'].includes(
           storyMission.lessonId,
         );
-        const targetGx = page.characters.find((character) => character.id === 'plaza-target')?.start
-          .gx;
-        // A4-S has no fixed arrival square: the cart must finish on whichever
-        // stop the child placed, which is also the distance its number encodes.
-        const deliveryStopGx = page.characters.find(
-          (character) => character.id === TINY_STAR_DELIVERY_STOP_ID,
-        )?.start.gx;
+        const targetGx = tinyStarA2TargetGx(page.background, storyMission.lessonId);
+        // A4 targets are baked into the selected background, not represented by
+        // a selectable or scriptable character.
+        const deliveryStopGx =
+          selectedDeliveryDistance === undefined
+            ? undefined
+            : TINY_STAR_DELIVERY_START_GX + selectedDeliveryDistance;
         // A6-S has no fixed ending either: which op has to play last is read
         // from the finale the child built on the page they just ran.
         const finaleDesign = tinyStarFinaleDesign(page);
@@ -955,6 +1003,7 @@ export function BlocksStudioPage({
     missionWrongRunObserved,
     missionAnswer,
     answeredCorrectly,
+    selectedDeliveryDistance,
     page,
   ]);
 
@@ -1101,6 +1150,7 @@ export function BlocksStudioPage({
   const dragMoved = useRef(false);
   const onSpriteDown = (e: React.PointerEvent, id: string) => {
     if (running || present || readOnly) return;
+    if (id === TINY_STAR_BELL_TOWER_ID && isTinyStarBellPageId(page.id)) return;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     setDragging(id);
     dragMoved.current = false;
@@ -1806,7 +1856,7 @@ export function BlocksStudioPage({
               data-testid="a2-s-endpoint-left"
               className={`bsx-home-choice${selectedHomeGx === 6 ? ' selected' : ''}`}
               aria-pressed={selectedHomeGx === 6}
-              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 6, 10)}
+              onClick={() => useBlocksStore.getState().setBackground(TINY_STAR_A2_LEFT_BACKGROUND)}
             >
               <span aria-hidden>⬅️</span>
               <strong>Left home</strong>
@@ -1819,7 +1869,7 @@ export function BlocksStudioPage({
               data-testid="a2-s-endpoint-right"
               className={`bsx-home-choice${selectedHomeGx === 10 ? ' selected' : ''}`}
               aria-pressed={selectedHomeGx === 10}
-              onClick={() => useBlocksStore.getState().moveCharacter('plaza-target', 10, 10)}
+              onClick={() => useBlocksStore.getState().setBackground(TINY_STAR_A2_RIGHT_BACKGROUND)}
             >
               <span className="bsx-home-star" aria-hidden>
                 ⭐
@@ -1862,8 +1912,7 @@ export function BlocksStudioPage({
           </div>
           <div className="bsx-home-choices" role="group" aria-label="Choose my delivery stop">
             {TINY_STAR_DELIVERY_DISTANCES.map((distance) => {
-              const gx = TINY_STAR_DELIVERY_START_GX + distance;
-              const selected = deliveryStop?.start.gx === gx;
+              const selected = selectedDeliveryDistance === distance;
               return (
                 <button
                   key={distance}
@@ -1874,7 +1923,7 @@ export function BlocksStudioPage({
                   onClick={() =>
                     useBlocksStore
                       .getState()
-                      .moveCharacter(TINY_STAR_DELIVERY_STOP_ID, gx, TINY_STAR_DELIVERY_STOP_GY)
+                      .setBackground(TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE[distance])
                   }
                 >
                   <span aria-hidden>➡️</span>
@@ -1887,7 +1936,7 @@ export function BlocksStudioPage({
           </div>
           <div className="bsx-home-choices" role="group" aria-label="Choose what I deliver">
             {TINY_STAR_DELIVERY_PARCELS.map((parcel) => {
-              const selected = deliveryStop?.name === parcel.name;
+              const selected = deliveryCart?.name === parcel.name;
               return (
                 <button
                   key={parcel.id}
@@ -1899,10 +1948,10 @@ export function BlocksStudioPage({
                     useBlocksStore
                       .getState()
                       .setCharacterIdentity(
-                        TINY_STAR_DELIVERY_STOP_ID,
+                        TINY_STAR_BREAKFAST_CART_ID,
                         parcel.name,
                         parcel.emoji,
-                        '',
+                        TINY_STAR_BREAKFAST_CART_ASSET,
                       )
                   }
                 >
@@ -2048,7 +2097,9 @@ export function BlocksStudioPage({
                   character={c}
                   className={c.asset ? 'bsx-character-asset-thumb' : undefined}
                 />
-                {c.id === selectedChar?.id && page.characters.length > 1 && (
+                {c.id === selectedChar?.id &&
+                  page.characters.length > 1 &&
+                  !(c.id === TINY_STAR_BELL_TOWER_ID && isTinyStarBellPageId(page.id)) && (
                   <span
                     role="button"
                     data-testid={`remove-character-${c.id}`}
@@ -2086,6 +2137,7 @@ export function BlocksStudioPage({
             ref={stageRef}
             data-testid="blocks-stage"
             data-scene={sceneId(page.background)}
+            data-story-target-gx={lockedStageTargetGx}
             className="bsx-stage min-h-[180px] flex-1"
             aria-label="Stage"
           >
@@ -2127,6 +2179,8 @@ export function BlocksStudioPage({
               const st = run?.st ?? startState(c);
               const dur = run?.dur ?? 0;
               const say = says.get(c.id);
+              const isBellTower =
+                c.id === TINY_STAR_BELL_TOWER_ID && isTinyStarBellPageId(page.id);
               return (
                 <div key={c.id}>
                   {say && (
@@ -2143,6 +2197,9 @@ export function BlocksStudioPage({
                     data-character-id={c.id}
                     data-gx={st.gx}
                     data-gy={st.gy}
+                    data-bell-state={
+                      isBellTower ? (bellSwinging ? 'swing' : 'still') : undefined
+                    }
                     className={`bsx-sprite${dragging === c.id ? ' dragging' : ''}`}
                     onPointerDown={(e) => onSpriteDown(e, c.id)}
                     onPointerMove={(e) => onSpriteMove(e, c.id)}
@@ -2159,17 +2216,36 @@ export function BlocksStudioPage({
                           ? `left ${dur}ms ease, top ${dur}ms ease, transform ${dur}ms ease, opacity ${dur}ms ease`
                           : 'none',
                     }}
-                    title={`${c.name} — drag to move, tap to run 👆, drag to the bin to remove`}
+                    title={
+                      isBellTower
+                        ? `${c.name} — fixed story target`
+                        : `${c.name} — drag to move, tap to run 👆, drag to the bin to remove`
+                    }
                   >
-                    <CharacterVisual
-                      character={c}
-                      className={c.asset ? 'bsx-character-asset' : undefined}
-                      performance={
-                        missionCompleted && storyMission?.hero.asset === c.asset
-                          ? 'success'
-                          : characterPerformances.get(c.id)
-                      }
-                    />
+                    {isBellTower ? (
+                      <img
+                        alt=""
+                        aria-hidden="true"
+                        className="bsx-character-asset"
+                        data-testid="morning-bell-visual"
+                        draggable={false}
+                        src={
+                          bellSwinging ? TINY_STAR_BELL_SWING_ASSET : TINY_STAR_BELL_STILL_ASSET
+                        }
+                      />
+                    ) : (
+                      <CharacterVisual
+                        character={c}
+                        className={c.asset ? 'bsx-character-asset' : undefined}
+                        performance={
+                          missionCompleted &&
+                          (storyMission?.hero.asset === c.asset ||
+                            (isA6Finale && c.id === TINY_STAR_FINALE_RINGER_ID))
+                            ? 'success'
+                            : characterPerformances.get(c.id)
+                        }
+                      />
+                    )}
                   </div>
                 </div>
               );
