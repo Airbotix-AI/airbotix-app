@@ -12,7 +12,7 @@ export const TSV_A1_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Lumilo',
       role: 'Morning Light Keeper',
-      asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 1',
     title: 'A strange good morning',
@@ -106,7 +106,7 @@ export const TSV_A1_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Lumilo',
       role: 'Morning Light Keeper',
-      asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 1 · Mission 2',
     title: 'Build Lumi’s morning',
@@ -184,7 +184,7 @@ export const TSV_A1_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Lumilo',
       role: 'Morning Light Keeper',
-      asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 1 · Mission 3',
     title: 'The morning flipped backwards',
@@ -265,7 +265,7 @@ export const TSV_A1_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Lumilo',
       role: 'Morning Light Keeper',
-      asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 1 · Mission 4',
     title: 'Make the morning yours',

@@ -134,7 +134,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -181,7 +181,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -242,7 +242,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -367,7 +367,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'end' }] }],
         },
@@ -441,7 +441,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -766,7 +766,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -959,7 +959,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
       background: 'sunset',
       characters: [{
         id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
-        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
         start: { gx: 10, gy: 8, size: 1, rot: 0 },
         scripts: [{
           id: 'dot-dot-event',
@@ -1084,8 +1084,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     greeting.lessonId = 'tsv-s1-a5-h';
     greeting.pages[0] = {
       id: 'tsv-a5-h-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
       ],
     };
     return greeting;
@@ -1168,7 +1168,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     bell.lessonId = 'tsv-s1-a6-h';
     bell.pages[0] = {
       id: 'tsv-a6-h-page', background: 'sunset', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
         { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
       ],
     };
@@ -1455,7 +1455,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.click(screen.getByTestId('a6-s-ringer-dot-dot'));
     expect(screen.getByTestId('a6-s-ringer-dot-dot')).toHaveAttribute('aria-pressed', 'true');
     expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
-      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     });
     // The ringer buttons never insert a block: the core is still the settled one.
     expect(finaleRoute()).toEqual([
@@ -1550,8 +1550,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     greeting.lessonId = 'tsv-s1-a5-b';
     greeting.pages[0] = {
       id: 'tsv-a5-b-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
       ],
     };
     return greeting;
@@ -1639,8 +1639,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     duet.lessonId = 'tsv-s1-a5-s';
     duet.pages[0] = {
       id: 'tsv-a5-s-page', background: 'candy', characters: [
-        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
-        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
       ],
     };
     return duet;
@@ -1661,7 +1661,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(screen.getByTestId('a5-s-second-tuan-tuan')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('a5-s-first-lumilo')).toHaveAttribute('aria-pressed', 'true');
     expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
-      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     });
     // The cast buttons never insert a block — both chains are still empty.
     expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
@@ -1755,8 +1755,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     relay.lessonId = 'tsv-s1-a5-d';
     relay.pages[0] = {
       id: 'tsv-a5-d-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
       ],
     };
     return relay;
@@ -1845,7 +1845,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     personal.pages[0] = {
       id: 'tsv-a3-s-page', background: 'sunset', characters: [{
         id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
-        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
         start: { gx: 10, gy: 8, size: 1, rot: 0 },
         scripts: [{ id: 'dot-dot-surprise', blocks: [{ op: 'when_tap' }, { op: 'end' }] }],
       }],
@@ -1857,7 +1857,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(screen.getByTestId('a3-s-character-tuan-tuan'));
     expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
-      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     });
     expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
       { op: 'when_tap' }, { op: 'end' },

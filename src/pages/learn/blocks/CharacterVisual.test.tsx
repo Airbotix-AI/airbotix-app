@@ -14,7 +14,7 @@ describe('CharacterVisual', () => {
         character={{
           name: 'Little Light',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
         }}
         className="sprite"
       />,
@@ -29,7 +29,7 @@ describe('CharacterVisual', () => {
         character={{
           name: 'Little Light',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
         }}
         performance="speaking"
       />,
@@ -45,7 +45,7 @@ describe('CharacterVisual', () => {
         character={{
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
         }}
       />,
     );
@@ -57,7 +57,7 @@ describe('CharacterVisual', () => {
         character={{
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
         }}
         performance="speaking"
       />,
@@ -70,7 +70,7 @@ describe('CharacterVisual', () => {
         character={{
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
         }}
         performance="success"
       />,

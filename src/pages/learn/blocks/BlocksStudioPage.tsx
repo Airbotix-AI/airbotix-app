@@ -1836,9 +1836,9 @@ export function BlocksStudioPage({
           <div className="bsx-home-picker-title"><span aria-hidden>✨</span><div><strong>Choose my secret friend</strong><small>This changes the saved character, not the blocks</small></div></div>
           <div className="bsx-home-choices" role="group" aria-label="Choose my secret friend">
             {[
-              ['Dot Dot', '🐱', '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg'],
-              ['Tuan Tuan', '🐻', '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg'],
-              ['Lumilo', '⭐', '/story-blocks/tiny-star-village/characters/little-light/resting.svg'],
+              ['Dot Dot', '🐱', '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png'],
+              ['Tuan Tuan', '🐻', '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png'],
+              ['Lumilo', '⭐', '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png'],
             ].map(([name, emoji, asset]) => (
               <button key={name} type="button" data-testid={`a3-s-character-${name.toLowerCase().replaceAll(' ', '-')}`}
                 className={`bsx-home-choice${selectedChar.asset === asset ? ' selected' : ''}`}

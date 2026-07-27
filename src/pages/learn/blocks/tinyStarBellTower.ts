@@ -39,7 +39,7 @@ export const TINY_STAR_BELL_GY = 10;
 export const TINY_STAR_BELL_RINGER_ID = 'little-light';
 export const TINY_STAR_BELL_RINGER_NAME = 'Lumilo';
 export const TINY_STAR_BELL_RINGER_ASSET =
-  '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+  '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 /** A6: the ringer starts three spaces short of the tower (scene-specs §7). */
 export const TINY_STAR_BELL_RINGER_GX = 5;
 

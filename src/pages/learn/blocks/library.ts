@@ -206,6 +206,7 @@ export interface SceneChoice {
 export const SCENES: SceneChoice[] = [
   { id: 'tsv-window-room-dim', label: 'Lumilo’s room', emoji: '🌟' },
   { id: 'tsv-cloud-path-meadow', label: 'Cloud path', emoji: '☁️' },
+  { id: 'tsv-rooftop', label: 'Dot Dot’s rooftop', emoji: '🌙' },
   { id: 'meadow', label: 'Meadow', emoji: '🌳' },
   { id: 'space', label: 'Space', emoji: '🌌' },
   { id: 'beach', label: 'Beach', emoji: '🏖️' },

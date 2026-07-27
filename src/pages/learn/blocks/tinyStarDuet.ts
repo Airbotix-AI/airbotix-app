@@ -56,19 +56,19 @@ export const TINY_STAR_DUET_CAST: readonly TinyStarDuetFriend[] = [
     id: 'lumilo',
     name: 'Lumilo',
     emoji: '⭐',
-    asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
   },
   {
     id: 'tuan-tuan',
     name: 'Tuan Tuan',
     emoji: '🐻',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
   },
   {
     id: 'dot-dot',
     name: 'Dot Dot',
     emoji: '🐱',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
   },
 ] as const;
 

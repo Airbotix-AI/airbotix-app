@@ -37,7 +37,7 @@ import {
 
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
-const LUMILO_ASSET = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+const LUMILO_ASSET = '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 
 export const TINY_STAR_GREETING_CHOICES = [
   'Good morning, village!',
@@ -87,7 +87,7 @@ export const TINY_STAR_GREETING_VOICES = [
   {
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-greeting',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     gx: 12,
     text: 'Morning too!',
   },
@@ -218,7 +218,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'tsv-cloud-path-meadow',
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     start: { gx: 8, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
     sceneTarget: {
@@ -234,7 +234,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'tsv-cloud-path-meadow',
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     start: { gx: 8, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: {
@@ -250,7 +250,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'tsv-cloud-path-meadow',
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     start: { gx: 8, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
     sceneTarget: {
@@ -266,7 +266,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'tsv-cloud-path-meadow',
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     start: { gx: 8, gy: 10, size: 1, rot: 0 },
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }, { op: 'end' }],
     sceneTarget: { id: 'plaza-target', name: 'My Home Star', gx: 10, gy: 10, size: 0.8 },
@@ -276,7 +276,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'sunset',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-tap',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: "I'm awake!" }, { op: 'end' }],
   },
@@ -285,7 +285,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'sunset',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-tap',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
@@ -294,7 +294,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'sunset',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-event',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
@@ -303,7 +303,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     background: 'sunset',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-surprise',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
@@ -663,9 +663,9 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
 
   if (lessonId === 'tsv-s1-a3-s') {
     const allowedAssets = [
-      '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
-      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
+      '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+      '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     ];
     const response = blocks[1];
     const responseIsVisible =

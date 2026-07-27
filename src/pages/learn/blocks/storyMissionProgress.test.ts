@@ -39,7 +39,7 @@ function correctedMissionProject() {
         id: 'little-light',
         name: 'Lumilo',
         emoji: '⭐',
-        asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
         start: { gx: 8, gy: 10, size: 1, rot: 0 },
         scripts: [
           {
@@ -91,7 +91,7 @@ function directionHookProject() {
         id: 'tuan-tuan',
         name: 'Tuan Tuan',
         emoji: '☁️',
-        asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
         start: { gx: 8, gy: 10, size: 1, rot: 0 },
         scripts: [
           {
@@ -154,7 +154,7 @@ function tapResponseProject(response: { op: 'hop'; n: number } | { op: 'say'; te
       id: 'dot-dot',
       name: 'Dot Dot',
       emoji: '🐱',
-      asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
       start: { gx: 10, gy: 8, size: 1, rot: 0 },
       scripts: [{
         id: 'dot-dot-tap',
@@ -276,7 +276,7 @@ describe('storyMissionProgramMatches', () => {
         id: 'dot-dot',
         name: 'Dot Dot',
         emoji: '🐱',
-        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
         start: { gx: 10, gy: 8, size: 1, rot: 0 },
         scripts: [{
           id: 'dot-dot-tap',
@@ -331,7 +331,7 @@ describe('storyMissionProgramMatches', () => {
     personal.lessonId = 'tsv-s1-a3-s';
     personal.pages[0].id = 'tsv-a3-s-page';
     personal.pages[0].characters[0].name = 'Tuan Tuan';
-    personal.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg';
+    personal.pages[0].characters[0].asset = '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png';
     personal.pages[0].characters[0].scripts[0].id = 'dot-dot-surprise';
     expect(storyMissionProgramMatches(personal, 'tsv-s1-a3-s')).toBe(true);
 
@@ -452,7 +452,7 @@ describe('storyMissionProgramMatches', () => {
             id: 'little-light',
             name: 'Lumilo',
             emoji: '⭐',
-            asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+            asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
             start: { gx: 7, gy: 10, size: 1, rot: 0 },
             scripts: [
               {
@@ -465,7 +465,7 @@ describe('storyMissionProgramMatches', () => {
             id: 'tuan-tuan',
             name: 'Tuan Tuan',
             emoji: '🐻',
-            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
             start: { gx: 12, gy: 10, size: 1, rot: 0 },
             scripts: [
               {
@@ -536,7 +536,7 @@ describe('storyMissionProgramMatches', () => {
             id: 'little-light',
             name: 'Lumilo',
             emoji: '⭐',
-            asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+            asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
             start: { gx: 7, gy: 10, size: 1, rot: 0 },
             scripts: [
               {
@@ -549,7 +549,7 @@ describe('storyMissionProgramMatches', () => {
             id: 'tuan-tuan',
             name: 'Tuan Tuan',
             emoji: '🐻',
-            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+            asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
             start: { gx: 12, gy: 10, size: 1, rot: 0 },
             scripts: [{ id: 'tuan-tuan-greeting', blocks: tuanTuanBlocks }],
           },
@@ -729,7 +729,7 @@ describe('storyMissionProgramMatches', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 7, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -742,7 +742,7 @@ describe('storyMissionProgramMatches', () => {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '🐻',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 12, gy: 10, size: 1, rot: 0 },
           scripts: [{ id: 'tuan-tuan-bounce', blocks: tuanTuanBlocks }],
         },
@@ -1098,7 +1098,7 @@ describe('storyMissionProgramMatches', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 5, gy: 10, size: 1, rot: 0 },
           scripts: [
             {

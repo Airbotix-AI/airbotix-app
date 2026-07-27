@@ -102,7 +102,7 @@ describe('blocksModel', () => {
   it('keeps first-party character assets and rejects remote image URLs', () => {
     const project = blankProject();
     project.pages[0].characters[0].asset =
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+      '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
     const parsed = parseProject(serializeProject(project));
     expect(parsed.pages[0].characters[0].asset).toBe(project.pages[0].characters[0].asset);
 
@@ -125,7 +125,7 @@ describe('blocksModel', () => {
     const project = blankProject('Old A1-H');
     project.pages[0].background = 'tsv-window-room-dim';
     const character = project.pages[0].characters[0];
-    character.asset = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+    character.asset = '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
     character.scripts = [{
       id: 'little-light-flag',
       blocks: [

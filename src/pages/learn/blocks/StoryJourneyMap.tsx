@@ -15,12 +15,12 @@ import './storyJourneyMap.css';
 
 const LUMI = {
   name: 'Lumilo',
-  asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+  asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
 };
 
 const TUAN_TUAN = {
   name: 'Tuan Tuan',
-  asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+  asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
 };
 
 function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {

@@ -1023,6 +1023,15 @@
 .bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-deco {
   display: none;
 }
+.bsx-stage[data-scene='tsv-rooftop'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-sleep-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-hill,
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-deco {
+  display: none;
+}
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
   background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
     center / cover no-repeat;
