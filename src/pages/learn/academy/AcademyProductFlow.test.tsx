@@ -23,6 +23,7 @@ vi.mock('@/auth/useAuth', () => ({
 }));
 
 import { MyExamPrepPage } from './MyExamPrepPage';
+import { AcademyProductPage } from './AcademyProductPage';
 import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 
 const ENTITLEMENT = {
@@ -123,5 +124,43 @@ describe('Academy sellable product flow', () => {
     } finally {
       Object.defineProperty(window, 'location', { value: original, configurable: true });
     }
+  });
+
+  it('links every published fixed paper from the entitled product page', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/academy/me/products/naplan-y5-numeracy')
+        return Promise.resolve({
+          ...ENTITLEMENT,
+          product: {
+            ...ENTITLEMENT.product,
+            _count: { question_links: 120 },
+            papers: [
+              {
+                id: 'paper-1',
+                title: '2025 full paper',
+                mode: 'fixed',
+                time_limit_minutes: 60,
+                _count: { questions: 32 },
+              },
+            ],
+          },
+        });
+      if (path === '/academy/me/products/naplan-y5-numeracy/progress')
+        return Promise.resolve({ attempts: 2, correct: 1, accuracy: 0.5 });
+      return Promise.resolve(undefined);
+    });
+
+    renderAt(
+      '/learn/exams/naplan-y5-numeracy',
+      <AcademyProductPage />,
+      '/learn/exams/:productSlug',
+    );
+
+    expect(await screen.findByText('2025 full paper')).toBeInTheDocument();
+    expect(screen.getByText('32 questions · 60 minutes')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /2025 full paper/ })).toHaveAttribute(
+      'href',
+      '/learn/exams/naplan-y5-numeracy/mock/paper-1',
+    );
   });
 });

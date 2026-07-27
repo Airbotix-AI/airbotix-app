@@ -73,7 +73,27 @@ export function AcademyProductPage() {
             <Stat label="Accuracy" value={`${Math.round((progress.data?.accuracy ?? 0) * 100)}%`} />
           </div>
         </section>
-        <ComingSoon title="Mock tests" copy="Timed papers built for this exact exam product." />
+        {(p.papers ?? []).length > 0 ? (
+          <section className="card-base" data-testid="academy-mock-papers">
+            <div className="eyebrow eyebrow-bubblegum">Mock tests</div>
+            <div className="mt-4 grid gap-3">
+              {(p.papers ?? []).map((paper) => (
+                <Link
+                  key={paper.id}
+                  to={`/learn/exams/${productSlug}/mock/${paper.id}`}
+                  className="rounded-2xl bg-wash-bubblegum p-4 font-black text-ink"
+                >
+                  <span className="block">{paper.title}</span>
+                  <span className="mt-1 block text-sm text-slate2">
+                    {paper._count.questions} questions · {paper.time_limit_minutes} minutes
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <ComingSoon title="Mock tests" copy="Timed papers built for this exact exam product." />
+        )}
         <ComingSoon title="Wrong questions" copy="Review only the questions you missed here." />
       </div>
 

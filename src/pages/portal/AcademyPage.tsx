@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { getAcademyCatalog, listFamilyAcademyEntitlements } from '@/pages/learn/academy/academyApi';
@@ -26,6 +27,29 @@ export function AcademyPage() {
   return (
     <div>
       <AcademySalesIntro />
+
+      {(owned.data ?? []).some((entitlement) => (entitlement.sessions?.length ?? 0) > 0) && (
+        <section className="card-base mb-9" data-testid="academy-family-reports">
+          <div className="eyebrow eyebrow-mint">Recent mock exam reports</div>
+          <div className="mt-4 grid gap-3">
+            {(owned.data ?? []).flatMap((entitlement) =>
+              (entitlement.sessions ?? []).map((session) => (
+                <Link
+                  key={session.id}
+                  to={`/portal/academy/reports/${session.id}`}
+                  className="rounded-2xl bg-wash-mint p-4 font-black text-ink"
+                >
+                  {entitlement.kid?.nickname ?? 'Your child'} ·{' '}
+                  {session.paper?.title ?? entitlement.product.title}
+                  <span className="mt-1 block text-sm text-slate2">
+                    Objective and self-assessed marks shown separately →
+                  </span>
+                </Link>
+              )),
+            )}
+          </div>
+        </section>
+      )}
 
       {catalog.isLoading && <p className="lead-text">Loading exam products…</p>}
       {catalog.isError && (

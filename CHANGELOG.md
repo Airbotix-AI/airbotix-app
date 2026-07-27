@@ -12,6 +12,16 @@
   request a ghost sketch, then bring the sketch to life. Drawing remains free and AI costs remain
   visible before use.
 
+## 2026-07-27 (feat: Academy timed mock exams and self-review)
+
+### Added
+
+- Entitled kids can start or resume a published fixed paper, answer objective and written
+  questions, autosave progress, submit once and then self-assess written work against the official
+  per-mark or banded guide.
+- Results keep objective accuracy, self-assessed marks and the arithmetic total in three distinct
+  columns. Parents receive the same disclosed breakdown from completed-session links.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed
