@@ -69,6 +69,7 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { isJtwOrderDebugLesson, jtwOrderBugObserved } from './jtwOrderDebug';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
 import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -339,6 +340,7 @@ export function BlocksStudioPage({
   // observation) and then rerun the repaired exact chain — mirroring the
   // A2-D/A4-D debug contract "bug run and fixed run must both exist".
   const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
+  const isJtwC4DualBuild = storyMission?.lessonId === JTW_C4_P4_LESSON_ID;
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -909,6 +911,7 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
+          !isJtwC4DualBuild &&
           (!(
             isA2DirectionDebug ||
             isA4ParameterDebug ||
@@ -951,6 +954,7 @@ export function BlocksStudioPage({
     isA6Finale,
     needsBellOrderRun,
     isJtwOrderDebug,
+    isJtwC4DualBuild,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -1052,6 +1056,17 @@ export function BlocksStudioPage({
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
+        if (
+          id === JTW_C4_WUKONG_ID &&
+          storyMission?.lessonId === JTW_C4_P4_LESSON_ID &&
+          missionHasRun &&
+          storyMissionProgramMatches(useBlocksStore.getState().project, JTW_C4_P4_LESSON_ID)
+        ) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+        }
         if (id !== 'dot-dot') return;
         const targetFixedNow = storyMission
           ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)

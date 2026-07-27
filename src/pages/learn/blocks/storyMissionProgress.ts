@@ -5,6 +5,7 @@ import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
 import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
+import { JTW_C4_P4_LESSON_ID, jtwC4DualBuildMatches } from './jtwC4DualBuild';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -638,6 +639,8 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget.start.size === mission.sceneTarget.size &&
       sceneTarget.scripts.length === 0 &&
       page?.characters.length === 2);
+
+  if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
 
   if (lessonId === 'tsv-s1-a3-b') {
     const responseBlocks = blocks.slice(1, -1);
