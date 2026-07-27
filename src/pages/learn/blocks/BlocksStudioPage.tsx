@@ -1281,6 +1281,24 @@ export function BlocksStudioPage({
     unlockTouchScroll();
     const info = dragBlk;
     const d = blockDrag.current;
+    // React may not have committed the final pointer-move state before pointerup.
+    // Re-scan at the pointer's actual last coordinates so a quick release does
+    // not reuse an earlier insertion slot and move the block one place too far.
+    const finalHit =
+      d && !info?.onBin && d.index > 0
+        ? scanRows(d.lastX, d.lastY, { scriptId: d.scriptId, index: d.index })
+        : null;
+    const targetScriptId = finalHit?.scriptId ?? info?.targetScriptId ?? null;
+    const rawTargetSlot = finalHit?.slot ?? info?.targetSlot ?? null;
+    // scanRows reports a slot in the pre-removal DOM. Moving right within the
+    // same track removes the source first, shifting every later slot left.
+    const targetSlot =
+      d &&
+      targetScriptId === d.scriptId &&
+      rawTargetSlot !== null &&
+      d.index < rawTargetSlot
+        ? rawTargetSlot - 1
+        : rawTargetSlot;
     blockDrag.current = null;
     setDragBlk(null);
     setBinArmed(false);
@@ -1289,13 +1307,18 @@ export function BlocksStudioPage({
         sfx.trash();
         useBlocksStore.getState().removeBlock(d.scriptId, d.index);
       } else if (
-        info.targetScriptId &&
-        (info.targetScriptId !== d.scriptId || info.targetSlot !== d.index)
+        targetScriptId &&
+        (targetScriptId !== d.scriptId || targetSlot !== d.index)
       ) {
         sfx.snap();
         useBlocksStore
           .getState()
-          .moveBlockAcross(d.scriptId, d.index, info.targetScriptId, info.targetSlot ?? 1);
+          .moveBlockAcross(
+            d.scriptId,
+            d.index,
+            targetScriptId,
+            targetSlot ?? 1,
+          );
       }
     }
     setTimeout(() => (blockDidDrag.current = false), 0);
