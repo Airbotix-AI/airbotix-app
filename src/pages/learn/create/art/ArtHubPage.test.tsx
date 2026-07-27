@@ -62,6 +62,14 @@ const artMission = (over: Record<string, unknown> = {}) => ({
   title: 'Draw your robot',
   description: 'A robot with a happy face!',
   estimated_stars: 9,
+  steps: [
+    {
+      id: 'step_1',
+      title: "Your hero's character sheet",
+      instruction_md: 'Draw the same hero from three sides.',
+      widget: 'image_create',
+    },
+  ],
   art: { checklist: ['a robot'], draw_along: ['a big circle'] },
   lesson: { id: 'L1', title: 'Robot friends', order_index: 0 },
   course_pack: { slug: 'ai-comic-book', title: 'AI Comic Book', product_line: 'line_a_creative' },
@@ -189,11 +197,11 @@ describe('ArtHubPage — art tasks', () => {
     expect(screen.getByText(/AI Comic Book · Robot friends · 9★/)).toBeInTheDocument();
   });
 
-  it('starts a task on the canvas in Mission Mode with its art config', async () => {
+  it('starts a task by clicking anywhere on the card and carries its learning steps', async () => {
     artMissions = [artMission()];
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Start →' }));
+    fireEvent.click(screen.getByTestId('art-hub-task'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed?.pathname).toBe('/learn/create/image/canvas');
     expect(landed?.state).toEqual({
@@ -202,6 +210,14 @@ describe('ArtHubPage — art tasks', () => {
         slug: 'draw-your-robot',
         title: 'Draw your robot',
         description: 'A robot with a happy face!',
+        steps: [
+          {
+            id: 'step_1',
+            title: "Your hero's character sheet",
+            instruction_md: 'Draw the same hero from three sides.',
+            widget: 'image_create',
+          },
+        ],
         template: undefined,
         draw_along: ['a big circle'],
         checklist: ['a robot'],
@@ -216,7 +232,7 @@ describe('ArtHubPage — art tasks', () => {
     artMissions = [artMission({ art: null, title: 'Design your hero & world' })];
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Start →' }));
+    fireEvent.click(screen.getByTestId('art-hub-task'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed?.state).toEqual({
       mission: {
@@ -224,6 +240,14 @@ describe('ArtHubPage — art tasks', () => {
         slug: 'draw-your-robot',
         title: 'Design your hero & world',
         description: 'A robot with a happy face!',
+        steps: [
+          {
+            id: 'step_1',
+            title: "Your hero's character sheet",
+            instruction_md: 'Draw the same hero from three sides.',
+            widget: 'image_create',
+          },
+        ],
         template: undefined,
         draw_along: undefined,
         checklist: undefined,
