@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-26 (fix: "Draw a new picture" opens a blank canvas again)
+
+### Fixed
+- The Art Studio hub's **"Draw a new picture"** now really does start a blank page. Since the
+  canvas began auto-saving an unsaved drawing, any plain visit to `/learn/create/image/canvas`
+  restored that draft — so "new" handed the child back the picture they drew last time
+  (owner 2026-07-26). The hub now asks for a fresh page explicitly and the canvas honours it.
+- Reopening a picture (or starting fresh) and then **refreshing** no longer replays the click
+  that got you there and discards the work done since. Those navigations are consumed once;
+  every reload after that is served by the auto-saved draft.
+
+### Changed
+- When an unsaved canvas exists, the hub's continue card offers **that** ("Keep drawing your
+  unfinished picture") instead of the last saved picture — it is the newer work and the only
+  copy, and it stays offered right up until the child chooses a new picture.
+- Draft storage (key, shape, read/write/clear) moves into one shared `artDraft.ts` module so the
+  hub and the canvas can never disagree about what "the current draft" is.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed
