@@ -211,6 +211,18 @@ describe('BlocksStudioPage zone labels', () => {
     await renderStudio();
 
     expect(await screen.findByTestId('story-mission-success')).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-scene',
+      'tsv-window-room-dim',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'resolved',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-window-room-resolved-bright',
+    );
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('go-button'));
@@ -960,6 +972,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-rooftop',
+    );
     fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
     expect(screen.queryByTestId('event-repair-picker')).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
@@ -982,6 +999,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.pointerDown(dot);
     fireEvent.pointerUp(dot);
     expect(await screen.findByTestId('story-celebration', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-rooftop-awake-lit',
+    );
   });
 
   it('lets A4-B change only the existing movement parameter', async () => {
@@ -1090,6 +1111,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '7');
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '12');
     expect(screen.queryByTestId('speech-bubble-little-light')).not.toBeInTheDocument();
@@ -1111,6 +1137,14 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     fireEvent.click(screen.getByTestId('story-choice-together'));
     expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('both bubbles open at once');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'before',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     // An Explore hook stays quiet: no chapter celebration.
     expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
     // Observation only — neither program was touched.
@@ -1138,6 +1172,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     fireEvent.click(screen.getByTestId('go-button'));
     expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
 
@@ -1174,6 +1213,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '5');
     const tower = screen.getByTestId('sprite-bell-tower');
     expect(tower).toHaveAttribute('data-gx', '8');
@@ -1227,6 +1271,14 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     fireEvent.click(screen.getByTestId('story-choice-hop'));
     expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('missing from the middle');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'before',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     // An Explore hook stays quiet: no chapter celebration.
     expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
     // Observation only — the route was never edited.
@@ -1286,6 +1338,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
 
     // The child taps Hop in the real Motion palette. A tap appends before the
     // terminal End — i.e. AFTER the bell — and on the block's own default of 2.
@@ -1373,6 +1430,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
 
     // Before the bug has been watched the chain will not budge: tapping a block
     // opens no number editor, it sends the child back to the story card.
@@ -1397,6 +1459,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
       { timeout: 5000 },
     );
     expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     // The two cards that really do belong earlier are the distractors.
     fireEvent.click(screen.getByTestId('story-choice-walk'));
     expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
@@ -1425,6 +1491,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
     fireEvent.click(screen.getByTestId('go-button'));
     expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path-bell-lit',
+    );
     expect(saveBlocksProject).toHaveBeenCalledWith(
       expect.objectContaining({
         storyProgress: expect.objectContaining({
@@ -1528,6 +1598,18 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
     expect(await screen.findByTestId('speech-bubble-bell-ringer', {}, { timeout: 5000 })).toHaveTextContent('We did it!');
     expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-scene',
+      'tsv-clocktower-path',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'resolved',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path-bell-lit',
+    );
     const ringerSuccess = screen.getByTestId('sprite-bell-ringer').querySelector('img');
     expect(ringerSuccess).toHaveAttribute('data-performance', 'success');
     expect(ringerSuccess).toHaveAttribute(

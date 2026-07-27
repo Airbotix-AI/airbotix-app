@@ -1077,6 +1077,30 @@
 .bsx-stage[data-scene='tsv-clocktower-path'] .bsx-deco {
   display: none;
 }
+
+/* Completion art is presentation-only. `data-scene` remains the saved scene
+   contract while this exact visual token switches after missionCompleted. */
+.bsx-stage[data-story-scene-visual='tsv-window-room-resolved-bright'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/window-room-resolved-bright-v01.webp')
+    center / cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-rooftop-awake-lit'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-awake-lit-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-greeting-stage-lamp-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-lit-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-clocktower-path-bell-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-lit-v01.webp') center /
+    cover no-repeat;
+}
+
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
   background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
     center / cover no-repeat;

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-28 (feat: Tiny Star completion backgrounds)
+
+### Changed
+
+- Eligible Tiny Star Village missions now switch to their formal resolved
+  background after verified completion without mutating the saved starter-scene
+  ID. Observation-only A5-H and A6-H remain on their before art, while the A6-S
+  finale resolves the clocktower after the child completes their own ending.
+
 ## 2026-07-27 (feat: Tiny Star terminal character poses)
 
 ### Changed

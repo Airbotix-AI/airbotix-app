@@ -130,6 +130,7 @@ import {
   TINY_STAR_SEASON_LOCKED_MESSAGE,
   TINY_STAR_SEASON_OFFLINE_MESSAGE,
 } from './tinyStarSeason';
+import { tinyStarCompletionScene } from './tinyStarCompletionScene';
 import { ZoneTag } from './ZoneTag';
 import {
   LONGPRESS_MS,
@@ -292,6 +293,12 @@ export function BlocksStudioPage({
   );
   const selectedChar = page.characters.find((c) => c.id === charId) ?? page.characters[0];
   const storyMission = useMemo(() => storyMissionFor(project.lessonId), [project.lessonId]);
+  const completionScene = tinyStarCompletionScene(
+    storyMission?.lessonId,
+    page.background,
+    missionCompleted,
+  );
+  const stageVisualScene = completionScene ?? sceneId(page.background);
   // Preset dialogue choices for the Say editor: the mission contract's allowed
   // texts (JtW greeting choice), falling back to the Tiny Star greetings for
   // personal-ship missions that predate contract-driven choices.
@@ -2137,6 +2144,8 @@ export function BlocksStudioPage({
             ref={stageRef}
             data-testid="blocks-stage"
             data-scene={sceneId(page.background)}
+            data-story-scene-state={completionScene ? 'resolved' : 'before'}
+            data-story-scene-visual={stageVisualScene}
             data-story-target-gx={lockedStageTargetGx}
             className="bsx-stage min-h-[180px] flex-1"
             aria-label="Stage"
