@@ -278,7 +278,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     scriptId: 'dot-dot-tap',
     asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
-    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: '醒啦' }, { op: 'end' }],
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: "I'm awake!" }, { op: 'end' }],
   },
   'tsv-s1-a3-b': {
     pageId: 'tsv-a3-b-page',

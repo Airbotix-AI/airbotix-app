@@ -283,7 +283,7 @@ describe('storyMissionProgramMatches', () => {
           blocks: [
             { op: 'when_tap' },
             { op: 'hop', n: 1 },
-            { op: 'say', text: '醒啦' },
+            { op: 'say', text: "I'm awake!" },
             { op: 'end' },
           ],
         }],
@@ -299,11 +299,11 @@ describe('storyMissionProgramMatches', () => {
     const hop = tapResponseProject({ op: 'hop', n: 1 });
     expect(storyMissionProgramMatches(hop, 'tsv-s1-a3-b')).toBe(true);
 
-    const say = tapResponseProject({ op: 'say', text: '醒啦' });
+    const say = tapResponseProject({ op: 'say', text: "I'm awake!" });
     expect(storyMissionProgramMatches(say, 'tsv-s1-a3-b')).toBe(true);
 
     const both = tapResponseProject({ op: 'hop', n: 1 });
-    both.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'say', text: '醒啦' });
+    both.pages[0].characters[0].scripts[0].blocks.splice(2, 0, { op: 'say', text: "I'm awake!" });
     expect(storyMissionProgramMatches(both, 'tsv-s1-a3-b')).toBe(true);
 
     hop.pages[0].characters[0].scripts[0].blocks[0] = { op: 'when_flag' };
