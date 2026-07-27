@@ -157,6 +157,8 @@ describe('Academy sellable product flow', () => {
     );
 
     expect(await screen.findByText('2025 full paper')).toBeInTheDocument();
+    expect(screen.getByText(/刷题练习/)).toBeInTheDocument();
+    expect(screen.getByText(/模拟考试/)).toBeInTheDocument();
     expect(screen.getByText('32 questions · 60 minutes')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /2025 full paper/ })).toHaveAttribute(
       'href',

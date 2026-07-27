@@ -16,6 +16,10 @@
 
 ### Added
 
+- Parent product details now switch between an original-question practice demo and a five-minute
+  mock-paper demo with locked answers, submission, rubric self-assessment and a three-column report.
+- The entitled kid product page presents Practice and Mock exam as explicit modes with their
+  different timing and feedback contracts.
 - Entitled kids can start or resume a published fixed paper, answer objective and written
   questions, autosave progress, submit once and then self-assess written work against the official
   per-mark or banded guide.

@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 
 import { getAcademyProduct } from '@/pages/learn/academy/academyApi';
+import { AcademyMockExamDemo } from './AcademyMockExamDemo';
 import { AcademyParentDemo } from './AcademyParentDemo';
 
 const money = (cents: number) =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cents / 100);
 
 export function AcademyProductDetailPage() {
+  const [demoMode, setDemoMode] = useState<'practice' | 'mock'>('practice');
   const { slug = '' } = useParams<{ slug: string }>();
   const product = useQuery({
     queryKey: ['academy-public-product', slug],
@@ -81,11 +84,29 @@ export function AcademyProductDetailPage() {
             See the question and the Tutor together.
           </h2>
           <p className="mt-2 text-[14px] font-medium leading-relaxed text-ink-soft sm:text-[16px]">
-            Try four original samples across different skills. Tap any answer and the Tutor
-            diagnoses the thinking, explains the strategy and finishes with a fresh check question.
+            Switch between untimed practice with immediate Tutor feedback and a timed sample paper
+            that keeps answers locked until submission.
           </p>
         </div>
-        <AcademyParentDemo />
+        <div className="my-5 inline-flex rounded-2xl bg-canvas-pure p-1" aria-label="Demo mode">
+          <button
+            type="button"
+            className={demoMode === 'practice' ? 'btn-pill-primary' : 'btn-pill-ghost'}
+            aria-pressed={demoMode === 'practice'}
+            onClick={() => setDemoMode('practice')}
+          >
+            Practice mode
+          </button>
+          <button
+            type="button"
+            className={demoMode === 'mock' ? 'btn-pill-primary' : 'btn-pill-ghost'}
+            aria-pressed={demoMode === 'mock'}
+            onClick={() => setDemoMode('mock')}
+          >
+            Mock exam mode
+          </button>
+        </div>
+        {demoMode === 'practice' ? <AcademyParentDemo /> : <AcademyMockExamDemo />}
       </section>
 
       <section className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-3">

@@ -48,6 +48,15 @@ export function AcademyProductPage() {
         </p>
       </header>
 
+      <section className="mb-6 rounded-[24px] bg-ink p-5 text-white sm:p-7">
+        <div className="eyebrow eyebrow-sky">Choose how to learn</div>
+        <h2 className="mt-2 text-[26px] font-black">Practice or sit a real paper.</h2>
+        <p className="mt-2 max-w-3xl text-sm font-semibold text-white/75">
+          Practice mode gives feedback after every question. Mock exam mode is timed, saves your
+          place, and locks answers and marking guides until you submit the whole paper.
+        </p>
+      </section>
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <Link
           to={`/learn/exams/${productSlug}/practice`}
@@ -57,11 +66,14 @@ export function AcademyProductPage() {
           <span className="pack-blob" />
           <div className="relative">
             <div className="text-[11px] font-black uppercase tracking-[0.13em] opacity-80">
-              Ready now
+              Practice mode
             </div>
-            <h2 className="mt-3 text-[26px] font-black">Topic practice</h2>
+            <h2 className="mt-3 text-[26px] font-black">刷题练习 · Topic practice</h2>
             <p className="mt-3 text-[14px] font-bold opacity-85">
-              {p._count?.question_links ?? 0} reviewed questions · Start →
+              Untimed · immediate marking · Tutor feedback
+            </p>
+            <p className="mt-2 text-[14px] font-bold opacity-85">
+              {p._count?.question_links ?? 0} reviewed questions · Start practice →
             </p>
           </div>
         </Link>
@@ -75,7 +87,10 @@ export function AcademyProductPage() {
         </section>
         {(p.papers ?? []).length > 0 ? (
           <section className="card-base" data-testid="academy-mock-papers">
-            <div className="eyebrow eyebrow-bubblegum">Mock tests</div>
+            <div className="eyebrow eyebrow-bubblegum">模拟考试 · Mock exam mode</div>
+            <p className="mt-2 text-sm font-semibold text-slate2">
+              Timed fixed papers · resume on another visit · marking guide after submission
+            </p>
             <div className="mt-4 grid gap-3">
               {(p.papers ?? []).map((paper) => (
                 <Link
