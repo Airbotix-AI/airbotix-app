@@ -46,6 +46,8 @@ interface ArtMissionRow {
   title: string;
   description: string;
   estimated_stars: number;
+  /** Authored child-facing task sequence returned by the art-missions endpoint. */
+  steps: ArtMission['steps'];
   art: {
     template?: ArtMission['template'];
     draw_along?: string[];
@@ -170,6 +172,7 @@ export function ArtHubPage() {
           slug: row.slug,
           title: row.title,
           description: row.description,
+          steps: row.steps,
           template: row.art?.template,
           draw_along: row.art?.draw_along,
           checklist: row.art?.checklist,
@@ -231,27 +234,29 @@ export function ArtHubPage() {
         ) : missions.data && missions.data.length > 0 ? (
           <ul className="mt-4 space-y-3">
             {missions.data.map((row) => (
-              <li
-                key={row.id}
-                data-testid="art-hub-task"
-                className="flex items-start gap-3 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3"
-              >
-                <span className="mt-0.5 shrink-0 text-[15px]">🎯</span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-semibold text-ink">{row.title}</div>
-                  {row.description && (
-                    <p className="mt-1 text-[13px] text-ink-soft">{row.description}</p>
-                  )}
-                  <div className="mt-2 text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
-                    {row.course_pack.title} · {row.lesson.title} · {row.estimated_stars}★
-                  </div>
-                </div>
+              <li key={row.id}>
                 <button
                   type="button"
+                  data-testid="art-hub-task"
                   onClick={() => startMission(row)}
-                  className="btn-pill-primary shrink-0"
+                  className="group flex w-full items-start gap-3 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-brand-bubblegum/40 hover:shadow-card-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-bubblegum"
                 >
-                  Start →
+                  <span className="mt-0.5 shrink-0 text-[15px]" aria-hidden="true">🎯</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold text-ink">{row.title}</span>
+                    {row.description && (
+                      <span className="mt-1 block text-[13px] text-ink-soft">{row.description}</span>
+                    )}
+                    <span className="mt-2 block text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
+                      {row.course_pack.title} · {row.lesson.title} · {row.estimated_stars}★
+                    </span>
+                    <span className="mt-1 block text-[12px] font-semibold text-brand-bubblegum">
+                      Open the task to see every learning step beside your canvas.
+                    </span>
+                  </span>
+                  <span className="btn-pill-primary shrink-0" aria-hidden="true">
+                    Start →
+                  </span>
                 </button>
               </li>
             ))}

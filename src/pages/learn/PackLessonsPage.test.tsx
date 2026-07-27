@@ -122,11 +122,52 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
           slug: 'draw-a-cat',
           title: 'Draw a cat',
           description: 'Make a picture.',
+          steps: [],
           template: {
             url: '/templates/robot.png',
             layer: 'underlay',
             magic: 'strokes-only',
           },
+        },
+      }),
+    );
+  });
+
+  it('opens a steps-array image task in Art Studio with its learning sequence', async () => {
+    const steps = [
+      {
+        id: 'hero',
+        title: "Your hero's character sheet",
+        instruction_md: 'Draw front, side and jumping poses.',
+        widget: 'image_create',
+      },
+      {
+        id: 'world',
+        title: 'Pick your world',
+        instruction_md: 'Choose where the adventure happens.',
+        widget: 'choice',
+      },
+    ];
+    api.mockResolvedValue({
+      ...PACK,
+      lessons: [
+        {
+          ...PACK.lessons[0],
+          missions: [{ ...PACK.lessons[0].missions[0], steps_json: steps }],
+        },
+      ],
+    });
+    renderPack();
+    const task = (await screen.findByText('Draw a cat')).closest('li');
+    fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+    expect(await screen.findByTestId('art-mission-state')).toHaveTextContent(
+      JSON.stringify({
+        mission: {
+          id: 'm1',
+          slug: 'draw-a-cat',
+          title: 'Draw a cat',
+          description: 'Make a picture.',
+          steps,
         },
       }),
     );
