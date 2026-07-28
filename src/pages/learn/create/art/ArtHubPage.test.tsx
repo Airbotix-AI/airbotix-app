@@ -285,7 +285,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
     ];
     guidedTasks = titles.map((title, index) => ({
       slug: `task-${index}`,
-      version: 3,
+      version: 4,
       title,
       short_description: `Guided drawing ${index + 1}`,
       category: 'animals',
@@ -293,7 +293,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       age_max: 9,
       difficulty: 1,
       duration_minutes: 8,
-      cover: { url: `/art-tasks/task-${index}/v3/cover.svg`, alt: title },
+      cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
     }));
     guidedTasks.push(
@@ -338,7 +338,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
     guidedTasks = [
       {
         slug: 'draw-a-trex',
-        version: 3,
+        version: 4,
         title: 'Draw a T-Rex',
         short_description: 'Build a mighty dinosaur from big, simple shapes.',
         category: 'dinosaurs',
@@ -347,8 +347,8 @@ describe('ArtHubPage — concrete drawing ideas', () => {
         difficulty: 1,
         duration_minutes: 8,
         cover: {
-          url: '/art-tasks/draw-a-trex/v3/cover.svg',
-          alt: 'A clear cartoon T-Rex with a big jaw and long tail',
+          url: '/art-tasks/draw-a-trex/v1/cover.png',
+          alt: 'A polished cartoon T-Rex with a big jaw and long tail',
         },
         modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
       },
@@ -357,6 +357,9 @@ describe('ArtHubPage — concrete drawing ideas', () => {
 
     fireEvent.click(await screen.findByTestId('art-guided-task'));
     expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Look & Draw');
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent(
+      'Use a polished picture for ideas',
+    );
     expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Trace a Ghost');
     expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Draw My Way');
 

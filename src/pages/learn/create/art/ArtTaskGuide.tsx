@@ -48,12 +48,22 @@ export function ArtTaskGuide({
       </div>
 
       {referenceVisible && mode !== ART_TASK_DRAW_MODES.trace && (
-        <img
-          src={task.reference.url}
-          alt={task.reference.alt}
-          className="mt-2 aspect-square w-full rounded-xl border border-hairline bg-canvas-pure object-contain"
-          data-testid="art-task-reference"
-        />
+        <div className="mt-2 rounded-xl border border-hairline bg-canvas-pure p-2">
+          <div className="px-1 pb-2">
+            <div className="text-[10px] font-black uppercase tracking-[0.1em] text-brand-bubblegum">
+              Inspiration picture
+            </div>
+            <p className="text-[10px] leading-snug text-ink-soft">
+              Look for ideas — your picture does not have to match.
+            </p>
+          </div>
+          <img
+            src={task.reference.url}
+            alt={task.reference.alt}
+            className="aspect-square w-full rounded-lg bg-canvas-pure object-contain"
+            data-testid="art-task-reference"
+          />
+        </div>
       )}
 
       <div className="mt-2 rounded-xl bg-canvas-pure p-2.5">
@@ -94,7 +104,7 @@ export function ArtTaskGuide({
             onClick={onToggleReference}
             className="rounded-full bg-canvas-pure px-2.5 py-1 text-[10px] font-bold text-ink-soft"
           >
-            {referenceVisible ? 'Hide reference' : 'Show reference'}
+            {referenceVisible ? 'Hide picture' : 'Show picture'}
           </button>
         )}
         {mode === ART_TASK_DRAW_MODES.trace && (

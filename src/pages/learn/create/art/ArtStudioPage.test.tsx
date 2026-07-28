@@ -112,7 +112,7 @@ vi.mock('@/lib/api', () => {
       if (path === '/art-studio/tasks/draw-a-trex') {
         return Promise.resolve({
           slug: 'draw-a-trex',
-          version: 1,
+          version: 4,
           title: 'Draw a T-Rex',
           short_description: 'Build a mighty dinosaur from big, simple shapes.',
           category: 'dinosaurs',
@@ -127,10 +127,10 @@ vi.mock('@/lib/api', () => {
           default_mode: 'look_and_draw',
           reference: {
             url: '/art-tasks/draw-a-trex/v1/reference.png',
-            alt: 'A simple T-Rex drawing',
+            alt: 'A polished green T-Rex inspiration picture',
           },
           ghost: {
-            url: '/art-tasks/draw-a-trex/v1/ghost.svg',
+            url: '/art-tasks/draw-a-trex/v3/ghost.svg',
             alt: 'A faint T-Rex outline',
             default_opacity: 0.28,
           },
@@ -139,19 +139,19 @@ vi.mock('@/lib/api', () => {
               id: 'body',
               title: 'Draw the body',
               instruction_md: 'Start with one big oval.',
-              guide_url: '/art-tasks/draw-a-trex/v1/steps/01.svg',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/01.svg',
             },
             {
               id: 'head-tail',
               title: 'Add the head and tail',
               instruction_md: 'Make the tail long.',
-              guide_url: '/art-tasks/draw-a-trex/v1/steps/02.svg',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/02.svg',
             },
             {
               id: 'colour',
               title: 'Colour its world',
               instruction_md: 'Add colours.',
-              guide_url: '/art-tasks/draw-a-trex/v1/steps/05.svg',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/04.svg',
             },
           ],
           checklist: ['body', 'head', 'tail'],
@@ -377,7 +377,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(guide).toHaveTextContent('Draw the body');
     expect(screen.getByTestId('art-canvas-stub')).toHaveAttribute(
       'data-template',
-      '/art-tasks/draw-a-trex/v1/ghost.svg',
+      '/art-tasks/draw-a-trex/v3/ghost.svg',
     );
     expect(screen.getByTestId('art-canvas-stub')).toHaveAttribute('data-template-opacity', '0.28');
     expect(apiCalls.filter((call) => call.path === '/llm/image')).toHaveLength(0);
@@ -385,6 +385,22 @@ describe('ArtStudioPage (canvas-first)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
     expect(guide).toHaveTextContent('Art Studio · Step 2 of 3');
     expect(guide).toHaveTextContent('Add the head and tail');
+  });
+
+  it('separates the polished inspiration picture from the simple draw-along assets', async () => {
+    renderPage(undefined, '?task=draw-a-trex&mode=look');
+
+    const guide = await screen.findByTestId('art-task-guide');
+    expect(guide).toHaveTextContent('Inspiration picture');
+    expect(guide).toHaveTextContent('your picture does not have to match');
+    expect(screen.getByTestId('art-task-reference')).toHaveAttribute(
+      'src',
+      '/art-tasks/draw-a-trex/v1/reference.png',
+    );
+    expect(screen.getByTestId('art-task-step-image')).toHaveAttribute(
+      'src',
+      '/art-tasks/draw-a-trex/v3/steps/01.svg',
+    );
   });
 
   it('records task identity, mode and learning tags on the saved sketch artifact', async () => {
@@ -402,7 +418,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(register?.opts?.body?.metadata).toEqual({
         source: 'art-task',
         art_task_slug: 'draw-a-trex',
-        art_task_version: 1,
+        art_task_version: 4,
         draw_mode: 'free',
         completed_steps: 1,
         learning_tags: ['basic_shapes', 'proportion'],

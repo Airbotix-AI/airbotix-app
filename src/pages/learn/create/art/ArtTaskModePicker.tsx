@@ -10,9 +10,9 @@ interface ModeChoice {
 const MODE_CHOICES: ModeChoice[] = [
   {
     id: ART_TASK_DRAW_MODES.look,
-    emoji: '👀',
+    emoji: '🖼️',
     title: 'Look & Draw',
-    body: 'Keep the finished picture beside your canvas.',
+    body: 'Use a polished picture for ideas. Yours does not have to match.',
   },
   {
     id: ART_TASK_DRAW_MODES.trace,
@@ -51,7 +51,7 @@ export function ArtTaskModePicker({ task, onPick, onClose }: ArtTaskModePickerPr
               {task.title}
             </h2>
             <p className="mt-1 text-[14px] text-ink-soft">
-              You can switch the reference on or off while you draw.
+              Pick a finished picture, an easy outline or just the little steps.
             </p>
           </div>
           <button
