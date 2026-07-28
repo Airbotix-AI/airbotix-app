@@ -421,7 +421,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     // explicit new drawing — `fresh` is how the canvas tells the two apart.
     it('starts blank and drops the draft when the hub asks for a NEW picture', async () => {
       localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
+      renderPage({ newCanvas: true });
       await screen.findByTestId('ai-rail');
       expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
       await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
@@ -431,7 +431,7 @@ describe('ArtStudioPage (canvas-first)', () => {
 
     it('consumes the one-shot nav intent so a later refresh keeps the NEW work', async () => {
       localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
+      renderPage({ newCanvas: true });
       await screen.findByTestId('ai-rail');
       // `fresh` is gone from the history entry: a reload now restores the draft…
       await waitFor(() => expect(routerState).toBeNull());
