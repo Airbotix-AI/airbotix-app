@@ -2,11 +2,23 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUTPUT_ROOT = join(process.cwd(), 'public', 'art-tasks');
+const VERSION = 'v2';
 const INK = '#2C3642';
 const PAPER = '#FFFEF7';
+const COVER = '#FFF3F8';
 const ACTIVE = '#E2528C';
 
 const tasks = [
+  {
+    slug: 'draw-a-trex',
+    alt: 'a friendly T-Rex',
+    stages: [
+      '<ellipse cx="340" cy="350" rx="145" ry="95"/>',
+      '<path d="M235 330c-68 5-116-28-116-78 0-46 44-75 100-65 44 8 67 39 63 82m184 70 95-67-61 112"/>',
+      '<path d="M275 405v100m105-72v72m-126 0h54m48 0h55M272 337l-45 34m59-19-34 45"/>',
+      '<circle cx="186" cy="232" r="8" fill="#2C3642"/><path d="M145 272c34 20 69 20 104 0"/>',
+    ],
+  },
   {
     slug: 'draw-a-kitten',
     alt: 'a sitting kitten',
@@ -86,9 +98,9 @@ const tasks = [
   },
 ];
 
-function wrapSvg(title, content, background = false) {
-  const backgroundMarkup = background
-    ? `  <rect width="600" height="600" rx="36" fill="${PAPER}"/>\n`
+function wrapSvg(title, content, backgroundColor = null) {
+  const backgroundMarkup = backgroundColor
+    ? `  <rect width="600" height="600" rx="36" fill="${backgroundColor}"/>\n`
     : '';
   const indentedContent = content
     .split('\n')
@@ -105,22 +117,32 @@ ${indentedContent}
 }
 
 for (const task of tasks) {
-  const directory = join(OUTPUT_ROOT, task.slug, 'v1');
+  const directory = join(OUTPUT_ROOT, task.slug, VERSION);
   const stepsDirectory = join(directory, 'steps');
+  const simpleStages = task.stages.slice(0, 4);
+  const completeDrawing = simpleStages.join('\n');
   mkdirSync(stepsDirectory, { recursive: true });
 
   writeFileSync(
     join(directory, 'ghost.svg'),
-    wrapSvg(`A simple outline of ${task.alt} to trace`, task.stages.slice(0, 4).join('\n')),
+    wrapSvg(`A simple outline of ${task.alt} to trace`, completeDrawing),
+  );
+  writeFileSync(
+    join(directory, 'reference.svg'),
+    wrapSvg(`A four-step line drawing of ${task.alt}`, completeDrawing, PAPER),
+  );
+  writeFileSync(
+    join(directory, 'cover.svg'),
+    wrapSvg(`A simple drawing idea: ${task.alt}`, completeDrawing, COVER),
   );
 
-  task.stages.forEach((stage, index) => {
-    const previous = task.stages.slice(0, index).join('\n');
+  simpleStages.forEach((stage, index) => {
+    const previous = simpleStages.slice(0, index).join('\n');
     const activeStage = `<g stroke="${ACTIVE}" stroke-dasharray="18 12">${stage}</g>`;
     const content = [previous, activeStage].filter(Boolean).join('\n');
     writeFileSync(
       join(stepsDirectory, `${String(index + 1).padStart(2, '0')}.svg`),
-      wrapSvg(`Step ${index + 1} for drawing ${task.alt}`, content, true),
+      wrapSvg(`Step ${index + 1} for drawing ${task.alt}`, content, PAPER),
     );
   });
 }

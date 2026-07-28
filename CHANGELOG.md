@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-28 (fix: simplify guided drawing tasks for younger children)
+
+### Changed
+- Added immutable `v2` assets for all eight guided tasks, replacing detailed
+  illustrated references with four-step, thick-line drawings made from at most
+  twelve visible shapes.
+- Covers, references, trace ghosts and steps now share the exact same geometry;
+  v1 assets remain available for previously saved task versions.
+- Added automated line-budget checks that reject gradients, filters, embedded
+  images, fifth steps or overly complex young-child references.
+
 ## 2026-07-28 (feat: expand Art Studio guided drawing library)
 
 ### Added

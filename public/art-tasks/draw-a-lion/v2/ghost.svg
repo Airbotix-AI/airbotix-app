@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a friendly lion to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="345" cy="350" rx="155" ry="92"/>
+    <circle cx="205" cy="250" r="122"/><circle cx="205" cy="250" r="78"/><circle cx="165" cy="184" r="22"/><circle cx="245" cy="184" r="22"/>
+    <path d="M250 404v105m72-93v93m72-96v96m65-116v116M230 509h48m24 0h45m28 0h44m19 0h47M486 342c71 18 81-74 29-93m0 0 20-16 12 23-32-7Z"/>
+    <circle cx="180" cy="242" r="7" fill="#2C3642"/><circle cx="230" cy="242" r="7" fill="#2C3642"/><ellipse cx="205" cy="268" rx="15" ry="10"/><path d="M205 278v15m-28 2c18 15 38 15 56 0"/>
+  </g>
+</svg>
