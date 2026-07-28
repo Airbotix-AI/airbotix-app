@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- Tiny Star Village completion cards now distinguish `Next scene` from
+  `Start Chapter 2`, and keep the navigation actions visible at the bottom of
+  the scrollable card so a child cannot mistake Scene 3 for the end of Chapter
+  1 or become stranded after Scene 4.
 - Story Blocks now creates Journey to the West C1-P5 projects as
   `Journey to the West · My First Greeting`. Existing projects saved with the former Chinese
   title are displayed with the English title on the Continue card and project grid.

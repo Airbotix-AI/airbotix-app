@@ -158,6 +158,16 @@ export function nextStoryMissionForLesson(
   return current >= 0 ? playable[current + 1] : undefined;
 }
 
+export function storyJourneyActionLabel(
+  current: StoryJourneyPosition,
+  next: StoryJourneyPosition,
+): string {
+  if (current.chapter.number !== next.chapter.number) {
+    return `Start Chapter ${next.chapter.number}: ${next.mission.title}`;
+  }
+  return `Next scene (${next.sceneNumber} of ${next.sceneCount}): ${next.mission.title}`;
+}
+
 export function storyMissionProjectTitle(mission: StoryJourneyMission): string {
   return `Tiny Star Village · ${mission.title}`;
 }

@@ -355,29 +355,31 @@ export function StoryMissionGuide({
                   {nextError}
                 </p>
               )}
-              <button type="button" className="bsx-mission-secondary" onClick={readStory}>
-                📖 Read the story again
-              </button>
-              {onNext && nextJourneyLabel ? (
-                <button
-                  type="button"
-                  className="bsx-mission-primary"
-                  data-testid="story-next-mission"
-                  disabled={nextBusy}
-                  onClick={onNext}
-                >
-                  {nextBusy ? 'Opening…' : `Next: ${nextJourneyLabel} →`}
+              <div className="bsx-mission-completion-actions" data-testid="story-completion-actions">
+                <button type="button" className="bsx-mission-secondary" onClick={readStory}>
+                  📖 Read the story again
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  className="bsx-mission-primary"
-                  data-testid="story-back-to-collection"
-                  onClick={onBackToCollection ?? onClose}
-                >
-                  Back to the story collection →
-                </button>
-              )}
+                {onNext && nextJourneyLabel ? (
+                  <button
+                    type="button"
+                    className="bsx-mission-primary"
+                    data-testid="story-next-mission"
+                    disabled={nextBusy}
+                    onClick={onNext}
+                  >
+                    {nextBusy ? 'Opening…' : `${nextJourneyLabel} →`}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="bsx-mission-primary"
+                    data-testid="story-back-to-collection"
+                    onClick={onBackToCollection ?? onClose}
+                  >
+                    Back to the story collection →
+                  </button>
+                )}
+              </div>
             </div>
           ) : mission.mode !== 'observe-fix' && mission.mode !== 'observe-only' && hasRun ? (
             <div data-testid="story-build-task">

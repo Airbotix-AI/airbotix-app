@@ -45,7 +45,7 @@ import {
   tinyStarFinaleEndedAfterBell,
 } from './tinyStarBellTower';
 import { tinyStarDuetDesign, tinyStarDuetTookTurns } from './tinyStarDuet';
-import { storyMissionProjectTitle } from './storyJourneyCatalog';
+import { storyJourneyActionLabel, storyMissionProjectTitle } from './storyJourneyCatalog';
 import {
   recordTinyStarSeasonScene,
   TINY_STAR_SEASON_LOCKED_MESSAGE,
@@ -872,8 +872,8 @@ export function BlocksStudioPage({
               : undefined
           }
           nextJourneyLabel={
-            nextJourneyPosition
-              ? `Chapter ${nextJourneyPosition.chapter.number} · ${nextJourneyPosition.mission.title}`
+            journeyPosition && nextJourneyPosition
+              ? storyJourneyActionLabel(journeyPosition, nextJourneyPosition)
               : undefined
           }
           nextBusy={nextMissionBusy}
