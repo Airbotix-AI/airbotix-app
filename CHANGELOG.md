@@ -4,6 +4,8 @@
 
 ### Fixed
 
+- The Story Blocks hub now shows one English Journey to the West story-world
+  entry instead of three duplicate Chinese cards.
 - Tiny Star Village completion cards now distinguish `Next scene` from
   `Start Chapter 2`, and keep the navigation actions visible at the bottom of
   the scrollable card so a child cannot mistake Scene 3 for the end of Chapter

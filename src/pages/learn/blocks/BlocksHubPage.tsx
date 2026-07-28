@@ -136,11 +136,14 @@ export function BlocksHubPage() {
       >
         <div>
           <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-            新故事世界
+            New story world
           </div>
-          <h2 className="mt-1 text-[22px] font-black">西游记 · 石猴的第一程</h2>
+          <h2 className="mt-1 text-[22px] font-black">
+            Journey to the West · The Monkey King's First Journey
+          </h2>
           <p className="mt-1 text-[13px] font-semibold text-slate2">
-            读故事、找证据、看仙石的清晨怎么运行。一次一个 Part。
+            Read the story, find evidence, and see how the immortal stone wakes at dawn. One Part
+            at a time.
           </p>
         </div>
         <button
@@ -148,53 +151,7 @@ export function BlocksHubPage() {
           onClick={() => nav('/learn/story/journey-west')}
           className="mt-4 rounded-full bg-brand-sunshine px-5 py-3 text-[13px] font-black text-ink shadow-card-soft sm:mt-0"
         >
-          进入花果山 →
-        </button>
-      </section>
-
-      {/* Journey to the West story world — reading + evidence parts (JtW S1). */}
-      <section
-        className="my-8 rounded-[26px] border border-brand-sunshine/45 bg-wash-sunshine p-5 sm:flex sm:items-center sm:justify-between sm:gap-5"
-        data-testid="blocks-jtw-entry"
-      >
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-            新故事世界
-          </div>
-          <h2 className="mt-1 text-[22px] font-black">西游记 · 石猴的第一程</h2>
-          <p className="mt-1 text-[13px] font-semibold text-slate2">
-            读故事、找证据、看仙石的清晨怎么运行。一次一个 Part。
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => nav('/learn/story/journey-west')}
-          className="mt-4 rounded-full bg-brand-sunshine px-5 py-3 text-[13px] font-black text-ink shadow-card-soft sm:mt-0"
-        >
-          进入花果山 →
-        </button>
-      </section>
-
-      {/* Journey to the West story world — reading + evidence parts (JtW S1). */}
-      <section
-        className="my-8 rounded-[26px] border border-brand-sunshine/45 bg-wash-sunshine p-5 sm:flex sm:items-center sm:justify-between sm:gap-5"
-        data-testid="blocks-jtw-entry"
-      >
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-            新故事世界
-          </div>
-          <h2 className="mt-1 text-[22px] font-black">西游记 · 石猴的第一程</h2>
-          <p className="mt-1 text-[13px] font-semibold text-slate2">
-            读故事、找证据、看仙石的清晨怎么运行。一次一个 Part。
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => nav('/learn/story/journey-west')}
-          className="mt-4 rounded-full bg-brand-sunshine px-5 py-3 text-[13px] font-black text-ink shadow-card-soft sm:mt-0"
-        >
-          进入花果山 →
+          Enter Flower Fruit Mountain →
         </button>
       </section>
 

@@ -67,6 +67,23 @@ function renderHub() {
 }
 
 describe('Story Blocks hub — Tiny Star Village season progression', () => {
+  it('shows one English Journey to the West story-world entry', async () => {
+    vi.mocked(fetchStoryLineProgress).mockRejectedValue(new Error('offline'));
+    renderHub();
+
+    await waitFor(() => expect(fetchStoryLineProgress).toHaveBeenCalled());
+    expect(screen.getAllByTestId('blocks-jtw-entry')).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', {
+        name: "Journey to the West · The Monkey King's First Journey",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('西游记 · 石猴的第一程')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enter Flower Fruit Mountain →' }));
+    expect(navigate).toHaveBeenCalledWith('/learn/story/journey-west');
+  });
+
   it('locks the scenes the server has not opened yet', async () => {
     vi.mocked(fetchStoryLineProgress).mockResolvedValue(AFTER_CHAPTER_ONE);
     renderHub();
