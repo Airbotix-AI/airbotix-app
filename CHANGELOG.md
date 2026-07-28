@@ -4,6 +4,9 @@
 
 ### Added
 
+- Journey to the West C4-P8 now reopens the child’s saved P7 project, measures a real Go-then-Tap
+  rerun, collects the six-card Retell and three evidence types, and renders the server-owned
+  得名印 before opening only C5-P1.
 - Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
   character pose plus the breakfast-cart and morning-bell states, and saves the selected first-party
   PNG into the project instead of falling back to an emoji.
