@@ -6,12 +6,14 @@ import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P4_PAGE_ID,
   JTW_C4_P5_LESSON_ID,
+  JTW_C4_P7_LESSON_ID,
   JTW_C4_P5_SKILL_TARGETS,
   JTW_C4_SKILL_TARGET,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
   jtwC4DualBuildMatches,
   jtwC4P5BuildVersion,
+  jtwC4P7BuildVersion,
   jtwC4PlacedBlocks,
 } from './jtwC4DualBuild'
 
@@ -85,4 +87,19 @@ describe('JtW C4-P5 expression choice contract', () => {
     ;[wrongOrder[1], wrongOrder[2]] = [wrongOrder[2], wrongOrder[1]]
     expect(jtwC4P5BuildVersion(built)).toBeNull()
   })
+})
+
+describe('JtW C4-P7 personal introduction contract', () => {
+  it.each(Object.entries(JTW_C4_P5_SKILL_TARGETS))(
+    'accepts the %s design only when name and Tap chains both remain complete',
+    (version, target) => {
+      const built = project()
+      built.lessonId = JTW_C4_P7_LESSON_ID
+      built.pages[0].characters[0].scripts[1].blocks = [...target]
+      expect(jtwC4P7BuildVersion(built)).toBe(version)
+
+      built.pages[0].characters[0].scripts[1].blocks[0] = { op: 'when_flag' }
+      expect(jtwC4P7BuildVersion(built)).toBeNull()
+    },
+  )
 })

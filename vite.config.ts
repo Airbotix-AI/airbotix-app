@@ -207,5 +207,6 @@ export default defineConfig({
   // failures) — `e2e/**` only matches the root, not nested worktree copies.
   test: {
     exclude: [...configDefaults.exclude, 'e2e/**', '**/.claude/**'],
+    setupFiles: ['./src/test/setup.ts'],
   },
 });

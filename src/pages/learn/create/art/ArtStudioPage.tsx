@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
@@ -177,6 +177,7 @@ export function ArtStudioPage() {
   const [celebrate, setCelebrate] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
   // Reopen a saved picture to keep drawing (owner: "重新打开到画布继续画"): the
   // "🎨 Keep drawing" button in My Pictures passes the artifact's id + project. It
@@ -194,6 +195,9 @@ export function ArtStudioPage() {
   // the hydrate effect can start clean on the chosen picture instead of restoring
   // a stale draft over it.
   const navReopenRef = useRef(navReopen);
+  const navFreshRef = useRef(
+    (location.state as { fresh?: boolean } | null)?.fresh === true,
+  );
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -241,7 +245,7 @@ export function ArtStudioPage() {
     if (!draftKey) return;
     // A fresh reopen starts clean on the chosen picture and REPLACES any stale
     // draft — never restore old strokes onto a newly opened image.
-    if (!navReopenRef.current) {
+    if (!navReopenRef.current && !navFreshRef.current) {
       try {
         const raw = localStorage.getItem(draftKey);
         if (raw) {
@@ -257,9 +261,14 @@ export function ArtStudioPage() {
       } catch {
         /* corrupt/unavailable draft — start clean */
       }
+    } else if (navFreshRef.current) {
+      localStorage.removeItem(draftKey);
     }
     setHydrated(true);
-  }, [draftKey]);
+    if (navReopenRef.current || navFreshRef.current) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [draftKey, location.pathname, navigate]);
   useEffect(() => {
     if (!draftKey || !hydrated) return;
     try {
