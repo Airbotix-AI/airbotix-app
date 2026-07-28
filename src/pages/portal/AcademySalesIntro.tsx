@@ -4,7 +4,7 @@ const BENEFITS = [
   {
     icon: Target,
     title: 'The right Year, every time',
-    copy: 'Choose the exam, Year and subject before you buy. Your child practises only inside that product.',
+    copy: 'Choose Year 3, 5, 7 or 9 before you buy. Your child practises only inside that product.',
   },
   {
     icon: CheckCircle2,

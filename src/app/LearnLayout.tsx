@@ -22,6 +22,8 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground', '/
 // is immersive.
 // The Art Studio is a full-screen easel like the Blocks studio (owner call
 // 2026-07-20: 肯定是全屏,就跟 Story Blocks 一样) — image-studio-prd v0.14.
+// Only the canvas is immersive: the `/learn/create/image` hub keeps the kid
+// navigation and reading-column scroll, like `/learn/create/blocks`.
 const IMMERSIVE_ROUTES = ['/learn/blocks/', '/learn/music', '/learn/create/image/canvas'];
 
 // Of the immersive surfaces, only the tablet-first Blocks Studio ALSO asks the

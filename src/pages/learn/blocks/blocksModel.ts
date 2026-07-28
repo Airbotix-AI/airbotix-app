@@ -222,6 +222,20 @@ export interface CharacterStart {
   gy: number;
   size: number;
   rot: number;
+  /**
+   * Whether the character is on stage when the run begins. Defaults to true, so
+   * every project authored before this field keeps its behaviour. A character
+   * that starts hidden is a stage actor the story reveals with Show — not a
+   * character the child removed mid-run.
+   */
+  visible?: boolean;
+  /**
+   * Optional collision reach in grid cells, decoupling the foot zone from the
+   * drawn size. A wide backdrop-like actor (a water curtain) can fill the stage
+   * visually while still only registering contact on the cell the route ends on.
+   * Defaults to the size-derived radius.
+   */
+  reach?: number;
 }
 export interface Character {
   id: string;
@@ -242,7 +256,7 @@ function safeCharacterAsset(value: unknown): string | undefined {
 }
 
 const TINY_STAR_A1_H_ASSET =
-  '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+  '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 
 function legacyLessonId(pages: Page[]): string | undefined {
   const page = pages[0];
@@ -324,6 +338,10 @@ export function parseProject(raw: string): BlocksProject {
             gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
             size: typeof c?.start?.size === 'number' ? Math.min(3, Math.max(0.3, c.start.size)) : 1,
             rot: clampN(c?.start?.rot, -360, 360, 0),
+            ...(c?.start?.visible === false ? { visible: false } : {}),
+            ...(typeof c?.start?.reach === 'number'
+              ? { reach: clampN(c.start.reach, 0.1, 3, 0.5) }
+              : {}),
           },
           scripts: (Array.isArray(c?.scripts) ? c.scripts : [])
             .map((s) => ({

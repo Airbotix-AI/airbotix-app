@@ -5,17 +5,22 @@ import {
   TINY_STAR_VILLAGE_CHAPTERS,
   type StoryJourneyChapter,
 } from './storyJourneyCatalog';
+import {
+  tinyStarSceneState,
+  tinyStarSeasonView,
+  type TinyStarSeasonView,
+} from './tinyStarSeason';
 import { CharacterVisual } from './CharacterVisual';
 import './storyJourneyMap.css';
 
 const LUMI = {
   name: 'Lumilo',
-  asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+  asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
 };
 
 const TUAN_TUAN = {
   name: 'Tuan Tuan',
-  asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+  asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
 };
 
 function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {
@@ -33,15 +38,24 @@ function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {
 interface StoryJourneyMapProps {
   busy: string | null;
   onStart: (template: BlocksTemplateId, title: string) => void;
+  /**
+   * The kid's season progression, read from the server. Omitted (or not yet
+   * known) means nothing is locked — see `tinyStarSeasonView`.
+   */
+  season?: TinyStarSeasonView;
+  /** Open the scene the season is waiting on. Omitted → no resume control. */
+  onResume?: () => void;
 }
 
 function ChapterCard({
   chapter,
   busy,
+  season,
   onStart,
 }: {
   chapter: StoryJourneyChapter;
   busy: string | null;
+  season: TinyStarSeasonView;
   onStart: StoryJourneyMapProps['onStart'];
 }) {
   const isPlayable = chapter.missions.length > 0;
@@ -69,23 +83,36 @@ function ChapterCard({
 
       {isPlayable ? (
         <div className="tsv-mission-list" aria-label={`Chapter ${chapter.number} scenes`}>
-          {chapter.missions.map((mission, index) => (
-            <button
-              key={mission.template}
-              type="button"
-              className="tsv-mission-button"
-              data-testid={`blocks-starter-${mission.template}`}
-              disabled={busy !== null}
-              onClick={() => onStart(mission.template, storyMissionProjectTitle(mission))}
-            >
-              <span className="tsv-mission-number">{index + 1}</span>
-              <span className="tsv-mission-name">
-                <small>Step {index + 1} of {chapter.missions.length} · {mission.action}</small>
-                {mission.title}
-              </span>
-              <span className="tsv-mission-arrow" aria-hidden="true">→</span>
-            </button>
-          ))}
+          {chapter.missions.map((mission, index) => {
+            const state = tinyStarSceneState(season, mission.lessonId);
+            const locked = state === 'locked';
+            return (
+              <button
+                key={mission.template}
+                type="button"
+                className={`tsv-mission-button is-${state}`}
+                data-testid={`blocks-starter-${mission.template}`}
+                data-state={state}
+                disabled={busy !== null || locked}
+                onClick={() => onStart(mission.template, storyMissionProjectTitle(mission))}
+              >
+                <span className="tsv-mission-number" aria-hidden="true">
+                  {state === 'completed' ? '✓' : locked ? '🔒' : index + 1}
+                </span>
+                <span className="tsv-mission-name">
+                  <small>
+                    Step {index + 1} of {chapter.missions.length} · {mission.action}
+                    {state === 'completed' && ' · Done'}
+                    {locked && ' · Locked'}
+                  </small>
+                  {mission.title}
+                </span>
+                <span className="tsv-mission-arrow" aria-hidden="true">
+                  {locked ? '' : '→'}
+                </span>
+              </button>
+            );
+          })}
           {chapter.id === 'a2' && (
             <div className="tsv-next-scene">
               <span aria-hidden="true">✨</span>
@@ -100,7 +127,14 @@ function ChapterCard({
   );
 }
 
-export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
+const SEASON_UNKNOWN = tinyStarSeasonView(undefined);
+
+export function StoryJourneyMap({
+  busy,
+  onStart,
+  season = SEASON_UNKNOWN,
+  onResume,
+}: StoryJourneyMapProps) {
   return (
     <section className="tsv-journey" aria-labelledby="tiny-star-village-title">
       <div className="tsv-library-heading">
@@ -183,9 +217,50 @@ export function StoryJourneyMap({ busy, onStart }: StoryJourneyMapProps) {
         <p>Start with Chapter 1 and follow its four steps. Finished steps stay open for replay.</p>
       </div>
 
+      {season.known && season.resume && (
+        <div className="tsv-resume" data-testid="story-season-resume">
+          <div className="tsv-resume-copy">
+            <small>Continue the story</small>
+            <strong>
+              Chapter {season.resume.chapter.number} · {season.resume.mission.title}
+            </strong>
+            <span>
+              Scene {season.resume.order} of {season.sceneCount} · {season.completedCount} finished
+            </span>
+          </div>
+          {onResume && (
+            <button
+              type="button"
+              className="tsv-resume-button"
+              data-testid="story-season-resume-start"
+              disabled={busy !== null}
+              onClick={onResume}
+            >
+              Continue →
+            </button>
+          )}
+        </div>
+      )}
+
+      {season.seasonComplete && (
+        <div className="tsv-resume is-complete" data-testid="story-season-complete">
+          <div className="tsv-resume-copy">
+            <small>The morning light is back</small>
+            <strong>You finished all {season.sceneCount} scenes</strong>
+            <span>Every scene stays open — replay any of them whenever you like.</span>
+          </div>
+        </div>
+      )}
+
       <div className="tsv-chapter-grid">
         {TINY_STAR_VILLAGE_CHAPTERS.map((chapter) => (
-          <ChapterCard key={chapter.id} chapter={chapter} busy={busy} onStart={onStart} />
+          <ChapterCard
+            key={chapter.id}
+            chapter={chapter}
+            busy={busy}
+            season={season}
+            onStart={onStart}
+          />
         ))}
       </div>
     </section>

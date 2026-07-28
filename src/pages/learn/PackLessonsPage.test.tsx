@@ -51,6 +51,7 @@ function renderPack() {
       <MemoryRouter initialEntries={['/learn/missions/creative-starter']}>
         <Routes>
           <Route path="/learn/missions/:id" element={<PackLessonsPage />} />
+          {/* An art task goes straight to the CANVAS, past the hub (D-IS-28). */}
           <Route path="/learn/create/image/canvas" element={<ArtMissionTarget />} />
           <Route path="/learn/create/image" element={<div data-testid="art-hub-route" />} />
         </Routes>
@@ -132,7 +133,7 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
     );
   });
 
-  it('opens a real steps-array image task in Art Studio with its learning sequence', async () => {
+  it('opens a steps-array image task in Art Studio with its learning sequence', async () => {
     const steps = [
       {
         id: 'hero',

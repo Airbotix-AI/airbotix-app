@@ -4,6 +4,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { ArtMissionStep } from './create/art/ArtStudioPage';
 
+interface StudioMissionConfig {
+  art?: {
+    template?: { url: string; layer: 'underlay' | 'base'; magic?: 'with-base' | 'strokes-only' };
+    draw_along?: string[];
+    checklist?: string[];
+  };
+  music?: {
+    template?: { mode: 'base' | 'reference'; riff: unknown };
+    checklist?: string[];
+    accept?: Record<string, unknown>;
+  };
+}
+
 // A Mission is the kid's TASK inside a Lesson — what the child actually does to
 // earn Stars (links out to a Project).
 interface Mission {
@@ -15,20 +28,7 @@ interface Mission {
   order_index: number;
   // Art missions carry their studio config here (image-studio-prd D-IS-20/22);
   // the pack endpoint returns full mission rows so this rides for free.
-  steps_json?:
-    | ArtMissionStep[]
-    | {
-        art?: {
-          template?: {
-            url: string;
-            layer: 'underlay' | 'base';
-            magic?: 'with-base' | 'strokes-only';
-          };
-          draw_along?: string[];
-          checklist?: string[];
-        };
-      }
-    | null;
+  steps_json?: ArtMissionStep[] | StudioMissionConfig | null;
 }
 
 // A Lesson (课节) is the course-content unit: an ordered step in the pack that
@@ -142,27 +142,52 @@ export function PackLessonsPage() {
                           <button
                             onClick={() => {
                               const steps = Array.isArray(m.steps_json) ? m.steps_json : [];
-                              const art = Array.isArray(m.steps_json)
-                                ? undefined
-                                : m.steps_json?.art;
+                              const config = Array.isArray(m.steps_json) ? null : m.steps_json;
+                              const art = config?.art;
+                              const music = config?.music;
                               const isArtTask =
                                 Boolean(art) || steps.some((step) => step.widget === 'image_create');
 
                               if (isArtTask) {
                                 nav('/learn/create/image/canvas', {
-                                  state: {
-                                    mission: {
-                                      id: m.id,
-                                      slug: m.slug,
-                                      title: m.title,
-                                      description: m.description,
-                                      steps,
-                                      template: art?.template,
-                                      draw_along: art?.draw_along,
-                                      checklist: art?.checklist,
+                                    // Art missions open the Art Studio CANVAS in
+                                    // Mission Mode (image-studio-prd D-IS-20/22).
+                                    // The task is already chosen, so this skips the
+                                    // hub at `/learn/create/image` — which does not
+                                    // read this state, so routing there silently
+                                    // dropped Mission Mode entirely (D-IS-28).
+                                    state: {
+                                      mission: {
+                                        id: m.id,
+                                        slug: m.slug,
+                                        title: m.title,
+                                        description: m.description,
+                                        steps,
+                                        template: art?.template,
+                                        draw_along: art?.draw_along,
+                                        checklist: art?.checklist,
+                                      },
                                     },
-                                  },
-                                });
+                                  });
+                                return;
+                              }
+
+                              if (music) {
+                                nav('/learn/music', {
+                                      // Music missions open the Music Stage in
+                                      // Mission Mode (music-stage-prd §5A D-MS14).
+                                      state: {
+                                        mission: {
+                                          id: m.id,
+                                          slug: m.slug,
+                                          title: m.title,
+                                          description: m.description,
+                                          template: music.template,
+                                          checklist: music.checklist,
+                                          accept: music.accept,
+                                        },
+                                      },
+                                    });
                                 return;
                               }
 

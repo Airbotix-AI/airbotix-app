@@ -5,6 +5,7 @@
 // project/artifact endpoints, mirroring the backend's own score persistence.
 
 import { api } from '@/lib/api';
+import type { SeedScore } from './riffPad';
 import type { MusicScore } from './scoreTypes';
 import type { SuggestionKey } from './stageData';
 
@@ -24,6 +25,9 @@ export interface MusicScoreRequest {
   options?: MusicScoreOptions;
   /** Current score when iterating — the LLM keeps untouched tracks stable. */
   existingScore?: MusicScore;
+  /** Riff Pad seed (§5A D-MS11): the kid's own motif; the finished lead melody
+   *  must contain it verbatim (backend system-prompt rule + mock anchor). */
+  seedScore?: SeedScore;
   /** Suggestion-card key (structured, never free text). */
   modifier?: SuggestionKey;
   /** Lane 🔄: regenerate ONLY this instrument's track (backend prompt builder
@@ -55,6 +59,7 @@ export function generateMusicScore(req: MusicScoreRequest): Promise<MusicScoreRe
       prompt: req.prompt,
       options: req.options,
       existingScore: req.existingScore,
+      seedScore: req.seedScore,
       modifier: req.modifier,
       rerollTrack: req.rerollTrack,
       style_changes: req.style_changes,
@@ -91,12 +96,16 @@ export async function saveScoreToMyWorks(
    *  Stage owns no project until Save, so the class placement happens HERE or the
    *  song never becomes teacher-visible class work. */
   classId?: string | null,
+  /** Mission Mode (music-stage §5A D-MS14): links the project to the Mission so
+   *  turn-in (`POST /projects/:id/submit`) can pay the +3★ reward (D-M3). */
+  missionId?: string | null,
 ): Promise<SaveScoreResult> {
   const project = await api<{ id: string }>('/projects', {
     method: 'POST',
     body: {
       title: (score.title.trim() || 'My Song').slice(0, 120),
       product_line: 'line_a_creative',
+      ...(missionId ? { mission_id: missionId } : {}),
     },
   });
 

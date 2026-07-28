@@ -1007,28 +1007,148 @@
   background: linear-gradient(180deg, #ffd3ee, #ffe9c7 60%, #ffd0e6);
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] {
-  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-dim.svg')
+  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-before-dim-v01.webp')
     center / cover no-repeat;
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-hill,
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-deco {
   display: none;
 }
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] {
-  background: #bde8ff
-    url('/story-blocks/tiny-star-village/backgrounds/cloud-path-meadow-storybook.webp') center 57% /
+.bsx-stage[data-scene='tsv-cloud-road-right'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/cloud-road-right-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/cloud-road-left-target-v01.webp') center /
     cover no-repeat;
 }
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-hill,
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-deco {
+.bsx-stage[data-scene='tsv-cloud-road-right'] .bsx-hill,
+.bsx-stage[data-scene='tsv-cloud-road-right'] .bsx-deco,
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] .bsx-hill,
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] .bsx-deco {
   display: none;
 }
+.bsx-stage[data-scene='tsv-rooftop'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-sleep-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-hill,
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-1'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-1-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-2'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-2-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-3'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-3-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene^='tsv-breakfast-stop-distance-'] .bsx-hill,
+.bsx-stage[data-scene^='tsv-breakfast-stop-distance-'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-hill,
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-deco {
+  display: none;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] {
+  background: url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-dim-v01.webp')
+    center / cover no-repeat;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-hill,
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-deco {
+  display: none;
+}
+
+/* Completion art is presentation-only. `data-scene` remains the saved scene
+   contract while this exact visual token switches after missionCompleted. */
+.bsx-stage[data-story-scene-visual='tsv-window-room-resolved-bright'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/window-room-resolved-bright-v01.webp')
+    center / cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-rooftop-awake-lit'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-awake-lit-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-greeting-stage-lamp-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-lit-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-clocktower-path-bell-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-lit-v01.webp') center /
+    cover no-repeat;
+}
+
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
   background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
     center / cover no-repeat;
 }
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-hill,
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] {
+  background: #d8c79f url('/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png')
+    center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c2-water-curtain-actor-free'] .bsx-deco {
+  display: none;
+}
+/* Journey to the West C3 — the three pages of `jtw-s1-c3-three-seas-route`.
+   A C3 build is edited in the real studio, so each page paints its own shore
+   (asset bible §6: the raft is an actor and is never baked in here). */
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] {
+  background: #e6d6ab
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page1-before-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] {
+  background: #dfe7cf
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-before-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] {
+  background: #e4d9b2
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-before-v01.webp') center / cover
+    no-repeat;
+}
+/* C3-P5's second middle sea — the same Page 2 under a moonlit sky. */
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] {
+  background: #1d3566
+    url('/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-starry-before-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page1-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page2-morning-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page2-starry-before-v01'] .bsx-deco,
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-hill,
+.bsx-stage[data-scene='jtw-s1-c3-page3-before-v01'] .bsx-deco {
   display: none;
 }
 
@@ -2090,6 +2210,31 @@
     0 4px 0 color-mix(in srgb, var(--bsx-cat-trigger) 42%, var(--bsx-border)),
     0 0 0 3px color-mix(in srgb, var(--bsx-cat-trigger) 16%, transparent);
 }
+/* A4-S carries two choice groups (distance + parcel) in one picker row, so its
+   buttons are narrower and the row wraps instead of pushing the stage sideways. */
+.bsx-delivery-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-delivery-picker .bsx-home-choice {
+  min-width: 96px;
+}
+/* A5-S carries two cast rows (who greets first / who waits), each holding the
+   same three friends. The rows wrap under the title on narrow screens instead
+   of pushing the stage sideways, and each button stays a comfortable tap target
+   with room for the friend's portrait beside their name. */
+.bsx-cast-picker {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bsx-cast-picker .bsx-home-choice {
+  min-width: 118px;
+  gap: 6px;
+}
+.bsx-cast-picker .bsx-character-asset-thumb {
+  width: 26px;
+  height: 26px;
+}
 .bsx-home-star {
   opacity: 0.55;
   transform: scale(0.84);
@@ -2200,12 +2345,24 @@
   }
   .bsx-home-choices {
     gap: 6px;
+    /* a row of friends must be able to wrap: .bsx-app is overflow:hidden, so an
+       unwrappable row is CLIPPED, not scrolled — the third friend would simply
+       be unreachable on a phone (A5-S and A6-S both need all three). */
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .bsx-home-choice {
     min-width: 0;
     min-height: 40px;
     padding: 6px 9px;
     font-size: 12px;
+  }
+  /* the cast (A5-S/A6-S) and delivery (A4-S) pickers set their own min-width
+     with a two-class selector, which out-specifies the reset above no matter
+     that this rule lives in a media query — restate it for them. */
+  .bsx-cast-picker .bsx-home-choice,
+  .bsx-delivery-picker .bsx-home-choice {
+    min-width: 0;
   }
   .bsx-middle {
     grid-template-columns: 1fr 1fr;

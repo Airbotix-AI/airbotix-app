@@ -5,6 +5,7 @@
 // the artifact's inlined copy as fallback for project-scoped generations.
 
 import type { Message } from '../WorkspacePage';
+import { seedRiffFromMetadata, type SeedScore } from './riffPad';
 import type { MusicScore } from './scoreTypes';
 
 export interface ScoreVersion {
@@ -22,4 +23,17 @@ export function aggregateScoreVersions(messages: Message[]): ScoreVersion[] {
     }
   }
   return out;
+}
+
+/**
+ * The kid's Riff Pad seed, persisted by the backend on the seeded generation's
+ * assistant message (`metadata.seed`) — the permanent 🎹 frame 0 (§5A D-MS11).
+ * First seed wins: the frame-0 story is "where this song started".
+ */
+export function aggregateSeedRiff(messages: Message[]): SeedScore | null {
+  for (const m of messages) {
+    const seed = seedRiffFromMetadata((m.metadata as { seed?: unknown } | null | undefined)?.seed);
+    if (seed) return seed;
+  }
+  return null;
 }

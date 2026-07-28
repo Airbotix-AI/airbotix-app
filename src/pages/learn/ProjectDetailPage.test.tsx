@@ -101,6 +101,7 @@ function renderPage() {
       <QueryClientProvider client={qc}>
         <Routes>
           <Route path="/learn/projects/:id" element={<ProjectDetailPage />} />
+          {/* Keep drawing goes straight to the CANVAS, past the hub (D-IS-28). */}
           <Route path="/learn/create/image/canvas" element={<ArtStudioProbe />} />
           <Route path="/learn/create/image" element={<div data-testid="art-hub-route" />} />
         </Routes>

@@ -118,7 +118,6 @@ function renderHub() {
 beforeEach(() => {
   apiCalls.length = 0;
   landed = null;
-  localStorage.clear();
   artifacts = [];
   artMissions = [];
   coursePacks = [];
@@ -161,39 +160,6 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
       editArtifactId: 'newest',
       editProjectId: 'proj_bucket',
     }));
-  });
-
-  // An unsaved canvas is the only copy of that work, so the continue slot must
-  // offer it BEFORE the last saved picture — otherwise "Draw a new picture"
-  // (which now drops the draft) would be the kid's only way back to the canvas.
-  it('offers the unfinished canvas ahead of the last saved picture', async () => {
-    localStorage.setItem(
-      'art-draft:v1:proj_bucket',
-      JSON.stringify({ ops: [{ kind: 'stroke' }], baseArtifactId: null, baseRef: null }),
-    );
-    artifacts = [picture({ id: 'newest' })];
-    renderHub();
-    await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
-    expect(screen.getByTestId('art-hub-continue')).toHaveTextContent(
-      'Keep drawing your unfinished picture',
-    );
-    // No router state — the canvas restores the draft on a plain visit.
-    fireEvent.click(screen.getByTestId('art-hub-continue'));
-    await waitFor(() => expect(landed?.pathname).toBe('/learn/create/image/canvas'));
-    expect(landed?.state).toBeNull();
-  });
-
-  it('ignores an empty draft (no strokes, no base) in the continue slot', async () => {
-    localStorage.setItem(
-      'art-draft:v1:proj_bucket',
-      JSON.stringify({ ops: [], baseArtifactId: null, baseRef: null }),
-    );
-    artifacts = [picture({ id: 'newest' })];
-    renderHub();
-    await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
-    expect(screen.getByTestId('art-hub-continue')).toHaveTextContent(
-      'Keep drawing your last picture',
-    );
   });
 
   it('hides the continue card and explains auto-save when nothing is drawn yet', async () => {
@@ -343,13 +309,11 @@ describe('ArtHubPage — learning + new canvas', () => {
     expect(screen.getByText('Bring it to life').parentElement).toHaveTextContent('9★');
   });
 
-  // The bug (owner 2026-07-26): with no state the canvas restored its auto-saved
-  // draft, so "Draw a new picture" reopened the picture the kid drew last time.
-  it('asks the canvas for a BLANK page, not whatever was auto-saved', async () => {
+  it('opens a blank canvas with no router state', async () => {
     renderHub();
     fireEvent.click(screen.getByTestId('art-hub-new'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
-    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: { fresh: true } });
+    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: null });
   });
 
   // The hub is a landing page: it must not spend Stars or start a generation.

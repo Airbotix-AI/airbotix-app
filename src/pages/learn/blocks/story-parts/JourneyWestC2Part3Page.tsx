@@ -42,7 +42,7 @@ import {
   C2_P3_WRONG_STOP_OPTIONS,
   C2_P3_WRONG_STOP_QUESTION,
   C2_P3_WRONG_VERSION_STOPS,
-  JTW_C1_BACKGROUND_ASSET,
+  JTW_C2_BACKGROUND_ASSET,
   JTW_S1_STORY_LINE_ID,
   JTW_STONE_MONKEY_ASSET,
 } from './journeyWestSeason1';
@@ -63,7 +63,7 @@ function WetStoneStage({ resolved }: { resolved: boolean }) {
       data-testid="jtw-c2p3-stage"
     >
       <img
-        src={JTW_C1_BACKGROUND_ASSET}
+        src={JTW_C2_BACKGROUND_ASSET}
         alt="瀑布前的三段湿石路：石猴站在左边的起点，圆叶、尖叶、长叶分别标着三个停点，白色水帘仍然合着"
         className="absolute inset-0 h-full w-full object-cover"
       />

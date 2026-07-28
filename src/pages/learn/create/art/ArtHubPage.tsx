@@ -25,7 +25,6 @@ import {
   useCreateBucket,
   type Artifact,
 } from '../shared/useStudio';
-import { readArtDraft } from './artDraft';
 import type { ArtMission } from './ArtStudioPage';
 
 /** Where the canvas itself lives, now that this hub owns `/learn/create/image`. */
@@ -47,6 +46,7 @@ interface ArtMissionRow {
   title: string;
   description: string;
   estimated_stars: number;
+  /** Authored child-facing task sequence returned by the art-missions endpoint. */
   steps: ArtMission['steps'];
   art: {
     template?: ArtMission['template'];
@@ -157,13 +157,6 @@ export function ArtHubPage() {
   const shown = allPictures.slice(0, HUB_PICTURE_LIMIT);
   const latest = allPictures[0];
 
-  // An unsaved canvas the kid walked away from. It outranks the last SAVED
-  // picture in the continue slot — it is the more recent work, and it is the
-  // only copy — and it is why "Draw a new picture" must say `fresh` below:
-  // the canvas restores this draft on any plain visit, which is exactly what
-  // made "new" reopen the previous drawing.
-  const draft = readArtDraft((bucket.data as { project_id: string } | undefined)?.project_id);
-
   // Reopening a saved picture is the SAME contract the "Keep drawing" menu item
   // in My Pictures uses: the artifact becomes the canvas base.
   const keepDrawing = (artifact: Artifact) =>
@@ -205,10 +198,7 @@ export function ArtHubPage() {
         <button
           type="button"
           data-testid="art-hub-new"
-          // `fresh` is NOT optional (D-IS-29): with no state the canvas reads the
-          // visit as a reload and restores its auto-saved draft, which handed the
-          // kid their previous drawing back instead of blank paper.
-          onClick={() => nav(ART_CANVAS_PATH, { state: { fresh: true } })}
+          onClick={() => nav(ART_CANVAS_PATH)}
           className="rounded-[26px] border-2 border-dashed border-brand-bubblegum/50 bg-wash-bubblegum p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
         >
           <div className="text-[40px]" aria-hidden="true">🎨</div>
@@ -218,39 +208,21 @@ export function ArtHubPage() {
           </p>
         </button>
 
-        {draft ? (
+        {latest && (
           <button
             type="button"
             data-testid="art-hub-continue"
-            // No nav state at all: the canvas restores the draft by itself.
-            onClick={() => nav(ART_CANVAS_PATH)}
+            onClick={() => keepDrawing(latest)}
             className="rounded-[26px] border border-brand-mint/35 bg-wash-mint p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
           >
             <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-              Still on your canvas
+              Continue where you left off
             </div>
-            <h2 className="mt-1 text-[22px] font-black">Keep drawing your unfinished picture</h2>
+            <h2 className="mt-1 text-[22px] font-black">Keep drawing your last picture</h2>
             <p className="mt-1 text-[13px] font-semibold text-slate2">
-              You have not saved this one yet — it is waiting exactly as you left it.
+              Made {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}.
             </p>
           </button>
-        ) : (
-          latest && (
-            <button
-              type="button"
-              data-testid="art-hub-continue"
-              onClick={() => keepDrawing(latest)}
-              className="rounded-[26px] border border-brand-mint/35 bg-wash-mint p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
-            >
-              <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-                Continue where you left off
-              </div>
-              <h2 className="mt-1 text-[22px] font-black">Keep drawing your last picture</h2>
-              <p className="mt-1 text-[13px] font-semibold text-slate2">
-                Made {formatDistanceToNow(new Date(latest.created_at), { addSuffix: true })}.
-              </p>
-            </button>
-          )
         )}
       </section>
 
