@@ -66,7 +66,7 @@
 
 .tsv-collection-avatar.tsv-collection-cast {
   position: relative;
-  width: 82px;
+  width: 100px;
   height: 68px;
   overflow: hidden;
   border: 1px solid #f1cf62;
@@ -75,21 +75,37 @@
 
 .tsv-collection-character {
   position: absolute;
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
   filter: drop-shadow(0 5px 8px rgb(17 22 58 / 35%));
 }
 
 .tsv-collection-character.is-lumi {
-  left: 2px;
+  left: 1px;
   bottom: 2px;
-  z-index: 2;
+  z-index: 3;
 }
 
 .tsv-collection-character.is-tuan {
-  right: -2px;
+  right: 1px;
+  bottom: 1px;
+  z-index: 1;
+  transform: scale(0.9);
+}
+
+.tsv-collection-character.is-dot {
+  left: 27px;
   bottom: 0;
-  transform: scale(0.86);
+  z-index: 2;
+  transform: scale(0.92);
+}
+
+.tsv-collection-single-avatar {
+  width: 46px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 8px rgb(17 22 58 / 22%));
 }
 
 .tsv-collection-card small {
@@ -168,18 +184,26 @@
 .tsv-world-house.left { left: 8%; }
 .tsv-world-house.right { right: 6%; transform: scale(0.78); opacity: 0.8; }
 .tsv-world-lumi {
-  right: 59%;
+  left: 12%;
   bottom: 12%;
   filter: drop-shadow(0 0 22px rgba(255, 222, 93, 0.9));
 }
 .tsv-world-tuan {
-  left: 59%;
+  right: 10%;
   bottom: 12%;
   filter: drop-shadow(0 0 18px rgb(159 214 235 / 75%));
+}
+.tsv-world-dot {
+  left: 50%;
+  bottom: 7%;
+  z-index: 2;
+  transform: translateX(-50%) scale(0.9);
+  filter: drop-shadow(0 0 18px rgb(250 205 143 / 70%));
 }
 .tsv-world-character {
   width: clamp(82px, 10vw, 128px);
   height: clamp(82px, 10vw, 128px);
+  object-fit: contain;
 }
 
 .tsv-world-intro {
@@ -291,6 +315,7 @@
 .tsv-chapter-character {
   width: 92px;
   height: 92px;
+  object-fit: contain;
   filter: drop-shadow(0 8px 10px rgb(0 0 0 / 25%));
 }
 .tsv-chapter-art b {
@@ -492,8 +517,8 @@
   .tsv-library-heading { align-items: start; flex-direction: column; gap: 8px; }
   .tsv-world-hero { border-radius: 26px; }
   .tsv-world-intro { padding: 26px 22px 30px; }
-  .tsv-world-lumi { right: 59%; }
-  .tsv-world-tuan { left: 59%; }
+  .tsv-world-lumi { left: 8%; }
+  .tsv-world-tuan { right: 6%; }
   .tsv-map-heading { align-items: start; flex-direction: column; gap: 8px; }
   .tsv-chapter-card { grid-template-columns: 88px 1fr; padding: 14px; border-radius: 22px; }
   .tsv-chapter-art { min-height: 110px; }

@@ -10,27 +10,69 @@ import {
   tinyStarSeasonView,
   type TinyStarSeasonView,
 } from './tinyStarSeason';
-import { CharacterVisual } from './CharacterVisual';
 import './storyJourneyMap.css';
 
 const LUMI = {
   name: 'Lumilo',
   asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
+  legacyClassName: 'bsx-lumilo',
 };
 
 const TUAN_TUAN = {
   name: 'Tuan Tuan',
   asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+  legacyClassName: 'bsx-tuan',
 };
+
+const DOT_DOT = {
+  name: 'Dot Dot',
+  asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
+  legacyClassName: 'bsx-dot-dot',
+};
+
+const STONE_MONKEY = {
+  name: 'Stone Monkey',
+  asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+};
+
+interface StoryAvatarProps {
+  character: {
+    name: string;
+    asset: string;
+    legacyClassName?: string;
+  };
+  className: string;
+  performance?: string;
+}
+
+/**
+ * Story-library avatars intentionally render their approved raster source
+ * directly. CharacterVisual can fall back to the old inline puppets for
+ * interactive performances, which made the library hide these new portraits.
+ */
+function StoryAvatar({ character, className, performance = 'idle' }: StoryAvatarProps) {
+  return (
+    <img
+      src={character.asset}
+      alt=""
+      aria-hidden="true"
+      className={`${className}${character.legacyClassName ? ` ${character.legacyClassName}` : ''}`}
+      data-avatar={character.name}
+      data-performance={performance}
+      draggable={false}
+    />
+  );
+}
 
 function ChapterArtwork({ chapter }: { chapter: StoryJourneyChapter }) {
   if (chapter.id === 'a1') {
-    return <CharacterVisual character={LUMI} className="tsv-chapter-character" performance="idle" />;
+    return <StoryAvatar character={LUMI} className="tsv-chapter-character" />;
   }
   if (chapter.id === 'a2') {
-    return (
-      <CharacterVisual character={TUAN_TUAN} className="tsv-chapter-character" performance="idle" />
-    );
+    return <StoryAvatar character={TUAN_TUAN} className="tsv-chapter-character" />;
+  }
+  if (chapter.id === 'a3') {
+    return <StoryAvatar character={DOT_DOT} className="tsv-chapter-character" />;
   }
   return <span>{chapter.emoji}</span>;
 }
@@ -147,8 +189,18 @@ export function StoryJourneyMap({
       <div className="tsv-collection-shelf" data-testid="story-collection-shelf">
         <article className="tsv-collection-card is-open">
           <div className="tsv-collection-avatar tsv-collection-cast" aria-hidden="true">
-            <CharacterVisual character={LUMI} className="tsv-collection-character is-lumi" />
-            <CharacterVisual character={TUAN_TUAN} className="tsv-collection-character is-tuan" />
+            <StoryAvatar
+              character={LUMI}
+              className="tsv-collection-character is-lumi"
+            />
+            <StoryAvatar
+              character={TUAN_TUAN}
+              className="tsv-collection-character is-tuan"
+            />
+            <StoryAvatar
+              character={DOT_DOT}
+              className="tsv-collection-character is-dot"
+            />
           </div>
           <div>
             <small>Open now · Original story</small>
@@ -158,7 +210,12 @@ export function StoryJourneyMap({
           </div>
         </article>
         <article className="tsv-collection-card is-planned">
-          <div className="tsv-collection-avatar" aria-hidden="true">🐵</div>
+          <div className="tsv-collection-avatar" aria-hidden="true">
+            <StoryAvatar
+              character={STONE_MONKEY}
+              className="tsv-collection-single-avatar"
+            />
+          </div>
           <div>
             <small>Planned classic adventure</small>
             <h3>The Monkey King’s New Journey</h3>
@@ -182,12 +239,17 @@ export function StoryJourneyMap({
           <span className="tsv-world-star two">✦</span>
           <span className="tsv-world-moon">☾</span>
           <span className="tsv-world-house left">🏠</span>
-          <CharacterVisual
+          <StoryAvatar
             character={LUMI}
             className="tsv-world-character tsv-world-lumi"
             performance="listening"
           />
-          <CharacterVisual
+          <StoryAvatar
+            character={DOT_DOT}
+            className="tsv-world-character tsv-world-dot"
+            performance="listening"
+          />
+          <StoryAvatar
             character={TUAN_TUAN}
             className="tsv-world-character tsv-world-tuan"
             performance="listening"
