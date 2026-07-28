@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-28 (feat: guided drawing ideas in Art Studio)
+
+### Added
+- Added concrete Art Studio drawing ideas, beginning with an original `Draw a T-Rex`
+  task for ages 6–10.
+- Added child choice between `Look & Draw`, `Trace a Ghost`, and `Draw My Way`.
+- Added a one-step-at-a-time drawing guide, reference toggle, adjustable authored
+  trace layer, task-aware draft restore, and saved Artifact task metadata.
+- Course `image_create` steps can now reference the same task player through
+  `widget_config.art_task_slug` while retaining Mission Mode.
+
+### Assets
+- Added an original reviewed T-Rex reference image, trace outline, and five
+  progressive guide illustrations under the immutable `v1` asset path.
+
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed

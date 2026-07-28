@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step four: add a face and personality</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="#DCF6EC" stroke="#2C3642" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="320" cy="300" rx="145" ry="92"/>
+    <path d="M203 275c-65-30-126-13-126 31 0 31 29 47 80 43l69-6Z"/>
+    <path d="M444 290c63-7 105-31 137-63-18 57-58 94-128 116Z"/>
+    <path d="M254 360c-7 50 2 95 33 128h-73"/>
+    <path d="M354 362c-4 53 9 93 39 126h-72"/>
+    <path d="m244 314-43 32 38 7M277 320l-16 43 39-10"/>
+    <circle cx="143" cy="302" r="8" fill="#2C3642"/>
+    <path d="M88 326c32 15 71 15 106 1m-82 8 9 15 11-15 11 15 11-16"/>
+  </g>
+</svg>

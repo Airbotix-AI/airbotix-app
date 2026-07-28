@@ -22,6 +22,7 @@ const apiCalls: ApiCall[] = [];
 let artifacts: Array<Record<string, unknown>> = [];
 let artMissions: Array<Record<string, unknown>> = [];
 let coursePacks: Array<Record<string, unknown>> = [];
+let guidedTasks: Array<Record<string, unknown>> = [];
 
 vi.mock('@/lib/api', () => ({
   BASE_URL: 'http://api.test',
@@ -32,6 +33,7 @@ vi.mock('@/lib/api', () => ({
     }
     if (path === '/projects/proj_bucket/artifacts') return Promise.resolve(artifacts);
     if (path === '/course-packs/art-missions') return Promise.resolve(artMissions);
+    if (path === '/art-studio/tasks') return Promise.resolve(guidedTasks);
     if (path === '/course-packs') return Promise.resolve(coursePacks);
     if (path.includes('/download-url')) return Promise.resolve({ url: 'https://signed/pic.png' });
     return Promise.resolve({});
@@ -93,10 +95,10 @@ const coursePack = (over: Record<string, unknown> = {}) => ({
 });
 
 // Captures where the hub navigated to, and what it carried, without a real router.
-let landed: { pathname: string; state: unknown } | null = null;
+let landed: { pathname: string; search: string; state: unknown } | null = null;
 function CanvasProbe() {
   const loc = useLocation();
-  landed = { pathname: loc.pathname, state: loc.state };
+  landed = { pathname: loc.pathname, search: loc.search, state: loc.state };
   return <div data-testid="canvas-route" />;
 }
 
@@ -121,6 +123,7 @@ beforeEach(() => {
   artifacts = [];
   artMissions = [];
   coursePacks = [];
+  guidedTasks = [];
 });
 afterEach(cleanup);
 
@@ -146,6 +149,7 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed).toEqual({
       pathname: '/learn/create/image/canvas',
+      search: '',
       // Same contract as the "Keep drawing" menu item in My Pictures.
       state: { editArtifactId: 'art_7', editProjectId: 'proj_bucket' },
     });
@@ -156,10 +160,12 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('art-hub-continue'));
-    await waitFor(() => expect(landed?.state).toEqual({
-      editArtifactId: 'newest',
-      editProjectId: 'proj_bucket',
-    }));
+    await waitFor(() =>
+      expect(landed?.state).toEqual({
+        editArtifactId: 'newest',
+        editProjectId: 'proj_bucket',
+      }),
+    );
   });
 
   it('hides the continue card and explains auto-save when nothing is drawn yet', async () => {
@@ -181,10 +187,7 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     artifacts = Array.from({ length: 15 }, (_, i) => picture({ id: `art_${i}` }));
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('art-hub-picture')).toHaveLength(12));
-    expect(screen.getByText('See all 15 →')).toHaveAttribute(
-      'href',
-      '/learn/projects/proj_bucket',
-    );
+    expect(screen.getByText('See all 15 →')).toHaveAttribute('href', '/learn/projects/proj_bucket');
   });
 });
 
@@ -194,7 +197,9 @@ describe('ArtHubPage — art tasks', () => {
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
     expect(screen.getByText('Draw your robot')).toBeInTheDocument();
-    expect(screen.getByText(/AI Comic Book · Robot friends · 9★/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Create Your Own Comic Book with AI · Robot friends · 9★/),
+    ).toBeInTheDocument();
   });
 
   it('starts a task by clicking anywhere on the card and carries its learning steps', async () => {
@@ -266,6 +271,43 @@ describe('ArtHubPage — art tasks', () => {
   });
 });
 
+describe('ArtHubPage — concrete drawing ideas', () => {
+  it('lets a child pick a T-Rex and choose how to draw before opening the canvas', async () => {
+    guidedTasks = [
+      {
+        slug: 'draw-a-trex',
+        version: 1,
+        title: 'Draw a T-Rex',
+        short_description: 'Build a mighty dinosaur from big, simple shapes.',
+        category: 'dinosaurs',
+        age_min: 6,
+        age_max: 10,
+        difficulty: 1,
+        duration_minutes: 12,
+        cover: {
+          url: '/art-tasks/draw-a-trex/v1/cover.png',
+          alt: 'A friendly green T-Rex',
+        },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+      },
+    ];
+    renderHub();
+
+    fireEvent.click(await screen.findByTestId('art-guided-task'));
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Look & Draw');
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Trace a Ghost');
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Draw My Way');
+
+    fireEvent.click(screen.getByRole('button', { name: /Trace a Ghost/ }));
+    await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      search: '?task=draw-a-trex&mode=trace',
+      state: null,
+    });
+  });
+});
+
 describe('ArtHubPage — art courses', () => {
   it('shows the making/creative courses with their lesson and task counts', async () => {
     coursePacks = [coursePack()];
@@ -284,7 +326,12 @@ describe('ArtHubPage — art courses', () => {
   it('leaves coding-line courses out of the course list', async () => {
     coursePacks = [
       coursePack(),
-      coursePack({ id: 'p_mario', slug: 'super-mario-game', title: 'Super Mario Game', product_line: 'line_b_coding' }),
+      coursePack({
+        id: 'p_mario',
+        slug: 'super-mario-game',
+        title: 'Super Mario Game',
+        product_line: 'line_b_coding',
+      }),
     ];
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('art-hub-course')).toHaveLength(1));
@@ -313,7 +360,7 @@ describe('ArtHubPage — learning + new canvas', () => {
     renderHub();
     fireEvent.click(screen.getByTestId('art-hub-new'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
-    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: null });
+    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', search: '', state: null });
   });
 
   // The hub is a landing page: it must not spend Stars or start a generation.

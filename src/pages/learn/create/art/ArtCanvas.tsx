@@ -1,11 +1,4 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { LazyBrush } from 'lazy-brush';
 
 import {
@@ -44,6 +37,8 @@ interface ArtCanvasProps {
   ghostUrl: string | null;
   /** Mission template underlay (D-IS-22) — slightly stronger than the ghost. */
   templateUrl: string | null;
+  /** Authored trace strength; the child can adjust this without changing saved output. */
+  templateOpacity?: number;
   /** Whether exportPng includes the base image (D-IS-22 magic flag). */
   exportIncludesBase: boolean;
   /** Hold-to-compare: when true, only white + base sketch shows (no ops hidden — ops ARE the kid's). */
@@ -67,6 +62,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     baseImageUrl,
     ghostUrl,
     templateUrl,
+    templateOpacity = 0.35,
     exportIncludesBase,
     compareUrl,
     maskMode,
@@ -124,7 +120,7 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
     if (baseImage) ctx.drawImage(baseImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
     if (templateImage) {
       ctx.save();
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = templateOpacity;
       ctx.drawImage(templateImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
       ctx.restore();
     }
@@ -147,13 +143,23 @@ export const ArtCanvas = forwardRef<ArtCanvasHandle, ArtCanvasProps>(function Ar
       ctx.globalAlpha = 0.4;
       renderOps(
         ctx,
-        maskAll.map((m) =>
-          m.kind === 'stroke' ? { ...m, tool: 'marker', color: '#f277c3' } : m,
-        ),
+        maskAll.map((m) => (m.kind === 'stroke' ? { ...m, tool: 'marker', color: '#f277c3' } : m)),
       );
       ctx.restore();
     }
-  }, [ops, maskOps, maskMode, baseImage, ghostImage, templateImage, compareImage, tool, color, brushSize]);
+  }, [
+    ops,
+    maskOps,
+    maskMode,
+    baseImage,
+    ghostImage,
+    templateImage,
+    templateOpacity,
+    compareImage,
+    tool,
+    color,
+    brushSize,
+  ]);
 
   // rAF repaints ALWAYS run the latest draw (D-ISF-1). A frame scheduled by the
   // last pointermove used to capture that render's `draw` closure; firing after
