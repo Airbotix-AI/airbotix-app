@@ -25,6 +25,7 @@ import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
   JTW_C4_P6_LESSON_ID,
+  JTW_C4_P7_LESSON_ID,
   JTW_C4_WUKONG_ID,
   jtwC4P6BugVersion,
 } from './jtwC4DualBuild';
@@ -695,7 +696,8 @@ export function BlocksStudioPage({
           id === JTW_C4_WUKONG_ID &&
           (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
             storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
-            storyMission?.lessonId === JTW_C4_P6_LESSON_ID) &&
+            storyMission?.lessonId === JTW_C4_P6_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P7_LESSON_ID) &&
           missionHasRun &&
           (storyMission?.lessonId !== JTW_C4_P6_LESSON_ID || missionWrongRunObserved) &&
           targetFixedNow

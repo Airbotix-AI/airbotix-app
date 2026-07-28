@@ -3,6 +3,7 @@ import type { Block, BlocksProject } from './blocksModel'
 export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4'
 export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5'
 export const JTW_C4_P6_LESSON_ID = 'jtw-s1-c4-p6'
+export const JTW_C4_P7_LESSON_ID = 'jtw-s1-c4-p7'
 export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page'
 export const JTW_C4_WUKONG_ID = 'sun-wukong'
 export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name'
@@ -117,6 +118,10 @@ export function jtwC4P6BugVersion(project: BlocksProject): JtwC4P5Version | null
 
 export function jtwC4P6FixedVersion(project: BlocksProject): JtwC4P5Version | null {
   return jtwC4SkillVersion(project, JTW_C4_P6_LESSON_ID, 'when_tap')
+}
+
+export function jtwC4P7BuildVersion(project: BlocksProject): JtwC4P5Version | null {
+  return jtwC4SkillVersion(project, JTW_C4_P7_LESSON_ID, 'when_tap')
 }
 
 export function jtwC4P6TriggerDiff(project: BlocksProject): string[] {
