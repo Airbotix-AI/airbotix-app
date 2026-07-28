@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-28
+
+### Fixed
+
+- Story Blocks now creates Journey to the West C1-P5 projects as
+  `Journey to the West · My First Greeting`. Existing projects saved with the former Chinese
+  title are displayed with the English title on the Continue card and project grid.
+
 ## 2026-07-26 (fix: "Draw a new picture" opens a blank canvas again)
 
 ### Fixed

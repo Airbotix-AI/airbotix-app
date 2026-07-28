@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import { BLOCKS_STARTERS } from './blocksStarters';
+import { blocksProjectDisplayTitle } from './blocksProjectTitles';
 
 describe('BlocksHubPage curriculum starter copy', () => {
+  it('shows the English title for an existing C1-P5 project saved with the legacy Chinese title', () => {
+    expect(blocksProjectDisplayTitle('西游记 · 我的第一次问候')).toBe(
+      'Journey to the West · My First Greeting',
+    );
+  });
+
+  it('does not rewrite unrelated project titles', () => {
+    expect(blocksProjectDisplayTitle('My Story Blocks project')).toBe('My Story Blocks project');
+  });
+
   it('introduces A1 as a story problem before giving an operation', () => {
     const starter = BLOCKS_STARTERS.find((item) => item.id === 'blocks_tsv_a1_h');
 

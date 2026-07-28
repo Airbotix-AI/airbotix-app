@@ -30,6 +30,7 @@ const fetchProgress = vi.mocked(storyPartsApi.fetchStoryLineProgress);
 const completePart = vi.mocked(storyPartsApi.completeStoryPart);
 const listProjects = vi.mocked(blocksApi.listBlocksProjects);
 const loadProject = vi.mocked(blocksApi.loadBlocksProject);
+const createProject = vi.mocked(blocksApi.createBlocksProject);
 
 const P4_DONE: StoryLineProgress = {
   story_line_id: 'journey-to-the-west-s1',
@@ -130,6 +131,21 @@ afterEach(() => {
 });
 
 describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
+  it('creates a new greeting project with an English title', async () => {
+    listProjects.mockResolvedValue([]);
+    createProject.mockResolvedValue({ id: 'new-p5-project' });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('jtw-p5-open-studio'));
+
+    await waitFor(() =>
+      expect(createProject).toHaveBeenCalledWith({
+        title: 'Journey to the West · My First Greeting',
+        template: 'blocks_jtw_c1_p5',
+      }),
+    );
+  });
+
   it('blocks kids who have not finished P4', async () => {
     fetchProgress.mockResolvedValue({
       ...P4_DONE,

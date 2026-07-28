@@ -15,6 +15,7 @@ import {
   type BlocksTemplateId,
 } from './blocksApi';
 import { BLOCKS_STARTERS } from './blocksStarters';
+import { blocksProjectDisplayTitle } from './blocksProjectTitles';
 import { StoryJourneyMap } from './StoryJourneyMap';
 import { storyMissionProjectTitle } from './storyJourneyCatalog';
 import { fetchStoryLineProgress } from './story-parts/storyPartsApi';
@@ -101,7 +102,9 @@ export function BlocksHubPage() {
             <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
               Continue where you left off
             </div>
-            <h2 className="mt-1 text-[22px] font-black">{latestProject.title}</h2>
+            <h2 className="mt-1 text-[22px] font-black">
+              {blocksProjectDisplayTitle(latestProject.title)}
+            </h2>
             {latestProject.updated_at && (
               <div className="mt-1 text-[12px] font-semibold text-slate2">
                 Played {formatDistanceToNow(new Date(latestProject.updated_at), { addSuffix: true })}
@@ -232,7 +235,7 @@ export function BlocksHubPage() {
                 className="rounded-2xl border border-hairline bg-canvas-pure p-5 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
               >
                 <div className="text-[28px]">🧩</div>
-                <div className="mt-2 font-bold">{p.title}</div>
+                <div className="mt-2 font-bold">{blocksProjectDisplayTitle(p.title)}</div>
                 {p.updated_at && (
                   <div className="mt-1 text-[12px] text-slate2">
                     {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
