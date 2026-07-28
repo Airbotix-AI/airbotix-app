@@ -3,7 +3,13 @@
 
 import { describe, expect, it } from 'vitest';
 
-import type { Block, BlocksProject, Page } from './blocksModel';
+import {
+  parseProject,
+  serializeProject,
+  type Block,
+  type BlocksProject,
+  type Page,
+} from './blocksModel';
 import { jtwWetStoneTrace } from './story-parts/journeyWestC2Route';
 import { storyMissionProgramMatches } from './storyMissionProgress';
 import {
@@ -224,6 +230,12 @@ describe('storyMissionProgramMatches · jtw-s1-c2-p7', () => {
         JTW_C2_P7_LESSON_ID,
       ),
     ).toBe(false);
+  });
+
+  it('still completes after the curriculum artwork scales round-trip through safe parsing', () => {
+    const saved = parseProject(serializeProject(entryProject(entryPage(RIGHT))));
+
+    expect(storyMissionProgramMatches(saved, JTW_C2_P7_LESSON_ID)).toBe(true);
   });
 
   it('never completes from the shipped starter, which has an empty entry script', () => {

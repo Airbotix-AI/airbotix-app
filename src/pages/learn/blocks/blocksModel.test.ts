@@ -62,6 +62,15 @@ describe('blocksModel', () => {
     expect(p.pages[0].characters[0].scripts[0].blocks).toHaveLength(4);
   });
 
+  it('preserves bounded curriculum artwork scales above the Grow limit', () => {
+    const project = blankProject('Large curriculum actor');
+    project.pages[0].characters[0].start.size = 5;
+
+    const parsed = parseProject(serializeProject(project));
+
+    expect(parsed.pages[0].characters[0].start.size).toBe(5);
+  });
+
   it('drops unknown ops, clamps params, and falls back to blank on garbage', () => {
     const messy = JSON.stringify({
       version: 1,

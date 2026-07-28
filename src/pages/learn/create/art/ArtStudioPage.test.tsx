@@ -254,7 +254,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     removeWhiteBackgroundMock.mockClear();
     failNext.image = false;
     failNext.upload = false;
-    localStorage.clear();
+    window.localStorage.clear();
     // jsdom lacks createObjectURL; the bytes-proxy hook's output IS this value.
     (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(
       () => 'blob:pixels',
@@ -345,15 +345,18 @@ describe('ArtStudioPage (canvas-first)', () => {
     it('auto-saves { ops, base } to localStorage as the kid draws', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
-      expect(localStorage.getItem(KEY)).toBeNull();
+      expect(window.localStorage.getItem(KEY)).toBeNull();
       fireEvent.click(screen.getByTestId('stub-draw'));
-      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
-      const saved = JSON.parse(localStorage.getItem(KEY) as string);
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).not.toBeNull());
+      const saved = JSON.parse(window.localStorage.getItem(KEY) as string);
       expect(saved.ops).toHaveLength(1);
     });
 
     it('restores the saved draft on the next mount (survives refresh)', async () => {
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
       renderPage();
       await screen.findByTestId('ai-rail');
       // the restored stroke reaches the canvas (data-ops reflects props.ops.length)
@@ -362,19 +365,35 @@ describe('ArtStudioPage (canvas-first)', () => {
       );
     });
 
+    it('an explicit new-canvas intent drops the old draft exactly once', async () => {
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
+      renderPage({ newCanvas: true });
+      await screen.findByTestId('ai-rail');
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0'),
+      );
+      expect(window.localStorage.getItem(KEY)).toBeNull();
+    });
+
     it('clears the draft key once the canvas is emptied', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
       fireEvent.click(screen.getByTestId('stub-draw'));
-      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).not.toBeNull());
       // "+ new picture" resets the canvas → the draft key is removed.
       fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
-      await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).toBeNull());
     });
 
     it('a fresh reopen starts clean on the picture and auto-saves it (base persisted)', async () => {
       // A stale free-play draft must NOT bleed onto the freshly opened picture…
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
       renderPage({ editArtifactId: 'art_reopen_1', editProjectId: 'proj_saved_pics' });
       await screen.findByTestId('ai-rail');
       expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
@@ -382,7 +401,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(screen.getByTestId('mask-toggle')).toBeInTheDocument();
       // …and auto-save now records that base (so a refresh restores it too).
       await waitFor(() => {
-        const saved = JSON.parse(localStorage.getItem(KEY) as string);
+        const saved = JSON.parse(window.localStorage.getItem(KEY) as string);
         expect(saved.baseRef).toEqual({ id: 'art_reopen_1', projectId: 'proj_saved_pics' });
       });
     });
@@ -390,7 +409,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     it('a REFRESH after reopening restores the base picture (no nav state)', async () => {
       // What a fresh reopen persisted (base, no strokes yet). A plain reload has no
       // nav state, so the base must come back from the draft alone.
-      localStorage.setItem(
+      window.localStorage.setItem(
         KEY,
         JSON.stringify({
           ops: [],

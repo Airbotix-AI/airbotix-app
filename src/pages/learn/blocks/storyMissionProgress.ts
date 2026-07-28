@@ -5,6 +5,7 @@ import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
 import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
+import { c2p5ProgramMatches } from './story-parts/journeyWestC2Part5Program';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -616,6 +617,7 @@ function missionBlockMatches(
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
   const mission = TINY_STAR_MISSION_CONTRACTS[lessonId];
   if (!mission) return false;
+  if (lessonId === 'jtw-s1-c2-p5') return c2p5ProgramMatches(project);
 
   const page = project.pages.find((candidate) => candidate.id === mission.pageId);
   const character = page?.characters.find((candidate) => candidate.id === mission.characterId);

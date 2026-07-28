@@ -7,6 +7,7 @@ interface StoryCoachPanelProps {
   cue: StoryCoachCue;
   running: boolean;
   onGo: () => void;
+  onDismiss?: () => void;
 }
 
 const STEP_BY_CUE: Record<StoryCoachCue, number> = {
@@ -23,7 +24,7 @@ const STEP_BY_CUE: Record<StoryCoachCue, number> = {
   complete: 4,
 };
 
-export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanelProps) {
+export function StoryCoachPanel({ mission, cue, running, onGo, onDismiss }: StoryCoachPanelProps) {
   const performance: CharacterPerformance =
     cue === 'complete'
       ? 'success'
@@ -70,6 +71,16 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
 
   return (
     <aside className="bsx-story-coach" data-testid="story-coach" aria-live="polite">
+      {onDismiss && (
+        <button
+          type="button"
+          className="bsx-story-coach-dismiss"
+          aria-label="Hide mission tips"
+          onClick={onDismiss}
+        >
+          ×
+        </button>
+      )}
       <div className="bsx-story-coach-head">
         <span className="bsx-story-coach-face" aria-hidden>
           <CharacterVisual character={mission.hero} performance={performance} />

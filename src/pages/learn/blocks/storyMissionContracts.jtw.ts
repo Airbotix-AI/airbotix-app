@@ -163,6 +163,24 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'end' },
     ],
   },
+  // Journey to the West S1/C2-P5 — two actors own one collision response
+  // each. The contract entry makes the mission available in Blocks Studio;
+  // the bespoke matcher validates both independent scripts and visibility
+  // states because a single-character target cannot express this scene.
+  'jtw-s1-c2-p5': {
+    pageId: 'jtw-c2-p5-page',
+    background: JTW_C2_ACTOR_FREE_BACKGROUND,
+    characterId: 'water-curtain-trigger',
+    scriptId: 'water-curtain-open',
+    asset:
+      '/story-blocks/journey-to-the-west/characters/water-curtain-trigger/closed-v01.png',
+    target: [
+      { op: 'when_bump' },
+      { op: 'hide' },
+      { op: 'play_sound', n: 2 },
+      { op: 'end' },
+    ],
+  },
   // Journey to the West S1/C1-P6 — Twist & Debug, the stable order bug
   // (scene-specs JTW-S1-C1-P6). The starter ships Say → Hop → Show; ONLY the
   // exact repaired order passes. The exact-target match rejects the shipped

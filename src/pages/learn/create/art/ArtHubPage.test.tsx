@@ -309,11 +309,14 @@ describe('ArtHubPage — learning + new canvas', () => {
     expect(screen.getByText('Bring it to life').parentElement).toHaveTextContent('9★');
   });
 
-  it('opens a blank canvas with no router state', async () => {
+  it('opens a blank canvas with an explicit one-shot reset intent', async () => {
     renderHub();
     fireEvent.click(screen.getByTestId('art-hub-new'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
-    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: null });
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      state: { newCanvas: true },
+    });
   });
 
   // The hub is a landing page: it must not spend Stars or start a generation.

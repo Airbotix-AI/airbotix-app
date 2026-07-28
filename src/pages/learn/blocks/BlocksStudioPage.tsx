@@ -172,6 +172,7 @@ export function BlocksStudioPage({
   const [muted, setMutedState] = useState(isMuted());
   const [confirmReset, setConfirmReset] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
+  const [missionCoachHidden, setMissionCoachHidden] = useState(false);
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionTapObserved, setMissionTapObserved] = useState(false);
   const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
@@ -1713,7 +1714,10 @@ export function BlocksStudioPage({
             type="button"
             className="bsx-mission-launcher"
             data-testid="story-mission-launcher"
-            onClick={() => setMissionOpen(true)}
+            onClick={() => {
+              setMissionCoachHidden(false);
+              setMissionOpen(true);
+            }}
             title="Open the story and mission"
           >
             📖 <span>Story mission</span>
@@ -2091,12 +2095,13 @@ export function BlocksStudioPage({
             </button>
             {/* beside (never over) the scene button — the stage's name tag */}
             <ZoneTag zone="stage" emoji="🎬" label="Stage" />
-            {storyMission && !missionOpen && (
+            {storyMission && !missionOpen && !missionCoachHidden && (
               <StoryCoachPanel
                 mission={storyMission}
                 cue={visibleCoachCue}
                 running={running}
                 onGo={go}
+                onDismiss={() => setMissionCoachHidden(true)}
               />
             )}
             {page.characters.map((c) => {
@@ -2128,6 +2133,10 @@ export function BlocksStudioPage({
                     style={{
                       left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
                       top: `${((st.gy + 0.5) / GRID_H) * 100}%`,
+                      // Overlapping actors remain individually editable: choosing
+                      // one from the character rail brings its real stage sprite
+                      // above large transparent asset bounds from its neighbours.
+                      zIndex: c.id === selectedChar?.id ? 2 : 1,
                       fontSize: 'clamp(40px,5.5vw,64px)',
                       opacity: st.visible ? 1 : 0.12,
                       transform: `translate(-50%,-50%) rotate(${st.rot}deg) scale(${st.size})`,

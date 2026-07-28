@@ -55,6 +55,7 @@ import { KidUsagePage } from '@/pages/portal/KidUsagePage';
 import { ClassCodePage } from '@/pages/learn/ClassCodePage';
 import { HomePage as LearnHomePage } from '@/pages/learn/HomePage';
 import { LoginPage as LearnLoginPage } from '@/pages/learn/LoginPage';
+import { KidHandoffPage } from '@/pages/learn/KidHandoffPage';
 import { LessonsCatalogPage } from '@/pages/learn/LessonsCatalogPage';
 import { PackLessonsPage } from '@/pages/learn/PackLessonsPage';
 import { ProfilePage as LearnProfilePage } from '@/pages/learn/ProfilePage';
@@ -208,6 +209,9 @@ export const router = createBrowserRouter([
   // Learn — kid surface
   { path: '/learn/login', element: <LearnLoginPage /> },
   { path: '/learn/class-code', element: <ClassCodePage /> },
+  // Public, token-in-fragment parent-approved entry. It must sit outside the
+  // kid ProtectedRoute because the handoff is what creates the kid session.
+  { path: '/learn/handoff', element: <KidHandoffPage /> },
   {
     path: '/learn',
     element: (

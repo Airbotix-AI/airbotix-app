@@ -59,6 +59,9 @@ function project(
 describe('C2-P5 saved-program completion contract', () => {
   it('requires Hide on the curtain and Show on the initially-hidden cave', () => {
     expect(c2p5ProgramMatches(project())).toBe(true);
+    const normalizedVisible = project();
+    delete normalizedVisible.pages[0].characters[0].start.visible;
+    expect(c2p5ProgramMatches(normalizedVisible)).toBe(true);
     expect(c2p5ProgramMatches(project([], ['show']))).toBe(false);
     expect(c2p5ProgramMatches(project(['hide'], []))).toBe(false);
     expect(c2p5ProgramMatches(project(['show'], ['hide']))).toBe(false);

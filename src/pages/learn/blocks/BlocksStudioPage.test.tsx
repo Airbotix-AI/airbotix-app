@@ -95,6 +95,33 @@ describe('BlocksStudioPage zone labels', () => {
     });
   });
 
+  it('brings a character selected from the rail above overlapping stage actors', async () => {
+    const project = blankProject('Overlapping actors');
+    project.pages[0].characters.push({
+      id: 'friend-2',
+      name: 'Star',
+      emoji: '⭐',
+      start: { ...project.pages[0].characters[0].start },
+      scripts: [],
+    });
+    vi.mocked(loadBlocksProject).mockResolvedValueOnce({
+      project,
+      version: 1,
+      history: { past: [], future: [] },
+      otherFiles: [],
+    });
+
+    await renderStudio();
+    const first = screen.getByTestId(`sprite-${project.pages[0].characters[0].id}`);
+    const second = screen.getByTestId('sprite-friend-2');
+    expect(first).toHaveStyle({ zIndex: '2' });
+    expect(second).toHaveStyle({ zIndex: '1' });
+
+    fireEvent.click(screen.getByTestId('char-thumb-friend-2'));
+    expect(first).toHaveStyle({ zIndex: '1' });
+    expect(second).toHaveStyle({ zIndex: '2' });
+  });
+
   it('automatically opens the first-party story mission for a curriculum project', async () => {
     const curriculumProject = blankProject('Tiny Star Village');
     curriculumProject.lessonId = 'tsv-s1-a1-h';

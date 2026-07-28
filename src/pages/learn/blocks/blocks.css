@@ -3349,6 +3349,23 @@
   box-shadow: 0 12px 28px rgb(20 31 63 / 24%);
   backdrop-filter: blur(5px);
 }
+.bsx-story-coach-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #756a4f;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+.bsx-story-coach-dismiss:hover {
+  background: rgb(117 106 79 / 12%);
+}
 .bsx-story-coach-head {
   display: flex;
   align-items: center;
@@ -3413,7 +3430,7 @@
 .bsx-story-coach-steps small {
   font-size: 9px;
 }
-.bsx-story-coach > button {
+.bsx-story-coach > button:not(.bsx-story-coach-dismiss) {
   width: 100%;
   min-height: 38px;
   margin-top: 10px;

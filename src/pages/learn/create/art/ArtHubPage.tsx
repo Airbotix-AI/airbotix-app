@@ -198,7 +198,7 @@ export function ArtHubPage() {
         <button
           type="button"
           data-testid="art-hub-new"
-          onClick={() => nav(ART_CANVAS_PATH)}
+          onClick={() => nav(ART_CANVAS_PATH, { state: { newCanvas: true } })}
           className="rounded-[26px] border-2 border-dashed border-brand-bubblegum/50 bg-wash-bubblegum p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
         >
           <div className="text-[40px]" aria-hidden="true">🎨</div>

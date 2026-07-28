@@ -15,6 +15,10 @@ export const GRID_H = 15;
 // child will hit.
 export const MAX_PAGES = 50;
 export const MAX_PARAM = 9;
+// Curriculum artwork may use a larger alpha-compensation scale than kids can
+// reach with Grow. Preserve those authored starts while still bounding an
+// untrusted saved document.
+export const MAX_CHARACTER_START_SIZE = 6;
 
 // ── Block catalogue (v1 set — control `repeat` C-block lands with M3) ───────
 export type BlockCategory = 'trigger' | 'motion' | 'looks' | 'sound' | 'control' | 'end';
@@ -336,7 +340,10 @@ export function parseProject(raw: string): BlocksProject {
           start: {
             gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
             gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
-            size: typeof c?.start?.size === 'number' ? Math.min(3, Math.max(0.3, c.start.size)) : 1,
+            size:
+              typeof c?.start?.size === 'number'
+                ? Math.min(MAX_CHARACTER_START_SIZE, Math.max(0.3, c.start.size))
+                : 1,
             rot: clampN(c?.start?.rot, -360, 360, 0),
             ...(c?.start?.visible === false ? { visible: false } : {}),
             ...(typeof c?.start?.reach === 'number'

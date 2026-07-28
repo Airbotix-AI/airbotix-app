@@ -427,6 +427,7 @@ describe('C2-P8 · retell, server seal and continue', () => {
             selections: {
               cause_card_order: [...C2_P8_CAUSE_CARD_ORDER],
               retell_links: ['linked-promise-and-program'],
+              rerun_result: ['6-7', 'curtain-hidden', 'cave-shown'],
             },
           },
         },
@@ -450,6 +451,11 @@ describe('C2-P8 · retell, server seal and continue', () => {
     fireEvent.click(screen.getByTestId('jtw-c2p8-continue-later'));
     await waitFor(() => expect(completePart).toHaveBeenCalled());
     expect(completePart.mock.calls[0][2].selections.continue_choice).toEqual(['later']);
+    expect(completePart.mock.calls[0][2].selections.rerun_result).toEqual([
+      '6-7',
+      'curtain-hidden',
+      'cave-shown',
+    ]);
     expect(screen.getByTestId('jtw-c2p8-seal')).toBeInTheDocument();
     expect(screen.queryByText('map')).not.toBeInTheDocument();
 
@@ -457,5 +463,10 @@ describe('C2-P8 · retell, server seal and continue', () => {
     fireEvent.click(screen.getByTestId('jtw-c2p8-continue-now'));
     await waitFor(() => expect(screen.getByText('map')).toBeInTheDocument());
     expect(completePart.mock.calls[1][2].selections.continue_choice).toEqual(['now']);
+    expect(completePart.mock.calls[1][2].selections.rerun_result).toEqual([
+      '6-7',
+      'curtain-hidden',
+      'cave-shown',
+    ]);
   });
 });
