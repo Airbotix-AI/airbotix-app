@@ -2255,6 +2255,9 @@
   -webkit-user-select: text;
   -webkit-touch-callout: default;
 }
+.bsx-toolbar {
+  display: flex;
+}
 .bsx-middle {
   display: grid;
   grid-template-columns: minmax(78px, 96px) minmax(0, 1fr) minmax(92px, 112px);
@@ -2442,6 +2445,203 @@
   }
   .bsx-app .bsx-stagefoot {
     display: none;
+  }
+}
+
+/* ── PHONE PORTRAIT: authoring stays calm instead of becoming a shrunken
+   desktop. The primary row is Home → project → Go; editing utilities move to a
+   second row. The coach becomes a shallow stage banner and every coding control
+   keeps a minimum 44px touch target while using the scarce height carefully. */
+@media (max-width: 620px) {
+  .bsx {
+    --bsx-hit: 44px;
+    --bsx-block-h: 54px;
+  }
+  .bsx-app {
+    gap: 6px;
+    padding: 6px;
+  }
+  .bsx-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'home title go'
+      'history tools tools';
+    gap: 7px;
+    padding: 7px;
+    border-radius: 20px;
+  }
+  .bsx-toolbar-home {
+    grid-area: home;
+  }
+  .bsx-toolbar-history {
+    grid-area: history;
+  }
+  .bsx-toolbar-title {
+    grid-area: title;
+    align-self: center;
+  }
+  .bsx-toolbar-title > :first-child {
+    font-size: 14px;
+  }
+  .bsx-toolbar-title > :last-child {
+    font-size: 10px;
+  }
+  .bsx-toolbar-spacer {
+    display: none;
+  }
+  .bsx-toolbar-tools {
+    grid-area: tools;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+  .bsx-toolbar-go {
+    grid-area: go;
+    justify-content: center;
+    min-width: 78px;
+    padding-inline: 16px;
+    font-size: 15px;
+  }
+  .bsx-toolbar :is(.bsx-press, .bsx-mission-launcher, .bsx-toolbar-go) {
+    height: 44px;
+    min-height: 44px;
+  }
+  .bsx-middle {
+    grid-template-rows: minmax(168px, 1fr) auto;
+    gap: 6px;
+  }
+  .bsx-middle [data-testid='blocks-stage'] {
+    min-height: 168px;
+    border-radius: 20px;
+  }
+  .bsx-zonetag.zt-stage {
+    left: 50px;
+    top: 10px;
+  }
+  .bsx-scene-btn {
+    left: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+  }
+  .bsx-app .bsx-story-coach {
+    left: 58px;
+    right: 8px;
+    top: 8px;
+    bottom: auto;
+    width: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head steps'
+      'cue cue';
+    gap: 5px 8px;
+    padding: 8px 10px;
+    border-width: 2px;
+    border-radius: 16px;
+    box-shadow: 0 8px 18px rgb(20 31 63 / 20%);
+  }
+  .bsx-app .bsx-story-coach-head {
+    grid-area: head;
+    gap: 7px;
+  }
+  .bsx-app .bsx-story-coach-face {
+    width: 30px;
+    height: 30px;
+  }
+  .bsx-app .bsx-story-coach-face :is(img, svg) {
+    width: 28px;
+    height: 28px;
+  }
+  .bsx-app .bsx-story-coach-head strong {
+    font-size: 12px;
+  }
+  .bsx-app .bsx-story-coach-head span:last-child {
+    display: none;
+  }
+  .bsx-app .bsx-story-coach > p {
+    grid-area: cue;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.28;
+  }
+  .bsx-app .bsx-story-coach-steps {
+    grid-area: steps;
+    align-self: center;
+    gap: 3px;
+  }
+  .bsx-app .bsx-story-coach-steps > span {
+    width: 22px;
+    min-height: 20px;
+    font-size: 10px;
+  }
+  .bsx-app .bsx-story-coach-steps small,
+  .bsx-app .bsx-story-coach > button,
+  .bsx-app .bsx-zonetag.zt-stage {
+    display: none;
+  }
+  .bsx-railbox {
+    border-radius: 18px;
+  }
+  .bsx-railscroll {
+    gap: 7px;
+    padding: 6px 8px;
+  }
+  .bsx-railscroll > button[data-testid^='char-thumb-'],
+  .bsx-railscroll > button[data-testid='add-character'],
+  .bsx-railscroll > button[data-testid='add-page'],
+  .bsx-railscroll > .relative > button[data-testid^='page-thumb-'] {
+    height: 48px;
+  }
+  .bsx-coder {
+    height: clamp(250px, 40vh, 330px);
+    gap: 6px;
+  }
+  .bsx-app[data-story='true'] .bsx-coder {
+    padding: 6px;
+    border-radius: 20px;
+  }
+  .bsx-catbar,
+  .bsx-palette,
+  .bsx-coder [data-testid='script-area'] {
+    border-radius: 18px;
+  }
+  .bsx-catscroll {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .bsx-palette .bsx-fscroll {
+    gap: 10px;
+    padding: 9px 12px 12px;
+  }
+  .bsx-palette-tag {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+  .bsx-chainwrap {
+    padding: 8px 12px 8px 8px;
+  }
+  .bsx-block {
+    min-width: 58px;
+    padding-inline: 17px 13px;
+    font-size: 10.5px;
+  }
+  .bsx-block .ic {
+    font-size: 19px;
+  }
+  .bsx-bin {
+    width: 56px;
+    gap: 4px;
+    border-radius: 18px;
+  }
+  .bsx-bin-can {
+    width: 36px;
+    height: 36px;
+  }
+  .bsx-bin-label {
+    font-size: 11px;
   }
 }
 
