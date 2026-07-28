@@ -47,18 +47,14 @@ const AFTER_CHAPTER_ONE = {
     completed_at: '2026-07-25T00:00:00.000Z',
     evidence: {} as Record<string, never>,
   })),
-  unlocked_part_ids: [
-    'tsv-s1-a1-h',
-    'tsv-s1-a1-b',
-    'tsv-s1-a1-d',
-    'tsv-s1-a1-s',
-    'tsv-s1-a2-h',
-  ],
+  unlocked_part_ids: ['tsv-s1-a1-h', 'tsv-s1-a1-b', 'tsv-s1-a1-d', 'tsv-s1-a1-s', 'tsv-s1-a2-h'],
 };
 
 function renderHub() {
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <MemoryRouter>
         <BlocksHubPage />
       </MemoryRouter>
@@ -82,6 +78,35 @@ describe('Story Blocks hub — Tiny Star Village season progression', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter Flower Fruit Mountain →' }));
     expect(navigate).toHaveBeenCalledWith('/learn/story/journey-west');
+  });
+
+  it('keeps backend project records off the child-facing story hub', async () => {
+    vi.mocked(fetchStoryLineProgress).mockResolvedValue(AFTER_CHAPTER_ONE);
+    vi.mocked(listBlocksProjects).mockResolvedValue([
+      {
+        id: 'free-project',
+        title: 'My Story Blocks project',
+        kind: 'blocks',
+        status: 'active',
+        updated_at: '2026-07-25T02:00:00.000Z',
+      },
+      {
+        id: 'mission-project',
+        title: 'Tiny Star Village · Wake up first',
+        kind: 'blocks',
+        status: 'active',
+        updated_at: '2026-07-25T01:00:00.000Z',
+      },
+    ]);
+    renderHub();
+
+    await waitFor(() => expect(listBlocksProjects).toHaveBeenCalledWith('kid_1'));
+    expect(screen.queryByText('Free creation')).not.toBeInTheDocument();
+    expect(screen.queryByText('Make your own Story Blocks project')).not.toBeInTheDocument();
+    expect(screen.queryByText('Your Story Blocks projects')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('blocks-continue-latest')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('blocks-project-card')).not.toBeInTheDocument();
+    expect(screen.queryByText('My Story Blocks project')).not.toBeInTheDocument();
   });
 
   it('locks the scenes the server has not opened yet', async () => {

@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
 
 import { useMe } from '@/auth/useAuth';
 import {
@@ -14,8 +13,6 @@ import {
   type BlocksProjectMeta,
   type BlocksTemplateId,
 } from './blocksApi';
-import { BLOCKS_STARTERS } from './blocksStarters';
-import { blocksProjectDisplayTitle } from './blocksProjectTitles';
 import { StoryJourneyMap } from './StoryJourneyMap';
 import { storyMissionProjectTitle } from './storyJourneyCatalog';
 import { fetchStoryLineProgress } from './story-parts/storyPartsApi';
@@ -74,9 +71,6 @@ export function BlocksHubPage() {
     void start(scene.mission.template, storyMissionProjectTitle(scene.mission));
   };
 
-  const freeStoryStarter = BLOCKS_STARTERS.find((starter) => starter.id === 'blocks_story');
-  const latestProject = projects.data?.[0];
-
   return (
     <div className="bsx">
       <div className="mb-8 max-w-4xl">
@@ -94,32 +88,6 @@ export function BlocksHubPage() {
         <div className="mb-6 rounded-2xl border border-brand-coral/40 bg-wash-coral px-4 py-3 text-[14px] font-semibold">
           {error}
         </div>
-      )}
-
-      {latestProject && (
-        <section className="mb-8 rounded-[26px] border border-brand-mint/35 bg-wash-mint p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
-          <div>
-            <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
-              Continue where you left off
-            </div>
-            <h2 className="mt-1 text-[22px] font-black">
-              {blocksProjectDisplayTitle(latestProject.title)}
-            </h2>
-            {latestProject.updated_at && (
-              <div className="mt-1 text-[12px] font-semibold text-slate2">
-                Played {formatDistanceToNow(new Date(latestProject.updated_at), { addSuffix: true })}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            data-testid="blocks-continue-latest"
-            onClick={() => nav(`/learn/blocks/${latestProject.id}`)}
-            className="mt-4 rounded-full bg-brand-mint px-5 py-3 text-[13px] font-black text-ink shadow-card-soft sm:mt-0"
-          >
-            Continue →
-          </button>
-        </section>
       )}
 
       <StoryJourneyMap
@@ -142,8 +110,8 @@ export function BlocksHubPage() {
             Journey to the West · The Monkey King's First Journey
           </h2>
           <p className="mt-1 text-[13px] font-semibold text-slate2">
-            Read the story, find evidence, and see how the immortal stone wakes at dawn. One Part
-            at a time.
+            Read the story, find evidence, and see how the immortal stone wakes at dawn. One Part at
+            a time.
           </p>
         </div>
         <button
@@ -154,55 +122,6 @@ export function BlocksHubPage() {
           Enter Flower Fruit Mountain →
         </button>
       </section>
-
-      {freeStoryStarter && (
-        <section className="my-12 rounded-[30px] border-2 border-dashed border-brand-mint/45 bg-canvas-pure p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div className="flex items-start gap-4">
-            <div className="text-[44px]" aria-hidden="true">{freeStoryStarter.emoji}</div>
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">Free creation</div>
-              <h2 className="mt-1 text-[24px] font-black">Make your own Story Blocks project</h2>
-              <p className="mt-1 max-w-2xl text-[14px] font-semibold text-slate2">
-                Start with the playful cat scene, then change the characters, sounds, blocks, and pages.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            data-testid={`blocks-starter-${freeStoryStarter.id}`}
-            disabled={busy !== null}
-            onClick={() => void start(freeStoryStarter.id, 'My Story Blocks project')}
-            className="mt-5 whitespace-nowrap rounded-full bg-ink px-5 py-3 text-[13px] font-black text-white disabled:opacity-60 sm:mt-0"
-          >
-            {busy === freeStoryStarter.id ? 'Starting…' : 'Create my own →'}
-          </button>
-        </section>
-      )}
-
-      {projects.data && projects.data.length > 0 && (
-        <div className="pb-10">
-          <h2 className="mb-4 text-[26px] font-black">Your Story Blocks projects</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {projects.data.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                data-testid="blocks-project-card"
-                onClick={() => nav(`/learn/blocks/${p.id}`)}
-                className="rounded-2xl border border-hairline bg-canvas-pure p-5 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
-              >
-                <div className="text-[28px]">🧩</div>
-                <div className="mt-2 font-bold">{blocksProjectDisplayTitle(p.title)}</div>
-                {p.updated_at && (
-                  <div className="mt-1 text-[12px] text-slate2">
-                    {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
