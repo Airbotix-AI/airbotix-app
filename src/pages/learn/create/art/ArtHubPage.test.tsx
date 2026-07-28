@@ -272,6 +272,37 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
+  it('shows all eight pilot choices instead of a single sample task', async () => {
+    const titles = [
+      'Draw a T-Rex',
+      'Draw a Kitten',
+      'Draw a Puppy',
+      'Draw a Lion',
+      'Draw a Shark',
+      'Draw a Rocket',
+      'Draw a Unicorn',
+      'Draw a Race Car',
+    ];
+    guidedTasks = titles.map((title, index) => ({
+      slug: `task-${index}`,
+      version: 1,
+      title,
+      short_description: `Guided drawing ${index + 1}`,
+      category: 'animals',
+      age_min: 6,
+      age_max: 10,
+      difficulty: 1,
+      duration_minutes: 12,
+      cover: { url: `/art-tasks/task-${index}/v1/cover.png`, alt: title },
+      modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+    }));
+
+    renderHub();
+
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(8);
+    titles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+  });
+
   it('lets a child pick a T-Rex and choose how to draw before opening the canvas', async () => {
     guidedTasks = [
       {

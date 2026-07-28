@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-28 (feat: expand Art Studio guided drawing library)
+
+### Added
+- Expanded the guided drawing library from one T-Rex sample to eight kid-facing
+  choices: T-Rex, kitten, puppy, lion, shark, rocket, unicorn and race car.
+- Added seven independently generated, reviewed reference illustrations plus
+  deterministic ghost outlines and five cumulative guide images per task.
+- Added an asset completeness test and a repeatable guide-generation script.
+
 ## 2026-07-28 (feat: guided drawing ideas in Art Studio)
 
 ### Added
