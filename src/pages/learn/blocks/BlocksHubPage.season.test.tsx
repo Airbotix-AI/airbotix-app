@@ -67,6 +67,14 @@ function renderHub() {
 }
 
 describe('Story Blocks hub — Tiny Star Village season progression', () => {
+  it('renders the Journey to the West entry exactly once', async () => {
+    vi.mocked(fetchStoryLineProgress).mockResolvedValue(AFTER_CHAPTER_ONE);
+    renderHub();
+
+    expect(await screen.findByTestId('blocks-jtw-entry')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /进入花果山/ })).toHaveLength(1);
+  });
+
   it('locks the scenes the server has not opened yet', async () => {
     vi.mocked(fetchStoryLineProgress).mockResolvedValue(AFTER_CHAPTER_ONE);
     renderHub();
