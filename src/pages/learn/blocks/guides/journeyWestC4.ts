@@ -1,5 +1,9 @@
 import type { StoryMission } from './types'
-import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild'
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_WUKONG_ASSET,
+} from '../jtwC4DualBuild'
 
 export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
   [JTW_C4_P4_LESSON_ID]: {
@@ -71,5 +75,58 @@ export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
     ],
     completionWhy: '不点悟空时本领没有偷跑，说明两条事件链真的分开了。',
     next: '伙伴记住了名字。下一Part由孩子选择悟空回应邀请的小展示。',
+  },
+  [JTW_C4_P5_LESSON_ID]: {
+    mode: 'complete',
+    lessonId: JTW_C4_P5_LESSON_ID,
+    celebrate: false,
+    hero: { name: '孙悟空', role: '等到邀请再回应的学习者', asset: JTW_C4_WUKONG_ASSET },
+    eyebrow: '西游记 · 第四章 · 故事选择',
+    title: '本领不是为了抢先',
+    storyPages: [{
+      emoji: '👆🐒',
+      title: '邀请到了，才开始回应',
+      body: '保留名字链，在Tap入口后搭好你选的动作、等待和对白。',
+      scene: 5,
+    }],
+    partnerLine: '同伴先读程序，预测Tap后会看到什么。',
+    mission: '保留名字链；亲手搭好所选Tap链。先Go确认安静，再Tap悟空。',
+    question: '为什么展示要等Tap？',
+    choices: [],
+    retry: '名字链不能删除；展示必须完整留在Tap入口后。',
+    successTitle: '回应等到了邀请',
+    success: 'Go只显示名字；Tap后才出现选择的展示。',
+    fixTitle: '把展示留在Tap链',
+    fixPrompt: '检查动作顺序、对白和End。',
+    workspaceIntro: '名字链保留，Tap链等你搭出所选版本。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先搭选择版本，再做Go和Tap双测试。',
+      watch: 'Go后展示链保持安静吗？',
+      sayFirst: '先让同伴预测。',
+      sayThen: '再Tap验证。',
+      hopFirst: '动作属于Tap链。',
+      hopThen: '等待让变化看得清。',
+      retry: '版本未完整或双测试尚未完成。',
+      fix: '保留名字链，把展示接在Tap后。',
+      test: '先Go等待，再真实Tap悟空。',
+      saving: '选择和双运行证据正在保存。',
+      complete: '悟空在观众准备好后才回应。',
+    },
+    logicSteps: [
+      { icon: '🧠', label: '同伴预测', order: '先' },
+      { icon: '🚩', label: '名字站稳', order: '再' },
+      { icon: '👆', label: '邀请回应', order: '后' },
+    ],
+    logicWhy: '真实选择改变Tap链的动作、顺序和可见结果。',
+    completionTitle: '故事选择完成',
+    completion: '所选版本已保存，Go和Tap两次真实运行都完成。',
+    completionSteps: [
+      { icon: '🏷️', label: '名字保留', order: '先' },
+      { icon: '✨', label: '展示回应', order: '后' },
+    ],
+    completionWhy: '展示没有抢跑，说明孩子理解动作为什么等待邀请。',
+    next: '一阵风把整段本领链吹错入口；下一Part检查第一次偏离。',
   },
 }

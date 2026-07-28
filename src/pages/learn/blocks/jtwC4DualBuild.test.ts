@@ -5,10 +5,13 @@ import {
   JTW_C4_NAME_TARGET,
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P4_PAGE_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_P5_SKILL_TARGETS,
   JTW_C4_SKILL_TARGET,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
   jtwC4DualBuildMatches,
+  jtwC4P5BuildVersion,
   jtwC4PlacedBlocks,
 } from './jtwC4DualBuild'
 
@@ -54,5 +57,32 @@ describe('JtW C4-P4 dual-event build contract', () => {
     const wrongHop = project()
     wrongHop.pages[0].characters[0].scripts[1].blocks[1] = { op: 'hop', n: 1 }
     expect(jtwC4DualBuildMatches(wrongHop)).toBe(false)
+  })
+})
+
+describe('JtW C4-P5 expression choice contract', () => {
+  it.each(Object.entries(JTW_C4_P5_SKILL_TARGETS))(
+    'accepts the exact %s Tap version while preserving the name chain',
+    (version, target) => {
+      const built = project()
+      built.lessonId = JTW_C4_P5_LESSON_ID
+      built.pages[0].characters[0].scripts[1].blocks = [...target]
+      expect(jtwC4P5BuildVersion(built)).toBe(version)
+    },
+  )
+
+  it('rejects decoration-only changes, a deleted name chain, and a wrong action order', () => {
+    const built = project()
+    built.lessonId = JTW_C4_P5_LESSON_ID
+    expect(jtwC4P5BuildVersion(built)).toBeNull()
+
+    built.pages[0].characters[0].scripts[1].blocks = [...JTW_C4_P5_SKILL_TARGETS.screen]
+    built.pages[0].characters[0].scripts[0].blocks.pop()
+    expect(jtwC4P5BuildVersion(built)).toBeNull()
+
+    built.pages[0].characters[0].scripts[0].blocks = [...JTW_C4_NAME_TARGET]
+    const wrongOrder = built.pages[0].characters[0].scripts[1].blocks
+    ;[wrongOrder[1], wrongOrder[2]] = [wrongOrder[2], wrongOrder[1]]
+    expect(jtwC4P5BuildVersion(built)).toBeNull()
   })
 })

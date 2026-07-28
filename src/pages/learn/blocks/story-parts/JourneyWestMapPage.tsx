@@ -41,6 +41,7 @@ export const PLAYABLE_PART_IDS: ReadonlySet<string> = new Set([
   'jtw-s1-c4-p2',
   'jtw-s1-c4-p3',
   'jtw-s1-c4-p4',
+  'jtw-s1-c4-p5',
 ]);
 
 export function JourneyWestMapPage() {
