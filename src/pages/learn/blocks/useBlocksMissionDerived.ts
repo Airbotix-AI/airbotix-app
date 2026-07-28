@@ -3,7 +3,11 @@ import { useMemo } from 'react'
 import type { BlocksProject } from './blocksModel'
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides'
 import { isJtwOrderDebugLesson } from './jtwOrderDebug'
-import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID } from './jtwC4DualBuild'
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_P6_LESSON_ID,
+} from './jtwC4DualBuild'
 import { sceneId } from './library'
 import {
   storyMissionProgramMatches,
@@ -132,7 +136,10 @@ export function useBlocksMissionDerived({
   )
   const isJtwOrderDebug = isJtwOrderDebugLesson(lessonId)
   const isJtwC4DualBuild =
-    lessonId === JTW_C4_P4_LESSON_ID || lessonId === JTW_C4_P5_LESSON_ID
+    lessonId === JTW_C4_P4_LESSON_ID ||
+    lessonId === JTW_C4_P5_LESSON_ID ||
+    lessonId === JTW_C4_P6_LESSON_ID
+  const isJtwC4TriggerDebug = lessonId === JTW_C4_P6_LESSON_ID
   const selectedHomeGx = tinyStarA2TargetGx(page.background, lessonId)
   const selectedDeliveryDistance = tinyStarDeliveryDistance(page.background)
   const lockedStageTargetGx =
@@ -190,6 +197,7 @@ export function useBlocksMissionDerived({
     deliveryCart,
     isJtwOrderDebug,
     isJtwC4DualBuild,
+    isJtwC4TriggerDebug,
     selectedHomeGx,
     selectedDeliveryDistance,
     lockedStageTargetGx,

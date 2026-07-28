@@ -2,6 +2,7 @@ import type { Block, BlocksProject } from './blocksModel'
 
 export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4'
 export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5'
+export const JTW_C4_P6_LESSON_ID = 'jtw-s1-c4-p6'
 export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page'
 export const JTW_C4_WUKONG_ID = 'sun-wukong'
 export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name'
@@ -49,6 +50,10 @@ export const JTW_C4_P5_SKILL_TARGETS = {
 
 export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
 
+function skillTarget(version: JtwC4P5Version, trigger: 'when_flag' | 'when_tap'): readonly Block[] {
+  return [{ op: trigger }, ...JTW_C4_P5_SKILL_TARGETS[version].slice(1)]
+}
+
 function blockMatches(actual: Block | undefined, expected: Block): boolean {
   return (
     actual?.op === expected.op &&
@@ -82,7 +87,15 @@ export function jtwC4DualBuildMatches(project: BlocksProject): boolean {
 }
 
 export function jtwC4P5BuildVersion(project: BlocksProject): JtwC4P5Version | null {
-  if (project.lessonId !== JTW_C4_P5_LESSON_ID || project.pages.length !== 1) return null
+  return jtwC4SkillVersion(project, JTW_C4_P5_LESSON_ID, 'when_tap')
+}
+
+function jtwC4SkillVersion(
+  project: BlocksProject,
+  lessonId: string,
+  trigger: 'when_flag' | 'when_tap',
+): JtwC4P5Version | null {
+  if (project.lessonId !== lessonId || project.pages.length !== 1) return null
   const page = project.pages[0]
   const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
   if (
@@ -94,9 +107,20 @@ export function jtwC4P5BuildVersion(project: BlocksProject): JtwC4P5Version | nu
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
   if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
-  return (Object.entries(JTW_C4_P5_SKILL_TARGETS) as Array<
-    [JtwC4P5Version, readonly Block[]]
-  >).find(([, target]) => exactScript(skill, target))?.[0] ?? null
+  return (Object.keys(JTW_C4_P5_SKILL_TARGETS) as JtwC4P5Version[])
+    .find((version) => exactScript(skill, skillTarget(version, trigger))) ?? null
+}
+
+export function jtwC4P6BugVersion(project: BlocksProject): JtwC4P5Version | null {
+  return jtwC4SkillVersion(project, JTW_C4_P6_LESSON_ID, 'when_flag')
+}
+
+export function jtwC4P6FixedVersion(project: BlocksProject): JtwC4P5Version | null {
+  return jtwC4SkillVersion(project, JTW_C4_P6_LESSON_ID, 'when_tap')
+}
+
+export function jtwC4P6TriggerDiff(project: BlocksProject): string[] {
+  return jtwC4P6FixedVersion(project) ? ['sun-wukong-skill:when_flag→when_tap'] : []
 }
 
 export function jtwC4PlacedBlocks(project: BlocksProject): string[] {

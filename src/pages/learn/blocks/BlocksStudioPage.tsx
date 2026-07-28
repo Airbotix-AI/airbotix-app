@@ -24,7 +24,9 @@ import { jtwOrderBugObserved } from './jtwOrderDebug';
 import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
+  JTW_C4_P6_LESSON_ID,
   JTW_C4_WUKONG_ID,
+  jtwC4P6BugVersion,
 } from './jtwC4DualBuild';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
@@ -149,6 +151,7 @@ export function BlocksStudioPage({
     isA5RelayDebug, isA5PersonalShip, isA6OrderDebug, needsBellOrderRun,
     isA6Finale, finaleRinger, duetFirst, duetSecond, deliveryCart, isJtwOrderDebug,
     isJtwC4DualBuild,
+    isJtwC4TriggerDebug,
     selectedHomeGx, selectedDeliveryDistance, lockedStageTargetGx, visibleCoachCue,
   } = useBlocksMissionDerived({
     project, pageId, charId, missionAnswer, missionCompleted, missionCorrectRunFinished,
@@ -510,6 +513,8 @@ export function BlocksStudioPage({
         const observedEarlyBell =
           isA6OrderDebug && tinyStarBellRangBeforeHop(bellPlayedOpsRef.current);
         const observedOrderBug = jtwOrderBugObserved(storyMission.lessonId, missionScript?.blocks);
+        const observedC4TriggerBug =
+          isJtwC4TriggerDebug && jtwC4P6BugVersion(useBlocksStore.getState().project) !== null;
         if (
           storyMission.lessonId === 'tsv-s1-a6-h' &&
           tinyStarBellRangWithoutHop(bellPlayedOpsRef.current) &&
@@ -522,6 +527,7 @@ export function BlocksStudioPage({
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
+        if (observedC4TriggerBug) setMissionWrongRunObserved(true);
         if (observedLateBounce) setMissionWrongRunObserved(true);
         if (observedEarlyBell) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
@@ -592,6 +598,7 @@ export function BlocksStudioPage({
     needsBellOrderRun,
     isJtwOrderDebug,
     isJtwC4DualBuild,
+    isJtwC4TriggerDebug,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -687,8 +694,10 @@ export function BlocksStudioPage({
         if (
           id === JTW_C4_WUKONG_ID &&
           (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
-            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P6_LESSON_ID) &&
           missionHasRun &&
+          (storyMission?.lessonId !== JTW_C4_P6_LESSON_ID || missionWrongRunObserved) &&
           targetFixedNow
         ) {
           setMissionTapObserved(true);
@@ -726,7 +735,14 @@ export function BlocksStudioPage({
         }
       });
     },
-    [isA3PersonalShip, makeRunner, missionHasRun, missionTapObserved, storyMission],
+    [
+      isA3PersonalShip,
+      makeRunner,
+      missionHasRun,
+      missionTapObserved,
+      missionWrongRunObserved,
+      storyMission,
+    ],
   );
   const openFriendPicker = useCallback(() => {
     sfx.tap();
@@ -755,7 +771,7 @@ export function BlocksStudioPage({
     present,
     readOnly,
     isA2DirectionDebug,
-    isA3EventDebug,
+    isA3EventDebug: isA3EventDebug || isJtwC4TriggerDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
     isA5RelayDebug,
@@ -777,7 +793,7 @@ export function BlocksStudioPage({
     readOnly,
     scanRows,
     isA2DirectionDebug,
-    isA3EventDebug,
+    isA3EventDebug: isA3EventDebug || isJtwC4TriggerDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
     isA5RelayDebug,
@@ -796,13 +812,13 @@ export function BlocksStudioPage({
     storyMission,
     isA2PersonalShip,
     isA2DirectionDebug,
-    isA3EventDebug,
+    isA3EventDebug: isA3EventDebug || isJtwC4TriggerDebug,
     isA4ParameterBuild,
     isA4ParameterDebug,
     isA5RelayDebug,
     isA6OrderDebug,
     missionWrongRunObserved,
-    missionTapObserved,
+    missionTapObserved: missionTapObserved || (isJtwC4TriggerDebug && missionWrongRunObserved),
     setStoryCoachCue,
     openMission: () => setMissionOpen(true),
   });
@@ -975,7 +991,7 @@ export function BlocksStudioPage({
       <BlockEditorPopover
         editing={editing}
         theme={theme}
-        isA3EventDebug={isA3EventDebug}
+        isA3EventDebug={isA3EventDebug || isJtwC4TriggerDebug}
         isA2DirectionDebug={isA2DirectionDebug}
         characters={page.characters}
         selectedChar={selectedChar}
