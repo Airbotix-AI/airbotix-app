@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-29
+
+### Added
+
+- Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
+  character pose plus the breakfast-cart and morning-bell states, and saves the selected first-party
+  PNG into the project instead of falling back to an emoji.
+- The three Tiny Star workbench backgrounds are selectable and render in the editor and public
+  player. The story map now uses the formal zero-star plaza for season progress, overlays one star
+  per completed chapter, and switches to the six-star plaza and joyful cast after the finale.
+
 ## 2026-07-28
 
 ### Fixed

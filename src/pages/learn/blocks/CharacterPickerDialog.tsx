@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { CHARACTER_GROUPS } from './library'
 import { sfx } from './sounds'
 import { useBlocksStore } from './blocksStore'
+import './tinyStarAssetIntegration.css'
 
 interface CharacterPickerDialogProps {
   open: boolean
@@ -62,17 +63,33 @@ export function CharacterPickerDialog({
         <div className="bsx-sheet-grid">
           {CHARACTER_GROUPS[charTab].items.map((f) => (
             <button
-              key={f.emoji}
+              key={`${f.name}-${f.emoji}`}
               type="button"
-              className="bsx-pick"
+              className={`bsx-pick${f.asset ? ' is-asset' : ''}`}
               title={f.name}
               onClick={() => {
                 sfx.add()
-                useBlocksStore.getState().addCharacter(f.emoji, f.name)
+                const store = useBlocksStore.getState()
+                store.addCharacter(f.emoji, f.name)
+                if (f.asset) {
+                  const addedCharacterId = useBlocksStore.getState().charId
+                  useBlocksStore
+                    .getState()
+                    .setCharacterIdentity(addedCharacterId, f.name, f.emoji, f.asset)
+                }
                 close()
               }}
             >
-              {f.emoji}
+              {f.previewAssets ? (
+                <>
+                  <span className="bsx-pick-preview" aria-hidden="true">
+                    {f.previewAssets.map((asset) => (
+                      <img src={asset} alt="" key={asset} draggable={false} />
+                    ))}
+                  </span>
+                  <span className="bsx-pick-label">{f.name}</span>
+                </>
+              ) : f.emoji}
             </button>
           ))}
         </div>

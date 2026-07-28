@@ -10,6 +10,7 @@ import {
   tinyStarSeasonView,
   type TinyStarSeasonView,
 } from './tinyStarSeason';
+import { TinyStarSeasonPlaza } from './TinyStarSeasonPlaza';
 import './storyJourneyMap.css';
 
 const LUMI = {
@@ -234,28 +235,11 @@ export function StoryJourneyMap({
         </article>
       </div>
       <div className="tsv-world-hero">
-        <div className="tsv-world-sky" data-testid="story-world-cast" aria-hidden="true">
-          <span className="tsv-world-star one">✦</span>
-          <span className="tsv-world-star two">✦</span>
-          <span className="tsv-world-moon">☾</span>
-          <span className="tsv-world-house left">🏠</span>
-          <StoryAvatar
-            character={LUMI}
-            className="tsv-world-character tsv-world-lumi"
-            performance="listening"
-          />
-          <StoryAvatar
-            character={DOT_DOT}
-            className="tsv-world-character tsv-world-dot"
-            performance="listening"
-          />
-          <StoryAvatar
-            character={TUAN_TUAN}
-            className="tsv-world-character tsv-world-tuan"
-            performance="listening"
-          />
-          <span className="tsv-world-house right">🏡</span>
-        </div>
+        <TinyStarSeasonPlaza
+          completedCount={season.completedCount}
+          sceneCount={season.sceneCount}
+          seasonComplete={season.seasonComplete}
+        />
         <div className="tsv-world-intro">
           <div className="tsv-season-label">Collection 1 · Tiny Star Village</div>
           <h2 id="tiny-star-village-title">Bring back the morning light</h2>
