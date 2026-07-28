@@ -14,8 +14,8 @@ const TASK_SLUGS = [
 ] as const;
 
 describe('Art Studio guided drawing assets', () => {
-  it.each(TASK_SLUGS)('%s has a v2 cover, reference, ghost and four authored steps', (slug) => {
-    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v2');
+  it.each(TASK_SLUGS)('%s has a v3 cover, reference, ghost and four authored steps', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v3');
     const requiredFiles = [
       'cover.svg',
       'reference.svg',
@@ -34,14 +34,25 @@ describe('Art Studio guided drawing assets', () => {
     expect(existsSync(join(directory, 'steps/05.svg'))).toBe(false);
   });
 
-  it.each(TASK_SLUGS)('%s keeps the young-child reference below the line budget', (slug) => {
-    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v2');
+  it.each(TASK_SLUGS)('%s stays simple without becoming an unrecognisable symbol', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v3');
     const reference = readFileSync(join(directory, 'reference.svg'), 'utf8');
-    const visibleShapes = reference.match(/<(?:path|circle|ellipse|polygon|polyline)\b/g) ?? [];
+    const pathStarts = reference.match(/[Mm](?=[-0-9])/g) ?? [];
+    const standaloneShapes =
+      reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
+    const drawingFeatures = pathStarts.length + standaloneShapes.length;
 
-    expect(visibleShapes.length).toBeLessThanOrEqual(12);
+    expect(drawingFeatures).toBeGreaterThanOrEqual(10);
+    expect(drawingFeatures).toBeLessThanOrEqual(24);
     expect(reference).toContain('stroke-width="11"');
     expect(reference).not.toMatch(/<(?:filter|image|linearGradient|radialGradient)\b/);
+  });
+
+  it.each(TASK_SLUGS)('%s retains the immutable v2 prototype assets', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v2');
+
+    expect(existsSync(join(directory, 'reference.svg'))).toBe(true);
+    expect(existsSync(join(directory, 'ghost.svg'))).toBe(true);
   });
 
   it.each(TASK_SLUGS)('%s keeps its original v1 guide for the challenge level', (slug) => {

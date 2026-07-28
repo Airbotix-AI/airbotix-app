@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a sitting puppy</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M227 307c-44 58-51 155-9 209h194c42-54 35-151-9-209"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="315" cy="217" r="108"/><path d="M221 168c-59-53-101-24-83 49 11 49 44 74 83 47m188-96c59-53 101-24 83 49-11 49-44 74-83 47"/></g>
+  </g>
+</svg>

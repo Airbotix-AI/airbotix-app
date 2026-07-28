@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A four-step line drawing of a sitting puppy</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M227 307c-44 58-51 155-9 209h194c42-54 35-151-9-209"/>
+    <circle cx="315" cy="217" r="108"/><path d="M221 168c-59-53-101-24-83 49 11 49 44 74 83 47m188-96c59-53 101-24 83 49-11 49-44 74-83 47"/>
+    <path d="M260 365v130m55-124v124m-84 0h58m-5 0h61M414 369c72 4 105 63 53 105"/>
+    <circle cx="275" cy="207" r="8" fill="#2C3642"/><circle cx="355" cy="207" r="8" fill="#2C3642"/><ellipse cx="315" cy="250" rx="24" ry="17"/><path d="M315 267v20m0 0c-18 18-40 18-58 0m58 0c18 18 40 18 58 0M245 320c44 17 96 17 140 0"/>
+  </g>
+</svg>

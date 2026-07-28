@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 4 for drawing a swimming shark</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M67 321c78-103 302-128 431-40-99 126-320 160-431 40Z"/>
+    <path d="m261 228 76-105 26 112m-69 177 73 67 21-103m104-95 92-61-33 100 36 91-95-57"/>
+    <circle cx="169" cy="292" r="8" fill="#2C3642"/><path d="M98 337c57 37 125 40 191 8m-134 9 17 23 17-20 18 17 17-21 18 16 17-22"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M279 290c20 9 33 24 40 44m-20-52c21 9 35 23 43 43M407 303c25 5 47 17 67 35"/></g>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a friendly lion</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="375" cy="353" rx="143" ry="90"/>
+    <path d="M228 128c46 0 94 36 113 87 20 53-1 122-55 155-48 29-115 22-154-18-39-39-45-105-14-153 25-40 68-71 110-71Z"/><circle cx="228" cy="249" r="78"/><path d="m172 185-11-45 44 25m79 20 11-45-44 25"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M293 417v104m73-81v81m66-81v81m64-106v106m-226 0h47m30 0h44m22 0h43m20 0h45M504 350c62-6 88-57 54-91m0 0 22-17 12 27-34-10Z"/></g>
+  </g>
+</svg>

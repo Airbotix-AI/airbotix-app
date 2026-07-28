@@ -285,7 +285,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
     ];
     guidedTasks = titles.map((title, index) => ({
       slug: `task-${index}`,
-      version: 2,
+      version: 3,
       title,
       short_description: `Guided drawing ${index + 1}`,
       category: 'animals',
@@ -293,7 +293,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       age_max: 9,
       difficulty: 1,
       duration_minutes: 8,
-      cover: { url: `/art-tasks/task-${index}/v2/cover.svg`, alt: title },
+      cover: { url: `/art-tasks/task-${index}/v3/cover.svg`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
     }));
     guidedTasks.push(
@@ -338,7 +338,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
     guidedTasks = [
       {
         slug: 'draw-a-trex',
-        version: 2,
+        version: 3,
         title: 'Draw a T-Rex',
         short_description: 'Build a mighty dinosaur from big, simple shapes.',
         category: 'dinosaurs',
@@ -347,8 +347,8 @@ describe('ArtHubPage — concrete drawing ideas', () => {
         difficulty: 1,
         duration_minutes: 8,
         cover: {
-          url: '/art-tasks/draw-a-trex/v2/cover.svg',
-          alt: 'A simple T-Rex made with a few thick lines',
+          url: '/art-tasks/draw-a-trex/v3/cover.svg',
+          alt: 'A clear cartoon T-Rex with a big jaw and long tail',
         },
         modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
       },
