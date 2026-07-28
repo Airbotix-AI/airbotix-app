@@ -84,6 +84,22 @@
   request a ghost sketch, then bring the sketch to life. Drawing remains free and AI costs remain
   visible before use.
 
+## 2026-07-27 (feat: Academy timed mock exams and self-review)
+
+### Added
+
+- Product pages now obey each exam series' declared capabilities: true exam families can expose
+  Practice and Mock, while practice-only libraries no longer promise a fixed-paper mode.
+- Parent product details now switch between an original-question practice demo and a five-minute
+  mock-paper demo with locked answers, submission, rubric self-assessment and a three-column report.
+- The entitled kid product page presents Practice and Mock exam as explicit modes with their
+  different timing and feedback contracts.
+- Entitled kids can start or resume a published fixed paper, answer objective and written
+  questions, autosave progress, submit once and then self-assess written work against the official
+  per-mark or banded guide.
+- Results keep objective accuracy, self-assessed marks and the arithmetic total in three distinct
+  columns. Parents receive the same disclosed breakdown from completed-session links.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed

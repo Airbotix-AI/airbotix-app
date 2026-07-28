@@ -190,6 +190,10 @@ export function JourneyWestC3Part8Page({
       completeStoryPart(JTW_S1_STORY_LINE_ID, C3_P8_PART_ID, {
         schema_version: 1,
         selections: {
+          // Continue choices re-save an already completed row after a reload.
+          // Keep every measurement from the real run instead of replacing
+          // run-only fields with empty arrays when no live runner exists.
+          ...savedEntry?.evidence.selections,
           cause_card_order: cardOrder,
           retell_links: retell ? [retell] : [],
           text_evidence: textEvidence ? [textEvidence] : [],
@@ -203,11 +207,17 @@ export function JourneyWestC3Part8Page({
           block_ledger: design ? jtwC3RouteEncodeLedger(design) : [],
           // The rerun of the saved work, measured page by page.
           page_trace: trace.map(String),
-          run_footprints: c3p2EncodeFootprints(c3p2FootprintsOf(run)),
+          run_footprints: run
+            ? c3p2EncodeFootprints(c3p2FootprintsOf(run))
+            : (savedEntry?.evidence.selections?.run_footprints ?? []),
           run_boundaries: jtwC3JumpEncodeBoundaries(boundaries),
-          run_stop: run ? [run.stoppedBy] : [],
+          run_stop: run
+            ? [run.stoppedBy]
+            : (savedEntry?.evidence.selections?.run_stop ?? []),
           exit_page: [String(JTW_C3_FAR_SHORE_PAGE)],
-          rerun_result: run ? [`trace:${run.trace.join('-')}`, `stop:${run.stoppedBy}`] : [],
+          rerun_result: run
+            ? [`trace:${run.trace.join('-')}`, `stop:${run.stoppedBy}`]
+            : (savedEntry?.evidence.selections?.rerun_result ?? []),
           continue_choice: choice ? [choice] : [],
         },
       }),

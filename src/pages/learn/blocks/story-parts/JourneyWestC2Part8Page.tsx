@@ -89,6 +89,7 @@ export function JourneyWestC2Part8Page({
   const [restored, setRestored] = useState(false);
 
   const savedEntry = progress.data?.completed.find((entry) => entry.part_id === PART_ID);
+  const savedSelections = (savedEntry?.evidence as StoryPartEvidence | undefined)?.selections ?? {};
   const unlocked = progress.data?.unlocked_part_ids.includes(PART_ID) ?? false;
   // Seal state comes from the SERVER aggregation only — never from local state.
   const seal = progress.data?.chapter_seals?.find((entry) => entry.seal_id === C2_P8_SEAL_ID);
@@ -96,9 +97,8 @@ export function JourneyWestC2Part8Page({
   // A refreshed page restores the saved retell evidence exactly once, so
   // choosing 以后继续 and coming back still lands on the chapter-two ending.
   if (savedEntry && !restored) {
-    const evidence = savedEntry.evidence as StoryPartEvidence;
-    setCardOrder(evidence.selections?.cause_card_order ?? []);
-    setRetell(evidence.selections?.retell_links?.[0] ?? null);
+    setCardOrder(savedSelections.cause_card_order ?? []);
+    setRetell(savedSelections.retell_links?.[0] ?? null);
     setRestored(true);
   }
 
@@ -129,7 +129,9 @@ export function JourneyWestC2Part8Page({
             build.data?.savedVersion !== null && build.data?.savedVersion !== undefined
               ? [String(build.data.savedVersion)]
               : [],
-          rerun_result: run ? [run.endCell, 'curtain-hidden', 'cave-shown'] : [],
+          rerun_result: run
+            ? [run.endCell, 'curtain-hidden', 'cave-shown']
+            : (savedSelections.rerun_result ?? []),
           continue_choice: choice ? [choice] : [],
         },
       }),

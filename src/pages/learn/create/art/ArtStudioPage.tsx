@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
@@ -177,12 +177,19 @@ export function ArtStudioPage() {
   const [celebrate, setCelebrate] = useState(false);
 
   const location = useLocation();
-  const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
+  const navigate = useNavigate();
+  const routeState = location.state as {
+    mission?: ArtMission;
+    editArtifactId?: string;
+    editProjectId?: string;
+    newCanvas?: boolean;
+  } | null;
+  const mission = routeState?.mission ?? null;
   // Reopen a saved picture to keep drawing (owner: "重新打开到画布继续画"): the
   // "🎨 Keep drawing" button in My Pictures passes the artifact's id + project. It
   // becomes the canvas BASE (loaded directly by id+project, so it works for a
   // picture in ANY project) and the ✨ bring-to-life remix ref.
-  const reopenState = location.state as { editArtifactId?: string; editProjectId?: string } | null;
+  const reopenState = routeState;
   const navReopen =
     reopenState?.editArtifactId && reopenState?.editProjectId
       ? { id: reopenState.editArtifactId, projectId: reopenState.editProjectId }
@@ -194,6 +201,14 @@ export function ArtStudioPage() {
   // the hydrate effect can start clean on the chosen picture instead of restoring
   // a stale draft over it.
   const navReopenRef = useRef(navReopen);
+  // The hub's “new” action must beat the auto-restored draft. Capture the
+  // intent once, then remove it from browser history so a later refresh keeps
+  // the new work instead of blanking it again.
+  const newCanvasRef = useRef(routeState?.newCanvas === true);
+  useEffect(() => {
+    if (!newCanvasRef.current) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, navigate]);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -241,7 +256,13 @@ export function ArtStudioPage() {
     if (!draftKey) return;
     // A fresh reopen starts clean on the chosen picture and REPLACES any stale
     // draft — never restore old strokes onto a newly opened image.
-    if (!navReopenRef.current) {
+    if (newCanvasRef.current) {
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* unavailable storage — state is already blank */
+      }
+    } else if (!navReopenRef.current) {
       try {
         const raw = localStorage.getItem(draftKey);
         if (raw) {

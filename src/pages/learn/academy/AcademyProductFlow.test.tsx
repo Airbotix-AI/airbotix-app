@@ -23,6 +23,7 @@ vi.mock('@/auth/useAuth', () => ({
 }));
 
 import { MyExamPrepPage } from './MyExamPrepPage';
+import { AcademyProductPage } from './AcademyProductPage';
 import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 
 const ENTITLEMENT = {
@@ -36,7 +37,11 @@ const ENTITLEMENT = {
     title: 'NAPLAN Year 5 Numeracy Prep',
     level_key: 'Year 5',
     subject_key: 'Numeracy',
-    exam: { slug: 'naplan', title: 'NAPLAN' },
+    exam: {
+      slug: 'naplan',
+      title: 'NAPLAN',
+      brand_config: { supported_modes: ['practice', 'mock'] },
+    },
   },
 };
 
@@ -123,5 +128,78 @@ describe('Academy sellable product flow', () => {
     } finally {
       Object.defineProperty(window, 'location', { value: original, configurable: true });
     }
+  });
+
+  it('links every published fixed paper from the entitled product page', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/academy/me/products/naplan-y5-numeracy')
+        return Promise.resolve({
+          ...ENTITLEMENT,
+          product: {
+            ...ENTITLEMENT.product,
+            _count: { question_links: 120 },
+            papers: [
+              {
+                id: 'paper-1',
+                title: '2025 full paper',
+                mode: 'fixed',
+                time_limit_minutes: 60,
+                _count: { questions: 32 },
+              },
+            ],
+          },
+        });
+      if (path === '/academy/me/products/naplan-y5-numeracy/progress')
+        return Promise.resolve({ attempts: 2, correct: 1, accuracy: 0.5 });
+      return Promise.resolve(undefined);
+    });
+
+    renderAt(
+      '/learn/exams/naplan-y5-numeracy',
+      <AcademyProductPage />,
+      '/learn/exams/:productSlug',
+    );
+
+    expect(await screen.findByText('2025 full paper')).toBeInTheDocument();
+    expect(screen.getByText(/刷题练习/)).toBeInTheDocument();
+    expect(screen.getByText(/模拟考试/)).toBeInTheDocument();
+    expect(screen.getByText('32 questions · 60 minutes')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /2025 full paper/ })).toHaveAttribute(
+      'href',
+      '/learn/exams/naplan-y5-numeracy/mock/paper-1',
+    );
+  });
+
+  it('does not promise a mock paper for a practice-only question library', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/academy/me/products/svamp-word-problems-y5')
+        return Promise.resolve({
+          ...ENTITLEMENT,
+          product: {
+            ...ENTITLEMENT.product,
+            slug: 'svamp-word-problems-y5',
+            title: 'SVAMP Year 5 Maths Word Problems',
+            exam: {
+              slug: 'svamp',
+              title: 'SVAMP',
+              brand_config: { supported_modes: ['practice'] },
+            },
+            _count: { question_links: 80 },
+            papers: [],
+          },
+        });
+      if (path === '/academy/me/products/svamp-word-problems-y5/progress')
+        return Promise.resolve({ attempts: 0, correct: 0, accuracy: 0 });
+      return Promise.resolve(undefined);
+    });
+
+    renderAt(
+      '/learn/exams/svamp-word-problems-y5',
+      <AcademyProductPage />,
+      '/learn/exams/:productSlug',
+    );
+
+    expect(await screen.findByText('Practice-only series')).toBeInTheDocument();
+    expect(screen.getByText(/not a fixed official-paper simulation/i)).toBeInTheDocument();
   });
 });
