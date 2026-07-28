@@ -69,7 +69,11 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides';
 import { isJtwOrderDebugLesson, jtwOrderBugObserved } from './jtwOrderDebug';
-import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_WUKONG_ID,
+} from './jtwC4DualBuild';
 import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
 import { StoryMissionGuide } from './StoryMissionGuide';
@@ -340,7 +344,9 @@ export function BlocksStudioPage({
   // observation) and then rerun the repaired exact chain — mirroring the
   // A2-D/A4-D debug contract "bug run and fixed run must both exist".
   const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
-  const isJtwC4DualBuild = storyMission?.lessonId === JTW_C4_P4_LESSON_ID;
+  const isJtwC4DualBuild =
+    storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
+    storyMission?.lessonId === JTW_C4_P5_LESSON_ID;
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -1058,9 +1064,10 @@ export function BlocksStudioPage({
       void runner.runTap(id).finally(() => {
         if (
           id === JTW_C4_WUKONG_ID &&
-          storyMission?.lessonId === JTW_C4_P4_LESSON_ID &&
+          (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
           missionHasRun &&
-          storyMissionProgramMatches(useBlocksStore.getState().project, JTW_C4_P4_LESSON_ID)
+          storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
         ) {
           setMissionTapObserved(true);
           setMissionCorrectRunFinished(true);
