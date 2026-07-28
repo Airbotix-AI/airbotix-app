@@ -8,7 +8,7 @@ import type { StoryMission } from './types';
 export const TSV_A4_MISSIONS: Record<string, StoryMission> = {
   'tsv-s1-a4-h': {
     mode: 'observe-only', lessonId: 'tsv-s1-a4-h', celebrate: false,
-    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 4 · Mission 13', title: 'How far is breakfast?',
     storyPages: [
       { emoji: '🚙🍎', title: 'Breakfast is waiting', body: 'The cart starts at space 4. The breakfast table waits at space 7.', speaker: 'Lumilo', dialogue: 'Point from the cart to the table.', scene: 1 },
@@ -26,7 +26,7 @@ export const TSV_A4_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a4-b': {
     mode: 'complete', lessonId: 'tsv-s1-a4-b', celebrate: true,
-    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 4 · Mission 14', title: 'How many spaces?',
     storyPages: [
       { emoji: '🚙…🍽️', title: 'The cart stopped early', body: 'Right 1 moved the cart from space 4 to space 5. The table is still at space 7.', speaker: 'Breakfast Cart', dialogue: 'I need a bigger number.', scene: 1 },
@@ -48,7 +48,7 @@ export const TSV_A4_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a4-d': {
     mode: 'observe-fix', lessonId: 'tsv-s1-a4-d', celebrate: true,
-    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 4 · Mission 15', title: 'The cart went too far!',
     storyPages: [
       { emoji: '🚙✨', title: 'Breakfast starts moving', body: 'The saved delivery worked, but a windy sparkle changed Right 3 into Right 4.', speaker: 'Breakfast Cart', dialogue: 'I will test before guessing.', scene: 1 },
@@ -66,7 +66,7 @@ export const TSV_A4_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a4-s': {
     mode: 'personal-ship', lessonId: 'tsv-s1-a4-s', celebrate: true,
-    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg' },
+    hero: { name: 'Breakfast Cart', role: 'Morning Delivery', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 4 · Mission 16', title: 'My delivery stop',
     storyPages: [
       { emoji: '🚙📦', title: 'Where should breakfast stop?', body: 'The cart always starts at space 4. Put your delivery stop 1, 2 or 3 spaces to the right and the story becomes yours.', speaker: 'Breakfast Cart', dialogue: 'Tell me where to stop today.', scene: 1 },

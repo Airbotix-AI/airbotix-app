@@ -1,5 +1,63 @@
 # Changelog
 
+## 2026-07-26 (fix: "Draw a new picture" opens a blank canvas again)
+
+### Fixed
+- The Art Studio hub's **"Draw a new picture"** now really does start a blank page. Since the
+  canvas began auto-saving an unsaved drawing, any plain visit to `/learn/create/image/canvas`
+  restored that draft — so "new" handed the child back the picture they drew last time
+  (owner 2026-07-26). The hub now asks for a fresh page explicitly and the canvas honours it.
+- Reopening a picture (or starting fresh) and then **refreshing** no longer replays the click
+  that got you there and discards the work done since. Those navigations are consumed once;
+  every reload after that is served by the auto-saved draft.
+
+### Changed
+- When an unsaved canvas exists, the hub's continue card offers **that** ("Keep drawing your
+  unfinished picture") instead of the last saved picture — it is the newer work and the only
+  copy, and it stays offered right up until the child chooses a new picture.
+- Draft storage (key, shape, read/write/clear) moves into one shared `artDraft.ts` module so the
+  hub and the canvas can never disagree about what "the current draft" is.
+
+## 2026-07-28 (refactor: split Blocks Studio below the file-size hard limit)
+
+### Changed
+
+- Split the 3,066-line `BlocksStudioPage.tsx` into focused toolbar, stage,
+  coding-band, Tiny Star personalisation, dialog and drag-overlay components,
+  plus dedicated sprite/block/palette drag, block editor, persistence, mission
+  selector and bell-visual hooks. The page is now 990 lines and every extracted
+  TypeScript/TSX module remains below 400 lines.
+- Preserved the existing DOM, test IDs, CSS classes, store mutation funnel,
+  autosave serialisation, server-wins loading, runner callback order and Tiny
+  Star/Journey mission evidence contracts. This is a behaviour-neutral
+  maintainability refactor; the public Story Blocks demo still renders the real
+  studio unchanged.
+
+## 2026-07-28 (feat: Tiny Star completion backgrounds)
+
+### Changed
+
+- Eligible Tiny Star Village missions now switch to their formal resolved
+  background after verified completion without mutating the saved starter-scene
+  ID. Observation-only A5-H and A6-H remain on their before art, while the A6-S
+  finale resolves the clocktower after the child completes their own ending.
+
+## 2026-07-27 (feat: Tiny Star terminal character poses)
+
+### Changed
+
+- Tiny Star Village now swaps the completing character to its formal success
+  pose after a verified mission run. Transient Hop, Say and movement steps keep
+  the existing layered puppets, and the A6 finale celebrates whichever friend
+  the child actually chose to ring the bell.
+- Chapter six now uses its formal clocktower-path background and overlays the
+  internal still/swing morning-bell frames only while Pop runs. The Bell Tower
+  remains a fixed, asset-less and script-less target in saved project data.
+- Chapters three and five now use their formal rooftop and greeting-stage
+  backgrounds across all four mission contracts. Chapter four uses the formal
+  right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
+  saved projects using the exact legacy cart SVG remain compatible.
+
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed

@@ -27,8 +27,8 @@
 import type { Block, Character, Page } from './blocksModel';
 import { TINY_STAR_DUET_CAST, tinyStarDuetFriendOf, type TinyStarDuetFriend } from './tinyStarDuet';
 
-/** A6: the shared stage of scene-specs §7 — the sunset Bell Tower square. */
-export const TINY_STAR_BELL_BACKGROUND = 'sunset';
+/** A6: the shared formal clocktower-path stage of scene-specs §7. */
+export const TINY_STAR_BELL_BACKGROUND = 'tsv-clocktower-path';
 export const TINY_STAR_BELL_GY = 10;
 
 /**
@@ -39,19 +39,24 @@ export const TINY_STAR_BELL_GY = 10;
 export const TINY_STAR_BELL_RINGER_ID = 'little-light';
 export const TINY_STAR_BELL_RINGER_NAME = 'Lumilo';
 export const TINY_STAR_BELL_RINGER_ASSET =
-  '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+  '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 /** A6: the ringer starts three spaces short of the tower (scene-specs §7). */
 export const TINY_STAR_BELL_RINGER_GX = 5;
 
 /**
- * A6: the Bell Tower target. scene-specs §1.1 records that NO bell art exists
- * yet — the tower is "背景构图＋`⭐`目标" — so it ships as a script-less `⭐`
- * proxy on the shipped `sunset` background, the same emoji-proxy shape A2's
- * Plaza Star and A4's delivery stop already use. No new asset is invented.
+ * A6: the Bell Tower target remains a script-less, asset-less saved actor so
+ * existing project JSON and completion contracts stay stable. Blocks Studio
+ * replaces its `⭐` fallback with the formal bell art at render time only.
  */
 export const TINY_STAR_BELL_TOWER_ID = 'bell-tower';
 export const TINY_STAR_BELL_TOWER_NAME = 'Bell Tower';
 export const TINY_STAR_BELL_TOWER_EMOJI = '⭐';
+export const TINY_STAR_BELL_STILL_ASSET =
+  '/story-blocks/tiny-star-village/props/morning-bell-still-v01.png';
+export const TINY_STAR_BELL_SWING_ASSET =
+  '/story-blocks/tiny-star-village/props/morning-bell-swing-v01.png';
+/** Keep the tilted frame visible beyond Pop's short sound step. */
+export const TINY_STAR_BELL_SWING_MS = 500;
 export const TINY_STAR_BELL_TOWER_GX = 8;
 /** scene-specs §7 places the tower target above the walking row, at `gy=7`. */
 export const TINY_STAR_BELL_TOWER_GY = 7;
@@ -71,6 +76,16 @@ export const TINY_STAR_BELL_BUILD_PAGE_ID = 'tsv-a6-b-page';
 export const TINY_STAR_BELL_FIX_PAGE_ID = 'tsv-a6-d-page';
 /** A6-S: the page of the season's Personal Ship — the chapter stage one last time. */
 export const TINY_STAR_BELL_FINALE_PAGE_ID = 'tsv-a6-s-page';
+export const TINY_STAR_BELL_PAGE_IDS: readonly string[] = [
+  TINY_STAR_BELL_HOOK_PAGE_ID,
+  TINY_STAR_BELL_BUILD_PAGE_ID,
+  TINY_STAR_BELL_FIX_PAGE_ID,
+  TINY_STAR_BELL_FINALE_PAGE_ID,
+];
+
+export function isTinyStarBellPageId(pageId: string): boolean {
+  return TINY_STAR_BELL_PAGE_IDS.includes(pageId);
+}
 /** A6: every chapter-six scene walks the SAME route, so it keeps one script id. */
 export const TINY_STAR_BELL_ROUTE_SCRIPT_ID = 'little-light-bell-route';
 
@@ -234,7 +249,7 @@ export const TINY_STAR_BELL_FINALE_TARGET: readonly Block[] = [
 
 /**
  * A6: chapter six's stage, in the shape `storyMissionProgress`'s contract map
- * expects. All three scenes stand on the SAME `sunset` Bell Tower square with
+ * expects. All four scenes stand on the SAME formal clocktower-path stage with
  * the same ringer and the same script-less tower — only the page and the route
  * differ — so the stage is written once here and spread there, exactly as the
  * chapter-one scenes share `LUMI_CONTRACT`.
@@ -299,7 +314,7 @@ export function tinyStarBellRouteUnchanged(page: Page | undefined): boolean {
  * The Logic Build shares the Hook's stage, so everything around the route is
  * still held fixed — the ringer's square, size and formal asset, the one script
  * it owns, the script-less Bell Tower on its own square and the two-character
- * `sunset` page. The route itself must be exactly the Hook's route plus a
+ * formal clocktower-path page. The route itself must be exactly the Hook's route plus a
  * `hop 1` between the walk and the bell: a Hop appended after the Pop (which is
  * where a palette tap lands it), a second Hop, a `hop 2` left on the block's
  * default, a retuned walk or a deleted Pop all fail.
@@ -435,7 +450,7 @@ export interface TinyStarFinaleDesign {
  * ships the chapter's settled three-step core with NOBODY cast as the ringer and
  * no ending at all, so neither of the child's two decisions can be inherited.
  *
- * A finished finale is: chapter six's untouched `sunset` stage (the ringer on
+ * A finished finale is: chapter six's untouched formal clocktower-path stage (the ringer on
  * its shipped square with one script, the script-less `⭐` Bell Tower on its own
  * square, two characters and nothing else), one of the three season friends cast
  * as the ringer, the fixed core `Start → Right 3 → Hop 1 → Pop` exactly as A6-B

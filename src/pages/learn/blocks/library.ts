@@ -205,7 +205,14 @@ export interface SceneChoice {
 // id → CSS-animated background in blocks.css (`.bsx-stage[data-scene="<id>"]`).
 export const SCENES: SceneChoice[] = [
   { id: 'tsv-window-room-dim', label: 'Lumilo’s room', emoji: '🌟' },
-  { id: 'tsv-cloud-path-meadow', label: 'Cloud path', emoji: '☁️' },
+  { id: 'tsv-cloud-road-right', label: 'Cloud road · right star', emoji: '➡️' },
+  { id: 'tsv-cloud-road-left-target', label: 'Cloud road · left star', emoji: '⬅️' },
+  { id: 'tsv-rooftop', label: 'Dot Dot’s rooftop', emoji: '🌙' },
+  { id: 'tsv-breakfast-stop-distance-1', label: 'Breakfast stop · 1', emoji: '1️⃣' },
+  { id: 'tsv-breakfast-stop-distance-2', label: 'Breakfast stop · 2', emoji: '2️⃣' },
+  { id: 'tsv-breakfast-stop-distance-3', label: 'Breakfast stop · 3', emoji: '3️⃣' },
+  { id: 'tsv-greeting-stage', label: 'Greeting stage', emoji: '💬' },
+  { id: 'tsv-clocktower-path', label: 'Clocktower path', emoji: '🔔' },
   { id: 'meadow', label: 'Meadow', emoji: '🌳' },
   { id: 'space', label: 'Space', emoji: '🌌' },
   { id: 'beach', label: 'Beach', emoji: '🏖️' },

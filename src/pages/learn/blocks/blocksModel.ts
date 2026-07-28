@@ -260,7 +260,7 @@ function safeCharacterAsset(value: unknown): string | undefined {
 }
 
 const TINY_STAR_A1_H_ASSET =
-  '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+  '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 
 function legacyLessonId(pages: Page[]): string | undefined {
   const page = pages[0];

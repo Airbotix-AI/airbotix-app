@@ -8,7 +8,7 @@ import type { StoryMission } from './types';
 export const TSV_A5_MISSIONS: Record<string, StoryMission> = {
   'tsv-s1-a5-h': {
     mode: 'observe-only', lessonId: 'tsv-s1-a5-h', celebrate: false,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 5 · Mission 17', title: 'Who is speaking?',
     storyPages: [
       { emoji: '⭐🐻', title: 'Two friends, one good morning', body: 'Breakfast arrived, so Lumilo and Tuan Tuan both came to say good morning. Each friend has a finished program of their own.', speaker: 'Lumilo', dialogue: 'Tuan Tuan is here too!', scene: 1 },
@@ -50,7 +50,7 @@ export const TSV_A5_MISSIONS: Record<string, StoryMission> = {
   // placement is genuinely the child's move, not the product's.
   'tsv-s1-a5-b': {
     mode: 'complete', lessonId: 'tsv-s1-a5-b', celebrate: true,
-    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 5 · Mission 18', title: 'Wait a moment',
     storyPages: [
       { emoji: '💬💬', title: 'Two good mornings at once', body: 'Last time both friends spoke on the same Go and nobody could hear either one. Tuan Tuan would like to go second this time.', speaker: 'Tuan Tuan', dialogue: 'I do not mind waiting for Lumi.', scene: 1 },
@@ -87,7 +87,7 @@ export const TSV_A5_MISSIONS: Record<string, StoryMission> = {
   // wrong, and several numbers are right, which is the whole Checkpoint B point.
   'tsv-s1-a5-d': {
     mode: 'observe-fix', lessonId: 'tsv-s1-a5-d', celebrate: true,
-    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg' },
+    hero: { name: 'Tuan Tuan', role: 'Cloud-path Maker', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 5 · Mission 19', title: 'That wait was too long!',
     storyPages: [
       { emoji: '⭐🦘🐻', title: 'A bouncing good morning', body: 'Taking turns worked so well that Lumi and Tuan Tuan now say good morning with a bounce. Lumi bounces first, then Tuan Tuan bounces back.', speaker: 'Lumilo', dialogue: 'You can SEE a bounce take its turn.', scene: 1 },
@@ -110,7 +110,7 @@ export const TSV_A5_MISSIONS: Record<string, StoryMission> = {
   // both spots and ships two empty chains, so it cannot complete itself.
   'tsv-s1-a5-s': {
     mode: 'personal-ship', lessonId: 'tsv-s1-a5-s', celebrate: true,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 5 · Mission 20', title: 'My two-friend greeting',
     storyPages: [
       { emoji: '⭐⭐', title: 'Two Lumis? That is not a duet', body: 'The greeting stage is set, but the same friend is standing in both spots. Choose two different friends: Lumi, Tuan Tuan or Dot Dot.', speaker: 'Lumilo', dialogue: 'A duet needs two of us!', scene: 1 },

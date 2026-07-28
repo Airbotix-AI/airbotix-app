@@ -57,6 +57,8 @@ export interface StoryMissionProgramContract {
   target: Block[];
   allowedSayText?: readonly string[];
   start?: { gx: number; gy: number; size: number; rot: number };
+  /** Exact number of movable/scriptable actors allowed on the page. */
+  characterCount?: number;
   sceneTarget?: {
     id: string;
     name: string;

@@ -1,5 +1,6 @@
 import type { CharacterPerformance } from './characterPerformance';
 import { LumiloCharacter } from './LumiloCharacter';
+import { tinyStarPerformanceAsset } from './tinyStarPerformanceAssets';
 import { TuanTuanCharacter } from './TuanTuanCharacter';
 
 const LUMILO_ASSET_SEGMENT = '/tiny-star-village/characters/little-light/';
@@ -16,6 +17,20 @@ export function CharacterVisual({
   className,
   performance = 'idle',
 }: CharacterVisualProps) {
+  const performanceAsset = tinyStarPerformanceAsset(character.asset, performance);
+  if (performanceAsset) {
+    return (
+      <img
+        alt=""
+        aria-hidden="true"
+        className={className}
+        data-performance={performance}
+        data-performance-asset="true"
+        draggable={false}
+        src={performanceAsset}
+      />
+    );
+  }
   if (character.asset?.includes(LUMILO_ASSET_SEGMENT)) {
     return <LumiloCharacter className={className} performance={performance} />;
   }

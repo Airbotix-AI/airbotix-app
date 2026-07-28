@@ -12,7 +12,7 @@ export const TSV_A2_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Tuan Tuan',
       role: 'Cloud-path Maker',
-      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     },
     celebrate: false,
     eyebrow: 'Tiny Star Village · Chapter 2 · Mission 5',
@@ -101,7 +101,7 @@ export const TSV_A2_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Tuan Tuan',
       role: 'Cloud-path Maker',
-      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 2 · Mission 6',
     title: 'Choose one arrow for the plaza',
@@ -187,7 +187,7 @@ export const TSV_A2_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Tuan Tuan',
       role: 'Cloud-path Maker',
-      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 2 · Mission 7',
     title: 'Tuan Tuan walked the wrong way again',
@@ -270,7 +270,7 @@ export const TSV_A2_MISSIONS: Record<string, StoryMission> = {
     hero: {
       name: 'Tuan Tuan',
       role: 'Cloud-path Maker',
-      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     },
     eyebrow: 'Tiny Star Village · Chapter 2 · Mission 8',
     title: 'Make your own two-step path',
