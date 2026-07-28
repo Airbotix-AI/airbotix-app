@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a friendly waving robot</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M221 297h188c26 0 43 17 43 43v145c0 26-17 43-43 43H221c-26 0-43-17-43-43V340c0-26 17-43 43-43Z"/>
+    <path d="M201 98h228c30 0 50 20 50 50v91c0 30-20 50-50 50H201c-30 0-50-20-50-50v-91c0-30 20-50 50-50Z"/><path d="M240 98 226 55m164 43 14-43"/><circle cx="222" cy="48" r="18"/><circle cx="408" cy="48" r="18"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M178 347 95 403l-20 75m377-131 72-71 31-62M249 528v55m132-55v55M206 583h86m46 0h86"/></g>
+  </g>
+</svg>

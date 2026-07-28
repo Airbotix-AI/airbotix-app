@@ -272,8 +272,8 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
-  it('groups eight simple choices and eight preserved challenge choices', async () => {
-    const titles = [
+  it('groups sixteen simple choices and eight preserved challenge choices', async () => {
+    const originalTitles = [
       'Draw a T-Rex',
       'Draw a Kitten',
       'Draw a Puppy',
@@ -283,9 +283,20 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       'Draw a Unicorn',
       'Draw a Race Car',
     ];
-    guidedTasks = titles.map((title, index) => ({
+    const simpleTitles = [
+      ...originalTitles,
+      'Draw a Panda',
+      'Draw a Bunny',
+      'Draw a Butterfly',
+      'Draw a Triceratops',
+      'Draw a Sea Turtle',
+      'Draw a Robot',
+      'Draw an Excavator',
+      'Draw a Baby Dragon',
+    ];
+    guidedTasks = simpleTitles.map((title, index) => ({
       slug: `task-${index}`,
-      version: 4,
+      version: index < originalTitles.length ? 4 : 1,
       title,
       short_description: `Guided drawing ${index + 1}`,
       category: 'animals',
@@ -297,7 +308,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
     }));
     guidedTasks.push(
-      ...titles.map((title, index) => ({
+      ...originalTitles.map((title, index) => ({
         slug: `task-${index}-challenge`,
         version: 1,
         title: `${title} — Challenge`,
@@ -314,13 +325,13 @@ describe('ArtHubPage — concrete drawing ideas', () => {
 
     renderHub();
 
-    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(16);
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(24);
     expect(screen.getByTestId('art-guided-simple')).toHaveTextContent('Start Simple');
     expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent(
       'Ready for a Challenge?',
     );
-    titles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
-    titles.forEach((title) =>
+    simpleTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+    originalTitles.forEach((title) =>
       expect(screen.getByText(`${title} — Challenge`)).toBeInTheDocument(),
     );
 

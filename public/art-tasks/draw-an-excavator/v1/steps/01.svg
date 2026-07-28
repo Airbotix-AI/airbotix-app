@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 1 for drawing a friendly excavator</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M235 438h264c45 0 75 27 75 63s-30 63-75 63H235c-45 0-75-27-75-63s30-63 75-63Z"/><path d="M247 467h240c27 0 45 14 45 34s-18 34-45 34H247c-27 0-45-14-45-34s18-34 45-34Z"/><circle cx="278" cy="501" r="24"/><circle cx="456" cy="501" r="24"/></g>
+  </g>
+</svg>

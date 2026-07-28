@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a swimming sea turtle to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="344" cy="318" rx="154" ry="112"/>
+    <ellipse cx="149" cy="304" rx="68" ry="53"/><path d="M220 271c-63-56-111-40-116 12-4 44 35 76 112 63M250 387c-77 29-98 91-52 112 42 19 90-33 108-89m123-29c61 18 95 66 61 94-35 29-91-12-110-68m100-119c69-39 112-16 101 32-9 40-60 62-111 44M495 325l49 19-48 19"/>
+    <path d="M344 206v224M208 318h272M251 244c51 35 135 35 186 0m-186 148c51-35 135-35 186 0m-45-169c-20 56-20 135 0 190m-96-190c20 56 20 135 0 190"/>
+    <circle cx="130" cy="292" r="8" fill="#2C3642"/><path d="M113 326c22 17 46 17 67 1"/><circle cx="88" cy="218" r="12"/><circle cx="62" cy="178" r="8"/><circle cx="96" cy="151" r="6"/>
+  </g>
+</svg>

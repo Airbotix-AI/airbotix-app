@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a panda holding bamboo to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="315" cy="372" rx="126" ry="145"/>
+    <circle cx="315" cy="220" r="118"/><circle cx="228" cy="126" r="39"/><circle cx="402" cy="126" r="39"/>
+    <ellipse cx="247" cy="454" rx="53" ry="35"/><ellipse cx="383" cy="454" rx="53" ry="35"/><path d="M222 322c24 55 54 80 93 83m93-83c-24 55-54 80-93 83M388 442 468 207m-58 169 48-38m-34-5 41-26m-22-30 33-20"/>
+    <ellipse cx="268" cy="211" rx="31" ry="42"/><ellipse cx="362" cy="211" rx="31" ry="42"/><circle cx="274" cy="215" r="8" fill="#2C3642"/><circle cx="356" cy="215" r="8" fill="#2C3642"/><ellipse cx="315" cy="262" rx="20" ry="14"/><path d="M315 276v18m0 0c-18 17-38 17-54 0m54 0c18 17 38 17 54 0"/><ellipse cx="315" cy="395" rx="62" ry="78"/>
+  </g>
+</svg>

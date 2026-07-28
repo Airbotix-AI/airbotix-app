@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const OUTPUT_ROOT = join(process.cwd(), 'public', 'art-tasks');
-const VERSION = 'v3';
+const DEFAULT_VERSION = 'v3';
 const INK = '#2C3642';
 const PAPER = '#FFFEF7';
 const COVER = '#FFF3F8';
@@ -89,6 +89,94 @@ const tasks = [
       '<ellipse cx="121" cy="340" rx="30" ry="18"/><path d="M75 370h61m364-116 56 34M297 279h116m-126 43h155"/>',
     ],
   },
+  {
+    slug: 'draw-a-panda',
+    version: 'v1',
+    alt: 'a panda holding bamboo',
+    stages: [
+      '<ellipse cx="315" cy="372" rx="126" ry="145"/>',
+      '<circle cx="315" cy="220" r="118"/><circle cx="228" cy="126" r="39"/><circle cx="402" cy="126" r="39"/>',
+      '<ellipse cx="247" cy="454" rx="53" ry="35"/><ellipse cx="383" cy="454" rx="53" ry="35"/><path d="M222 322c24 55 54 80 93 83m93-83c-24 55-54 80-93 83M388 442 468 207m-58 169 48-38m-34-5 41-26m-22-30 33-20"/>',
+      '<ellipse cx="268" cy="211" rx="31" ry="42"/><ellipse cx="362" cy="211" rx="31" ry="42"/><circle cx="274" cy="215" r="8" fill="#2C3642"/><circle cx="356" cy="215" r="8" fill="#2C3642"/><ellipse cx="315" cy="262" rx="20" ry="14"/><path d="M315 276v18m0 0c-18 17-38 17-54 0m54 0c18 17 38 17 54 0"/><ellipse cx="315" cy="395" rx="62" ry="78"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-bunny',
+    version: 'v1',
+    alt: 'a bunny holding a carrot',
+    stages: [
+      '<ellipse cx="315" cy="382" rx="116" ry="140"/>',
+      '<circle cx="315" cy="233" r="104"/><ellipse cx="265" cy="99" rx="35" ry="103" transform="rotate(-12 265 99)"/><ellipse cx="365" cy="99" rx="35" ry="103" transform="rotate(12 365 99)"/>',
+      '<ellipse cx="247" cy="493" rx="72" ry="40" transform="rotate(-10 247 493)"/><ellipse cx="383" cy="493" rx="72" ry="40" transform="rotate(10 383 493)"/><circle cx="436" cy="393" r="39"/><path d="M253 340c24 50 44 72 62 72m62-72c-24 50-44 72-62 72"/>',
+      '<circle cx="278" cy="225" r="8" fill="#2C3642"/><circle cx="352" cy="225" r="8" fill="#2C3642"/><path d="m315 254-14 11 14 12 14-12-14-11Zm0 23v18m0 0c-16 15-33 15-48 1m48-1c16 15 33 15 48 1M303 383l55-82 39 26-58 96Z"/><path d="m359 302 7-47m3 49 31-36m-25 42 48-13"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-butterfly',
+    version: 'v1',
+    alt: 'a butterfly with open wings',
+    stages: [
+      '<ellipse cx="300" cy="338" rx="25" ry="119"/><circle cx="300" cy="205" r="36"/>',
+      '<path d="M280 251C205 113 63 97 65 236c1 91 92 126 215 92Z"/><path d="M320 251c75-138 217-154 215-15-1 91-92 126-215 92Z"/><path d="M278 334C170 318 103 386 151 476c42 78 112 19 137-64Z"/><path d="M322 334c108-16 175 52 127 142-42 78-112 19-137-64Z"/>',
+      '<path d="M289 174c-18-50-53-61-71-70m93 70c18-50 53-61 71-70M104 222c55 13 105 42 150 86m242-86c-55 13-105 42-150 86M173 401c40-13 74-29 103-53m151 53c-40-13-74-29-103-53"/>',
+      '<circle cx="229" cy="216" r="19"/><circle cx="371" cy="216" r="19"/><circle cx="185" cy="271" r="14"/><circle cx="415" cy="271" r="14"/><circle cx="219" cy="399" r="17"/><circle cx="381" cy="399" r="17"/><circle cx="289" cy="207" r="6" fill="#2C3642"/><circle cx="311" cy="207" r="6" fill="#2C3642"/><path d="M286 228c9 10 19 10 28 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-triceratops',
+    version: 'v1',
+    alt: 'a friendly triceratops',
+    stages: [
+      '<ellipse cx="371" cy="359" rx="145" ry="88"/>',
+      '<path d="M240 164c75-27 151 15 151 94 0 82-68 126-151 110-77-15-115-87-80-150 17-31 45-48 80-54Z"/><ellipse cx="209" cy="282" rx="82" ry="62"/><polygon points="176,229 132,158 204,213"/><polygon points="238,214 229,131 269,211"/><polygon points="184,281 122,259 175,308"/>',
+      '<path d="M278 411v103m61-79v79m87-79v79m62-103v103M257 514h44m20 0h43m42 0h43m20 0h42"/><path d="M494 336c58-16 92-51 103-96-1 71-32 118-96 145"/>',
+      '<circle cx="193" cy="272" r="8" fill="#2C3642"/><path d="M157 316c28 20 59 21 91 4M154 337h48"/><circle cx="239" cy="190" r="12"/><circle cx="290" cy="183" r="10"/><circle cx="336" cy="210" r="12"/><circle cx="371" cy="340" r="13"/><circle cx="417" cy="358" r="11"/><circle cx="454" cy="331" r="10"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-sea-turtle',
+    version: 'v1',
+    alt: 'a swimming sea turtle',
+    stages: [
+      '<ellipse cx="344" cy="318" rx="154" ry="112"/>',
+      '<ellipse cx="149" cy="304" rx="68" ry="53"/><path d="M220 271c-63-56-111-40-116 12-4 44 35 76 112 63M250 387c-77 29-98 91-52 112 42 19 90-33 108-89m123-29c61 18 95 66 61 94-35 29-91-12-110-68m100-119c69-39 112-16 101 32-9 40-60 62-111 44M495 325l49 19-48 19"/>',
+      '<path d="M344 206v224M208 318h272M251 244c51 35 135 35 186 0m-186 148c51-35 135-35 186 0m-45-169c-20 56-20 135 0 190m-96-190c20 56 20 135 0 190"/>',
+      '<circle cx="130" cy="292" r="8" fill="#2C3642"/><path d="M113 326c22 17 46 17 67 1"/><circle cx="88" cy="218" r="12"/><circle cx="62" cy="178" r="8"/><circle cx="96" cy="151" r="6"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-robot',
+    version: 'v1',
+    alt: 'a friendly waving robot',
+    stages: [
+      '<path d="M221 297h188c26 0 43 17 43 43v145c0 26-17 43-43 43H221c-26 0-43-17-43-43V340c0-26 17-43 43-43Z"/>',
+      '<path d="M201 98h228c30 0 50 20 50 50v91c0 30-20 50-50 50H201c-30 0-50-20-50-50v-91c0-30 20-50 50-50Z"/><path d="M240 98 226 55m164 43 14-43"/><circle cx="222" cy="48" r="18"/><circle cx="408" cy="48" r="18"/>',
+      '<path d="M178 347 95 403l-20 75m377-131 72-71 31-62M249 528v55m132-55v55M206 583h86m46 0h86"/>',
+      '<circle cx="247" cy="187" r="24"/><circle cx="383" cy="187" r="24"/><path d="M274 234c27 25 55 25 82 0M315 389c-39-47-93 4 0 76 93-72 39-123 0-76Z"/><circle cx="248" cy="486" r="10"/><circle cx="382" cy="486" r="10"/>',
+    ],
+  },
+  {
+    slug: 'draw-an-excavator',
+    version: 'v1',
+    alt: 'a friendly excavator',
+    stages: [
+      '<path d="M235 438h264c45 0 75 27 75 63s-30 63-75 63H235c-45 0-75-27-75-63s30-63 75-63Z"/><path d="M247 467h240c27 0 45 14 45 34s-18 34-45 34H247c-27 0-45-14-45-34s18-34 45-34Z"/><circle cx="278" cy="501" r="24"/><circle cx="456" cy="501" r="24"/>',
+      '<path d="M330 232h132c44 0 76 35 76 79v127H287V311c0-44 20-79 43-79Z"/><path d="M350 261h93c29 0 52 24 52 53v69H325v-69c0-29 11-53 25-53Z"/>',
+      '<path d="M305 319 188 173l-37 31 113 180"/><path d="m188 173-79-91-37 33 79 89"/><path d="M109 82 43 73 27 161l89 26 35-18"/>',
+      '<circle cx="188" cy="173" r="13"/><circle cx="151" cy="204" r="13"/><circle cx="305" cy="319" r="13"/><circle cx="380" cy="316" r="8" fill="#2C3642"/><circle cx="438" cy="316" r="8" fill="#2C3642"/><path d="M387 350c15 13 30 13 45 0m70 43h25m-25 17h25"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-baby-dragon',
+    version: 'v1',
+    alt: 'a friendly baby dragon',
+    stages: [
+      '<ellipse cx="346" cy="375" rx="122" ry="132"/>',
+      '<ellipse cx="214" cy="224" rx="91" ry="73"/><ellipse cx="150" cy="251" rx="54" ry="37"/><path d="M276 263c-51 30-72 70-65 123M449 393c83-14 130 23 118 81-8 38-42 62-82 65"/>',
+      '<path d="M364 292c18-90 90-120 139-60l-74 105m-78-38c-30-63-78-80-112-42l63 72M277 465v75m71-50v50m70-50v50m66-75v75M253 540h48m23 0h48m22 0h48m19 0h48"/>',
+      '<polygon points="174,171 163,106 208,158"/><polygon points="236,151 260,94 278,167"/><polygon points="542,501 590,480 566,528"/><path d="m431 458 20-25 20 26m27 24 20-24 19 24m-163-190 18-23 18 24"/><circle cx="183" cy="216" r="8" fill="#2C3642"/><circle cx="238" cy="210" r="8" fill="#2C3642"/><path d="M117 273c23 17 49 17 72 0"/>',
+    ],
+  },
 ];
 
 function wrapSvg(title, content, backgroundColor = null) {
@@ -110,7 +198,7 @@ ${indentedContent}
 }
 
 for (const task of tasks) {
-  const directory = join(OUTPUT_ROOT, task.slug, VERSION);
+  const directory = join(OUTPUT_ROOT, task.slug, task.version ?? DEFAULT_VERSION);
   const stepsDirectory = join(directory, 'steps');
   const simpleStages = task.stages.slice(0, 4);
   const completeDrawing = simpleStages.join('\n');
