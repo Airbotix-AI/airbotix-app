@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-28 (refactor: split Blocks Studio below the file-size hard limit)
+
+### Changed
+
+- Split the 3,066-line `BlocksStudioPage.tsx` into focused toolbar, stage,
+  coding-band, Tiny Star personalisation, dialog and drag-overlay components,
+  plus dedicated sprite/block/palette drag, block editor, persistence, mission
+  selector and bell-visual hooks. The page is now 990 lines and every extracted
+  TypeScript/TSX module remains below 400 lines.
+- Preserved the existing DOM, test IDs, CSS classes, store mutation funnel,
+  autosave serialisation, server-wins loading, runner callback order and Tiny
+  Star/Journey mission evidence contracts. This is a behaviour-neutral
+  maintainability refactor; the public Story Blocks demo still renders the real
+  studio unchanged.
+
 ## 2026-07-28 (feat: Tiny Star completion backgrounds)
 
 ### Changed
