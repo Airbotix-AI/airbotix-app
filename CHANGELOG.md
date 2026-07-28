@@ -40,6 +40,18 @@
   right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
   saved projects using the exact legacy cart SVG remain compatible.
 
+## 2026-07-27 (fix: Art Studio tasks explain what to do)
+
+### Fixed
+- The whole Art Studio task card is now clickable. Previously only the small `Start →` button
+  opened the task, so tapping the title or description looked broken.
+- Authored Mission steps now travel from both the Art Studio hub and the course lesson page into
+  Mission Mode. The canvas shows the numbered learning sequence instead of only a title and
+  summary.
+- A blank free-play canvas now shows a three-step start guide: tell the tutor the idea, draw or
+  request a ghost sketch, then bring the sketch to life. Drawing remains free and AI costs remain
+  visible before use.
+
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed
