@@ -134,7 +134,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -181,7 +181,7 @@ describe('BlocksStudioPage zone labels', () => {
           id: 'little-light',
           name: 'Lumilo',
           emoji: '⭐',
-          asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -211,6 +211,18 @@ describe('BlocksStudioPage zone labels', () => {
     await renderStudio();
 
     expect(await screen.findByTestId('story-mission-success')).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-scene',
+      'tsv-window-room-dim',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'resolved',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-window-room-resolved-bright',
+    );
     expect(screen.getByTestId('story-completion-evidence')).toHaveTextContent('Work saved');
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('go-button'));
@@ -218,9 +230,15 @@ describe('BlocksStudioPage zone labels', () => {
       await screen.findByTestId('story-mission-success', {}, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
-    expect(screen.getByTestId('sprite-little-light').querySelector('svg')).toHaveAttribute(
+    expect(
+      screen.getByTestId('sprite-little-light').querySelector('[data-performance="success"]'),
+    ).toHaveAttribute(
       'data-performance',
       'success',
+    );
+    expect(screen.getByTestId('sprite-little-light').querySelector('img')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/characters/little-light/success-joyful-v01.png',
     );
     fireEvent.click(screen.getByTestId('story-next-mission'));
     await waitFor(() =>
@@ -236,13 +254,13 @@ describe('BlocksStudioPage zone labels', () => {
     directionProject.lessonId = 'tsv-s1-a2-h';
     directionProject.pages[0] = {
       id: 'tsv-a2-h-page',
-      background: 'tsv-cloud-path-meadow',
+      background: 'tsv-cloud-road-right',
       characters: [
         {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -250,13 +268,6 @@ describe('BlocksStudioPage zone labels', () => {
               blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
             },
           ],
-        },
-        {
-          id: 'plaza-target',
-          name: 'Plaza Star',
-          emoji: '⭐',
-          start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
-          scripts: [],
         },
       ],
     };
@@ -285,14 +296,15 @@ describe('BlocksStudioPage zone labels', () => {
     expect(await screen.findByTestId('story-tuan-tuan')).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '8');
-    expect(screen.getByTestId('sprite-plaza-target')).toHaveAttribute('data-gx', '11');
+    expect(screen.queryByTestId('sprite-plaza-target')).not.toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-target-gx', '11');
 
     fireEvent.click(screen.getByTestId('go-button'));
     expect(
       await screen.findByTestId('story-mission-question', {}, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '5');
-    expect(screen.getByTestId('sprite-plaza-target')).toHaveAttribute('data-gx', '11');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-target-gx', '11');
     expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('story-choice-closer'));
@@ -361,22 +373,15 @@ describe('BlocksStudioPage zone labels', () => {
     personalPath.lessonId = 'tsv-s1-a2-s';
     personalPath.pages[0] = {
       id: 'tsv-a2-s-page',
-      background: 'tsv-cloud-path-meadow',
+      background: 'tsv-cloud-road-right',
       characters: [
         {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [{ id: 'tuan-tuan-flag', blocks: [{ op: 'when_flag' }, { op: 'end' }] }],
-        },
-        {
-          id: 'plaza-target',
-          name: 'My Home Star',
-          emoji: '⭐',
-          start: { gx: 8, gy: 10, size: 0.8, rot: 0 },
-          scripts: [],
         },
       ],
     };
@@ -393,13 +398,15 @@ describe('BlocksStudioPage zone labels', () => {
     const picker = screen.getByTestId('a2-s-endpoint-picker');
     expect(picker).toHaveTextContent('Choose my home star');
     const rightHome = screen.getByTestId('a2-s-endpoint-right');
-    expect(rightHome).toHaveAttribute('aria-pressed', 'false');
-
-    fireEvent.click(rightHome);
-
     expect(rightHome).toHaveAttribute('aria-pressed', 'true');
     expect(rightHome).toHaveClass('selected');
-    expect(useBlocksStore.getState().project.pages[0].characters[1].start.gx).toBe(10);
+    fireEvent.click(screen.getByTestId('a2-s-endpoint-left'));
+    expect(useBlocksStore.getState().project.pages[0].background).toBe(
+      'tsv-cloud-road-left-target',
+    );
+    fireEvent.click(rightHome);
+    expect(useBlocksStore.getState().project.pages[0].background).toBe('tsv-cloud-road-right');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-target-gx', '10');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     fireEvent.click(screen.getByTestId('cat-motion'));
@@ -430,18 +437,18 @@ describe('BlocksStudioPage zone labels', () => {
     );
   });
 
-  it('makes A2-B palette arrows fixed at 3, inserts before End, and completes only at gx11', async () => {
+  it('makes A2-B arrows fixed at 3 and completes at the locked gx11 target', async () => {
     const directionBuild = blankProject('Tiny Star Village · Choose an Arrow');
     directionBuild.lessonId = 'tsv-s1-a2-b';
     directionBuild.pages[0] = {
       id: 'tsv-a2-b-page',
-      background: 'tsv-cloud-path-meadow',
+      background: 'tsv-cloud-road-right',
       characters: [
         {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -449,13 +456,6 @@ describe('BlocksStudioPage zone labels', () => {
               blocks: [{ op: 'when_flag' }, { op: 'end' }],
             },
           ],
-        },
-        {
-          id: 'plaza-target',
-          name: 'Plaza Star',
-          emoji: '⭐',
-          start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
-          scripts: [],
         },
       ],
     };
@@ -515,9 +515,15 @@ describe('BlocksStudioPage zone labels', () => {
     ).toHaveTextContent('Tuan Tuan travelled from grid 8');
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '11');
     expect(screen.getByTestId('story-celebration')).toBeInTheDocument();
-    expect(screen.getByTestId('sprite-tuan-tuan').querySelector('svg')).toHaveAttribute(
+    expect(
+      screen.getByTestId('sprite-tuan-tuan').querySelector('[data-performance="success"]'),
+    ).toHaveAttribute(
       'data-performance',
       'success',
+    );
+    expect(screen.getByTestId('sprite-tuan-tuan').querySelector('img')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/characters/cloud-bear/success-joyful-v01.png',
     );
   });
 
@@ -760,13 +766,13 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     directionDebug.lessonId = 'tsv-s1-a2-d';
     directionDebug.pages[0] = {
       id: 'tsv-a2-d-page',
-      background: 'tsv-cloud-path-meadow',
+      background: 'tsv-cloud-road-right',
       characters: [
         {
           id: 'tuan-tuan',
           name: 'Tuan Tuan',
           emoji: '☁️',
-          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+          asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
           start: { gx: 8, gy: 10, size: 1, rot: 0 },
           scripts: [
             {
@@ -774,13 +780,6 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
               blocks: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
             },
           ],
-        },
-        {
-          id: 'plaza-target',
-          name: 'Plaza Star',
-          emoji: '⭐',
-          start: { gx: 11, gy: 10, size: 0.8, rot: 0 },
-          scripts: [],
         },
       ],
     };
@@ -956,10 +955,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     eventDebug.lessonId = 'tsv-s1-a3-d';
     eventDebug.pages[0] = {
       id: 'tsv-a3-d-page',
-      background: 'sunset',
+      background: 'tsv-rooftop',
       characters: [{
         id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
-        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
         start: { gx: 10, gy: 8, size: 1, rot: 0 },
         scripts: [{
           id: 'dot-dot-event',
@@ -973,6 +972,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-rooftop',
+    );
     fireEvent.click(screen.getAllByTestId('block-when_flag').at(-1)!);
     expect(screen.queryByTestId('event-repair-picker')).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
@@ -995,15 +999,18 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.pointerDown(dot);
     fireEvent.pointerUp(dot);
     expect(await screen.findByTestId('story-celebration', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-rooftop-awake-lit',
+    );
   });
 
   it('lets A4-B change only the existing movement parameter', async () => {
     const breakfast = blankProject('Tiny Star Village · Breakfast');
     breakfast.lessonId = 'tsv-s1-a4-b';
     breakfast.pages[0] = {
-      id: 'tsv-a4-b-page', background: 'meadow', characters: [
-        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-build', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }] }] },
-        { id: 'breakfast-table', name: 'Breakfast Table', emoji: '🍽️', start: { gx: 7, gy: 10, size: 0.9, rot: 0 }, scripts: [] },
+      id: 'tsv-a4-b-page', background: 'tsv-breakfast-stop-distance-3', characters: [
+        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-build', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }] }] },
       ],
     };
     vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: breakfast, version: 1, history: { past: [], future: [] }, otherFiles: [] });
@@ -1025,9 +1032,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const delivery = blankProject('Tiny Star Village · My Delivery Stop');
     delivery.lessonId = 'tsv-s1-a4-s';
     delivery.pages[0] = {
-      id: 'tsv-a4-s-page', background: 'meadow', characters: [
-        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-ship', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
-        { id: 'breakfast-table', name: 'My Delivery Stop', emoji: '📦', start: { gx: 4, gy: 10, size: 0.9, rot: 0 }, scripts: [] },
+      id: 'tsv-a4-s-page', background: 'tsv-breakfast-stop-distance-1', characters: [
+        { id: 'breakfast-cart', name: 'Breakfast Cart', emoji: '🚙', asset: '/story-blocks/tiny-star-village/props/breakfast-cart-right-v01.png', start: { gx: 4, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'breakfast-cart-ship', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
       ],
     };
     vi.mocked(loadBlocksProject).mockResolvedValueOnce({ project: delivery, version: 1, history: { past: [], future: [] }, otherFiles: [] });
@@ -1039,8 +1045,16 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.click(stopTwo);
     fireEvent.click(screen.getByTestId('a4-s-parcel-gift'));
     expect(stopTwo).toHaveAttribute('aria-pressed', 'true');
-    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
-      name: 'Gift Breakfast', emoji: '🎁', start: expect.objectContaining({ gx: 6, gy: 10 }),
+    expect(useBlocksStore.getState().project.pages[0]).toMatchObject({
+      background: 'tsv-breakfast-stop-distance-2',
+      characters: [
+        expect.objectContaining({
+          id: 'breakfast-cart',
+          name: 'Gift Breakfast',
+          emoji: '🎁',
+          start: expect.objectContaining({ gx: 4, gy: 10 }),
+        }),
+      ],
     });
     // The picker never inserts a block — the route is still empty.
     expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
@@ -1083,9 +1097,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const greeting = blankProject('Tiny Star Village · Who Is Speaking?');
     greeting.lessonId = 'tsv-s1-a5-h';
     greeting.pages[0] = {
-      id: 'tsv-a5-h-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      id: 'tsv-a5-h-page', background: 'tsv-greeting-stage', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
       ],
     };
     return greeting;
@@ -1097,6 +1111,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '7');
     expect(screen.getByTestId('sprite-tuan-tuan')).toHaveAttribute('data-gx', '12');
     expect(screen.queryByTestId('speech-bubble-little-light')).not.toBeInTheDocument();
@@ -1118,6 +1137,14 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     fireEvent.click(screen.getByTestId('story-choice-together'));
     expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('both bubbles open at once');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'before',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     // An Explore hook stays quiet: no chapter celebration.
     expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
     // Observation only — neither program was touched.
@@ -1145,6 +1172,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-greeting-stage',
+    );
     fireEvent.click(screen.getByTestId('go-button'));
     expect(await screen.findByTestId('story-mission-question', {}, { timeout: 4000 })).toBeInTheDocument();
 
@@ -1167,8 +1199,8 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const bell = blankProject('Tiny Star Village · Three Bell Tower Cards');
     bell.lessonId = 'tsv-s1-a6-h';
     bell.pages[0] = {
-      id: 'tsv-a6-h-page', background: 'sunset', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
+      id: 'tsv-a6-h-page', background: 'tsv-clocktower-path', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bell-route', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'pop' }, { op: 'end' }] }] },
         { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
       ],
     };
@@ -1181,16 +1213,53 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '5');
-    expect(screen.getByTestId('sprite-bell-tower')).toHaveAttribute('data-gx', '8');
+    const tower = screen.getByTestId('sprite-bell-tower');
+    expect(tower).toHaveAttribute('data-gx', '8');
+    expect(tower).toHaveAttribute('data-gy', '7');
+    expect(tower).toHaveAttribute('data-bell-state', 'still');
+    expect(screen.getByTestId('morning-bell-visual')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/props/morning-bell-still-v01.png',
+    );
+
+    // The runtime art is a locked story target, not editable project data.
+    fireEvent.click(screen.getByTestId('char-thumb-bell-tower'));
+    expect(screen.queryByTestId('remove-character-bell-tower')).not.toBeInTheDocument();
+    fireEvent.pointerDown(tower, { pointerId: 1, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(tower, { pointerId: 1, clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(tower, { pointerId: 1 });
+    expect(tower).toHaveAttribute('data-gx', '8');
+    expect(tower).toHaveAttribute('data-gy', '7');
+    expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
+      start: { gx: 8, gy: 7 },
+      scripts: [],
+    });
+    expect(useBlocksStore.getState().project.pages[0].characters[1].asset).toBeUndefined();
 
     fireEvent.click(screen.getByTestId('go-button'));
+    await waitFor(
+      () => expect(tower).toHaveAttribute('data-bell-state', 'swing'),
+      { timeout: 3000 },
+    );
+    expect(screen.getByTestId('morning-bell-visual')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/props/morning-bell-swing-v01.png',
+    );
     // The walk really happens: the ringer ends at the foot of the tower.
     await waitFor(
       () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
       { timeout: 3000 },
     );
     expect(await screen.findByTestId('story-mission-question', {}, { timeout: 3000 })).toBeInTheDocument();
+    await waitFor(() => expect(tower).toHaveAttribute('data-bell-state', 'still'), {
+      timeout: 2000,
+    });
     expect(screen.queryByTestId('story-hook-complete')).not.toBeInTheDocument();
 
     // The two cards that DID happen are the distractors.
@@ -1202,6 +1271,14 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     fireEvent.click(screen.getByTestId('story-choice-hop'));
     expect(await screen.findByTestId('story-hook-complete')).toHaveTextContent('missing from the middle');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'before',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     // An Explore hook stays quiet: no chapter celebration.
     expect(screen.queryByTestId('story-celebration')).not.toBeInTheDocument();
     // Observation only — the route was never edited.
@@ -1261,6 +1338,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
 
     // The child taps Hop in the real Motion palette. A tap appends before the
     // terminal End — i.e. AFTER the bell — and on the block's own default of 2.
@@ -1348,6 +1430,11 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(await screen.findByRole('button', { name: 'Close story mission' }));
     expect(screen.getByTestId('blocks-studio')).toHaveAttribute('data-story-target-fixed', 'false');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute('data-story-scene-state', 'before');
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
 
     // Before the bug has been watched the chain will not budge: tapping a block
     // opens no number editor, it sends the child back to the story card.
@@ -1358,11 +1445,24 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
 
     // One real Go: the bell rings while the ringer is still three spaces away.
     fireEvent.click(screen.getByTestId('go-button'));
+    const tower = screen.getByTestId('sprite-bell-tower');
+    await waitFor(
+      () => expect(tower).toHaveAttribute('data-bell-state', 'swing'),
+      { timeout: 2000 },
+    );
+    expect(screen.getByTestId('morning-bell-visual')).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/props/morning-bell-swing-v01.png',
+    );
     await waitFor(
       () => expect(screen.getByTestId('sprite-little-light')).toHaveAttribute('data-gx', '8'),
       { timeout: 5000 },
     );
     expect(await screen.findByTestId('story-mission-question', {}, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path',
+    );
     // The two cards that really do belong earlier are the distractors.
     fireEvent.click(screen.getByTestId('story-choice-walk'));
     expect(screen.queryByTestId('story-fix-task')).not.toBeInTheDocument();
@@ -1391,6 +1491,10 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await waitFor(() => expect(screen.getByTestId('save-status')).toHaveAttribute('data-status', 'saved'), { timeout: 5000 });
     fireEvent.click(screen.getByTestId('go-button'));
     expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path-bell-lit',
+    );
     expect(saveBlocksProject).toHaveBeenCalledWith(
       expect.objectContaining({
         storyProgress: expect.objectContaining({
@@ -1432,7 +1536,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const bell = blankProject('Tiny Star Village · My Morning-Light Ending');
     bell.lessonId = 'tsv-s1-a6-s';
     bell.pages[0] = {
-      id: 'tsv-a6-s-page', background: 'sunset', characters: [
+      id: 'tsv-a6-s-page', background: 'tsv-clocktower-path', characters: [
         { id: 'bell-ringer', name: 'Who will ring it?', emoji: '❓', start: { gx: 5, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'bell-ringer-finale', blocks: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'hop', n: 1 }, { op: 'pop' }, { op: 'end' }] }] },
         { id: 'bell-tower', name: 'Bell Tower', emoji: '⭐', start: { gx: 8, gy: 7, size: 0.8, rot: 0 }, scripts: [] },
       ],
@@ -1455,7 +1559,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     fireEvent.click(screen.getByTestId('a6-s-ringer-dot-dot'));
     expect(screen.getByTestId('a6-s-ringer-dot-dot')).toHaveAttribute('aria-pressed', 'true');
     expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
-      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+      name: 'Dot Dot', emoji: '🐱', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     });
     // The ringer buttons never insert a block: the core is still the settled one.
     expect(finaleRoute()).toEqual([
@@ -1494,6 +1598,24 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     );
     expect(await screen.findByTestId('speech-bubble-bell-ringer', {}, { timeout: 5000 })).toHaveTextContent('We did it!');
     expect(await screen.findByTestId('story-mission-success', {}, { timeout: 10_000 })).toBeInTheDocument();
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-scene',
+      'tsv-clocktower-path',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-state',
+      'resolved',
+    );
+    expect(screen.getByTestId('blocks-stage')).toHaveAttribute(
+      'data-story-scene-visual',
+      'tsv-clocktower-path-bell-lit',
+    );
+    const ringerSuccess = screen.getByTestId('sprite-bell-ringer').querySelector('img');
+    expect(ringerSuccess).toHaveAttribute('data-performance', 'success');
+    expect(ringerSuccess).toHaveAttribute(
+      'src',
+      '/story-blocks/tiny-star-village/characters/dot-dot/success-joyful-v01.png',
+    );
     expect(saveBlocksProject).toHaveBeenCalledWith(
       expect.objectContaining({
         storyProgress: expect.objectContaining({
@@ -1549,9 +1671,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const greeting = blankProject('Tiny Star Village · Wait a Moment');
     greeting.lessonId = 'tsv-s1-a5-b';
     greeting.pages[0] = {
-      id: 'tsv-a5-b-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
+      id: 'tsv-a5-b-page', background: 'tsv-greeting-stage', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning!' }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-greeting', blocks: [{ op: 'when_flag' }, { op: 'say', text: 'Morning too!' }, { op: 'end' }] }] },
       ],
     };
     return greeting;
@@ -1638,9 +1760,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const duet = blankProject('Tiny Star Village · My Two-Friend Greeting');
     duet.lessonId = 'tsv-s1-a5-s';
     duet.pages[0] = {
-      id: 'tsv-a5-s-page', background: 'candy', characters: [
-        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
-        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+      id: 'tsv-a5-s-page', background: 'tsv-greeting-stage', characters: [
+        { id: 'greeter-one', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-one-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
+        { id: 'greeter-two', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'greeter-two-duet', blocks: [{ op: 'when_flag' }, { op: 'end' }] }] },
       ],
     };
     return duet;
@@ -1661,7 +1783,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     expect(screen.getByTestId('a5-s-second-tuan-tuan')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('a5-s-first-lumilo')).toHaveAttribute('aria-pressed', 'true');
     expect(useBlocksStore.getState().project.pages[0].characters[1]).toMatchObject({
-      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     });
     // The cast buttons never insert a block — both chains are still empty.
     expect(duetBlocks(0)).toEqual([{ op: 'when_flag' }, { op: 'end' }]);
@@ -1754,9 +1876,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const relay = blankProject('Tiny Star Village · That Wait Was Too Long');
     relay.lessonId = 'tsv-s1-a5-d';
     relay.pages[0] = {
-      id: 'tsv-a5-d-page', background: 'candy', characters: [
-        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
-        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+      id: 'tsv-a5-d-page', background: 'tsv-greeting-stage', characters: [
+        { id: 'little-light', name: 'Lumilo', emoji: '⭐', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png', start: { gx: 7, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'little-light-bounce', blocks: [{ op: 'when_flag' }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
+        { id: 'tuan-tuan', name: 'Tuan Tuan', emoji: '🐻', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png', start: { gx: 12, gy: 10, size: 1, rot: 0 }, scripts: [{ id: 'tuan-tuan-bounce', blocks: [{ op: 'when_flag' }, { op: 'wait', n: 9 }, { op: 'hop', n: 1 }, { op: 'end' }] }] },
       ],
     };
     return relay;
@@ -1843,9 +1965,9 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     const personal = blankProject('Tiny Star Village · My Tap Surprise');
     personal.lessonId = 'tsv-s1-a3-s';
     personal.pages[0] = {
-      id: 'tsv-a3-s-page', background: 'sunset', characters: [{
+      id: 'tsv-a3-s-page', background: 'tsv-rooftop', characters: [{
         id: 'dot-dot', name: 'Dot Dot', emoji: '🐱',
-        asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+        asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
         start: { gx: 10, gy: 8, size: 1, rot: 0 },
         scripts: [{ id: 'dot-dot-surprise', blocks: [{ op: 'when_tap' }, { op: 'end' }] }],
       }],
@@ -1857,7 +1979,7 @@ describe('BlocksStudioPage embedded (host-owned Back)', () => {
     await renderStudio();
     fireEvent.click(screen.getByTestId('a3-s-character-tuan-tuan'));
     expect(useBlocksStore.getState().project.pages[0].characters[0]).toMatchObject({
-      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+      name: 'Tuan Tuan', asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     });
     expect(useBlocksStore.getState().project.pages[0].characters[0].scripts[0].blocks).toEqual([
       { op: 'when_tap' }, { op: 'end' },

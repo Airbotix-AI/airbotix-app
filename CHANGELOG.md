@@ -1,5 +1,110 @@
 # Changelog
 
+## 2026-07-29
+
+### Added
+
+- Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
+  character pose plus the breakfast-cart and morning-bell states, and saves the selected first-party
+  PNG into the project instead of falling back to an emoji.
+- The three Tiny Star workbench backgrounds are selectable and render in the editor and public
+  player. The story map now uses the formal zero-star plaza for season progress, overlays one star
+  per completed chapter, and switches to the six-star plaza and joyful cast after the finale.
+
+## 2026-07-28
+
+### Fixed
+
+- The Story Blocks hub now shows one English Journey to the West story-world
+  entry instead of three duplicate Chinese cards.
+- Tiny Star Village completion cards now distinguish `Next scene` from
+  `Start Chapter 2`, and keep the navigation actions visible at the bottom of
+  the scrollable card so a child cannot mistake Scene 3 for the end of Chapter
+  1 or become stranded after Scene 4.
+- Story Blocks now creates Journey to the West C1-P5 projects as
+  `Journey to the West · My First Greeting`. Existing projects saved with the former Chinese
+  title are displayed with the English title on the Continue card and project grid.
+
+## 2026-07-26 (fix: "Draw a new picture" opens a blank canvas again)
+
+### Fixed
+- The Art Studio hub's **"Draw a new picture"** now really does start a blank page. Since the
+  canvas began auto-saving an unsaved drawing, any plain visit to `/learn/create/image/canvas`
+  restored that draft — so "new" handed the child back the picture they drew last time
+  (owner 2026-07-26). The hub now asks for a fresh page explicitly and the canvas honours it.
+- Reopening a picture (or starting fresh) and then **refreshing** no longer replays the click
+  that got you there and discards the work done since. Those navigations are consumed once;
+  every reload after that is served by the auto-saved draft.
+
+### Changed
+- When an unsaved canvas exists, the hub's continue card offers **that** ("Keep drawing your
+  unfinished picture") instead of the last saved picture — it is the newer work and the only
+  copy, and it stays offered right up until the child chooses a new picture.
+- Draft storage (key, shape, read/write/clear) moves into one shared `artDraft.ts` module so the
+  hub and the canvas can never disagree about what "the current draft" is.
+
+## 2026-07-28 (refactor: split Blocks Studio below the file-size hard limit)
+
+### Changed
+
+- Split the 3,066-line `BlocksStudioPage.tsx` into focused toolbar, stage,
+  coding-band, Tiny Star personalisation, dialog and drag-overlay components,
+  plus dedicated sprite/block/palette drag, block editor, persistence, mission
+  selector and bell-visual hooks. The page is now 990 lines and every extracted
+  TypeScript/TSX module remains below 400 lines.
+- Preserved the existing DOM, test IDs, CSS classes, store mutation funnel,
+  autosave serialisation, server-wins loading, runner callback order and Tiny
+  Star/Journey mission evidence contracts. This is a behaviour-neutral
+  maintainability refactor; the public Story Blocks demo still renders the real
+  studio unchanged.
+
+## 2026-07-28 (feat: Tiny Star completion backgrounds)
+
+### Changed
+
+- Eligible Tiny Star Village missions now switch to their formal resolved
+  background after verified completion without mutating the saved starter-scene
+  ID. Observation-only A5-H and A6-H remain on their before art, while the A6-S
+  finale resolves the clocktower after the child completes their own ending.
+
+## 2026-07-27 (feat: Tiny Star terminal character poses)
+
+### Changed
+
+- Tiny Star Village now swaps the completing character to its formal success
+  pose after a verified mission run. Transient Hop, Say and movement steps keep
+  the existing layered puppets, and the A6 finale celebrates whichever friend
+  the child actually chose to ring the bell.
+- Chapter six now uses its formal clocktower-path background and overlays the
+  internal still/swing morning-bell frames only while Pop runs. The Bell Tower
+  remains a fixed, asset-less and script-less target in saved project data.
+- Chapters three and five now use their formal rooftop and greeting-stage
+  backgrounds across all four mission contracts. Chapter four uses the formal
+  right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
+  saved projects using the exact legacy cart SVG remain compatible.
+
+## 2026-07-27 (fix: Art Studio tasks explain what to do)
+
+### Fixed
+- The whole Art Studio task card is now clickable. Previously only the small `Start →` button
+  opened the task, so tapping the title or description looked broken.
+- Authored Mission steps now travel from both the Art Studio hub and the course lesson page into
+  Mission Mode. The canvas shows the numbered learning sequence instead of only a title and
+  summary.
+- A blank free-play canvas now shows a three-step start guide: tell the tutor the idea, draw or
+  request a ghost sketch, then bring the sketch to life. Drawing remains free and AI costs remain
+  visible before use.
+
+## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
+
+### Changed
+- The parent exam catalogue no longer assumes one exam or one subject: the subject line under
+  each series is derived from its products (`UK SATs · Mathematics · English Grammar &
+  Punctuation`) instead of a hard-coded "Numeracy", and the error/empty copy no longer says
+  "NAPLAN products".
+- Product card CTA now names the Year **and** subject. With UK SATs selling two Year 6 subjects,
+  every card in that row previously read "Choose Year 6 →" and a parent could not tell the Maths
+  product from the Grammar one.
 ## 2026-07-20 (feat: Music Mission Mode — task card + template + turn-in, music-stage §5A D-MS14 P2b)
 
 ### Added
@@ -1130,6 +1235,151 @@
 - Reworked Parent Portal Exam Prep into a clear NAPLAN sales page that explains the current
   product, one-child/one-Year access, live question count and path from purchase to practice.
 
+## 2026-07-25 (feat: give Art Studio its Airbotix robot-cat tutor)
+
+### Added
+- Art Studio's existing AI coach now has the approved Airbotix robot-cat mascot as its visible
+  tutor identity. The temporary name is isolated behind one constant for the pending naming
+  decision; the avatar reflects idle, thinking, canvas-looking, image-creating and celebration
+  states, replaces the generic robot emoji in the coach rail, and remains present as the
+  accessible collapsed control. A checked-in six-image transparent WebP pose pack replaces the
+  rejected 3D presentation: state changes cross-fade between stable character drawings,
+  lightweight CSS adds pose-specific motion, and reduced-motion users retain the same image and
+  status text without animation.
+
+## 2026-07-25 (feat: Journey to the West C2-P4 exact five-block route Build)
+
+### Added
+- Twelfth Journey to the West Story Part (`jtw-s1-c2-p4` 刚好到达，不多也不少): chapter two's
+  main Build. Part page `/learn/story/journey-west/jtw-s1-c2-p4` ships 教学脚本 Story Screen 4
+  IN FULL plus the five-one-step 因果桥 (the shared 右2→上1→右2 route split into five
+  child-owned one-step blocks with the three leaf stops still observable) over the same
+  closed-curtain waterfall stage at the `2/8` start (cave mouth stays a hidden
+  `data-visible=false` marker). The build happens in the REAL Blocks Studio: new template
+  `blocks_jtw_c2_p4` ships ONLY Start/End (no pre-filled chain to "just edit a number" on) and
+  the exact mission contract accepts ONLY
+  `move_right(1)×2 → move_up(1) → move_right(1)×2` — the parameter-merged 右2/上1/右2
+  shortcut, wrong orders, one step short, one step over (no overshoot tolerance), Left/Down/
+  Wait distractors and a moved start all fail. The part page verifies completion FROM THE
+  SAVED BlocksProject plus the studio run marker (frontend state never substitutes), reads the
+  real project diff and the full five-stop run trace `3-8→4-8→4-7→5-7→6-7` back from the saved
+  work into the evidence, and gates on the 少一格 (stops at 5-7, misses the entrance) /
+  多一格 (passes the 6-7 entrance cell) / "到达≠发现洞穴" comparisons with picture-grounded
+  retry hints. Resolved shows the five footprints stable while the curtain stays closed — the
+  bump response chain is P5's job; `让水帘听见碰撞` persists the evidence server-side and
+  unlocks ONLY `jtw-s1-c2-p5`; no chapter completes. Kids without C2-P3 get the locked screen
+  (server truth); refresh restores the saved comparison evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P3 wet-stone route planning)
+
+### Added
+- Eleventh Journey to the West Story Part (`jtw-s1-c2-p3` 三段湿石路): chapter two's off-screen
+  prediction before Code. Part page `/learn/story/journey-west/jtw-s1-c2-p3` shows the stone
+  monkey at the `2/8` start on the same waterfall before-background (cave mouth kept hidden as
+  a `data-visible=false` marker, curtain closed), ships 教学脚本 Story Screen 3 IN FULL plus
+  the 圆叶/尖叶/长叶 因果桥 (圆叶=右2 / 尖叶=上1 / 长叶=右2). The child states the motive
+  (讲清每一段的停点让伙伴能预测，不是乱跳), orders the three route cards through the
+  accessible replayable tap-to-order component — ONLY `圆叶→尖叶→长叶` (右2→上1→右2) opens
+  the grid prediction overlay — places the three prediction footprints on the leaf stops
+  `4-8 → 4-7 → 6-7` in visit order (a water drop gets the leaf-grounded hint), then compares
+  `右2→上1→右2` with `右2→右2→上1` through a real toggle: the wrong version's second segment
+  leaves the wet stones and halts at `6-8` in the water, so the two versions end at different
+  places and the wrong version never passes; the first-deviation question only accepts 第二段
+  (wrong picks get the segment-by-segment retry hint). The target chain renders read-only and
+  never runs — the sorted cards never impersonate a real Blocks project. Resolved world change
+  lights the three predicted stops in sequence while the curtain stays closed; `让石猴真的走`
+  persists the planning evidence server-side and unlocks ONLY `jtw-s1-c2-p4` — no blocks are
+  edited, no project is written and no chapter completes. Kids without C2-P2 get the locked
+  screen (server truth); refresh restores the saved route evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P2 waterfall agreement Why + planning)
+
+### Added
+- Tenth Journey to the West Story Part (`jtw-s1-c2-p2` 瀑布前的约定): chapter two's Why +
+  off-screen planning. Part page `/learn/story/journey-west/jtw-s1-c2-p2` shows the stone monkey
+  facing the CLOSED curtain (`data-facing=curtain`) on the same waterfall before-background with
+  the troop waiting on the dry high rock (cave mouth kept hidden as a `data-visible=false`
+  marker), ships 故事卡B IN FULL plus the two 原创对白 lines, the classic card (still 第一回 —
+  no 孙悟空 name) and the four-cell story—程序桥 (进去=去程 / 看清=碰撞回应 / 回来=回程 Debug /
+  分享=Retell). The child picks the TWO motives that hold together (好奇里面 + 回来分享) from
+  the dialogue — 被夸奖/最快 are rejected with a dialogue-grounded hint that locks continue —
+  orders the four agreement cards through the accessible replayable tap-to-order component
+  where ONLY `进去→看清→回来→分享` passes (wrong orders never open the explanation), explains
+  why "进去" alone never completes the agreement, and answers the what-if-he-never-returns
+  prediction (wrong answer gets the agreement-grounded retry hint). Resolved world change pins
+  the four-cell agreement track to the STAGE SIDE as the evidence rail the later parts will
+  light; `先把路线摆清楚` persists the Why-only evidence server-side and unlocks ONLY
+  `jtw-s1-c2-p3` — no blocks are edited, no project is written and no chapter completes. Kids
+  without C2-P1 get the locked screen (server truth); refresh restores the saved evidence.
+
+## 2026-07-25 (feat: Journey to the West C2-P1 water-sound read-&-why entry)
+
+### Added
+- Ninth Journey to the West Story Part and the first of chapter two (`jtw-s1-c2-p1`
+  水声把大家带到哪里): the C2 Read & Why entry. Part page
+  `/learn/story/journey-west/jtw-s1-c2-p1` joins the C1 clear-spring viewpoint to the SAME
+  waterfall before-background (stone monkey waiting at the left, entrance not highlighted, cave
+  mouth kept hidden as a `data-visible=false` marker), ships 故事卡A IN FULL over two screens
+  plus the classic card (still 第一回 — no 孙悟空 name) and the On Bump story—程序桥, and
+  collects the motive, the three environment clues (水声变大/石头变湿/水雾变浓 — 看见洞口 is
+  rejected with a hint and blocks continue) and the 因为—所以 sentence. The read-only
+  `when_flag→play_sound(Chime)→wait(2)→end` preview runs through the REAL BlocksRunner with
+  three water-ripple rings appearing on the chime so the sound stays readable in mute; the
+  wrong "已经知道洞口" prediction gets the picture-grounded retry hint. Resolved world change
+  lights the three clue types near-to-far with the gaze resting on the CLOSED curtain;
+  `听一听大家的约定` persists the evidence server-side and unlocks ONLY `jtw-s1-c2-p2`. Kids
+  without C1-P8 get the locked screen (server truth); refresh restores the saved Read/Why
+  evidence; no blocks are edited and no project is written in this part.
+
+## 2026-07-25 (feat: Journey to the West C1-P8 chapter retell + server-aggregated 出世印)
+
+### Added
+- Eighth Journey to the West Story Part (`jtw-s1-c1-p8` 新伙伴听见了水声): the chapter's Run 后
+  Retell 与章节聚合. Part page `/learn/story/journey-west/jtw-s1-c1-p8` ships the full story
+  text + classic card + original dialogue, the motive question, five cause-effect cards
+  (仙石动静→石猴出现→伙伴看见→第一次问好→听见水声) that must be ordered BEFORE the run, and the
+  因为—所以—结果—后来 retell (a block-name recital is rejected with a four-node hint). The page
+  loads the kid's SAVED P7 BlocksProject from the VFS and executes it with the REAL BlocksRunner
+  from Start to End — no new answer project is ever created; a missing saved work points back to
+  Part 7 and blocks completion.
+- The C1 出世印 renders ONLY from the server's `chapter_seals` aggregation on `/story-parts`
+  (new `StoryChapterSeal` type): frontend state can never light it, an unlit server verdict shows
+  the missing-evidence message even when P8 itself is complete, the lit state uses a static
+  border with a motion-safe pulse, and the chapter never auto-advances — `现在去看水帘` /
+  `以后继续` both return to the map with only C2-P1 unlocked.
+
+## 2026-07-25 (feat: Journey to the West C1-P7 personal-arrival ship)
+
+### Added
+- Seventh Journey to the West Story Part (`jtw-s1-c1-p7` 我的石猴亮相): the chapter's Personal
+  Ship. New structural mission contract `jtwPersonalArrivalDesign`: the `blocks_jtw_c1_p7` frame
+  (Start·hide·sound·Show … preset Say·End) is fixed while the CHILD owns the sound (any of six),
+  the two VISIBLE actions (hop/turn/grow/shrink/reset_size, their order) and an optional
+  wait(1..3) between them — single actions, invisible fillers, out-of-set ops, free-typed
+  dialogue, frame deletions and background-only swaps are all rejected (reset_size only counts
+  straight after a grow/shrink). New personal-ship mission guide in Chinese.
+- Part page `/learn/story/journey-west/jtw-s1-c1-p7`: full story text, motive, real Studio
+  open/reuse, detection of the SAVED design (sound/actions/wait/greeting rendered from the real
+  BlocksProject + run marker — frontend state never substitutes), the saved VFS version id
+  recorded in the evidence, and choice-reason / save-close-reopen / peer-retell questions with
+  retry hints. Continue unlocks ONLY P8.
+
+## 2026-07-25 (feat: Journey to the West C1-P6 order-bug debug)
+
+### Added
+- Sixth Journey to the West Story Part (`jtw-s1-c1-p6` 声音怎么从空中来了): the chapter's Twist &
+  Debug. The `blocks_jtw_c1_p6` starter ships the STABLE bug (Say→Hop→Show — the greeting sounds
+  from thin air, the hop is invisible). The part page carries the full story, the expectation
+  question, a REAL BlocksRunner bug reproduction (`data-voice-from-air` latches when Say fires
+  while the monkey is hidden), the trace first-deviation pick with a retry hint, and persists the
+  five-segment 预期/实际/第一次偏离/修改/重跑结果 explanation WITH the real project diff computed
+  from the SAVED BlocksProject. Continue unlocks ONLY P7.
+- Studio debug gating for `jtw-s1-c1-p6`: the mission completes ONLY after the child has RUN the
+  bug (wrong-run observation, same contract as the A2-D/A4-D debugs) and then rerun the repaired
+  exact chain — fixing the order before ever running the bug does not succeed. New manual-fix
+  mission guide in Chinese; the exact-target contract rejects the shipped bug order, half-fixed
+  orders, changed sounds, deletions, endpoint drops, rewritten dialogue and distractors.
+
 ## 2026-07-25 (feat: edit a kid's school from the settings page)
 ## 2026-07-25 (feat: Journey to the West C2-P4 exact five-block route Build)
 
@@ -1370,6 +1620,11 @@
   parent stays on the portal page; the new tab bootstraps the kid session from its own refresh
   cookie (dual session). Falls back to same-tab navigation if the browser blocks the popup. New
   shared helper `src/auth/openKidPage.ts`.
+- The "Open kids page" action in My Family (`/portal/family`) and on a kid's growth report
+  (`/portal/family/:kidId`) now opens the kid's Learn surface in a **new browser tab** instead of
+  replacing the current parent tab. The parent stays on the portal page; the new tab bootstraps
+  the kid session from its own refresh cookie (dual session). Falls back to same-tab navigation if
+  the browser blocks the popup. New shared helper `src/auth/openKidPage.ts`.
 
 ## 2026-07-24 (fix: keep the Parent Portal sidebar in view)
 
@@ -1400,6 +1655,100 @@
   selected child's Learn session without re-entering a family code or PIN, while the separate
   adult session remains available when they return to Portal. The profile edit action is also
   restored beside the Growth heading.
+## 2026-07-24 (fix: clarify the Parent Portal dashboard hierarchy)
+
+### Changed
+- The Parent Portal dashboard now uses a desktop primary-content and sticky side-rail layout.
+  Wallet and approval status, quick actions and open classes lead the main column, while the
+  data-driven Getting started checklist remains visible beside them; mobile keeps a single-column
+  reading order.
+- Mobile keeps the three daily status summaries in one compact row, followed by Getting started,
+  so essential setup is no longer pushed below three oversized stat cards.
+- The Getting started checklist has a compact side-rail presentation so labels and actions no
+  longer compete for one horizontal row.
+- Tightened the side-rail checklist typography, status marks, spacing and action buttons so the
+  setup steps remain readable without dominating the dashboard.
+- Removed the Portal content frame's centered width cap and excess right padding, then tightened
+  the dashboard rail and column gap so the primary content receives the reclaimed desktop width.
+
+## 2026-07-24 (fix: make Parent Portal teacher cards compact)
+
+### Fixed
+- Teacher directory cards now use a compact responsive profile layout with a bounded square
+  portrait, two-line biography preview, age range and up to two expertise tags, so long or
+  repetitive profile content no longer stretches a teacher into an oversized poster.
+- Teacher detail pages now keep the portrait compact on mobile, surface location, age and
+  languages in the identity summary, and move the full biography into a dedicated About section.
+- Teacher course capabilities now show course format and an exploration cue; profiles with no
+  scheduled class show an honest availability state, and every profile explains the three-step,
+  preference-only request process.
+
+## 2026-07-24 (feat: grouped Parent Portal navigation)
+
+### Changed
+- The Parent Portal desktop nav drawer is now grouped — Dashboard on top, then
+  Explore (Find a class / Courses / Teachers / Exam Prep / Tutoring / Family Guides),
+  Family (My Family / Approvals / Usage / Activity) and Account (Wallet / Billing /
+  Settings) — with per-item icons and uppercase section headings. The mobile More
+  sheet mirrors the same grouping. Routes, the Approvals badge and the bottom tab
+  bar are unchanged; nav structure now has a single source of truth in
+  `portalNavigation.ts` (`PORTAL_NAV_SECTIONS`). (parent-portal-prd.md §2, v0.10)
+
+## 2026-07-23 (feat: cross-device kid sign-in)
+
+### Added
+- Parent Portal can generate a five-minute QR/link to open one selected child on a different
+  device. The child confirms the same avatar and nickname before continuing.
+- Parents may explicitly remember that one child for 30 days; returning devices show only the
+  approved child and still require the 4-digit PIN. Parent Portal also provides a revoke-all
+  control for that child's remembered devices.
+
+### Changed
+- The fallback family login is now two short steps (family code, then nickname + PIN) instead of
+  presenting all three inputs at once. The class login remains a separate tab.
+
+## 2026-07-23 (feat: kid avatar identity)
+
+### Added
+- Added 26 original animal, fantasy and human kid avatars plus an accessible reusable picker,
+  including Nature Explorer and Young Architect to broaden white girl/boy representation.
+- Registration, Add Kid and Kid Settings save the stable avatar ID; My Family, Growth and Learn
+  display the same avatar with a safe Robot Friend fallback for missing or retired assets.
+
+## 2026-07-23 (feat: parent one-tap kid handoff)
+
+### Added
+- My Family cards and each kid growth page now let an authenticated parent open that child’s
+  Learn home directly, without re-entering the family code, nickname or PIN.
+- The handoff uses the existing family-scoped parent endpoint and dedicated kid session, so the
+  parent remains signed in; paused kids are blocked and failures remain on the parent page.
+
+## 2026-07-23 (feat: parent mobile profile)
+
+### Added
+- Parent registration now requires an Australian mobile number and saves it with the adult
+  `/auth/me` profile; the copy makes clear that no SMS verification is sent yet.
+- Settings now lets a parent edit or clear their own mobile number, and the Dashboard onboarding
+  checklist gives legacy parents with no number a server-backed inline completion step.
+
+### Changed
+- Removed the duplicate Family-level phone editor. Parent contact phone now has one UI/data source
+  (`User.phone`), while child readiness remains independent from profile completion.
+
+## 2026-07-22 (feat: approved teachers in Parent Portal)
+
+### Added
+- Added `/portal/teachers` and `/portal/teachers/:slug`, with city, course, child-age and
+  language filters over the same reviewed public-profile API used by the marketing site.
+- Added Teachers to the desktop drawer and mobile More sheet, plus profile links from actual
+  class teaching teams and a preference-only handoff into `/portal/tutoring`.
+- Added an optional approved-teacher selector directly inside the private tutoring request form,
+  with service-city context and a clear “subject to availability” boundary.
+
+### Fixed
+- Parent class cards no longer fall back to teacher login email. Find a class, Now enrolling,
+  My Classes and Tutoring show only approved public team members; missing/unpublished assignments
+  render `Teacher to be confirmed`.
 
 ## 2026-07-22 (fix: Music Stage brand logo shows at every width)
 

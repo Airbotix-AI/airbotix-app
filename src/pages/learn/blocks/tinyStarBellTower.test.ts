@@ -17,6 +17,9 @@ import {
   TINY_STAR_BELL_RINGER_ID,
   TINY_STAR_BELL_RINGER_NAME,
   TINY_STAR_BELL_ROUTE_SCRIPT_ID,
+  TINY_STAR_BELL_STILL_ASSET,
+  TINY_STAR_BELL_SWING_ASSET,
+  TINY_STAR_BELL_SWING_MS,
   TINY_STAR_BELL_TOWER_EMOJI,
   TINY_STAR_BELL_TOWER_GX,
   TINY_STAR_BELL_TOWER_GY,
@@ -43,6 +46,7 @@ import {
   tinyStarFinaleDesign,
   tinyStarFinaleEndedAfterBell,
   tinyStarFinaleEndingOf,
+  isTinyStarBellPageId,
 } from './tinyStarBellTower';
 
 const SHIPPED_ROUTE: Block[] = [
@@ -84,6 +88,30 @@ function bellTowerPage(route: Block[] = SHIPPED_ROUTE): Page {
 }
 
 describe('tinyStarBellTower geometry', () => {
+  it('uses the formal clocktower scene and runtime-only bell frames for every A6 page', () => {
+    expect(TINY_STAR_BELL_BACKGROUND).toBe('tsv-clocktower-path');
+    expect(TINY_STAR_BELL_STILL_ASSET).toBe(
+      '/story-blocks/tiny-star-village/props/morning-bell-still-v01.png',
+    );
+    expect(TINY_STAR_BELL_SWING_ASSET).toBe(
+      '/story-blocks/tiny-star-village/props/morning-bell-swing-v01.png',
+    );
+    expect(TINY_STAR_BELL_SWING_MS).toBe(500);
+    expect(
+      ['tsv-a6-h-page', 'tsv-a6-b-page', 'tsv-a6-d-page', 'tsv-a6-s-page'].every(
+        isTinyStarBellPageId,
+      ),
+    ).toBe(true);
+    expect(isTinyStarBellPageId('tsv-a5-s-page')).toBe(false);
+
+    const page = bellTowerPage();
+    expect(page.characters[1]).toMatchObject({
+      id: TINY_STAR_BELL_TOWER_ID,
+      scripts: [],
+    });
+    expect(page.characters[1].asset).toBeUndefined();
+  });
+
   it('keeps the walk equal to the distance between the ringer and the tower', () => {
     // scene-specs §7 puts the ringer at gx=5 and the tower target at gx=8, so
     // the shipped `Right 3` is derived, never hand-written — and it stays inside

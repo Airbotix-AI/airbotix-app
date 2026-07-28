@@ -42,37 +42,27 @@ import {
   TINY_STAR_DUET_SECOND_SCRIPT,
   tinyStarDuetDesign,
 } from './tinyStarDuet';
+import {
+  TINY_STAR_A2_RIGHT_BACKGROUND,
+  TINY_STAR_A2_START_GX,
+  TINY_STAR_BREAKFAST_CART_ASSET,
+  TINY_STAR_BREAKFAST_CART_ID,
+  TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE,
+  TINY_STAR_DELIVERY_START_GX,
+  tinyStarA2TargetGx,
+  tinyStarBreakfastCartAssetIsKnown,
+  tinyStarDeliveryDesign,
+} from './tinyStarStageTargets';
 
 const LUMILO_CHARACTER = 'little-light';
 const LUMILO_FLAG_SCRIPT = 'little-light-flag';
-const LUMILO_ASSET = '/story-blocks/tiny-star-village/characters/little-light/resting.svg';
+const LUMILO_ASSET = '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
 
 export const TINY_STAR_GREETING_CHOICES = [
   'Good morning, village!',
   "I'm awake!",
   "Let's go!",
 ] as const;
-
-/** A4-S: the scene-fixed identity and geometry of the child's delivery stop. */
-export const TINY_STAR_DELIVERY_STOP_ID = 'breakfast-table';
-export const TINY_STAR_DELIVERY_STOP_GY = 10;
-export const TINY_STAR_DELIVERY_STOP_SIZE = 0.9;
-/** A4-S: the breakfast cart never moves off this square before the run. */
-export const TINY_STAR_DELIVERY_START_GX = 4;
-
-/**
- * A4-S: the three parcels the child can deliver (scene-specs A4-S 送达主题).
- * They are emoji proxies on the shipped stage — no new background variant and
- * no extra script-less character is introduced.
- */
-export const TINY_STAR_DELIVERY_PARCELS = [
-  { id: 'apple', label: 'Apple', name: 'Apple Breakfast', emoji: '🍎' },
-  { id: 'gift', label: 'Gift', name: 'Gift Breakfast', emoji: '🎁' },
-  { id: 'star', label: 'Star', name: 'Star Breakfast', emoji: '⭐' },
-] as const;
-
-/** A4-S: the Age A distances (scene-specs §1.2 limits movement to 1–3). */
-export const TINY_STAR_DELIVERY_DISTANCES = [1, 2, 3] as const;
 
 /** A5-H: the greeting stage keeps both friends on one row (scene-specs §6). */
 export const TINY_STAR_GREETING_GY = 10;
@@ -95,7 +85,7 @@ export const TINY_STAR_GREETING_VOICES = [
   {
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-greeting',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     gx: 12,
     text: 'Morning too!',
   },
@@ -190,13 +180,6 @@ export const TINY_STAR_BOUNCE_ACTORS = [
   },
 ] as const;
 
-export interface TinyStarDeliveryDesign {
-  /** How many spaces right of the cart the child put the stop (1..3). */
-  distance: number;
-  /** The parcel the child chose. */
-  parcel: (typeof TINY_STAR_DELIVERY_PARCELS)[number];
-}
-
 const LUMI_MORNING_TARGET: Block[] = [
   { op: 'when_flag' },
   { op: 'hop', n: 1 },
@@ -223,127 +206,109 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   },
   'tsv-s1-a2-h': {
     pageId: 'tsv-a2-h-page',
-    background: 'tsv-cloud-path-meadow',
+    background: TINY_STAR_A2_RIGHT_BACKGROUND,
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+    start: { gx: TINY_STAR_A2_START_GX, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_left', n: 3 }, { op: 'end' }],
-    sceneTarget: {
-      id: 'plaza-target',
-      name: 'Plaza Star',
-      gx: 11,
-      gy: 10,
-      size: 0.8,
-    },
   },
   'tsv-s1-a2-b': {
     pageId: 'tsv-a2-b-page',
-    background: 'tsv-cloud-path-meadow',
+    background: TINY_STAR_A2_RIGHT_BACKGROUND,
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+    start: { gx: TINY_STAR_A2_START_GX, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
-    sceneTarget: {
-      id: 'plaza-target',
-      name: 'Plaza Star',
-      gx: 11,
-      gy: 10,
-      size: 0.8,
-    },
   },
   'tsv-s1-a2-d': {
     pageId: 'tsv-a2-d-page',
-    background: 'tsv-cloud-path-meadow',
+    background: TINY_STAR_A2_RIGHT_BACKGROUND,
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+    start: { gx: TINY_STAR_A2_START_GX, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
-    sceneTarget: {
-      id: 'plaza-target',
-      name: 'Plaza Star',
-      gx: 11,
-      gy: 10,
-      size: 0.8,
-    },
   },
   'tsv-s1-a2-s': {
     pageId: 'tsv-a2-s-page',
-    background: 'tsv-cloud-path-meadow',
+    background: TINY_STAR_A2_RIGHT_BACKGROUND,
     characterId: 'tuan-tuan',
     scriptId: 'tuan-tuan-flag',
-    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-    start: { gx: 8, gy: 10, size: 1, rot: 0 },
+    asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+    start: { gx: TINY_STAR_A2_START_GX, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }, { op: 'end' }],
-    sceneTarget: { id: 'plaza-target', name: 'My Home Star', gx: 10, gy: 10, size: 0.8 },
   },
   'tsv-s1-a3-h': {
     pageId: 'tsv-a3-h-page',
-    background: 'sunset',
+    background: 'tsv-rooftop',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-tap',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
-    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: '醒啦' }, { op: 'end' }],
+    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: "I'm awake!" }, { op: 'end' }],
   },
   'tsv-s1-a3-b': {
     pageId: 'tsv-a3-b-page',
-    background: 'sunset',
+    background: 'tsv-rooftop',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-tap',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
   'tsv-s1-a3-d': {
     pageId: 'tsv-a3-d-page',
-    background: 'sunset',
+    background: 'tsv-rooftop',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-event',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
   'tsv-s1-a3-s': {
     pageId: 'tsv-a3-s-page',
-    background: 'sunset',
+    background: 'tsv-rooftop',
     characterId: 'dot-dot',
     scriptId: 'dot-dot-surprise',
-    asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
+    asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
     target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'end' }],
   },
   'tsv-s1-a4-h': {
     pageId: 'tsv-a4-h-page',
-    background: 'meadow',
+    background: TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE[3],
     characterId: 'breakfast-cart',
     scriptId: 'breakfast-cart-flag',
-    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    asset: TINY_STAR_BREAKFAST_CART_ASSET,
     start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'end' }],
-    sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
   'tsv-s1-a4-b': {
     pageId: 'tsv-a4-b-page',
-    background: 'meadow',
+    background: TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE[3],
     characterId: 'breakfast-cart',
     scriptId: 'breakfast-cart-build',
-    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    asset: TINY_STAR_BREAKFAST_CART_ASSET,
     start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
-    sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
   'tsv-s1-a4-d': {
     pageId: 'tsv-a4-d-page',
-    background: 'meadow',
+    background: TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE[3],
     characterId: 'breakfast-cart',
     scriptId: 'breakfast-cart-debug',
-    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    asset: TINY_STAR_BREAKFAST_CART_ASSET,
     start: { gx: 4, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
-    sceneTarget: { id: 'breakfast-table', name: 'Breakfast Table', gx: 7, gy: 10, size: 0.9 },
   },
   // Tiny Star Village S1/A4-S — the chapter's Personal Ship (scene-specs A4-S).
   // Three things are the CHILD's: where the delivery stop sits (1–3 spaces right
@@ -352,19 +317,13 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // is no single correct answer; `target` records one legal example for tooling.
   'tsv-s1-a4-s': {
     pageId: 'tsv-a4-s-page',
-    background: 'meadow',
+    background: TINY_STAR_DELIVERY_BACKGROUND_BY_DISTANCE[1],
     characterId: 'breakfast-cart',
     scriptId: 'breakfast-cart-ship',
-    asset: '/story-blocks/tiny-star-village/props/breakfast-cart.svg',
+    asset: TINY_STAR_BREAKFAST_CART_ASSET,
     start: { gx: TINY_STAR_DELIVERY_START_GX, gy: 10, size: 1, rot: 0 },
+    characterCount: 1,
     target: [{ op: 'when_flag' }, { op: 'move_right', n: 3 }, { op: 'end' }],
-    sceneTarget: {
-      id: TINY_STAR_DELIVERY_STOP_ID,
-      name: 'Star Breakfast',
-      gx: 7,
-      gy: 10,
-      size: TINY_STAR_DELIVERY_STOP_SIZE,
-    },
   },
   // Tiny Star Village S1/A5-H — chapter five's Story Hook (scene-specs A5-H).
   // The page carries TWO scripted voices, so the generic single-character match
@@ -373,7 +332,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // lookup, coach cues) and are not the whole contract.
   'tsv-s1-a5-h': {
     pageId: 'tsv-a5-h-page',
-    background: 'candy',
+    background: 'tsv-greeting-stage',
     characterId: LUMILO_CHARACTER,
     scriptId: TINY_STAR_GREETING_VOICES[0].scriptId,
     asset: LUMILO_ASSET,
@@ -391,7 +350,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // below additionally keeps Lumilo's chain out of bounds.
   'tsv-s1-a5-b': {
     pageId: 'tsv-a5-b-page',
-    background: 'candy',
+    background: 'tsv-greeting-stage',
     characterId: TINY_STAR_GREETING_VOICES[1].characterId,
     scriptId: TINY_STAR_GREETING_VOICES[1].scriptId,
     asset: TINY_STAR_GREETING_VOICES[1].asset,
@@ -404,7 +363,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     ],
   },
   // Tiny Star Village S1/A5-D — chapter five's Twist & Debug (scene-specs A5-D).
-  // The greeting stage keeps its friends and its `candy` background, but the
+  // The greeting stage keeps its friends and its locked village background, but the
   // morning hello is now a BOUNCE relay: the runtime cannot make two Says stop
   // overlapping (see TINY_STAR_BOUNCE_MS), and a bounce is short enough that
   // "waited too long" becomes a real, watchable pause. The starter ships
@@ -413,7 +372,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // `target` records one legal example for tooling.
   'tsv-s1-a5-d': {
     pageId: 'tsv-a5-d-page',
-    background: 'candy',
+    background: 'tsv-greeting-stage',
     characterId: TINY_STAR_BOUNCE_ACTORS[1].characterId,
     scriptId: TINY_STAR_BOUNCE_ACTORS[1].scriptId,
     asset: TINY_STAR_BOUNCE_ACTORS[1].asset,
@@ -435,7 +394,7 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // so the starter is not a legal duet and cannot complete itself.
   'tsv-s1-a5-s': {
     pageId: 'tsv-a5-s-page',
-    background: 'candy',
+    background: 'tsv-greeting-stage',
     characterId: TINY_STAR_DUET_SECOND_ID,
     scriptId: TINY_STAR_DUET_SECOND_SCRIPT,
     asset: LUMILO_ASSET,
@@ -498,24 +457,6 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
   // rule); lesson ids never overlap, so the spread can shadow nothing.
   ...JTW_MISSION_CONTRACTS,
 };
-
-/**
- * Parse the child's A4-S delivery design from the saved scene target. Returns
- * null while nothing has been decided (the starter puts the stop ON the cart at
- * gx=4, which is not a legal endpoint), and for any stop that was dragged off
- * the 1–3 space band or off the cart's row, given a parcel outside the three
- * presets, resized, or turned into a scripted actor.
- */
-export function tinyStarDeliveryDesign(stop: Character | undefined): TinyStarDeliveryDesign | null {
-  if (!stop || stop.scripts.length > 0) return null;
-  if (stop.start.gy !== TINY_STAR_DELIVERY_STOP_GY) return null;
-  if (stop.start.size !== TINY_STAR_DELIVERY_STOP_SIZE) return null;
-  const parcel = TINY_STAR_DELIVERY_PARCELS.find((candidate) => candidate.name === stop.name);
-  if (!parcel || stop.emoji !== parcel.emoji) return null;
-  const distance = stop.start.gx - TINY_STAR_DELIVERY_START_GX;
-  if (!(TINY_STAR_DELIVERY_DISTANCES as readonly number[]).includes(distance)) return null;
-  return { distance, parcel };
-}
 
 /**
  * A5-H: is one of the two greeting voices still exactly what the starter
@@ -646,6 +587,12 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       sceneTarget.start.size === mission.sceneTarget.size &&
       sceneTarget.scripts.length === 0 &&
       page?.characters.length === 2);
+  const characterCountMatches =
+    mission.characterCount === undefined || page?.characters.length === mission.characterCount;
+  const assetMatches =
+    character?.asset === mission.asset ||
+    (mission.characterId === TINY_STAR_BREAKFAST_CART_ID &&
+      tinyStarBreakfastCartAssetIsKnown(character?.asset));
 
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
   if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5BuildVersion(project) !== null;
@@ -665,7 +612,7 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
       project.lessonId === lessonId &&
       page?.background === mission.background &&
       page.characters.length === 1 &&
-      character?.asset === mission.asset &&
+      assetMatches &&
       startMatches &&
       blocks[0]?.op === 'when_tap' &&
       blocks.at(-1)?.op === 'end' &&
@@ -675,9 +622,9 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
 
   if (lessonId === 'tsv-s1-a3-s') {
     const allowedAssets = [
-      '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg',
-      '/story-blocks/tiny-star-village/characters/cloud-bear/resting.svg',
-      '/story-blocks/tiny-star-village/characters/little-light/resting.svg',
+      '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
+      '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
+      '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png',
     ];
     const response = blocks[1];
     const responseIsVisible =
@@ -691,29 +638,27 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
   }
 
   if (lessonId === 'tsv-s1-a2-s') {
-    const endpoint = sceneTarget?.start.gx;
+    const endpoint = page ? tinyStarA2TargetGx(page.background, lessonId) : undefined;
     const direction = endpoint === 6 ? 'move_left' : endpoint === 10 ? 'move_right' : undefined;
     return (
-      project.lessonId === lessonId && page?.background === mission.background &&
-      character?.asset === mission.asset && startMatches && page?.characters.length === 2 &&
-      sceneTarget?.name === 'My Home Star' && sceneTarget.start.gy === 10 &&
-      sceneTarget.start.size === 0.8 && sceneTarget.scripts.length === 0 &&
+      project.lessonId === lessonId && endpoint !== undefined &&
+      character?.asset === mission.asset && startMatches && page?.characters.length === 1 &&
       blocks.length === 4 && blocks[0]?.op === 'when_flag' && blocks[3]?.op === 'end' &&
       blocks[1]?.op === direction && blocks[1]?.n === 1 &&
       blocks[2]?.op === direction && blocks[2]?.n === 1
     );
   }
   if (lessonId === 'tsv-s1-a4-s') {
-    // Personal Ship: the endpoint, the parcel and the number are all the
-    // child's, so there is no exact target — the saved movement number must
-    // simply equal the distance the child put between the cart and the stop.
-    const design = tinyStarDeliveryDesign(sceneTarget);
+    // Personal Ship: the background owns the locked table, while the cart
+    // carries the child's parcel choice. The movement number must equal the
+    // selected background distance.
+    const design = page ? tinyStarDeliveryDesign(character, page.background) : null;
     const move = blocks[1];
     return (
       project.lessonId === lessonId &&
-      page?.background === mission.background &&
-      page.characters.length === 2 &&
-      character?.asset === mission.asset &&
+      page !== undefined &&
+      page.characters.length === 1 &&
+      assetMatches &&
       startMatches &&
       design !== null &&
       blocks.length === 3 &&
@@ -788,7 +733,11 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     // page is handed to the duet parser, which rejects a one-friend duet, an
     // unbuilt or over-built chain, a Wait outside the band the first friend's
     // action allows, a moved friend and any greeting that is not a preset.
-    return project.lessonId === lessonId && tinyStarDuetDesign(page) !== null;
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      tinyStarDuetDesign(page) !== null
+    );
   }
 
   if (lessonId === 'tsv-s1-a6-h') {
@@ -923,8 +872,9 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
   return (
     project.lessonId === lessonId &&
     page?.background === mission.background &&
-    character?.asset === mission.asset &&
+    assetMatches &&
     startMatches &&
+    characterCountMatches &&
     targetMatches &&
     blocks.length === mission.target.length &&
     mission.target.every((target, index) => missionBlockMatches(blocks[index], target, mission))

@@ -261,7 +261,7 @@ describe('StoryMissionGuide', () => {
         onApplyFix={vi.fn()}
         onClose={vi.fn()}
         journeyLabel="Chapter 1 · Scene 3 of 4"
-        nextJourneyLabel="Chapter 1 · My morning greeting"
+        nextJourneyLabel="Next scene (4 of 4): My morning greeting"
         onNext={onNext}
       />,
     );
@@ -274,6 +274,10 @@ describe('StoryMissionGuide', () => {
       screen.getByTestId('story-logic-proof').querySelectorAll('.bsx-logic-proof-connector'),
     ).toHaveLength(manualFixMission.completionSteps.length - 1);
     expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
+    expect(screen.getByTestId('story-completion-actions')).toBeInTheDocument();
+    expect(screen.getByTestId('story-next-mission')).toHaveTextContent(
+      'Next scene (4 of 4): My morning greeting',
+    );
     fireEvent.click(screen.getByTestId('story-next-mission'));
     expect(onNext).toHaveBeenCalledOnce();
   });

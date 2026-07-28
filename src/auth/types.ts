@@ -8,6 +8,7 @@ export interface UserPrincipal {
   sub: string;
   email: string;
   display_name: string | null;
+  phone?: string | null;
   role: Role;
   family_id: string | null;
   // Whether this parent has opted into an email+password login (auth-system-prd
@@ -20,6 +21,7 @@ export interface KidPrincipal {
   kind: 'kid';
   sub: string;
   nickname: string;
+  avatar_id?: string | null;
   age?: number;
   family_id: string | null;
   class_id?: string;
@@ -42,15 +44,17 @@ export interface MeResponse {
     id: string;
     email: string;
     display_name: string | null;
+    phone?: string | null;
     role: Role;
     family_id: string | null;
     has_password?: boolean;
   };
   family?: { id: string; name: string; region: string } | null;
-  kid_profiles?: Array<{ id: string; nickname: string; age: number }>;
+  kid_profiles?: Array<{ id: string; nickname: string; age: number; avatar_id?: string | null }>;
   kid?: {
     id: string;
     nickname: string;
+    avatar_id?: string | null;
     age?: number;
     family_id: string | null;
     is_ephemeral?: boolean;
@@ -81,9 +85,29 @@ export interface KidLoginResponse {
   kid: {
     id: string;
     nickname: string;
+    avatar_id?: string | null;
     age: number;
     family_id: string | null;
   };
+}
+
+export interface KidDeviceIdentity {
+  nickname: string;
+  avatar_id?: string | null;
+}
+
+export interface KidHandoffCreateResponse {
+  token: string;
+  expires_at: string;
+  kid: KidDeviceIdentity;
+}
+
+export interface KidHandoffPreviewResponse {
+  kid: KidDeviceIdentity;
+}
+
+export interface KidHandoffRedeemResponse extends KidLoginResponse {
+  device_hint?: string;
 }
 
 export interface ClassCodeLoginResponse {
@@ -92,6 +116,7 @@ export interface ClassCodeLoginResponse {
   kid: {
     id: string;
     nickname: string;
+    avatar_id?: string | null;
     class_id: string;
     is_ephemeral: boolean;
   };

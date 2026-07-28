@@ -36,6 +36,8 @@ function mockApi() {
     }
     if (path === '/kids/kid_1') return Promise.resolve({ ...KID }) as Promise<never>;
     if (path.startsWith('/schools/search')) return Promise.resolve({ schools: [] }) as Promise<never>;
+    // Sibling avatar list used by the avatar picker (kid-avatar WIP) — must be an array.
+    if (/^\/families\/.+\/kids$/.test(path)) return Promise.resolve([]) as Promise<never>;
     return Promise.resolve({}) as Promise<never>;
   });
   return patches;
@@ -67,7 +69,7 @@ describe('FamilyDetailPage — kid school editor', () => {
     const schoolInput = await screen.findByRole('combobox', { name: /School/ });
     expect(schoolInput).toHaveValue('Fahan School');
 
-    fireEvent.click(screen.getByRole('button', { name: /Save changes/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Save (profile )?changes/ }));
 
     await waitFor(() => expect(patches.length).toBe(1));
     expect(patches[0]).toMatchObject({
@@ -85,7 +87,7 @@ describe('FamilyDetailPage — kid school editor', () => {
 
     const schoolInput = await screen.findByRole('combobox', { name: /School/ });
     fireEvent.change(schoolInput, { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: /Save changes/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Save (profile )?changes/ }));
 
     await waitFor(() => expect(patches.length).toBe(1));
     expect(patches[0]).toMatchObject({

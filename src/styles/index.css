@@ -128,6 +128,60 @@
     font-weight: 500;
   }
 
+  /* === Parent Portal responsive density ===
+     The parent surface is an operational app, not a marketing page. Below the
+     wide-desktop shell it uses a compact native-app scale while preserving the
+     K-12 palette, touch targets and rounded geometry. */
+  .portal-shell {
+    font-size: 16px;
+  }
+
+  @media (max-width: 1279px) {
+    .portal-shell .section-heading {
+      font-size: clamp(26px, 3.2vw, 32px);
+      line-height: 1.12;
+    }
+    .portal-shell .hero-display {
+      font-size: clamp(32px, 5vw, 44px);
+      line-height: 1.08;
+    }
+    .portal-shell .lead-text {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .portal-shell .eyebrow {
+      margin-bottom: 8px;
+      font-size: 10px;
+    }
+    .portal-shell .card-base,
+    .portal-shell .card-feature {
+      padding: 20px;
+    }
+    .portal-shell .btn-pill-primary,
+    .portal-shell .btn-pill-secondary {
+      min-height: 44px;
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+    .portal-shell .btn-pill-ghost {
+      min-height: 44px;
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .portal-shell .section-heading {
+      font-size: 26px;
+    }
+    .portal-shell .hero-display {
+      font-size: 32px;
+    }
+    .portal-shell .card-base,
+    .portal-shell .card-feature {
+      padding: 16px;
+    }
+  }
+
   /* === Cards === */
   .card-base {
     @apply bg-canvas-pure rounded-2xl shadow-card-soft;
@@ -853,10 +907,10 @@
   }
 
   /* === Nav drawer === */
-  .nav-link {
-    @apply block rounded-2xl px-4 py-2.5 text-[14px] font-medium text-ink-soft hover:bg-wash-coral hover:text-ink transition-colors;
+  .portal-shell .nav-link {
+    @apply block rounded-xl px-3 py-2 text-[13px] font-medium text-ink-soft hover:bg-wash-coral hover:text-ink transition-colors;
   }
-  .nav-link-active {
+  .portal-shell .nav-link-active {
     @apply bg-wash-coral text-ink font-semibold;
   }
 

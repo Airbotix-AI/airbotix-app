@@ -88,6 +88,7 @@ function renderPage(from?: typeof FROM) {
 
 function fill({ consent = true }: { consent?: boolean } = {}) {
   fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Lightman' } });
+  fireEvent.change(screen.getByLabelText(/Mobile number/), { target: { value: '0400 123 123' } });
   fireEvent.change(screen.getByLabelText('Family name'), { target: { value: 'The Wangs' } });
   fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Mia' } });
   fireEvent.change(screen.getByLabelText('Age'), { target: { value: '9' } });
@@ -130,12 +131,32 @@ describe('RegisterPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create family →' }));
     expect(await screen.findByText('MINT')).toBeInTheDocument();
     expect(api).toHaveBeenCalledWith(
+      '/auth/me',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: { display_name: 'Lightman', phone: '0400 123 123' },
+      }),
+    );
+    expect(api).toHaveBeenCalledWith(
       '/families',
       expect.objectContaining({
         method: 'POST',
         body: expect.objectContaining({ accept_terms: true }),
       }),
     );
+  });
+
+  it('requires a valid Australian mobile before creating the family', async () => {
+    wireApi();
+    renderPage();
+    fill();
+    fireEvent.change(screen.getByLabelText(/Mobile number/), { target: { value: '07 1234 5678' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create family →' }));
+
+    expect(await screen.findByText('Enter a valid Australian mobile number.')).toBeInTheDocument();
+    expect(api).not.toHaveBeenCalledWith('/auth/me', expect.anything());
+    expect(api).not.toHaveBeenCalledWith('/families', expect.anything());
   });
 
   it('honours the threaded `from` after family creation (Continue → deep-link)', async () => {

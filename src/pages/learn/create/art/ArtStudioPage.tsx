@@ -114,11 +114,19 @@ export interface ArtMissionTemplate {
   layer: 'underlay' | 'base';
   magic?: 'with-base' | 'strokes-only';
 }
+export interface ArtMissionStep {
+  id?: string;
+  title: string;
+  instruction_md?: string;
+  widget?: string;
+}
 export interface ArtMission {
   id: string;
   slug?: string;
   title: string;
   description?: string;
+  /** The authored learning sequence shown beside the canvas. */
+  steps?: ArtMissionStep[];
   template?: ArtMissionTemplate;
   /** Draw-along steps (D-IS-21): each step can summon its own 2★ ghost. */
   draw_along?: string[];
@@ -997,6 +1005,36 @@ export function ArtStudioPage() {
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
                 )}
+                {mission.steps && mission.steps.length > 0 && (
+                  <div
+                    className="mt-2 rounded-xl bg-canvas-pure/80 px-2.5 py-2"
+                    data-testid="mission-learning-steps"
+                  >
+                    <div className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
+                      Learn &amp; make · {mission.steps.length} steps
+                    </div>
+                    <ol className="mt-1.5 space-y-2">
+                      {mission.steps.map((step, index) => (
+                        <li key={step.id ?? `${step.title}-${index}`} className="flex gap-2">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-bubblegum text-[10px] font-black text-white">
+                            {index + 1}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[11px] font-bold text-ink">{step.title}</span>
+                            {step.instruction_md && (
+                              <span className="mt-0.5 block text-[10px] leading-snug text-ink-soft">
+                                {step.instruction_md}
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    <p className="mt-2 text-[10px] font-semibold leading-snug text-brand-bubblegum">
+                      Code steps continue in Creative Code Studio after your art is ready.
+                    </p>
+                  </div>
+                )}
                 {mission.draw_along && mission.draw_along.length > 0 && !missionDone && (
                   <div className="mt-2" data-testid="draw-along">
                     <div className="text-[11px] font-bold text-ink">
@@ -1040,6 +1078,24 @@ export function ArtStudioPage() {
                 {missionDone && (
                   <div className="text-[11px] font-bold text-brand-mint mt-1">✓ Complete! +3★</div>
                 )}
+              </div>
+            )}
+            {!mission && !hasInk && !baseArtifactId && !baseRef && takes.length === 0 && (
+              <div
+                className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum px-3 py-2.5"
+                data-testid="art-studio-start-guide"
+              >
+                <div className="text-[12px] font-black text-ink">
+                  Start here — make your first picture
+                </div>
+                <ol className="mt-1.5 space-y-1 text-[11px] font-semibold leading-snug text-ink-soft">
+                  <li><strong className="text-ink">1.</strong> Tell {ART_TUTOR_TEMP_NAME} what you want to make.</li>
+                  <li><strong className="text-ink">2.</strong> Draw it yourself, or ask for a ghost sketch.</li>
+                  <li><strong className="text-ink">3.</strong> Press “Bring it to life” when your sketch is ready.</li>
+                </ol>
+                <p className="mt-1.5 text-[10px] font-bold text-slate2">
+                  Drawing is free. Every AI button shows its Star cost first.
+                </p>
               </div>
             )}
             <div className="flex-1 overflow-y-auto space-y-2 mb-2">

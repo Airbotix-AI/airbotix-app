@@ -73,7 +73,7 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
         ))}
       </div>
 
-      <div className="mt-auto pt-6 border-t border-hairline">
+      <div className="mt-auto border-t border-hairline px-2 pt-4">
         {me.data?.kind === 'user' && (
           <div className="mb-3">
             <div className="text-[14px] font-semibold text-ink truncate">

@@ -8,7 +8,7 @@ import type { StoryMission } from './types';
 export const TSV_A6_MISSIONS: Record<string, StoryMission> = {
   'tsv-s1-a6-h': {
     mode: 'observe-only', lessonId: 'tsv-s1-a6-h', celebrate: false,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 6 · Mission 21', title: 'Three Bell Tower cards',
     storyPages: [
       { emoji: '⭐🔔', title: 'The last stop is the Bell Tower', body: 'Order, direction, tapping, distance and taking turns — five chapters of clues have reached the tower. Lumi only has to ring the bell to bring the morning light back.', speaker: 'Lumilo', dialogue: 'The whole village is waiting for one bell.', scene: 1 },
@@ -50,7 +50,7 @@ export const TSV_A6_MISSIONS: Record<string, StoryMission> = {
   // number are genuinely the child's moves — the product supplies neither.
   'tsv-s1-a6-b': {
     mode: 'complete', lessonId: 'tsv-s1-a6-b', celebrate: true,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 6 · Mission 22', title: 'Add the missing step',
     storyPages: [
       { emoji: '🚶❓🔔', title: 'The middle card is in your hand', body: 'You found it last time: Lumi walks to the Bell Tower and the bell rings, but nobody ever jumps up to touch it. The hop card is still missing from the program.', speaker: 'Lumilo', dialogue: 'I never actually reached the bell.', scene: 1 },
@@ -88,7 +88,7 @@ export const TSV_A6_MISSIONS: Record<string, StoryMission> = {
   // edit is where the Pop sits.
   'tsv-s1-a6-d': {
     mode: 'observe-fix', lessonId: 'tsv-s1-a6-d', celebrate: true,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 6 · Mission 23', title: 'The bell rang first!',
     storyPages: [
       { emoji: '🔔🚶🦘', title: 'All three cards are here', body: 'Walk to the tower, hop up to the bell, hear the bell ring. Every card the morning needs is finally in the program — but the village woke up confused.', speaker: 'Lumilo', dialogue: 'Something happened in the wrong order.', scene: 1 },
@@ -132,7 +132,7 @@ export const TSV_A6_MISSIONS: Record<string, StoryMission> = {
   // NOBODY as the ringer and ships no ending, so it cannot complete itself.
   'tsv-s1-a6-s': {
     mode: 'personal-ship', lessonId: 'tsv-s1-a6-s', celebrate: true,
-    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting.svg' },
+    hero: { name: 'Lumilo', role: 'Morning Light Keeper', asset: '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 6 · Mission 24', title: 'My morning-light ending',
     storyPages: [
       { emoji: '🔔❓', title: 'The route is ready. Nobody is standing there.', body: 'Walk three spaces, hop up, ring the bell — you built that story and you fixed it. It is waiting at the tower, and this time it is empty: no friend has been chosen to ring it.', speaker: 'Lumilo', dialogue: 'Someone has to bring the morning back. Who will it be?', scene: 1 },
