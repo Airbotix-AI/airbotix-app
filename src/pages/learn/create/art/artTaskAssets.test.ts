@@ -43,4 +43,25 @@ describe('Art Studio guided drawing assets', () => {
     expect(reference).toContain('stroke-width="11"');
     expect(reference).not.toMatch(/<(?:filter|image|linearGradient|radialGradient)\b/);
   });
+
+  it.each(TASK_SLUGS)('%s keeps its original v1 guide for the challenge level', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v1');
+    const rasterExtension = slug === 'draw-a-trex' ? 'png' : 'webp';
+    const requiredFiles = [
+      `cover.${rasterExtension}`,
+      `reference.${rasterExtension}`,
+      'ghost.svg',
+      'steps/01.svg',
+      'steps/02.svg',
+      'steps/03.svg',
+      'steps/04.svg',
+      'steps/05.svg',
+    ];
+
+    requiredFiles.forEach((relativePath) => {
+      const assetPath = join(directory, relativePath);
+      expect(existsSync(assetPath), `${slug}/${relativePath}`).toBe(true);
+      expect(readFileSync(assetPath).byteLength, `${slug}/${relativePath}`).toBeGreaterThan(200);
+    });
+  });
 });

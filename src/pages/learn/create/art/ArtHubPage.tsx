@@ -150,6 +150,40 @@ function PictureCard({ artifact, onOpen }: { artifact: Artifact; onOpen: () => v
   );
 }
 
+function DrawingIdeaCard({
+  task,
+  onPick,
+}: {
+  task: ArtTaskListItem;
+  onPick: (task: ArtTaskListItem) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="art-guided-task"
+      onClick={() => onPick(task)}
+      className="overflow-hidden rounded-[26px] border border-hairline bg-canvas-pure text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
+    >
+      <img
+        src={task.cover.url}
+        alt={task.cover.alt}
+        className="aspect-[4/3] w-full bg-surface object-cover"
+      />
+      <span className="block p-4">
+        <span className="block text-[10px] font-black uppercase tracking-[0.11em] text-brand-mint">
+          {task.category} · Ages {task.age_min}–{task.age_max}
+        </span>
+        <span className="mt-1 block text-[18px] font-black text-ink">{task.title}</span>
+        <span className="mt-1 block text-[12px] text-ink-soft">{task.short_description}</span>
+        <span className="mt-3 block text-[11px] font-bold text-slate2">
+          {task.duration_minutes} min · Difficulty {'●'.repeat(task.difficulty)}
+          {'○'.repeat(3 - task.difficulty)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function ArtHubPage() {
   const nav = useNavigate();
   const [pickedTask, setPickedTask] = useState<ArtTaskListItem | null>(null);
@@ -171,6 +205,8 @@ export function ArtHubPage() {
     queryFn: () => api<CoursePackRow[]>('/course-packs'),
   });
   const artCourses = (packs.data ?? []).filter((p) => p.product_line === ART_COURSE_LINE);
+  const simpleDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty < 3);
+  const challengeDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty === 3);
 
   // Only images belong in the picture wall — the bucket can also hold the
   // non-image artifacts a future studio feature saves.
@@ -272,35 +308,34 @@ export function ArtHubPage() {
         {guidedTasks.isLoading ? (
           <p className="lead-text mt-3">Loading drawing ideas…</p>
         ) : guidedTasks.data && guidedTasks.data.length > 0 ? (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {guidedTasks.data.map((task) => (
-              <button
-                key={task.slug}
-                type="button"
-                data-testid="art-guided-task"
-                onClick={() => setPickedTask(task)}
-                className="overflow-hidden rounded-[26px] border border-hairline bg-canvas-pure text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
-              >
-                <img
-                  src={task.cover.url}
-                  alt={task.cover.alt}
-                  className="aspect-[4/3] w-full bg-surface object-cover"
-                />
-                <span className="block p-4">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.11em] text-brand-mint">
-                    {task.category} · Ages {task.age_min}–{task.age_max}
-                  </span>
-                  <span className="mt-1 block text-[18px] font-black text-ink">{task.title}</span>
-                  <span className="mt-1 block text-[12px] text-ink-soft">
-                    {task.short_description}
-                  </span>
-                  <span className="mt-3 block text-[11px] font-bold text-slate2">
-                    {task.duration_minutes} min · Difficulty {'●'.repeat(task.difficulty)}
-                    {'○'.repeat(3 - task.difficulty)}
-                  </span>
-                </span>
-              </button>
-            ))}
+          <div className="mt-5 space-y-8">
+            {simpleDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-simple">
+                <h3 className="text-[18px] font-black text-ink">Start Simple</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Four big steps and clear lines — a friendly place to begin.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {simpleDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {challengeDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-challenge">
+                <h3 className="text-[18px] font-black text-ink">Ready for a Challenge?</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Five steps with more detail, colour and a bigger scene to create.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {challengeDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="mt-4 rounded-2xl border border-hairline bg-surface px-5 py-4">

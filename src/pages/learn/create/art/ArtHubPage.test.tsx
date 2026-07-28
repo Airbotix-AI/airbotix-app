@@ -272,7 +272,7 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
-  it('shows all eight pilot choices instead of a single sample task', async () => {
+  it('groups eight simple choices and eight preserved challenge choices', async () => {
     const titles = [
       'Draw a T-Rex',
       'Draw a Kitten',
@@ -296,11 +296,42 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       cover: { url: `/art-tasks/task-${index}/v2/cover.svg`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
     }));
+    guidedTasks.push(
+      ...titles.map((title, index) => ({
+        slug: `task-${index}-challenge`,
+        version: 1,
+        title: `${title} — Challenge`,
+        short_description: `Detailed drawing ${index + 1}`,
+        category: 'animals',
+        age_min: 9,
+        age_max: 13,
+        difficulty: 3,
+        duration_minutes: 20,
+        cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: `${title} challenge` },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+      })),
+    );
 
     renderHub();
 
-    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(8);
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(16);
+    expect(screen.getByTestId('art-guided-simple')).toHaveTextContent('Start Simple');
+    expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent(
+      'Ready for a Challenge?',
+    );
     titles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+    titles.forEach((title) =>
+      expect(screen.getByText(`${title} — Challenge`)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByText('Draw a T-Rex — Challenge'));
+    fireEvent.click(screen.getByRole('button', { name: /Draw My Way/ }));
+    await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      search: '?task=task-0-challenge&mode=free',
+      state: null,
+    });
   });
 
   it('lets a child pick a T-Rex and choose how to draw before opening the canvas', async () => {
