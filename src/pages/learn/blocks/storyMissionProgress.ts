@@ -8,8 +8,10 @@ import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
 import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
+  JTW_C4_P6_LESSON_ID,
   jtwC4DualBuildMatches,
   jtwC4P5BuildVersion,
+  jtwC4P6FixedVersion,
 } from './jtwC4DualBuild';
 import {
   JTW_MISSION_CONTRACTS,
@@ -647,6 +649,7 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
 
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
   if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5BuildVersion(project) !== null;
+  if (lessonId === JTW_C4_P6_LESSON_ID) return jtwC4P6FixedVersion(project) !== null;
 
   if (lessonId === 'tsv-s1-a3-b') {
     const responseBlocks = blocks.slice(1, -1);

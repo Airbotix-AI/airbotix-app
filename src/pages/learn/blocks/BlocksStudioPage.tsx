@@ -72,7 +72,9 @@ import { isJtwOrderDebugLesson, jtwOrderBugObserved } from './jtwOrderDebug';
 import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
+  JTW_C4_P6_LESSON_ID,
   JTW_C4_WUKONG_ID,
+  jtwC4P6BugVersion,
 } from './jtwC4DualBuild';
 import { speechBubbleStyle } from './spriteLayout';
 import { StoryCoachPanel } from './StoryCoachPanel';
@@ -346,7 +348,9 @@ export function BlocksStudioPage({
   const isJtwOrderDebug = isJtwOrderDebugLesson(storyMission?.lessonId);
   const isJtwC4DualBuild =
     storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
-    storyMission?.lessonId === JTW_C4_P5_LESSON_ID;
+    storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
+    storyMission?.lessonId === JTW_C4_P6_LESSON_ID;
+  const isJtwC4TriggerDebug = storyMission?.lessonId === JTW_C4_P6_LESSON_ID;
   const selectedHomeGx = page.characters.find((character) => character.id === 'plaza-target')?.start
     .gx;
   const visibleCoachCue: StoryCoachCue = missionCompleted
@@ -870,6 +874,9 @@ export function BlocksStudioPage({
         // JtW C1-P6 / C2-P6: pressing Go while the shipped order bug is still
         // in the chain reproduces it — that run IS the required bug run.
         const observedOrderBug = jtwOrderBugObserved(storyMission.lessonId, missionScript?.blocks);
+        const observedC4TriggerBug =
+          isJtwC4TriggerDebug &&
+          jtwC4P6BugVersion(useBlocksStore.getState().project) !== null;
         // A6-H: the Hook's proof is the run itself — the interpreter played the
         // bell, never reached a Hop, and left the ringer standing at the foot of
         // the tower. Recorded so the "which card is missing?" answer can only be
@@ -886,6 +893,7 @@ export function BlocksStudioPage({
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
+        if (observedC4TriggerBug) setMissionWrongRunObserved(true);
         if (observedLateBounce) setMissionWrongRunObserved(true);
         if (observedEarlyBell) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
@@ -961,6 +969,7 @@ export function BlocksStudioPage({
     needsBellOrderRun,
     isJtwOrderDebug,
     isJtwC4DualBuild,
+    isJtwC4TriggerDebug,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -1065,8 +1074,10 @@ export function BlocksStudioPage({
         if (
           id === JTW_C4_WUKONG_ID &&
           (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
-            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P6_LESSON_ID) &&
           missionHasRun &&
+          (storyMission?.lessonId !== JTW_C4_P6_LESSON_ID || missionWrongRunObserved) &&
           storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
         ) {
           setMissionTapObserved(true);
@@ -1106,7 +1117,14 @@ export function BlocksStudioPage({
         }
       });
     },
-    [isA3PersonalShip, makeRunner, missionHasRun, missionTapObserved, storyMission],
+    [
+      isA3PersonalShip,
+      makeRunner,
+      missionHasRun,
+      missionTapObserved,
+      missionWrongRunObserved,
+      storyMission,
+    ],
   );
 
   // ── character picker: a centered modal sheet (big library, kid-friendly) ──
@@ -1540,8 +1558,11 @@ export function BlocksStudioPage({
       setEditBlk({ scriptId, index, left, top: Math.max(70, r.top - 132) });
       return;
     }
-    if (isA3EventDebug && (op === 'when_flag' || op === 'when_tap')) {
-      if (!missionTapObserved) {
+    if ((isA3EventDebug || isJtwC4TriggerDebug) && (op === 'when_flag' || op === 'when_tap')) {
+      if (
+        (isA3EventDebug && !missionTapObserved) ||
+        (isJtwC4TriggerDebug && !missionWrongRunObserved)
+      ) {
         setStoryCoachCue('retry');
         setMissionOpen(true);
         return;
@@ -2600,7 +2621,7 @@ export function BlocksStudioPage({
           >
             <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
               <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
-              {isA3EventDebug &&
+              {(isA3EventDebug || isJtwC4TriggerDebug) &&
               (editing.block.op === 'when_flag' || editing.block.op === 'when_tap')
                 ? 'Which start listens for a tap?'
                 : isA2DirectionDebug &&
@@ -2618,7 +2639,7 @@ export function BlocksStudioPage({
                         ? `Which page? (1–${project.pages.length})`
                         : `How many? (${blockDef(editing.block.op).label})`}
             </div>
-            {isA3EventDebug &&
+            {(isA3EventDebug || isJtwC4TriggerDebug) &&
             (editing.block.op === 'when_flag' || editing.block.op === 'when_tap') ? (
               <div className="grid grid-cols-2 gap-2" data-testid="event-repair-picker">
                 {(['when_flag', 'when_tap'] as const).map((event) => (
