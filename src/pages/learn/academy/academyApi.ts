@@ -119,6 +119,7 @@ type SymbolPatternSpec = {
 
 export type AcademyRenderSpec =
   | { kind: 'none'; value_inputs?: AcademyValueInputsSpec }
+  | { kind: 'source_figure'; alt: string }
   | TallyTableSpec
   | {
       kind: 'number_range';
@@ -156,6 +157,12 @@ export interface AcademyQuestion {
   answer_type: AcademyAnswerType;
   stem_text: string | null;
   options: string[] | null;
+  figure_keys: string[];
+  stimulus?: {
+    id: string;
+    text: string;
+    figure_keys: string[];
+  };
   render_ready: boolean;
   render_spec: AcademyRenderSpec;
   ac9_code: string | null;

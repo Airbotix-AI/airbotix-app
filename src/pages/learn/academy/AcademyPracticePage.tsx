@@ -15,7 +15,11 @@ import {
   type AcademyQuestion,
   type AcademyValueInputsSpec,
 } from './academyApi';
-import { AcademyChoiceVisual, AcademyQuestionVisual } from './AcademyQuestionVisual';
+import {
+  AcademyChoiceVisual,
+  AcademyQuestionVisual,
+  AcademySourceFigures,
+} from './AcademyQuestionVisual';
 
 // Choice questions map option index → letter; the LETTER is what we submit.
 const CHOICE_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -208,6 +212,27 @@ export function AcademyPracticePage() {
           <div ref={questionTop} className="max-w-6xl">
             <Scoreboard done={doneCount} correct={correctCount} idx={idx} total={total} />
 
+            {current.stimulus && (
+              <section
+                data-testid="academy-stimulus"
+                data-stimulus-id={current.stimulus.id}
+                className="mt-6 max-w-full overflow-hidden rounded-[26px] border-2 border-brand-sky/20 bg-wash-sky p-4 sm:p-6"
+              >
+                <p className="text-[13px] font-black uppercase tracking-[0.08em] text-slate2">
+                  Source material
+                </p>
+                {current.stimulus.text && (
+                  <p className="mt-3 whitespace-pre-line text-[17px] font-semibold leading-relaxed text-ink">
+                    {current.stimulus.text}
+                  </p>
+                )}
+                <AcademySourceFigures
+                  figureKeys={current.stimulus.figure_keys}
+                  alt="Source material for the following questions"
+                />
+              </section>
+            )}
+
             <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
               <section className="card-base" data-testid="academy-question">
                 <QuestionBody question={current} />
@@ -317,7 +342,7 @@ function QuestionBody({ question }: { question: AcademyQuestion }) {
       <p data-testid="academy-stem" className="text-[20px] font-bold leading-snug text-ink">
         {question.stem_text}
       </p>
-      <AcademyQuestionVisual spec={question.render_spec} />
+      <AcademyQuestionVisual spec={question.render_spec} figureKeys={question.figure_keys} />
     </div>
   );
 }

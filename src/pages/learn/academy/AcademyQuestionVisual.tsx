@@ -1,5 +1,6 @@
 import { useId } from 'react';
 
+import { BASE_URL } from '@/lib/api';
 import type {
   AcademyPatternSymbol,
   AcademyRenderSpec,
@@ -11,8 +12,17 @@ import {
   AcademyYear3QuestionVisual,
 } from './AcademyQuestionVisualsYear3';
 
-export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
+export function AcademyQuestionVisual({
+  spec,
+  figureKeys = [],
+}: {
+  spec: AcademyRenderSpec;
+  figureKeys?: string[];
+}) {
   if (spec.kind === 'none') return null;
+  if (spec.kind === 'source_figure') {
+    return <AcademySourceFigures figureKeys={figureKeys} alt={spec.alt} />;
+  }
   if (spec.kind === 'tally_table') return <TallyTable spec={spec} />;
   if (spec.kind === 'number_range') return <NumberRange spec={spec} />;
   if (spec.kind === 'balance_scale') return <BalanceScale spec={spec} />;
@@ -24,6 +34,34 @@ export function AcademyQuestionVisual({ spec }: { spec: AcademyRenderSpec }) {
   if (spec.kind === 'symbol_pattern') return <SymbolPattern spec={spec} />;
   if (spec.kind === 'route') return <RouteMap spec={spec} />;
   return <AcademyYear3QuestionVisual spec={spec} />;
+}
+
+export function AcademySourceFigures({
+  figureKeys,
+  alt,
+}: {
+  figureKeys: string[];
+  alt: string;
+}) {
+  if (figureKeys.length === 0) return null;
+  return (
+    <div
+      data-testid="academy-source-figure"
+      className="mt-6 grid max-w-full gap-4 overflow-hidden rounded-[24px] border border-hairline bg-white p-3 sm:p-5"
+    >
+      {figureKeys.map((key, index) => (
+        <img
+          key={key}
+          src={`${BASE_URL}/academy/assets/${key
+            .split('/')
+            .map(encodeURIComponent)
+            .join('/')}`}
+          alt={index === 0 ? alt : `${alt} (${index + 1})`}
+          className="mx-auto block h-auto max-h-[34rem] max-w-full object-contain"
+        />
+      ))}
+    </div>
+  );
 }
 
 export function AcademyChoiceVisual({

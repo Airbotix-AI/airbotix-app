@@ -32,6 +32,7 @@ const TEXT_CHOICE_Q = {
   answer_type: 'choice' as const,
   stem_text: 'A pencil costs 19 cents. How much do 10 pencils cost?',
   options: ['19 cents', '$1.90', '$19.00', '$190'],
+  figure_keys: [],
   render_ready: true,
   render_spec: { kind: 'none' as const },
   ac9_code: 'AC9M5N01',
@@ -122,6 +123,66 @@ afterEach(() => {
 });
 
 describe('AcademyPracticePage', () => {
+  it('renders the HSC source figure above the answer choices', async () => {
+    const sourceFigure = {
+      ...TEXT_CHOICE_Q,
+      id: 'hsc-physics-2021physics-q06',
+      exam: 'HSC',
+      year_level: 'Year 12',
+      subject: 'Physics',
+      stem_text: 'What is the isotope labelled R?',
+      figure_keys: ['figures/hsc/physics/2021-hsc-physics-q06.png'],
+      render_spec: {
+        kind: 'source_figure' as const,
+        alt: 'Nuclear fusion process with labelled particles',
+      },
+    };
+    wireApi([sourceFigure]);
+    renderPage();
+
+    const image = await screen.findByRole('img', {
+      name: 'Nuclear fusion process with labelled particles',
+    });
+    expect(image).toHaveAttribute(
+      'src',
+      'http://api.test/academy/assets/figures/hsc/physics/2021-hsc-physics-q06.png',
+    );
+    expect(
+      image.compareDocumentPosition(screen.getByTestId('academy-option-A')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('renders one shared source-material panel above consecutive questions', async () => {
+    const stimulus = {
+      id: 'vce-biology-2021-e1-stimulus-q02-q04',
+      text: '',
+      figure_keys: [
+        'figures/vce/stimuli/biology/vce-biology-2021-e1-stimulus-q02-q04.png',
+      ],
+    };
+    wireApi([
+      { ...TEXT_CHOICE_Q, id: 'shared-q2', stimulus },
+      { ...TEXT_CHOICE_Q, id: 'shared-q3', stimulus, stem_text: 'The next shared question.' },
+    ]);
+    renderPage();
+
+    expect(await screen.findAllByTestId('academy-stimulus')).toHaveLength(1);
+    expect(
+      screen.getByRole('img', { name: 'Source material for the following questions' }),
+    ).toHaveAttribute(
+      'src',
+      'http://api.test/academy/assets/figures/vce/stimuli/biology/vce-biology-2021-e1-stimulus-q02-q04.png',
+    );
+    fireEvent.click(screen.getByTestId('academy-option-A'));
+    fireEvent.click(await screen.findByTestId('academy-next'));
+    expect(await screen.findAllByTestId('academy-stimulus')).toHaveLength(1);
+    expect(screen.getByTestId('academy-stimulus')).toHaveAttribute(
+      'data-stimulus-id',
+      stimulus.id,
+    );
+  });
+
   it('renders a text question with option-text buttons', async () => {
     wireApi([TEXT_CHOICE_Q]);
     renderPage();
