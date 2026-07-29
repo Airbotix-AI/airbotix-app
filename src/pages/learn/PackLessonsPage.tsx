@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { api } from '@/lib/api';
 import type { ArtMissionStep } from './create/art/ArtStudioPage';
+import { ART_CANVAS_PATH, opensInArtStudio } from './create/art/artCourseRouting';
 
 interface StudioMissionConfig {
   art?: {
@@ -146,29 +147,26 @@ export function PackLessonsPage() {
                               const art = config?.art;
                               const music = config?.music;
                               const isArtTask =
-                                Boolean(art) || steps.some((step) => step.widget === 'image_create');
+                                opensInArtStudio(pack.data.slug, art) ||
+                                steps.some((step) => step.widget === 'image_create');
 
                               if (isArtTask) {
-                                nav('/learn/create/image/canvas', {
-                                    // Art missions open the Art Studio CANVAS in
-                                    // Mission Mode (image-studio-prd D-IS-20/22).
-                                    // The task is already chosen, so this skips the
-                                    // hub at `/learn/create/image` — which does not
-                                    // read this state, so routing there silently
-                                    // dropped Mission Mode entirely (D-IS-28).
-                                    state: {
-                                      mission: {
-                                        id: m.id,
-                                        slug: m.slug,
-                                        title: m.title,
-                                        description: m.description,
-                                        steps,
-                                        template: art?.template,
-                                        draw_along: art?.draw_along,
-                                        checklist: art?.checklist,
-                                      },
+                                nav(ART_CANVAS_PATH, {
+                                  // The task is already chosen, so Mission Mode
+                                  // opens directly on the Art Studio canvas.
+                                  state: {
+                                    mission: {
+                                      id: m.id,
+                                      slug: m.slug,
+                                      title: m.title,
+                                      description: m.description,
+                                      steps,
+                                      template: art?.template,
+                                      draw_along: art?.draw_along,
+                                      checklist: art?.checklist,
                                     },
-                                  });
+                                  },
+                                });
                                 return;
                               }
 

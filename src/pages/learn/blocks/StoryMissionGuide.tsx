@@ -240,6 +240,13 @@ export function StoryMissionGuide({
                 <div className="bsx-story-child">👉</div>
               </div>
               <div className="bsx-story-copy">
+                {storyPage === 0 && mission.coachGoal && (
+                  <div className="bsx-story-first-action" data-testid="story-first-action">
+                    <small>{mission.coachGoal.label}</small>
+                    <strong>{mission.coachGoal.target}</strong>
+                    <span>{mission.coachGoal.now}</span>
+                  </div>
+                )}
                 <p className="bsx-mission-story">{page.body}</p>
                 {page.dialogue && (
                   <blockquote className="bsx-story-dialogue">

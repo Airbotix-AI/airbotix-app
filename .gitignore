@@ -49,3 +49,5 @@ coverage
 /public/vendor/phaser-*.d.ts
 /public/vendor/three-*.global.js
 .claude/worktrees/
+.codex-worktrees/
+*.local-wip.bak

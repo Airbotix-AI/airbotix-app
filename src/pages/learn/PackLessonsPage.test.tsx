@@ -172,4 +172,50 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
       }),
     );
   });
+
+  it.each([
+    ['your-hero-your-world', 'Your hero & your world'],
+    ['the-story-in-panels', 'The story in panels'],
+    ['draw-every-page', 'Draw every page'],
+    ['print-it-and-launch-it', 'Print it & launch it'],
+  ])(
+    'keeps the legacy AI Comic Book task %s inside Art Studio even before steps are authored',
+    async (missionSlug, missionTitle) => {
+      api.mockResolvedValue({
+        ...PACK,
+        slug: 'ai-comic-book',
+        title: 'Create Your Own Comic Book with AI',
+        lessons: [
+          {
+            ...PACK.lessons[0],
+            missions: [
+              {
+                ...PACK.lessons[0].missions[0],
+                slug: missionSlug,
+                title: missionTitle,
+                steps_json: [],
+              },
+            ],
+          },
+        ],
+      });
+      renderPack();
+
+      const task = (await screen.findByText(missionTitle)).closest('li');
+      fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+
+      expect(await screen.findByTestId('art-mission-state')).toHaveTextContent(
+        JSON.stringify({
+          mission: {
+            id: 'm1',
+            slug: missionSlug,
+            title: missionTitle,
+            description: 'Make a picture.',
+            steps: [],
+          },
+        }),
+      );
+      expect(screen.queryByTestId('art-hub-route')).not.toBeInTheDocument();
+    },
+  );
 });

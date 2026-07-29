@@ -120,8 +120,25 @@ function ChapterCard({
           </span>
         </div>
         <h3>{chapter.title}</h3>
-        <p>{chapter.story}</p>
         <div className="tsv-skill"><span aria-hidden="true">✦</span> {chapter.skill}</div>
+      </div>
+
+      <div
+        className="tsv-chapter-story"
+        data-testid={`story-chapter-${chapter.id}-description`}
+      >
+        <div>
+          <small>What happened</small>
+          <p>{chapter.story.problem}</p>
+        </div>
+        <div>
+          <small>Your part</small>
+          <p>{chapter.story.help}</p>
+        </div>
+        <div className="tsv-chapter-story-after">
+          <small>Then…</small>
+          <p>{chapter.story.after}</p>
+        </div>
       </div>
 
       {isPlayable ? (
@@ -244,8 +261,14 @@ export function StoryJourneyMap({
           <div className="tsv-season-label">Collection 1 · Tiny Star Village</div>
           <h2 id="tiny-star-village-title">Bring back the morning light</h2>
           <p>
-            Meet Lumi, Tuan Tuan, and Dot Dot. Each program you fix wakes another part of the
-            village.
+            Every morning, the village windows send little wake-up stars to the Bell Tower. Today
+            the tower heard a greeting before the first wake-up star arrived, so it gently paused
+            the light and the village stayed dark.
+          </p>
+          <p>
+            Lumi, Tuan Tuan, and Dot Dot need a Story Partner who can see what happened inside
+            their programs. Fix each part of their morning, and every solved problem will carry the
+            light into the next chapter.
           </p>
           <div className="tsv-world-facts">
             <span>{PLAYABLE_STORY_MISSION_COUNT} scenes ready to play</span>

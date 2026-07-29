@@ -8,6 +8,14 @@ import {
 } from './storyJourneyCatalog';
 
 describe('storyJourneyCatalog progression', () => {
+  it('gives every chapter a complete child-facing story description', () => {
+    for (const chapter of TINY_STAR_VILLAGE_CHAPTERS) {
+      expect(chapter.story.problem.length).toBeGreaterThan(60);
+      expect(chapter.story.help.length).toBeGreaterThan(60);
+      expect(chapter.story.after.length).toBeGreaterThan(60);
+    }
+  });
+
   it('keeps every playable template and lesson id unique', () => {
     const missions = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
 
@@ -31,7 +39,7 @@ describe('storyJourneyCatalog progression', () => {
     expect(next?.mission.lessonId).toBe('tsv-s1-a2-h');
     expect(next?.sceneNumber).toBe(1);
     expect(storyJourneyActionLabel(current!, next!)).toBe(
-      'Start Chapter 2: Which way is the plaza?',
+      'Start Chapter 2: Press Go and watch',
     );
   });
 

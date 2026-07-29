@@ -144,8 +144,9 @@ export function tinyStarResumeProject(
   scene: TinyStarSeasonScene,
 ): TinyStarProjectRef | undefined {
   const title = storyMissionProjectTitle(scene.mission);
+  const resumableTitles = new Set([title, ...(scene.mission.legacyProjectTitles ?? [])]);
   return projects
-    .filter((project) => project.title === title)
+    .filter((project) => resumableTitles.has(project.title))
     .reduce<TinyStarProjectRef | undefined>((newest, project) => {
       if (!newest) return project;
       const a = project.updated_at ?? '';
