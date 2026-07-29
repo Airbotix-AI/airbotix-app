@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple happy cupcake</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="180,336 420,336 390,540 210,540"/>
+    <path d="M176 336c-29-31-10-74 31-75-16-51 32-88 76-62 17-57 83-57 100 0 44-26 92 11 76 62 41 1 60 44 31 75Z"/><path d="M267 176c0-48 66-80 99-33 28 40-8 83-66 91-21-14-33-33-33-58Z"/><path d="M295 159c14-36 43-52 81-47"/>
+    <circle cx="265" cy="286" r="9" fill="#2C3642"/><circle cx="335" cy="286" r="9" fill="#2C3642"/><path d="M270 315c20 18 40 18 60 0M255 361l-16 153m61-153v153m45-153 16 153"/>
+  </g>
+</svg>

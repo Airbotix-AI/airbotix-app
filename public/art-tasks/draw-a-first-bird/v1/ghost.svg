@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a very simple little bird to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="320" cy="350" rx="145" ry="112"/>
+    <circle cx="205" cy="268" r="82"/><ellipse cx="344" cy="356" rx="70" ry="48" transform="rotate(-18 344 356)"/><polygon points="120,268 58,296 123,319"/><polygon points="450,350 535,302 508,390"/>
+    <circle cx="184" cy="253" r="9" fill="#2C3642"/><path d="M252 451v54m126-54v54M226 505h50m76 0h50"/>
+  </g>
+</svg>

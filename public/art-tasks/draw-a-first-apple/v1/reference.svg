@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A three-step line drawing of a very simple happy apple</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 191c-67-55-176-15-188 112-14 146 92 249 188 249s202-103 188-249c-12-127-121-167-188-112Z"/>
+    <path d="M300 194c-3-73 25-117 76-132"/><ellipse cx="397" cy="112" rx="75" ry="38" transform="rotate(-28 397 112)"/>
+    <circle cx="256" cy="337" r="10" fill="#2C3642"/><circle cx="344" cy="337" r="10" fill="#2C3642"/><path d="M262 378c24 22 52 22 76 0"/>
+  </g>
+</svg>

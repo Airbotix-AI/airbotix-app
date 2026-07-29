@@ -37,6 +37,22 @@ const FIRST_DRAWING_SLUGS = [
   'draw-a-first-rocket',
   'draw-a-first-flower',
   'draw-a-first-ice-cream',
+  'draw-a-first-bird',
+  'draw-a-first-frog',
+  'draw-a-first-bee',
+  'draw-a-first-crab',
+  'draw-a-first-sailboat',
+  'draw-a-first-rainbow',
+  'draw-a-first-cupcake',
+  'draw-a-first-house',
+  'draw-a-first-jellyfish',
+  'draw-a-first-octopus',
+  'draw-a-first-bow-tie',
+  'draw-a-first-sunflower',
+  'draw-a-first-apple',
+  'draw-a-first-donut',
+  'draw-a-first-hot-air-balloon',
+  'draw-a-first-train',
 ] as const;
 
 const SIMPLE_TASK_SLUGS = [...ORIGINAL_TASK_SLUGS, ...SIMPLE_BATCH_TWO_SLUGS] as const;
@@ -91,8 +107,7 @@ describe('Art Studio guided drawing assets', () => {
     const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v1');
     const reference = readFileSync(join(directory, 'reference.svg'), 'utf8');
     const pathStarts = reference.match(/[Mm](?=[-0-9])/g) ?? [];
-    const standaloneShapes =
-      reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
+    const standaloneShapes = reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
     const drawingFeatures = pathStarts.length + standaloneShapes.length;
 
     expect(drawingFeatures).toBeGreaterThanOrEqual(5);
@@ -110,8 +125,7 @@ describe('Art Studio guided drawing assets', () => {
     const directory = join(process.cwd(), 'public', 'art-tasks', slug, guideVersion);
     const reference = readFileSync(join(directory, 'reference.svg'), 'utf8');
     const pathStarts = reference.match(/[Mm](?=[-0-9])/g) ?? [];
-    const standaloneShapes =
-      reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
+    const standaloneShapes = reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
     const drawingFeatures = pathStarts.length + standaloneShapes.length;
 
     expect(drawingFeatures).toBeGreaterThanOrEqual(10);

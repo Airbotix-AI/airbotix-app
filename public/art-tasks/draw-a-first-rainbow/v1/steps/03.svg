@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a very simple bright rainbow</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M115 391c0-143 83-243 185-243s185 100 185 243"/>
+    <path d="M155 391c0-114 65-194 145-194s145 80 145 194"/><path d="M195 391c0-85 47-145 105-145s105 60 105 145"/><path d="M235 391c0-56 29-96 65-96s65 40 65 96"/><path d="M49 416c0-47 56-65 83-31 26-34 82-16 82 31 0 33-27 58-61 58H110c-34 0-61-25-61-58Z"/><path d="M386 416c0-47 56-65 82-31 27-34 83-16 83 31 0 33-27 58-61 58h-43c-34 0-61-25-61-58Z"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="105" cy="418" r="7" fill="#2C3642"/><circle cx="151" cy="418" r="7" fill="#2C3642"/><path d="M111 442c11 10 23 10 34 0"/><circle cx="449" cy="418" r="7" fill="#2C3642"/><circle cx="495" cy="418" r="7" fill="#2C3642"/><path d="M455 442c11 10 23 10 34 0"/></g>
+  </g>
+</svg>

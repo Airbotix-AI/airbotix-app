@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A three-step line drawing of a very simple happy jellyfish</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M135 310c0-104 74-182 165-182s165 78 165 182Z"/>
+    <path d="M135 310c32 38 66 38 99 0 32 38 66 38 99 0 32 38 66 38 99 0 11 13 22 20 33 20"/><path d="M185 332c-26 72-26 133 0 184M260 332c-18 72-18 133 0 184M340 332c18 72 18 133 0 184M415 332c26 72 26 133 0 184"/>
+    <circle cx="252" cy="248" r="9" fill="#2C3642"/><circle cx="348" cy="248" r="9" fill="#2C3642"/><path d="M262 280c24 22 52 22 76 0"/><circle cx="213" cy="286" r="14"/><circle cx="387" cy="286" r="14"/>
+  </g>
+</svg>
