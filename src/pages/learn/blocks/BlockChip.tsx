@@ -31,6 +31,7 @@ export function BlockChip({
   onPointerUp,
   onPointerCancel,
   title,
+  dataPath,
 }: {
   block: Block;
   /** Chained pieces hide the socket gap; the chain's last piece drops its plug. */
@@ -48,6 +49,8 @@ export function BlockChip({
   onPointerUp?: (e: PointerEvent) => void;
   onPointerCancel?: (e: PointerEvent) => void;
   title?: string;
+  /** Tree path (`"3.1"`), published so the drag layer can find drop slots. */
+  dataPath?: string;
 }) {
   const def = blockDef(block.op);
   const noPlug = def.category === 'end' || (inChain && isLast);
@@ -66,6 +69,7 @@ export function BlockChip({
     <button
       type="button"
       data-testid={`block-${block.op}`}
+      data-block-path={dataPath}
       title={title}
       onClick={onTap}
       onPointerDown={onPointerDown}

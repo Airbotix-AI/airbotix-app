@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import {
   type Block,
   type BlockOp,
+  type BlockPath,
   type BlocksProject,
   type Character,
   type Page,
@@ -24,8 +25,10 @@ import {
   blankProject,
   blockDef,
   defaultParam,
+  isContainer,
   isTrigger,
   newId,
+  pathIsWithin,
 } from './blocksModel';
 
 /** One undo/redo snapshot: the whole project + which page/character was open. */
@@ -59,7 +62,86 @@ function newBlock(op: BlockOp, chosenN?: number): Block {
 }
 
 function structuralBlocks(block: Block): Block[] {
-  return block.op === 'if_touching' ? [{ ...block, body: [] }] : [block];
+  return isContainer(block.op) ? [{ ...block, body: [] }] : [block];
+}
+
+/** A freshly-created block ready to be placed (C-blocks get an empty body). */
+function newStructuralBlock(op: BlockOp, chosenN?: number): Block {
+  return structuralBlocks(newBlock(op, chosenN))[0];
+}
+
+/**
+ * Immutably drop the block at `path` out of a script's tree. Returns the new
+ * list plus the block that left, so a move is remove-then-insert with the
+ * removed block carried across (see `moveBlockToPath`).
+ */
+function removeAtPath(blocks: Block[], path: BlockPath): { blocks: Block[]; removed: Block | null } {
+  if (path.length === 0) return { blocks, removed: null };
+  const [head, ...rest] = path;
+  const target = blocks[head];
+  if (!target) return { blocks, removed: null };
+  if (rest.length === 0) {
+    return { blocks: blocks.filter((_, i) => i !== head), removed: target };
+  }
+  const nested = removeAtPath(target.body ?? [], rest);
+  if (!nested.removed) return { blocks, removed: null };
+  return {
+    blocks: blocks.map((b, i) => (i === head ? { ...b, body: nested.blocks } : b)),
+    removed: nested.removed,
+  };
+}
+
+/**
+ * Immutably insert `block` at `path`; the last entry is the slot inside its
+ * parent list. A top-level slot clamps to ≥1 so nothing can land in front of
+ * the trigger; body slots start at 0.
+ */
+function insertAtPath(
+  blocks: Block[],
+  path: BlockPath,
+  block: Block,
+  topLevel = true,
+): Block[] {
+  if (path.length === 0) return blocks;
+  const [head, ...rest] = path;
+  if (rest.length === 0) {
+    const slot = Math.min(blocks.length, Math.max(topLevel ? 1 : 0, head));
+    const next = [...blocks];
+    next.splice(slot, 0, block);
+    return next;
+  }
+  const parent = blocks[head];
+  if (!parent || !isContainer(parent.op)) return blocks;
+  return blocks.map((b, i) =>
+    i === head ? { ...b, body: insertAtPath(b.body ?? [], rest, block, false) } : b,
+  );
+}
+
+/** Immutably rewrite the single block at `path`, leaving the tree shape alone. */
+function updateAtPath(blocks: Block[], path: BlockPath, fn: (b: Block) => Block): Block[] {
+  if (path.length === 0) return blocks;
+  const [head, ...rest] = path;
+  if (!blocks[head]) return blocks;
+  return blocks.map((b, i) => {
+    if (i !== head) return b;
+    return rest.length === 0 ? fn(b) : { ...b, body: updateAtPath(b.body ?? [], rest, fn) };
+  });
+}
+
+/**
+ * Where `to` ends up once the block at `from` has been lifted out. Only the
+ * entry at the removed block's own depth can shift, and only when it sat after
+ * it in the same parent list — everything shallower or in another branch is
+ * untouched.
+ */
+function shiftPathAfterRemoval(to: BlockPath, from: BlockPath): number[] {
+  const depth = from.length - 1;
+  if (to.length <= depth) return [...to];
+  const sameParent = from.slice(0, depth).every((value, i) => value === to[i]);
+  if (!sameParent || to[depth] <= from[depth]) return [...to];
+  const next = [...to];
+  next[depth] -= 1;
+  return next;
 }
 
 interface BlocksStore {
@@ -109,6 +191,12 @@ interface BlocksStore {
   removeBlock: (scriptId: string, index: number) => void;
   /** Swap a block's operation while preserving its existing parameters. */
   replaceBlockOp: (scriptId: string, index: number, op: BlockOp) => void;
+  /** Path-aware editors — the same four edits, reachable at any nesting depth
+   *  so a block inside a C-block body is a first-class, editable block. */
+  replaceBlockOpAtPath: (scriptId: string, path: BlockPath, op: BlockOp) => void;
+  cycleParamAtPath: (scriptId: string, path: BlockPath, max?: number) => void;
+  setParamAtPath: (scriptId: string, path: BlockPath, n: number, max?: number) => void;
+  setSayTextAtPath: (scriptId: string, path: BlockPath, text: string) => void;
   /** Tap-to-cycle a block's value 1→max→1 (number tile, speed, or msg colour). */
   cycleParam: (scriptId: string, index: number, max?: number) => void;
   /** Set an exact param value (the +/− stepper editor). Clamped 1..MAX_PARAM. */
@@ -116,6 +204,21 @@ interface BlocksStore {
   setSayText: (scriptId: string, index: number, text: string) => void;
   addIfBodyBlock: (scriptId: string, index: number, op: BlockOp, n?: number) => void;
   removeIfBodyBlock: (scriptId: string, index: number, bodyIndex: number) => void;
+  /** Insert a palette block at an exact tree slot — the drag-to-drop entry
+   *  point that works at any nesting depth (top-level slot or a C-block body).
+   *  Triggers are rejected; they always start their own track. */
+  insertBlockAtPath: (op: BlockOp, scriptId: string, path: BlockPath, n?: number) => void;
+  /** Remove the block at a tree path. Removing a trigger removes its track. */
+  removeBlockAtPath: (scriptId: string, path: BlockPath) => void;
+  /** Move a block to another tree slot, in this or another track of the current
+   *  character. Triggers never move, and a C-block can't be dropped inside its
+   *  own body. */
+  moveBlockToPath: (
+    fromScriptId: string,
+    fromPath: BlockPath,
+    toScriptId: string,
+    toPath: BlockPath,
+  ) => void;
   /** Reorder a block within its script — drag to change execution order. The
    *  trigger (index 0) stays first; body blocks reorder among 1..n. */
   moveBlock: (scriptId: string, from: number, to: number) => void;
@@ -418,24 +521,27 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
   },
 
   replaceBlockOp(scriptId, index, op) {
+    get().replaceBlockOpAtPath(scriptId, [index], op);
+  },
+
+  replaceBlockOpAtPath(scriptId, path, op) {
     get()._commit((s) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => ({
         ...c,
         scripts: c.scripts.map((sc) =>
           sc.id !== scriptId
             ? sc
-            : {
-                ...sc,
-                blocks: sc.blocks.map((block, blockIndex) =>
-                  blockIndex === index ? { ...block, op } : block,
-                ),
-              },
+            : { ...sc, blocks: updateAtPath(sc.blocks, path, (block) => ({ ...block, op })) },
         ),
       })),
     }));
   },
 
   cycleParam(scriptId, index, max = MAX_PARAM) {
+    get().cycleParamAtPath(scriptId, [index], max);
+  },
+
+  cycleParamAtPath(scriptId, path, max = MAX_PARAM) {
     get()._commit((s) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => ({
         ...c,
@@ -444,9 +550,10 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
             ? sc
             : {
                 ...sc,
-                blocks: sc.blocks.map((b, i) =>
-                  i !== index ? b : { ...b, n: ((b.n ?? 1) % max) + 1 },
-                ),
+                blocks: updateAtPath(sc.blocks, path, (b) => ({
+                  ...b,
+                  n: ((b.n ?? 1) % max) + 1,
+                })),
               },
         ),
       })),
@@ -454,6 +561,10 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
   },
 
   setParam(scriptId, index, n, max = MAX_PARAM) {
+    get().setParamAtPath(scriptId, [index], n, max);
+  },
+
+  setParamAtPath(scriptId, path, n, max = MAX_PARAM) {
     const v = Math.min(max, Math.max(1, Math.round(n)));
     get()._commit(
       (s) => ({
@@ -462,15 +573,19 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           scripts: c.scripts.map((sc) =>
             sc.id !== scriptId
               ? sc
-              : { ...sc, blocks: sc.blocks.map((b, i) => (i !== index ? b : { ...b, n: v })) },
+              : { ...sc, blocks: updateAtPath(sc.blocks, path, (b) => ({ ...b, n: v })) },
           ),
         })),
       }),
-      `param:${scriptId}:${index}`,
+      `param:${scriptId}:${path.join('.')}`,
     );
   },
 
   setSayText(scriptId, index, text) {
+    get().setSayTextAtPath(scriptId, [index], text);
+  },
+
+  setSayTextAtPath(scriptId, path, text) {
     get()._commit(
       (s) => ({
         project: patchChar(s.project, s.pageId, s.charId, (c) => ({
@@ -478,58 +593,92 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           scripts: c.scripts.map((sc) =>
             sc.id !== scriptId
               ? sc
-              : { ...sc, blocks: sc.blocks.map((b, i) => (i !== index ? b : { ...b, text: text.slice(0, 60) })) },
+              : {
+                  ...sc,
+                  blocks: updateAtPath(sc.blocks, path, (b) => ({
+                    ...b,
+                    text: text.slice(0, 60),
+                  })),
+                },
           ),
         })),
       }),
-      `say:${scriptId}:${index}`,
+      `say:${scriptId}:${path.join('.')}`,
     );
   },
 
   addIfBodyBlock(scriptId, index, op, chosenN) {
     if (isTrigger(op)) return;
+    const script = currentChar(
+      currentPage(get().project, get().pageId),
+      get().charId,
+    ).scripts.find((sc) => sc.id === scriptId);
+    const target = script?.blocks[index];
+    if (!target || !isContainer(target.op)) return;
+    get().insertBlockAtPath(op, scriptId, [index, target.body?.length ?? 0], chosenN);
+  },
+
+  removeIfBodyBlock(scriptId, index, bodyIndex) {
+    get().removeBlockAtPath(scriptId, [index, bodyIndex]);
+  },
+
+  insertBlockAtPath(op, scriptId, path, chosenN) {
+    if (isTrigger(op) || path.length === 0) return;
     get()._commit((s) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => ({
         ...c,
         scripts: c.scripts.map((sc) =>
           sc.id !== scriptId
             ? sc
-            : {
-                ...sc,
-                blocks: sc.blocks.map((block, blockIndex) =>
-                  blockIndex !== index || block.op !== 'if_touching'
-                    ? block
-                    : {
-                        ...block,
-                        body: [...(block.body ?? []), ...structuralBlocks(newBlock(op, chosenN))],
-                      },
-                ),
-              },
+            : { ...sc, blocks: insertAtPath(sc.blocks, path, newStructuralBlock(op, chosenN)) },
         ),
       })),
     }));
   },
 
-  removeIfBodyBlock(scriptId, index, bodyIndex) {
+  removeBlockAtPath(scriptId, path) {
+    if (path.length === 0) return;
+    // A top-level removal can strip a track's trigger, which retires the track.
+    if (path.length === 1) {
+      get().removeBlock(scriptId, path[0]);
+      return;
+    }
     get()._commit((s) => ({
       project: patchChar(s.project, s.pageId, s.charId, (c) => ({
         ...c,
         scripts: c.scripts.map((sc) =>
-          sc.id !== scriptId
-            ? sc
-            : {
-                ...sc,
-                blocks: sc.blocks.map((block, blockIndex) =>
-                  blockIndex !== index || block.op !== 'if_touching'
-                    ? block
-                    : {
-                        ...block,
-                        body: (block.body ?? []).filter((_, i) => i !== bodyIndex),
-                      },
-                ),
-              },
+          sc.id !== scriptId ? sc : { ...sc, blocks: removeAtPath(sc.blocks, path).blocks },
         ),
       })),
+    }));
+  },
+
+  moveBlockToPath(fromScriptId, fromPath, toScriptId, toPath) {
+    if (fromPath.length === 0 || toPath.length === 0) return;
+    if (fromPath.length === 1 && fromPath[0] === 0) return; // the trigger anchors its track
+    // Dropping a C-block inside its own body would orphan the whole subtree.
+    if (fromScriptId === toScriptId && pathIsWithin(fromPath, toPath)) return;
+    get()._commit((s) => ({
+      project: patchChar(s.project, s.pageId, s.charId, (c) => {
+        const from = c.scripts.find((sc) => sc.id === fromScriptId);
+        if (!from) return c;
+        const lifted = removeAtPath(from.blocks, fromPath);
+        const moved = lifted.removed;
+        if (!moved || isTrigger(moved.op)) return c;
+        const sameScript = fromScriptId === toScriptId;
+        const dest = sameScript ? shiftPathAfterRemoval(toPath, fromPath) : [...toPath];
+        return {
+          ...c,
+          scripts: c.scripts.map((sc) => {
+            if (sameScript && sc.id === fromScriptId) {
+              return { ...sc, blocks: insertAtPath(lifted.blocks, dest, moved) };
+            }
+            if (sc.id === fromScriptId) return { ...sc, blocks: lifted.blocks };
+            if (sc.id === toScriptId) return { ...sc, blocks: insertAtPath(sc.blocks, dest, moved) };
+            return sc;
+          }),
+        };
+      }),
     }));
   },
 
@@ -551,44 +700,7 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
   },
 
   moveBlockAcross(fromScriptId, fromIndex, toScriptId, toIndex) {
-    get()._commit((s) => ({
-      project: patchChar(s.project, s.pageId, s.charId, (c) => {
-        const from = c.scripts.find((sc) => sc.id === fromScriptId);
-        if (!from || fromIndex <= 0 || fromIndex >= from.blocks.length) return c;
-        const moved = from.blocks[fromIndex];
-        if (isTrigger(moved.op)) return c; // triggers anchor their own track
-        if (fromScriptId === toScriptId) {
-          return {
-            ...c,
-            scripts: c.scripts.map((sc) => {
-              if (sc.id !== fromScriptId) return sc;
-              const arr = [...sc.blocks];
-              arr.splice(fromIndex, 1);
-              const dest = Math.min(Math.max(1, toIndex), arr.length);
-              arr.splice(dest, 0, moved);
-              return { ...sc, blocks: arr };
-            }),
-          };
-        }
-        return {
-          ...c,
-          scripts: c.scripts.map((sc) => {
-            if (sc.id === fromScriptId) {
-              const arr = [...sc.blocks];
-              arr.splice(fromIndex, 1);
-              return { ...sc, blocks: arr };
-            }
-            if (sc.id === toScriptId) {
-              const arr = [...sc.blocks];
-              const dest = Math.min(Math.max(1, toIndex), arr.length);
-              arr.splice(dest, 0, moved);
-              return { ...sc, blocks: arr };
-            }
-            return sc;
-          }),
-        };
-      }),
-    }));
+    get().moveBlockToPath(fromScriptId, [fromIndex], toScriptId, [toIndex]);
   },
 
   moveCharacter(charId, gx, gy) {

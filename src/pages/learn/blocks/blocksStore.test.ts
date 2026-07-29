@@ -232,6 +232,112 @@ describe('blocksStore', () => {
     expect(ops()).toEqual(['when_flag']);
   });
 
+  describe('tree edits by path (drag into / out of a C-block body)', () => {
+    /** 🚩 → move_right → If(body: hop) → pop */
+    const buildIfTrack = () => {
+      store().addBlock('when_flag');
+      store().addBlock('move_right');
+      store().addBlock('if_touching');
+      store().addBlock('pop');
+      const id = char().scripts[0].id;
+      store().addIfBodyBlock(id, 2, 'hop');
+      return id;
+    };
+    const track = (id: string) => char().scripts.find((s) => s.id === id)!;
+    const body = (id: string) => track(id).blocks[2].body?.map((b) => b.op) ?? [];
+
+    it('inserts a palette block at an exact slot inside an If body', () => {
+      const id = buildIfTrack();
+      store().insertBlockAtPath('say', id, [2, 0]); // in front of the hop
+      expect(body(id)).toEqual(['say', 'hop']);
+      store().insertBlockAtPath('grow', id, [2, 9]); // clamps to the end
+      expect(body(id)).toEqual(['say', 'hop', 'grow']);
+    });
+
+    it('never inserts a trigger into a body', () => {
+      const id = buildIfTrack();
+      store().insertBlockAtPath('when_tap', id, [2, 0]);
+      expect(body(id)).toEqual(['hop']);
+      expect(char().scripts).toHaveLength(1);
+    });
+
+    it('drags a top-level block into the If body', () => {
+      const id = buildIfTrack();
+      store().moveBlockToPath(id, [1], id, [2, 0]); // move_right → inside the If
+      expect(track(id).blocks.map((b) => b.op)).toEqual(['when_flag', 'if_touching', 'pop']);
+      expect(track(id).blocks[1].body?.map((b) => b.op)).toEqual(['move_right', 'hop']);
+    });
+
+    it('drags a block back out of the If body onto the track', () => {
+      const id = buildIfTrack();
+      store().moveBlockToPath(id, [2, 0], id, [1]); // hop → in front of move_right
+      expect(track(id).blocks.map((b) => b.op)).toEqual([
+        'when_flag',
+        'hop',
+        'move_right',
+        'if_touching',
+        'pop',
+      ]);
+      expect(track(id).blocks[3].body).toEqual([]);
+    });
+
+    it('shifts the destination when the lifted block sat in front of it', () => {
+      const id = buildIfTrack();
+      // move_right (slot 1) → the end of the track. Once it is lifted the
+      // trailing slots all shuffle down by one, so it must land last, not
+      // one short of last.
+      store().moveBlockToPath(id, [1], id, [4]);
+      expect(track(id).blocks.map((b) => b.op)).toEqual([
+        'when_flag',
+        'if_touching',
+        'pop',
+        'move_right',
+      ]);
+    });
+
+    it('refuses to drop a C-block inside its own body', () => {
+      const id = buildIfTrack();
+      store().moveBlockToPath(id, [2], id, [2, 0]);
+      expect(track(id).blocks.map((b) => b.op)).toEqual([
+        'when_flag',
+        'move_right',
+        'if_touching',
+        'pop',
+      ]);
+      expect(body(id)).toEqual(['hop']);
+    });
+
+    it('never drags the trigger away from the front of its track', () => {
+      const id = buildIfTrack();
+      store().moveBlockToPath(id, [0], id, [2, 0]);
+      expect(track(id).blocks[0].op).toBe('when_flag');
+      expect(body(id)).toEqual(['hop']);
+    });
+
+    it('edits a nested block’s parameter without disturbing the tree', () => {
+      const id = buildIfTrack();
+      store().setParamAtPath(id, [2, 0], 7);
+      expect(track(id).blocks[2].body?.[0]).toMatchObject({ op: 'hop', n: 7 });
+      store().cycleParamAtPath(id, [2, 0], 9);
+      expect(track(id).blocks[2].body?.[0].n).toBe(8);
+      store().setSayTextAtPath(id, [2], 'star');
+      expect(track(id).blocks[2].text).toBe('star');
+      expect(body(id)).toEqual(['hop']);
+    });
+
+    it('removes only the nested block, leaving the If in place', () => {
+      const id = buildIfTrack();
+      store().removeBlockAtPath(id, [2, 0]);
+      expect(body(id)).toEqual([]);
+      expect(track(id).blocks.map((b) => b.op)).toEqual([
+        'when_flag',
+        'move_right',
+        'if_touching',
+        'pop',
+      ]);
+    });
+  });
+
   it('removePage keeps at least one page and reselects when the open page goes', () => {
     store().addPage(); // now 2 pages, page 2 selected
     const firstPage = store().project.pages[0].id;

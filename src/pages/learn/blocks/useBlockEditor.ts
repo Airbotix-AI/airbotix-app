@@ -9,6 +9,7 @@ import {
   MAX_COLOR,
   MAX_PARAM,
   MAX_SPEED,
+  blockAtPath,
   blockDef,
   type BlockOp,
   type Character,
@@ -56,7 +57,7 @@ export function useBlockEditor({
 }: UseBlockEditorOptions) {
   const [editBlock, setEditBlock] = useState<{
     scriptId: string
-    index: number
+    path: number[]
     left: number
     top: number
   } | null>(null)
@@ -64,7 +65,7 @@ export function useBlockEditor({
   const openEditor = (
     event: ReactMouseEvent,
     scriptId: string,
-    index: number,
+    path: number[],
   ) => {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
     const width = 230
@@ -74,7 +75,7 @@ export function useBlockEditor({
     )
     setEditBlock({
       scriptId,
-      index,
+      path,
       left,
       top: Math.max(70, rect.top - 132),
     })
@@ -83,7 +84,7 @@ export function useBlockEditor({
   const onBlockTap = (
     event: ReactMouseEvent,
     scriptId: string,
-    index: number,
+    path: number[],
     op: string,
   ) => {
     if (readOnly) return
@@ -115,7 +116,7 @@ export function useBlockEditor({
         return
       }
       sfx.tap()
-      openEditor(event, scriptId, index)
+      openEditor(event, scriptId, path)
       return
     }
     if (isA3EventDebug && (op === 'when_flag' || op === 'when_tap')) {
@@ -125,19 +126,19 @@ export function useBlockEditor({
         return
       }
       sfx.tap()
-      openEditor(event, scriptId, index)
+      openEditor(event, scriptId, path)
       return
     }
     if (isA2DirectionDebug || isA3EventDebug) return
     const definition = blockDef(op as BlockOp)
     if (definition.param === 'speed') {
       sfx.numUp()
-      useBlocksStore.getState().cycleParam(scriptId, index, MAX_SPEED)
+      useBlocksStore.getState().cycleParamAtPath(scriptId, path, MAX_SPEED)
       return
     }
     if (definition.param === 'color') {
       sfx.tap()
-      useBlocksStore.getState().cycleParam(scriptId, index, MAX_COLOR)
+      useBlocksStore.getState().cycleParamAtPath(scriptId, path, MAX_COLOR)
       return
     }
     if (
@@ -150,7 +151,7 @@ export function useBlockEditor({
       return
     }
     sfx.tap()
-    openEditor(event, scriptId, index)
+    openEditor(event, scriptId, path)
   }
 
   useEffect(() => {
@@ -175,7 +176,7 @@ export function useBlockEditor({
   const editing = (() => {
     if (!editBlock) return null
     const script = selectedChar.scripts.find((item) => item.id === editBlock.scriptId)
-    const block = script?.blocks[editBlock.index]
+    const block = script ? blockAtPath(script.blocks, editBlock.path) : undefined
     return block ? { ...editBlock, block } : null
   })()
   const editMax = editing?.block.op === 'goto_page' ? pageCount : MAX_PARAM
