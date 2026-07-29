@@ -290,6 +290,86 @@ const tasks = [
     ],
   },
   {
+    slug: 'draw-a-first-jellyfish',
+    version: 'v1',
+    alt: 'a very simple happy jellyfish',
+    stages: [
+      '<path d="M135 310c0-104 74-182 165-182s165 78 165 182Z"/>',
+      '<path d="M135 310c32 38 66 38 99 0 32 38 66 38 99 0 32 38 66 38 99 0 11 13 22 20 33 20"/><path d="M185 332c-26 72-26 133 0 184M260 332c-18 72-18 133 0 184M340 332c18 72 18 133 0 184M415 332c26 72 26 133 0 184"/>',
+      '<circle cx="252" cy="248" r="9" fill="#2C3642"/><circle cx="348" cy="248" r="9" fill="#2C3642"/><path d="M262 280c24 22 52 22 76 0"/><circle cx="213" cy="286" r="14"/><circle cx="387" cy="286" r="14"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-octopus',
+    version: 'v1',
+    alt: 'a very simple friendly octopus',
+    stages: [
+      '<path d="M170 302c0-94 58-168 130-168s130 74 130 168c0 44-12 76-35 104H205c-23-28-35-60-35-104Z"/>',
+      '<path d="M205 397c-71 6-101 52-66 90 31 33 80 1 94-66M250 404c-54 34-65 91-20 113 39 19 71-27 70-92M285 410c-25 55-8 108 40 103 42-5 51-56 25-103M350 404c54 34 65 91 20 113M395 397c71 6 101 52 66 90M178 423c-58-14-99 12-89 57M422 423c58-14 99 12 89 57M300 420c0 49 18 78 49 89"/>',
+      '<circle cx="252" cy="278" r="10" fill="#2C3642"/><circle cx="348" cy="278" r="10" fill="#2C3642"/><path d="M258 318c27 25 57 25 84 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-bow-tie',
+    version: 'v1',
+    alt: 'a very simple bow tie',
+    stages: [
+      '<polygon points="260,255 340,255 340,345 260,345"/>',
+      '<path d="M260 272C188 187 83 195 76 300c7 105 112 113 184 28Z"/><path d="M340 272c72-85 177-77 184 28-7 105-112 113-184 28Z"/>',
+      '<path d="M260 276 171 232M260 324l-89 44M340 276l89-44M340 324l89 44"/><circle cx="145" cy="282" r="10"/><circle cx="455" cy="282" r="10"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-sunflower',
+    version: 'v1',
+    alt: 'a very simple happy sunflower',
+    stages: [
+      '<circle cx="300" cy="246" r="92"/>',
+      '<ellipse cx="300" cy="92" rx="56" ry="92"/><ellipse cx="428" cy="168" rx="56" ry="92" transform="rotate(60 428 168)"/><ellipse cx="428" cy="324" rx="56" ry="92" transform="rotate(120 428 324)"/><ellipse cx="300" cy="400" rx="56" ry="92"/><ellipse cx="172" cy="324" rx="56" ry="92" transform="rotate(-120 172 324)"/><ellipse cx="172" cy="168" rx="56" ry="92" transform="rotate(-60 172 168)"/>',
+      '<polygon points="284,492 316,492 316,528 430,500 453,552 316,540 316,576 284,576 284,540 147,552 170,500 284,528"/><circle cx="264" cy="232" r="9" fill="#2C3642"/><circle cx="336" cy="232" r="9" fill="#2C3642"/><path d="M270 271c20 18 40 18 60 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-apple',
+    version: 'v1',
+    alt: 'a very simple happy apple',
+    stages: [
+      '<path d="M300 191c-67-55-176-15-188 112-14 146 92 249 188 249s202-103 188-249c-12-127-121-167-188-112Z"/>',
+      '<path d="M300 194c-3-73 25-117 76-132"/><ellipse cx="397" cy="112" rx="75" ry="38" transform="rotate(-28 397 112)"/>',
+      '<circle cx="256" cy="337" r="10" fill="#2C3642"/><circle cx="344" cy="337" r="10" fill="#2C3642"/><path d="M262 378c24 22 52 22 76 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-donut',
+    version: 'v1',
+    alt: 'a very simple happy donut',
+    stages: [
+      '<circle cx="300" cy="300" r="210"/>',
+      '<circle cx="300" cy="268" r="76"/><path d="M102 314c35 39 73 34 105 5 36 42 77 39 108 2 36 40 75 38 108 1 27 29 56 34 85 10"/>',
+      '<circle cx="250" cy="392" r="9" fill="#2C3642"/><circle cx="350" cy="392" r="9" fill="#2C3642"/><path d="M260 427c24 22 56 22 80 0M160 198l24 18m39-62 13 27m147-26-17 27m65 44-29 9"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-hot-air-balloon',
+    version: 'v1',
+    alt: 'a very simple hot-air balloon',
+    stages: [
+      '<path d="M300 70c126 0 205 88 181 205-14 68-71 122-119 164H238c-48-42-105-96-119-164C95 158 174 70 300 70Z"/>',
+      '<path d="M238 439v62m124-62v62"/><polygon points="225,501 375,501 352,570 248,570"/>',
+      '<path d="M300 70c-63 78-74 237-28 369M300 70c63 78 74 237 28 369"/><circle cx="268" cy="257" r="9" fill="#2C3642"/><circle cx="332" cy="257" r="9" fill="#2C3642"/><path d="M274 292c17 16 35 16 52 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-train',
+    version: 'v1',
+    alt: 'a very simple little train',
+    stages: [
+      '<path d="M140 280h260c62 0 105 43 105 105v88H140Z"/>',
+      '<polygon points="105,168 290,168 290,473 105,473"/><polygon points="380,175 450,175 450,282 380,282"/><circle cx="470" cy="340" r="66"/>',
+      '<circle cx="175" cy="473" r="64"/><circle cx="315" cy="473" r="64"/><circle cx="455" cy="473" r="64"/><path d="M414 168c0-57 43-79 82-54m-35-42c0-37 29-55 60-39"/><circle cx="450" cy="326" r="8" fill="#2C3642"/><circle cx="490" cy="326" r="8" fill="#2C3642"/><path d="M449 356c15 14 27 14 42 0"/>',
+    ],
+  },
+  {
     slug: 'draw-a-panda',
     version: 'v1',
     alt: 'a panda holding bamboo',
