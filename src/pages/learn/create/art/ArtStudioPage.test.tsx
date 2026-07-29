@@ -264,6 +264,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     removeWhiteBackgroundMock.mockClear();
     failNext.image = false;
     failNext.upload = false;
+    routerState = undefined;
     localStorage.clear();
     // jsdom lacks createObjectURL; the bytes-proxy hook's output IS this value.
     (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(

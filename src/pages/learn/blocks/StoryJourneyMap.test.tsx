@@ -45,12 +45,28 @@ describe('StoryJourneyMap', () => {
     render(<StoryJourneyMap busy={null} onStart={vi.fn()} />);
 
     expect(screen.getByText('Bring back the morning light')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/story-chapter-/)).toHaveLength(6);
+    expect(screen.getAllByTestId(/^story-chapter-a\d$/)).toHaveLength(6);
     expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(24);
     expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a4')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a5')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a6')).toHaveTextContent('4 scenes ready');
+    expect(screen.getAllByText('What happened')).toHaveLength(6);
+    expect(screen.getAllByText('Your part')).toHaveLength(6);
+    expect(screen.getAllByText('Then…')).toHaveLength(6);
+    expect(screen.getByTestId('story-chapter-a1-description')).toHaveTextContent(
+      'the Bell Tower paused the morning-light chain',
+    );
+    expect(screen.getByTestId('story-chapter-a2-description')).toHaveTextContent(
+      'The plaza is on his right, but his arrow sends him left',
+    );
+    expect(screen.getByTestId('story-chapter-a6-description')).toHaveTextContent(
+      'Morning returns',
+    );
+    expect(screen.getByText(/Every morning, the village windows send little wake-up stars/))
+      .toBeInTheDocument();
+    expect(screen.getByText(/need a Story Partner who can see what happened inside/))
+      .toBeInTheDocument();
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
       'The Missing Morning Light',
     );
@@ -143,7 +159,7 @@ describe('StoryJourneyMap', () => {
     );
 
     const resume = screen.getByTestId('story-season-resume');
-    expect(resume).toHaveTextContent('Chapter 2 · Which way is the plaza?');
+    expect(resume).toHaveTextContent('Chapter 2 · Press Go and watch');
     expect(resume).toHaveTextContent('Scene 5 of 24 · 4 finished');
     expect(screen.queryByTestId('story-season-complete')).not.toBeInTheDocument();
 

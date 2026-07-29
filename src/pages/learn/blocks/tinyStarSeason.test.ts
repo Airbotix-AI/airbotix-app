@@ -139,7 +139,7 @@ describe('Tiny Star Village season resume', () => {
         },
         {
           id: 'newest',
-          title: 'Tiny Star Village · Which way is the plaza?',
+          title: 'Tiny Star Village · Press Go once — watch Left 3',
           updated_at: '2026-07-24',
         },
       ],
