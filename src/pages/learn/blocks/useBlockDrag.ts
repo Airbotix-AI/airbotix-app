@@ -5,7 +5,12 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 
-import type { Character } from './blocksModel'
+import { type BlockPath, type Character, blockAtPath } from './blocksModel'
+import {
+  type DropHit,
+  isNoopDrop,
+  scanDropZones,
+} from './blockDropZones'
 import { useBlocksStore } from './blocksStore'
 import {
   LONGPRESS_MS,
@@ -15,18 +20,6 @@ import {
   unlockTouchScroll,
 } from './blocksStudioChrome'
 import { sfx } from './sounds'
-
-export interface ScriptRowHit {
-  scriptId: string
-  slot: number
-  dropX: number
-}
-
-export type ScanScriptRows = (
-  x: number,
-  y: number,
-  exclude?: { scriptId: string; index: number },
-) => ScriptRowHit | null
 
 interface UseBlockDragOptions {
   running: boolean
@@ -59,7 +52,7 @@ export function useBlockDrag({
   const [binArmed, setBinArmed] = useState(false)
   const blockDrag = useRef<{
     scriptId: string
-    index: number
+    path: number[]
     x0: number
     y0: number
     lastX: number
@@ -72,51 +65,14 @@ export function useBlockDrag({
   const blockDidDrag = useRef(false)
   const [dragBlk, setDragBlk] = useState<{
     scriptId: string
-    index: number
+    path: number[]
     cx: number
     cy: number
     onBin: boolean
-    targetScriptId: string | null
-    targetSlot: number | null
-    dropX: number | null
+    target: DropHit | null
   } | null>(null)
 
-  const scanRows: ScanScriptRows = (x, y, exclude) => {
-    const rows = [
-      ...document.querySelectorAll<HTMLElement>(
-        '[data-testid^="script-"]:not([data-testid="script-area"])',
-      ),
-    ]
-    for (const row of rows) {
-      const rowRect = row.getBoundingClientRect()
-      const pad = 18
-      if (
-        x < rowRect.left - pad ||
-        x > rowRect.right + pad ||
-        y < rowRect.top - pad ||
-        y > rowRect.bottom + pad
-      ) {
-        continue
-      }
-      const scriptId = row.getAttribute('data-testid')!.slice('script-'.length)
-      const items = [...row.querySelectorAll<HTMLElement>('.bsx-block')]
-      let slot = items.length
-      let dropX = items.length
-        ? items[items.length - 1].getBoundingClientRect().right - rowRect.left + 2
-        : 0
-      for (let i = 1; i < items.length; i += 1) {
-        if (exclude && exclude.scriptId === scriptId && i === exclude.index) continue
-        const itemRect = items[i].getBoundingClientRect()
-        if (x < itemRect.left + itemRect.width / 2) {
-          slot = i
-          dropX = itemRect.left - rowRect.left - 2
-          break
-        }
-      }
-      return { scriptId, slot: Math.max(1, slot), dropX }
-    }
-    return null
-  }
+  const scanRows = scanDropZones
 
   const overBin = (x: number, y: number) => {
     const rect = binRef.current?.getBoundingClientRect()
@@ -130,38 +86,32 @@ export function useBlockDrag({
     )
   }
 
+  /** The trigger anchors its track and never moves. */
+  const isTriggerDrag = (path: BlockPath) => path.length === 1 && path[0] === 0
+
   const blockDragUpdate = (x: number, y: number) => {
     const drag = blockDrag.current
     if (!drag) return
     const onBin = overBin(x, y)
     setBinArmed(onBin)
-    let targetScriptId: string | null = null
-    let targetSlot: number | null = null
-    let dropX: number | null = null
-    if (!onBin && drag.index > 0) {
-      const hit = scanRows(x, y, { scriptId: drag.scriptId, index: drag.index })
-      if (hit) {
-        targetScriptId = hit.scriptId
-        targetSlot = hit.slot
-        dropX = hit.dropX
-      }
-    }
+    const target =
+      !onBin && !isTriggerDrag(drag.path)
+        ? scanDropZones(x, y, { scriptId: drag.scriptId, path: drag.path })
+        : null
     setDragBlk({
       scriptId: drag.scriptId,
-      index: drag.index,
+      path: drag.path,
       cx: x,
       cy: y,
       onBin,
-      targetScriptId,
-      targetSlot,
-      dropX,
+      target,
     })
   }
 
   const onBlockDown = (
     event: ReactPointerEvent,
     scriptId: string,
-    index: number,
+    path: number[],
   ) => {
     if (
       running ||
@@ -181,7 +131,7 @@ export function useBlockDrag({
     const { pointerId, clientX: x0, clientY: y0 } = event
     blockDrag.current = {
       scriptId,
-      index,
+      path,
       x0,
       y0,
       lastX: x0,
@@ -241,42 +191,31 @@ export function useBlockDrag({
     unlockTouchScroll()
     const info = dragBlk
     const drag = blockDrag.current
+    // Re-scan at the release point: a pointer can move between the last render
+    // and pointerup, and the committed drop must match what the child saw.
     const finalHit =
-      drag && !info?.onBin && drag.index > 0
-        ? scanRows(drag.lastX, drag.lastY, {
+      drag && !info?.onBin && !isTriggerDrag(drag.path)
+        ? scanDropZones(drag.lastX, drag.lastY, {
             scriptId: drag.scriptId,
-            index: drag.index,
+            path: drag.path,
           })
         : null
-    const targetScriptId = finalHit?.scriptId ?? info?.targetScriptId ?? null
-    const rawTargetSlot = finalHit?.slot ?? info?.targetSlot ?? null
-    const targetSlot =
-      drag &&
-      targetScriptId === drag.scriptId &&
-      rawTargetSlot !== null &&
-      drag.index < rawTargetSlot
-        ? rawTargetSlot - 1
-        : rawTargetSlot
+    const target = finalHit ?? info?.target ?? null
     blockDrag.current = null
     setDragBlk(null)
     setBinArmed(false)
     if (commit && blockDidDrag.current && info && drag) {
       if (info.onBin) {
         sfx.trash()
-        useBlocksStore.getState().removeBlock(drag.scriptId, drag.index)
+        useBlocksStore.getState().removeBlockAtPath(drag.scriptId, drag.path)
       } else if (
-        targetScriptId &&
-        (targetScriptId !== drag.scriptId || targetSlot !== drag.index)
+        target &&
+        !(target.scriptId === drag.scriptId && isNoopDrop(drag.path, target.path))
       ) {
         sfx.snap()
         useBlocksStore
           .getState()
-          .moveBlockAcross(
-            drag.scriptId,
-            drag.index,
-            targetScriptId,
-            targetSlot ?? 1,
-          )
+          .moveBlockToPath(drag.scriptId, drag.path, target.scriptId, target.path)
       }
     }
     setTimeout(() => {
@@ -295,7 +234,7 @@ export function useBlockDrag({
   const draggingBlock = (() => {
     if (!dragBlk) return null
     const script = selectedChar.scripts.find((item) => item.id === dragBlk.scriptId)
-    const block = script?.blocks[dragBlk.index]
+    const block = script ? blockAtPath(script.blocks, dragBlk.path) : undefined
     return block ? { block } : null
   })()
 

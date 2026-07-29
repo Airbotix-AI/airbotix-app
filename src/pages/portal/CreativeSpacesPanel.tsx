@@ -104,6 +104,43 @@ function ParentGuide({ guide }: { guide: ParentStudioGuide }) {
         </div>
       </div>
 
+      {guide.curriculumPreview && (
+        <section
+          className="mt-5 rounded-2xl border border-hairline bg-canvas-pure p-4"
+          data-testid="parent-curriculum-preview"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-[11px] font-black uppercase tracking-[0.08em] text-brand-coral">
+              Featured classic journey
+            </div>
+            <span className="rounded-full bg-wash-bubblegum px-3 py-1 text-[10px] font-black uppercase tracking-[0.06em] text-ink">
+              {guide.curriculumPreview.status}
+            </span>
+          </div>
+          <h4 className="mt-3 text-[18px] font-black text-ink">{guide.curriculumPreview.title}</h4>
+          <p className="mt-1 text-[15px] font-black text-ink">{guide.curriculumPreview.promise}</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+            {guide.curriculumPreview.summary}
+          </p>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            {guide.curriculumPreview.evidence.map((item) => (
+              <div key={item.label} className="rounded-xl bg-surface p-3">
+                <dt className="text-[11px] font-black uppercase tracking-[0.07em] text-slate2">
+                  {item.label}
+                </dt>
+                <dd className="mt-1 text-[12px] leading-relaxed text-ink">{item.body}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 rounded-xl bg-wash-sunshine p-3 text-[12px] font-bold leading-relaxed text-ink">
+            {guide.curriculumPreview.finalWork}
+          </p>
+          <p className="mt-3 text-[11px] leading-relaxed text-slate2">
+            {guide.curriculumPreview.trustNote}
+          </p>
+        </section>
+      )}
+
       <div className="mt-5 rounded-2xl bg-wash-sunshine px-4 py-3">
         <div className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
           Ask them afterwards

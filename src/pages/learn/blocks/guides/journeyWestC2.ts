@@ -74,16 +74,105 @@ export const JTW_C2_MISSIONS: Record<string, StoryMission> = {
       { icon: '⬆️', label: 'Up 1', order: '第二段' },
       { icon: '➡️', label: 'Right 1 ×2', order: '第三段' },
     ],
-    logicWhy: '五块一步移动与 右2→上1→右2 等价，但每一步都留下一个可观察的停点——刚好到达，不多也不少。',
+    logicWhy:
+      '五块一步移动与 右2→上1→右2 等价，但每一步都留下一个可观察的停点——刚好到达，不多也不少。',
     completionTitle: 'Build 1 完成！👣',
-    completion: '你选出五块真移动、按路线顺序接好并真实运行：五个脚印稳定显示，石猴的脚底刚好碰到水帘入口格。',
+    completion:
+      '你选出五块真移动、按路线顺序接好并真实运行：五个脚印稳定显示，石猴的脚底刚好碰到水帘入口格。',
     completionSteps: [
       { icon: '👣', label: '五个脚印', order: '先' },
       { icon: '🎯', label: '刚好到达', order: '再' },
     ],
-    completionWhy: '少一个 Right 碰不到入口，多一个 Right 会冲过头——精确的五块顺序才让“到达”真实发生。',
+    completionWhy:
+      '少一个 Right 碰不到入口，多一个 Right 会冲过头——精确的五块顺序才让“到达”真实发生。',
     next: '石猴到达了，水帘却没有分开。下一个 Part：连接“碰到以后”的回应。',
   },
+
+  // Journey to the West S1/C2-P5 — two child-owned bump responses. This guide
+  // is also the editor's completion identity: without it, a correct real run
+  // cannot persist the progress marker the Part page reads back.
+  'jtw-s1-c2-p5': {
+    mode: 'complete',
+    lessonId: 'jtw-s1-c2-p5',
+    hero: {
+      name: '石猴',
+      role: '水帘前的发现者',
+      asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
+    },
+    eyebrow: '西游记 · 第二章 · Build 2',
+    title: '碰到以后，舞台要回应',
+    storyPages: [
+      {
+        emoji: '🌊💥',
+        title: '路线到了，水帘还没有回答',
+        body: '石猴已经刚好碰到入口。现在要把“碰到”接成两个看得见的回应：水帘退开，洞口出现。',
+        speaker: '石猴',
+        dialogue: '我碰到了门，可门还不知道该做什么。',
+        scene: 1,
+      },
+      {
+        emoji: '🙈✨',
+        title: '一条藏起来，一条出现',
+        body: '水帘的 On Bump 轨已经有 Chime，把 Hide 拖到它前面。洞口的 On Bump 轨已经有发现对白，把 Show 拖到它前面。',
+        speaker: '群猴',
+        dialogue: '水帘藏起来，洞口才看得见！',
+        scene: 3,
+        blocks: ['水帘：💥 On Bump → 🙈 Hide → 🔔 Chime', '洞口：💥 On Bump → 👀 Show → 💬 Say'],
+      },
+      {
+        emoji: '▶️🕳️',
+        title: '按 Go，验证完整因果链',
+        body: '运行以后，石猴沿五个脚印到达并碰到水帘；两条回应轨同时启动，洞里的石桥、干地、石座和清水才会出现。',
+        speaker: '石猴',
+        dialogue: '到达、碰到、回应——每一步都要真的发生。',
+        scene: 4,
+      },
+    ],
+    partnerLine: '两条事件轨各补一块，再用一次真实运行证明它们连起来了。',
+    mission:
+      '给水帘的 On Bump 轨加 Hide 并拖到 Chime 前；给洞口的 On Bump 轨加 Show 并拖到对白前，然后按 Go。',
+    question: '哪两个回应要由碰撞触发？',
+    choices: [],
+    retry:
+      '检查两条轨：水帘是 Hide → Chime，洞口是 Show → 对白；不要删除原有块或 End。',
+    successTitle: '水帘分开了！⭐',
+    success: '石猴碰到水帘后，水帘隐藏、洞口出现，发现对白也真实运行了。',
+    fixTitle: '把两个回应接完整',
+    fixPrompt:
+      '关掉故事卡：把水帘的 Hide 拖到 Chime 前，把洞口的 Show 拖到对白前。',
+    workspaceIntro: '两条碰撞轨都在舞台上，缺的两块由你连接。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先给水帘加 Hide 并拖到 Chime 前，再给洞口加 Show 并拖到对白前。',
+      watch: '按 Go 后看入口：水帘有没有退开，洞口有没有出现？',
+      sayFirst: '洞口出现以后，才说出里面的四样证据。',
+      sayThen: '石桥、干地、石座、清水——这些是能看见的发现。',
+      hopFirst: '石猴沿原来的五个脚印走向入口。',
+      hopThen: '脚底碰到入口格，两个 On Bump 回应一起开始。',
+      retry: '还没连完整。水帘要先 Hide 再 Chime，洞口要先 Show 再说出发现。',
+      fix: '不要新建事件轨；把两块拖到已有 On Bump 轨的正确回应位置。',
+      test: '两条回应都接好了。按 Go，看完整因果链！',
+      saving: '水帘退开，洞口亮起。我在保存这次真实运行……',
+      complete: '到达、碰到、回应都发生了——洞里的证据现在可以检查。',
+    },
+    logicSteps: [
+      { icon: '💥', label: '碰到水帘', order: '先' },
+      { icon: '🙈', label: '水帘隐藏', order: '同时' },
+      { icon: '👀', label: '洞口出现', order: '同时' },
+    ],
+    logicWhy: '移动只负责到达；On Bump 事件把接触变成舞台回应，Hide 与 Show 一起完成可见状态切换。',
+    completionTitle: 'Build 2 完成！🕳️',
+    completion: '你补齐两条碰撞回应并真实运行，水帘隐藏、洞口出现、发现对白响起。',
+    completionSteps: [
+      { icon: '🙈', label: 'Hide 水帘', order: '回应一' },
+      { icon: '👀', label: 'Show 洞口', order: '回应二' },
+      { icon: '▶️', label: '真实运行', order: '验证' },
+    ],
+     completionWhy:
+       '保存的两条事件轨和运行标记共同证明：不是图片自己变化，而是程序对碰撞作出了回应。',
+     next: '洞里适合居住，但石猴还答应要回来。下一个 Part：修好返程顺序。',
+   },
 
   // Journey to the West S1/C2-P6 — the return-route order bug. Same blocks,
   // same parameters; only the middle order is wrong, so the child must run the

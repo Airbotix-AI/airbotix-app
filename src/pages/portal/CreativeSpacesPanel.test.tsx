@@ -124,6 +124,17 @@ describe('CreativeSpacesPanel', () => {
     expect(screen.getAllByTestId('parent-guide-content')).toHaveLength(4);
     expect(screen.getAllByText('Real studio preview')).toHaveLength(4);
     expect(screen.getByText(/See the real workspace before you choose/i)).toBeInTheDocument();
+    const alicePreview = screen.getByTestId('parent-curriculum-preview');
+    expect(alicePreview).toHaveTextContent('Alice in Wonderland');
+    expect(alicePreview).toHaveTextContent('Curriculum preview · In development');
+    expect(alicePreview).toHaveTextContent('Read the classic. Code what happens next.');
+    expect(alicePreview).toHaveTextContent('Classic discovery');
+    expect(alicePreview).toHaveTextContent('Code and debug');
+    expect(alicePreview).toHaveTextContent('Alice’s First Wonderland Journey');
+    expect(alicePreview).toHaveTextContent(
+      'This is a system curriculum example, not a claim about your child',
+    );
+    expect(screen.getAllByTestId('parent-curriculum-preview')).toHaveLength(1);
     expect(screen.getByText('Swipe to compare all four →')).toHaveClass('sm:hidden');
     const studioGrid = screen.getByTestId('parent-studio-story-blocks').parentElement;
     expect(studioGrid).toHaveClass(

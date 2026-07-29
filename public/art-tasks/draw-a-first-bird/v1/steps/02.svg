@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a very simple little bird</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="320" cy="350" rx="145" ry="112"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="205" cy="268" r="82"/><ellipse cx="344" cy="356" rx="70" ry="48" transform="rotate(-18 344 356)"/><polygon points="120,268 58,296 123,319"/><polygon points="450,350 535,302 508,390"/></g>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a very simple sitting kitten</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="300" cy="390" rx="105" ry="135"/>
+    <circle cx="300" cy="225" r="115"/><polygon points="213,156 224,65 278,121"/><polygon points="387,156 376,65 322,121"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="258" cy="220" r="9" fill="#2C3642"/><circle cx="342" cy="220" r="9" fill="#2C3642"/><polygon points="300,247 286,258 314,258"/><path d="M300 258v14m0 0c-17 16-34 16-49 1m49-1c17 16 34 16 49 1M252 432v77m96-77v77"/></g>
+  </g>
+</svg>

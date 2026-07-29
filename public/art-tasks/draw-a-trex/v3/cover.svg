@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a friendly T-Rex</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="350" cy="350" rx="132" ry="88"/>
+    <path d="M247 329c-18-55-49-99-96-116H93c-35 0-55 21-51 50 4 27 29 39 73 39h62l-72 33c28 31 77 37 122 7m247-7c59-18 101-56 120-105-2 82-47 154-138 184"/>
+    <path d="M301 421c-8 45-22 78-48 99l-3 28h73l4-23-25-3m94-93c13 40 14 72 1 96l2 23h72l-2-23-25-5M258 342l-34 34 31 5m17-16-27 41 31 2"/>
+    <circle cx="96" cy="253" r="8" fill="#2C3642"/><path d="m82 303 15 19 17-19 17 20 17-19 17 17m-85-83 18-6m237 85 18 25m20-36 18 25m18-31 17 23"/>
+  </g>
+</svg>

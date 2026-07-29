@@ -15,6 +15,10 @@ export const GRID_H = 15;
 // child will hit.
 export const MAX_PAGES = 50;
 export const MAX_PARAM = 9;
+// Curriculum artwork may use a larger alpha-compensation scale than kids can
+// reach with Grow. Preserve those authored starts while still bounding an
+// untrusted saved document.
+export const MAX_CHARACTER_START_SIZE = 6;
 
 // ── Block catalogue (v1 set — control `repeat` C-block lands with M3) ───────
 export type BlockCategory = 'trigger' | 'motion' | 'looks' | 'sound' | 'control' | 'end';
@@ -145,6 +149,14 @@ export function blockDef(op: BlockOp): BlockDef {
 export function isTrigger(op: BlockOp): boolean {
   return blockDef(op).category === 'trigger';
 }
+/**
+ * C-shaped blocks: they own a nested `body` chain instead of being a single
+ * flat step. Every drag/drop path in the editor branches on this, so adding a
+ * new C-block (Repeat, …) is a one-line change here plus its interpreter case.
+ */
+export function isContainer(op: BlockOp): boolean {
+  return op === 'if_touching';
+}
 export const CATEGORIES: readonly { id: BlockCategory; icon: string; label: string }[] = [
   { id: 'trigger', icon: '🚩', label: 'Start' },
   { id: 'motion', icon: '➡️', label: 'Move' },
@@ -161,6 +173,49 @@ export interface Block {
   text?: string;
   /** Nested actions owned by a C-shaped control block. */
   body?: Block[];
+}
+
+/**
+ * Where a block sits in a script's tree: the top-level index, then one body
+ * index per C-block it is nested inside. `[3]` is the 4th block of the script;
+ * `[3, 1]` is the 2nd block inside the If at `[3]`. The editor addresses every
+ * drag source and drop slot this way, so nesting depth costs the drag code
+ * nothing.
+ */
+export type BlockPath = readonly number[];
+
+/** Resolve a path against a script's blocks (undefined if it doesn't exist). */
+export function blockAtPath(blocks: Block[], path: BlockPath): Block | undefined {
+  let list: Block[] | undefined = blocks;
+  let found: Block | undefined;
+  for (const index of path) {
+    found = list?.[index];
+    if (!found) return undefined;
+    list = found.body;
+  }
+  return found;
+}
+
+export function samePath(a: BlockPath, b: BlockPath): boolean {
+  return a.length === b.length && a.every((value, i) => value === b[i]);
+}
+
+/**
+ * True when `inner` addresses the block at `outer` or something nested inside
+ * it — the guard that stops a child dropping a C-block into its own body.
+ */
+export function pathIsWithin(outer: BlockPath, inner: BlockPath): boolean {
+  return inner.length >= outer.length && outer.every((value, i) => value === inner[i]);
+}
+
+/** Serialise a path for a DOM `data-` attribute (`[3,1]` → `"3.1"`). */
+export function pathToKey(path: BlockPath): string {
+  return path.join('.');
+}
+
+/** Parse a `data-` attribute back into a path (`""` → `[]`). */
+export function pathFromKey(key: string): number[] {
+  return key === '' ? [] : key.split('.').map((part) => Number.parseInt(part, 10));
 }
 
 /**
@@ -336,7 +391,10 @@ export function parseProject(raw: string): BlocksProject {
           start: {
             gx: clampN(c?.start?.gx, 0, GRID_W - 1, 5),
             gy: clampN(c?.start?.gy, 0, GRID_H - 1, 10),
-            size: typeof c?.start?.size === 'number' ? Math.min(3, Math.max(0.3, c.start.size)) : 1,
+            size:
+              typeof c?.start?.size === 'number'
+                ? Math.min(MAX_CHARACTER_START_SIZE, Math.max(0.3, c.start.size))
+                : 1,
             rot: clampN(c?.start?.rot, -360, 360, 0),
             ...(c?.start?.visible === false ? { visible: false } : {}),
             ...(typeof c?.start?.reach === 'number'

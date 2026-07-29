@@ -22,6 +22,7 @@ const apiCalls: ApiCall[] = [];
 let artifacts: Array<Record<string, unknown>> = [];
 let artMissions: Array<Record<string, unknown>> = [];
 let coursePacks: Array<Record<string, unknown>> = [];
+let guidedTasks: Array<Record<string, unknown>> = [];
 
 vi.mock('@/lib/api', () => ({
   BASE_URL: 'http://api.test',
@@ -30,8 +31,9 @@ vi.mock('@/lib/api', () => ({
     if (path.endsWith('/create-buckets/resolve')) {
       return Promise.resolve({ project_id: 'proj_bucket', title: 'My Pictures' });
     }
-    if (path === '/projects/proj_bucket/artifacts') return Promise.resolve(artifacts);
+    if (path === '/kids/kid_1/artifacts?kind=image&limit=200') return Promise.resolve(artifacts);
     if (path === '/course-packs/art-missions') return Promise.resolve(artMissions);
+    if (path === '/art-studio/tasks') return Promise.resolve(guidedTasks);
     if (path === '/course-packs') return Promise.resolve(coursePacks);
     if (path.includes('/download-url')) return Promise.resolve({ url: 'https://signed/pic.png' });
     return Promise.resolve({});
@@ -93,10 +95,10 @@ const coursePack = (over: Record<string, unknown> = {}) => ({
 });
 
 // Captures where the hub navigated to, and what it carried, without a real router.
-let landed: { pathname: string; state: unknown } | null = null;
+let landed: { pathname: string; search: string; state: unknown } | null = null;
 function CanvasProbe() {
   const loc = useLocation();
-  landed = { pathname: loc.pathname, state: loc.state };
+  landed = { pathname: loc.pathname, search: loc.search, state: loc.state };
   return <div data-testid="canvas-route" />;
 }
 
@@ -121,6 +123,7 @@ beforeEach(() => {
   artifacts = [];
   artMissions = [];
   coursePacks = [];
+  guidedTasks = [];
 });
 afterEach(cleanup);
 
@@ -138,6 +141,24 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     expect(screen.getByText('✨ AI')).toBeInTheDocument();
   });
 
+  it('shows course drawings saved outside the My Pictures bucket', async () => {
+    artifacts = [
+      picture({
+        id: 'mission_art',
+        project_id: 'mission_project',
+        metadata: {
+          source: 'art-task',
+          art_task_slug: 'draw-a-first-fish',
+          completed_steps: 3,
+        },
+      }),
+    ];
+    renderHub();
+    await waitFor(() => expect(screen.getByTestId('art-hub-picture')).toBeInTheDocument());
+    expect(screen.getByText('✏️ I drew it')).toBeInTheDocument();
+    expect(apiCalls.some((call) => call.path.includes('/kids/kid_1/artifacts'))).toBe(true);
+  });
+
   it('opens a saved picture on the CANVAS as the base to keep drawing', async () => {
     artifacts = [picture({ id: 'art_7' })];
     renderHub();
@@ -146,6 +167,7 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
     expect(landed).toEqual({
       pathname: '/learn/create/image/canvas',
+      search: '',
       // Same contract as the "Keep drawing" menu item in My Pictures.
       state: { editArtifactId: 'art_7', editProjectId: 'proj_bucket' },
     });
@@ -156,10 +178,12 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-continue')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('art-hub-continue'));
-    await waitFor(() => expect(landed?.state).toEqual({
-      editArtifactId: 'newest',
-      editProjectId: 'proj_bucket',
-    }));
+    await waitFor(() =>
+      expect(landed?.state).toEqual({
+        editArtifactId: 'newest',
+        editProjectId: 'proj_bucket',
+      }),
+    );
   });
 
   it('hides the continue card and explains auto-save when nothing is drawn yet', async () => {
@@ -181,10 +205,7 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     artifacts = Array.from({ length: 15 }, (_, i) => picture({ id: `art_${i}` }));
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('art-hub-picture')).toHaveLength(12));
-    expect(screen.getByText('See all 15 →')).toHaveAttribute(
-      'href',
-      '/learn/projects/proj_bucket',
-    );
+    expect(screen.getByText('See all 15 →')).toHaveAttribute('href', '/learn/projects');
   });
 });
 
@@ -194,7 +215,9 @@ describe('ArtHubPage — art tasks', () => {
     renderHub();
     await waitFor(() => expect(screen.getByTestId('art-hub-task')).toBeInTheDocument());
     expect(screen.getByText('Draw your robot')).toBeInTheDocument();
-    expect(screen.getByText(/AI Comic Book · Robot friends · 9★/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Create Your Own Comic Book with AI · Robot friends · 9★/),
+    ).toBeInTheDocument();
   });
 
   it('starts a task by clicking anywhere on the card and carries its learning steps', async () => {
@@ -266,6 +289,290 @@ describe('ArtHubPage — art tasks', () => {
   });
 });
 
+describe('ArtHubPage — concrete drawing ideas', () => {
+  it('groups twenty-eight first drawings, sixteen simple choices and eight challenges', async () => {
+    const firstTitles = [
+      'Draw a Fish',
+      'Draw a Snail',
+      'Draw a Ladybug',
+      'Draw a Tiny Dinosaur',
+      'Draw a Kitten — First Steps',
+      'Draw a Puppy — First Steps',
+      'Draw a Turtle',
+      'Draw a Whale',
+      'Draw a Little Car',
+      'Draw a Rocket — First Steps',
+      'Draw a Flower',
+      'Draw an Ice Cream',
+      'Draw a Little Bird',
+      'Draw a Frog',
+      'Draw a Bumblebee',
+      'Draw a Crab',
+      'Draw a Sailboat',
+      'Draw a Rainbow',
+      'Draw a Cupcake',
+      'Draw a Little House',
+      'Draw a Jellyfish',
+      'Draw an Octopus',
+      'Draw a Bow Tie',
+      'Draw a Sunflower',
+      'Draw an Apple',
+      'Draw a Donut',
+      'Draw a Hot-Air Balloon',
+      'Draw a Little Train',
+    ];
+    const originalTitles = [
+      'Draw a T-Rex',
+      'Draw a Kitten',
+      'Draw a Puppy',
+      'Draw a Lion',
+      'Draw a Shark',
+      'Draw a Rocket',
+      'Draw a Unicorn',
+      'Draw a Race Car',
+    ];
+    const simpleTitles = [
+      ...originalTitles,
+      'Draw a Panda',
+      'Draw a Bunny',
+      'Draw a Butterfly',
+      'Draw a Triceratops',
+      'Draw a Sea Turtle',
+      'Draw a Robot',
+      'Draw an Excavator',
+      'Draw a Baby Dragon',
+    ];
+    guidedTasks = firstTitles.map((title, index) => ({
+      slug: `first-task-${index}`,
+      version: 1,
+      title,
+      short_description: `First drawing ${index + 1}`,
+      category: 'animals',
+      age_min: 4,
+      age_max: 6,
+      difficulty: 1,
+      duration_minutes: 5,
+      step_count: 3,
+      cover: { url: `/art-tasks/first-task-${index}/v1/reference.webp`, alt: title },
+      modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+      progression: {
+        path_id: `first-path-${index}`,
+        path_title: 'First Shapes',
+        position: 1,
+        total: 1,
+        level: 'first',
+        next_task_slug: null,
+      },
+    }));
+    guidedTasks.push(
+      ...simpleTitles.map((title, index) => ({
+        slug: `task-${index}`,
+        version: index < originalTitles.length ? 4 : 1,
+        title,
+        short_description: `Guided drawing ${index + 1}`,
+        category: 'animals',
+        age_min: 5,
+        age_max: 9,
+        difficulty: 1,
+        duration_minutes: 8,
+        step_count: 4,
+        cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: `simple-path-${index}`,
+          path_title: 'Shape Builders',
+          position: 1,
+          total: 1,
+          level: 'simple',
+          next_task_slug: null,
+        },
+      })),
+    );
+    guidedTasks.push(
+      ...originalTitles.map((title, index) => ({
+        slug: `task-${index}-challenge`,
+        version: 1,
+        title: `${title} — Challenge`,
+        short_description: `Detailed drawing ${index + 1}`,
+        category: 'animals',
+        age_min: 9,
+        age_max: 13,
+        difficulty: 3,
+        duration_minutes: 20,
+        step_count: 5,
+        cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: `${title} challenge` },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: `challenge-path-${index}`,
+          path_title: 'Big Scenes',
+          position: 1,
+          total: 1,
+          level: 'challenge',
+          next_task_slug: null,
+        },
+      })),
+    );
+
+    renderHub();
+
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(52);
+    expect(screen.getByTestId('art-guided-first')).toHaveTextContent('My First Drawing');
+    expect(screen.getByTestId('art-guided-first')).toHaveTextContent(
+      'Just three tiny steps and a few big shapes',
+    );
+    expect(screen.getByTestId('art-guided-simple')).toHaveTextContent('Start Simple');
+    expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent('Ready for a Challenge?');
+    firstTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+    simpleTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
+    originalTitles.forEach((title) =>
+      expect(screen.getByText(`${title} — Challenge`)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByText('Draw a T-Rex — Challenge'));
+    fireEvent.click(screen.getByRole('button', { name: /Draw My Way/ }));
+    await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      search: '?task=task-0-challenge&mode=free',
+      state: null,
+    });
+  });
+
+  it('lets a child pick a T-Rex and choose how to draw before opening the canvas', async () => {
+    guidedTasks = [
+      {
+        slug: 'draw-a-trex',
+        version: 4,
+        title: 'Draw a T-Rex',
+        short_description: 'Build a mighty dinosaur from big, simple shapes.',
+        category: 'dinosaurs',
+        age_min: 5,
+        age_max: 8,
+        difficulty: 1,
+        duration_minutes: 8,
+        step_count: 4,
+        cover: {
+          url: '/art-tasks/draw-a-trex/v1/cover.png',
+          alt: 'A polished cartoon T-Rex with a big jaw and long tail',
+        },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: 'dinosaur-shapes',
+          path_title: 'Dinosaur Shapes',
+          position: 3,
+          total: 4,
+          level: 'simple',
+          next_task_slug: 'draw-a-trex-challenge',
+        },
+      },
+    ];
+    renderHub();
+
+    fireEvent.click(await screen.findByTestId('art-guided-task'));
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Look & Draw');
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent(
+      'Use a polished picture for ideas',
+    );
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Trace a Ghost');
+    expect(screen.getByTestId('art-task-mode-picker')).toHaveTextContent('Draw My Way');
+
+    fireEvent.click(screen.getByRole('button', { name: /Trace a Ghost/ }));
+    await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      search: '?task=draw-a-trex&mode=trace',
+      state: null,
+    });
+  });
+
+  it('offers only the one natural next task after a completed drawing', async () => {
+    guidedTasks = [
+      {
+        slug: 'draw-a-first-fish',
+        version: 1,
+        title: 'Draw a Fish',
+        short_description: 'Start with a circle.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/fish.svg', alt: 'A simple fish' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 1,
+          total: 3,
+          level: 'first',
+          next_task_slug: 'draw-a-first-whale',
+        },
+      },
+      {
+        slug: 'draw-a-first-whale',
+        version: 1,
+        title: 'Draw a Whale',
+        short_description: 'Add a bigger curved body.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/whale.svg', alt: 'A simple whale' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 2,
+          total: 3,
+          level: 'first',
+          next_task_slug: 'draw-a-first-turtle',
+        },
+      },
+      {
+        slug: 'draw-a-first-turtle',
+        version: 1,
+        title: 'Draw a Turtle',
+        short_description: 'Combine an oval and little legs.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/turtle.svg', alt: 'A simple turtle' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 3,
+          total: 3,
+          level: 'first',
+          next_task_slug: null,
+        },
+      },
+    ];
+    artifacts = [
+      picture({
+        metadata: {
+          source: 'art-task',
+          art_task_slug: 'draw-a-first-fish',
+          completed_steps: 3,
+        },
+      }),
+    ];
+
+    renderHub();
+
+    const recommendation = await screen.findByTestId('art-next-task');
+    expect(recommendation).toHaveTextContent('Draw a Whale');
+    expect(recommendation).not.toHaveTextContent('Draw a Turtle');
+    expect(screen.getAllByTestId('art-next-task')).toHaveLength(1);
+  });
+});
+
 describe('ArtHubPage — art courses', () => {
   it('shows the making/creative courses with their lesson and task counts', async () => {
     coursePacks = [coursePack()];
@@ -284,7 +591,12 @@ describe('ArtHubPage — art courses', () => {
   it('leaves coding-line courses out of the course list', async () => {
     coursePacks = [
       coursePack(),
-      coursePack({ id: 'p_mario', slug: 'super-mario-game', title: 'Super Mario Game', product_line: 'line_b_coding' }),
+      coursePack({
+        id: 'p_mario',
+        slug: 'super-mario-game',
+        title: 'Super Mario Game',
+        product_line: 'line_b_coding',
+      }),
     ];
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('art-hub-course')).toHaveLength(1));
@@ -309,11 +621,15 @@ describe('ArtHubPage — learning + new canvas', () => {
     expect(screen.getByText('Bring it to life').parentElement).toHaveTextContent('9★');
   });
 
-  it('opens a blank canvas with no router state', async () => {
+  it('opens a blank canvas with an explicit one-shot reset intent', async () => {
     renderHub();
     fireEvent.click(screen.getByTestId('art-hub-new'));
     await waitFor(() => expect(screen.getByTestId('canvas-route')).toBeInTheDocument());
-    expect(landed).toEqual({ pathname: '/learn/create/image/canvas', state: null });
+    expect(landed).toEqual({
+      pathname: '/learn/create/image/canvas',
+      search: '',
+      state: { newCanvas: true },
+    });
   });
 
   // The hub is a landing page: it must not spend Stars or start a generation.

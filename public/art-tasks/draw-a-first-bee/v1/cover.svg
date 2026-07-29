@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple happy bumblebee</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="300" cy="340" rx="155" ry="105"/>
+    <ellipse cx="240" cy="215" rx="65" ry="82" transform="rotate(-28 240 215)"/><ellipse cx="360" cy="215" rx="65" ry="82" transform="rotate(28 360 215)"/><polygon points="448,340 530,300 530,380"/><path d="M255 245v190M345 245v190"/>
+    <circle cx="224" cy="324" r="9" fill="#2C3642"/><circle cx="276" cy="324" r="9" fill="#2C3642"/><path d="M228 356c18 17 38 17 56 0M220 253c-18-58-54-75-82-72m242 72c18-58 54-75 82-72"/>
+  </g>
+</svg>

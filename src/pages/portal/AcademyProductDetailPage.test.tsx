@@ -43,7 +43,12 @@ describe('AcademyProductDetailPage', () => {
       price_aud_cents: 4900,
       access_days: 365,
       sales_config: {},
-      exam: { slug: 'naplan', title: 'NAPLAN', provider: 'ACARA' },
+      exam: {
+        slug: 'naplan',
+        title: 'NAPLAN',
+        provider: 'ACARA',
+        brand_config: { supported_modes: ['practice', 'mock'] },
+      },
       _count: { question_links: 130 },
     });
 
@@ -121,6 +126,50 @@ describe('AcademyProductDetailPage', () => {
     expect(screen.getByTestId('academy-demo-tutor')).toHaveTextContent(
       'The time is quarter past 4, or 4:15',
     );
-    expect(screen.getByText(/try four original samples/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Practice mode' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('lets a parent complete the timed mock demo and self-assess the worked response', async () => {
+    getAcademyProduct.mockResolvedValue({
+      id: 'product-y3',
+      slug: 'naplan-y3-numeracy',
+      level_key: 'Year 3',
+      subject_key: 'Numeracy',
+      price_aud_cents: 4900,
+      access_days: 365,
+      exam: {
+        slug: 'naplan',
+        title: 'NAPLAN',
+        brand_config: { supported_modes: ['practice', 'mock'] },
+      },
+      _count: { question_links: 130 },
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Mock exam mode' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start sample paper' }));
+    expect(screen.getByTestId('academy-mock-demo-player')).toHaveTextContent('04:59 remaining');
+    expect(screen.getByText(/No correctness or marking guide/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '18' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save and next' }));
+    fireEvent.click(screen.getByRole('button', { name: '5' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save and next' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Worked response' }), {
+      target: { value: '48 divided by 6 equals 8 books' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Submit sample paper' }));
+
+    const report = screen.getByTestId('academy-mock-demo-report');
+    expect(report).toHaveTextContent('Objective marks');
+    expect(report).toHaveTextContent('2/2');
+    expect(report).toHaveTextContent('Self-assessed marks');
+    expect(report).toHaveTextContent('0/2');
+    fireEvent.click(screen.getByLabelText(/Chooses division/));
+    fireEvent.click(screen.getByLabelText(/Finds 8/));
+    expect(report).toHaveTextContent('4/4');
   });
 });

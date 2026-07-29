@@ -21,6 +21,12 @@ import { ART_TUTOR_TEMP_NAME, ArtTutorAvatar, type ArtTutorState } from './ArtTu
 import { dataUrlToBlob, exportMask, type CanvasOp, type ToolId } from './strokeEngine';
 import { fetchArtifactBlob, useArtifactBlobUrl } from './artifactBytes';
 import { removeWhiteBackground } from './matting';
+import {
+  ART_TASK_DRAW_MODES,
+  type ArtDraftTaskContext,
+} from './artTaskTypes';
+import { ArtTaskRuntimePanel } from './ArtTaskRuntimePanel';
+import { useArtTaskRuntime } from './useArtTaskRuntime';
 
 // The Art Studio, canvas-first (image-studio-prd.md v0.9, D-IS-11…19):
 // 孩子的手在前,AI 的魔法在后. Four zones — left tool rail / center canvas /
@@ -119,12 +125,17 @@ export interface ArtMissionStep {
   title: string;
   instruction_md?: string;
   widget?: string;
+  widget_config?: {
+    art_task_slug?: string;
+    allowed_modes?: string[];
+  };
 }
 export interface ArtMission {
   id: string;
   slug?: string;
   title: string;
   description?: string;
+  art_task_slug?: string;
   /** The authored learning sequence shown beside the canvas. */
   steps?: ArtMissionStep[];
   template?: ArtMissionTemplate;
@@ -161,6 +172,10 @@ export function ArtStudioPage() {
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicStyle, setMagicStyle] = useState<PlanStyle>('cartoon');
   const [magicDesc, setMagicDesc] = useState('');
+  const [versionComparison, setVersionComparison] = useState<{
+    drawingUrl: string;
+    aiUrl: string;
+  } | null>(null);
   // The coach's distilled plan (D-ISF-3): what the kid and the coach agreed the
   // picture should be. Feeds ✨ when the kid doesn't type an explicit wish.
   const [plan, setPlan] = useState<PlanTurn['plan']>(null);
@@ -178,12 +193,27 @@ export function ArtStudioPage() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const mission = ((location.state as { mission?: ArtMission } | null)?.mission ?? null);
+  const routeState = location.state as {
+    mission?: ArtMission;
+    editArtifactId?: string;
+    editProjectId?: string;
+    newCanvas?: boolean;
+  } | null;
+  const mission = routeState?.mission ?? null;
+  const artTaskRuntime = useArtTaskRuntime(mission?.art_task_slug);
+  const {
+    taskSlug,
+    task: artTask,
+    mode: taskMode,
+    stepIndex: artTaskStepIndex,
+    setStepIndex: setArtTaskStepIndex,
+    traceOpacity,
+  } = artTaskRuntime;
   // Reopen a saved picture to keep drawing (owner: "重新打开到画布继续画"): the
   // "🎨 Keep drawing" button in My Pictures passes the artifact's id + project. It
   // becomes the canvas BASE (loaded directly by id+project, so it works for a
   // picture in ANY project) and the ✨ bring-to-life remix ref.
-  const reopenState = location.state as { editArtifactId?: string; editProjectId?: string } | null;
+  const reopenState = routeState;
   const navReopen =
     reopenState?.editArtifactId && reopenState?.editProjectId
       ? { id: reopenState.editArtifactId, projectId: reopenState.editProjectId }
@@ -195,14 +225,23 @@ export function ArtStudioPage() {
   // the hydrate effect can start clean on the chosen picture instead of restoring
   // a stale draft over it.
   const navReopenRef = useRef(navReopen);
-  // "Draw a new picture" is a one-shot navigation intent: start blank now, then
-  // let later refreshes restore the new work instead of replaying the reset.
-  const navFreshRef = useRef(Boolean((location.state as { fresh?: boolean } | null)?.fresh));
+  // The hub's “new” action must beat the auto-restored draft. Capture the
+  // intent once, then remove it from browser history so a later refresh keeps
+  // the new work instead of blanking it again.
+  const newCanvasRef = useRef(routeState?.newCanvas === true);
+  useEffect(() => {
+    if (!newCanvasRef.current) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, navigate]);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
+  const [workDescription, setWorkDescription] = useState('');
   const [stepIdx, setStepIdx] = useState(0);
+  const [taskCompleted, setTaskCompleted] = useState(false);
+  const [completingTask, setCompletingTask] = useState(false);
 
   const me = useMe();
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const { summary, endNow, dismiss } = useStudioSession('image');
   const bucket = useCreateBucket('image');
   const wallet = useKidWallet();
@@ -220,6 +259,7 @@ export function ArtStudioPage() {
   });
 
   const hasInk = ops.length > 0;
+  const hasChildDrawing = hasInk || Boolean(sketchTakeId) || Boolean(baseRef);
   const tutorState: ArtTutorState = celebrate
     ? 'celebrating'
     : generate.isPending
@@ -229,6 +269,12 @@ export function ArtStudioPage() {
           ? 'looking'
           : 'thinking'
         : 'idle';
+
+  useEffect(() => {
+    setTaskCompleted(false);
+    setCompletingTask(false);
+    setVersionComparison(null);
+  }, [taskSlug]);
 
   // ── Draft auto-save (owner: auto-save must ALWAYS work, incl. reopened edits) ──
   // The working canvas AND which picture it's built on live only in React state,
@@ -243,35 +289,40 @@ export function ArtStudioPage() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (!draftKey) return;
-    if (navFreshRef.current) {
+    // A fresh reopen starts clean on the chosen picture and REPLACES any stale
+    // draft — never restore old strokes onto a newly opened image.
+    if (newCanvasRef.current) {
       try {
         localStorage.removeItem(draftKey);
       } catch {
-        /* unavailable storage — the blank canvas still lives in state */
+        /* unavailable storage — state is already blank */
       }
     } else if (!navReopenRef.current) {
-      // A fresh reopen starts clean on the chosen picture and REPLACES any stale
-      // draft — never restore old strokes onto a newly opened image.
+      // A normal visit or refresh restores the working draft. A picture reopen
+      // deliberately skips this branch so stale strokes cannot cover its base.
       try {
-        const raw = localStorage.getItem(draftKey);
+        const raw = window.localStorage.getItem(draftKey);
         if (raw) {
           const d = JSON.parse(raw) as {
             ops?: CanvasOp[];
             baseArtifactId?: string | null;
             baseRef?: { id: string; projectId: string } | null;
+            task?: ArtDraftTaskContext;
           };
-          if (Array.isArray(d.ops) && d.ops.length > 0) setOps((cur) => (cur.length ? cur : d.ops!));
+          if (Array.isArray(d.ops) && d.ops.length > 0)
+            setOps((cur) => (cur.length ? cur : d.ops!));
           if (d.baseArtifactId) setBaseArtifactId((cur) => cur ?? d.baseArtifactId!);
           if (d.baseRef) setBaseRef((cur) => cur ?? d.baseRef!);
+          if (d.task?.slug === taskSlug) setArtTaskStepIndex(d.task.stepIndex);
         }
       } catch {
         /* corrupt/unavailable draft — start clean */
       }
     }
     setHydrated(true);
-  }, [draftKey]);
+  }, [draftKey, setArtTaskStepIndex, taskSlug]);
   useEffect(() => {
-    if ((navFreshRef.current || navReopenRef.current) && location.state) {
+    if ((newCanvasRef.current || navReopenRef.current) && location.state) {
       navigate(location.pathname, { replace: true, state: null });
     }
     // These refs capture the mount's one-shot intent; replacing history must run once.
@@ -279,13 +330,38 @@ export function ArtStudioPage() {
   }, []);
   useEffect(() => {
     if (!draftKey || !hydrated) return;
+    if (taskSlug && !artTask) return;
     try {
-      if (ops.length === 0 && !baseArtifactId && !baseRef) localStorage.removeItem(draftKey);
-      else localStorage.setItem(draftKey, JSON.stringify({ ops, baseArtifactId, baseRef }));
+      if (ops.length === 0 && !baseArtifactId && !baseRef && !artTask) {
+        window.localStorage.removeItem(draftKey);
+      } else {
+        const task: ArtDraftTaskContext | undefined = artTask
+          ? {
+              slug: artTask.slug,
+              version: artTask.version,
+              mode: taskMode,
+              stepIndex: artTaskStepIndex,
+            }
+          : undefined;
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({ ops, baseArtifactId, baseRef, ...(task ? { task } : {}) }),
+        );
+      }
     } catch {
       /* quota/unavailable — the work still lives in state */
     }
-  }, [ops, baseArtifactId, baseRef, draftKey, hydrated]);
+  }, [
+    ops,
+    baseArtifactId,
+    baseRef,
+    artTask,
+    taskSlug,
+    taskMode,
+    artTaskStepIndex,
+    draftKey,
+    hydrated,
+  ]);
 
   // A reopened picture drives the canvas base + remix ref (mask-brush,
   // bring-to-life). Bucket takes set baseArtifactId directly and clear baseRef.
@@ -307,7 +383,19 @@ export function ArtStudioPage() {
     return project.id;
   };
 
+  const invalidatePictureGalleries = (projectId: string) => {
+    void qc.invalidateQueries({ queryKey: ['bucket-artifacts', projectId] });
+    if (bucket.data?.project_id && bucket.data.project_id !== projectId) {
+      void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
+    }
+    if (kidId) {
+      void qc.invalidateQueries({ queryKey: ['kid', kidId, 'artifacts', 'image'] });
+    }
+  };
+
   const template = mission?.template ?? null;
+  const taskTemplateUrl =
+    artTask && taskMode === ART_TASK_DRAW_MODES.trace ? artTask.ghost.url : null;
   const exportIncludesBase = template?.magic !== 'strokes-only';
 
   // The coach produced a plan → remember it and pre-select its style, so the ✨
@@ -356,13 +444,13 @@ export function ArtStudioPage() {
       generate.mutate(
         { prompt: idea, options: { mode: 'ghost' }, project_id: projectId },
         {
-        onSuccess: (r) => {
-          if (r.artifact_id) setGhostArtifactId(r.artifact_id);
-          setMsgs((m) => [
-            ...m,
-            { role: 'assistant', content: '👻 I sketched a faint outline — trace it your way!' },
-          ]);
-        },
+          onSuccess: (r) => {
+            if (r.artifact_id) setGhostArtifactId(r.artifact_id);
+            setMsgs((m) => [
+              ...m,
+              { role: 'assistant', content: '👻 I sketched a faint outline — trace it your way!' },
+            ]);
+          },
           onError: (e) => setError(friendlyError(e)),
         },
       ),
@@ -403,7 +491,8 @@ export function ArtStudioPage() {
       ...msgs,
       {
         role: 'user' as const,
-        content: 'Tell me a tiny three-sentence story about this picture, then suggest a fun name for it!',
+        content:
+          'Tell me a tiny three-sentence story about this picture, then suggest a fun name for it!',
       },
     ];
     setMsgs(next);
@@ -503,7 +592,10 @@ export function ArtStudioPage() {
         }
         setMsgs((m) => [
           ...m,
-          { role: 'assistant', content: `👤 ${name} is saved to your characters! Use them any time.` },
+          {
+            role: 'assistant',
+            content: `👤 ${name} is saved to your characters! Use them any time.`,
+          },
         ]);
       })
       .catch((e) => setError(friendlyError(e)));
@@ -526,13 +618,12 @@ export function ArtStudioPage() {
   };
 
   // ── 🎮 Use in my game (P4 v1, D-IS-25): the take becomes a game VFS asset ──
-  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const gameProjects = useQuery<Array<{ id: string; title: string; kind: string }>>({
     queryKey: ['kid-projects-for-art', kidId],
     queryFn: async () => {
-      const all = await api<Array<{ id: string; title: string; kind: string; deleted_at?: string | null }>>(
-        `/kids/${kidId}/projects`,
-      );
+      const all = await api<
+        Array<{ id: string; title: string; kind: string; deleted_at?: string | null }>
+      >(`/kids/${kidId}/projects`);
       return all.filter((p) => p.kind === 'game' || p.kind === 'code');
     },
     enabled: gameOpen && !!kidId,
@@ -549,9 +640,7 @@ export function ArtStudioPage() {
       // game sprite wants the paper GONE. Default-on matting erases only the
       // edge-connected white, so white inside the drawing survives (D-ISF-6).
       if (gameTransparent) blob = await removeWhiteBackground(blob);
-      const path = `assets/art/${(
-        (art.metadata as { character?: string }).character ?? 'my-art'
-      )
+      const path = `assets/art/${((art.metadata as { character?: string }).character ?? 'my-art')
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')}-${art.id.slice(-6)}.png`;
       const sign = await api<{ url: string; headers?: Record<string, string>; s3_key?: string }>(
@@ -649,7 +738,10 @@ export function ArtStudioPage() {
   };
 
   // ── ③ ✨ bring to life (9★): upload the kid's canvas → ref-based magic ──
-  const uploadCanvas = async (projectId: string): Promise<{ id: string }> => {
+  const uploadCanvas = async (
+    projectId: string,
+    completedSteps = artTaskStepIndex + 1,
+  ): Promise<{ id: string }> => {
     const bucketId = projectId;
     const dataUrl = (canvasRef.current as ArtCanvasHandle).exportPng(1);
     const blob = dataUrlToBlob(dataUrl);
@@ -665,41 +757,97 @@ export function ArtStudioPage() {
         s3_key: sign.s3_key,
         mime_type: 'image/png',
         size_bytes: blob.size,
-        metadata: { source: 'canvas-sketch' },
+        metadata: {
+          source: artTask ? 'art-task' : 'canvas-sketch',
+          ...(artTask
+            ? {
+                art_task_slug: artTask.slug,
+                art_task_version: artTask.version,
+                draw_mode: taskMode,
+                completed_steps: completedSteps,
+                learning_tags: artTask.learning_tags,
+              }
+            : {}),
+          ...(mission && workDescription.trim()
+            ? { work_description: workDescription.trim().slice(0, 240) }
+            : {}),
+        },
       },
     });
     savedOpsRef.current = ops;
     return artifact;
   };
 
+  const completeArtTask = async () => {
+    if (!artTask || !hasInk || completingTask || taskCompleted) return;
+    setError(null);
+    setCompletingTask(true);
+    try {
+      const projectId = await ensureSaveProject();
+      const sketch = await uploadCanvas(projectId, artTask.steps.length);
+      setSketchTakeId(sketch.id);
+      setTakes((current) => [
+        ...current,
+        { artifactId: sketch.id, kind: 'sketch', label: '✏️ my drawing' },
+      ]);
+      setTaskCompleted(true);
+      setCelebrate(true);
+      invalidatePictureGalleries(projectId);
+    } catch {
+      setError("Couldn't save this drawing — it stays on the canvas. Try again.");
+    } finally {
+      setCompletingTask(false);
+    }
+  };
+
+  const startNextArtTask = () => {
+    if (!artTask?.next_task) return;
+    setOps([]);
+    setBaseArtifactId(null);
+    setBaseRef(null);
+    setGhostArtifactId(null);
+    setSketchTakeId(null);
+    setTakes([]);
+    setLastLook(null);
+    setPlan(null);
+    setMaskMode(false);
+    setMaskOps([]);
+    setWorkDescription('');
+    navigate(
+      `${location.pathname}?task=${encodeURIComponent(artTask.next_task.slug)}&mode=look`,
+      { state: null },
+    );
+  };
+
   const onMagic = async () => {
-    if (!bucket.data || generate.isPending) return;
+    if (!bucket.data || generate.isPending || !hasChildDrawing || !canvasRef.current) return;
     setError(null);
     setMagicOpen(false);
     try {
       const projectId = await ensureSaveProject();
-      let refId: string | undefined;
-      if (hasInk || baseArtifactId) {
+      const drawingUrl = canvasRef.current.exportPng(1, 'white');
+      let refId = sketchTakeId ?? undefined;
+      if (!refId && (hasInk || baseArtifactId || baseRef)) {
         const sketch = await uploadCanvas(projectId);
         refId = sketch.id;
         setSketchTakeId((prev) => prev ?? sketch.id);
         setTakes((t) => [...t, { artifactId: sketch.id, kind: 'sketch', label: '✏️ my sketch' }]);
-        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
+        invalidatePictureGalleries(projectId);
       }
       // Prompt precedence (D-ISF-3): the kid's explicit wish wins, else the
       // plan the coach distilled from the conversation, else the bare fallback.
       const prompt = `${magicDesc.trim() || plan?.prompt.trim() || 'my drawing'}, ${magicStyle} style`;
       generate.mutate(
-        // No ink at all = the pure-generation on-ramp (D-IS-15 bypass).
         {
           prompt,
           options: { size: 'square' },
           project_id: projectId,
-          ...(refId ? { ref_artifact_id: refId } : {}),
+          ref_artifact_id: refId,
         },
         {
           onSuccess: (r) => {
             setCelebrate(true);
+            setVersionComparison({ drawingUrl, aiUrl: r.url });
             if (r.artifact_id) {
               setTakes((t) => [
                 ...t,
@@ -710,6 +858,7 @@ export function ArtStudioPage() {
               setOps([]);
               setGhostArtifactId(null);
             }
+            invalidatePictureGalleries(projectId);
           },
           onError: (e) => setError(friendlyError(e)),
         },
@@ -721,11 +870,31 @@ export function ArtStudioPage() {
 
   // 🚀 Mission turn-in (D-IS-20): existing submit → acceptance → +3★ (D-M3).
   const onTurnIn = async () => {
-    if (!missionProjectId) return;
+    if (!mission || (!hasInk && !sketchTakeId && !takes.some((take) => take.kind === 'magic'))) {
+      return;
+    }
     setError(null);
     try {
+      const projectId = await ensureSaveProject();
+      let drawingArtifactId = sketchTakeId;
+      if (!drawingArtifactId && hasInk) {
+        const sketch = await uploadCanvas(projectId, artTask?.steps.length);
+        drawingArtifactId = sketch.id;
+        setSketchTakeId(sketch.id);
+        setTakes((current) => [
+          ...current,
+          { artifactId: sketch.id, kind: 'sketch', label: '✏️ my drawing' },
+        ]);
+        invalidatePictureGalleries(projectId);
+      }
+      if (drawingArtifactId && workDescription.trim()) {
+        await api(`/projects/${projectId}/artifacts/${drawingArtifactId}`, {
+          method: 'PATCH',
+          body: { metadata: { work_description: workDescription.trim().slice(0, 240) } },
+        });
+      }
       const res = await api<{ ok: boolean; reason?: string; stars_awarded?: number }>(
-        `/projects/${missionProjectId}/submit`,
+        `/projects/${projectId}/submit`,
         { method: 'POST' },
       );
       if (res.ok) {
@@ -782,7 +951,11 @@ export function ArtStudioPage() {
 
   return (
     <div className="h-dvh flex flex-col bg-canvas overflow-hidden" data-testid="art-studio">
-      <Celebration show={celebrate} message="Your image is ready!" onDone={() => setCelebrate(false)} />
+      <Celebration
+        show={celebrate}
+        message="Your image is ready!"
+        onDone={() => setCelebrate(false)}
+      />
 
       {/* header */}
       <div className="flex items-center justify-between px-4 py-2">
@@ -936,7 +1109,10 @@ export function ArtStudioPage() {
                 reopenBaseUrl ?? baseUrl ?? (template?.layer === 'base' ? template.url : null)
               }
               ghostUrl={ghostUrlResolved}
-              templateUrl={template?.layer === 'underlay' ? template.url : null}
+              templateUrl={
+                taskTemplateUrl ?? (template?.layer === 'underlay' ? template.url : null)
+              }
+              templateOpacity={taskTemplateUrl ? traceOpacity : 0.35}
               exportIncludesBase={exportIncludesBase}
               compareUrl={comparing ? sketchUrl : null}
               maskMode={maskMode}
@@ -1003,7 +1179,7 @@ export function ArtStudioPage() {
         {/* right AI rail */}
         {aiOpen ? (
           <div
-            className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0"
+            className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
             data-testid="ai-rail"
           >
             <div className="mb-2 flex items-center justify-between rounded-2xl bg-wash-sky px-2.5 py-2">
@@ -1016,11 +1192,70 @@ export function ArtStudioPage() {
                 ✕
               </button>
             </div>
+            <ArtTaskRuntimePanel
+              runtime={artTaskRuntime}
+              canComplete={hasInk}
+              isComplete={taskCompleted}
+              isSaving={completingTask}
+              onComplete={() => void completeArtTask()}
+            />
+            {artTask && taskCompleted && (
+              <div
+                className="mb-2 rounded-2xl border border-brand-mint/35 bg-wash-mint p-3"
+                data-testid="art-task-complete"
+              >
+                <div className="text-[13px] font-black text-ink">✓ Your drawing is saved</div>
+                <p className="mt-1 text-[11px] leading-snug text-ink-soft">
+                  It is now in your gallery. Bring it to life is unlocked, but your drawing stays
+                  the original.
+                </p>
+                {artTask.next_task && (
+                  <button
+                    type="button"
+                    onClick={startNextArtTask}
+                    className="btn-pill-secondary mt-2 w-full text-[11px]"
+                    data-testid="art-task-next"
+                  >
+                    Next: {artTask.next_task.title} →
+                  </button>
+                )}
+              </div>
+            )}
             {mission && (
-              <div className="mb-2 rounded-2xl bg-wash-sunshine px-3 py-2" data-testid="mission-card">
+              <div
+                className="mb-2 rounded-2xl bg-wash-sunshine px-3 py-2"
+                data-testid="mission-card"
+              >
                 <div className="text-[12px] font-bold text-ink">🚀 {mission.title}</div>
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
+                )}
+                {artTask && (
+                  <div className="mt-2" data-testid="course-art-progress">
+                    <div className="flex justify-between text-[10px] font-bold text-slate2">
+                      <span>Course drawing progress</span>
+                      <span>
+                        {taskCompleted
+                          ? artTask.steps.length
+                          : Math.min(artTaskStepIndex + 1, artTask.steps.length)}
+                        /{artTask.steps.length}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-canvas-pure">
+                      <div
+                        className="h-full rounded-full bg-brand-mint transition-all"
+                        style={{
+                          width: `${
+                            ((taskCompleted
+                              ? artTask.steps.length
+                              : Math.min(artTaskStepIndex + 1, artTask.steps.length)) /
+                              artTask.steps.length) *
+                            100
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
                 {mission.steps && mission.steps.length > 0 && (
                   <div
@@ -1037,7 +1272,9 @@ export function ArtStudioPage() {
                             {index + 1}
                           </span>
                           <span className="min-w-0">
-                            <span className="block text-[11px] font-bold text-ink">{step.title}</span>
+                            <span className="block text-[11px] font-bold text-ink">
+                              {step.title}
+                            </span>
                             {step.instruction_md && (
                               <span className="mt-0.5 block text-[10px] leading-snug text-ink-soft">
                                 {step.instruction_md}
@@ -1074,7 +1311,9 @@ export function ArtStudioPage() {
                       </button>
                       <button
                         onClick={() =>
-                          setStepIdx((i) => Math.min((mission.draw_along as string[]).length - 1, i + 1))
+                          setStepIdx((i) =>
+                            Math.min((mission.draw_along as string[]).length - 1, i + 1),
+                          )
                         }
                         disabled={stepIdx >= mission.draw_along.length - 1}
                         className="rounded-full bg-surface px-2 py-1 text-[11px] font-bold disabled:opacity-40"
@@ -1084,37 +1323,104 @@ export function ArtStudioPage() {
                     </div>
                   </div>
                 )}
-                {takes.some((t) => t.kind === 'magic') && !missionDone && (
+                {(hasInk ||
+                  taskCompleted ||
+                  Boolean(sketchTakeId) ||
+                  takes.some((t) => t.kind === 'magic')) &&
+                  !missionDone && (
+                  <div className="mt-2">
+                    <label
+                      htmlFor="course-work-description"
+                      className="text-[10px] font-black uppercase tracking-[0.08em] text-slate2"
+                    >
+                      Tell your teacher about your picture
+                    </label>
+                    <textarea
+                      id="course-work-description"
+                      value={workDescription}
+                      onChange={(event) => setWorkDescription(event.target.value)}
+                      maxLength={240}
+                      rows={2}
+                      placeholder="I used circles for… My favourite part is…"
+                      className="input-k12 mt-1 w-full resize-none text-[11px]"
+                    />
                   <button
                     onClick={() => void onTurnIn()}
                     className="btn-pill-primary w-full mt-2 text-[12px]"
                   >
                     🚀 Turn it in! +3★
                   </button>
+                  </div>
                 )}
                 {missionDone && (
                   <div className="text-[11px] font-bold text-brand-mint mt-1">✓ Complete! +3★</div>
                 )}
               </div>
             )}
-            {!mission && !hasInk && !baseArtifactId && !baseRef && takes.length === 0 && (
+            {versionComparison && (
               <div
-                className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum px-3 py-2.5"
-                data-testid="art-studio-start-guide"
+                className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum p-3"
+                data-testid="art-version-compare"
               >
-                <div className="text-[12px] font-black text-ink">
-                  Start here — make your first picture
+                <div className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
+                  Your idea, brought to life
                 </div>
-                <ol className="mt-1.5 space-y-1 text-[11px] font-semibold leading-snug text-ink-soft">
-                  <li><strong className="text-ink">1.</strong> Tell {ART_TUTOR_TEMP_NAME} what you want to make.</li>
-                  <li><strong className="text-ink">2.</strong> Draw it yourself, or ask for a ghost sketch.</li>
-                  <li><strong className="text-ink">3.</strong> Press “Bring it to life” when your sketch is ready.</li>
-                </ol>
-                <p className="mt-1.5 text-[10px] font-bold text-slate2">
-                  Drawing is free. Every AI button shows its Star cost first.
-                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <figure>
+                    <img
+                      src={versionComparison.drawingUrl}
+                      alt="My drawing"
+                      className="aspect-square w-full rounded-xl bg-canvas-pure object-contain"
+                    />
+                    <figcaption className="mt-1 text-center text-[11px] font-black text-ink">
+                      My drawing
+                    </figcaption>
+                  </figure>
+                  <figure>
+                    <img
+                      src={versionComparison.aiUrl}
+                      alt="AI version"
+                      className="aspect-square w-full rounded-xl bg-canvas-pure object-contain"
+                    />
+                    <figcaption className="mt-1 text-center text-[11px] font-black text-ink">
+                      AI version
+                    </figcaption>
+                  </figure>
+                </div>
               </div>
             )}
+            {!mission &&
+              !artTask &&
+              !hasInk &&
+              !baseArtifactId &&
+              !baseRef &&
+              takes.length === 0 && (
+                <div
+                  className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum px-3 py-2.5"
+                  data-testid="art-studio-start-guide"
+                >
+                  <div className="text-[12px] font-black text-ink">
+                    Start here — make your first picture
+                  </div>
+                  <ol className="mt-1.5 space-y-1 text-[11px] font-semibold leading-snug text-ink-soft">
+                    <li>
+                      <strong className="text-ink">1.</strong> Tell {ART_TUTOR_TEMP_NAME} what you
+                      want to make.
+                    </li>
+                    <li>
+                      <strong className="text-ink">2.</strong> Draw it yourself, or ask for a ghost
+                      sketch.
+                    </li>
+                    <li>
+                      <strong className="text-ink">3.</strong> Press “Bring it to life” when your
+                      sketch is ready.
+                    </li>
+                  </ol>
+                  <p className="mt-1.5 text-[10px] font-bold text-slate2">
+                    Drawing is free. Every AI button shows its Star cost first.
+                  </p>
+                </div>
+              )}
             <div className="flex-1 overflow-y-auto space-y-2 mb-2">
               <Bubble
                 role="assistant"
@@ -1172,11 +1478,17 @@ export function ArtStudioPage() {
                   otherwise open the confirm sheet. */}
               <button
                 onClick={() => setMagicOpen(true)}
-                disabled={generate.isPending || !bucket.data}
+                disabled={generate.isPending || !bucket.data || !hasChildDrawing}
                 className="btn-pill-primary w-full text-[15px] py-3"
                 data-testid="paint-plan"
               >
-                ✨ {plan ? 'Paint this!' : 'Bring it to life!'} −{MAGIC_COST}★
+                ✨{' '}
+                {hasChildDrawing
+                  ? plan
+                    ? 'Paint this!'
+                    : 'Bring it to life!'
+                  : 'Draw first to unlock'}{' '}
+                −{MAGIC_COST}★
               </button>
 
               {/* Lightweight helpers — one row, visually quieter than the primary
@@ -1270,13 +1582,9 @@ export function ArtStudioPage() {
             )}
             {lastLook ? (
               <p className="text-[13px] text-ink mt-2">🤖 Coach saw: “{lastLook}”</p>
-            ) : hasInk ? (
-              <p className="text-[13px] text-ink-soft mt-2">
-                Tip: tap 👀 first so the coach paints what you MEANT.
-              </p>
             ) : (
               <p className="text-[13px] text-ink-soft mt-2">
-                Empty canvas — I'll paint straight from your words.
+                Your drawing stays yours. AI makes a second version beside it.
               </p>
             )}
             <input
@@ -1291,16 +1599,18 @@ export function ArtStudioPage() {
                   key={s}
                   onClick={() => setMagicStyle(s)}
                   className={`rounded-full px-3 py-1.5 text-[12px] font-bold ${
-                    magicStyle === s
-                      ? 'bg-grad-bubblegum text-white'
-                      : 'bg-surface text-ink-soft'
+                    magicStyle === s ? 'bg-grad-bubblegum text-white' : 'bg-surface text-ink-soft'
                   }`}
                 >
                   {s}
                 </button>
               ))}
             </div>
-            <button onClick={() => void onMagic()} className="btn-pill-primary w-full mt-3">
+            <button
+              onClick={() => void onMagic()}
+              disabled={!hasChildDrawing || generate.isPending}
+              className="btn-pill-primary w-full mt-3 disabled:opacity-45"
+            >
               ✨ Make it! −{MAGIC_COST}★
             </button>
             <button
@@ -1477,7 +1787,6 @@ function TakeThumb({
     </button>
   );
 }
-
 
 function CharacterTile({ artifact, onPick }: { artifact: Artifact; onPick(): void }) {
   const url = useSignedUrl(artifact);

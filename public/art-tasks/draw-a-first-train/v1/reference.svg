@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A three-step line drawing of a very simple little train</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M140 280h260c62 0 105 43 105 105v88H140Z"/>
+    <polygon points="105,168 290,168 290,473 105,473"/><polygon points="380,175 450,175 450,282 380,282"/><circle cx="470" cy="340" r="66"/>
+    <circle cx="175" cy="473" r="64"/><circle cx="315" cy="473" r="64"/><circle cx="455" cy="473" r="64"/><path d="M414 168c0-57 43-79 82-54m-35-42c0-37 29-55 60-39"/><circle cx="450" cy="326" r="8" fill="#2C3642"/><circle cx="490" cy="326" r="8" fill="#2C3642"/><path d="M449 356c15 14 27 14 42 0"/>
+  </g>
+</svg>

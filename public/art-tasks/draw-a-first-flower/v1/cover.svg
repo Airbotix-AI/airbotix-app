@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple five-petal flower</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="300" cy="250" r="78"/>
+    <ellipse cx="300" cy="105" rx="62" ry="91"/><ellipse cx="438" cy="205" rx="62" ry="91" transform="rotate(72 438 205)"/><ellipse cx="385" cy="367" rx="62" ry="91" transform="rotate(144 385 367)"/><ellipse cx="215" cy="367" rx="62" ry="91" transform="rotate(-144 215 367)"/><ellipse cx="162" cy="205" rx="62" ry="91" transform="rotate(-72 162 205)"/>
+    <path d="M300 328v225M300 453c-54-67-110-70-151-44 27 69 85 88 151 44m0 35c54-67 110-70 151-44-27 69-85 88-151 44"/><circle cx="270" cy="242" r="8" fill="#2C3642"/><circle cx="330" cy="242" r="8" fill="#2C3642"/><path d="M272 276c19 18 37 18 56 0"/>
+  </g>
+</svg>

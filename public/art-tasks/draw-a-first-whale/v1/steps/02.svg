@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a very simple happy whale</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M88 331c0-109 92-184 212-184 103 0 154 47 195 116 29 48 55 65 89 50-17 75-85 126-182 126H244c-91 0-156-42-156-108Z"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M493 263c11-78 55-112 102-71 36-42 74-22 68 29-7 55-73 75-137 51"/><ellipse cx="341" cy="413" rx="68" ry="40" transform="rotate(24 341 413)"/></g>
+  </g>
+</svg>

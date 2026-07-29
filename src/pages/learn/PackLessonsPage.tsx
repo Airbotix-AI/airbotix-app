@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { api } from '@/lib/api';
 import type { ArtMissionStep } from './create/art/ArtStudioPage';
+import { artTaskSlugFromSteps } from './create/art/artTaskTypes';
+import { ART_CANVAS_PATH, opensInArtStudio } from './create/art/artCourseRouting';
 
 interface StudioMissionConfig {
   art?: {
@@ -70,7 +72,9 @@ export function PackLessonsPage() {
       <div>
         <div className="eyebrow">Lesson</div>
         <h1 className="section-heading">Not found</h1>
-        <Link to="/learn/missions" className="btn-pill-secondary mt-6">← Back</Link>
+        <Link to="/learn/missions" className="btn-pill-secondary mt-6">
+          ← Back
+        </Link>
       </div>
     );
 
@@ -80,7 +84,9 @@ export function PackLessonsPage() {
 
   return (
     <div>
-      <Link to="/learn/missions" className="btn-pill-ghost mb-4 -ml-3">← Lessons</Link>
+      <Link to="/learn/missions" className="btn-pill-ghost mb-4 -ml-3">
+        ← Lessons
+      </Link>
 
       <div className={`pack-card ${color} mb-10 cursor-default`} style={{ minHeight: 'auto' }}>
         <span className="pack-blob" />
@@ -98,7 +104,9 @@ export function PackLessonsPage() {
         </div>
       </div>
 
-      <h2 className="section-heading mb-6" style={{ fontSize: '24px' }}>Lessons</h2>
+      <h2 className="section-heading mb-6" style={{ fontSize: '24px' }}>
+        Lessons
+      </h2>
 
       {lessons.length === 0 ? (
         <div className="card-base text-center">
@@ -110,7 +118,9 @@ export function PackLessonsPage() {
           {lessons.map((lesson, i) => (
             <div key={lesson.id} className="card-base">
               <div className="flex items-start gap-4">
-                <div className={`shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-grad-${color} text-white font-extrabold text-[20px] shadow-brand-${color}`}>
+                <div
+                  className={`shrink-0 flex h-12 w-12 items-center justify-center rounded-2xl bg-grad-${color} text-white font-extrabold text-[20px] shadow-brand-${color}`}
+                >
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -146,48 +156,54 @@ export function PackLessonsPage() {
                               const art = config?.art;
                               const music = config?.music;
                               const isArtTask =
-                                Boolean(art) || steps.some((step) => step.widget === 'image_create');
+                                opensInArtStudio(pack.data.slug, art) ||
+                                steps.some((step) => step.widget === 'image_create');
 
                               if (isArtTask) {
-                                nav('/learn/create/image/canvas', {
-                                    // Art missions open the Art Studio CANVAS in
-                                    // Mission Mode (image-studio-prd D-IS-20/22).
-                                    // The task is already chosen, so this skips the
-                                    // hub at `/learn/create/image` — which does not
-                                    // read this state, so routing there silently
-                                    // dropped Mission Mode entirely (D-IS-28).
-                                    state: {
-                                      mission: {
-                                        id: m.id,
-                                        slug: m.slug,
-                                        title: m.title,
-                                        description: m.description,
-                                        steps,
-                                        template: art?.template,
-                                        draw_along: art?.draw_along,
-                                        checklist: art?.checklist,
-                                      },
+                                const artTaskSlug = artTaskSlugFromSteps(steps);
+                                const artCanvasPath = artTaskSlug
+                                  ? `/learn/create/image/canvas?task=${encodeURIComponent(artTaskSlug)}&mode=look`
+                                  : ART_CANVAS_PATH;
+                                nav(artCanvasPath, {
+                                  // Art missions open the Art Studio CANVAS in
+                                  // Mission Mode (image-studio-prd D-IS-20/22).
+                                  // The task is already chosen, so this skips the
+                                  // hub at `/learn/create/image` — which does not
+                                  // read this state, so routing there silently
+                                  // dropped Mission Mode entirely (D-IS-28).
+                                  state: {
+                                    mission: {
+                                      id: m.id,
+                                      slug: m.slug,
+                                      title: m.title,
+                                      description: m.description,
+                                      steps,
+                                      art_task_slug: artTaskSlug,
+                                      template: art?.template,
+                                      draw_along: art?.draw_along,
+                                      checklist: art?.checklist,
                                     },
-                                  });
+                                  },
+                                });
                                 return;
                               }
 
                               if (music) {
                                 nav('/learn/music', {
-                                      // Music missions open the Music Stage in
-                                      // Mission Mode (music-stage-prd §5A D-MS14).
-                                      state: {
-                                        mission: {
-                                          id: m.id,
-                                          slug: m.slug,
-                                          title: m.title,
-                                          description: m.description,
-                                          template: music.template,
-                                          checklist: music.checklist,
-                                          accept: music.accept,
-                                        },
-                                      },
-                                    });
+                                  // Music missions open the Music Stage in
+                                  // Mission Mode (music-stage-prd §5A D-MS14).
+                                  state: {
+                                    mission: {
+                                      id: m.id,
+                                      slug: m.slug,
+                                      title: m.title,
+                                      description: m.description,
+                                      template: music.template,
+                                      checklist: music.checklist,
+                                      accept: music.accept,
+                                    },
+                                  },
+                                });
                                 return;
                               }
 

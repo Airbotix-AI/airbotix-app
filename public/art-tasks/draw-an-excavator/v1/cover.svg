@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a friendly excavator</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M235 438h264c45 0 75 27 75 63s-30 63-75 63H235c-45 0-75-27-75-63s30-63 75-63Z"/><path d="M247 467h240c27 0 45 14 45 34s-18 34-45 34H247c-27 0-45-14-45-34s18-34 45-34Z"/><circle cx="278" cy="501" r="24"/><circle cx="456" cy="501" r="24"/>
+    <path d="M330 232h132c44 0 76 35 76 79v127H287V311c0-44 20-79 43-79Z"/><path d="M350 261h93c29 0 52 24 52 53v69H325v-69c0-29 11-53 25-53Z"/>
+    <path d="M305 319 188 173l-37 31 113 180"/><path d="m188 173-79-91-37 33 79 89"/><path d="M109 82 43 73 27 161l89 26 35-18"/>
+    <circle cx="188" cy="173" r="13"/><circle cx="151" cy="204" r="13"/><circle cx="305" cy="319" r="13"/><circle cx="380" cy="316" r="8" fill="#2C3642"/><circle cx="438" cy="316" r="8" fill="#2C3642"/><path d="M387 350c15 13 30 13 45 0m70 43h25m-25 17h25"/>
+  </g>
+</svg>

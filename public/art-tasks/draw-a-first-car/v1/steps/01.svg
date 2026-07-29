@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 1 for drawing a very simple little car</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M79 371c5-67 45-109 116-121h277c72 10 113 52 119 121v85H79Z"/></g>
+  </g>
+</svg>

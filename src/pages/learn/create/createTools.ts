@@ -9,6 +9,20 @@
 
 export type ProjectKind = 'creative' | 'code' | 'game' | 'blocks';
 
+export interface ParentCurriculumPreview {
+  /** Public curriculum example only; never populated from or presented as child evidence. */
+  title: string;
+  status: string;
+  promise: string;
+  summary: string;
+  evidence: readonly {
+    label: string;
+    body: string;
+  }[];
+  finalWork: string;
+  trustNote: string;
+}
+
 export interface ParentStudioGuide {
   /** Helps a parent decide whether this space matches their child right now. */
   bestFor: string;
@@ -30,6 +44,8 @@ export interface ParentStudioGuide {
   previewCaption: string;
   /** Public, no-auth real-studio demo when one exists. Never points at a protected kid route. */
   publicDemoPath?: '/try/blocks' | '/try/playground';
+  /** Optional planned journey that helps a parent understand curriculum depth before release. */
+  curriculumPreview?: ParentCurriculumPreview;
 }
 
 export interface CreateTool {
@@ -102,6 +118,35 @@ export const CREATE_TOOLS: CreateTool[] = [
       previewCaption:
         'The child arranges picture blocks, presses Go and watches the characters perform the story.',
       publicDemoPath: '/try/blocks',
+      curriculumPreview: {
+        title: 'Alice in Wonderland',
+        status: 'Curriculum preview · In development',
+        promise: 'Read the classic. Code what happens next.',
+        summary:
+          'Children follow Alice’s clues, understand why a character acts, then use real blocks to make the next page happen.',
+        evidence: [
+          {
+            label: 'Read',
+            body: 'Explain why Alice follows the White Rabbit using clues from the story.',
+          },
+          {
+            label: 'Classic discovery',
+            body: 'Notice how a watch-carrying rabbit turns an ordinary riverbank into Wonderland.',
+          },
+          {
+            label: 'Code and debug',
+            body: 'Repair the sequence when Alice jumps before the Rabbit appears, then run it.',
+          },
+          {
+            label: 'Make',
+            body: 'Build a replayable chapter and retell what changed.',
+          },
+        ],
+        finalWork:
+          'Planned outcome: Alice’s First Wonderland Journey, a six-chapter interactive storybook.',
+        trustNote:
+          'This is a system curriculum example, not a claim about your child. Playable Alice chapters are not yet available.',
+      },
     },
     color: 'mint',
     typeTag: 'Blocks',

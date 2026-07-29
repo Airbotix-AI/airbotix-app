@@ -406,18 +406,36 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
   });
 
   it('records 以后继续 on the row and stays on the chapter-three ending', async () => {
+    const savedRunEvidence = {
+      page_trace: ['1', '2', '3'],
+      run_footprints: [
+        'page1:3-9->7-9:page2',
+        'page2:2-8->6-8:page3',
+        'page3:2-9->4-9:stop',
+      ],
+      run_boundaries: [
+        'page1->page2:7-9:2-8:ok',
+        'page2->page3:6-8:2-9:ok',
+      ],
+      run_stop: ['end'],
+      rerun_result: ['trace:1-2-3', 'stop:end'],
+    };
     const done = openProgress();
     done.completed.push({
       part_id: 'jtw-s1-c3-p8',
       completed_at: '2026-07-27T08:00:00.000Z',
-      evidence: { schema_version: 1, selections: { page_trace: ['1', '2', '3'] } },
+      evidence: { schema_version: 1, selections: savedRunEvidence },
     });
     fetchProgress.mockResolvedValue(done);
     renderPage();
 
     fireEvent.click(await screen.findByTestId('jtw-c3p8-continue-later'));
     await waitFor(() => expect(completePart).toHaveBeenCalled());
-    expect(completePart.mock.calls[0][2].selections.continue_choice).toEqual(['later']);
+    const savedSelections = completePart.mock.calls[0][2].selections;
+    expect(savedSelections.continue_choice).toEqual(['later']);
+    expect(savedSelections.run_footprints).toEqual(savedRunEvidence.run_footprints);
+    expect(savedSelections.run_stop).toEqual(savedRunEvidence.run_stop);
+    expect(savedSelections.rerun_result).toEqual(savedRunEvidence.rerun_result);
     // No navigation: 以后继续 never auto-advances into chapter four.
     expect(screen.queryByTestId('jtw-map-stub')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-part-c3-p8')).toBeInTheDocument();

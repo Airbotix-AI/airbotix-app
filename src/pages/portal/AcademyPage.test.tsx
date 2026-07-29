@@ -148,6 +148,16 @@ describe('AcademyPage parent sales experience', () => {
           exam: { slug: 'naplan', title: 'NAPLAN' },
         },
         kid: { id: 'kid-1', nickname: 'Mia' },
+        sessions: [
+          {
+            id: 'session-1',
+            status: 'self_graded',
+            started_at: '2026-07-27T00:00:00.000Z',
+            submitted_at: '2026-07-27T01:00:00.000Z',
+            completed_at: '2026-07-27T01:10:00.000Z',
+            paper: { id: 'paper-1', title: '2025 full paper' },
+          },
+        ],
       },
     ]);
 
@@ -157,6 +167,13 @@ describe('AcademyPage parent sales experience', () => {
     expect(
       screen.getByRole('link', { name: 'Choose NAPLAN Year 3 Numeracy Prep for a child' }),
     ).toHaveTextContent('View product');
+    expect(screen.getByRole('link', { name: /Mia · 2025 full paper/ })).toHaveAttribute(
+      'href',
+      '/portal/academy/reports/session-1',
+    );
+    expect(
+      screen.getByText('Objective and self-assessed marks shown separately →'),
+    ).toBeInTheDocument();
   });
 
   it('does not sell unfinished mock tests or wrong-question review as current benefits', async () => {

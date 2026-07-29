@@ -5,6 +5,7 @@ import { jtwC3JumpFixComplete } from './jtwC3JumpFix';
 import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
+import { c2p5ProgramMatches } from './story-parts/journeyWestC2Part5Program';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -234,7 +235,12 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     asset: '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png',
     start: { gx: TINY_STAR_A2_START_GX, gy: 10, size: 1, rot: 0 },
     characterCount: 1,
-    target: [{ op: 'when_flag' }, { op: 'move_right', n: 1 }, { op: 'move_right', n: 1 }, { op: 'end' }],
+    target: [
+      { op: 'when_flag' },
+      { op: 'move_right', n: 1 },
+      { op: 'move_right', n: 1 },
+      { op: 'end' },
+    ],
   },
   'tsv-s1-a3-h': {
     pageId: 'tsv-a3-h-page',
@@ -243,7 +249,12 @@ const TINY_STAR_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> =
     scriptId: 'dot-dot-tap',
     asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png',
     start: { gx: 10, gy: 8, size: 1, rot: 0 },
-    target: [{ op: 'when_tap' }, { op: 'hop', n: 1 }, { op: 'say', text: "I'm awake!" }, { op: 'end' }],
+    target: [
+      { op: 'when_tap' },
+      { op: 'hop', n: 1 },
+      { op: 'say', text: "I'm awake!" },
+      { op: 'end' },
+    ],
   },
   'tsv-s1-a3-b': {
     pageId: 'tsv-a3-b-page',
@@ -557,6 +568,14 @@ function missionBlockMatches(
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
   const mission = TINY_STAR_MISSION_CONTRACTS[lessonId];
   if (!mission) return false;
+  if (lessonId === 'jtw-s1-c2-p5') return c2p5ProgramMatches(project);
+
+  if (lessonId === 'jtw-s1-c2-p5') {
+    // This build owns two response tracks on two different actors. The shared
+    // single-script contract cannot express that shape, so use the same whole
+    // project matcher the Part page uses for its saved-project read-back.
+    return c2p5ProgramMatches(project);
+  }
 
   const page = project.pages.find((candidate) => candidate.id === mission.pageId);
   const character = page?.characters.find((candidate) => candidate.id === mission.characterId);
@@ -618,22 +637,38 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
     const responseIsVisible =
       (response?.op === 'hop' && response.n === 1) ||
       (response?.op === 'grow' && response.n === 1) ||
-      (response?.op === 'say' && ['Surprise!', 'Tap sparkle!', 'Hello, friend!'].includes(response.text ?? ''));
-    return project.lessonId === lessonId && page?.background === mission.background &&
-      page.characters.length === 1 && character?.id === 'dot-dot' &&
-      allowedAssets.includes(character.asset ?? '') && startMatches && blocks.length === 3 &&
-      blocks[0]?.op === 'when_tap' && responseIsVisible && blocks[2]?.op === 'end';
+      (response?.op === 'say' &&
+        ['Surprise!', 'Tap sparkle!', 'Hello, friend!'].includes(response.text ?? ''));
+    return (
+      project.lessonId === lessonId &&
+      page?.background === mission.background &&
+      page.characters.length === 1 &&
+      character?.id === 'dot-dot' &&
+      allowedAssets.includes(character.asset ?? '') &&
+      startMatches &&
+      blocks.length === 3 &&
+      blocks[0]?.op === 'when_tap' &&
+      responseIsVisible &&
+      blocks[2]?.op === 'end'
+    );
   }
 
   if (lessonId === 'tsv-s1-a2-s') {
     const endpoint = page ? tinyStarA2TargetGx(page.background, lessonId) : undefined;
     const direction = endpoint === 6 ? 'move_left' : endpoint === 10 ? 'move_right' : undefined;
     return (
-      project.lessonId === lessonId && endpoint !== undefined &&
-      character?.asset === mission.asset && startMatches && page?.characters.length === 1 &&
-      blocks.length === 4 && blocks[0]?.op === 'when_flag' && blocks[3]?.op === 'end' &&
-      blocks[1]?.op === direction && blocks[1]?.n === 1 &&
-      blocks[2]?.op === direction && blocks[2]?.n === 1
+      project.lessonId === lessonId &&
+      endpoint !== undefined &&
+      character?.asset === mission.asset &&
+      startMatches &&
+      page?.characters.length === 1 &&
+      blocks.length === 4 &&
+      blocks[0]?.op === 'when_flag' &&
+      blocks[3]?.op === 'end' &&
+      blocks[1]?.op === direction &&
+      blocks[1]?.n === 1 &&
+      blocks[2]?.op === direction &&
+      blocks[2]?.n === 1
     );
   }
   if (lessonId === 'tsv-s1-a4-s') {

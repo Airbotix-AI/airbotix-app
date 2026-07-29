@@ -1,7 +1,14 @@
 import { api } from '@/lib/api';
 
 export const ACADEMY_SET_SIZE = 20;
-export type AcademyAnswerType = 'choice' | 'value' | 'multi_value';
+export type AcademyAnswerType =
+  | 'choice'
+  | 'multi_choice'
+  | 'value'
+  | 'multi_value'
+  | 'expression'
+  | 'worked'
+  | 'extended';
 export type AcademyValueInputsSpec = {
   count: number;
   separator?: string;
@@ -154,6 +161,9 @@ export interface AcademyQuestion {
   paper_year: number;
   q_no: number;
   answer_type: AcademyAnswerType;
+  marks: number | null;
+  section: string | null;
+  stimulus_id: string | null;
   stem_text: string | null;
   options: string[] | null;
   render_ready: boolean;
@@ -187,7 +197,28 @@ export interface AcademyProductSummary {
   title: string;
   level_key: string;
   subject_key: string;
-  exam: { slug: string; title: string };
+  exam: {
+    slug: string;
+    title: string;
+    brand_config?: { supported_modes?: Array<'practice' | 'mock'> };
+  };
+}
+
+export interface AcademyPaperSummary {
+  id: string;
+  title: string;
+  mode: 'fixed' | 'blueprint';
+  time_limit_minutes: number;
+  _count: { questions: number };
+}
+
+export interface AcademySessionSummary {
+  id: string;
+  status: 'submitted' | 'self_graded';
+  started_at: string;
+  submitted_at: string | null;
+  completed_at: string | null;
+  paper: { id: string; title: string } | null;
 }
 
 export interface AcademyEntitlement {
@@ -198,8 +229,94 @@ export interface AcademyEntitlement {
   product: AcademyProductSummary & {
     sales_config?: Record<string, unknown>;
     _count?: { question_links: number };
+    papers?: AcademyPaperSummary[];
   };
   kid?: { id: string; nickname: string };
+  sessions?: AcademySessionSummary[];
+}
+
+export type AcademyRubric =
+  | {
+      kind: 'per_mark';
+      total_marks: number;
+      criteria: Array<{ text: string; marks: number }>;
+    }
+  | {
+      kind: 'banded';
+      total_marks: number;
+      bands: Array<{ text: string; marks: number }>;
+    };
+
+export interface AcademyPaperQuestion {
+  order_index: number;
+  marks: number;
+  section: string | null;
+  question: AcademyQuestion;
+}
+
+export interface AcademyStimulus {
+  id: string;
+  source_ref: string;
+  exam: string;
+  paper_year: string;
+  body_text: string | null;
+  figure_keys: string[] | null;
+  render_spec: Record<string, unknown> | null;
+}
+
+export interface AcademySession {
+  id: string;
+  entitlement_id: string;
+  paper_id: string;
+  mode: 'practice' | 'mock' | 'review';
+  status: 'in_progress' | 'submitted' | 'self_graded' | 'abandoned';
+  started_at: string;
+  submitted_at: string | null;
+  completed_at: string | null;
+  state: {
+    current_question_index?: number;
+    remaining_seconds?: number;
+    answers?: Record<string, string>;
+  };
+  paper: {
+    id: string;
+    title: string;
+    time_limit_minutes: number;
+    questions: AcademyPaperQuestion[];
+  } | null;
+}
+
+export interface AcademySolution {
+  attempt_id: string;
+  question_id: string;
+  answer_type: AcademyAnswerType;
+  correct_answer: string | null;
+  official_solution: string | null;
+  solution_image_key: string | null;
+  rubric: AcademyRubric | null;
+  marks_total: number;
+  marks_awarded: number | null;
+  graded_by: 'auto' | 'self' | 'ai' | 'teacher';
+}
+
+export interface AcademySessionReport {
+  session_id: string;
+  status: string;
+  objective: {
+    marks_awarded: number;
+    marks_total: number;
+    correct: number;
+    attempts: number;
+    accuracy: number;
+  };
+  self_assessed: {
+    marks_awarded: number;
+    marks_total: number;
+    completed: number;
+    attempts: number;
+    notice: string;
+  };
+  total: { marks_awarded: number; marks_total: number };
 }
 
 export interface AcademyCatalogProduct extends Omit<AcademyProductSummary, 'exam'> {
@@ -218,7 +335,16 @@ export interface AcademyCatalogExam {
 }
 
 export interface AcademyPublicProduct extends AcademyCatalogProduct {
-  exam: { slug: string; title: string; provider: string | null };
+  exam: {
+    slug: string;
+    title: string;
+    provider: string | null;
+    brand_config?: {
+      assessment_family?: string;
+      supported_modes?: Array<'practice' | 'mock'>;
+      content_policy?: string;
+    };
+  };
   _count: { question_links: number };
 }
 
@@ -276,3 +402,49 @@ export const getAcademyOrder = (intentId: string) =>
     status: string;
     entitlement: { id: string; status: string; ends_at: string } | null;
   }>(`/academy/orders/${intentId}`);
+
+export const createAcademySession = (args: {
+  entitlementId: string;
+  paperId: string;
+  mode?: 'practice' | 'mock' | 'review';
+}) =>
+  api<AcademySession>('/academy/sessions', {
+    method: 'POST',
+    body: {
+      entitlement_id: args.entitlementId,
+      paper_id: args.paperId,
+      mode: args.mode ?? 'mock',
+    },
+  });
+
+export const getAcademySession = (sessionId: string) =>
+  api<AcademySession>(`/academy/sessions/${sessionId}`);
+
+export const getAcademyStimulus = (stimulusId: string) =>
+  api<AcademyStimulus>(`/academy/stimuli/${stimulusId}`);
+
+export const saveAcademySessionState = (
+  sessionId: string,
+  state: AcademySession['state'],
+) =>
+  api<AcademySession>(`/academy/sessions/${sessionId}/state`, {
+    method: 'PATCH',
+    body: state,
+  });
+
+export const submitAcademySession = (sessionId: string) =>
+  api<AcademySessionReport>(`/academy/sessions/${sessionId}/submit`, {
+    method: 'POST',
+  });
+
+export const getAcademySessionSolutions = (sessionId: string) =>
+  api<AcademySolution[]>(`/academy/sessions/${sessionId}/solutions`);
+
+export const selfGradeAcademyAttempt = (attemptId: string, rubricHits: number[]) =>
+  api(`/academy/attempts/${attemptId}/self-grade`, {
+    method: 'POST',
+    body: { rubric_hits: rubricHits },
+  });
+
+export const getAcademySessionReport = (sessionId: string) =>
+  api<AcademySessionReport>(`/academy/sessions/${sessionId}/report`);

@@ -18,10 +18,21 @@ afterEach(cleanup);
 describe('StoryCoachPanel', () => {
   it('keeps the next action beside the stage and can run it directly', () => {
     const onGo = vi.fn();
-    render(<StoryCoachPanel mission={mission} cue="ready" running={false} onGo={onGo} />);
+    const onDismiss = vi.fn();
+    render(
+      <StoryCoachPanel
+        mission={mission}
+        cue="ready"
+        running={false}
+        onGo={onGo}
+        onDismiss={onDismiss}
+      />,
+    );
 
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('Press Go');
     expect(screen.getByLabelText('Mission step 1 of 4')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide mission tips' }));
+    expect(onDismiss).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: '▶ Go' }));
     expect(onGo).toHaveBeenCalledOnce();
   });

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a very simple friendly octopus</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 302c0-94 58-168 130-168s130 74 130 168c0 44-12 76-35 104H205c-23-28-35-60-35-104Z"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M205 397c-71 6-101 52-66 90 31 33 80 1 94-66M250 404c-54 34-65 91-20 113 39 19 71-27 70-92M285 410c-25 55-8 108 40 103 42-5 51-56 25-103M350 404c54 34 65 91 20 113M395 397c71 6 101 52 66 90M178 423c-58-14-99 12-89 57M422 423c58-14 99 12 89 57M300 420c0 49 18 78 49 89"/></g>
+  </g>
+</svg>

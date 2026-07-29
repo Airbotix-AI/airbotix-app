@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a friendly baby dragon</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="346" cy="375" rx="122" ry="132"/>
+    <ellipse cx="214" cy="224" rx="91" ry="73"/><ellipse cx="150" cy="251" rx="54" ry="37"/><path d="M276 263c-51 30-72 70-65 123M449 393c83-14 130 23 118 81-8 38-42 62-82 65"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M364 292c18-90 90-120 139-60l-74 105m-78-38c-30-63-78-80-112-42l63 72M277 465v75m71-50v50m70-50v50m66-75v75M253 540h48m23 0h48m22 0h48m19 0h48"/></g>
+  </g>
+</svg>

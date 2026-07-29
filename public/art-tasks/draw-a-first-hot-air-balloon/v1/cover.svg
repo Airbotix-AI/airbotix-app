@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple hot-air balloon</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 70c126 0 205 88 181 205-14 68-71 122-119 164H238c-48-42-105-96-119-164C95 158 174 70 300 70Z"/>
+    <path d="M238 439v62m124-62v62"/><polygon points="225,501 375,501 352,570 248,570"/>
+    <path d="M300 70c-63 78-74 237-28 369M300 70c63 78 74 237 28 369"/><circle cx="268" cy="257" r="9" fill="#2C3642"/><circle cx="332" cy="257" r="9" fill="#2C3642"/><path d="M274 292c17 16 35 16 52 0"/>
+  </g>
+</svg>

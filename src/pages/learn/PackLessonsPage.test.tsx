@@ -62,7 +62,12 @@ function renderPack() {
 
 function ArtMissionTarget() {
   const location = useLocation();
-  return <pre data-testid="art-mission-state">{JSON.stringify(location.state)}</pre>;
+  return (
+    <>
+      <pre data-testid="art-mission-state">{JSON.stringify(location.state)}</pre>
+      <span data-testid="art-mission-search">{location.search}</span>
+    </>
+  );
 }
 
 afterEach(() => {
@@ -172,4 +177,94 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
       }),
     );
   });
+
+  it('reuses an approved guided task without leaving Art Studio Mission Mode', async () => {
+    const steps = [
+      {
+        id: 'dinosaur',
+        title: 'Draw your dinosaur',
+        instruction_md: 'Follow the guide, then make it yours.',
+        widget: 'image_create',
+        widget_config: {
+          art_task_slug: 'draw-a-trex',
+          allowed_modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        },
+      },
+    ];
+    api.mockResolvedValue({
+      ...PACK,
+      lessons: [
+        {
+          ...PACK.lessons[0],
+          missions: [{ ...PACK.lessons[0].missions[0], steps_json: steps }],
+        },
+      ],
+    });
+    renderPack();
+
+    const task = (await screen.findByText('Draw a cat')).closest('li');
+    fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+
+    expect(await screen.findByTestId('art-mission-search')).toHaveTextContent(
+      '?task=draw-a-trex&mode=look',
+    );
+    expect(screen.getByTestId('art-mission-state')).toHaveTextContent(
+      JSON.stringify({
+        mission: {
+          id: 'm1',
+          slug: 'draw-a-cat',
+          title: 'Draw a cat',
+          description: 'Make a picture.',
+          steps,
+          art_task_slug: 'draw-a-trex',
+        },
+      }),
+    );
+  });
+
+  it.each([
+    ['your-hero-your-world', 'Your hero & your world'],
+    ['the-story-in-panels', 'The story in panels'],
+    ['draw-every-page', 'Draw every page'],
+    ['print-it-and-launch-it', 'Print it & launch it'],
+  ])(
+    'keeps the legacy AI Comic Book task %s inside Art Studio even before steps are authored',
+    async (missionSlug, missionTitle) => {
+      api.mockResolvedValue({
+        ...PACK,
+        slug: 'ai-comic-book',
+        title: 'Create Your Own Comic Book with AI',
+        lessons: [
+          {
+            ...PACK.lessons[0],
+            missions: [
+              {
+                ...PACK.lessons[0].missions[0],
+                slug: missionSlug,
+                title: missionTitle,
+                steps_json: [],
+              },
+            ],
+          },
+        ],
+      });
+      renderPack();
+
+      const task = (await screen.findByText(missionTitle)).closest('li');
+      fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+
+      expect(await screen.findByTestId('art-mission-state')).toHaveTextContent(
+        JSON.stringify({
+          mission: {
+            id: 'm1',
+            slug: missionSlug,
+            title: missionTitle,
+            description: 'Make a picture.',
+            steps: [],
+          },
+        }),
+      );
+      expect(screen.queryByTestId('art-hub-route')).not.toBeInTheDocument();
+    },
+  );
 });

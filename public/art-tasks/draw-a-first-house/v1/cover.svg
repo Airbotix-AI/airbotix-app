@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple little house</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="148,278 452,278 452,518 148,518"/>
+    <polygon points="105,278 300,104 495,278"/><polygon points="265,388 335,388 335,518 265,518"/><polygon points="175,326 245,326 245,396 175,396"/><polygon points="355,326 425,326 425,396 355,396"/>
+    <polygon points="385,176 435,176 435,260 385,260"/><circle cx="315" cy="452" r="7" fill="#2C3642"/><circle cx="102" cy="438" r="35"/><path d="M102 473v62m0-33-34-23m34 23 34-23"/>
+  </g>
+</svg>

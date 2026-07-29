@@ -217,6 +217,7 @@ export function BlocksStageWorkspace({
                   style={{
                     left: `${((st.gx + 0.5) / GRID_W) * 100}%`,
                     top: `${((st.gy + 0.5) / GRID_H) * 100}%`,
+                    zIndex: c.id === selectedChar?.id ? 2 : 1,
                     fontSize: 'clamp(40px,5.5vw,64px)',
                     opacity: st.visible ? 1 : 0.12,
                     transform: `translate(-50%,-50%) rotate(${st.rot}deg) scale(${st.size})`,

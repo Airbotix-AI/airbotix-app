@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple sitting puppy</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="300" cy="390" rx="105" ry="135"/>
+    <circle cx="300" cy="220" r="115"/><path d="M203 171c-63-42-93 7-62 72 18 37 48 51 76 22M397 171c63-42 93 7 62 72-18 37-48 51-76 22"/>
+    <circle cx="258" cy="217" r="9" fill="#2C3642"/><circle cx="342" cy="217" r="9" fill="#2C3642"/><ellipse cx="300" cy="253" rx="21" ry="15"/><path d="M300 268v13m0 0c-17 17-36 17-52 0m52 0c17 17 36 17 52 0M251 432v77m98-77v77"/>
+  </g>
+</svg>

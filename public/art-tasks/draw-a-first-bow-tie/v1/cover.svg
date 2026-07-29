@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple bow tie</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="260,255 340,255 340,345 260,345"/>
+    <path d="M260 272C188 187 83 195 76 300c7 105 112 113 184 28Z"/><path d="M340 272c72-85 177-77 184 28-7 105-112 113-184 28Z"/>
+    <path d="M260 276 171 232M260 324l-89 44M340 276l89-44M340 324l89 44"/><circle cx="145" cy="282" r="10"/><circle cx="455" cy="282" r="10"/>
+  </g>
+</svg>

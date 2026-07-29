@@ -19,6 +19,16 @@ interface ApiCall {
 }
 const apiCalls: ApiCall[] = [];
 const putCalls: string[] = [];
+const localValues = new Map<string, string>();
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: {
+    clear: () => localValues.clear(),
+    getItem: (key: string) => localValues.get(key) ?? null,
+    removeItem: (key: string) => localValues.delete(key),
+    setItem: (key: string, value: string) => localValues.set(key, value),
+  },
+});
 // One-shot failure switches the api mock consumes (set inside a test, reset in
 // beforeEach) — lets a spec exercise the error/dedup branches deterministically.
 const failNext = { image: false, upload: false };
@@ -29,6 +39,8 @@ vi.mock('./ArtCanvas', () => ({
       ops: unknown[];
       onOpsChange(ops: unknown[]): void;
       ghostUrl: string | null;
+      templateUrl: string | null;
+      templateOpacity?: number;
       baseImageUrl: string | null;
       compareUrl: string | null;
       maskOps: unknown[];
@@ -46,6 +58,8 @@ vi.mock('./ArtCanvas', () => ({
       <div
         data-testid="art-canvas-stub"
         data-ghost={props.ghostUrl ?? ''}
+        data-template={props.templateUrl ?? ''}
+        data-template-opacity={props.templateOpacity ?? ''}
         data-ops={props.ops.length}
         data-base={props.baseImageUrl ?? ''}
         data-compare={props.compareUrl ?? ''}
@@ -88,103 +102,190 @@ vi.mock('@/lib/api', () => {
     }
   }
   return {
-  BASE_URL: 'http://api.test',
-  ApiError: ApiErrorClass,
-  api: vi.fn((path: string, opts?: { method?: string; body?: Record<string, unknown> }) => {
-    apiCalls.push({ path, opts });
-    if (path.endsWith('/create-buckets/resolve')) {
-      return Promise.resolve({ project_id: 'proj_bucket', title: 'My Pictures' });
-    }
-    if (path === '/llm/image-plan') {
-      const hasCanvas = !!opts?.body?.canvas_b64;
-      // The coach reaches a plan when the kid states a subject swap (D-ISF-3
-      // tests use "cow"); otherwise it keeps asking.
-      const msgs = (opts?.body?.messages as Array<{ content: string }> | undefined) ?? [];
-      const wantsPlan = msgs.at(-1)?.content.includes('cow') ?? false;
-      return Promise.resolve({
-        reply: hasCanvas ? 'I can see it — a cat!' : 'Where does it happen?',
-        chips: hasCanvas ? ['Add a sun'] : ['In space'],
-        plan: wantsPlan
-          ? { prompt: 'A friendly cow in a sunny meadow', style: 'watercolor', size: 'square' }
-          : null,
-        stars_charged: 1,
-        balance_after: 41,
-      });
-    }
-    if (path === '/llm/image') {
-      if (failNext.image) {
-        failNext.image = false;
-        return Promise.reject(new ApiErrorClass(502, 'UPSTREAM_FAILED', 'The magic fizzled.'));
+    BASE_URL: 'http://api.test',
+    ApiError: ApiErrorClass,
+    api: vi.fn((path: string, opts?: { method?: string; body?: Record<string, unknown> }) => {
+      apiCalls.push({ path, opts });
+      if (path.endsWith('/create-buckets/resolve')) {
+        return Promise.resolve({ project_id: 'proj_bucket', title: 'My Pictures' });
       }
-      const ghost = (opts?.body?.options as Record<string, unknown>)?.mode === 'ghost';
-      return Promise.resolve({
-        id: 'gen_1',
-        url: 'https://signed/x.png',
-        mime_type: 'image/png',
-        stars_charged: ghost ? 2 : 9,
-        balance_after: 30,
-        artifact_id: ghost ? 'art_ghost' : 'art_magic',
-      });
-    }
-    if (path === '/projects/proj_bucket/artifacts/upload-url') {
-      if (failNext.upload) {
-        failNext.upload = false;
-        return Promise.reject(new ApiErrorClass(500, 'SIGN_FAILED', 'no signature'));
+      if (path === '/art-studio/tasks/draw-a-trex') {
+        return Promise.resolve({
+          slug: 'draw-a-trex',
+          version: 4,
+          title: 'Draw a T-Rex',
+          short_description: 'Build a mighty dinosaur from big, simple shapes.',
+          category: 'dinosaurs',
+          age_min: 6,
+          age_max: 10,
+          difficulty: 1,
+          duration_minutes: 12,
+          step_count: 3,
+          cover: { url: '/art-tasks/draw-a-trex/v1/cover.png', alt: 'A friendly T-Rex' },
+          modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+          progression: {
+            path_id: 'dinosaur-shapes',
+            path_title: 'Dinosaur Shapes',
+            position: 3,
+            total: 4,
+            level: 'simple',
+            next_task_slug: 'draw-a-trex-challenge',
+          },
+          learning_tags: ['basic_shapes', 'proportion'],
+          canvas: { ratio: 'square', background: 'white', magic_base: 'strokes_only' },
+          default_mode: 'look_and_draw',
+          reference: {
+            url: '/art-tasks/draw-a-trex/v1/reference.png',
+            alt: 'A polished green T-Rex inspiration picture',
+          },
+          ghost: {
+            url: '/art-tasks/draw-a-trex/v3/ghost.svg',
+            alt: 'A faint T-Rex outline',
+            default_opacity: 0.28,
+          },
+          steps: [
+            {
+              id: 'body',
+              title: 'Draw the body',
+              instruction_md: 'Start with one big oval.',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/01.svg',
+            },
+            {
+              id: 'head-tail',
+              title: 'Add the head and tail',
+              instruction_md: 'Make the tail long.',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/02.svg',
+            },
+            {
+              id: 'colour',
+              title: 'Colour its world',
+              instruction_md: 'Add colours.',
+              guide_url: '/art-tasks/draw-a-trex/v3/steps/04.svg',
+            },
+          ],
+          checklist: ['body', 'head', 'tail'],
+          ai_guidance: {
+            ghost_prompt: 'simple T-Rex outline',
+            enhance_instruction: "preserve the child's pose",
+          },
+          next_task: {
+            slug: 'draw-a-trex-challenge',
+            version: 1,
+            title: 'Draw a T-Rex — Challenge',
+            short_description: 'Put your dinosaur in motion.',
+            category: 'dinosaurs',
+            age_min: 9,
+            age_max: 13,
+            difficulty: 3,
+            duration_minutes: 20,
+            step_count: 5,
+            cover: { url: '/challenge.svg', alt: 'A running T-Rex' },
+            modes: ['look_and_draw'],
+            progression: {
+              path_id: 'dinosaur-shapes',
+              path_title: 'Dinosaur Shapes',
+              position: 4,
+              total: 4,
+              level: 'challenge',
+              next_task_slug: null,
+            },
+          },
+        });
       }
-      return Promise.resolve({
-        url: 'https://s3/put-here',
-        headers: { 'Content-Type': 'image/png' },
-        s3_key: 'families/fam_1/x/image/sketch.png',
-      });
-    }
-    if (path === '/projects/proj_bucket/artifacts' && opts?.method === 'POST') {
-      return Promise.resolve({ id: 'art_sketch' });
-    }
-    if (path === '/projects' && opts?.method === 'POST') {
-      return Promise.resolve({ id: 'proj_mission' });
-    }
-    if (path === '/projects/proj_mission/artifacts/upload-url') {
-      return Promise.resolve({
-        url: 'https://s3/put-mission',
-        headers: { 'Content-Type': 'image/png' },
-        s3_key: 'families/fam_1/m/image/sketch.png',
-      });
-    }
-    if (path === '/projects/proj_mission/artifacts' && opts?.method === 'POST') {
-      return Promise.resolve({ id: 'art_msketch' });
-    }
-    if (path === '/projects/proj_mission/submit') {
-      return Promise.resolve({ ok: true, stars_awarded: 3 });
-    }
-    if (path.startsWith('/projects/proj_bucket/artifacts/') && opts?.method === 'PATCH') {
-      return Promise.resolve({ id: 'art_magic', metadata: { character: 'Sparky' } });
-    }
-    if (path === '/kids/kid_1/projects') {
-      return Promise.resolve([
-        { id: 'g1', title: 'Space Pong', kind: 'game' },
-        { id: 'p2', title: 'My Pictures', kind: 'creative' },
-      ]);
-    }
-    if (path === '/projects/g1/vfs/assets/sign-upload') {
-      return Promise.resolve({ url: 'https://s3/put-game', headers: { 'Content-Type': 'image/png' }, s3_key: 'vfs/x' });
-    }
-    if (path === '/projects/g1' && (!opts || opts.method === undefined)) {
-      return Promise.resolve({ id: 'g1', vfs_version: 7 });
-    }
-    if (path === '/projects/g1/code/files') {
-      return Promise.resolve({ ok: true });
-    }
-    if (path === '/projects/proj_bucket/artifacts')
-      return Promise.resolve([
-        { id: 'art_magic', project_id: 'proj_bucket', kind: 'image', metadata: {} },
-        { id: 'art_sketch', project_id: 'proj_bucket', kind: 'image', metadata: {} },
-      ]);
-    if (path.endsWith('/download-url')) return Promise.resolve({ url: 'https://signed' });
-    if (path.includes('/wallet')) {
-      return Promise.resolve({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false });
-    }
-    return Promise.resolve({});
-  }),
+      if (path === '/llm/image-plan') {
+        const hasCanvas = !!opts?.body?.canvas_b64;
+        // The coach reaches a plan when the kid states a subject swap (D-ISF-3
+        // tests use "cow"); otherwise it keeps asking.
+        const msgs = (opts?.body?.messages as Array<{ content: string }> | undefined) ?? [];
+        const wantsPlan = msgs.at(-1)?.content.includes('cow') ?? false;
+        return Promise.resolve({
+          reply: hasCanvas ? 'I can see it — a cat!' : 'Where does it happen?',
+          chips: hasCanvas ? ['Add a sun'] : ['In space'],
+          plan: wantsPlan
+            ? { prompt: 'A friendly cow in a sunny meadow', style: 'watercolor', size: 'square' }
+            : null,
+          stars_charged: 1,
+          balance_after: 41,
+        });
+      }
+      if (path === '/llm/image') {
+        if (failNext.image) {
+          failNext.image = false;
+          return Promise.reject(new ApiErrorClass(502, 'UPSTREAM_FAILED', 'The magic fizzled.'));
+        }
+        const ghost = (opts?.body?.options as Record<string, unknown>)?.mode === 'ghost';
+        return Promise.resolve({
+          id: 'gen_1',
+          url: 'https://signed/x.png',
+          mime_type: 'image/png',
+          stars_charged: ghost ? 2 : 9,
+          balance_after: 30,
+          artifact_id: ghost ? 'art_ghost' : 'art_magic',
+        });
+      }
+      if (path === '/projects/proj_bucket/artifacts/upload-url') {
+        if (failNext.upload) {
+          failNext.upload = false;
+          return Promise.reject(new ApiErrorClass(500, 'SIGN_FAILED', 'no signature'));
+        }
+        return Promise.resolve({
+          url: 'https://s3/put-here',
+          headers: { 'Content-Type': 'image/png' },
+          s3_key: 'families/fam_1/x/image/sketch.png',
+        });
+      }
+      if (path === '/projects/proj_bucket/artifacts' && opts?.method === 'POST') {
+        return Promise.resolve({ id: 'art_sketch' });
+      }
+      if (path === '/projects' && opts?.method === 'POST') {
+        return Promise.resolve({ id: 'proj_mission' });
+      }
+      if (path === '/projects/proj_mission/artifacts/upload-url') {
+        return Promise.resolve({
+          url: 'https://s3/put-mission',
+          headers: { 'Content-Type': 'image/png' },
+          s3_key: 'families/fam_1/m/image/sketch.png',
+        });
+      }
+      if (path === '/projects/proj_mission/artifacts' && opts?.method === 'POST') {
+        return Promise.resolve({ id: 'art_msketch' });
+      }
+      if (path === '/projects/proj_mission/submit') {
+        return Promise.resolve({ ok: true, stars_awarded: 3 });
+      }
+      if (path.startsWith('/projects/proj_bucket/artifacts/') && opts?.method === 'PATCH') {
+        return Promise.resolve({ id: 'art_magic', metadata: { character: 'Sparky' } });
+      }
+      if (path === '/kids/kid_1/projects') {
+        return Promise.resolve([
+          { id: 'g1', title: 'Space Pong', kind: 'game' },
+          { id: 'p2', title: 'My Pictures', kind: 'creative' },
+        ]);
+      }
+      if (path === '/projects/g1/vfs/assets/sign-upload') {
+        return Promise.resolve({
+          url: 'https://s3/put-game',
+          headers: { 'Content-Type': 'image/png' },
+          s3_key: 'vfs/x',
+        });
+      }
+      if (path === '/projects/g1' && (!opts || opts.method === undefined)) {
+        return Promise.resolve({ id: 'g1', vfs_version: 7 });
+      }
+      if (path === '/projects/g1/code/files') {
+        return Promise.resolve({ ok: true });
+      }
+      if (path === '/projects/proj_bucket/artifacts')
+        return Promise.resolve([
+          { id: 'art_magic', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+          { id: 'art_sketch', project_id: 'proj_bucket', kind: 'image', metadata: {} },
+        ]);
+      if (path.endsWith('/download-url')) return Promise.resolve({ url: 'https://signed' });
+      if (path.includes('/wallet')) {
+        return Promise.resolve({ stars_balance: 42, daily_used: 0, daily_cap: 100, paused: false });
+      }
+      return Promise.resolve({});
+    }),
   };
 });
 
@@ -221,10 +322,10 @@ function StateProbe() {
   return null;
 }
 
-function renderPage(state?: Record<string, unknown>) {
+function renderPage(state?: Record<string, unknown>, search = '') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/learn/create/image', state }]}>
+    <MemoryRouter initialEntries={[{ pathname: '/learn/create/image/canvas', search, state }]}>
       <QueryClientProvider client={qc}>
         <ArtStudioPage />
         <StateProbe />
@@ -265,7 +366,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     failNext.image = false;
     failNext.upload = false;
     routerState = undefined;
-    localStorage.clear();
+    window.localStorage.clear();
     // jsdom lacks createObjectURL; the bytes-proxy hook's output IS this value.
     (URL as unknown as { createObjectURL: (b: Blob) => string }).createObjectURL = vi.fn(
       () => 'blob:pixels',
@@ -290,12 +391,14 @@ describe('ArtStudioPage (canvas-first)', () => {
     renderPage();
     expect(screen.getByTestId('tool-rail')).toBeInTheDocument();
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
-    expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-rail')).toHaveClass(
+      'overflow-y-auto',
+      'overscroll-contain',
+      '[scrollbar-gutter:stable]',
+    );
     expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-state', 'idle');
     expect(screen.getByText('Boti')).toBeInTheDocument();
-    expect(
-      screen.getByAltText('Boti, the Airbotix robot-cat art tutor'),
-    ).toBeInTheDocument();
+    expect(screen.getByAltText('Boti, the Airbotix robot-cat art tutor')).toBeInTheDocument();
     expect(screen.getByTestId('takes-strip')).toBeInTheDocument();
     const startGuide = screen.getByTestId('art-studio-start-guide');
     expect(startGuide).toHaveTextContent('Start here — make your first picture');
@@ -306,10 +409,94 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(screen.getByAltText('Airbotix')).toHaveAttribute('src', '/logo-black-horizontal.png');
     expect(screen.getByRole('button', { name: /Sketch −2★/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Look −1★/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Bring it to life! −9★/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Draw first to unlock −9★/ })).toBeDisabled();
     await waitFor(() =>
       expect(apiCalls.some((c) => c.path === '/kids/kid_1/create-buckets/resolve')).toBe(true),
     );
+  });
+
+  it('loads one concrete task step at a time and uses the free authored trace layer', async () => {
+    renderPage(undefined, '?task=draw-a-trex&mode=trace');
+
+    const guide = await screen.findByTestId('art-task-guide');
+    expect(guide).toHaveTextContent('Art Studio · Step 1 of 3');
+    expect(guide).toHaveTextContent('Draw the body');
+    expect(screen.getByTestId('art-canvas-stub')).toHaveAttribute(
+      'data-template',
+      '/art-tasks/draw-a-trex/v3/ghost.svg',
+    );
+    expect(screen.getByTestId('art-canvas-stub')).toHaveAttribute('data-template-opacity', '0.28');
+    expect(apiCalls.filter((call) => call.path === '/llm/image')).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
+    expect(guide).toHaveTextContent('Art Studio · Step 2 of 3');
+    expect(guide).toHaveTextContent('Add the head and tail');
+  });
+
+  it('separates the polished inspiration picture from the simple draw-along assets', async () => {
+    renderPage(undefined, '?task=draw-a-trex&mode=look');
+
+    const guide = await screen.findByTestId('art-task-guide');
+    expect(guide).toHaveTextContent('Inspiration picture');
+    expect(guide).toHaveTextContent('your picture does not have to match');
+    expect(screen.getByTestId('art-task-reference')).toHaveAttribute(
+      'src',
+      '/art-tasks/draw-a-trex/v1/reference.png',
+    );
+    expect(screen.getByTestId('art-task-step-image')).toHaveAttribute(
+      'src',
+      '/art-tasks/draw-a-trex/v3/steps/01.svg',
+    );
+  });
+
+  it('records task identity, mode and learning tags on the saved sketch artifact', async () => {
+    renderPage(undefined, '?task=draw-a-trex&mode=free');
+    await screen.findByTestId('art-task-guide');
+    fireEvent.click(screen.getByTestId('stub-draw'));
+    fireEvent.click(screen.getByRole('button', { name: /Bring it to life!/ }));
+    await screen.findByTestId('magic-sheet');
+    fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
+
+    await waitFor(() => {
+      const register = apiCalls.find(
+        (call) => call.path === '/projects/proj_bucket/artifacts' && call.opts?.method === 'POST',
+      );
+      expect(register?.opts?.body?.metadata).toEqual({
+        source: 'art-task',
+        art_task_slug: 'draw-a-trex',
+        art_task_version: 4,
+        draw_mode: 'free',
+        completed_steps: 1,
+        learning_tags: ['basic_shapes', 'proportion'],
+      });
+    });
+  });
+
+  it('saves a finished guide with every step complete and offers one next task', async () => {
+    renderPage(undefined, '?task=draw-a-trex&mode=look');
+    await screen.findByTestId('art-task-guide');
+    fireEvent.click(screen.getByTestId('stub-draw'));
+    fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save my drawing ✓' }));
+
+    await waitFor(() => {
+      const register = apiCalls.find(
+        (call) => call.path === '/projects/proj_bucket/artifacts' && call.opts?.method === 'POST',
+      );
+      expect(register?.opts?.body?.metadata).toEqual(
+        expect.objectContaining({
+          source: 'art-task',
+          art_task_slug: 'draw-a-trex',
+          completed_steps: 3,
+        }),
+      );
+    });
+    expect(screen.getByTestId('art-task-complete')).toHaveTextContent(
+      'Next: Draw a T-Rex — Challenge',
+    );
+    expect(screen.getAllByTestId('art-task-next')).toHaveLength(1);
+    expect(apiCalls.some((call) => call.path === '/llm/image')).toBe(false);
   });
 
   it('collapses the coach rail into the branded tutor avatar', () => {
@@ -351,20 +538,29 @@ describe('ArtStudioPage (canvas-first)', () => {
   describe('draft auto-save + reopen', () => {
     const KEY = 'art-draft:v1:proj_bucket';
 
-    const stroke = { kind: 'stroke', tool: 'pencil', color: '#000', size: 14, points: [[1, 1, 0.5]] };
+    const stroke = {
+      kind: 'stroke',
+      tool: 'pencil',
+      color: '#000',
+      size: 14,
+      points: [[1, 1, 0.5]],
+    };
 
     it('auto-saves { ops, base } to localStorage as the kid draws', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
-      expect(localStorage.getItem(KEY)).toBeNull();
+      expect(window.localStorage.getItem(KEY)).toBeNull();
       fireEvent.click(screen.getByTestId('stub-draw'));
-      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
-      const saved = JSON.parse(localStorage.getItem(KEY) as string);
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).not.toBeNull());
+      const saved = JSON.parse(window.localStorage.getItem(KEY) as string);
       expect(saved.ops).toHaveLength(1);
     });
 
     it('restores the saved draft on the next mount (survives refresh)', async () => {
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
       renderPage();
       await screen.findByTestId('ai-rail');
       // the restored stroke reaches the canvas (data-ops reflects props.ops.length)
@@ -373,19 +569,35 @@ describe('ArtStudioPage (canvas-first)', () => {
       );
     });
 
+    it('an explicit new-canvas intent drops the old draft exactly once', async () => {
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
+      renderPage({ newCanvas: true });
+      await screen.findByTestId('ai-rail');
+      await waitFor(() =>
+        expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0'),
+      );
+      expect(window.localStorage.getItem(KEY)).toBeNull();
+    });
+
     it('clears the draft key once the canvas is emptied', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
       fireEvent.click(screen.getByTestId('stub-draw'));
-      await waitFor(() => expect(localStorage.getItem(KEY)).not.toBeNull());
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).not.toBeNull());
       // "+ new picture" resets the canvas → the draft key is removed.
       fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
-      await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
+      await waitFor(() => expect(window.localStorage.getItem(KEY)).toBeNull());
     });
 
     it('a fresh reopen starts clean on the picture and auto-saves it (base persisted)', async () => {
       // A stale free-play draft must NOT bleed onto the freshly opened picture…
-      localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
+      window.localStorage.setItem(
+        KEY,
+        JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }),
+      );
       renderPage({ editArtifactId: 'art_reopen_1', editProjectId: 'proj_saved_pics' });
       await screen.findByTestId('ai-rail');
       expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
@@ -393,7 +605,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(screen.getByTestId('mask-toggle')).toBeInTheDocument();
       // …and auto-save now records that base (so a refresh restores it too).
       await waitFor(() => {
-        const saved = JSON.parse(localStorage.getItem(KEY) as string);
+        const saved = JSON.parse(window.localStorage.getItem(KEY) as string);
         expect(saved.baseRef).toEqual({ id: 'art_reopen_1', projectId: 'proj_saved_pics' });
       });
     });
@@ -403,7 +615,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     // explicit new drawing — `fresh` is how the canvas tells the two apart.
     it('starts blank and drops the draft when the hub asks for a NEW picture', async () => {
       localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
+      renderPage({ newCanvas: true });
       await screen.findByTestId('ai-rail');
       expect(screen.getByTestId('art-canvas-stub').getAttribute('data-ops')).toBe('0');
       await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull());
@@ -413,7 +625,7 @@ describe('ArtStudioPage (canvas-first)', () => {
 
     it('consumes the one-shot nav intent so a later refresh keeps the NEW work', async () => {
       localStorage.setItem(KEY, JSON.stringify({ ops: [stroke], baseArtifactId: null, baseRef: null }));
-      renderPage({ fresh: true });
+      renderPage({ newCanvas: true });
       await screen.findByTestId('ai-rail');
       // `fresh` is gone from the history entry: a reload now restores the draft…
       await waitFor(() => expect(routerState).toBeNull());
@@ -426,7 +638,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     it('a REFRESH after reopening restores the base picture (no nav state)', async () => {
       // What a fresh reopen persisted (base, no strokes yet). A plain reload has no
       // nav state, so the base must come back from the draft alone.
-      localStorage.setItem(
+      window.localStorage.setItem(
         KEY,
         JSON.stringify({
           ops: [],
@@ -503,7 +715,7 @@ describe('ArtStudioPage (canvas-first)', () => {
     fireEvent.click(screen.getByTestId('stub-draw'));
     fireEvent.click(screen.getByRole('button', { name: /Bring it to life!/ }));
     const sheet = await screen.findByTestId('magic-sheet');
-    expect(sheet).toHaveTextContent(/tap 👀 first/);
+    expect(sheet).toHaveTextContent(/Your drawing stays yours/);
     fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
 
     await waitFor(() => {
@@ -522,26 +734,19 @@ describe('ArtStudioPage (canvas-first)', () => {
     expect(takes.length).toBe(2);
     expect(screen.getByText('✏️ my sketch')).toBeInTheDocument();
     expect(screen.getByText('✨ magic')).toBeInTheDocument();
+    const comparison = screen.getByTestId('art-version-compare');
+    expect(comparison).toHaveTextContent('My drawing');
+    expect(comparison).toHaveTextContent('AI version');
   });
 
-  it('✨ magic with an EMPTY canvas is the pure-generation on-ramp (no upload, no ref)', async () => {
+  it('keeps ✨ locked on an EMPTY canvas and never sends a generation', async () => {
     renderPage();
     await screen.findByTestId('ai-rail');
-    const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
-    await waitFor(() => expect(magicBtn).toBeEnabled()); // bucket resolved
+    const magicBtn = screen.getByRole('button', { name: /Draw first to unlock/ });
+    await waitFor(() => expect(magicBtn).toBeDisabled());
     fireEvent.click(magicBtn);
-    await screen.findByTestId('magic-sheet');
-    fireEvent.change(screen.getByPlaceholderText(/mood or extra wish/i), {
-      target: { value: 'a rainbow castle' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
-
-    await waitFor(() => {
-      const gen = apiCalls.find((c) => c.path === '/llm/image');
-      expect(gen).toBeDefined();
-      expect(gen!.opts?.body?.ref_artifact_id).toBeUndefined();
-      expect(gen!.opts?.body?.prompt).toBe('a rainbow castle, cartoon style');
-    });
+    expect(screen.queryByTestId('magic-sheet')).not.toBeInTheDocument();
+    expect(apiCalls.some((c) => c.path === '/llm/image')).toBe(false);
     expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
       false,
     );
@@ -598,10 +803,10 @@ describe('ArtStudioPage (canvas-first)', () => {
     it('raw sketch: apply uploads the canvas as the ref, then edits with the mask', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
+      fireEvent.click(screen.getByTestId('stub-draw'));
       await waitFor(() =>
         expect(screen.getByRole('button', { name: /Bring it to life!/ })).toBeEnabled(),
       );
-      fireEvent.click(screen.getByTestId('stub-draw'));
       fireEvent.click(await screen.findByTestId('mask-toggle'));
       fireEvent.click(screen.getByTestId('stub-mask-draw'));
       fireEvent.change(screen.getByPlaceholderText(/what it becomes/i), {
@@ -640,6 +845,7 @@ describe('ArtStudioPage (canvas-first)', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
       await screen.findByText('Where does it happen?'); // coach turn landed (with a plan)
+      fireEvent.click(screen.getByTestId('stub-draw'));
       // plan set → the single primary paint button now reads "Paint this!"
       const magicBtn = screen.getByRole('button', { name: /Paint this!/ });
       await waitFor(() => expect(magicBtn).toBeEnabled());
@@ -649,7 +855,9 @@ describe('ArtStudioPage (canvas-first)', () => {
 
     it('with no typed wish, the plan IS the prompt (and its style pre-selects)', async () => {
       await planFromCoach();
-      expect(screen.getByTestId('magic-plan')).toHaveTextContent('A friendly cow in a sunny meadow');
+      expect(screen.getByTestId('magic-plan')).toHaveTextContent(
+        'A friendly cow in a sunny meadow',
+      );
       fireEvent.click(screen.getByRole('button', { name: /Make it! −9★/ }));
       await waitFor(() => {
         const gen = apiCalls.find((c) => c.path === '/llm/image');
@@ -712,12 +920,13 @@ describe('ArtStudioPage (canvas-first)', () => {
       expect(uploads()).toBe(1); // no duplicate snapshot
     });
 
-    it("＋ new picture upload failure keeps the drawing on the canvas with a friendly error", async () => {
+    it('＋ new picture upload failure keeps the drawing on the canvas with a friendly error', async () => {
       renderPage();
       await screen.findByTestId('ai-rail');
-      const magicBtn = screen.getByRole('button', { name: /Bring it to life!/ });
-      await waitFor(() => expect(magicBtn).toBeEnabled()); // bucket resolved
       fireEvent.click(screen.getByTestId('stub-draw'));
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: /Bring it to life!/ })).toBeEnabled(),
+      );
       failNext.upload = true;
       fireEvent.click(screen.getByRole('button', { name: /new picture/ }));
       await screen.findByText(/Couldn't save this picture/);
@@ -867,9 +1076,70 @@ describe('ArtStudioPage (canvas-first)', () => {
         expect(gen!.opts?.body?.project_id).toBe('proj_mission');
         expect(gen!.opts?.body?.ref_artifact_id).toBe('art_msketch');
       });
-      expect(
-        apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url'),
-      ).toBe(false);
+      expect(apiCalls.some((c) => c.path === '/projects/proj_bucket/artifacts/upload-url')).toBe(
+        false,
+      );
+    });
+
+    it('reuses the guide player and lets a hand-drawn course work be described and turned in without AI', async () => {
+      renderPage(
+        { mission: { ...MISSION, art_task_slug: 'draw-a-trex' } },
+        '?task=draw-a-trex&mode=look',
+      );
+      await screen.findByTestId('art-task-guide');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+      fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
+      fireEvent.click(screen.getByRole('button', { name: 'I did this step →' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save my drawing ✓' }));
+
+      const turnIn = await screen.findByRole('button', { name: /Turn it in! \+3★/ });
+      fireEvent.change(screen.getByLabelText('Tell your teacher about your picture'), {
+        target: { value: 'I made my dinosaur jump.' },
+      });
+      fireEvent.click(turnIn);
+
+      await waitFor(() => {
+        expect(
+          apiCalls.some(
+            (call) =>
+              call.path === '/projects/proj_mission/artifacts/art_msketch' &&
+              call.opts?.method === 'PATCH' &&
+              (
+                call.opts.body?.metadata as { work_description?: string } | undefined
+              )?.work_description === 'I made my dinosaur jump.',
+          ),
+        ).toBe(true);
+        expect(apiCalls.some((call) => call.path === '/projects/proj_mission/submit')).toBe(true);
+      });
+      expect(apiCalls.some((call) => call.path === '/llm/image')).toBe(false);
+    });
+
+    it('lets a legacy art course without an art-task slug save and turn in the child drawing without AI', async () => {
+      renderPage({ mission: MISSION });
+      await screen.findByTestId('mission-card');
+      fireEvent.click(screen.getByTestId('stub-draw'));
+
+      const turnIn = await screen.findByRole('button', { name: /Turn it in! \+3★/ });
+      fireEvent.change(screen.getByLabelText('Tell your teacher about your picture'), {
+        target: { value: 'This is my own robot drawing.' },
+      });
+      fireEvent.click(turnIn);
+
+      await waitFor(() => {
+        expect(
+          apiCalls.some(
+            (call) =>
+              call.path === '/projects/proj_mission/artifacts' &&
+              call.opts?.method === 'POST' &&
+              (
+                call.opts.body?.metadata as { work_description?: string } | undefined
+              )?.work_description === 'This is my own robot drawing.',
+          ),
+        ).toBe(true);
+        expect(apiCalls.some((call) => call.path === '/projects/proj_mission/submit')).toBe(true);
+      });
+      expect(apiCalls.some((call) => call.path === '/llm/image')).toBe(false);
+      expect(await screen.findByText(/Mission complete! \+3★/)).toBeInTheDocument();
     });
 
     it('draw-along: shows steps, navigates, and each step summons its own 2★ ghost', async () => {
