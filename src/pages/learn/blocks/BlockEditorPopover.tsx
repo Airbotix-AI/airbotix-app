@@ -16,7 +16,7 @@ import { useBlocksStore } from './blocksStore'
 
 export interface EditingBlock {
   scriptId: string
-  index: number
+  path: number[]
   left: number
   top: number
   block: Block
@@ -91,7 +91,7 @@ export function BlockEditorPopover({
               onClick={() => {
                 if (editing.block.op === event) return
                 sfx.tap()
-                useBlocksStore.getState().replaceBlockOp(editing.scriptId, editing.index, event)
+                useBlocksStore.getState().replaceBlockOpAtPath(editing.scriptId, editing.path, event)
                 close()
                 setStoryCoachCue('test')
               }}
@@ -115,7 +115,7 @@ export function BlockEditorPopover({
                 sfx.tap()
                 useBlocksStore
                   .getState()
-                  .replaceBlockOp(editing.scriptId, editing.index, direction)
+                  .replaceBlockOpAtPath(editing.scriptId, editing.path, direction)
                 close()
               }}
             >
@@ -138,7 +138,7 @@ export function BlockEditorPopover({
                   sfx.tap()
                   useBlocksStore
                     .getState()
-                    .setSayText(editing.scriptId, editing.index, character.id)
+                    .setSayTextAtPath(editing.scriptId, editing.path, character.id)
                   close()
                 }}
               >
@@ -161,7 +161,7 @@ export function BlockEditorPopover({
             onChange={(e) =>
               useBlocksStore
                 .getState()
-                .setSayText(editing.scriptId, editing.index, e.target.value)
+                .setSayTextAtPath(editing.scriptId, editing.path, e.target.value)
             }
             onKeyDown={(e) => e.key === 'Enter' && close()}
             className="bsx-card w-full rounded-xl px-3 py-2 text-[15px] font-bold outline-none"
@@ -178,7 +178,7 @@ export function BlockEditorPopover({
                     sfx.tap()
                     useBlocksStore
                       .getState()
-                      .setSayText(editing.scriptId, editing.index, greeting)
+                      .setSayTextAtPath(editing.scriptId, editing.path, greeting)
                   }}
                 >
                   💬 {greeting}
@@ -200,7 +200,7 @@ export function BlockEditorPopover({
                 sfx.playNote(note.id)
                 useBlocksStore
                   .getState()
-                  .setParam(editing.scriptId, editing.index, note.id, MAX_NOTE)
+                  .setParamAtPath(editing.scriptId, editing.path, note.id, MAX_NOTE)
               }}
             >
               <span className="block text-[24px]" aria-hidden>
@@ -223,7 +223,7 @@ export function BlockEditorPopover({
                 sfx.playSound(sound.id)
                 useBlocksStore
                   .getState()
-                  .setParam(editing.scriptId, editing.index, sound.id, MAX_SOUND)
+                  .setParamAtPath(editing.scriptId, editing.path, sound.id, MAX_SOUND)
               }}
             >
               <span className="block text-[24px]" aria-hidden>
@@ -244,9 +244,9 @@ export function BlockEditorPopover({
               sfx.numDown()
               useBlocksStore
                 .getState()
-                .setParam(
+                .setParamAtPath(
                   editing.scriptId,
-                  editing.index,
+                  editing.path,
                   (editing.block.n ?? 1) - 1,
                   editMax,
                 )
@@ -265,9 +265,9 @@ export function BlockEditorPopover({
               sfx.numUp()
               useBlocksStore
                 .getState()
-                .setParam(
+                .setParamAtPath(
                   editing.scriptId,
-                  editing.index,
+                  editing.path,
                   (editing.block.n ?? 1) + 1,
                   editMax,
                 )

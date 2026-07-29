@@ -206,6 +206,11 @@ export default defineConfig({
   // otherwise leak its own e2e specs into the unit run (canvas/Playwright → jsdom
   // failures) — `e2e/**` only matches the root, not nested worktree copies.
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**', '**/.claude/**'],
+    exclude: [
+      ...configDefaults.exclude,
+      'e2e/**',
+      '**/.claude/**',
+      '**/.codex-worktrees/**',
+    ],
   },
 });

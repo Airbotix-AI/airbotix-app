@@ -165,10 +165,12 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'end' },
     ],
   },
-  // Journey to the West S1/C2-P5 — two actors own one collision response
-  // each. The contract entry makes the mission available in Blocks Studio;
-  // the bespoke matcher validates both independent scripts and visibility
-  // states because a single-character target cannot express this scene.
+  // Journey to the West S1/C2-P5 — the child completes one response on each
+  // of two actors. `target` identifies the curtain track for shared tooling;
+  // `storyMissionProgramMatches` delegates the real whole-project check to the
+  // Part page's two-track matcher, which validates both independent scripts
+  // and visibility states because a single-character target cannot express
+  // this scene.
   'jtw-s1-c2-p5': {
     pageId: 'jtw-c2-p5-page',
     background: JTW_C2_ACTOR_FREE_BACKGROUND,
@@ -176,6 +178,7 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
     scriptId: 'water-curtain-open',
     asset:
       '/story-blocks/journey-to-the-west/characters/water-curtain-trigger/closed-v01.png',
+    characterCount: 3,
     target: [
       { op: 'when_bump' },
       { op: 'hide' },
@@ -246,12 +249,7 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
     scriptId: JTW_C2_P7_MONKEY_SCRIPT_ID,
     asset: STONE_MONKEY_ASSET,
     allowedSayText: JTW_C2_P7_EVIDENCE_LINES,
-    target: [
-      { op: 'when_flag' },
-      ...JTW_C2_P7_SIDES[0].route,
-      { op: 'wait', n: 1 },
-      { op: 'end' },
-    ],
+    target: [{ op: 'when_flag' }, ...JTW_C2_P7_SIDES[0].route, { op: 'wait', n: 1 }, { op: 'end' }],
   },
   // Journey to the West S1/C3-P4 — chapter three's main Build (scene-specs
   // JTW-S1-C3-P4), and the season's first mission that spans THREE pages. The

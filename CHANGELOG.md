@@ -55,6 +55,15 @@
   progressive guide illustrations under the immutable `v1` asset path.
 ## 2026-07-29
 
+### Fixed
+
+- Local `.codex-worktrees` checkouts are excluded from lint, unit-test discovery and
+  Docker build context, preventing another branch's files from contaminating this
+  checkout's verification.
+- Journey to the West S1 C2-P5 now has a real Story Mission completion contract. A correct
+  Hide/Show collision build followed by Go persists the run marker that the Part page requires,
+  instead of leaving the child permanently blocked before C2-P6.
+
 ### Added
 
 - Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
@@ -66,8 +75,48 @@
 
 ## 2026-07-28
 
+### Added
+
+- The Parent Dashboard Story Blocks guide now previews the planned Alice in Wonderland classic
+  journey: reading, classic discovery, coding/debugging and a replayable final storybook. It is
+  explicitly labelled as an in-development system example, never as evidence about the signed-in
+  child.
+- Story Blocks: a C-block body (`If touching`) is now a real drop target. Every
+  chain — a track and every nested body — registers as a drop zone and every
+  block publishes its tree path, so dragging a block _into_ an If lands it
+  inside the If instead of beside it. The hit-test picks the deepest zone under
+  the pointer.
+- Story Blocks: blocks nested inside an If are first-class — drag them out,
+  across tracks or to the bin, and tap them to change their number or words. A
+  tap used to just delete them.
+
+### Changed
+
+- Story Blocks drop feedback: the 4px insertion line is replaced by a
+  block-sized dashed gap that physically opens the chain at the landing slot,
+  with the owning track/body lit up. An empty If body now reads "Drop a block
+  here". Tap-to-add ("Add block") still works, and a real drop wins over it.
+- Story Blocks editor state is path-addressed (`insertBlockAtPath`,
+  `moveBlockToPath`, `removeBlockAtPath`, `setParamAtPath`, …); the flat
+  index-based store API remains as thin wrappers. A C-block can never be
+  dropped into its own body, and nothing can land in front of a trigger.
+
 ### Fixed
 
+- Tiny Star Village Chapter 2 now keeps the real destination and the exact
+  action visible from the first screen through the workspace. Mission 5 leads
+  with `Press Go once`, says that `Left 3` is a one-time wrong-way observation,
+  and moves reaching the right-side star with `Right 3` into the next-scene
+  preview; Missions 6–7 show concrete Motion, arrow, and Go steps instead of
+  the non-actionable `Point · Go · Answer` labels.
+- Tiny Star Village now tells its actual connected story on the child-facing
+  map. The season opening explains why the morning light stopped, and every
+  chapter shows what happened, why the friends need the child's help, and how
+  the repaired program carries the story into the next chapter.
+- Tiny Star Village Chapter 2 now labels its first scene as a watching step:
+  the plaza star is on the right, the seeded `Left 3` arrow is deliberately
+  wrong, and the child should run that mistake once before choosing `Farther
+away`. Existing projects saved under the former scene title still resume.
 - The Story Blocks hub now shows one English Journey to the West story-world
   entry instead of three duplicate Chinese cards.
 - Tiny Star Village completion cards now distinguish `Next scene` from
@@ -81,6 +130,7 @@
 ## 2026-07-26 (fix: "Draw a new picture" opens a blank canvas again)
 
 ### Fixed
+
 - The Art Studio hub's **"Draw a new picture"** now really does start a blank page. Since the
   canvas began auto-saving an unsaved drawing, any plain visit to `/learn/create/image/canvas`
   restored that draft — so "new" handed the child back the picture they drew last time
@@ -90,6 +140,7 @@
   every reload after that is served by the auto-saved draft.
 
 ### Changed
+
 - When an unsaved canvas exists, the hub's continue card offers **that** ("Keep drawing your
   unfinished picture") instead of the last saved picture — it is the newer work and the only
   copy, and it stays offered right up until the child chooses a new picture.
@@ -138,6 +189,7 @@
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed
+
 - The whole Art Studio task card is now clickable. Previously only the small `Start →` button
   opened the task, so tapping the title or description looked broken.
 - Authored Mission steps now travel from both the Art Studio hub and the course lesson page into
@@ -166,16 +218,19 @@
 ## 2026-07-25 (feat: parent Academy catalogue handles multiple exam series and subjects)
 
 ### Changed
+
 - The parent exam catalogue no longer assumes one exam or one subject: the subject line under
   each series is derived from its products (`UK SATs · Mathematics · English Grammar &
-  Punctuation`) instead of a hard-coded "Numeracy", and the error/empty copy no longer says
+Punctuation`) instead of a hard-coded "Numeracy", and the error/empty copy no longer says
   "NAPLAN products".
 - Product card CTA now names the Year **and** subject. With UK SATs selling two Year 6 subjects,
   every card in that row previously read "Choose Year 6 →" and a parent could not tell the Maths
   product from the Grammar one.
+
 ## 2026-07-20 (feat: Music Mission Mode — task card + template + turn-in, music-stage §5A D-MS14 P2b)
 
 ### Added
+
 - **Music Mission Mode (music-stage-prd §5A D-MS14)** — the Music Stage end of the
   four-layer course machinery, mirroring art missions: `Mission.steps_json.music`
   (`{ template?: { mode: 'base'|'reference', riff }, checklist?, accept? }`) opens
@@ -195,6 +250,7 @@
 ## 2026-07-20 (feat: Riff Pad tutor UI — 👻 ghost underlay + 👂 listen, music-stage §5A D-MS13 P2a)
 
 ### Added
+
 - **👻 Ghost riff** — the Riff Pad's "blank-grid fear" door: one button (−3⭐ — OQ-8 closed, owner 「价格star可以涨」; price
   tag on it) sends the composer idea (or a default) to `POST /llm/riff-ghost`; the
   tutor's starter renders as a FAINT dashed underlay (`data-ghost`) strictly BELOW
@@ -210,6 +266,7 @@
 ## 2026-07-20 (feat: Riff Pad — the kid's hand first, music-stage §5A P1)
 
 ### Added
+
 - **Riff Pad (music-stage-prd v0.16 §5A D-MS11)** — the Music Stage's hand-first door:
   a 16-step scale-locked grid (8 pentatonic melody rows C4–E5 + hat/snare/kick drum
   rows) where the kid taps their OWN motif — 0⭐, no AI, loop audition on the shared
@@ -222,15 +279,17 @@
   `🎹 From my riff` version tag and a bubble crediting the kid's notes.
 - **Musical diff chips + why-layer (§5A D-MS12)** — after every iteration the AiDeck
   shows what actually changed in musical terms (`🕒 118→126 BPM`, `🥁 Drums busier
-  (16→24 notes)`, `➕ 🎸 Guitar joined`, key changes; capped at 4, tap/hover explains
+(16→24 notes)`, `➕ 🎸 Guitar joined`, key changes; capped at 4, tap/hover explains
   in kid language), and every suggestion-card bubble now appends a "Why it works:"
   line (tempo/density/heartbeat theory). All template-assembled from score metadata —
   zero LLM calls, 0⭐.
 
 ### Changed
+
 - `ComposeMode` extends to `'edit' | 'new' | 'riff'`; a landed take now always folds
   back to ✏️ edit mode. Transport ⏹ also exits any audition so the loop doesn't
   restart what the kid just stopped.
+
 ## 2026-07-26 (feat: GA4 page_view reporting — parent Portal only, never kids)
 
 ### Added
@@ -262,9 +321,11 @@
     one shared property.
   - **Silent in dev and under automation.** Nothing is sent unless `import.meta.env.PROD`, and
     `navigator.webdriver` suppresses it so the cross-repo harness and CI never pollute prod data.
+
 ## 2026-07-25 (fix: the Art Studio hub's entry points reach the canvas again)
 
 ### Fixed
+
 - **"🎨 Keep drawing" and a course's art task now open the CANVAS, not the hub.** Splitting the
   studio into a hub (`/learn/create/image`) and a canvas (`/learn/create/image/canvas`) left
   both deep-link entries pointing at the old path, which is now the hub. The hub does not read
@@ -274,10 +335,12 @@
   consumes `{ editArtifactId, editProjectId }` and `{ mission }`.
 
 ### Changed
+
 - The canvas's back link returns to the Art Studio hub ("← My art") instead of the all-tools
   list — from the canvas the child's own tasks and pictures are one level up, not two.
 - The Workspace picker's Art Studio card promises the hub it now opens ("Your tasks, pictures
   and a new canvas") rather than "Opens your own art studio", which read as "a blank canvas".
+
 ## 2026-07-26 (fix: ship the complete Boti tutor pose pack)
 
 ### Fixed
@@ -290,9 +353,11 @@
   fallback.
 - Added a component regression check that fails when any referenced pose asset
   is absent from `public/media/art-tutor`.
+
 ## 2026-07-27 (feat: Journey West C3-P8 — arriving is not learning)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p8` — chapter three's Retell and the server-side chapter
   aggregation** (scene-specs JTW-S1-C3-P8, teaching script C3 故事卡D + Part 8). This Part ships NO
   starter, and that is the point: it reopens the C3-P7 Personal Ship the child really saved through
@@ -310,7 +375,7 @@
   left — 寻宝 is refused (the motive lock) and so is "Page 1 的出口写着 2", which is program evidence,
   not text. The PROGRAM card is judged ONLY by the run that just happened:
   `c3p8ProgramEvidenceMeasured` admits `trace-1-2-3 / exit-page2-is-3 / page3-ends /
-  boundaries-continuous` solely when the run and the saved design really produced them, so the
+boundaries-continuous` solely when the run and the saved design really produced them, so the
   master's line and "木筏自己知道该去哪一页" are not mis-marked options — they are things that cannot
   be measured. The retell itself refuses a block-name recital AND "后来他就学会本领了", which is the
   scene's own "到达只证明完成寻找与修正，不表示已学会本领".
@@ -324,12 +389,14 @@
   `journeyWestC3Part7Program.ts` so both Parts read the saved work the same way.
 
 ### Changed
+
 - C3-P7's page uses the shared run hook, the shared boundary table and the shared loader; its
   behaviour, test ids and copy are unchanged and it shrank 857 → 738 lines (C3-P6 851 → 817).
   `BlocksStudioPage.tsx` (~2958 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
   already over the 1000-line hard rule — so all C3-P8 content lives in `journeyWestC3Part8Program.ts`.
 
 ### Notes
+
 - No new asset, and nothing invented. The resolved panel reuses the already-integrated
   `backgrounds/s1/c3/page3-resolved-v01.webp` — the lit stepping path and the master's stone gate
   out of the mist, which IS the scene's 师门石牌点亮. 远行印 itself has no artwork in the asset
@@ -341,6 +408,7 @@
 ## 2026-07-27 (feat: Journey West C3-P7 — my own three-page road to a master)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p7` — chapter three's Personal Ship** (scene-specs
   JTW-S1-C3-P7, teaching script C3 Part 7). C3-P6 finished the PUBLIC route; here the whole
   three-page journey is handed over. All three script slots ship with nothing but a Start, so every
@@ -371,13 +439,14 @@
   and no peer section; no peer answers → the reopen button is disabled; no matching reopen → the run
   button is disabled.
 - Evidence `story_screens / weather_version / route_ops / route_exits / block_ledger /
-  build_project / saved_version / reopen_version / reopen_match / peer_predictions / first_mismatch
-  / page_trace / run_footprints / run_boundaries / run_stop / exit_page / reopen_rerun` persists via
+build_project / saved_version / reopen_version / reopen_match / peer_predictions / first_mismatch
+/ page_trace / run_footprints / run_boundaries / run_stop / exit_page / reopen_rerun` persists via
   `/story-parts` and is restored on refresh (malformed rows dropped, not guessed). `沿歌声上山`
   unlocks ONLY jtw-s1-c3-p8, and no seal element exists on the page — 远行印 is C3-P8's server-side
   aggregation, and the resolved panel says so.
 
 ### Changed
+
 - `storyMissionProgress.ts` gained ONE delegating branch for `jtw-s1-c3-p7`;
   `storyMissionContracts.jtw.ts` gained the lesson's `scriptId` and its four `allowedSayText`
   presets. `guides/journeyWestC3.ts` gained the studio guide, `blocksApi.ts` the two new template
@@ -388,18 +457,21 @@
   `jtwC3PersonalRoute.ts` and the Part content in `journeyWestC3Part7Program.ts`.
 
 ### Assets
+
 - **Nothing new was copied, and nothing was invented.** §6's whole `jtw-s1-c3-three-seas-route`
   entry landed across C3-P1…P5; this Part stages only the monkey king and the raft, and its resolved
   panel reuses the already-integrated `backgrounds/s1/c3/page3-resolved-v01.webp` — the far shore's
   lit stepping path and the master's gate, which is exactly the scene's 彼岸山路和石牌完整出现.
 
 ### Verified
+
 - `npx tsc --noEmit` clean · `npx eslint . --max-warnings 0` clean · `npx vitest run` 216 files /
   1804 tests green (no documented flake reproduced).
 
 ## 2026-07-27 (feat: Journey West C3-P6 — the raft jumped sides)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p6` — chapter three's Fix** (scene-specs JTW-S1-C3-P6,
   teaching script C3 Part 6). The route runs, the exits are right and the weather chain the child
   built in C3-P5 is right — and the picture still breaks, because Page 2's start cell ships as
@@ -420,6 +492,7 @@
   continuity reading, and the copy around both runs.
 
 ### Changed
+
 - **The order is structural, not advisory.** The bug-run button is disabled until the expectation
   has been stated ("从右边离开，就从下一页的右边继续" is refused with the story's own line); the
   first-discontinuity picker does not render until the bug has really been run; the minimal-fix
@@ -452,6 +525,7 @@
   C3-P4/P5's in `guides/journeyWestC3.ts`.
 
 ### Assets
+
 - **Nothing new was copied, and nothing was invented.** C3-P6 stages only the monkey king and the
   raft, both already integrated; §6's whole `jtw-s1-c3-three-seas-route` entry landed across
   C3-P1…P5. `16/8` sits inside asset bible §2.4's 12–88% safe band, so the bug is visibly on the
@@ -459,11 +533,13 @@
   feet on open water.
 
 ### Verified
+
 - tsc clean, eslint zero-warning across the app, vitest 214 files / 1773 tests green.
 
 ## 2026-07-27 (feat: Journey West C3-P5 — star-night and morning-mist both need looking)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p5` — chapter three's expression choice** (scene-specs
   JTW-S1-C3-P5, teaching script C3 Part 5 · 故事选择：中间的海). Teaching text in full across two
   screens (both versions valid; then the multi-year compression the three pages stand for), the
@@ -491,6 +567,7 @@
   studio would never record a run marker for the lesson.
 
 ### Changed
+
 - **`JourneyWestC3Stage.tsx`** takes an optional `backgroundSrc`/`backgroundAlt`, so a Part that
   legitimately paints another state of the same page (C3-P5's starry middle sea) swaps artwork
   instead of forking the shared stage.
@@ -502,12 +579,14 @@
   `journeyWestC3Part5Program.ts` and the contract in `jtwC3WeatherBuild.ts`.
 
 ### Assets
+
 - `backgrounds/s1/c3/page2-starry-before-v01.webp` and `page2-starry-resolved-v01.webp` copied into
   `public/` (both 1672×941 RGB WebP) — the second middle sea, which C3-P2 and C3-P4 both
   deliberately left in `design-system/` "until C3-P5, where the child really chooses". With them
   the whole `jtw-s1-c3-three-seas-route` registry entry is integrated. Nothing was substituted.
 
 ### Recorded gaps (not lowered)
+
 - Changing version means starting a new project: the runtime has no kid-facing way to repaint a
   saved page's background (the studio scene picker only offers the generic scenes), so the chosen
   sea is locked on the Part page and says so, rather than being silently swappable.
@@ -515,11 +594,13 @@
   by exact AST comparison instead.
 
 ### Verified
+
 - tsc clean, eslint zero-warning across the app, vitest 212 files / 1735 tests green.
 
 ## 2026-07-27 (feat: Journey West C3-P4 — a story AND an exit in the middle of the sea)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p4` — chapter three's main Build** (scene-specs
   JTW-S1-C3-P4, teaching script C3 Part 4). C3-P3 proved the exit number is an address; here the
   child finally OWNS a page. Teaching script Part 4 in full across two screens, the classic card
@@ -547,12 +628,13 @@
   through `curriculumGuides.ts`. Without it the studio would never record a run marker for the
   lesson.
 - Evidence `story_screens / block_roles / build_project / target_chain / page_target / page_trace
-  / run_footprints / run_stop / exit_cell` ＋ prediction persists through `/story-parts` and is
+/ run_footprints / run_stop / exit_cell` ＋ prediction persists through `/story-parts` and is
   restored on refresh; `选择海的样子` unlocks ONLY `jtw-s1-c3-p5`. The half-lit 远行印 is a progress
   note that says outright the seal is C3-P8's server-side aggregation — it is not a seal and
   carries no evidence.
 
 ### Changed
+
 - `jtwC3Stage.ts` gained the two `resolved` background paths and the three stable page scene ids;
   `blocksApi.ts` learned the `blocks_jtw_c3_p4` template id; the map marks C3-P4 playable and the
   part route dispatches it.
@@ -563,6 +645,7 @@
   `design-system/` until C3-P5 makes it a real choice.
 
 ### Notes
+
 - Recorded gaps, deliberately not papered over: the scene's "积木托盘仅限制任务范围" is NOT a
   task-scoped palette — the studio palette is category-based over the whole `BLOCK_DEFS`, exactly
   as C1-P4/C2-P4 shipped, and task scope is enforced by exact AST comparison instead. "Page 1/3
@@ -576,6 +659,7 @@
 ## 2026-07-27 (feat: Journey West C3-P3 — the exit number is an address, not a plaque)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p3` — chapter three's page-model Complete** (scene-specs
   JTW-S1-C3-P3). C3-P2 found WHERE the route breaks; C3-P3 builds the model behind it. Teaching
   script Part 3「离屏活动：页面就是路口」in full across two screens, plus the classic card and the
@@ -599,11 +683,12 @@
   `1 → 2 → 1` passes. The 走得越快越先到 password is refused with "用加速把循环遮起来，木筏还是会
   回到花果山海岸".
 - Evidence `story_screens / deviation_reason / card_to_swap / floor_walk / password /
-  candidate_predictions / chosen_exit_card / rehearsal_trace / rehearsal_footprints` + prediction
+candidate_predictions / chosen_exit_card / rehearsal_trace / rehearsal_footprints` + prediction
   persists through `/story-parts` and is restored on refresh. `搭海上故事` unlocks ONLY
   `jtw-s1-c3-p4`, writes no project and lights no chapter seal.
 
 ### Changed
+
 - **The three-page C3 stage is now shared** (`story-parts/JourneyWestC3Stage.tsx`) instead of being
   copied into each Part: one page on screen at a time, the raft as its own layer under the monkey
   king (asset bible §6/§2.4). It takes a `testIdPrefix`, so C3-P2's `jtw-c3p2-*` ids are unchanged.
@@ -613,6 +698,7 @@
   correctness of their own — which one is right depends on the exit card being predicted.
 
 ### Notes
+
 - **No new asset.** Everything C3-P3 renders (the three `before` page backgrounds, the raft prop,
   the stone-monkey sprite) was integrated by C3-P1/C3-P2. `page3-resolved-v01.webp` was
   deliberately NOT copied: the far shore's world change belongs to C3-P4, where the sea leg finally
@@ -629,6 +715,7 @@
 ## 2026-07-27 (feat: Journey West C3-P2 — the page exit that sends the raft home)
 
 ### Added
+
 - **Finite-step page-flow runs (`src/pages/learn/blocks/pageFlowRun.ts`).** `BlocksRunner` runs ONE
   page: `goto_page` calls `onGotoPage` and ends that page's run, and the Studio simply selects the
   target page — enough for editing, but not enough for a chapter whose subject is "the exit number
@@ -656,11 +743,12 @@
   stage stops on Page 1. **The first-deviation picker is not rendered at all before that run**, so
   "未运行只点 Page 2 不通过" is structural; Page 1 and Page 3 are refused with a page-by-page hint.
 - Evidence `story_screens / expected_page_order / expected_exits / page_trace / run_footprints /
-  first_deviation` + the prediction is persisted through `/story-parts`; a refresh restores it by
+first_deviation` + the prediction is persisted through `/story-parts`; a refresh restores it by
   decoding the stored footprint strings (malformed rows are dropped, never guessed). `走页面路口`
   unlocks ONLY `jtw-s1-c3-p3`, writes no project and lights no chapter seal.
 
 ### Assets
+
 - `backgrounds/s1/c3/page2-morning-before-v01.webp`, `backgrounds/s1/c3/page3-before-v01.webp` and
   `props/raft/neutral-v01.png` copied from design-system into `public/` — only what this Part
   actually renders. The raft is a REAL stage actor (asset bible §6 forbids baking it into the
@@ -673,6 +761,7 @@
   faked, and no emoji or CSS shape stands in for artwork.
 
 ### Notes
+
 - `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125) were NOT grown — both are
   already over the 1000-line hard rule — so the Part content lives in `journeyWestC3Part2Program.ts`
   and the page-flow capability in its own module.
@@ -681,6 +770,7 @@
 ## 2026-07-27 (feat: Journey West C3-P1 — why he leaves a happy home)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c3-p1` — chapter three's Read & Why entry** (scene-specs
   JTW-S1-C3-P1). The monkey king stands on the C3 Page 1 home shore at the shared contract's
   `gx=3 / gy=9`, `size=3`, the mountain behind him and the open sea to his right. 故事卡A and
@@ -707,11 +797,13 @@
   sound id) in one place, mirroring `jtwC2Stage.ts`.
 
 ### Changed
+
 - `BlocksStudioPage.tsx` (~2960 lines) and `journeyWestSeason1.ts` (1125 lines) were **not grown** —
   both are already over the 1000-line hard rule, so all C3-P1 content lives in
   `journeyWestC3Part1Program.ts`.
 
 ### Notes
+
 - **First chapter-three artwork in `public/`**: `backgrounds/s1/c3/page1-before-v01.webp` and
   `page1-resolved-v01.webp` copied from `design-system/`. Only Page 1 — the Page 2/3 states stay in
   `design-system/` until the Part that stages them lands, so no constant points at a missing file.
@@ -727,6 +819,7 @@
 ## 2026-07-27 (feat: Journey West C2-P8 — keeping the promise, and the chapter seal)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c2-p8` — chapter two's Retell and aggregation**
   (scene-specs JTW-S1-C2-P8). This Part ships **no starter of its own**: it reopens the C2-P7
   Personal Ship the child really saved, through the SAME server read path P7 uses, so
@@ -735,7 +828,7 @@
   one cell short, a deleted response chain), the page points back at Part 7 and completes nothing.
 - **The gate order is the scene's.** 故事卡D in full + the classic card + the two waterfall lines
   the chapter has to keep → the SEVEN cause cards `水声线索→瀑布约定→精确路线→水帘回应→修好回程→
-  带伙伴进入→成为猴王` must be ordered **before the run button opens** → the SAVED page runs
+带伙伴进入→成为猴王` must be ordered **before the run button opens** → the SAVED page runs
   Start → End on a real `BlocksRunner` → only a run that reproduces the saved design opens the
   retell. The run is measured: the curtain hides, the cave shows and says the very line the saved
   JSON carries, and the monkey stops on **his own bank's** knock cell (left `6-7`, right `8-7` —
@@ -751,6 +844,7 @@
   a refresh restores. Neither button auto-advances a chapter. C2-P8 added to the map's playable set.
 
 ### Changed
+
 - **`JourneyWestC2EntryStage.tsx` + `journeyWestC2EntryRun.ts`** extracted from the C2-P7 page:
   the saved-entry stage, the run reader and the "did this run match the saved design" rule are
   now shared by P7's reopen-and-rerun and P8's retell run instead of duplicated. The saved-project
@@ -761,6 +855,7 @@
   `journeyWestC2Part8Program.ts`.
 
 ### Notes
+
 - **No new asset.** The 木头线索 named in the scene's `resolved_world_change` has no artwork:
   `prop-raft-neutral-v01` is a FINISHED raft the asset bible assigns to C3 (whose script has the
   friends build it from loose wood), and `backgrounds/s1/c2/resolved-v01.webp` contains no sea at
@@ -773,6 +868,7 @@
 ## 2026-07-27 (feat: Journey West C2-P7 — the personal entry route)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c2-p7` — chapter two's Personal Ship** (scene-specs
   JTW-S1-C2-P7). The first Journey to the West Part in which the ROUTE is the child's design.
   In the real Blocks Studio they choose **which bank the friends enter from** (stay on the left
@@ -808,6 +904,7 @@
   friends, so it is scenery and carries no completion evidence.
 
 ### Changed
+
 - `storyMissionProgress.ts` gains the bespoke `jtw-s1-c2-p7` branch (the whole page goes to the
   entry parser — there is no exact target and, deliberately, no fixed start).
 - `guides/journeyWestC2.ts` gains the C2-P7 `personal-ship` mission; `blocksApi.ts` gains the
@@ -817,15 +914,16 @@
   file (already ~2958 lines, over the 1000-line hard rule) did not grow.
 
 ### Known / not done
+
 - The 果篮 named in the scene's `resolved_world_change` has no artwork (`prop-fruit-basket` was
   never generated) and three separable friend sprites for an ordered entry do not exist either.
   Neither is faked with an emoji, a CSS shape or a page boolean; the resolved copy describes only
   the stone seat and clear water the shipped cave art really shows. Recorded in the asset bible.
 
-
 ## 2026-07-26 (feat: Journey West C2-P6 — the return-route order bug)
 
 ### Added
+
 - **`/learn/story/journey-west/jtw-s1-c2-p6` — chapter two's Fix part** (scene-specs
   JTW-S1-C2-P6). The child states the expected three return stops, **runs the shipped bug through
   the REAL `BlocksRunner` on the page** (the monkey visibly leaves the wet-stone route and stops
@@ -844,6 +942,7 @@
   walker, used by both the outbound C2-P4 build and the C2-P6 return.
 
 ### Changed
+
 - `BlocksStudioPage.tsx` **shrank by two lines** (2960 → 2958) by delegating the C1-P6 order-bug
   check to `jtwOrderDebug.ts`, which now also serves C2-P6 — the new scene added no lines to it.
 - `storyMissionProgress.ts` is **872 lines** (was 999) after the JtW contracts moved out, and
@@ -852,6 +951,7 @@
   `rules/file-organization.md`; neither grew for this part.
 
 ### Known
+
 - **C2-P5 cannot complete in the product** and this change does not fix it: it ships neither a
   Story Mission guide nor a program contract, so `storyProgress.completed['jtw-s1-c2-p5']` is
   never written and its part page's `buildDone` can never become true. C2-P6 ships both.
@@ -885,12 +985,15 @@
 ## 2026-07-26 (fix: restore the Art Studio hub shell)
 
 ### Fixed
+
 - `/learn/create/image` now keeps the Kids navigation, centered reading column
   and page scrolling. Only `/learn/create/image/canvas` uses the immersive
   fullscreen easel.
+
 ## 2026-07-26 (fix: Blocks Studio cast pickers were clipped on a small phone)
 
 ### Fixed
+
 - **A5-S and A6-S were unwinnable below ~400px wide.** Both ship a row of three cast buttons at
   `min-width:118px`; `.bsx-home-choices` never wrapped and `.bsx-app` is `overflow:hidden`, so the
   third friend was **clipped off the edge with no way to scroll to it** — and A5-S requires picking
@@ -901,6 +1004,7 @@
   contract, starter, stage or copy changed.
 
 ### Notes
+
 - Found by the Task 26 responsive audit, which read the code and the design tokens; real-browser
   evidence belongs to the owner-triggered harness sweep and was not run.
 - Two files in this directory remain over the umbrella 1000-line hard limit —
@@ -912,6 +1016,7 @@
 ## 2026-07-26 (feat: Tiny Star Village season progression, resume and locked next scene)
 
 ### Added
+
 - Tiny Star Village Season 1 is now ONE sequential season, not 24 independent scenes.
   `tinyStarSeason.ts` holds the season manifest (derived from `storyJourneyCatalog`, never a second
   copy of the order), projects the server's unlock answer onto the 24 scenes, names the scene to
@@ -920,18 +1025,20 @@
   waiting on) and `locked` (🔒, disabled). A chapter never opens wholesale — finishing A1-S opens
   A2-H and nothing else.
 - "Continue the story" card on the story map: it names the open scene (`Chapter 2 · Which way is the
-  plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child's own project** for
+plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child's own project** for
   that scene when they already started it, instead of creating a second empty copy; only an
   unstarted scene creates one. Finishing all 24 shows the season card.
 - A finished Tiny Star scene now records itself against `/story-parts/tiny-star-village-s1` with
   `selections.saved_project = [projectId]` — the VFS the studio just verified, never a page boolean.
 
 ### Changed
+
 - `BlocksStudioPage` no longer offers "Next scene" when the season chain refused this scene
   (`403 STORY_PART_LOCKED`, i.e. it was opened out of order): the child's own work still saves, and
   the card explains in their words that the map opens scenes in order.
 
 ### Notes
+
 - The unlock truth is the server (the same adjacent-unlock service Journey to the West uses); the
   client only renders it. Until that answer arrives — loading, offline, or a non-kid session —
   **nothing is locked**, so a network blip can never shut a child out of a scene they earned.
@@ -941,6 +1048,7 @@
 ## 2026-07-25 (feat: Tiny Star Village A6-S — my morning-light ending)
 
 ### Added
+
 - Tiny Star Village Personal Ship scene A6-S (`tsv-s1-a6-s`, `blocks_tsv_a6_s`, Mission 24), chapter
   six's Build scaffold and the LAST scene of the season. The three-step core ships built and settled;
   nobody is cast as the ringer and there is no ending, so the two things the child owns are WHO rings
@@ -956,12 +1064,14 @@
   picker. Like both of them it only renames and re-skins a slot; it never inserts a block.
 
 ### Changed
+
 - `BlocksStudioPage` gained `isA6Finale`, and chapter six's ordered `onStep` op record now follows
   `TINY_STAR_BELL_RINGER_IDS` (the shipped ringer plus the finale's cast slot) instead of one id.
 - `storyJourneyCatalog` carries all 24 Tiny Star Village missions: A6-D now has a next scene, and
   A6-S has none — it is the end of the season.
 
 ### Notes
+
 - **The starter cannot complete itself.** Its core is literally the route A6-D repairs, so it runs
   perfectly — but the ringer slot is a nameless `❓` with no formal asset (matching no cast friend)
   and there is no ending block anywhere on the page.
@@ -984,15 +1094,18 @@
 ## 2026-07-25 (feat: put every child on the Parent Dashboard)
 
 ### Added
+
 - The Parent Dashboard now leads with a family-scoped **My kids** panel before Stars, approvals
   and discovery content. Each child card shows an accessible avatar, age, active/paused status
   and 28-day growth teaser, with direct growth and supervised kid-page actions.
 - Added resilient loading, empty-family, retryable fetch-error and per-child handoff-error states.
   Paused kids remain visible but cannot open a kid session; popup failures keep the parent on the
   Dashboard instead of silently replacing the adult page.
+
 ## 2026-07-25 (feat: Tiny Star Village A6-D — the bell rang first)
 
 ### Added
+
 - Tiny Star Village Twist & Debug scene A6-D (`tsv-s1-a6-d`, `blocks_tsv_a6_d`, Mission 23), chapter
   six's Fix scaffold. All three Bell Tower cards are on the page at last, and the bell has slipped to
   the FRONT: it rings while Lumi is still three spaces away, then the walk happens, then the jump
@@ -1007,6 +1120,7 @@
   A6 mission contracts (the same treatment chapter one's `LUMI_CONTRACT` already gets).
 
 ### Changed
+
 - `BlocksStudioPage` gained `isA6OrderDebug`: the Motion palette is closed for this scene and the
   number editor never opens (Right 3 and Hop 1 are already correct), while block DRAGGING stays on —
   because moving a block is the repair. Dragging and tapping are both gated on a real bug run, the
@@ -1015,6 +1129,7 @@
   stage instead of repeating it.
 
 ### Notes
+
 - **Nothing is missing and nothing is spare.** The starter's five blocks are exactly A6-B's finished
   five in the wrong order, so there is nothing to add (that was A6-B) and nothing to delete — the
   only available action is a move. The starter cannot complete itself and offers nothing to copy.
@@ -1033,6 +1148,7 @@
 ## 2026-07-25 (feat: Tiny Star Village A6-B — add the missing step)
 
 ### Added
+
 - Tiny Star Village Logic Build scene A6-B (`tsv-s1-a6-b`, `blocks_tsv_a6_b`, Mission 22), chapter
   six's Complete scaffold. A6-H's Bell Tower route returns block for block on its own page, still
   missing the same middle card, and the child puts it back: a `hop 1` between the walk and the bell.
@@ -1043,6 +1159,7 @@
   "the Hop sits between the Move and the Pop", so the Hook and the Build cannot drift apart.
 
 ### Changed
+
 - The story journey map now offers 22 playable Tiny Star Village scenes; A6-H advances to A6-B.
 - The ringer's played-op record kept for chapter six is now ORDERED (an array rather than a set) —
   A6-H still reads its negative off it (a bell with no hop), and A6-B reads the repaired order (hop
@@ -1051,6 +1168,7 @@
   the same route, so the script id belongs to the chapter, not to the Hook.
 
 ### Notes
+
 - The starter cannot complete itself and offers nothing to copy: the route runs to the end, and the
   block the child must add is seeded nowhere in the document. Tapping Hop in the Motion palette
   appends it AFTER the Pop and on the block's own default of 2, so both the placement and the number
@@ -1063,6 +1181,7 @@
 ## 2026-07-25 (feat: Tiny Star Village A6-H — three Bell Tower cards)
 
 ### Added
+
 - Tiny Star Village Story Hook scene A6-H (`tsv-s1-a6-h`, `blocks_tsv_a6_h`, Mission 21), chapter
   six's Explore scaffold. The shipped route walks to the Bell Tower and rings the bell with no Hop
   in between, so the program itself is the question: the child runs it once and names the card that
@@ -1074,6 +1193,7 @@
   `storyMissionProgress.ts` for the same reason. Pure relocation, no behaviour change.
 
 ### Changed
+
 - The story journey map now offers 21 playable Tiny Star Village scenes; A5-S advances to A6-H and
   chapter 6 stops being empty.
 - Mission completion for A6-H is read from the saved page plus the real run, never a page boolean:
@@ -1085,6 +1205,7 @@
   celebration — the same treatment A2-H, A3-H, A4-H and A5-H already get.
 
 ### Notes
+
 - The two wrong cards are the two steps that DID run, which is what makes finding the missing middle
   card a real discrimination. Like A5-H and unlike A4-H there is no pre-run prediction, because
   before the run there is no honest way to know whether the bell rang.
@@ -1094,6 +1215,7 @@
 ## 2026-07-25 (feat: Tiny Star Village A5-S — my two-friend greeting)
 
 ### Added
+
 - Tiny Star Village Personal Ship scene A5-S (`tsv-s1-a5-s`, `blocks_tsv_a5_s`, Mission 20), chapter
   five's Build scaffold and the last scene of the chapter. Four things are genuinely the child's:
   which two of Lumilo / Tuan Tuan / Dot Dot perform, which of them greets first, what each of them
@@ -1105,6 +1227,7 @@
   only renames and re-skins a stage slot — it never inserts a block.
 
 ### Changed
+
 - The story journey map now offers 20 playable Tiny Star Village scenes; A5-D advances to A5-S and
   chapter 5 reads "4 scenes ready".
 - The stage slot IS the turn: `greeter-one` greets the moment Go is pressed and `greeter-two` waits
@@ -1118,6 +1241,7 @@
   The number this scene teaches is the Wait, and that one keeps the block's own default.
 
 ### Notes
+
 - **The legal Wait depends on what the FIRST friend does**, and the band is derived rather than
   chosen. Floor: wait until your friend's turn is over — unless that turn outlives every Wait this
   runtime has, in which case fall back to the 250 ms head start A5-B measured. Ceiling: the stage may
@@ -1137,11 +1261,13 @@
 ## 2026-07-25 (feat: Tiny Star Village A5-D — that wait was too long)
 
 ### Added
+
 - Tiny Star Village Twist & Debug scene A5-D (`tsv-s1-a5-d`, `blocks_tsv_a5_d`, Mission 19), chapter
   five's Fix scaffold. The good morning is a bounce relay now, and Tuan Tuan's hourglass is turned
   all the way up to 9 — every block is in the right place and only the number is wrong.
 
 ### Changed
+
 - The story journey map now offers 19 playable Tiny Star Village scenes; A5-B advances to A5-D.
 - Mission completion for A5-D combines the saved chain with a measurement of the real run: Lumilo
   must still hold the untouched `Start→Hop 1→End`, Tuan Tuan must hold `Start→Wait N→Hop 1→End`
@@ -1154,6 +1280,7 @@
   and Lumilo cannot be edited.
 
 ### Notes
+
 - The scene deliberately uses a bounce rather than two Says. Measured against the shipped runtime:
   `hop 1` lasts `2 * STEP_MS = 360 ms`, `say` holds a bubble for `SAY_MS = 1400 ms`, `wait n` sleeps
   `n * 100 ms` and `MAX_PARAM` caps Wait at 900 ms. With two Says no legal Wait is ever "too long"
@@ -1168,11 +1295,13 @@
 ## 2026-07-25 (feat: Tiny Star Village A5-B — wait a moment)
 
 ### Added
+
 - Tiny Star Village Logic Build scene A5-B (`tsv-s1-a5-b`, `blocks_tsv_a5_b`, Mission 18), chapter
   five's Complete scaffold. Tuan Tuan wants to go second, so the child gives Tuan Tuan one Wait
   block — and has to put it in front of the Say for it to mean anything.
 
 ### Changed
+
 - The story journey map now offers 18 playable Tiny Star Village scenes; A5-H advances to A5-B.
 - Mission completion for A5-B combines the exact saved chain with a measurement of the real run:
   Lumilo must still hold the untouched `Start→Say "Morning!"→End`, Tuan Tuan must hold exactly
@@ -1185,6 +1314,7 @@
   track, a moved friend or a changed stage all fail too.
 
 ### Notes
+
 - Wait timing measured against the shipped runtime while building this scene: `wait n` sleeps
   `n * 100 ms`, a speech bubble lives `SAY_MS = 1400 ms`, and `MAX_PARAM` caps Wait at 9 (900 ms).
   No Wait value can therefore stop the two bubbles overlapping, so A5-B claims only that Tuan Tuan
@@ -1194,12 +1324,14 @@
 ## 2026-07-25 (feat: Tiny Star Village A5-H — who is speaking?)
 
 ### Added
+
 - Tiny Star Village Story Hook scene A5-H (`tsv-s1-a5-h`, `blocks_tsv_a5_h`, Mission 17), chapter
   five's Explore opener. Two friends arrive with two finished programs, both hanging off the same
   green flag, so one real Go opens both speech bubbles at the same instant. The child's job is to
   notice that nobody took a turn.
 
 ### Changed
+
 - The story journey map now offers 17 playable Tiny Star Village scenes; chapter 5 opens and A4-S
   advances to A5-H.
 - Mission completion for A5-H is derived from the real interpreter, not a page flag: the run must
@@ -1214,6 +1346,7 @@
 ## 2026-07-25 (feat: Tiny Star Village A4-S — my delivery stop)
 
 ### Added
+
 - Tiny Star Village Personal Ship scene A4-S (`tsv-s1-a4-s`, `blocks_tsv_a4_s`, Mission 16). The
   child places their delivery stop 1, 2 or 3 spaces right of the breakfast cart, chooses the
   apple / gift / star breakfast it carries, then authors the single `Right` block and raises its
@@ -1224,6 +1357,7 @@
   before the terminal End at one space) and its number from the real number editor.
 
 ### Changed
+
 - The story journey map now offers 16 playable Tiny Star Village scenes; chapter 4 is complete and
   A4-D advances to A4-S.
 - Mission completion for A4-S has no fixed arrival square: the run must finish on whichever stop
@@ -1233,6 +1367,7 @@
 ## 2026-07-25 (feat: JtW chapter-two stage — real C2 background + three runtime capabilities)
 
 ### Added
+
 - Runtime capability `CharacterStart.visible`: a character can be declared hidden at the start
   of a run. It is not drawn, but it stays a trigger zone — its On Bump track still fires — so a
   cave mouth waiting behind a water curtain can run the child's Show on contact. A character
@@ -1249,14 +1384,17 @@
   authorisation in the Journey to the West saga asset bible.
 
 ### Fixed
+
 - **JtW C2 parts P1–P4 were rendering chapter ONE's background.** Only the C1 background had
   ever been copied into `public/`, so the water-curtain chapter was showing the flower-fruit
   stone-egg scene — where the waterfall is only distant scenery — while the copy talked about
   the falls, the pool and the wet stepping stones. All four parts now use the real chapter-two
   stage, which is also the scene C2-P4's five-stone route actually crosses.
+
 ## 2026-07-25 (feat: demonstrate diagnostic Tutor feedback)
 
 ### Changed
+
 - The parent-facing NAPLAN demo now teaches through six explicit stages: interpret the question,
   choose a strategy, work it out, justify the answer, diagnose the selected misconception, and
   try a short transfer question.
@@ -1266,6 +1404,7 @@
 ## 2026-07-25 (feat: show varied Academy Tutor demos)
 
 ### Changed
+
 - The NAPLAN product detail demo now includes four original, switchable Numeracy samples:
   equal groups, money, data and time.
 - Tapping any answer immediately updates Airo Tutor with answer feedback, a question-specific
@@ -1274,6 +1413,7 @@
 ## 2026-07-25 (fix: make Academy explanations automatic)
 
 ### Changed
+
 - The Parent Portal product demo now shows a complete worked Airo Tutor explanation immediately,
   so parents can see the core learning value before purchase.
 - Purchased practice automatically generates the Tutor explanation after every submitted answer;
@@ -1283,6 +1423,7 @@
 ## 2026-07-25 (feat: preview NAPLAN products with Airo Tutor)
 
 ### Added
+
 - Each NAPLAN Year card now opens a complete parent-facing product detail page with the live
   question count, access terms, a safe interactive original sample and an Airo Tutor preview.
 - Purchased practice now keeps Airo Tutor beside the question on desktop (and below it on
@@ -1292,6 +1433,7 @@
 ## 2026-07-25 (fix: compact the NAPLAN sales page on phones)
 
 ### Changed
+
 - Reduced phone-only NAPLAN hero, section, benefit and product-card typography and spacing while
   retaining the existing tablet and desktop scale.
 - Kept purchase actions comfortably tappable and added component coverage for the responsive
@@ -1300,12 +1442,14 @@
 ## 2026-07-25 (feat: explain NAPLAN value to parents)
 
 ### Changed
+
 - Reworked Parent Portal Exam Prep into a clear NAPLAN sales page that explains the current
   product, one-child/one-Year access, live question count and path from purchase to practice.
 
 ## 2026-07-25 (feat: give Art Studio its Airbotix robot-cat tutor)
 
 ### Added
+
 - Art Studio's existing AI coach now has the approved Airbotix robot-cat mascot as its visible
   tutor identity. The temporary name is isolated behind one constant for the pending naming
   decision; the avatar reflects idle, thinking, canvas-looking, image-creating and celebration
@@ -1318,6 +1462,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P4 exact five-block route Build)
 
 ### Added
+
 - Twelfth Journey to the West Story Part (`jtw-s1-c2-p4` 刚好到达，不多也不少): chapter two's
   main Build. Part page `/learn/story/journey-west/jtw-s1-c2-p4` ships 教学脚本 Story Screen 4
   IN FULL plus the five-one-step 因果桥 (the shared 右2→上1→右2 route split into five
@@ -1341,6 +1486,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P3 wet-stone route planning)
 
 ### Added
+
 - Eleventh Journey to the West Story Part (`jtw-s1-c2-p3` 三段湿石路): chapter two's off-screen
   prediction before Code. Part page `/learn/story/journey-west/jtw-s1-c2-p3` shows the stone
   monkey at the `2/8` start on the same waterfall before-background (cave mouth kept hidden as
@@ -1363,6 +1509,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P2 waterfall agreement Why + planning)
 
 ### Added
+
 - Tenth Journey to the West Story Part (`jtw-s1-c2-p2` 瀑布前的约定): chapter two's Why +
   off-screen planning. Part page `/learn/story/journey-west/jtw-s1-c2-p2` shows the stone monkey
   facing the CLOSED curtain (`data-facing=curtain`) on the same waterfall before-background with
@@ -1383,6 +1530,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P1 water-sound read-&-why entry)
 
 ### Added
+
 - Ninth Journey to the West Story Part and the first of chapter two (`jtw-s1-c2-p1`
   水声把大家带到哪里): the C2 Read & Why entry. Part page
   `/learn/story/journey-west/jtw-s1-c2-p1` joins the C1 clear-spring viewpoint to the SAME
@@ -1402,6 +1550,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P8 chapter retell + server-aggregated 出世印)
 
 ### Added
+
 - Eighth Journey to the West Story Part (`jtw-s1-c1-p8` 新伙伴听见了水声): the chapter's Run 后
   Retell 与章节聚合. Part page `/learn/story/journey-west/jtw-s1-c1-p8` ships the full story
   text + classic card + original dialogue, the motive question, five cause-effect cards
@@ -1419,6 +1568,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P7 personal-arrival ship)
 
 ### Added
+
 - Seventh Journey to the West Story Part (`jtw-s1-c1-p7` 我的石猴亮相): the chapter's Personal
   Ship. New structural mission contract `jtwPersonalArrivalDesign`: the `blocks_jtw_c1_p7` frame
   (Start·hide·sound·Show … preset Say·End) is fixed while the CHILD owns the sound (any of six),
@@ -1435,6 +1585,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P6 order-bug debug)
 
 ### Added
+
 - Sixth Journey to the West Story Part (`jtw-s1-c1-p6` 声音怎么从空中来了): the chapter's Twist &
   Debug. The `blocks_jtw_c1_p6` starter ships the STABLE bug (Say→Hop→Show — the greeting sounds
   from thin air, the hop is invisible). The part page carries the full story, the expectation
@@ -1449,9 +1600,11 @@
   orders, changed sounds, deletions, endpoint drops, rewritten dialogue and distractors.
 
 ## 2026-07-25 (feat: edit a kid's school from the settings page)
+
 ## 2026-07-25 (feat: Journey to the West C2-P4 exact five-block route Build)
 
 ### Added
+
 - Twelfth Journey to the West Story Part (`jtw-s1-c2-p4` 刚好到达，不多也不少): chapter two's
   main Build. Part page `/learn/story/journey-west/jtw-s1-c2-p4` ships 教学脚本 Story Screen 4
   IN FULL plus the five-one-step 因果桥 (the shared 右2→上1→右2 route split into five
@@ -1475,6 +1628,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P3 wet-stone route planning)
 
 ### Added
+
 - Eleventh Journey to the West Story Part (`jtw-s1-c2-p3` 三段湿石路): chapter two's off-screen
   prediction before Code. Part page `/learn/story/journey-west/jtw-s1-c2-p3` shows the stone
   monkey at the `2/8` start on the same waterfall before-background (cave mouth kept hidden as
@@ -1497,6 +1651,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P2 waterfall agreement Why + planning)
 
 ### Added
+
 - Tenth Journey to the West Story Part (`jtw-s1-c2-p2` 瀑布前的约定): chapter two's Why +
   off-screen planning. Part page `/learn/story/journey-west/jtw-s1-c2-p2` shows the stone monkey
   facing the CLOSED curtain (`data-facing=curtain`) on the same waterfall before-background with
@@ -1517,6 +1672,7 @@
 ## 2026-07-25 (feat: Journey to the West C2-P1 water-sound read-&-why entry)
 
 ### Added
+
 - Ninth Journey to the West Story Part and the first of chapter two (`jtw-s1-c2-p1`
   水声把大家带到哪里): the C2 Read & Why entry. Part page
   `/learn/story/journey-west/jtw-s1-c2-p1` joins the C1 clear-spring viewpoint to the SAME
@@ -1536,6 +1692,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P8 chapter retell + server-aggregated 出世印)
 
 ### Added
+
 - Eighth Journey to the West Story Part (`jtw-s1-c1-p8` 新伙伴听见了水声): the chapter's Run 后
   Retell 与章节聚合. Part page `/learn/story/journey-west/jtw-s1-c1-p8` ships the full story
   text + classic card + original dialogue, the motive question, five cause-effect cards
@@ -1553,6 +1710,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P7 personal-arrival ship)
 
 ### Added
+
 - Seventh Journey to the West Story Part (`jtw-s1-c1-p7` 我的石猴亮相): the chapter's Personal
   Ship. New structural mission contract `jtwPersonalArrivalDesign`: the `blocks_jtw_c1_p7` frame
   (Start·hide·sound·Show … preset Say·End) is fixed while the CHILD owns the sound (any of six),
@@ -1569,6 +1727,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P6 order-bug debug)
 
 ### Added
+
 - Sixth Journey to the West Story Part (`jtw-s1-c1-p6` 声音怎么从空中来了): the chapter's Twist &
   Debug. The `blocks_jtw_c1_p6` starter ships the STABLE bug (Say→Hop→Show — the greeting sounds
   from thin air, the hop is invisible). The part page carries the full story, the expectation
@@ -1583,6 +1742,7 @@
   orders, changed sounds, deletions, endpoint drops, rewritten dialogue and distractors.
 
 ### Added
+
 - The kid settings page (`/portal/family/:kidId/settings`) now lets a parent view and change the
   kid's **School** — same `SchoolField` (ACARA autocomplete + free-text + AU state) as the Add-kid
   form, prefilled from the kid and saved via `PATCH /kids/:id` (clearing the name sends null).
@@ -1590,6 +1750,7 @@
 ## 2026-07-25 (feat: optional school on the create-kid form)
 
 ### Added
+
 - The parent "Add kid" form (`FamilyNewPage`) now has an optional **School** field: a debounced
   autocomplete over `GET /schools/search` (ACARA directory) with a free-text fallback and an AU
   **State** select. Picking a suggestion fills suburb + state + the ACARA id; free-typing keeps the
@@ -1606,9 +1767,11 @@
   is 17rem with a 24px column gap, returning the reclaimed desktop width to the main content.
 - Tightened side-rail typography, status marks, spacing and action buttons while preserving the
   existing full-size checklist presentation outside the dashboard rail.
+
 ## 2026-07-25 (feat: Journey to the West C1-P5 greeting-order choice)
 
 ### Added
+
 - Fifth Journey to the West Story Part (`jtw-s1-c1-p5` 两种真诚的问候): a choice Build where BOTH
   orders are valid. The verified arrival prefix ships in the `blocks_jtw_c1_p5` starter; the child
   adds Hop 1 + a PRESET greeting (the Say editor's greeting picker is now driven by the mission
@@ -1621,6 +1784,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P4 — the first real JtW kid Build)
 
 ### Added
+
 - Fourth Journey to the West Story Part (`jtw-s1-c1-p4` 搭出完整出世链): a REAL Blocks Studio
   build. The part page carries the full build story, per-block cause-effect evidence and the
   Show-first prediction, then opens (or resumes) a real `blocks_jtw_c1_p4` project — the starter
@@ -1633,6 +1797,7 @@
 ## 2026-07-25 (feat: add Parent Portal course detail pages)
 
 ### Added
+
 - Parents can now open `/portal/courses/:courseSlug` for a complete course view backed by the
   existing published course source of truth: age and logistics, learning goals, AI skills,
   workshop/lesson outline, outcomes, FAQs, upcoming classes, teaching team, price and checkout.
@@ -1649,6 +1814,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P3 rehearsal part)
 
 ### Added
+
 - Third Journey to the West Story Part (`jtw-s1-c1-p3` 树叶后的顺序排练): full rehearsal story
   text, motive evidence, four rehearsal cards mapping 1:1 onto Chime/Show/Hop/Say via the
   accessible tap-to-order component, a replayable Hop/Say swap experiment (toggle swaps and
@@ -1659,6 +1825,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P2 arrival demo part)
 
 ### Added
+
 - Second Journey to the West Story Part (`jtw-s1-c1-p2` 石猴出世运行示范): English story hook +
   classic card, tap-to-order story cards (sound→appear→jump→hello), first/last block naming, a
   Show-before-Hop/Say prediction with retry hint, and a REAL BlocksRunner demo of the full arrival
@@ -1670,6 +1837,7 @@
 ## 2026-07-25 (feat: Journey to the West C1-P1 story part + story-part unlock framework)
 
 ### Added
+
 - First Journey to the West Story Part: `/learn/story/journey-west` map (all 50 S1 parts with
   server-driven lock states) and the `jtw-s1-c1-p1` 清晨的花果山 part player — full two-screen
   child-facing story text + 原著卡, 3-of-5 environment evidence + two motive reasons + 因为/所以
@@ -1683,6 +1851,7 @@
 ## 2026-07-24 (fix: open a kid's page in a new tab from the parent portal)
 
 ### Fixed
+
 - The "Open kids page" action on a kid's growth report (`/portal/family/:kidId`) now opens the
   kid's Learn surface in a **new browser tab** instead of replacing the current parent tab. The
   parent stays on the portal page; the new tab bootstraps the kid session from its own refresh
@@ -1697,6 +1866,7 @@
 ## 2026-07-24 (fix: keep the Parent Portal sidebar in view)
 
 ### Fixed
+
 - Parent Portal pages now keep document scrolling locked to the viewport and scroll only the
   content region, so the desktop navigation background and account controls no longer move away
   or leave a blank area when a long Courses page is scrolled.
@@ -1715,6 +1885,7 @@
 ## 2026-07-23 (fix: restore Parent Portal mobile navigation)
 
 ### Fixed
+
 - **Parent Portal navigation is reachable again on phones.** The existing bottom tabs and
   overflow sheet are now mounted by the Portal layout, share the live approvals count with
   the desktop drawer, reserve safe-area space above the fixed tabs, and use compact mobile
@@ -1723,9 +1894,11 @@
   selected child's Learn session without re-entering a family code or PIN, while the separate
   adult session remains available when they return to Portal. The profile edit action is also
   restored beside the Growth heading.
+
 ## 2026-07-24 (fix: clarify the Parent Portal dashboard hierarchy)
 
 ### Changed
+
 - The Parent Portal dashboard now uses a desktop primary-content and sticky side-rail layout.
   Wallet and approval status, quick actions and open classes lead the main column, while the
   data-driven Getting started checklist remains visible beside them; mobile keeps a single-column
@@ -1742,6 +1915,7 @@
 ## 2026-07-24 (fix: make Parent Portal teacher cards compact)
 
 ### Fixed
+
 - Teacher directory cards now use a compact responsive profile layout with a bounded square
   portrait, two-line biography preview, age range and up to two expertise tags, so long or
   repetitive profile content no longer stretches a teacher into an oversized poster.
@@ -1754,6 +1928,7 @@
 ## 2026-07-24 (feat: grouped Parent Portal navigation)
 
 ### Changed
+
 - The Parent Portal desktop nav drawer is now grouped — Dashboard on top, then
   Explore (Find a class / Courses / Teachers / Exam Prep / Tutoring / Family Guides),
   Family (My Family / Approvals / Usage / Activity) and Account (Wallet / Billing /
@@ -1765,6 +1940,7 @@
 ## 2026-07-23 (feat: cross-device kid sign-in)
 
 ### Added
+
 - Parent Portal can generate a five-minute QR/link to open one selected child on a different
   device. The child confirms the same avatar and nickname before continuing.
 - Parents may explicitly remember that one child for 30 days; returning devices show only the
@@ -1772,12 +1948,14 @@
   control for that child's remembered devices.
 
 ### Changed
+
 - The fallback family login is now two short steps (family code, then nickname + PIN) instead of
   presenting all three inputs at once. The class login remains a separate tab.
 
 ## 2026-07-23 (feat: kid avatar identity)
 
 ### Added
+
 - Added 26 original animal, fantasy and human kid avatars plus an accessible reusable picker,
   including Nature Explorer and Young Architect to broaden white girl/boy representation.
 - Registration, Add Kid and Kid Settings save the stable avatar ID; My Family, Growth and Learn
@@ -1786,6 +1964,7 @@
 ## 2026-07-23 (feat: parent one-tap kid handoff)
 
 ### Added
+
 - My Family cards and each kid growth page now let an authenticated parent open that child’s
   Learn home directly, without re-entering the family code, nickname or PIN.
 - The handoff uses the existing family-scoped parent endpoint and dedicated kid session, so the
@@ -1794,18 +1973,21 @@
 ## 2026-07-23 (feat: parent mobile profile)
 
 ### Added
+
 - Parent registration now requires an Australian mobile number and saves it with the adult
   `/auth/me` profile; the copy makes clear that no SMS verification is sent yet.
 - Settings now lets a parent edit or clear their own mobile number, and the Dashboard onboarding
   checklist gives legacy parents with no number a server-backed inline completion step.
 
 ### Changed
+
 - Removed the duplicate Family-level phone editor. Parent contact phone now has one UI/data source
   (`User.phone`), while child readiness remains independent from profile completion.
 
 ## 2026-07-22 (feat: approved teachers in Parent Portal)
 
 ### Added
+
 - Added `/portal/teachers` and `/portal/teachers/:slug`, with city, course, child-age and
   language filters over the same reviewed public-profile API used by the marketing site.
 - Added Teachers to the desktop drawer and mobile More sheet, plus profile links from actual
@@ -1814,6 +1996,7 @@
   with service-city context and a clear “subject to availability” boundary.
 
 ### Fixed
+
 - Parent class cards no longer fall back to teacher login email. Find a class, Now enrolling,
   My Classes and Tutoring show only approved public team members; missing/unpublished assignments
   render `Teacher to be confirmed`.
@@ -1821,6 +2004,7 @@
 ## 2026-07-22 (fix: Music Stage brand logo shows at every width)
 
 ### Fixed
+
 - **The Airbotix logo no longer vanishes on windows narrower than 900px** (owner report:
   "左下角的 logo 没有显示"). The transport-bar brand block was wholesale-hidden below
   900px; now the logo always renders and only the divider + "Music Stage" surface name
@@ -1830,6 +2014,7 @@
 ## 2026-07-22 (feat: let parents see and safely try the creative studios)
 
 ### Added
+
 - **Real product previews on all four Parent Dashboard studio cards** — Story Blocks,
   Creative Code Studio, Art Studio and Music Stage now show compressed captures of the actual
   child workspace plus a plain-language explanation of what the parent is seeing.
@@ -1842,6 +2027,7 @@
 ## 2026-07-22 (feat: Music Stage — on-stage instrument pop + the swap replaces the character)
 
 ### Added
+
 - **点乐器角色 → 舞台顶层弹出选择 pop（owner:"点击时右侧顶层有个 pop 直接选，这样有替换的感觉"）。**
   Tapping a band member now opens a picker right above them on the stage (anchored to the
   character, clamped inside the stage, 160ms pop-in, ✕ to close; opens only on an explicit
@@ -1855,6 +2041,7 @@
 ## 2026-07-22 (feat: Music Stage — real-instrument palettes + in-lane sound picker)
 
 ### Added
+
 - **每个乐队位扩成真实乐器面板（D-MS20，owner:"既然引擎支持，是否可以更换乐器"）。**
   The SpessaSynth engine already carries the full GM bank, so each slot's style list
   grows from 3 timbres to a kid-curated instrument palette: guitar slot adds 🎻 Violin /
@@ -1867,6 +2054,7 @@
   scroll container can't clip it. The stage-tap → deck-row path still works.
 
 ### Fixed
+
 - **Vocal lanes tell the truth**: Lead/Backing Vocals lanes showed the borrowed slot style
   ("Grand" / "Gritty Organ") while actually singing the D-MS18 choir programs — they now
   display 🎤 Choir / 🎙️ Oohs as fixed labels with no picker.
@@ -1874,6 +2062,7 @@
 ## 2026-07-22 (feat: Art Studio canvas is TRANSPARENT — Photoshop-style, D-ISF-7)
 
 ### Changed
+
 - **The canvas ground is now TRANSPARENT, like Photoshop** (owner: 不是去白底,本身就是
   透明 — D-ISF-7, art-studio-canvas-and-intent-fix-prd v0.4; supersedes the v0.1 white-paper
   ground). The bitmap holds ONLY what the kid made; a design-token checkerboard
@@ -1889,6 +2078,7 @@
 ## 2026-07-22 (fix: SpessaSynth worklet vs Tone's standardized-audio-context)
 
 ### Fixed
+
 - **The SpessaSynth engine never actually started** — caught by a real-browser local test
   (Playwright + level meter), not by unit tests: `Tone.getContext().rawContext` is a
   standardized-audio-context WRAPPER, so native `new AudioWorkletNode(rawContext)` threw
@@ -1902,6 +2092,7 @@
 ## 2026-07-22 (feat: Art Studio → game hand-off loses the white paper)
 
 ### Added
+
 - **✂️ Default-on background removal when sending art into a game** (owner: art 应该是
   透明背景 — D-ISF-6, art-studio-canvas-and-intent-fix-prd v0.3). Art Studio pictures are
   opaque BY DESIGN (white canvas ground; gpt-image-2 rejects transparency — image-studio-prd
@@ -1915,6 +2106,7 @@
 ## 2026-07-22 (feat: explain the four creative spaces from a parent's perspective)
 
 ### Changed
+
 - Reframed the Parent Dashboard creative-spaces panel around the decisions a family actually
   needs to make: who each space suits, the concrete thing a child can create, the three-step
   learning loop, skills practised, where AI and Stars enter, and a useful follow-up question.
@@ -1925,6 +2117,7 @@
 ## 2026-07-22 (feat: Music Stage — SpessaSynth SF2 engine (Tier-0) + GeneralUser GS)
 
 ### Added
+
 - **SpessaSynth becomes the primary Music Stage timbre engine** (owner: "重新换"→ 换引擎;
   music-stage-prd v0.19, D-MS19). A single `WorkletSynthesizer` (Apache-2.0) performs real
   SoundFont synthesis — envelopes, loop points, filters, modulators — from the professional
@@ -1943,6 +2136,7 @@
 ## 2026-07-21 (feat: make all four creative studios discoverable to parents and kids)
 
 ### Added
+
 - **Parent Dashboard creative-spaces guide.** Parents now see Story Blocks, Creative Code
   Studio, Art Studio, and Music Stage together on `/portal`, with a plain-language explanation
   of each product, the exact Learn-home path their child follows, and a link to My Family for
@@ -1952,6 +2146,7 @@
   behind the generic “Explore all studios” card.
 
 ### Changed
+
 - Extended the shared create-tool registry with stable discovery IDs, parent descriptions, and
   Learn paths so the parent and kid surfaces render from the same live/paused product truth.
 - Released the Story Blocks autosave mutex before showing “saved”, so a child who immediately
@@ -1961,6 +2156,7 @@
 ## 2026-07-22 (test: Art Studio save/reopen coverage gaps closed)
 
 ### Added
+
 - **First spec for `ProjectDetailPage`** — the "🎨 Keep drawing" reopen entry (the flow behind
   the owner-reported "keep drawing 无法加载原始的图片" bug) finally has tests: an image
   artifact's ⋯ menu offers Keep drawing and navigates to `/learn/create/image` with exactly
@@ -1978,9 +2174,11 @@
   an upload failure keeps the drawing on the canvas with the friendly error (nothing reset);
   tapping a film-strip take activates it and clears working strokes; hold-to-compare shows the
   sketch pixels only while pressed (D-IS-19).
+
 ## 2026-07-21 (feat: parents can request a private tutor from the Tutoring page)
 
 ### Added
+
 - `/portal/tutoring` now starts with a **Book a teacher** panel. A parent selects one of
   their active children, describes the learning goal, chooses a preferred time, and sends
   an authenticated booking request. The page makes the non-instant contract explicit: the
@@ -1993,6 +2191,7 @@
 ## 2026-07-21 (feat: Music Stage — professional timbres: MusyngKite kit + sung vocal tracks)
 
 ### Changed
+
 - **Music Stage timbres upgrade to the MusyngKite soundfont kit** (owner report: 音色明显
   不对/太电子). `SOUNDFONT_KIT` switches from FluidR3_GM to gleitz's higher-fidelity
   MusyngKite kit — same layout and per-program file names, audibly closer to real
@@ -2005,6 +2204,7 @@
   slot style (style = None still silences them); the compose-time preload warms both.
 
 ### CI
+
 - **`soundfonts.yml` verify step now rejects the SPA fallback.** HTTP 200 alone let the
   2026-07 sample-library outage go unnoticed for 9 days (CloudFront serves index.html as
   200 for missing objects); every published-origin check now fails on a `text/html`
@@ -2013,6 +2213,7 @@
 ## 2026-07-21 (fix: Art Studio — strokes stop vanishing + the kid's intent reaches the magic)
 
 ### Fixed
+
 - **The just-finished stroke no longer vanishes after pen-up** (owner report: 一般第一笔,
   画一下就消失了). An animation frame scheduled by the last `pointermove` captured the
   previous render's `draw` closure; firing after `endStroke` committed the ops, it repainted
@@ -2037,9 +2238,11 @@
 - **Masked edits describe the intent, not a bare noun.** The wish now rides inside a
   region-replace template ("Same picture, keep everything outside the highlighted region
   unchanged; the highlighted region becomes: …") per the gpt-image edits contract (D-ISF-5).
+
 ## 2026-07-21 (feat: parent password login — explicit method choice on sign-in, D-AUTH-21)
 
 ### Added
+
 - **Parent email+password login (`auth-system-prd §4.8`, D-AUTH-21).** `/portal/login` now gives
   the parent an **explicit choice of sign-in method** — two first-class tabs, **Password** and
   **Email code**. Password is the default-selected tab; Email code is one tap away and stays the
@@ -2050,11 +2253,14 @@
   `has_password` flag on `/auth/me`. Min 8 chars; a forgotten password just falls back to a code.
 
 ### Changed
+
 - `UserPrincipal` / `MeResponse.user` carry `has_password`; `normaliseMe` defaults it to `false`.
 - Parent login page reworked into a Password/Email-code tab chooser; tests updated to match.
+
 ## 2026-07-21 (feat: Portal Dashboard "Now enrolling" — a just-logged-in parent sees open classes)
 
 ### Added
+
 - **"Now enrolling" panel on the Portal Dashboard (`/portal`).** A freshly-logged-in parent
   landed on the Dashboard but had no way to see which classes were actually open — course
   discovery was buried one level down at `/portal/classes`, and that page defaults its city
@@ -2066,6 +2272,7 @@
   (portal-class-discovery-prd D-PCD-11.)
 
 ### Changed
+
 - Extracted the bookable-class card (`ClassCard` + `AvailableClass` shape) out of
   `FindClassesPage` into shared `availableClasses.tsx` so the Dashboard panel and the
   Find-a-class page render an open class identically and share one query cache key.
@@ -2097,6 +2304,7 @@
 ## 2026-07-21 (feat: warn parents opening the app inside WeChat that the login/registration code won't arrive)
 
 ### Added
+
 - **WeChat in-app browser notice on the parent auth screens.** Parents who open
   `app.airbotix.ai` from a link shared inside WeChat get stuck: WeChat's built-in webview
   suppresses the email one-time code and can't leave to the inbox, so the login/registration
@@ -2110,6 +2318,7 @@
 ## 2026-07-21 (fix: checkout shows the card form immediately — Airwallex HPP via SDK, no more two-step Pay screen)
 
 ### Fixed
+
 - All four hosted checkouts (class seat, wallet top-up, per-session tutoring,
   academy product) now launch the Airwallex Hosted Payment Page through the
   Components SDK (`payments.redirectToCheckout`) on the intent the backend
@@ -2125,14 +2334,17 @@
   reconciliation is untouched. Unit tests added (`airwallex.test.ts`).
 
 ### Changed
+
 - Checkout response types carry optional `client_secret`.
 
 ## Unreleased
 
 ### Added
+
 - Added a development-only Journey to the West C1 runtime preview that uses the real Story Blocks parser, runner, editor, Flower Fruit Mountain background, and Stone Monkey asset without backend or production-data writes.
 
 ### Fixed
+
 - Clicking the already-selected **Parent or guardian** identity on the login gateway no
   longer clears the protected route that sent the parent there, so a marketing-site
   **Pay & lock the seat** deep link returns to its class checkout after OTP verification
@@ -2142,6 +2354,7 @@
 ## 2026-07-20 (feat: Art Studio picture gallery on the kid page — D-IS-5)
 
 ### Added
+
 - **`/portal/family/:kidId/images`** — parent-facing Art Studio picture gallery
   (image-studio-prd.md D-IS-5): header totals (picture count, ★ spent summed from
   `metadata.stars_charged`, last-created relative date), responsive image grid
@@ -2156,6 +2369,7 @@
   and unit tests (`KidImagesPage.test.tsx`, `kidImages.test.ts`).
 
 ### Fixed
+
 - **Honest totals on a capped list.** The gallery now requests
   `?kind=image&limit=200` (the backend's maximum page; its default is 40) and,
   when the response comes back exactly that long, the header says
@@ -2170,6 +2384,7 @@
 ## 2026-07-20 (feat: Art Studio tool rail v2 + new-picture keeps the old artwork)
 
 ### Changed
+
 - The left tool rail is TWO columns (owner feedback): column 1 = the tools,
   column 2 = only the picked tool's options — sticker grid for the stamp tool,
   colours for painting tools, and stroke-width preview DOTS (in the current
@@ -2181,6 +2396,7 @@
 ## 2026-07-20 (feat: Airbotix brand mark on the Art Studio bottom bar)
 
 ### Added
+
 - The takes strip carries the Airbotix logo + surface name at its left edge —
   the immersive page hides the Learn nav, so the brand rides the bottom bar
   exactly like the Music Stage transport (owner call).
@@ -2188,6 +2404,7 @@
 ## 2026-07-20 (feat: Art Studio goes live — un-paused everywhere it shows)
 
 ### Changed
+
 - Art Studio left the coming-soon list (owner call after the canvas-first
   rebuild): the Create tab now shows it as a live card, and the Workspace
   studio picker's Image card became a link-out to `/learn/create/image`
@@ -2198,14 +2415,17 @@
 ## 2026-07-20 (fix: Portal default landing back to Dashboard)
 
 ### Changed
+
 - **`/portal` (post-login default landing) is Dashboard again** — owner reversed QPCD-1
   (portal-class-discovery-prd.md v0.5): classes-first landing was never an owner decision.
   **Find a class** moves to `/portal/classes` (already its explicit path) and drops to
   second place in the nav drawer; `/portal/dashboard` redirects to `/portal` so old
   links keep working.
+
 ## 2026-07-20 (fix: Dashboard guide picks are English-first)
 
 ### Changed
+
 - **Dashboard "Picked for your family" recommendations are English-first** (D-PFG-05):
   `selectRecommendedGuides` now ranks every `en-AU` guide above guides in other
   languages — the featured/city/age tiers apply within each language band — so 中文
@@ -2216,14 +2436,17 @@
 ## 2026-07-20 (feat: Family Guides default to English with an EN/中文 toggle)
 
 ### Changed
+
 - `/portal/guides` now opens in **English by default** (D-PFG-04, resolves Q-PFG-3) with a
   prominent **English / 中文 toggle** replacing the language dropdown; the default keeps the
   URL clean while 中文 lands in `?language=zh-CN` like the other filters. Topic / location /
   age select options are scoped to the active language so they never dead-end across
   languages. Clear filters returns to the English catalogue.
+
 ## 2026-07-20 (fix: portal course list only shows courses actually on sale — D-6)
 
 ### Fixed
+
 - The Portal course list showed every `is_published` pack, which is the LEARNING-side flag.
   Unpriced marketing drafts (and teaching-only packs like `ai-pet-lab-v1`, which is not a sold
   course at all) appeared to parents with a "Request a seat" button. Worse, they were dead
@@ -2239,6 +2462,7 @@
 ## 2026-07-20 (feat: Art Studio goes full-screen like Story Blocks)
 
 ### Changed
+
 - `/learn/create/image` joins IMMERSIVE_ROUTES + AUTO_FULLSCREEN_ROUTES (owner
   call: 肯定是全屏,就跟 Story Blocks 一样) — Learn nav gone, no page scroll,
   auto browser-fullscreen on entry, own exit via "← All tools".
@@ -2246,6 +2470,7 @@
 ## 2026-07-20 (feat: 👤 My Characters + 🎮 use in my game)
 
 ### Added
+
 - **My Characters** (image-studio-prd D-IS-23): name the active take → saved as a
   character (artifact metadata); a 👤 picker in the takes strip puts any saved
   character back on the canvas as the base — characters grow across sessions and
@@ -2261,6 +2486,7 @@
 ## 2026-07-20 (feat: 🪄 magic brush — paint the spot, say what it becomes)
 
 ### Added
+
 - Region editing (image-studio-prd D-IS-18 ④ / P3a): once a magic take is on the
   canvas, the 🪄 Magic brush toggle lets the kid PAINT a pink highlight over the
   region to change and say what it becomes ("a golden crown") — sent as a mask
@@ -2270,6 +2496,7 @@
 ## 2026-07-20 (feat: Art Studio P2 finish — draw-along, checklist look, story time)
 
 ### Added
+
 - **Draw-along** (image-studio-prd D-IS-21): art missions can carry
   `steps_json.art.draw_along` steps — the task card walks the kid through them
   ("Step 1/3: a big circle for the body") and each step summons its own 2★
@@ -2284,12 +2511,14 @@
 ## 2026-07-20 (feat: add Tiny Star Village A4-D)
 
 ### Added
+
 - Added Mission 15 with a required overshoot observation and a locked number-only
   `Right 4` to `Right 3` repair before saved rerun completion.
 
 ## 2026-07-19 (feat: Portal Family Guides discovery layer)
 
 ### Added
+
 - New Portal page **`/portal/guides` (Family Guides)** — parent-portal-family-guides-prd.md
   §5.1: card grid over the new `GET /portal/resource-guides` catalogue endpoint (cover,
   title, summary, location/age/language chips, verified date, featured badge), with
@@ -2310,33 +2539,41 @@
 ## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
 
 ### Added
+
 - Added accessible native Year 3 table and solid-shape renderers with regression tests.
 
 ## 2026-07-19 (feat: add Tiny Star Village A4-B)
 
 ### Added
+
 - Added Mission 14 with a locked three-block breakfast-cart chain where the child
   changes only the movement parameter, saves, and runs to the table.
 
 ## 2026-07-19 (feat: Music Stage track editing, export and final pricing)
 
 ### Added
+
 - Added per-track rename, octave, pan, WAV download and paid re-roll actions, plus
   whole-song mix-aware WAV export and a confirmation preview before real-song generation.
 
 ### Changed
+
 - Music generation and re-rolls now cost 5★, real-song generation costs 15★,
   Voice Booth costs 5★, Art Studio costs 9★ and Video Studio costs 60★.
 - Playback and real-song prompts now honour mute, solo, volume, pan and octave settings.
+
 ## 2026-07-19 (fix: replace the Fable Forest placeholder with Alice)
 
 ### Changed
+
 - The Story Blocks collection shelf now shows the planned **Alice in Wonderland** classic
   adventure instead of the unrelated **Fable Forest** placeholder, matching the curriculum and
   marketing display name while keeping the collection visibly unavailable.
+
 ## 2026-07-17 (chore: pricing ladder final — labels + music-real model)
 
 ### Changed
+
 - 🎧 Make it real now bills as its own **`music-real` model (15⭐)** — `generateRealSong`
   sends `model: 'music-real'`; `REAL_SONG_COST_STARS` = 15. Score actions (compose / edit /
   card / re-roll) settle at **5⭐** after the owner's final "整体太低" uplift.
@@ -2347,6 +2584,7 @@
 ## 2026-07-17 (chore: music pricing 3 -> 5 stars)
 
 ### Changed
+
 - `MUSIC_GENERATION_COST_STARS` / `REAL_SONG_COST_STARS` raised 3⭐ → **5⭐** to match the
   backend `music-default` price bump (owner decision: music was underpriced). The lane
   `⋯` Re-roll menu label now derives from the constant instead of a hardcoded string.
@@ -2354,13 +2592,14 @@
 ## 2026-07-17 (feat: Music Stage track editing & export — track-editing PRD v0.1)
 
 ### Added
+
 - **Lane `⋯` actions now ACT** (they were shells that just opened the legacy Mixer region):
   **✏️ Edit** opens an inline drawer — rename, octave shift ±2 (melodic lanes; live at the
   next note, drums excluded), stereo pan — all 0⭐, keyed by instrument kind so they survive
   version switches; **↓ Download track** renders that ONE stem client-side (`Tone.Offline`
-  + fallback voices → 16-bit WAV, zero network, zero stars); **🔄 Re-roll −3⭐** fires a
-  single-track regeneration through the structured `rerollTrack` DTO field the backend
-  already supported (version pill `🔄 <Track>`).
+  - fallback voices → 16-bit WAV, zero network, zero stars); **🔄 Re-roll −3⭐** fires a
+    single-track regeneration through the structured `rerollTrack` DTO field the backend
+    already supported (version pill `🔄 <Track>`).
 - **↓ Song** on the transport bar — the whole mix exported as `{title}.wav`, honouring
   mute/solo/style=None/volume/pan/octave exactly as the stage plays it (`offlineRender.ts`).
 - **🎧 Make it real is now two-step**: the confirm popover shows "The AI will hear: …" —
@@ -2370,6 +2609,7 @@
   "the AI ignored me".
 
 ### Changed
+
 - **The stage mix now reaches the real-song provider** (`buildRealSongPrompt`): muted and
   style=None instruments leave the featuring list, a solo becomes "featuring mainly the …",
   VOL ≤0.4 / ≥0.98 read as "quiet/prominent <instrument>". Previously VOL/mute/solo were
@@ -2380,6 +2620,7 @@
 ## 2026-07-19 (feat: Art Studio is ONE conversation — no more form page)
 
 ### Changed
+
 - The Art Studio page is now a single chat stream (owner call: 不是表单+聊天框,
   整个体验就是对话): the paint-plan card renders as a message IN the stream, the
   finished picture arrives as an image bubble IN the stream, and after a picture
@@ -2391,11 +2632,13 @@
 ## 2026-07-19 (feat: expand Academy Year 3 native question visuals)
 
 ### Added
+
 - Added accessible native Year 3 table and solid-shape renderers with regression tests.
 
 ## 2026-07-19 (feat: Academy exam products and native practice)
 
 ### Added
+
 - Academy is sold and opened as a fixed exam/year/subject product. Kids see only products
   unlocked for them, and the practice player has no year switcher.
 - Parent Academy catalog, checkout/order confirmation, kid exam library, and fixed-product
@@ -2404,14 +2647,16 @@
   equal groups, clocks, solid shapes, coin collections, shape matrices, and symbol patterns.
 
 ### Tests
+
 - Academy component coverage plus the cross-repo purchase, child-scoped entitlement,
   12-question answer, DB read-back, and 390px mobile journey.
 
 ## 2026-07-19 (fix: deflake Story Blocks close-button queries in CI)
 
 ### Fixed
+
 - `BlocksStudioPage.test.tsx`: six `getByRole('button', { name: 'Close story
-  mission' })` queries fired synchronously right after `renderStudio()` — on
+mission' })` queries fired synchronously right after `renderStudio()` — on
   slow CI runners the button hasn't rendered yet (main went red on A3-D after
   an unrelated merge reshuffled vitest sharding). All now use the file's own
   `await screen.findByRole` pattern. Suite passes locally isolated + full.
@@ -2419,6 +2664,7 @@
 ## 2026-07-17 (feat: Art Studio coach chat shows its 1★ price)
 
 ### Changed
+
 - The Art Studio coach chat is now billed per turn (owner rule
   `rules/ai-star-billing.md`): the Send button reads "Send −1★" (matches the backend
   `kids-default` text-turn price) and each coach turn refreshes the wallet balance.
@@ -2426,6 +2672,7 @@
 ## 2026-07-17 (feat: Art Studio plan-first interaction — 想/画/改)
 
 ### Changed
+
 - The Art Studio now opens as a **conversation with an art coach** (owner call: plan first,
   never straight to generation). The FREE coach chat (`POST /llm/image-plan`) asks one short
   question at a time with tap-chips (WHO/WHERE/FEELING), then produces an **editable plan
@@ -2438,6 +2685,7 @@
 ## 2026-07-17 (feat: Art Studio rebuild — bucket auto-save, real prices, rename)
 
 ### Added
+
 - Create studios (image/voice/video) now resolve the kid's per-tool system bucket
   (`useCreateBucket` → `POST /kids/:id/create-buckets/resolve`) and every generation
   carries its `project_id`, so the backend persists an S3 `Artifact` — creations
@@ -2449,6 +2697,7 @@
   bucket-based Recent + real 8★ price label (the create/ pages' first tests).
 
 ### Changed
+
 - **"Image Maker" renamed to "Art Studio"** (kid-facing display strings only —
   route `/learn/create/image`, files and enums unchanged; image-studio-prd.md v0.2).
   Applies to the Create-tab tile, page chrome, project-drawer title, and the Portal
@@ -2463,9 +2712,11 @@
 - Studio "Recent" headers now state where work is saved ("saved to My Pictures ✓").
 - Removed `useRecentArtifacts` (cross-project `/kids/:id/artifacts?kind=` feed) in
   favour of bucket reads.
+
 ## 2026-07-19 (fix: transient refresh failures no longer log the user out — 2026-07-18 incident)
 
 ### Fixed
+
 - **A rate-limited or briefly-unreachable `/auth/refresh` no longer kills the session**
   (both principals: parent `user` + kid). `api.ts` treated every refresh failure as
   session death, so when a whole venue behind one egress IP hit the backend's old
@@ -2479,17 +2730,20 @@
   fresh-token-still-401 clears.
 
 ### Fixed
+
 - **Table/graph questions now show the image, not garbled text.** Questions whose data
   lives in a figure (a table of values, a bar graph, a grid, a clock) were being rendered
   from flattened, noisy extracted text — and PDF-layout extraction occasionally bled the
   next question's text in. `AcademyPracticePage` now detects these (figure keywords or >1
   question mark + an available image) and renders the scanned question image instead, with
   generic A–D options (the choices live in the image). Prose questions still render as text.
+
 # Changelog
 
 ## 2026-07-19 (feat: Art Studio P2 — Mission Mode + canvas templates)
 
 ### Added
+
 - **Mission Mode** (image-studio-prd D-IS-20): art missions (Mission.steps_json.art)
   open the Art Studio with a 🚀 task card in the coach rail; work saves to a
   mission-linked project (created lazily, teacher-visible via the existing class
@@ -2505,6 +2759,7 @@
 ## 2026-07-19 (feat: Art Studio P1 — canvas-first studio: 孩子的手在前,AI 的魔法在后)
 
 ### Added
+
 - The Art Studio is now a CANVAS studio (image-studio-prd v0.9, D-IS-11…19):
   four zones (left tool rail · center canvas · right AI coach rail · bottom
   takes film-strip). Stroke-list engine on `perfect-freehand` + `lazy-brush`
@@ -2520,12 +2775,14 @@
   picture; everything persists to My Pictures.
 
 ### Changed
+
 - The conversational ImageMakerPage is replaced by `art/ArtStudioPage` at
   `/learn/create/image` (the coach chat lives on as the AI-rail sidekick).
 
 ## 2026-07-18 (fix: shared-link background music — audio MIME in srcdoc inliner)
 
 ### Fixed
+
 - **Background music (and anything the game gates on it) now plays on public `/play/:shareId`
   links.** The srcdoc asset inliner's `ASSET_MIME` map (`buildPreview.ts`) had no audio rows,
   so a frozen share snapshot's raw-base64 `.mp3`/`.wav`/`.ogg`/`.m4a` inlined as
@@ -2539,9 +2796,11 @@
   base64; the MIME is derived at render time.
 - Tests: `buildGamePreview.test` — raw-base64 mp3 inlines as `data:audio/mpeg` (never
   octet-stream) + all four audio extensions map to real `audio/*` MIMEs.
+
 ## 2026-07-18 (fix: Creative Code Studio — manual edits no longer revert after AI activity; Time Machine reverts stick)
 
 ### Fixed
+
 - **Manual code edits no longer silently revert seconds after AI activity** (Creative Code
   Studio, PRD learn-game-studio-prd.md J3 revised). Four separate races made a stale server
   snapshot land on top of newer local work:
@@ -2552,7 +2811,7 @@
   2. **A 409 save conflict now keeps the kid's LIVE copy** (`projectPersistence`): the save
      retries the local files on the server's adopted version; the server's conflicting copy
      drops into the Time Machine ("Kept your newest copy" — now literally true). Previously
-     the code adopted the *server* files over the live editor, reverting the kid's work. A
+     the code adopted the _server_ files over the live editor, reverting the kid's work. A
      double conflict adopts the server counter and stays queued (no loop).
   3. **AI/fix turns merge per-path instead of wholesale-replacing the VFS**
      (`vfsOps.mergeTurnFiles` via `applyTurnFiles`): the turn wins only on the paths it
@@ -2576,6 +2835,7 @@
 ## 2026-07-17 (feat: teacher-prep immediate share-link — D-PREP-6)
 
 ### Added
+
 - **Teacher-prep game/blocks studios can create an external play-link in one click,
   with no grown-up approval** (teacher-prep-projects-prd.md D-PREP-6). The prep host
   (`TeacherPrepStudioPage`) now passes a `prepMode` flag into the shared studios;
@@ -2592,6 +2852,7 @@
 ## 2026-07-17 (change: "Free during workshop" AI cost UI — D-WFA-01)
 
 ### Added
+
 - **Studios now show "Free during workshop" instead of a star cost while a project's
   free-workshop window is live (workshop-free-ai-prd.md D-WFA-01).** The backend already
   returns `ai_free_now` on `GET /projects/:id` and waives all AI star charges regardless of
@@ -2610,11 +2871,14 @@
   `ImageStudioContent.aiFreeNow.test`.
 
 ### Changed
+
 - Added `ai_free_now?: boolean` to the `CodeProject` (codeApi) and `Project` (ProjectDetailPage)
   types so the field flows through the existing project fetches.
+
 ## 2026-07-17 (feat: walk-in workshop kids — restricted Learn + kid-code claim in Portal)
 
 ### Added
+
 - **Restricted Learn surface for walk-in (unclaimed) workshop kids** (auth-system-prd
   §5.2.1): nav trims to **My Classes + 🎟️ My code**; catalog surfaces (`/learn` home,
   Projects list/new, Create, Lessons catalog, AI Workspace) bounce to `/learn/classroom`
@@ -2630,13 +2894,14 @@
   409 nickname-collision retry with override).
 
 ### Fixed
+
 - Kid-age minimums in the register + add-kid forms aligned to the backend (6, D-SP8) —
   they allowed 4–5 and the backend rejected the submit.
-
 
 ## 2026-07-17 (change: Creative Code Studio jumps straight to the game prompt)
 
 ### Changed
+
 - **Creating a Creative Code Studio project now goes straight to the game playground
   prompt, skipping the second-level menu.** Every create entry-point — the Create tab
   card, the Learn-home "Creative Code Studio" card, the in-class "Create for this class"
@@ -2657,6 +2922,7 @@
 ## 2026-07-17 (docs: README troubleshooting pointer)
 
 ### Added
+
 - README quick start: troubleshooting note — "buttons do nothing" in local dev is
   almost always a backend 500 (local Postgres down; `/health` still 200), with the
   diagnosis chain linked in umbrella `rules/local-dev-environment.md`.
@@ -2664,6 +2930,7 @@
 ## 2026-07-17 (chore: pause Image Maker / Voice Booth / Video Studio as "Coming soon")
 
 ### Changed
+
 - **Image Maker, Voice Booth and Video Studio are paused on owner request** (output
   quality isn't there yet). A per-tool `comingSoon` flag in the shared create-tool
   registry (`src/pages/learn/create/createTools.ts`) now drives every surface:
@@ -2688,6 +2955,7 @@
 ## 2026-07-17 (chore: hide the self-serve Lessons catalog behind a feature switch)
 
 ### Changed
+
 - The kid-facing Lessons catalog (`/learn/missions` — the course-pack browser fed by
   `GET /course-packs` — and its per-pack detail page) is temporarily hidden on owner
   request via a new `SHOW_LESSONS_CATALOG` switch (`src/lib/features.ts`), because the
@@ -2700,12 +2968,14 @@
 ## 2026-07-16 (feat: add a structural picture-first If condition)
 
 ### Added
+
 - Story Blocks now has a real C-shaped `If touching` container. A child chooses another character
   and places multiple actions in its visibly nested body. There is no separate `End if` block.
 - The editor provides a touch-first character picker, the saved project preserves the selected
   character ID, and old one-action Junior If projects migrate without changing their behavior.
 
 ### Changed
+
 - Refined the low-age If container into a lighter control spine with a labelled `Then do` pocket.
   Nested actions, the add affordance and the active insertion state now have separate visual zones,
   and the insertion prompt points children to the block palette on the left.
@@ -2715,17 +2985,19 @@
   duplicate raised block surface while preserving its tap-to-choose and whole-If drag behavior.
 
 ### Tests
+
 - Added parser migration, nested-body store behavior, C-container rendering, editor target-picker,
   and multi-action true/false runtime coverage.
 
 ## 2026-07-17 (fix: Creative Code Studio Time Machine — AI turns now add save points)
 
 ### Fixed
+
 - **The Code Editor's Time Machine now adds a save point for every AI turn, named by the
   backend's kid-readable label.** The turn result has always carried a `history_label`
   ("Made a change", "Added a pause button"), but the studio never recorded it: only manual
   edits snapshotted (the editor's idle autosnapshot on dirty drafts + file-tree ops), and an
-  applied AI turn refreshes the editor's drafts to the committed content *without* marking them
+  applied AI turn refreshes the editor's drafts to the committed content _without_ marking them
   dirty — so the idle autosnapshot never fired for it. A game built purely by prompting never
   grew past its "Your game started here" entry. Most visible in **teacher-prep projects**, which
   are built prompt-first (teachers iterate almost entirely via 0-Stars chat turns) — the reported
@@ -2741,6 +3013,7 @@
   threaded to the recorder via `useGameAgent`'s `onTurnApplied(result, { prompt })` seam.
 
 ### Changed
+
 - **Time Machine entries are named from an authored label, not by reverse-parsing a technical
   summary.** `Checkpoint` gains an explicit `label` + semantic `kind`
   (`initial|edit|file|revert|kept-newest|ai`); `HistoryPanel` renders the `label` verbatim with a
@@ -2751,6 +3024,7 @@
   render.
 
 ### Tests
+
 - `historyStore.test.ts`: authored `label`/`kind` stored verbatim; a plain auto edit leaves them
   undefined; an AI turn identical to the latest snapshot dedupes to null; a coalesced typing burst
   keeps the session's label/kind.
@@ -2762,6 +3036,7 @@
 ## 2026-07-17 (fix: game-player pause/mute silences background music started via a bare Audio element)
 
 ### Fixed
+
 - **Pause and mute in the game player now stop background music that a game plays through a bare
   `new Audio(src)` element it never adds to the page.** The engine-agnostic `AUDIO_CONTROL` shim
   (`buildGamePreview.ts`) suspends/mutes every `AudioContext` and every `<audio>/<video>` it can
@@ -2775,6 +3050,7 @@
   scene) is born silenced too — not only what was already playing.
 
 ### Tests
+
 - Extended `buildGamePreview.audioControl.test.ts`: a bare `new Audio()` never added to the DOM is
   muted and paused; a detached track that only starts after mute is born silent; a WebAudio context
   created after mute is born with its master gain at 0. Refreshed the `buildGamePreview` srcdoc
@@ -2783,6 +3059,7 @@
 ## 2026-07-16 (fix: class/course assets load in the game via a same-origin bytes proxy)
 
 ### Fixed
+
 - **A referenced class/course asset now actually loads in the game.** In teacher prep (and the kid
   playground), referencing a shared asset by `assets/class/<name>` logged
   `[airbotix] Texture failed to load: assets/class/<name>` and the asset never rendered: the runtime
@@ -2795,11 +3072,13 @@
   cross-origin failure (it `fetch()`ed the model bytes) — both now use the same-origin proxy.
 
 ### Changed
+
 - `playgroundApi`: `fetchAssetDataUrl(url)` → `fetchClassAssetDataUrl(projectId, assetId)` (fetches
   via the proxy) + a shared `blobToDataUrl` helper; `lib/api` gains `apiBlob` (authenticated
   same-origin binary fetch, now also backing `apiDownload`).
 
 ### Tests
+
 - Updated `classAssetResolver.test.ts` (resolver fetches by `(projectId, assetId)`),
   `playgroundApi.test.ts` (`fetchClassAssetDataUrl` hits the proxy, never the signed URL), and
   `AssetViewerPane.classAssets.test.tsx` (model preview mock).
@@ -2807,6 +3086,7 @@
 ## 2026-07-17 (feat: make parent and kid sign-in unmistakable)
 
 ### Changed
+
 - Rebuilt the shared sign-in experience around an explicit first question — **Parent or
   guardian** or **Kid creator** — with the active identity, its credential type, and a direct
   route switch visible before either form.
@@ -2823,14 +3103,17 @@
 - The game stage now doubles as an Airbotix creation showcase, rotating through three curated
   course worlds every eight seconds with manual pagination, pause/play control, and a static
   experience for visitors who prefer reduced motion.
+
 ## 2026-07-17 (feat: add Tiny Star Village A3-S)
 
 ### Added
+
 - Added saved character choice, one child-authored tap response, and real-run completion evidence for Mission 12.
 
 ## 2026-07-15 (feat: Tiny Star partners become responsive story characters)
 
 ### Changed
+
 - **Character dialogue is calm instead of uncanny.** Lumi and Tuan Tuan now keep a friendly,
   stable smile while speaking instead of looping the mouth open and closed. Lumi waves once, and
   both puppets keep only the natural slow blink while a speech bubble is visible.
@@ -2856,6 +3139,7 @@
 ## 2026-07-15 (change: pause AI asset generation in Creative Code Studio)
 
 ### Changed
+
 - **AI asset generation is disabled behind a feature flag (`featureFlags.ASSET_GENERATION_ENABLED`,
   default `false`).** The kid-facing ENTRY POINTS are now hidden/short-circuited: the Asset Viewer's
   ✨ Generate bar and Remix bar don't render, and a chat message classified as an "asset" request
@@ -2868,6 +3152,7 @@
 ## 2026-07-15 (fix: the unsent playground chat draft survives a split-tab switch)
 
 ### Fixed
+
 - **Creative Code Studio kept an unsent chat message only until you looked away.** In split mode,
   typing into the Airo composer and then flipping to the Assets (or Code / Guide) tab and back
   discarded the draft — the chat pane unmounts on a tab switch and the composer text lived in that
@@ -2879,6 +3164,7 @@
 ## 2026-07-14 (feat: typed text edits the current song — the composer gets an edit mode)
 
 ### Added
+
 - **"✏️ Change this song" — typed freeform edits on the Music Stage (D-MS10).** Only the five
   suggestion cards could iterate on the current song; typing in the composer always composed from
   scratch ("每次都是从零 Compose" — user-reported, with Suno's edit-on-existing flow as the
@@ -2887,14 +3173,17 @@
   take lands as a `✏️ Edit` version, and "✨ New song" switches back to a from-scratch compose.
 
 ### Changed
+
 - **The composer input is a real textarea now** (Enter sends, Shift+Enter breaks a line; prompt cap
   120→240 chars) and edit mode puts the idea chips + genre pills away — together they answer
   "输入空间太少了". The input clears itself after a take lands.
 
 ## 2026-07-14 (fix: Music is discoverable from the studio picker again)
+
 ## 2026-07-14 (feat: Academy — NAPLAN Maths practice in the Learn SPA)
 
 ### Added
+
 - **Academy — NAPLAN Maths practice (`/learn/academy`).** A new kid Learn surface: pick a year
   level (Year 3/5/7/9, default Year 5; subject fixed to Numeracy), work through ~20 real
   NAPLAN-style questions one at a time, and get the official answer straight after each try. Renders
@@ -2906,6 +3195,7 @@
   tile links to it.
 
 ### Fixed
+
 - **The Workspace studio picker had no Music entry at all.** When the Stage moved out of the chat
   shell (D-MS7) the music card was removed from the picker, leaving the Create-hub 🎵 card as the
   only discoverable entry — a kid (or owner) standing in front of "What do you want to make with
@@ -2915,15 +3205,18 @@
 ## 2026-07-14 (feat: Tiny Star Village chapter 2 missions)
 
 ### Added
+
 - Added the Tiny Star Village A2-B and A2-D Story Blocks missions with real direction editing, exact run/save completion gates, and focused behavioural coverage.
 - Added the Story Journey map and catalog so completed and upcoming Tiny Star Village scenes have a child-facing progression surface.
 
 ### Changed
+
 - Extended the Story Blocks hub, mission guide, coach, starter registry, persistence state, and studio controls for the chapter 2 direction workflow.
 
 ## 2026-07-14 (fix: the Music Stage no longer auto-enters OS fullscreen)
 
 ### Fixed
+
 - **Opening the Music Stage hijacked the whole browser into OS fullscreen on the first click.**
   Auto-fullscreen-on-first-gesture is a Blocks Studio behaviour (tablet-first); it applied to every
   immersive route, so the Music Stage triggered it too. The two concerns are now separate: immersive
@@ -2933,6 +3226,7 @@
 ## 2026-07-14 (fix: opening the AI Studio no longer bounces onto an old song)
 
 ### Fixed
+
 - **Clicking "✨ AI Studio" hijacked the kid onto `/learn/music/<old-session>`.** The Workspace
   auto-resumes the most recent session on entry, and the D-MS7 bridge (music session → Music
   Stage) fired on that AUTO-selected session too — so a kid whose latest session was a song could
@@ -2942,8 +3236,9 @@
 ## 2026-07-13 (fix: the auth card fits above the fold on laptop screens)
 
 ### Fixed
+
 - **The kid/parent login card's primary CTA sat below the fold on laptop-height screens.** The
-  `hero-display` headline scales by viewport *width* (`7vw`), so a wide-but-short laptop window got
+  `hero-display` headline scales by viewport _width_ (`7vw`), so a wide-but-short laptop window got
   a ~150px headline and pushed "Let me in" off-screen — which reads as a broken page, not a
   scrollable one (user-reported). `@media (max-height: 900px)` now compacts the shared auth shell
   (tighter shell/card padding, height-scaled headline, snugger field spacing), so the whole card
@@ -2953,6 +3248,7 @@
 ## 2026-07-13 (fix: a banner above an immersive studio clipped its bottom bar off-screen)
 
 ### Fixed
+
 - **The Music Stage's transport bar could sit below the fold whenever anything rendered above the
   studio.** `LearnLayout`'s immersive `<main>` was `h-full` — 100% of the whole layout column — and
   the stage itself was `h-dvh`, so the moment something occupied the strip above it (the
@@ -2966,6 +3262,7 @@
 ## 2026-07-13 (feat: the Music Stage adopts the studio split layout — D-MS9)
 
 ### Changed
+
 - **The Stage's page skeleton now mirrors the Creative Code Studio's split workspace.** Going
   fullscreen (D-MS7) had only moved the Stage out of the chat shell — inside, it was still one long
   vertical form (composer → stage → AI bubble → suggestion cards → timbre picker → lanes) that all
@@ -2981,6 +3278,7 @@
   the old behaviour.
 
 ### Fixed
+
 - **The transport bar could sit 8px below the viewport.** The pane root lacked `min-h-0`, so the
   docked composer's intrinsic height propagated up the flex chain (`min-height:auto`) and pushed the
   transport row partially out of the screen. The root chain is now `min-h-0` + `overflow-hidden`
@@ -2989,6 +3287,7 @@
 ## 2026-07-13 (feat: the Music Stage gets its own fullscreen surface — D-MS7/D-MS8)
 
 ### Changed
+
 - **Music is its own immersive surface (`/learn/music`), not a pane in the Workspace.** The Stage
   used to sit in the Workspace's three-pane chat shell: a session sidebar on the left, a chat
   transcript below, and the band — the entire point of the feature — squeezed into a 320px strip in
@@ -3003,21 +3302,26 @@
   whose instruments were dimmed into invisibility (opacity .32 + grayscale .8 + brightness .55,
   stacked on an already-dark stage). The band is the invitation — five silhouettes waiting to be
   filled — so it stays legible; the spotlight is what's off. The instruction now lives only where
-  the kid is meant to act, and the AI bubble introduces what the conductor can *do* for them.
+  the kid is meant to act, and the AI bubble introduces what the conductor can _do_ for them.
 
 ### Fixed
+
 - **A "fullscreen" route could still be letterboxed.** `LearnLayout` hid the nav and locked page
-  scroll for immersive routes, but the container width was decided by a *separate* list — so a route
+  scroll for immersive routes, but the container width was decided by a _separate_ list — so a route
   registered as immersive but missing from the fluid list rendered inside the centered `max-w-5xl`
   reading column. Immersive now implies full-bleed, with a test to keep it that way.
+
 ## 2026-07-13 (feat: Tiny Star Village A1 story mission)
 
 ### Added
+
 - Connected the Story Blocks A1 mission guide, story coach, saved-program progress state, and completion celebration for Tiny Star Village.
 - Enlarged the Lumilo character presentation in the story scene.
+
 ## 2026-07-13 (feat: Music Stage is the only music surface — Music Maker retired, D-MS6)
 
 ### Added
+
 - **🎧 "Make it real" on the Music Stage.** The score the kid composed is now rendered as actual
   audio by the provider (ElevenLabs / Suno / the DeepRouter gateway) as step ⑥ of the Stage flow,
   3⭐. The prompt is **derived from the score on the stage** — title, genre, BPM, key, instruments,
@@ -3029,6 +3333,7 @@
   Music Stage rather than the studio picker.
 
 ### Changed
+
 - **Music Maker is retired; the Music Stage is the single music surface.** Two "make music" doors
   in the kid's navigation — one producing a real song it could not edit, one producing a score it
   could — was a split product, not two complementary tools. The Create hub's 🎵 card now opens the
@@ -3040,14 +3345,16 @@
   project — otherwise a song made for a class would have been invisible to the teacher.
 
 ### Fixed
+
 - **A recorded song would have vanished on reload.** The backend only writes an audio Artifact when
   the request names a project (`runMedia`), and a free-play Stage session has none — so "Make it
-  real" mints (and reuses) the song's project *before* generating. Save and Make-it-real share that
+  real" mints (and reuses) the song's project _before_ generating. Save and Make-it-real share that
   one project, so a single song can't scatter across two My Works entries.
 
 ## 2026-07-13 (feat: favicon — airbotix-app had none)
 
 ### Added
+
 - **Tab icon.** This SPA shipped with no favicon at all (browsers drew the blank default page
   glyph). Added `favicon-16/32.png` + `apple-touch-icon.png`: the brand cloud mark knocked out
   of a **brand-coral (AI Coding)** (`#FF7A66`) rounded square, generated from the real logo by
@@ -3066,20 +3373,22 @@
 ## 2026-07-13
 
 ### Removed
+
 - **Creative Code Studio "welcome back" resume recap card.** The `ResumeRecap` card that
   greeted a kid on reopening a game in the playground AI chat is deleted: `ResumeRecap.tsx`
-  + `ResumeRecap.test.tsx` removed; `panes/ChatPane.tsx` no longer renders it (its
-  `recap`/`onContinueRecap` props dropped); `Workspace.tsx` drops the `resumeRecap` prop and
-  the `recapDismissed`/`showRecap` state; `PlaygroundApp.tsx` drops the `resumeRecap` state
-  and the best-effort `getProject → learning_context` recap fetch (the engine-load
-  `getProject` call is unchanged); the `LearningContext` interface + both `learning_context`
-  fields dropped from `pages/learn/code/codeApi.ts`. The backend `learning_context`
-  persistence is unchanged (still agent-updated for continuity — playground-ai-prompt-prd
-  D-PAP-19/22); only the kid-facing card is removed. See PRD v0.6.1 (S5 / D-PAP-18).
+  - `ResumeRecap.test.tsx` removed; `panes/ChatPane.tsx` no longer renders it (its
+    `recap`/`onContinueRecap` props dropped); `Workspace.tsx` drops the `resumeRecap` prop and
+    the `recapDismissed`/`showRecap` state; `PlaygroundApp.tsx` drops the `resumeRecap` state
+    and the best-effort `getProject → learning_context` recap fetch (the engine-load
+    `getProject` call is unchanged); the `LearningContext` interface + both `learning_context`
+    fields dropped from `pages/learn/code/codeApi.ts`. The backend `learning_context`
+    persistence is unchanged (still agent-updated for continuity — playground-ai-prompt-prd
+    D-PAP-19/22); only the kid-facing card is removed. See PRD v0.6.1 (S5 / D-PAP-18).
 
 ## 2026-07-12
 
 ### Added
+
 - **Game overlay layer (D-GAME13, frontend runtime half).** `overlay.html` is the ONE
   reserved HTML fragment the game runtime renders: `buildGamePreview.ts` sanitizes it with
   DOMParser (scripts stripped, malformed markup repaired so an unclosed tag can't swallow
@@ -3109,6 +3418,7 @@
   with no page scroll and no zoom; the desktop `chromium` project excludes `@mobile`.
 
 ### Changed
+
 - **Public `/play` page fits the real mobile viewport:** `h-dvh` where supported with an
   `h-screen` fallback (`supports-[height:100dvh]:h-dvh` — the iOS/Android URL bar overlapped
   100vh and hid bottom-anchored touch controls; pre-dvh browsers keep a working full-height
@@ -3126,6 +3436,7 @@
 ## 2026-07-12 (ci: self-host the Music Stage sample library — closes music-stage OQ-3)
 
 ### CI
+
 - **`Publish soundfonts` workflow** (`workflow_dispatch`) mirrors the 11 GM programs
   the §5 style table uses (FluidR3_GM) and the 3 sampled drum machines to
   `s3://airbotix-app-prod/soundfonts/` — the SPA's own bucket + CloudFront, so
@@ -3141,6 +3452,7 @@
 ## 2026-07-12 (feat: Music Stage — Save to My Works + Mixer entry + style_changes counter, music-stage-prd v0.5)
 
 ### Fixed
+
 - **Version pin no longer yanked by passive updates** — a background messages
   refetch (or another device's activity) used to re-run the "new version
   arrived" choreography and unpin the kid's selected version (AC-7); the
@@ -3149,6 +3461,7 @@
   journeys can target them deterministically.
 
 ### Added
+
 - **`[💾 Save]` on the transport row (PRD §2 step ⑤)**: promotes the CURRENT
   score version into the kid's My Works by composing existing endpoints only —
   `POST /projects` (creative project titled after the song) → artifact
@@ -3171,6 +3484,7 @@
 ## 2026-07-12 (fix: Music Stage — production soundfont self-host gate, music-stage-prd OQ-3)
 
 ### Fixed
+
 - **The smplr sample path is now gated on self-hosting in production
   (music-stage-prd OQ-3 launch gate)**: `smplrEnabled()` allows smplr only
   when `VITE_SOUNDFONT_BASE_URL` points at our own origin, or in DEV builds
@@ -3184,6 +3498,7 @@
   baked-in third-party default.
 
 ### Changed
+
 - `.env.example` documents `VITE_SOUNDFONT_BASE_URL` as REQUIRED in production
   for sampled timbres, including the expected layout (gleitz soundfonts at the
   root, smpldsnds drum machines under `/drum-machines`).
@@ -3191,6 +3506,7 @@
 ## 2026-07-12 (fix: Music Stage — align frontend↔backend music-score contract)
 
 ### Fixed
+
 - **Suggestion-card modifier keys now use the canonical backend enum**
   (`energy+1` / `energy-1` / `drums+` / `guitar_solo` / `surprise`, matching
   platform-backend `SCORE_MODIFIER_KEYS`): the DTO enum-validates the
@@ -3205,6 +3521,7 @@
   free-play generations produced an empty version rail.
 
 ### Changed
+
 - `MusicScoreResult` matches the real `POST /llm/music-score` response shape:
   gains the inline `score` and `session_id` fields alongside `stars_charged` /
   `balance_after` / `artifact_id`.
@@ -3214,6 +3531,7 @@
 ## 2026-07-12 (feat: Music Stage — smplr timbres + instrument styles, music-stage-prd Phase D §5/§6.1)
 
 ### Added
+
 - **smplr GM-soundfont timbre engine (PRD §6.1, Tier-1)**: every §5 instrument
   style now maps to a real sampled voice — melodic styles to General MIDI
   programs (new `soundfont.ts` with the 12-program `GM_PROGRAM_SOUNDFONTS`
@@ -3242,6 +3560,7 @@
   races, and pane tests for preview-on-pick, no-preview-on-None and preload.
 
 ### Changed
+
 - `useScorePlayback` now builds voices per slot **style** (not a fixed synth
   per instrument) behind stable controllers, so style changes swap timbres
   mid-playback without touching the Tone.js Transport scheduling (architecture
@@ -3250,6 +3569,7 @@
 ## 2026-07-12 (feat: Music Stage — Track Lanes, music-stage-prd Phase C §4)
 
 ### Added
+
 - **Track Lanes polish (PRD §4)**: piano-roll note blocks now **light up while
   they sound** (full-strength instrument color + glow, synced with the
   playhead and the stage pulses); each lane gained a tail `⋯` overflow menu
@@ -3265,12 +3585,14 @@
   behaviour, and the narrow-screen drawer handle (AC-12).
 
 ### Changed
+
 - Compacted the Track Lanes styling (narrower channel strip, shorter
   piano-rolls) so Stage + Lanes share one desktop screen per PRD §2.1.
 
 ## 2026-07-12 (feat: Music Stage — studio=music opening, music-stage-prd Phase B)
 
 ### Added
+
 - **Music Stage** now opens `/learn/workspace` studio=music (replacing the
   form-based setup, music-stage-prd.md §1.1): a theater `StageView` with 5
   fixed instrument positions, moving spotlight, genre neon marquee,
@@ -3295,6 +3617,7 @@
   rendering (AC-9 frontend half) and version switching (AC-7).
 
 ### Changed
+
 - Extracted the Tone.js engine from `MusicScorePlayer` into a shared
   `useScorePlayback` hook (instrument-keyed mute/solo/volume, velocity
   support, all 14 score instrument kinds, note-pulse subscription) and
@@ -3309,6 +3632,7 @@
 ## 2026-07-11
 
 ### Changed
+
 - Updated repository instructions and demo documentation to use **Story
   Blocks** and **Creative Code Studio**, while preserving stable technical
   identifiers and `/try/*` routes.
@@ -3328,6 +3652,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-10 (feat: registration legal-consent checkbox)
 
 ### Added
+
 - **Required legal-consent checkbox on `RegisterPage`.** Family setup is now
   blocked until the parent ticks "I am the parent or legal guardian … and I
   agree to the Terms of Service, Privacy Policy, and Parental Consent" (each
@@ -3341,6 +3666,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-10
 
 ### Added
+
 - **Playground chat: ANSWER chips on question turns (D-HARN-07 FE half,
   `playground-agent-harness-prd.md`).** A settled turn with ZERO `changes` and non-empty
   `next_steps` is a QUESTION turn — the summary is a clarifying question and the chips are its
@@ -3393,6 +3719,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `GameRunnerPane.test.tsx`.
 
 ### Changed
+
 - **Playground pre-turn flush must now SUCCEED for every FRESH paid turn (D-HARN-05).**
   `flushBeforeTurn` reports success; when the pre-turn save of the kid's freshest edits
   fails, the PAID turn does NOT run against a stale VFS — the pending bubble settles into
@@ -3421,6 +3748,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `PlaygroundApp.classCreate.test.tsx` + `TeacherPrepStudioPage.test.tsx`.
 
 ### Fixed
+
 - **Teacher prep studios no longer strand a teacher on a load error.** When a prep
   studio is hosted embedded and the project fails to load, the Blocks error-state
   "← Back to Blocks" link and the game studio's load-error "Make something new" button
@@ -3434,6 +3762,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-09
 
 ### Added
+
 - **Teacher prep-project studio (editable) — Stage 2.** A new `/teacher/prep/:projectId`
   route (`TeacherPrepStudioPage`, under the `/teacher` `ProtectedRoute kind="user"` outlet)
   mounts the REAL studios EDITABLE so a teacher builds/iterates a prep project exactly like
@@ -3461,6 +3790,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (cancelTurn settles the turn calmly, no Stars, both fetches receive the signal).
 
 ### Fixed
+
 - **Class assets with spaces in their filename now load in the game (Model A).** The
   game-runtime class-asset resolver's `assets/class/<name>` regex stopped at the first
   whitespace, so a model like `Animated Platformer Character.glb` captured only
@@ -3501,6 +3831,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   purchase (no duplicate "we'll contact you" card).
 
 ### Changed
+
 - **Game Studio: class assets are now DIRECTLY referable — no "Add to my game" button
   (class-shared-assets-prd Model A).** A class shared asset is used straight from the chat
   by its virtual path `assets/class/<name>` — the AI and the runtime resolve it from the
@@ -3527,6 +3858,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-08
 
 ### Added
+
 - **Portal class discovery (`portal-class-discovery-prd.md` v0.3).** `/portal`
   now defaults to Find a class, with `/portal/dashboard` preserving the old dashboard.
   Parents can filter upcoming purchasable classes by city, persist their city to the
@@ -3552,11 +3884,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   Covered by `CoursesPage.test.tsx`.
 
 ### Changed
+
 - **OTP return-to now survives new-user registration**: `VerifyOtpPage` threads
   the stashed `from` location through to `/portal/register` as router state, and
   `RegisterPage` sends the parent back to `from` (e.g. a marketing pay-now
   deep-link) after the family is created — dashboard default unchanged when no
-  `from`. The has-family redirect only fires for parents who *arrive* with a
+  `from`. The has-family redirect only fires for parents who _arrive_ with a
   family (and now honours `from` too); the mid-creation `me` refetch no longer
   hijacks the family-code success screen. Covered by `VerifyOtpPage.test.tsx`
   and `RegisterPage.test.tsx`.
@@ -3564,6 +3897,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-07
 
 ### Fixed
+
 - **My Classes course covers now use a larger left media panel on the class hub.**
   `ClassHeader` keeps the existing class title / CTA / progress layout but moves it to the right
   of a near-square course image, matching portrait-ish course artwork better than the old narrow
@@ -3571,6 +3905,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   media panel has no gutters. Covered by `ClassCoverImage.test.tsx` and `ClassHubPage.test.tsx`.
 
 ### Changed
+
 - **In-class Create now respects the course's enabled project types (my-classes D-MC-11).**
   `ClassMineSummary.allowed_kinds` feeds `CreateForClassSheet`; top-level creative/blocks tools
   and Code Studio's Web Code/Game Playground subtypes are filtered separately. Personal
@@ -3586,6 +3921,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-06
 
 ### Changed
+
 - **Playground Class asset tab reaches full parity with My-assets — renders `model` (glb 3D), `other` (data/fonts/shaders) + sprite sheets.**
   The backend asset libraries were widened to the playground's full importable set, so `GET /projects/:id/class-assets`
   can now include `kind: 'model' | 'other'` (a sprite arrives as an `image` PLUS a sibling `<name>.anim.json` `other`
@@ -3610,7 +3946,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   existing `class.asset_added/removed/assets_copied` WS refetch already covers course-default
   changes (backend fans the same events out). Covered by `AssetViewerPane.classAssets.test.tsx`
   (course-first ordering, per-card origin badges, detail source labels) and `playgroundApi.test.ts`.
+
 ### Fixed
+
 - **A shared 3D game rendered NOTHING; a shared 2D game was fine (D-3D-01).** The read-only play
   surface — `ReadOnlyGameFrame`, used by the public play host (`/play/:shareId`) AND the class wall
   (`WallGameCard`) — always built its sandbox srcdoc with the default Phaser (2D) engine, so a
@@ -3624,6 +3962,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-05
 
 ### Fixed
+
 - **Playground/code chat: a safety-screen OUTAGE no longer blames the kid's picture (D-PAP-46).**
   The backend now distinguishes a classifier outage (`422 MODERATION_UNAVAILABLE`) from a real
   content reject. `useGameAgent` maps it to the new `IMAGE_CHECK_HICCUP_MESSAGE` ("Our picture
@@ -3638,6 +3977,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-04
 
 ### Fixed
+
 - **Stale-verdict guard + frame-source check (adversarial review findings).** (1) A run-report
   POST is held open for the whole server-side fix turn; if the kid sent a chat turn meanwhile,
   the late `fixing` verdict used to apply the fix turn's OLDER files over the kid's newer turn
@@ -3658,6 +3998,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `teacher-kid-classroom`). The seeded z-order keeps the chat on top where they overlap.
 
 ### Added
+
 - **Playground post-apply verification loop — FE half (playground-ai-prompt-prd D-PAP-40/41/44).**
   After an applied game turn (`verification: 'pending'` on the turn result), the studio now runs
   the game **instrumented**, builds a structured **RunReport** (v1, mirrored from
@@ -3696,6 +4037,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     the first build plays (and gets verified via resume-verify) without pressing ▶.
 
 ### Changed
+
 - **`verifyRoundtrip.extractRuntimeErrors` accepts curated failure warns** (`/^\[airbotix\]/`,
   `Failed to load|process`, `Texture … missing|not found`, `Scene … not found`) — generic kid
   `console.warn` still never triggers a Stars-charged fix.
@@ -3707,9 +4049,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-03
 
 ### Fixed
+
 - **2D→3D conversion no longer deletes the kid's imported assets (Game Studio, D-3D-08 ×
   D-3D-09).** Converting a game between engines ("make it 3D") rebuilds it on a clean
-  starter, and `resetEngine` was replacing the *entire* VFS with just that starter — so a
+  starter, and `resetEngine` was replacing the _entire_ VFS with just that starter — so a
   `.glb` (or any image/audio) the kid had just imported vanished the moment they went 3D to
   use it. The engine switch now drops only the old engine's **code** and carries the kid's
   uploaded **assets** (anything `kind:'asset'` or under `assets/`) across the rebuild; the
@@ -3733,6 +4076,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (turn-result asset base64 → `data:` URL; text + `changes[].after` untouched).
 
 ### Added
+
 - **GLB 3D-model assets in the Game Studio Asset Viewer (learn-game-studio-3d-prd D-3D-09,
   resolves OQ-3D-2).** Kids can now (1) **import** animated `.glb` models from local
   (file picker / drag-drop — `glb` joins `IMPORTABLE_EXTENSIONS`, same ≤50 MB confirmed-upload
@@ -3758,6 +4102,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   copy against realistic exporter output.
 
 ### Changed
+
 - **One inline Copy behaviour everywhere in the Asset Viewer (user feedback).** The reference
   blocks (My assets / Library / Class) now use the same "Copied!"-on-the-button pattern as the
   Animations "Copy name" — a shared `CopyButton` component (clipboard write + 1.5 s check-icon
@@ -3779,6 +4124,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   regression fails the suite.
 
 ### Fixed
+
 - **`GLTFLoader is not available` / 3D models not loading — stale immutable cache of the vendored
   engine (learn-game-studio-3d-prd D-3D-09).** The self-hosted `/vendor/` engine globals had a
   FIXED, version-only filename yet shipped `immutable, max-age=1yr` (deploy.yml) with CloudFront
@@ -3811,6 +4157,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   captures info logs (`__smokeLogs`).
 
 ### Changed
+
 - **Class-code login (`/learn/class-code`) now requires a display name.** The "What do you want
   to be called?" field was labelled `(optional)`; a kid could join with no name. It is now
   required (trimmed, 1–40 chars) with an inline validation error ("Please tell us your name."),
@@ -3819,6 +4166,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   successful submit.
 
 ### Fixed
+
 - **Login mode toggle restyled to match the Learn design language.** The "Family code / At class"
   tabs were a heavy ink-filled pill next to a flat sky wash — off-style for the kid surface.
   Now a proper segmented control: warm `surface` track with a white active pill (`bg-canvas-pure` +
@@ -3829,6 +4177,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-02
 
 ### Added
+
 - **"At class" login mode on `/learn/login` (auth-system-prd §5.3).** The kid login page now has
   a two-tab toggle: "👪 Family code" (unchanged) and "🏫 At class" — for enrolled kids who forgot
   their family code/PIN while at class. The kid types the class code from the board + their name
@@ -3845,6 +4194,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-07-02 (Playground chat composer: attach-button polish)
 
 ### Changed
+
 - The chat composer's attach-a-picture button is now a proper round chip (bordered, surface
   background, sky accent on hover) instead of a bare icon, and the composer row gained symmetric
   left padding — so it visually pairs with the round send button instead of hugging the border.
@@ -3852,6 +4202,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-30 (Playground AI chat: image input — upload + clipboard paste, FE half)
 
 ### Added
+
 - **Kids can attach pictures to a playground chat turn so Airo "sees" them** (playground-ai-prompt-prd
   D-PAP-33..37, dark-launch). The composer (`AIChatPanel`) gains a picture button (`chat-attach-btn`) +
   hidden multi-file `<input accept=image/png,image/jpeg,image/webp,image/gif multiple>` and an `onPaste`
@@ -3876,6 +4227,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   broken pending bubble, and clear the staged image(s).
 
 ### Tests
+
 - `codeApi.test.ts`: `images` in the turn body only when present (omitted for text / empty list);
   `signChatImageUpload` + `uploadChatImage` presign→PUT path; MIME / oversize client-guards reject before
   any network call; S3 PUT failure surfaces an `ApiError`.
@@ -3890,6 +4242,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-29 (Fix: large asset thumbnails/previews broke in the asset viewer)
 
 ### Fixed
+
 - **A large uploaded image rendered in the game but its asset-viewer thumbnail + detail preview were
   broken** (Chrome `blocked:other`). Cause: a multi-MB asset's `data:` URL is refused by the DOM
   `<img>`/`<video>`/`<audio>`, even though the sandboxed game's Phaser loader tolerates it — so the same
@@ -3901,12 +4254,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   assets (CloudFront URLs) pass through unchanged.
 
 ### Tests
+
 - `useObjectUrl.test.ts`: data: → blob: + revoke-on-unmount; non-data URL passthrough; throw → safe
   fallback to the data URL.
 
 ## 2026-06-29 (Game studio: tighten the asset importer to supported types only)
 
 ### Changed
+
 - The import file picker now offers **only the types that can actually be saved** — its `accept` is
   derived from the single `IMPORTABLE_EXTENSIONS` list (no `image/*` wildcard). **`.svg` is excluded**
   (it's script-capable + the backend treats it as scanned text, so it was never uploadable as an asset);
@@ -3916,6 +4271,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-29 (Game studio: import data files — JSON, fonts, shaders — as assets)
 
 ### Added
+
 - The asset importer now accepts **non-executable data files** alongside media: `.json` (sprite
   atlas / tilemap / level data), `.xml`, `.csv`, fonts (`.ttf/.otf/.woff/.woff2`), `.fnt`, shaders
   (`.glsl/.frag/.vert`), `.atlas`. They import + upload like images and inline as data: URLs at
@@ -3926,27 +4282,32 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   type" message (also covers drag-drop, which ignores `accept`).
 
 ### Fixed
+
 - `toStudioContent` now gates the base64→data: URL conversion on `kind === 'asset'`, so a `.anim.json`
   **text** sidecar (whose extension matches the JSON MIME) is no longer mis-wrapped as a data URL.
 
 ### Tests
+
 - `AssetViewerPane.classAssets.test.tsx`: a `.json` import is accepted (kind `asset`); a `.js` import
   is blocked with the type message and nothing reaches the VFS.
 
 ## 2026-06-28 (Game studio: raise the asset import cap to 50 MB)
 
 ### Changed
+
 - **`AssetViewerPane` import cap 16 MB → 50 MB** (`MAX_ASSET_BYTES` / `MAX_ASSET_LABEL`), matching the
   backend `MAX_FILE_BYTES` raise. Over-cap files are still hard-blocked at import with a clear
   "max 50 MB" message (never imported then lost). Feasible now that asset bytes upload direct-to-S3
   rather than as base64 in the save body.
 
 ### Tests
+
 - `AssetViewerPane.classAssets.test.tsx`: the over-cap block boundary updated to >50 MB / "max 50 MB".
 
 ## 2026-06-27 (Game studio: assets upload direct to S3, not via nginx)
 
 ### Changed
+
 - **Asset bytes now upload straight to S3 (presigned PUT); the VFS save sends a reference.** Previously a
   save serialised every asset as base64 in the JSON body and re-sent the whole VFS — so a >1 MB asset hit
   nginx's 1 MB request cap (413). Now `saveVfs` uploads any **dirty** asset (newly imported / renamed)
@@ -3964,12 +4325,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   unused `toBackendContent` (data-URL→base64 stripper).
 
 ### Tests
+
 - `codeApi.test.ts`: a dirty asset is presigned + PUT to S3 then sent as a reference (no base64 in the
   save); a clean asset is referenced without re-uploading; text saves inline as `{path, content}`.
 
 ## 2026-06-26 (Asset import: confirmed-upload model + "Uploading…" indicator)
 
 ### Changed
+
 - **An imported local asset now appears in "Mine" only AFTER its upload is confirmed.** Previously
   `importFiles` added the file to the VFS optimistically (it showed instantly, then the debounced save
   ran later — so a failed save left a phantom asset that vanished on reload). Now the import:
@@ -3982,6 +4345,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   on a large (up to 16 MB) file.
 
 ### Tests
+
 - `AssetViewerPane.classAssets.test.tsx`: a confirmed (`saved`) import is hidden during upload then
   revealed + persisted; a failed (`rejected`) upload shows an error and leaves nothing in the grid or
   the VFS (rolled back). `PlaygroundApp.flushSave` now returns its `SaveResult`.
@@ -3989,8 +4353,9 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-26 (Fix: imported assets vanished on reload — size cap + honest save, D-CODE-Q6)
 
 ### Fixed
+
 - **An imported image showed in "Mine" but disappeared after refreshing the project.** The Asset
-  Viewer only *warned* at 4 MB and imported anything, but the backend rejected any file over its
+  Viewer only _warned_ at 4 MB and imported anything, but the backend rejected any file over its
   500 KB cap (`VFS_FILE_TOO_LARGE`, HTTP 400) — and `saveProject` mislabelled that permanent 400 as a
   transient **"queued"** ("Saved on this device"). The next load read the server VFS (which never
   stored the asset) and overwrote the local cache, so the image was gone. Two fixes:
@@ -4001,12 +4366,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     status and the Taskbar shows "Couldn't save" (⚠) — never a false "Saved on this device".
 
 ### Changed
-- Raised the import cap from a 4 MB *soft warning* to a **16 MB hard block** so kids can import large
+
+- Raised the import cap from a 4 MB _soft warning_ to a **16 MB hard block** so kids can import large
   sprite sheets / short audio (paired with the backend cap raise to 16 MB / 48 MB-project). INTERIM —
   true 50 MB sprites/video is a presigned direct-to-S3 upload follow-up (the whole VFS is re-sent as
   base64 on every save, so 50 MB doesn't fit the current path).
 
 ### Tests
+
 - `AssetViewerPane.classAssets.test.tsx`: an over-cap (>16 MB) import is blocked with a clear message
   and adds nothing to the VFS. `projectPersistence.test.ts`: a permanent 4xx save returns `rejected`
   (not `queued`).
@@ -4014,6 +4381,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-26 (Fix: /try blocks demo broke network isolation → red CI)
 
 ### Fixed
+
 - **The `/try/blocks` demo fired a real `GET /projects/:id`**, breaking its "zero network" contract
   (try-demo-mode-prd D-DEMO-02) and turning `TryBlocksPage.test.tsx` red on `main`. `useProjectBackTo`
   (the Blocks/Code studios' class-aware Home link) ran its react-query fetch even under the demo, which
@@ -4023,6 +4391,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-26 (Game Studio: modern "AI is thinking" indicator)
 
 ### Changed
+
 - **Replaced the spinning brand orb in the game-studio chat with a modern treatment.** While an AI
   turn runs, the `WorkingCard` (and its `ThinkingBubble` fallback) now show a **breathing
   brand-gradient dot** (`.pg-breathe-dot` — scale + soft glow, no rotation) beside a **shimmering
@@ -4033,9 +4402,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - **Dropped the trailing emoji from every status line** in the indicator (`turnProgress.ts` step /
   filler / file labels + `ThinkingBubble` `THINKING_LINES`) — e.g. "Thinking it through 🤔" → "Thinking
   it through", "Adding Aliens ✍️" → "Adding Aliens". Cleaner copy alongside the new shimmer. (The
-  *leading* file-row icons in the settled message's change list, `fileEmoji`, are unrelated and unchanged.)
+  _leading_ file-row icons in the settled message's change list, `fileEmoji`, are unrelated and unchanged.)
 
 ### Tests
+
 - `WorkingCard.test.tsx`: asserts the breathing dot (`pg-breathe-dot`, `working-dot` test id)
   replaces the spinning ring (no `pg-orb-spin` / `pg-ring-arc`), the label shimmers (`pg-shimmer-text`),
   and the fixing beat switches the dot to `pg-breathe-dot--fixing`. `AIChatPanel.test.tsx` unchanged + green.
@@ -4043,6 +4413,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-24 (Learn: unify the kid create entry points, D-MC-14)
 
 ### Fixed
+
 - **"My Works" → "+ New project" no longer opens a drifted, partly-broken modal.** The
   `ProjectsListPage` `NewProjectModal` had its own `Image/Story/Music/Blank` starter list that had
   diverged from the Create tab's shared `CREATE_TOOLS` registry — it omitted Voice/Video/Code/Blocks,
@@ -4050,12 +4421,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   an orphan `line_a_creative` project and then dead-ended on `NotFoundPage`.
 
 ### Changed
+
 - **"+ New project" now navigates to the Create tab (`/learn/create`)** — the single create surface
   (rendered from `CREATE_TOOLS`, shared with the in-class "Create for this class" sheet), so the tool
   list can no longer drift between entry points. Deleted the bespoke `NewProjectModal` + `STARTER_TILES`.
 - Removed the redundant **"📂 My Works" page heading** from `ProjectsListPage`.
 
 ### Tests
+
 - `ProjectsListPage.test.tsx`: asserts "+ New project" routes to `/learn/create` (no `/projects` POST,
   no "What are you making?" modal) and that the "My Works" heading is gone. Existing grouping / ⋯
   placement / wall-event tests unchanged and green.
@@ -4063,6 +4436,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-23 (Game Guide → full concept-first KB with interactive diagrams, D-HELP-08)
 
 ### Added
+
 - **Interactive diagrams** (`panes/help/helpDiagrams.tsx`): a curated set of pokeable widgets on
   the existing `diagram` block — `coords-explorer` (drag x/y, toggle 2D/3D for z), `sprite-vs-mesh`,
   `camera-view` (pan vs orbit), `game-loop-stepper`, `collision-overlap`, `gravity-jump`,
@@ -4070,6 +4444,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   tween-curve, hud-score, win-lose, levels, juice). Theme-aware, keyboard-accessible, caption fallback.
 
 ### Changed
+
 - **Help pane is now a 3-level tree** (branch → section → doc) sorted by `order` (`HelpPane.tsx`);
   `helpTypes.ts` gains `section?`/`order?` + the concept-branch `Pillar` union. The corpus is
   fetched as before; both 2D + 3D content always shows (engine-agnostic, D-HELP-08).
@@ -4077,6 +4452,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   new backend corpus (drift alarm green).
 
 ### Tests
+
 - `helpDiagrams.test.tsx` (new): diagrams render + respond (toggle 3D, Step, expand tree, unknown-key
   fallback). `helpApi.test.ts` / `HelpPane.test.tsx` / `demoHelp.playground.test.ts` /
   `demoAdapters.test.ts` migrated to the new ids/structure. (Pre-existing `TryBlocksPage` zero-network
@@ -4085,6 +4461,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-23 (Game Studio 3D — fix the real switch root cause: runner snapshot, D-3D-08)
 
 ### Fixed
+
 - **The actual cause of "Phaser/THREE is not defined" on a 2D⇄3D switch (both directions).**
   `GameRunnerPane` runs a `runKey`-gated SNAPSHOT of the VFS, but the `engine` prop is live — so
   on a switch the engine flipped while the runner kept the OLD engine's snapshot files, running
@@ -4098,6 +4475,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-23 (Game Studio 3D — fix switch crash + atomic engine flip, D-3D-08)
 
 ### Fixed
+
 - **Full-screen crash on the switch rebuild** (`Cannot read properties of null (reading 'split')`
   in `AIChatPanel.changedLineRange`). A whole-game rebuild creates NEW files whose diff `before`
   is null; `changedLineRange`/`buildChangedFiles` now coerce null `before`/`after` to `''` instead
@@ -4110,6 +4488,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-23 (Game Studio 3D — fix the 2D⇄3D switch runtime + rebuild, D-3D-08)
 
 ### Fixed
+
 - **Switch confirm emitted "Phaser is not defined" + restarted the old game; the rebuild
   then failed (twice).** The switch flipped the runner to three.js while the VFS still held
   the 2D Phaser files, so they ran under the 3D global; and the rebuild agent saw those 2D
@@ -4122,6 +4501,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-23 (Game Studio 3D — wire engine end-to-end + 2D⇄3D switch, D-3D-07/08)
 
 ### Fixed
+
 - **"Create a 3D game" was broken** — the create call hardcoded `template: 'phaser_blank'`, so a
   3D project was seeded with the 2D Phaser scaffold (stray `src/scenes/`), and the runtime never
   knew the engine so it loaded the Phaser global → the agent's three.js code threw "THREE is not
@@ -4131,6 +4511,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   global + control shim.
 
 ### Added
+
 - **Kid-confirmed 2D⇄3D engine switch (D-3D-08).** Saying "make it 3D" / "turn it back to 2D" on an
   existing game is detected as a switch intent (`panes/engineSwitch.ts`: needs a switch verb + a
   clear other-engine cue, so "add 3D shadows" stays a normal edit) and — unlike every other game
@@ -4161,6 +4542,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     canvas with positive FPS (Phaser 60, three.js 119) and zero game console errors.
 
 ### Tests
+
 - `buildGamePreview.test.ts`: engine-profile suite — `engine` omitted ≡ `phaser` (byte-identical),
   `three` loads the three global + three control shim and not Phaser, kid script ranges +
   `//# sourceURL` + sandbox shell stay engine-agnostic, and both engines speak the same control
@@ -4169,6 +4551,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-22 (Live Mode — live focus presence, D-LIVE-3)
 
 ### Added
+
 - **Report the kid's currently-open project to the teacher (D-LIVE-3).** New
   `src/pages/learn/liveClass/reportFocus.ts`: `useReportFocus(projectId, kind, title?, readOnly?)` emits
   `class.kid_focus { project_id, kind, title }` on the **kid** socket on mount and clears it (`project_id:null`)
@@ -4179,12 +4562,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `playground/PlaygroundApp` (kind `game`). Compliance: ids + kind + title only, never file contents (C5).
 
 ### Tests
+
 - `reportFocus.test.tsx`: emits on mount with project + kind + title; clears on unmount; no-op when not in a
   class / in readOnly / no projectId; the heartbeat re-emit (`reEmitFocus`) replays the current focus.
 
 ## 2026-06-22 (Live Mode — raise-hand + teacher nudge banner)
 
 ### Added
+
 - **One-tap raise-hand in the Blocks + Game studios (D-LIVE-1, learn-game-studio J4).** New shared store/hook
   `src/pages/learn/liveClass/raiseHand.ts` (Zustand) — `raise()` / `lowerOwn()` emit `class.raise_hand` /
   `class.lower_hand` on the **kid** socket (no payload — the server takes class+kid from the JWT), and a
@@ -4203,9 +4588,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - Tests: `raiseHand`/`RaiseHandButton` (visibility gating + raise/lower emits + teacher-lowered sync),
   `NudgeBanner` (canned vs note copy, no-reply one-way shape, dismiss), `authStore` (`class_id` claim decode,
   malformed-token safety).
+
 ## 2026-06-23
 
 ### Added
+
 - **Game Studio Asset Viewer: a "Class" tab for the teacher's class shared asset library**
   (class-shared-assets-prd). When a kid's game project belongs to a class, the Asset Viewer
   shows a new **Class** source tab alongside Library / My assets, listing the media a teacher
@@ -4233,6 +4620,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   grid grows, no reload).
 
 ### Added
+
 - **Full-screen image lightbox in the Asset Viewer** — image previews (My assets, Library, and
   Class) gain an **Enlarge** affordance (also click the image) that opens a zoomable full-screen
   overlay: zoom via +/− buttons, the mouse wheel, or the +/− keys; drag to pan; reset; close on
@@ -4241,6 +4629,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   a wiring case in `AssetViewerPane.classAssets.test.tsx`, and the `kid-class-asset` journey.
 
 ### Changed
+
 - **"Use it in your code" → "Copy {image/sound/video} reference"** in the Asset Viewer detail
   (all sources). Kids vibe-code through the chat, not by hand-pasting Phaser code, so the copied
   payload is now just the asset's **bare reference** — its VFS path (e.g. `assets/class/hero.png`),
@@ -4254,6 +4643,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   no longer wrap in the narrow rail (testids unchanged: `asset-source-mine` etc.).
 
 ### Fixed
+
 - **WS socket reuse (`lib/ws.ts`)**: `getSocket` no longer tears down a still-connecting socket
   on every call — it reuses the existing socket unless the token genuinely changed (a new
   login). Several concurrent subscribers (IncidentBanner + the playground Class-asset listeners)
@@ -4263,11 +4653,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-22
 
 ### Fixed
+
 - **Game Studio: an unavailable AI/safety service now shows a general error page, not the
   "your idea was a bit too rough" safety deflection.** When the input safety gate could not
   run (a classifier outage, or — common in local dev — the LLM provider not configured),
   the backend used to fail closed with `MODERATION_REJECTED`, indistinguishable from a real
-  content block. So *every* prompt, however gentle, opened the workspace with the "too rough"
+  content block. So _every_ prompt, however gentle, opened the workspace with the "too rough"
   message. The backend now returns a distinct `SAFETY_UNAVAILABLE` (503) for the
   service-can't-run case; `GeneratingScreen` routes it to `onError('service')` and
   `PlaygroundApp`'s `LoadErrorScreen` shows a general "something went wrong, try again"
@@ -4279,6 +4670,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-21 (Blocks read-only viewer — edit controls DISABLED, not hidden — D-LV-6)
 
 ### Fixed
+
 - **Teacher read-only Blocks studio now mirrors the kid's layout.** Read-only (`readOnly`) mode
   previously **HID** the edit-area controls (block palette, category bar, trash bin, add/remove
   character, add/remove page, scene/background picker, undo/redo), which broke the layout — an empty
@@ -4301,6 +4693,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-20 (Class create sheet — second-level menu + Game Playground; "Tiny Game" rename)
 
 ### Added
+
 - **"Create for this class" sheet now has a second-level menu (my-classes-prd §3.3).** Tapping the
   **Code Studio** tool no longer creates a blank `code` project directly — it opens an in-sheet sub-menu
   (with a `← Back`) offering **Web Code** (`{ kind:'code', template:'blank' }` → `/learn/code/:id`,
@@ -4312,6 +4705,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `create-subtool-back`. New `CreateForClassSheet.test.tsx`.
 
 ### Changed
+
 - **"Tiny Game" → "Game Playground" (display only).** The Code hub starter and all user-facing copy now
   read **Game Playground**; the internal template id `tiny_game` (routing / testids / template lookup) is
   unchanged. `codeApi.ts` starter `title`, plus clarifying comments in `router.tsx`,
@@ -4320,6 +4714,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-20 (Teacher LIVE viewer — render the kid's STUDIO EDITOR read-only — D-LV-6)
 
 ### Changed
+
 - **Teacher LIVE viewer chrome → full-bleed "Style B" banner.** Dropped the bolted-on header + the
   bordered card frame around the studio. `TeacherProjectLivePage` is now **full-bleed** (`fixed inset-0`,
   breaking out of the centered TeacherLayout container) with a slim dark **"← · ● LIVE · You're watching
@@ -4352,6 +4747,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - The teacher-console deep-link (`…/teacher/projects/:id/live`) is unchanged and still works.
 
 ### Fixed
+
 - **No dead edit affordances in the game read-only viewer (D-LV-6).** Two controls still rendered for a teacher
   even though their handlers were already gated (they call a no-op `send`), so a click did nothing — now they are
   hidden in `readOnly`: the Monaco **"✨ Explain this"** selection toolbar (its content widget + selection
@@ -4360,6 +4756,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   entry points) so the read-only contract is uniform and obvious, not merely inert-by-consequence.
 
 ### Tests
+
 - `PlaygroundApp.readOnly.test.tsx` (new): a teacher (`user` principal, `family_id:null`) renders the game studio
   read-only without crashing and the kid-only **wallet + class** queries never fire; Monaco is non-editable, the
   FileTree CRUD buttons are absent + rows not draggable, and **no persist request is issued on mount**. Asserts the
@@ -4369,6 +4766,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-20 (Teacher — read-only LIVE project viewer — D-LV-1…5)
 
 ### Added
+
 - **Teacher read-only LIVE project viewer** at `/teacher/projects/:projectId/live` (under `TeacherLayout`,
   `<ProtectedRoute kind="user">`). A teacher opens an enrolled kid's **class** project and watches it render
   **live, read-only** — no editor, no co-edit. Reuses the existing per-kind read-only renderers:
@@ -4380,15 +4778,17 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   this project type yet" message (no crash); a 403/404 (server-enforced class-scope, D-LV-5) → a friendly error.
 
 ### Changed
+
 - `useWsEvent` takes an optional `kind` (default `'kid'`) so the teacher (`user`) viewer can subscribe on
   the teacher socket.
 
 ## 2026-06-20 (Blocks Studio — autosave no longer reverts edits)
 
 ### Fixed
+
 - **Blocks Studio: added/edited blocks no longer silently revert a few seconds later.**
   Autosaves weren't serialized. The save-version (`versionRef`) only advances when a save
-  *returns*, so an edit made while a save was still in flight scheduled a second save that
+  _returns_, so an edit made while a save was still in flight scheduled a second save that
   reused the same stale base `version` → the backend 409'd → the conflict handler reloaded
   the server's older snapshot via `load()`, discarding the in-flight edits (the canvas
   "travelled back in time"). Intermittent because it only triggered when an edit landed
@@ -4402,6 +4802,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-19 (Learn — live wall-placement refresh)
 
 ### Fixed
+
 - **Kid "My Works" now reacts to teacher wall placement live** —
   `ProjectsListPage` (`/learn/projects`) subscribes to the `wall.placement_changed`
   WS event (emitted to the kid socket by platform-backend `wall.service`
@@ -4415,6 +4816,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-16 (Teacher — "Student work" review view)
 
 ### Added
+
 - **"Student work" view** in the teacher dashboard `ClassDashboardPage`
   (`/teacher/classes/:classId`) — `teacher-class-work-prd.md` §3/§6. A
   between-sessions REVIEW gallery: a `Live | Student work` tab; the Student-work
@@ -4430,6 +4832,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   asserts the GET call, opens a project via the existing route, empty state).
 
 ### Fixed
+
 - **Student-work thumbnail** rendered the project's `thumbnail_s3_key` through a
   non-existent `/artifacts/:key` route (no such served path — the backend exposes
   artifacts only via signed download URLs), so previews always 404'd to the "no
@@ -4439,6 +4842,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-16 (Learn — "My Classes" kid surface + project placement lifecycle)
 
 ### Added
+
 - **My Classes** kid surface (my-classes-prd §2–§4), translating the approved
   `mocks/my-classes/` design to React + the K-12 design system (no raw hex):
   - **My Classes list** (`ClassroomListPage`) — enriched cards from
@@ -4469,6 +4873,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     (PRD §3.2); "Use for a class" shows the teacher-visibility consequence.
 
 ### Changed
+
 - **Learn top-nav label** `Class wall` → **`My Classes`** (route
   `/learn/classroom` unchanged).
 - **Create tab** (`CreateHubPage`) reframed as **personal-only** (default 🔒
@@ -4479,6 +4884,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   and the four-state `ProjectVisibility` (`private | class_work | class | public`).
 
 ### Deferred / stubbed
+
 - **Lessons** + **Next class** hub tabs render "coming soon" — they need the kid
   curriculum/progress + redacted sessions reads (my-classes-prd §6 V2). No
   fabricated data.
@@ -4492,6 +4898,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the studios accept class context.
 
 ### Fixed
+
 - **Privacy (review blocker):** a `public` (internet-visible) project was
   collapsed into the `on_wall` placement — it rendered the class-only "On the
   wall" badge and offered `take_off_wall` / `move_to_personal` on a
@@ -4506,6 +4913,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   established K-12 convention (DESIGN.md: no raw hex).
 
 ### Tests
+
 - Component tests (vitest + Testing Library, `@/lib/api` mocked, no network):
   `ClassroomListPage.test.tsx` (enriched cards + Active/Finished + empty),
   `ProjectsListPage.test.tsx` (grouping + ⋯ placement menu asserting the PATCH
@@ -4522,6 +4930,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-16 (Learn + Portal — adopt the Lesson(content)/Mission(task) model split)
 
 ### Changed
+
 - **Adopt the platform Mission/Lesson model split** (platform-backend
   `refactor/mission-to-lesson`). A pack's course content is now an ordered list of
   **Lessons (课节)** — `CoursePack → lessons[]` — and the kid's **Mission** is the TASK
@@ -4546,16 +4955,19 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `MissionsListPage → LessonsCatalogPage`, `MissionDetailPage → PackLessonsPage`.
 
 ### Added
+
 - `src/pages/learn/PackLessonsPage.test.tsx` — component test for the new
   pack → Lessons → Mission-task shape (lesson-count headline + nested task rendering).
 
 ### Changed (tests)
+
 - `src/app/learnLessonCopy.test.tsx` now asserts the **split**: the catalog nav says
   "Lessons" (课节) while the kid TASK studio says "Missions".
 
 ## 2026-06-15 (test infra)
 
 ### Fixed
+
 - **Vitest no longer collects specs from nested `.claude/worktrees/`.** A gitignored
   git worktree under `.claude/worktrees/` leaked its own copy of the unit tests (run
   twice) and its Playwright `e2e/` specs into `npm run test`, where the e2e specs fail
@@ -4566,6 +4978,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-13 (Portal — tutoring page English localisation)
 
 ### Changed
+
 - **Tutoring page (`/portal/tutoring`) fully localised to English.** All hardcoded Chinese
   UI copy translated — bill intro, "Your classes", Private/Official badges, "Teachers:",
   "Upcoming sessions" + empty state, course-outline toggle, "Amount due" / "Pay" / "Redirecting…"
@@ -4576,6 +4989,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-13 (Try demos — share is now a guided beat, D-DEMO-09)
 
 ### Added
+
 - **The `/try/playground` and `/try/blocks` demos now WALK the share flow** instead of
   hiding it (supersedes D-DEMO-08's share-hiding; PRD `try-demo-mode-prd.md` v0.10). The
   tour opens the REAL `ShareLinkPanel` / `BlocksSharePanel`, fires the real "ask a grown-up"
@@ -4594,6 +5008,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the demo's own starter game / "Cat's Day Out" story — genuine product content, no PII.
 
 ### Changed
+
 - The real share panels read `useDemoMode()` and hand the tour their open/request/approve/
   open-recipient affordances via a new `bindShareControls` context seam; in demo the panel's
   auto-close on outside-click/backdrop is suppressed so the tour's Next never dismisses it
@@ -4604,6 +5019,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-13 (Public play page — brand frame polish)
 
 ### Fixed
+
 - **Public play brand logo now vertically centred.** The base `logo-white-horizontal.png`
   carries ~99px of empty canvas below the ink (artwork in y[3–200] of a 300px-tall image),
   so an `items-center` logo sat visibly high. Added a tightly-trimmed asset
@@ -4619,6 +5035,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-13
 
 ### Fixed
+
 - **Game Studio: a manual edit made right after an AI turn no longer reverts ("we kept
   your newest copy").** An applied AI turn bumps `Project.vfs_version` server-side, but
   the turn result carried no version, so the studio's save-version (`versionRef`) went
@@ -4628,9 +5045,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `PlaygroundApp` adopts it into `versionRef` (new `applyTurnFiles`) so the post-turn save
   is no longer stale. Genuine multi-device conflicts still surface kept-newest. Covered by
   harness journey `kid-game-edit-after-turn` (red without the fix, green with it).
+
 ## 2026-06-13 (Public play page — brand frame + dark container)
 
 ### Added
+
 - **Brand frame on the public play page (`/play/:shareId`).** A slim `PlayBrandBar`
   now sits ABOVE the play surface (never an overlay — it cannot intercept a game/sprite
   tap): the AirBotix logo links back to the marketing site, and one soft, **first-party**
@@ -4641,6 +5060,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   override), mirroring the demo's exit URL. (learn-game-studio-prd D-GAME10e.)
 
 ### Changed
+
 - **The public play container now defaults to the DARK theme on both surfaces.**
   `ReadOnlyBlocksPlayer` was hard-pinned to `data-theme="light"`; the public player (its
   only consumer) now renders dark, so the bright scene art floats on a dark frame and
@@ -4648,6 +5068,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `data-theme`. The 410 gone state is deliberately left frame-less (a flat, PII-free dead end).
 
 ### Tests
+
 - `PublicPlayPage.test.tsx` — the brand frame renders above the game canvas and the blocks
   player, with the logo + first-party `/try` CTA both new-tab; the blocks player defaults to
   dark; the gone state stays frame-less. `e2e/sharing-remix.spec.ts` J8 asserts the frame is
@@ -4656,6 +5077,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (Game Studio — WorkingCard simplified: one ring, one line)
 
 ### Changed
+
 - **The in-chat WorkingCard is now ONE line with ONE indicator.** The old card stacked a
   heading ("Working on it…"), a determinate progress bar (% from completed-step count,
   capped at 92% — read as real progress a turn doesn't have), and a growing step list.
@@ -4667,8 +5089,10 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   Header clock stays; the "live" badge and per-step timers are gone too — the animated
   ring already signals liveness.
 
-## 2026-06-12 
+## 2026-06-12
+
 ### Fixed (playground syntax-error locations, D-PAP-30)
+
 - Syntax errors in a game now reach the console — and the AI self-fix
   round-trip — with the kid's real **file:line**. A script that fails to parse
   never gets its `//# sourceURL` applied, so the browser reported
@@ -4678,6 +5102,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   than misleading the fixer.
 
 ### Changed (blocks scroll polish)
+
 - Every scrolling studio zone (character/page rails, category bar, palette,
   program area) now uses `FadeScroller`: native scrollbars are hidden (the
   custom `::-webkit-scrollbar` theme rendered as permanent gray bars on
@@ -4688,6 +5113,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the playground HistoryPanel, generalised with the overlay thumb.
 
 ### Fixed (blocks portrait layout)
+
 - Blocks Studio portrait/tablet layout no longer collapses: the zone-tag chips
   (D-BLK-13) kept their landscape column-header style (`width: 100%`) inside the
   portrait horizontal strips, so each tag swallowed its whole row and pushed the
@@ -4698,6 +5124,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   toolbar title block truncates instead of widening the app.
 
 ### Fixed (tour navigation & placement)
+
 - "Change a number" (blocks tour) anchors to the SIDES only — anchoring above the
   track covered the palette the card tells the user to drag from (caught by the
   harness journey's real palette click); falls back to its static top-right.
@@ -4713,8 +5140,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   side the full card then overflowed onto the target); narrow viewports use the
   beside-input left column.
 
-
 ### Changed (anchored tour cards)
+
 - **Tour cards now sit CLOSE to the spotlight area** (both demos): the card anchors
   beside the spotlit rect like a popover — first side with room (below → above →
   right → left), centred on the target, viewport-clamped — and FLIP-glides as the
@@ -4724,8 +5151,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   remain only as fallback for no-spotlight cards (intro, finale), narrow-viewport
   misses, and during the opening sweep.
 
-
 ### Changed (Cat's Day Out — the run owns the spotlight)
+
 - The "Press ▶ Go!" card now PLAYS the story properly: its Next presses the REAL
   Go button for the user (label "▶ Press Go!"), and whether Go was pressed by the
   tour or by the user's own finger, the spotlight moves to the STAGE for the whole
@@ -4734,8 +5161,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   is zero-movement. Two inert seams in the studio (`bindBlocksGo`, `onStoryRun`
   around the real flag-run lifecycle).
 
-
 ### Changed (tour polish — motion & dark theme)
+
 - **Tour cards GLIDE between positions** (FLIP, 350ms) when a step or a
   Windows↔Split flip repositions them — no more teleporting; reduced-motion safe.
 - **Spotlight redesigned as DE-EMPHASIS — both themes**: everything outside the
@@ -4752,6 +5179,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 (theme-aware demo tour scrim)
 
 ### Fixed
+
 - **The demo tour's spotlight scrim now reads on dark UIs.** The scrim was
   ink@50% (`shadow-spotlight-scrim`) — fine over the light studio, imperceptible
   over dark panels, so a dark-mode tour appeared to highlight nothing. The demo
@@ -4764,6 +5192,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (Guide pane dark-mode theming)
 
 ### Fixed
+
 - **Game Guide dark mode:** the playground theme blocks now pin `color-scheme`
   (`light`/`dark` per `data-theme`), so UA-rendered chrome — native scrollbars
   on Windows / "always show" macOS, form-control internals — follows the
@@ -4775,6 +5204,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (layout-proof demo tour)
 
 ### Fixed
+
 - **The playground demo tour now works in BOTH workspace layouts** (Windows AND
   Split), including a Windows↔Split flip at ANY tour step:
   - Panel spotlights are layout-proof selector pairs
@@ -4798,6 +5228,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   Window mode) lost its jump+highlight/selection. Now read through a ref.
 
 ### CI
+
 - e2e: `try-demo-smoke` gains a full 16-card SPLIT-layout tour walk with
   mid-tour Windows↔Split flips (spotlight re-resolution asserted at the error
   card); unit: `tourSpotlights.layout.test.tsx` renders the real Workspace
@@ -4807,6 +5238,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (Guide pane — responsive)
 
 ### Fixed
+
 - **The Guide reads well at ANY width.** Below 480px the two-column layout
   collapsed text into a sliver; the pane now goes single-column — the reader
   full-width, with a "☰ Topics" header chip flipping to the full-width topic
@@ -4821,6 +5253,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (Guide placement)
 
 ### Fixed
+
 - **The Guide window never buries the conversation's latest messages.**
   (1) Spawn: TOP-LEFT of the chat — a reading column fully beside it when ≥250px
   fits (the chat launch x nudged 0.29→0.31W to make that true on common laptops),
@@ -4838,6 +5271,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12 (clean demo console)
 
 ### Fixed
+
 - **No more scary DevTools noise on the public demos.** (1) Browser-extension
   noise guard, first script in every game/preview srcdoc: wallet extensions
   (Coinbase, MetaMask, …) inject providers into every frame, and inside our
@@ -4852,6 +5286,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-12
 
 ### Changed (tour pacing & navigation)
+
 - Back/forward browsing re-fronts the window each card's spotlight points at —
   the discussed surface is always on top, not whatever the last action left focused.
   Element-level spotlights map to their HOST window (✨ toolbar → Code Editor,
@@ -4862,8 +5297,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the "Conjuring…" progress and the finished sticker bubble are seen scrolled
   into view, held ~1.6s, and only then does My Assets surface with the card swap.
 
-
 ### Fixed (spotlight timing)
+
 - In-flight tour steps spotlight the surface where the action is HAPPENING from
   the moment Next is CLICKED, instead of jumping only when the result settled:
   chat for the scripted asks + the explain fire (before the message even sends),
@@ -4872,8 +5307,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the same surface, so it lands with zero mask movement — killing the jank at
   the busiest moment of the turn.
 
-
 ### Changed (playground tour v3 — 16 cards, real Asset Viewer UI, jank pass)
+
 - **Tour grows 13 → 16 cards** (`demoTour.playground.ts`, PRD §3 v0.9): the
   explain beat is two cards (select the snippet → the live "✨ Explain this"
   toolbar pops + is spotlighted → fire its real handler), and the beautify loop
@@ -4900,13 +5335,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `demoAssetPaneSeam.test.tsx`, tour-data v3 suite).
 
 ### Added (marketing-preview parity)
+
 - `scripts/capture-try-scenes.mjs` — one-command recapture of the marketing /try
   preview scenes from the live demos (1600px JPEG q80 → `airbotix/public/media/try/`).
   AGENTS.md (root rule 3 + `src/pages/try/`) now mandates recapturing whenever the
   workspace UX changes (either studio or future demos); PRD D-DEMO-07 extended (v0.8).
 
-
 ### Added (tour spotlight)
+
 - `DemoTourOverlay` steps can carry a `spotlight` selector: everything except the
   area the step points at is dimmed — one ring div whose giant box-shadow is the
   scrim, so the cut-out has properly ROUNDED corners — purely visual (nothing is
@@ -4922,15 +5358,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   The mask now also TRACKS moving targets (light 250ms poll with change-detection)
   since playground windows are draggable.
 
-
 ### Fixed (zone labels refinement)
+
 - Rail tags (Characters/Pages) no longer overflow their narrow columns — stacked
   variant (emoji above one tiny word, spanning the column like a header) with
   ellipsis as a safety net; the block-category bar gained its missing tag
   ("🧰 Kinds", full-width header above the buttons; aria updated to match).
 
-
 ### Added
+
 - **Blocks Studio zone labels (clarity pass).** Every studio area now wears a small
   emoji-first name tag for pre-readers (ages 5–8): 🎬 Stage, 🐱 Characters, 📖 Pages,
   🧩 Blocks (palette), ✨ What they do (program area). Chips are decoration only
@@ -4941,20 +5377,21 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   ("Tap a 🚩 block to pick what ⟨name⟩ does ✨"). `/try/blocks` inherits via parity.
 
 ### Changed
+
 - `/try/blocks` always opens in the LIGHT theme (the story art is daylight-first),
   regardless of system preference or a stored studio override — store-only set on
   demo install, never written to localStorage, so a real user's saved theme is
   untouched.
 
-
 ### Fixed (review pass)
+
 - Tour robustness guards from the adversarial review: the landing "Create the game" fires
   once per (long) recovery window — a slow build can no longer be double-submitted; asset
   generate/remix retries are throttled to ~2s (was every 250ms) so a failed generation
   can't spam the chat.
 
-
 ### Changed
+
 - **`/try/playground` tour refinement pass (try-demo-mode-prd §3 v0.6, 8 tweaks).**
   (1) Only the tour card creates the game: the landing's own send button is disabled and
   Enter is inert while the demo locks the prompt (2-line conditional in `LandingScreen`).
@@ -4985,6 +5422,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   inert + console-button path); unit tests cover every new seam.
 
 ### Fixed
+
 - **Game Runner console now auto-scrolls to the latest output.** The console's scroll
   container had no scroll management: it opened scrolled to the TOP, so the newest line —
   including the very error that auto-opened it — could sit out of view, and new output kept
@@ -4994,6 +5432,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   releases the pin (no yanking). Component tests cover open-at-bottom, follow, and no-yank.
 
 ### Added
+
 - **`/try/playground` T1 v2 full product tour** (try-demo-mode-prd §3 v0.5, 11 steps): the demo
   now starts on the REAL landing phase (prompt pre-filled + locked, chips/mic hidden; the step-1
   card sits beside the input and is not skippable; "Create the game" drives the real create flow
@@ -5015,6 +5454,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   from `Workspace.tsx` to `panes/explainPrompt.ts` so the demo can match the real prompt.
 
 ### Changed
+
 - Tour overlay (`DemoTourOverlay`): step-aware card placements (`beside-input` / `bottom-left` /
   `bottom-right` / `top-right` / `center`) so a card never covers the surface its step points at;
   the Next pill truncates inside the card instead of overflowing on long labels; per-step
@@ -5039,13 +5479,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   shortened to "Explore freely ✨".
 
 ### Added
+
 - Demo Home exit (`/try/blocks`): the studio's 🏠 button leaves to the marketing "Try it"
   page — mode-aware default: prod builds → `airbotix.ai/try`, dev builds → the local marketing dev server (`localhost:3000/try`); `VITE_MARKETING_URL` overrides — instead of the authed
   hub — one `demo?.exitHref` seam in the Blocks toolbar.
 
-## 2026-06-11 (Try Demo Mode — public /try/* demos)
+## 2026-06-11 (Try Demo Mode — public /try/\* demos)
 
 ### Added
+
 - **Try Demo Mode** (`try-demo-mode-prd.md`): public, no-auth demo routes that render the **real,
   unmodified studios** — `/try/playground` (Game Playground) and `/try/blocks` (Blocks Studio) —
   mounted top-level like `/play/:shareId`. New demo layer in `src/pages/try/`:
@@ -5063,11 +5505,11 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   - `DemoTourOverlay` (D-DEMO-05; modal intro + floating step cards, progress dots,
     Next/Back/Skip) and the `DemoBanner` "nothing is saved · Book a chat" strip (D-DEMO-08; cloud
     share is hidden in the blocks demo).
-  Tiny behaviour-neutral injection points only (all default "off"): demo seams in
-  `playgroundApi`/`projectPersistence`/`gameAgentStub`/`blocksApi`, optional demo context reads in
-  `PlaygroundApp` (locked prompt → straight to build) and `Workspace` (tour drives the real chat
-  `send`), an optional `projectId` prop + share gate in `BlocksStudioPage`, and one scoped
-  `.bsx-demo-host` height rule in `blocks.css`.
+    Tiny behaviour-neutral injection points only (all default "off"): demo seams in
+    `playgroundApi`/`projectPersistence`/`gameAgentStub`/`blocksApi`, optional demo context reads in
+    `PlaygroundApp` (locked prompt → straight to build) and `Workspace` (tour drives the real chat
+    `send`), an optional `projectId` prop + share gate in `BlocksStudioPage`, and one scoped
+    `.bsx-demo-host` height rule in `blocks.css`.
 - **`AGENTS.md` demo-parity mandate** (D-DEMO-07): new repo-root `AGENTS.md` + scoped
   `src/pages/try/AGENTS.md` — any studio behaviour/route/selector change must update the demo
   script/story/overlay and re-run the demo tests in the same task.
@@ -5080,6 +5522,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-11 (Blocks Studio — stable fullscreen)
 
 ### Fixed
+
 - **Blocks Studio no longer flickers out of fullscreen and snaps back on the next tap.** The
   immersive page-scroll lock + first-gesture `requestFullscreen` lived on the studio component, so
   any transient remount (e.g. the periodic auth refresh briefly swapping the route through
@@ -5091,11 +5534,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-11 (Blocks Studio — closer to ScratchJr)
 
 ### Fixed
+
 - **The Page block (Go to Page) only lets you pick a page that exists.** Its number stepper was
   capped at the generic 1–9; it now caps at the project's page count (and the editor reads
   "Which page? (1–N)"). `setParam` gained an optional `max`.
 
 ### Added
+
 - **Four ScratchJr blocks that were missing** (`blocksModel.ts`, `interpreter.ts`):
   - **Set Speed** (🐢/🚶/🐇) — tap to cycle slow/normal/fast; scales that character's motion (slow 2×,
     fast 0.5×).
@@ -5103,14 +5548,15 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
     once per contact).
   - **Send Message** (📤) + **Get Message** (📥) — six colours; sending fires every Get-Message script
     of the same colour across the page (ScratchJr-style broadcast). Tap to cycle the colour.
-  Message/bump-triggered scripts run concurrently and are awaited before the run ends (capped for
-  safety). Still missing vs ScratchJr (by request): Play Recorded Sound; and Repeat/Forever as true
-  nesting C-blocks (our ♾️ Again loops the whole track — the C-block needs the nestable-block model,
-  PRD M3).
+    Message/bump-triggered scripts run concurrently and are awaited before the run ends (capped for
+    safety). Still missing vs ScratchJr (by request): Play Recorded Sound; and Repeat/Forever as true
+    nesting C-blocks (our ♾️ Again loops the whole track — the C-block needs the nestable-block model,
+    PRD M3).
 
 ## 2026-06-11 (Blocks Studio — parallel tracks fix)
 
 ### Fixed
+
 - **Multiple 🚩 tracks on one character now run in parallel without clobbering each other.**
   The interpreter captured a sprite-state snapshot at the start of each step and re-emitted the
   whole object after animating, so a second track (e.g. a Hop) snapped the first track's changes
@@ -5126,6 +5572,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-11 (Blocks Studio — refinement pass)
 
 ### Added
+
 - **Share / view-only play** for Blocks Studio — the SAME parent-approval flow + play-count as
   Game Studio (reuses the kind-agnostic share API: ask → grown-up approves → frozen snapshot →
   live `/play/:shareId`). New `BlocksSharePanel` (theme-aware) in the toolbar; the public play page
@@ -5139,6 +5586,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   People, Fantasy, Vehicles, Food, Fun. Category tabs are now a fixed equal size.
 
 ### Changed
+
 - **Tablet block drag is hold-to-lift.** A quick swipe on a block now SCROLLS the palette / program;
   a short hold lifts it to drag (then JS locks page-scroll). Fixes blocks getting stuck on tablets
   and the scroll-vs-drag conflict. Mouse still drags on a small move.
@@ -5152,11 +5600,13 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   taller so several tracks are visible at once.
 
 ### Fixed
+
 - **Tapping a character no longer triggers the browser's text-selection / "Search" callout** (and no
   double-tap zoom in the studio): `user-select`/`-webkit-touch-callout`/`touch-action` hardened, inputs
   re-enable text.
 
 ### Changed (toolbar + picker follow-ups)
+
 - **Toolbar redesigned to fewer buttons.** Secondary actions (Day/Night, Reset, Big screen) collapse
   into a **⋯ More** menu so the bar no longer squashes in portrait; ▶ Go! never wraps to two lines.
 - **The currently-running block now lights up** as the program executes (live `lit` glow, wired from a
@@ -5167,6 +5617,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (Magic card dark-theme fix)
 
 ### Fixed
+
 - **Magic Generation card now follows the dark theme** (`MagicGenerationCard.tsx`). The card's
   inner panel, prompt chip, Cancel/Dismiss buttons, orb/reference rings, and progress track were
   hardcoded light (`from-white`, `bg-white`, `#fff`, `#EDE9F7`) while the text used themeable
@@ -5176,6 +5627,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   Added `MagicGenerationCard.test.tsx`.
 
 ### CI
+
 - **Unblock lint (`eslint . --max-warnings 0`)** — `WorkingCard.tsx` exported the `formatSecs`
   helper alongside the component, tripping `react-refresh/only-export-components` and failing CI on
   `main` since the one-message-turn change. Moved `formatSecs` into the pure-logic `turnProgress.ts`
@@ -5184,6 +5636,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (Airo — named helper + avatar)
 
 ### Added
+
 - **The playground chat helper is now "Airo"** (named from Airbotix) with a friendly robot
   **avatar** (`AiroAvatar.tsx` — self-contained SVG: brand sky→purple head, glowing antenna,
   mint eyes). Replaces the generic "AI Helper" label + plain circle in the chat header and on
@@ -5193,6 +5646,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (one-turn-one-message working card)
 
 ### Added
+
 - **Honest in-flight `WorkingCard` for every chat turn** (`WorkingCard.tsx`, `turnProgress.ts`).
   Replaces the fake-cycling `ThinkingBubble` (which "did NOT report real server stages") with a
   card that shows REAL steps built from the agent's actual tool/action deltas — "Adding Aliens ✍️",
@@ -5200,6 +5654,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   re-write (a syntax-fix pass) shows as a calm "fixing" beat on its row, never an error dump.
 
 ### Changed
+
 - **One turn now resolves to exactly ONE message.** The pending bubble is the `WorkingCard` while
   the turn works; the first summary token flips it to the single settled message (`useGameAgent`).
 - **Self-verify auto-fix is no longer a second message.** A successful repair (`/code/verify-fix`)
@@ -5218,6 +5673,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (blocked-build explanation)
 
 ### Added
+
 - **A safety-refused first build now explains itself + offers a way forward** instead of dropping
   the kid into a silent empty project. When the opening turn is rejected by the moderation gate
   (`MODERATION_REJECTED`), `GeneratingScreen` flags `blocked` on the scaffold hand-off; `useGameAgent`
@@ -5230,6 +5686,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (guided chip loop)
 
 ### Changed
+
 - **Tapping a next-step chip now continues the guided build loop** (playground-ai-prompt-prd.md
   D-PAP-29). A tapped chip sends its prompt as a **`guided`** step (`AIChatPanel.tsx` →
   `useGameAgent.ts` → `codeApi.ts` POST `guided:true`), so the teacher re-offers a fresh set
@@ -5240,11 +5697,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (D-PAP-29 sticky). The last-message-only clear in `useGameAgent.applyResult` is skipped
   for an auto-fix turn (`keepOtherNextSteps`), so a background repair firing right after a
   build can't erase options the kid was about to tap. New unit tests in `useGameAgent.test.ts`
-  + `AIChatPanel.test.tsx`.
+  - `AIChatPanel.test.tsx`.
 
 ## 2026-06-10 (playground chat resume)
 
 ### Fixed
+
 - **Chat history is now persisted across exit/resume** (J9). The conversation lived only in
   React state, so reopening a project lost every prior turn. The chat is now cached device-local
   in IndexedDB (`projectPersistence.ts`, `chat:` prefix — same store as the VFS/workspace-UI
@@ -5260,6 +5718,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (playground theming fixes)
 
 ### Fixed
+
 - **Share-link popup was nearly invisible** (`ShareLinkPanel.tsx`). The popup portals into
   `document.body` — OUTSIDE the playground's `data-theme` root — so the `--pg-*` tokens (scoped
   to `[data-theme]`) were undefined there, rendering the surface/border transparent and the text
@@ -5268,6 +5727,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   the backdrop with a visible boundary.
 
 ### Changed
+
 - **Themed chat scrollbar.** New reusable `.pg-scroll` utility (`playground.css`) — a slim (8px),
   rounded, transparent-track scrollbar whose thumb is toned from `--pg-text-muted` and brightens on
   hover, so it matches both light/dark chrome instead of the heavy default OS bar. Applied to the
@@ -5276,6 +5736,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-10 (playground next-step chips)
 
 ### Changed
+
 - **Playground chat: next-step chips now appear only on the latest turn.** When a new
   teacher turn settles, any next-step option chips carried by an earlier chat bubble are
   cleared, so suggestions never linger on a stale message (`useGameAgent.ts`). Pairs with
@@ -5285,14 +5746,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09 (safety gaps)
 
 ### Added
+
 - **Parent "see what they tried" view** (`AuditPage.tsx`). `safety.pattern.escalated` events now render a distinct coral card with an expandable category summary (icon + label + count per rejection category, time window). Fetches from the new `/families/:familyId/kids/:kidId/safety-summary` endpoint (§8 D-PF12).
 
 ### Fixed
+
 - **`auditCopy.ts` `describeSafety()` used wrong event type names.** The function had fictitious event strings (`safety.regex.rejected`, `safety.pii.input_blocked`, `safety.topic.rejected`, `safety.injection.blocked`) that the backend never emits. Corrected to match actual backend events: `safety.prompt.rejected` (with `payload.stage` discrimination), `safety.pii.blocked`, `safety.pii.warned`. Added `safety.pii.warn_acknowledged`, `safety.prompt.aborted`, `safety.response.rejected`, `safety.response.redacted` cards. Parent audit page now shows correct friendly copy for all safety events.
 - **`dismissWarn()` in `useCodeStudio.ts` and `useGameAgent.ts` never emitted `safety.prompt.aborted`** (PRD §7). Both now fire `POST /safety/prompt-aborted` (fire-and-forget) when the kid dismisses the warn dialog without retrying.
+
 ## 2026-06-10
 
 ### Added
+
 - **Tutoring page now shows the family's classes** (`/portal/tutoring`, O-5 read-only view).
   Above the bill, one card per enrolled kid+class: class name + 私教/官方课 badge + whose class,
   the **teaching team**, **接下来的课** (upcoming scheduled sessions, up to 5), and a collapsible
@@ -5311,6 +5776,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-09
 
 ### Changed
+
 - **e2e specs rewired to the chat-hosted asset flow.** `e2e/asset-gen.spec.ts` +
   `e2e/playground.spec.ts` no longer drive the removed in-pane `asset-add-to-game` /
   `library-add-to-game` detail flow. Generate/Remix now assert the **chat** surface:
@@ -5338,6 +5804,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   visual are reused; the Asset Viewer's pinned card was removed.
 
 ### Fixed
+
 - **Imported text assets preview as readable text again.** Local import (D-ASSET A4)
   stores every file as a `data:` URL, so a `.txt`'s content was a base64 data URL and the
   Asset Viewer text preview showed the encoded string. Added `dataUrlToText` (decodes
@@ -5351,6 +5818,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   API boundary (strip on save, re-wrap on load). SVG (backend-text) round-trips verbatim.
 
 ### Added
+
 - **Global "Magic Generation" state (`generationStore`).** AI asset generation is now an
   app-level Zustand store that owns the async call AND the completion (writing the asset
   into the VFS), so a single in-flight generation survives the Asset Viewer pane closing/
@@ -5360,10 +5828,12 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   animals / food / plants / weather / items / vehicles / sports / music / symbols.
 
 ### Removed
+
 - **Playground: dropped the seeded `assets/README.txt`** from the starter project — new
   game projects start with a truly empty `assets/`.
 
 ### Added
+
 - **Self-verify round-trip — the studio reports runtime errors so the agent auto-fixes**
   (`playground/verifyRoundtrip.ts`, `panes/GameRunnerPane.tsx`, `panes/useGameAgent.ts`, `panes/gameAgent.ts`,
   `Workspace.tsx`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` MP3 / D-PAP-09,13,23). The game runs in
@@ -5398,6 +5868,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   mode rejection, path-less no-op, asset-viewer fallback).
 
 ### CI
+
 - **Fixed the playground e2e harness logging the kid out mid-test** (`e2e/helpers.ts`). The
   Workspace's ShareLinkPanel fetches `GET /projects/:id/share` on mount; unmocked, it hit the real
   backend, 401'd, and tripped `api()`'s `clearToken` → the kid bounced to `/learn/login`, unmounting
@@ -5409,16 +5880,18 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   investigation.)
 
 ### Added
+
 - **Teacher next-step option chips in the playground chat** (`panes/AIChatPanel.tsx`,
   `panes/useGameAgent.ts`, `code/codeApi.ts`; `playground-ai-prompt-prd.md` §11.4 / D-PAP-06).
   A settled agent turn now carries the backend's `next_steps` (`{label, prompt, tag:'concept'|'fun'}`)
   onto its chat bubble and renders them as **tappable chips** — concept chips (sky/✨) and fun chips
   (bubblegum/🪄); tapping one sends its `prompt` as the next turn. `AgentTurnResult` gains
   `next_steps` + `history_label` (FE1 of the teacher model). Covered by a new `AIChatPanel.test.tsx`
-  + a `useGameAgent` data-flow assertion. (History-label wiring + removing the old Lite/Pro
-  agency/approval beats land in follow-ups.)
+  - a `useGameAgent` data-flow assertion. (History-label wiring + removing the old Lite/Pro
+    agency/approval beats land in follow-ups.)
 
 ### Added
+
 - **Private tutoring (parent portal)** (`private-tutoring-prd.md` §5, §8). New `/portal/tutoring`
   page: shows outstanding per-session charges bound to each class, totals what's owed, and starts
   an Airwallex checkout to pay all outstanding charges at once (mirrors the wallet topup flow).
@@ -5433,7 +5906,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   emoji provider — thumbnails load cross-origin from the CDN, category chips + search
   filter it, and a read-only detail offers **Add to my game**. "Add to game" for a
   library asset injects a **URL-form** loader (`this.load.setCORS('anonymous');
-  this.load.image(key, '<cdn url>')`) via `addLibraryAssetToGame` — the asset is
+this.load.image(key, '<cdn url>')`) via `addLibraryAssetToGame` — the asset is
   referenced by URL and never copied into the VFS, so it stays immutable + shared. The
   game preview leaves `https://` URLs un-rewritten (only VFS paths inline to data URLs),
   and the cross-origin texture is loaded `crossOrigin:'anonymous'` so the canvas isn't
@@ -5451,6 +5924,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `learn-game-studio-assets-prd.md` A2 / §4.4.
 
 ### Added
+
 - **Playground: AI remix of any image (A5, D-ASSET-5).** Image detail views (both My
   assets and the Library) now have a **Remix with AI** box: describe a change ("make it
   blue") and the AI returns a variation that lands in **My assets/generated**. Remix of
@@ -5460,6 +5934,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   and the result appears under My assets.
 
 ### Changed
+
 - **Playground: `generateAsset` now sends the snake_case backend contract**
   (`project_id` / `ref_asset_path` / `ref_url`). The camelCase `GenAssetRequest` seam was
   never wired to the real DTO (asset-gen had been stub/mock only); A3/A5 make the path
@@ -5478,6 +5953,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `learn-game-studio-assets-prd.md` A3.
 
 ### Removed
+
 - **Playground: dropped the seeded sample/test assets and the read-only "preloaded"
   lock.** New game projects no longer ship `coin.svg` / `hero_bounce` sprite /
   `chime.wav` / `intro.mp4` in their VFS — those were test fixtures. The Asset Viewer
@@ -5491,6 +5967,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   populate it. Removed the now-obsolete "samples are read-only" e2e.
 
 ### Changed
+
 - **Game Guide pane now fetches the backend corpus (MH0 frontend-swap).** `HelpPane`
   loads `GET /help/docs` via TanStack Query and renders + searches it client-side; the
   bundled `panes/help/helpContent.ts` is **deleted** so platform-backend is the single
@@ -5500,6 +5977,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   `GET /help/docs` in `mockBackendAsKid`.
 
 ### Added
+
 - **Game Guide — `open_help` client action (MH2a, frontend)**. Extends the agent's
   `ClientAction` channel (`code/codeApi.ts`) with `open_help { target: docId, anchor? }`,
   dispatched by `executeClientActions` → a new `openHelp` handler that surfaces the Guide
@@ -5526,6 +6004,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (HJ1: open from desktop → browse → search → read → tier toggle).
 
 ### Fixed
+
 - **Help search tokenizer strips punctuation** (`helpApi.searchHelp`) so a kid query like
   "how do I jump?" matches the "jump" tag (not "jump?"). Kept in sync with the backend
   `HelpSearchService` tokenizer (so the agent's `search_help` and the pane's own search rank
@@ -5537,6 +6016,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   specific specs still override with their own route (matched most-recent-first).
 
 ### Changed
+
 - **Playground share-link control moved to the bottom bar (Taskbar), status-aware.**
   The share control used to float top-right over the desktop surface (Window mode) or
   sit in the split tab strip; it now lives on the bottom bar in **both** layout modes,
@@ -5577,6 +6057,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-11
 
 ### Changed
+
 - `CLAUDE.md` rewritten for the `airbotix-ai` umbrella era: this repo is documented as
   an umbrella submodule, product-context paths now point at the umbrella root `docs/`
   (the old `~/Documents/sites/airbotix/docs/...` paths are gone), and the
@@ -5585,6 +6066,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-08
 
 ### Fixed
+
 - **Playground AI chat error copy now distinguishes "couldn't reach the server" from
   "the server errored."** `useGameAgent.friendlyError` previously collapsed every
   unhandled turn failure into "Could not reach the AI" — so a real backend 5xx
@@ -5597,6 +6079,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 ## 2026-06-07
 
 ### Added
+
 - Parent Portal **Courses** page (`/portal/courses`): browse published course packs and
   request a seat for a kid. Submits to `POST /bookings` (`source=parent_portal`) so the
   request lands in the super-admin Bookings inbox.
@@ -5622,6 +6105,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   blocking (D-ONB2-02).
 
 ### Changed
+
 - **Stars economy re-pegged: 1 star = A$0.02 (was A$1)** — mirrors platform-backend.
   Top-up packs now credit 500 / 1750 / 3250 / 7000★ (Starter/Family/Mega/School,
   incl. bonus), auto-topup SKUs + threshold options realigned to 50★ per A$, and
@@ -5630,8 +6114,8 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
 - **Activity page (`/portal/audit`) now speaks plain language.** It previously dumped
   raw machine `event_type` strings (`wallet.topup_initiated`) and the full JSON payload
   (`pack_sku`, `payment_intent_id`, `amount_aud_cents`…) — unreadable for parents. Each
-  event is now mapped to a friendly icon + headline + detail line (e.g. 💳 *Top-up started
-  · 10 Stars · $10.00 AUD*) via a new `src/lib/auditCopy.ts` table covering wallet / LLM /
+  event is now mapped to a friendly icon + headline + detail line (e.g. 💳 _Top-up started
+  · 10 Stars · $10.00 AUD_) via a new `src/lib/auditCopy.ts` table covering wallet / LLM /
   approval / project / auth / class / safety / family / incident events, with a title-cased
   fallback so no unmapped event ever leaks a raw `dotted.snake_case` string. The raw
   `event_type` + JSON is preserved behind a collapsed **"Technical details"** disclosure
@@ -5642,12 +6126,14 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   (stray `tsc -b` outputs) so they never get committed alongside `vite.config.ts`.
 
 ### CI
+
 - `ci.yml` now actually runs the unit tests: the job runs `lint → typecheck →
-  test → build` (was build-only, so the Vitest suite never ran in CI).
+test → build` (was build-only, so the Vitest suite never ran in CI).
 
 ## 2026-06-06
 
 ### Added
+
 - Portal onboarding captures the parent name + an editable display name.
 - Playground v2 desktop workspace: window / split layout, Monaco code editor,
   Phaser game runner, standalone chat pane, taskbar + desktop icons, error
@@ -5655,6 +6141,7 @@ by date (AEST), newest first. Update this file in the **same commit** as the cod
   editor files.
 
 ### Fixed
+
 - Playground UX polish: Monaco hover/suggest tooltips no longer clipped, robust
   Phaser vendoring at build time, wider editor launch, chat keeps focus/history,
   smoother generating screen.

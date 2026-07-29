@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import type { ArtMissionStep } from './create/art/ArtStudioPage';
 import { artTaskSlugFromSteps } from './create/art/artTaskTypes';
+import { ART_CANVAS_PATH, opensInArtStudio } from './create/art/artCourseRouting';
 
 interface StudioMissionConfig {
   art?: {
@@ -155,14 +156,14 @@ export function PackLessonsPage() {
                               const art = config?.art;
                               const music = config?.music;
                               const isArtTask =
-                                Boolean(art) ||
+                                opensInArtStudio(pack.data.slug, art) ||
                                 steps.some((step) => step.widget === 'image_create');
 
                               if (isArtTask) {
                                 const artTaskSlug = artTaskSlugFromSteps(steps);
                                 const artCanvasPath = artTaskSlug
                                   ? `/learn/create/image/canvas?task=${encodeURIComponent(artTaskSlug)}&mode=look`
-                                  : '/learn/create/image/canvas';
+                                  : ART_CANVAS_PATH;
                                 nav(artCanvasPath, {
                                   // Art missions open the Art Studio CANVAS in
                                   // Mission Mode (image-studio-prd D-IS-20/22).

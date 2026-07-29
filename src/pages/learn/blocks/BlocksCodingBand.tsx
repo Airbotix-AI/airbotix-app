@@ -4,6 +4,8 @@ import type {
   Ref,
 } from 'react'
 
+import { BlockChain, type ChainContext } from './BlockChain'
+import { zoneHoldsDrop } from './blockDropZones'
 import { BlockChip } from './BlockChip'
 import { FadeScroller } from './FadeScroller'
 import { ZoneTag } from './ZoneTag'
@@ -13,29 +15,26 @@ import {
   BUILT_IN_NOTES,
   BUILT_IN_SOUNDS,
   CATEGORIES,
-  blockDef,
   defaultParam,
   type BlockCategory,
   type BlockOp,
   type Character,
 } from './blocksModel'
-import { useBlocksStore } from './blocksStore'
 import type { StoryMission } from './curriculumGuides'
 import { sfx } from './sounds'
+import type { DropHit } from './blockDropZones'
 
 interface DragBlock {
   scriptId: string
-  index: number
+  path: number[]
   onBin: boolean
-  targetScriptId: string | null
-  dropX: number | null
+  target: DropHit | null
 }
 
 interface PaletteDragBlock {
   op: BlockOp
   n?: number
-  scriptId: string | null
-  dropX: number | null
+  target: DropHit | null
 }
 
 interface BlocksCodingBandProps {
@@ -52,14 +51,14 @@ interface BlocksCodingBandProps {
   ifBodyTarget: { scriptId: string; index: number } | null
   setIfBodyTarget: (target: { scriptId: string; index: number }) => void
   activeKeys: Set<string>
-  onBlockDown: (event: ReactPointerEvent, scriptId: string, index: number) => void
+  onBlockDown: (event: ReactPointerEvent, scriptId: string, path: number[]) => void
   onBlockMove: (event: ReactPointerEvent) => void
   onBlockUp: () => void
   onBlockCancel: () => void
   onBlockTap: (
     event: ReactMouseEvent,
     scriptId: string,
-    index: number,
+    path: number[],
     op: string,
   ) => void
   storyMission?: StoryMission
@@ -218,125 +217,43 @@ export function BlocksCodingBand({
                 </div>
               )}
               {selectedChar?.scripts.map((script) => {
-                const isDragSource = !!dragBlock && dragBlock.scriptId === script.id
-                const showReorderBar =
-                  !!dragBlock &&
-                  !dragBlock.onBin &&
-                  dragBlock.targetScriptId === script.id &&
-                  dragBlock.dropX !== null
+                const dropTarget = dragBlock
+                  ? dragBlock.onBin
+                    ? null
+                    : dragBlock.target
+                  : (paletteBlock?.target ?? null)
+                const chainCtx: ChainContext = {
+                  scriptId: script.id,
+                  activeKeys,
+                  dragging: dragBlock
+                    ? { scriptId: dragBlock.scriptId, path: dragBlock.path }
+                    : null,
+                  dropTarget,
+                  ifBodyTarget,
+                  setIfBodyTarget,
+                  onBlockDown,
+                  onBlockMove,
+                  onBlockUp,
+                  onBlockCancel,
+                  onBlockTap,
+                  storyMission,
+                  isA2DirectionDebug,
+                  missionWrongRunObserved,
+                }
+                // The track glows whenever the drop lands anywhere inside it,
+                // including inside a nested C-block body.
+                const isDropTrack = zoneHoldsDrop(dropTarget, script.id, [])
                 return (
                   <div
                     key={script.id}
-                    className="bsx-chainwrap relative mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4"
+                    className={`bsx-chainwrap relative mb-3 flex w-max items-center rounded-2xl p-2.5 pr-4${
+                      isDropTrack ? ' is-drop-target' : ''
+                    }`}
                     data-testid={`script-${script.id}`}
+                    data-drop-zone={script.id}
+                    data-zone-path=""
                   >
-                    {script.blocks.map((b, i) => {
-                      const isDragged = isDragSource && dragBlock!.index === i
-                      const def = blockDef(b.op)
-                      const isLockedDirection =
-                        storyMission?.lessonId === 'tsv-s1-a2-b' &&
-                        (b.op === 'move_left' || b.op === 'move_right')
-                      const isDebugDirection =
-                        isA2DirectionDebug && (b.op === 'move_left' || b.op === 'move_right')
-                      if (b.op === 'if_touching') {
-                        const bodyTarget =
-                          ifBodyTarget?.scriptId === script.id && ifBodyTarget.index === i
-                        return (
-                          <div
-                            key={`${script.id}-${i}`}
-                            className="bsx-if-c"
-                            data-testid="if-container"
-                          >
-                            <BlockChip
-                              block={b}
-                              inChain
-                              lit={activeKeys.has(`${script.id}:${i}`)}
-                              dragging={isDragged}
-                              style={isDragged ? { opacity: 0.28 } : undefined}
-                              onPointerDown={(e) => onBlockDown(e, script.id, i)}
-                              onPointerMove={onBlockMove}
-                              onPointerUp={onBlockUp}
-                              onPointerCancel={onBlockCancel}
-                              onTap={(e) => onBlockTap(e, script.id, i, b.op)}
-                              title="Tap to choose a friend · hold to move the whole If"
-                            />
-                            <div
-                              className={`bsx-if-body${bodyTarget ? ' is-target' : ''}`}
-                              data-testid="if-body"
-                            >
-                              <span className="bsx-if-body-label">Then do</span>
-                              <div className="bsx-if-body-chain">
-                                {(b.body ?? []).map((child, bodyIndex) => (
-                                  <BlockChip
-                                    key={`${script.id}-${i}-body-${bodyIndex}`}
-                                    block={child}
-                                    inChain
-                                    isLast={bodyIndex === (b.body?.length ?? 0) - 1}
-                                    title="Tap to remove this action from the If"
-                                    onTap={() =>
-                                      useBlocksStore
-                                        .getState()
-                                        .removeIfBodyBlock(script.id, i, bodyIndex)
-                                    }
-                                  />
-                                ))}
-                              </div>
-                              <button
-                                type="button"
-                                className="bsx-if-add"
-                                data-testid="if-add-inside"
-                                aria-pressed={bodyTarget}
-                                onClick={() => {
-                                  sfx.tap()
-                                  setIfBodyTarget({ scriptId: script.id, index: i })
-                                }}
-                              >
-                                <span aria-hidden>{bodyTarget ? '←' : '+'}</span>
-                                {bodyTarget ? 'Pick a block on the left' : 'Add block'}
-                              </button>
-                            </div>
-                            <span className="bsx-if-foot" aria-hidden />
-                          </div>
-                        )
-                      }
-                      return (
-                        <BlockChip
-                          key={`${script.id}-${i}`}
-                          block={b}
-                          inChain
-                          isLast={i === script.blocks.length - 1}
-                          lit={activeKeys.has(`${script.id}:${i}`)}
-                          dragging={isDragged}
-                          style={isDragged ? { opacity: 0.28 } : undefined}
-                          onPointerDown={(e) => onBlockDown(e, script.id, i)}
-                          onPointerMove={onBlockMove}
-                          onPointerUp={onBlockUp}
-                          onPointerCancel={onBlockCancel}
-                          onTap={(e) => onBlockTap(e, script.id, i, b.op)}
-                          title={
-                            isDebugDirection
-                              ? missionWrongRunObserved
-                                ? 'Tap to turn this one arrow · 3 steps stay the same'
-                                : 'Press Go first and watch where Left 3 goes'
-                              : isLockedDirection
-                                ? '3 steps are ready · hold to drag · drag to the bin to remove'
-                                : def.hasN
-                                  ? 'Tap to change the number · hold to drag · drag to the bin to remove'
-                                  : b.op === 'say'
-                                    ? 'Tap to change the words · hold to drag · drag to the bin to remove'
-                                    : 'Hold to drag · drag to another track or the bin'
-                          }
-                        />
-                      )
-                    })}
-                    {showReorderBar && (
-                      <span className="bsx-dropbar" style={{ left: dragBlock!.dropX! }} />
-                    )}
-                    {paletteBlock &&
-                      paletteBlock.scriptId === script.id &&
-                      paletteBlock.dropX !== null && (
-                      <span className="bsx-dropbar" style={{ left: paletteBlock.dropX }} />
-                    )}
+                    <BlockChain blocks={script.blocks} zonePath={[]} ctx={chainCtx} />
                   </div>
                 )
               })}
