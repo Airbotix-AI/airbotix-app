@@ -66,6 +66,25 @@
 
 ### Added
 
+- Story Blocks: a C-block body (`If touching`) is now a real drop target. Every
+  chain — a track and every nested body — registers as a drop zone and every
+  block publishes its tree path, so dragging a block *into* an If lands it
+  inside the If instead of beside it. The hit-test picks the deepest zone under
+  the pointer.
+- Story Blocks: blocks nested inside an If are first-class — drag them out,
+  across tracks or to the bin, and tap them to change their number or words. A
+  tap used to just delete them.
+
+### Changed
+
+- Story Blocks drop feedback: the 4px insertion line is replaced by a
+  block-sized dashed gap that physically opens the chain at the landing slot,
+  with the owning track/body lit up. An empty If body now reads "Drop a block
+  here". Tap-to-add ("Add block") still works, and a real drop wins over it.
+- Story Blocks editor state is path-addressed (`insertBlockAtPath`,
+  `moveBlockToPath`, `removeBlockAtPath`, `setParamAtPath`, …); the flat
+  index-based store API remains as thin wrappers. A C-block can never be
+  dropped into its own body, and nothing can land in front of a trigger.
 - Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal
   character pose plus the breakfast-cart and morning-bell states, and saves the selected first-party
   PNG into the project instead of falling back to an emoji.
