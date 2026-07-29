@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step two: add a head and long tail</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="#DCF6EC" stroke="#2C3642" stroke-width="12" stroke-linejoin="round">
+    <ellipse cx="320" cy="330" rx="145" ry="92"/>
+    <path d="M203 305c-65-30-126-13-126 31 0 31 29 47 80 43l69-6Z"/>
+    <path d="M444 320c63-7 105-31 137-63-18 57-58 94-128 116Z"/>
+  </g>
+</svg>

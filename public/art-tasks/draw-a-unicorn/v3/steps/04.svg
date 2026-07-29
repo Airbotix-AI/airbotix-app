@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 4 for drawing a standing unicorn</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="370" cy="350" rx="140" ry="82"/>
+    <path d="M267 354c-51-36-70-101-38-151 24-38 78-53 118-25m-118 25c-43-11-75 10-73 42 2 37 47 60 94 40l44-27"/>
+    <path d="M278 409v118m70-95v95m75-95v95m66-107v107m-233 0h48m23 0h46m30 0h45m22 0h45"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="m231 188 1-100 43 91m73 0c-44 5-80 32-104 72m61-17c-7 32 4 62 28 88M510 339c80-58 119 17 82 76-22 35-66 42-96 14m-252-190 20 17m-59-21 17 12"/><circle cx="202" cy="238" r="7" fill="#2C3642"/></g>
+  </g>
+</svg>

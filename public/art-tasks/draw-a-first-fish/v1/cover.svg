@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple friendly fish</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="285" cy="310" rx="155" ry="108"/>
+    <polygon points="430,310 545,220 545,400"/><path d="M282 206c34-55 79-67 104 11M282 414c34 55 79 67 104-11"/>
+    <circle cx="215" cy="286" r="10" fill="#2C3642"/><path d="M211 344c26 22 55 22 81 0"/>
+  </g>
+</svg>

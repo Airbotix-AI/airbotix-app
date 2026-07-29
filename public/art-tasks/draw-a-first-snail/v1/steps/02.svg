@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a very simple smiling snail</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="295" cy="280" r="142"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M76 430c93-29 176-26 238 8h140c49 0 82-25 82-68 0-57-53-88-103-61-24 13-39 39-43 72H254c-87 0-146 17-178 49Z"/><path d="M421 313 405 245m73 55 22-65"/></g>
+  </g>
+</svg>

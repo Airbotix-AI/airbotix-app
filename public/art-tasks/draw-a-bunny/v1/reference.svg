@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A four-step line drawing of a bunny holding a carrot</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="315" cy="382" rx="116" ry="140"/>
+    <circle cx="315" cy="233" r="104"/><ellipse cx="265" cy="99" rx="35" ry="103" transform="rotate(-12 265 99)"/><ellipse cx="365" cy="99" rx="35" ry="103" transform="rotate(12 365 99)"/>
+    <ellipse cx="247" cy="493" rx="72" ry="40" transform="rotate(-10 247 493)"/><ellipse cx="383" cy="493" rx="72" ry="40" transform="rotate(10 383 493)"/><circle cx="436" cy="393" r="39"/><path d="M253 340c24 50 44 72 62 72m62-72c-24 50-44 72-62 72"/>
+    <circle cx="278" cy="225" r="8" fill="#2C3642"/><circle cx="352" cy="225" r="8" fill="#2C3642"/><path d="m315 254-14 11 14 12 14-12-14-11Zm0 23v18m0 0c-16 15-33 15-48 1m48-1c16 15 33 15 48 1M303 383l55-82 39 26-58 96Z"/><path d="m359 302 7-47m3 49 31-36m-25 42 48-13"/>
+  </g>
+</svg>

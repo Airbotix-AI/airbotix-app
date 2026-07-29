@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A four-step line drawing of a rocket flying through space</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 64c92 75 108 244 0 377-108-133-92-302 0-377Z"/>
+    <circle cx="300" cy="229" r="52"/><circle cx="300" cy="229" r="35"/><path d="m236 322-91 108 101-30m118-78 91 108-101-30"/>
+    <path d="M253 421c-9 61 14 102 47 132 33-30 56-71 47-132m-64 18c0 35 6 63 17 82 11-19 17-47 17-82"/>
+    <path d="M261 131h78M247 371h106m-209 62-36 47m348-47 36 47"/>
+  </g>
+</svg>

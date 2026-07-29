@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-07-28 (fix: simplify guided drawing tasks for younger children)
+
+### Changed
+- Added immutable `v2` assets for all eight guided tasks, replacing detailed
+  illustrated references with four-step, thick-line drawings made from at most
+  twelve visible shapes.
+- Covers, references, trace ghosts and steps now share the exact same geometry;
+  v1 assets remain available for previously saved task versions.
+- Added automated line-budget checks that reject gradients, filters, embedded
+  images, fifth steps or overly complex young-child references.
+
+## 2026-07-28 (feat: expand Art Studio guided drawing library)
+
+### Added
+- Expanded the guided drawing library from one T-Rex sample to eight kid-facing
+  choices: T-Rex, kitten, puppy, lion, shark, rocket, unicorn and race car.
+- Added seven independently generated, reviewed reference illustrations plus
+  deterministic ghost outlines and five cumulative guide images per task.
+- Added an asset completeness test and a repeatable guide-generation script.
+
+## 2026-07-28 (feat: guided drawing ideas in Art Studio)
+
+### Added
+- Added concrete Art Studio drawing ideas, beginning with an original `Draw a T-Rex`
+  task for ages 6–10.
+- Added child choice between `Look & Draw`, `Trace a Ghost`, and `Draw My Way`.
+- Added a one-step-at-a-time drawing guide, reference toggle, adjustable authored
+  trace layer, task-aware draft restore, and saved Artifact task metadata.
+- Course `image_create` steps can now reference the same task player through
+  `widget_config.art_task_slug` while retaining Mission Mode.
+
+### Assets
+- Added an original reviewed T-Rex reference image, trace outline, and five
+  progressive guide illustrations under the immutable `v1` asset path.
 ## 2026-07-29
 
 ### Added
@@ -82,7 +116,6 @@
   backgrounds across all four mission contracts. Chapter four uses the formal
   right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
   saved projects using the exact legacy cart SVG remain compatible.
-
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed

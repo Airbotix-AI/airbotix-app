@@ -14,6 +14,7 @@
 //
 // Drawing is free here — no Stars are spent anywhere on this page.
 
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -26,6 +27,9 @@ import {
   type Artifact,
 } from '../shared/useStudio';
 import type { ArtMission } from './ArtStudioPage';
+import { ArtTaskModePicker } from './ArtTaskModePicker';
+import type { ArtTaskDrawMode, ArtTaskListItem } from './artTaskTypes';
+import { artTaskSlugFromSteps } from './artTaskTypes';
 
 /** Where the canvas itself lives, now that this hub owns `/learn/create/image`. */
 export const ART_CANVAS_PATH = '/learn/create/image/canvas';
@@ -79,6 +83,14 @@ interface CoursePackRow {
 // itself). Coding-line courses are shown only through their individual art TASKS.
 const ART_COURSE_LINE = 'line_a_creative';
 
+const PUBLIC_COURSE_TITLES: Readonly<Record<string, string>> = {
+  'ai-comic-book': 'Create Your Own Comic Book with AI',
+};
+
+function publicCourseTitle(course: { slug: string; title: string }): string {
+  return PUBLIC_COURSE_TITLES[course.slug] ?? course.title;
+}
+
 // The studio's three AI powers, priced exactly as the canvas charges them
 // (ArtStudioPage MAGIC_COST / GHOST_COST / CHAT_COST → backend pricing.ts).
 // Shown here so a kid learns what each button does BEFORE spending Stars on it.
@@ -109,7 +121,11 @@ function PictureCard({ artifact, onOpen }: { artifact: Artifact; onOpen: () => v
   const meta = artifact.metadata as { prompt?: string; character?: string; source?: string };
   const label = meta.character ?? meta.prompt ?? 'My drawing';
   // What the kid made, in their terms: their own strokes vs an AI take vs a saved character.
-  const badge = meta.character ? '👤 Character' : meta.source === 'canvas-sketch' ? '✏️ I drew it' : '✨ AI';
+  const badge = meta.character
+    ? '👤 Character'
+    : meta.source === 'canvas-sketch'
+      ? '✏️ I drew it'
+      : '✨ AI';
 
   return (
     <button
@@ -134,14 +150,53 @@ function PictureCard({ artifact, onOpen }: { artifact: Artifact; onOpen: () => v
   );
 }
 
+function DrawingIdeaCard({
+  task,
+  onPick,
+}: {
+  task: ArtTaskListItem;
+  onPick: (task: ArtTaskListItem) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="art-guided-task"
+      onClick={() => onPick(task)}
+      className="overflow-hidden rounded-[26px] border border-hairline bg-canvas-pure text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
+    >
+      <img
+        src={task.cover.url}
+        alt={task.cover.alt}
+        className="aspect-[4/3] w-full bg-surface object-cover"
+      />
+      <span className="block p-4">
+        <span className="block text-[10px] font-black uppercase tracking-[0.11em] text-brand-mint">
+          {task.category} · Ages {task.age_min}–{task.age_max}
+        </span>
+        <span className="mt-1 block text-[18px] font-black text-ink">{task.title}</span>
+        <span className="mt-1 block text-[12px] text-ink-soft">{task.short_description}</span>
+        <span className="mt-3 block text-[11px] font-bold text-slate2">
+          {task.duration_minutes} min · Difficulty {'●'.repeat(task.difficulty)}
+          {'○'.repeat(3 - task.difficulty)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export function ArtHubPage() {
   const nav = useNavigate();
+  const [pickedTask, setPickedTask] = useState<ArtTaskListItem | null>(null);
   const bucket = useCreateBucket('image');
   const pictures = useBucketArtifacts(bucket.data?.project_id);
 
   const missions = useQuery<ArtMissionRow[]>({
     queryKey: ['art-missions'],
     queryFn: () => api<ArtMissionRow[]>('/course-packs/art-missions'),
+  });
+  const guidedTasks = useQuery<ArtTaskListItem[]>({
+    queryKey: ['art-studio-tasks'],
+    queryFn: () => api<ArtTaskListItem[]>('/art-studio/tasks'),
   });
 
   // Shares the Lessons catalogue's query key, so arriving from there is a cache hit.
@@ -150,6 +205,13 @@ export function ArtHubPage() {
     queryFn: () => api<CoursePackRow[]>('/course-packs'),
   });
   const artCourses = (packs.data ?? []).filter((p) => p.product_line === ART_COURSE_LINE);
+  const firstDrawingTasks = (guidedTasks.data ?? []).filter(
+    (task) => task.difficulty === 1 && task.age_min === 4,
+  );
+  const simpleDrawingTasks = (guidedTasks.data ?? []).filter(
+    (task) => task.difficulty < 3 && task.age_min > 4,
+  );
+  const challengeDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty === 3);
 
   // Only images belong in the picture wall — the bucket can also hold the
   // non-image artifacts a future studio feature saves.
@@ -165,20 +227,33 @@ export function ArtHubPage() {
     });
 
   const startMission = (row: ArtMissionRow) =>
-    nav(ART_CANVAS_PATH, {
-      state: {
-        mission: {
-          id: row.id,
-          slug: row.slug,
-          title: row.title,
-          description: row.description,
-          steps: row.steps,
-          template: row.art?.template,
-          draw_along: row.art?.draw_along,
-          checklist: row.art?.checklist,
-        } satisfies ArtMission,
+    nav(
+      artTaskSlugFromSteps(row.steps ?? [])
+        ? `${ART_CANVAS_PATH}?task=${encodeURIComponent(
+            artTaskSlugFromSteps(row.steps ?? []) as string,
+          )}&mode=look`
+        : ART_CANVAS_PATH,
+      {
+        state: {
+          mission: {
+            id: row.id,
+            slug: row.slug,
+            title: row.title,
+            description: row.description,
+            steps: row.steps,
+            art_task_slug: artTaskSlugFromSteps(row.steps ?? []),
+            template: row.art?.template,
+            draw_along: row.art?.draw_along,
+            checklist: row.art?.checklist,
+          } satisfies ArtMission,
+        },
       },
-    });
+    );
+
+  const startGuidedTask = (mode: ArtTaskDrawMode) => {
+    if (!pickedTask) return;
+    nav(`${ART_CANVAS_PATH}?task=${encodeURIComponent(pickedTask.slug)}&mode=${mode}`);
+  };
 
   return (
     <div>
@@ -201,7 +276,9 @@ export function ArtHubPage() {
           onClick={() => nav(ART_CANVAS_PATH)}
           className="rounded-[26px] border-2 border-dashed border-brand-bubblegum/50 bg-wash-bubblegum p-6 text-left transition hover:-translate-y-0.5 hover:shadow-card-soft"
         >
-          <div className="text-[40px]" aria-hidden="true">🎨</div>
+          <div className="text-[40px]" aria-hidden="true">
+            🎨
+          </div>
           <h2 className="mt-2 text-[22px] font-black">Draw a new picture</h2>
           <p className="mt-1 text-[13px] font-semibold text-slate2">
             A blank canvas with brushes, colours and stickers. Free.
@@ -226,9 +303,74 @@ export function ArtHubPage() {
         )}
       </section>
 
-      {/* ── 任务 — the art tasks that come from the kid's courses. */}
+      <section className="mb-10" data-testid="art-hub-guided-tasks">
+        <div className="eyebrow eyebrow-mint">Pick something to draw</div>
+        <h2 className="section-heading mt-1">Drawing ideas</h2>
+        <p className="lead-text mt-2">
+          Choose a real thing, then look, trace or make your own version. Each idea has one small
+          step at a time.
+        </p>
+        {guidedTasks.isLoading ? (
+          <p className="lead-text mt-3">Loading drawing ideas…</p>
+        ) : guidedTasks.data && guidedTasks.data.length > 0 ? (
+          <div className="mt-5 space-y-8">
+            {firstDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-first">
+                <h3 className="text-[18px] font-black text-ink">My First Drawing</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Just three tiny steps and a few big shapes — easiest to copy.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {firstDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {simpleDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-simple">
+                <h3 className="text-[18px] font-black text-ink">Start Simple</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Four big steps and clear lines — a friendly place to begin.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {simpleDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {challengeDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-challenge">
+                <h3 className="text-[18px] font-black text-ink">Ready for a Challenge?</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Five steps with more detail, colour and a bigger scene to create.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {challengeDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-hairline bg-surface px-5 py-4">
+            <p className="text-[14px] font-semibold text-ink">
+              New drawing ideas are being prepared.
+            </p>
+            <p className="mt-1 text-[13px] text-ink-soft">
+              You can still start with a blank canvas.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── 课程任务 — tasks that come from the kid's courses. */}
       <section className="mb-10" data-testid="art-hub-tasks">
-        <h2 className="section-heading">Art tasks</h2>
+        <h2 className="section-heading">Tasks from my courses</h2>
         {missions.isLoading ? (
           <p className="lead-text mt-2">Loading your tasks…</p>
         ) : missions.data && missions.data.length > 0 ? (
@@ -241,14 +383,19 @@ export function ArtHubPage() {
                   onClick={() => startMission(row)}
                   className="group flex w-full items-start gap-3 rounded-2xl border border-hairline bg-canvas-pure px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-brand-bubblegum/40 hover:shadow-card-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-bubblegum"
                 >
-                  <span className="mt-0.5 shrink-0 text-[15px]" aria-hidden="true">🎯</span>
+                  <span className="mt-0.5 shrink-0 text-[15px]" aria-hidden="true">
+                    🎯
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-semibold text-ink">{row.title}</span>
                     {row.description && (
-                      <span className="mt-1 block text-[13px] text-ink-soft">{row.description}</span>
+                      <span className="mt-1 block text-[13px] text-ink-soft">
+                        {row.description}
+                      </span>
                     )}
                     <span className="mt-2 block text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
-                      {row.course_pack.title} · {row.lesson.title} · {row.estimated_stars}★
+                      {publicCourseTitle(row.course_pack)} · {row.lesson.title} ·{' '}
+                      {row.estimated_stars}★
                     </span>
                     <span className="mt-1 block text-[12px] font-semibold text-brand-bubblegum">
                       Open the task to see every learning step beside your canvas.
@@ -275,6 +422,14 @@ export function ArtHubPage() {
         )}
       </section>
 
+      {pickedTask && (
+        <ArtTaskModePicker
+          task={pickedTask}
+          onPick={startGuidedTask}
+          onClose={() => setPickedTask(null)}
+        />
+      )}
+
       {/* ── 课程 — the making/creative courses that live next to this studio. A task
           answers "what do I do next"; a course answers "what can I learn here". */}
       {artCourses.length > 0 && (
@@ -297,11 +452,14 @@ export function ArtHubPage() {
                   <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate2">
                     Ages {pack.target_age_min}–{pack.target_age_max}
                   </div>
-                  <h3 className="mt-1 text-[18px] font-black text-ink">{pack.title}</h3>
+                  <h3 className="mt-1 text-[18px] font-black text-ink">
+                    {publicCourseTitle(pack)}
+                  </h3>
                   <p className="mt-1 line-clamp-3 text-[13px] text-ink-soft">{pack.description}</p>
                   <div className="mt-3 text-[12px] font-bold uppercase tracking-[0.10em] text-slate2">
                     {pack.lessons.length} {pack.lessons.length === 1 ? 'lesson' : 'lessons'}
-                    {taskCount > 0 && ` · ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}`} ·{' '}
+                    {taskCount > 0 &&
+                      ` · ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}`} ·{' '}
                     {pack.estimated_stars}★
                   </div>
                 </Link>
@@ -321,7 +479,9 @@ export function ArtHubPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {AI_POWERS.map((power) => (
             <div key={power.title} className="card-base">
-              <div className="text-[32px]" aria-hidden="true">{power.emoji}</div>
+              <div className="text-[32px]" aria-hidden="true">
+                {power.emoji}
+              </div>
               <div className="mt-2 flex items-baseline gap-2">
                 <h3 className="text-[16px] font-black text-ink">{power.title}</h3>
                 <span className="text-[12px] font-bold text-slate2">{power.cost}★</span>

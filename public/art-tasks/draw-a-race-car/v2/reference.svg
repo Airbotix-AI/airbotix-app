@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A four-step line drawing of a racing car</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M88 367c23-80 91-113 187-120l68-72h92l61 75c52 12 85 44 91 96l-24 58H125l-37-37Z"/>
+    <circle cx="208" cy="404" r="64"/><circle cx="458" cy="404" r="64"/><circle cx="208" cy="404" r="27"/><circle cx="458" cy="404" r="27"/>
+    <path d="m274 247 82-69 70 69M435 189h105v27H431m28-27v-32m61 32v-32"/>
+    <ellipse cx="132" cy="337" rx="28" ry="17"/><path d="M92 367h52m335-111 52 31"/>
+  </g>
+</svg>
