@@ -373,6 +373,42 @@
   font-weight: 850;
 }
 
+.tsv-chapter-story {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  border: 1px solid #e8dca7;
+  border-radius: 18px;
+  background: #fffdf3;
+  padding: 14px;
+}
+
+.tsv-chapter-story div {
+  display: grid;
+  gap: 3px;
+}
+
+.tsv-chapter-story small {
+  color: #806719;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tsv-chapter-story p {
+  margin: 0;
+  color: #554d63;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.tsv-chapter-story-after {
+  border-top: 1px dashed #dfd2a1;
+  padding-top: 10px;
+}
+
 .tsv-mission-list {
   grid-column: 1 / -1;
   display: grid;

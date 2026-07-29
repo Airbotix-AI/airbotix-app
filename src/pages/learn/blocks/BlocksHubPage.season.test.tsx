@@ -160,7 +160,7 @@ describe('Story Blocks hub — Tiny Star Village season progression', () => {
     await waitFor(() =>
       expect(createBlocksProject).toHaveBeenCalledWith({
         template: 'blocks_tsv_a2_h',
-        title: 'Tiny Star Village · Which way is the plaza?',
+        title: 'Tiny Star Village · Press Go and watch',
       }),
     );
     expect(navigate).toHaveBeenCalledWith('/learn/blocks/fresh-project');
