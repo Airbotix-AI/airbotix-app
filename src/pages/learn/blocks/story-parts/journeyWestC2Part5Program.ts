@@ -16,7 +16,7 @@ export function c2p5ProgramMatches(project: BlocksProject): boolean {
   );
   const caveOps = ops(cave?.scripts.find((script) => script.id === 'cave-entrance-reveal')?.blocks);
   return (
-    curtain?.start.visible === true &&
+    curtain?.start.visible !== false &&
     cave?.start.visible === false &&
     curtain?.start.reach === 1 &&
     cave?.start.reach === 1 &&
