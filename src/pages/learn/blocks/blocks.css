@@ -1007,22 +1007,100 @@
   background: linear-gradient(180deg, #ffd3ee, #ffe9c7 60%, #ffd0e6);
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] {
-  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-dim.svg')
+  background: #4a4577 url('/story-blocks/tiny-star-village/backgrounds/window-room-before-dim-v01.webp')
     center / cover no-repeat;
 }
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-hill,
 .bsx-stage[data-scene='tsv-window-room-dim'] .bsx-deco {
   display: none;
 }
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] {
-  background: #bde8ff
-    url('/story-blocks/tiny-star-village/backgrounds/cloud-path-meadow-storybook.webp') center 57% /
+.bsx-stage[data-scene='tsv-cloud-road-right'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/cloud-road-right-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/cloud-road-left-target-v01.webp') center /
     cover no-repeat;
 }
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-hill,
-.bsx-stage[data-scene='tsv-cloud-path-meadow'] .bsx-deco {
+.bsx-stage[data-scene='tsv-cloud-road-right'] .bsx-hill,
+.bsx-stage[data-scene='tsv-cloud-road-right'] .bsx-deco,
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] .bsx-hill,
+.bsx-stage[data-scene='tsv-cloud-road-left-target'] .bsx-deco {
   display: none;
 }
+.bsx-stage[data-scene='tsv-rooftop'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-sleep-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-hill,
+.bsx-stage[data-scene='tsv-rooftop'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-1'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-1-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-2'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-2-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-breakfast-stop-distance-3'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/breakfast-stop-distance-3-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene^='tsv-breakfast-stop-distance-'] .bsx-hill,
+.bsx-stage[data-scene^='tsv-breakfast-stop-distance-'] .bsx-deco {
+  display: none;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] {
+  background: #403a70
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-dim-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-hill,
+.bsx-stage[data-scene='tsv-greeting-stage'] .bsx-deco {
+  display: none;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] {
+  background: url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-dim-v01.webp')
+    center / cover no-repeat;
+}
+
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-hill,
+.bsx-stage[data-scene='tsv-clocktower-path'] .bsx-deco {
+  display: none;
+}
+
+/* Completion art is presentation-only. `data-scene` remains the saved scene
+   contract while this exact visual token switches after missionCompleted. */
+.bsx-stage[data-story-scene-visual='tsv-window-room-resolved-bright'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/window-room-resolved-bright-v01.webp')
+    center / cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-rooftop-awake-lit'] {
+  background: #625b91
+    url('/story-blocks/tiny-star-village/backgrounds/rooftop-awake-lit-v01.webp') center / cover
+    no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-greeting-stage-lamp-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/greeting-stage-lamp-lit-v01.webp') center /
+    cover no-repeat;
+}
+.bsx-stage[data-story-scene-visual='tsv-clocktower-path-bell-lit'] {
+  background: #fff0b5
+    url('/story-blocks/tiny-star-village/backgrounds/clocktower-path-bell-lit-v01.webp') center /
+    cover no-repeat;
+}
+
 .bsx-stage[data-scene='jtw-s1-c1-flower-fruit-stone'] {
   background: #e8d7ad url('/story-blocks/journey-to-the-west/backgrounds/s1/c1/before-v01.webp')
     center / cover no-repeat;
@@ -2177,6 +2255,9 @@
   -webkit-user-select: text;
   -webkit-touch-callout: default;
 }
+.bsx-toolbar {
+  display: flex;
+}
 .bsx-middle {
   display: grid;
   grid-template-columns: minmax(78px, 96px) minmax(0, 1fr) minmax(92px, 112px);
@@ -2364,6 +2445,224 @@
   }
   .bsx-app .bsx-stagefoot {
     display: none;
+  }
+}
+
+/* ── PHONE PORTRAIT: authoring stays calm instead of becoming a shrunken
+   desktop. The primary row is Home → project → Go; editing utilities move to a
+   second row. The coach becomes a shallow stage banner and every coding control
+   keeps a minimum 44px touch target while using the scarce height carefully. */
+@media (max-width: 620px) {
+  .bsx {
+    --bsx-hit: 44px;
+    --bsx-block-h: 54px;
+  }
+  .bsx-app {
+    gap: 6px;
+    padding: 6px;
+  }
+  .bsx-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'home title go'
+      'history tools tools';
+    gap: 7px;
+    padding: 7px;
+    border-radius: 20px;
+  }
+  .bsx-toolbar-home {
+    grid-area: home;
+  }
+  .bsx-toolbar-history {
+    grid-area: history;
+  }
+  .bsx-toolbar-title {
+    grid-area: title;
+    align-self: center;
+  }
+  .bsx-toolbar-title > :first-child {
+    font-size: 14px;
+  }
+  .bsx-toolbar-title > :last-child {
+    font-size: 10px;
+  }
+  .bsx-toolbar-spacer {
+    display: none;
+  }
+  .bsx-toolbar-tools {
+    grid-area: tools;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+  .bsx-toolbar-go {
+    grid-area: go;
+    justify-content: center;
+    min-width: 78px;
+    padding-inline: 16px;
+    font-size: 15px;
+  }
+  .bsx-toolbar :is(.bsx-press, .bsx-mission-launcher, .bsx-toolbar-go) {
+    height: 44px;
+    min-height: 44px;
+  }
+  .bsx-middle {
+    grid-template-rows: minmax(168px, 1fr) auto;
+    gap: 6px;
+  }
+  .bsx-middle [data-testid='blocks-stage'] {
+    min-height: 168px;
+    border-radius: 20px;
+  }
+  .bsx-zonetag.zt-stage {
+    left: 50px;
+    top: 10px;
+  }
+  .bsx-scene-btn {
+    left: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+  }
+  .bsx-app .bsx-story-coach {
+    left: 58px;
+    right: 8px;
+    top: 8px;
+    bottom: auto;
+    width: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head steps'
+      'goal goal'
+      'cue cue';
+    gap: 5px 8px;
+    padding: 8px 10px;
+    border-width: 2px;
+    border-radius: 16px;
+    box-shadow: 0 8px 18px rgb(20 31 63 / 20%);
+  }
+  .bsx-app .bsx-story-coach-head {
+    grid-area: head;
+    gap: 7px;
+  }
+  .bsx-app .bsx-story-coach-face {
+    width: 30px;
+    height: 30px;
+  }
+  .bsx-app .bsx-story-coach-face :is(img, svg) {
+    width: 28px;
+    height: 28px;
+  }
+  .bsx-app .bsx-story-coach-head strong {
+    font-size: 12px;
+  }
+  .bsx-app .bsx-story-coach-head span:last-child {
+    display: none;
+  }
+  .bsx-app .bsx-story-coach > p {
+    grid-area: cue;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.28;
+  }
+  .bsx-app .bsx-story-coach-goal {
+    grid-area: goal;
+    grid-template-columns: minmax(0, auto) 1fr;
+    gap: 2px 7px;
+    margin: 0;
+    padding: 6px 8px;
+  }
+  .bsx-app .bsx-story-coach-goal small,
+  .bsx-app .bsx-story-coach-goal em {
+    display: none;
+  }
+  .bsx-app .bsx-story-coach-goal strong {
+    font-size: 11px;
+  }
+  .bsx-app .bsx-story-coach-goal span {
+    font-size: 10px;
+  }
+  .bsx-app .bsx-story-coach.has-goal > p {
+    display: none;
+  }
+  .bsx-app .bsx-story-coach-steps {
+    grid-area: steps;
+    align-self: center;
+    gap: 3px;
+  }
+  .bsx-app .bsx-story-coach-steps > span {
+    width: 22px;
+    min-height: 20px;
+    font-size: 10px;
+  }
+  .bsx-app .bsx-story-coach-steps small,
+  .bsx-app .bsx-story-coach > button,
+  .bsx-app .bsx-zonetag.zt-stage {
+    display: none;
+  }
+  .bsx-railbox {
+    border-radius: 18px;
+  }
+  .bsx-railscroll {
+    gap: 7px;
+    padding: 6px 8px;
+  }
+  .bsx-railscroll > button[data-testid^='char-thumb-'],
+  .bsx-railscroll > button[data-testid='add-character'],
+  .bsx-railscroll > button[data-testid='add-page'],
+  .bsx-railscroll > .relative > button[data-testid^='page-thumb-'] {
+    height: 48px;
+  }
+  .bsx-coder {
+    height: clamp(250px, 40vh, 330px);
+    gap: 6px;
+  }
+  .bsx-app[data-story='true'] .bsx-coder {
+    padding: 6px;
+    border-radius: 20px;
+  }
+  .bsx-catbar,
+  .bsx-palette,
+  .bsx-coder [data-testid='script-area'] {
+    border-radius: 18px;
+  }
+  .bsx-catscroll {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .bsx-palette .bsx-fscroll {
+    gap: 10px;
+    padding: 9px 12px 12px;
+  }
+  .bsx-palette-tag {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+  .bsx-chainwrap {
+    padding: 8px 12px 8px 8px;
+  }
+  .bsx-block {
+    min-width: 58px;
+    padding-inline: 17px 13px;
+    font-size: 10.5px;
+  }
+  .bsx-block .ic {
+    font-size: 19px;
+  }
+  .bsx-bin {
+    width: 56px;
+    gap: 4px;
+    border-radius: 18px;
+  }
+  .bsx-bin-can {
+    width: 36px;
+    height: 36px;
+  }
+  .bsx-bin-label {
+    font-size: 11px;
   }
 }
 
@@ -2697,6 +2996,35 @@
   flex-direction: column;
   justify-content: center;
   padding: 4px 3px;
+}
+.bsx-story-first-action {
+  display: grid;
+  gap: 4px;
+  width: min(100%, 430px);
+  margin: 0 auto 14px;
+  border: 2px solid #eabf3d;
+  border-radius: 16px;
+  background: #fff8cf;
+  padding: 11px 14px;
+  text-align: left;
+}
+.bsx-story-first-action small {
+  color: #735a13;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.bsx-story-first-action strong {
+  color: #3e315b;
+  font-size: 19px;
+  line-height: 1.2;
+}
+.bsx-story-first-action span {
+  color: #5c526d;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
 }
 .bsx-story-scene {
   position: relative;
@@ -3389,6 +3717,41 @@
   font-weight: 800;
   text-align: left;
 }
+.bsx-story-coach-goal {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  border: 2px solid #f0c64c;
+  border-radius: 14px;
+  background: #fff9d9;
+  padding: 10px;
+  text-align: left;
+}
+.bsx-story-coach-goal small {
+  color: #725b17;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.bsx-story-coach-goal strong {
+  color: #3e315b;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.bsx-story-coach-goal span,
+.bsx-story-coach-goal em {
+  color: #5d536d;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 1.35;
+}
+.bsx-story-coach-goal em {
+  border-top: 1px dashed #d7bf6c;
+  padding-top: 5px;
+  color: #674ca8;
+}
 .bsx-story-coach-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -3561,6 +3924,32 @@
   border: 2px solid #8d99b5;
   background: transparent;
   color: #485575;
+}
+.bsx-mission-completion-actions {
+  position: sticky;
+  bottom: -1px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
+  gap: 12px;
+  margin: 0 -4px -4px;
+  padding: 14px 4px 4px;
+  background: linear-gradient(180deg, rgb(255 253 245 / 0%), #fffdf5 24%);
+}
+.bsx-mission-completion-actions .bsx-mission-primary,
+.bsx-mission-completion-actions .bsx-mission-secondary {
+  width: 100%;
+  margin-top: 0;
+}
+@media (max-width: 620px) {
+  .bsx-mission-completion-actions {
+    grid-template-columns: 1fr;
+  }
+  .bsx-mission-completion-actions .bsx-mission-primary {
+    grid-row: 1;
+  }
+  .bsx-mission-completion-actions .bsx-mission-secondary {
+    grid-row: 2;
+  }
 }
 .bsx-mission-retry {
   margin: 17px 0 0;

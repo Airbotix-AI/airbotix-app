@@ -261,7 +261,7 @@ describe('StoryMissionGuide', () => {
         onApplyFix={vi.fn()}
         onClose={vi.fn()}
         journeyLabel="Chapter 1 · Scene 3 of 4"
-        nextJourneyLabel="Chapter 1 · My morning greeting"
+        nextJourneyLabel="Next scene (4 of 4): My morning greeting"
         onNext={onNext}
       />,
     );
@@ -274,6 +274,10 @@ describe('StoryMissionGuide', () => {
       screen.getByTestId('story-logic-proof').querySelectorAll('.bsx-logic-proof-connector'),
     ).toHaveLength(manualFixMission.completionSteps.length - 1);
     expect(screen.getByText('Chapter 1 · Scene 3 of 4')).toBeInTheDocument();
+    expect(screen.getByTestId('story-completion-actions')).toBeInTheDocument();
+    expect(screen.getByTestId('story-next-mission')).toHaveTextContent(
+      'Next scene (4 of 4): My morning greeting',
+    );
     fireEvent.click(screen.getByTestId('story-next-mission'));
     expect(onNext).toHaveBeenCalledOnce();
   });
@@ -550,7 +554,7 @@ describe('StoryMissionGuide', () => {
     expect(onApplyFix).not.toHaveBeenCalled();
   });
 
-  it('introduces Tuan Tuan first, shows the right-side target, then asks for farther', () => {
+  it('gives one clear Go action and shows the left block pointing away from the right-side star', () => {
     const onAnswer = vi.fn();
     const { unmount } = render(
       <StoryMissionGuide
@@ -564,20 +568,26 @@ describe('StoryMissionGuide', () => {
       />,
     );
 
-    expect(screen.getByText('Meet Tuan Tuan, the cloud-path maker')).toBeInTheDocument();
+    expect(screen.getByText('First, press Go')).toBeInTheDocument();
+    expect(screen.getByTestId('story-first-action')).toHaveTextContent('Press Go');
+    expect(screen.getByTestId('story-first-action')).toHaveTextContent(
+      'Watch where Tuan Tuan stops',
+    );
+    expect(screen.getByTestId('story-first-action')).not.toHaveTextContent('Right 3');
     expect(screen.getByTestId('story-tuan-tuan').querySelector('svg')).toHaveAttribute(
       'data-performance',
       'speaking',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('The plaza star is on the right')).toBeInTheDocument();
+    expect(screen.getByText('The star is right. The block points left.')).toBeInTheDocument();
     expect(screen.getByTestId('story-direction-target')).toHaveTextContent('Plaza star');
     expect(
-      screen.getByTestId('story-direction-map').querySelector('[data-direction="right"]'),
+      screen.getByTestId('story-direction-map').querySelector('[data-direction="left"]'),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next page →' }));
-    expect(screen.getByText('Point first, then press Go')).toBeInTheDocument();
-    expect(screen.getByText(/Do not fix my arrow yet/)).toBeInTheDocument();
+    expect(screen.getByText('Ready to test')).toBeInTheDocument();
+    expect(screen.getByText(/Left 3 block is already connected/)).toBeInTheDocument();
+    expect(screen.getByText(/Press Go without changing the blocks/)).toBeInTheDocument();
 
     unmount();
     render(

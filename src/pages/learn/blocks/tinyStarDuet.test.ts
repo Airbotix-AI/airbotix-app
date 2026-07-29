@@ -48,7 +48,7 @@ function duetPage(options: {
   const second = options.second ?? TUAN_TUAN;
   return {
     id: 'tsv-a5-s-page',
-    background: 'candy',
+    background: 'tsv-greeting-stage',
     characters: [
       {
         id: TINY_STAR_DUET_FIRST_ID,
@@ -266,7 +266,7 @@ describe('A5-S · my two-friend greeting (tinyStarDuet)', () => {
     expect(tinyStarDuetDesign(resized)).toBeNull();
 
     const restaged = duetPage({});
-    restaged.background = 'meadow';
+    restaged.background = 'candy';
     expect(tinyStarDuetDesign(restaged)).toBeNull();
 
     const crowded = duetPage({});

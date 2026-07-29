@@ -8,12 +8,12 @@ import type { StoryMission } from './types';
 export const TSV_A3_MISSIONS: Record<string, StoryMission> = {
   'tsv-s1-a3-h': {
     mode: 'observe-only', lessonId: 'tsv-s1-a3-h', celebrate: false,
-    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 3 · Mission 9', title: 'Go cannot wake Dot Dot',
     storyPages: [
       { emoji: '🐱💤', title: 'Dot Dot is sleeping', body: 'Dot Dot sleeps under the rooftop star. The green Go button starts the village, but Dot Dot is waiting for a different start.', speaker: 'Lumilo', dialogue: 'Try Go first. Watch Dot Dot.', scene: 1 },
-      { emoji: '▶️😴', title: 'Go makes no response', body: 'Press Go. Dot Dot does not hop or speak because this script does not begin with Start.', speaker: 'Lumilo', dialogue: 'Go did not wake Dot Dot.', scene: 3, blocks: ['▶️ Go', '😴 No response'] },
-      { emoji: '👆🐱', title: 'Try your fingertip', body: 'Tap Dot Dot on the stage. On Tap runs only for the character you touched, so Dot Dot hops and says “醒啦”.', speaker: 'Dot Dot', dialogue: 'A gentle tap wakes me!', scene: 5, blocks: ['👆 On Tap', '🦘 Hop + Say'] },
+      { emoji: '▶️😴', title: 'Go makes no response', body: 'Press Go. Dot Dot does not hop or speak because this script waits for a tap, not for Go.', speaker: 'Lumilo', dialogue: 'Go did not wake Dot Dot.', scene: 3, blocks: ['▶️ Go', '😴 No response'] },
+      { emoji: '👆🐱', title: 'Try your fingertip', body: 'Tap Dot Dot on the stage. On Tap runs only for the character you touched, so Dot Dot hops and says “I’m awake!”.', speaker: 'Dot Dot', dialogue: 'A gentle tap wakes me!', scene: 5, blocks: ['👆 On Tap', '🦘 Hop + Say'] },
     ],
     partnerLine: 'Your real touch can be the reason a story begins.',
     mission: 'Press Go once and notice Dot Dot stays asleep. Then tap Dot Dot on the stage and watch the different event run.',
@@ -26,7 +26,7 @@ export const TSV_A3_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a3-b': {
     mode: 'complete', lessonId: 'tsv-s1-a3-b', celebrate: true,
-    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 3 · Mission 10', title: 'Build a tap response',
     storyPages: [
       { emoji: '👆🧩', title: 'On Tap is waiting', body: 'Dot Dot has an On Tap start and an End, but nothing visible happens between them yet.', speaker: 'Dot Dot', dialogue: 'Give my tap a response!', scene: 1 },
@@ -55,7 +55,7 @@ export const TSV_A3_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a3-d': {
     mode: 'observe-fix', lessonId: 'tsv-s1-a3-d', celebrate: true,
-    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    hero: { name: 'Dot Dot', role: 'Rooftop Star Keeper', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 3 · Mission 11', title: 'The wrong start hat',
     storyPages: [
       { emoji: '🐱🎩', title: 'Dot Dot has the wrong hat', body: 'The response is ready, but its first block says Start. That hat listens for Go, not a fingertip.', speaker: 'Dot Dot', dialogue: 'Why does your tap do nothing?', scene: 1 },
@@ -77,7 +77,7 @@ export const TSV_A3_MISSIONS: Record<string, StoryMission> = {
   },
   'tsv-s1-a3-s': {
     mode: 'complete', lessonId: 'tsv-s1-a3-s', celebrate: true,
-    hero: { name: 'Your secret friend', role: 'Tap Surprise Maker', asset: '/story-blocks/tiny-star-village/characters/dot-dot/resting.svg' },
+    hero: { name: 'Your secret friend', role: 'Tap Surprise Maker', asset: '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png' },
     eyebrow: 'Tiny Star Village · Chapter 3 · Mission 12', title: 'My tap surprise',
     storyPages: [
       { emoji: '🌟👀', title: 'Hide a rooftop secret', body: 'The rooftop star needs a surprise that a friend can discover by tapping.', speaker: 'Lumilo', dialogue: 'Choose who will keep your secret.', scene: 1 },

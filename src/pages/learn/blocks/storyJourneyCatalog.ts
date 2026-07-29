@@ -6,6 +6,7 @@ export interface StoryJourneyMission {
   number: number;
   title: string;
   action: string;
+  legacyProjectTitles?: readonly string[];
 }
 
 export interface StoryJourneyChapter {
@@ -13,7 +14,11 @@ export interface StoryJourneyChapter {
   number: number;
   emoji: string;
   title: string;
-  story: string;
+  story: {
+    problem: string;
+    help: string;
+    after: string;
+  };
   skill: string;
   art: 'window' | 'cloud' | 'rooftop' | 'breakfast' | 'greeting' | 'tower';
   missions: StoryJourneyMission[];
@@ -25,7 +30,14 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 1,
     emoji: '🌟',
     title: 'Lumi starts the morning',
-    story: 'The Bell Tower is quiet. Help Lumi send the village’s first wake-up light.',
+    story: {
+      problem:
+        'Tiny Star Village is still dark. Lumi said good morning in a dream before waking up, so the Bell Tower paused the morning-light chain.',
+      help:
+        'Lumi wants every friend to wake to a warm light. Help Lumi hop awake first, then say hello, so the first wake-up star can shine.',
+      after:
+        'Lumi’s window lights up. Its star reveals Tuan Tuan on the cloud road, walking away from the plaza.',
+    },
     skill: 'Put steps in order',
     art: 'window',
     missions: [
@@ -40,11 +52,29 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 2,
     emoji: '☁️',
     title: 'Tuan Tuan finds the plaza',
-    story: 'A cloud path appears, but Tuan Tuan keeps following the wrong arrow.',
+    story: {
+      problem:
+        'Light from Lumi’s window reveals Tuan Tuan on the cloud road. The plaza is on his right, but his arrow sends him left.',
+      help:
+        'Tuan Tuan wants to get back to his friends. Help him choose the direction that takes him toward the plaza.',
+      after:
+        'Tuan Tuan reaches the plaza. From there, he spots Dot Dot still asleep on a nearby rooftop.',
+    },
     skill: 'Choose left or right',
     art: 'cloud',
     missions: [
-      { template: 'blocks_tsv_a2_h', lessonId: 'tsv-s1-a2-h', number: 5, title: 'Which way is the plaza?', action: 'Try' },
+      {
+        template: 'blocks_tsv_a2_h',
+        lessonId: 'tsv-s1-a2-h',
+        number: 5,
+        title: 'Press Go and watch',
+        action: 'Watch',
+        legacyProjectTitles: [
+          'Tiny Star Village · Which way is the plaza?',
+          'Tiny Star Village · Watch the wrong-way arrow',
+          'Tiny Star Village · Press Go once — watch Left 3',
+        ],
+      },
       { template: 'blocks_tsv_a2_b', lessonId: 'tsv-s1-a2-b', number: 6, title: 'Choose an arrow', action: 'Build' },
       { template: 'blocks_tsv_a2_d', lessonId: 'tsv-s1-a2-d', number: 7, title: 'Tuan Tuan walked the wrong way', action: 'Fix' },
       { template: 'blocks_tsv_a2_s', lessonId: 'tsv-s1-a2-s', number: 8, title: 'My two-step path', action: 'Make mine' },
@@ -55,7 +85,14 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 3,
     emoji: '🐱',
     title: 'Tap to wake Dot Dot',
-    story: 'The rooftop star will not wake for Go. Dot Dot needs a different kind of start.',
+    story: {
+      problem:
+        'Tuan Tuan reaches the plaza and sees Dot Dot asleep on the rooftop. The green Go button starts the plaza, but Dot Dot is waiting for a tap.',
+      help:
+        'Dot Dot needs a gentle wake-up signal. Make a tap start the action so Dot Dot can hop up and answer.',
+      after:
+        'Dot Dot wakes and looks across the village. The breakfast cart has stopped before reaching the table.',
+    },
     skill: 'Make taps start actions',
     art: 'rooftop',
     missions: [
@@ -70,7 +107,14 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 4,
     emoji: '🚙',
     title: 'The breakfast cart stops here',
-    story: 'Breakfast is ready, but the little cart keeps stopping too early or too late.',
+    story: {
+      problem:
+        'Dot Dot is awake, but breakfast is stranded. The little cart stops in the road when it moves too little and rushes past the table when it moves too far.',
+      help:
+        'The friends are waiting to eat together. Count the spaces and help the cart stop right beside the table.',
+      after:
+        'Breakfast arrives. Lumi, Tuan Tuan, and Dot Dot gather around the table and all try to say good morning at once.',
+    },
     skill: 'Move 1, 2, or 3 spaces',
     art: 'breakfast',
     missions: [
@@ -85,7 +129,14 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 5,
     emoji: '💡',
     title: 'Everyone takes a turn',
-    story: 'All the friends say good morning at once. Help each voice have its moment.',
+    story: {
+      problem:
+        'Breakfast has arrived, but Lumi and Tuan Tuan speak at the same time. Their greeting bubbles overlap, and nobody can hear who spoke first.',
+      help:
+        'Each friend wants to be heard. Arrange a short wait so one friend greets the others and the next friend answers.',
+      after:
+        'Every greeting can be heard. Three greeting stars join into a glowing path that leads to the Bell Tower.',
+    },
     skill: 'Use Wait to make turns',
     art: 'greeting',
     missions: [
@@ -100,7 +151,14 @@ export const TINY_STAR_VILLAGE_CHAPTERS: StoryJourneyChapter[] = [
     number: 6,
     emoji: '🔔',
     title: 'Ring in the morning light',
-    story: 'Walk, hop, then ring the Bell Tower to bring sunrise back to the whole village.',
+    story: {
+      problem:
+        'The greeting stars lead Lumi to the Bell Tower, but the tower’s story is missing its middle step. The bell rings before anyone reaches up to touch it.',
+      help:
+        'The morning light needs a complete story. Help a friend walk to the tower, hop up to the bell, and only then make it ring.',
+      after:
+        'The bell sends three warm beams through every window. Morning returns, and all three friends celebrate the story you repaired.',
+    },
     skill: 'Build and fix a three-step story',
     art: 'tower',
     missions: [
@@ -156,6 +214,16 @@ export function nextStoryMissionForLesson(
   );
   const current = playable.findIndex((position) => position.mission.lessonId === lessonId);
   return current >= 0 ? playable[current + 1] : undefined;
+}
+
+export function storyJourneyActionLabel(
+  current: StoryJourneyPosition,
+  next: StoryJourneyPosition,
+): string {
+  if (current.chapter.number !== next.chapter.number) {
+    return `Start Chapter ${next.chapter.number}: ${next.mission.title}`;
+  }
+  return `Next scene (${next.sceneNumber} of ${next.sceneCount}): ${next.mission.title}`;
 }
 
 export function storyMissionProjectTitle(mission: StoryJourneyMission): string {

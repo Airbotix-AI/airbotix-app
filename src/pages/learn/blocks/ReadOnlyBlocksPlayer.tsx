@@ -16,6 +16,7 @@ import { BlocksRunner, startState, type SpriteState } from './interpreter';
 import { sceneId } from './library';
 import { sfx } from './sounds';
 import './blocks.css';
+import './tinyStarAssetIntegration.css';
 import { CharacterVisual } from './CharacterVisual';
 import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';

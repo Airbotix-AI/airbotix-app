@@ -33,6 +33,7 @@ const PART_ID = 'jtw-s1-c1-p5';
 const NEXT_PART_ID = 'jtw-s1-c1-p6';
 const LESSON_ID = 'jtw-s1-c1-p5';
 const RECENT_PROJECTS_TO_SCAN = 8;
+const PROJECT_TITLE = 'Journey to the West · My First Greeting';
 
 type GreetingVersion = 'hop-first' | 'say-first';
 
@@ -122,7 +123,7 @@ export function JourneyWestPart5Page() {
     }
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 我的第一次问候',
+        title: PROJECT_TITLE,
         template: 'blocks_jtw_c1_p5',
       });
       navigate(`/learn/blocks/${id}`);

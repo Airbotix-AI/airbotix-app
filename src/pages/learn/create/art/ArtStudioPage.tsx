@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api, type ApiError } from '@/lib/api';
@@ -188,6 +188,7 @@ export function ArtStudioPage() {
   const [celebrate, setCelebrate] = useState(false);
 
   const location = useLocation();
+  const navigate = useNavigate();
   const mission = (location.state as { mission?: ArtMission } | null)?.mission ?? null;
   const artTaskRuntime = useArtTaskRuntime(mission?.art_task_slug);
   const {
@@ -214,6 +215,9 @@ export function ArtStudioPage() {
   // the hydrate effect can start clean on the chosen picture instead of restoring
   // a stale draft over it.
   const navReopenRef = useRef(navReopen);
+  // "Draw a new picture" is a one-shot navigation intent: start blank now, then
+  // let later refreshes restore the new work instead of replaying the reset.
+  const navFreshRef = useRef(Boolean((location.state as { fresh?: boolean } | null)?.fresh));
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
@@ -259,9 +263,15 @@ export function ArtStudioPage() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (!draftKey) return;
-    // A fresh reopen starts clean on the chosen picture and REPLACES any stale
-    // draft — never restore old strokes onto a newly opened image.
-    if (!navReopenRef.current) {
+    if (navFreshRef.current) {
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* unavailable storage — the blank canvas still lives in state */
+      }
+    } else if (!navReopenRef.current) {
+      // A normal visit or refresh restores the working draft. A picture reopen
+      // deliberately skips this branch so stale strokes cannot cover its base.
       try {
         const raw = window.localStorage.getItem(draftKey);
         if (raw) {
@@ -283,6 +293,13 @@ export function ArtStudioPage() {
     }
     setHydrated(true);
   }, [draftKey, setArtTaskStepIndex, taskSlug]);
+  useEffect(() => {
+    if ((navFreshRef.current || navReopenRef.current) && location.state) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // These refs capture the mount's one-shot intent; replacing history must run once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (!draftKey || !hydrated) return;
     if (taskSlug && !artTask) return;

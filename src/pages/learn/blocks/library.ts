@@ -1,18 +1,26 @@
-// Character + scene libraries for Blocks Studio. Kept big and picture-only so a
-// 5–8-year-old can pick by sight. Characters are emoji (no asset pipeline yet);
-// scenes are CSS-animated backgrounds keyed by id (see blocks.css `[data-scene]`).
+// Character + scene libraries for Blocks Studio. Kept big and picture-first so a
+// 5–8-year-old can pick by sight. Generic friends use emoji; first-party story
+// friends may provide bundled assets. Scenes are keyed by id and rendered by CSS.
 
 import { JTW_C3_STORY_SCENES } from './jtwC3Stage';
+import { TINY_STAR_CHARACTER_CHOICES, TINY_STAR_WORKBENCH_SCENES } from './tinyStarAssets';
 
 export interface CharacterChoice {
   emoji: string;
   name: string;
+  asset?: string;
+  previewAssets?: readonly string[];
 }
 
 // Clear, evenly-sized categories with one obvious icon each, every tab labelled
 // the same way (icon + short word) so a pre-reader can tell them apart at a
 // glance. Keep groups roughly balanced (~16–24 items) and picture-only.
 export const CHARACTER_GROUPS: Array<{ label: string; emoji: string; items: CharacterChoice[] }> = [
+  {
+    label: 'Tiny Star',
+    emoji: '⭐',
+    items: [...TINY_STAR_CHARACTER_CHOICES],
+  },
   {
     label: 'Animals',
     emoji: '🐶',
@@ -200,12 +208,22 @@ export interface SceneChoice {
   label: string;
   /** Thumbnail emoji for the picker. */
   emoji: string;
+  /** Optional first-party background used by both the picker and stage. */
+  asset?: string;
 }
 
 // id → CSS-animated background in blocks.css (`.bsx-stage[data-scene="<id>"]`).
 export const SCENES: SceneChoice[] = [
+  ...TINY_STAR_WORKBENCH_SCENES,
   { id: 'tsv-window-room-dim', label: 'Lumilo’s room', emoji: '🌟' },
-  { id: 'tsv-cloud-path-meadow', label: 'Cloud path', emoji: '☁️' },
+  { id: 'tsv-cloud-road-right', label: 'Cloud road · right star', emoji: '➡️' },
+  { id: 'tsv-cloud-road-left-target', label: 'Cloud road · left star', emoji: '⬅️' },
+  { id: 'tsv-rooftop', label: 'Dot Dot’s rooftop', emoji: '🌙' },
+  { id: 'tsv-breakfast-stop-distance-1', label: 'Breakfast stop · 1', emoji: '1️⃣' },
+  { id: 'tsv-breakfast-stop-distance-2', label: 'Breakfast stop · 2', emoji: '2️⃣' },
+  { id: 'tsv-breakfast-stop-distance-3', label: 'Breakfast stop · 3', emoji: '3️⃣' },
+  { id: 'tsv-greeting-stage', label: 'Greeting stage', emoji: '💬' },
+  { id: 'tsv-clocktower-path', label: 'Clocktower path', emoji: '🔔' },
   { id: 'meadow', label: 'Meadow', emoji: '🌳' },
   { id: 'space', label: 'Space', emoji: '🌌' },
   { id: 'beach', label: 'Beach', emoji: '🏖️' },

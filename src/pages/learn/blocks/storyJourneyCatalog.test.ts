@@ -2,11 +2,20 @@ import { describe, expect, it } from 'vitest';
 
 import {
   nextStoryMissionForLesson,
+  storyJourneyActionLabel,
   storyJourneyPositionForLesson,
   TINY_STAR_VILLAGE_CHAPTERS,
 } from './storyJourneyCatalog';
 
 describe('storyJourneyCatalog progression', () => {
+  it('gives every chapter a complete child-facing story description', () => {
+    for (const chapter of TINY_STAR_VILLAGE_CHAPTERS) {
+      expect(chapter.story.problem.length).toBeGreaterThan(60);
+      expect(chapter.story.help.length).toBeGreaterThan(60);
+      expect(chapter.story.after.length).toBeGreaterThan(60);
+    }
+  });
+
   it('keeps every playable template and lesson id unique', () => {
     const missions = TINY_STAR_VILLAGE_CHAPTERS.flatMap((chapter) => chapter.missions);
 
@@ -23,11 +32,24 @@ describe('storyJourneyCatalog progression', () => {
   });
 
   it('crosses the chapter boundary after the chapter 1 personal story', () => {
+    const current = storyJourneyPositionForLesson('tsv-s1-a1-s');
     const next = nextStoryMissionForLesson('tsv-s1-a1-s');
 
     expect(next?.chapter.number).toBe(2);
     expect(next?.mission.lessonId).toBe('tsv-s1-a2-h');
     expect(next?.sceneNumber).toBe(1);
+    expect(storyJourneyActionLabel(current!, next!)).toBe(
+      'Start Chapter 2: Press Go and watch',
+    );
+  });
+
+  it('labels within-chapter progression as the next scene instead of the next chapter', () => {
+    const current = storyJourneyPositionForLesson('tsv-s1-a1-d');
+    const next = nextStoryMissionForLesson('tsv-s1-a1-d');
+
+    expect(storyJourneyActionLabel(current!, next!)).toBe(
+      'Next scene (4 of 4): My morning greeting',
+    );
   });
 
   it('returns no next mission after the last production-ready scene', () => {

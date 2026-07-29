@@ -62,14 +62,20 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
     : completing
       ? cue === 'test'
       : cue === 'ready' || cue === 'retry' || cue === 'test';
-  const labels = observing
-    ? ['Story', 'Point', 'Go', 'Answer']
-    : completing
-      ? ['Story', 'Build', 'Test', 'Done']
-      : ['Story', 'Watch', 'Fix', 'Test'];
+  const labels =
+    mission.coachSteps ??
+    (observing
+      ? ['Story', 'Find star', 'Run', 'Answer']
+      : completing
+        ? ['Story', 'Build', 'Test', 'Done']
+        : ['Story', 'Watch', 'Fix', 'Test']);
 
   return (
-    <aside className="bsx-story-coach" data-testid="story-coach" aria-live="polite">
+    <aside
+      className={`bsx-story-coach${mission.coachGoal ? ' has-goal' : ''}`}
+      data-testid="story-coach"
+      aria-live="polite"
+    >
       <div className="bsx-story-coach-head">
         <span className="bsx-story-coach-face" aria-hidden>
           <CharacterVisual character={mission.hero} performance={performance} />
@@ -79,6 +85,14 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
           <span>{mission.hero.role}</span>
         </div>
       </div>
+      {mission.coachGoal && (
+        <div className="bsx-story-coach-goal" data-testid="story-coach-goal">
+          <small>{mission.coachGoal.label}</small>
+          <strong>{mission.coachGoal.target}</strong>
+          <span>{mission.coachGoal.now}</span>
+          {mission.coachGoal.next && <em>{mission.coachGoal.next}</em>}
+        </div>
+      )}
       <p data-testid="story-coach-cue">{mission.coach[cue]}</p>
       <div className="bsx-story-coach-steps" aria-label={`Mission step ${step} of 4`}>
         {labels.map((label, index) => (
@@ -90,7 +104,12 @@ export function StoryCoachPanel({ mission, cue, running, onGo }: StoryCoachPanel
       </div>
       {canRun && (
         <button type="button" onClick={onGo} disabled={running}>
-          ▶ {cue === 'retry' ? 'Watch again' : cue === 'test' ? 'Test my fix' : 'Go'}
+          ▶{' '}
+          {cue === 'retry'
+            ? 'Watch again'
+            : cue === 'test'
+              ? 'Test my fix'
+              : mission.coachGoLabel ?? 'Go'}
         </button>
       )}
     </aside>

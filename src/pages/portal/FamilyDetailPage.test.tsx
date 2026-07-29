@@ -67,7 +67,7 @@ describe('FamilyDetailPage — kid school editor', () => {
     mount();
 
     const schoolInput = await screen.findByRole('combobox', { name: /School/ });
-    expect(schoolInput).toHaveValue('Fahan School');
+    await waitFor(() => expect(schoolInput).toHaveValue('Fahan School'));
 
     fireEvent.click(screen.getByRole('button', { name: /Save (profile )?changes/ }));
 

@@ -13,6 +13,15 @@ import {
   tinyStarSeasonView,
 } from './tinyStarSeason';
 
+const LUMI_ASSET =
+  '/story-blocks/tiny-star-village/characters/little-light/resting-calm-v01.png';
+const TUAN_TUAN_ASSET =
+  '/story-blocks/tiny-star-village/characters/cloud-bear/resting-happy-v01.png';
+const DOT_DOT_ASSET =
+  '/story-blocks/tiny-star-village/characters/dot-dot/standing-calm-v01.png';
+const STONE_MONKEY_ASSET =
+  '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png';
+
 afterEach(cleanup);
 
 /** A server progress payload with `completedLessonIds` finished, in order. */
@@ -36,12 +45,28 @@ describe('StoryJourneyMap', () => {
     render(<StoryJourneyMap busy={null} onStart={vi.fn()} />);
 
     expect(screen.getByText('Bring back the morning light')).toBeInTheDocument();
-    expect(screen.getAllByTestId(/story-chapter-/)).toHaveLength(6);
+    expect(screen.getAllByTestId(/^story-chapter-a\d$/)).toHaveLength(6);
     expect(screen.getAllByTestId(/blocks-starter-blocks_tsv_/)).toHaveLength(24);
     expect(screen.getByTestId('story-chapter-a3')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a4')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a5')).toHaveTextContent('4 scenes ready');
     expect(screen.getByTestId('story-chapter-a6')).toHaveTextContent('4 scenes ready');
+    expect(screen.getAllByText('What happened')).toHaveLength(6);
+    expect(screen.getAllByText('Your part')).toHaveLength(6);
+    expect(screen.getAllByText('Then…')).toHaveLength(6);
+    expect(screen.getByTestId('story-chapter-a1-description')).toHaveTextContent(
+      'the Bell Tower paused the morning-light chain',
+    );
+    expect(screen.getByTestId('story-chapter-a2-description')).toHaveTextContent(
+      'The plaza is on his right, but his arrow sends him left',
+    );
+    expect(screen.getByTestId('story-chapter-a6-description')).toHaveTextContent(
+      'Morning returns',
+    );
+    expect(screen.getByText(/Every morning, the village windows send little wake-up stars/))
+      .toBeInTheDocument();
+    expect(screen.getByText(/need a Story Partner who can see what happened inside/))
+      .toBeInTheDocument();
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent(
       'The Missing Morning Light',
     );
@@ -51,13 +76,17 @@ describe('StoryJourneyMap', () => {
     expect(screen.getByTestId('story-collection-shelf')).toHaveTextContent('Alice in Wonderland');
     expect(screen.getByTestId('story-collection-shelf')).not.toHaveTextContent('Fable Forest');
     expect(screen.getAllByText(/Planned/)).toHaveLength(2);
-    expect(screen.getByTestId('story-chapter-a1').querySelector('.bsx-lumilo')).toHaveAttribute(
-      'data-performance',
-      'idle',
+    expect(screen.getByTestId('story-chapter-a1').querySelector('img')).toHaveAttribute(
+      'src',
+      LUMI_ASSET,
     );
-    expect(screen.getByTestId('story-chapter-a2').querySelector('.bsx-tuan')).toHaveAttribute(
-      'data-performance',
-      'idle',
+    expect(screen.getByTestId('story-chapter-a2').querySelector('img')).toHaveAttribute(
+      'src',
+      TUAN_TUAN_ASSET,
+    );
+    expect(screen.getByTestId('story-chapter-a3').querySelector('img')).toHaveAttribute(
+      'src',
+      DOT_DOT_ASSET,
     );
     expect(screen.getByTestId('story-collection-shelf').querySelectorAll('.bsx-lumilo')).toHaveLength(
       1,
@@ -65,11 +94,18 @@ describe('StoryJourneyMap', () => {
     expect(screen.getByTestId('story-collection-shelf').querySelectorAll('.bsx-tuan')).toHaveLength(
       1,
     );
-    expect(screen.getByTestId('story-world-cast').querySelectorAll('.tsv-world-character')).toHaveLength(
-      2,
-    );
+    expect(
+      screen.getByTestId('story-collection-shelf').querySelector('[data-avatar="Dot Dot"]'),
+    ).toHaveAttribute('src', DOT_DOT_ASSET);
+    expect(
+      screen.getByTestId('story-collection-shelf').querySelector('[data-avatar="Stone Monkey"]'),
+    ).toHaveAttribute('src', STONE_MONKEY_ASSET);
+    expect(
+      screen.getByTestId('story-world-cast').querySelectorAll('.tsv-world-character'),
+    ).toHaveLength(3);
     expect(screen.getByTestId('story-world-cast').querySelector('.tsv-world-lumi')).toBeInTheDocument();
     expect(screen.getByTestId('story-world-cast').querySelector('.tsv-world-tuan')).toBeInTheDocument();
+    expect(screen.getByTestId('story-world-cast').querySelector('.tsv-world-dot')).toBeInTheDocument();
   });
 
   it('starts a scene with a meaningful project title', () => {
@@ -123,7 +159,7 @@ describe('StoryJourneyMap', () => {
     );
 
     const resume = screen.getByTestId('story-season-resume');
-    expect(resume).toHaveTextContent('Chapter 2 · Which way is the plaza?');
+    expect(resume).toHaveTextContent('Chapter 2 · Press Go and watch');
     expect(resume).toHaveTextContent('Scene 5 of 24 · 4 finished');
     expect(screen.queryByTestId('story-season-complete')).not.toBeInTheDocument();
 

@@ -81,6 +81,17 @@ export interface StoryMission {
   fixChoices: StoryMissionChoice[];
   fixRetry: string;
   coach: StoryCoachCopy;
+  /** Persistent plain-language goal shown over the real workspace. */
+  coachGoal?: {
+    label: string;
+    target: string;
+    now: string;
+    next?: string;
+  };
+  /** Four concrete child actions for this mission instead of generic phase names. */
+  coachSteps?: readonly [string, string, string, string];
+  /** Mission-specific label for the coach's first Go button. */
+  coachGoLabel?: string;
   logicSteps: StoryLogicStep[];
   logicWhy: string;
   completionTitle: string;
