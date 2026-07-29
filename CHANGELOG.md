@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-29 (feat: connect Art Studio learning progression and course works)
+
+### Added
+
+- Added twelve natural learning paths across all 52 drawing tasks. Completed work now unlocks one
+  next drawing instead of asking a child to choose again from the full catalogue.
+- Guided tasks now finish with an explicit free save, completed badge and a single next-task action.
+- Course drawing tasks reuse the same guide player with progress, a child-authored work note and
+  teacher turn-in; hand-drawn work can be submitted without generating an AI version.
+- The Art Studio gallery now includes image work from course projects as well as the My Pictures
+  bucket.
+
+### Changed
+
+- `Bring it to life` stays locked until a child has drawn, and the result is shown beside the
+  original under clear `My drawing` and `AI version` labels.
+- The three task sections now use curriculum levels and exact step counts: three-step first
+  drawings, four-step simple drawings and five-step challenges.
+
 ## 2026-07-28 (fix: simplify guided drawing tasks for younger children)
 
 ### Changed

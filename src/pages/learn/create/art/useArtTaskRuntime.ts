@@ -40,6 +40,10 @@ export function useArtTaskRuntime(missionTaskSlug?: string): ArtTaskRuntime {
   const [traceOpacity, setTraceOpacity] = useState(0.28);
 
   useEffect(() => {
+    setStepIndex(0);
+  }, [taskSlug]);
+
+  useEffect(() => {
     if (!task) return;
     setTraceOpacity(task.ghost.default_opacity);
     setReferenceVisible(mode === ART_TASK_DRAW_MODES.look);

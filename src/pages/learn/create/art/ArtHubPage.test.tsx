@@ -31,7 +31,7 @@ vi.mock('@/lib/api', () => ({
     if (path.endsWith('/create-buckets/resolve')) {
       return Promise.resolve({ project_id: 'proj_bucket', title: 'My Pictures' });
     }
-    if (path === '/projects/proj_bucket/artifacts') return Promise.resolve(artifacts);
+    if (path === '/kids/kid_1/artifacts?kind=image&limit=200') return Promise.resolve(artifacts);
     if (path === '/course-packs/art-missions') return Promise.resolve(artMissions);
     if (path === '/art-studio/tasks') return Promise.resolve(guidedTasks);
     if (path === '/course-packs') return Promise.resolve(coursePacks);
@@ -141,6 +141,24 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     expect(screen.getByText('✨ AI')).toBeInTheDocument();
   });
 
+  it('shows course drawings saved outside the My Pictures bucket', async () => {
+    artifacts = [
+      picture({
+        id: 'mission_art',
+        project_id: 'mission_project',
+        metadata: {
+          source: 'art-task',
+          art_task_slug: 'draw-a-first-fish',
+          completed_steps: 3,
+        },
+      }),
+    ];
+    renderHub();
+    await waitFor(() => expect(screen.getByTestId('art-hub-picture')).toBeInTheDocument());
+    expect(screen.getByText('✏️ I drew it')).toBeInTheDocument();
+    expect(apiCalls.some((call) => call.path.includes('/kids/kid_1/artifacts'))).toBe(true);
+  });
+
   it('opens a saved picture on the CANVAS as the base to keep drawing', async () => {
     artifacts = [picture({ id: 'art_7' })];
     renderHub();
@@ -187,7 +205,7 @@ describe('ArtHubPage — my pictures (the thing that was invisible)', () => {
     artifacts = Array.from({ length: 15 }, (_, i) => picture({ id: `art_${i}` }));
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('art-hub-picture')).toHaveLength(12));
-    expect(screen.getByText('See all 15 →')).toHaveAttribute('href', '/learn/projects/proj_bucket');
+    expect(screen.getByText('See all 15 →')).toHaveAttribute('href', '/learn/projects');
   });
 });
 
@@ -334,8 +352,17 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       age_max: 6,
       difficulty: 1,
       duration_minutes: 5,
+      step_count: 3,
       cover: { url: `/art-tasks/first-task-${index}/v1/reference.webp`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+      progression: {
+        path_id: `first-path-${index}`,
+        path_title: 'First Shapes',
+        position: 1,
+        total: 1,
+        level: 'first',
+        next_task_slug: null,
+      },
     }));
     guidedTasks.push(
       ...simpleTitles.map((title, index) => ({
@@ -348,8 +375,17 @@ describe('ArtHubPage — concrete drawing ideas', () => {
         age_max: 9,
         difficulty: 1,
         duration_minutes: 8,
+        step_count: 4,
         cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
         modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: `simple-path-${index}`,
+          path_title: 'Shape Builders',
+          position: 1,
+          total: 1,
+          level: 'simple',
+          next_task_slug: null,
+        },
       })),
     );
     guidedTasks.push(
@@ -363,8 +399,17 @@ describe('ArtHubPage — concrete drawing ideas', () => {
         age_max: 13,
         difficulty: 3,
         duration_minutes: 20,
+        step_count: 5,
         cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: `${title} challenge` },
         modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: `challenge-path-${index}`,
+          path_title: 'Big Scenes',
+          position: 1,
+          total: 1,
+          level: 'challenge',
+          next_task_slug: null,
+        },
       })),
     );
 
@@ -405,11 +450,20 @@ describe('ArtHubPage — concrete drawing ideas', () => {
         age_max: 8,
         difficulty: 1,
         duration_minutes: 8,
+        step_count: 4,
         cover: {
           url: '/art-tasks/draw-a-trex/v1/cover.png',
           alt: 'A polished cartoon T-Rex with a big jaw and long tail',
         },
         modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        progression: {
+          path_id: 'dinosaur-shapes',
+          path_title: 'Dinosaur Shapes',
+          position: 3,
+          total: 4,
+          level: 'simple',
+          next_task_slug: 'draw-a-trex-challenge',
+        },
       },
     ];
     renderHub();
@@ -429,6 +483,93 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       search: '?task=draw-a-trex&mode=trace',
       state: null,
     });
+  });
+
+  it('offers only the one natural next task after a completed drawing', async () => {
+    guidedTasks = [
+      {
+        slug: 'draw-a-first-fish',
+        version: 1,
+        title: 'Draw a Fish',
+        short_description: 'Start with a circle.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/fish.svg', alt: 'A simple fish' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 1,
+          total: 3,
+          level: 'first',
+          next_task_slug: 'draw-a-first-whale',
+        },
+      },
+      {
+        slug: 'draw-a-first-whale',
+        version: 1,
+        title: 'Draw a Whale',
+        short_description: 'Add a bigger curved body.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/whale.svg', alt: 'A simple whale' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 2,
+          total: 3,
+          level: 'first',
+          next_task_slug: 'draw-a-first-turtle',
+        },
+      },
+      {
+        slug: 'draw-a-first-turtle',
+        version: 1,
+        title: 'Draw a Turtle',
+        short_description: 'Combine an oval and little legs.',
+        category: 'animals',
+        age_min: 4,
+        age_max: 6,
+        difficulty: 1,
+        duration_minutes: 5,
+        step_count: 3,
+        cover: { url: '/turtle.svg', alt: 'A simple turtle' },
+        modes: ['look_and_draw'],
+        progression: {
+          path_id: 'ocean-adventure',
+          path_title: 'Ocean Adventure',
+          position: 3,
+          total: 3,
+          level: 'first',
+          next_task_slug: null,
+        },
+      },
+    ];
+    artifacts = [
+      picture({
+        metadata: {
+          source: 'art-task',
+          art_task_slug: 'draw-a-first-fish',
+          completed_steps: 3,
+        },
+      }),
+    ];
+
+    renderHub();
+
+    const recommendation = await screen.findByTestId('art-next-task');
+    expect(recommendation).toHaveTextContent('Draw a Whale');
+    expect(recommendation).not.toHaveTextContent('Draw a Turtle');
+    expect(screen.getAllByTestId('art-next-task')).toHaveLength(1);
   });
 });
 

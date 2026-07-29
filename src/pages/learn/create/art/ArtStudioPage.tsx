@@ -172,6 +172,10 @@ export function ArtStudioPage() {
   const [magicOpen, setMagicOpen] = useState(false);
   const [magicStyle, setMagicStyle] = useState<PlanStyle>('cartoon');
   const [magicDesc, setMagicDesc] = useState('');
+  const [versionComparison, setVersionComparison] = useState<{
+    drawingUrl: string;
+    aiUrl: string;
+  } | null>(null);
   // The coach's distilled plan (D-ISF-3): what the kid and the coach agreed the
   // picture should be. Feeds ✨ when the kid doesn't type an explicit wish.
   const [plan, setPlan] = useState<PlanTurn['plan']>(null);
@@ -231,9 +235,13 @@ export function ArtStudioPage() {
   }, [location.pathname, navigate]);
   const [missionProjectId, setMissionProjectId] = useState<string | null>(null);
   const [missionDone, setMissionDone] = useState(false);
+  const [workDescription, setWorkDescription] = useState('');
   const [stepIdx, setStepIdx] = useState(0);
+  const [taskCompleted, setTaskCompleted] = useState(false);
+  const [completingTask, setCompletingTask] = useState(false);
 
   const me = useMe();
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const { summary, endNow, dismiss } = useStudioSession('image');
   const bucket = useCreateBucket('image');
   const wallet = useKidWallet();
@@ -251,6 +259,7 @@ export function ArtStudioPage() {
   });
 
   const hasInk = ops.length > 0;
+  const hasChildDrawing = hasInk || Boolean(sketchTakeId) || Boolean(baseRef);
   const tutorState: ArtTutorState = celebrate
     ? 'celebrating'
     : generate.isPending
@@ -260,6 +269,12 @@ export function ArtStudioPage() {
           ? 'looking'
           : 'thinking'
         : 'idle';
+
+  useEffect(() => {
+    setTaskCompleted(false);
+    setCompletingTask(false);
+    setVersionComparison(null);
+  }, [taskSlug]);
 
   // ── Draft auto-save (owner: auto-save must ALWAYS work, incl. reopened edits) ──
   // The working canvas AND which picture it's built on live only in React state,
@@ -366,6 +381,16 @@ export function ArtStudioPage() {
     });
     setMissionProjectId(project.id);
     return project.id;
+  };
+
+  const invalidatePictureGalleries = (projectId: string) => {
+    void qc.invalidateQueries({ queryKey: ['bucket-artifacts', projectId] });
+    if (bucket.data?.project_id && bucket.data.project_id !== projectId) {
+      void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
+    }
+    if (kidId) {
+      void qc.invalidateQueries({ queryKey: ['kid', kidId, 'artifacts', 'image'] });
+    }
   };
 
   const template = mission?.template ?? null;
@@ -593,7 +618,6 @@ export function ArtStudioPage() {
   };
 
   // ── 🎮 Use in my game (P4 v1, D-IS-25): the take becomes a game VFS asset ──
-  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const gameProjects = useQuery<Array<{ id: string; title: string; kind: string }>>({
     queryKey: ['kid-projects-for-art', kidId],
     queryFn: async () => {
@@ -714,7 +738,10 @@ export function ArtStudioPage() {
   };
 
   // ── ③ ✨ bring to life (9★): upload the kid's canvas → ref-based magic ──
-  const uploadCanvas = async (projectId: string): Promise<{ id: string }> => {
+  const uploadCanvas = async (
+    projectId: string,
+    completedSteps = artTaskStepIndex + 1,
+  ): Promise<{ id: string }> => {
     const bucketId = projectId;
     const dataUrl = (canvasRef.current as ArtCanvasHandle).exportPng(1);
     const blob = dataUrlToBlob(dataUrl);
@@ -737,9 +764,12 @@ export function ArtStudioPage() {
                 art_task_slug: artTask.slug,
                 art_task_version: artTask.version,
                 draw_mode: taskMode,
-                completed_steps: artTaskStepIndex + 1,
+                completed_steps: completedSteps,
                 learning_tags: artTask.learning_tags,
               }
+            : {}),
+          ...(mission && workDescription.trim()
+            ? { work_description: workDescription.trim().slice(0, 240) }
             : {}),
         },
       },
@@ -748,34 +778,76 @@ export function ArtStudioPage() {
     return artifact;
   };
 
+  const completeArtTask = async () => {
+    if (!artTask || !hasInk || completingTask || taskCompleted) return;
+    setError(null);
+    setCompletingTask(true);
+    try {
+      const projectId = await ensureSaveProject();
+      const sketch = await uploadCanvas(projectId, artTask.steps.length);
+      setSketchTakeId(sketch.id);
+      setTakes((current) => [
+        ...current,
+        { artifactId: sketch.id, kind: 'sketch', label: '✏️ my drawing' },
+      ]);
+      setTaskCompleted(true);
+      setCelebrate(true);
+      invalidatePictureGalleries(projectId);
+    } catch {
+      setError("Couldn't save this drawing — it stays on the canvas. Try again.");
+    } finally {
+      setCompletingTask(false);
+    }
+  };
+
+  const startNextArtTask = () => {
+    if (!artTask?.next_task) return;
+    setOps([]);
+    setBaseArtifactId(null);
+    setBaseRef(null);
+    setGhostArtifactId(null);
+    setSketchTakeId(null);
+    setTakes([]);
+    setLastLook(null);
+    setPlan(null);
+    setMaskMode(false);
+    setMaskOps([]);
+    setWorkDescription('');
+    navigate(
+      `${location.pathname}?task=${encodeURIComponent(artTask.next_task.slug)}&mode=look`,
+      { state: null },
+    );
+  };
+
   const onMagic = async () => {
-    if (!bucket.data || generate.isPending) return;
+    if (!bucket.data || generate.isPending || !hasChildDrawing || !canvasRef.current) return;
     setError(null);
     setMagicOpen(false);
     try {
       const projectId = await ensureSaveProject();
-      let refId: string | undefined;
-      if (hasInk || baseArtifactId) {
+      const drawingUrl = canvasRef.current.exportPng(1, 'white');
+      let refId = sketchTakeId ?? undefined;
+      if (!refId && (hasInk || baseArtifactId || baseRef)) {
         const sketch = await uploadCanvas(projectId);
         refId = sketch.id;
         setSketchTakeId((prev) => prev ?? sketch.id);
         setTakes((t) => [...t, { artifactId: sketch.id, kind: 'sketch', label: '✏️ my sketch' }]);
-        void qc.invalidateQueries({ queryKey: ['bucket-artifacts', bucket.data.project_id] });
+        invalidatePictureGalleries(projectId);
       }
       // Prompt precedence (D-ISF-3): the kid's explicit wish wins, else the
       // plan the coach distilled from the conversation, else the bare fallback.
       const prompt = `${magicDesc.trim() || plan?.prompt.trim() || 'my drawing'}, ${magicStyle} style`;
       generate.mutate(
-        // No ink at all = the pure-generation on-ramp (D-IS-15 bypass).
         {
           prompt,
           options: { size: 'square' },
           project_id: projectId,
-          ...(refId ? { ref_artifact_id: refId } : {}),
+          ref_artifact_id: refId,
         },
         {
           onSuccess: (r) => {
             setCelebrate(true);
+            setVersionComparison({ drawingUrl, aiUrl: r.url });
             if (r.artifact_id) {
               setTakes((t) => [
                 ...t,
@@ -786,6 +858,7 @@ export function ArtStudioPage() {
               setOps([]);
               setGhostArtifactId(null);
             }
+            invalidatePictureGalleries(projectId);
           },
           onError: (e) => setError(friendlyError(e)),
         },
@@ -797,11 +870,31 @@ export function ArtStudioPage() {
 
   // 🚀 Mission turn-in (D-IS-20): existing submit → acceptance → +3★ (D-M3).
   const onTurnIn = async () => {
-    if (!missionProjectId) return;
+    if (!mission || (!hasInk && !sketchTakeId && !takes.some((take) => take.kind === 'magic'))) {
+      return;
+    }
     setError(null);
     try {
+      const projectId = await ensureSaveProject();
+      let drawingArtifactId = sketchTakeId;
+      if (!drawingArtifactId && hasInk) {
+        const sketch = await uploadCanvas(projectId, artTask?.steps.length);
+        drawingArtifactId = sketch.id;
+        setSketchTakeId(sketch.id);
+        setTakes((current) => [
+          ...current,
+          { artifactId: sketch.id, kind: 'sketch', label: '✏️ my drawing' },
+        ]);
+        invalidatePictureGalleries(projectId);
+      }
+      if (drawingArtifactId && workDescription.trim()) {
+        await api(`/projects/${projectId}/artifacts/${drawingArtifactId}`, {
+          method: 'PATCH',
+          body: { metadata: { work_description: workDescription.trim().slice(0, 240) } },
+        });
+      }
       const res = await api<{ ok: boolean; reason?: string; stars_awarded?: number }>(
-        `/projects/${missionProjectId}/submit`,
+        `/projects/${projectId}/submit`,
         { method: 'POST' },
       );
       if (res.ok) {
@@ -1099,7 +1192,35 @@ export function ArtStudioPage() {
                 ✕
               </button>
             </div>
-            <ArtTaskRuntimePanel runtime={artTaskRuntime} />
+            <ArtTaskRuntimePanel
+              runtime={artTaskRuntime}
+              canComplete={hasInk}
+              isComplete={taskCompleted}
+              isSaving={completingTask}
+              onComplete={() => void completeArtTask()}
+            />
+            {artTask && taskCompleted && (
+              <div
+                className="mb-2 rounded-2xl border border-brand-mint/35 bg-wash-mint p-3"
+                data-testid="art-task-complete"
+              >
+                <div className="text-[13px] font-black text-ink">✓ Your drawing is saved</div>
+                <p className="mt-1 text-[11px] leading-snug text-ink-soft">
+                  It is now in your gallery. Bring it to life is unlocked, but your drawing stays
+                  the original.
+                </p>
+                {artTask.next_task && (
+                  <button
+                    type="button"
+                    onClick={startNextArtTask}
+                    className="btn-pill-secondary mt-2 w-full text-[11px]"
+                    data-testid="art-task-next"
+                  >
+                    Next: {artTask.next_task.title} →
+                  </button>
+                )}
+              </div>
+            )}
             {mission && (
               <div
                 className="mb-2 rounded-2xl bg-wash-sunshine px-3 py-2"
@@ -1108,6 +1229,33 @@ export function ArtStudioPage() {
                 <div className="text-[12px] font-bold text-ink">🚀 {mission.title}</div>
                 {mission.description && (
                   <p className="text-[11px] text-ink-soft mt-0.5">{mission.description}</p>
+                )}
+                {artTask && (
+                  <div className="mt-2" data-testid="course-art-progress">
+                    <div className="flex justify-between text-[10px] font-bold text-slate2">
+                      <span>Course drawing progress</span>
+                      <span>
+                        {taskCompleted
+                          ? artTask.steps.length
+                          : Math.min(artTaskStepIndex + 1, artTask.steps.length)}
+                        /{artTask.steps.length}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-canvas-pure">
+                      <div
+                        className="h-full rounded-full bg-brand-mint transition-all"
+                        style={{
+                          width: `${
+                            ((taskCompleted
+                              ? artTask.steps.length
+                              : Math.min(artTaskStepIndex + 1, artTask.steps.length)) /
+                              artTask.steps.length) *
+                            100
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
                 {mission.steps && mission.steps.length > 0 && (
                   <div
@@ -1175,17 +1323,70 @@ export function ArtStudioPage() {
                     </div>
                   </div>
                 )}
-                {takes.some((t) => t.kind === 'magic') && !missionDone && (
+                {(hasInk ||
+                  taskCompleted ||
+                  Boolean(sketchTakeId) ||
+                  takes.some((t) => t.kind === 'magic')) &&
+                  !missionDone && (
+                  <div className="mt-2">
+                    <label
+                      htmlFor="course-work-description"
+                      className="text-[10px] font-black uppercase tracking-[0.08em] text-slate2"
+                    >
+                      Tell your teacher about your picture
+                    </label>
+                    <textarea
+                      id="course-work-description"
+                      value={workDescription}
+                      onChange={(event) => setWorkDescription(event.target.value)}
+                      maxLength={240}
+                      rows={2}
+                      placeholder="I used circles for… My favourite part is…"
+                      className="input-k12 mt-1 w-full resize-none text-[11px]"
+                    />
                   <button
                     onClick={() => void onTurnIn()}
                     className="btn-pill-primary w-full mt-2 text-[12px]"
                   >
                     🚀 Turn it in! +3★
                   </button>
+                  </div>
                 )}
                 {missionDone && (
                   <div className="text-[11px] font-bold text-brand-mint mt-1">✓ Complete! +3★</div>
                 )}
+              </div>
+            )}
+            {versionComparison && (
+              <div
+                className="mb-2 rounded-2xl border border-brand-bubblegum/25 bg-wash-bubblegum p-3"
+                data-testid="art-version-compare"
+              >
+                <div className="text-[11px] font-black uppercase tracking-[0.08em] text-slate2">
+                  Your idea, brought to life
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <figure>
+                    <img
+                      src={versionComparison.drawingUrl}
+                      alt="My drawing"
+                      className="aspect-square w-full rounded-xl bg-canvas-pure object-contain"
+                    />
+                    <figcaption className="mt-1 text-center text-[11px] font-black text-ink">
+                      My drawing
+                    </figcaption>
+                  </figure>
+                  <figure>
+                    <img
+                      src={versionComparison.aiUrl}
+                      alt="AI version"
+                      className="aspect-square w-full rounded-xl bg-canvas-pure object-contain"
+                    />
+                    <figcaption className="mt-1 text-center text-[11px] font-black text-ink">
+                      AI version
+                    </figcaption>
+                  </figure>
+                </div>
               </div>
             )}
             {!mission &&
@@ -1277,11 +1478,17 @@ export function ArtStudioPage() {
                   otherwise open the confirm sheet. */}
               <button
                 onClick={() => setMagicOpen(true)}
-                disabled={generate.isPending || !bucket.data}
+                disabled={generate.isPending || !bucket.data || !hasChildDrawing}
                 className="btn-pill-primary w-full text-[15px] py-3"
                 data-testid="paint-plan"
               >
-                ✨ {plan ? 'Paint this!' : 'Bring it to life!'} −{MAGIC_COST}★
+                ✨{' '}
+                {hasChildDrawing
+                  ? plan
+                    ? 'Paint this!'
+                    : 'Bring it to life!'
+                  : 'Draw first to unlock'}{' '}
+                −{MAGIC_COST}★
               </button>
 
               {/* Lightweight helpers — one row, visually quieter than the primary
@@ -1375,13 +1582,9 @@ export function ArtStudioPage() {
             )}
             {lastLook ? (
               <p className="text-[13px] text-ink mt-2">🤖 Coach saw: “{lastLook}”</p>
-            ) : hasInk ? (
-              <p className="text-[13px] text-ink-soft mt-2">
-                Tip: tap 👀 first so the coach paints what you MEANT.
-              </p>
             ) : (
               <p className="text-[13px] text-ink-soft mt-2">
-                Empty canvas — I'll paint straight from your words.
+                Your drawing stays yours. AI makes a second version beside it.
               </p>
             )}
             <input
@@ -1403,7 +1606,11 @@ export function ArtStudioPage() {
                 </button>
               ))}
             </div>
-            <button onClick={() => void onMagic()} className="btn-pill-primary w-full mt-3">
+            <button
+              onClick={() => void onMagic()}
+              disabled={!hasChildDrawing || generate.isPending}
+              className="btn-pill-primary w-full mt-3 disabled:opacity-45"
+            >
               ✨ Make it! −{MAGIC_COST}★
             </button>
             <button
