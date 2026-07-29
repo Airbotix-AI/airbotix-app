@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple drawing idea: a very simple little turtle</title>
+  <rect width="600" height="600" rx="36" fill="#FFF3F8"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="330" cy="315" rx="160" ry="112"/>
+    <circle cx="130" cy="322" r="62"/><ellipse cx="227" cy="430" rx="41" ry="62"/><ellipse cx="430" cy="430" rx="41" ry="62"/><ellipse cx="223" cy="213" rx="38" ry="54"/><ellipse cx="435" cy="213" rx="38" ry="54"/><polygon points="488,323 550,292 533,350"/>
+    <path d="M239 250c55 34 128 34 183 0M239 379c55-34 128-34 183 0M330 205v220"/><circle cx="113" cy="310" r="8" fill="#2C3642"/><path d="M111 346c18 15 37 15 55 0"/>
+  </g>
+</svg>

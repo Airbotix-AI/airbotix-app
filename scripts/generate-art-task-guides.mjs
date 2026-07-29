@@ -130,6 +130,86 @@ const tasks = [
     ],
   },
   {
+    slug: 'draw-a-first-kitten',
+    version: 'v1',
+    alt: 'a very simple sitting kitten',
+    stages: [
+      '<ellipse cx="300" cy="390" rx="105" ry="135"/>',
+      '<circle cx="300" cy="225" r="115"/><polygon points="213,156 224,65 278,121"/><polygon points="387,156 376,65 322,121"/>',
+      '<circle cx="258" cy="220" r="9" fill="#2C3642"/><circle cx="342" cy="220" r="9" fill="#2C3642"/><polygon points="300,247 286,258 314,258"/><path d="M300 258v14m0 0c-17 16-34 16-49 1m49-1c17 16 34 16 49 1M252 432v77m96-77v77"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-puppy',
+    version: 'v1',
+    alt: 'a very simple sitting puppy',
+    stages: [
+      '<ellipse cx="300" cy="390" rx="105" ry="135"/>',
+      '<circle cx="300" cy="220" r="115"/><path d="M203 171c-63-42-93 7-62 72 18 37 48 51 76 22M397 171c63-42 93 7 62 72-18 37-48 51-76 22"/>',
+      '<circle cx="258" cy="217" r="9" fill="#2C3642"/><circle cx="342" cy="217" r="9" fill="#2C3642"/><ellipse cx="300" cy="253" rx="21" ry="15"/><path d="M300 268v13m0 0c-17 17-36 17-52 0m52 0c17 17 36 17 52 0M251 432v77m98-77v77"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-turtle',
+    version: 'v1',
+    alt: 'a very simple little turtle',
+    stages: [
+      '<ellipse cx="330" cy="315" rx="160" ry="112"/>',
+      '<circle cx="130" cy="322" r="62"/><ellipse cx="227" cy="430" rx="41" ry="62"/><ellipse cx="430" cy="430" rx="41" ry="62"/><ellipse cx="223" cy="213" rx="38" ry="54"/><ellipse cx="435" cy="213" rx="38" ry="54"/><polygon points="488,323 550,292 533,350"/>',
+      '<path d="M239 250c55 34 128 34 183 0M239 379c55-34 128-34 183 0M330 205v220"/><circle cx="113" cy="310" r="8" fill="#2C3642"/><path d="M111 346c18 15 37 15 55 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-whale',
+    version: 'v1',
+    alt: 'a very simple happy whale',
+    stages: [
+      '<path d="M88 331c0-109 92-184 212-184 103 0 154 47 195 116 29 48 55 65 89 50-17 75-85 126-182 126H244c-91 0-156-42-156-108Z"/>',
+      '<path d="M493 263c11-78 55-112 102-71 36-42 74-22 68 29-7 55-73 75-137 51"/><ellipse cx="341" cy="413" rx="68" ry="40" transform="rotate(24 341 413)"/>',
+      '<circle cx="195" cy="300" r="9" fill="#2C3642"/><path d="M184 350c28 23 58 23 87 0M290 145c-4-47 18-70 43-91m-38 91c16-46 43-59 72-69"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-car',
+    version: 'v1',
+    alt: 'a very simple little car',
+    stages: [
+      '<path d="M79 371c5-67 45-109 116-121h277c72 10 113 52 119 121v85H79Z"/>',
+      '<path d="m198 250 72-99h142l69 99M283 158v92m124-92v92"/>',
+      '<circle cx="204" cy="456" r="61"/><circle cx="468" cy="456" r="61"/><circle cx="536" cy="348" r="20"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-rocket',
+    version: 'v1',
+    alt: 'a very simple toy rocket',
+    stages: [
+      '<path d="M300 66c93 80 111 247 0 377-111-130-93-297 0-377Z"/>',
+      '<circle cx="300" cy="231" r="47"/><polygon points="246,329 130,443 258,397"/><polygon points="354,329 470,443 342,397"/>',
+      '<path d="M260 414c-3 65 15 108 40 142 25-34 43-77 40-142M280 434c0 39 8 68 20 89 12-21 20-50 20-89"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-flower',
+    version: 'v1',
+    alt: 'a very simple five-petal flower',
+    stages: [
+      '<circle cx="300" cy="250" r="78"/>',
+      '<ellipse cx="300" cy="105" rx="62" ry="91"/><ellipse cx="438" cy="205" rx="62" ry="91" transform="rotate(72 438 205)"/><ellipse cx="385" cy="367" rx="62" ry="91" transform="rotate(144 385 367)"/><ellipse cx="215" cy="367" rx="62" ry="91" transform="rotate(-144 215 367)"/><ellipse cx="162" cy="205" rx="62" ry="91" transform="rotate(-72 162 205)"/>',
+      '<path d="M300 328v225M300 453c-54-67-110-70-151-44 27 69 85 88 151 44m0 35c54-67 110-70 151-44-27 69-85 88-151 44"/><circle cx="270" cy="242" r="8" fill="#2C3642"/><circle cx="330" cy="242" r="8" fill="#2C3642"/><path d="M272 276c19 18 37 18 56 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-ice-cream',
+    version: 'v1',
+    alt: 'a very simple happy ice cream cone',
+    stages: [
+      '<polygon points="190,310 410,310 300,552"/>',
+      '<path d="M168 310c-30-30-12-76 29-79-15-52 32-90 77-65 18-62 99-62 117 0 45-25 92 13 77 65 41 3 59 49 29 79Z"/>',
+      '<circle cx="264" cy="248" r="9" fill="#2C3642"/><circle cx="336" cy="248" r="9" fill="#2C3642"/><path d="M270 280c20 18 40 18 60 0"/>',
+    ],
+  },
+  {
     slug: 'draw-a-panda',
     version: 'v1',
     alt: 'a panda holding bamboo',

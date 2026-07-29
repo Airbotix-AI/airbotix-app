@@ -349,7 +349,11 @@ describe('ArtStudioPage (canvas-first)', () => {
     renderPage();
     expect(screen.getByTestId('tool-rail')).toBeInTheDocument();
     expect(screen.getByTestId('art-canvas-stub')).toBeInTheDocument();
-    expect(screen.getByTestId('ai-rail')).toBeInTheDocument();
+    expect(screen.getByTestId('ai-rail')).toHaveClass(
+      'overflow-y-auto',
+      'overscroll-contain',
+      '[scrollbar-gutter:stable]',
+    );
     expect(screen.getByTestId('art-tutor')).toHaveAttribute('data-state', 'idle');
     expect(screen.getByText('Boti')).toBeInTheDocument();
     expect(screen.getByAltText('Boti, the Airbotix robot-cat art tutor')).toBeInTheDocument();

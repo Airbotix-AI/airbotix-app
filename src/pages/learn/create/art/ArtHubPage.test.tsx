@@ -272,12 +272,20 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
-  it('groups four first drawings, sixteen simple choices and eight challenges', async () => {
+  it('groups twelve first drawings, sixteen simple choices and eight challenges', async () => {
     const firstTitles = [
       'Draw a Fish',
       'Draw a Snail',
       'Draw a Ladybug',
       'Draw a Tiny Dinosaur',
+      'Draw a Kitten — First Steps',
+      'Draw a Puppy — First Steps',
+      'Draw a Turtle',
+      'Draw a Whale',
+      'Draw a Little Car',
+      'Draw a Rocket — First Steps',
+      'Draw a Flower',
+      'Draw an Ice Cream',
     ];
     const originalTitles = [
       'Draw a T-Rex',
@@ -344,7 +352,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
 
     renderHub();
 
-    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(28);
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(36);
     expect(screen.getByTestId('art-guided-first')).toHaveTextContent('My First Drawing');
     expect(screen.getByTestId('art-guided-first')).toHaveTextContent(
       'Just three tiny steps and a few big shapes',

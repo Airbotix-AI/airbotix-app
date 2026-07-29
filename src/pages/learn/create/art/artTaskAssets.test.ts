@@ -29,6 +29,14 @@ const FIRST_DRAWING_SLUGS = [
   'draw-a-first-snail',
   'draw-a-first-ladybug',
   'draw-a-first-dinosaur',
+  'draw-a-first-kitten',
+  'draw-a-first-puppy',
+  'draw-a-first-turtle',
+  'draw-a-first-whale',
+  'draw-a-first-car',
+  'draw-a-first-rocket',
+  'draw-a-first-flower',
+  'draw-a-first-ice-cream',
 ] as const;
 
 const SIMPLE_TASK_SLUGS = [...ORIGINAL_TASK_SLUGS, ...SIMPLE_BATCH_TWO_SLUGS] as const;

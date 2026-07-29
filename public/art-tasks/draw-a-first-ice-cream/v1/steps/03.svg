@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a very simple happy ice cream cone</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="190,310 410,310 300,552"/>
+    <path d="M168 310c-30-30-12-76 29-79-15-52 32-90 77-65 18-62 99-62 117 0 45-25 92 13 77 65 41 3 59 49 29 79Z"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="264" cy="248" r="9" fill="#2C3642"/><circle cx="336" cy="248" r="9" fill="#2C3642"/><path d="M270 280c20 18 40 18 60 0"/></g>
+  </g>
+</svg>

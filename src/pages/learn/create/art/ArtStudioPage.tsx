@@ -1056,7 +1056,7 @@ export function ArtStudioPage() {
         {/* right AI rail */}
         {aiOpen ? (
           <div
-            className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0"
+            className="w-[300px] shrink-0 card-base p-3 flex flex-col min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
             data-testid="ai-rail"
           >
             <div className="mb-2 flex items-center justify-between rounded-2xl bg-wash-sky px-2.5 py-2">
