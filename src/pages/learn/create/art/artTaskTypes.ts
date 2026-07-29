@@ -11,6 +11,17 @@ export interface ArtTaskAsset {
   alt: string;
 }
 
+export type ArtTaskLevel = 'first' | 'simple' | 'challenge';
+
+export interface ArtTaskProgression {
+  path_id: string;
+  path_title: string;
+  position: number;
+  total: number;
+  level: ArtTaskLevel;
+  next_task_slug: string | null;
+}
+
 export interface ArtTaskListItem {
   slug: string;
   version: number;
@@ -21,8 +32,10 @@ export interface ArtTaskListItem {
   age_max: number;
   difficulty: number;
   duration_minutes: number;
+  step_count: number;
   cover: ArtTaskAsset;
   modes: string[];
+  progression: ArtTaskProgression | null;
 }
 
 export interface ArtTaskStep {
@@ -48,6 +61,7 @@ export interface ArtTaskDetail extends ArtTaskListItem {
     ghost_prompt: string;
     enhance_instruction: string;
   };
+  next_task: ArtTaskListItem | null;
 }
 
 export interface ArtDraftTaskContext {

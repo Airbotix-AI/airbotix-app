@@ -6,8 +6,12 @@ interface ArtTaskGuideProps {
   stepIndex: number;
   referenceVisible: boolean;
   traceOpacity: number;
+  canComplete: boolean;
+  isComplete: boolean;
+  isSaving: boolean;
   onPrevious(): void;
   onNext(): void;
+  onComplete(): void;
   onToggleReference(): void;
   onTraceOpacityChange(value: number): void;
 }
@@ -18,8 +22,12 @@ export function ArtTaskGuide({
   stepIndex,
   referenceVisible,
   traceOpacity,
+  canComplete,
+  isComplete,
+  isSaving,
   onPrevious,
   onNext,
+  onComplete,
   onToggleReference,
   onTraceOpacityChange,
 }: ArtTaskGuideProps) {
@@ -89,11 +97,19 @@ export function ArtTaskGuide({
         </button>
         <button
           type="button"
-          onClick={onNext}
-          disabled={isLast}
+          onClick={isLast ? onComplete : onNext}
+          disabled={isLast ? !canComplete || isComplete || isSaving : false}
           className="flex-1 rounded-full bg-brand-mint px-3 py-1.5 text-[11px] font-black text-ink disabled:opacity-35"
         >
-          {isLast ? 'All steps done ✓' : 'I did this step →'}
+          {isLast
+            ? isComplete
+              ? 'Saved — I did it! ✓'
+              : isSaving
+                ? 'Saving my drawing…'
+                : canComplete
+                  ? 'Save my drawing ✓'
+                  : 'Draw something to finish'
+            : 'I did this step →'}
         </button>
       </div>
 

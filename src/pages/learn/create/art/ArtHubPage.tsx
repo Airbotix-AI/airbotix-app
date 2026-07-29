@@ -19,15 +19,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 
+import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
-import {
-  useArtifactUrl,
-  useBucketArtifacts,
-  useCreateBucket,
-  type Artifact,
-} from '../shared/useStudio';
+import { useArtifactUrl, type Artifact } from '../shared/useStudio';
 import type { ArtMission } from './ArtStudioPage';
 import { ArtTaskModePicker } from './ArtTaskModePicker';
+import { completedTaskSlugs, nextDrawingTask } from './artTaskProgression';
 import type { ArtTaskDrawMode, ArtTaskListItem } from './artTaskTypes';
 import { artTaskSlugFromSteps } from './artTaskTypes';
 
@@ -38,6 +35,7 @@ export const ART_CANVAS_PATH = '/learn/create/image/canvas';
 // project page. Each thumbnail costs one signed-URL round trip (there is no batch
 // endpoint), so the landing page stays cheap and "See all" carries the long tail.
 const HUB_PICTURE_LIMIT = 12;
+const HUB_GALLERY_FETCH_LIMIT = 200;
 
 /**
  * One art task — a Mission the child must hand a PICTURE in for. `art` carries the
@@ -123,7 +121,7 @@ function PictureCard({ artifact, onOpen }: { artifact: Artifact; onOpen: () => v
   // What the kid made, in their terms: their own strokes vs an AI take vs a saved character.
   const badge = meta.character
     ? '👤 Character'
-    : meta.source === 'canvas-sketch'
+    : meta.source === 'canvas-sketch' || meta.source === 'art-task'
       ? '✏️ I drew it'
       : '✨ AI';
 
@@ -152,9 +150,11 @@ function PictureCard({ artifact, onOpen }: { artifact: Artifact; onOpen: () => v
 
 function DrawingIdeaCard({
   task,
+  completed,
   onPick,
 }: {
   task: ArtTaskListItem;
+  completed: boolean;
   onPick: (task: ArtTaskListItem) => void;
 }) {
   return (
@@ -170,13 +170,22 @@ function DrawingIdeaCard({
         className="aspect-[4/3] w-full bg-surface object-cover"
       />
       <span className="block p-4">
-        <span className="block text-[10px] font-black uppercase tracking-[0.11em] text-brand-mint">
-          {task.category} · Ages {task.age_min}–{task.age_max}
+        <span className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.11em] text-brand-mint">
+          <span>
+            {task.category} · Ages {task.age_min}–{task.age_max}
+          </span>
+          {completed && <span className="text-brand-bubblegum">✓ Done</span>}
         </span>
         <span className="mt-1 block text-[18px] font-black text-ink">{task.title}</span>
         <span className="mt-1 block text-[12px] text-ink-soft">{task.short_description}</span>
+        {task.progression && (
+          <span className="mt-2 block text-[11px] font-bold text-brand-bubblegum">
+            {task.progression.path_title} · {task.progression.position}/{task.progression.total}
+          </span>
+        )}
         <span className="mt-3 block text-[11px] font-bold text-slate2">
-          {task.duration_minutes} min · Difficulty {'●'.repeat(task.difficulty)}
+          {task.step_count} steps · {task.duration_minutes} min · Difficulty{' '}
+          {'●'.repeat(task.difficulty)}
           {'○'.repeat(3 - task.difficulty)}
         </span>
       </span>
@@ -187,8 +196,14 @@ function DrawingIdeaCard({
 export function ArtHubPage() {
   const nav = useNavigate();
   const [pickedTask, setPickedTask] = useState<ArtTaskListItem | null>(null);
-  const bucket = useCreateBucket('image');
-  const pictures = useBucketArtifacts(bucket.data?.project_id);
+  const me = useMe();
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
+  const pictures = useQuery<Artifact[]>({
+    queryKey: ['kid', kidId, 'artifacts', 'image', HUB_GALLERY_FETCH_LIMIT],
+    queryFn: () =>
+      api<Artifact[]>(`/kids/${kidId}/artifacts?kind=image&limit=${HUB_GALLERY_FETCH_LIMIT}`),
+    enabled: Boolean(kidId),
+  });
 
   const missions = useQuery<ArtMissionRow[]>({
     queryKey: ['art-missions'],
@@ -205,19 +220,27 @@ export function ArtHubPage() {
     queryFn: () => api<CoursePackRow[]>('/course-packs'),
   });
   const artCourses = (packs.data ?? []).filter((p) => p.product_line === ART_COURSE_LINE);
-  const firstDrawingTasks = (guidedTasks.data ?? []).filter(
-    (task) => task.difficulty === 1 && task.age_min === 4,
+  const allGuidedTasks = guidedTasks.data ?? [];
+  const firstDrawingTasks = allGuidedTasks.filter(
+    (task) => task.progression?.level === 'first',
   );
-  const simpleDrawingTasks = (guidedTasks.data ?? []).filter(
-    (task) => task.difficulty < 3 && task.age_min > 4,
+  const simpleDrawingTasks = allGuidedTasks.filter(
+    (task) => task.progression?.level === 'simple',
   );
-  const challengeDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty === 3);
+  const challengeDrawingTasks = allGuidedTasks.filter(
+    (task) => task.progression?.level === 'challenge',
+  );
 
   // Only images belong in the picture wall — the bucket can also hold the
   // non-image artifacts a future studio feature saves.
   const allPictures = (pictures.data ?? []).filter((a) => a.kind === 'image');
   const shown = allPictures.slice(0, HUB_PICTURE_LIMIT);
   const latest = allPictures[0];
+  const completedSlugs = completedTaskSlugs(
+    allPictures,
+    new Map(allGuidedTasks.map((task) => [task.slug, task])),
+  );
+  const nextTask = nextDrawingTask(allGuidedTasks, allPictures);
 
   // Reopening a saved picture is the SAME contract the "Keep drawing" menu item
   // in My Pictures uses: the artifact becomes the canvas base.
@@ -303,6 +326,39 @@ export function ArtHubPage() {
         )}
       </section>
 
+      {nextTask && (
+        <section
+          className="mb-10 rounded-[28px] border border-brand-mint/40 bg-wash-mint p-5"
+          data-testid="art-next-task"
+        >
+          <div className="eyebrow eyebrow-mint">Your next drawing</div>
+          <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <img
+              src={nextTask.cover.url}
+              alt={nextTask.cover.alt}
+              className="h-28 w-36 rounded-2xl bg-canvas-pure object-contain"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-black uppercase tracking-[0.1em] text-brand-bubblegum">
+                {nextTask.progression?.path_title} · Step {nextTask.progression?.position} of{' '}
+                {nextTask.progression?.total}
+              </p>
+              <h2 className="mt-1 text-[24px] font-black text-ink">{nextTask.title}</h2>
+              <p className="mt-1 text-[13px] font-semibold text-slate2">
+                You finished the last one. This is the one new skill that comes next.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPickedTask(nextTask)}
+              className="btn-pill-primary shrink-0"
+            >
+              Draw this next →
+            </button>
+          </div>
+        </section>
+      )}
+
       <section className="mb-10" data-testid="art-hub-guided-tasks">
         <div className="eyebrow eyebrow-mint">Pick something to draw</div>
         <h2 className="section-heading mt-1">Drawing ideas</h2>
@@ -322,7 +378,12 @@ export function ArtHubPage() {
                 </p>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {firstDrawingTasks.map((task) => (
-                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                    <DrawingIdeaCard
+                      key={task.slug}
+                      task={task}
+                      completed={completedSlugs.has(task.slug)}
+                      onPick={setPickedTask}
+                    />
                   ))}
                 </div>
               </div>
@@ -336,7 +397,12 @@ export function ArtHubPage() {
                 </p>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {simpleDrawingTasks.map((task) => (
-                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                    <DrawingIdeaCard
+                      key={task.slug}
+                      task={task}
+                      completed={completedSlugs.has(task.slug)}
+                      onPick={setPickedTask}
+                    />
                   ))}
                 </div>
               </div>
@@ -350,7 +416,12 @@ export function ArtHubPage() {
                 </p>
                 <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {challengeDrawingTasks.map((task) => (
-                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                    <DrawingIdeaCard
+                      key={task.slug}
+                      task={task}
+                      completed={completedSlugs.has(task.slug)}
+                      onPick={setPickedTask}
+                    />
                   ))}
                 </div>
               </div>
@@ -496,9 +567,9 @@ export function ArtHubPage() {
       <section className="pb-10" data-testid="art-hub-works">
         <div className="flex items-end justify-between gap-4">
           <h2 className="section-heading">My pictures</h2>
-          {bucket.data && allPictures.length > shown.length && (
+          {allPictures.length > shown.length && (
             <Link
-              to={`/learn/projects/${bucket.data.project_id}`}
+              to="/learn/projects"
               className="text-[13px] font-bold text-ink-soft underline hover:text-ink"
             >
               See all {allPictures.length} →
