@@ -272,7 +272,7 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
-  it('groups twelve first drawings, sixteen simple choices and eight challenges', async () => {
+  it('groups twenty first drawings, sixteen simple choices and eight challenges', async () => {
     const firstTitles = [
       'Draw a Fish',
       'Draw a Snail',
@@ -286,6 +286,14 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       'Draw a Rocket — First Steps',
       'Draw a Flower',
       'Draw an Ice Cream',
+      'Draw a Little Bird',
+      'Draw a Frog',
+      'Draw a Bumblebee',
+      'Draw a Crab',
+      'Draw a Sailboat',
+      'Draw a Rainbow',
+      'Draw a Cupcake',
+      'Draw a Little House',
     ];
     const originalTitles = [
       'Draw a T-Rex',
@@ -321,19 +329,21 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       cover: { url: `/art-tasks/first-task-${index}/v1/reference.webp`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
     }));
-    guidedTasks.push(...simpleTitles.map((title, index) => ({
-      slug: `task-${index}`,
-      version: index < originalTitles.length ? 4 : 1,
-      title,
-      short_description: `Guided drawing ${index + 1}`,
-      category: 'animals',
-      age_min: 5,
-      age_max: 9,
-      difficulty: 1,
-      duration_minutes: 8,
-      cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
-      modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
-    })));
+    guidedTasks.push(
+      ...simpleTitles.map((title, index) => ({
+        slug: `task-${index}`,
+        version: index < originalTitles.length ? 4 : 1,
+        title,
+        short_description: `Guided drawing ${index + 1}`,
+        category: 'animals',
+        age_min: 5,
+        age_max: 9,
+        difficulty: 1,
+        duration_minutes: 8,
+        cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
+        modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+      })),
+    );
     guidedTasks.push(
       ...originalTitles.map((title, index) => ({
         slug: `task-${index}-challenge`,
@@ -352,15 +362,13 @@ describe('ArtHubPage — concrete drawing ideas', () => {
 
     renderHub();
 
-    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(36);
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(44);
     expect(screen.getByTestId('art-guided-first')).toHaveTextContent('My First Drawing');
     expect(screen.getByTestId('art-guided-first')).toHaveTextContent(
       'Just three tiny steps and a few big shapes',
     );
     expect(screen.getByTestId('art-guided-simple')).toHaveTextContent('Start Simple');
-    expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent(
-      'Ready for a Challenge?',
-    );
+    expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent('Ready for a Challenge?');
     firstTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
     simpleTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
     originalTitles.forEach((title) =>

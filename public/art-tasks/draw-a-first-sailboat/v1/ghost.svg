@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a very simple little sailboat to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M106 407h388l-69 105H175Z"/>
+    <path d="M300 120v287"/><polygon points="286,146 286,365 125,365"/><polygon points="314,174 314,365 470,365"/>
+    <path d="M91 543c64-34 128-34 192 0 64 34 128 34 192 0"/><circle cx="258" cy="452" r="8" fill="#2C3642"/><circle cx="342" cy="452" r="8" fill="#2C3642"/><path d="M268 479c20 17 44 17 64 0"/>
+  </g>
+</svg>
