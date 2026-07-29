@@ -36,6 +36,12 @@
   progressive guide illustrations under the immutable `v1` asset path.
 ## 2026-07-29
 
+### Fixed
+
+- Journey to the West S1 C2-P5 now has a real Story Mission completion contract. A correct
+  Hide/Show collision build followed by Go persists the run marker that the Part page requires,
+  instead of leaving the child permanently blocked before C2-P6.
+
 ### Added
 
 - Story Blocks now exposes a Tiny Star asset group in the friend picker. It previews every formal

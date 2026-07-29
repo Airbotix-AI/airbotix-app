@@ -165,6 +165,19 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'end' },
     ],
   },
+  // Journey to the West S1/C2-P5 — the child completes one response on each
+  // of two actors. `target` identifies the curtain track for shared tooling;
+  // `storyMissionProgramMatches` delegates the real whole-project check to the
+  // Part page's two-track matcher.
+  'jtw-s1-c2-p5': {
+    pageId: 'jtw-c2-p5-page',
+    background: JTW_C2_ACTOR_FREE_BACKGROUND,
+    characterId: 'water-curtain-trigger',
+    scriptId: 'water-curtain-open',
+    asset: '/story-blocks/journey-to-the-west/characters/water-curtain-trigger/closed-v01.png',
+    characterCount: 3,
+    target: [{ op: 'when_bump' }, { op: 'hide' }, { op: 'play_sound', n: 2 }, { op: 'end' }],
+  },
   // Journey to the West S1/C1-P6 — Twist & Debug, the stable order bug
   // (scene-specs JTW-S1-C1-P6). The starter ships Say → Hop → Show; ONLY the
   // exact repaired order passes. The exact-target match rejects the shipped
