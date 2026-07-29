@@ -90,6 +90,46 @@ const tasks = [
     ],
   },
   {
+    slug: 'draw-a-first-fish',
+    version: 'v1',
+    alt: 'a very simple friendly fish',
+    stages: [
+      '<ellipse cx="285" cy="310" rx="155" ry="108"/>',
+      '<polygon points="430,310 545,220 545,400"/><path d="M282 206c34-55 79-67 104 11M282 414c34 55 79 67 104-11"/>',
+      '<circle cx="215" cy="286" r="10" fill="#2C3642"/><path d="M211 344c26 22 55 22 81 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-snail',
+    version: 'v1',
+    alt: 'a very simple smiling snail',
+    stages: [
+      '<circle cx="295" cy="280" r="142"/>',
+      '<path d="M76 430c93-29 176-26 238 8h140c49 0 82-25 82-68 0-57-53-88-103-61-24 13-39 39-43 72H254c-87 0-146 17-178 49Z"/><path d="M421 313 405 245m73 55 22-65"/>',
+      '<path d="M321 281c0-69-85-92-123-38-48 68 24 149 96 103 43-27 47-82 12-113"/><circle cx="425" cy="333" r="8" fill="#2C3642"/><circle cx="478" cy="326" r="8" fill="#2C3642"/><path d="M431 367c17 15 35 15 52 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-ladybug',
+    version: 'v1',
+    alt: 'a very simple four-spot ladybug',
+    stages: [
+      '<ellipse cx="300" cy="340" rx="155" ry="190"/>',
+      '<path d="M173 231c50-92 204-92 254 0M300 151v379m-86-353-39-62m211 62 39-62"/>',
+      '<circle cx="238" cy="315" r="31"/><circle cx="362" cy="315" r="31"/><circle cx="238" cy="420" r="31"/><circle cx="362" cy="420" r="31"/><circle cx="260" cy="210" r="8" fill="#2C3642"/><circle cx="340" cy="210" r="8" fill="#2C3642"/><path d="M278 236c15 13 29 13 44 0"/>',
+    ],
+  },
+  {
+    slug: 'draw-a-first-dinosaur',
+    version: 'v1',
+    alt: 'a very simple friendly little dinosaur',
+    stages: [
+      '<path d="M101 313c0-78 64-134 145-134h143c70 0 117 41 117 101 0 55-44 94-107 103l123 68c-64 20-121 7-166-39H240c-81 0-139-42-139-99Z"/>',
+      '<path d="M190 398v103m91-89v89m-113 0h45m45 0h46"/><path d="m245 179 48-72 42 72m20 3 48-61 36 82m-1 17 43-36 22 66"/>',
+      '<circle cx="176" cy="279" r="10" fill="#2C3642"/><path d="M166 330c28 22 58 22 87 0"/>',
+    ],
+  },
+  {
     slug: 'draw-a-panda',
     version: 'v1',
     alt: 'a panda holding bamboo',
@@ -200,8 +240,9 @@ ${indentedContent}
 for (const task of tasks) {
   const directory = join(OUTPUT_ROOT, task.slug, task.version ?? DEFAULT_VERSION);
   const stepsDirectory = join(directory, 'steps');
-  const simpleStages = task.stages.slice(0, 4);
-  const completeDrawing = simpleStages.join('\n');
+  const drawingStages = task.stages.slice(0, 4);
+  const stepCountLabel = drawingStages.length === 3 ? 'three' : 'four';
+  const completeDrawing = drawingStages.join('\n');
   mkdirSync(stepsDirectory, { recursive: true });
 
   writeFileSync(
@@ -210,15 +251,15 @@ for (const task of tasks) {
   );
   writeFileSync(
     join(directory, 'reference.svg'),
-    wrapSvg(`A four-step line drawing of ${task.alt}`, completeDrawing, PAPER),
+    wrapSvg(`A ${stepCountLabel}-step line drawing of ${task.alt}`, completeDrawing, PAPER),
   );
   writeFileSync(
     join(directory, 'cover.svg'),
     wrapSvg(`A simple drawing idea: ${task.alt}`, completeDrawing, COVER),
   );
 
-  simpleStages.forEach((stage, index) => {
-    const previous = simpleStages.slice(0, index).join('\n');
+  drawingStages.forEach((stage, index) => {
+    const previous = drawingStages.slice(0, index).join('\n');
     const activeStage = `<g stroke="${ACTIVE}" stroke-dasharray="18 12">${stage}</g>`;
     const content = [previous, activeStage].filter(Boolean).join('\n');
     writeFileSync(

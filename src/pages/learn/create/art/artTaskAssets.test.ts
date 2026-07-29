@@ -24,10 +24,37 @@ const SIMPLE_BATCH_TWO_SLUGS = [
   'draw-a-baby-dragon',
 ] as const;
 
-const TASK_SLUGS = [...ORIGINAL_TASK_SLUGS, ...SIMPLE_BATCH_TWO_SLUGS] as const;
+const FIRST_DRAWING_SLUGS = [
+  'draw-a-first-fish',
+  'draw-a-first-snail',
+  'draw-a-first-ladybug',
+  'draw-a-first-dinosaur',
+] as const;
+
+const SIMPLE_TASK_SLUGS = [...ORIGINAL_TASK_SLUGS, ...SIMPLE_BATCH_TWO_SLUGS] as const;
+const TASK_SLUGS = [...FIRST_DRAWING_SLUGS, ...SIMPLE_TASK_SLUGS] as const;
 
 describe('Art Studio guided drawing assets', () => {
-  it.each(TASK_SLUGS)('%s has four child-copyable drawing guides', (slug) => {
+  it.each(FIRST_DRAWING_SLUGS)('%s has exactly three first-drawing guides', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v1');
+    const requiredFiles = [
+      'cover.svg',
+      'reference.svg',
+      'ghost.svg',
+      'steps/01.svg',
+      'steps/02.svg',
+      'steps/03.svg',
+    ];
+
+    requiredFiles.forEach((relativePath) => {
+      const assetPath = join(directory, relativePath);
+      expect(existsSync(assetPath), `${slug}/${relativePath}`).toBe(true);
+      expect(readFileSync(assetPath).byteLength, `${slug}/${relativePath}`).toBeGreaterThan(200);
+    });
+    expect(existsSync(join(directory, 'steps/04.svg'))).toBe(false);
+  });
+
+  it.each(SIMPLE_TASK_SLUGS)('%s has four child-copyable drawing guides', (slug) => {
     const guideVersion = SIMPLE_BATCH_TWO_SLUGS.includes(
       slug as (typeof SIMPLE_BATCH_TWO_SLUGS)[number],
     )
@@ -52,7 +79,21 @@ describe('Art Studio guided drawing assets', () => {
     expect(existsSync(join(directory, 'steps/05.svg'))).toBe(false);
   });
 
-  it.each(TASK_SLUGS)('%s draw-along stays simple without becoming a symbol', (slug) => {
+  it.each(FIRST_DRAWING_SLUGS)('%s uses only a handful of bold drawing features', (slug) => {
+    const directory = join(process.cwd(), 'public', 'art-tasks', slug, 'v1');
+    const reference = readFileSync(join(directory, 'reference.svg'), 'utf8');
+    const pathStarts = reference.match(/[Mm](?=[-0-9])/g) ?? [];
+    const standaloneShapes =
+      reference.match(/<(?:circle|ellipse|polygon|polyline)\b/g) ?? [];
+    const drawingFeatures = pathStarts.length + standaloneShapes.length;
+
+    expect(drawingFeatures).toBeGreaterThanOrEqual(5);
+    expect(drawingFeatures).toBeLessThanOrEqual(12);
+    expect(reference).toContain('stroke-width="11"');
+    expect(reference).not.toMatch(/<(?:filter|image|linearGradient|radialGradient)\b/);
+  });
+
+  it.each(SIMPLE_TASK_SLUGS)('%s draw-along stays simple without becoming a symbol', (slug) => {
     const guideVersion = SIMPLE_BATCH_TWO_SLUGS.includes(
       slug as (typeof SIMPLE_BATCH_TWO_SLUGS)[number],
     )

@@ -205,7 +205,12 @@ export function ArtHubPage() {
     queryFn: () => api<CoursePackRow[]>('/course-packs'),
   });
   const artCourses = (packs.data ?? []).filter((p) => p.product_line === ART_COURSE_LINE);
-  const simpleDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty < 3);
+  const firstDrawingTasks = (guidedTasks.data ?? []).filter(
+    (task) => task.difficulty === 1 && task.age_min === 4,
+  );
+  const simpleDrawingTasks = (guidedTasks.data ?? []).filter(
+    (task) => task.difficulty < 3 && task.age_min > 4,
+  );
   const challengeDrawingTasks = (guidedTasks.data ?? []).filter((task) => task.difficulty === 3);
 
   // Only images belong in the picture wall — the bucket can also hold the
@@ -309,6 +314,20 @@ export function ArtHubPage() {
           <p className="lead-text mt-3">Loading drawing ideas…</p>
         ) : guidedTasks.data && guidedTasks.data.length > 0 ? (
           <div className="mt-5 space-y-8">
+            {firstDrawingTasks.length > 0 && (
+              <div data-testid="art-guided-first">
+                <h3 className="text-[18px] font-black text-ink">My First Drawing</h3>
+                <p className="mt-1 text-[13px] font-semibold text-slate2">
+                  Just three tiny steps and a few big shapes — easiest to copy.
+                </p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {firstDrawingTasks.map((task) => (
+                    <DrawingIdeaCard key={task.slug} task={task} onPick={setPickedTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {simpleDrawingTasks.length > 0 && (
               <div data-testid="art-guided-simple">
                 <h3 className="text-[18px] font-black text-ink">Start Simple</h3>

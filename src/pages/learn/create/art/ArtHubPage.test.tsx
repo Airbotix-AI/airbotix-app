@@ -272,7 +272,13 @@ describe('ArtHubPage — art tasks', () => {
 });
 
 describe('ArtHubPage — concrete drawing ideas', () => {
-  it('groups sixteen simple choices and eight preserved challenge choices', async () => {
+  it('groups four first drawings, sixteen simple choices and eight challenges', async () => {
+    const firstTitles = [
+      'Draw a Fish',
+      'Draw a Snail',
+      'Draw a Ladybug',
+      'Draw a Tiny Dinosaur',
+    ];
     const originalTitles = [
       'Draw a T-Rex',
       'Draw a Kitten',
@@ -294,7 +300,20 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       'Draw an Excavator',
       'Draw a Baby Dragon',
     ];
-    guidedTasks = simpleTitles.map((title, index) => ({
+    guidedTasks = firstTitles.map((title, index) => ({
+      slug: `first-task-${index}`,
+      version: 1,
+      title,
+      short_description: `First drawing ${index + 1}`,
+      category: 'animals',
+      age_min: 4,
+      age_max: 6,
+      difficulty: 1,
+      duration_minutes: 5,
+      cover: { url: `/art-tasks/first-task-${index}/v1/reference.webp`, alt: title },
+      modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+    }));
+    guidedTasks.push(...simpleTitles.map((title, index) => ({
       slug: `task-${index}`,
       version: index < originalTitles.length ? 4 : 1,
       title,
@@ -306,7 +325,7 @@ describe('ArtHubPage — concrete drawing ideas', () => {
       duration_minutes: 8,
       cover: { url: `/art-tasks/task-${index}/v1/cover.webp`, alt: title },
       modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
-    }));
+    })));
     guidedTasks.push(
       ...originalTitles.map((title, index) => ({
         slug: `task-${index}-challenge`,
@@ -325,11 +344,16 @@ describe('ArtHubPage — concrete drawing ideas', () => {
 
     renderHub();
 
-    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(24);
+    expect(await screen.findAllByTestId('art-guided-task')).toHaveLength(28);
+    expect(screen.getByTestId('art-guided-first')).toHaveTextContent('My First Drawing');
+    expect(screen.getByTestId('art-guided-first')).toHaveTextContent(
+      'Just three tiny steps and a few big shapes',
+    );
     expect(screen.getByTestId('art-guided-simple')).toHaveTextContent('Start Simple');
     expect(screen.getByTestId('art-guided-challenge')).toHaveTextContent(
       'Ready for a Challenge?',
     );
+    firstTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
     simpleTitles.forEach((title) => expect(screen.getByText(title)).toBeInTheDocument());
     originalTitles.forEach((title) =>
       expect(screen.getByText(`${title} — Challenge`)).toBeInTheDocument(),
