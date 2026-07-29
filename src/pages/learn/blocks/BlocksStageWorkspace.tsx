@@ -21,6 +21,7 @@ import { startState, type SpriteState } from './interpreter'
 import { sceneId } from './library'
 import { sfx } from './sounds'
 import { speechBubbleStyle } from './spriteLayout'
+import './tinyStarAssetIntegration.css'
 import {
   TINY_STAR_BELL_STILL_ASSET,
   TINY_STAR_BELL_SWING_ASSET,

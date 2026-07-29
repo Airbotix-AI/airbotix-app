@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a very simple friendly little dinosaur to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M101 313c0-78 64-134 145-134h143c70 0 117 41 117 101 0 55-44 94-107 103l123 68c-64 20-121 7-166-39H240c-81 0-139-42-139-99Z"/>
+    <path d="M190 398v103m91-89v89m-113 0h45m45 0h46"/><path d="m245 179 48-72 42 72m20 3 48-61 36 82m-1 17 43-36 22 66"/>
+    <circle cx="176" cy="279" r="10" fill="#2C3642"/><path d="M166 330c28 22 58 22 87 0"/>
+  </g>
+</svg>

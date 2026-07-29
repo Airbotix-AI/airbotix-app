@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 4 for drawing a friendly triceratops</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="371" cy="359" rx="145" ry="88"/>
+    <path d="M240 164c75-27 151 15 151 94 0 82-68 126-151 110-77-15-115-87-80-150 17-31 45-48 80-54Z"/><ellipse cx="209" cy="282" rx="82" ry="62"/><polygon points="176,229 132,158 204,213"/><polygon points="238,214 229,131 269,211"/><polygon points="184,281 122,259 175,308"/>
+    <path d="M278 411v103m61-79v79m87-79v79m62-103v103M257 514h44m20 0h43m42 0h43m20 0h42"/><path d="M494 336c58-16 92-51 103-96-1 71-32 118-96 145"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="193" cy="272" r="8" fill="#2C3642"/><path d="M157 316c28 20 59 21 91 4M154 337h48"/><circle cx="239" cy="190" r="12"/><circle cx="290" cy="183" r="10"/><circle cx="336" cy="210" r="12"/><circle cx="371" cy="340" r="13"/><circle cx="417" cy="358" r="11"/><circle cx="454" cy="331" r="10"/></g>
+  </g>
+</svg>

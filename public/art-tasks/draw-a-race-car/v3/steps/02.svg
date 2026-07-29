@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 2 for drawing a racing car</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M70 370c20-75 85-115 188-123l76-82h105l67 83c55 12 90 48 97 102l-27 66H112l-42-46Z"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="205" cy="416" r="66"/><circle cx="468" cy="416" r="66"/><circle cx="205" cy="416" r="28"/><circle cx="468" cy="416" r="28"/></g>
+  </g>
+</svg>

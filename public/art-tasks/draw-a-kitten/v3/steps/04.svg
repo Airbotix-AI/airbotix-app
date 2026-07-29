@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 4 for drawing a sitting kitten</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M230 300c-47 52-58 156-15 215h200c43-59 32-163-15-215"/>
+    <path d="M229 173 245 80l70 62 70-62 16 93c35 25 50 63 39 99-15 50-64 78-125 78s-110-28-125-78c-11-36 4-74 39-99Z"/>
+    <path d="M260 348v144m55-138v138m-82 0h57m-4 0h58M408 360c91-70 144 23 98 92-20 30-58 31-81 7"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><circle cx="275" cy="225" r="8" fill="#2C3642"/><circle cx="355" cy="225" r="8" fill="#2C3642"/><path d="m315 251-13 11 13 12 13-12-13-11Zm0 23v19m0 0c-18 18-38 18-55 1m55-1c18 18 38 18 55 1m-105-48-52-12m53 34-55 7m159-29 52-12m-53 34 55 7"/></g>
+  </g>
+</svg>

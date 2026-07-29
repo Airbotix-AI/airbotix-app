@@ -62,7 +62,12 @@ function renderPack() {
 
 function ArtMissionTarget() {
   const location = useLocation();
-  return <pre data-testid="art-mission-state">{JSON.stringify(location.state)}</pre>;
+  return (
+    <>
+      <pre data-testid="art-mission-state">{JSON.stringify(location.state)}</pre>
+      <span data-testid="art-mission-search">{location.search}</span>
+    </>
+  );
 }
 
 afterEach(() => {
@@ -168,6 +173,50 @@ describe('PackLessonsPage (pack → Lessons → Mission tasks)', () => {
           title: 'Draw a cat',
           description: 'Make a picture.',
           steps,
+        },
+      }),
+    );
+  });
+
+  it('reuses an approved guided task without leaving Art Studio Mission Mode', async () => {
+    const steps = [
+      {
+        id: 'dinosaur',
+        title: 'Draw your dinosaur',
+        instruction_md: 'Follow the guide, then make it yours.',
+        widget: 'image_create',
+        widget_config: {
+          art_task_slug: 'draw-a-trex',
+          allowed_modes: ['look_and_draw', 'trace_ghost', 'draw_my_way'],
+        },
+      },
+    ];
+    api.mockResolvedValue({
+      ...PACK,
+      lessons: [
+        {
+          ...PACK.lessons[0],
+          missions: [{ ...PACK.lessons[0].missions[0], steps_json: steps }],
+        },
+      ],
+    });
+    renderPack();
+
+    const task = (await screen.findByText('Draw a cat')).closest('li');
+    fireEvent.click(within(task as HTMLElement).getByRole('button', { name: /Start/ }));
+
+    expect(await screen.findByTestId('art-mission-search')).toHaveTextContent(
+      '?task=draw-a-trex&mode=look',
+    );
+    expect(screen.getByTestId('art-mission-state')).toHaveTextContent(
+      JSON.stringify({
+        mission: {
+          id: 'm1',
+          slug: 'draw-a-cat',
+          title: 'Draw a cat',
+          description: 'Make a picture.',
+          steps,
+          art_task_slug: 'draw-a-trex',
         },
       }),
     );

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A three-step line drawing of a very simple four-spot ladybug</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="300" cy="340" rx="155" ry="190"/>
+    <path d="M173 231c50-92 204-92 254 0M300 151v379m-86-353-39-62m211 62 39-62"/>
+    <circle cx="238" cy="315" r="31"/><circle cx="362" cy="315" r="31"/><circle cx="238" cy="420" r="31"/><circle cx="362" cy="420" r="31"/><circle cx="260" cy="210" r="8" fill="#2C3642"/><circle cx="340" cy="210" r="8" fill="#2C3642"/><path d="M278 236c15 13 29 13 44 0"/>
+  </g>
+</svg>

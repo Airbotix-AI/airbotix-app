@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">A simple outline of a standing unicorn to trace</title>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="355" cy="340" rx="150" ry="88"/>
+    <path d="M245 340c-46-31-62-100-25-145 33-40 97-31 115 17m-115-17c-45-7-66 26-45 54 18 23 59 21 77 1"/>
+    <path d="M255 393v126m70-92v92m75-92v92m67-111v111M235 519h47m22 0h48m27 0h48m19 0h48"/>
+    <path d="m218 177 7-91 31 85m55 40c-34-32-63-41-92-20m32 84c36 28 65 24 94-7M496 330c89-55 104 52 48 95-22 17-46 16-66 3"/>
+  </g>
+</svg>

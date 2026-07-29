@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { SCENES, sceneId } from './library'
 import { sfx } from './sounds'
 import { useBlocksStore } from './blocksStore'
+import './tinyStarAssetIntegration.css'
 
 interface ScenePickerDialogProps {
   open: boolean

@@ -124,8 +124,13 @@ describe('StoryCoachPanel', () => {
     );
     expect(screen.getByText('Tuan Tuan')).toBeInTheDocument();
     expect(screen.getByText('Cloud-path Maker')).toBeInTheDocument();
-    expect(screen.getByLabelText('Mission step 2 of 4')).toHaveTextContent('Point');
-    fireEvent.click(screen.getByRole('button', { name: '▶ Go' }));
+    expect(screen.getByTestId('story-coach-goal')).toHaveTextContent('Press Go');
+    expect(screen.getByTestId('story-coach-goal')).toHaveTextContent(
+      'Watch where Tuan Tuan stops',
+    );
+    expect(screen.getByTestId('story-coach-goal')).not.toHaveTextContent('Right 3');
+    expect(screen.getByLabelText('Mission step 2 of 4')).toHaveTextContent('Press Go');
+    fireEvent.click(screen.getByRole('button', { name: '▶ Press Go' }));
     expect(onGo).toHaveBeenCalledOnce();
 
     rerender(
@@ -142,6 +147,10 @@ describe('StoryCoachPanel', () => {
     );
     expect(screen.getByText('Tuan Tuan')).toBeInTheDocument();
     expect(screen.getByTestId('story-coach-cue')).toHaveTextContent('choose one arrow');
+    expect(screen.getByTestId('story-coach-goal')).toHaveTextContent(
+      'tap Motion → tap Right → press Go',
+    );
+    expect(screen.getByLabelText('Mission step 2 of 4')).toHaveTextContent('Tap Motion');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
 
     rerender(

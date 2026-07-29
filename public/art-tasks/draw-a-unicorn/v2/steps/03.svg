@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a standing unicorn</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="355" cy="340" rx="150" ry="88"/>
+    <path d="M245 340c-46-31-62-100-25-145 33-40 97-31 115 17m-115-17c-45-7-66 26-45 54 18 23 59 21 77 1"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M255 393v126m70-92v92m75-92v92m67-111v111M235 519h47m22 0h48m27 0h48m19 0h48"/></g>
+  </g>
+</svg>

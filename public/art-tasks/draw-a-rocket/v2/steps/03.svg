@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-labelledby="title">
+  <title id="title">Step 3 for drawing a rocket flying through space</title>
+  <rect width="600" height="600" rx="36" fill="#FFFEF7"/>
+  <g fill="none" stroke="#2C3642" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 88c84 68 96 231 0 355-96-124-84-287 0-355Z"/>
+    <circle cx="300" cy="245" r="48"/><path d="m240 323-83 88 91-20m112-68 83 88-91-20"/>
+    <g stroke="#E2528C" stroke-dasharray="18 12"><path d="M258 420c-5 55 16 88 42 113 26-25 47-58 42-113m-57 15c0 31 5 53 15 68 10-15 15-37 15-68"/></g>
+  </g>
+</svg>
