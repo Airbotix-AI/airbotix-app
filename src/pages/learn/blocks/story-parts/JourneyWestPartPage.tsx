@@ -58,6 +58,7 @@ import { JourneyWestC4Part5Page } from './JourneyWestC4Part5Page';
 import { JourneyWestC4Part6Page } from './JourneyWestC4Part6Page';
 import { JourneyWestC4Part7Page } from './JourneyWestC4Part7Page';
 import { JourneyWestC4Part8Page } from './JourneyWestC4Part8Page';
+import { JourneyWestC5Part1Page } from './JourneyWestC5Part1Page';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -98,6 +99,7 @@ export function JourneyWestPartRoute() {
   if (partId === 'jtw-s1-c4-p6') return <JourneyWestC4Part6Page />;
   if (partId === 'jtw-s1-c4-p7') return <JourneyWestC4Part7Page />;
   if (partId === 'jtw-s1-c4-p8') return <JourneyWestC4Part8Page />;
+  if (partId === 'jtw-s1-c5-p1') return <JourneyWestC5Part1Page />;
   return <Navigate to="/learn/story/journey-west" replace />;
 }
 
