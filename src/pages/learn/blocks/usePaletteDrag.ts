@@ -21,13 +21,13 @@ import {
 import type { StoryMission } from './curriculumGuides'
 import { sfx } from './sounds'
 import { TINY_STAR_DUET_HOP_N } from './tinyStarDuet'
-import type { ScanScriptRows } from './useBlockDrag'
+import type { DropHit, ScanDropZones } from './blockDropZones'
 
 interface UsePaletteDragOptions {
   running: boolean
   present: boolean
   readOnly: boolean
-  scanRows: ScanScriptRows
+  scanRows: ScanDropZones
   isA2DirectionDebug: boolean
   isA3EventDebug: boolean
   isA4ParameterBuild: boolean
@@ -76,9 +76,7 @@ export function usePaletteDrag({
     n?: number
     cx: number
     cy: number
-    scriptId: string | null
-    slot: number
-    dropX: number | null
+    target: DropHit | null
   } | null>(null)
   const [ifBodyTarget, setIfBodyTarget] = useState<{
     scriptId: string
@@ -88,16 +86,9 @@ export function usePaletteDrag({
   const updatePaletteDrag = (x: number, y: number) => {
     const drag = paletteDrag.current
     if (!drag) return
+    // A trigger always starts its own track, so it has no in-track drop slot.
     const hit = isTrigger(drag.op) ? null : scanRows(x, y)
-    setPaletteBlock({
-      op: drag.op,
-      n: drag.n,
-      cx: x,
-      cy: y,
-      scriptId: hit?.scriptId ?? null,
-      slot: hit?.slot ?? 0,
-      dropX: hit?.dropX ?? null,
-    })
+    setPaletteBlock({ op: drag.op, n: drag.n, cx: x, cy: y, target: hit })
   }
 
   const onPaletteDown = (
@@ -170,7 +161,7 @@ export function usePaletteDrag({
     store: ReturnType<typeof useBlocksStore.getState>,
     op: BlockOp,
     n: number | undefined,
-    drop?: { scriptId: string; slot: number },
+    drop?: DropHit,
   ) => {
     if (
       isA2DirectionDebug ||
@@ -182,7 +173,10 @@ export function usePaletteDrag({
       return
     }
     if (isA6OrderDebug) return
-    if (ifBodyTarget && !isTrigger(op)) {
+    // A real drop always wins over the armed "Add block" slot — the child
+    // aimed at somewhere specific, so honour that and disarm.
+    if (drop && ifBodyTarget) setIfBodyTarget(null)
+    if (!drop && ifBodyTarget && !isTrigger(op)) {
       store.addIfBodyBlock(ifBodyTarget.scriptId, ifBodyTarget.index, op, n)
       setIfBodyTarget(null)
       return
@@ -205,7 +199,7 @@ export function usePaletteDrag({
     const seededN =
       isA5PersonalShip && op === 'hop' ? TINY_STAR_DUET_HOP_N : n
     if (drop) {
-      store.insertBlock(op, drop.scriptId, drop.slot, seededN)
+      store.insertBlockAtPath(op, drop.scriptId, drop.path, seededN)
       return
     }
     store.addBlock(op, seededN)
@@ -225,12 +219,9 @@ export function usePaletteDrag({
     const store = useBlocksStore.getState()
     if (commit) {
       if (paletteDidDrag.current) {
-        if (info?.scriptId) {
+        if (info?.target) {
           sfx.snap()
-          addPaletteBlock(store, drag?.op ?? op, drag?.n ?? n, {
-            scriptId: info.scriptId,
-            slot: info.slot,
-          })
+          addPaletteBlock(store, drag?.op ?? op, drag?.n ?? n, info.target)
         } else {
           sfx.place()
           addPaletteBlock(store, drag?.op ?? op, drag?.n ?? n)
