@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-30
+
+### Added
+
+- Journey to the West C4-P1 now gives children a persistent Read/Why scene at the
+  master’s gate: they read the full story, order the real journey, identify two
+  motive evidences, test the treasure contradiction, explain why the journey
+  still connects to home, and unlock only C4-P2.
+
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
 ### Added
