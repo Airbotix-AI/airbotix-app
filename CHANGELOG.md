@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-30 (feat: implement Journey to the West C4-P1)
+
+### Added
+
+- Added the fourth-chapter Read/Why entry: children read both gate-arrival story screens, order
+  the Flower-Fruit Mountain → sea road → master gate journey, reject treasure/friend distractors,
+  explain the learning motive, and persist the evidence before only C4-P2 unlocks.
+- Added the carried-forward far-shore stage, empty name board, warm-gate resolved state and
+  focused component coverage for locked, incorrect, completed and restored states.
+
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
 ### Added
