@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-31
+
+- Add Journey to the West S1 C4-P2 with real Start and On Tap runner traces, persisted comparison evidence, and adjacent-only progression.
+
 ## 2026-07-30
 
 ### Added
