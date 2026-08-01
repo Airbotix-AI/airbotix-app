@@ -66,6 +66,14 @@ export interface CodeProject {
    * gate the AI action on a low/zero balance. Absent → treat as not-free.
    */
   ai_free_now?: boolean;
+  /**
+   * The Mission this project backs (`Project.mission_id`, D-M5) — set when the
+   * project was created from a course task. Its presence puts the studio in
+   * Mission Mode (learn-game-studio-prd §9A / D-GAME14): the authored step
+   * checklist is read and the Mission window auto-opens. Absent/null on a
+   * free-play project.
+   */
+  mission_id?: string | null;
 }
 
 // ── Agent turn model (PRD §4 / §4.5 — server-side loop) ────────────────────
