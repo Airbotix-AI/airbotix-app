@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help' | 'mission';
 
 export interface WinRect {
   x: number;
@@ -105,6 +105,32 @@ export function guideRectClearOf(chat: WinRect, W: number, H: number): WinRect {
     h: Math.round(H * 0.5),
   };
 }
+/** Narrowest Mission column that still reads well (also the Window minWidth floor). */
+const MISSION_MIN_W = 340;
+const MISSION_MAX_W = 400;
+
+/** The Mission checklist's spawn — a NARROW column in the same clear-of-the-chat
+ *  band the Guide uses (it must never sit on the conversation), sized for a list
+ *  of short steps rather than the Guide's reading column. */
+export function missionRectClearOf(chat: WinRect, W: number, H: number): WinRect {
+  const leftW = Math.min(MISSION_MAX_W, chat.x - ICON_COL_PX - 16);
+  if (leftW >= MISSION_MIN_W) {
+    return {
+      x: ICON_COL_PX + 8,
+      y: Math.round(H * 0.05),
+      w: Math.round(leftW),
+      h: Math.round(H * 0.72),
+    };
+  }
+  // Too narrow for a left column — a short top strip that still leaves the
+  // chat's input + newest replies clear.
+  return {
+    x: ICON_COL_PX + 24,
+    y: Math.round(H * 0.04),
+    w: Math.round(Math.max(MISSION_MIN_W, Math.min(MISSION_MAX_W, W - ICON_COL_PX - 48))),
+    h: Math.round(H * 0.5),
+  };
+}
 // Width of the Code Editor's fixed file column (keep in sync with
 // `FILES_DEFAULT_W` in `panes/CodeEditorPane.tsx`). Used to size the launch
 // window so the EDITOR area — window width minus this column — is what scales.
@@ -143,8 +169,8 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
   // lockstep) so it can never sit on the conversation's latest messages. Only
   // on screens too narrow for any readable left column does it fall back to a
   // SHORT top strip that still leaves the chat's input + newest replies clear.
-  const helpRect = (): WinRect =>
-    guideRectClearOf(r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82), W, H);
+  const chatRect = r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82);
+  const helpRect = (): WinRect => guideRectClearOf(chatRect, W, H);
   return {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
@@ -156,8 +182,13 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
     // otherwise a SHORTER top-anchored column that leaves the chat's input +
     // newest replies visible below it.
     help: closed('help', 1, helpRect()),
+    // Mission Mode (D-GAME14) — the authored step checklist. Closed by default;
+    // `ensureMissionVisible()` opens it (WITHOUT raising) when the project has a
+    // mission with unfinished steps, so it never steals focus from the chat. A
+    // narrow left column, clear of the chat, at the BACK of the z-order.
+    mission: closed('mission', 1, missionRectClearOf(chatRect, W, H)),
     // Open + focused + centered as the sole launch window.
-    chat: base('chat', 4, r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82)),
+    chat: base('chat', 4, chatRect),
   };
 }
 
@@ -192,7 +223,10 @@ export const usePlaygroundStore = create<PlaygroundState>((set) => ({
     set({
       theme: snap.theme,
       layoutMode: snap.layoutMode,
-      windows: snap.windows,
+      // Merge OVER the defaults: a workspace saved by an older build has no entry
+      // for a window added since (e.g. `mission`), and a missing WinState would
+      // crash every consumer that reads `windows[id]`.
+      windows: { ...defaultWindows(), ...snap.windows },
       topZ: snap.topZ,
     }),
   windows: DEFAULT_WINDOWS,
@@ -300,6 +334,34 @@ export function ensureGameRunnerVisible(): void {
     windows: {
       ...state.windows,
       game: { ...state.windows.game, open: true, minimized: false },
+    },
+  }));
+}
+
+/**
+ * Open the Mission checklist when it is NOT on screen (window mode only) —
+ * Mission Mode auto-opens for a project whose mission still has unfinished steps
+ * (learn-game-studio-prd §9A.5).
+ *
+ * Like `ensureGameRunnerVisible`, this opens WITHOUT raising: the mission window
+ * must never steal focus from the chat (its seeded z keeps it behind, and its
+ * default rect sits clear of the chat column). Returns to the kid's own choice
+ * once they close/minimize it — we never re-open a window they dismissed
+ * (Workspace auto-opens at most once per project).
+ *
+ * No-op in split mode: switching the split tab WOULD take the chat off screen,
+ * which is exactly the focus steal §9A.5 forbids — there the kid opens the
+ * "Mission" tab themselves.
+ */
+export function ensureMissionVisible(): void {
+  const s = usePlaygroundStore.getState();
+  if (s.layoutMode !== 'window') return;
+  const mission = s.windows.mission;
+  if (mission.open && !mission.minimized) return;
+  usePlaygroundStore.setState((state) => ({
+    windows: {
+      ...state.windows,
+      mission: { ...state.windows.mission, open: true, minimized: false },
     },
   }));
 }

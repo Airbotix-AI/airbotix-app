@@ -23,6 +23,13 @@
 
 ### Changed
 
+- **Mission Mode is absent, not empty, when there is nothing to show (D-GAME14h).** The window is
+  only registered when the project's mission has authored steps AND its course pack is published
+  (the server reports both as `steps: []`). With none, there is no desktop tile, no taskbar button,
+  no split tab and no empty-state pane. An always-present window advertised structure that didn't
+  exist and invited a kid to open it and find nothing — and since most missions author no steps,
+  that was the common case, not the exception.
+
 - `Bring it to life` stays locked until a child has drawn, and the result is shown beside the
   original under clear `My drawing` and `AI version` labels.
 - The three task sections now use curriculum levels and exact step counts: three-step first
@@ -214,6 +221,131 @@ away`. Existing projects saved under the former scene title still resume.
   backgrounds across all four mission contracts. Chapter four uses the formal
   right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
   saved projects using the exact legacy cart SVG remain compatible.
+## 2026-07-28 (feat: Mission Mode progressive reveal + the current step in the taskbar)
+
+### Removed
+
+- **The milestone celebration DIALOG is gone (D-GAME14g).** Completing a step no longer opens a
+  card, no longer has a "Nice!" button to dismiss, and never covers the game. A kid ticking a box
+  is mid-flow, and a modal interrupts exactly the person we just told to keep going — while saying
+  nothing the checklist has not already shown (the step strikes through, the bar advances, the
+  taskbar chip rolls on).
+  - A milestone still celebrates, with a **confetti burst** — non-blocking, nothing to
+    acknowledge, clears itself.
+  - The milestone's WORDS now live **inline on the finished step row**
+    (`mission-milestone-<id>`), so the message outlives the burst and is still there when the kid
+    scrolls back. That is what makes removing the card safe: nothing authored is lost.
+  - Under `prefers-reduced-motion` nothing animates at all and the inline milestone alone carries
+    the moment.
+  - The earlier "suppress the celebration on the tick that finishes the mission" rule is
+    **withdrawn**: it existed only to keep a dialog off the "All done" state, and with no dialog it
+    served nothing but an authoring trap, where a `milestone` on the final step silently never
+    fired.
+
+### Fixed
+
+- **The odometer roll clipped both faces through the middle instead of rolling.** The wheel
+  *window* had no height of its own, so mid-roll it grew to the full two-face track (56px) inside a
+  36px chip and the chip clipped it centred — you saw the bottom of the outgoing step and the top of
+  the incoming one at once. The window is now pinned to exactly ONE face (`h-7`), which is also what
+  makes the track's `-50%` translate a true odometer: one face out, exactly one face in.
+- **Sequential check-off in the pane (D-M12).** Only the CURRENT step and the LAST completed one
+  are togglable; an earlier finished step keeps its tick but its checkbox is disabled, with an
+  `aria-label` that explains why ("Un-tick the most recent step first") rather than being silently
+  dead. The server enforces the same rule (`400 STEP_OUT_OF_ORDER`); disabling here is so a child
+  never meets that error for something the interface let them try. When every step is done the
+  untick affordance falls through to the final row instead of vanishing and stranding the kid.
+
+### Added
+- **The current mission step is now docked in the bottom taskbar** (`MissionStepChip`,
+  `desktop/MissionStepChip.tsx`, testids `mission-taskbar-chip` / `mission-taskbar-checkbox`) —
+  a brand-mint status+action chip with the step title, a "Step N of M" cue and a live checkbox,
+  so "what do I do now?" is answered without opening the Mission window. Rendered in **both**
+  layout modes (the Taskbar is shared), compacts to "All done 🎉" when every step is ticked, and
+  renders nothing with no project / no mission / no authored steps / while loading / on error.
+  Read-only for the teacher live viewer (D-LV-6). `Workspace` threads `missionId` through the
+  `Taskbar` so a free-play game never issues a checklist request it has no use for.
+  - **It holds a stable slot.** The chip lives in the dock's LEFT cluster (its own divider, right
+    after the theme toggle) and renders **before** the window-button group, at a **fixed
+    `w-[264px]` with `shrink-0`** — no `flex-1`, no shrink-to-fit. Previously it sat after the
+    window buttons in an `ml-2 min-w-0 flex-1` wrapper, so opening a single window moved it
+    +148px and shrank it 280px → 167px, and a longer step title resized it again on every tick.
+    The title now truncates inside the fixed width and stays whole in `title=` and the checkbox's
+    `aria-label`. Not absolutely positioned — normal flow with a fixed width cannot collide with
+    the window buttons at narrow widths.
+  - **Odometer roll on advance** (`pg-wheel-roll`, testid `mission-taskbar-label`): a tick rolls
+    the finished step's label up and out while the next rolls in from below, title and "Step N of
+    M" cue moving together as one wheel (~300ms). Two stacked faces on a track, clipped by the
+    chip's `overflow-hidden` — that clipping is what reads as a wheel rather than a fade. Driven
+    by a React `key` (keyed remount replays the CSS animation), so no timer can cancel a roll
+    mid-flight. It plays on the final step rolling away into "All done 🎉" too, and deliberately
+    **not** on first load. Under `prefers-reduced-motion` the label just swaps.
+- **Scroll-to-next**: a successful tick smooth-scrolls the newly-current step into view inside the
+  pane (`scrollIntoView({behavior:'smooth', block:'nearest'})`) with a short mint settle glow.
+  Under `prefers-reduced-motion` it jumps (`behavior:'auto'`) and drops the glow. It never throws
+  when the pane is closed/unmounted — the normal case for a tick made from the taskbar.
+
+### Changed
+- **Mission Mode is now a PROGRESSIVE REVEAL** (learn-game-studio-prd §9A). Done steps still
+  collapse to a ✓ line and re-open on tap; the current step is still expanded with its
+  `instruction_md`; but **every step after the current one is LOCKED** — it renders fixed-length
+  placeholder bars (identical widths for every locked row, so they can't leak how long a title is)
+  behind a soft blur with a lock glyph. The authored title and instruction of a locked step are
+  **never put in the DOM**: a CSS blur of the real text is cosmetic only (devtools, select-all and
+  screen readers still read it), so the copy simply is not rendered. Locked rows are
+  `aria-hidden`, carry no checkbox and are not focusable; the group gets one summary line instead
+  ("N more steps unlock as you go"). Rows keep `data-testid="mission-step-<id>"` with
+  `data-state="locked"`.
+  - **The kid is never trapped**: the current step always ticks forward and a done step always
+    re-opens and un-ticks (walking the checklist back re-seals what came after). Only *peeking
+    ahead* is gated. The old "pin any step open (skip ahead)" behaviour is gone, since ahead-steps
+    no longer render content.
+  - A step a **teacher** ticked ahead of the kid renders as done, never locked.
+- **Shared Mission state** — the checklist query + optimistic toggle moved into
+  `panes/useMissionChecklist.ts`, used by both `MissionPane` and the new taskbar chip, so the two
+  surfaces can never disagree about which step is current.
+- **The milestone celebration is hoisted to workspace level** (`panes/missionCelebrationStore.ts`
+  + `panes/MissionCelebration.tsx`, rendered by `Workspace` in both layout modes) instead of
+  living inside `MissionPane`. A milestone ticked from the taskbar chip with the Mission window
+  **closed** now still celebrates — previously it would have silently done nothing. Testids
+  `mission-celebration` / `mission-confetti` and the `prefers-reduced-motion` behaviour (card
+  stays, confetti drops) are unchanged.
+
+### Fixed
+- `hasUnfinishedSteps` no longer throws on a partial/foreign entry in the shared mission-progress
+  cache — the Mission auto-open is a convenience and must degrade, not crash the workspace.
+
+## 2026-07-28 (feat: Creative Code Studio Mission Mode — the guided step checklist, MM-2)
+
+### Added
+- **Mission Mode in Creative Code Studio (learn-game-studio-prd §9A / D-GAME14, milestone MM-2)** —
+  a **6th playground window** (`PgWindowId 'mission'`, dock tile + taskbar button + split "Mission"
+  tab) that answers the kid's in-class "what do I do now?" with the lesson's **already-authored**
+  mission steps. `MissionPane` reads `GET /projects/:id/mission-progress` and writes
+  `PATCH …/mission-progress {step_id, done}` (optimistic, rolled back on failure). Step ids come
+  from the server verbatim — never derived client-side.
+  - **One step at a time**: the current step (the first unticked one) is expanded with its
+    `instruction_md`; done steps collapse to a ✓ line; later steps read quieter. It **never blocks** —
+    tapping any step expands it (go back OR skip ahead) and every checkbox stays live.
+  - **A teacher override is never silent**: a step in `teacher_marked_step_ids` says "Your teacher
+    marked this done".
+  - **Milestone celebration**: ticking a step carrying `milestone` fires the confetti + a card with
+    the authored copy. `prefers-reduced-motion` drops the confetti and keeps the card.
+  - **Auto-opens** (without raising, never mid-turn, once per project) when the project's mission
+    still has unfinished steps. No mission / no authored steps is a normal, friendly empty state —
+    not an error — and does not auto-open.
+  - Check-off stays **guidance, not the reward gate** (D-GAME14c): no Stars, no acceptance.
+
+### Changed
+- The celebration confetti moved out of Story Blocks into a shared
+  `src/components/celebration/` (`ConfettiBurst` + `confetti.css` + `prefersReducedMotion`), reused
+  by `StoryMissionGuide` and the new Mission milestone instead of a second implementation. Story
+  Blocks behaviour and markup are unchanged.
+- `CodeProject` now carries `mission_id`, which `PlaygroundApp` reads on project load so the studio
+  knows it is in Mission Mode (it previously dropped a field the API already returned).
+- Restoring a saved playground workspace now merges over the default windows, so a layout saved by
+  an older build (with no entry for a window added since) can't leave a window undefined.
+
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed

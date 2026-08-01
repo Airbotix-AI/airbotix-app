@@ -1,21 +1,9 @@
-import { Fragment, useState, type CSSProperties } from 'react';
-import { createPortal } from 'react-dom';
+import { Fragment, useState } from 'react';
 
+import { ConfettiBurst } from '@/components/celebration/ConfettiBurst';
 import type { StoryMission } from './curriculumGuides';
 import { CharacterVisual } from './CharacterVisual';
 import type { CharacterPerformance } from './characterPerformance';
-
-const CELEBRATION_COLORS = ['#ffcc4d', '#ff6b91', '#6fd6ff', '#7ce38b', '#a98bff'];
-const CELEBRATION_PIECES = Array.from({ length: 72 }, (_, index) => ({
-  id: index,
-  style: {
-    '--confetti-left': `${(index * 37) % 100}%`,
-    '--confetti-delay': `${(index % 8) * 90}ms`,
-    '--confetti-duration': `${1500 + (index % 5) * 170}ms`,
-    '--confetti-drift': `${(index % 2 === 0 ? 1 : -1) * (20 + (index % 4) * 12)}px`,
-    '--confetti-color': CELEBRATION_COLORS[index % CELEBRATION_COLORS.length],
-  } as CSSProperties,
-}));
 
 interface StoryMissionGuideProps {
   mission: StoryMission;
@@ -77,17 +65,7 @@ export function StoryMissionGuide({
 
   return (
     <>
-      {completed &&
-        mission.celebrate !== false &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div className="bsx-story-celebration" data-testid="story-celebration" aria-hidden="true">
-            {CELEBRATION_PIECES.map((piece) => (
-              <span key={piece.id} style={piece.style} />
-            ))}
-          </div>,
-          document.body,
-        )}
+      {completed && mission.celebrate !== false && <ConfettiBurst testId="story-celebration" />}
       <div className="bsx-mission-backdrop" data-testid="story-mission-backdrop">
         <section
           className={`bsx-mission-card${storyOpen ? ' bsx-story-fullscreen' : ''}${completed ? ' bsx-mission-complete' : ''}`}

@@ -1,4 +1,4 @@
-import { BookOpen, Code2, Gamepad2, Images, MessageSquare } from 'lucide-react';
+import { BookOpen, Code2, Gamepad2, Images, ListChecks, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -10,6 +10,7 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   game: { title: 'Game Runner', Icon: Gamepad2 },
   assets: { title: 'Asset Viewer', Icon: Images },
   help: { title: 'Guide', Icon: BookOpen },
+  mission: { title: 'Mission', Icon: ListChecks },
 };
 
 /**
@@ -37,7 +38,16 @@ export const WINDOW_ACCENT: Record<PgWindowId, { border: string; icon: string; w
     icon: 'text-brand-sunshine',
     wash: 'bg-brand-sunshine/15',
   },
+  // mission=mint. The K-12 palette has exactly FIVE brand colours (DESIGN.md) and
+  // this is the SIXTH window, so one hue is necessarily shared: mint (the "done /
+  // progress" colour) is the right read for a checklist, and the ListChecks glyph
+  // keeps it unmistakable next to the Code Editor's Code2.
+  mission: {
+    border: 'border-brand-mint/50',
+    icon: 'text-brand-mint',
+    wash: 'bg-brand-mint/15',
+  },
 };
 
 /** Display order for the windows in the Taskbar and Desktop. */
-export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets', 'help'];
+export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets', 'help', 'mission'];
