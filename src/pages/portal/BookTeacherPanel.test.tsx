@@ -22,6 +22,14 @@ vi.mock('@/lib/api', () => ({
 
 import { BookTeacherPanel } from './BookTeacherPanel';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function validPreferredStart() {
+  const date = new Date(Date.now() + 2 * DAY_MS);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function renderPanel(initialEntry = '/portal/tutoring') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -42,6 +50,7 @@ afterEach(() => {
 
 describe('BookTeacherPanel', () => {
   it('submits a family child, learning goal, and preferred time as a tutoring request', async () => {
+    const preferredStart = validPreferredStart();
     api.mockImplementation((path: string, options?: { method?: string }) => {
       if (path === '/teachers') return Promise.resolve([]);
       if (path === '/families/fam-1/kids') {
@@ -72,7 +81,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Build a platform game' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: preferredStart },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -82,7 +91,7 @@ describe('BookTeacherPanel', () => {
         body: expect.objectContaining({
           kid_id: 'kid-1',
           subject_interest: 'Build a platform game',
-          preferred_start: expect.stringMatching(/^2026-08-02T/),
+          preferred_start: new Date(preferredStart).toISOString(),
         }),
       });
     });
@@ -126,6 +135,7 @@ describe('BookTeacherPanel', () => {
   });
 
   it('submits an approved teacher and city as a non-guaranteed preference', async () => {
+    const preferredStart = validPreferredStart();
     api.mockImplementation((path: string, options?: { method?: string }) => {
       if (path === '/teachers')
         return Promise.resolve([
@@ -168,7 +178,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Creative coding' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: preferredStart },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -187,6 +197,7 @@ describe('BookTeacherPanel', () => {
   });
 
   it('lets a parent choose an approved teacher directly in the tutoring form', async () => {
+    const preferredStart = validPreferredStart();
     api.mockImplementation((path: string, options?: { method?: string }) => {
       if (path === '/teachers')
         return Promise.resolve([
@@ -230,7 +241,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Python' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: preferredStart },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
