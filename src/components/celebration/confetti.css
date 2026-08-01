@@ -1,0 +1,73 @@
+/* Shared celebration confetti — the ONE confetti in the kid surface.
+ *
+ * Extracted verbatim from `pages/learn/blocks/blocks.css` (where it was
+ * `.bsx-story-celebration`, used by StoryMissionGuide) so Creative Code Studio's
+ * Mission Mode milestone celebration reuses it instead of growing a second
+ * confetti. The class name is kept so existing Story Blocks styling/behaviour is
+ * byte-identical; `ConfettiBurst` is the only component that renders it.
+ *
+ * Reduced motion: the pieces hold still (no fall animation) and most of them are
+ * hidden — a calm, static sprinkle. Callers that want to skip the confetti
+ * entirely use `prefersReducedMotion()` from `ConfettiBurst.tsx`.
+ */
+.bsx-story-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bsx-story-celebration span {
+  position: absolute;
+  top: -24px;
+  left: var(--confetti-left);
+  width: 10px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--confetti-color);
+  opacity: 0;
+  animation: bsx-confetti-fall var(--confetti-duration) cubic-bezier(0.2, 0.7, 0.2, 1)
+    var(--confetti-delay) both;
+}
+.bsx-story-celebration span:nth-child(3n) {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+.bsx-story-celebration span:nth-child(4n) {
+  width: 7px;
+  height: 30px;
+  border-radius: 999px;
+}
+.bsx-story-celebration span:nth-child(5n) {
+  width: 24px;
+  height: 7px;
+  border-radius: 999px;
+}
+@keyframes bsx-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -20px, 0) rotate(0deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--confetti-drift), 110dvh, 0) rotate(700deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bsx-story-celebration span {
+    animation: none;
+    top: 12%;
+    opacity: 0.55;
+    transform: rotate(24deg);
+  }
+  .bsx-story-celebration span:nth-child(n + 17) {
+    display: none;
+  }
+}

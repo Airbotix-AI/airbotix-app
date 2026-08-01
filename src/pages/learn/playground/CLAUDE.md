@@ -25,11 +25,33 @@ a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="k
   **auto-runs** the game, so the first build plays and gets verified (D-PAP-40).
 - **`Workspace`** — two layout modes (`LayoutToggle`, default **Window**): floating
   `react-rnd` windows (`desktop/`) OR a `react-resizable-panels` split. Panes:
-  `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane`.
+  `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane` /
+  `MissionPane`.
   Windows = `PgWindowId`+`WINDOW_ORDER`/`WINDOW_META`/`WINDOW_ACCENT` (add an id + pane →
-  flows through desktop/taskbar/split). `HelpPane` = the **Game Guide** (`panes/help/`:
+  flows through desktop/taskbar/split; also `DesktopIcon`'s `TILE_SHADOW` + the two
+  hardcoded render sites in `Workspace`). `HelpPane` = the **Game Guide** (`panes/help/`:
   curated kid-tiered Phaser/game-basics corpus + `helpApi` search seam; help=sunshine,
   solid-chip glyph; fetches the backend corpus via `GET /help/docs` (single source); PRD `learn-game-studio-help-prd.md`).
+  `MissionPane` = **Mission Mode** (D-GAME14, PRD §9A): the lesson's AUTHORED steps
+  (`missionApi`, `GET`/`PATCH /projects/:id/mission-progress`; ids are server-normalized, never
+  derived here) as a **progressive reveal** — done collapse (re-open on tap) · current expanded ·
+  everything AFTER **locked** = fixed-width skeleton bars + lock, authored title/instruction
+  **never in the DOM** (a CSS blur leaks), rows `aria-hidden` + non-interactive, summarised once
+  (`mission-locked-hint`). The kid is **never trapped**: current always ticks forward, done always
+  unticks back — only *peeking ahead* is gated. A tick smooth-scrolls the new current into view
+  (`behavior:'auto'` + no settle glow under `prefers-reduced-motion`). Check-off is **guidance,
+  not the reward gate** (Stars stay on `acceptance_yaml` submit); a teacher-marked step says so;
+  auto-opens via `ensureMissionVisible()` (no raise, never mid-turn, once per project) when
+  `CodeProject.mission_id` is set and steps remain. State = shared `panes/useMissionChecklist.ts`
+  (one query + one optimistic toggle), also driving `desktop/MissionStepChip` — the **current step
+  in the taskbar** (both layout modes, tickable with the window closed; gated on `missionId` so a
+  free-play game never fetches). The chip is a **stable dock landmark**: its own slot in the LEFT
+  cluster **before** the window-button group (whose width changes as windows open/close) + a FIXED
+  `w-[264px]`, never `flex-1` — it must not move or resize; the title truncates instead. It
+  advances with an **odometer roll** (`pg-wheel-roll`, keyed remount, two stacked faces clipped by
+  `overflow-hidden`; never on first load). So `milestone` celebrates from
+  `panes/missionCelebrationStore` → `MissionCelebration` rendered by **`Workspace`**, not the pane
+  (shared `@/components/celebration` confetti, honours `prefers-reduced-motion`).
 
 The VFS is owned by `projectStore` (the single funnel for every mutation — edits,
 AI turns, file CRUD); edit history in `historyStore`; local cache in IndexedDB

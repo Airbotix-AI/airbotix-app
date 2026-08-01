@@ -156,6 +156,11 @@ export function PlaygroundApp({
   // project's class is inside its free-workshop session window → AI turns are free
   // (0★) and the chat shows "Free during workshop". Loaded from the project below.
   const [aiFreeNow, setAiFreeNow] = useState(false);
+  // Mission Mode (learn-game-studio-prd §9A / D-GAME14): the Mission this project
+  // backs, when it was created from a course task. Loaded from the project below;
+  // null on a free-play game → no checklist is fetched and the Mission window
+  // stays closed (still reachable from its desktop tile / split tab).
+  const [missionId, setMissionId] = useState<string | null>(null);
   // Restored chat history (J9): the saved conversation, loaded on resume and passed
   // to the workspace so it reopens with the real log (not a fresh starter seed).
   const [initialChat, setInitialChat] = useState<ChatItem[] | undefined>(undefined);
@@ -264,6 +269,9 @@ export function PlaygroundApp({
         // Workshop-free-AI waiver (D-WFA-01) — free-workshop window is live for this
         // project → the chat drops the star cost and shows "Free during workshop".
         setAiFreeNow(p.ai_free_now ?? false);
+        // Mission Mode (D-GAME14) — a project created from a course task carries
+        // the Mission whose authored steps the checklist window reads.
+        setMissionId(p.mission_id ?? null);
       })
       .catch(() => {
         /* fall back to the phaser default */
@@ -614,6 +622,9 @@ export function PlaygroundApp({
           initialChat={initialChat}
           onChatChange={persistChat}
           blockedSeed={blockedSeed}
+          // Mission Mode (D-GAME14): non-null ⇒ read the authored step checklist
+          // and auto-open the Mission window while steps are unfinished.
+          missionId={missionId}
           // Only a real OWNED project (the authed route param, or the id created
           // on submit) runs server-side AI turns. A project-less session keeps the
           // offline stub turn so the debug/warn specs stay deterministic and
