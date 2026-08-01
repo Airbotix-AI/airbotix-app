@@ -13,6 +13,9 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
   game: 'shadow-[0_10px_22px_-8px_rgba(255,122,102,0.55)]',
   assets: 'shadow-[0_10px_22px_-8px_rgba(255,107,169,0.55)]',
   help: 'shadow-[0_10px_22px_-8px_rgba(255,212,59,0.55)]',
+  // mission shares the mint glow with the Code Editor (six windows, five brand
+  // colours — see WINDOW_ACCENT).
+  mission: 'shadow-[0_10px_22px_-8px_rgba(61,217,169,0.55)]',
 };
 
 /**

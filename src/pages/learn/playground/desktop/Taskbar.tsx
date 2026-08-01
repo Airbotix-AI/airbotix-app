@@ -11,6 +11,13 @@
 // pg-border) so the bar flips light/dark with the rest of the playground; the
 // active window button carries its OWN brand identity (chat=sky, code=mint,
 // game=coral — `WINDOW_ACCENT`), matching the desktop tiles and the mockup.
+//
+// It also carries the `MissionStepChip` (§9A) — the current mission step, ticked
+// from here without opening the Mission window. That one is deliberately NOT a
+// window button: it is a status+action chip in brand mint, shown in BOTH layout
+// modes (the per-window buttons are window-mode only), pinned in the LEFT cluster
+// BEFORE the window-button group and fixed-width, so opening or closing a window
+// can never move or resize it.
 
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
@@ -25,6 +32,7 @@ import { useProjectBackTo } from '../../projects/useProjectBackTo';
 import { RaiseHandButton } from '../../liveClass/RaiseHandButton';
 import { useDemoMode } from '@/pages/try/demoMode';
 
+import { MissionStepChip } from './MissionStepChip';
 import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
 
 // Kid-readable save reassurance (PRD J3). 'conflict' is NEVER surfaced — a stale
@@ -60,14 +68,28 @@ function SaveStatusBadge() {
 interface TaskbarProps {
   /** The real backend project — gates the share-link control (J8). */
   projectId?: string;
+  /** The Mission this project backs (D-GAME14) — gates the mission step chip. */
+  missionId?: string | null;
   /** Teacher live viewer (D-LV-6): hide the kid's Home/back nav (the viewer's
       banner provides the only Back). */
   readOnly?: boolean;
   /** Teacher-prep host (D-PREP-6): the share control mints immediately, no approval. */
   prepShare?: boolean;
+  /**
+   * Whether Mission Mode exists for this project at all (D-GAME14h) — i.e. the mission
+   * authors steps AND its course pack is published. False hides the Mission window button
+   * entirely: an empty checklist window advertises structure that isn't there.
+   */
+  hasMission?: boolean;
 }
 
-export function Taskbar({ projectId, readOnly = false, prepShare = false }: TaskbarProps) {
+export function Taskbar({
+  projectId,
+  missionId,
+  hasMission = false,
+  readOnly = false,
+  prepShare = false,
+}: TaskbarProps) {
   // Home/back: a game has no other way out of the immersive desktop. For a class
   // project this returns to the class's "My work" tab; otherwise to My Works
   // (useProjectBackTo). Navigating runs the playground's leave/save guard.
@@ -134,9 +156,18 @@ export function Taskbar({ projectId, readOnly = false, prepShare = false }: Task
       <LayoutToggle />
       <ThemeToggle />
 
+      {/* The current mission step, in its OWN stable slot in the left cluster and
+          in BOTH layout modes (§9A). It must sit BEFORE the window-button group —
+          that group's width changes every time a window opens/closes/minimizes,
+          so anything after it slides. The chip brings its own divider and renders
+          nothing at all on a project with no mission checklist. */}
+      <MissionStepChip projectId={projectId} missionId={missionId} readOnly={readOnly} />
+
       {layoutMode === 'window' && (
-        <div className="flex items-center gap-2 pl-2">
-          {WINDOW_ORDER.filter((id) => windows[id].open).map((id) => {
+        <div data-testid="pg-window-buttons" className="flex items-center gap-2 pl-2">
+          {WINDOW_ORDER.filter(
+            (id) => windows[id].open && (id !== 'mission' || hasMission),
+          ).map((id) => {
             const w = windows[id];
             const { title, Icon } = WINDOW_META[id];
             const accent = WINDOW_ACCENT[id];
@@ -175,7 +206,7 @@ export function Taskbar({ projectId, readOnly = false, prepShare = false }: Task
 
       {/* Right cluster: save reassurance + the external share-link control (J8,
           real backend project only). */}
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex shrink-0 items-center gap-3">
         <SaveStatusBadge />
         <RaiseHandButton readOnly={readOnly} />
         {shareProjectId && <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} />}
