@@ -72,7 +72,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Build a platform game' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: '2026-08-04T10:00' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -82,7 +82,7 @@ describe('BookTeacherPanel', () => {
         body: expect.objectContaining({
           kid_id: 'kid-1',
           subject_interest: 'Build a platform game',
-          preferred_start: expect.stringMatching(/^2026-08-02T/),
+          preferred_start: expect.stringMatching(/^2026-08-04T/),
         }),
       });
     });
@@ -168,7 +168,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Creative coding' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: '2026-08-04T10:00' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -230,7 +230,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Python' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: '2026-08-04T10:00' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
