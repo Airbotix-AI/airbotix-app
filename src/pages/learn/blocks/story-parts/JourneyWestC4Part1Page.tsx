@@ -1,0 +1,233 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { JTW_C3_MONKEY_KING_SPRITE, JTW_C3_PAGE3_RESOLVED_BACKGROUND } from '../jtwC3Stage';
+import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
+import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi';
+import { Choice, EvidenceGroup, OrderCards } from './partUi';
+import {
+  C4_P1_CLASSIC_CARD,
+  C4_P1_DIALOGUE,
+  C4_P1_MOTIVE_OPTIONS,
+  C4_P1_PREDICTION_OPTIONS,
+  C4_P1_ROUTE_CARDS,
+  C4_P1_STORY,
+  C4_P1_WHY_OPTIONS,
+  c4p1CorrectOption,
+  c4p1MotivesDone,
+  c4p1RouteDone,
+} from './journeyWestC4Part1Program';
+
+const PART_ID = 'jtw-s1-c4-p1';
+const NEXT_PART_ID = 'jtw-s1-c4-p2';
+
+export function JourneyWestC4Part1Page() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const progress = useQuery({
+    queryKey: ['story-parts', JTW_S1_STORY_LINE_ID],
+    queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID),
+  });
+  const [storyRead, setStoryRead] = useState(false);
+  const [routeOrder, setRouteOrder] = useState<string[]>([]);
+  const [motives, setMotives] = useState<string[]>([]);
+  const [why, setWhy] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  const savedEntry = progress.data?.completed.find((entry) => entry.part_id === PART_ID);
+  const unlocked = progress.data?.unlocked_part_ids.includes(PART_ID) ?? false;
+  if (savedEntry && !restored) {
+    const evidence = savedEntry.evidence as StoryPartEvidence;
+    setStoryRead((evidence.selections?.story_screens ?? []).includes('story-card-a'));
+    setRouteOrder(evidence.selections?.route_order ?? []);
+    setMotives(evidence.selections?.motive_evidence ?? []);
+    setWhy(evidence.selections?.why_retell?.[0] ?? null);
+    setPrediction(evidence.prediction ?? null);
+    setRestored(true);
+  }
+
+  const routeDone = c4p1RouteDone(routeOrder);
+  const motivesDone = c4p1MotivesDone(motives);
+  const whyDone = c4p1CorrectOption(C4_P1_WHY_OPTIONS, why);
+  const predictionDone = c4p1CorrectOption(C4_P1_PREDICTION_OPTIONS, prediction);
+  const resolved = storyRead && routeDone && motivesDone && whyDone && predictionDone;
+  const completed = Boolean(savedEntry);
+
+  const complete = useMutation({
+    mutationFn: () =>
+      completeStoryPart(JTW_S1_STORY_LINE_ID, PART_ID, {
+        schema_version: 1,
+        selections: {
+          story_screens: storyRead ? ['story-card-a'] : [],
+          route_order: routeOrder,
+          motive_evidence: motives,
+          why_retell: why ? [why] : [],
+        },
+        prediction: prediction ?? undefined,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID] });
+      navigate('/learn/story/journey-west', { state: { unlocked: NEXT_PART_ID } });
+    },
+  });
+
+  if (progress.isLoading) return <p className="p-8 text-center text-ink-soft">山门的灯正在亮起…</p>;
+  if (!unlocked && !completed) {
+    return (
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-c4p1-locked"
+      >
+        <p className="font-bold text-ink">先完成第三章的远行讲回，再来到山门。</p>
+        <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
+          回到故事地图
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c4-p1">
+      <header>
+        <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
+          西游记 · 第四章 你有名字了：孙悟空 · Part 1
+        </p>
+        <h1 className="text-[28px] font-black text-ink">山门前，把来路讲清楚</h1>
+      </header>
+
+      <section className="space-y-4" data-testid="jtw-c4p1-story">
+        <p className="text-[16px] leading-8 text-ink">{C4_P1_STORY}</p>
+        <div className="rounded-2xl border border-hairline bg-canvas-pure p-4">
+          {C4_P1_DIALOGUE.map((line) => (
+            <p key={line} className="text-[15px] leading-8 text-ink">
+              {line}
+            </p>
+          ))}
+        </div>
+        <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
+          <span className="font-bold">原著小卡片：</span>
+          {C4_P1_CLASSIC_CARD}
+        </aside>
+        <button
+          type="button"
+          className="btn-pill-primary"
+          data-testid="jtw-c4p1-read"
+          onClick={() => setStoryRead(true)}
+        >
+          {storyRead ? '正文已共读 ✓' : '我已读完这段正文'}
+        </button>
+      </section>
+
+      <div
+        className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-hairline"
+        data-testid="jtw-c4p1-stage"
+      >
+        <img
+          src={JTW_C3_PAGE3_RESOLVED_BACKGROUND}
+          alt="石猴走过海路后抵达山中的师门石牌"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <img
+          src={JTW_C3_MONKEY_KING_SPRITE}
+          alt="仍系着旧布带的石猴站在山门前"
+          data-testid="jtw-c4p1-stone-monkey"
+          className="absolute bottom-[18%] left-[24%] w-[15%]"
+        />
+        <div className="absolute right-[12%] top-[18%] rounded-xl border border-white/70 bg-ink/65 px-4 py-2 text-[14px] font-bold text-white">
+          空名字牌
+        </div>
+      </div>
+
+      {storyRead ? (
+        <OrderCards
+          title="把来路按先后排好"
+          options={[...C4_P1_ROUTE_CARDS]}
+          order={routeOrder}
+          onChange={setRouteOrder}
+          done={routeDone}
+          testId="jtw-c4p1-route"
+        />
+      ) : (
+        <p className="font-semibold text-brand-coral" data-testid="jtw-c4p1-unread">
+          先读完正文，来路卡才会打开。
+        </p>
+      )}
+
+      <EvidenceGroup
+        title="选出正文里的两条动机证据"
+        options={[...C4_P1_MOTIVE_OPTIONS]}
+        selected={motives}
+        onToggle={(id) =>
+          setMotives((current) =>
+            current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+          )
+        }
+        done={motivesDone}
+        testId="jtw-c4p1-motives"
+      />
+
+      <section data-testid="jtw-c4p1-prediction">
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          如果石猴只为寻宝，正文中哪两处会互相矛盾？
+        </h2>
+        <div className="flex flex-col gap-2">
+          {C4_P1_PREDICTION_OPTIONS.map((option) => (
+            <Choice
+              key={option.id}
+              option={option}
+              active={prediction === option.id}
+              onPick={() => setPrediction(option.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section data-testid="jtw-c4p1-why">
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          看着来路，用自己的声音讲一句“因为—所以—后来”
+        </h2>
+        <div className="flex flex-col gap-2">
+          {C4_P1_WHY_OPTIONS.map((option) => (
+            <Choice
+              key={option.id}
+              option={option}
+              active={why === option.id}
+              onPick={() => setWhy(option.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {(resolved || completed) && (
+        <section
+          className="rounded-2xl border border-brand-mint/40 bg-wash-mint p-5"
+          data-testid="jtw-c4p1-resolved"
+        >
+          <p className="text-[15px] leading-7 text-ink">
+            山门暖灯亮起，门只打开通往庭院的一条路，空名字牌进入视野。
+          </p>
+          <p className="mt-2 font-semibold text-ink">
+            门内听见了石猴的来处和理由；下一步要理解为什么一个名字会连接过去与未来。
+          </p>
+        </section>
+      )}
+
+      <footer className="flex items-center justify-between gap-4">
+        <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
+          ← 回到故事地图
+        </Link>
+        <button
+          type="button"
+          className="btn-pill-primary"
+          data-testid="jtw-c4p1-continue"
+          disabled={(!resolved && !completed) || complete.isPending}
+          onClick={() => void complete.mutate()}
+        >
+          {complete.isPending ? '保存中…' : '看看空木牌'}
+        </button>
+      </footer>
+    </div>
+  );
+}
