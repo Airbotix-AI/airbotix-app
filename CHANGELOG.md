@@ -246,6 +246,12 @@ skeleton and none of the content below.
   constraint validation reported `rangeUnderflow` and swallowed the submit event, so the
   POST never fired and three tests failed — reddening `ci` on `main` from 2026-08-01
   with no product defect behind it. The preferred time is now derived from `Date.now()`.
+## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
+
+### Added
+
+- Added the child-facing C4-P2 Story Part with a real faulty Start run, a reset-separated Tap run,
+  event-level trace evidence, persistence and adjacent-only continuation to C4-P3.
 
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
