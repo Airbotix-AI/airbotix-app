@@ -1,0 +1,162 @@
+// @vitest-environment jsdom
+
+import '@testing-library/jest-dom/vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  api: vi.fn(),
+  listHscCourses: vi.fn(),
+  listHscPlans: vi.fn(),
+  createHscPlan: vi.fn(),
+  previewHscClaim: vi.fn(),
+  importHscClaim: vi.fn(),
+  addHscSubject: vi.fn(),
+  addHscTask: vi.fn(),
+}));
+
+vi.mock('@/auth/useAuth', () => ({
+  useMe: () => ({ data: { kind: 'user', sub: 'parent-1', family_id: 'family-1', role: 'parent' } }),
+}));
+vi.mock('@/lib/api', () => ({
+  api: mocks.api,
+  ApiError: class ApiError extends Error {},
+}));
+vi.mock('@/pages/hsc/hscApi', () => ({
+  listHscCourses: mocks.listHscCourses,
+  listHscPlans: mocks.listHscPlans,
+  createHscPlan: mocks.createHscPlan,
+  previewHscClaim: mocks.previewHscClaim,
+  importHscClaim: mocks.importHscClaim,
+  addHscSubject: mocks.addHscSubject,
+  addHscTask: mocks.addHscTask,
+}));
+
+import { HscPlannerPage } from './HscPlannerPage';
+
+const PLAN = {
+  id: 'plan-1',
+  family_id: 'family-1',
+  kid: { id: 'kid-1', nickname: 'Mia' },
+  school_year: 2026,
+  status: 'active',
+  version: 1,
+  activation_status: 'setup_required',
+  subjects: [
+    {
+      id: 'subject-1',
+      course_key: 'biology',
+      display_name: 'Biology',
+      units: 2,
+      confirmation_status: 'confirmed',
+      sort_order: 0,
+      version: 1,
+      progress: { completed_weight: 20, weighted_contribution: 16, running_result_over_completed_work: 80, remaining_weight: 80 },
+      tasks: [
+        {
+          id: 'task-1',
+          label: 'Depth study',
+          due_date: '2026-07-01',
+          weight: 20,
+          achieved_mark: 16,
+          maximum_mark: 20,
+          status: 'completed',
+          provenance: 'manual',
+          rules_version: '2026.1',
+          version: 1,
+        },
+      ],
+    },
+  ],
+};
+
+function wireDefaults() {
+  mocks.api.mockResolvedValue([{ id: 'kid-1', nickname: 'Mia', age: 17, is_active: true }]);
+  mocks.listHscCourses.mockResolvedValue({
+    version: '2026.1',
+    source_url: 'https://curriculum.nsw.edu.au/stages/senior',
+    courses: [
+      { key: 'biology', display_name: 'Biology', units: 2, requires_school_confirmation: false },
+      { key: 'other', display_name: 'Other / confirm with school', units: 2, requires_school_confirmation: true },
+    ],
+  });
+  mocks.listHscPlans.mockResolvedValue([PLAN]);
+}
+
+function renderPage(path = '/portal/academy/hsc-planner') {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/portal/academy/hsc-planner" element={<HscPlannerPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
+
+describe('HscPlannerPage', () => {
+  it('shows family-scoped subjects and keeps the calculation boundary visible', async () => {
+    wireDefaults();
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Biology' })).toBeInTheDocument();
+    expect(screen.getByText('Depth study')).toBeInTheDocument();
+    expect(screen.getAllByText(/not a predicted HSC mark/i)).toHaveLength(2);
+    expect(mocks.listHscPlans).toHaveBeenCalledWith('family-1');
+  });
+
+  it('requires explicit child, course, task name and date confirmation before importing a claim', async () => {
+    wireDefaults();
+    mocks.previewHscClaim.mockResolvedValue({
+      rules_version: '2026.1',
+      expires_at: '2026-08-03T12:30:00.000Z',
+      tasks: [{ id: 'task-public-1', achieved_mark: 16, maximum_mark: 20, weight: 20 }],
+    });
+    mocks.importHscClaim.mockResolvedValue(PLAN);
+    renderPage(`/portal/academy/hsc-planner?claim=${'x'.repeat(43)}`);
+
+    expect(await screen.findByText('16/20 · weight 20%')).toBeInTheDocument();
+    const importPanel = screen.getByTestId('hsc-claim-import');
+    fireEvent.change(within(importPanel).getByLabelText('Year 12 child'), { target: { value: 'kid-1' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course'), { target: { value: 'biology' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment name'), { target: { value: 'Biology depth study' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment date'), { target: { value: '2026-07-01' } });
+    fireEvent.click(within(importPanel).getByRole('button', { name: 'Confirm and save to this child' }));
+
+    await waitFor(() => expect(mocks.importHscClaim).toHaveBeenCalledWith('family-1', expect.objectContaining({
+      claim_token: 'x'.repeat(43),
+      kid_id: 'kid-1',
+      course_key: 'biology',
+      tasks: [{ claim_task_id: 'task-public-1', label: 'Biology depth study', due_date: '2026-07-01' }],
+    })));
+  });
+
+  it('sends new assessments through the family and subject scoped endpoint helper', async () => {
+    wireDefaults();
+    mocks.addHscTask.mockResolvedValue(PLAN);
+    renderPage();
+
+    await screen.findByText('Depth study');
+    fireEvent.change(screen.getByLabelText('Task name'), { target: { value: 'Trial exam' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-09-01' } });
+    fireEvent.change(screen.getByLabelText('Weight %'), { target: { value: '30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save assessment' }));
+
+    await waitFor(() => expect(mocks.addHscTask).toHaveBeenCalledWith('family-1', 'subject-1', expect.objectContaining({
+      label: 'Trial exam',
+      due_date: '2026-09-01',
+      weight: 30,
+      status: 'planned',
+    })));
+  });
+});

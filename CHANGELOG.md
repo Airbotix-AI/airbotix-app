@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-03 (feat: add the saved HSC family planner)
+
+### Added
+
+- Added `/portal/academy/hsc-planner` for parents to confirm a one-use calculator import, choose
+  the family child and course, create plans, add subjects and record upcoming/completed tasks.
+- Added `/learn/hsc`, a kid self-scoped read view showing one next family-confirmed assessment and
+  deterministic subject progress without implying an HSC mark, Band, ATAR or AI recommendation.
+- Added HSC Planner navigation in both parent and kid surfaces with component coverage for family
+  scoping, explicit claim confirmation, assessment creation, kid self-scope and the empty state.
+
 ## 2026-08-03 (fix: stop BookTeacherPanel tests expiring on a calendar date)
 
 ### Fixed
