@@ -51,10 +51,18 @@ const taskSchema = z
   .object({
     label: z.string().trim().min(1, 'Enter the task name'),
     due_date: z.string().date(),
-    weight: z.coerce.number().min(0).max(100),
+    // z.coerce.number() reads '' as 0, so a blank field must be matched by the
+    // empty branch FIRST. With the number branch first, an upcoming assessment
+    // sent achieved_mark: 0 while maximum_mark stayed '' (0 fails .positive()),
+    // and the API rejected every planned task with "Achieved and maximum marks
+    // must be entered together". Blank weight silently saved a 0% assessment.
+    weight: z.preprocess(
+      (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+      z.coerce.number({ invalid_type_error: 'Enter the weight' }).min(0).max(100),
+    ),
     status: z.enum(['planned', 'completed']),
-    achieved_mark: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
-    maximum_mark: z.union([z.coerce.number().positive(), z.literal('')]).optional(),
+    achieved_mark: z.union([z.literal(''), z.coerce.number().min(0)]).optional(),
+    maximum_mark: z.union([z.literal(''), z.coerce.number().positive()]).optional(),
   })
   .refine(
     (value) =>

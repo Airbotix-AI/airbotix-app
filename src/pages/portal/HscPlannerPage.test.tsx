@@ -168,6 +168,44 @@ describe('HscPlannerPage', () => {
     expect(mocks.importHscClaim.mock.calls[0][1]).not.toHaveProperty('display_name');
   });
 
+  // An upcoming assessment has no marks yet. z.coerce.number() reads '' as 0,
+  // so the number branch matched the blank "Mark achieved" field and sent 0
+  // while "Maximum mark" stayed '' — the API then rejected every planned task
+  // with "Achieved and maximum marks must be entered together", making it
+  // impossible to record a deadline. Caught by the hsc-family-plan journey.
+  it('records an upcoming assessment without inventing a zero mark', async () => {
+    wireDefaults();
+    mocks.addHscTask.mockResolvedValue(PLAN);
+    renderPage();
+
+    await screen.findByText('Depth study');
+    fireEvent.change(screen.getByLabelText('Task name'), { target: { value: 'Biology practical' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-11-01' } });
+    fireEvent.change(screen.getByLabelText('Weight %'), { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save assessment' }));
+
+    await waitFor(() => expect(mocks.addHscTask).toHaveBeenCalled());
+    const payload = mocks.addHscTask.mock.calls[0][2];
+    expect(payload).toMatchObject({ label: 'Biology practical', due_date: '2099-11-01', weight: 20, status: 'planned' });
+    expect(payload).not.toHaveProperty('achieved_mark');
+    expect(payload).not.toHaveProperty('maximum_mark');
+  });
+
+  it('refuses a blank weight instead of silently saving a 0% assessment', async () => {
+    wireDefaults();
+    mocks.addHscTask.mockResolvedValue(PLAN);
+    renderPage();
+
+    await screen.findByText('Depth study');
+    fireEvent.change(screen.getByLabelText('Task name'), { target: { value: 'Biology practical' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-11-01' } });
+    fireEvent.change(screen.getByLabelText('Weight %'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save assessment' }));
+
+    expect(await screen.findByText('Enter the weight')).toBeInTheDocument();
+    expect(mocks.addHscTask).not.toHaveBeenCalled();
+  });
+
   it('sends the typed course name for the explicit school-confirmation fallback', async () => {
     wireDefaults();
     mocks.previewHscClaim.mockResolvedValue({

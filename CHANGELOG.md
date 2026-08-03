@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-03 (fix: let parents record an upcoming HSC assessment)
+
+### Fixed
+
+- `z.coerce.number()` reads `''` as `0`, and the number branch of the mark unions was tried first,
+  so a blank **Mark achieved** on an upcoming assessment was sent as `0` while **Maximum mark**
+  stayed `''`. The API then rejected every planned task with `Achieved and maximum marks must be
+  entered together`, so no family could record a future deadline — the feature's headline promise.
+  The empty branch is now matched first.
+- A blank **Weight %** coerced to `0` and passed `.min(0)`, silently saving a 0% assessment. It is
+  now an explicit `Enter the weight` error.
+
 ## 2026-08-03 (fix: omit a blank course name from HSC claim import and subject add)
 
 ### Fixed
