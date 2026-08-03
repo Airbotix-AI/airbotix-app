@@ -196,8 +196,15 @@ function ClaimImportPanel({
   }, [form, preview]);
 
   const mutation = useMutation({
-    mutationFn: (values: ClaimValues) =>
-      importHscClaim(familyId, { claim_token: claimToken, ...values }),
+    mutationFn: ({ display_name, ...values }: ClaimValues) =>
+      // A governed course carries its own catalogue name; only the explicit
+      // "other" fallback sends one. The form default is '', which is NOT the
+      // same as absent to the API — send it only when the parent typed it.
+      importHscClaim(familyId, {
+        claim_token: claimToken,
+        ...values,
+        ...(display_name?.trim() ? { display_name: display_name.trim() } : {}),
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['hsc-plans', familyId] });
       navigate('/portal/academy/hsc-planner', { replace: true });
@@ -340,7 +347,12 @@ function AddSubjectForm({ courses, familyId, planId }: { courses: HscCourse[]; f
   const queryClient = useQueryClient();
   const form = useForm<SubjectValues>({ resolver: zodResolver(subjectSchema), defaultValues: { course_key: '', display_name: '' } });
   const mutation = useMutation({
-    mutationFn: (values: SubjectValues) => addHscSubject(familyId, planId, values),
+    // Same rule as the claim import: '' is not an absent display_name.
+    mutationFn: ({ display_name, ...values }: SubjectValues) =>
+      addHscSubject(familyId, planId, {
+        ...values,
+        ...(display_name?.trim() ? { display_name: display_name.trim() } : {}),
+      }),
     onSuccess: async () => {
       form.reset();
       await queryClient.invalidateQueries({ queryKey: ['hsc-plans', familyId] });

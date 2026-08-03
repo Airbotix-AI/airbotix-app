@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-03 (fix: omit a blank course name from HSC claim import and subject add)
+
+### Fixed
+
+- The claim import and add-subject forms sent `display_name: ''` for a governed NESA course, which
+  the API rejected — the parent could never complete an import. The blank optional field is now
+  omitted and a typed fallback name is trimmed.
+
 ## 2026-08-03 (feat: add the saved HSC family planner)
 
 ### Added

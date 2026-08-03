@@ -141,6 +141,61 @@ describe('HscPlannerPage', () => {
     })));
   });
 
+  // A governed course takes its name from the NESA catalogue, so the untouched
+  // optional field must not travel as ''. It used to, and the API rejected the
+  // whole import with "display_name: String must contain at least 1
+  // character(s)" — invisible to the objectContaining assertion above, caught
+  // only by the hsc-family-plan harness journey.
+  it('omits a blank course name for a governed course and keeps the typed one for the fallback', async () => {
+    wireDefaults();
+    mocks.previewHscClaim.mockResolvedValue({
+      rules_version: '2026.1',
+      expires_at: '2026-08-03T12:30:00.000Z',
+      tasks: [{ id: 'task-public-1', achieved_mark: 16, maximum_mark: 20, weight: 20 }],
+    });
+    mocks.importHscClaim.mockResolvedValue(PLAN);
+    renderPage(`/portal/academy/hsc-planner?claim=${'x'.repeat(43)}`);
+
+    expect(await screen.findByText('16/20 · weight 20%')).toBeInTheDocument();
+    const importPanel = screen.getByTestId('hsc-claim-import');
+    fireEvent.change(within(importPanel).getByLabelText('Year 12 child'), { target: { value: 'kid-1' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course'), { target: { value: 'biology' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment name'), { target: { value: 'Biology depth study' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment date'), { target: { value: '2026-07-01' } });
+    fireEvent.click(within(importPanel).getByRole('button', { name: 'Confirm and save to this child' }));
+
+    await waitFor(() => expect(mocks.importHscClaim).toHaveBeenCalled());
+    expect(mocks.importHscClaim.mock.calls[0][1]).not.toHaveProperty('display_name');
+  });
+
+  it('sends the typed course name for the explicit school-confirmation fallback', async () => {
+    wireDefaults();
+    mocks.previewHscClaim.mockResolvedValue({
+      rules_version: '2026.1',
+      expires_at: '2026-08-03T12:30:00.000Z',
+      tasks: [{ id: 'task-public-1', achieved_mark: 16, maximum_mark: 20, weight: 20 }],
+    });
+    mocks.importHscClaim.mockResolvedValue(PLAN);
+    renderPage(`/portal/academy/hsc-planner?claim=${'x'.repeat(43)}`);
+
+    expect(await screen.findByText('16/20 · weight 20%')).toBeInTheDocument();
+    const importPanel = screen.getByTestId('hsc-claim-import');
+    fireEvent.change(within(importPanel).getByLabelText('Year 12 child'), { target: { value: 'kid-1' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course'), { target: { value: 'other' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course name used by the school'), {
+      target: { value: '  Marine Studies  ' },
+    });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment name'), { target: { value: 'Biology depth study' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment date'), { target: { value: '2026-07-01' } });
+    fireEvent.click(within(importPanel).getByRole('button', { name: 'Confirm and save to this child' }));
+
+    await waitFor(() => expect(mocks.importHscClaim).toHaveBeenCalled());
+    expect(mocks.importHscClaim.mock.calls[0][1]).toMatchObject({
+      course_key: 'other',
+      display_name: 'Marine Studies',
+    });
+  });
+
   it('sends new assessments through the family and subject scoped endpoint helper', async () => {
     wireDefaults();
     mocks.addHscTask.mockResolvedValue(PLAN);
