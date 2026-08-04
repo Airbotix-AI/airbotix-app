@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-08-03 (fix: let parents record an upcoming HSC assessment)
+
+### Fixed
+
+- `z.coerce.number()` reads `''` as `0`, and the number branch of the mark unions was tried first,
+  so a blank **Mark achieved** on an upcoming assessment was sent as `0` while **Maximum mark**
+  stayed `''`. The API then rejected every planned task with `Achieved and maximum marks must be
+  entered together`, so no family could record a future deadline — the feature's headline promise.
+  The empty branch is now matched first.
+- A blank **Weight %** coerced to `0` and passed `.min(0)`, silently saving a 0% assessment. It is
+  now an explicit `Enter the weight` error.
+
+## 2026-08-03 (fix: omit a blank course name from HSC claim import and subject add)
+
+### Fixed
+
+- The claim import and add-subject forms sent `display_name: ''` for a governed NESA course, which
+  the API rejected — the parent could never complete an import. The blank optional field is now
+  omitted and a typed fallback name is trimmed.
+
+## 2026-08-03 (feat: add the saved HSC family planner)
+
+### Added
+
+- Added `/portal/academy/hsc-planner` for parents to confirm a one-use calculator import, choose
+  the family child and course, create plans, add subjects and record upcoming/completed tasks.
+- Added `/learn/hsc`, a kid self-scoped read view showing one next family-confirmed assessment and
+  deterministic subject progress without implying an HSC mark, Band, ATAR or AI recommendation.
+- Added HSC Planner navigation in both parent and kid surfaces with component coverage for family
+  scoping, explicit claim confirmation, assessment creation, kid self-scope and the empty state.
+
 ## 2026-08-03 (fix: stop BookTeacherPanel tests expiring on a calendar date)
 
 ### Fixed

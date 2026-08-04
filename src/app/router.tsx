@@ -50,6 +50,7 @@ import { WalletTopupPage } from '@/pages/portal/WalletTopupPage';
 import { WalletAutoTopupPage } from '@/pages/portal/WalletAutoTopupPage';
 import { UsagePage } from '@/pages/portal/UsagePage';
 import { KidUsagePage } from '@/pages/portal/KidUsagePage';
+import { HscPlannerPage } from '@/pages/portal/HscPlannerPage';
 
 // Learn pages (kid surface — airbotix-app-learn-prd.md)
 import { ClassCodePage } from '@/pages/learn/ClassCodePage';
@@ -80,6 +81,7 @@ import { AcademyPracticePage } from '@/pages/learn/academy/AcademyPracticePage';
 import { AcademyProductPage } from '@/pages/learn/academy/AcademyProductPage';
 import { AcademyMockExamPage } from '@/pages/learn/academy/AcademyMockExamPage';
 import { MyExamPrepPage } from '@/pages/learn/academy/MyExamPrepPage';
+import { HscPlanPage } from '@/pages/learn/HscPlanPage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -153,6 +155,7 @@ export const router = createBrowserRouter([
       { path: 'teachers', element: <TeachersPage /> },
       { path: 'teachers/:slug', element: <TeacherDetailPage /> },
       { path: 'academy', element: <AcademyPage /> },
+      { path: 'academy/hsc-planner', element: <HscPlannerPage /> },
       { path: 'academy/products/:slug', element: <AcademyProductDetailPage /> },
       { path: 'academy/checkout/:sku', element: <AcademyCheckoutPage /> },
       { path: 'academy/orders/:intentId', element: <AcademyOrderPage /> },
@@ -288,6 +291,7 @@ export const router = createBrowserRouter([
       // migrates into the kid's entitlement-only product library.
       { path: 'academy', element: <Navigate to="/learn/exams" replace /> },
       { path: 'exams', element: <MyExamPrepPage /> },
+      { path: 'hsc', element: <HscPlanPage /> },
       { path: 'exams/:productSlug', element: <AcademyProductPage /> },
       { path: 'exams/:productSlug/practice', element: <AcademyPracticePage /> },
       { path: 'exams/:productSlug/mock/:paperId', element: <AcademyMockExamPage /> },

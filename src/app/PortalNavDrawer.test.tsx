@@ -46,12 +46,16 @@ describe('PortalNavDrawer', () => {
     api.mockReset();
   });
 
-  it('groups the 14 destinations under Explore / Family / Account headings', () => {
+  it('groups the 15 destinations under Explore / Family / Account headings', () => {
     renderDrawer();
 
     const nav = screen.getByRole('navigation');
     expect(nav).toHaveClass('hidden', 'xl:flex');
-    expect(within(nav).getAllByRole('link')).toHaveLength(14);
+    expect(within(nav).getAllByRole('link')).toHaveLength(15);
+    expect(within(nav).getByRole('link', { name: 'HSC Planner' })).toHaveAttribute(
+      'href',
+      '/portal/academy/hsc-planner',
+    );
     for (const heading of ['Explore', 'Family', 'Account']) {
       expect(within(nav).getByText(heading)).toBeVisible();
     }
