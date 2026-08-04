@@ -116,4 +116,15 @@ export const addHscTask = (
     body: input,
   });
 
+// Deletion (hsc-ai-family-planner-prd.md §6.2). These remove the rows outright
+// — they are not the `archived` flag, which hides a subject but keeps the marks.
+export const deleteHscPlan = (familyId: string, planId: string) =>
+  api<{ deleted: true }>(`/families/${familyId}/hsc-plans/${planId}`, { method: 'DELETE' });
+
+export const deleteHscSubject = (familyId: string, subjectId: string) =>
+  api<HscPlan>(`/families/${familyId}/hsc-subjects/${subjectId}`, { method: 'DELETE' });
+
+export const deleteHscTask = (familyId: string, taskId: string) =>
+  api<HscPlan>(`/families/${familyId}/hsc-tasks/${taskId}`, { method: 'DELETE' });
+
 export const getMyHscPlan = () => api<HscPlan | null>('/hsc/me/plan', { principal: 'kid' });

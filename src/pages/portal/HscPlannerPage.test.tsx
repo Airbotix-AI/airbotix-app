@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   importHscClaim: vi.fn(),
   addHscSubject: vi.fn(),
   addHscTask: vi.fn(),
+  deleteHscPlan: vi.fn(),
+  deleteHscSubject: vi.fn(),
+  deleteHscTask: vi.fn(),
 }));
 
 vi.mock('@/auth/useAuth', () => ({
@@ -32,6 +35,9 @@ vi.mock('@/pages/hsc/hscApi', () => ({
   importHscClaim: mocks.importHscClaim,
   addHscSubject: mocks.addHscSubject,
   addHscTask: mocks.addHscTask,
+  deleteHscPlan: mocks.deleteHscPlan,
+  deleteHscSubject: mocks.deleteHscSubject,
+  deleteHscTask: mocks.deleteHscTask,
 }));
 
 import { HscPlannerPage } from './HscPlannerPage';
@@ -204,6 +210,75 @@ describe('HscPlannerPage', () => {
 
     expect(await screen.findByText('Enter the weight')).toBeInTheDocument();
     expect(mocks.addHscTask).not.toHaveBeenCalled();
+  });
+
+  // §6.2 — deletion is irreversible and removes a child's marks, so it is armed
+  // in two steps and the second step names the cascade.
+  describe('deletion', () => {
+    it('does not delete on the first click and warns what else goes with it', async () => {
+      wireDefaults();
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+
+      expect(screen.getByText(/removes Biology and its 1 saved assessment/i)).toBeInTheDocument();
+      expect(mocks.deleteHscSubject).not.toHaveBeenCalled();
+    });
+
+    it('deletes the subject only after the named confirmation', async () => {
+      wireDefaults();
+      mocks.deleteHscSubject.mockResolvedValue(PLAN);
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Biology' }));
+
+      await waitFor(() =>
+        expect(mocks.deleteHscSubject).toHaveBeenCalledWith('family-1', 'subject-1'),
+      );
+    });
+
+    it('backs out without deleting when the parent keeps it', async () => {
+      wireDefaults();
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Keep it' }));
+
+      expect(screen.queryByText(/cannot be undone/i)).not.toBeInTheDocument();
+      expect(mocks.deleteHscSubject).not.toHaveBeenCalled();
+    });
+
+    it('warns that deleting the plan takes every subject and assessment with it', async () => {
+      wireDefaults();
+      mocks.deleteHscPlan.mockResolvedValue({ deleted: true });
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete plan' }));
+
+      expect(
+        screen.getByText(/removes every subject and assessment in Mia's 2026 plan/i),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: "Delete Mia's 2026 plan" }));
+      await waitFor(() => expect(mocks.deleteHscPlan).toHaveBeenCalledWith('family-1', 'plan-1'));
+    });
+
+    it('deletes a single assessment', async () => {
+      wireDefaults();
+      mocks.deleteHscTask.mockResolvedValue(PLAN);
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Depth study' }));
+
+      await waitFor(() => expect(mocks.deleteHscTask).toHaveBeenCalledWith('family-1', 'task-1'));
+    });
   });
 
   it('sends the typed course name for the explicit school-confirmation fallback', async () => {
