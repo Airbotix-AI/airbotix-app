@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-03 (fix: stop BookTeacherPanel tests expiring on a calendar date)
+
+### Fixed
+
+- `BookTeacherPanel.test.tsx` typed a hardcoded `2026-08-02T10:00` into the panel's
+  `datetime-local` input, whose `min` is `now + 1 day`. Once that date passed, jsdom's
+  constraint validation reported `rangeUnderflow` and swallowed the submit event, so the
+  POST never fired and three tests failed — reddening `ci` on `main` from 2026-08-01
+  with no product defect behind it. The preferred time is now derived from `Date.now()`.
+
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
 ### Added
