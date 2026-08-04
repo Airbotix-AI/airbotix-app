@@ -63,6 +63,10 @@ interface WorkspaceProps {
   /** The project's game engine (2D phaser / 3D three) — picks the runner's vendored
    *  global + control shim (learn-game-studio-3d-prd.md D-3D-01). Defaults to phaser. */
   engine?: GameEngine;
+  /** Project kind (creative-code-studio-website-prd): `website` makes the runner
+   *  pane host the SiteFrame (multi-page site + simulated backend) instead of the
+   *  GameFrame, and disables the game-only 2D⇄3D engine-switch offer. */
+  kind?: 'game' | 'website';
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
   /** Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): AI turns are free
@@ -138,6 +142,7 @@ export function Workspace({
   runKey,
   running,
   engine = 'phaser',
+  kind = 'game',
   onEngineChange,
   aiFreeNow = false,
   onApplyFiles,
@@ -327,6 +332,7 @@ export function Workspace({
       projectId,
       mode,
       engine,
+      kind,
       onEngineChange,
       firstTurn,
       initialChat,
@@ -612,6 +618,7 @@ export function Workspace({
               runKey={runKey}
               running={running}
               engine={engine}
+              kind={kind}
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
@@ -739,6 +746,7 @@ export function Workspace({
                 runKey={runKey}
                 running={running}
                 engine={engine}
+                kind={kind}
                 onRun={onRun}
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}

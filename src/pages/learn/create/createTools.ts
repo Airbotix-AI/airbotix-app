@@ -7,7 +7,7 @@
 // `CoursePack.allowed_kinds` (and drops coming-soon tools) so a course only
 // offers the project kinds ops enabled for that course.
 
-export type ProjectKind = 'creative' | 'code' | 'game' | 'blocks';
+export type ProjectKind = 'creative' | 'code' | 'game' | 'blocks' | 'website';
 
 export interface ParentCurriculumPreview {
   /** Public curriculum example only; never populated from or presented as child evidence. */
@@ -52,6 +52,7 @@ export interface CreateTool {
   id:
     | 'story-blocks'
     | 'creative-code'
+    | 'website-studio'
     | 'music-stage'
     | 'art-studio'
     | 'voice-booth'
@@ -188,6 +189,24 @@ export const CREATE_TOOLS: CreateTool[] = [
     color: 'sky',
     typeTag: 'Code',
     projectKind: 'game',
+    cost: 1,
+  },
+  // Website Studio (creative-code-studio-website-prd): the playground's website
+  // kind — real multi-page HTML + a simulated in-project backend (server.js +
+  // data/*.json), prompt-first like the game.
+  {
+    id: 'website-studio',
+    to: '/learn/playground/new?kind=website',
+    emoji: '🌐',
+    title: 'Website Studio',
+    desc: 'Build a real website with pages AND its own little backend.',
+    discoveryLabel: 'Ages 8–14',
+    parentDesc:
+      'Your child builds a real multi-page website — pages, styles and a little backend they can read and change.',
+    learnPath: 'Learn home → Website Studio',
+    color: 'sunshine',
+    typeTag: 'Code',
+    projectKind: 'website',
     cost: 1,
   },
   // Art Studio un-paused 2026-07-20 (owner call) after the canvas-first rebuild

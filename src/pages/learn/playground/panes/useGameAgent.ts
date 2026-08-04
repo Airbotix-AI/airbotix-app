@@ -243,6 +243,10 @@ export interface UseGameAgentOptions {
   /** The project's current game engine (2D phaser / 3D three) — drives switch
    *  detection (D-3D-08). Defaults to phaser. */
   engine?: GameEngine;
+  /** Project kind (creative-code-studio-website-prd): a `website` project never
+   *  offers the game-only 2D⇄3D engine switch ("make it 3D" is a normal site
+   *  edit for Web Critter, not a rebuild-in-three confirm). Defaults to game. */
+  kind?: 'game' | 'website';
   /** Called when a confirmed 2D⇄3D switch flips the engine, so the runner re-renders
    *  with the new vendored global + control shim (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
@@ -319,6 +323,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
     blockedSeed,
     readOnly = false,
     engine = 'phaser',
+    kind = 'game',
     onEngineChange,
     onTurnApplied,
     flushSave,
@@ -815,7 +820,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       //    never auto-apply it (the one exception to the playground's auto-apply
       //    model). The post-confirm rebuild re-enters send() with switchBypassRef
       //    set, so it skips this check and runs as a normal turn in the new engine. ──
-      if (isReal && !switchBypassRef.current) {
+      if (isReal && kind !== 'website' && !switchBypassRef.current) {
         const target = detectEngineSwitch(trimmed, engine);
         if (target) {
           setChat((prev) => [...prev, { id: nextId(), role: 'kid', text: trimmed, ...kidImages(images) }]);
@@ -1040,7 +1045,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         setBusy(false);
       }
     },
-    [readOnly, busy, streaming, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine, flushBeforeTurn, queueMessage, beginTurnKey, beginWatchdog, clearWatchdog, settleAbortedBubble],
+    [readOnly, busy, streaming, pending, isReal, nextId, runTurn, files, onApplyFiles, deps, projectId, mode, applyResult, applySafeguard, runAssetTurn, engine, kind, flushBeforeTurn, queueMessage, beginTurnKey, beginWatchdog, clearWatchdog, settleAbortedBubble],
   );
 
   // Auto-send the queued message once the turn settles (D-HARN-03). Driven by

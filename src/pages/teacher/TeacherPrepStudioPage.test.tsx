@@ -141,6 +141,19 @@ describe('TeacherPrepStudioPage', () => {
     expect(stub).toHaveAttribute('data-pid', 'proj_1');
   });
 
+  it('renders the playground EDITABLE for a WEBSITE prep project', async () => {
+    apiMock.mockResolvedValue({ id: 'proj_1', title: 'Pet shop site', kind: 'website' });
+
+    renderPrep();
+
+    // Websites reuse the playground (the studio loads the kind → SiteFrame).
+    const stub = await screen.findByTestId('stub-game');
+    expect(stub).toHaveAttribute('data-readonly', 'undefined');
+    expect(stub).toHaveAttribute('data-embedded', 'true');
+    expect(stub).toHaveAttribute('data-pid', 'proj_1');
+    expect(screen.queryByTestId('teacher-prep-unsupported')).not.toBeInTheDocument();
+  });
+
   it('Back closes the tab when opened fresh (no in-app history)', async () => {
     apiMock.mockResolvedValue({ id: 'proj_1', title: 'My Game', kind: 'game' });
     const closeSpy = vi.spyOn(window, 'close').mockImplementation(() => undefined);
@@ -258,6 +271,23 @@ describe('TeacherPrepStudioPage', () => {
       expect.objectContaining({
         method: 'POST',
         body: expect.objectContaining({ kind: 'code', template: 'blank' }),
+      }),
+    );
+  });
+
+  it('NEW route kind=website creates in the app (template website_blank), then mounts the playground', async () => {
+    apiMock.mockResolvedValue({ id: 'prep_site_1' });
+    renderPrepNew('/teacher/prep/new?class=c1&kind=website');
+
+    // Websites reuse the playground (kind loads from the backend → SiteFrame).
+    const stub = await screen.findByTestId('stub-game');
+    expect(stub).toHaveAttribute('data-pid', 'prep_site_1');
+    expect(stub).toHaveAttribute('data-embedded', 'true');
+    expect(apiMock).toHaveBeenCalledWith(
+      '/classes/c1/prep-projects',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ kind: 'website', template: 'website_blank' }),
       }),
     );
   });

@@ -15,6 +15,13 @@
 Kids vibe-code 2D **Phaser** games that run **locally, sandboxed**. A specialization
 of the code studio (`../code/`) — same AI loop + iframe model, runtime hosts Phaser +
 a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="kid">`).
+The SAME studio also hosts **Website Studio** (`Project.kind='website'`,
+`/learn/playground/new?kind=website`): the runner mounts `SiteFrame` (`buildSitePreview.ts`,
+`sandbox="allow-scripts"` ONLY, `iframe[data-site-frame]`) instead of `GameFrame` — VFS-owned
+real `.html` pages, `server.js` app.get/app.post routes served by an in-frame fetch shim
+(/api-only, no real network + `connect-src 'none'` CSP), `db` from `data/**.json` TEXT seeds
+(persists across page navs, resets per run). No pause/FPS/debug/run-report; verification is
+always `'none'`; the 2D⇄3D switch never offers. Backend contract: `website-prompt.ts` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 

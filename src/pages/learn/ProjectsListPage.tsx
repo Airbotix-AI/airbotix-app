@@ -57,7 +57,9 @@ export function ProjectsListPage() {
 
   // Local game/blocks thumbnails (captured device-side, no backend upload yet).
   const all = useMemo(() => projects.data ?? [], [projects.data]);
-  const thumbIds = all.filter((p) => p.kind === 'game' || p.kind === 'blocks').map((p) => p.id);
+  const thumbIds = all
+    .filter((p) => p.kind === 'game' || p.kind === 'website' || p.kind === 'blocks')
+    .map((p) => p.id);
   const localThumbs = useQuery<Record<string, string>>({
     queryKey: ['playground-thumbs', thumbIds.join(',')],
     queryFn: async () => {

@@ -23,8 +23,9 @@ import { createPrepProject, type PrepProjectKind } from './teacherPrepApi';
 // `creative`/unknown kinds are out of scope here → an honest message, no crash.
 
 // The studio kinds the prep editor mounts. `creative` (artifact gallery) has no
-// editable studio yet → an honest message, mirroring the live viewer.
-type PrepKind = 'game' | 'code' | 'blocks';
+// editable studio yet → an honest message, mirroring the live viewer. `website`
+// (Website Studio) reuses the playground — the runner renders the SiteFrame.
+type PrepKind = 'game' | 'code' | 'blocks' | 'website';
 
 interface PrepProjectMeta {
   id: string;
@@ -32,7 +33,7 @@ interface PrepProjectMeta {
   kind: string;
 }
 
-const SUPPORTED_KINDS: readonly PrepKind[] = ['game', 'code', 'blocks'];
+const SUPPORTED_KINDS: readonly PrepKind[] = ['game', 'code', 'blocks', 'website'];
 
 function isPrepKind(kind: string): kind is PrepKind {
   return (SUPPORTED_KINDS as readonly string[]).includes(kind);
@@ -73,7 +74,7 @@ export function TeacherPrepStudioPage() {
             </CenterMessage>
           ) : newKind === 'game' ? (
             <PlaygroundApp projectId="new" embedded prepClassId={prepClassId} prepMode />
-          ) : newKind === 'blocks' || newKind === 'code' ? (
+          ) : newKind === 'blocks' || newKind === 'code' || newKind === 'website' ? (
             <NewPrepStudio classId={prepClassId} kind={newKind} />
           ) : (
             <CenterMessage testId="teacher-prep-unsupported">
@@ -129,7 +130,7 @@ export function TeacherPrepStudioPage() {
 // the app (once), rewrite the URL to /teacher/prep/:id, then mount the real studio on
 // the seeded VFS. Game is prompt-first and never reaches this. Creation-in-the-app is
 // the same pattern the kid create flow uses and avoids the cross-tab session race.
-function NewPrepStudio({ classId, kind }: { classId: string; kind: 'blocks' | 'code' }) {
+function NewPrepStudio({ classId, kind }: { classId: string; kind: 'blocks' | 'code' | 'website' }) {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   // Create EXACTLY once. The ref guard (NOT a per-run `alive` flag) is what makes this
@@ -163,6 +164,11 @@ function NewPrepStudio({ classId, kind }: { classId: string; kind: 'blocks' | 'c
   }
   return kind === 'blocks' ? (
     <BlocksStudioPage projectId={createdId} embedded prepMode />
+  ) : kind === 'website' ? (
+    // Website prep opens the playground on the seeded website_blank VFS — the
+    // project's kind loads from GET /projects/:id and the runner mounts the
+    // SiteFrame (same threading as the kid flow).
+    <PlaygroundApp projectId={createdId} embedded prepMode />
   ) : (
     <CodeStudioPage projectId={createdId} embedded />
   );
@@ -182,7 +188,8 @@ function PrepStudio({ kind, projectId }: { kind: PrepKind; projectId: string }) 
   if (kind === 'code') {
     return <CodeStudioPage projectId={projectId} embedded />;
   }
-  // game
+  // game + website: both live in the playground (kind loads from the backend,
+  // so a website prep project mounts the SiteFrame runner).
   return <PlaygroundApp projectId={projectId} embedded prepMode />;
 }
 

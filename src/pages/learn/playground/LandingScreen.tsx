@@ -24,6 +24,38 @@ const STARTER_CHIPS: readonly StarterChip[] = [
   { emoji: '🐱', label: 'Cat', prompt: 'a game with a cute cat hero' },
 ]
 
+// Website Studio starter chips (creative-code-studio-website-prd) — same UDL
+// picture-first shape, site-flavoured ideas.
+const WEBSITE_STARTER_CHIPS: readonly StarterChip[] = [
+  { emoji: '🐶', label: 'My dog', prompt: 'a website about my dog' },
+  { emoji: '🚀', label: 'Space fans', prompt: 'a fan site for space' },
+  { emoji: '🍪', label: 'Cookie shop', prompt: 'a cookie shop website' },
+  { emoji: '🐾', label: 'Pet adoption', prompt: 'a pet adoption website' },
+  { emoji: '📖', label: 'My blog', prompt: 'a blog where I write posts' },
+  { emoji: '🎉', label: 'Club page', prompt: 'a page for my club' },
+]
+
+// Kind-flavoured landing copy — the placeholder strings are LOAD-BEARING (the
+// cross-repo harness journeys target them verbatim; keep them exact).
+const LANDING_COPY = {
+  game: {
+    placeholder: "Describe a game and we'll build it…",
+    ariaLabel: 'Describe a game',
+    readAloud: 'Describe a game and we will build it.',
+    submitLabel: 'Build game',
+    wordmark: 'Airbotix Playground',
+    chips: STARTER_CHIPS,
+  },
+  website: {
+    placeholder: "Describe a website and we'll build it…",
+    ariaLabel: 'Describe a website',
+    readAloud: 'Describe a website and we will build it.',
+    submitLabel: 'Build website',
+    wordmark: 'Airbotix Website Studio',
+    chips: WEBSITE_STARTER_CHIPS,
+  },
+} as const
+
 /** Read text aloud via the browser's speech synthesis (no LLM, on-device). */
 function speak(text: string) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
@@ -49,7 +81,15 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * direct LLM). A `ThemeToggle` sits top-right. Submits the trimmed prompt via
  * Enter (no Shift) or the send button, carrying the kid's game name.
  */
-export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void }) {
+export function LandingScreen({
+  onSubmit,
+  kind = 'game',
+}: {
+  onSubmit: (prompt: string) => void
+  /** Project kind — swaps the copy/starter chips between game and website. */
+  kind?: 'game' | 'website'
+}) {
+  const copy = LANDING_COPY[kind]
   // Try-demo seam (try-demo-mode-prd §3 step 1): in the public demo the prompt is
   // pre-filled + locked (read-only textarea; chips/mic hidden so nothing can change
   // it), and the real `submit` is registered so the tour's "Create the game" drives
@@ -122,7 +162,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
 
       {/* Wordmark */}
       <p className="mb-10 text-xl font-extrabold text-pg-text-dim">
-        <span className="text-brand-sky">✦</span> Airbotix Playground
+        <span className="text-brand-sky">✦</span> {copy.wordmark}
       </p>
 
 
@@ -135,8 +175,8 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             onKeyDown={handleKeyDown}
             rows={4}
             readOnly={locked}
-            placeholder="Describe a game and we'll build it…"
-            aria-label="Describe a game"
+            placeholder={copy.placeholder}
+            aria-label={copy.ariaLabel}
             className="w-full resize-none bg-transparent text-lg text-pg-text placeholder:text-pg-text-muted focus:outline-none"
           />
 
@@ -144,7 +184,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             {/* Read-aloud (UDL): speaks the prompt help for non-readers. */}
             <button
               type="button"
-              onClick={() => speak(prompt.trim() || 'Describe a game and we will build it.')}
+              onClick={() => speak(prompt.trim() || copy.readAloud)}
               aria-label="Read aloud"
               data-testid="read-aloud"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-pg-border bg-pg-surface text-pg-text-dim transition-colors hover:border-brand-sky"
@@ -177,7 +217,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
               type="button"
               onClick={submit}
               disabled={locked || !prompt.trim()}
-              aria-label="Build game"
+              aria-label={copy.submitLabel}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sky text-xl text-canvas-pure transition-opacity disabled:opacity-40"
             >
               →
@@ -189,7 +229,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
       {/* Starter chips — hidden when the demo locks the prompt (they'd change it). */}
       {!locked && (
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        {STARTER_CHIPS.map((chip) => (
+        {copy.chips.map((chip) => (
           <button
             key={chip.label}
             type="button"

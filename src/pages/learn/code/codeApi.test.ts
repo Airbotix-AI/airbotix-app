@@ -25,6 +25,7 @@ vi.mock('@/lib/api', () => ({
 import {
   saveVfs,
   CODE_TEMPLATES,
+  isWebsiteDataJsonPath,
   runAgentTurn,
   signChatImageUpload,
   uploadChatImage,
@@ -254,5 +255,22 @@ describe('CODE_TEMPLATES — starter labels', () => {
   it('labels the game starter as a guided demo without narrowing the whole studio to games', () => {
     const game = CODE_TEMPLATES.find((t) => t.id === 'tiny_game');
     expect(game?.title).toBe('Guided Game Demo');
+  });
+});
+
+// Website Studio db seeds (creative-code-studio-website-prd): `data/**.json` is
+// authored TEXT — the FE mirror of the backend `isTextVfsPath` carve-out, same
+// family as `.anim.json`. Keep in sync with platform-backend src/tools/vfs-path.ts.
+describe('isWebsiteDataJsonPath — the data/**.json TEXT carve-out', () => {
+  it('matches top-level and nested data json seeds', () => {
+    expect(isWebsiteDataJsonPath('data/pets.json')).toBe(true);
+    expect(isWebsiteDataJsonPath('data/shop/items.json')).toBe(true);
+  });
+
+  it('does not match other json or data files', () => {
+    expect(isWebsiteDataJsonPath('config.json')).toBe(false);
+    expect(isWebsiteDataJsonPath('assets/data/pets.json')).toBe(false);
+    expect(isWebsiteDataJsonPath('data/notes.txt')).toBe(false);
+    expect(isWebsiteDataJsonPath('database/pets.json')).toBe(false);
   });
 });

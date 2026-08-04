@@ -368,7 +368,21 @@ const BINARY_ASSET_MIME: Record<string, string> = {
   // 3D model (binary glTF, D-3D-09) — round-trips like any other binary asset.
   glb: 'model/gltf-binary',
 };
+/**
+ * Website Studio bundled "backend data" (creative-code-studio-website-prd):
+ * top-level `data/**.json` files are the site's editable database seed —
+ * authored TEXT (agent/editor-editable, JSON-parsed by the site runtime's `db`
+ * hydrator), never importable binary data. Mirrors the backend's
+ * `isTextVfsPath` carve-out (platform-backend `src/tools/vfs-path.ts`) — same
+ * carve-out family as `.anim.json`.
+ */
+export function isWebsiteDataJsonPath(path: string): boolean {
+  return path.startsWith('data/') && path.endsWith('.json');
+}
 function binaryAssetMime(path: string): string | undefined {
+  // `data/**.json` is TEXT (the website db seed carve-out above) — never wrap it
+  // as a binary data asset, even if a stray `kind` ever mislabels it.
+  if (isWebsiteDataJsonPath(path)) return undefined;
   return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
 }
 /** Backend raw base64 → studio `data:` URL (assets only). */

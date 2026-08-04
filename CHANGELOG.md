@@ -45,6 +45,44 @@
   line and made the active item unusually tall.
 
 ## 2026-08-10 (added: Parent/Guardian Details on both challenge consent steps)
+## 2026-08-04 (feat: Website Studio — the playground's website project kind)
+
+### Added
+
+- **Website Studio** (creative-code-studio-website-prd): the Creative Code Studio playground now
+  hosts `Project.kind='website'` projects — real multi-page HTML sites with a simulated in-project
+  backend. `buildSitePreview.ts` builds the sandboxed srcdoc from the VFS pages themselves: shims
+  injected before any kid script (extension-noise guard, console capture, the site runtime, a
+  `connect-src 'none'` CSP second fence), `server.js` always the FIRST kid script, stylesheet/script
+  references inlined with `//# sourceURL` + scriptRanges (syntax errors map back to kid files),
+  missing/external references degrade to a `console.error`, and quoted asset paths inline as
+  `data:` URLs. The site runtime ships `db` (hydrated from `data/**.json` seeds; parse failures
+  console.error and skip), `app.get`/`app.post`, an `/api/*`-only fetch shim (query/body parsing,
+  chainable `res.status().json()`, kid-friendly 404/500s, the outside internet blocked), and a
+  capture-phase nav shim that turns relative `*.html` link clicks into a studio postMessage.
+- `SiteFrame.tsx` — the site host (`iframe[data-site-frame]`, `sandbox="allow-scripts"` ONLY): owns
+  `currentPage` + the carried `db` (persists across page navigations, resets on restart), a slim
+  nav bar (`site-nav-home` preserves db, `site-nav-page` shows the page), and the same console
+  panel/fix-error wiring as GameFrame. `GameRunnerPane` mounts it for websites and hides the
+  game-only pause/mute/FPS/physics-debug/screen-preset affordances.
+- Create flows: `/learn/playground/new?kind=website` arms the prompt-first landing with website
+  copy (placeholder "Describe a website and we'll build it…", site starter chips) and creates a
+  `kind:'website'` project on submit; the hub gains a Website Studio card (`hub-template-website`);
+  the Create tab + class "Create for this class" sheet gain a Website Studio entry gated by
+  `allowed_kinds` ('website'), carrying the class like the game entry; My Works resumes websites
+  into the playground.
+- Teacher surfaces: the read-only LIVE viewer (`/teacher/projects/:id/live`) and the prep studio
+  (`/teacher/prep/*`, create-then-open with template `website_blank`) now support `website`
+  projects via the same playground kind threading.
+
+### Changed
+
+- `data/**.json` VFS files mirror the backend TEXT carve-out (`isWebsiteDataJsonPath` in
+  `codeApi.ts`) — website db seeds are editable text, never wrapped as binary data assets.
+- A `website` project never offers the game-only 2D⇄3D engine-switch confirm ("make it 3D" is a
+  normal site edit for Web Critter).
+
+## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
 
 ### Added
 

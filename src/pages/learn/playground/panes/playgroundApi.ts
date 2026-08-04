@@ -42,6 +42,14 @@ export type GameTemplateId =
   | 'three_collect'
   | 'three_blank';
 
+/** Project kind for websites (creative-code-studio-website-prd) — the Website
+ *  Studio runs in the SAME playground with a site runtime instead of a game. */
+export const WEBSITE_PROJECT_KIND = 'website' as const;
+
+/** The website starter templates the backend seeds (`website_blank` is the
+ *  default when none is passed; `website_pet_shop` is the worked example). */
+export type WebsiteTemplateId = 'website_blank' | 'website_pet_shop';
+
 /**
  * Create a REAL `kind='game'` backend project (PRD J1 / §4.2). The backend seeds
  * the starter template into the S3-backed VFS and returns the project id; the
@@ -58,15 +66,19 @@ export async function createGameProject(args: {
   familyId: string | null;
   /** The kid's prompt / chosen game name — the backend infers the engine from it. */
   title: string;
-  /** Only set when a specific starter chip was chosen; omit to let the backend infer. */
-  template?: GameTemplateId;
+  /** `game` (default) or `website` (Website Studio) — same playground, different
+   *  runtime + templates (creative-code-studio-website-prd). */
+  kind?: typeof GAME_PROJECT_KIND | typeof WEBSITE_PROJECT_KIND;
+  /** Only set when a specific starter was chosen; omit to let the backend pick
+   *  (games: engine inferred from the title; websites: `website_blank`). */
+  template?: GameTemplateId | WebsiteTemplateId;
 }): Promise<{ id: string }> {
   return api<{ id: string }>(`/projects`, {
     method: 'POST',
     body: {
       title: args.title,
       product_line: 'line_b_coding',
-      kind: GAME_PROJECT_KIND,
+      kind: args.kind ?? GAME_PROJECT_KIND,
       ...(args.template ? { template: args.template } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),

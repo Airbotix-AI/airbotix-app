@@ -137,6 +137,13 @@ export function PlaygroundApp({
   // kid still sees the initial prompt. After the prompt creates the real game, we
   // attach it to this class via the placement endpoint before entering the studio.
   const createForClassId = isNew ? searchParams.get('class') : null;
+  // Website Studio (creative-code-studio-website-prd): `/learn/playground/new
+  // ?kind=website` arms the SAME prompt-first flow to create a `kind='website'`
+  // project (site runtime instead of a game). Existing projects load their kind
+  // from the backend below; the default stays `game`.
+  const [projectKind, setProjectKind] = useState<'game' | 'website'>(
+    isNew && searchParams.get('kind') === 'website' ? 'website' : 'game',
+  );
 
   // Live focus presence (D-LIVE-3): report the kid's open game to the teacher.
   // No-op in readOnly (teacher viewer) or outside a live class. Title is omitted
@@ -266,6 +273,10 @@ export function PlaygroundApp({
       .then((p) => {
         if (!alive) return;
         if (p.engine === 'three' || p.engine === 'phaser') setEngine(p.engine);
+        // Website Studio (creative-code-studio-website-prd): a `website` project
+        // renders the SiteFrame runtime. `CodeProject.kind` is typed for the code
+        // studio, so read the raw wire kind.
+        if ((p as { kind?: string }).kind === 'website') setProjectKind('website');
         // Workshop-free-AI waiver (D-WFA-01) — free-workshop window is live for this
         // project → the chat drops the star cost and shows "Free during workshop".
         setAiFreeNow(p.ai_free_now ?? false);
@@ -485,9 +496,10 @@ export function PlaygroundApp({
         <>
       {phase === 'landing' && (
         <LandingScreen
+          kind={projectKind}
           onSubmit={async (p) => {
             setPrompt(p);
-            // For a NEW game, create the real backend `kind='game'` project now —
+            // For a NEW game/website, create the real backend project now —
             // AFTER the prompt — then load it. The **prompt is the project name**
             // (capped to a sensible length). Falls back to a throwaway local
             // scaffold if the backend isn't ready, so the studio still opens.
@@ -496,7 +508,9 @@ export function PlaygroundApp({
                 // The prompt IS the title; the backend infers 2D/3D from it and
                 // seeds the matching blank starter (no hardcoded template — that
                 // forced every game, incl. "make a 3D …", into Phaser/2D).
-                const title = p.trim().slice(0, 80) || 'My game';
+                // A website seeds `website_blank` (backend default for the kind).
+                const title =
+                  p.trim().slice(0, 80) || (projectKind === 'website' ? 'My website' : 'My game');
                 let newId: string;
                 if (prepClassId) {
                   // TEACHER prep: create a teacher-owned prep game (0 Stars, class-
@@ -506,7 +520,12 @@ export function PlaygroundApp({
                   newId = game.id;
                   window.history.replaceState(null, '', `/teacher/prep/${newId}`);
                 } else {
-                  const game = await createGameProject({ kidId, familyId, title });
+                  const game = await createGameProject({
+                    kidId,
+                    familyId,
+                    title,
+                    ...(projectKind === 'website' ? { kind: 'website' as const } : {}),
+                  });
                   if (createForClassId) {
                     await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
                   }
@@ -612,6 +631,7 @@ export function PlaygroundApp({
           runKey={runKey}
           running={running}
           engine={engine}
+          kind={projectKind}
           onEngineChange={setEngine}
           aiFreeNow={aiFreeNow}
           onApplyFiles={applyTurnFiles}

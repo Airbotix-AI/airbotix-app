@@ -27,7 +27,7 @@ vi.mock('react-router-dom', async () => {
 
 import { CreateForClassSheet } from './CreateForClassSheet';
 
-function renderSheet(allowedKinds?: Array<'creative' | 'code' | 'game' | 'blocks'>) {
+function renderSheet(allowedKinds?: Array<'creative' | 'code' | 'game' | 'blocks' | 'website'>) {
   return render(
     <MemoryRouter>
       <CreateForClassSheet
@@ -124,5 +124,39 @@ describe('CreateForClassSheet — direct-jump', () => {
     // `comingSoon`; Art Studio is live but `noClassSheet` — never offered here.
     expect(screen.getByText('Music Stage')).toBeInTheDocument();
     expect(screen.queryByText('Image Maker')).not.toBeInTheDocument();
+  });
+});
+
+// Website Studio (creative-code-studio-website-prd): prompt-first like the game
+// — the sheet navigates to the website landing CARRYING the class, no POST here;
+// the playground creates + attaches the kind='website' project on prompt submit.
+describe('CreateForClassSheet — Website Studio', () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    wireCreate();
+  });
+  afterEach(cleanup);
+
+  it('jumps to the prompt-first website landing carrying the class (no POST)', () => {
+    renderSheet();
+    const site = screen.getByText('Website Studio').closest('button')!;
+    expect(site).toHaveAttribute('data-testid', 'create-tool');
+    fireEvent.click(site);
+
+    expect(navigate).toHaveBeenCalledWith('/learn/playground/new?kind=website&class=class-1');
+    expect(api).not.toHaveBeenCalled();
+  });
+
+  it('shows only when the course allows website work (allowed_kinds gating)', () => {
+    renderSheet(['website']);
+    expect(screen.getByText('Website Studio')).toBeInTheDocument();
+    expect(screen.queryByText('Creative Code Studio')).not.toBeInTheDocument();
+    expect(screen.queryByText('Story Blocks')).not.toBeInTheDocument();
+  });
+
+  it('hides Website Studio when the course disallows it', () => {
+    renderSheet(['game', 'blocks']);
+    expect(screen.queryByText('Website Studio')).not.toBeInTheDocument();
+    expect(screen.getByText('Creative Code Studio')).toBeInTheDocument();
   });
 });
