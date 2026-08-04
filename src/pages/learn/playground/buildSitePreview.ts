@@ -4,32 +4,43 @@
 // contract — keep the two in sync).
 //
 // Unlike the game builder (a studio-owned shell hosting kid game.js), the VFS
-// owns REAL pages here: the selected `.html` file IS the document. Per build:
+// owns REAL pages here: the selected `.html` file provides the CONTENT — but
+// the DOCUMENT SKELETON is studio-owned. Per build:
 //
-//   1. PAGE SELECTION — `opts.page` (default index.html) picks the document; a
+//   1. PAGE SELECTION — `opts.page` (default index.html) picks the page; a
 //      missing page falls back to index.html; no index.html at all renders a
 //      friendly kid-facing empty state.
-//   2. SHIMS, injected into <head> BEFORE any kid script, in order: the
-//      extension-noise guard, the console capture, the SITE RUNTIME shim
-//      (`db` from data/**.json + `app.get/app.post` + the /api-only fetch shim
-//      + the page-link nav shim), a `connect-src 'none'` CSP meta (a second
-//      fence — the fetch shim never performs real network I/O, so it is
-//      unaffected), then server.js — ALWAYS the first kid script, whether or
-//      not the page references it (it defines the routes).
-//   3. REFERENCE INLINING — `<link rel="stylesheet" href>` / `<script src>`
+//   2. STUDIO-OWNED SKELETON (security-load-bearing) — the srcdoc is ALWAYS
+//      `<!doctype html><html><head>` + the shims + CSP + server.js, and only
+//      THEN the kid page's lifted head/body. The kid page is parsed with
+//      DOMParser (never executes, repairs malformed markup) and its head
+//      children + body are lifted INTO the skeleton — the injection point is
+//      never located by matching markup in untrusted HTML, so a `<head>`
+//      hidden in a comment / string literal / attribute cannot displace the
+//      shims (that bypass would disarm the fetch shim AND the CSP, the two
+//      fences the backend's fetch( allowance for websites rests on, D-WEB-03).
+//   3. SHIM ORDER inside the skeleton head: extension-noise guard, console
+//      capture, the SITE RUNTIME shim (`db` from top-level data/*.json +
+//      `app.get/app.post` + the /api-only fetch shim + the page-link nav shim
+//      + the read-db control channel), the deny-by-default CSP meta, then
+//      server.js — ALWAYS the first kid script, whether or not the page
+//      references it (it defines the routes).
+//   4. REFERENCE INLINING — `<link rel="stylesheet" href>` / `<script src>`
 //      tags are replaced with the referenced VFS file inlined (scripts carry
-//      `//# sourceURL=<path>`); a missing/external reference becomes a
-//      console.error (never a crash). Quoted asset paths are rewritten to
-//      data: URLs via the game builder's `inlineAssetRefs`.
-//   4. `scriptRanges` map srcdoc lines back to kid files so SYNTAX errors
+//      `//# sourceURL=<path>`; a literal `</script>`/`</style>` in kid text is
+//      escaped so it can't truncate the tag); a missing/external reference
+//      becomes a console.error (never a crash). Quoted asset paths are
+//      rewritten to data: URLs via the game builder's `inlineAssetRefs`.
+//   5. `scriptRanges` map srcdoc lines back to kid files so SYNTAX errors
 //      (where sourceURL never applies) still resolve via `resolveErrorLoc` —
 //      the same contract as `buildGamePreview`.
 //
 // Security model is IDENTICAL to the game: an opaque-origin iframe,
-// `sandbox="allow-scripts"` only, postMessage the only channel out.
+// `sandbox="allow-scripts"` only, postMessage the only channel out — plus the
+// deny-by-default CSP below as the second fence.
 
 import type { VfsFile } from '../code/codeApi';
-import { isWebsiteDataJsonPath } from '../code/codeApi';
+import { isWebsiteDataSeedPath } from '../code/codeApi';
 import { CONSOLE_CAPTURE, EXTENSION_NOISE_GUARD } from '../code/buildPreview';
 import { inlineAssetRefs, type ScriptLineRange } from './buildGamePreview';
 
@@ -44,20 +55,42 @@ export const SITE_HOME_PAGE = 'index.html';
 /** The site's backend file — always injected FIRST among kid scripts. */
 const SERVER_PATH = 'server.js';
 
-/** `connect-src 'none'` second fence: the fetch shim never touches the network,
- *  so kid code can't either — even if it somehow dodged the shim. */
-const CSP_META = `<meta http-equiv="Content-Security-Policy" content="connect-src 'none'">`;
+/**
+ * Deny-by-default CSP second fence. Everything the runtime legitimately uses is
+ * inline or `data:`/`blob:` (shim + kid scripts are inline; styles are inline;
+ * assets are inlined data: URLs), so external `<script src>` / `<img>` /
+ * `<iframe>` / meta-refresh GET-beacon exfiltration is blocked wholesale even
+ * where the reference-inlining regex wouldn't catch it. `connect-src 'none'`
+ * stays: the fetch shim never performs real network I/O, so it is unaffected.
+ */
+const CSP_META =
+  `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; ` +
+  `script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; ` +
+  `media-src data: blob:; font-src data:; connect-src 'none'">`;
 
 /** Embed a string safely inside injected `<script>` source (a literal
  *  `</script>` or `<!--` in kid data must never terminate/confuse the tag). */
 const jsStr = (s: string): string => JSON.stringify(s).replace(/</g, '\\u003c');
 
+/** Escape a literal `</script>` inside inlined kid JS so it can't terminate the
+ *  studio's `<script>` tag (it legally appears only in strings/comments, where
+ *  `<\/script` is byte-equivalent). Never changes line counts. */
+const escapeScriptText = (s: string): string => s.replace(/<\/script/gi, '<\\/script');
+/** Same fence for a literal `</style>` inside inlined kid CSS. */
+const escapeStyleText = (s: string): string => s.replace(/<\/style/gi, '<\\/style');
+
 /** Strip a leading `./` from a relative reference (`./about.html` → `about.html`). */
 const normalizeRef = (ref: string): string => (ref.startsWith('./') ? ref.slice(2) : ref);
 
-/** db key for a seed file: filename without directory or `.json` extension. */
+/** db key for a seed file: filename without the `.json` extension. */
 const dbKeyOf = (path: string): string =>
   (path.split('/').pop() ?? path).replace(/\.json$/i, '');
+
+/** A data json that is NOT a seed (nested, e.g. `data/shop/pets.json`) — kept
+ *  only to warn the kid it won't load into `db` ({@link isWebsiteDataSeedPath}
+ *  is the single top-level-seed authority, mirrored from the backend). */
+const isNestedDataJson = (path: string): boolean =>
+  path.startsWith('data/') && path.toLowerCase().endsWith('.json') && !isWebsiteDataSeedPath(path);
 
 export interface BuildSiteOptions {
   /** Which VFS `.html` page is the document (default {@link SITE_HOME_PAGE}). */
@@ -100,27 +133,66 @@ export function isSiteNavigateMessage(
   );
 }
 
+/** The runtime shim's reply to the studio's `read-db` control request — the
+ *  LIVE `db` at reply time (so Home never loses mutations made since the last
+ *  page navigation). `db` is null when the live db wasn't JSON-safe-cloneable. */
+export interface SiteDbMessage {
+  db: Record<string, unknown> | null;
+}
+
+export function isSiteDbMessage(
+  data: unknown,
+): data is { __airbotixSiteDb: true } & SiteDbMessage {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    '__airbotixSiteDb' in data &&
+    (data as { __airbotixSiteDb: unknown }).__airbotixSiteDb === true
+  );
+}
+
 /**
  * The site runtime shim (contract items the backend agent teaches verbatim):
- * `db` hydrated from the bundled data/**.json seeds (a parse failure
- * console.errors and skips that file; `dbState` replaces the seeds wholesale),
- * `app.get/app.post` route registration, the /api-only fetch shim (query/body
- * parsing, chainable `res.status().json()`, kid-friendly 404/500 console
- * errors, everything else blocked), and the capture-phase nav shim that turns
- * relative `*.html` link clicks into a postMessage to the studio.
+ * `db` hydrated from the bundled TOP-LEVEL data/*.json seeds (a parse failure
+ * console.errors and skips that file; a nested data/**.json console.warns;
+ * `dbState` replaces the seeds wholesale), `app.get/app.post` route
+ * registration, the /api-only fetch shim (query/body parsing, chainable
+ * `res.status().json()`, kid-friendly 404/500 console errors, everything else
+ * blocked), the capture-phase nav shim that turns relative `*.html` link
+ * clicks into a postMessage to the studio, and the `read-db` control channel
+ * (the studio's Home button reads the LIVE db before rebuilding).
  */
 function siteRuntime(
   seeds: Array<{ key: string; path: string; text: string }>,
   dbState: Record<string, unknown> | null,
+  skippedSeeds: string[],
 ): string {
   const seedsJs = `[${seeds
     .map((s) => `{key:${jsStr(s.key)},path:${jsStr(s.path)},text:${jsStr(s.text)}}`)
     .join(',')}]`;
-  const stateJs = dbState === null ? 'null' : JSON.stringify(dbState).replace(/</g, '\\u003c');
+  // Boundary guard: the carried db comes from an in-frame postMessage, so kid
+  // code can hand us values that survive structured clone but not JSON (BigInt,
+  // …). A throw here would white-screen the studio mid-render — degrade to the
+  // seeds instead (no db content is ever logged).
+  let stateJs = 'null';
+  if (dbState !== null) {
+    try {
+      stateJs = JSON.stringify(dbState).replace(/</g, '\\u003c');
+    } catch {
+      console.error(
+        'Could not carry the site db across pages (not JSON-safe) — restarting it from the data/*.json seeds.',
+      );
+    }
+  }
+  const skippedJs = `[${skippedSeeds.map((p) => jsStr(p)).join(',')}]`;
   return `<script>
 (function () {
-  // ── db: the site's in-memory database, hydrated from data/*.json ──────────
+  // ── db: the site's in-memory database, hydrated from top-level data/*.json ─
   var seeds = ${seedsJs};
+  var skippedSeeds = ${skippedJs};
+  for (var w = 0; w < skippedSeeds.length; w++) {
+    console.warn(skippedSeeds[w] + ' is not part of db — only files directly inside data/ (like data/pets.json) load into db.');
+  }
   var carried = ${stateJs};
   var db = {};
   if (carried !== null) {
@@ -222,6 +294,15 @@ function siteRuntime(
     try { snapshot = JSON.parse(JSON.stringify(window.db)); } catch (err) { snapshot = null; }
     parent.postMessage({ __airbotixSiteNavigate: true, path: clean, db: snapshot }, '*');
   }, true);
+
+  // ── read-db: the studio asks for the LIVE db (Home button) ─────────────────
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixSiteControl !== true || m.action !== 'read-db') return;
+    var snapshot = null;
+    try { snapshot = JSON.parse(JSON.stringify(window.db)); } catch (err) { snapshot = null; }
+    parent.postMessage({ __airbotixSiteDb: true, db: snapshot }, '*');
+  });
 })();
 </script>`;
 }
@@ -271,7 +352,9 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
   const kidScriptTag = (f: VfsFile): string => {
     // ⚠️ Content starts IMMEDIATELY after `<script>` — no leading newline — so
     // sourceURL line numbers match the kid's file (same contract as the game).
-    const content = inlineAssetRefs(f.content, assets);
+    // A literal `</script>` in kid text is escaped (same line count) so it
+    // can't truncate the tag and corrupt every scriptRange after it.
+    const content = escapeScriptText(inlineAssetRefs(f.content, assets));
     const tag = `<script>${content}\n//# sourceURL=${f.path}\n${'<'}/script>`;
     injected.set(tag, { path: f.path, content });
     return tag;
@@ -303,29 +386,58 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
     const ref = normalizeRef(href?.[1] ?? href?.[2] ?? '');
     const file = files.find((f) => f.kind === 'text' && f.path === ref);
     if (!file) return missingRefTag(ref);
-    return `<style>${inlineAssetRefs(file.content, assets)}</style>`;
+    return `<style>${escapeStyleText(inlineAssetRefs(file.content, assets))}</style>`;
   });
 
-  // Shim block, in the mandated order, then server.js as the first kid script.
+  // db seeds: TOP-LEVEL data/*.json TEXT files only (PRD §3.4 — the backend
+  // kind is authoritative, and top-level-only means keys can never collide).
+  // A nested data/**.json text file is skipped with a kid-visible console.warn
+  // so nobody is left wondering why it isn't in db.
   const seeds = files
-    .filter((f) => f.kind === 'text' && isWebsiteDataJsonPath(f.path))
+    .filter((f) => f.kind === 'text' && isWebsiteDataSeedPath(f.path))
     .map((f) => ({ key: dbKeyOf(f.path), path: f.path, text: f.content }));
-  const headBlock = [
+  const skippedSeeds = files
+    .filter((f) => f.kind === 'text' && isNestedDataJson(f.path))
+    .map((f) => f.path);
+
+  // ── STUDIO-OWNED SKELETON (security-load-bearing — never locate the
+  // injection point by matching markup in the UNTRUSTED page). The kid page is
+  // parsed with DOMParser (no execution, malformed markup repaired) and its
+  // head children + body are lifted in AFTER the shims — so a `<head>` hidden
+  // in a comment / string literal / attribute can never displace the fetch
+  // shim or the CSP (the fences the backend's website fetch( allowance rests
+  // on). A DOMParser failure degrades to raw page content in the body — still
+  // strictly AFTER every shim byte.
+  let kidHead = '';
+  let kidBody = html;
+  let kidBodyAttrs = '';
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    kidHead = doc.head.innerHTML;
+    kidBody = doc.body.innerHTML;
+    kidBodyAttrs = Array.from(doc.body.attributes)
+      .map((a) => ` ${a.name}="${a.value.replace(/"/g, '&quot;')}"`)
+      .join('');
+  } catch {
+    // keep the raw-content fallback above
+  }
+
+  const srcDoc = [
+    '<!doctype html>',
+    '<html><head><meta charset="utf-8">',
     EXTENSION_NOISE_GUARD,
     CONSOLE_CAPTURE,
-    siteRuntime(seeds, opts.dbState ?? null),
+    siteRuntime(seeds, opts.dbState ?? null, skippedSeeds),
     CSP_META,
+    // server.js — the FIRST kid script, before anything the page brought along
+    // (even an inline script the kid page put in its own head).
     ...(serverTag ? [serverTag] : []),
+    kidHead,
+    '</head>',
+    `<body${kidBodyAttrs}>`,
+    kidBody,
+    '</body></html>',
   ].join('\n');
-
-  // Inject right after the opening <head> tag so the shims precede ANY kid
-  // script (even an inline one in the head). A page with no <head> (the agent
-  // contract requires one, but never crash) gets the block prepended — the
-  // parser hoists early scripts into the head it synthesizes.
-  const headOpen = /<head\b[^>]*>/i.exec(html);
-  const srcDoc = headOpen
-    ? html.slice(0, headOpen.index + headOpen[0].length) + '\n' + headBlock + html.slice(headOpen.index + headOpen[0].length)
-    : headBlock + '\n' + html;
 
   // 4. Locate every inlined kid script in the final document → line ranges.
   // The tag text is unique per (path, content); content starts ON the

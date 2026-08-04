@@ -369,20 +369,21 @@ const BINARY_ASSET_MIME: Record<string, string> = {
   glb: 'model/gltf-binary',
 };
 /**
- * Website Studio bundled "backend data" (creative-code-studio-website-prd):
- * top-level `data/**.json` files are the site's editable database seed —
- * authored TEXT (agent/editor-editable, JSON-parsed by the site runtime's `db`
- * hydrator), never importable binary data. Mirrors the backend's
- * `isTextVfsPath` carve-out (platform-backend `src/tools/vfs-path.ts`) — same
- * carve-out family as `.anim.json`.
+ * Website db seed path (creative-code-studio-website-prd §3.4): exactly ONE
+ * segment under data/ — `data/<name>.json`, top-level only. Mirrors the
+ * backend's `isWebsiteDataSeedPath` (platform-backend `src/tools/vfs-path.ts`),
+ * where the TEXT classification is KIND-SCOPED to `website` projects. On this
+ * side the backend `kind` on each VfsFile is AUTHORITATIVE — a game's imported
+ * `data/level.json` arrives `kind:'asset'` (raw base64) and keeps its binary
+ * data-URL wrapping; a website's seed arrives `kind:'text'` and is never
+ * wrapped. This helper only qualifies PATHS (the site runtime's db hydration
+ * filter, which additionally requires `kind === 'text'`); it must never
+ * override `kind` in the asset/text conversion below.
  */
-export function isWebsiteDataJsonPath(path: string): boolean {
-  return path.startsWith('data/') && path.endsWith('.json');
+export function isWebsiteDataSeedPath(path: string): boolean {
+  return /^data\/[^/]+\.json$/.test(path);
 }
 function binaryAssetMime(path: string): string | undefined {
-  // `data/**.json` is TEXT (the website db seed carve-out above) — never wrap it
-  // as a binary data asset, even if a stray `kind` ever mislabels it.
-  if (isWebsiteDataJsonPath(path)) return undefined;
   return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
 }
 /** Backend raw base64 → studio `data:` URL (assets only). */

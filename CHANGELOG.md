@@ -77,10 +77,31 @@
 
 ### Changed
 
-- `data/**.json` VFS files mirror the backend TEXT carve-out (`isWebsiteDataJsonPath` in
-  `codeApi.ts`) — website db seeds are editable text, never wrapped as binary data assets.
+- Website db seed paths mirror the backend rule exactly (`isWebsiteDataSeedPath` in `codeApi.ts`):
+  TOP-LEVEL `data/<name>.json` only, and the backend `kind` on each VfsFile stays authoritative —
+  a game's imported `data/level.json` (kind `asset`) keeps its binary data-URL wrapping, a
+  website's seed (kind `text`) is never wrapped. Nested `data/**.json` files don't hydrate `db`
+  (keys can no longer collide) and get a kid-visible console.warn.
 - A `website` project never offers the game-only 2D⇄3D engine-switch confirm ("make it 3D" is a
   normal site edit for Web Critter).
+- SiteFrame's Home button now reads the LIVE `db` from the frame (a `read-db` control message +
+  `__airbotixSiteDb` reply, with a timeout fallback to the last-carried db) — db mutations made
+  since the most recent link click survive Home.
+
+### Fixed
+
+- **Security (adversarial-review blocking):** the website srcdoc is now assembled into a
+  STUDIO-OWNED document skeleton — the kid page is parsed with DOMParser and its head/body are
+  lifted in AFTER the shims — instead of locating `<head>` by regex in untrusted markup. A
+  `<head>` hidden in a comment / script string literal could previously swallow the whole shim
+  block (fetch shim AND CSP) into inert markup, re-arming real `window.fetch` — the exact fences
+  the backend's website `fetch(` allowance rests on (D-WEB-03). The CSP second fence is also now
+  deny-by-default (`default-src 'none'` + inline script/style + `data:`/`blob:` media only),
+  closing external `<script src>`/`<img>`/meta-refresh GET-beacon exfiltration wholesale.
+- A literal `</script>` (or `</style>`) inside an inlined kid file can no longer truncate the
+  studio's tag and corrupt every scriptRange after it (escaped without changing line counts).
+- A non-JSON-safe carried db (e.g. a BigInt a kid posts in a forged nav message) no longer throws
+  mid-render — it degrades to the `data/*.json` seeds with a console.error.
 
 ## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
 

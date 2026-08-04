@@ -25,7 +25,8 @@ vi.mock('@/lib/api', () => ({
 import {
   saveVfs,
   CODE_TEMPLATES,
-  isWebsiteDataJsonPath,
+  isWebsiteDataSeedPath,
+  readVfsSnapshot,
   runAgentTurn,
   signChatImageUpload,
   uploadChatImage,
@@ -258,19 +259,48 @@ describe('CODE_TEMPLATES — starter labels', () => {
   });
 });
 
-// Website Studio db seeds (creative-code-studio-website-prd): `data/**.json` is
-// authored TEXT — the FE mirror of the backend `isTextVfsPath` carve-out, same
-// family as `.anim.json`. Keep in sync with platform-backend src/tools/vfs-path.ts.
-describe('isWebsiteDataJsonPath — the data/**.json TEXT carve-out', () => {
-  it('matches top-level and nested data json seeds', () => {
-    expect(isWebsiteDataJsonPath('data/pets.json')).toBe(true);
-    expect(isWebsiteDataJsonPath('data/shop/items.json')).toBe(true);
+// Website Studio db seeds (creative-code-studio-website-prd §3.4): TOP-LEVEL
+// `data/<name>.json` only — the FE mirror of the backend `isWebsiteDataSeedPath`
+// (platform-backend src/tools/vfs-path.ts), where the TEXT classification is
+// KIND-SCOPED to website projects. The FE never overrides `kind` from the path:
+// the backend kind on each VfsFile is authoritative.
+describe('isWebsiteDataSeedPath — the top-level data/*.json seed rule', () => {
+  it('matches exactly one segment under data/', () => {
+    expect(isWebsiteDataSeedPath('data/pets.json')).toBe(true);
+    expect(isWebsiteDataSeedPath('data/site.json')).toBe(true);
   });
 
-  it('does not match other json or data files', () => {
-    expect(isWebsiteDataJsonPath('config.json')).toBe(false);
-    expect(isWebsiteDataJsonPath('assets/data/pets.json')).toBe(false);
-    expect(isWebsiteDataJsonPath('data/notes.txt')).toBe(false);
-    expect(isWebsiteDataJsonPath('database/pets.json')).toBe(false);
+  it('rejects nested and non-data paths', () => {
+    expect(isWebsiteDataSeedPath('data/shop/pets.json')).toBe(false);
+    expect(isWebsiteDataSeedPath('config.json')).toBe(false);
+    expect(isWebsiteDataSeedPath('assets/data/pets.json')).toBe(false);
+    expect(isWebsiteDataSeedPath('data/notes.txt')).toBe(false);
+    expect(isWebsiteDataSeedPath('database/pets.json')).toBe(false);
+  });
+});
+
+// The kind-scoped conversion boundary: a GAME's imported data json is a binary
+// asset (kind:'asset', raw base64) and must still wrap into a data: URL for the
+// runtime's inlining — the path must NOT disable it. A WEBSITE's seed arrives
+// kind:'text' and passes through untouched.
+describe('toStudioContent (via readVfsSnapshot) — backend kind is authoritative for data json', () => {
+  beforeEach(() => api.mockReset());
+
+  it("a game's data/level.json (kind:'asset') still becomes a data: URL", async () => {
+    api.mockResolvedValue({
+      files: [{ path: 'data/level.json', content: 'eyJhIjoxfQ==', kind: 'asset', size: 12 }],
+      version: 3,
+    });
+    const snap = await readVfsSnapshot('p1');
+    expect(snap.files[0].content).toBe('data:application/json;base64,eyJhIjoxfQ==');
+  });
+
+  it("a website's data/pets.json (kind:'text') is left alone", async () => {
+    api.mockResolvedValue({
+      files: [{ path: 'data/pets.json', content: '[{"id":1}]', kind: 'text', size: 10 }],
+      version: 1,
+    });
+    const snap = await readVfsSnapshot('p1');
+    expect(snap.files[0].content).toBe('[{"id":1}]');
   });
 });

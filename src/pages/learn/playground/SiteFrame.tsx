@@ -5,11 +5,16 @@ import type { VfsFile } from '../code/codeApi';
 import {
   buildSitePreview,
   isConsoleMessage,
+  isSiteDbMessage,
   isSiteNavigateMessage,
   resolveErrorLoc,
   SITE_HOME_PAGE,
   type ConsoleLine,
 } from './buildSitePreview';
+
+/** How long Home waits for the frame's live-db reply before navigating with
+ *  the last-carried db (a crashed/blank page must never wedge the button). */
+const HOME_DB_REPLY_TIMEOUT_MS = 300;
 
 interface SiteFrameProps {
   files: VfsFile[];
@@ -79,6 +84,38 @@ export function SiteFrame({
   scriptRangesRef.current = scriptRanges;
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Home reads the LIVE db from the frame first (`read-db` control message +
+  // `__airbotixSiteDb` reply), so db mutations made since the last link click
+  // aren't lost. The timer doubles as the "a Home request is pending" flag; if
+  // the frame never answers (crashed/blank page) the timeout navigates with
+  // the last-carried db instead — Home must never wedge.
+  const homeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const goHomeRef = useRef((db?: Record<string, unknown> | null) => {
+    if (homeTimerRef.current) {
+      clearTimeout(homeTimerRef.current);
+      homeTimerRef.current = null;
+    }
+    // A null/absent reply (uncloneable live db / timeout) keeps the last-carried db.
+    if (db != null) setDbState(db);
+    setPage(SITE_HOME_PAGE);
+  });
+  const requestHome = () => {
+    const frameWindow = iframeRef.current?.contentWindow;
+    if (homeTimerRef.current) return; // a Home request is already in flight
+    if (!frameWindow) {
+      goHomeRef.current();
+      return;
+    }
+    frameWindow.postMessage({ __airbotixSiteControl: true, action: 'read-db' }, '*');
+    homeTimerRef.current = setTimeout(() => goHomeRef.current(), HOME_DB_REPLY_TIMEOUT_MS);
+  };
+  useEffect(
+    () => () => {
+      if (homeTimerRef.current) clearTimeout(homeTimerRef.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       // Only THIS frame may feed the console / drive navigation (same
@@ -101,6 +138,14 @@ export function SiteFrame({
         // site "remembers" while the kid browses (it resets on restart).
         setDbState((e.data.db ?? null) as Record<string, unknown> | null);
         setPage(e.data.path);
+        return;
+      }
+      if (isSiteDbMessage(e.data)) {
+        // The frame answered our Home read-db request with its LIVE db.
+        // Unsolicited replies (no pending Home) are ignored.
+        if (homeTimerRef.current) {
+          goHomeRef.current((e.data.db ?? null) as Record<string, unknown> | null);
+        }
       }
     };
     window.addEventListener('message', onMessage);
@@ -123,7 +168,7 @@ export function SiteFrame({
           type="button"
           data-testid="site-nav-home"
           aria-label="Home page"
-          onClick={() => setPage(SITE_HOME_PAGE)}
+          onClick={requestHome}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
         >
           <Home size={13} aria-hidden /> Home
