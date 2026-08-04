@@ -94,7 +94,10 @@ export function BlocksCodingBand({
   binArmed,
 }: BlocksCodingBandProps) {
   const paletteBlocks = BLOCK_DEFS.filter(
-    (definition) => definition.category === category && !definition.legacy,
+    (definition) =>
+      definition.category === category &&
+      !definition.legacy &&
+      (!storyMission?.allowedOps || storyMission.allowedOps.includes(definition.op)),
   )
   const paletteChoices: Array<{
     def: (typeof paletteBlocks)[number]

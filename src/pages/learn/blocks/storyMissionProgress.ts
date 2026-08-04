@@ -17,6 +17,12 @@ import {
   jtwC4P7BuildVersion,
 } from './jtwC4DualBuild';
 import {
+  JTW_C5_P4_LESSON_ID,
+  JTW_C5_P5_LESSON_ID,
+  jtwC5P4ExactAst,
+  jtwC5P5ValidAst,
+} from './jtwC5SizeBuild';
+import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
 } from './storyMissionContracts.jtw';
@@ -576,6 +582,8 @@ function missionBlockMatches(
 }
 
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
+  if (lessonId === JTW_C5_P4_LESSON_ID) return jtwC5P4ExactAst(project);
+  if (lessonId === JTW_C5_P5_LESSON_ID) return jtwC5P5ValidAst(project);
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
   if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5BuildVersion(project) !== null;
   if (lessonId === JTW_C4_P6_LESSON_ID) return jtwC4P6FixedVersion(project) !== null;

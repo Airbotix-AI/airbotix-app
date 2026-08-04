@@ -57,6 +57,14 @@ import {
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
 } from './jtwC4DualBuild';
+import {
+  JTW_C5_P4_LESSON_ID,
+  JTW_C5_P4_TARGET_BLOCKS,
+  JTW_C5_P5_LESSON_ID,
+  JTW_C5_USE_SAYS,
+  RUYI_SIZE_SCRIPT_ID,
+  RUYI_STAFF_ID,
+} from './jtwC5SizeBuild';
 
 export interface StoryMissionProgramContract {
   pageId: string;
@@ -81,6 +89,23 @@ export interface StoryMissionProgramContract {
 const STONE_MONKEY_ASSET = JTW_STONE_MONKEY_SPRITE;
 
 export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> = {
+  [JTW_C5_P4_LESSON_ID]: {
+    pageId: 'jtw-c5-p4-page',
+    background: 'underwater',
+    characterId: RUYI_STAFF_ID,
+    scriptId: RUYI_SIZE_SCRIPT_ID,
+    asset: '',
+    target: [...JTW_C5_P4_TARGET_BLOCKS],
+  },
+  [JTW_C5_P5_LESSON_ID]: {
+    pageId: 'jtw-c5-p4-page',
+    background: 'underwater',
+    characterId: RUYI_STAFF_ID,
+    scriptId: RUYI_SIZE_SCRIPT_ID,
+    asset: '',
+    allowedSayText: JTW_C5_USE_SAYS,
+    target: [...JTW_C5_P4_TARGET_BLOCKS],
+  },
   [JTW_C4_P4_LESSON_ID]: {
     pageId: JTW_C4_P4_PAGE_ID,
     background: 'jtw-s1-c4-mountain-gate',

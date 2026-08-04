@@ -41,6 +41,7 @@ function renderPage() {
         <Routes>
           <Route path="/learn/story/journey-west/:partId" element={<JourneyWestC5Part1Page />} />
           <Route path="/learn/story/journey-west" element={<div data-testid="map-stub" />} />
+          <Route path="/learn/story/journey-west/jtw-s1-c5-p2" element={<div data-testid="p2-stub" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -55,6 +56,7 @@ function finishPart() {
   fireEvent.click(screen.getByRole('button', { name: '木棍弯了' }))
   fireEvent.click(screen.getByRole('button', { name: '石锤不便使用和携带' }))
   fireEvent.click(screen.getByRole('button', { name: /要拿得动、能改变大小/ }))
+  fireEvent.click(screen.getByRole('button', { name: /旧工具会弯或不便携带/ }))
 }
 
 beforeEach(() => {
@@ -104,7 +106,7 @@ describe('JourneyWestC5Part1Page — 海底柱影为什么出现', () => {
     expect(screen.getByTestId('jtw-c5p1-continue')).toBeEnabled()
   })
 
-  it('persists exact evidence and returns to the map for the server-owned P2 unlock', async () => {
+  it('persists exact evidence and continues directly to the server-owned P2 unlock', async () => {
     renderPage()
     await screen.findByTestId('jtw-part-c5-p1')
     finishPart()
@@ -123,11 +125,12 @@ describe('JourneyWestC5Part1Page — 海底柱影为什么出现', () => {
             'undersea-shadow',
           ],
           motive_evidence: ['wood-bent', 'hammer-hard-to-use'],
+          oral_explanation: ['suitable-tool-explanation'],
         },
         prediction: 'change-and-carry',
       },
     )
-    await screen.findByTestId('map-stub')
+    await screen.findByTestId('p2-stub')
   })
 
   it('restores persisted evidence on refresh and keeps locked children out', async () => {
@@ -148,6 +151,7 @@ describe('JourneyWestC5Part1Page — 海底柱影为什么出现', () => {
                 'undersea-shadow',
               ],
               motive_evidence: ['wood-bent', 'can-change-and-carry'],
+              oral_explanation: ['suitable-tool-explanation'],
             },
             prediction: 'change-and-carry',
           },

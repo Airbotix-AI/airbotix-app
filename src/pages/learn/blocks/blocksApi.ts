@@ -154,7 +154,10 @@ export type BlocksTemplateId =
   | 'blocks_jtw_c4_p6_screen'
   | 'blocks_jtw_c4_p7_leap'
   | 'blocks_jtw_c4_p7_turn'
-  | 'blocks_jtw_c4_p7_screen';
+  | 'blocks_jtw_c4_p7_screen'
+  | 'blocks_jtw_c5_p2'
+  | 'blocks_jtw_c5_p4'
+  | 'blocks_jtw_c5_p6';
 
 export interface BlocksProjectMeta {
   id: string;

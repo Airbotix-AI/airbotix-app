@@ -26,8 +26,10 @@ const MAP_PATH = '/learn/story/journey-west'
 
 export function JourneyWestC4Part8Page({
   previewSleep,
+  loadBuild = findC4P7Build,
 }: {
   previewSleep?: (ms: number) => Promise<void>
+  loadBuild?: typeof findC4P7Build
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -39,7 +41,7 @@ export function JourneyWestC4Part8Page({
   })
   const build = useQuery({
     queryKey: ['jtw-c4-p7-build', kidId],
-    queryFn: () => findC4P7Build(kidId!),
+    queryFn: () => loadBuild(kidId!),
     enabled: Boolean(kidId),
   })
   const [cards, setCards] = useState<string[]>([])

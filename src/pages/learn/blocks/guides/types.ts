@@ -65,6 +65,8 @@ export interface StoryMission {
   };
   /** Chapter ships celebrate; an Explore hook uses quieter in-card feedback. */
   celebrate?: boolean;
+  /** Optional task-scoped palette. Omitted missions keep the full studio palette. */
+  allowedOps?: readonly import('../blocksModel').BlockOp[];
   eyebrow: string;
   title: string;
   storyPages: StoryPage[];

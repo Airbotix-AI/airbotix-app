@@ -8,7 +8,12 @@ import {
   JTW_C4_P4_PAGE_ID,
   JTW_C4_WUKONG_ASSET,
 } from '../jtwC4DualBuild'
-import { c4p7BuildComplete, type C4P7BuildEvidence } from './journeyWestC4Part7Program'
+import {
+  c4p7BuildComplete,
+  c4p7ReopenRunComplete,
+  runC4P7ReopenedProject,
+  type C4P7BuildEvidence,
+} from './journeyWestC4Part7Program'
 
 const PROJECT: BlocksProject = {
   version: 1,
@@ -39,12 +44,21 @@ describe('JtW C4-P7 product evidence', () => {
     design: 'turn',
     dualRunCompleted: true,
     blockCount: 9,
+    childLedBlockCount: 7,
+    endCount: 2,
   }
 
-  it('requires a saved studio dual-run marker and at least eight structural blocks', () => {
+  it('requires exact AST, a saved dual-run marker, seven child-led blocks and two Ends', () => {
     expect(c4p7BuildComplete(build)).toBe(true)
     expect(c4p7BuildComplete({ ...build, dualRunCompleted: false })).toBe(false)
-    expect(c4p7BuildComplete({ ...build, blockCount: 7 })).toBe(false)
+    expect(c4p7BuildComplete({ ...build, childLedBlockCount: 6 })).toBe(false)
+    expect(c4p7BuildComplete({ ...build, endCount: 1 })).toBe(false)
+  })
+
+  it('really reruns both events after reopening the saved JSON', async () => {
+    const run = await runC4P7ReopenedProject(PROJECT, async () => undefined)
+    expect(run.startTrace).toEqual(['when_flag', 'show', 'say', 'end'])
+    expect(run.tapTrace).toEqual(['when_tap', 'turn_left', 'wait', 'say', 'end'])
+    expect(c4p7ReopenRunComplete(run)).toBe(true)
   })
 })
-

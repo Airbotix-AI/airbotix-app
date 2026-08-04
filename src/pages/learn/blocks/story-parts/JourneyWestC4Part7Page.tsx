@@ -15,7 +15,10 @@ import {
   C4_P7_STORY_BEFORE,
   C4_P7_VERSIONS,
   c4p7BuildComplete,
+  c4p7ReopenRunComplete,
   findC4P7Build,
+  runC4P7ReopenedProject,
+  type C4P7ReopenRunEvidence,
 } from './journeyWestC4Part7Program'
 
 const FIRST_SEEN = ['名字牌', '悟空', '指尖目标'] as const
@@ -43,6 +46,7 @@ export function JourneyWestC4Part7Page() {
   const [hintStrength, setHintStrength] = useState<string | null>(null)
   const [reopenVersion, setReopenVersion] = useState<number | null>(null)
   const [reopenMatch, setReopenMatch] = useState(false)
+  const [reopenRun, setReopenRun] = useState<C4P7ReopenRunEvidence | null>(null)
   const [creating, setCreating] = useState(false)
   const [restored, setRestored] = useState(false)
 
@@ -57,6 +61,12 @@ export function JourneyWestC4Part7Page() {
     setHintStrength(evidence.selections?.hint_strength?.[0] ?? null)
     setReopenVersion(Number(evidence.selections?.reopen_version?.[0]) || null)
     setReopenMatch(evidence.selections?.reopen_match?.[0] === 'json-identical')
+    setReopenRun({
+      startTrace: evidence.selections?.reopen_start_trace ?? [],
+      tapTrace: evidence.selections?.reopen_tap_trace ?? [],
+      startStoppedAtEnd: evidence.selections?.reopen_start_stop?.[0] === 'end',
+      tapStoppedAtEnd: evidence.selections?.reopen_tap_stop?.[0] === 'end',
+    })
     setRestored(true)
   }
 
@@ -67,7 +77,8 @@ export function JourneyWestC4Part7Page() {
     tapReason === TAP_REASONS[0] &&
     hintStrength === HINT_STRENGTHS[0]
   const resolved = Boolean(
-    prediction && startedDesign && buildDone && peerDone && reopenMatch && reopenVersion,
+    prediction && startedDesign && buildDone && peerDone && reopenMatch && reopenVersion &&
+      c4p7ReopenRunComplete(reopenRun),
   )
 
   const openStudio = async () => {
@@ -98,6 +109,7 @@ export function JourneyWestC4Part7Page() {
       before.version === reopened.version &&
       JSON.stringify(before.project) === JSON.stringify(reopened.project),
     )
+    setReopenRun(await runC4P7ReopenedProject(reopened.project))
   }
 
   const complete = useMutation({
@@ -113,8 +125,14 @@ export function JourneyWestC4Part7Page() {
           peer_first_seen: firstSeen ? [firstSeen] : [],
           peer_tap_reason: tapReason ? [tapReason] : [],
           hint_strength: hintStrength ? [hintStrength] : [],
-          event_trace: ['go:name:end', 'wait:skill-still', 'tap:skill:end', 'reopen:go+tap'],
-          block_ledger: build.data ? [`total:${build.data.blockCount}`] : [],
+          event_trace: ['go:name:end', 'wait:skill-still', 'tap:skill:end'],
+          reopen_start_trace: reopenRun?.startTrace ?? [],
+          reopen_tap_trace: reopenRun?.tapTrace ?? [],
+          reopen_start_stop: reopenRun?.startStoppedAtEnd ? ['end'] : [],
+          reopen_tap_stop: reopenRun?.tapStoppedAtEnd ? ['end'] : [],
+          block_ledger: build.data
+            ? [`child-led:${build.data.childLedBlockCount}`, `end:${build.data.endCount}`]
+            : [],
         },
         prediction: prediction ? 'Go只得名；同伴自己发现并Tap后才展示本领' : undefined,
       }),
@@ -137,11 +155,10 @@ export function JourneyWestC4Part7Page() {
       <section className="rounded-2xl bg-wash-sky p-5"><p className="font-bold">先预测：Go只得名；Tap才展示。</p><button type="button" className="btn-pill-secondary mt-3" onClick={() => setPrediction(true)}>{prediction ? '✓ 已记录预测' : '记录双事件预测'}</button></section>
       <section className="space-y-3 rounded-2xl border border-brand-sky p-5" data-testid="jtw-c4p7-build"><p>两个入口只预放Trigger。亲手搭到至少八块总结构、两个End，再在真实Studio先Go等待、后Tap悟空并保存。</p><button type="button" className="btn-pill-primary" disabled={!design || !prediction || creating} onClick={() => void openStudio()}>{build.data ? '回到我的认识卡' : '打开真实工作区'}</button><p>{buildDone ? `✓ ${build.data?.blockCount}块、Go/Tap双运行和保存证据已读回` : '等待真实积木、双运行和保存证据'}</p></section>
       <section className="space-y-3 rounded-2xl border border-hairline p-5" data-testid="jtw-c4p7-peer"><h2 className="font-bold">同伴无口头答案测试</h2><label>先看见什么？ <select value={firstSeen ?? ''} onChange={(event) => setFirstSeen(event.target.value)}><option value="">请选择</option>{FIRST_SEEN.map((value) => <option key={value}>{value}</option>)}</select></label><label className="block">为什么Tap？ <select value={tapReason ?? ''} onChange={(event) => setTapReason(event.target.value)}><option value="">请选择</option>{TAP_REASONS.map((value) => <option key={value}>{value}</option>)}</select></label><label className="block">提示强度 <select value={hintStrength ?? ''} onChange={(event) => setHintStrength(event.target.value)}><option value="">请选择</option>{HINT_STRENGTHS.map((value) => <option key={value}>{value}</option>)}</select></label></section>
-      <section className="space-y-3 rounded-2xl border border-hairline p-5" data-testid="jtw-c4p7-reopen"><h2 className="font-bold">关闭、重开、再次核对</h2><button type="button" className="btn-pill-secondary" disabled={!buildDone} onClick={() => void closeAndReopen()}>关闭并从服务端重开</button><p>{reopenMatch ? `✓ 版本 ${reopenVersion}：角色、背景、双脚本与动作JSON一致；可再次Go/Tap` : '尚未完成服务端重开一致性核对'}</p></section>
+      <section className="space-y-3 rounded-2xl border border-hairline p-5" data-testid="jtw-c4p7-reopen"><h2 className="font-bold">关闭、重开、再次核对</h2><button type="button" className="btn-pill-secondary" disabled={!buildDone} onClick={() => void closeAndReopen()}>关闭并从服务端重开，再次Go/Tap</button><p>{reopenMatch && c4p7ReopenRunComplete(reopenRun) ? `✓ 版本 ${reopenVersion}：JSON一致，重开后Go与Tap都再次运行到End` : '尚未完成服务端重开一致性与再次运行核对'}</p></section>
       {resolved && <section className="rounded-2xl border border-brand-mint bg-wash-mint p-5" data-testid="jtw-c4p7-resolved"><h2 className="font-black">名字牌与目标点都留在个人作品里。</h2><p className="mt-2">{C4_P7_STORY_AFTER}</p></section>}
       <button type="button" className="btn-pill-primary w-full" disabled={!resolved || complete.isPending} onClick={() => complete.mutate()}>{savedEntry ? '回到地图' : C4_P7_CONTINUE_LABEL}</button>
       <p className="text-center text-xs text-ink-soft">本Part只解锁P8，不完成第四章。</p>
     </div>
   )
 }
-

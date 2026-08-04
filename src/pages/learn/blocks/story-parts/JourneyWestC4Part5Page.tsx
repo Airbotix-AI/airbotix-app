@@ -21,6 +21,24 @@ import {
 } from './journeyWestC4Part5Program'
 
 const RECENT_PROJECTS_TO_SCAN = 8
+const C4_P5_PLAN_KEY = 'story-blocks:jtw:c4-p5-plan'
+
+interface C4P5Plan {
+  motive: string | null
+  version: JtwC4P5Version | null
+  prediction: boolean
+}
+
+function planKey(kidId: string | null): string { return `${C4_P5_PLAN_KEY}:${kidId ?? 'anonymous'}` }
+
+function readPlan(kidId: string | null): C4P5Plan {
+  try {
+    const value = sessionStorage.getItem(planKey(kidId))
+    return value ? JSON.parse(value) as C4P5Plan : { motive: null, version: null, prediction: false }
+  } catch {
+    return { motive: null, version: null, prediction: false }
+  }
+}
 
 async function findBuild(kidId: string): Promise<C4P5BuildEvidence | null> {
   for (const project of (await listBlocksProjects(kidId)).slice(0, RECENT_PROJECTS_TO_SCAN)) {
@@ -35,7 +53,15 @@ async function findBuild(kidId: string): Promise<C4P5BuildEvidence | null> {
   return null
 }
 
-export function JourneyWestC4Part5Page() {
+export interface JourneyWestC4Part5PageProps {
+  loadBuild?: (kidId: string) => Promise<C4P5BuildEvidence | null>
+  createWorkspace?: (args: { title: string; template: typeof C4_P5_VERSIONS[number]['template'] }) => Promise<{ id: string }>
+}
+
+export function JourneyWestC4Part5Page({
+  loadBuild = findBuild,
+  createWorkspace = createBlocksProject,
+}: JourneyWestC4Part5PageProps = {}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const me = useMe()
@@ -46,12 +72,13 @@ export function JourneyWestC4Part5Page() {
   })
   const build = useQuery({
     queryKey: ['jtw-c4-p5-build', kidId],
-    queryFn: () => findBuild(kidId!),
+    queryFn: () => loadBuild(kidId!),
     enabled: Boolean(kidId),
   })
-  const [motive, setMotive] = useState<string | null>(null)
-  const [version, setVersion] = useState<JtwC4P5Version | null>(null)
-  const [prediction, setPrediction] = useState(false)
+  const [initialPlan] = useState(() => readPlan(kidId))
+  const [motive, setMotive] = useState<string | null>(initialPlan.motive)
+  const [version, setVersion] = useState<JtwC4P5Version | null>(initialPlan.version)
+  const [prediction, setPrediction] = useState(initialPlan.prediction)
   const [creating, setCreating] = useState(false)
   const [restored, setRestored] = useState(false)
 
@@ -81,9 +108,10 @@ export function JourneyWestC4Part5Page() {
     }
     const selected = C4_P5_VERSIONS.find((candidate) => candidate.id === version)
     if (!selected) return
+    sessionStorage.setItem(planKey(kidId), JSON.stringify({ motive, version, prediction }))
     setCreating(true)
     try {
-      const project = await createBlocksProject({
+      const project = await createWorkspace({
         title: `西游记 · ${selected.title}`,
         template: selected.template,
       })

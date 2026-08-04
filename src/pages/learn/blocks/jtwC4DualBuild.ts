@@ -49,6 +49,18 @@ export const JTW_C4_P5_SKILL_TARGETS = {
   ],
 } as const satisfies Record<string, readonly Block[]>
 
+export const JTW_C4_P7_SKILL_TARGETS = {
+  leap: [
+    { op: 'when_tap' },
+    { op: 'hop', n: 2 },
+    { op: 'wait', n: 1 },
+    { op: 'say', text: '我等到邀请了' },
+    { op: 'end' },
+  ],
+  turn: JTW_C4_P5_SKILL_TARGETS.turn,
+  screen: JTW_C4_P5_SKILL_TARGETS.screen,
+} as const satisfies Record<JtwC4P5Version, readonly Block[]>
+
 export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
 
 function skillTarget(version: JtwC4P5Version, trigger: 'when_flag' | 'when_tap'): readonly Block[] {
@@ -121,7 +133,20 @@ export function jtwC4P6FixedVersion(project: BlocksProject): JtwC4P5Version | nu
 }
 
 export function jtwC4P7BuildVersion(project: BlocksProject): JtwC4P5Version | null {
-  return jtwC4SkillVersion(project, JTW_C4_P7_LESSON_ID, 'when_tap')
+  if (project.lessonId !== JTW_C4_P7_LESSON_ID || project.pages.length !== 1) return null
+  const page = project.pages[0]
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (
+    page?.id !== JTW_C4_P4_PAGE_ID ||
+    !actor ||
+    actor.asset !== JTW_C4_WUKONG_ASSET ||
+    actor.scripts.length !== 2
+  ) return null
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
+  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
+  return (Object.keys(JTW_C4_P7_SKILL_TARGETS) as JtwC4P5Version[])
+    .find((version) => exactScript(skill, JTW_C4_P7_SKILL_TARGETS[version])) ?? null
 }
 
 export function jtwC4P6TriggerDiff(project: BlocksProject): string[] {

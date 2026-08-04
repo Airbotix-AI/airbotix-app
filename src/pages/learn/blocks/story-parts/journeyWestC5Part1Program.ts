@@ -36,6 +36,15 @@ export const C5_P1_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
   { id: 'beat-someone', label: '需要用它打败一个敌人', correct: false },
 ]
 
+export const C5_P1_EXPLANATION_OPTIONS: JtwEvidenceOption[] = [
+  {
+    id: 'suitable-tool-explanation',
+    label: '旧工具会弯或不便携带，所以悟空要找能变大小、也适合携带的工具。',
+    correct: true,
+  },
+  { id: 'largest-tool-explanation', label: '海底影子最大，所以最大的工具一定最好。', correct: false },
+]
+
 export const C5_P1_RESOLVED_WORLD_CHANGE =
   '三张故事卡连成一条水纹路线；悟空把弯木棍和石锤留在安全处。'
 export const C5_P1_STORY_AFTER =
@@ -55,4 +64,8 @@ export function c5p1MotiveDone(selected: string[]): boolean {
 
 export function c5p1PredictionDone(prediction: string | null): boolean {
   return C5_P1_PREDICTION_OPTIONS.find((option) => option.id === prediction)?.correct === true
+}
+
+export function c5p1ExplanationDone(explanation: string | null): boolean {
+  return C5_P1_EXPLANATION_OPTIONS.find((option) => option.id === explanation)?.correct === true
 }

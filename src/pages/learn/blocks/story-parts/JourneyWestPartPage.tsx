@@ -59,6 +59,11 @@ import { JourneyWestC4Part6Page } from './JourneyWestC4Part6Page';
 import { JourneyWestC4Part7Page } from './JourneyWestC4Part7Page';
 import { JourneyWestC4Part8Page } from './JourneyWestC4Part8Page';
 import { JourneyWestC5Part1Page } from './JourneyWestC5Part1Page';
+import { JourneyWestC5Part2Page } from './JourneyWestC5Part2Page';
+import { JourneyWestC5Part3Page } from './JourneyWestC5Part3Page';
+import { JourneyWestC5Part4Page } from './JourneyWestC5Part4Page';
+import { JourneyWestC5Part5Page } from './JourneyWestC5Part5Page';
+import { JourneyWestC5Part6Page } from './JourneyWestC5Part6Page';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -100,6 +105,11 @@ export function JourneyWestPartRoute() {
   if (partId === 'jtw-s1-c4-p7') return <JourneyWestC4Part7Page />;
   if (partId === 'jtw-s1-c4-p8') return <JourneyWestC4Part8Page />;
   if (partId === 'jtw-s1-c5-p1') return <JourneyWestC5Part1Page />;
+  if (partId === 'jtw-s1-c5-p2') return <JourneyWestC5Part2Page />;
+  if (partId === 'jtw-s1-c5-p3') return <JourneyWestC5Part3Page />;
+  if (partId === 'jtw-s1-c5-p4') return <JourneyWestC5Part4Page />;
+  if (partId === 'jtw-s1-c5-p5') return <JourneyWestC5Part5Page />;
+  if (partId === 'jtw-s1-c5-p6') return <JourneyWestC5Part6Page />;
   return <Navigate to="/learn/story/journey-west" replace />;
 }
 

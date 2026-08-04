@@ -8,6 +8,7 @@ import {
   JTW_C4_P5_LESSON_ID,
   JTW_C4_P7_LESSON_ID,
   JTW_C4_P5_SKILL_TARGETS,
+  JTW_C4_P7_SKILL_TARGETS,
   JTW_C4_SKILL_TARGET,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
@@ -90,7 +91,7 @@ describe('JtW C4-P5 expression choice contract', () => {
 })
 
 describe('JtW C4-P7 personal introduction contract', () => {
-  it.each(Object.entries(JTW_C4_P5_SKILL_TARGETS))(
+  it.each(Object.entries(JTW_C4_P7_SKILL_TARGETS))(
     'accepts the %s design only when name and Tap chains both remain complete',
     (version, target) => {
       const built = project()

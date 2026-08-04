@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   C5_P1_CLASSIC_CARD,
   C5_P1_CONTINUE_LABEL,
+  C5_P1_EXPLANATION_OPTIONS,
   C5_P1_MOTIVE_OPTIONS,
   C5_P1_NEXT_PART_ID,
   C5_P1_PART_ID,
@@ -15,6 +16,7 @@ import {
   C5_P1_STORY_AFTER,
   C5_P1_STORY_CARDS,
   c5p1MotiveDone,
+  c5p1ExplanationDone,
   c5p1OrderDone,
   c5p1PredictionDone,
 } from './journeyWestC5Part1Program'
@@ -33,6 +35,7 @@ export function JourneyWestC5Part1Page() {
   const [cardOrder, setCardOrder] = useState<string[]>([])
   const [motives, setMotives] = useState<string[]>([])
   const [prediction, setPrediction] = useState<string | null>(null)
+  const [explanation, setExplanation] = useState<string | null>(null)
   const [restored, setRestored] = useState(false)
 
   const savedEntry = progress.data?.completed.find((entry) => entry.part_id === C5_P1_PART_ID)
@@ -43,13 +46,15 @@ export function JourneyWestC5Part1Page() {
     setCardOrder(evidence.selections?.story_card_order ?? [])
     setMotives(evidence.selections?.motive_evidence ?? [])
     setPrediction(evidence.prediction ?? null)
+    setExplanation(evidence.selections?.oral_explanation?.[0] ?? null)
     setRestored(true)
   }
 
   const orderDone = c5p1OrderDone(cardOrder)
   const motiveDone = c5p1MotiveDone(motives)
   const predictionDone = c5p1PredictionDone(prediction)
-  const resolved = storyRead && orderDone && motiveDone && predictionDone
+  const explanationDone = c5p1ExplanationDone(explanation)
+  const resolved = storyRead && orderDone && motiveDone && predictionDone && explanationDone
   const completed = Boolean(savedEntry)
 
   const complete = useMutation({
@@ -59,12 +64,13 @@ export function JourneyWestC5Part1Page() {
         story_screens: ['story-card-a'],
         story_card_order: cardOrder,
         motive_evidence: motives,
+        oral_explanation: explanation ? [explanation] : [],
       },
       prediction: prediction ?? undefined,
     }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID] })
-      navigate('/learn/story/journey-west', { state: { unlocked: C5_P1_NEXT_PART_ID } })
+      navigate(`/learn/story/journey-west/${C5_P1_NEXT_PART_ID}`)
     },
   })
 
@@ -148,6 +154,18 @@ export function JourneyWestC5Part1Page() {
             option={option}
             active={prediction === option.id}
             onPick={() => setPrediction(option.id)}
+          />
+        ))}
+      </section>
+
+      <section className="space-y-3" data-testid="jtw-c5p1-explanation">
+        <h2 className="font-bold text-ink">把两条证据连成一句口头解释</h2>
+        {C5_P1_EXPLANATION_OPTIONS.map((option) => (
+          <Choice
+            key={option.id}
+            option={option}
+            active={explanation === option.id}
+            onPick={() => setExplanation(option.id)}
           />
         ))}
       </section>

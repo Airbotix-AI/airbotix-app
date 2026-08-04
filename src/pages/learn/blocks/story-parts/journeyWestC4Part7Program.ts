@@ -1,5 +1,6 @@
 import { listBlocksProjects, loadBlocksProject } from '../blocksApi'
 import type { BlocksProject } from '../blocksModel'
+import { BlocksRunner } from '../interpreter'
 import {
   JTW_C4_P7_LESSON_ID,
   jtwC4P7BuildVersion,
@@ -35,6 +36,8 @@ export interface C4P7BuildEvidence {
   design: JtwC4P5Version
   dualRunCompleted: boolean
   blockCount: number
+  childLedBlockCount: number
+  endCount: number
 }
 
 export async function findC4P7Build(kidId: string): Promise<C4P7BuildEvidence | null> {
@@ -43,17 +46,22 @@ export async function findC4P7Build(kidId: string): Promise<C4P7BuildEvidence | 
       const loaded = await loadBlocksProject(meta.id)
       const design = jtwC4P7BuildVersion(loaded.project)
       if (!design) continue
+      const blocks = loaded.project.pages.flatMap((page) =>
+        page.characters.flatMap((character) =>
+          character.scripts.flatMap((script) => script.blocks),
+        ),
+      )
       return {
         projectId: meta.id,
         project: loaded.project,
         version: loaded.version,
         design,
         dualRunCompleted: Boolean(loaded.storyProgress?.completed[C4_P7_PART_ID]),
-        blockCount: loaded.project.pages.flatMap((page) =>
-          page.characters.flatMap((character) =>
-            character.scripts.flatMap((script) => script.blocks),
-          ),
+        blockCount: blocks.length,
+        childLedBlockCount: blocks.filter(
+          (block) => block.op !== 'when_flag' && block.op !== 'when_tap',
         ).length,
+        endCount: blocks.filter((block) => block.op === 'end').length,
       }
     } catch {
       // Ignore an unreadable legacy project and keep scanning.
@@ -63,6 +71,62 @@ export async function findC4P7Build(kidId: string): Promise<C4P7BuildEvidence | 
 }
 
 export function c4p7BuildComplete(build: C4P7BuildEvidence | null | undefined): boolean {
-  return Boolean(build?.dualRunCompleted && build.blockCount >= 8)
+  return Boolean(
+    build?.dualRunCompleted &&
+    build.childLedBlockCount >= 7 &&
+    build.endCount === 2 &&
+    jtwC4P7BuildVersion(build.project) === build.design,
+  )
 }
 
+export interface C4P7ReopenRunEvidence {
+  startTrace: string[]
+  tapTrace: string[]
+  startStoppedAtEnd: boolean
+  tapStoppedAtEnd: boolean
+}
+
+export async function runC4P7ReopenedProject(
+  project: BlocksProject,
+  sleep?: (ms: number) => Promise<void>,
+): Promise<C4P7ReopenRunEvidence> {
+  const page = project.pages[0]
+  const character = page?.characters.find((candidate) => candidate.id === 'sun-wukong')
+  if (!page || !character || !jtwC4P7BuildVersion(project)) {
+    return { startTrace: [], tapTrace: [], startStoppedAtEnd: false, tapStoppedAtEnd: false }
+  }
+  const trace: string[] = []
+  const runner = new BlocksRunner(page, {
+    onSprite: () => undefined,
+    onSay: () => undefined,
+    onNote: () => undefined,
+    onSound: () => undefined,
+    onGotoPage: () => undefined,
+    onStep: (_characterId, scriptId, index) => {
+      if (index < 0) return
+      const op = character.scripts.find((script) => script.id === scriptId)?.blocks[index]?.op
+      if (op) trace.push(op)
+    },
+  }, sleep)
+  await runner.runFlag()
+  const startTrace = ['when_flag', ...trace]
+  trace.length = 0
+  runner.resetAll()
+  await runner.runTap('sun-wukong')
+  const tapTrace = ['when_tap', ...trace]
+  return {
+    startTrace,
+    tapTrace,
+    startStoppedAtEnd: startTrace.at(-1) === 'end',
+    tapStoppedAtEnd: tapTrace.at(-1) === 'end',
+  }
+}
+
+export function c4p7ReopenRunComplete(run: C4P7ReopenRunEvidence | null): boolean {
+  return Boolean(
+    run?.startStoppedAtEnd &&
+    run.tapStoppedAtEnd &&
+    run.startTrace[0] === 'when_flag' &&
+    run.tapTrace[0] === 'when_tap',
+  )
+}
