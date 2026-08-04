@@ -17,7 +17,11 @@ vi.mock('../../projects/useProjectBackTo', () => ({
   useProjectBackTo: () => '/learn/classroom/class-1?tab=mywork',
 }));
 // Heavy/irrelevant children — stub so the Taskbar renders in isolation.
-vi.mock('../ShareLinkPanel', () => ({ ShareLinkPanel: () => null }));
+// Stubbed with a marker so tests can assert WHETHER Share is offered (the
+// website gate below) without pulling in the real panel's queries.
+vi.mock('../ShareLinkPanel', () => ({
+  ShareLinkPanel: () => <div data-testid="stub-share-panel" />,
+}));
 vi.mock('@/pages/try/demoMode', () => ({ useDemoMode: () => null }));
 // The dock's MissionStepChip reads the mission checklist through the API client.
 vi.mock('@/lib/api', () => ({ api: vi.fn() }));
@@ -36,7 +40,12 @@ beforeEach(() => {
   apiMock.mockReset().mockResolvedValue(MISSION as never);
 });
 
-function renderTaskbar(props: { projectId?: string; missionId?: string | null; readOnly?: boolean }) {
+function renderTaskbar(props: {
+  projectId?: string;
+  missionId?: string | null;
+  readOnly?: boolean;
+  kind?: 'game' | 'website';
+}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -81,5 +90,26 @@ describe('Taskbar — the current mission step is docked here (§9A)', () => {
     renderTaskbar({ projectId: 'p1' });
     expect(screen.queryByTestId('mission-taskbar-chip')).not.toBeInTheDocument();
     expect(apiMock).not.toHaveBeenCalled();
+  });
+});
+
+// Share is a GAME affordance until website publish lands (P3,
+// creative-code-studio-website-prd §6): the public play host renders a game
+// (ReadOnlyGameFrame) and the ShareLink carries no kind, so sharing a website
+// today would mint a DEAD public link. Interim guard — drop it when P3 ships.
+describe('Taskbar — Share is gated for website projects (interim, pre-P3)', () => {
+  it('offers Share for a game project', () => {
+    renderTaskbar({ projectId: 'p1' });
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
+  });
+
+  it('does NOT offer Share for a website project', () => {
+    renderTaskbar({ projectId: 'p1', kind: 'website' });
+    expect(screen.queryByTestId('stub-share-panel')).not.toBeInTheDocument();
+  });
+
+  it('defaults to the game behaviour when no kind is passed', () => {
+    renderTaskbar({ projectId: 'p1', kind: undefined });
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
   });
 });

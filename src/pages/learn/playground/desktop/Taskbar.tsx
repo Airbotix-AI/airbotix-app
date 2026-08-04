@@ -76,6 +76,14 @@ interface TaskbarProps {
   /** Teacher-prep host (D-PREP-6): the share control mints immediately, no approval. */
   prepShare?: boolean;
   /**
+   * Project kind. `website` HIDES the share control until website publish lands
+   * (P3, creative-code-studio-website-prd §6): the public play host renders a
+   * game (`ReadOnlyGameFrame`) and the ShareLink carries no kind, so a shared
+   * website would mint a DEAD public link. Interim guard — remove it when P3
+   * ships the website publish path. Defaults to `game` (unchanged behaviour).
+   */
+  kind?: 'game' | 'website';
+  /**
    * Whether Mission Mode exists for this project at all (D-GAME14h) — i.e. the mission
    * authors steps AND its course pack is published. False hides the Mission window button
    * entirely: an empty checklist window advertises structure that isn't there.
@@ -89,6 +97,7 @@ export function Taskbar({
   hasMission = false,
   readOnly = false,
   prepShare = false,
+  kind = 'game',
 }: TaskbarProps) {
   // Home/back: a game has no other way out of the immersive desktop. For a class
   // project this returns to the class's "My work" tab; otherwise to My Works
@@ -98,7 +107,9 @@ export function Taskbar({
   // fixed share project id here to surface the REAL Share button (the in-memory
   // share adapter intercepts its calls). `null` (off) everywhere else.
   const demoShareProjectId = useDemoMode()?.shareProjectId;
-  const shareProjectId = projectId ?? demoShareProjectId;
+  // Websites can't be published yet (P3, creative-code-studio-website-prd §6) —
+  // offering Share would mint a link the public play host can't render.
+  const shareProjectId = kind === 'website' ? undefined : (projectId ?? demoShareProjectId);
   const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);

@@ -660,6 +660,7 @@ export function Workspace({
           hasMission={hasMission}
           readOnly={readOnly}
           prepShare={prepShare}
+          kind={kind}
         />
         {/* Milestone celebration lives HERE, not in MissionPane: a step ticked
             from the taskbar chip must celebrate with the Mission window closed. */}
@@ -761,7 +762,13 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} missionId={missionId} readOnly={readOnly} prepShare={prepShare} />
+      <Taskbar
+        projectId={projectId}
+        missionId={missionId}
+        readOnly={readOnly}
+        prepShare={prepShare}
+        kind={kind}
+      />
       {/* Same hoisted milestone celebration as window mode (§9A.6). */}
       <MissionCelebration />
     </div>

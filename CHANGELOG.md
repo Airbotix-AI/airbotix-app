@@ -53,10 +53,10 @@
   hosts `Project.kind='website'` projects — real multi-page HTML sites with a simulated in-project
   backend. `buildSitePreview.ts` builds the sandboxed srcdoc from the VFS pages themselves: shims
   injected before any kid script (extension-noise guard, console capture, the site runtime, a
-  `connect-src 'none'` CSP second fence), `server.js` always the FIRST kid script, stylesheet/script
+  deny-by-default CSP second fence), `server.js` always the FIRST kid script, stylesheet/script
   references inlined with `//# sourceURL` + scriptRanges (syntax errors map back to kid files),
   missing/external references degrade to a `console.error`, and quoted asset paths inline as
-  `data:` URLs. The site runtime ships `db` (hydrated from `data/**.json` seeds; parse failures
+  `data:` URLs. The site runtime ships `db` (hydrated from top-level `data/*.json` seeds; parse failures
   console.error and skip), `app.get`/`app.post`, an `/api/*`-only fetch shim (query/body parsing,
   chainable `res.status().json()`, kid-friendly 404/500s, the outside internet blocked), and a
   capture-phase nav shim that turns relative `*.html` link clicks into a studio postMessage.
@@ -80,8 +80,9 @@
 - Website db seed paths mirror the backend rule exactly (`isWebsiteDataSeedPath` in `codeApi.ts`):
   TOP-LEVEL `data/<name>.json` only, and the backend `kind` on each VfsFile stays authoritative —
   a game's imported `data/level.json` (kind `asset`) keeps its binary data-URL wrapping, a
-  website's seed (kind `text`) is never wrapped. Nested `data/**.json` files don't hydrate `db`
-  (keys can no longer collide) and get a kid-visible console.warn.
+  website's seed (kind `text`) is never wrapped. Nested `data/**.json` files never hydrate `db`, so
+  keys can't collide — and the backend now rejects such a write outright (`VFS_WEBSITE_SEED_PATH`,
+  D-WEB-05), so no client-side warn is needed.
 - A `website` project never offers the game-only 2D⇄3D engine-switch confirm ("make it 3D" is a
   normal site edit for Web Critter).
 - SiteFrame's Home button now reads the LIVE `db` from the frame (a `read-db` control message +
@@ -97,7 +98,25 @@
   block (fetch shim AND CSP) into inert markup, re-arming real `window.fetch` — the exact fences
   the backend's website `fetch(` allowance rests on (D-WEB-03). The CSP second fence is also now
   deny-by-default (`default-src 'none'` + inline script/style + `data:`/`blob:` media only),
-  closing external `<script src>`/`<img>`/meta-refresh GET-beacon exfiltration wholesale.
+  closing every SUBRESOURCE-load vector: external `<script src>`/`<img>`/`<link>`/font/`<iframe>`
+  (a nested frame is the classic route to a fresh un-shimmed `window.fetch`) plus
+  XHR/WebSocket/EventSource/sendBeacon via `connect-src 'none'`. It does NOT stop the frame
+  navigating ITSELF (`location.href`, `<meta http-equiv="refresh">`) — CSP has no directive for
+  document self-navigation (`navigate-to` never shipped) and `sandbox="allow-scripts"` permits it;
+  that residual one-shot GET leak is documented as a known limitation in `buildSitePreview.ts`,
+  not claimed as closed.
+- Blocked-by-CSP subresources are no longer silent to the kid: a `securitypolicyviolation`
+  listener emits a kid-readable console line per directive (e.g. "Pictures from the internet are
+  blocked — import the picture into your project instead, then use its file name"), content-free
+  (the blocked directive only, never the URL).
+- The kid page's `<html>` attributes (`lang`, `class`, …) are carried into the studio skeleton —
+  every backend template ships `<html lang="en">`, and an AI-written `<html class="dark">` paired
+  with `html.dark {…}` CSS previously rendered differently in the preview than the editor showed.
+  `&` is now escaped before `"` when serializing `<html>`/`<body>` attributes, so entity-like text
+  survives the parse→serialize round trip.
+- Share is hidden for `website` projects until website publish lands (P3,
+  creative-code-studio-website-prd §6): the public play host renders a game (`ReadOnlyGameFrame`)
+  and the ShareLink carries no kind, so a shared website would have minted a dead public link.
 - A literal `</script>` (or `</style>`) inside an inlined kid file can no longer truncate the
   studio's tag and corrupt every scriptRange after it (escaped without changing line counts).
 - A non-JSON-safe carried db (e.g. a BigInt a kid posts in a forged nav message) no longer throws

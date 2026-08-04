@@ -18,13 +18,17 @@ a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="k
 The SAME studio also hosts **Website Studio** (`Project.kind='website'`,
 `/learn/playground/new?kind=website`): the runner mounts `SiteFrame` (`buildSitePreview.ts`,
 `sandbox="allow-scripts"` ONLY, `iframe[data-site-frame]`) instead of `GameFrame` — VFS-owned
-real `.html` pages lifted (DOMParser) into a **studio-owned skeleton** so the shims + the
-deny-by-default CSP precede every kid byte (never locate `<head>` by regex in untrusted markup
-— that displacement disarms BOTH fetch fences), `server.js` app.get/app.post routes served by an
-in-frame fetch shim (/api-only, no real network), `db` from TOP-LEVEL `data/*.json` TEXT seeds
-(`isWebsiteDataSeedPath`, backend kind authoritative; persists across page navs via nav/read-db
-postMessage, resets per run). No pause/FPS/debug/run-report; verification is always `'none'`;
-the 2D⇄3D switch never offers. Backend contract: `website-prompt.ts` (keep in sync).
+real `.html` pages (incl. their `<html>`/`<body>` attrs) lifted via DOMParser into a
+**studio-owned skeleton** so the shims + the deny-by-default CSP precede every kid byte (never
+locate `<head>` by regex in untrusted markup — that displacement disarms BOTH fetch fences). The
+CSP blocks every SUBRESOURCE vector + XHR/WS/beacon; it does NOT stop frame SELF-navigation
+(known residual, documented in-file); violations surface as kid-readable console lines.
+`server.js` app.get/app.post routes are served by an in-frame fetch shim (/api-only, no real
+network); `db` comes from TOP-LEVEL `data/*.json` TEXT seeds (`isWebsiteDataSeedPath`, backend
+kind authoritative, nested seeds rejected server-side; persists across page navs via nav/read-db
+postMessage, resets per run). No pause/FPS/debug/run-report; verification is always `'none'`; the
+2D⇄3D switch never offers; **Share is hidden until website publish lands (P3)**. Backend
+contract: `website-prompt.ts` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 

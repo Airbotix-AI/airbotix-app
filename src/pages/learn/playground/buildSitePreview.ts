@@ -58,10 +58,22 @@ const SERVER_PATH = 'server.js';
 /**
  * Deny-by-default CSP second fence. Everything the runtime legitimately uses is
  * inline or `data:`/`blob:` (shim + kid scripts are inline; styles are inline;
- * assets are inlined data: URLs), so external `<script src>` / `<img>` /
- * `<iframe>` / meta-refresh GET-beacon exfiltration is blocked wholesale even
- * where the reference-inlining regex wouldn't catch it. `connect-src 'none'`
- * stays: the fetch shim never performs real network I/O, so it is unaffected.
+ * assets are inlined data: URLs), so every SUBRESOURCE-load vector is blocked
+ * wholesale even where the reference-inlining regex wouldn't catch it:
+ * external `<script src>` / `<img>` / `<link>` / font / `<iframe>` (a nested
+ * frame is the classic way to get a fresh un-shimmed `window.fetch`), plus
+ * XHR / WebSocket / EventSource / sendBeacon via `connect-src 'none'` (which
+ * also leaves the fetch shim unaffected — it never performs real network I/O).
+ *
+ * ⚠️ KNOWN RESIDUAL — this does NOT stop the frame navigating ITSELF to an
+ * external URL (`location.href = …`, `<meta http-equiv="refresh">`, a
+ * programmatic link click): CSP has no directive for document self-navigation
+ * (`navigate-to` was never shipped) and `sandbox="allow-scripts"` explicitly
+ * permits a frame to navigate itself. A determined kid/AI script can therefore
+ * still leak page-derived data as a GET in that URL. Accepted for now: it
+ * destroys the running preview (the kid sees it), it is one-shot, and closing
+ * it needs `allow-top-navigation`-style sandbox work or a navigation-blocking
+ * shim — tracked as a follow-up, NOT claimed as closed here.
  */
 const CSP_META =
   `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; ` +
@@ -86,11 +98,16 @@ const normalizeRef = (ref: string): string => (ref.startsWith('./') ? ref.slice(
 const dbKeyOf = (path: string): string =>
   (path.split('/').pop() ?? path).replace(/\.json$/i, '');
 
-/** A data json that is NOT a seed (nested, e.g. `data/shop/pets.json`) — kept
- *  only to warn the kid it won't load into `db` ({@link isWebsiteDataSeedPath}
- *  is the single top-level-seed authority, mirrored from the backend). */
-const isNestedDataJson = (path: string): boolean =>
-  path.startsWith('data/') && path.toLowerCase().endsWith('.json') && !isWebsiteDataSeedPath(path);
+/** Serialize one DOM attribute for the studio skeleton. `&` is escaped BEFORE
+ *  `"` so entity-like text survives the parse→serialize round trip unchanged
+ *  (`&quot;` in the source must not come back as a literal quote). */
+const serializeAttrs = (el: Element): string =>
+  Array.from(el.attributes)
+    .map(
+      (a) =>
+        ` ${a.name}="${a.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`,
+    )
+    .join('');
 
 export interface BuildSiteOptions {
   /** Which VFS `.html` page is the document (default {@link SITE_HOME_PAGE}). */
@@ -154,18 +171,17 @@ export function isSiteDbMessage(
 /**
  * The site runtime shim (contract items the backend agent teaches verbatim):
  * `db` hydrated from the bundled TOP-LEVEL data/*.json seeds (a parse failure
- * console.errors and skips that file; a nested data/**.json console.warns;
- * `dbState` replaces the seeds wholesale), `app.get/app.post` route
- * registration, the /api-only fetch shim (query/body parsing, chainable
- * `res.status().json()`, kid-friendly 404/500 console errors, everything else
- * blocked), the capture-phase nav shim that turns relative `*.html` link
- * clicks into a postMessage to the studio, and the `read-db` control channel
- * (the studio's Home button reads the LIVE db before rebuilding).
+ * console.errors and skips that file; `dbState` replaces the seeds wholesale),
+ * `app.get/app.post` route registration, the /api-only fetch shim (query/body
+ * parsing, chainable `res.status().json()`, kid-friendly 404/500 console
+ * errors, everything else blocked), the capture-phase nav shim that turns
+ * relative `*.html` link clicks into a postMessage to the studio, a
+ * kid-readable reporter for silent CSP violations, and the `read-db` control
+ * channel (the studio's Home button reads the LIVE db before rebuilding).
  */
 function siteRuntime(
   seeds: Array<{ key: string; path: string; text: string }>,
   dbState: Record<string, unknown> | null,
-  skippedSeeds: string[],
 ): string {
   const seedsJs = `[${seeds
     .map((s) => `{key:${jsStr(s.key)},path:${jsStr(s.path)},text:${jsStr(s.text)}}`)
@@ -184,15 +200,10 @@ function siteRuntime(
       );
     }
   }
-  const skippedJs = `[${skippedSeeds.map((p) => jsStr(p)).join(',')}]`;
   return `<script>
 (function () {
   // ── db: the site's in-memory database, hydrated from top-level data/*.json ─
   var seeds = ${seedsJs};
-  var skippedSeeds = ${skippedJs};
-  for (var w = 0; w < skippedSeeds.length; w++) {
-    console.warn(skippedSeeds[w] + ' is not part of db — only files directly inside data/ (like data/pets.json) load into db.');
-  }
   var carried = ${stateJs};
   var db = {};
   if (carried !== null) {
@@ -295,6 +306,28 @@ function siteRuntime(
     parent.postMessage({ __airbotixSiteNavigate: true, path: clean, db: snapshot }, '*');
   }, true);
 
+  // ── CSP violations → a kid-readable console line ───────────────────────────
+  // The deny-by-default CSP silently drops blocked subresources: without this a
+  // kid sees a broken picture and an EMPTY console (violations don't surface as
+  // console errors the capture shim can see). Content-free on purpose — the
+  // blocked directive only, never the URL (it can carry page data / PII).
+  var CSP_HINTS = {
+    'img-src': 'Pictures from the internet are blocked — import the picture into your project instead, then use its file name.',
+    'media-src': 'Sound and video from the internet are blocked — import the file into your project, then use its file name.',
+    'font-src': 'Fonts from the internet are blocked — use a normal system font in your CSS instead.',
+    'script-src': 'Loading code from the internet is blocked — put your code in a .js file in your project instead.',
+    'style-src': 'Loading styles from the internet is blocked — put your styles in style.css instead.',
+    'connect-src': 'Your site can only talk to its OWN backend with fetch("/api/..."). The outside internet is blocked.',
+    'frame-src': 'Putting another website inside your page is blocked.',
+    'default-src': 'That came from the internet, which is blocked here — keep everything inside your project.'
+  };
+  window.addEventListener('securitypolicyviolation', function (e) {
+    try {
+      var directive = String((e && (e.effectiveDirective || e.violatedDirective)) || 'default-src').split(' ')[0];
+      console.error(CSP_HINTS[directive] || CSP_HINTS['default-src']);
+    } catch (err) {}
+  });
+
   // ── read-db: the studio asks for the LIVE db (Home button) ─────────────────
   window.addEventListener('message', function (e) {
     var m = e.data;
@@ -391,14 +424,13 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
 
   // db seeds: TOP-LEVEL data/*.json TEXT files only (PRD §3.4 — the backend
   // kind is authoritative, and top-level-only means keys can never collide).
-  // A nested data/**.json text file is skipped with a kid-visible console.warn
-  // so nobody is left wondering why it isn't in db.
+  // No nested-seed handling is needed here: the backend REJECTS a nested
+  // `data/**/*.json` write in a website project up front (`VFS_WEBSITE_SEED_PATH`,
+  // D-WEB-05), on both the tool-write and manual-save paths — so one cannot
+  // exist in a real project to warn about.
   const seeds = files
     .filter((f) => f.kind === 'text' && isWebsiteDataSeedPath(f.path))
     .map((f) => ({ key: dbKeyOf(f.path), path: f.path, text: f.content }));
-  const skippedSeeds = files
-    .filter((f) => f.kind === 'text' && isNestedDataJson(f.path))
-    .map((f) => f.path);
 
   // ── STUDIO-OWNED SKELETON (security-load-bearing — never locate the
   // injection point by matching markup in the UNTRUSTED page). The kid page is
@@ -411,23 +443,27 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
   let kidHead = '';
   let kidBody = html;
   let kidBodyAttrs = '';
+  // `<html>` attributes are carried too: every backend template ships
+  // `<html lang="en">`, and an AI-written `<html class="dark">` pairs with
+  // `html.dark {…}` CSS — dropping them renders the preview differently from
+  // what the kid reads in the editor.
+  let kidHtmlAttrs = '';
   try {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     kidHead = doc.head.innerHTML;
     kidBody = doc.body.innerHTML;
-    kidBodyAttrs = Array.from(doc.body.attributes)
-      .map((a) => ` ${a.name}="${a.value.replace(/"/g, '&quot;')}"`)
-      .join('');
+    kidBodyAttrs = serializeAttrs(doc.body);
+    kidHtmlAttrs = serializeAttrs(doc.documentElement);
   } catch {
     // keep the raw-content fallback above
   }
 
   const srcDoc = [
     '<!doctype html>',
-    '<html><head><meta charset="utf-8">',
+    `<html${kidHtmlAttrs}><head><meta charset="utf-8">`,
     EXTENSION_NOISE_GUARD,
     CONSOLE_CAPTURE,
-    siteRuntime(seeds, opts.dbState ?? null, skippedSeeds),
+    siteRuntime(seeds, opts.dbState ?? null),
     CSP_META,
     // server.js — the FIRST kid script, before anything the page brought along
     // (even an inline script the kid page put in its own head).

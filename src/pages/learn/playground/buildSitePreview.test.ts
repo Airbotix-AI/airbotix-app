@@ -139,15 +139,11 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).toContain('it is not valid JSON');
   });
 
-  it('a NESTED data/**.json is NOT a seed — skipped with a kid-visible warn (PRD §3.4)', () => {
-    const files = [text('index.html', page('')), text('data/shop/items.json', '[1]')];
-    const { srcDoc } = buildSitePreview(files);
-    expect(srcDoc).not.toContain('{key:"items"');
-    expect(srcDoc).toContain('"data/shop/items.json"');
-    expect(srcDoc).toContain('is not part of db — only files directly inside data/');
-  });
-
-  it('top-level seeds cannot collide: data/pets.json seeds, data/shop/pets.json does not', () => {
+  // Nested `data/**/*.json` writes are REJECTED server-side for websites
+  // (VFS_WEBSITE_SEED_PATH, D-WEB-05), so one can't exist in a real project —
+  // no nested-seed handling here. This pins the top-level-only rule that makes
+  // db keys collision-free by construction.
+  it('hydrates ONLY top-level data/*.json — a nested path is never a seed', () => {
     const files = [
       text('index.html', page('')),
       text('data/pets.json', '[1]'),
@@ -155,7 +151,16 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     ];
     const { srcDoc } = buildSitePreview(files);
     expect(srcDoc).toContain('{key:"pets",path:"data/pets.json"');
-    expect(srcDoc).not.toContain('path:"data/shop/pets.json",text');
+    expect(srcDoc).not.toContain('data/shop/pets.json');
+  });
+
+  it('emits a kid-friendly console.error for a CSP violation (blocked pictures are otherwise silent)', () => {
+    const { srcDoc } = buildSitePreview(SITE);
+    expect(srcDoc).toContain("addEventListener('securitypolicyviolation'");
+    expect(srcDoc).toContain('Pictures from the internet are blocked');
+    // Content-free: the blocked directive drives the hint, never the URL.
+    expect(srcDoc).toContain('effectiveDirective');
+    expect(srcDoc).not.toContain('e.blockedURI');
   });
 
   it('a seed containing </script> cannot break out of the shim tag', () => {
@@ -227,6 +232,34 @@ describe('buildSitePreview — skeleton beats <head> spoofing (security)', () =>
   it('always emits the studio skeleton first', () => {
     const { srcDoc } = buildSitePreview(SITE);
     expect(srcDoc.startsWith('<!doctype html>\n<html><head><meta charset="utf-8">')).toBe(true);
+  });
+
+  it('carries the kid page\'s <html> attributes into the skeleton (lang, class)', () => {
+    // Every backend template ships <html lang="en">, and `<html class="dark">`
+    // pairs with `html.dark {…}` CSS — dropping them would render the preview
+    // differently from what the kid reads in the editor.
+    const files = [
+      text(
+        'index.html',
+        '<!doctype html><html lang="en" class="dark"><head></head><body><h1>Hi</h1></body></html>',
+      ),
+    ];
+    const { srcDoc } = buildSitePreview(files);
+    expect(srcDoc).toContain('<html lang="en" class="dark"><head>');
+    // …and the shims still come first.
+    fenceHolds(srcDoc, '<h1>Hi</h1>');
+  });
+
+  it('carries <body> attributes too, and escapes & and " on the round trip', () => {
+    const files = [
+      text(
+        'index.html',
+        '<html><head></head><body class="a &amp; b" data-q="say &quot;hi&quot;"><p>x</p></body></html>',
+      ),
+    ];
+    const { srcDoc } = buildSitePreview(files);
+    // `&` escaped BEFORE `"` — entity-like text survives verbatim (no double-decode).
+    expect(srcDoc).toContain('<body class="a &amp; b" data-q="say &quot;hi&quot;">');
   });
 
   it('a <head> hidden in a COMMENT cannot displace the shims/CSP', () => {
