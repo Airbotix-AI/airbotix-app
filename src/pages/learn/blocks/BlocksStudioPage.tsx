@@ -3,11 +3,7 @@
 // Serialized server-wins persistence and interactions live in adjacent hooks.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  createBlocksProject,
-  saveBlocksProject,
-  type BlocksStoryProgress,
-} from './blocksApi';
+import { createBlocksProject, saveBlocksProject, type BlocksStoryProgress } from './blocksApi';
 import { type BlockCategory } from './blocksModel';
 import { useDemoMode } from '@/pages/try/demoMode';
 import { useBlocksStore } from './blocksStore';
@@ -21,7 +17,7 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { type StoryCoachCue } from './curriculumGuides';
 import { jtwOrderBugObserved } from './jtwOrderDebug';
-import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
@@ -138,17 +134,50 @@ export function BlocksStudioPage({
   >(new Map());
   const runnerRef = useRef<BlocksRunner | null>(null);
   const {
-    page, selectedChar, storyMission, completionScene, stageVisualScene, missionSayChoices,
-    journeyPosition, nextJourneyPosition, answeredCorrectly, missionScript, missionTargetFixed,
-    isA2DirectionDebug, isA3EventDebug, isA2PersonalShip, isA3PersonalShip,
-    isA4ParameterBuild, isA4ParameterDebug, isA4PersonalShip, isA5TurnBuild,
-    isA5RelayDebug, isA5PersonalShip, isA6OrderDebug, needsBellOrderRun,
-    isA6Finale, finaleRinger, duetFirst, duetSecond, deliveryCart, isJtwOrderDebug,
+    page,
+    selectedChar,
+    storyMission,
+    completionScene,
+    stageVisualScene,
+    missionSayChoices,
+    journeyPosition,
+    nextJourneyPosition,
+    answeredCorrectly,
+    missionScript,
+    missionTargetFixed,
+    isA2DirectionDebug,
+    isA3EventDebug,
+    isA2PersonalShip,
+    isA3PersonalShip,
+    isA4ParameterBuild,
+    isA4ParameterDebug,
+    isA4PersonalShip,
+    isA5TurnBuild,
+    isA5RelayDebug,
+    isA5PersonalShip,
+    isA6OrderDebug,
+    needsBellOrderRun,
+    isA6Finale,
+    finaleRinger,
+    duetFirst,
+    duetSecond,
+    deliveryCart,
+    isJtwOrderDebug,
     isJtwC4DualBuild,
-    selectedHomeGx, selectedDeliveryDistance, lockedStageTargetGx, visibleCoachCue,
+    selectedHomeGx,
+    selectedDeliveryDistance,
+    lockedStageTargetGx,
+    visibleCoachCue,
   } = useBlocksMissionDerived({
-    project, pageId, charId, missionAnswer, missionCompleted, missionCorrectRunFinished,
-    missionFixApplied, running, storyCoachCue,
+    project,
+    pageId,
+    charId,
+    missionAnswer,
+    missionCompleted,
+    missionCorrectRunFinished,
+    missionFixApplied,
+    running,
+    storyCoachCue,
   });
   const {
     phase,
@@ -199,14 +228,7 @@ export function BlocksStudioPage({
     setSeasonSceneLocked(false);
     setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
-  }, [
-    introducedMissionRef,
-    missionTargetFixed,
-    phase,
-    projectId,
-    storyMission,
-    storyProgressRef,
-  ]);
+  }, [introducedMissionRef, missionTargetFixed, phase, projectId, storyMission, storyProgressRef]);
   const startNextStoryMission = useCallback(async () => {
     if (!nextJourneyPosition || nextMissionBusy) return;
     setNextMissionBusy(true);
@@ -682,7 +704,8 @@ export function BlocksStudioPage({
           : false;
         if (
           id === JTW_C4_WUKONG_ID &&
-          storyMission?.lessonId === JTW_C4_P4_LESSON_ID &&
+          (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
           missionHasRun &&
           targetFixedNow
         ) {
@@ -698,10 +721,7 @@ export function BlocksStudioPage({
           setStoryCoachCue('fix');
           setMissionOpen(true);
         }
-        if (
-          (storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) &&
-          targetFixedNow
-        ) {
+        if ((storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) && targetFixedNow) {
           setMissionFixPersisted(true);
           setMissionCorrectRunFinished(true);
           setStoryCoachCue('saving');

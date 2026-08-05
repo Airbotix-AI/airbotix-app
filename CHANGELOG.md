@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-05 (feat: implement Journey West C4-P5 expression choice)
+
+### Added
+
+- Added the child-facing C4-P5 Story Part with three real multi-block Tap versions, preserved
+  Start/name logic, motive and partner-prediction evidence, Go-wait plus real-Tap completion,
+  persisted version/run evidence and adjacent-only continuation to C4-P6.
+
 ## 2026-08-04 (feat: parents can delete saved HSC data — Slice 2.5)
 
 ### Added
@@ -19,7 +27,7 @@
 - `z.coerce.number()` reads `''` as `0`, and the number branch of the mark unions was tried first,
   so a blank **Mark achieved** on an upcoming assessment was sent as `0` while **Maximum mark**
   stayed `''`. The API then rejected every planned task with `Achieved and maximum marks must be
-  entered together`, so no family could record a future deadline — the feature's headline promise.
+entered together`, so no family could record a future deadline — the feature's headline promise.
   The empty branch is now matched first.
 - A blank **Weight %** coerced to `0` and passed `.min(0)`, silently saving a 0% assessment. It is
   now an explicit `Enter the weight` error.
@@ -52,6 +60,7 @@
   constraint validation reported `rangeUnderflow` and swallowed the submit event, so the
   POST never fired and three tests failed — reddening `ci` on `main` from 2026-08-01
   with no product defect behind it. The preferred time is now derived from `Date.now()`.
+
 ## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
 
 ### Added
@@ -88,6 +97,7 @@
 ## 2026-07-28 (fix: simplify guided drawing tasks for younger children)
 
 ### Changed
+
 - Added immutable `v2` assets for all eight guided tasks, replacing detailed
   illustrated references with four-step, thick-line drawings made from at most
   twelve visible shapes.
@@ -99,6 +109,7 @@
 ## 2026-07-28 (feat: expand Art Studio guided drawing library)
 
 ### Added
+
 - Expanded the guided drawing library from one T-Rex sample to eight kid-facing
   choices: T-Rex, kitten, puppy, lion, shark, rocket, unicorn and race car.
 - Added seven independently generated, reviewed reference illustrations plus
@@ -108,6 +119,7 @@
 ## 2026-07-28 (feat: guided drawing ideas in Art Studio)
 
 ### Added
+
 - Added concrete Art Studio drawing ideas, beginning with an original `Draw a T-Rex`
   task for ages 6–10.
 - Added child choice between `Look & Draw`, `Trace a Ghost`, and `Draw My Way`.
@@ -117,8 +129,10 @@
   `widget_config.art_task_slug` while retaining Mission Mode.
 
 ### Assets
+
 - Added an original reviewed T-Rex reference image, trace outline, and five
   progressive guide illustrations under the immutable `v1` asset path.
+
 ## 2026-07-29
 
 ### Fixed
@@ -134,7 +148,7 @@
 
 - Story Blocks: a C-block body (`If touching`) is now a real drop target. Every
   chain — a track and every nested body — registers as a drop zone and every
-  block publishes its tree path, so dragging a block *into* an If lands it
+  block publishes its tree path, so dragging a block _into_ an If lands it
   inside the If instead of beside it. The hit-test picks the deepest zone under
   the pointer.
 - Story Blocks: blocks nested inside an If are first-class — drag them out,
@@ -271,6 +285,7 @@ away`. Existing projects saved under the former scene title still resume.
   backgrounds across all four mission contracts. Chapter four uses the formal
   right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
   saved projects using the exact legacy cart SVG remain compatible.
+
 ## 2026-07-28 (feat: Mission Mode progressive reveal + the current step in the taskbar)
 
 ### Removed
@@ -295,7 +310,7 @@ away`. Existing projects saved under the former scene title still resume.
 ### Fixed
 
 - **The odometer roll clipped both faces through the middle instead of rolling.** The wheel
-  *window* had no height of its own, so mid-roll it grew to the full two-face track (56px) inside a
+  _window_ had no height of its own, so mid-roll it grew to the full two-face track (56px) inside a
   36px chip and the chip clipped it centred — you saw the bottom of the outgoing step and the top of
   the incoming one at once. The window is now pinned to exactly ONE face (`h-7`), which is also what
   makes the track's `-50%` translate a true odometer: one face out, exactly one face in.
@@ -307,6 +322,7 @@ away`. Existing projects saved under the former scene title still resume.
   untick affordance falls through to the final row instead of vanishing and stranding the kid.
 
 ### Added
+
 - **The current mission step is now docked in the bottom taskbar** (`MissionStepChip`,
   `desktop/MissionStepChip.tsx`, testids `mission-taskbar-chip` / `mission-taskbar-checkbox`) —
   a brand-mint status+action chip with the step title, a "Step N of M" cue and a live checkbox,
@@ -336,6 +352,7 @@ away`. Existing projects saved under the former scene title still resume.
   when the pane is closed/unmounted — the normal case for a tick made from the taskbar.
 
 ### Changed
+
 - **Mission Mode is now a PROGRESSIVE REVEAL** (learn-game-studio-prd §9A). Done steps still
   collapse to a ✓ line and re-open on tap; the current step is still expanded with its
   `instruction_md`; but **every step after the current one is LOCKED** — it renders fixed-length
@@ -347,27 +364,29 @@ away`. Existing projects saved under the former scene title still resume.
   ("N more steps unlock as you go"). Rows keep `data-testid="mission-step-<id>"` with
   `data-state="locked"`.
   - **The kid is never trapped**: the current step always ticks forward and a done step always
-    re-opens and un-ticks (walking the checklist back re-seals what came after). Only *peeking
-    ahead* is gated. The old "pin any step open (skip ahead)" behaviour is gone, since ahead-steps
+    re-opens and un-ticks (walking the checklist back re-seals what came after). Only _peeking
+    ahead_ is gated. The old "pin any step open (skip ahead)" behaviour is gone, since ahead-steps
     no longer render content.
   - A step a **teacher** ticked ahead of the kid renders as done, never locked.
 - **Shared Mission state** — the checklist query + optimistic toggle moved into
   `panes/useMissionChecklist.ts`, used by both `MissionPane` and the new taskbar chip, so the two
   surfaces can never disagree about which step is current.
 - **The milestone celebration is hoisted to workspace level** (`panes/missionCelebrationStore.ts`
-  + `panes/MissionCelebration.tsx`, rendered by `Workspace` in both layout modes) instead of
-  living inside `MissionPane`. A milestone ticked from the taskbar chip with the Mission window
-  **closed** now still celebrates — previously it would have silently done nothing. Testids
-  `mission-celebration` / `mission-confetti` and the `prefers-reduced-motion` behaviour (card
-  stays, confetti drops) are unchanged.
+  - `panes/MissionCelebration.tsx`, rendered by `Workspace` in both layout modes) instead of
+    living inside `MissionPane`. A milestone ticked from the taskbar chip with the Mission window
+    **closed** now still celebrates — previously it would have silently done nothing. Testids
+    `mission-celebration` / `mission-confetti` and the `prefers-reduced-motion` behaviour (card
+    stays, confetti drops) are unchanged.
 
 ### Fixed
+
 - `hasUnfinishedSteps` no longer throws on a partial/foreign entry in the shared mission-progress
   cache — the Mission auto-open is a convenience and must degrade, not crash the workspace.
 
 ## 2026-07-28 (feat: Creative Code Studio Mission Mode — the guided step checklist, MM-2)
 
 ### Added
+
 - **Mission Mode in Creative Code Studio (learn-game-studio-prd §9A / D-GAME14, milestone MM-2)** —
   a **6th playground window** (`PgWindowId 'mission'`, dock tile + taskbar button + split "Mission"
   tab) that answers the kid's in-class "what do I do now?" with the lesson's **already-authored**
@@ -387,6 +406,7 @@ away`. Existing projects saved under the former scene title still resume.
   - Check-off stays **guidance, not the reward gate** (D-GAME14c): no Stars, no acceptance.
 
 ### Changed
+
 - The celebration confetti moved out of Story Blocks into a shared
   `src/components/celebration/` (`ConfettiBurst` + `confetti.css` + `prefersReducedMotion`), reused
   by `StoryMissionGuide` and the new Mission milestone instead of a second implementation. Story

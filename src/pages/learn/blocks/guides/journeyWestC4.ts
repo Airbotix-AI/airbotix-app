@@ -1,7 +1,61 @@
-import type { StoryMission } from './types'
-import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild'
+import type { StoryMission } from './types';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild';
 
 export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
+  [JTW_C4_P5_LESSON_ID]: {
+    mode: 'complete',
+    lessonId: JTW_C4_P5_LESSON_ID,
+    celebrate: false,
+    hero: { name: '孙悟空', role: '等到邀请才回应的学习者', asset: JTW_C4_WUKONG_ASSET },
+    eyebrow: '西游记 · 第四章 · 故事选择',
+    title: '本领不是为了抢先',
+    storyPages: [
+      {
+        emoji: '👆🍃',
+        title: '等观众准备好',
+        body: '名字链留在Start。你选择并组织一段Tap展示，先Go确认名字，再请同伴真实Tap。',
+        scene: 5,
+      },
+    ],
+    partnerLine: '同伴先看积木预测，再Tap舞台上的悟空。',
+    mission: '保留名字链；在Tap后组织所选版本的3–5块，再完成Go等待与真实Tap。',
+    question: '为什么展示要等Tap？',
+    choices: [],
+    retry: '检查名字链没有改变，Tap链与所选版本完全一致。',
+    successTitle: '邀请后才回应',
+    success: '名字先站稳，所选目标只在真实Tap后亮起。',
+    fixTitle: '组织所选Tap链',
+    fixPrompt: '按选择卡的动作、顺序、对白与End搭好。',
+    workspaceIntro: '名字链已经保留；Tap链只固定了入口。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '搭好所选Tap版本。',
+      watch: '先Go，展示保持安静吗？',
+      sayFirst: '名字先出现。',
+      sayThen: '邀请后才说。',
+      hopFirst: '动作在Tap后。',
+      hopThen: '目标只在Tap后亮。',
+      retry: '版本、顺序或双运行证据还不完整。',
+      fix: '按选择卡重排Tap链。',
+      test: '先Go等待，再请同伴Tap悟空。',
+      saving: '真实可见差异已量到，正在保存。',
+      complete: '悟空等观众准备好才回应。',
+    },
+    logicSteps: [
+      { icon: '🚩', label: '名字', order: '先Go' },
+      { icon: '👆', label: '展示', order: '再Tap' },
+    ],
+    logicWhy: 'Trigger让同一角色在不同条件下做不同的事。',
+    completionTitle: '故事选择完成',
+    completion: '所选多块Tap版本、同伴预测、Go等待与真实Tap都已保存。',
+    completionSteps: [
+      { icon: '🏷️', label: '名字稳定', order: '先' },
+      { icon: '✨', label: '选择可见', order: '后' },
+    ],
+    completionWhy: '可见结果来自真实Tap，不是自动播放或换装饰。',
+    next: '一阵风把整段本领链吹到了错误入口。',
+  },
   [JTW_C4_P4_LESSON_ID]: {
     mode: 'complete',
     lessonId: JTW_C4_P4_LESSON_ID,
@@ -33,7 +87,8 @@ export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
       },
     ],
     partnerLine: '六块都由你放进正确的入口链；没有按钮会替你搭好。',
-    mission: '在两个固定Trigger后放置六块：Start链放Show、名字Say和End；Tap链放Hop 2、邀请Say和End。先Go等一等，再点悟空。',
+    mission:
+      '在两个固定Trigger后放置六块：Start链放Show、名字Say和End；Tap链放Hop 2、邀请Say和End。先Go等一等，再点悟空。',
     question: '只按Go时，哪条链必须保持安静？',
     choices: [],
     retry: '检查每块在等哪个入口：名字跟Start，本领跟Tap；两条链都要有End。',
@@ -72,4 +127,4 @@ export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
     completionWhy: '不点悟空时本领没有偷跑，说明两条事件链真的分开了。',
     next: '伙伴记住了名字。下一Part由孩子选择悟空回应邀请的小展示。',
   },
-}
+};
