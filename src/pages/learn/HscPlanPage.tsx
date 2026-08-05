@@ -37,6 +37,15 @@ export function HscPlanPage() {
         <div className="eyebrow eyebrow-bubblegum">My HSC plan</div>
         <h1 className="hero-display">One clear next step.</h1>
         <p className="lead-text mt-3">These are the dates and results your family saved. They do not predict your HSC mark, Band or ATAR.</p>
+        {/*
+          §6.2 HSC-DATA-04 — the kid can see everything stored about them but the
+          parent owns the record. Saying so plainly matters: without it a student
+          is left assuming their marks can never be removed.
+        */}
+        <p className="mt-2 text-sm font-semibold text-slate2" data-testid="hsc-kid-deletion-notice">
+          A parent can change or delete anything on this page from the Parent Portal. Ask them if
+          you want something removed.
+        </p>
       </div>
 
       <section className="rounded-3xl bg-wash-sunshine p-6 shadow-card-soft sm:p-8">
