@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-04 (feat: parents can delete saved HSC data — Slice 2.5)
+
+### Added
+
+- Delete controls for an HSC plan, subject and single assessment in the Parent Portal. Deletion
+  is armed in two steps and the confirmation **names the cascade** — removing a subject also
+  removes its assessments, and a bare "Are you sure?" does not tell a parent that. Deliberately
+  not `window.confirm`: a native modal blocks the page and cannot state what else goes.
+- `/learn/hsc` now tells the student that a parent can change or delete anything on the page.
+  The kid can see everything stored about them but does not own the record, and without this a
+  student is left assuming their marks can never be removed (PRD §6.2 HSC-DATA-04).
+
 ## 2026-08-03 (fix: let parents record an upcoming HSC assessment)
 
 ### Fixed
