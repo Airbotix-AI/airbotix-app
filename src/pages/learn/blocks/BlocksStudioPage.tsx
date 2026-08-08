@@ -3,11 +3,7 @@
 // Serialized server-wins persistence and interactions live in adjacent hooks.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import {
-  createBlocksProject,
-  saveBlocksProject,
-  type BlocksStoryProgress,
-} from './blocksApi';
+import { createBlocksProject, saveBlocksProject, type BlocksStoryProgress } from './blocksApi';
 import { type BlockCategory } from './blocksModel';
 import { useDemoMode } from '@/pages/try/demoMode';
 import { useBlocksStore } from './blocksStore';
@@ -21,6 +17,7 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { type StoryCoachCue } from './curriculumGuides';
 import { jtwOrderBugObserved } from './jtwOrderDebug';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
@@ -137,16 +134,50 @@ export function BlocksStudioPage({
   >(new Map());
   const runnerRef = useRef<BlocksRunner | null>(null);
   const {
-    page, selectedChar, storyMission, completionScene, stageVisualScene, missionSayChoices,
-    journeyPosition, nextJourneyPosition, answeredCorrectly, missionScript, missionTargetFixed,
-    isA2DirectionDebug, isA3EventDebug, isA2PersonalShip, isA3PersonalShip,
-    isA4ParameterBuild, isA4ParameterDebug, isA4PersonalShip, isA5TurnBuild,
-    isA5RelayDebug, isA5PersonalShip, isA6OrderDebug, needsBellOrderRun,
-    isA6Finale, finaleRinger, duetFirst, duetSecond, deliveryCart, isJtwOrderDebug,
-    selectedHomeGx, selectedDeliveryDistance, lockedStageTargetGx, visibleCoachCue,
+    page,
+    selectedChar,
+    storyMission,
+    completionScene,
+    stageVisualScene,
+    missionSayChoices,
+    journeyPosition,
+    nextJourneyPosition,
+    answeredCorrectly,
+    missionScript,
+    missionTargetFixed,
+    isA2DirectionDebug,
+    isA3EventDebug,
+    isA2PersonalShip,
+    isA3PersonalShip,
+    isA4ParameterBuild,
+    isA4ParameterDebug,
+    isA4PersonalShip,
+    isA5TurnBuild,
+    isA5RelayDebug,
+    isA5PersonalShip,
+    isA6OrderDebug,
+    needsBellOrderRun,
+    isA6Finale,
+    finaleRinger,
+    duetFirst,
+    duetSecond,
+    deliveryCart,
+    isJtwOrderDebug,
+    isJtwC4DualBuild,
+    selectedHomeGx,
+    selectedDeliveryDistance,
+    lockedStageTargetGx,
+    visibleCoachCue,
   } = useBlocksMissionDerived({
-    project, pageId, charId, missionAnswer, missionCompleted, missionCorrectRunFinished,
-    missionFixApplied, running, storyCoachCue,
+    project,
+    pageId,
+    charId,
+    missionAnswer,
+    missionCompleted,
+    missionCorrectRunFinished,
+    missionFixApplied,
+    running,
+    storyCoachCue,
   });
   const {
     phase,
@@ -197,14 +228,7 @@ export function BlocksStudioPage({
     setSeasonSceneLocked(false);
     setStoryCoachCue(previouslyCompleted ? 'complete' : 'ready');
     setMissionOpen(true);
-  }, [
-    introducedMissionRef,
-    missionTargetFixed,
-    phase,
-    projectId,
-    storyMission,
-    storyProgressRef,
-  ]);
+  }, [introducedMissionRef, missionTargetFixed, phase, projectId, storyMission, storyProgressRef]);
   const startNextStoryMission = useCallback(async () => {
     if (!nextJourneyPosition || nextMissionBusy) return;
     setNextMissionBusy(true);
@@ -542,6 +566,7 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
+          !isJtwC4DualBuild &&
           (!(
             isA2DirectionDebug ||
             isA4ParameterDebug ||
@@ -584,6 +609,7 @@ export function BlocksStudioPage({
     isA6Finale,
     needsBellOrderRun,
     isJtwOrderDebug,
+    isJtwC4DualBuild,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -673,19 +699,29 @@ export function BlocksStudioPage({
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
-        if (id !== 'dot-dot') return;
         const targetFixedNow = storyMission
           ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
           : false;
+        if (
+          id === JTW_C4_WUKONG_ID &&
+          (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
+          missionHasRun &&
+          targetFixedNow
+        ) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
+        if (id !== 'dot-dot') return;
         if (storyMission?.lessonId === 'tsv-s1-a3-h' && missionHasRun) {
           setMissionTapObserved(true);
           setStoryCoachCue('fix');
           setMissionOpen(true);
         }
-        if (
-          (storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) &&
-          targetFixedNow
-        ) {
+        if ((storyMission?.lessonId === 'tsv-s1-a3-b' || isA3PersonalShip) && targetFixedNow) {
           setMissionFixPersisted(true);
           setMissionCorrectRunFinished(true);
           setStoryCoachCue('saving');

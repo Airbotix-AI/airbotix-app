@@ -143,7 +143,12 @@ export type BlocksTemplateId =
   // C3-P7 is the Personal Ship, and 星夜/晨雾 is one of its four real choices, so
   // the whitelist repeats once more — this time over an EMPTY three-page route.
   | 'blocks_jtw_c3_p7_starry'
-  | 'blocks_jtw_c3_p7_morning';
+  | 'blocks_jtw_c3_p7_morning'
+  | 'blocks_jtw_c4_p2'
+  | 'blocks_jtw_c4_p4'
+  | 'blocks_jtw_c4_p5_leaf'
+  | 'blocks_jtw_c4_p5_home'
+  | 'blocks_jtw_c4_p5_screen';
 
 export interface BlocksProjectMeta {
   id: string;
