@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { api } = vi.hoisted(() => ({ api: vi.fn() }));
 vi.mock('@/lib/api', () => ({
@@ -44,8 +44,28 @@ function renderPanel(initialEntry = '/portal/tutoring') {
   );
 }
 
+// ⚠️ The clock is pinned, and it must stay pinned.
+//
+// The panel puts `min={now + 1 day}` / `max={now + 90 days}` on the
+// datetime-local input, and jsdom runs constraint validation before it fires a
+// form's `submit` event. So a hard-coded `2026-08-02T10:00` in the fixtures
+// below stopped submitting the moment the wall clock passed 2026-08-01 — the
+// POST silently never fired, no field error rendered, and three tests here went
+// red on their own with nobody having touched the panel. Pinning `now` well
+// before that date makes the fixtures mean what they say again, and stops the
+// suite from re-expiring in a few weeks.
+const NOW = new Date('2026-07-21T09:00:00.000Z');
+
+beforeEach(() => {
+  // `shouldAdvanceTime` so React Query's own timers and userEvent's delays are
+  // not frozen along with `Date.now()`.
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(NOW);
+});
+
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.clearAllMocks();
 });
 

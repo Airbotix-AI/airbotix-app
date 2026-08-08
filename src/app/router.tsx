@@ -22,6 +22,8 @@ import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
 import { AuditPage } from '@/pages/portal/AuditPage';
 import { AuditProjectPage } from '@/pages/portal/AuditProjectPage';
 import { BillingPage } from '@/pages/portal/BillingPage';
+import { ChallengeRegisterPage } from '@/pages/portal/challenge/ChallengeRegisterPage';
+import { ChallengeReportPage } from '@/pages/portal/challenge/ChallengeReportPage';
 import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
 import { AcademyCheckoutPage } from '@/pages/portal/AcademyCheckoutPage';
 import { AcademyOrderPage } from '@/pages/portal/AcademyOrderPage';
@@ -82,6 +84,7 @@ import { AcademyProductPage } from '@/pages/learn/academy/AcademyProductPage';
 import { AcademyMockExamPage } from '@/pages/learn/academy/AcademyMockExamPage';
 import { MyExamPrepPage } from '@/pages/learn/academy/MyExamPrepPage';
 import { HscPlanPage } from '@/pages/learn/HscPlanPage';
+import { ChallengeSubmitPage } from '@/pages/learn/challenge/ChallengeSubmitPage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -105,6 +108,12 @@ import { PublicPlayPage } from '@/pages/play/PublicPlayPage';
 // tour overlay) — like /play/:shareId, deliberately NOT under <ProtectedRoute>.
 import { TryBlocksPage } from '@/pages/try/TryBlocksPage';
 import { TryPlaygroundPage } from '@/pages/try/TryPlaygroundPage';
+
+// PUBLIC, no-auth Creative Code Challenge voting + Creator Showcase
+// (creative-code-challenge-prd.md §5 flow 7/9, D-CCC-4). Same shape as
+// /play/:shareId: top-level, outside every <ProtectedRoute> and both layouts,
+// because a voter has no account and D-CCC-4 removed the verification step.
+import { PublicVotePage } from '@/pages/vote/PublicVotePage';
 import { JourneyToWestC1PreviewPage } from '@/pages/experiments/JourneyToWestC1PreviewPage';
 
 export const router = createBrowserRouter([
@@ -120,6 +129,13 @@ export const router = createBrowserRouter([
   // marketing site's "Try it free" entry points. No token, no redirect.
   { path: '/try/playground', element: <TryPlaygroundPage /> },
   { path: '/try/blocks', element: <TryBlocksPage /> },
+
+  // PUBLIC Creative Code Challenge (PRD §6 "airbotix-app — Public" row). No
+  // token, no ProtectedRoute, no analytics: `/vote/:slug` is the voting surface
+  // and `/challenge/:slug/showcase` is the Creator Showcase, which outlives the
+  // voting window and carries no voting controls.
+  { path: '/vote/:slug', element: <PublicVotePage /> },
+  { path: '/challenge/:slug/showcase', element: <PublicVotePage mode="showcase" /> },
 
   // DEV-only engine sandbox — verify the real 2D/3D runtime in a browser. Excluded
   // from the route table in production builds (learn-game-studio-3d-prd.md M3D-2).
@@ -163,6 +179,14 @@ export const router = createBrowserRouter([
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
       // (class-seat-checkout-prd.md D-CSC-8).
       { path: 'checkout/class/:classId', element: <ClassCheckoutPage /> },
+      // Creative Code Challenge registration — the marketing CTA's deep-link
+      // target (creative-code-challenge-prd.md §5 flow 1, §6 Portal row).
+      { path: 'challenge/:slug/register', element: <ChallengeRegisterPage /> },
+      // The parent's PRIVATE report (creative-code-challenge-prd.md §5 flow 10).
+      // Parent-only like the registration route above — the kid surface has no
+      // report route: the backend gates it `@Roles('parent')`, and §9's "may a
+      // KID read their own report?" is an OPEN question nobody has answered.
+      { path: 'challenge/:slug/report', element: <ChallengeReportPage /> },
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
       { path: 'family/:kidId', element: <KidGrowthPage /> },
@@ -292,6 +316,10 @@ export const router = createBrowserRouter([
       { path: 'academy', element: <Navigate to="/learn/exams" replace /> },
       { path: 'exams', element: <MyExamPrepPage /> },
       { path: 'hsc', element: <HscPlanPage /> },
+      // Creative Code Challenge — the child's own submission screen
+      // (creative-code-challenge-prd.md §5 flow 4, §6 Learn row). Deep-linked by
+      // slug, not a top-level nav item, so it stays out of LearnTopBar.
+      { path: 'challenge/:slug/submit', element: <ChallengeSubmitPage /> },
       { path: 'exams/:productSlug', element: <AcademyProductPage /> },
       { path: 'exams/:productSlug/practice', element: <AcademyPracticePage /> },
       { path: 'exams/:productSlug/mock/:paperId', element: <AcademyMockExamPage /> },

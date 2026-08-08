@@ -49,6 +49,14 @@ describe('isPortalSurface', () => {
     expect(isPortalSurface('/play/cjld2cjxh0000qzrmn831i7rn')).toBe(false);
   });
 
+  it('refuses the public challenge surfaces that show children’s entries', () => {
+    // creative-code-challenge-prd.md §5 flow 7/9: `/vote/:slug` and
+    // `/challenge/:slug/showcase` are unauthenticated pages built around minors'
+    // work, so they are never measured either.
+    expect(isPortalSurface('/vote/creative-code-challenge-2026-junior')).toBe(false);
+    expect(isPortalSurface('/challenge/creative-code-challenge-2026-junior/showcase')).toBe(false);
+  });
+
   it('refuses the in-app teacher surface and the root redirect', () => {
     expect(isPortalSurface('/teacher/classes/cjld2cjxh0000qzrmn831i7rn')).toBe(false);
     expect(isPortalSurface('/')).toBe(false);
