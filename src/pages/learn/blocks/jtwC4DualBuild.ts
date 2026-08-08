@@ -4,6 +4,8 @@ export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4'
 export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page'
 export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5'
 export const JTW_C4_P5_PAGE_ID = 'jtw-c4-p5-page'
+export const JTW_C4_P6_LESSON_ID = 'jtw-s1-c4-p6'
+export const JTW_C4_P6_PAGE_ID = 'jtw-c4-p6-page'
 export const JTW_C4_WUKONG_ID = 'sun-wukong'
 export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name'
 export const JTW_C4_SKILL_SCRIPT_ID = 'sun-wukong-skill'
@@ -99,6 +101,33 @@ export function jtwC4P5Choice(project: BlocksProject): string | null {
 
 export function jtwC4P5ChoiceMatches(project: BlocksProject): boolean {
   return jtwC4P5Choice(project) !== null
+}
+
+export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
+
+export function jtwC4P6Version(project: BlocksProject): JtwC4P5Version | null {
+  if (project.lessonId !== JTW_C4_P6_LESSON_ID || project.pages.length !== 1) return null
+  const page = project.pages[0]
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (
+    page?.id !== JTW_C4_P6_PAGE_ID ||
+    !actor ||
+    actor.asset !== JTW_C4_WUKONG_ASSET ||
+    actor.scripts.length !== 2
+  )
+    return null
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
+  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
+  return (
+    (Object.entries(JTW_C4_P5_SKILL_TARGETS) as [JtwC4P5Version, readonly Block[]][]).find(
+      ([, target]) => exactScript(skill, target),
+    )?.[0] ?? null
+  )
+}
+
+export function jtwC4P6BuildMatches(project: BlocksProject): boolean {
+  return jtwC4P6Version(project) !== null
 }
 
 export function jtwC4PlacedBlocks(project: BlocksProject): string[] {

@@ -10,6 +10,8 @@ import {
   JTW_C4_WUKONG_ID,
   jtwC4DualBuildMatches,
   jtwC4P5Choice,
+  jtwC4P6BuildMatches,
+  jtwC4P6Version,
   jtwC4PlacedBlocks,
 } from './jtwC4DualBuild'
 
@@ -80,5 +82,34 @@ describe('JtW C4-P5 expression choice contract', () => {
     built.pages[0].characters[0].scripts[1].blocks = [{ op: 'when_tap' }, { op: 'hop', n: 2 }, { op: 'say', text: '我等到邀请了' }, { op: 'end' }]
     built.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }]
     expect(jtwC4P5Choice(built)).toBeNull()
+  })
+})
+
+describe('JtW C4-P6 wrong-trigger repair', () => {
+  it('accepts every carried-forward action group only after its trigger becomes Tap', () => {
+    for (const version of ['hop', 'turn', 'reappear'] as const) {
+      const candidate = project()
+      candidate.lessonId = 'jtw-s1-c4-p6'
+      candidate.pages[0].id = 'jtw-c4-p6-page'
+      const targets = {
+        hop: [{ op: 'when_tap' as const }, { op: 'hop' as const, n: 2 }, { op: 'say' as const, text: '我等到邀请了' }, { op: 'end' as const }],
+        turn: [{ op: 'when_tap' as const }, { op: 'turn_left' as const, n: 2 }, { op: 'wait' as const, n: 1 }, { op: 'say' as const, text: '家在那边' }, { op: 'end' as const }],
+        reappear: [{ op: 'when_tap' as const }, { op: 'hide' as const }, { op: 'wait' as const, n: 1 }, { op: 'show' as const }, { op: 'say' as const, text: '再看这里' }, { op: 'end' as const }],
+      }
+      candidate.pages[0].characters[0].scripts[1].blocks = [...targets[version]]
+      expect(jtwC4P6Version(candidate)).toBe(version)
+      expect(jtwC4P6BuildMatches(candidate)).toBe(true)
+      candidate.pages[0].characters[0].scripts[1].blocks[0] = { op: 'when_flag' }
+      expect(jtwC4P6BuildMatches(candidate)).toBe(false)
+    }
+  })
+
+  it('rejects deleting, reordering or changing the carried action group', () => {
+    const candidate = project()
+    candidate.lessonId = 'jtw-s1-c4-p6'
+    candidate.pages[0].id = 'jtw-c4-p6-page'
+    candidate.pages[0].characters[0].scripts[1].blocks = [{ op: 'when_tap' }, { op: 'hop', n: 2 }, { op: 'say', text: '我等到邀请了' }, { op: 'end' }]
+    candidate.pages[0].characters[0].scripts[1].blocks.splice(1, 1)
+    expect(jtwC4P6BuildMatches(candidate)).toBe(false)
   })
 })
