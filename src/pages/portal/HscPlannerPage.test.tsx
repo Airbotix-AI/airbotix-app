@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   importHscClaim: vi.fn(),
   addHscSubject: vi.fn(),
   addHscTask: vi.fn(),
+  deleteHscPlan: vi.fn(),
+  deleteHscSubject: vi.fn(),
+  deleteHscTask: vi.fn(),
 }));
 
 vi.mock('@/auth/useAuth', () => ({
@@ -32,6 +35,9 @@ vi.mock('@/pages/hsc/hscApi', () => ({
   importHscClaim: mocks.importHscClaim,
   addHscSubject: mocks.addHscSubject,
   addHscTask: mocks.addHscTask,
+  deleteHscPlan: mocks.deleteHscPlan,
+  deleteHscSubject: mocks.deleteHscSubject,
+  deleteHscTask: mocks.deleteHscTask,
 }));
 
 import { HscPlannerPage } from './HscPlannerPage';
@@ -139,6 +145,168 @@ describe('HscPlannerPage', () => {
       course_key: 'biology',
       tasks: [{ claim_task_id: 'task-public-1', label: 'Biology depth study', due_date: '2026-07-01' }],
     })));
+  });
+
+  // A governed course takes its name from the NESA catalogue, so the untouched
+  // optional field must not travel as ''. It used to, and the API rejected the
+  // whole import with "display_name: String must contain at least 1
+  // character(s)" — invisible to the objectContaining assertion above, caught
+  // only by the hsc-family-plan harness journey.
+  it('omits a blank course name for a governed course and keeps the typed one for the fallback', async () => {
+    wireDefaults();
+    mocks.previewHscClaim.mockResolvedValue({
+      rules_version: '2026.1',
+      expires_at: '2026-08-03T12:30:00.000Z',
+      tasks: [{ id: 'task-public-1', achieved_mark: 16, maximum_mark: 20, weight: 20 }],
+    });
+    mocks.importHscClaim.mockResolvedValue(PLAN);
+    renderPage(`/portal/academy/hsc-planner?claim=${'x'.repeat(43)}`);
+
+    expect(await screen.findByText('16/20 · weight 20%')).toBeInTheDocument();
+    const importPanel = screen.getByTestId('hsc-claim-import');
+    fireEvent.change(within(importPanel).getByLabelText('Year 12 child'), { target: { value: 'kid-1' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course'), { target: { value: 'biology' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment name'), { target: { value: 'Biology depth study' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment date'), { target: { value: '2026-07-01' } });
+    fireEvent.click(within(importPanel).getByRole('button', { name: 'Confirm and save to this child' }));
+
+    await waitFor(() => expect(mocks.importHscClaim).toHaveBeenCalled());
+    expect(mocks.importHscClaim.mock.calls[0][1]).not.toHaveProperty('display_name');
+  });
+
+  // An upcoming assessment has no marks yet. z.coerce.number() reads '' as 0,
+  // so the number branch matched the blank "Mark achieved" field and sent 0
+  // while "Maximum mark" stayed '' — the API then rejected every planned task
+  // with "Achieved and maximum marks must be entered together", making it
+  // impossible to record a deadline. Caught by the hsc-family-plan journey.
+  it('records an upcoming assessment without inventing a zero mark', async () => {
+    wireDefaults();
+    mocks.addHscTask.mockResolvedValue(PLAN);
+    renderPage();
+
+    await screen.findByText('Depth study');
+    fireEvent.change(screen.getByLabelText('Task name'), { target: { value: 'Biology practical' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-11-01' } });
+    fireEvent.change(screen.getByLabelText('Weight %'), { target: { value: '20' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save assessment' }));
+
+    await waitFor(() => expect(mocks.addHscTask).toHaveBeenCalled());
+    const payload = mocks.addHscTask.mock.calls[0][2];
+    expect(payload).toMatchObject({ label: 'Biology practical', due_date: '2099-11-01', weight: 20, status: 'planned' });
+    expect(payload).not.toHaveProperty('achieved_mark');
+    expect(payload).not.toHaveProperty('maximum_mark');
+  });
+
+  it('refuses a blank weight instead of silently saving a 0% assessment', async () => {
+    wireDefaults();
+    mocks.addHscTask.mockResolvedValue(PLAN);
+    renderPage();
+
+    await screen.findByText('Depth study');
+    fireEvent.change(screen.getByLabelText('Task name'), { target: { value: 'Biology practical' } });
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2099-11-01' } });
+    fireEvent.change(screen.getByLabelText('Weight %'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save assessment' }));
+
+    expect(await screen.findByText('Enter the weight')).toBeInTheDocument();
+    expect(mocks.addHscTask).not.toHaveBeenCalled();
+  });
+
+  // §6.2 — deletion is irreversible and removes a child's marks, so it is armed
+  // in two steps and the second step names the cascade.
+  describe('deletion', () => {
+    it('does not delete on the first click and warns what else goes with it', async () => {
+      wireDefaults();
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+
+      expect(screen.getByText(/removes Biology and its 1 saved assessment/i)).toBeInTheDocument();
+      expect(mocks.deleteHscSubject).not.toHaveBeenCalled();
+    });
+
+    it('deletes the subject only after the named confirmation', async () => {
+      wireDefaults();
+      mocks.deleteHscSubject.mockResolvedValue(PLAN);
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Biology' }));
+
+      await waitFor(() =>
+        expect(mocks.deleteHscSubject).toHaveBeenCalledWith('family-1', 'subject-1'),
+      );
+    });
+
+    it('backs out without deleting when the parent keeps it', async () => {
+      wireDefaults();
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete subject' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Keep it' }));
+
+      expect(screen.queryByText(/cannot be undone/i)).not.toBeInTheDocument();
+      expect(mocks.deleteHscSubject).not.toHaveBeenCalled();
+    });
+
+    it('warns that deleting the plan takes every subject and assessment with it', async () => {
+      wireDefaults();
+      mocks.deleteHscPlan.mockResolvedValue({ deleted: true });
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete plan' }));
+
+      expect(
+        screen.getByText(/removes every subject and assessment in Mia's 2026 plan/i),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: "Delete Mia's 2026 plan" }));
+      await waitFor(() => expect(mocks.deleteHscPlan).toHaveBeenCalledWith('family-1', 'plan-1'));
+    });
+
+    it('deletes a single assessment', async () => {
+      wireDefaults();
+      mocks.deleteHscTask.mockResolvedValue(PLAN);
+      renderPage();
+
+      await screen.findByText('Depth study');
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Depth study' }));
+
+      await waitFor(() => expect(mocks.deleteHscTask).toHaveBeenCalledWith('family-1', 'task-1'));
+    });
+  });
+
+  it('sends the typed course name for the explicit school-confirmation fallback', async () => {
+    wireDefaults();
+    mocks.previewHscClaim.mockResolvedValue({
+      rules_version: '2026.1',
+      expires_at: '2026-08-03T12:30:00.000Z',
+      tasks: [{ id: 'task-public-1', achieved_mark: 16, maximum_mark: 20, weight: 20 }],
+    });
+    mocks.importHscClaim.mockResolvedValue(PLAN);
+    renderPage(`/portal/academy/hsc-planner?claim=${'x'.repeat(43)}`);
+
+    expect(await screen.findByText('16/20 · weight 20%')).toBeInTheDocument();
+    const importPanel = screen.getByTestId('hsc-claim-import');
+    fireEvent.change(within(importPanel).getByLabelText('Year 12 child'), { target: { value: 'kid-1' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course'), { target: { value: 'other' } });
+    fireEvent.change(within(importPanel).getByLabelText('Course name used by the school'), {
+      target: { value: '  Marine Studies  ' },
+    });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment name'), { target: { value: 'Biology depth study' } });
+    fireEvent.change(within(importPanel).getByLabelText('Assessment date'), { target: { value: '2026-07-01' } });
+    fireEvent.click(within(importPanel).getByRole('button', { name: 'Confirm and save to this child' }));
+
+    await waitFor(() => expect(mocks.importHscClaim).toHaveBeenCalled());
+    expect(mocks.importHscClaim.mock.calls[0][1]).toMatchObject({
+      course_key: 'other',
+      display_name: 'Marine Studies',
+    });
   });
 
   it('sends new assessments through the family and subject scoped endpoint helper', async () => {

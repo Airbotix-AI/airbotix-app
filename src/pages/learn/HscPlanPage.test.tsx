@@ -52,4 +52,20 @@ describe('HscPlanPage', () => {
     expect(await screen.findByTestId('hsc-kid-empty')).toBeInTheDocument();
     expect(screen.queryByText(/another child/i)).not.toBeInTheDocument();
   });
+
+  // §6.2 HSC-DATA-04 — the kid owns nothing here; saying who can remove it stops
+  // a student assuming their marks are permanent.
+  it('tells the kid a parent can delete this data', async () => {
+    getMyHscPlan.mockResolvedValue({
+      id: 'plan-1',
+      school_year: 2026,
+      kid: { id: 'kid-1', nickname: 'Mia' },
+      subjects: [],
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('hsc-kid-deletion-notice')).toHaveTextContent(
+      /parent can change or delete anything on this page/i,
+    );
+  });
 });

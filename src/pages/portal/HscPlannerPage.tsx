@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFieldArray, useForm, type UseFormRegisterReturn } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -11,6 +11,9 @@ import {
   addHscSubject,
   addHscTask,
   createHscPlan,
+  deleteHscPlan,
+  deleteHscSubject,
+  deleteHscTask,
   importHscClaim,
   listHscCourses,
   listHscPlans,
@@ -51,10 +54,18 @@ const taskSchema = z
   .object({
     label: z.string().trim().min(1, 'Enter the task name'),
     due_date: z.string().date(),
-    weight: z.coerce.number().min(0).max(100),
+    // z.coerce.number() reads '' as 0, so a blank field must be matched by the
+    // empty branch FIRST. With the number branch first, an upcoming assessment
+    // sent achieved_mark: 0 while maximum_mark stayed '' (0 fails .positive()),
+    // and the API rejected every planned task with "Achieved and maximum marks
+    // must be entered together". Blank weight silently saved a 0% assessment.
+    weight: z.preprocess(
+      (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+      z.coerce.number({ invalid_type_error: 'Enter the weight' }).min(0).max(100),
+    ),
     status: z.enum(['planned', 'completed']),
-    achieved_mark: z.union([z.coerce.number().min(0), z.literal('')]).optional(),
-    maximum_mark: z.union([z.coerce.number().positive(), z.literal('')]).optional(),
+    achieved_mark: z.union([z.literal(''), z.coerce.number().min(0)]).optional(),
+    maximum_mark: z.union([z.literal(''), z.coerce.number().positive()]).optional(),
   })
   .refine(
     (value) =>
@@ -196,8 +207,15 @@ function ClaimImportPanel({
   }, [form, preview]);
 
   const mutation = useMutation({
-    mutationFn: (values: ClaimValues) =>
-      importHscClaim(familyId, { claim_token: claimToken, ...values }),
+    mutationFn: ({ display_name, ...values }: ClaimValues) =>
+      // A governed course carries its own catalogue name; only the explicit
+      // "other" fallback sends one. The form default is '', which is NOT the
+      // same as absent to the API — send it only when the parent typed it.
+      importHscClaim(familyId, {
+        claim_token: claimToken,
+        ...values,
+        ...(display_name?.trim() ? { display_name: display_name.trim() } : {}),
+      }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['hsc-plans', familyId] });
       navigate('/portal/academy/hsc-planner', { replace: true });
@@ -294,9 +312,18 @@ function PlanPanel({ courses, familyId, plan }: { courses: HscCourse[]; familyId
           <div className="eyebrow eyebrow-bubblegum">{plan.school_year} HSC plan</div>
           <h2 className="section-heading mt-2">{plan.kid.nickname}</h2>
         </div>
-        <span className={plan.activation_status === 'active' ? 'sticker-mint' : 'sticker-sunshine'}>
-          {plan.activation_status === 'active' ? 'Plan active' : 'Setup in progress'}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={plan.activation_status === 'active' ? 'sticker-mint' : 'sticker-sunshine'}>
+            {plan.activation_status === 'active' ? 'Plan active' : 'Setup in progress'}
+          </span>
+          <DeleteControl
+            confirmLabel={`Delete ${plan.kid.nickname}'s ${plan.school_year} plan`}
+            familyId={familyId}
+            label="Delete plan"
+            warning={`This removes every subject and assessment in ${plan.kid.nickname}'s ${plan.school_year} plan. It cannot be undone.`}
+            onDelete={() => deleteHscPlan(familyId, plan.id)}
+          />
+        </div>
       </div>
       {plan.activation_status === 'setup_required' && (
         <p className="mt-4 rounded-2xl bg-wash-sunshine p-4 text-sm font-semibold text-ink">
@@ -320,14 +347,32 @@ function SubjectPanel({ familyId, subject }: { familyId: string; subject: HscSub
           <h3 className="text-xl font-bold text-ink">{subject.display_name}</h3>
           <p className="mt-1 text-sm font-semibold text-slate2">{subject.units} unit{subject.units === 1 ? '' : 's'} · {subject.progress.completed_weight}% completed weight</p>
         </div>
-        <strong className="text-2xl text-ink">{running === null ? '—' : `${running.toFixed(2)}%`}</strong>
+        <div className="flex items-center gap-3">
+          <strong className="text-2xl text-ink">{running === null ? '—' : `${running.toFixed(2)}%`}</strong>
+          <DeleteControl
+            confirmLabel={`Delete ${subject.display_name}`}
+            familyId={familyId}
+            label="Delete subject"
+            warning={`This removes ${subject.display_name} and its ${subject.tasks.length} saved assessment${subject.tasks.length === 1 ? '' : 's'}. It cannot be undone.`}
+            onDelete={() => deleteHscSubject(familyId, subject.id)}
+          />
+        </div>
       </div>
       <p className="mt-2 text-xs font-semibold text-slate2">Running result on completed work only—not a predicted HSC mark.</p>
       <div className="mt-4 grid gap-3">
         {subject.tasks.map((task) => (
-          <div key={task.id} className="rounded-xl bg-canvas-pure p-3 text-sm text-ink">
-            <strong>{task.label}</strong>
-            <span className="mt-1 block text-slate2">{task.due_date} · weight {task.weight}% · {task.status === 'completed' ? `${task.achieved_mark}/${task.maximum_mark}` : 'result not entered'}</span>
+          <div key={task.id} className="flex items-start justify-between gap-3 rounded-xl bg-canvas-pure p-3 text-sm text-ink">
+            <div>
+              <strong>{task.label}</strong>
+              <span className="mt-1 block text-slate2">{task.due_date} · weight {task.weight}% · {task.status === 'completed' ? `${task.achieved_mark}/${task.maximum_mark}` : 'result not entered'}</span>
+            </div>
+            <DeleteControl
+              confirmLabel={`Delete ${task.label}`}
+              familyId={familyId}
+              label="Delete"
+              warning={`This removes ${task.label} and any mark saved against it. It cannot be undone.`}
+              onDelete={() => deleteHscTask(familyId, task.id)}
+            />
           </div>
         ))}
       </div>
@@ -336,11 +381,77 @@ function SubjectPanel({ familyId, subject }: { familyId: string; subject: HscSub
   );
 }
 
+/**
+ * Two-step delete (hsc-ai-family-planner-prd.md §6.2). Deletion is irreversible
+ * and removes a child's saved marks, so the second step names exactly what goes
+ * with it — a bare "Are you sure?" does not tell a parent that removing a
+ * subject also removes its assessments.
+ *
+ * Deliberately not `window.confirm`: a native modal blocks the page and cannot
+ * state the cascade.
+ */
+function DeleteControl({
+  confirmLabel,
+  familyId,
+  label,
+  onDelete,
+  warning,
+}: {
+  confirmLabel: string;
+  familyId: string;
+  label: string;
+  onDelete: () => Promise<unknown>;
+  warning: string;
+}) {
+  const [armed, setArmed] = useState(false);
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: onDelete,
+    onSuccess: async () => {
+      setArmed(false);
+      await queryClient.invalidateQueries({ queryKey: ['hsc-plans', familyId] });
+    },
+  });
+
+  if (!armed) {
+    return (
+      <button className="btn-pill-ghost text-sm" onClick={() => setArmed(true)} type="button">
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-brand-coral bg-canvas-pure p-3" role="group">
+      <p className="text-sm font-semibold text-ink">{warning}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          className="btn-pill-primary text-sm"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
+          type="button"
+        >
+          {mutation.isPending ? 'Deleting…' : confirmLabel}
+        </button>
+        <button className="btn-pill-ghost text-sm" onClick={() => setArmed(false)} type="button">
+          Keep it
+        </button>
+      </div>
+      {mutation.isError && <ErrorMessage error={mutation.error} fallback="We could not delete that." />}
+    </div>
+  );
+}
+
 function AddSubjectForm({ courses, familyId, planId }: { courses: HscCourse[]; familyId: string; planId: string }) {
   const queryClient = useQueryClient();
   const form = useForm<SubjectValues>({ resolver: zodResolver(subjectSchema), defaultValues: { course_key: '', display_name: '' } });
   const mutation = useMutation({
-    mutationFn: (values: SubjectValues) => addHscSubject(familyId, planId, values),
+    // Same rule as the claim import: '' is not an absent display_name.
+    mutationFn: ({ display_name, ...values }: SubjectValues) =>
+      addHscSubject(familyId, planId, {
+        ...values,
+        ...(display_name?.trim() ? { display_name: display_name.trim() } : {}),
+      }),
     onSuccess: async () => {
       form.reset();
       await queryClient.invalidateQueries({ queryKey: ['hsc-plans', familyId] });

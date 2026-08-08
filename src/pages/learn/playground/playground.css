@@ -444,8 +444,63 @@
     pg-text-shimmer 2.6s linear infinite;
 }
 
+/* =========================================================================
+ * Mission Mode (§9A) — two brand-mint cues. The rgb triplets are brand-mint
+ * (#3DD9A9) expressed for the alpha-ramped box-shadow; the tokenised colour is
+ * on the elements themselves (border-brand-mint / bg-brand-mint).
+ * =========================================================================
+ */
+/* The newly-current step settles into view after a tick (scroll-to-next). */
+@keyframes pg-step-settle {
+  0% {
+    box-shadow: 0 0 0 0 rgb(61 217 169 / 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 9px rgb(61 217 169 / 0);
+  }
+}
+.pg-step-settle {
+  animation: pg-step-settle 0.9s ease-out both;
+}
+
+/* The taskbar step chip breathes a soft mint ring so it reads as the ONE live
+ * status+action in a row of neutral window buttons. */
+@keyframes pg-mission-chip {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(61 217 169 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(61 217 169 / 0);
+  }
+}
+.pg-mission-chip {
+  animation: pg-mission-chip 2.6s ease-in-out infinite;
+}
+
+/* The chip's ODOMETER. The track holds exactly TWO stacked faces — the finished
+ * step on top, the new current step below — and rolls up by one face, so the old
+ * label leaves through the top of the chip's overflow-hidden window as the new
+ * one arrives from below. `-50%` (half of a two-face track) keeps it independent
+ * of the face height; `both` parks it on the new face. React drives this with a
+ * keyed remount, so there is no timer that could cancel a roll mid-flight. */
+@keyframes pg-wheel-roll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+.pg-wheel-roll {
+  animation: pg-wheel-roll 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* Respect users who prefer reduced motion. */
 @media (prefers-reduced-motion: reduce) {
+  .pg-step-settle,
+  .pg-mission-chip,
+  .pg-wheel-roll,
   .pg-glow::before,
   .pg-orb-spin,
   .pg-shimmer,
@@ -467,5 +522,12 @@
     background: none;
     -webkit-text-fill-color: rgb(var(--pg-text-dim));
     color: rgb(var(--pg-text-dim));
+  }
+  /* The wheel normally ENDS parked on the new face. `animation: none` alone
+   * would leave the track at 0 — i.e. showing the OLD step. Park it explicitly
+   * so the label just swaps, with no movement. (The chip also drops the outgoing
+   * face in JS; this covers the path where `matchMedia` isn't available.) */
+  .pg-wheel-roll {
+    transform: translateY(-50%);
   }
 }

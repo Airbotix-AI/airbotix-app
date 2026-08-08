@@ -1,276 +1,36 @@
 # Changelog
 
-## 2026-08-07 (fix: review fixes on the Challenge report, the public vote page and two flaky suites)
+## 2026-08-04 (feat: parents can delete saved HSC data — Slice 2.5)
+
+### Added
+
+- Delete controls for an HSC plan, subject and single assessment in the Parent Portal. Deletion
+  is armed in two steps and the confirmation **names the cascade** — removing a subject also
+  removes its assessments, and a bare "Are you sure?" does not tell a parent that. Deliberately
+  not `window.confirm`: a native modal blocks the page and cannot state what else goes.
+- `/learn/hsc` now tells the student that a parent can change or delete anything on the page.
+  The kid can see everything stored about them but does not own the record, and without this a
+  student is left assuming their marks can never be removed (PRD §6.2 HSC-DATA-04).
+
+## 2026-08-03 (fix: let parents record an upcoming HSC assessment)
 
 ### Fixed
 
-- **The parent report can no longer print a mark nobody gave, or a maximum nobody was scored on**
-  (`src/pages/portal/challenge/{ChallengeReportPage,ChallengeReportSections,challengeReportState}.tsx|ts`;
-  `creative-code-challenge-prd.md` §7 v0.19). The response carries **today's** rubric next to marks
-  frozen under `rubric.scored_under_version`, and the page paired them: `judge.scores[key] ?? 0`
-  rendered a dimension the frozen marks never contained as `0 / 15` — a mark the child never
-  received — and each judge's total was printed against a denominator recomputed from the *current*
-  dimension list. Now: a judge total prints against `rubric.total_points`; a dimension with no mark
-  prints **"Not marked"**, never `0` (a genuine `0` still prints as `0 / 5`); and when
-  `scored_under_version` does not equal `current_version` — including when it was never recorded —
-  **every** marked section (capability picture, aggregate, judge cards, next steps) is held back
-  behind a named card that states both versions and offers a retry. PRD §7 already requires
-  aggregation to refuse across mixed versions; this is that refusal on the one screen that hands a
-  family a judgement about their own child. The entry header and the served framing still render,
-  because hiding those would read as "there is no report".
-- **The public vote page speaks the rate limit instead of echoing the server's own sentence**
-  (`src/pages/vote/challengeVoteCopy.ts`). The copy map was keyed on `HTTP_429`, which
-  `publicRequest` only synthesises when the body is **not** a JSON envelope — but the backend's
-  global filter returns code `RATE_LIMITED` inside the standard §7 envelope, so every real throttle
-  fell through to the default branch and showed `ThrottlerException: …` to an anonymous visitor.
-  Both codes now map to the same sentence (`HTTP_429` stays as the no-envelope fallback for a proxy
-  throttling ahead of Nest), with a spec that drives a 429 carrying the real envelope shape.
-- **`BookTeacherPanel.test.tsx` had expired.** Three of its four cases had been failing on any run
-  after 2026-08-01 — long enough to turn `npm test` (and therefore the deploy CI gate) red without
-  anyone touching the panel. The panel puts `min={now + 1 day}` on its datetime-local input and
-  jsdom runs constraint validation before firing a form's `submit`, so the hard-coded
-  `2026-08-02T10:00` fixture silently stopped submitting: no POST, no field error, nothing on
-  screen. The suite now pins `Date.now()` to a fixed instant, which both fixes it and stops it
-  re-expiring.
-- **`CourseDetailPage.test.tsx` no longer depends on the developer's `.env.local`.** It asserted a
-  resolved image URL of `http://localhost:3000/...`, which is `@/lib/marketing`'s dev default —
-  so the suite failed on any machine setting `VITE_MARKETING_URL` (e.g. a local marketing dev
-  server on another port). The test now stubs `@/lib/marketing`: the assertion is about how a
-  *relative* image src is resolved, not about which origin this build points at.
+- `z.coerce.number()` reads `''` as `0`, and the number branch of the mark unions was tried first,
+  so a blank **Mark achieved** on an upcoming assessment was sent as `0` while **Maximum mark**
+  stayed `''`. The API then rejected every planned task with `Achieved and maximum marks must be
+  entered together`, so no family could record a future deadline — the feature's headline promise.
+  The empty branch is now matched first.
+- A blank **Weight %** coerced to `0` and passed `.min(0)`, silently saving a 0% assessment. It is
+  now an explicit `Enter the weight` error.
 
-### Changed
-
-- **`ChallengeRegisterPage.test.tsx` (1051 lines) split along its flow boundaries**, under the hard
-  ≤1000-lines/file rule (`rules/file-organization.md`). It is now
-  `ChallengeRegisterPage.{consent,mediaRelease,checkout,returnTrip}.test.tsx` over a shared
-  `challengeRegisterTestKit.tsx` + `challengeRegisterTestMocks.ts`, with all 39 cases preserved and
-  no change to what any of them assert.
-- **The report page's framing fixture is now the backend's `CHALLENGE_REPORT_FRAMING` verbatim**
-  rather than a paraphrase, so a server-side edit to the paragraph that stops this reading as a
-  grade cannot pass unnoticed on the surface that renders it. The rank-vocabulary denylist now
-  excises the framing card before it runs and holds that card to its own negations separately —
-  the served copy legitimately contains "placing" and "ranks", inside the sentences saying there
-  are none.
-
-## 2026-08-07 (feat: the parent's private Creative Code Challenge report page)
-
-### Added
-
-- **`/portal/challenge/:slug/report` — the parent's private report**
-  (`src/pages/portal/challenge/ChallengeReportPage.tsx`; `creative-code-challenge-prd.md` §5
-  flow 10, §6 "airbotix-app — Portal" row). Parent-only, under the existing
-  `<ProtectedRoute kind="user">` outlet, driving the `GET /challenges/by-slug/:slug/report`
-  endpoint that shipped in `platform-backend` v0.25. There is no kid route: the backend gates the
-  read `@Roles('parent')` and "may a kid read their own report?" is an **open** §9 question.
-- **Nothing at all before the results are locked.** A `409 RESULTS_NOT_LOCKED` renders a plain
-  "not published yet" card — no preview, no partial, not one band and not one judge mark. A
-  provisional number is one a family would remember after it stopped being true.
-- **Each valid judge's six rubric marks and their written comment**, anonymised to `Judge 1` /
-  `Judge 2` exactly as the backend serves them (judge identity is not published to the entrant's
-  family, PRD §7), plus the frozen aggregate and the **six capability bands**
-  (`Starting / Developing / Capable / Extending`). A judge who filed no comment is *said* to have
-  filed none — an empty gap reads as a comment the page withheld.
-- **The framing is served, never authored here.** The band descriptions, the capability wording
-  and the "this is not intelligence / not a school grade or report / not a qualification / not a
-  permanent label / not a comparison" sentences all come from the response and are rendered
-  verbatim, so a copy edit in a React file cannot turn this into a grade or a label about a child.
-- **No ranking and no comparison, computed or implied.** The backend sends no placing — not even
-  this child's own — and the page derives none: no percentage, no percentile, no cohort, no
-  "top N". Marks are only ever printed against their own dimension's maximum. A test asserts the
-  rendered page against a rank-vocabulary denylist.
-- **Next steps name a real course or they are not courses.** A `kind:'course'` step links to the
-  Portal page of a genuinely published course and quotes the catalogue's own evidence line; a
-  `kind:'practice'` step renders practice ideas and no link, rather than dressing itself up as a
-  recommendation.
+## 2026-08-03 (fix: omit a blank course name from HSC claim import and subject add)
 
 ### Fixed
 
-- **A failed request is never rendered as "there is no report."** A 500, an offline tab or an
-  unrecognised error code lands on an explicit failure card that says so in words and offers a
-  retry — separate screens from the three definite server answers (not locked yet, locked but
-  this entry yields no report, and the deliberately ambiguous 404). Telling a parent there is no
-  report because a connection dropped would read as their child having been left out of judging.
-
-## 2026-08-07 (feat: public Creative Code Challenge voting page + Creator Showcase)
-
-### Added
-
-- **`/vote/:slug` and `/challenge/:slug/showcase` — the public, unauthenticated voting page and
-  Creator Showcase** (`src/pages/vote/`; `creative-code-challenge-prd.md` §5 flow 7/9, §3 D-CCC-4,
-  §6 "airbotix-app — Public" row). Registered top-level, OUTSIDE every `<ProtectedRoute>` and both
-  layouts — the same shape `/play/:shareId` uses — because a voter has no account and D-CCC-4
-  removed voter verification entirely. **There is no OTP and no sign-in here, and nothing may grow
-  one.**
-- **Every approved entry, presented identically, in the server's random order.** The cards carry the
-  same three things (the consented display name, the kind of project, an identical "Vote for this
-  entry"), and the list is rendered exactly as received — never sorted, grouped or ranked. The query
-  is deliberately un-cached (`staleTime`/`gcTime` 0, `refetchOnMount: 'always'`) so every visit gets
-  a fresh shuffle rather than one frozen draw.
-- **The tally stays hidden** (D-CCC-4). No entry card and no receipt renders a number of any kind —
-  not a count, not a placing, not a progress bar, and not the voter's own budget out of 10, which
-  the server returns and this page throws away. The receipt says the vote was recorded and nothing
-  else. Tests assert on the container text, so "we did not mean to show a tally" is not the control.
-- **No child's media is published here.** The Showcase shows a display name and a project kind and
-  has no `<video>`, `<img>`, `<iframe>` or `/play/` link anywhere, so a declined `publish_face` /
-  `publish_voice` grant cannot leak through a surface that never had one. What else may appear is
-  PRD §9's unanswered question and was **not** answered here.
-- **Bonus tasks, only as far as the backend supports them.** The referral link is generated for the
-  voter to copy and share themselves — no friend's email is ever asked for and nothing is sent on
-  their behalf — and the group-share claim is filed `pending_review` with copy that says it counts
-  nothing until a person decides it. Both require the one-shot `bonus_token` from the receipt, which
-  is held in memory for the life of the page and never put in the shareable link (PRD §9 open).
-- **Loading, failure and emptiness are three different screens.** A failed load says it is our
-  failure, with a retry, and never renders as "no entries" — and the load path never repeats a raw
-  server message at a visitor.
-- Backend refusals arrive as sentences: duplicate address, the voting window, an entry that cannot
-  be voted for (one deliberately vague code, kept vague), the public rate limit, and a refused
-  invite code — which is dropped so the vote itself can still go through, with the page saying so.
-
-### Changed
-
-- `src/lib/analytics.ts` — `/vote/*` and `/challenge/*` are documented alongside `/learn`, `/try`
-  and `/play` as surfaces that are NEVER measured. `isPortalSurface` already refused them; the spec
-  now pins it.
-
-### Tests
-
-- 26 component tests (`PublicVotePage.test.tsx`): an unauthenticated visitor reaches the page and no
-  `Authorization` header or cookie is sent even with a parent signed in on the same browser; the
-  order re-draws on each visit through a shared QueryClient; no digit, rank or progress bar appears
-  in the Showcase or the receipt; no media element or play link exists for any entry; duplicate,
-  closed-window, not-votable and rate-limit refusals surface readably; a failed fetch and a dropped
-  connection show an error rather than an empty Showcase; the empty Showcase is its own screen; the
-  bonus panel never asks for anyone else's address; and no analytics is initialised on the route.
-- 9 copy tests (`challengeVoteCopy.test.ts`): prototype-pollution-safe code lookup, no raw server
-  string on the load path, no number in any bonus sentence.
-- New harness journey `public-challenge-voting` + `harness/COVERAGE.md` #21 (authored, not executed —
-  the harness is a pre-deploy gate).
-
-## 2026-08-07 (fix: Creative Code Challenge registration — consent wording, closed-window gating, amendments)
-
-### Fixed
-
-- **A closed registration window no longer puts a live signing form in front of a parent.** The
-  Media Release and Competition Terms steps were ungated while the Pay button, the kid-assent box
-  and the reopen control were gated, so their submit buttons stayed enabled against a backend that
-  refuses every sign with `400 EDITION_NOT_OPEN_FOR_REGISTRATION`. Both steps now disable their
-  choices, fields and submit control, and say why.
-- **Re-signing the Media Release no longer silently revokes the other grants.** Consent records are
-  append-only and the newest valid row wins, so the blank reopened form meant a parent who came
-  back to withdraw one permission wrote a new authoritative record with all six choices reset. The
-  reopened form now opens from the choices on record, is labelled as an amendment, and the reopen
-  control states that signing again replaces the whole record. A FIRST signature still starts
-  entirely blank — nothing is ever pre-ticked for a new signer.
-- **The Airwallex handoff key is now scoped to the signed-in family** (`challenge_entry:<slug>:<family_id>`).
-  Session storage outlives a sign-out in the same tab, so on a shared family device the previous
-  parent's abandoned checkout could be resumed — and its kid id driven into every read — under the
-  next parent's session.
-- **A failed read is no longer a dead funnel.** The terminal "Not available" card now offers a
-  retry, and a kid-scoped `NOT_FOUND` (the same 404 the backend returns for another family's kid id,
-  by design) drops the stale kid and returns the child picker instead of telling the parent the
-  challenge does not exist.
-- **A failed kid-assent write is no longer silent** — the checkbox reflects the server's stamp, so a
-  rejected write used to just snap back with no explanation.
-
-### Changed
-
-- **No consent wording is authored in the SPA any more** (`creative-code-challenge-prd.md` §5 flow 1,
-  §7). The six choice labels, the media release's declined-grant assurance, the competition terms
-  acceptance declaration and the child-assent statement now all come from the backend's versioned
-  document registry, so they move with `document_version` and land in the same reviewable diff as
-  legal review. The local fallback labels are gone: if the version in force omits a choice the form
-  records, the form REFUSES to render rather than substituting our own sentence — a grant recorded
-  against text the parent was never served is exactly what version-pinning exists to prevent. The
-  signed-summary card likewise labels each recorded grant from the document, falling back to the raw
-  key rather than to invented wording.
-- The entry-fee line no longer makes the "the only amount you pay" representation; it states the
-  amount and when the entry is confirmed.
-
-### Tests
-
-- 25 new component tests on `ChallengeRegisterPage`: closed-window gating of both steps, the assent
-  box and the reopen control; server-served labels/assurances/attestation rendered and the local
-  copies proven gone; both refuse-to-render branches; the signed card labelled from the document; the
-  `legally_approved` (banner-absent) branch; the child's assent (posts, reflects the server stamp,
-  errors, and does NOT gate Pay); the reopen/amendment path asserting five grants survive withdrawing
-  one; all five media-release validation rules; retry-after-failure and stale-kid recovery; the
-  cross-family handoff key being ignored; and the poll-budget timeout (Pay never re-offered, the
-  handoff key cleared by "I did not complete payment").
-- 1 new component test on `ChallengeSubmitPage` for the previously unreachable `not_video` upload
-  branch — `accept="video/*"` is a picker hint, not a guarantee.
-
-## 2026-08-07 (feat: Creative Code Challenge kid submission)
-
-### Added
-
-- Added `/learn/challenge/:slug/submit` — the child's own submission screen for the Creative Code
-  Challenge (`creative-code-challenge-prd.md` §5 flow 4, §6 Learn row). Pick one of your own
-  playable projects → say whether it is a game or a web page → upload the 60–90s English pitch
-  video → write the one thing you changed → pick the name people will see.
-- **A failed upload can never look like a sent entry.** The pitch video is uploaded through the
-  EXISTING presign → S3 PUT → register-artifact pipeline FIRST, and the submission is only created
-  once the bytes are actually in S3. A rejected or thrown PUT registers nothing, POSTs nothing, and
-  says so — unlike the music-score saver, which registers with `upload_failed: true` because there
-  the inline JSON is the render source. Here the bytes ARE the content, and after
-  `submission_close` a registered-but-empty artifact could never be fixed.
-- Only the child's **own** projects are offered, and only the playable kinds (game / code / Story
-  Blocks) the backend accepts — an Art Studio picture would only earn a refusal a child cannot
-  understand. Ownership is still enforced server-side; this is the UI half of the same rule.
-- Editing stays available until the deadline and then **explains the date** instead of leaving a
-  dead button. Before the window opens, after it closes with an entry, and after it closes with no
-  entry are three distinct explanatory states.
-- The submission state is always on screen — sent in / being checked / approved / one thing needs
-  changing (with the reviewer's reason). No state implies the child failed; a rejection is framed
-  as one thing to change, with the reason next to it.
-- Backend refusals are translated into plain sentences with no error codes and no backend wording
-  (`ENTRY_NOT_CONFIRMED` becomes "ask a grown-up to finish signing you up"). An unrecognised
-  failure still reads as a failure — never as success.
-- Oversized videos are caught before anything is uploaded, against the backend's own 50 MB presign
-  cap, so a phone recording gets a sentence a child can act on rather than a raw 400.
-- Tests: 16 component tests covering the own-projects-only picker, the exact submit payload with
-  the artifact id the upload actually returned, three distinct upload-failure paths asserting that
-  nothing is registered and nothing is posted, the post-deadline lock, the pre-open state, editing
-  an existing entry (reusing the stored pitch artifact), and the rejected/in-review status cards.
-
-### Notes
-
-- No analytics are emitted from this page — the kid surface receives none — and nothing here is
-  logged: the payload carries a minor's own words, their work and the name they would be published
-  under.
-- The page is deep-linked by slug and is deliberately **not** in `LearnTopBar`: there is no
-  "my challenges" list endpoint to build a top-level entry point from yet.
-
-## 2026-08-07 (feat: Creative Code Challenge parent registration)
-
-### Added
-
-- Added `/portal/challenge/:slug/register` — the parent registration flow for the Creative Code
-  Challenge (`creative-code-challenge-prd.md` §5 flow 1, §6 Portal row). Pick the child → sign the
-  Parent/Guardian Consent & Media Release → accept the Competition Terms → pay the $19 entry fee
-  on the Airwallex hosted page → return to a confirmation that reports the entry status and the
-  Stars the SERVER says landed.
-- The two consent documents are **separate steps and separate API calls** (D-CCC-7). The terms do
-  not open until the media release is recorded, and the entry fee stays disabled until the backend
-  reports both as validly signed — a one-click "I agree to everything" is structurally impossible.
-- The media release captures the **six SOT §8 choices individually** — review, publish title /
-  screenshots / demo, publish voice, publish face, public display name, and which official channels
-  may reuse the work and until when. Nothing is pre-ticked; voice and face are stated plainly with
-  the SOT's own assurance that an entry showing neither is judged no differently.
-- Document bodies and the selectable channel list are rendered from the backend's **versioned
-  draft source**, including its `draft_pending_legal_review` marking. No legal wording is authored
-  in this repo, and a parent cannot mistake the placeholder for an approved document.
-- Backend refusals are translated for a non-technical parent: `CONSENT_REQUIRED` (which also
-  re-reads the consent state so the outstanding form is actually reopened),
-  `EDITION_NOT_OPEN_FOR_REGISTRATION`, `CONSENT_DOCUMENT_SUPERSEDED`, `ALREADY_ENTERED` and the
-  backend's own `PAYMENT_PENDING` wording. Loading, empty and error states are explicit — a failed
-  request never renders as an empty page.
-- The return trip polls the entry, and — like `ClassCheckoutPage` — never re-offers Pay while a
-  payment may still be in flight. The child's own assent is recorded as a note, clearly not a
-  signature, and never gates payment.
-- Tests: 14 component tests covering the separate-signature gate, the six grants posting
-  individually (a declined grant is sent as `false`, not dropped), checkout launching through the
-  Airwallex SDK with the backend's own intent, the `CONSENT_REQUIRED` refusal being surfaced and
-  re-read, and the confirmation refusing to claim Stars the server has not reported.
+- The claim import and add-subject forms sent `display_name: ''` for a governed NESA course, which
+  the API rejected — the parent could never complete an import. The blank optional field is now
+  omitted and a typed fallback name is trimmed.
 
 ## 2026-08-03 (feat: add the saved HSC family planner)
 
@@ -282,6 +42,16 @@
   deterministic subject progress without implying an HSC mark, Band, ATAR or AI recommendation.
 - Added HSC Planner navigation in both parent and kid surfaces with component coverage for family
   scoping, explicit claim confirmation, assessment creation, kid self-scope and the empty state.
+
+## 2026-08-03 (fix: stop BookTeacherPanel tests expiring on a calendar date)
+
+### Fixed
+
+- `BookTeacherPanel.test.tsx` typed a hardcoded `2026-08-02T10:00` into the panel's
+  `datetime-local` input, whose `min` is `now + 1 day`. Once that date passed, jsdom's
+  constraint validation reported `rangeUnderflow` and swallowed the submit event, so the
+  POST never fired and three tests failed — reddening `ci` on `main` from 2026-08-01
+  with no product defect behind it. The preferred time is now derived from `Date.now()`.
 
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
@@ -296,6 +66,13 @@
   bucket.
 
 ### Changed
+
+- **Mission Mode is absent, not empty, when there is nothing to show (D-GAME14h).** The window is
+  only registered when the project's mission has authored steps AND its course pack is published
+  (the server reports both as `steps: []`). With none, there is no desktop tile, no taskbar button,
+  no split tab and no empty-state pane. An always-present window advertised structure that didn't
+  exist and invited a kid to open it and find nothing — and since most missions author no steps,
+  that was the common case, not the exception.
 
 - `Bring it to life` stays locked until a child has drawn, and the result is shown beside the
   original under clear `My drawing` and `AI version` labels.
@@ -488,6 +265,131 @@ away`. Existing projects saved under the former scene title still resume.
   backgrounds across all four mission contracts. Chapter four uses the formal
   right-facing breakfast-cart PNG and actor-free distance backgrounds; existing
   saved projects using the exact legacy cart SVG remain compatible.
+## 2026-07-28 (feat: Mission Mode progressive reveal + the current step in the taskbar)
+
+### Removed
+
+- **The milestone celebration DIALOG is gone (D-GAME14g).** Completing a step no longer opens a
+  card, no longer has a "Nice!" button to dismiss, and never covers the game. A kid ticking a box
+  is mid-flow, and a modal interrupts exactly the person we just told to keep going — while saying
+  nothing the checklist has not already shown (the step strikes through, the bar advances, the
+  taskbar chip rolls on).
+  - A milestone still celebrates, with a **confetti burst** — non-blocking, nothing to
+    acknowledge, clears itself.
+  - The milestone's WORDS now live **inline on the finished step row**
+    (`mission-milestone-<id>`), so the message outlives the burst and is still there when the kid
+    scrolls back. That is what makes removing the card safe: nothing authored is lost.
+  - Under `prefers-reduced-motion` nothing animates at all and the inline milestone alone carries
+    the moment.
+  - The earlier "suppress the celebration on the tick that finishes the mission" rule is
+    **withdrawn**: it existed only to keep a dialog off the "All done" state, and with no dialog it
+    served nothing but an authoring trap, where a `milestone` on the final step silently never
+    fired.
+
+### Fixed
+
+- **The odometer roll clipped both faces through the middle instead of rolling.** The wheel
+  *window* had no height of its own, so mid-roll it grew to the full two-face track (56px) inside a
+  36px chip and the chip clipped it centred — you saw the bottom of the outgoing step and the top of
+  the incoming one at once. The window is now pinned to exactly ONE face (`h-7`), which is also what
+  makes the track's `-50%` translate a true odometer: one face out, exactly one face in.
+- **Sequential check-off in the pane (D-M12).** Only the CURRENT step and the LAST completed one
+  are togglable; an earlier finished step keeps its tick but its checkbox is disabled, with an
+  `aria-label` that explains why ("Un-tick the most recent step first") rather than being silently
+  dead. The server enforces the same rule (`400 STEP_OUT_OF_ORDER`); disabling here is so a child
+  never meets that error for something the interface let them try. When every step is done the
+  untick affordance falls through to the final row instead of vanishing and stranding the kid.
+
+### Added
+- **The current mission step is now docked in the bottom taskbar** (`MissionStepChip`,
+  `desktop/MissionStepChip.tsx`, testids `mission-taskbar-chip` / `mission-taskbar-checkbox`) —
+  a brand-mint status+action chip with the step title, a "Step N of M" cue and a live checkbox,
+  so "what do I do now?" is answered without opening the Mission window. Rendered in **both**
+  layout modes (the Taskbar is shared), compacts to "All done 🎉" when every step is ticked, and
+  renders nothing with no project / no mission / no authored steps / while loading / on error.
+  Read-only for the teacher live viewer (D-LV-6). `Workspace` threads `missionId` through the
+  `Taskbar` so a free-play game never issues a checklist request it has no use for.
+  - **It holds a stable slot.** The chip lives in the dock's LEFT cluster (its own divider, right
+    after the theme toggle) and renders **before** the window-button group, at a **fixed
+    `w-[264px]` with `shrink-0`** — no `flex-1`, no shrink-to-fit. Previously it sat after the
+    window buttons in an `ml-2 min-w-0 flex-1` wrapper, so opening a single window moved it
+    +148px and shrank it 280px → 167px, and a longer step title resized it again on every tick.
+    The title now truncates inside the fixed width and stays whole in `title=` and the checkbox's
+    `aria-label`. Not absolutely positioned — normal flow with a fixed width cannot collide with
+    the window buttons at narrow widths.
+  - **Odometer roll on advance** (`pg-wheel-roll`, testid `mission-taskbar-label`): a tick rolls
+    the finished step's label up and out while the next rolls in from below, title and "Step N of
+    M" cue moving together as one wheel (~300ms). Two stacked faces on a track, clipped by the
+    chip's `overflow-hidden` — that clipping is what reads as a wheel rather than a fade. Driven
+    by a React `key` (keyed remount replays the CSS animation), so no timer can cancel a roll
+    mid-flight. It plays on the final step rolling away into "All done 🎉" too, and deliberately
+    **not** on first load. Under `prefers-reduced-motion` the label just swaps.
+- **Scroll-to-next**: a successful tick smooth-scrolls the newly-current step into view inside the
+  pane (`scrollIntoView({behavior:'smooth', block:'nearest'})`) with a short mint settle glow.
+  Under `prefers-reduced-motion` it jumps (`behavior:'auto'`) and drops the glow. It never throws
+  when the pane is closed/unmounted — the normal case for a tick made from the taskbar.
+
+### Changed
+- **Mission Mode is now a PROGRESSIVE REVEAL** (learn-game-studio-prd §9A). Done steps still
+  collapse to a ✓ line and re-open on tap; the current step is still expanded with its
+  `instruction_md`; but **every step after the current one is LOCKED** — it renders fixed-length
+  placeholder bars (identical widths for every locked row, so they can't leak how long a title is)
+  behind a soft blur with a lock glyph. The authored title and instruction of a locked step are
+  **never put in the DOM**: a CSS blur of the real text is cosmetic only (devtools, select-all and
+  screen readers still read it), so the copy simply is not rendered. Locked rows are
+  `aria-hidden`, carry no checkbox and are not focusable; the group gets one summary line instead
+  ("N more steps unlock as you go"). Rows keep `data-testid="mission-step-<id>"` with
+  `data-state="locked"`.
+  - **The kid is never trapped**: the current step always ticks forward and a done step always
+    re-opens and un-ticks (walking the checklist back re-seals what came after). Only *peeking
+    ahead* is gated. The old "pin any step open (skip ahead)" behaviour is gone, since ahead-steps
+    no longer render content.
+  - A step a **teacher** ticked ahead of the kid renders as done, never locked.
+- **Shared Mission state** — the checklist query + optimistic toggle moved into
+  `panes/useMissionChecklist.ts`, used by both `MissionPane` and the new taskbar chip, so the two
+  surfaces can never disagree about which step is current.
+- **The milestone celebration is hoisted to workspace level** (`panes/missionCelebrationStore.ts`
+  + `panes/MissionCelebration.tsx`, rendered by `Workspace` in both layout modes) instead of
+  living inside `MissionPane`. A milestone ticked from the taskbar chip with the Mission window
+  **closed** now still celebrates — previously it would have silently done nothing. Testids
+  `mission-celebration` / `mission-confetti` and the `prefers-reduced-motion` behaviour (card
+  stays, confetti drops) are unchanged.
+
+### Fixed
+- `hasUnfinishedSteps` no longer throws on a partial/foreign entry in the shared mission-progress
+  cache — the Mission auto-open is a convenience and must degrade, not crash the workspace.
+
+## 2026-07-28 (feat: Creative Code Studio Mission Mode — the guided step checklist, MM-2)
+
+### Added
+- **Mission Mode in Creative Code Studio (learn-game-studio-prd §9A / D-GAME14, milestone MM-2)** —
+  a **6th playground window** (`PgWindowId 'mission'`, dock tile + taskbar button + split "Mission"
+  tab) that answers the kid's in-class "what do I do now?" with the lesson's **already-authored**
+  mission steps. `MissionPane` reads `GET /projects/:id/mission-progress` and writes
+  `PATCH …/mission-progress {step_id, done}` (optimistic, rolled back on failure). Step ids come
+  from the server verbatim — never derived client-side.
+  - **One step at a time**: the current step (the first unticked one) is expanded with its
+    `instruction_md`; done steps collapse to a ✓ line; later steps read quieter. It **never blocks** —
+    tapping any step expands it (go back OR skip ahead) and every checkbox stays live.
+  - **A teacher override is never silent**: a step in `teacher_marked_step_ids` says "Your teacher
+    marked this done".
+  - **Milestone celebration**: ticking a step carrying `milestone` fires the confetti + a card with
+    the authored copy. `prefers-reduced-motion` drops the confetti and keeps the card.
+  - **Auto-opens** (without raising, never mid-turn, once per project) when the project's mission
+    still has unfinished steps. No mission / no authored steps is a normal, friendly empty state —
+    not an error — and does not auto-open.
+  - Check-off stays **guidance, not the reward gate** (D-GAME14c): no Stars, no acceptance.
+
+### Changed
+- The celebration confetti moved out of Story Blocks into a shared
+  `src/components/celebration/` (`ConfettiBurst` + `confetti.css` + `prefersReducedMotion`), reused
+  by `StoryMissionGuide` and the new Mission milestone instead of a second implementation. Story
+  Blocks behaviour and markup are unchanged.
+- `CodeProject` now carries `mission_id`, which `PlaygroundApp` reads on project load so the studio
+  knows it is in Mission Mode (it previously dropped a field the API already returned).
+- Restoring a saved playground workspace now merges over the default windows, so a layout saved by
+  an older build (with no entry for a window added since) can't leave a window undefined.
+
 ## 2026-07-27 (fix: Art Studio tasks explain what to do)
 
 ### Fixed

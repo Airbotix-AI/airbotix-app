@@ -22,6 +22,15 @@ vi.mock('@/lib/api', () => ({
 
 import { BookTeacherPanel } from './BookTeacherPanel';
 
+// The panel sets `min` on its datetime-local input to now + 1 day, and jsdom
+// enforces rangeUnderflow, so a fixed calendar date silently stops submitting
+// the form once that date passes. Keep the preferred time relative to now.
+const DAY_MS = 24 * 60 * 60 * 1000;
+const preferredStart = new Date(Date.now() + 3 * DAY_MS);
+const pad = (value: number) => String(value).padStart(2, '0');
+const PREFERRED_LOCAL = `${preferredStart.getFullYear()}-${pad(preferredStart.getMonth() + 1)}-${pad(preferredStart.getDate())}T10:00`;
+const PREFERRED_ISO = new Date(PREFERRED_LOCAL).toISOString();
+
 function renderPanel(initialEntry = '/portal/tutoring') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -92,7 +101,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Build a platform game' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: PREFERRED_LOCAL },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -102,7 +111,7 @@ describe('BookTeacherPanel', () => {
         body: expect.objectContaining({
           kid_id: 'kid-1',
           subject_interest: 'Build a platform game',
-          preferred_start: expect.stringMatching(/^2026-08-02T/),
+          preferred_start: PREFERRED_ISO,
         }),
       });
     });
@@ -188,7 +197,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Creative coding' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: PREFERRED_LOCAL },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 
@@ -250,7 +259,7 @@ describe('BookTeacherPanel', () => {
       target: { value: 'Python' },
     });
     fireEvent.change(screen.getByLabelText('Preferred date and time'), {
-      target: { value: '2026-08-02T10:00' },
+      target: { value: PREFERRED_LOCAL },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
 

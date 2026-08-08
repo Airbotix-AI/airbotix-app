@@ -13,7 +13,7 @@
 // Dark-themed throughout (design-system tokens only; no raw hex / Tailwind
 // defaults beyond the desktop bg). Matches docs/mockup-workspace-v2.png.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup } from 'react-resizable-panels';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -39,10 +39,17 @@ import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import type { GameEngine } from './buildGamePreview';
 import { HelpPane } from './panes/HelpPane';
+import { MissionCelebration } from './panes/MissionCelebration';
+import { MissionPane } from './panes/MissionPane';
+import {
+  getMissionProgress,
+  hasUnfinishedSteps,
+  missionProgressKey,
+} from './panes/missionApi';
 import { ResizeHandle } from './panes/ResizeHandle';
 import { useGameAgent, type ChatItem, type FirstTurnSeed } from './panes/useGameAgent';
 import { useVerification } from './panes/useVerification';
-import { ensureGameRunnerVisible, usePlaygroundStore } from './playgroundStore';
+import { ensureGameRunnerVisible, ensureMissionVisible, usePlaygroundStore } from './playgroundStore';
 import { aiCheckpointLabel, useHistoryStore } from './historyStore';
 import { readWorkspaceSlice, writeWorkspaceSlice } from './workspaceUiStore';
 
@@ -80,6 +87,12 @@ interface WorkspaceProps {
    * offline stub turn runs behind the same UI.
    */
   projectId?: string;
+  /**
+   * The Mission this project backs (D-M5 / D-GAME14), when it was created from a
+   * course task — the studio is then in Mission Mode and reads the authored step
+   * checklist. Absent/null on a free-play game (no checklist fetch at all).
+   */
+  missionId?: string | null;
   /** The AI's first turn (generated on the loading screen) — seeds the chat. */
   firstTurn?: FirstTurnSeed;
   /** Restored chat history (J9 resume) — reopens the saved conversation. */
@@ -107,15 +120,17 @@ interface Wallet {
   stars_balance: number;
 }
 
-type SplitTab = 'chat' | 'code' | 'assets' | 'help';
+type SplitTab = 'chat' | 'code' | 'assets' | 'help' | 'mission';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2 / Images / BookOpen), not an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images / BookOpen / ListChecks), not
+// an emoji glyph.
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
   { id: 'assets', label: 'Assets' },
   { id: 'help', label: 'Guide' },
+  { id: 'mission', label: 'Mission' },
 ];
 
 export function Workspace({
@@ -134,6 +149,7 @@ export function Workspace({
   initialChat,
   onChatChange,
   blockedSeed,
+  missionId,
   readOnly = false,
   prepShare = false,
 }: WorkspaceProps) {
@@ -381,6 +397,38 @@ export function Workspace({
   });
   beginVerificationRef.current = verification.beginVerification;
 
+  // Mission Mode auto-open (D-GAME14 / §9A.5). Only a project that actually backs
+  // a Mission fetches the checklist; the pane shares this cache entry (same key),
+  // so opening the window costs no second request.
+  const missionProgress = useQuery({
+    queryKey: missionProgressKey(projectId ?? ''),
+    queryFn: () => getMissionProgress(projectId!),
+    enabled: !!projectId && !!missionId,
+  });
+  // Open it ONCE per project, and only while there is still something to do. It
+  // opens WITHOUT raising (ensureMissionVisible) and never mid-turn, so it can't
+  // steal focus from the chat; a kid who closes it keeps it closed.
+  const missionAutoOpenedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!projectId || readOnly || busy) return;
+    if (missionAutoOpenedRef.current === projectId) return;
+    if (!hasUnfinishedSteps(missionProgress.data)) return;
+    missionAutoOpenedRef.current = projectId;
+    ensureMissionVisible();
+  }, [projectId, readOnly, busy, missionProgress.data]);
+
+  // Whether Mission Mode EXISTS for this project at all (D-GAME14h). A mission with no
+  // authored steps — or whose course pack is unpublished, which the server reports the same
+  // way, as `steps: []` — offers the kid nothing, so the window is not registered anywhere:
+  // no desktop tile, no taskbar button, no split tab. An empty checklist window is worse
+  // than no window; it advertises structure that doesn't exist and invites a kid to open it
+  // and find nothing. Missions default to no steps, so this is the COMMON case, not an edge.
+  const hasMission = (missionProgress.data?.steps?.length ?? 0) > 0;
+  const splitTabs = useMemo(
+    () => (hasMission ? SPLIT_TABS : SPLIT_TABS.filter((t) => t.id !== 'mission')),
+    [hasMission],
+  );
+
   // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
   // overlay drives the canned turns through this REAL `send`. No-op outside the
   // demo provider (`useDemoMode()` is null everywhere else).
@@ -526,6 +574,7 @@ export function Workspace({
             <DesktopIcon id="game" />
             <DesktopIcon id="assets" />
             <DesktopIcon id="help" />
+            {hasMission && <DesktopIcon id="mission" />}
           </div>
 
           {/* Floating windows */}
@@ -586,10 +635,28 @@ export function Workspace({
           >
             <HelpPane mode={mode} request={helpRequest ?? undefined} />
           </Window>
+          {hasMission && (
+            <Window
+              id="mission"
+              title={WINDOW_META.mission.title}
+              icon={<WINDOW_META.mission.Icon size={16} />}
+            >
+              <MissionPane projectId={projectId} readOnly={readOnly} />
+            </Window>
+          )}
         </div>
 
         {/* Docked taskbar (brand + LayoutToggle + window buttons + share link) */}
-        <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
+        <Taskbar
+          projectId={projectId}
+          missionId={missionId}
+          hasMission={hasMission}
+          readOnly={readOnly}
+          prepShare={prepShare}
+        />
+        {/* Milestone celebration lives HERE, not in MissionPane: a step ticked
+            from the taskbar chip must celebrate with the Mission window closed. */}
+        <MissionCelebration />
       </div>
     );
   }
@@ -611,7 +678,7 @@ export function Workspace({
                 aria-label="Editor mode"
                 className="flex shrink-0 items-center gap-0.5 border-b border-pg-border bg-pg-text/5 px-2 py-1.5"
               >
-                {SPLIT_TABS.map(({ id, label }) => {
+                {splitTabs.map(({ id, label }) => {
                   const active = splitTab === id;
                   const Icon = WINDOW_META[id].Icon;
                   return (
@@ -652,6 +719,8 @@ export function Workspace({
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
+                ) : splitTab === 'mission' ? (
+                  <MissionPane projectId={projectId} readOnly={readOnly} />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onSaveNow={onSaveNow} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
                 )}
@@ -684,7 +753,9 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} readOnly={readOnly} prepShare={prepShare} />
+      <Taskbar projectId={projectId} missionId={missionId} readOnly={readOnly} prepShare={prepShare} />
+      {/* Same hoisted milestone celebration as window mode (§9A.6). */}
+      <MissionCelebration />
     </div>
   );
 }

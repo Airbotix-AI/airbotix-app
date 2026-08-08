@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { api } from '@/lib/api';
 import { Taskbar } from './Taskbar';
+import type { MissionProgress } from '../panes/missionApi';
 
 afterEach(cleanup);
 
@@ -16,12 +19,31 @@ vi.mock('../../projects/useProjectBackTo', () => ({
 // Heavy/irrelevant children — stub so the Taskbar renders in isolation.
 vi.mock('../ShareLinkPanel', () => ({ ShareLinkPanel: () => null }));
 vi.mock('@/pages/try/demoMode', () => ({ useDemoMode: () => null }));
+// The dock's MissionStepChip reads the mission checklist through the API client.
+vi.mock('@/lib/api', () => ({ api: vi.fn() }));
+const apiMock = vi.mocked(api);
 
-function renderTaskbar(props: { projectId?: string; readOnly?: boolean }) {
+const MISSION: MissionProgress = {
+  project_id: 'p1',
+  mission_id: 'm1',
+  steps: [{ id: 'step_1', title: 'Make your player move', widget: 'code' }],
+  completed_step_ids: [],
+  teacher_marked_step_ids: [],
+  updated_at: null,
+};
+
+beforeEach(() => {
+  apiMock.mockReset().mockResolvedValue(MISSION as never);
+});
+
+function renderTaskbar(props: { projectId?: string; missionId?: string | null; readOnly?: boolean }) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <MemoryRouter>
-      <Taskbar {...props} />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <Taskbar {...props} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -36,5 +58,28 @@ describe('Taskbar — Home/back (kid way out of the game playground)', () => {
   it('hides the Home control in the teacher read-only viewer (D-LV-6)', () => {
     renderTaskbar({ projectId: 'p1', readOnly: true });
     expect(screen.queryByTestId('pg-home')).not.toBeInTheDocument();
+  });
+});
+
+describe('Taskbar — the current mission step is docked here (§9A)', () => {
+  it('surfaces the mission step chip for a project with a checklist', async () => {
+    renderTaskbar({ projectId: 'p1', missionId: 'm1' });
+    await waitFor(() =>
+      expect(screen.getByTestId('mission-taskbar-chip')).toHaveTextContent(
+        'Make your player move',
+      ),
+    );
+    expect(screen.getByTestId('mission-taskbar-checkbox')).toBeEnabled();
+  });
+
+  it('keeps the chip read-only in the teacher live viewer (D-LV-6)', async () => {
+    renderTaskbar({ projectId: 'p1', missionId: 'm1', readOnly: true });
+    await waitFor(() => expect(screen.getByTestId('mission-taskbar-checkbox')).toBeDisabled());
+  });
+
+  it('shows no chip (and fires no request) for a free-play game with no mission', () => {
+    renderTaskbar({ projectId: 'p1' });
+    expect(screen.queryByTestId('mission-taskbar-chip')).not.toBeInTheDocument();
+    expect(apiMock).not.toHaveBeenCalled();
   });
 });
