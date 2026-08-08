@@ -17,7 +17,7 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { type StoryCoachCue } from './curriculumGuides';
 import { jtwOrderBugObserved } from './jtwOrderDebug';
-import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_P6_LESSON_ID, JTW_C4_WUKONG_ID } from './jtwC4DualBuild';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
@@ -705,7 +705,8 @@ export function BlocksStudioPage({
         if (
           id === JTW_C4_WUKONG_ID &&
           (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
-            storyMission?.lessonId === JTW_C4_P5_LESSON_ID) &&
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P6_LESSON_ID) &&
           missionHasRun &&
           targetFixedNow
         ) {

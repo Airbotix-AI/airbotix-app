@@ -1,7 +1,36 @@
 import type { StoryMission } from './types';
-import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild';
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_P6_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild';
 
 export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
+  [JTW_C4_P6_LESSON_ID]: {
+    mode: 'observe-fix',
+    lessonId: JTW_C4_P6_LESSON_ID,
+    celebrate: false,
+    hero: { name: '孙悟空', role: '把本领放回正确入口的学习者', asset: JTW_C4_WUKONG_ASSET },
+    eyebrow: '西游记 · 第四章 · Debug',
+    title: '先找第一次偏离',
+    storyPages: [{ emoji: '🌬️🚩', title: '本领排错队', body: '风把完整本领链吹到Start入口。先说预期，再运行错误版，找到第一次偏离。', scene: 5 }],
+    partnerLine: '只改Trigger归属，动作、参数、顺序、名字链和背景都保持不变。',
+    mission: '把完整本领小链从Start重接到Tap；先Go等待，再真实Tap悟空。',
+    question: '这条本领脚本在等什么？',
+    choices: [{ id: 'tap', label: '等观众Tap悟空', correct: true }, { id: 'flag', label: '等Go开始', correct: false }],
+    retry: '第一次偏离是本领用了Start，不是动作参数。',
+    successTitle: '两条路重新分开',
+    success: '名字先出现；悟空等邀请后才完整展示。',
+    fixTitle: '只修Trigger归属',
+    fixPrompt: '保留整组动作，只把本领链入口从Start换成Tap。',
+    workspaceIntro: '错误版会在Go后自动展示；先运行看见错误，再重接Trigger。',
+    fixChoices: [],
+    fixRetry: '删除动作或改参数都不是这次修复。',
+    coach: { ready: '先运行错误版。', watch: '名字后为什么立刻展示？', sayFirst: '名字属于Start。', sayThen: '对白保持原样。', hopFirst: '动作组没有错。', hopThen: '它应等Tap。', retry: '动作组内容或Trigger仍不对。', fix: '逐块重接到Tap入口。', test: '先Go等待，再Tap悟空。', saving: '双运行证据已量到。', complete: '本领不再抢先。' },
+    logicSteps: [{ icon: '🚩', label: '名字', order: 'Go' }, { icon: '👆', label: '本领', order: 'Tap' }],
+    logicWhy: 'Trigger决定整条脚本在等什么。',
+    completionTitle: 'Debug完成',
+    completion: '错误run、单一Trigger修复、Go等待与真实Tap都已保存。',
+    completionSteps: [{ icon: '🏷️', label: '先得名', order: '先' }, { icon: '✨', label: '再展示', order: '后' }],
+    completionWhy: '动作没有被删除或改写，只换回正确入口。',
+    next: '下一步制作可保存、可供同伴发现的个人认识卡。',
+  },
   [JTW_C4_P5_LESSON_ID]: {
     mode: 'complete',
     lessonId: JTW_C4_P5_LESSON_ID,

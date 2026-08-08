@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-08 (feat: implement Journey West C4-P6 wrong-trigger debug)
+
+### Added
+
+- Added the child-facing C4-P6 debug loop with a real buggy Start trace, first-deviation evidence,
+  three carried-forward skill groups, exact trigger-only repair, dual Go/Tap run proof and P7-only
+  continuation.
+
 ## 2026-08-05 (feat: implement Journey West C4-P5 expression choice)
 
 ### Added

@@ -54,6 +54,8 @@ import {
   JTW_C4_P4_PAGE_ID,
   JTW_C4_P5_LESSON_ID,
   JTW_C4_P5_PAGE_ID,
+  JTW_C4_P6_LESSON_ID,
+  JTW_C4_P6_PAGE_ID,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
 } from './jtwC4DualBuild';
@@ -81,6 +83,16 @@ export interface StoryMissionProgramContract {
 const STONE_MONKEY_ASSET = JTW_STONE_MONKEY_SPRITE;
 
 export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> = {
+  [JTW_C4_P6_LESSON_ID]: {
+    pageId: JTW_C4_P6_PAGE_ID,
+    background: 'jtw-s1-c4-mountain-gate',
+    characterId: JTW_C4_WUKONG_ID,
+    scriptId: JTW_C4_NAME_SCRIPT_ID,
+    asset: JTW_C4_WUKONG_ASSET,
+    start: { gx: 10, gy: 9, size: 3, rot: 0 },
+    allowedSayText: ['我是孙悟空', '我等到邀请了', '家在那边', '再看这里'],
+    target: [...JTW_C4_NAME_TARGET],
+  },
   [JTW_C4_P5_LESSON_ID]: {
     pageId: JTW_C4_P5_PAGE_ID,
     background: 'jtw-s1-c4-mountain-gate',
