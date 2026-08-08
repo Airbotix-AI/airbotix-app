@@ -9,6 +9,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({ api: vi.fn() }));
 vi.mock('@/lib/api', () => ({ api }));
 
+// `@/lib/marketing` reads `VITE_MARKETING_URL` at module load, so without this
+// the expected absolute image URL below is whatever the developer happens to
+// have in their gitignored `.env.local` — the suite passed on CI and failed on
+// any machine running the local marketing dev server on a different port. The
+// assertion is about how a RELATIVE image src is resolved, not about which
+// origin this build points at, so the origin is pinned here.
+// `vi.hoisted`, because a `vi.mock` factory runs before this module's own
+// top-level bindings are initialised.
+const { MARKETING_ORIGIN } = vi.hoisted(() => ({ MARKETING_ORIGIN: 'https://marketing.test' }));
+vi.mock('@/lib/marketing', () => ({
+  MARKETING_URL: MARKETING_ORIGIN,
+  marketingHref: (path = '') => `${MARKETING_ORIGIN}${path}`,
+}));
+
 import { CourseDetailPage } from './CourseDetailPage';
 
 const DETAIL = {
@@ -257,7 +271,7 @@ describe('CourseDetailPage', () => {
     ).toBeVisible();
     expect(
       screen.getByRole('img', { name: 'Original robot-cat hero concept art' }),
-    ).toHaveAttribute('src', 'http://localhost:3000/media/courses/super-mario-game-week-01.png');
+    ).toHaveAttribute('src', `${MARKETING_ORIGIN}/media/courses/super-mario-game-week-01.png`);
     expect(screen.getByRole('img', { name: 'Original robot-cat hero moving' })).toHaveAttribute(
       'src',
       'https://cdn.example.com/super-mario-week-02.png',

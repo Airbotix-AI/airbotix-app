@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  ClipboardList,
   GraduationCap,
   History,
   LayoutDashboard,
@@ -72,6 +73,7 @@ export const PORTAL_NAV_SECTIONS: PortalNavSection[] = [
     label: 'Family',
     items: [
       { id: 'family', to: '/portal/family', label: 'My Family', mobileLabel: 'Family', icon: Users },
+      { id: 'hsc', to: '/portal/academy/hsc-planner', label: 'HSC Planner', icon: ClipboardList },
       { id: 'approvals', to: '/portal/approvals', label: 'Approvals', icon: Bell },
       { id: 'usage', to: '/portal/usage', label: 'Usage', icon: BarChart3 },
       { id: 'audit', to: '/portal/audit', label: 'Activity', icon: History },

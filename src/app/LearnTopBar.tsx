@@ -27,6 +27,7 @@ export const NAV_ITEMS = [
   { to: '/learn/create', label: 'Create' },
   { to: '/learn/missions', label: 'Lessons' },
   { to: '/learn/classroom', label: 'My Classes' },
+  { to: '/learn/hsc', label: 'HSC Plan' },
 ];
 
 // The Lessons catalog is temporarily hidden (features.ts SHOW_LESSONS_CATALOG);
