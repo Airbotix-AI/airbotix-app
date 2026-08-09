@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-12 (added: Journey West C5 finale and C6 opening candidate slice)
+
+### Added
+
+- Added C5 Reset debugging, a VFS-backed personal size story, P7 reload/Retell and the
+  server-owned 如意印; added C6-P1/P2 story-order and motive-versus-choice evidence.
+
 ## 2026-08-12 (added: Journey West C5-P1 through P5 candidate slice)
 
 ### Added
