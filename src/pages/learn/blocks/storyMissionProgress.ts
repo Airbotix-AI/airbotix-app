@@ -10,9 +10,11 @@ import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
   JTW_C4_P6_LESSON_ID,
+  JTW_C4_P7_LESSON_ID,
   jtwC4DualBuildMatches,
   jtwC4P5ChoiceMatches,
   jtwC4P6BuildMatches,
+  jtwC4P7BuildMatches,
 } from './jtwC4DualBuild';
 import {
   JTW_MISSION_CONTRACTS,
@@ -577,6 +579,7 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
   if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5ChoiceMatches(project);
   if (lessonId === JTW_C4_P6_LESSON_ID) return jtwC4P6BuildMatches(project);
+  if (lessonId === JTW_C4_P7_LESSON_ID) return jtwC4P7BuildMatches(project);
   const mission = TINY_STAR_MISSION_CONTRACTS[lessonId];
   if (!mission) return false;
   if (lessonId === 'jtw-s1-c2-p5') return c2p5ProgramMatches(project);

@@ -3,10 +3,25 @@ import {
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P5_LESSON_ID,
   JTW_C4_P6_LESSON_ID,
+  JTW_C4_P7_LESSON_ID,
   JTW_C4_WUKONG_ASSET,
 } from '../jtwC4DualBuild'
 
 export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
+  [JTW_C4_P7_LESSON_ID]: {
+    mode: 'personal-ship', lessonId: JTW_C4_P7_LESSON_ID, celebrate: false,
+    hero: { name: '孙悟空', role: '等待同伴发现邀请入口的学习者', asset: JTW_C4_WUKONG_ASSET },
+    eyebrow: '西游记 · 第四章 · Personal Ship', title: 'Meet Sun Wukong',
+    storyPages: [{ emoji: '🏷️👆', title: '让同伴真正认识悟空', body: '名字由Start出现；轻微指尖线索帮助同伴发现悟空可点，本领仍只在真实Tap后回应。', scene: 5 }],
+    partnerLine: '同伴没有口头答案：先Go，再自己找到悟空并Tap。',
+    mission: '保留两条独立脚本，完成Go与真实Tap，保存后关闭重开。',
+    question: '怎样让同伴发现邀请入口？', choices: [], retry: '不能把Tap链改成自动播放。',
+    successTitle: '同伴找到了邀请入口', success: '名字牌和所选目标都保存在个人作品中。',
+    fixTitle: '制作个人认识卡', fixPrompt: '保持Go得名、Tap展示，并完成两条End。', workspaceIntro: '三个版本都是真实选择；作品名固定为Meet Sun Wukong。', fixChoices: [], fixRetry: '',
+    coach: { ready: '先预测两条事件。', watch: 'Go后本领保持安静吗？', sayFirst: '名字先出现。', sayThen: 'Tap后才说。', hopFirst: '动作属于邀请入口。', hopThen: '同伴自己发现可点对象。', retry: '检查两条脚本、双运行与End。', fix: '只修可发现性，不改Trigger。', test: '先Go，再让同伴Tap悟空。', saving: '真实双事件结果正在保存。', complete: '个人认识卡可以重开再运行。' },
+    logicSteps: [{ icon: '🚩', label: '得名', order: 'Go' }, { icon: '👆', label: '展示', order: 'Tap' }], logicWhy: '同一角色用两个Trigger等待不同条件。',
+    completionTitle: 'Personal Ship已运行', completion: '双事件结果已写入保存版本。', completionSteps: [{ icon: '💾', label: '保存', order: '先' }, { icon: '🔁', label: '重开复测', order: '后' }], completionWhy: '页面还会核对关闭、重开与JSON一致。', next: '最后讲回远行、得名、学习与等待邀请。',
+  },
   [JTW_C4_P6_LESSON_ID]: {
     mode: 'observe-fix',
     lessonId: JTW_C4_P6_LESSON_ID,

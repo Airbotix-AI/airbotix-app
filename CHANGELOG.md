@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-12 (added: Journey West C4-P7 Personal Ship)
+
+### Added
+
+- Added the `Meet Sun Wukong` child-facing Personal Ship with two trigger-only starter slots,
+  three seven-block-or-more choices, real Go/Tap proof, peer discoverability evidence, exact VFS
+  reopen comparison and adjacent-only continuation to C4-P8.
+
 ## 2026-08-12 (added: Journey West C4-P6 wrong-trigger debug)
 
 ### Added
