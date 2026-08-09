@@ -7,11 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as storyApi from './storyPartsApi'
 import { JourneyWestC5PartsPage } from './JourneyWestC5PartsPage'
-import type { C5PartId } from './journeyWestC5Program'
+import type { C5EarlyPartId } from './journeyWestC5Program'
 
 vi.mock('./storyPartsApi', async (original) => ({ ...(await original<typeof storyApi>()), fetchStoryLineProgress: vi.fn(), completeStoryPart: vi.fn() }))
 
-function renderPart(partId: C5PartId) {
+function renderPart(partId: C5EarlyPartId) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(<QueryClientProvider client={client}><MemoryRouter><JourneyWestC5PartsPage partId={partId} /></MemoryRouter></QueryClientProvider>)
 }

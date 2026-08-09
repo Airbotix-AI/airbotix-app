@@ -7,10 +7,10 @@ import { BlocksRunner } from '../interpreter'
 import { Choice, EvidenceGroup, OrderCards } from './partUi'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi'
-import { C5_NEXT, C5_REVERSED_DEMO, C5_ROUTE_ORDER, C5_STATE_DEMO, c5BuildValid, c5Page, c5Portable, type C5PartId } from './journeyWestC5Program'
+import { C5_NEXT, C5_REVERSED_DEMO, C5_ROUTE_ORDER, C5_STATE_DEMO, c5BuildValid, c5Page, c5Portable, type C5EarlyPartId } from './journeyWestC5Program'
 
 const MAP = '/learn/story/journey-west'
-const STORY: Record<C5PartId, string[]> = {
+const STORY: Record<C5EarlyPartId, string[]> = {
   'jtw-s1-c5-p1': ['悟空学成回到花果山。木棍弯了，石锤又不便使用；他需要一件拿得动、能改变大小、也便于携带的工具。', '海面深处出现柱影。它不是敌人，也不是师父送来的礼物；悟空决定到东海龙宫看清它。'],
   'jtw-s1-c5-p2': ['柱厅有大、原、小三层刻度。金箍棒会依次 Grow、Reset、Shrink，最后执行的状态块决定结尾。', 'Reset 不是倒带故事，它只把大小恢复到最初状态。'],
   'jtw-s1-c5-p3': ['孩子用伸展、站回原姿、收拢记住三个状态，再比较两种顺序。', '身体动作只是模型；真正证据仍来自同一解释器的两次完整轨迹。'],
@@ -30,7 +30,7 @@ const PALETTE: Array<{ op: BlockOp; label: string }> = [
   { op: 'grow', label: '🔼 Grow 2' }, { op: 'wait', label: '⏱ Wait 5' }, { op: 'reset_size', label: '🔄 Reset' }, { op: 'shrink', label: '🔽 Shrink 2' }, { op: 'turn_right', label: '↪️ Turn（干扰）' },
 ]
 
-export function JourneyWestC5PartsPage({ partId, previewSleep = async () => undefined }: { partId: C5PartId; previewSleep?: (ms: number) => Promise<void> }) {
+export function JourneyWestC5PartsPage({ partId, previewSleep = async () => undefined }: { partId: C5EarlyPartId; previewSleep?: (ms: number) => Promise<void> }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const progress = useQuery({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID], queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID) })
