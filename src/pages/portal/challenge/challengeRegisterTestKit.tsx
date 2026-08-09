@@ -42,34 +42,71 @@ export const CLOSED_EDITION = { ...EDITION, status: 'judging', registration_open
 
 export const KIDS = [{ id: 'kid-1', nickname: 'Mia', age: 9 }];
 
-export const PLACEHOLDER_BODY =
-  'PLACEHOLDER — NOT LEGALLY APPROVED TEXT. The wording of this document has not been drafted ' +
-  'or reviewed by Australian legal/privacy counsel.';
+/**
+ * A stand-in for the backend's document body. Deliberately NOT the real v1.0
+ * wording: these fixtures assert that the page renders whatever the registry
+ * serves, and a copy of the operative text here would be a second, unversioned
+ * home for words a parent's signature is filed against.
+ */
+export const DOCUMENT_BODY =
+  'Served document body. The page renders this verbatim from the backend registry.';
+
+/**
+ * The overrides that turn any fixture document back into an unapproved draft.
+ * The shipped documents are v1.0 approved, but the draft state and its banner
+ * still exist so a future re-draft cannot reach a parent silently — so the
+ * regression test drives it explicitly rather than by fixture default.
+ */
+export function draftOverrides() {
+  return {
+    current_version: '0.9-draft',
+    legal_review_status: 'draft_pending_legal_review',
+    body: 'PLACEHOLDER — NOT LEGALLY APPROVED TEXT.',
+  };
+}
+
+/** Served with every approved version (backend `VERSION_NOTICE`). */
+export const VERSION_NOTICE =
+  'This is version 1.0 of this document and it is the wording your signature is filed against. ' +
+  'If we change it, the new wording ships as a new version and has to be signed again — a ' +
+  'later version never applies to a signature you already gave.';
 
 export function mediaDoc(overrides: Record<string, unknown> = {}) {
   return {
     document_type: 'parent_media_release',
-    current_version: '0.1-draft',
-    title: 'Parent/Guardian Consent & Media Release (DRAFT — pending legal review)',
-    legal_review_status: 'draft_pending_legal_review',
-    body: PLACEHOLDER_BODY,
+    current_version: '1.0',
+    title: 'Parent/Guardian Consent & Media Release',
+    legal_review_status: 'legally_approved',
+    body: DOCUMENT_BODY,
     choices: [
       { key: 'review', label: 'Airbotix staff and judges may review my child’s work' },
       { key: 'publish_title', label: 'Publish the work’s title, screenshots and playable demo' },
       { key: 'publish_voice', label: 'Publish my child’s voice (pitch video audio)' },
       { key: 'publish_face', label: 'Publish my child’s face (pitch video vision)' },
       { key: 'display_name', label: 'The public display name to use for my child' },
-      { key: 'channels', label: 'Which official Airbotix channels may reuse it, and until when' },
+      {
+        key: 'channels',
+        label: 'Where Airbotix may reuse it (permission ends when this consent expires)',
+      },
     ],
+    // Two GROUPS, each naming its members — the shipped v1.0 shape. The member
+    // list is what keeps this from being the blanket "all social media"
+    // permission the SOT forbids, so the fixture carries it too.
     channel_options: [
-      { key: 'airbotix_website', label: 'Airbotix website' },
-      { key: 'airbotix_youtube', label: 'Airbotix YouTube' },
+      { key: 'airbotix_website', label: 'Airbotix website (airbotix.ai, the Creator Showcase)' },
+      {
+        key: 'airbotix_social',
+        label:
+          'Airbotix official social accounts (WeChat, Xiaohongshu (RED), YouTube, Instagram, ' +
+          'Facebook, LinkedIn) — these six accounts only',
+      },
     ],
     // The media release is signed by making its choices — no separate "I accept".
     attestation: null,
     assurances: [
       'Voice and face are separate decisions, and either can be declined. An entry that shows ' +
         'neither is judged in exactly the same way as one that shows both.',
+      VERSION_NOTICE,
     ],
     signed: false,
     signed_at: null,
@@ -84,14 +121,17 @@ export function mediaDoc(overrides: Record<string, unknown> = {}) {
 export function termsDoc(overrides: Record<string, unknown> = {}) {
   return {
     document_type: 'competition_terms',
-    current_version: '0.1-draft',
-    title: 'Competition Terms & Declaration (DRAFT — pending legal review)',
-    legal_review_status: 'draft_pending_legal_review',
-    body: PLACEHOLDER_BODY,
+    current_version: '1.0',
+    title: 'Competition Terms & Declaration',
+    legal_review_status: 'legally_approved',
+    body: DOCUMENT_BODY,
     choices: [],
     channel_options: [],
-    attestation: 'I have read this document and I accept it on behalf of my child.',
-    assurances: [],
+    attestation:
+      'I am the parent or legal guardian of the child being entered. I have read these ' +
+      'Competition Terms and I accept them on my child’s behalf, and I confirm the entry will ' +
+      'be my child’s own work.',
+    assurances: [VERSION_NOTICE],
     signed: false,
     signed_at: null,
     expires_at: null,
@@ -106,7 +146,7 @@ export const SIGNED_STAMP = {
   signed: true,
   signed_at: '2026-08-05T00:00:00.000Z',
   expires_at: '2027-08-05T00:00:00.000Z',
-  signed_version: '0.1-draft',
+  signed_version: '1.0',
   missing_reason: null,
 };
 

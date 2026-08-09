@@ -43,6 +43,7 @@ import {
   isChallengeNotFound,
   isConsentRequired,
 } from './challengeErrors';
+import { challengeDayLabel } from './challengeDates';
 import { CompetitionTermsStep } from './CompetitionTermsStep';
 import { MediaReleaseStep } from './MediaReleaseStep';
 import { SignedDocumentCard } from './SignedDocumentCard';
@@ -68,8 +69,10 @@ const pendingKey = (slug: string, familyId: string) => `challenge_entry:${slug}:
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX_ATTEMPTS = 40; // ~2 minutes
 
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+// Shared, and rendered in UTC — this used to format in the VIEWER's timezone,
+// which showed an Australian parent `submission_close` (31 Aug 23:59:59Z) as
+// 1 September: a deadline one day later than the real one. See challengeDates.ts.
+const dayLabel = challengeDayLabel;
 
 function findDoc(
   consent: ChallengeConsentStatus | undefined,

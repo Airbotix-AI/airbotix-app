@@ -1,11 +1,13 @@
 // The document a parent is being asked to sign, rendered from the backend's
 // versioned source (creative-code-challenge-prd.md §7).
 //
-// ⚠️ This component NEVER authors document wording. `body` is whatever the
-// backend's document registry serves, and while `legal_review_status` is
-// `draft_pending_legal_review` that body is an explicit placeholder that grants
-// nothing. The banner below makes that state impossible to miss — a parent must
-// never be able to mistake a draft for an approved legal document.
+// ⚠️ This component NEVER authors document wording. `body`, `title` and the
+// version are whatever the backend's document registry serves.
+//
+// The documents in force are v1.0 `legally_approved`, so the banner below
+// normally does not render. It is kept, not deleted: if a future re-draft is
+// ever served, a parent must not be able to mistake it for approved text, and
+// that guard belongs on the surface that shows the words.
 
 import type { ChallengeConsentDocumentStatus } from './challengeApi';
 
