@@ -228,3 +228,31 @@ export function startChallengeCheckout(
     { method: 'POST', body: { kid_id: kidId } },
   );
 }
+
+/**
+ * One dimension of the 100-point rubric, exactly as the backend serves it.
+ *
+ * ⚠️ NEVER hardcode these labels, weights or constraints in the SPA. They are
+ * the operative judging rules — the same constant the judging UI renders and
+ * the score validator enforces — so a local copy could show a family a
+ * weighting no version ever carried. See `challenge-judging-rubric.ts`.
+ */
+export interface ChallengeRubricDimension {
+  key: string;
+  label: string;
+  max_points: number;
+  description: string;
+  /** Hard limits on what may NOT influence this mark (e.g. accent). */
+  constraints: string[];
+}
+
+export interface ChallengeRubric {
+  version: string;
+  total_points: number;
+  dimensions: ChallengeRubricDimension[];
+}
+
+/** Published criteria — no account needed, and it names no entrant or judge. */
+export function getChallengeRubric(): Promise<ChallengeRubric> {
+  return api<ChallengeRubric>('/challenges/rubric');
+}

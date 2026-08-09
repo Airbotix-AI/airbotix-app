@@ -37,8 +37,32 @@ const KIDS = [
 ];
 
 /** kid-1 confirmed, kid-2 mid-payment, kid-3 never started. */
-function wire({ failKid }: { failKid?: string } = {}) {
+const RUBRIC = {
+  version: '1.0',
+  total_points: 100,
+  dimensions: [
+    {
+      key: 'original_idea',
+      label: 'Original idea and creative decisions',
+      max_points: 25,
+      description: 'How original the concept is.',
+      constraints: [],
+    },
+    {
+      key: 'pitch',
+      label: 'English Project Pitch',
+      max_points: 15,
+      description: 'How clearly the child explains, in English, what they built.',
+      constraints: ['Do NOT award or deduct marks for accent or pronunciation.'],
+    },
+  ],
+};
+
+function wire({ failKid, failRubric }: { failKid?: string; failRubric?: boolean } = {}) {
   apiMock.mockImplementation((path: string) => {
+    if (path === '/challenges/rubric') {
+      return failRubric ? Promise.reject(new Error('boom')) : Promise.resolve(RUBRIC);
+    }
     if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
     const match = /kid_id=([^&]+)/.exec(path);
     const kidId = match ? decodeURIComponent(match[1]) : null;
@@ -144,6 +168,75 @@ describe('ChallengeHubPage — the guidance a first-time family needs', () => {
     const dates = await screen.findByTestId('challenge-hub-dates');
     expect(dates).toHaveTextContent(/24 August 2026/);
     expect(dates).toHaveTextContent(/31 August 2026/);
+  });
+});
+
+describe('ChallengeHubPage — the marking guide families could never see', () => {
+  it('renders every rubric dimension with its marks, from the backend', async () => {
+    // The rubric lived only on the judge side. A family paying to enter could
+    // not find out how the 100 points split.
+    wire();
+    renderHub();
+
+    const rubric = await screen.findByTestId('challenge-hub-rubric');
+    expect(rubric).toHaveTextContent('Original idea and creative decisions');
+    expect(rubric).toHaveTextContent('25 marks');
+    expect(rubric).toHaveTextContent('English Project Pitch');
+    expect(rubric).toHaveTextContent('15 marks');
+  });
+
+  it('shows the English-fairness limits attached to the pitch mark', async () => {
+    // A fairness rule a family is never shown is one they cannot rely on.
+    wire();
+    renderHub();
+
+    const limits = await screen.findByTestId('rubric-limits-pitch');
+    expect(limits).toHaveTextContent(/accent or pronunciation/i);
+  });
+
+  it('says the guide failed to load rather than rendering no criteria at all', async () => {
+    // Silence would read as "there are no criteria", which is worse than an error.
+    wire({ failRubric: true });
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-rubric-error')).toHaveTextContent(
+      /could not load the marking guide/i
+    );
+    expect(screen.queryByTestId('challenge-hub-rubric')).not.toBeInTheDocument();
+  });
+
+  it('never hardcodes the rubric — it renders exactly what the API returned', async () => {
+    wire();
+    renderHub();
+
+    const rubric = await screen.findByTestId('challenge-hub-rubric');
+    // Two dimensions in the fixture; a page carrying its own copy would show six.
+    expect(rubric.querySelectorAll('li[class*="rounded-2xl"]').length).toBe(
+      RUBRIC.dimensions.length
+    );
+  });
+});
+
+describe('ChallengeHubPage — the links a family needs', () => {
+  it('points at the public Showcase', async () => {
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-showcase-link')).toHaveAttribute(
+      'href',
+      `/challenge/${SLUG}/showcase`
+    );
+  });
+
+  it('tells a parent the submit page is the CHILD’s, not a link they can open', async () => {
+    // A parent opening /learn/* is bounced back to /portal, so handing them a
+    // raw link would be a dead end dressed up as an action.
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-submit-note')).toHaveTextContent(
+      /will not work from your account/i
+    );
   });
 });
 

@@ -21,7 +21,12 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { useMe } from '@/auth/useAuth';
-import { getChallengeRegistration, type ChallengeRegistrationView } from './challengeApi';
+import {
+  getChallengeRegistration,
+  getChallengeRubric,
+  type ChallengeRegistrationView,
+  type ChallengeRubric,
+} from './challengeApi';
 import { challengeDayLabelLong } from './challengeDates';
 import {
   CHALLENGE_JUDGING_NOTES,
@@ -117,6 +122,14 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
   const edition = registrations.find((r) => r.data)?.data?.edition ?? editionQuery.data?.edition;
 
   const anyEntered = registrations.some((r) => r.data?.entry?.status === 'registration_confirmed');
+
+  // Published criteria, served by the backend so this page cannot state a
+  // weighting the judges are not actually using.
+  const rubric = useQuery<ChallengeRubric>({
+    queryKey: ['challenge-rubric'],
+    queryFn: getChallengeRubric,
+    staleTime: 60 * 60 * 1000,
+  });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -252,18 +265,104 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
         </ul>
       </section>
 
+      {/* ── Where the child submits ─────────────────────────────────────── */}
+      {anyEntered && (
+        <section className="card-base mt-6" aria-labelledby="challenge-hub-submit-where">
+          <h2 id="challenge-hub-submit-where" className="section-heading">
+            Where your child submits
+          </h2>
+          <p className="lead-text mt-3">
+            Your child submits from <strong>their own account</strong>, not from yours — the entry
+            has to be theirs. They sign in to Learn and open{' '}
+            <span className="font-mono text-[13px]">Challenge → Submit</span>.
+          </p>
+          <p className="mt-3 text-[13px] text-slate2" data-testid="challenge-hub-submit-note">
+            This link only opens for a signed-in child, so it will not work from your account. Hand
+            the device over, or use <strong>Send to my child’s device</strong> on the{' '}
+            <Link to="/portal/family" className="underline">
+              family page
+            </Link>{' '}
+            to pass it across.
+          </p>
+        </section>
+      )}
+
       {/* ── How it is judged ────────────────────────────────────────────── */}
       <section className="card-base mt-6" aria-labelledby="challenge-hub-judging">
         <h2 id="challenge-hub-judging" className="section-heading">
           How it is judged
         </h2>
-        <ul className="mt-3 space-y-2" data-testid="challenge-hub-judging-notes">
+
+        {rubric.data && (
+          <>
+            <p className="lead-text mt-3">
+              Every entry is scored out of {rubric.data.total_points} by each judge independently.
+              This is the whole breakdown — nothing is scored that is not on this list.
+            </p>
+            <ul className="mt-4 space-y-4" data-testid="challenge-hub-rubric">
+              {rubric.data.dimensions.map((dimension) => (
+                <li key={dimension.key} className="rounded-2xl bg-white/60 px-4 py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-[15px] font-bold text-ink">{dimension.label}</p>
+                    <span className="sticker-sky alt">{dimension.max_points} marks</span>
+                  </div>
+                  <p className="mt-1 text-[14px] leading-relaxed text-slate2">
+                    {dimension.description}
+                  </p>
+                  {dimension.constraints.length > 0 && (
+                    <ul className="mt-2 space-y-1" data-testid={`rubric-limits-${dimension.key}`}>
+                      {dimension.constraints.map((rule) => (
+                        <li key={rule} className="text-[13px] leading-relaxed text-ink">
+                          • {rule}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {rubric.isError && (
+          // Never silently show nothing: a family that cannot see the criteria
+          // should know the criteria exist and the page failed, not assume there
+          // are none.
+          <p className="field-error mt-3" role="alert" data-testid="challenge-hub-rubric-error">
+            We could not load the marking guide just now. Reload the page — the criteria have not
+            changed.
+          </p>
+        )}
+
+        <ul className="mt-4 space-y-2" data-testid="challenge-hub-judging-notes">
           {CHALLENGE_JUDGING_NOTES.map((note) => (
             <li key={note} className="text-[14px] leading-relaxed text-slate2">
               {note}
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* ── The public side ─────────────────────────────────────────────── */}
+      <section className="card-base mt-6" aria-labelledby="challenge-hub-public">
+        <h2 id="challenge-hub-public" className="section-heading">
+          The public Creator Showcase
+        </h2>
+        <p className="lead-text mt-3">
+          Approved entries appear in a public Showcase, and the public vote there decides the Junior
+          People’s Choice award only — it does not change the judges’ scores.
+        </p>
+        <p className="mt-3 text-[13px] text-slate2">
+          What appears is only what you permitted in the media release. If you granted nothing, your
+          child’s work is judged exactly the same and simply is not shown publicly.
+        </p>
+        <a
+          className="btn-pill-secondary mt-5 inline-block"
+          href={`/challenge/${encodeURIComponent(slug)}/showcase`}
+          data-testid="challenge-hub-showcase-link"
+        >
+          Open the public Showcase →
+        </a>
       </section>
     </div>
   );

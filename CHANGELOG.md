@@ -28,6 +28,19 @@
   never as `Not entered`. Telling a parent their paid child has no entry is a false fact; saying
   the check failed is a retry.
 
+- **The 100-point marking guide, rendered for the family being judged** (needs platform-backend
+  #376). Every dimension with its marks — original idea 25, playable result 20, testing &
+  improvement 20, code/AI understanding 15, English pitch 15, responsible creation 5 — plus the
+  limits attached to the English mark: no marks awarded or deducted for accent, pronunciation,
+  vocabulary, or the language spoken at home. Fetched from `GET /challenges/rubric`, never
+  hardcoded, so the page cannot state a weighting the judges are not using. If it fails to load
+  the page says so — silence would read as "there are no criteria".
+- **Where the child submits**, stated rather than linked: the submit page opens only for a
+  signed-in child, so handing a parent that URL is a dead end dressed as an action. The card says
+  so and points at the family page's device handoff.
+- **A link to the public Creator Showcase**, with the line that matters to a family that declined
+  publication: work that is not shown publicly is judged exactly the same.
+
 ### Note
 
 - The hub reads one `…/registration?kid_id=` per child rather than a family-scoped list endpoint,
