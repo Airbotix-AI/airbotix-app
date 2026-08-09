@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-09 (feat: complete Journey West C4 with server-owned Retell evidence)
+
+### Added
+
+- Added C4-P8 `名字跟着他回家`: the child orders the six chapter causes, reopens and runs the
+  real P7 VFS project through separate Go and Wukong-Tap interpreter traces, links story motive,
+  run and P6 debug evidence, and renders the server-owned 得名印 before adjacent C5-P1 continue.
+
 ## 2026-08-09 (feat: implement Journey West C4-P7 Personal Ship)
 
 ### Added

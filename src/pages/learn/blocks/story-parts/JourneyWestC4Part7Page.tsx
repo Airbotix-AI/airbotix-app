@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMe } from '@/auth/useAuth';
-import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi';
+import { createBlocksProject, loadBlocksProject } from '../blocksApi';
 import { jtwC4P7Version, type JtwC4P5Version } from '../jtwC4DualBuild';
+import { findC4PersonalShipBuild } from './journeyWestC4PersonalShip';
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
 import { Choice } from './partUi';
 import { completeStoryPart, fetchStoryLineProgress } from './storyPartsApi';
@@ -16,30 +17,13 @@ const VERSIONS: Array<{ id: JtwC4P5Version; label: string; template: `blocks_jtw
   { id: 'screen', label: '屏风再现', template: 'blocks_jtw_c4_p7_screen' },
 ];
 
-async function findBuild(kidId: string) {
-  for (const meta of (await listBlocksProjects(kidId)).slice(0, 10)) {
-    try {
-      const loaded = await loadBlocksProject(meta.id);
-      const version = jtwC4P7Version(loaded.project);
-      if (!version) continue;
-      return {
-        projectId: meta.id,
-        version,
-        snapshot: JSON.stringify(loaded.project),
-        dualRunCompleted: Boolean(loaded.storyProgress?.completed?.[PART_ID]),
-      };
-    } catch { /* Ignore unreadable legacy projects. */ }
-  }
-  return null;
-}
-
 export function JourneyWestC4Part7Page() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const progress = useQuery({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID], queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID) });
-  const build = useQuery({ queryKey: ['jtw-c4-p7-build', kidId], queryFn: () => findBuild(kidId!), enabled: Boolean(kidId) });
+  const build = useQuery({ queryKey: ['jtw-c4-p7-build', kidId], queryFn: () => findC4PersonalShipBuild(kidId!), enabled: Boolean(kidId) });
   const saved = progress.data?.completed.find((entry) => entry.part_id === PART_ID);
   const [version, setVersion] = useState<JtwC4P5Version | null>(null);
   const [prediction, setPrediction] = useState<string | null>(null);
