@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-09 (feat: implement Journey West C5-P1 through P5)
+
+### Added
+
+- Added five adjacent Dragon Palace Parts: source-grounded motive ordering, pre-run size prediction,
+  two real interpreter state sequences, a child-built four-block size experiment, and a persisted
+  portable-size choice grounded in the narrow door and waterway constraints.
+
 ## 2026-08-09 (feat: complete Journey West C4 with server-owned Retell evidence)
 
 ### Added
