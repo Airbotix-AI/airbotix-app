@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-12 (added: Journey West C5-P1 through P5 candidate slice)
+
+### Added
+
+- Added five adjacent Dragon Palace Parts: source-grounded motive ordering, pre-run size prediction,
+  two interpreter state sequences, and the initial P4/P5 build flow pending real Studio hardening.
+
 ## 2026-08-12 (added: Journey West C4-P8 server-owned Retell evidence)
 
 ### Added
