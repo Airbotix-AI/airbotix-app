@@ -12,5 +12,13 @@
 // second constant — logged in creative-code-challenge-prd.md §9.
 export const CURRENT_CHALLENGE_SLUG = 'creative-code-challenge-2026-junior';
 
-/** Where the Portal nav sends a parent: the page that handles every entry state. */
-export const CHALLENGE_PORTAL_PATH = `/portal/challenge/${CURRENT_CHALLENGE_SLUG}/register`;
+/**
+ * Where the Portal nav sends a parent: the family HUB, not the single-child
+ * register form.
+ *
+ * The nav pointed at `/register` first, which opens on one child chosen from a
+ * picker — so a parent with several children could only learn who was entered
+ * by selecting each of them in turn, and never saw their family's standing at
+ * all. The hub answers that first, then links each child to the register page.
+ */
+export const CHALLENGE_PORTAL_PATH = `/portal/challenge/${CURRENT_CHALLENGE_SLUG}`;
