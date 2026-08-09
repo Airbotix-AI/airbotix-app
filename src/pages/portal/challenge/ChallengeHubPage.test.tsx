@@ -228,6 +228,35 @@ describe('ChallengeHubPage — the links a family needs', () => {
     );
   });
 
+  it('gives the parent a studio they can actually open — the public demo', async () => {
+    // "Build in Creative Code Studio" named a place a parent cannot reach: the
+    // studio proper is a kid surface and bounces them to /portal. /try/playground
+    // is the one version they can open, and it needs no account.
+    wire();
+    renderHub();
+
+    const link = await screen.findByTestId('challenge-hub-step-link-start-building');
+    expect(link).toHaveAttribute('href', '/try/playground');
+    expect(link).toHaveTextContent(/Creative Code Studio/i);
+    // Never "no login needed": the parent reading this IS signed in, so that
+    // wording reads as nonsense or as an instruction to sign out. Whose account
+    // the studio lives in is the actual point.
+    expect(link.textContent ?? '').not.toMatch(/no login/i);
+  });
+
+  it('offers the device handoff on an ENTERED child, where it is actually needed', async () => {
+    // A parent cannot open their child's studio or submit page however signed in
+    // they are — `/learn/*` bounces a parent principal. The handoff was only on
+    // the family page, nowhere near the moment a parent needs it.
+    wire();
+    renderHub();
+
+    const entered = await screen.findByTestId('challenge-hub-kid-kid-1');
+    expect(entered.textContent ?? '').toMatch(/device/i);
+    // Not offered for a child with no entry — there is nothing to hand over yet.
+    expect(screen.getByTestId('challenge-hub-kid-kid-3').textContent ?? '').not.toMatch(/device/i);
+  });
+
   it('tells a parent the submit page is the CHILD’s, not a link they can open', async () => {
     // A parent opening /learn/* is bounced back to /portal, so handing them a
     // raw link would be a dead end dressed up as an action.

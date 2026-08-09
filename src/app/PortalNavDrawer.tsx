@@ -16,16 +16,13 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
       aria-label="Parent Portal desktop"
       className="hidden w-72 shrink-0 border-r border-hairline bg-canvas-pure p-6 xl:flex xl:flex-col"
     >
-      <div className="mb-8 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-coral shadow-brand-coral">
-          <span className="text-[18px] font-extrabold text-white">A</span>
-        </div>
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.10em] text-slate2">
-            Airbotix
-          </div>
-          <div className="text-[15px] font-bold text-ink leading-tight">Parent Portal</div>
-        </div>
+      <div className="mb-8">
+        <img
+          src="/logo-black-horizontal.png"
+          alt="Airbotix"
+          className="h-12 w-auto"
+        />
+        <div className="mt-1 text-[15px] font-bold leading-tight text-ink">Parent Portal</div>
       </div>
 
       <div className="space-y-5 overflow-y-auto">

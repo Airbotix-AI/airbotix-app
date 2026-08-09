@@ -21,6 +21,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api';
 import { useMe } from '@/auth/useAuth';
+import { KidDeviceHandoff } from '@/components/KidDeviceHandoff';
 import {
   getChallengeRegistration,
   getChallengeRubric,
@@ -183,32 +184,47 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
             return (
               <li
                 key={kid.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/60 px-4 py-3"
+                className="rounded-2xl bg-white/60 px-4 py-3"
                 data-testid={`challenge-hub-kid-${kid.id}`}
               >
-                <div>
-                  <p className="text-[15px] font-bold text-ink">{kid.nickname}</p>
-                  <p className="text-[13px] text-slate2">Age {kid.age}</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {loading ? (
-                    <span className="text-[13px] text-slate2">Checking…</span>
-                  ) : (
-                    <span
-                      className={STANDING_CLASS[standing.kind]}
-                      data-testid={`challenge-hub-status-${kid.id}`}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[15px] font-bold text-ink">{kid.nickname}</p>
+                    <p className="text-[13px] text-slate2">Age {kid.age}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {loading ? (
+                      <span className="text-[13px] text-slate2">Checking…</span>
+                    ) : (
+                      <span
+                        className={STANDING_CLASS[standing.kind]}
+                        data-testid={`challenge-hub-status-${kid.id}`}
+                      >
+                        {standing.label}
+                      </span>
+                    )}
+                    <Link
+                      className="btn-pill-secondary"
+                      to={`/portal/challenge/${slug}/register?kid_id=${encodeURIComponent(kid.id)}`}
+                      data-testid={`challenge-hub-action-${kid.id}`}
                     >
-                      {standing.label}
-                    </span>
-                  )}
-                  <Link
-                    className="btn-pill-secondary"
-                    to={`/portal/challenge/${slug}/register?kid_id=${encodeURIComponent(kid.id)}`}
-                    data-testid={`challenge-hub-action-${kid.id}`}
-                  >
-                    {standing.actionLabel} →
-                  </Link>
+                      {standing.actionLabel} →
+                    </Link>
+                  </div>
                 </div>
+
+                {/*
+                  An ENTERED child needs their own account open to build and to
+                  submit — and a parent cannot reach it, however signed in they
+                  are: `/learn/*` bounces a parent principal to `/portal`. This
+                  is the existing handoff (one-shot token + QR) placed where the
+                  need actually arises, instead of only on the family page.
+                */}
+                {standing.kind === 'entered' && (
+                  <div className="mt-3 border-t-2 border-ink/10 pt-3">
+                    <KidDeviceHandoff kidId={kid.id} nickname={kid.nickname} />
+                  </div>
+                )}
               </li>
             );
           })}
@@ -233,6 +249,15 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
               <div>
                 <p className="text-[15px] font-bold text-ink">{step.title}</p>
                 <p className="mt-1 text-[14px] leading-relaxed text-slate2">{step.body}</p>
+                {step.parentLink && (
+                  <a
+                    className="mt-2 inline-block text-[13px] font-semibold text-ink underline"
+                    href={step.parentLink.to}
+                    data-testid={`challenge-hub-step-link-${step.id}`}
+                  >
+                    {step.parentLink.label} →
+                  </a>
+                )}
               </div>
             </li>
           ))}
