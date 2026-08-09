@@ -11,11 +11,13 @@ import {
   ReceiptText,
   Search,
   Settings,
+  Trophy,
   UserRoundSearch,
   Users,
   WalletCards,
   type LucideIcon,
 } from 'lucide-react';
+import { CHALLENGE_PORTAL_PATH } from '@/lib/challenge';
 
 export interface PortalNavItem {
   id: string;
@@ -66,6 +68,18 @@ export const PORTAL_NAV_SECTIONS: PortalNavSection[] = [
       { id: 'academy', to: '/portal/academy', label: 'Exam Prep', icon: GraduationCap },
       { id: 'tutoring', to: '/portal/tutoring', label: 'Tutoring', icon: MessageCircle },
       { id: 'guides', to: '/portal/guides', label: 'Family Guides', icon: LibraryBig },
+      // The ONLY route into the challenge from inside the Portal. Without it the
+      // register/report pages are reachable exclusively from the marketing
+      // site's CTA, so a parent who signed the consent and left could not get
+      // back to their own entry. The target page renders every state — not
+      // registered, mid-payment, confirmed — so one link covers the lot.
+      {
+        id: 'challenge',
+        to: CHALLENGE_PORTAL_PATH,
+        label: 'Creative Code Challenge',
+        mobileLabel: 'Challenge',
+        icon: Trophy,
+      },
     ],
   },
   {

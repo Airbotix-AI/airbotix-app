@@ -29,6 +29,8 @@ vi.mock('@/auth/useAuth', async () => {
 import {
   CONSENT_PATH,
   consentStatus,
+  DOCUMENT_BODY,
+  draftOverrides,
   lastConsentSignBody,
   mediaDoc,
   pickKid,
@@ -88,8 +90,23 @@ describe('ChallengeRegisterPage — the two documents are signed separately', ()
     expect(screen.getByRole('button', { name: /Pay A\$19 & enter/ })).toBeInTheDocument();
   });
 
-  it('renders the backend draft body with its not-legally-approved marking', async () => {
+  it('renders the served document body verbatim, with no banner on an approved version', async () => {
     wireApi({ [`GET ${CONSENT_PATH}`]: consentStatus([mediaDoc(), termsDoc()]) });
+    renderPage();
+    await pickKid();
+
+    // The shipped documents are v1.0 approved, so the parent sees the wording
+    // and nothing that undercuts it.
+    expect(await screen.findByTestId('consent-document-body')).toHaveTextContent(DOCUMENT_BODY);
+    expect(screen.queryByTestId('consent-draft-warning')).not.toBeInTheDocument();
+  });
+
+  it('still raises the not-legally-approved banner if a draft version is ever served', async () => {
+    // The promotion to v1.0 did not delete the draft path — this is the guard
+    // that a future re-draft cannot reach a parent looking like approved text.
+    wireApi({
+      [`GET ${CONSENT_PATH}`]: consentStatus([mediaDoc(draftOverrides()), termsDoc()]),
+    });
     renderPage();
     await pickKid();
 
@@ -121,15 +138,12 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
     // transmitted as an explicit `false`, not silently omitted.
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
-    fireEvent.change(screen.getByTestId('grant-channels-until'), {
-      target: { value: '2027-06-30' },
-    });
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(signed).toHaveBeenCalled());
     const body = lastConsentSignBody();
     expect(body.document_type).toBe('parent_media_release');
-    expect(body.document_version).toBe('0.1-draft');
+    expect(body.document_version).toBe('1.0');
     expect(body.kid_id).toBe('kid-1');
     expect(body.grants).toMatchObject({
       review: true,
@@ -139,8 +153,9 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
       display_name: 'Mia K.',
       channels: ['airbotix_website'],
     });
-    // Six distinct recorded choices — never one blanket flag.
-    expect(body.grants.channels_until).toMatch(/^2027-06-30T|^2027-07-01T/);
+    // Six distinct recorded choices — never one blanket flag. The reuse window
+    // is derived (12 months, the consent's own life), not typed by the parent.
+    expect(new Date(body.grants.channels_until as string).getTime()).toBeGreaterThan(Date.now());
     expect(Object.keys(body.grants).sort()).toEqual(
       [
         'channels',
@@ -174,7 +189,7 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
 
     // The accept button is inert until the parent says they have read it.
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
-    fireEvent.click(screen.getByLabelText(/I have read this document/));
+    fireEvent.click(screen.getByLabelText(/I am the parent or legal guardian/));
     fireEvent.click(screen.getByTestId('sign-competition-terms'));
 
     await waitFor(() => expect(accepted).toHaveBeenCalled());
@@ -215,7 +230,7 @@ describe('ChallengeRegisterPage — nothing is signable once registration closes
     await screen.findByTestId('competition-terms-step');
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
     // Ticking the declaration must not resurrect the button either.
-    expect(screen.getByLabelText(/I have read this document/)).toBeDisabled();
+    expect(screen.getByLabelText(/I am the parent or legal guardian/)).toBeDisabled();
   });
 
   it('the child’s assent cannot be recorded, and the signed release cannot be reopened', async () => {

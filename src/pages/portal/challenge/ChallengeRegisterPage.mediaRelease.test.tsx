@@ -156,34 +156,43 @@ describe('ChallengeRegisterPage — the media release validates before it posts'
     expect(consentSignPosts()).toHaveLength(0);
   });
 
-  it('asks when a channel permission ends, once a channel is ticked', async () => {
+  // The parent used to TYPE the end date, which was both extra work and a
+  // contradiction with the Terms ("valid for 12 months from signing"). The
+  // window is now derived, so these three tests assert the derivation instead of
+  // the old validation.
+  it('states the end date only once a channel is actually granted', async () => {
+    await openForm();
+    expect(screen.queryByTestId('grant-channels-until')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    await waitFor(() =>
+      expect(screen.getByTestId('grant-channels-until')).toHaveTextContent(/12 months from today/i),
+    );
+  });
+
+  it('signs with no date entered at all — the parent is never asked for one', async () => {
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
-    expect(await screen.findByText(/Choose the date this permission ends/)).toBeInTheDocument();
-    expect(consentSignPosts()).toHaveLength(0);
+    await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
   });
 
-  it('refuses an end date in the past — the backend requires a future one', async () => {
+  it('derives channels_until as ~12 months out, always in the future', async () => {
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
-    fireEvent.change(screen.getByTestId('grant-channels-until'), {
-      target: { value: '2020-01-01' },
-    });
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
-    expect(await screen.findByText(/Choose a date in the future/)).toBeInTheDocument();
-    expect(consentSignPosts()).toHaveLength(0);
-  });
-
-  it('leaves the end date inert until a channel is actually granted', async () => {
-    await openForm();
-    expect(screen.getByTestId('grant-channels-until')).toBeDisabled();
-
-    fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
-    await waitFor(() => expect(screen.getByTestId('grant-channels-until')).toBeEnabled());
+    await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
+    const until = new Date(lastConsentSignBody().grants.channels_until as string);
+    // Strictly future is the backend's hard requirement; the ~12-month window is
+    // the product rule. A month-arithmetic result can land a day either side, so
+    // assert a band rather than an exact instant.
+    expect(until.getTime()).toBeGreaterThan(Date.now());
+    const monthsOut = (until.getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30.4);
+    expect(monthsOut).toBeGreaterThan(11.5);
+    expect(monthsOut).toBeLessThan(12.5);
   });
 });

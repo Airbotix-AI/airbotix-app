@@ -39,9 +39,9 @@ export interface ChallengeConsentChannelOption {
  * One consent document plus this family's signature state on it.
  *
  * `body` + `legal_review_status` come from the backend's versioned document
- * registry. While `legal_review_status` is `draft_pending_legal_review` the body
- * is an explicit placeholder that grants nothing — the UI MUST render it with
- * that disclosure and must never substitute wording of its own.
+ * registry. The UI must never substitute wording of its own, and must render
+ * the not-legally-approved disclosure for any version still served as
+ * `draft_pending_legal_review`.
  */
 export interface ChallengeConsentDocumentStatus {
   document_type: ChallengeConsentDocType;
