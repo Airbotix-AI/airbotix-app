@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-08-09 (added: family challenge hub — who is entered, and what to actually do)
+
+### Added
+
+- **`/portal/challenge/:slug` — the family's view of a challenge**, and the new Portal nav target.
+  It lists **every child with their own standing** (`Not entered` / `Started — not paid yet` /
+  `Entered`), each row deep-linking into registration with that child's `kid_id`. Until now the
+  only Portal route was the **single-child** register form behind a picker showing names and ages
+  only: a parent with three children could learn who was entered only by selecting each in turn,
+  and nothing answered "where does my family stand?".
+- **Post-payment guidance**, the thing a confirmation card offering only *View wallet* never gave:
+  ordered next steps, the two accepted project types, the five things that get submitted, and the
+  judging rules that are commitments to the child — English scored on clarity only, and an entry
+  showing neither face nor voice judged identically. Content lives in `challengeGuidance.ts`,
+  copied from the PRD; dates come from the edition the API returns, so it cannot drift.
+
+### Fixed
+
+- **The submission deadline was shown one day late.** `dayLabel` formatted edition windows in the
+  VIEWER's timezone, so `submission_close` (`…T23:59:59Z`) rendered as **1 September** for anyone
+  at UTC+n — an Australian parent read a deadline a day later than the real one, on the single
+  date where being wrong costs a child their entry. Both pages now share `challengeDates.ts`,
+  which formats in UTC so the displayed day equals the stored day and matches the public landing
+  page's "24–31 August 2026".
+- A failed per-child registration lookup renders as **"Could not check this child's entry"**,
+  never as `Not entered`. Telling a parent their paid child has no entry is a false fact; saying
+  the check failed is a retry.
+
+### Note
+
+- The hub reads one `…/registration?kid_id=` per child rather than a family-scoped list endpoint,
+  so it needed **no backend change**. A `GET /challenges/by-slug/:slug/registrations` is the
+  cleaner shape and is logged in the PRD as the follow-up.
+
 ## 2026-08-09 (fixed: no way back into the challenge from the Portal; consent form simplified)
 
 ### Added

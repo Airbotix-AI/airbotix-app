@@ -22,6 +22,7 @@ import { ApprovalsPage } from '@/pages/portal/ApprovalsPage';
 import { AuditPage } from '@/pages/portal/AuditPage';
 import { AuditProjectPage } from '@/pages/portal/AuditProjectPage';
 import { BillingPage } from '@/pages/portal/BillingPage';
+import { ChallengeHubRoute } from '@/pages/portal/challenge/ChallengeHubRoute';
 import { ChallengeRegisterPage } from '@/pages/portal/challenge/ChallengeRegisterPage';
 import { ChallengeReportPage } from '@/pages/portal/challenge/ChallengeReportPage';
 import { ClassCheckoutPage } from '@/pages/portal/ClassCheckoutPage';
@@ -179,6 +180,11 @@ export const router = createBrowserRouter([
       // Pay-now seat checkout — deep-link target for marketing + Portal Courses
       // (class-seat-checkout-prd.md D-CSC-8).
       { path: 'checkout/class/:classId', element: <ClassCheckoutPage /> },
+      // The family's view of one challenge: who is entered, who is not, and
+      // what the whole thing involves. The Portal nav points HERE, not at the
+      // single-child register form — a parent with three children could
+      // otherwise only discover their standing by selecting each child in turn.
+      { path: 'challenge/:slug', element: <ChallengeHubRoute /> },
       // Creative Code Challenge registration — the marketing CTA's deep-link
       // target (creative-code-challenge-prd.md §5 flow 1, §6 Portal row).
       { path: 'challenge/:slug/register', element: <ChallengeRegisterPage /> },
