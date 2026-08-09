@@ -46,15 +46,22 @@ describe('PortalNavDrawer', () => {
     api.mockReset();
   });
 
-  it('groups the 15 destinations under Explore / Family / Account headings', () => {
+  it('groups the 16 destinations under Explore / Family / Account headings', () => {
     renderDrawer();
 
     const nav = screen.getByRole('navigation');
     expect(nav).toHaveClass('hidden', 'xl:flex');
-    expect(within(nav).getAllByRole('link')).toHaveLength(15);
+    expect(within(nav).getAllByRole('link')).toHaveLength(16);
     expect(within(nav).getByRole('link', { name: 'HSC Planner' })).toHaveAttribute(
       'href',
       '/portal/academy/hsc-planner',
+    );
+    // The challenge link is the ONLY way back to an entry from inside the
+    // Portal — the register/report pages are otherwise reachable only from the
+    // marketing site's CTA, so a parent who signed and left was stranded.
+    expect(within(nav).getByRole('link', { name: 'Creative Code Challenge' })).toHaveAttribute(
+      'href',
+      '/portal/challenge/creative-code-challenge-2026-junior/register',
     );
     for (const heading of ['Explore', 'Family', 'Account']) {
       expect(within(nav).getByText(heading)).toBeVisible();

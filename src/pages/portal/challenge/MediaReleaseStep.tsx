@@ -32,34 +32,42 @@ import type {
 } from './challengeApi';
 import { ConsentDocumentBody } from './ConsentDocumentBody';
 
-/** `YYYY-MM-DD` for today in the viewer's own timezone. */
-function localToday(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-}
+/**
+ * How long a reuse permission runs. Must equal the backend's
+ * `CONSENT_VALIDITY_MONTHS` — the consent itself lapses after 12 months, so a
+ * `channels_until` beyond that would promise a window the document does not
+ * have.
+ */
+const CONSENT_VALIDITY_MONTHS = 12;
 
 /**
- * End of the chosen day in the viewer's own timezone, as ISO.
+ * The end of the reuse window: 12 months from signing, end of the local day.
  *
- * The backend requires `channels_until` to be strictly in the future. Sending
- * the bare date at UTC midnight would land in the PAST for an Australian
- * afternoon (AEST is UTC+10), so a parent picking tomorrow would be told their
- * date is not in the future. End-of-local-day can't do that.
+ * This used to be a date the PARENT typed, which was both extra work and a
+ * contradiction — the Terms say the whole consent is "valid for 12 months from
+ * signing" while the form invited any date at all. The window is now derived,
+ * never entered, so the two can't disagree. A family that wants it to stop
+ * sooner uses the withdrawal path the document already gives them (email
+ * privacy@), which is immediate rather than a date months away.
+ *
+ * End-of-local-day, not UTC midnight: the backend requires the instant to be
+ * strictly in the future, and a bare date at UTC midnight lands in the PAST for
+ * an Australian afternoon (AEST is UTC+10).
  */
-function endOfLocalDayIso(date: string): string {
-  const [year, month, day] = date.split('-').map(Number);
-  return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
+function reuseWindowEndIso(): string {
+  const end = new Date();
+  end.setMonth(end.getMonth() + CONSENT_VALIDITY_MONTHS);
+  end.setHours(23, 59, 59, 999);
+  return end.toISOString();
 }
 
-/** A stored ISO instant back to the `YYYY-MM-DD` a date input can show. */
-function isoToLocalDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
+/** The same instant as a plain date, for the sentence shown to the parent. */
+function reuseWindowEndLabel(): string {
+  return new Date(reuseWindowEndIso()).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 const schema = z
@@ -74,25 +82,6 @@ const schema = z
       .min(1, 'Add the name to publish with your child’s work')
       .max(60, 'Keep this to 60 characters or fewer'),
     channels: z.array(z.string()),
-    channels_until: z.string(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.channels.length === 0) return;
-    if (!values.channels_until) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['channels_until'],
-        message: 'Choose the date this permission ends',
-      });
-      return;
-    }
-    if (values.channels_until < localToday()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['channels_until'],
-        message: 'Choose a date in the future',
-      });
-    }
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -138,7 +127,6 @@ function toDefaults(prior: StoredMediaReleaseGrants | null): FormValues {
     publish_face: prior?.publish_face === true,
     display_name: prior?.display_name ?? '',
     channels: prior?.channels ?? [],
-    channels_until: prior?.channels_until ? isoToLocalDate(prior.channels_until) : '',
   };
 }
 
@@ -202,9 +190,11 @@ export function MediaReleaseStep({
       channels: values.channels,
     };
     // Omitted, not sent empty: the backend rejects a `channels_until` with no
-    // channel granted, because a date is meaningless without one.
-    if (values.channels.length > 0 && values.channels_until) {
-      grants.channels_until = endOfLocalDayIso(values.channels_until);
+    // channel granted, because a date is meaningless without one. When there IS
+    // a channel, the window is always the 12-month consent life — derived here
+    // rather than typed by the parent.
+    if (values.channels.length > 0) {
+      grants.channels_until = reuseWindowEndIso();
     }
     onSign(grants);
   };
@@ -290,25 +280,13 @@ export function MediaReleaseStep({
             />
           ))}
         </div>
-        <label className="mt-4 block">
-          <span className="label-k12">Permission ends on</span>
-          <input
-            type="date"
-            className="input-k12 mt-2"
-            min={localToday()}
-            disabled={closed || channels.length === 0}
-            data-testid="grant-channels-until"
-            {...register('channels_until')}
-          />
-          {channels.length === 0 && (
-            <span className="mt-1 block text-[12px] text-slate2">
-              Only needed if you tick at least one channel above.
-            </span>
-          )}
-          {errors.channels_until && (
-            <span className="field-error">{errors.channels_until.message}</span>
-          )}
-        </label>
+        {channels.length > 0 && (
+          <p className="mt-4 text-[13px] leading-relaxed text-slate2" data-testid="grant-channels-until">
+            Permission ends automatically on <strong>{reuseWindowEndLabel()}</strong>, 12 months
+            from today, when this consent expires. You can end it sooner at any time by emailing us
+            — you do not have to wait for that date.
+          </p>
+        )}
       </fieldset>
 
       {error && (
