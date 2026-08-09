@@ -1,5 +1,97 @@
 # Changelog
 
+## 2026-08-09 (added: family challenge hub — who is entered, and what to actually do)
+
+### Added
+
+- **`/portal/challenge/:slug` — the family's view of a challenge**, and the new Portal nav target.
+  It lists **every child with their own standing** (`Not entered` / `Started — not paid yet` /
+  `Entered`), each row deep-linking into registration with that child's `kid_id`. Until now the
+  only Portal route was the **single-child** register form behind a picker showing names and ages
+  only: a parent with three children could learn who was entered only by selecting each in turn,
+  and nothing answered "where does my family stand?".
+- **Post-payment guidance**, the thing a confirmation card offering only *View wallet* never gave:
+  ordered next steps, the two accepted project types, the five things that get submitted, and the
+  judging rules that are commitments to the child — English scored on clarity only, and an entry
+  showing neither face nor voice judged identically. Content lives in `challengeGuidance.ts`,
+  copied from the PRD; dates come from the edition the API returns, so it cannot drift.
+
+### Fixed
+
+- **The submission deadline was shown one day late.** `dayLabel` formatted edition windows in the
+  VIEWER's timezone, so `submission_close` (`…T23:59:59Z`) rendered as **1 September** for anyone
+  at UTC+n — an Australian parent read a deadline a day later than the real one, on the single
+  date where being wrong costs a child their entry. Both pages now share `challengeDates.ts`,
+  which formats in UTC so the displayed day equals the stored day and matches the public landing
+  page's "24–31 August 2026".
+- A failed per-child registration lookup renders as **"Could not check this child's entry"**,
+  never as `Not entered`. Telling a parent their paid child has no entry is a false fact; saying
+  the check failed is a retry.
+
+### Note
+
+- The hub reads one `…/registration?kid_id=` per child rather than a family-scoped list endpoint,
+  so it needed **no backend change**. A `GET /challenges/by-slug/:slug/registrations` is the
+  cleaner shape and is logged in the PRD as the follow-up.
+
+## 2026-08-09 (fixed: no way back into the challenge from the Portal; consent form simplified)
+
+### Added
+
+- **A Creative Code Challenge entry in the Portal navigation** (Explore group). Until now
+  `/portal/challenge/:slug/register` and `.../report` were reachable **only** from the marketing
+  site's CTA — a parent who signed the consent, paid, and closed the tab had no route back to
+  their own entry from inside the Portal. Reported from a real run-through. The target page
+  already renders every state (not registered / mid-payment / confirmed), so one link covers all
+  of them. `src/lib/challenge.ts` holds the slug, with a note that a second edition should turn
+  this into a backend read rather than a second constant.
+
+### Changed
+
+- **The media release no longer asks the parent to type an end date.** `channels_until` is now
+  derived as 12 months from signing — the consent's own life — and the form states the resulting
+  date instead of offering a date picker. The old field contradicted the Competition Terms
+  ("valid for 12 months from signing") by inviting any date at all, and made the parent do work
+  whose only correct answer was already fixed. A family that wants reuse to stop sooner uses the
+  withdrawal path (email privacy@), which is immediate rather than a date months away.
+- The channel fixtures follow the backend to **two groups** (website / the six named social
+  accounts) instead of seven individual channels.
+
+### Fixed
+
+- `PortalNavDrawer.test.tsx` pinned the nav at 15 links and caught the new entry — updated to 16
+  and now asserts the challenge link's href explicitly, so the route can't silently drift.
+
+## 2026-08-09 (changed: the challenge consent flow now ships against the APPROVED v1.0 documents)
+
+### Changed
+
+- `challengeRegisterTestKit.tsx` — the shared fixtures defaulted to a `0.1-draft`,
+  `draft_pending_legal_review` document with a `PLACEHOLDER — NOT LEGALLY APPROVED TEXT` body, so
+  every consent test was exercising a state the backend no longer serves. `mediaDoc()` /
+  `termsDoc()` now return the shipped shape: `current_version: '1.0'`, `legally_approved`, the
+  v1.0 attestation, and the version notice in `assurances`.
+- `ConsentDocumentBody.tsx` / `challengeApi.ts` comments now describe the real state: the banner
+  is a guard for a future re-draft, not a description of what parents currently see.
+
+### Added
+
+- `draftOverrides()` in the test kit plus a dedicated test that drives a draft document through
+  the page — the not-legally-approved banner regression is **kept**, just no longer the default.
+  Deleting that coverage along with the draft state would mean a future re-draft could reach a
+  parent looking approved.
+
+### Fixed
+
+- Two tests matched the old acceptance sentence (`/I have read this document/`) and broke on the
+  stronger v1.0 declaration; they now match on the guardian-identity clause.
+
+### Note
+
+- No component behaviour changed — the page renders whatever the backend registry serves, which
+  is the property these tests exist to protect. Gates: lint 0 warnings, typecheck clean, 65/65
+  `src/pages/portal/challenge` tests.
+
 ## 2026-08-04 (feat: parents can delete saved HSC data — Slice 2.5)
 
 ### Added

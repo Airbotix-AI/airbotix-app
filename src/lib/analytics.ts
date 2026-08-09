@@ -9,6 +9,9 @@
 //   /learn/*   kids               → NEVER
 //   /try/*     no-signup kid demo → NEVER
 //   /play/*    public share-play  → NEVER
+//   /vote/*    public vote page   → NEVER (it shows children's entries; a page
+//   /challenge/*  Creator Showcase          built around minors' work sits on the
+//                                           same side of this line as /learn)
 //   /teacher/* in-app class view  → NEVER (teacher activity is measured in
 //                                  teacher-console, so this app keeps the simple,
 //                                  auditable rule "only /portal/* is ever sent")
