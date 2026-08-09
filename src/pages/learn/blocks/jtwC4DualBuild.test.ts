@@ -5,6 +5,7 @@ import {
   JTW_C4_NAME_TARGET,
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P4_PAGE_ID,
+  JTW_C4_P7_SKILL_TARGETS,
   JTW_C4_SKILL_TARGET,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
@@ -13,6 +14,8 @@ import {
   jtwC4P5Version,
   jtwC4P6BuildMatches,
   jtwC4P6Version,
+  jtwC4P7BuildMatches,
+  jtwC4P7Version,
   jtwC4PlacedBlocks,
 } from './jtwC4DualBuild';
 
@@ -48,6 +51,18 @@ describe('JtW C4-P4 dual-event build contract', () => {
     const built = project();
     expect(jtwC4DualBuildMatches(built)).toBe(true);
     expect(jtwC4PlacedBlocks(built)).toHaveLength(6);
+  });
+
+  it.each(['leaf', 'home', 'screen'] as const)('accepts a complete C4-P7 %s Personal Ship', (version) => {
+    const candidate = project();
+    candidate.name = 'Meet Sun Wukong';
+    candidate.lessonId = 'jtw-s1-c4-p7';
+    candidate.pages[0].id = 'jtw-c4-p7-page';
+    candidate.pages[0].characters[0].scripts[1].blocks = [...JTW_C4_P7_SKILL_TARGETS[version]];
+    expect(jtwC4P7Version(candidate)).toBe(version);
+    expect(jtwC4P7BuildMatches(candidate)).toBe(true);
+    candidate.pages[0].characters[0].scripts[1].blocks.pop();
+    expect(jtwC4P7BuildMatches(candidate)).toBe(false);
   });
 
   it('rejects an action under the wrong trigger, missing End, or wrong Hop distance', () => {
