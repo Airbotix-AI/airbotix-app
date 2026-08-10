@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-10 (feat: complete Journey West Season 1 product)
+
+### Added
+
+- Added C6-P3 through P10: three-page cause planning, two genuine Blocks builds, bounded rhythm
+  choices, Stop/Again debugging, VFS save/reopen, four-link Retell and server-owned season closure.
+
 ## 2026-08-09 (feat: complete Journey West C5 and open C6)
 
 ### Added
