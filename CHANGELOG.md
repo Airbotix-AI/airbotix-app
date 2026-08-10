@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-08-10 (changed: challenge fixtures follow the AUD $9 entry fee)
+
+### Changed
+
+- Test fixtures move to `entry_fee_cents: 900` and the pay-button assertion to `Pay A$9 & enter`
+  (owner decision, A$19 → A$9; the number itself lives in platform-backend's edition seed, #377).
+
+### Note
+
+- **No product code changed.** The register page has always rendered the fee from the edition the
+  API returns, so the button showed `Pay A$9 & enter` the moment the backend served the new price —
+  only the pinned assertions had to catch up. That is the intended shape: a price hardcoded in this
+  SPA would be a second source of truth that could disagree with what a family is actually charged.
+
 ## 2026-08-10 (changed: Family management follows the Airbotix design system)
 
 ### Changed

@@ -87,7 +87,7 @@ describe('ChallengeRegisterPage — the two documents are signed separately', ()
 
     await waitFor(() => expect(screen.getByTestId('challenge-pay')).toBeEnabled());
     expect(screen.queryByTestId('pay-locked')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Pay A\$19 & enter/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pay A\$9 & enter/ })).toBeInTheDocument();
   });
 
   it('renders the served document body verbatim, with no banner on an approved version', async () => {

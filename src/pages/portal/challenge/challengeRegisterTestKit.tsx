@@ -29,7 +29,7 @@ export const EDITION = {
   slug: SLUG,
   name: 'Creative Code Challenge — Junior',
   age_group: 'junior_8_12',
-  entry_fee_cents: 1900,
+  entry_fee_cents: 900,
   status: 'registration_open',
   registration_open: true,
   submission_open: '2026-08-24T00:00:00.000Z',

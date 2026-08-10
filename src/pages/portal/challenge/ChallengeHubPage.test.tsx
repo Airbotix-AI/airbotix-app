@@ -30,7 +30,7 @@ const EDITION = {
   slug: SLUG,
   name: 'Creative Code Challenge — 2026 Junior',
   age_group: 'junior_8_12',
-  entry_fee_cents: 1900,
+  entry_fee_cents: 900,
   status: 'registration_open',
   registration_open: true,
   submission_open: '2026-08-24T00:00:00.000Z',
@@ -208,7 +208,7 @@ describe('ChallengeHubPage — the guidance a first-time family needs', () => {
   });
 
   it('answers "what now" with ordered steps and what gets submitted', async () => {
-    // A parent who paid A$19 previously landed on a card whose only action was
+    // A parent who paid the entry fee previously landed on a card whose only action was
     // "View wallet". These two lists are the answer to what they build and hand in.
     wire();
     renderHub();
