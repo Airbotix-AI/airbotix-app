@@ -31,6 +31,7 @@ import {
   consentStatus,
   DOCUMENT_BODY,
   draftOverrides,
+  fillSignerBlock,
   lastConsentSignBody,
   mediaDoc,
   pickKid,
@@ -138,6 +139,7 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
     // transmitted as an explicit `false`, not silently omitted.
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(signed).toHaveBeenCalled());
@@ -190,6 +192,7 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
     // The accept button is inert until the parent says they have read it.
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
     fireEvent.click(screen.getByLabelText(/I am the parent or legal guardian/));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-competition-terms'));
 
     await waitFor(() => expect(accepted).toHaveBeenCalled());
@@ -231,6 +234,13 @@ describe('ChallengeRegisterPage — nothing is signable once registration closes
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
     // Ticking the declaration must not resurrect the button either.
     expect(screen.getByLabelText(/I am the parent or legal guardian/)).toBeDisabled();
+    // Nor may the signature block be filled in — offering a parent somewhere to
+    // type their name on a form the backend will refuse is the same false
+    // promise as a live accept button.
+    expect(screen.getByTestId('signer-full-name')).toBeDisabled();
+    expect(screen.getByTestId('signer-relationship')).toBeDisabled();
+    expect(screen.getByTestId('signer-email')).toBeDisabled();
+    expect(screen.getByTestId('signer-signature')).toBeDisabled();
   });
 
   it('the child’s assent cannot be recorded, and the signed release cannot be reopened', async () => {

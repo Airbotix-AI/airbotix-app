@@ -65,6 +65,54 @@ export function draftOverrides() {
   };
 }
 
+/**
+ * The signature block both documents serve (backend `SIGNER_DECLARATION` and
+ * `CHALLENGE_SIGNER_RELATIONSHIPS`). Carried by the fixture because the block is
+ * document-scoped: the form renders the served declaration and the served
+ * options, never wording or a relationship list of its own.
+ */
+export const SIGNER_DECLARATION =
+  'I am the parent or legal guardian named above, and the details I have given are true. Typing ' +
+  'my full name is my electronic signature and I intend it to have the same effect as signing on ' +
+  'paper. Airbotix records the date and time it receives this signature — you do not type it.';
+
+export const SIGNER_RELATIONSHIP_OPTIONS = [
+  { key: 'mother', label: 'Mother' },
+  { key: 'father', label: 'Father' },
+  { key: 'legal_guardian', label: 'Legal guardian' },
+  { key: 'grandparent', label: 'Grandparent' },
+  { key: 'other', label: 'Other parent or guardian' },
+];
+
+/**
+ * The Parent/Guardian Details a test signs with, and the helper that fills them.
+ *
+ * Every signature now carries this block, so a test that only ticks grants can
+ * no longer submit — which is the behaviour, not an inconvenience. The helper
+ * exists so each test states the ONE thing it is about (a grant, a channel, a
+ * closed edition) instead of restating four identical fields.
+ */
+export const SIGNER = {
+  full_name: 'Mary Chen',
+  relationship: 'mother',
+  email: 'mary@example.com',
+  signature: 'Mary Chen',
+};
+
+export function fillSignerBlock(overrides: Partial<typeof SIGNER> = {}) {
+  const values = { ...SIGNER, ...overrides };
+  fireEvent.change(screen.getByTestId('signer-full-name'), {
+    target: { value: values.full_name },
+  });
+  fireEvent.change(screen.getByTestId('signer-relationship'), {
+    target: { value: values.relationship },
+  });
+  fireEvent.change(screen.getByTestId('signer-email'), { target: { value: values.email } });
+  fireEvent.change(screen.getByTestId('signer-signature'), {
+    target: { value: values.signature },
+  });
+}
+
 /** Served with every approved version (backend `VERSION_NOTICE`). */
 export const VERSION_NOTICE =
   'This is version 1.0 of this document and it is the wording your signature is filed against. ' +
@@ -89,20 +137,24 @@ export function mediaDoc(overrides: Record<string, unknown> = {}) {
         label: 'Where Airbotix may reuse it (permission ends when this consent expires)',
       },
     ],
-    // Two GROUPS, each naming its members — the shipped v1.0 shape. The member
-    // list is what keeps this from being the blanket "all social media"
-    // permission the SOT forbids, so the fixture carries it too.
+    // Two GROUPS, each naming its members — the shipped shape. The member list
+    // is what keeps this from being the blanket "all social media" permission
+    // the SOT forbids, so the fixture carries it too. Seven accounts since
+    // media-release v1.1 added TikTok (owner, 2026-08-10).
     channel_options: [
       { key: 'airbotix_website', label: 'Airbotix website (airbotix.ai, the Creator Showcase)' },
       {
         key: 'airbotix_social',
         label:
           'Airbotix official social accounts (WeChat, Xiaohongshu (RED), YouTube, Instagram, ' +
-          'Facebook, LinkedIn) — these six accounts only',
+          'Facebook, LinkedIn, TikTok) — these seven accounts only',
       },
     ],
     // The media release is signed by making its choices — no separate "I accept".
     attestation: null,
+    signer_declaration: SIGNER_DECLARATION,
+    signer_relationship_options: SIGNER_RELATIONSHIP_OPTIONS,
+    signer: null,
     assurances: [
       'Voice and face are separate decisions, and either can be declined. An entry that shows ' +
         'neither is judged in exactly the same way as one that shows both.',
@@ -131,6 +183,9 @@ export function termsDoc(overrides: Record<string, unknown> = {}) {
       'I am the parent or legal guardian of the child being entered. I have read these ' +
       'Competition Terms and I accept them on my child’s behalf, and I confirm the entry will ' +
       'be my child’s own work.',
+    signer_declaration: SIGNER_DECLARATION,
+    signer_relationship_options: SIGNER_RELATIONSHIP_OPTIONS,
+    signer: null,
     assurances: [VERSION_NOTICE],
     signed: false,
     signed_at: null,

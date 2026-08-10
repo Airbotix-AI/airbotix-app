@@ -35,6 +35,7 @@ import {
   type ChallengeConsentDocumentStatus,
   type ChallengeConsentStatus,
   type ChallengeRegistrationView,
+  type ChallengeSignerDetails,
   type MediaReleaseGrants,
 } from './challengeApi';
 import {
@@ -87,6 +88,12 @@ export function ChallengeRegisterPage() {
   const me = useMe();
   const queryClient = useQueryClient();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
+  // Prefill only. The signature block stays editable, because the account holder
+  // is not always the adult whose name belongs on the form.
+  const signerAccount =
+    me.data?.kind === 'user'
+      ? { display_name: me.data.display_name, email: me.data.email }
+      : { display_name: null, email: null };
 
   const [kidId, setKidId] = useState('');
   const [awaitingPayment, setAwaitingPayment] = useState(false);
@@ -179,13 +186,14 @@ export function ChallengeRegisterPage() {
     queryClient.invalidateQueries({ queryKey: ['challenge-consent', edition?.id, kidId] });
 
   const signMediaRelease = useMutation({
-    mutationFn: (grants: MediaReleaseGrants) => {
+    mutationFn: ({ grants, signer }: { grants: MediaReleaseGrants; signer: ChallengeSignerDetails }) => {
       const doc = findDoc(consent.data, 'parent_media_release');
       return signChallengeConsent(edition!.id, {
         kid_id: kidId,
         document_type: 'parent_media_release',
         document_version: doc!.current_version,
         grants,
+        signer,
       });
     },
     onSuccess: (status) => {
@@ -198,13 +206,14 @@ export function ChallengeRegisterPage() {
   });
 
   const signTerms = useMutation({
-    mutationFn: () => {
+    mutationFn: (signer: ChallengeSignerDetails) => {
       const doc = findDoc(consent.data, 'competition_terms');
       return signChallengeConsent(edition!.id, {
         kid_id: kidId,
         document_type: 'competition_terms',
         document_version: doc!.current_version,
         grants: { accepted: true },
+        signer,
       });
     },
     onSuccess: (status) => {
@@ -488,7 +497,8 @@ export function ChallengeRegisterPage() {
           ) : (
             <MediaReleaseStep
               doc={mediaRelease}
-              onSign={(grants) => signMediaRelease.mutate(grants)}
+              onSign={(grants, signer) => signMediaRelease.mutate({ grants, signer })}
+              account={signerAccount}
               submitting={signMediaRelease.isPending}
               error={signError}
               closed={!edition.registration_open}
@@ -514,7 +524,8 @@ export function ChallengeRegisterPage() {
           ) : (
             <CompetitionTermsStep
               doc={terms}
-              onAccept={() => signTerms.mutate()}
+              onAccept={(signer) => signTerms.mutate(signer)}
+              account={signerAccount}
               submitting={signTerms.isPending}
               error={signError}
               closed={!edition.registration_open}

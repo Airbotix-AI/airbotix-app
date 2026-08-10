@@ -1,5 +1,66 @@
 # Changelog
 
+## 2026-08-10 (added: Parent/Guardian Details on both challenge consent steps)
+
+### Added
+
+- Both consent steps now collect **Parent/Guardian Details** — Full name, Relationship to student,
+  Email, Signature / electronic confirmation, and a read-only Date — via a shared
+  `ParentGuardianDetails` fieldset (`parentGuardianSigner.ts` holds its schema, defaults and
+  payload mapping).
+
+  - **The Date is not an input.** The form shows the date the server will stamp and posts none. A
+    date a parent types is one the record can contradict.
+  - **The typed signature must match the full name given** (case- and spacing-insensitive), shown
+    inline rather than as a 400 after a round-trip. A signature that need not match the name above
+    it is just another text box.
+  - **Name and email prefill from the account and stay editable** — the account holder is not
+    always the adult whose name belongs on the form. The signature is **never** prefilled,
+    including on a re-sign: a re-sign is a new signing act, so a restored signature would file one
+    the parent did not make.
+  - The declaration and the relationship options are rendered from `doc.signer_declaration` /
+    `doc.signer_relationship_options`, served with the document version — this page authors
+    neither, for the same reason it does not author `doc.attestation`.
+  - Both documents carry their own block: D-CCC-7 keeps them separate signing acts, so neither
+    borrows the other's identification.
+
+### Changed
+
+- `CompetitionTermsStep` moved from `useState` to `react-hook-form` + zod, now that it is a
+  multi-field form (repo convention). The accept button stays inert until the declaration is
+  ticked — the affordance it has always had; the schema's `literal(true)` is the backstop, not
+  the UX.
+- The signature field's declaration moved out of its `<label>` into `aria-describedby`. Inside the
+  label it became the input's accessible name, so a screen reader announced a paragraph where
+  "Signature" belonged — and it collided with the terms' own "I am the parent or legal guardian…"
+  attestation on the same page.
+- `challengeRegisterTestKit.tsx` gains the served signature-block fixtures and a `fillSignerBlock`
+  helper, so each suite still states the one thing it is about instead of restating four fields.
+
+### Tests
+
+- `ChallengeRegisterPage.signerBlock.test.tsx` (new, 14 tests) — the block is posted with the
+  signature; the date is displayed and never asked for, and no `date` reaches the payload;
+  case/spacing-only signature differences are accepted; a mismatched signature, an empty field, a
+  missing relationship and an unreachable email each block the POST; the declaration and the
+  relationship options come from the document; the terms collect their own block; the signature is
+  never prefilled.
+- The closed-registration suite now also asserts every signature field is disabled — offering a
+  parent somewhere to type their name on a form the backend will refuse is the same false promise
+  as a live accept button.
+
+## 2026-08-10 (changed: consent test fixture tracks media release v1.1 — TikTok added)
+
+### Changed
+
+- `challengeRegisterTestKit.tsx` — the `airbotix_social` fixture label now reads seven accounts
+  including TikTok, matching the backend's media release v1.1.
+
+  No component change was needed: `MediaReleaseStep` renders `doc.channel_options` exactly as the
+  API serves them, which is the whole point of the channel list living with the document version.
+  The fixture is the only place the app restates that wording, so it is the only place that could
+  drift from it.
+
 ## 2026-08-10 (added: /portal/tutoring shows the teachers you can actually book)
 
 ### Added

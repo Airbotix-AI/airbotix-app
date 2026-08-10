@@ -3,7 +3,10 @@
 //
 // A SEPARATE step and a SEPARATE API call from the media release. The two are
 // never one checkbox, and this one is not reachable as a by-product of signing
-// the other — the parent reads this document and accepts it on its own.
+// the other — the parent reads this document and accepts it on its own. That
+// separation is why this step collects its OWN Parent/Guardian Details block
+// rather than reusing whatever the media release captured: each signature has to
+// stand on its own as an identified act.
 //
 // This document records only THAT a version was accepted; it carries no
 // individually-recorded choices. ⚠️ The acceptance declaration itself is the
@@ -12,20 +15,45 @@
 // the version in force serves none, this step refuses to render rather than
 // accepting on wording nobody was shown.
 
-import { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
-import type { ChallengeConsentDocumentStatus } from './challengeApi';
+import type { ChallengeConsentDocumentStatus, ChallengeSignerDetails } from './challengeApi';
 import { ConsentDocumentBody } from './ConsentDocumentBody';
+import { ParentGuardianDetails } from './ParentGuardianDetails';
+import {
+  servesSignerBlock,
+  signerDefaults,
+  signerSchema,
+  toSignerDetails,
+} from './parentGuardianSigner';
+
+// The tick is `literal(true)`: this form cannot be submitted un-accepted, which
+// is what the disabled button used to express. Expressing it in the schema means
+// the rule is stated once and enforced by the same resolver as everything else.
+const schema = z
+  .object({
+    accepted: z.literal(true, {
+      errorMap: () => ({ message: 'Tick the declaration to accept these terms' }),
+    }),
+  })
+  .and(signerSchema);
+
+type FormValues = z.infer<typeof schema>;
 
 export function CompetitionTermsStep({
   doc,
   onAccept,
+  account,
   submitting,
   error,
   closed = false,
 }: {
   doc: ChallengeConsentDocumentStatus;
-  onAccept: () => void;
+  onAccept: (signer: ChallengeSignerDetails) => void;
+  /** Prefills the signature block from the signed-in account; stays editable. */
+  account: { display_name?: string | null; email?: string | null };
   submitting: boolean;
   error: string | null;
   /**
@@ -35,9 +63,23 @@ export function CompetitionTermsStep({
    */
   closed?: boolean;
 }) {
-  const [accepted, setAccepted] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { accepted: false as unknown as true, ...signerDefaults(account) },
+  });
+  // The accept control stays inert until the parent says they have read it —
+  // the affordance this step has always had. The schema's `literal(true)` is the
+  // backstop, not the UX.
+  const accepted = watch('accepted');
 
-  if (!doc.attestation) {
+  // No attestation, or no signature block: this build and the served document
+  // disagree about what is being asked, so nothing may be accepted.
+  if (!doc.attestation || !servesSignerBlock(doc)) {
     return (
       <section className="card-base mt-6" role="alert" data-testid="competition-terms-unavailable">
         <span className="sticker-coral">Form unavailable</span>
@@ -51,23 +93,42 @@ export function CompetitionTermsStep({
   }
 
   return (
-    <section className="card-base mt-6 space-y-6" data-testid="competition-terms-step">
+    <form
+      onSubmit={handleSubmit((values) => onAccept(toSignerDetails(values)))}
+      className="card-base mt-6 space-y-6"
+      data-testid="competition-terms-step"
+      noValidate
+    >
       <ConsentDocumentBody doc={doc} />
 
-      <label htmlFor="terms-accept" className="flex items-start gap-3">
-        <input
-          id="terms-accept"
-          type="checkbox"
-          className="mt-1 h-5 w-5 shrink-0"
-          checked={accepted}
-          disabled={closed}
-          onChange={(event) => setAccepted(event.target.checked)}
-        />
-        {/* Served with the version being accepted — never authored here. */}
-        <span className="text-[14px] leading-relaxed text-ink" data-testid="terms-attestation">
-          {doc.attestation}
-        </span>
-      </label>
+      <div>
+        <label htmlFor="terms-accept" className="flex items-start gap-3">
+          <input
+            id="terms-accept"
+            type="checkbox"
+            className="mt-1 h-5 w-5 shrink-0"
+            disabled={closed}
+            {...register('accepted')}
+          />
+          {/* Served with the version being accepted — never authored here. */}
+          <span className="text-[14px] leading-relaxed text-ink" data-testid="terms-attestation">
+            {doc.attestation}
+          </span>
+        </label>
+        {errors.accepted && <span className="field-error">{errors.accepted.message}</span>}
+      </div>
+
+      <ParentGuardianDetails
+        doc={doc}
+        disabled={closed}
+        fields={{
+          full_name: register('signer_full_name'),
+          relationship: register('signer_relationship'),
+          email: register('signer_email'),
+          signature: register('signer_signature'),
+        }}
+        errors={errors}
+      />
 
       {error && (
         <div
@@ -79,9 +140,8 @@ export function CompetitionTermsStep({
       )}
 
       <button
-        type="button"
+        type="submit"
         disabled={closed || !accepted || submitting}
-        onClick={onAccept}
         className="btn-pill-primary w-full disabled:opacity-50"
         data-testid="sign-competition-terms"
       >
@@ -92,6 +152,6 @@ export function CompetitionTermsStep({
           This challenge is not taking entries at the moment, so nothing can be accepted right now.
         </p>
       )}
-    </section>
+    </form>
   );
 }

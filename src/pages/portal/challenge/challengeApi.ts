@@ -59,6 +59,14 @@ export interface ChallengeConsentDocumentStatus {
    * against words the version never carried.
    */
   attestation: string | null;
+  /**
+   * The declaration beside the typed signature, and the closed relationship set
+   * the block offers. Served for the same reason `attestation` is — the sentence
+   * an e-signature is filed against, and the answers it may be filed under,
+   * belong to the version and not to this page.
+   */
+  signer_declaration: string;
+  signer_relationship_options: ChallengeSignerRelationshipOption[];
   /** Assurances served WITH this version. Never substituted by page copy. */
   assurances: string[];
   signed: boolean;
@@ -66,7 +74,34 @@ export interface ChallengeConsentDocumentStatus {
   expires_at: string | null;
   signed_version: string | null;
   grants: unknown;
+  /** Who signed, as recorded. `null` until this document carries a signature. */
+  signer: ChallengeConsentSigner | null;
   missing_reason: ChallengeConsentGapReason | null;
+}
+
+export interface ChallengeSignerRelationshipOption {
+  key: string;
+  label: string;
+}
+
+export interface ChallengeConsentSigner {
+  full_name: string;
+  relationship: string;
+  email: string;
+  signature: string;
+}
+
+/**
+ * The Parent/Guardian Details block sent with every signature.
+ *
+ * There is no `date`: the server stamps `signed_at`. A page that posted a typed
+ * date would be asking the parent to state something the record contradicts.
+ */
+export interface ChallengeSignerDetails {
+  full_name: string;
+  relationship: string;
+  email: string;
+  signature: string;
 }
 
 export interface ChallengeConsentStatus {
@@ -164,6 +199,8 @@ export interface SignConsentBody {
   /** The version the page DISPLAYED — the backend refuses a stale one. */
   document_version: string;
   grants: MediaReleaseGrants | CompetitionTermsGrants;
+  /** Required on BOTH documents — each signature identifies its own signer. */
+  signer: ChallengeSignerDetails;
 }
 
 export interface ChallengeCheckoutResult {

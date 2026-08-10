@@ -27,6 +27,7 @@ import {
   CONSENT_PATH,
   consentSignPosts,
   consentStatus,
+  fillSignerBlock,
   lastConsentSignBody,
   mediaDoc,
   pickKid,
@@ -92,6 +93,9 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
 
     // Withdraw exactly one.
     fireEvent.click(screen.getByTestId('grant-publish-face'));
+    // A re-sign is a fresh signing act, so the block is signed again — it is
+    // deliberately NOT restored from the previous signature.
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(signed).toHaveBeenCalled());
@@ -174,6 +178,7 @@ describe('ChallengeRegisterPage — the media release validates before it posts'
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
@@ -183,6 +188,7 @@ describe('ChallengeRegisterPage — the media release validates before it posts'
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
