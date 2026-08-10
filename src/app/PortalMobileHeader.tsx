@@ -30,15 +30,15 @@ export function PortalMobileHeader() {
       className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-hairline bg-canvas-pure/95 px-4 backdrop-blur sm:px-6 xl:hidden"
       data-testid="portal-mobile-header"
     >
-      <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-grad-coral shadow-brand-coral"
-        aria-hidden="true"
-      >
-        <span className="text-[14px] font-extrabold text-white">A</span>
-      </div>
+      <img
+        src="/logo-black-horizontal.png"
+        alt="Airbotix"
+        className="h-7 w-auto shrink-0"
+      />
+      <span className="h-8 w-px shrink-0 bg-hairline" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-[9px] font-bold uppercase leading-none tracking-[0.11em] text-slate2">
-          Airbotix Parent
+          Parent Portal
         </p>
         <p className="mt-1 truncate text-[15px] font-bold leading-none text-ink">
           {getPortalTitle(pathname)}

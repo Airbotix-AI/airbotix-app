@@ -50,6 +50,10 @@ describe('PortalNavDrawer', () => {
     renderDrawer();
 
     const nav = screen.getByRole('navigation');
+    expect(within(nav).getByRole('img', { name: 'Airbotix' })).toHaveAttribute(
+      'src',
+      '/logo-black-horizontal.png',
+    );
     expect(nav).toHaveClass('hidden', 'xl:flex');
     expect(within(nav).getAllByRole('link')).toHaveLength(16);
     expect(within(nav).getByRole('link', { name: 'HSC Planner' })).toHaveAttribute(
