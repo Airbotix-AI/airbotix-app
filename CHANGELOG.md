@@ -14,6 +14,16 @@
   only the pinned assertions had to catch up. That is the intended shape: a price hardcoded in this
   SPA would be a second source of truth that could disagree with what a family is actually charged.
 
+## 2026-08-10 (changed: guided wallet auto-topup setup)
+
+### Changed
+
+- Rebuilt `/portal/wallet/auto-topup` as a guided, responsive setup with an explicit on/off state,
+  ordered trigger/pack/card/limit decisions, a sticky safety summary, unsaved-change protection,
+  retry and loading states, and clearer recent-attempt history.
+- Aligned the page with the backend auto-topup response and update contracts, including selection
+  of the exact saved card used for automatic charges.
+
 ## 2026-08-10 (changed: Family management follows the Airbotix design system)
 
 ### Changed

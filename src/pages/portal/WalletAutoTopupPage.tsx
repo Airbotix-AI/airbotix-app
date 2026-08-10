@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -13,51 +13,72 @@ import {
   THRESHOLD_OPTIONS,
   aud,
   type AutoTopupConfig,
+  type AutoTopupResponse,
   type AutoTopupSku,
   type PaymentMethod,
+  type UpdateAutoTopupInput,
 } from './walletTypes';
 
-/** Auto-topup config — `/portal/wallet/auto-topup` (parent-portal-prd §4.4.1). */
+const DEFAULT_CONFIG: AutoTopupConfig = {
+  enabled: false,
+  threshold_stars: 500,
+  sku: 'family_30',
+  payment_method_id: null,
+  daily_cap_aud_cents: 3000,
+  monthly_cap_aud_cents: 10000,
+  daily_used_aud_cents: 0,
+  monthly_used_aud_cents: 0,
+  failure_threshold: 3,
+  consecutive_failures: 0,
+  cooldown_minutes: 30,
+  last_auto_topup_at: null,
+};
+
+/** Guided auto-topup setup for parents. */
 export function WalletAutoTopupPage() {
   const me = useMe();
   const qc = useQueryClient();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
+  const [form, setForm] = useState<AutoTopupConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const cfg = useQuery<AutoTopupConfig>({
+  const cfg = useQuery<AutoTopupResponse>({
     queryKey: ['wallet', familyId, 'auto-topup'],
-    queryFn: () => api<AutoTopupConfig>(`/families/${familyId}/wallet/auto-topup`),
+    queryFn: () => api<AutoTopupResponse>(`/families/${familyId}/wallet/auto-topup`),
     enabled: !!familyId,
   });
-
   const methods = useQuery<PaymentMethod[]>({
     queryKey: ['family', familyId, 'payment-methods'],
     queryFn: () => api<PaymentMethod[]>(`/families/${familyId}/payment-methods`),
     enabled: !!familyId,
   });
 
-  // Local editable copy seeded from server config.
-  const [form, setForm] = useState<AutoTopupConfig | null>(null);
-  useEffect(() => {
-    if (cfg.data && !form) setForm(cfg.data);
-  }, [cfg.data, form]);
+  const f = form ?? cfg.data?.config ?? null;
+  const initial = cfg.data?.config ?? null;
+  const activeMethods = (methods.data ?? []).filter((method) => method.status === 'active');
+  const selectedPack = AUTO_TOPUP_SKUS.find((pack) => pack.sku === f?.sku) ?? AUTO_TOPUP_SKUS[1];
+  const isDirty = useMemo(() => Boolean(f && initial && JSON.stringify(f) !== JSON.stringify(initial)), [f, initial]);
+  const canSave = Boolean(f && (!f.enabled || (f.sku && f.payment_method_id)));
 
   const save = useMutation({
-    mutationFn: (body: Partial<AutoTopupConfig>) =>
-      api(`/families/${familyId}/wallet/auto-topup`, { method: 'PUT', body }),
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ['wallet', familyId, 'auto-topup'] });
-      setNotice('Saved.');
+    mutationFn: (body: UpdateAutoTopupInput) =>
+      api<AutoTopupConfig>(`/families/${familyId}/wallet/auto-topup`, { method: 'PUT', body }),
+    onSuccess: (saved) => {
+      setForm(saved);
+      qc.setQueryData<AutoTopupResponse>(['wallet', familyId, 'auto-topup'], (current) => ({
+        config: saved,
+        recent_attempts: current?.recent_attempts ?? [],
+      }));
+      setNotice('Auto-topup settings saved.');
       setError(null);
     },
-    onError: (e: unknown) => setError(e instanceof ApiError ? e.message : 'Could not save.'),
+    onError: (e: unknown) => setError(e instanceof ApiError ? e.message : 'Could not save auto-topup.'),
   });
-
   const testCharge = useMutation({
     mutationFn: () => api(`/families/${familyId}/wallet/auto-topup/test`, { method: 'POST' }),
     onSuccess: () => {
-      setNotice('Test charge sent (A$1, refunded). Check your card works.');
+      setNotice('Test charge sent. A$1 will be refunded.');
       setError(null);
     },
     onError: (e: unknown) => setError(e instanceof ApiError ? e.message : 'Test charge failed.'),
@@ -73,237 +94,195 @@ export function WalletAutoTopupPage() {
     );
   }
 
-  const f = form;
-  const set = <K extends keyof AutoTopupConfig>(key: K, value: AutoTopupConfig[K]) =>
-    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
+  const set = <K extends keyof AutoTopupConfig>(key: K, value: AutoTopupConfig[K]) => {
+    setNotice(null);
+    setForm((current) => ({ ...(current ?? cfg.data?.config ?? DEFAULT_CONFIG), [key]: value }));
+  };
+
+  if (cfg.isLoading || methods.isLoading) return <LoadingState />;
+  if (cfg.isError) {
+    return (
+      <div className="card-base mx-auto max-w-xl text-center">
+        <div className="text-[30px]" aria-hidden="true">↻</div>
+        <h1 className="mt-3 text-xl font-bold text-ink">We couldn’t load auto-topup</h1>
+        <p className="mt-2 text-[14px] text-slate2">Your wallet was not changed. Try loading the page again.</p>
+        <button onClick={() => cfg.refetch()} className="btn-pill-primary mt-5">Try again</button>
+      </div>
+    );
+  }
+  if (!f) return null;
+
+  const submit = () => {
+    if (!canSave || !f.sku) {
+      setError('Choose a saved card before switching auto-topup on.');
+      return;
+    }
+    save.mutate({
+      enabled: f.enabled,
+      threshold_stars: f.threshold_stars,
+      sku: f.sku,
+      payment_method_id: f.payment_method_id,
+      daily_cap_aud_cents: f.daily_cap_aud_cents,
+      monthly_cap_aud_cents: f.monthly_cap_aud_cents,
+      failure_threshold: f.failure_threshold,
+    });
+  };
 
   return (
-    <div>
+    <div className="mx-auto max-w-6xl pb-28 lg:pb-8">
       <Link to="/portal/wallet" className="btn-pill-ghost mb-4 -ml-3">← Wallet</Link>
-      <div className="mb-8">
-        <div className="eyebrow eyebrow-mint">Wallet</div>
-        <h1 className="section-heading">Auto-topup</h1>
-        <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
-          Keep your kids’ Stars topped up automatically so they’re never interrupted mid-mission.
-        </p>
-      </div>
 
-      {error && (
-        <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 mb-6 text-[13px] font-medium text-ink">
-          {error}
+      <section className="overflow-hidden rounded-[28px] border border-brand-mint/25 bg-wash-mint px-5 py-6 sm:px-8 sm:py-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="eyebrow eyebrow-mint">Wallet safety net</div>
+            <h1 className="section-heading mt-2">Never run out mid-mission</h1>
+            <p className="lead-text mt-3 text-[15px]">
+              Set a low-balance trigger, choose a Stars pack and cap your spending. You stay in control of every automatic top-up.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={f.enabled}
+            onClick={() => set('enabled', !f.enabled)}
+            className={`flex min-h-14 min-w-[170px] items-center justify-between rounded-full px-5 text-[14px] font-bold shadow-sm transition-colors ${
+              f.enabled ? 'bg-brand-mint text-white' : 'bg-white text-ink'
+            }`}
+          >
+            <span>{f.enabled ? 'Auto-topup on' : 'Auto-topup off'}</span>
+            <span className={`relative h-7 w-12 rounded-full ${f.enabled ? 'bg-white/30' : 'bg-surface'}`}>
+              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${f.enabled ? 'left-6' : 'left-1'}`} />
+            </span>
+          </button>
+        </div>
+      </section>
+
+      {(error || notice) && (
+        <div role="status" className={`mt-5 rounded-2xl border px-4 py-3 text-[13px] font-semibold ${
+          error ? 'border-brand-coral/30 bg-wash-coral text-ink' : 'border-brand-mint/30 bg-wash-mint text-ink'
+        }`}>
+          {error ?? notice}
         </div>
       )}
-      {notice && (
-        <div className="rounded-2xl bg-wash-mint border border-brand-mint/30 px-4 py-3 mb-6 text-[13px] font-medium text-ink">
-          {notice}
-        </div>
-      )}
 
-      {!f ? (
-        <p className="lead-text">Loading…</p>
-      ) : (
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="space-y-6">
-          {/* On/off */}
-          <div className="card-base flex items-center justify-between">
-            <div>
-              <div className="text-[16px] font-bold text-ink">Auto-topup</div>
-              <div className="text-[13px] text-slate2 mt-0.5">Off by default. Opt-in.</div>
-            </div>
-            <button
-              onClick={() => set('auto_topup_enabled', !f.auto_topup_enabled)}
-              className={`rounded-full px-5 py-2 text-[14px] font-bold transition-colors ${
-                f.auto_topup_enabled ? 'bg-brand-mint text-white' : 'bg-surface text-ink-soft'
-              }`}
-              aria-pressed={f.auto_topup_enabled}
-            >
-              {f.auto_topup_enabled ? '● ON' : '○ OFF'}
-            </button>
-          </div>
-
-          {/* Threshold */}
-          <div className="card-base">
-            <span className="label-k12">When balance falls below</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {THRESHOLD_OPTIONS.map((opt) => (
-                <Pill
-                  key={opt}
-                  active={f.auto_topup_threshold_stars === opt}
-                  onClick={() => set('auto_topup_threshold_stars', opt)}
-                >
-                  {opt}★
-                </Pill>
+          <StepCard number="1" title="Choose your low-balance trigger" description="We check after Stars are used. No charge happens above this level.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {THRESHOLD_OPTIONS.map((value) => (
+                <ChoiceButton key={value} active={f.threshold_stars === value} onClick={() => set('threshold_stars', value)}>
+                  <span className="block text-lg font-extrabold">{value}★</span>
+                  <span className="mt-0.5 block text-[11px] font-medium opacity-75">about A${value / 50}</span>
+                </ChoiceButton>
               ))}
             </div>
-          </div>
+          </StepCard>
 
-          {/* SKU */}
-          <div className="card-base">
-            <span className="label-k12">Top up by</span>
-            <div className="mt-2 space-y-2">
-              {AUTO_TOPUP_SKUS.map((s) => (
-                <label
-                  key={s.sku}
-                  className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 px-4 py-3 transition-colors ${
-                    f.auto_topup_sku === s.sku ? 'border-brand-mint bg-wash-mint' : 'border-hairline hover:border-brand-mint'
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      className="sr-only"
-                      checked={f.auto_topup_sku === s.sku}
-                      onChange={() => set('auto_topup_sku', s.sku as AutoTopupSku)}
-                    />
-                    <span className="text-[14px] font-bold text-ink">{s.label}</span>
-                    <span className="text-[13px] text-slate2">
-                      A${s.price_aud} ({s.stars}★)
-                    </span>
-                  </span>
-                  {s.sku === 'family_30' && <span className="sticker-mint text-[10px]">Best value</span>}
-                </label>
+          <StepCard number="2" title="Pick the pack to add" description="The selected pack is purchased only when the balance crosses your trigger.">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {AUTO_TOPUP_SKUS.map((pack) => (
+                <ChoiceButton key={pack.sku} active={f.sku === pack.sku} onClick={() => set('sku', pack.sku as AutoTopupSku)}>
+                  <span className="block text-[12px] font-bold uppercase tracking-wide opacity-70">{pack.label}</span>
+                  <span className="mt-2 block text-xl font-extrabold">{pack.stars}★</span>
+                  <span className="block text-[13px]">A${pack.price_aud}</span>
+                  {pack.sku === 'family_30' && <span className="sticker-mint mt-2 inline-block text-[10px]">Best value</span>}
+                </ChoiceButton>
               ))}
             </div>
-          </div>
+          </StepCard>
 
-          {/* Payment methods */}
-          <PaymentMethodsCard familyId={familyId} methods={methods.data ?? []} onError={setError} onNotice={setNotice} />
+          <PaymentMethodsCard
+            familyId={familyId}
+            methods={activeMethods}
+            onError={setError}
+            onNotice={setNotice}
+            selectedPaymentMethodId={f.payment_method_id}
+            onSelect={(id) => set('payment_method_id', id)}
+          />
 
-          {/* Safety limits */}
-          <div className="card-base">
-            <div className="eyebrow eyebrow-sky mb-3">Safety limits</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <SelectField
-                label="Max auto-topup per day"
-                value={f.auto_topup_daily_cap_aud_cents}
-                onChange={(v) => set('auto_topup_daily_cap_aud_cents', v)}
-                options={DAILY_CAP_OPTIONS_CENTS.map((c) => ({ value: c, label: `${aud(c)}/day` }))}
-              />
-              <SelectField
-                label="Max auto-topup per month"
-                value={f.auto_topup_monthly_cap_aud_cents}
-                onChange={(v) => set('auto_topup_monthly_cap_aud_cents', v)}
-                options={MONTHLY_CAP_OPTIONS_CENTS.map((c) => ({ value: c, label: `${aud(c)}/month` }))}
-              />
-              <SelectField
-                label="Pause after N failed charges"
-                value={f.auto_topup_failure_threshold}
-                onChange={(v) => set('auto_topup_failure_threshold', v)}
-                options={FAILURE_THRESHOLD_OPTIONS.map((n) => ({ value: n, label: `${n}` }))}
-              />
-              <label className="flex items-center gap-3 self-end">
-                <input
-                  type="checkbox"
-                  checked={f.email_on_charge ?? true}
-                  onChange={(e) => set('email_on_charge', e.target.checked)}
-                  className="h-5 w-5 accent-brand-mint"
-                />
-                <span className="text-[14px] font-semibold text-ink">Email me each time</span>
+          <StepCard number="3" title="Set your safety limits" description="Charges stop automatically when either spending cap is reached.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField label="Daily maximum" value={f.daily_cap_aud_cents} onChange={(v) => set('daily_cap_aud_cents', v)} options={DAILY_CAP_OPTIONS_CENTS} suffix="/day" />
+              <SelectField label="Monthly maximum" value={f.monthly_cap_aud_cents} onChange={(v) => set('monthly_cap_aud_cents', v)} options={MONTHLY_CAP_OPTIONS_CENTS} suffix="/month" />
+              <label className="block sm:col-span-2">
+                <span className="label-k12">Pause after failed charges</span>
+                <select value={f.failure_threshold} onChange={(e) => set('failure_threshold', Number(e.target.value))} className="input-k12 mt-1">
+                  {FAILURE_THRESHOLD_OPTIONS.map((value) => <option key={value} value={value}>{value} consecutive {value === 1 ? 'failure' : 'failures'}</option>)}
+                </select>
               </label>
             </div>
-          </div>
+          </StepCard>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => {
-                setNotice(null);
-                save.mutate({
-                  auto_topup_enabled: f.auto_topup_enabled,
-                  auto_topup_threshold_stars: f.auto_topup_threshold_stars,
-                  auto_topup_sku: f.auto_topup_sku,
-                  auto_topup_payment_method_id: f.auto_topup_payment_method_id,
-                  auto_topup_daily_cap_aud_cents: f.auto_topup_daily_cap_aud_cents,
-                  auto_topup_monthly_cap_aud_cents: f.auto_topup_monthly_cap_aud_cents,
-                  auto_topup_failure_threshold: f.auto_topup_failure_threshold,
-                  email_on_charge: f.email_on_charge,
-                });
-              }}
-              disabled={save.isPending}
-              className="btn-pill-primary"
-            >
-              {save.isPending ? 'Saving…' : 'Save changes'}
-            </button>
-            <button
-              onClick={() => testCharge.mutate()}
-              disabled={testCharge.isPending || (methods.data?.length ?? 0) === 0}
-              className="btn-pill-secondary"
-            >
-              {testCharge.isPending ? 'Testing…' : 'Run a test topup (A$1, refunded)'}
-            </button>
-          </div>
-
-          {/* Recent attempts */}
-          {f.recent_attempts && f.recent_attempts.length > 0 && (
-            <div>
-              <h2 className="section-heading mt-4 mb-3" style={{ fontSize: '20px' }}>Recent auto-topups</h2>
-              <div className="card-base p-0 overflow-hidden">
-                <ul className="divide-y divide-hairline">
-                  {f.recent_attempts.map((a) => (
-                    <li key={a.id} className="flex items-center justify-between px-6 py-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className={a.status === 'succeeded' ? 'text-brand-mint' : a.status === 'failed' ? 'text-brand-coral' : 'text-slate2'}>
-                          {a.status === 'succeeded' ? '✓' : a.status === 'failed' ? '✕' : '·'}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="text-[13px] font-semibold text-ink truncate">
-                            {aud(a.amount_aud_cents)}
-                            {a.stars_credited != null ? ` → ${a.stars_credited}★` : ''}
-                            {a.reason ? ` · ${a.reason}` : ''}
-                          </div>
-                          <div className="text-[11px] text-slate2">{new Date(a.created_at).toLocaleString()}</div>
-                        </div>
-                      </div>
-                      <span className="text-[12px] text-slate2">{a.payment_method_label ?? ''}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+          {cfg.data && cfg.data.recent_attempts.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-xl font-extrabold text-ink">Recent auto-topups</h2>
+              <ul className="card-base divide-y divide-hairline p-0">
+                {cfg.data.recent_attempts.map((attempt) => (
+                  <li key={attempt.id} className="flex flex-col gap-1 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <span className="text-[14px] font-bold text-ink">{aud(attempt.amount_aud_cents)}</span>
+                      {attempt.stars_credited != null && <span className="ml-2 text-[13px] text-slate2">+{attempt.stars_credited}★</span>}
+                      {attempt.reason && <p className="mt-0.5 text-[12px] text-slate2">{attempt.reason}</p>}
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className={`text-[12px] font-bold capitalize ${attempt.status === 'succeeded' ? 'text-brand-mint' : attempt.status === 'failed' ? 'text-brand-coral' : 'text-slate2'}`}>{attempt.status}</span>
+                      <p className="text-[11px] text-slate2">{new Date(attempt.created_at).toLocaleString()}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </div>
-      )}
+
+        <aside className="card-base top-6 lg:sticky">
+          <div className="eyebrow eyebrow-sky">Setup summary</div>
+          <h2 className="mt-2 text-xl font-extrabold text-ink">Your safety net</h2>
+          <dl className="mt-5 space-y-4 text-[13px]">
+            <SummaryRow label="Trigger" value={`Below ${f.threshold_stars}★`} />
+            <SummaryRow label="Adds" value={`${selectedPack.stars}★ for A$${selectedPack.price_aud}`} />
+            <SummaryRow label="Daily cap" value={aud(f.daily_cap_aud_cents)} />
+            <SummaryRow label="Monthly cap" value={aud(f.monthly_cap_aud_cents)} />
+          </dl>
+          {!f.payment_method_id && f.enabled && <p className="mt-4 rounded-xl bg-wash-coral px-3 py-2 text-[12px] font-semibold text-ink">Choose a saved card to finish setup.</p>}
+          <button onClick={submit} disabled={save.isPending || !isDirty || !canSave} className="btn-pill-primary mt-5 w-full disabled:cursor-not-allowed disabled:opacity-50">
+            {save.isPending ? 'Saving…' : isDirty ? 'Save auto-topup' : 'Settings saved'}
+          </button>
+          <button onClick={() => testCharge.mutate()} disabled={testCharge.isPending || isDirty || !f.enabled || !f.payment_method_id} className="btn-pill-secondary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-50">
+            {testCharge.isPending ? 'Testing…' : 'Test saved card (A$1)'}
+          </button>
+          <p className="mt-3 text-center text-[11px] leading-relaxed text-slate2">The test charge is refunded. Save changes first.</p>
+        </aside>
+      </div>
     </div>
   );
 }
 
-function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function StepCard({ number, title, description, children }: { number: string; title: string; description: string; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-4 py-2 text-[13px] font-bold border-2 transition-colors ${
-        active ? 'border-brand-mint bg-brand-mint text-white' : 'border-hairline bg-canvas-pure text-ink-soft hover:border-brand-mint'
-      }`}
-    >
+    <section className="card-base">
+      <div className="mb-5 flex gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-[13px] font-extrabold text-white">{number}</span>
+        <div><h2 className="text-[17px] font-extrabold text-ink">{title}</h2><p className="mt-1 text-[13px] text-slate2">{description}</p></div>
+      </div>
       {children}
-    </button>
+    </section>
   );
 }
 
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  options: Array<{ value: number; label: string }>;
-}) {
-  return (
-    <label className="block">
-      <span className="label-k12">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="input-k12 mt-1"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+function ChoiceButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" onClick={onClick} className={`min-h-20 rounded-2xl border-2 p-3 text-center transition-all ${active ? 'border-brand-mint bg-wash-mint text-ink shadow-sm' : 'border-hairline bg-white text-ink-soft hover:border-brand-mint'}`}>{children}</button>;
 }
 
+function SelectField({ label, value, onChange, options, suffix }: { label: string; value: number; onChange: (value: number) => void; options: readonly number[]; suffix: string }) {
+  return <label className="block"><span className="label-k12">{label}</span><select value={value} onChange={(e) => onChange(Number(e.target.value))} className="input-k12 mt-1">{options.map((option) => <option key={option} value={option}>{aud(option)}{suffix}</option>)}</select></label>;
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-4 border-b border-hairline pb-3"><dt className="text-slate2">{label}</dt><dd className="font-bold text-ink">{value}</dd></div>;
+}
+
+function LoadingState() {
+  return <div aria-label="Loading auto-topup" className="animate-pulse space-y-5"><div className="h-44 rounded-[28px] bg-surface" /><div className="grid gap-5 lg:grid-cols-[1fr_340px]"><div className="h-96 rounded-3xl bg-surface" /><div className="h-72 rounded-3xl bg-surface" /></div></div>;
+}

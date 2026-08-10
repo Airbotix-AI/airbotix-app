@@ -6,16 +6,33 @@
 export type AutoTopupSku = 'starter_10' | 'family_30' | 'mega_50';
 
 export interface AutoTopupConfig {
-  auto_topup_enabled: boolean;
-  auto_topup_threshold_stars: number; // 250 / 500 / 1000 / 2500 (A$5/10/20/50)
-  auto_topup_sku: AutoTopupSku | null;
-  auto_topup_payment_method_id: string | null;
-  auto_topup_daily_cap_aud_cents: number; // max 10000 (A$100)
-  auto_topup_monthly_cap_aud_cents: number; // max 50000 (A$500)
-  auto_topup_failure_threshold: number; // 1-5
-  email_on_charge?: boolean;
-  phone_verified?: boolean;
-  recent_attempts?: AutoTopupAttempt[];
+  enabled: boolean;
+  threshold_stars: number;
+  sku: AutoTopupSku | null;
+  payment_method_id: string | null;
+  daily_cap_aud_cents: number;
+  monthly_cap_aud_cents: number;
+  daily_used_aud_cents: number;
+  monthly_used_aud_cents: number;
+  failure_threshold: number;
+  consecutive_failures: number;
+  cooldown_minutes: number;
+  last_auto_topup_at: string | null;
+}
+
+export interface AutoTopupResponse {
+  config: AutoTopupConfig;
+  recent_attempts: AutoTopupAttempt[];
+}
+
+export interface UpdateAutoTopupInput {
+  enabled: boolean;
+  threshold_stars: number;
+  sku: AutoTopupSku;
+  payment_method_id: string | null;
+  daily_cap_aud_cents: number;
+  monthly_cap_aud_cents: number;
+  failure_threshold: number;
 }
 
 export interface AutoTopupAttempt {

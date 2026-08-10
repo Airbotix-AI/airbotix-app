@@ -11,7 +11,7 @@ import {
   setOnboardingFlag,
   subscribeOnboardingFlags,
 } from '@/lib/onboardingStorage';
-import type { AutoTopupConfig, PaymentMethod } from '../walletTypes';
+import type { AutoTopupResponse, PaymentMethod } from '../walletTypes';
 import {
   computeOnboardingState,
   type OnboardingInputs,
@@ -92,9 +92,9 @@ export function useOnboardingState(): UseOnboardingState {
     enabled: hasFamily,
     retry: false,
   });
-  const autoTopup = useQuery<AutoTopupConfig>({
+  const autoTopup = useQuery<AutoTopupResponse>({
     queryKey: ['wallet', familyId, 'auto-topup'],
-    queryFn: () => api<AutoTopupConfig>(`/families/${familyId}/wallet/auto-topup`),
+    queryFn: () => api<AutoTopupResponse>(`/families/${familyId}/wallet/auto-topup`),
     enabled: hasFamily,
     retry: false,
   });
@@ -105,7 +105,7 @@ export function useOnboardingState(): UseOnboardingState {
     hasPhone: Boolean(user?.phone?.trim()),
     starsBalance: wallet.data?.stars_balance ?? null,
     paymentMethodCount: paymentMethods.data?.length ?? 0,
-    autoTopupEnabled: autoTopup.data?.auto_topup_enabled ?? false,
+    autoTopupEnabled: autoTopup.data?.config.enabled ?? false,
     kidLoginShown: flags.kidLoginShown,
     limitsReviewed: flags.limitsReviewed,
     guidesBrowsed: flags.guidesBrowsed,
