@@ -6,7 +6,8 @@
 // defends, none of which the other consent suites cover:
 //   1. the block is COLLECTED and POSTED with each signature — a consent record
 //      that cannot say who signed it is not evidence of anything;
-//   2. the signer may choose signature text independently from their full name;
+//   2. the signer can draw a real signature, with typed input retained as an
+//      accessibility fallback;
 //   3. the DATE is displayed and never asked for — the server stamps it;
 //   4. the declaration and the relationship options come from the document
 //      version, so neither can be authored by this page;
@@ -73,6 +74,37 @@ describe('the Parent/Guardian Details block is posted with the signature', () =>
     });
   });
 
+  it('captures an actual hand-drawn signature instead of requiring signature text', async () => {
+    await openMediaRelease();
+    fireEvent.change(screen.getByTestId('signer-full-name'), {
+      target: { value: 'Mary Chen' },
+    });
+    fireEvent.change(screen.getByTestId('signer-relationship'), {
+      target: { value: 'mother' },
+    });
+    fireEvent.change(screen.getByTestId('signer-email'), {
+      target: { value: 'mary@example.com' },
+    });
+
+    const canvas = screen.getByTestId('signature-canvas');
+    const draw = (type: string, clientX: number, clientY: number) => {
+      const event = new MouseEvent(type, { bubbles: true, clientX, clientY });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      fireEvent(canvas, event);
+    };
+    draw('pointerdown', 80, 100);
+    draw('pointermove', 200, 45);
+    draw('pointermove', 320, 125);
+    draw('pointerup', 470, 70);
+    expect(screen.getByTestId('signature-captured')).toBeVisible();
+    expect(screen.getByTestId('signer-signature').getAttribute('value')).toMatch(/^drawn:v1:/);
+    fireEvent.click(screen.getByTestId('sign-media-release'));
+
+    await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
+    expect(lastConsentSignBody().signer.signature).toMatch(/^drawn:v1:/);
+    expect(lastConsentSignBody().signer.signature.length).toBeLessThanOrEqual(120);
+  });
+
   /**
    * The date is `signed_at`, stamped server-side. The form shows it so the
    * parent knows what will be recorded, and offers nowhere to type one — a
@@ -108,7 +140,7 @@ describe('the block refuses to produce an unidentified signature', () => {
   it.each([
     ['signer-full-name', /Add your full name/i],
     ['signer-email', /Add your email/i],
-    ['signer-signature', /Type your signature/i],
+    ['signer-signature', /Draw or type your signature/i],
   ])('will not sign with %s left empty', async (testId, message) => {
     await openMediaRelease();
     fillSignerBlock();

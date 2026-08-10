@@ -25,7 +25,7 @@ const formatLabel = (detail: PortalCourseDetail, pack?: PortalCoursePackDetail) 
     ? 'One workshop'
     : detail.page_config?.weeksCount
       ? `${detail.page_config.weeksCount} weeks`
-      : `${pack?.lessons.length ?? 0} lessons`;
+      : `${pack?.lessons?.length ?? 0} lessons`;
 
 const courseMediaUrl = (src: string) =>
   /^(?:https?:|data:|blob:)/.test(src) ? src : marketingHref(src.startsWith('/') ? src : `/${src}`);
@@ -170,7 +170,7 @@ export function CourseDetailPage() {
     : config?.weeks;
   const outline: CourseDetailOutlineItem[] =
     (configuredOutline?.length ? configuredOutline : undefined) ??
-    pack?.lessons.map((lesson, index) => ({
+    pack?.lessons?.map((lesson, index) => ({
       n: index + 1,
       title: lesson.title ?? `Lesson ${index + 1}`,
       focus: lesson.focus ?? lesson.description ?? '',
@@ -242,7 +242,7 @@ export function CourseDetailPage() {
         </section>
       )}
 
-      {(config?.aiTracks.length ?? 0) > 0 && (
+      {(config?.aiTracks?.length ?? 0) > 0 && (
         <section className="mt-10" aria-labelledby="course-learning-title">
           <div className="eyebrow eyebrow-mint">What they learn</div>
           <h2 id="course-learning-title" className="section-heading">
@@ -283,7 +283,7 @@ export function CourseDetailPage() {
         </section>
       )}
 
-      {(config?.outcomes.length ?? 0) > 0 && (
+      {(config?.outcomes?.length ?? 0) > 0 && (
         <section className="mt-10 rounded-3xl bg-wash-mint p-6 sm:p-8">
           <div className="eyebrow eyebrow-mint">By the end</div>
           <h2 className="section-heading">What your child takes away.</h2>
@@ -334,7 +334,7 @@ export function CourseDetailPage() {
         )}
       </section>
 
-      {(config?.faqs.length ?? 0) > 0 && (
+      {(config?.faqs?.length ?? 0) > 0 && (
         <section className="mt-10" aria-labelledby="course-faq-title">
           <div className="eyebrow eyebrow-bubblegum">Questions parents ask</div>
           <h2 id="course-faq-title" className="section-heading">

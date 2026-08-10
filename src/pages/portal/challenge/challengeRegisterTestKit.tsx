@@ -108,6 +108,10 @@ export function fillSignerBlock(overrides: Partial<typeof SIGNER> = {}) {
     target: { value: values.relationship },
   });
   fireEvent.change(screen.getByTestId('signer-email'), { target: { value: values.email } });
+  const typedSignatureSwitch = screen.queryByRole('button', {
+    name: /Type my signature instead/i,
+  });
+  if (typedSignatureSwitch) fireEvent.click(typedSignatureSwitch);
   fireEvent.change(screen.getByTestId('signer-signature'), {
     target: { value: values.signature },
   });

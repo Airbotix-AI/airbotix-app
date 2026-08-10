@@ -60,7 +60,7 @@ export interface ChallengeConsentDocumentStatus {
    */
   attestation: string | null;
   /**
-   * The declaration beside the typed signature, and the closed relationship set
+   * The declaration beside the drawn or typed signature, and the closed relationship set
    * the block offers. Served for the same reason `attestation` is — the sentence
    * an e-signature is filed against, and the answers it may be filed under,
    * belong to the version and not to this page.

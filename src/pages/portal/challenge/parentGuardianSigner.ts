@@ -5,7 +5,7 @@
 // component (`react-refresh/only-export-components`). The block itself turns
 // each consent submission into a
 // SIGNATURE: who is signing, how they relate to the child, where they can be
-// reached, and the typed name that is their electronic signature.
+// reached, and the drawn or typed mark that is their electronic signature.
 //
 // Shared by BOTH consent steps rather than written twice. D-CCC-7 keeps the two
 // documents separate signing acts, so each carries its own block — but the block
@@ -49,7 +49,7 @@ export const signerSchema = z
     signer_signature: z
       .string()
       .trim()
-      .min(1, 'Type your signature')
+      .min(1, 'Draw or type your signature')
       .max(120, 'Keep this to 120 characters or fewer'),
   });
 
