@@ -25,7 +25,7 @@ const formatLabel = (detail: PortalCourseDetail, pack?: PortalCoursePackDetail) 
     ? 'One workshop'
     : detail.page_config?.weeksCount
       ? `${detail.page_config.weeksCount} weeks`
-      : `${pack?.lessons.length ?? 0} lessons`;
+      : `${pack?.lessons?.length ?? 0} lessons`;
 
 const courseMediaUrl = (src: string) =>
   /^(?:https?:|data:|blob:)/.test(src) ? src : marketingHref(src.startsWith('/') ? src : `/${src}`);
@@ -170,7 +170,7 @@ export function CourseDetailPage() {
     : config?.weeks;
   const outline: CourseDetailOutlineItem[] =
     (configuredOutline?.length ? configuredOutline : undefined) ??
-    pack?.lessons.map((lesson, index) => ({
+    pack?.lessons?.map((lesson, index) => ({
       n: index + 1,
       title: lesson.title ?? `Lesson ${index + 1}`,
       focus: lesson.focus ?? lesson.description ?? '',
