@@ -140,7 +140,7 @@ describe('CourseDetailPage', () => {
       if (path === '/courses/rhythm-game') {
         return Promise.resolve({
           ...DETAIL,
-          page_config: { ...DETAIL.page_config, sessionAgenda: [], weeks: [], weeksCount: 0 },
+          page_config: { format: 'weekly' },
         });
       }
       if (path === '/courses/rhythm-game/classes') return Promise.resolve([]);
@@ -164,7 +164,7 @@ describe('CourseDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Build a Rhythm Game with AI' }),
     ).toBeVisible();
-    expect(screen.getByText('One workshop')).toBeVisible();
+    expect(screen.getByText('0 lessons')).toBeVisible();
   });
 
   it('renders the authoritative course story, outline, outcomes, FAQ and bookable class', async () => {
