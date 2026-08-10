@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-11 (added: Journey West C4-P4 dual-event build)
+
+### Added
+
+- Added the child-facing C4-P4 story page and a trigger-only Story Blocks workspace where the
+  child places six real blocks across separate Start/name and Tap/skill scripts.
+- Completion requires an exact saved program, a Go run that leaves the skill quiet, and a real
+  tap on Sun Wukong before the adjacent C4-P5 part can unlock.
+
 ## 2026-08-10 (changed: faster My Kids overview)
 
 ### Changed
