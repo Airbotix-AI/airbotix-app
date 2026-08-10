@@ -27,6 +27,7 @@ import {
   CONSENT_PATH,
   consentSignPosts,
   consentStatus,
+  fillSignerBlock,
   lastConsentSignBody,
   mediaDoc,
   pickKid,
@@ -67,6 +68,7 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
     renderPage();
     await pickKid();
 
+    fireEvent.click(await screen.findByTestId('review-authorization'));
     expect(await screen.findByTestId('reopen-note')).toHaveTextContent(
       /replaces all of the choices/i,
     );
@@ -81,6 +83,7 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
     renderPage();
     await pickKid();
 
+    fireEvent.click(await screen.findByTestId('review-authorization'));
     fireEvent.click(await screen.findByRole('button', { name: /Update these choices/ }));
     await screen.findByTestId('media-release-amending');
 
@@ -92,6 +95,9 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
 
     // Withdraw exactly one.
     fireEvent.click(screen.getByTestId('grant-publish-face'));
+    // A re-sign is a fresh signing act, so the block is signed again — it is
+    // deliberately NOT restored from the previous signature.
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(signed).toHaveBeenCalled());
@@ -174,6 +180,7 @@ describe('ChallengeRegisterPage — the media release validates before it posts'
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(consentSignPosts()).toHaveLength(1));
@@ -183,6 +190,7 @@ describe('ChallengeRegisterPage — the media release validates before it posts'
     await openForm();
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(consentSignPosts()).toHaveLength(1));

@@ -27,10 +27,12 @@ vi.mock('@/auth/useAuth', async () => {
 });
 
 import {
+  bothSignedConsent,
   CONSENT_PATH,
   consentStatus,
   DOCUMENT_BODY,
   draftOverrides,
+  fillSignerBlock,
   lastConsentSignBody,
   mediaDoc,
   pickKid,
@@ -45,7 +47,7 @@ import {
 installRegisterPageHarness();
 
 describe('ChallengeRegisterPage — the two documents are signed separately', () => {
-  it('opens only the media release first, keeps the terms and the fee locked', async () => {
+  it('opens only authorization first and keeps the payment screen out of view', async () => {
     wireApi({ [`GET ${CONSENT_PATH}`]: consentStatus([mediaDoc(), termsDoc()]) });
     renderPage();
     await pickKid();
@@ -54,8 +56,14 @@ describe('ChallengeRegisterPage — the two documents are signed separately', ()
     // Step 2 is a SEPARATE act — it must not be reachable yet.
     expect(screen.queryByTestId('competition-terms-step')).not.toBeInTheDocument();
     expect(screen.getByTestId('terms-locked')).toBeInTheDocument();
-    expect(screen.getByTestId('challenge-pay')).toBeDisabled();
-    expect(screen.getByTestId('pay-locked')).toBeInTheDocument();
+    expect(screen.getByTestId('challenge-authorization-step')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-payment-step')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-pay')).not.toBeInTheDocument();
+    expect(screen.getByText(/No payment is taken in this step/i)).toBeInTheDocument();
+    expect(screen.getByText('Confirm and pay').closest('li')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
   });
 
   it('opens the terms once the media release is signed — and the fee is STILL locked', async () => {
@@ -71,8 +79,8 @@ describe('ChallengeRegisterPage — the two documents are signed separately', ()
     expect(await screen.findByTestId('competition-terms-step')).toBeInTheDocument();
     expect(screen.getByTestId('signed-parent_media_release')).toBeInTheDocument();
     // One signature is not two: checkout stays out of reach (D-CCC-7).
-    expect(screen.getByTestId('challenge-pay')).toBeDisabled();
-    expect(screen.getByTestId('pay-locked')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-payment-step')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-pay')).not.toBeInTheDocument();
   });
 
   it('unlocks the fee only when BOTH documents are signed', async () => {
@@ -85,9 +93,29 @@ describe('ChallengeRegisterPage — the two documents are signed separately', ()
     renderPage();
     await pickKid();
 
-    await waitFor(() => expect(screen.getByTestId('challenge-pay')).toBeEnabled());
-    expect(screen.queryByTestId('pay-locked')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('challenge-payment-step')).toBeInTheDocument());
+    expect(screen.queryByTestId('challenge-authorization-step')).not.toBeInTheDocument();
+    expect(screen.getByTestId('authorization-complete')).toHaveTextContent(
+      /Parent authorization complete/,
+    );
+    expect(screen.getByTestId('challenge-pay')).toBeEnabled();
     expect(screen.getByRole('button', { name: /Pay A\$9 & enter/ })).toBeInTheDocument();
+  });
+
+  it('lets a parent review authorization without mixing the payment controls back in', async () => {
+    wireApi({ [`GET ${CONSENT_PATH}`]: bothSignedConsent() });
+    renderPage();
+    await pickKid();
+
+    fireEvent.click(await screen.findByTestId('review-authorization'));
+
+    expect(screen.getByTestId('challenge-authorization-step')).toBeInTheDocument();
+    expect(screen.getByTestId('signed-parent_media_release')).toBeInTheDocument();
+    expect(screen.getByTestId('signed-competition_terms')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-pay')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('continue-to-payment'));
+    expect(screen.getByTestId('challenge-payment-step')).toBeInTheDocument();
   });
 
   it('renders the served document body verbatim, with no banner on an approved version', async () => {
@@ -138,6 +166,7 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
     // transmitted as an explicit `false`, not silently omitted.
     fireEvent.change(screen.getByTestId('grant-display-name'), { target: { value: 'Mia K.' } });
     fireEvent.click(screen.getByTestId('grant-channel-airbotix_website'));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-media-release'));
 
     await waitFor(() => expect(signed).toHaveBeenCalled());
@@ -190,6 +219,7 @@ describe('ChallengeRegisterPage — the six grants are recorded individually', (
     // The accept button is inert until the parent says they have read it.
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
     fireEvent.click(screen.getByLabelText(/I am the parent or legal guardian/));
+    fillSignerBlock();
     fireEvent.click(screen.getByTestId('sign-competition-terms'));
 
     await waitFor(() => expect(accepted).toHaveBeenCalled());
@@ -231,6 +261,13 @@ describe('ChallengeRegisterPage — nothing is signable once registration closes
     expect(screen.getByTestId('sign-competition-terms')).toBeDisabled();
     // Ticking the declaration must not resurrect the button either.
     expect(screen.getByLabelText(/I am the parent or legal guardian/)).toBeDisabled();
+    // Nor may the signature block be filled in — offering a parent somewhere to
+    // type their name on a form the backend will refuse is the same false
+    // promise as a live accept button.
+    expect(screen.getByTestId('signer-full-name')).toBeDisabled();
+    expect(screen.getByTestId('signer-relationship')).toBeDisabled();
+    expect(screen.getByTestId('signer-email')).toBeDisabled();
+    expect(screen.getByTestId('signer-signature')).toBeDisabled();
   });
 
   it('the child’s assent cannot be recorded, and the signed release cannot be reopened', async () => {
@@ -243,7 +280,7 @@ describe('ChallengeRegisterPage — nothing is signable once registration closes
     renderPage();
     await pickKid();
 
-    await screen.findByTestId('signed-parent_media_release');
+    await screen.findByTestId('challenge-payment-step');
     expect(screen.getByTestId('kid-assent')).toBeDisabled();
     expect(screen.queryByRole('button', { name: /Update these choices/ })).not.toBeInTheDocument();
   });

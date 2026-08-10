@@ -9,6 +9,119 @@
 - Completion requires an exact saved program, a Go run that leaves the skill quiet, and a real
   tap on Sun Wukong before the adjacent C4-P5 part can unlock.
 
+## 2026-08-10 (changed: challenge registration is a two-step parent flow)
+
+### Changed
+
+- `/portal/challenge/:slug/register` now separates **Parent authorization** from **Confirm and
+  pay** with a visible two-stage progress indicator.
+- The two consent documents remain separate signatures and API calls inside authorization, but
+  the payment card is not rendered until both current versions are signed. Reviewing or amending
+  authorization hides payment controls again.
+- The payment stage opens with an authorization-complete summary, the single entry fee, the
+  optional child-assent note and secure-checkout action. A stale `CONSENT_REQUIRED` refusal returns
+  the parent to authorization and keeps the actionable error visible.
+
+### Tests
+
+- Updated the consent, checkout and media-release component suites for the stage boundary,
+  automatic handoff, review/continue path and stale-consent recovery.
+- Updated the pre-deploy `parent-challenge-registration` journey and coverage record; it remains
+  authored but unexecuted until the next production pre-deploy harness run.
+
+## 2026-08-10 (fixed: Parent Portal approval badge alignment)
+
+### Fixed
+
+- Kept the desktop navigation's Approvals count on the same row as its icon and label. The shared
+  navigation rule previously overrode the link's flex layout, which pushed the badge onto a second
+  line and made the active item unusually tall.
+
+## 2026-08-10 (added: Parent/Guardian Details on both challenge consent steps)
+
+### Added
+
+- Both consent steps now collect **Parent/Guardian Details** — Full name, Relationship to student,
+  Email, Signature / electronic confirmation, and a read-only Date — via a shared
+  `ParentGuardianDetails` fieldset (`parentGuardianSigner.ts` holds its schema, defaults and
+  payload mapping).
+
+  - **The Date is not an input.** The form shows the date the server will stamp and posts none. A
+    date a parent types is one the record can contradict.
+  - **The typed signature must match the full name given** (case- and spacing-insensitive), shown
+    inline rather than as a 400 after a round-trip. A signature that need not match the name above
+    it is just another text box.
+  - **Name and email prefill from the account and stay editable** — the account holder is not
+    always the adult whose name belongs on the form. The signature is **never** prefilled,
+    including on a re-sign: a re-sign is a new signing act, so a restored signature would file one
+    the parent did not make.
+  - The declaration and the relationship options are rendered from `doc.signer_declaration` /
+    `doc.signer_relationship_options`, served with the document version — this page authors
+    neither, for the same reason it does not author `doc.attestation`.
+  - Both documents carry their own block: D-CCC-7 keeps them separate signing acts, so neither
+    borrows the other's identification.
+
+### Changed
+
+- `CompetitionTermsStep` moved from `useState` to `react-hook-form` + zod, now that it is a
+  multi-field form (repo convention). The accept button stays inert until the declaration is
+  ticked — the affordance it has always had; the schema's `literal(true)` is the backstop, not
+  the UX.
+- The signature field's declaration moved out of its `<label>` into `aria-describedby`. Inside the
+  label it became the input's accessible name, so a screen reader announced a paragraph where
+  "Signature" belonged — and it collided with the terms' own "I am the parent or legal guardian…"
+  attestation on the same page.
+- `challengeRegisterTestKit.tsx` gains the served signature-block fixtures and a `fillSignerBlock`
+  helper, so each suite still states the one thing it is about instead of restating four fields.
+
+### Tests
+
+- `ChallengeRegisterPage.signerBlock.test.tsx` (new, 14 tests) — the block is posted with the
+  signature; the date is displayed and never asked for, and no `date` reaches the payload;
+  case/spacing-only signature differences are accepted; a mismatched signature, an empty field, a
+  missing relationship and an unreachable email each block the POST; the declaration and the
+  relationship options come from the document; the terms collect their own block; the signature is
+  never prefilled.
+- The closed-registration suite now also asserts every signature field is disabled — offering a
+  parent somewhere to type their name on a form the backend will refuse is the same false promise
+  as a live accept button.
+
+## 2026-08-10 (changed: consent test fixture tracks media release v1.1 — TikTok added)
+
+### Changed
+
+- `challengeRegisterTestKit.tsx` — the `airbotix_social` fixture label now reads seven accounts
+  including TikTok, matching the backend's media release v1.1.
+
+  No component change was needed: `MediaReleaseStep` renders `doc.channel_options` exactly as the
+  API serves them, which is the whole point of the channel list living with the document version.
+  The fixture is the only place the app restates that wording, so it is the only place that could
+  drift from it.
+
+## 2026-08-10 (added: /portal/tutoring shows the teachers you can actually book)
+
+### Added
+
+- `/portal/tutoring` now lists the published platform teachers on first paint — portrait, name,
+  headline, service cities, age range and expertise — with a `Book <name>` action per card and a
+  `See all profiles →` link to the full directory.
+
+  The page previously showed no teacher at all until a parent happened to press `Book a teacher →`:
+  the only two teacher affordances, the `Preferred teacher` selector and the profiles link, both
+  lived inside the collapsed request form. A parent looking for "who can I book?" saw a bill and an
+  empty form.
+
+  Choosing a card records exactly the same preference as the existing `?teacher=<slug>` deep link —
+  still a preference, not a booking — and opens the request form so the choice is not a dead end.
+
+### Fixed
+
+- A missing or unreachable teacher portrait now falls back to the teacher's initials instead of a
+  broken-image icon. Profile photos are uploaded separately from the profile row, so a published
+  teacher can legitimately have no usable `avatar_url` yet.
+- An empty or failed teacher directory keeps the "send a request and we'll match a teacher" path
+  visible instead of rendering nothing.
+
 ## 2026-08-10 (changed: faster My Kids overview)
 
 ### Changed
@@ -6558,3 +6671,7 @@ test → build` (was build-only, so the Vitest suite never ran in CI).
 - Playground UX polish: Monaco hover/suggest tooltips no longer clipped, robust
   Phaser vendoring at build time, wider editor launch, chat keeps focus/history,
   smoother generating screen.
+# Unreleased
+
+- Challenge consent signatures may now use any non-empty signature text; they no longer have to
+  duplicate the parent or guardian's full name.

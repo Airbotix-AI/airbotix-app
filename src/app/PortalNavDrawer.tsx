@@ -45,18 +45,18 @@ export function PortalNavDrawer({ pendingCount }: { pendingCount: number }) {
                       end={item.end}
                       className={({ isActive }) =>
                         clsx(
-                          'nav-link flex items-center justify-between',
+                          'nav-link !flex min-w-0 items-center justify-between gap-2',
                           isActive && 'nav-link-active',
                         )
                       }
                     >
-                      <span className="flex items-center gap-2.5">
+                      <span className="flex min-w-0 items-center gap-2.5 whitespace-nowrap">
                         <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" />
                         {item.label}
                       </span>
                       {showBadge && (
                         <span
-                          className="ml-2 inline-flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-coral px-1.5 text-[11px] font-bold text-white"
+                          className="inline-flex h-[20px] min-w-[20px] shrink-0 items-center justify-center rounded-full bg-brand-coral px-1.5 text-[11px] font-bold text-white"
                           aria-label={`${pendingCount} pending approvals`}
                         >
                           {pendingCount}

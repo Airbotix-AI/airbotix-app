@@ -35,6 +35,7 @@ import {
   type ChallengeConsentDocumentStatus,
   type ChallengeConsentStatus,
   type ChallengeRegistrationView,
+  type ChallengeSignerDetails,
   type MediaReleaseGrants,
 } from './challengeApi';
 import {
@@ -87,6 +88,12 @@ export function ChallengeRegisterPage() {
   const me = useMe();
   const queryClient = useQueryClient();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
+  // Prefill only. The signature block stays editable, because the account holder
+  // is not always the adult whose name belongs on the form.
+  const signerAccount =
+    me.data?.kind === 'user'
+      ? { display_name: me.data.display_name, email: me.data.email }
+      : { display_name: null, email: null };
 
   const [kidId, setKidId] = useState('');
   const [awaitingPayment, setAwaitingPayment] = useState(false);
@@ -96,6 +103,7 @@ export function ChallengeRegisterPage() {
   const [assentError, setAssentError] = useState<string | null>(null);
   const [kidNotice, setKidNotice] = useState<string | null>(null);
   const [reopenMediaRelease, setReopenMediaRelease] = useState(false);
+  const [reviewAuthorization, setReviewAuthorization] = useState(false);
 
   const clearHandoff = () => {
     if (familyId) sessionStorage.removeItem(pendingKey(slug, familyId));
@@ -179,13 +187,14 @@ export function ChallengeRegisterPage() {
     queryClient.invalidateQueries({ queryKey: ['challenge-consent', edition?.id, kidId] });
 
   const signMediaRelease = useMutation({
-    mutationFn: (grants: MediaReleaseGrants) => {
+    mutationFn: ({ grants, signer }: { grants: MediaReleaseGrants; signer: ChallengeSignerDetails }) => {
       const doc = findDoc(consent.data, 'parent_media_release');
       return signChallengeConsent(edition!.id, {
         kid_id: kidId,
         document_type: 'parent_media_release',
         document_version: doc!.current_version,
         grants,
+        signer,
       });
     },
     onSuccess: (status) => {
@@ -198,13 +207,14 @@ export function ChallengeRegisterPage() {
   });
 
   const signTerms = useMutation({
-    mutationFn: () => {
+    mutationFn: (signer: ChallengeSignerDetails) => {
       const doc = findDoc(consent.data, 'competition_terms');
       return signChallengeConsent(edition!.id, {
         kid_id: kidId,
         document_type: 'competition_terms',
         document_version: doc!.current_version,
         grants: { accepted: true },
+        signer,
       });
     },
     onSuccess: (status) => {
@@ -251,6 +261,7 @@ export function ChallengeRegisterPage() {
       // re-read it so the outstanding document is actually put back in front of
       // the parent rather than just described in an error message.
       if (isConsentRequired(error)) await refreshConsent();
+      if (isConsentRequired(error)) setReviewAuthorization(true);
     },
   });
 
@@ -425,6 +436,7 @@ export function ChallengeRegisterPage() {
               setAssentError(null);
               setKidNotice(null);
               setReopenMediaRelease(false);
+              setReviewAuthorization(false);
             }}
             data-testid="challenge-kid"
           >
@@ -477,120 +489,217 @@ export function ChallengeRegisterPage() {
 
       {kidId !== '' && consent.data && mediaRelease && terms && (
         <>
-          {mediaRelease.signed && !reopenMediaRelease ? (
-            <SignedDocumentCard
-              doc={mediaRelease}
-              channelLabels={channelLabels}
-              onReopen={
-                edition.registration_open ? () => setReopenMediaRelease(true) : undefined
-              }
-            />
-          ) : (
-            <MediaReleaseStep
-              doc={mediaRelease}
-              onSign={(grants) => signMediaRelease.mutate(grants)}
-              submitting={signMediaRelease.isPending}
-              error={signError}
-              closed={!edition.registration_open}
-              // Re-signing REPLACES the record (append-only store, newest wins),
-              // so a reopened form starts from what is on record. A blank one
-              // would silently revoke every grant the parent did not return to
-              // change. A first signature has nothing on record and stays blank.
-              priorGrants={
-                reopenMediaRelease ? readStoredMediaReleaseGrants(mediaRelease.grants) : null
-              }
-            />
-          )}
+          <RegistrationSteps
+            authorizationComplete={bothSigned}
+            current={
+              bothSigned && !reviewAuthorization && !reopenMediaRelease
+                ? 'payment'
+                : 'authorization'
+            }
+          />
 
-          {/* Step 2 only opens once step 1 is actually recorded — the two
-              documents are signed separately, never together (D-CCC-7). */}
-          {!mediaRelease.signed ? (
-            <p className="mt-6 text-[13px] text-slate2" data-testid="terms-locked">
-              The competition terms are a separate step. They open once the media release is
-              signed.
-            </p>
-          ) : terms.signed ? (
-            <SignedDocumentCard doc={terms} channelLabels={channelLabels} />
-          ) : (
-            <CompetitionTermsStep
-              doc={terms}
-              onAccept={() => signTerms.mutate()}
-              submitting={signTerms.isPending}
-              error={signError}
-              closed={!edition.registration_open}
-            />
-          )}
-
-          <section className="card-base mt-6">
-            <h2 className="section-heading">Entry fee</h2>
-            <p className="mt-2 text-[14px] text-slate2">
-              {formatAud(edition.entry_fee_cents)}, paid once at checkout. Your entry is confirmed
-              when the payment is received.
-            </p>
-
-            {/* The words that produce the assent record come from the backend
-                (they are what the audit row is evidence of), so there is no
-                checkbox to offer if the server served none. */}
-            {consent.data.kid_assent_statement && (
-              <label htmlFor="kid-assent" className="mt-5 flex items-start gap-3">
-                <input
-                  id="kid-assent"
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 shrink-0"
-                  data-testid="kid-assent"
-                  // The SERVER's stamp, not local state: a failed write must
-                  // leave the box showing what is actually recorded.
-                  checked={consent.data.kid_assent_at !== null}
-                  disabled={assent.isPending || !edition.registration_open}
-                  onChange={(event) => assent.mutate(event.target.checked)}
-                />
-                <span className="text-[14px] leading-relaxed text-ink">
-                  {consent.data.kid_assent_statement}
-                </span>
-              </label>
-            )}
-
-            {assentError && (
-              <p className="field-error mt-2" role="alert" data-testid="challenge-assent-error">
-                {assentError}
-              </p>
-            )}
-
-            {!bothSigned && (
-              <p className="mt-5 text-[13px] text-slate2" data-testid="pay-locked">
-                Both forms above need to be signed before the entry fee can be paid.
-              </p>
-            )}
-
-            {payError && (
-              <div
-                className="mt-5 rounded-2xl border border-brand-coral/30 bg-wash-coral px-4 py-3 text-[13px] font-medium text-ink"
-                role="alert"
-                data-testid="challenge-pay-error"
-              >
-                {payError}
+          {(!bothSigned || reviewAuthorization || reopenMediaRelease) && (
+            <section data-testid="challenge-authorization-step">
+              <div className="mt-6 rounded-3xl border border-brand-sky/30 bg-wash-sky px-5 py-4">
+                <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate2">
+                  Step 1 of 2 · Parent authorization
+                </p>
+                <h2 className="section-heading mt-2">Authorize the entry first</h2>
+                <p className="mt-2 text-[14px] leading-relaxed text-slate2">
+                  Complete the media choices and competition terms here. No payment is taken in
+                  this step. The payment screen opens only after both forms are signed.
+                </p>
               </div>
-            )}
 
-            <button
-              type="button"
-              disabled={!bothSigned || !edition.registration_open || pay.isPending}
-              onClick={() => pay.mutate()}
-              className="btn-pill-primary mt-5 w-full disabled:opacity-50"
-              data-testid="challenge-pay"
-            >
-              {pay.isPending
-                ? 'Opening secure checkout…'
-                : `Pay ${formatAud(edition.entry_fee_cents)} & enter →`}
-            </button>
-            <p className="mt-4 text-[12px] leading-relaxed text-slate2">
-              You will pay securely on our payment page (Airwallex). Come back here afterwards to
-              see the entry confirmed.
-            </p>
-          </section>
+              {payError && (
+                <div
+                  className="mt-5 rounded-2xl border border-brand-coral/30 bg-wash-coral px-4 py-3 text-[13px] font-medium text-ink"
+                  role="alert"
+                  data-testid="challenge-pay-error"
+                >
+                  {payError}
+                </div>
+              )}
+
+              {mediaRelease.signed && !reopenMediaRelease ? (
+                <SignedDocumentCard
+                  doc={mediaRelease}
+                  channelLabels={channelLabels}
+                  onReopen={
+                    edition.registration_open ? () => setReopenMediaRelease(true) : undefined
+                  }
+                />
+              ) : (
+                <MediaReleaseStep
+                  doc={mediaRelease}
+                  onSign={(grants, signer) => signMediaRelease.mutate({ grants, signer })}
+                  account={signerAccount}
+                  submitting={signMediaRelease.isPending}
+                  error={signError}
+                  closed={!edition.registration_open}
+                  // Re-signing REPLACES the record (append-only store, newest wins),
+                  // so a reopened form starts from what is on record. A blank one
+                  // would silently revoke every grant the parent did not return to
+                  // change. A first signature has nothing on record and stays blank.
+                  priorGrants={
+                    reopenMediaRelease ? readStoredMediaReleaseGrants(mediaRelease.grants) : null
+                  }
+                />
+              )}
+
+              {/* The two authorization documents remain separate recorded acts,
+                  but together they make up the parent's single UX step. */}
+              {!mediaRelease.signed ? (
+                <p className="mt-6 text-[13px] text-slate2" data-testid="terms-locked">
+                  The competition terms open after the media choices are signed.
+                </p>
+              ) : terms.signed ? (
+                <SignedDocumentCard doc={terms} channelLabels={channelLabels} />
+              ) : (
+                <CompetitionTermsStep
+                  doc={terms}
+                  onAccept={(signer) => signTerms.mutate(signer)}
+                  account={signerAccount}
+                  submitting={signTerms.isPending}
+                  error={signError}
+                  closed={!edition.registration_open}
+                />
+              )}
+
+              {bothSigned && !reopenMediaRelease && (
+                <button
+                  type="button"
+                  className="btn-pill-primary mt-6 w-full"
+                  onClick={() => setReviewAuthorization(false)}
+                  data-testid="continue-to-payment"
+                >
+                  Continue to payment →
+                </button>
+              )}
+            </section>
+          )}
+
+          {bothSigned && !reviewAuthorization && !reopenMediaRelease && (
+            <section className="card-base mt-6" data-testid="challenge-payment-step">
+              <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate2">
+                Step 2 of 2 · Confirm and pay
+              </p>
+              <div
+                className="mt-4 rounded-2xl border border-brand-mint/40 bg-wash-mint px-4 py-3"
+                data-testid="authorization-complete"
+              >
+                <p className="font-bold text-ink">Parent authorization complete ✓</p>
+                <p className="mt-1 text-[13px] text-slate2">
+                  Media choices and competition terms are both signed for {kidName ?? 'this child'}.
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 text-[13px] font-bold text-brand-blue underline underline-offset-2"
+                  onClick={() => setReviewAuthorization(true)}
+                  data-testid="review-authorization"
+                >
+                  Review or update authorization
+                </button>
+              </div>
+
+              <h2 className="section-heading mt-6">Entry fee</h2>
+              <p className="mt-2 text-[14px] text-slate2">
+                {formatAud(edition.entry_fee_cents)}, paid once at checkout. Your entry is confirmed
+                when the payment is received.
+              </p>
+
+              {/* The words that produce the assent record come from the backend
+                  (they are what the audit row is evidence of), so there is no
+                  checkbox to offer if the server served none. */}
+              {consent.data.kid_assent_statement && (
+                <label htmlFor="kid-assent" className="mt-5 flex items-start gap-3">
+                  <input
+                    id="kid-assent"
+                    type="checkbox"
+                    className="mt-1 h-5 w-5 shrink-0"
+                    data-testid="kid-assent"
+                    // The SERVER's stamp, not local state: a failed write must
+                    // leave the box showing what is actually recorded.
+                    checked={consent.data.kid_assent_at !== null}
+                    disabled={assent.isPending || !edition.registration_open}
+                    onChange={(event) => assent.mutate(event.target.checked)}
+                  />
+                  <span className="text-[14px] leading-relaxed text-ink">
+                    {consent.data.kid_assent_statement}
+                  </span>
+                </label>
+              )}
+
+              {assentError && (
+                <p className="field-error mt-2" role="alert" data-testid="challenge-assent-error">
+                  {assentError}
+                </p>
+              )}
+
+              {payError && (
+                <div
+                  className="mt-5 rounded-2xl border border-brand-coral/30 bg-wash-coral px-4 py-3 text-[13px] font-medium text-ink"
+                  role="alert"
+                  data-testid="challenge-pay-error"
+                >
+                  {payError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={!edition.registration_open || pay.isPending}
+                onClick={() => pay.mutate()}
+                className="btn-pill-primary mt-5 w-full disabled:opacity-50"
+                data-testid="challenge-pay"
+              >
+                {pay.isPending
+                  ? 'Opening secure checkout…'
+                  : `Pay ${formatAud(edition.entry_fee_cents)} & enter →`}
+              </button>
+              <p className="mt-4 text-[12px] leading-relaxed text-slate2">
+                You will pay securely on our payment page (Airwallex). Come back here afterwards
+                to see the entry confirmed.
+              </p>
+            </section>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+function RegistrationSteps({
+  authorizationComplete,
+  current,
+}: {
+  authorizationComplete: boolean;
+  current: 'authorization' | 'payment';
+}) {
+  return (
+    <ol
+      className="mt-6 grid grid-cols-2 overflow-hidden rounded-3xl border border-line bg-white"
+      aria-label="Registration progress"
+      data-testid="registration-steps"
+    >
+      <li
+        className={`px-4 py-4 ${current === 'authorization' ? 'bg-wash-sky' : ''}`}
+        aria-current={current === 'authorization' ? 'step' : undefined}
+      >
+        <span className="text-[12px] font-bold text-slate2">1</span>
+        <span className="ml-2 text-[14px] font-bold text-ink">
+          Parent authorization {authorizationComplete ? '✓' : ''}
+        </span>
+      </li>
+      <li
+        className={`border-l border-line px-4 py-4 ${current === 'payment' ? 'bg-wash-mint' : ''}`}
+        aria-current={current === 'payment' ? 'step' : undefined}
+        aria-disabled={!authorizationComplete}
+      >
+        <span className="text-[12px] font-bold text-slate2">2</span>
+        <span className="ml-2 text-[14px] font-bold text-ink">Confirm and pay</span>
+      </li>
+    </ol>
   );
 }
 

@@ -27,10 +27,18 @@ import { z } from 'zod';
 
 import type {
   ChallengeConsentDocumentStatus,
+  ChallengeSignerDetails,
   MediaReleaseGrants,
   StoredMediaReleaseGrants,
 } from './challengeApi';
 import { ConsentDocumentBody } from './ConsentDocumentBody';
+import { ParentGuardianDetails } from './ParentGuardianDetails';
+import {
+  servesSignerBlock,
+  signerDefaults,
+  signerSchema,
+  toSignerDetails,
+} from './parentGuardianSigner';
 
 /**
  * How long a reuse permission runs. Must equal the backend's
@@ -70,6 +78,10 @@ function reuseWindowEndLabel(): string {
   });
 }
 
+// The choices, plus the Parent/Guardian signature block every signature carries.
+// `.and()` rather than one flat object: `signerSchema` owns a cross-field
+// refinement (signature must match full name), and merging it in keeps that rule
+// with the block it belongs to instead of restating it here.
 const schema = z
   .object({
     review: z.boolean(),
@@ -82,7 +94,8 @@ const schema = z
       .min(1, 'Add the name to publish with your child’s work')
       .max(60, 'Keep this to 60 characters or fewer'),
     channels: z.array(z.string()),
-  });
+  })
+  .and(signerSchema);
 
 type FormValues = z.infer<typeof schema>;
 
@@ -118,8 +131,17 @@ function requiredChoiceLabels(doc: ChallengeConsentDocumentStatus): Record<strin
   return labels;
 }
 
-/** Recorded choices → form defaults. A missing key stays off / empty. */
-function toDefaults(prior: StoredMediaReleaseGrants | null): FormValues {
+/**
+ * Recorded choices → form defaults. A missing key stays off / empty.
+ *
+ * The signature block is NOT restored from a prior signature, even on a re-sign:
+ * a re-sign is a new signing act, and pre-typing the signature would file one
+ * the parent did not make this time.
+ */
+function toDefaults(
+  prior: StoredMediaReleaseGrants | null,
+  account: { display_name?: string | null; email?: string | null },
+): FormValues {
   return {
     review: prior?.review === true,
     publish_title: prior?.publish_title === true,
@@ -127,19 +149,23 @@ function toDefaults(prior: StoredMediaReleaseGrants | null): FormValues {
     publish_face: prior?.publish_face === true,
     display_name: prior?.display_name ?? '',
     channels: prior?.channels ?? [],
+    ...signerDefaults(account),
   };
 }
 
 export function MediaReleaseStep({
   doc,
   onSign,
+  account,
   submitting,
   error,
   closed = false,
   priorGrants = null,
 }: {
   doc: ChallengeConsentDocumentStatus;
-  onSign: (grants: MediaReleaseGrants) => void;
+  onSign: (grants: MediaReleaseGrants, signer: ChallengeSignerDetails) => void;
+  /** Prefills the signature block from the signed-in account; stays editable. */
+  account: { display_name?: string | null; email?: string | null };
   submitting: boolean;
   error: string | null;
   /**
@@ -160,14 +186,15 @@ export function MediaReleaseStep({
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: toDefaults(priorGrants),
+    defaultValues: toDefaults(priorGrants, account),
   });
   const channels = watch('channels');
 
-  // The document in force does not declare everything this form records, so
-  // there is nothing safe to render. Better an explicit dead end than a
-  // signature filed against wording nobody served.
-  if (!labels) {
+  // The document in force does not declare everything this form records — a
+  // choice label, or the signature block itself — so there is nothing safe to
+  // render. Better an explicit dead end than a signature filed against wording
+  // nobody served.
+  if (!labels || !servesSignerBlock(doc)) {
     return (
       <section className="card-base mt-6" role="alert" data-testid="media-release-unavailable">
         <span className="sticker-coral">Form unavailable</span>
@@ -196,7 +223,7 @@ export function MediaReleaseStep({
     if (values.channels.length > 0) {
       grants.channels_until = reuseWindowEndIso();
     }
-    onSign(grants);
+    onSign(grants, toSignerDetails(values));
   };
 
   return (
@@ -288,6 +315,21 @@ export function MediaReleaseStep({
           </p>
         )}
       </fieldset>
+
+      {/* Last, on purpose: a parent signs AFTER making the choices above, not
+          before. Its own signature block, not the terms' — D-CCC-7 keeps the two
+          documents separate signing acts, so neither borrows the other's. */}
+      <ParentGuardianDetails
+        doc={doc}
+        disabled={closed}
+        fields={{
+          full_name: register('signer_full_name'),
+          relationship: register('signer_relationship'),
+          email: register('signer_email'),
+          signature: register('signer_signature'),
+        }}
+        errors={errors}
+      />
 
       {error && (
         <div

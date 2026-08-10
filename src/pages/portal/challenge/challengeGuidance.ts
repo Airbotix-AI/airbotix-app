@@ -93,7 +93,7 @@ export const CHALLENGE_NEXT_STEPS: ChallengeNextStep[] = [
   {
     id: 'start-building',
     title: 'Your child can start building today',
-    body: 'Use “Open [child]’s challenge page” beside their name. Airbotix creates the child session and opens their challenge page in a new tab while this parent page stays open. Nothing is locked until the submission window, so the earlier they start, the more they can try and change.',
+    body: 'Use “Open [child]’s challenge page” beside their name. Airbotix creates the child session and opens their challenge page in a new tab while this parent page stays open. They choose Game or Interactive Web Project and start immediately; only sending the finished entry waits for the submission window.',
     // "Build in Creative Code Studio" told a parent nothing about WHERE that is
     // or whether they could look at it.
     //

@@ -29,12 +29,12 @@ vi.mock('@/pages/learn/playground/sharingApi', () => ({
 
 import { PortalNavDrawer } from './PortalNavDrawer';
 
-function renderDrawer() {
+function renderDrawer(pendingCount = 0) {
   api.mockResolvedValue([]);
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={['/portal']}>
-        <PortalNavDrawer pendingCount={0} />
+        <PortalNavDrawer pendingCount={pendingCount} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -101,5 +101,15 @@ describe('PortalNavDrawer', () => {
         `${heading} precedes ${firstItem}`,
       ).toBeTruthy();
     }
+  });
+
+  it('keeps the approvals count on the same row and pinned to the right', () => {
+    renderDrawer(12);
+
+    const approvalsLink = screen.getByRole('link', { name: /Approvals/ });
+    const badge = within(approvalsLink).getByLabelText('12 pending approvals');
+
+    expect(approvalsLink).toHaveClass('!flex', 'items-center', 'justify-between');
+    expect(badge).toHaveClass('shrink-0');
   });
 });
