@@ -56,6 +56,34 @@ function renderPanel(initialEntry = '/portal/tutoring') {
 // suite from re-expiring in a few weeks.
 const NOW = new Date('2026-07-21T09:00:00.000Z');
 
+const AMY = {
+  slug: 'amy-chen',
+  display_name: 'Amy Chen',
+  headline: 'Creative coding and game design',
+  bio: 'Amy teaches kids to ship their first playable game.',
+  avatar_url: 'https://images.example.test/teachers/amy-chen.jpg',
+  hero_image_url: null,
+  spoken_languages: ['English'],
+  expertise_topics: ['Game design', 'Creative coding'],
+  age_range: { min: 8, max: 14 },
+  service_areas: [
+    { city: 'Brisbane', state: 'QLD', area_label: 'Southside', suburbs: [], is_primary: true },
+  ],
+  courses: [],
+};
+
+const DANIEL = {
+  ...AMY,
+  slug: 'daniel-nguyen',
+  display_name: 'Daniel Nguyen',
+  headline: 'AI storytelling and animation',
+  avatar_url: 'https://images.example.test/teachers/daniel-nguyen.jpg',
+  expertise_topics: ['AI storytelling'],
+  service_areas: [
+    { city: 'Melbourne', state: 'VIC', area_label: 'East', suburbs: [], is_primary: true },
+  ],
+};
+
 beforeEach(() => {
   // `shouldAdvanceTime` so React Query's own timers and userEvent's delays are
   // not frozen along with `Date.now()`.
@@ -274,5 +302,100 @@ describe('BookTeacherPanel', () => {
         }),
       ),
     );
+  });
+
+  // The bookable teachers used to live ONLY inside the collapsed form's <select>,
+  // so /portal/tutoring rendered no teacher at all until a parent happened to
+  // open the form — the page could not answer "who can I actually book?".
+  it('lists the bookable platform teachers before the booking form is opened', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/teachers') return Promise.resolve([AMY, DANIEL]);
+      if (path === '/families/fam-1/kids')
+        return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
+      if (path === '/bookings/tutoring-requests') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+
+    renderPanel();
+
+    expect(await screen.findByTestId('bookable-teacher-amy-chen')).toBeVisible();
+    expect(screen.getByTestId('bookable-teacher-daniel-nguyen')).toBeVisible();
+    expect(screen.getByText('Creative coding and game design')).toBeVisible();
+    expect(screen.getByText('Brisbane · Ages 8–14')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'See all profiles →' })).toHaveAttribute(
+      'href',
+      '/portal/teachers',
+    );
+    // The form itself is still closed — the list is what became visible, not the form.
+    expect(screen.queryByLabelText('Child')).not.toBeInTheDocument();
+  });
+
+  it('books the teacher chosen from the list as the submitted preference', async () => {
+    api.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/teachers') return Promise.resolve([AMY, DANIEL]);
+      if (path === '/families/fam-1/kids')
+        return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
+      if (path === '/bookings/tutoring-requests' && options?.method === 'POST')
+        return Promise.resolve({
+          id: 'booking-5',
+          status: 'new',
+          subject_interest: 'Game design',
+          preferred_date: '2026-08-02T00:00:00.000Z',
+          notes: null,
+          created_at: '2026-07-22T00:00:00.000Z',
+          kid: { id: 'kid-1', nickname: 'Mia' },
+        });
+      if (path === '/bookings/tutoring-requests') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+
+    renderPanel();
+
+    // Choosing from the card both records the preference and opens the form.
+    fireEvent.click(await screen.findByRole('button', { name: 'Book Amy Chen' }));
+    expect(await screen.findByText('Preferred teacher: Amy Chen')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Selected ✓' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.change(await screen.findByLabelText('Child'), { target: { value: 'kid-1' } });
+    fireEvent.change(screen.getByLabelText('What would your child like help with?'), {
+      target: { value: 'Game design' },
+    });
+    fireEvent.change(screen.getByLabelText('Preferred date and time'), {
+      target: { value: PREFERRED_LOCAL },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send booking request' }));
+
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith(
+        '/bookings/tutoring-requests',
+        expect.objectContaining({
+          body: expect.objectContaining({
+            preferred_teacher_slug: 'amy-chen',
+            preferred_city: 'Brisbane',
+          }),
+        }),
+      ),
+    );
+  });
+
+  it('keeps the request path open when no teacher profile is published yet', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/teachers') return Promise.resolve([]);
+      if (path === '/families/fam-1/kids')
+        return Promise.resolve([{ id: 'kid-1', nickname: 'Mia', age: 10, is_active: true }]);
+      if (path === '/bookings/tutoring-requests') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+
+    renderPanel();
+
+    expect(
+      await screen.findByText(/No teacher profiles are published for your area yet/),
+    ).toBeVisible();
+    expect(screen.queryByTestId('bookable-teachers')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Book a teacher →' })).toBeVisible();
   });
 });

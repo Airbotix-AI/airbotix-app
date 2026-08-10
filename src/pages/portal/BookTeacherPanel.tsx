@@ -6,6 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { api, ApiError } from '@/lib/api';
+import { BookableTeachers } from './BookableTeachers';
 import { listPublicTeachers } from './teachers/teacherApi';
 
 interface Kid {
@@ -144,6 +145,14 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
     },
   });
 
+  // Picking a teacher from the list is also the entry point into the request
+  // form — a parent who has chosen someone should not have to find the toggle.
+  const selectTeacher = (slug: string) => {
+    setSelectedTeacherSlug((current) => (current === slug ? '' : slug));
+    setFormOpen(true);
+    setError(null);
+  };
+
   const activeKids = (kids.data ?? []).filter((kid) => kid.is_active);
   const minDate = localDateTimeValue(new Date(Date.now() + DAY_MS));
   const maxDate = localDateTimeValue(new Date(Date.now() + 90 * DAY_MS));
@@ -173,14 +182,22 @@ export function BookTeacherPanel({ familyId }: { familyId: string }) {
         </button>
       </div>
 
+      <BookableTeachers
+        teachers={teachers.data ?? []}
+        isLoading={teachers.isLoading}
+        isError={teachers.isError}
+        selectedSlug={selectedTeacher?.slug ?? ''}
+        onSelect={selectTeacher}
+      />
+
       {success && (
-        <div className="mx-6 mb-6 rounded-2xl border border-brand-mint/40 bg-wash-mint px-4 py-3 text-[14px] font-semibold text-ink sm:mx-8">
+        <div className="mx-6 mb-6 mt-6 rounded-2xl border border-brand-mint/40 bg-wash-mint px-4 py-3 text-[14px] font-semibold text-ink sm:mx-8">
           {success}
         </div>
       )}
 
       {selectedTeacher && (
-        <div className="mx-6 mb-6 rounded-2xl border border-brand-sky/30 bg-wash-sky px-4 py-3 text-[14px] text-ink sm:mx-8">
+        <div className="mx-6 mb-6 mt-6 rounded-2xl border border-brand-sky/30 bg-wash-sky px-4 py-3 text-[14px] text-ink sm:mx-8">
           <strong>Preferred teacher: {selectedTeacher.display_name}</strong>
           {selectedCity && <span> · {selectedCity}</span>}
           <p className="mt-1 text-[12px] font-medium text-ink-soft">
