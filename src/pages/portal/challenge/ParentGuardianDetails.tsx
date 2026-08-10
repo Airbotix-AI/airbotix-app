@@ -7,7 +7,7 @@
 // parent what will be recorded; offering a date field would invite them to state
 // one the server then contradicts.
 //
-// ⚠️ The declaration beside the signature and the relationship options are
+// ⚠️ The declaration beside the drawn or typed signature and the relationship options are
 // `doc.signer_declaration` / `doc.signer_relationship_options`, served with the
 // document version — never authored here, for the same reason `doc.attestation`
 // is not.
@@ -15,6 +15,7 @@ import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import type { ChallengeConsentDocumentStatus } from './challengeApi';
 import { signingDayLabel, type SignerFormValues } from './parentGuardianSigner';
+import { SignatureInput } from './SignatureInput';
 
 export function ParentGuardianDetails({
   doc,
@@ -27,7 +28,11 @@ export function ParentGuardianDetails({
     full_name: UseFormRegisterReturn;
     relationship: UseFormRegisterReturn;
     email: UseFormRegisterReturn;
-    signature: UseFormRegisterReturn;
+    signature: {
+      value: string;
+      onChange: (value: string) => void;
+      onBlur: () => void;
+    };
   };
   errors: Partial<Record<keyof SignerFormValues, { message?: string }>>;
   disabled?: boolean;
@@ -96,25 +101,22 @@ export function ParentGuardianDetails({
             belonged — and it collided with the terms' own "I am the parent or
             legal guardian…" attestation elsewhere on the page. */}
         <div className="block">
-          <label htmlFor="signer-signature" className="label-k12">
+          <span id="signer-signature-label" className="label-k12">
             Signature / electronic confirmation
-          </label>
-          <input
+          </span>
+          <SignatureInput
             id="signer-signature"
-            type="text"
-            className="input-k12 mt-2"
-            maxLength={120}
-            // Never autofilled: the browser completing a signature would defeat
-            // the point of asking the signer to type it.
-            autoComplete="off"
-            placeholder="Type your signature"
-            aria-describedby="signer-declaration"
+            value={fields.signature.value}
+            onChange={fields.signature.onChange}
+            onBlur={fields.signature.onBlur}
+            labelledBy="signer-signature-label"
+            describedBy="signer-declaration"
             disabled={disabled}
-            data-testid="signer-signature"
-            {...fields.signature}
           />
           {errors.signer_signature && (
-            <span className="field-error">{errors.signer_signature.message}</span>
+            <span className="field-error" role="alert">
+              {errors.signer_signature.message}
+            </span>
           )}
           <p
             id="signer-declaration"
