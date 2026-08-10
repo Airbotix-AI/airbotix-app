@@ -135,6 +135,38 @@ afterEach(() => {
 });
 
 describe('CourseDetailPage', () => {
+  it('renders safely when a bookable pack omits its lessons collection', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/courses/rhythm-game') {
+        return Promise.resolve({
+          ...DETAIL,
+          page_config: { format: 'weekly' },
+        });
+      }
+      if (path === '/courses/rhythm-game/classes') return Promise.resolve([]);
+      if (path === '/course-packs?bookable=true') {
+        return Promise.resolve([
+          {
+            id: 'pack-without-lessons',
+            slug: 'rhythm-game',
+            title: 'Rhythm Game',
+            description: 'Fallback description.',
+            target_age_min: 9,
+            target_age_max: 14,
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Build a Rhythm Game with AI' }),
+    ).toBeVisible();
+    expect(screen.getByText('0 lessons')).toBeVisible();
+  });
+
   it('renders the authoritative course story, outline, outcomes, FAQ and bookable class', async () => {
     api.mockImplementation((path: string) => {
       if (path === '/courses/rhythm-game') return Promise.resolve(DETAIL);

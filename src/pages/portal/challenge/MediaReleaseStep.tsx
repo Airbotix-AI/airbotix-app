@@ -21,7 +21,7 @@
 //     them without saying so is a far worse one.
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useController, useForm } from 'react-hook-form';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -79,9 +79,8 @@ function reuseWindowEndLabel(): string {
 }
 
 // The choices, plus the Parent/Guardian signature block every signature carries.
-// `.and()` rather than one flat object: `signerSchema` owns a cross-field
-// refinement (signature must match full name), and merging it in keeps that rule
-// with the block it belongs to instead of restating it here.
+// `.and()` keeps the shared signer validation with the block it belongs to
+// instead of restating it here.
 const schema = z
   .object({
     review: z.boolean(),
@@ -181,6 +180,7 @@ export function MediaReleaseStep({
   const labels = requiredChoiceLabels(doc);
   const {
     register,
+    control,
     handleSubmit,
     watch,
     formState: { errors },
@@ -188,6 +188,7 @@ export function MediaReleaseStep({
     resolver: zodResolver(schema),
     defaultValues: toDefaults(priorGrants, account),
   });
+  const signature = useController({ control, name: 'signer_signature' }).field;
   const channels = watch('channels');
 
   // The document in force does not declare everything this form records — a
@@ -326,7 +327,11 @@ export function MediaReleaseStep({
           full_name: register('signer_full_name'),
           relationship: register('signer_relationship'),
           email: register('signer_email'),
-          signature: register('signer_signature'),
+          signature: {
+            value: signature.value,
+            onChange: signature.onChange,
+            onBlur: signature.onBlur,
+          },
         }}
         errors={errors}
       />

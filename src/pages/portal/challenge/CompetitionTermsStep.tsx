@@ -16,7 +16,7 @@
 // accepting on wording nobody was shown.
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useController, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import type { ChallengeConsentDocumentStatus, ChallengeSignerDetails } from './challengeApi';
@@ -65,6 +65,7 @@ export function CompetitionTermsStep({
 }) {
   const {
     register,
+    control,
     handleSubmit,
     watch,
     formState: { errors },
@@ -72,6 +73,7 @@ export function CompetitionTermsStep({
     resolver: zodResolver(schema),
     defaultValues: { accepted: false as unknown as true, ...signerDefaults(account) },
   });
+  const signature = useController({ control, name: 'signer_signature' }).field;
   // The accept control stays inert until the parent says they have read it —
   // the affordance this step has always had. The schema's `literal(true)` is the
   // backstop, not the UX.
@@ -125,7 +127,11 @@ export function CompetitionTermsStep({
           full_name: register('signer_full_name'),
           relationship: register('signer_relationship'),
           email: register('signer_email'),
-          signature: register('signer_signature'),
+          signature: {
+            value: signature.value,
+            onChange: signature.onChange,
+            onBlur: signature.onBlur,
+          },
         }}
         errors={errors}
       />

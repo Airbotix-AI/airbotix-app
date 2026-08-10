@@ -9,6 +9,22 @@
 - Completion requires an exact saved program, a Go run that leaves the skill quiet, and a real
   tap on Sun Wukong before the adjacent C4-P5 part can unlock.
 
+## 2026-08-11 (fixed: challenge consent has a real signature pad)
+
+### Fixed
+
+- Replaced the plain signature text box with a finger, mouse and trackpad signature pad on both
+  parent authorization documents. The drawing is stored as a compact, auditable signature value
+  inside the existing API contract; clearing the pad clears the value before submission.
+- Kept an explicit typed-signature alternative for keyboard and assistive-technology users, while
+  making drawing the default so the form visibly asks the parent to sign rather than merely type
+  into an ordinary field.
+
+### Tests
+
+- Added compact-signature codec tests and an integration test that draws, submits and verifies the
+  signature payload. Updated existing signer tests to exercise the typed accessibility fallback.
+
 ## 2026-08-10 (changed: challenge registration is a two-step parent flow)
 
 ### Changed
