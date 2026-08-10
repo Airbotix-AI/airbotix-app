@@ -28,13 +28,9 @@ import type { ChallengeSignerDetails } from './challengeApi';
 /**
  * The signature block's own validation, merged into each step's form schema.
  *
- * `signature` is checked against `full_name` (case- and spacing-insensitive) for
- * the reason the backend checks it too: a typed signature that need not match
- * the name above it is just another text box, and the served declaration claims
- * the effect of signing on paper on exactly that basis. Validating it here as
- * well is not redundancy for its own sake — it is the difference between a
- * parent seeing "this must match the name you gave" beside the field and seeing
- * a generic 400 after the form round-trips.
+ * The signer chooses the text that represents their electronic signature. It
+ * must be present, but it does not have to repeat the separately collected full
+ * name.
  */
 export const signerSchema = z
   .object({
@@ -53,20 +49,11 @@ export const signerSchema = z
     signer_signature: z
       .string()
       .trim()
-      .min(1, 'Type your full name to sign')
+      .min(1, 'Type your signature')
       .max(120, 'Keep this to 120 characters or fewer'),
-  })
-  .refine((v) => normalise(v.signer_signature) === normalise(v.signer_full_name), {
-    message: 'Your signature must match the full name you gave above',
-    path: ['signer_signature'],
   });
 
 export type SignerFormValues = z.infer<typeof signerSchema>;
-
-/** Case- and inner-whitespace-insensitive — "Mary  Ng " signs for "Mary Ng". */
-function normalise(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-}
 
 /**
  * Form defaults for the signing adult.
