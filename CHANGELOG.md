@@ -54,6 +54,76 @@
 - Added the child-facing C4-P5 Story Part with three real multi-block Tap versions, preserved
   Start/name logic, motive and partner-prediction evidence, Go-wait plus real-Tap completion,
   persisted version/run evidence and adjacent-only continuation to C4-P6.
+## 2026-08-10 (changed: Family management follows the Airbotix design system)
+
+### Changed
+
+- Reworked `/portal/family` with the established Airbotix K-12 components: warm canvas, white and
+  colour-wash cards, brand-tinted kid tiles, sticker labels and the existing pill-button hierarchy.
+  The page now explains the complete kid sign-in sequence and what Open kids page, Another device,
+  Growth report and Profile & PIN each do instead of presenting those controls without guidance.
+- Redesigned `/portal/family/:kidId/settings` so profile, avatar and access settings use the full
+  content width while PIN and deletion controls sit in a separate safety rail. Every setting now
+  has plain-language guidance, and the wider responsive avatar grid shortens the page without
+  changing saved fields or API behaviour.
+## 2026-08-10 (added: the challenge hub's marking guide, one-click child access, and event overview)
+
+Follow-up to #251, which merged while these commits were still on the branch — main got the hub
+skeleton and none of the content below.
+
+### Added
+
+- **The 100-point marking guide, rendered for the family being judged.** Every dimension with its
+  marks — original idea 25, playable result 20, testing & improvement 20, code/AI understanding
+  15, English pitch 15, responsible creation 5 — plus the limits attached to the English mark: no
+  marks awarded or deducted for accent, pronunciation, vocabulary, or the language spoken at home.
+  Fetched from `GET /challenges/rubric` (platform-backend #376, live in production), never
+  hardcoded, so the page cannot state a weighting the judges are not using. A failed load says so
+  — silence would read as "there are no criteria".
+- **One-click access to a child's own challenge page.** An entered child's row ran "View entry",
+  which showed the parent their own receipt rather than the thing anyone needs next. It now uses
+  the parent→kid session handoff to open THAT child's `Challenge → Submit` in a new tab, leaving
+  the parent page open. A failure names the child and offers a retry instead of a dead button.
+- **An event overview and dated timeline** — online, 1 project, a 60–90 second pitch, 100 points;
+  the current stage in words derived from the edition status; and register → build & submit →
+  review & judging → results, with the live stage marked `aria-current="step"`. A first-time
+  parent previously met "Register this child" before learning what the event was.
+- **A link to the public Creator Showcase**, with the line that matters to a family that declined
+  publication: work not shown publicly is judged exactly the same.
+- `openKidPageInNewTab` takes an optional `destination` (defaults to `/learn`), so the handoff can
+  land on a specific kid page. The popup-blocked same-tab fallback follows it too.
+
+### Fixed
+
+- **The submission deadline was shown one day late.** `dayLabel` formatted edition windows in the
+  VIEWER's timezone, so `submission_close` (`…T23:59:59Z`) rendered as **1 September** for anyone
+  at UTC+n — a deadline a day later than the real one, on the single date where being wrong costs
+  a child their entry. Both pages now share `challengeDates.ts`, formatting in UTC.
+- Guidance no longer says "no login needed" about Creative Code Studio: the parent reading it is
+  already signed in. The point is whose account the studio lives in — the child's, which is why a
+  signed-in parent still cannot open it.
+
+## 2026-08-10 (fixed: the HSC planner says when the course list failed to load)
+
+### Fixed
+
+- **`/portal/academy/hsc-planner` no longer swallows a failed course catalogue.** The course list is
+  served from the published `HscRuleSet`, so an environment whose rule set is unseeded answers
+  `/hsc/courses` with `HSC_RULES_NOT_SEEDED` — and the page folded that error into `?? []`. The
+  parent saw a **"Choose course" dropdown with nothing under it** and an *Add subject* button that
+  could never succeed, with nothing on screen explaining why. The planner now shows the API's own
+  message (or a plain fallback), disables *Add subject* and the claim-import submit, and repeats the
+  reason next to the form instead of presenting an empty catalogue as a valid one.
+
+## 2026-08-10 (fixed: Parent Portal uses the official Airbotix logo)
+
+### Fixed
+
+- Replaced the temporary coral `A` mark in both the desktop Portal drawer and mobile Portal header
+  with a compact official Airbotix lockup. The logo, a subtle divider and the Portal/page identity
+  now form one consistent horizontal brand unit at every breakpoint instead of stacking or crowding
+  unrelated labels. Challenge pages inherit this shared Portal chrome.
+
 ## 2026-08-09 (added: family challenge hub — who is entered, and what to actually do)
 
 ### Added
