@@ -73,6 +73,15 @@ export interface ChallengeNextStep {
   id: string
   title: string
   body: string
+  /**
+   * Something the PARENT can open themselves, where one exists.
+   *
+   * Most of this journey happens on the kid surface, which a parent cannot
+   * reach — they are bounced to `/portal`. So a step that says "your child does
+   * X" and offers a link the parent cannot open is worse than no link. Only
+   * genuinely parent-openable destinations belong here.
+   */
+  parentLink?: { to: string; label: string }
 }
 
 /**
@@ -84,7 +93,19 @@ export const CHALLENGE_NEXT_STEPS: ChallengeNextStep[] = [
   {
     id: 'start-building',
     title: 'Your child can start building today',
-    body: 'They sign in to their own Airbotix account and build in Creative Code Studio. Nothing is locked until the submission window — the earlier they start, the more they can try and change.',
+    body: 'Use “Open [child]’s challenge page” beside their name. Airbotix creates the child session and opens their challenge page in a new tab while this parent page stays open. Nothing is locked until the submission window, so the earlier they start, the more they can try and change.',
+    // "Build in Creative Code Studio" told a parent nothing about WHERE that is
+    // or whether they could look at it.
+    //
+    // The label must NOT say "no login needed": the parent reading it is already
+    // signed in, so that reads as nonsense or as an instruction to sign out. The
+    // real point is whose account the studio lives in — the child's, which is
+    // why a signed-in PARENT still cannot open it (`/learn/*` bounces them to
+    // `/portal`). `/try/playground` is the version they can open.
+    parentLink: {
+      to: '/try/playground',
+      label: 'Have a look at Creative Code Studio yourself',
+    },
   },
   {
     id: 'starter-lab',
