@@ -61,6 +61,7 @@ import { JourneyWestC4Part8Page } from './JourneyWestC4Part8Page';
 import { JourneyWestC5PartsPage } from './JourneyWestC5PartsPage';
 import { JourneyWestC5FinalPartsPage } from './JourneyWestC5FinalPartsPage';
 import { JourneyWestC6IntroPartsPage } from './JourneyWestC6IntroPartsPage';
+import { JourneyWestC6FinalPartsPage } from './JourneyWestC6FinalPartsPage';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -111,6 +112,14 @@ export function JourneyWestPartRoute() {
   if (partId === 'jtw-s1-c5-p8') return <JourneyWestC5FinalPartsPage partId="jtw-s1-c5-p8" />;
   if (partId === 'jtw-s1-c6-p1') return <JourneyWestC6IntroPartsPage partId="jtw-s1-c6-p1" />;
   if (partId === 'jtw-s1-c6-p2') return <JourneyWestC6IntroPartsPage partId="jtw-s1-c6-p2" />;
+  if (partId === 'jtw-s1-c6-p3') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p3" />;
+  if (partId === 'jtw-s1-c6-p4') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p4" />;
+  if (partId === 'jtw-s1-c6-p5') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p5" />;
+  if (partId === 'jtw-s1-c6-p6') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p6" />;
+  if (partId === 'jtw-s1-c6-p7') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p7" />;
+  if (partId === 'jtw-s1-c6-p8') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p8" />;
+  if (partId === 'jtw-s1-c6-p9') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p9" />;
+  if (partId === 'jtw-s1-c6-p10') return <JourneyWestC6FinalPartsPage partId="jtw-s1-c6-p10" />;
   return <Navigate to="/learn/story/journey-west" replace />;
 }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-12 (added: Journey West C6-P3 through P10 candidate slice)
+
+### Added
+
+- Added C6-P3 through P10: three-page cause planning, Blocks build candidates, bounded rhythm
+  choices, Stop/Again debugging, VFS save/reopen, four-link Retell and server-owned season closure.
+
 ## 2026-08-12 (added: Journey West C5 finale and C6 opening candidate slice)
 
 ### Added
