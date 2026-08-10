@@ -142,6 +142,7 @@ function renderPage() {
       <MemoryRouter initialEntries={[`/learn/challenge/${SLUG}/submit`]}>
         <Routes>
           <Route path="/learn/challenge/:slug/submit" element={<ChallengeSubmitPage />} />
+          <Route path="/learn/code/:projectId" element={<div data-testid="challenge-web-studio" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -426,13 +427,41 @@ describe('ChallengeSubmitPage — the deadline', () => {
     expect(screen.queryByTestId('challenge-form')).not.toBeInTheDocument();
   });
 
-  it('before the open date it says when the door opens, and offers no form', async () => {
+  it('before submissions open, starts a competition project without the generic template lobby', async () => {
     vi.setSystemTime(new Date('2026-08-01T00:00:00.000Z'));
-    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: false }) });
+    wireApi({
+      [`GET ${STATE_PATH}`]: stateView({ window_open: false }),
+      'POST /projects': { id: 'challenge-web-1' },
+    });
     renderPage();
 
-    expect(await screen.findByTestId('challenge-not-open')).toHaveTextContent(/opens on 24 Aug 2026/);
+    const build = await screen.findByTestId('challenge-build-now');
+    expect(build).toHaveTextContent(/Build your competition entry/i);
+    expect(build).toHaveTextContent(/unlocks on 24 Aug 2026/i);
+    expect(screen.getByTestId('challenge-start-game')).toHaveAttribute(
+      'href',
+      `/learn/playground/new?challenge=${SLUG}`,
+    );
+    expect(screen.getByTestId('challenge-my-projects')).toHaveAttribute('href', '/learn/projects');
+    expect(screen.queryByText('My Pet Website')).not.toBeInTheDocument();
+    expect(screen.queryByText('Beat Box')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('challenge-start-web'));
+    await waitFor(() =>
+      expect(api).toHaveBeenCalledWith('/projects', {
+        method: 'POST',
+        body: {
+          title: 'My Challenge Project',
+          product_line: 'line_b_coding',
+          kind: 'code',
+          template: 'blank',
+          kid_id: 'kid-1',
+        },
+      }),
+    );
+    expect(await screen.findByTestId('challenge-web-studio')).toBeInTheDocument();
     expect(screen.queryByTestId('challenge-form')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not open yet')).not.toBeInTheDocument();
   });
 
   it('inside the window an existing entry can still be changed', async () => {
