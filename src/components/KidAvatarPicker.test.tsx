@@ -34,4 +34,13 @@ describe('KidAvatarPicker', () => {
         .some((button) => button.getAttribute('aria-pressed') === 'true'),
     ).toBe(true);
   });
+
+  it('uses the wider profile layout only when requested', () => {
+    const { container } = render(
+      <KidAvatarPicker value="robot_friend" wide onChange={() => undefined} />,
+    );
+
+    expect(container.querySelector('.lg\\:grid-cols-8')).toBeTruthy();
+    expect(container.querySelector('.xl\\:grid-cols-10')).toBeTruthy();
+  });
 });

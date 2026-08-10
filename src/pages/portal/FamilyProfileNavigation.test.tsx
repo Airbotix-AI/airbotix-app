@@ -166,6 +166,33 @@ describe('family profile navigation', () => {
       'href',
       '/portal/family/kid-1',
     );
+    expect(screen.getByRole('heading', { name: 'Your kids' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Help your child get into Learn' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Choose the right way to help' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/expires after 5 minutes and works once/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy family code' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: "Edit Mia's profile" })).toHaveClass(
+      'btn-pill-secondary',
+    );
+  });
+
+  it('copies the family sign-in code and confirms the action', async () => {
+    wireApi();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderFamilyList();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Copy family code' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('LM4Q'));
+    expect(screen.getByRole('button', { name: 'Family code copied' })).toBeInTheDocument();
   });
 
   it('organises settings into profile, access, PIN and removal controls', async () => {
@@ -174,6 +201,11 @@ describe('family profile navigation', () => {
 
     expect(await screen.findByRole('heading', { name: /Mia/ })).toBeInTheDocument();
     expect(screen.getByText('Basic details')).toBeInTheDocument();
+    expect(screen.getByText('Ready to save?')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Kid profile navigation' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('complementary', { name: 'Sign-in and safety settings' }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Daily Stars cap (optional)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Save (profile )?changes/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reset PIN' })).toBeInTheDocument();

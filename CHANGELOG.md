@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-10 (changed: Family management follows the Airbotix design system)
+
+### Changed
+
+- Reworked `/portal/family` with the established Airbotix K-12 components: warm canvas, white and
+  colour-wash cards, brand-tinted kid tiles, sticker labels and the existing pill-button hierarchy.
+  The page now explains the complete kid sign-in sequence and what Open kids page, Another device,
+  Growth report and Profile & PIN each do instead of presenting those controls without guidance.
+- Redesigned `/portal/family/:kidId/settings` so profile, avatar and access settings use the full
+  content width while PIN and deletion controls sit in a separate safety rail. Every setting now
+  has plain-language guidance, and the wider responsive avatar grid shortens the page without
+  changing saved fields or API behaviour.
+
 ## 2026-08-10 (fixed: the HSC planner says when the course list failed to load)
 
 ### Fixed
