@@ -6636,3 +6636,7 @@ test → build` (was build-only, so the Vitest suite never ran in CI).
 - Playground UX polish: Monaco hover/suggest tooltips no longer clipped, robust
   Phaser vendoring at build time, wider editor launch, chat keeps focus/history,
   smoother generating screen.
+# Unreleased
+
+- Challenge consent signatures may now use any non-empty signature text; they no longer have to
+  duplicate the parent or guardian's full name.

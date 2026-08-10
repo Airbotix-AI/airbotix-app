@@ -107,7 +107,7 @@ export function ParentGuardianDetails({
             // Never autofilled: the browser completing a signature would defeat
             // the point of asking the signer to type it.
             autoComplete="off"
-            placeholder="Type your full name"
+            placeholder="Type your signature"
             aria-describedby="signer-declaration"
             disabled={disabled}
             data-testid="signer-signature"

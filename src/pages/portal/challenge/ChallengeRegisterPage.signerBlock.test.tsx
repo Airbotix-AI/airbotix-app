@@ -6,8 +6,7 @@
 // defends, none of which the other consent suites cover:
 //   1. the block is COLLECTED and POSTED with each signature — a consent record
 //      that cannot say who signed it is not evidence of anything;
-//   2. the typed signature must match the name given, or it is a text box
-//      wearing a signature's name;
+//   2. the signer may choose signature text independently from their full name;
 //   3. the DATE is displayed and never asked for — the server stamps it;
 //   4. the declaration and the relationship options come from the document
 //      version, so neither can be authored by this page;
@@ -94,6 +93,8 @@ describe('the Parent/Guardian Details block is posted with the signature', () =>
   it.each([
     ['mary chen', 'differing only in case'],
     ['  Mary   Chen  ', 'differing only in spacing'],
+    ['Yanbo', 'different from the full name'],
+    ['✓', 'a chosen signature mark'],
   ])('accepts a signature %s (%s)', async (signature) => {
     await openMediaRelease();
     fillSignerBlock({ signature });
@@ -104,19 +105,10 @@ describe('the Parent/Guardian Details block is posted with the signature', () =>
 });
 
 describe('the block refuses to produce an unidentified signature', () => {
-  it('will not sign when the typed signature is not the name given', async () => {
-    await openMediaRelease();
-    fillSignerBlock({ signature: 'Someone Else' });
-    fireEvent.click(screen.getByTestId('sign-media-release'));
-
-    expect(await screen.findByText(/signature must match the full name/i)).toBeInTheDocument();
-    expect(consentSignPosts()).toHaveLength(0);
-  });
-
   it.each([
     ['signer-full-name', /Add your full name/i],
     ['signer-email', /Add your email/i],
-    ['signer-signature', /Type your full name to sign/i],
+    ['signer-signature', /Type your signature/i],
   ])('will not sign with %s left empty', async (testId, message) => {
     await openMediaRelease();
     fillSignerBlock();
