@@ -111,6 +111,12 @@ export function HscPlannerPage() {
     enabled: Boolean(familyId),
   });
   const courses = useQuery({ queryKey: ['hsc-courses'], queryFn: listHscCourses });
+  const courseList = courses.data?.courses ?? [];
+  // The catalogue lives in the published HscRuleSet, so an unseeded environment
+  // answers /hsc/courses with an error rather than a list. Rendering that as a
+  // "Choose course" dropdown with nothing under it reads as "there are no
+  // courses" and leaves the parent stuck on a form that cannot be submitted.
+  const coursesUnavailable = courses.isError || (!courses.isLoading && courseList.length === 0);
   const preview = useQuery({
     queryKey: ['hsc-claim-preview', familyId, claimToken],
     queryFn: () => previewHscClaim(familyId!, claimToken!),
@@ -139,10 +145,19 @@ export function HscPlannerPage() {
         </p>
       </div>
 
+      {coursesUnavailable && (
+        <p className="field-error mt-6" role="alert" data-testid="hsc-courses-unavailable">
+          {courses.error instanceof ApiError
+            ? courses.error.message
+            : 'We could not load the HSC course list, so subjects cannot be added right now.'}
+        </p>
+      )}
+
       {claimToken && (
         <ClaimImportPanel
           claimToken={claimToken}
-          courses={courses.data?.courses ?? []}
+          courses={courseList}
+          coursesUnavailable={coursesUnavailable}
           familyId={familyId}
           kids={kids.data ?? []}
           preview={preview.data}
@@ -158,7 +173,8 @@ export function HscPlannerPage() {
         {(plans.data ?? []).map((plan) => (
           <PlanPanel
             key={plan.id}
-            courses={courses.data?.courses ?? []}
+            courses={courseList}
+            coursesUnavailable={coursesUnavailable}
             familyId={familyId}
             plan={plan}
           />
@@ -171,6 +187,7 @@ export function HscPlannerPage() {
 function ClaimImportPanel({
   claimToken,
   courses,
+  coursesUnavailable,
   familyId,
   kids,
   preview,
@@ -178,6 +195,7 @@ function ClaimImportPanel({
 }: {
   claimToken: string;
   courses: HscCourse[];
+  coursesUnavailable: boolean;
   familyId: string;
   kids: Kid[];
   preview?: HscClaimPreview;
@@ -266,7 +284,7 @@ function ClaimImportPanel({
             })}
           </div>
           {mutation.isError && <ErrorMessage error={mutation.error} fallback="We could not import this calculation." />}
-          <button className="btn-pill-primary" disabled={mutation.isPending} type="submit">
+          <button className="btn-pill-primary" disabled={mutation.isPending || coursesUnavailable} type="submit">
             {mutation.isPending ? 'Saving…' : 'Confirm and save to this child'}
           </button>
         </form>
@@ -304,7 +322,7 @@ function CreatePlanPanel({ familyId, kids }: { familyId: string; kids: Kid[] }) 
   );
 }
 
-function PlanPanel({ courses, familyId, plan }: { courses: HscCourse[]; familyId: string; plan: HscPlan }) {
+function PlanPanel({ courses, coursesUnavailable, familyId, plan }: { courses: HscCourse[]; coursesUnavailable: boolean; familyId: string; plan: HscPlan }) {
   return (
     <section className="rounded-3xl border-2 border-ink bg-canvas-pure p-5 shadow-sticker sm:p-7" data-testid={`hsc-plan-${plan.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -333,7 +351,7 @@ function PlanPanel({ courses, familyId, plan }: { courses: HscCourse[]; familyId
       <div className="mt-6 space-y-5">
         {plan.subjects.map((subject) => <SubjectPanel key={subject.id} familyId={familyId} subject={subject} />)}
       </div>
-      <AddSubjectForm courses={courses} familyId={familyId} planId={plan.id} />
+      <AddSubjectForm courses={courses} coursesUnavailable={coursesUnavailable} familyId={familyId} planId={plan.id} />
     </section>
   );
 }
@@ -442,7 +460,7 @@ function DeleteControl({
   );
 }
 
-function AddSubjectForm({ courses, familyId, planId }: { courses: HscCourse[]; familyId: string; planId: string }) {
+function AddSubjectForm({ courses, coursesUnavailable, familyId, planId }: { courses: HscCourse[]; coursesUnavailable: boolean; familyId: string; planId: string }) {
   const queryClient = useQueryClient();
   const form = useForm<SubjectValues>({ resolver: zodResolver(subjectSchema), defaultValues: { course_key: '', display_name: '' } });
   const mutation = useMutation({
@@ -466,8 +484,13 @@ function AddSubjectForm({ courses, familyId, planId }: { courses: HscCourse[]; f
           {courses.map((course) => <option key={course.key} value={course.key}>{course.display_name}</option>)}
         </SelectField>
         {form.watch('course_key') === 'other' && <InputField label="School course name" error={form.formState.errors.display_name?.message} registration={form.register('display_name')} />}
-        <button className="btn-pill-secondary" disabled={mutation.isPending} type="submit">Add subject</button>
+        <button className="btn-pill-secondary" disabled={mutation.isPending || coursesUnavailable} type="submit">Add subject</button>
       </div>
+      {coursesUnavailable && (
+        <p className="field-error mt-3" role="alert">
+          The HSC course list is unavailable, so no course can be chosen yet.
+        </p>
+      )}
       {mutation.isError && <ErrorMessage error={mutation.error} fallback="We could not add that subject." />}
     </form>
   );

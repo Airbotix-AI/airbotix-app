@@ -327,4 +327,29 @@ describe('HscPlannerPage', () => {
       status: 'planned',
     })));
   });
+
+  // The catalogue comes from the published HscRuleSet. An unseeded environment
+  // answers /hsc/courses with an error, and the page used to swallow it into
+  // `?? []` — the parent saw a "Choose course" dropdown with nothing under it
+  // and an "Add subject" button that could never succeed, with no explanation.
+  it('says the course list failed instead of showing an empty course dropdown', async () => {
+    wireDefaults();
+    mocks.listHscCourses.mockRejectedValue(new Error('HSC_RULES_NOT_SEEDED'));
+    renderPage();
+
+    expect(await screen.findByTestId('hsc-courses-unavailable')).toHaveTextContent(
+      'We could not load the HSC course list',
+    );
+    expect(screen.getByRole('button', { name: 'Add subject' })).toBeDisabled();
+    expect(screen.getByText('The HSC course list is unavailable, so no course can be chosen yet.')).toBeInTheDocument();
+  });
+
+  it('keeps the add-subject form usable when the course list loads', async () => {
+    wireDefaults();
+    renderPage();
+
+    await screen.findByText('Depth study');
+    expect(screen.queryByTestId('hsc-courses-unavailable')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add subject' })).toBeEnabled();
+  });
 });
