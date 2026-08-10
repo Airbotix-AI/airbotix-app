@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-10 (changed: faster My Kids overview)
+
+### Changed
+
+- Reworked the Parent Dashboard's My Kids panel into denser, equal-height child cards. A family of
+  three now fits in one desktop row, each card gives the Learn handoff clear priority, and growth
+  remains one tap away without repeating long labels. Phone actions retain full touch targets.
+
 ## 2026-08-10 (changed: challenge fixtures follow the AUD $9 entry fee)
 
 ### Changed

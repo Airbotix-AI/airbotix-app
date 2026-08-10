@@ -51,15 +51,18 @@ export function DashboardKidsPanel({ familyId }: { familyId: string }) {
 
   return (
     <section aria-labelledby="dashboard-kids-heading" data-testid="dashboard-kids">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <div className="eyebrow eyebrow-bubblegum">Your family</div>
           <h2 id="dashboard-kids-heading" className="section-heading text-[30px] sm:text-[36px]">
             My kids
           </h2>
+          <p className="mt-1 text-[13px] font-medium text-ink-soft sm:text-[14px]">
+            Open Learn or check recent growth for each child.
+          </p>
         </div>
-        <Link to="/portal/family" className="btn-pill-secondary">
-          Manage kids
+        <Link to="/portal/family" className="btn-pill-ghost shrink-0">
+          Manage <span aria-hidden="true">→</span>
         </Link>
       </div>
 
@@ -107,48 +110,57 @@ export function DashboardKidsPanel({ familyId }: { familyId: string }) {
           data-testid="dashboard-kids-grid"
           className={
             kids.data?.length === 1
-              ? 'grid max-w-2xl grid-cols-1 gap-4'
-              : 'grid grid-cols-1 gap-4 xl:grid-cols-2'
+              ? 'grid max-w-lg grid-cols-1 gap-3'
+              : kids.data?.length === 2
+                ? 'grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2'
+                : 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'
           }
         >
           {kids.data?.map((kid) => {
             const isOpening = openingKidId === kid.id;
             const error = openError?.kidId === kid.id ? openError.message : null;
             return (
-              <article key={kid.id} className="card-base">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <article
+                key={kid.id}
+                className="card-base flex min-h-[196px] flex-col border border-ink/5 !p-4 sm:!p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <KidAvatar avatarId={kid.avatar_id} nickname={kid.nickname} size="lg" />
+                    <KidAvatar avatarId={kid.avatar_id} nickname={kid.nickname} size="md" />
                     <div className="min-w-0">
-                      <h3 className="truncate text-[26px] font-bold leading-tight text-ink">
+                      <h3 className="truncate text-[22px] font-bold leading-tight text-ink">
                         {kid.nickname}
                       </h3>
-                      <p className="mt-1 text-[13px] text-slate2">Age {kid.age}</p>
+                      <p className="mt-0.5 text-[12px] font-medium text-slate2">Age {kid.age}</p>
                     </div>
                   </div>
-                  <span className={`sticker-${kid.is_active ? 'mint' : 'sunshine'}`}>
+                  <span
+                    className={`sticker-${kid.is_active ? 'mint' : 'sunshine'} !px-3 !py-1 text-[9px]`}
+                  >
                     {kid.is_active ? 'Active' : 'Paused'}
                   </span>
                 </div>
 
-                <KidGrowthTeaser kidId={kid.id} name={kid.nickname} />
+                <div className="min-h-8">
+                  <KidGrowthTeaser kidId={kid.id} name={kid.nickname} compact />
+                </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-auto flex gap-2 pt-4">
                   <button
                     type="button"
                     disabled={!kid.is_active || openingKidId !== null}
                     onClick={() => void openKidsPage(kid)}
-                    className="btn-pill-primary"
+                    className="btn-pill-primary min-w-0 flex-1 !px-3 text-[13px]"
                     aria-label={`Open ${kid.nickname}'s kids page`}
                   >
-                    {isOpening ? 'Opening…' : 'Open kids page →'}
+                    {isOpening ? 'Opening…' : 'Open Learn'}
                   </button>
                   <Link
                     to={`/portal/family/${kid.id}`}
-                    className="btn-pill-secondary"
+                    className="btn-pill-secondary min-w-0 flex-1 !px-3 text-[13px]"
                     aria-label={`See ${kid.nickname}'s growth`}
                   >
-                    See growth
+                    Growth
                   </Link>
                 </div>
 

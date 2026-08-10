@@ -16,7 +16,9 @@ vi.mock('@/auth/useAuth', () => ({
   useParentKidLogin: () => parentKidLogin,
 }));
 vi.mock('./KidGrowthTeaser', () => ({
-  KidGrowthTeaser: ({ name }: { name: string }) => <div>{name} growth</div>,
+  KidGrowthTeaser: ({ name, compact }: { name: string; compact?: boolean }) => (
+    <div data-compact={compact ? 'true' : 'false'}>{name} growth</div>
+  ),
 }));
 
 import { DashboardKidsPanel } from './DashboardKidsPanel';
@@ -84,6 +86,11 @@ describe('DashboardKidsPanel', () => {
     expect(screen.getByRole('img', { name: /Leo's avatar/ })).toBeInTheDocument();
     expect(screen.getByText('Mia growth')).toBeInTheDocument();
     expect(screen.getByText('Leo growth')).toBeInTheDocument();
+    expect(screen.getByText('Mia growth')).toHaveAttribute('data-compact', 'true');
+    expect(screen.getByRole('button', { name: "Open Mia's kids page" })).toHaveTextContent(
+      'Open Learn',
+    );
+    expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveTextContent('Growth');
     expect(screen.getByRole('link', { name: "See Mia's growth" })).toHaveAttribute(
       'href',
       '/portal/family/kid-1',
@@ -109,7 +116,23 @@ describe('DashboardKidsPanel', () => {
     renderPanel();
 
     expect(await screen.findByRole('heading', { name: 'Mia' })).toBeInTheDocument();
-    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass('max-w-2xl');
+    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass('max-w-lg');
+  });
+
+  it('fits a family of three into one desktop overview row', async () => {
+    api.mockResolvedValue([
+      ACTIVE_KID,
+      PAUSED_KID,
+      { ...ACTIVE_KID, id: 'kid-3', nickname: 'Pip', age: 7 },
+    ]);
+
+    renderPanel();
+
+    expect(await screen.findByRole('heading', { name: 'Pip' })).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-kids-grid')).toHaveClass(
+      'sm:grid-cols-2',
+      'lg:grid-cols-3',
+    );
   });
 
   it('shows the add-first-kid state without rendering an empty grid', async () => {
