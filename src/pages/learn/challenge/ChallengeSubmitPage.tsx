@@ -26,11 +26,12 @@ import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
+import { createCodeProject } from '../code/codeApi';
 import type { KidProject } from '../projects/kidProject';
 import {
   createChallengeSubmission,
@@ -77,6 +78,7 @@ function phaseOf(state: ChallengeSubmissionState): Phase {
 
 export function ChallengeSubmitPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const me = useMe();
   const kidId = me.data?.kind === 'kid' ? me.data.sub : null;
   const queryClient = useQueryClient();
@@ -107,6 +109,21 @@ export function ChallengeSubmitPage() {
   });
 
   const submission = state.data?.submission ?? null;
+
+  const startInteractiveWeb = useMutation({
+    mutationFn: () =>
+      createCodeProject({
+        kidId,
+        familyId: null,
+        title: 'My Challenge Project',
+        template: 'blank',
+      }),
+    onSuccess: ({ id }) => {
+      navigate(
+        `/learn/code/${encodeURIComponent(id)}?template=blank&challenge=${encodeURIComponent(slug)}`,
+      );
+    },
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -237,12 +254,69 @@ export function ChallengeSubmitPage() {
       {submission && <StatusCard submission={submission} />}
 
       {phase === 'before' && (
-        <div className="card-base mt-6" data-testid="challenge-not-open">
-          <span className="sticker-sky">Not open yet</span>
-          <p className="lead-text mt-4">
-            Keep building! This page opens on {dayLabel(data.submission_open)} and you will be
-            able to send your project in then.
+        <div className="card-base mt-6" data-testid="challenge-build-now">
+          <span className="sticker-mint">You’re in</span>
+          <h2 className="section-heading mt-4">Build your competition entry</h2>
+          <p className="lead-text mt-3">
+            Choose one competition format and start with your own idea. Sending the finished entry
+            to the judges unlocks on {dayLabel(data.submission_open)}.
           </p>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2" data-testid="challenge-project-paths">
+            <div className="rounded-2xl border-2 border-ink bg-brand-mint/20 p-5">
+              <p className="text-[22px]" aria-hidden="true">
+                🎮
+              </p>
+              <h3 className="mt-2 text-[18px] font-extrabold text-ink">Make a game</h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate2">
+                Start from your own game idea, then build, test and improve something another
+                person can play.
+              </p>
+              <Link
+                to={`/learn/playground/new?challenge=${encodeURIComponent(slug)}`}
+                className="btn-pill-primary mt-5 inline-block"
+                data-testid="challenge-start-game"
+              >
+                Start my game →
+              </Link>
+            </div>
+
+            <div className="rounded-2xl border-2 border-ink bg-brand-sky/20 p-5">
+              <p className="text-[22px]" aria-hidden="true">
+                🌐
+              </p>
+              <h3 className="mt-2 text-[18px] font-extrabold text-ink">
+                Make an interactive web project
+              </h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate2">
+                Start with a blank project for your own tool, story, simulation or interactive
+                experience.
+              </p>
+              <button
+                type="button"
+                className="btn-pill-primary mt-5"
+                disabled={startInteractiveWeb.isPending}
+                onClick={() => startInteractiveWeb.mutate()}
+                data-testid="challenge-start-web"
+              >
+                {startInteractiveWeb.isPending ? 'Starting…' : 'Start my web project →'}
+              </button>
+            </div>
+          </div>
+
+          {startInteractiveWeb.isError && (
+            <p className="field-error mt-4" role="alert">
+              We could not start the project. Try again in a moment.
+            </p>
+          )}
+
+          <Link
+            to="/learn/projects"
+            className="btn-pill-secondary mt-5 inline-block"
+            data-testid="challenge-my-projects"
+          >
+            Continue one of my projects →
+          </Link>
         </div>
       )}
 
