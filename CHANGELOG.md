@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-10 (fixed: Parent Portal approval badge alignment)
+
+### Fixed
+
+- Kept the desktop navigation's Approvals count on the same row as its icon and label. The shared
+  navigation rule previously overrode the link's flex layout, which pushed the badge onto a second
+  line and made the active item unusually tall.
+
 ## 2026-08-10 (added: Parent/Guardian Details on both challenge consent steps)
 
 ### Added
