@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-10 (added: /portal/tutoring shows the teachers you can actually book)
+
+### Added
+
+- `/portal/tutoring` now lists the published platform teachers on first paint — portrait, name,
+  headline, service cities, age range and expertise — with a `Book <name>` action per card and a
+  `See all profiles →` link to the full directory.
+
+  The page previously showed no teacher at all until a parent happened to press `Book a teacher →`:
+  the only two teacher affordances, the `Preferred teacher` selector and the profiles link, both
+  lived inside the collapsed request form. A parent looking for "who can I book?" saw a bill and an
+  empty form.
+
+  Choosing a card records exactly the same preference as the existing `?teacher=<slug>` deep link —
+  still a preference, not a booking — and opens the request form so the choice is not a dead end.
+
+### Fixed
+
+- A missing or unreachable teacher portrait now falls back to the teacher's initials instead of a
+  broken-image icon. Profile photos are uploaded separately from the profile row, so a published
+  teacher can legitimately have no usable `avatar_url` yet.
+- An empty or failed teacher directory keeps the "send a request and we'll match a teacher" path
+  visible instead of rendering nothing.
+
 ## 2026-08-10 (changed: faster My Kids overview)
 
 ### Changed
