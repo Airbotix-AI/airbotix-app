@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-10 (fixed: the HSC planner says when the course list failed to load)
+
+### Fixed
+
+- **`/portal/academy/hsc-planner` no longer swallows a failed course catalogue.** The course list is
+  served from the published `HscRuleSet`, so an environment whose rule set is unseeded answers
+  `/hsc/courses` with `HSC_RULES_NOT_SEEDED` — and the page folded that error into `?? []`. The
+  parent saw a **"Choose course" dropdown with nothing under it** and an *Add subject* button that
+  could never succeed, with nothing on screen explaining why. The planner now shows the API's own
+  message (or a plain fallback), disables *Add subject* and the claim-import submit, and repeats the
+  reason next to the form instead of presenting an empty catalogue as a valid one.
+
 ## 2026-08-10 (fixed: Parent Portal uses the official Airbotix logo)
 
 ### Fixed
