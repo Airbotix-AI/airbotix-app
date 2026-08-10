@@ -1,13 +1,21 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const { parentKidLogin, openKidPageInNewTab } = vi.hoisted(() => ({
+  parentKidLogin: vi.fn(),
+  openKidPageInNewTab: vi.fn(),
+}));
+
 vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'user', family_id: 'fam-1' } }),
+  useParentKidLogin: () => parentKidLogin,
 }));
+
+vi.mock('@/auth/openKidPage', () => ({ openKidPageInNewTab }));
 
 const apiMock = vi.fn();
 vi.mock('@/lib/api', () => ({ api: (path: string) => apiMock(path) }));
@@ -88,7 +96,11 @@ function renderHub() {
   );
 }
 
-beforeEach(() => apiMock.mockReset());
+beforeEach(() => {
+  apiMock.mockReset();
+  parentKidLogin.mockReset();
+  openKidPageInNewTab.mockReset().mockResolvedValue(undefined);
+});
 afterEach(() => cleanup());
 
 describe('ChallengeHubPage — who in the family is entered', () => {
@@ -108,16 +120,37 @@ describe('ChallengeHubPage — who in the family is entered', () => {
     expect(screen.getByTestId('challenge-hub-status-kid-3')).toHaveTextContent('Not entered');
   });
 
-  it('gives each child an action that carries their own kid_id', async () => {
+  it('registers children who are not entered and opens the entered child’s challenge', async () => {
     wire();
     renderHub();
 
-    const action = await screen.findByTestId('challenge-hub-action-kid-3');
+    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    const action = screen.getByTestId('challenge-hub-action-kid-3');
     expect(action).toHaveAttribute('href', `/portal/challenge/${SLUG}/register?kid_id=kid-3`);
     expect(action).toHaveTextContent('Register this child');
-    expect(screen.getByTestId('challenge-hub-action-kid-1')).toHaveTextContent('View entry');
+    expect(screen.getByTestId('challenge-hub-action-kid-1')).toHaveTextContent(
+      'Open Mia’s challenge page',
+    );
+    expect(screen.getByTestId('challenge-hub-action-kid-1')).not.toHaveAttribute('href');
     expect(screen.getByTestId('challenge-hub-action-kid-2')).toHaveTextContent(
       'Finish registering',
+    );
+  });
+
+  it('creates the selected kid session and opens that kid’s submit page', async () => {
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    fireEvent.click(screen.getByTestId('challenge-hub-action-kid-1'));
+
+    await waitFor(() =>
+      expect(openKidPageInNewTab).toHaveBeenCalledWith(
+        parentKidLogin,
+        'kid-1',
+        expect.any(Function),
+        `/learn/challenge/${SLUG}/submit`,
+      ),
     );
   });
 
@@ -295,14 +328,12 @@ describe('ChallengeHubPage — the links a family needs', () => {
     expect(screen.getByTestId('challenge-hub-kid-kid-3').textContent ?? '').not.toMatch(/device/i);
   });
 
-  it('tells a parent the submit page is the CHILD’s, not a link they can open', async () => {
-    // A parent opening /learn/* is bounced back to /portal, so handing them a
-    // raw link would be a dead end dressed up as an action.
+  it('explains that the button signs the child in without closing the parent page', async () => {
     wire();
     renderHub();
 
     expect(await screen.findByTestId('challenge-hub-submit-note')).toHaveTextContent(
-      /will not work from your account/i,
+      /signs that child in and opens challenge.*submit in a new tab/i,
     );
   });
 });

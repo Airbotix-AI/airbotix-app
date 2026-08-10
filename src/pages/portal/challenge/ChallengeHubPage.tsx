@@ -12,16 +12,17 @@
 // has paid needs to know what their child actually makes and submits. That
 // content is in `challengeGuidance.ts`, copied from the PRD, never authored here.
 //
-// This page reads; it never signs, pays or mutates. Every action links to the
-// register page, which owns the whole consent + payment flow.
+// Registration actions link to the register page. An entered child instead uses
+// the existing parent→kid session handoff and opens that child's submission page.
 
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { CalendarDays, Code2, Globe2, MessageCircle, Trophy, Video } from 'lucide-react';
 
 import { api } from '@/lib/api';
-import { useMe } from '@/auth/useAuth';
+import { openKidPageInNewTab } from '@/auth/openKidPage';
+import { useMe, useParentKidLogin } from '@/auth/useAuth';
 import { KidDeviceHandoff } from '@/components/KidDeviceHandoff';
 import {
   getChallengeRegistration,
@@ -70,7 +71,7 @@ function standingFor(view: ChallengeRegistrationView | undefined, isError: boole
   }
   const status = view.entry?.status;
   if (status === 'registration_confirmed') {
-    return { kind: 'entered', label: 'Entered', actionLabel: 'View entry' };
+    return { kind: 'entered', label: 'Entered', actionLabel: 'Open challenge page' };
   }
   if (status === 'pending_payment') {
     return {
@@ -191,7 +192,11 @@ function timelineFor(edition: NonNullable<ChallengeRegistrationView['edition']>)
 }
 
 export function ChallengeHubPage({ slug }: { slug: string }) {
+  const navigate = useNavigate();
   const me = useMe();
+  const parentKidLogin = useParentKidLogin();
+  const [openingKidId, setOpeningKidId] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<{ kidId: string; message: string } | null>(null);
   const familyId = me.data?.kind === 'user' ? me.data.family_id : '';
 
   const kids = useQuery<Kid[]>({
@@ -470,15 +475,53 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
                         {standing.label}
                       </span>
                     )}
-                    <Link
-                      className="btn-pill-secondary"
-                      to={`/portal/challenge/${slug}/register?kid_id=${encodeURIComponent(kid.id)}`}
-                      data-testid={`challenge-hub-action-${kid.id}`}
-                    >
-                      {standing.actionLabel} →
-                    </Link>
+                    {standing.kind === 'entered' ? (
+                      <button
+                        type="button"
+                        className="btn-pill-primary"
+                        disabled={openingKidId !== null}
+                        onClick={async () => {
+                          setOpeningKidId(kid.id);
+                          setOpenError(null);
+                          try {
+                            await openKidPageInNewTab(
+                              parentKidLogin,
+                              kid.id,
+                              navigate,
+                              `/learn/challenge/${encodeURIComponent(slug)}/submit`,
+                            );
+                          } catch {
+                            setOpenError({
+                              kidId: kid.id,
+                              message: `Could not open ${kid.nickname}’s challenge page. Try again.`,
+                            });
+                          } finally {
+                            setOpeningKidId(null);
+                          }
+                        }}
+                        data-testid={`challenge-hub-action-${kid.id}`}
+                      >
+                        {openingKidId === kid.id
+                          ? 'Opening…'
+                          : `Open ${kid.nickname}’s challenge page →`}
+                      </button>
+                    ) : (
+                      <Link
+                        className="btn-pill-secondary"
+                        to={`/portal/challenge/${slug}/register?kid_id=${encodeURIComponent(kid.id)}`}
+                        data-testid={`challenge-hub-action-${kid.id}`}
+                      >
+                        {standing.actionLabel} →
+                      </Link>
+                    )}
                   </div>
                 </div>
+
+                {openError?.kidId === kid.id && (
+                  <p className="field-error mt-3" role="alert">
+                    {openError.message}
+                  </p>
+                )}
 
                 {/*
                   An ENTERED child needs their own account open to build and to
@@ -569,12 +612,10 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
             <span className="font-mono text-[13px]">Challenge → Submit</span>.
           </p>
           <p className="mt-3 text-[13px] text-slate2" data-testid="challenge-hub-submit-note">
-            This link only opens for a signed-in child, so it will not work from your account. Hand
-            the device over, or use <strong>Send to my child’s device</strong> on the{' '}
-            <Link to="/portal/family" className="underline">
-              family page
-            </Link>{' '}
-            to pass it across.
+            Use <strong>Open [child’s name]’s challenge page</strong> above. Airbotix signs that
+            child in and opens <span className="font-mono">Challenge → Submit</span> in a new tab,
+            while this parent page stays open. To continue on a different device, use{' '}
+            <strong>Another device</strong> beside the child’s entry.
           </p>
         </section>
       )}
