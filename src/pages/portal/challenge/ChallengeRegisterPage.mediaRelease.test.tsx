@@ -68,6 +68,7 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
     renderPage();
     await pickKid();
 
+    fireEvent.click(await screen.findByTestId('review-authorization'));
     expect(await screen.findByTestId('reopen-note')).toHaveTextContent(
       /replaces all of the choices/i,
     );
@@ -82,6 +83,7 @@ describe('ChallengeRegisterPage — re-signing the media release', () => {
     renderPage();
     await pickKid();
 
+    fireEvent.click(await screen.findByTestId('review-authorization'));
     fireEvent.click(await screen.findByRole('button', { name: /Update these choices/ }));
     await screen.findByTestId('media-release-amending');
 

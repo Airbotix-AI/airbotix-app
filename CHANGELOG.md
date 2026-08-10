@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-08-10 (changed: challenge registration is a two-step parent flow)
+
+### Changed
+
+- `/portal/challenge/:slug/register` now separates **Parent authorization** from **Confirm and
+  pay** with a visible two-stage progress indicator.
+- The two consent documents remain separate signatures and API calls inside authorization, but
+  the payment card is not rendered until both current versions are signed. Reviewing or amending
+  authorization hides payment controls again.
+- The payment stage opens with an authorization-complete summary, the single entry fee, the
+  optional child-assent note and secure-checkout action. A stale `CONSENT_REQUIRED` refusal returns
+  the parent to authorization and keeps the actionable error visible.
+
+### Tests
+
+- Updated the consent, checkout and media-release component suites for the stage boundary,
+  automatic handoff, review/continue path and stale-consent recovery.
+- Updated the pre-deploy `parent-challenge-registration` journey and coverage record; it remains
+  authored but unexecuted until the next production pre-deploy harness run.
+
 ## 2026-08-10 (fixed: Parent Portal approval badge alignment)
 
 ### Fixed
