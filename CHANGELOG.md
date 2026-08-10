@@ -1,12 +1,59 @@
 # Changelog
 
+## 2026-08-10 (changed: auto-topup is a guided, trustworthy setup)
+
+### Changed
+
+- Rebuilt `/portal/wallet/auto-topup` around the parent’s actual decision sequence: turn it on,
+  choose the refill trigger and pack, choose the exact saved card, then set safety limits. A
+  sticky summary shows the complete rule before saving, clearly marks unsaved changes, and keeps
+  card testing unavailable until those changes are saved.
+- Added responsive card selection, clearer empty/loading/error states, touch-sized controls and a
+  compact recent-attempt history. The screen now reads the backend’s real `{ config,
+  recent_attempts }` response and sends its current update fields instead of the obsolete
+  `auto_topup_*` client shape, which made displayed values and saves unreliable.
+
+## 2026-08-10 (changed: auto-topup is a guided, trustworthy setup)
+
+### Changed
+
+- Rebuilt `/portal/wallet/auto-topup` around the parent’s actual decision sequence: turn it on,
+  choose the refill trigger and pack, choose the exact saved card, then set safety limits. A
+  sticky summary shows the complete rule before saving, clearly marks unsaved changes, and keeps
+  card testing unavailable until those changes are saved.
+- Added responsive card selection, clearer empty/loading/error states, touch-sized controls and a
+  compact recent-attempt history. The screen now reads the backend’s real `{ config,
+  recent_attempts }` response and sends its current update fields instead of the obsolete
+  `auto_topup_*` client shape, which made displayed values and saves unreliable.
+
+## 2026-08-10 (fixed: the HSC planner says when the course list failed to load)
+
+### Fixed
+
+- **`/portal/academy/hsc-planner` no longer swallows a failed course catalogue.** The course list is
+  served from the published `HscRuleSet`, so an environment whose rule set is unseeded answers
+  `/hsc/courses` with `HSC_RULES_NOT_SEEDED` — and the page folded that error into `?? []`. The
+  parent saw a **"Choose course" dropdown with nothing under it** and an *Add subject* button that
+  could never succeed, with nothing on screen explaining why. The planner now shows the API's own
+  message (or a plain fallback), disables *Add subject* and the claim-import submit, and repeats the
+  reason next to the form instead of presenting an empty catalogue as a valid one.
+
+## 2026-08-10 (changed: clearer My Family overview)
+
+### Changed
+
+- Redesigned `/portal/family` around a compact family summary, an immediately visible sign-in code
+  and calmer kid cards with one primary action. Growth, device handoff and profile settings remain
+  available as equal secondary actions, while responsive layouts keep the hierarchy on small screens.
+
 ## 2026-08-10 (fixed: Parent Portal uses the official Airbotix logo)
 
 ### Fixed
 
 - Replaced the temporary coral `A` mark in both the desktop Portal drawer and mobile Portal header
-  with the official Airbotix horizontal logo. Challenge pages inherit this shared Portal chrome, so
-  `/portal/challenge/:slug` now shows the real brand mark at the top-left at every breakpoint.
+  with a compact official Airbotix lockup. The logo, a subtle divider and the Portal/page identity
+  now form one consistent horizontal brand unit at every breakpoint instead of stacking or crowding
+  unrelated labels. Challenge pages inherit this shared Portal chrome.
 
 ## 2026-08-09 (added: family challenge hub — who is entered, and what to actually do)
 

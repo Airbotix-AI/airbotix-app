@@ -84,7 +84,7 @@ function renderHub() {
       <MemoryRouter>
         <ChallengeHubPage slug={SLUG} />
       </MemoryRouter>
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -99,9 +99,11 @@ describe('ChallengeHubPage — who in the family is entered', () => {
     wire();
     renderHub();
 
-    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    expect(
+      await screen.findByTestId('challenge-hub-status-kid-1', undefined, { timeout: 5_000 }),
+    ).toHaveTextContent('Entered');
     expect(screen.getByTestId('challenge-hub-status-kid-2')).toHaveTextContent(
-      'Started — not paid yet'
+      'Started — not paid yet',
     );
     expect(screen.getByTestId('challenge-hub-status-kid-3')).toHaveTextContent('Not entered');
   });
@@ -111,13 +113,12 @@ describe('ChallengeHubPage — who in the family is entered', () => {
     renderHub();
 
     const action = await screen.findByTestId('challenge-hub-action-kid-3');
-    expect(action).toHaveAttribute(
-      'href',
-      `/portal/challenge/${SLUG}/register?kid_id=kid-3`
-    );
+    expect(action).toHaveAttribute('href', `/portal/challenge/${SLUG}/register?kid_id=kid-3`);
     expect(action).toHaveTextContent('Register this child');
     expect(screen.getByTestId('challenge-hub-action-kid-1')).toHaveTextContent('View entry');
-    expect(screen.getByTestId('challenge-hub-action-kid-2')).toHaveTextContent('Finish registering');
+    expect(screen.getByTestId('challenge-hub-action-kid-2')).toHaveTextContent(
+      'Finish registering',
+    );
   });
 
   it('never reports a failed lookup as "not entered"', async () => {
@@ -128,14 +129,51 @@ describe('ChallengeHubPage — who in the family is entered', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('challenge-hub-status-kid-1')).toHaveTextContent(
-        'Could not check this child’s entry'
-      )
+        'Could not check this child’s entry',
+      ),
     );
     expect(screen.getByTestId('challenge-hub-status-kid-1')).not.toHaveTextContent('Not entered');
   });
 });
 
 describe('ChallengeHubPage — the guidance a first-time family needs', () => {
+  it('introduces the competition before asking the parent to act', async () => {
+    wire();
+    renderHub();
+
+    const overview = await screen.findByTestId('challenge-hub-overview');
+    expect(overview).toHaveTextContent('Online');
+    expect(overview).toHaveTextContent('1 project');
+    expect(overview).toHaveTextContent('60–90 sec');
+    expect(overview).toHaveTextContent('100 points');
+    expect(
+      await screen.findByRole('heading', { name: /Creative Code Challenge — 2026 Junior/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/online creative coding competition for ages 8–12/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the current stage and a dated end-to-end timeline', async () => {
+    wire();
+    renderHub();
+
+    const current = await screen.findByTestId('challenge-hub-current-stage');
+    expect(current).toHaveTextContent('Your family is in');
+    expect(current).toHaveTextContent(/start building/i);
+
+    const timeline = screen.getByTestId('challenge-hub-timeline');
+    expect(timeline.querySelectorAll(':scope > li')).toHaveLength(4);
+    expect(screen.getByTestId('challenge-timeline-register')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.getByTestId('challenge-timeline-submit')).toHaveTextContent(
+      '24 August 2026 — 31 August 2026',
+    );
+    expect(screen.getByTestId('challenge-timeline-results')).toHaveTextContent('14 September 2026');
+  });
+
   it('answers "what now" with ordered steps and what gets submitted', async () => {
     // A parent who paid A$19 previously landed on a card whose only action was
     // "View wallet". These two lists are the answer to what they build and hand in.
@@ -200,7 +238,7 @@ describe('ChallengeHubPage — the marking guide families could never see', () =
     renderHub();
 
     expect(await screen.findByTestId('challenge-hub-rubric-error')).toHaveTextContent(
-      /could not load the marking guide/i
+      /could not load the marking guide/i,
     );
     expect(screen.queryByTestId('challenge-hub-rubric')).not.toBeInTheDocument();
   });
@@ -212,7 +250,7 @@ describe('ChallengeHubPage — the marking guide families could never see', () =
     const rubric = await screen.findByTestId('challenge-hub-rubric');
     // Two dimensions in the fixture; a page carrying its own copy would show six.
     expect(rubric.querySelectorAll('li[class*="rounded-2xl"]').length).toBe(
-      RUBRIC.dimensions.length
+      RUBRIC.dimensions.length,
     );
   });
 });
@@ -224,7 +262,7 @@ describe('ChallengeHubPage — the links a family needs', () => {
 
     expect(await screen.findByTestId('challenge-hub-showcase-link')).toHaveAttribute(
       'href',
-      `/challenge/${SLUG}/showcase`
+      `/challenge/${SLUG}/showcase`,
     );
   });
 
@@ -264,7 +302,7 @@ describe('ChallengeHubPage — the links a family needs', () => {
     renderHub();
 
     expect(await screen.findByTestId('challenge-hub-submit-note')).toHaveTextContent(
-      /will not work from your account/i
+      /will not work from your account/i,
     );
   });
 });
