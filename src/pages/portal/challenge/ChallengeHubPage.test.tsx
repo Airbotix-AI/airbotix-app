@@ -1,13 +1,21 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+const { parentKidLogin, openKidPageInNewTab } = vi.hoisted(() => ({
+  parentKidLogin: vi.fn(),
+  openKidPageInNewTab: vi.fn(),
+}));
+
 vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'user', family_id: 'fam-1' } }),
+  useParentKidLogin: () => parentKidLogin,
 }));
+
+vi.mock('@/auth/openKidPage', () => ({ openKidPageInNewTab }));
 
 const apiMock = vi.fn();
 vi.mock('@/lib/api', () => ({ api: (path: string) => apiMock(path) }));
@@ -37,8 +45,32 @@ const KIDS = [
 ];
 
 /** kid-1 confirmed, kid-2 mid-payment, kid-3 never started. */
-function wire({ failKid }: { failKid?: string } = {}) {
+const RUBRIC = {
+  version: '1.0',
+  total_points: 100,
+  dimensions: [
+    {
+      key: 'original_idea',
+      label: 'Original idea and creative decisions',
+      max_points: 25,
+      description: 'How original the concept is.',
+      constraints: [],
+    },
+    {
+      key: 'pitch',
+      label: 'English Project Pitch',
+      max_points: 15,
+      description: 'How clearly the child explains, in English, what they built.',
+      constraints: ['Do NOT award or deduct marks for accent or pronunciation.'],
+    },
+  ],
+};
+
+function wire({ failKid, failRubric }: { failKid?: string; failRubric?: boolean } = {}) {
   apiMock.mockImplementation((path: string) => {
+    if (path === '/challenges/rubric') {
+      return failRubric ? Promise.reject(new Error('boom')) : Promise.resolve(RUBRIC);
+    }
     if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
     const match = /kid_id=([^&]+)/.exec(path);
     const kidId = match ? decodeURIComponent(match[1]) : null;
@@ -60,11 +92,15 @@ function renderHub() {
       <MemoryRouter>
         <ChallengeHubPage slug={SLUG} />
       </MemoryRouter>
-    </QueryClientProvider>
+    </QueryClientProvider>,
   );
 }
 
-beforeEach(() => apiMock.mockReset());
+beforeEach(() => {
+  apiMock.mockReset();
+  parentKidLogin.mockReset();
+  openKidPageInNewTab.mockReset().mockResolvedValue(undefined);
+});
 afterEach(() => cleanup());
 
 describe('ChallengeHubPage — who in the family is entered', () => {
@@ -75,25 +111,47 @@ describe('ChallengeHubPage — who in the family is entered', () => {
     wire();
     renderHub();
 
-    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    expect(
+      await screen.findByTestId('challenge-hub-status-kid-1', undefined, { timeout: 5_000 }),
+    ).toHaveTextContent('Entered');
     expect(screen.getByTestId('challenge-hub-status-kid-2')).toHaveTextContent(
-      'Started — not paid yet'
+      'Started — not paid yet',
     );
     expect(screen.getByTestId('challenge-hub-status-kid-3')).toHaveTextContent('Not entered');
   });
 
-  it('gives each child an action that carries their own kid_id', async () => {
+  it('registers children who are not entered and opens the entered child’s challenge', async () => {
     wire();
     renderHub();
 
-    const action = await screen.findByTestId('challenge-hub-action-kid-3');
-    expect(action).toHaveAttribute(
-      'href',
-      `/portal/challenge/${SLUG}/register?kid_id=kid-3`
-    );
+    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    const action = screen.getByTestId('challenge-hub-action-kid-3');
+    expect(action).toHaveAttribute('href', `/portal/challenge/${SLUG}/register?kid_id=kid-3`);
     expect(action).toHaveTextContent('Register this child');
-    expect(screen.getByTestId('challenge-hub-action-kid-1')).toHaveTextContent('View entry');
-    expect(screen.getByTestId('challenge-hub-action-kid-2')).toHaveTextContent('Finish registering');
+    expect(screen.getByTestId('challenge-hub-action-kid-1')).toHaveTextContent(
+      'Open Mia’s challenge page',
+    );
+    expect(screen.getByTestId('challenge-hub-action-kid-1')).not.toHaveAttribute('href');
+    expect(screen.getByTestId('challenge-hub-action-kid-2')).toHaveTextContent(
+      'Finish registering',
+    );
+  });
+
+  it('creates the selected kid session and opens that kid’s submit page', async () => {
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-status-kid-1')).toHaveTextContent('Entered');
+    fireEvent.click(screen.getByTestId('challenge-hub-action-kid-1'));
+
+    await waitFor(() =>
+      expect(openKidPageInNewTab).toHaveBeenCalledWith(
+        parentKidLogin,
+        'kid-1',
+        expect.any(Function),
+        `/learn/challenge/${SLUG}/submit`,
+      ),
+    );
   });
 
   it('never reports a failed lookup as "not entered"', async () => {
@@ -104,14 +162,51 @@ describe('ChallengeHubPage — who in the family is entered', () => {
 
     await waitFor(() =>
       expect(screen.getByTestId('challenge-hub-status-kid-1')).toHaveTextContent(
-        'Could not check this child’s entry'
-      )
+        'Could not check this child’s entry',
+      ),
     );
     expect(screen.getByTestId('challenge-hub-status-kid-1')).not.toHaveTextContent('Not entered');
   });
 });
 
 describe('ChallengeHubPage — the guidance a first-time family needs', () => {
+  it('introduces the competition before asking the parent to act', async () => {
+    wire();
+    renderHub();
+
+    const overview = await screen.findByTestId('challenge-hub-overview');
+    expect(overview).toHaveTextContent('Online');
+    expect(overview).toHaveTextContent('1 project');
+    expect(overview).toHaveTextContent('60–90 sec');
+    expect(overview).toHaveTextContent('100 points');
+    expect(
+      await screen.findByRole('heading', { name: /Creative Code Challenge — 2026 Junior/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/online creative coding competition for ages 8–12/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the current stage and a dated end-to-end timeline', async () => {
+    wire();
+    renderHub();
+
+    const current = await screen.findByTestId('challenge-hub-current-stage');
+    expect(current).toHaveTextContent('Your family is in');
+    expect(current).toHaveTextContent(/start building/i);
+
+    const timeline = screen.getByTestId('challenge-hub-timeline');
+    expect(timeline.querySelectorAll(':scope > li')).toHaveLength(4);
+    expect(screen.getByTestId('challenge-timeline-register')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.getByTestId('challenge-timeline-submit')).toHaveTextContent(
+      '24 August 2026 — 31 August 2026',
+    );
+    expect(screen.getByTestId('challenge-timeline-results')).toHaveTextContent('14 September 2026');
+  });
+
   it('answers "what now" with ordered steps and what gets submitted', async () => {
     // A parent who paid A$19 previously landed on a card whose only action was
     // "View wallet". These two lists are the answer to what they build and hand in.
@@ -144,6 +239,102 @@ describe('ChallengeHubPage — the guidance a first-time family needs', () => {
     const dates = await screen.findByTestId('challenge-hub-dates');
     expect(dates).toHaveTextContent(/24 August 2026/);
     expect(dates).toHaveTextContent(/31 August 2026/);
+  });
+});
+
+describe('ChallengeHubPage — the marking guide families could never see', () => {
+  it('renders every rubric dimension with its marks, from the backend', async () => {
+    // The rubric lived only on the judge side. A family paying to enter could
+    // not find out how the 100 points split.
+    wire();
+    renderHub();
+
+    const rubric = await screen.findByTestId('challenge-hub-rubric');
+    expect(rubric).toHaveTextContent('Original idea and creative decisions');
+    expect(rubric).toHaveTextContent('25 marks');
+    expect(rubric).toHaveTextContent('English Project Pitch');
+    expect(rubric).toHaveTextContent('15 marks');
+  });
+
+  it('shows the English-fairness limits attached to the pitch mark', async () => {
+    // A fairness rule a family is never shown is one they cannot rely on.
+    wire();
+    renderHub();
+
+    const limits = await screen.findByTestId('rubric-limits-pitch');
+    expect(limits).toHaveTextContent(/accent or pronunciation/i);
+  });
+
+  it('says the guide failed to load rather than rendering no criteria at all', async () => {
+    // Silence would read as "there are no criteria", which is worse than an error.
+    wire({ failRubric: true });
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-rubric-error')).toHaveTextContent(
+      /could not load the marking guide/i,
+    );
+    expect(screen.queryByTestId('challenge-hub-rubric')).not.toBeInTheDocument();
+  });
+
+  it('never hardcodes the rubric — it renders exactly what the API returned', async () => {
+    wire();
+    renderHub();
+
+    const rubric = await screen.findByTestId('challenge-hub-rubric');
+    // Two dimensions in the fixture; a page carrying its own copy would show six.
+    expect(rubric.querySelectorAll('li[class*="rounded-2xl"]').length).toBe(
+      RUBRIC.dimensions.length,
+    );
+  });
+});
+
+describe('ChallengeHubPage — the links a family needs', () => {
+  it('points at the public Showcase', async () => {
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-showcase-link')).toHaveAttribute(
+      'href',
+      `/challenge/${SLUG}/showcase`,
+    );
+  });
+
+  it('gives the parent a studio they can actually open — the public demo', async () => {
+    // "Build in Creative Code Studio" named a place a parent cannot reach: the
+    // studio proper is a kid surface and bounces them to /portal. /try/playground
+    // is the one version they can open, and it needs no account.
+    wire();
+    renderHub();
+
+    const link = await screen.findByTestId('challenge-hub-step-link-start-building');
+    expect(link).toHaveAttribute('href', '/try/playground');
+    expect(link).toHaveTextContent(/Creative Code Studio/i);
+    // Never "no login needed": the parent reading this IS signed in, so that
+    // wording reads as nonsense or as an instruction to sign out. Whose account
+    // the studio lives in is the actual point.
+    expect(link.textContent ?? '').not.toMatch(/no login/i);
+  });
+
+  it('offers the device handoff on an ENTERED child, where it is actually needed', async () => {
+    // A parent cannot open their child's studio or submit page however signed in
+    // they are — `/learn/*` bounces a parent principal. The handoff was only on
+    // the family page, nowhere near the moment a parent needs it.
+    wire();
+    renderHub();
+
+    const entered = await screen.findByTestId('challenge-hub-kid-kid-1');
+    expect(entered.textContent ?? '').toMatch(/device/i);
+    // Not offered for a child with no entry — there is nothing to hand over yet.
+    expect(screen.getByTestId('challenge-hub-kid-kid-3').textContent ?? '').not.toMatch(/device/i);
+  });
+
+  it('explains that the button signs the child in without closing the parent page', async () => {
+    wire();
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-submit-note')).toHaveTextContent(
+      /signs that child in and opens challenge.*submit in a new tab/i,
+    );
   });
 });
 

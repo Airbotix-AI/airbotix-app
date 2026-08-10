@@ -12,6 +12,42 @@
   content width while PIN and deletion controls sit in a separate safety rail. Every setting now
   has plain-language guidance, and the wider responsive avatar grid shortens the page without
   changing saved fields or API behaviour.
+## 2026-08-10 (added: the challenge hub's marking guide, one-click child access, and event overview)
+
+Follow-up to #251, which merged while these commits were still on the branch — main got the hub
+skeleton and none of the content below.
+
+### Added
+
+- **The 100-point marking guide, rendered for the family being judged.** Every dimension with its
+  marks — original idea 25, playable result 20, testing & improvement 20, code/AI understanding
+  15, English pitch 15, responsible creation 5 — plus the limits attached to the English mark: no
+  marks awarded or deducted for accent, pronunciation, vocabulary, or the language spoken at home.
+  Fetched from `GET /challenges/rubric` (platform-backend #376, live in production), never
+  hardcoded, so the page cannot state a weighting the judges are not using. A failed load says so
+  — silence would read as "there are no criteria".
+- **One-click access to a child's own challenge page.** An entered child's row ran "View entry",
+  which showed the parent their own receipt rather than the thing anyone needs next. It now uses
+  the parent→kid session handoff to open THAT child's `Challenge → Submit` in a new tab, leaving
+  the parent page open. A failure names the child and offers a retry instead of a dead button.
+- **An event overview and dated timeline** — online, 1 project, a 60–90 second pitch, 100 points;
+  the current stage in words derived from the edition status; and register → build & submit →
+  review & judging → results, with the live stage marked `aria-current="step"`. A first-time
+  parent previously met "Register this child" before learning what the event was.
+- **A link to the public Creator Showcase**, with the line that matters to a family that declined
+  publication: work not shown publicly is judged exactly the same.
+- `openKidPageInNewTab` takes an optional `destination` (defaults to `/learn`), so the handoff can
+  land on a specific kid page. The popup-blocked same-tab fallback follows it too.
+
+### Fixed
+
+- **The submission deadline was shown one day late.** `dayLabel` formatted edition windows in the
+  VIEWER's timezone, so `submission_close` (`…T23:59:59Z`) rendered as **1 September** for anyone
+  at UTC+n — a deadline a day later than the real one, on the single date where being wrong costs
+  a child their entry. Both pages now share `challengeDates.ts`, formatting in UTC.
+- Guidance no longer says "no login needed" about Creative Code Studio: the parent reading it is
+  already signed in. The point is whose account the studio lives in — the child's, which is why a
+  signed-in parent still cannot open it.
 
 ## 2026-08-10 (fixed: the HSC planner says when the course list failed to load)
 
