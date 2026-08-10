@@ -24,6 +24,10 @@ describe('PortalMobileHeader', () => {
     );
 
     expect(screen.getByTestId('portal-mobile-header')).toHaveClass('xl:hidden');
+    expect(screen.getByRole('img', { name: 'Airbotix' })).toHaveAttribute(
+      'src',
+      '/logo-black-horizontal.png',
+    );
     expect(screen.getByText(title)).toBeVisible();
   });
 });

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-10 (fixed: Parent Portal uses the official Airbotix logo)
+
+### Fixed
+
+- Replaced the temporary coral `A` mark in both the desktop Portal drawer and mobile Portal header
+  with a compact official Airbotix lockup. The logo, a subtle divider and the Portal/page identity
+  now form one consistent horizontal brand unit at every breakpoint instead of stacking or crowding
+  unrelated labels. Challenge pages inherit this shared Portal chrome.
+
 ## 2026-08-09 (added: family challenge hub — who is entered, and what to actually do)
 
 ### Added
