@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-11 (fix: website ideas on the generic landing create websites)
+
+### Fixed
+
+- The generic prompt-first landing (`/learn/playground/new`, no `?kind` — the
+  Learn-home tile) now infers `kind:'website'` from a confident prompt signal
+  (D-WEB-11, `kindInference.ts`) — "I'd like to create a todo list website" used
+  to create a GAME project. Explicit `?kind` always wins; game stays the default;
+  teacher-prep prompt-first stays game-only.
+- The generating screen says "Building your website…" (title, flavor lines,
+  ready reveal) for website builds instead of game copy.
+
+
 ## 2026-08-11 (fixed: challenge consent has a real signature pad)
 
 ### Fixed

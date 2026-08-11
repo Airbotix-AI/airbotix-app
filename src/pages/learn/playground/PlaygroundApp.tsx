@@ -9,6 +9,7 @@ import { getProject, readVfs, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject, createPrepGameProject, placeGameProjectForClass } from './panes/playgroundApi';
+import { inferProjectKindFromIdea } from './kindInference';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
@@ -499,6 +500,17 @@ export function PlaygroundApp({
           kind={projectKind}
           onSubmit={async (p) => {
             setPrompt(p);
+            // Generic landing (no explicit ?kind, kid path only): infer WEBSITE
+            // from a confident prompt signal (D-WEB-11) — the Learn-home tile
+            // lands here, and "I'd like a todo list website" must not create a
+            // game. An explicit ?kind (the Website card / class sheet) always
+            // wins; teacher prep keeps its explicit tiles (prompt-first prep is
+            // game-only).
+            let submitKind = projectKind;
+            if (isNew && !prepClassId && searchParams.get('kind') === null) {
+              submitKind = inferProjectKindFromIdea(p);
+              if (submitKind !== projectKind) setProjectKind(submitKind);
+            }
             // For a NEW game/website, create the real backend project now —
             // AFTER the prompt — then load it. The **prompt is the project name**
             // (capped to a sensible length). Falls back to a throwaway local
@@ -510,7 +522,7 @@ export function PlaygroundApp({
                 // forced every game, incl. "make a 3D …", into Phaser/2D).
                 // A website seeds `website_blank` (backend default for the kind).
                 const title =
-                  p.trim().slice(0, 80) || (projectKind === 'website' ? 'My website' : 'My game');
+                  p.trim().slice(0, 80) || (submitKind === 'website' ? 'My website' : 'My game');
                 let newId: string;
                 if (prepClassId) {
                   // TEACHER prep: create a teacher-owned prep game (0 Stars, class-
@@ -524,7 +536,7 @@ export function PlaygroundApp({
                     kidId,
                     familyId,
                     title,
-                    ...(projectKind === 'website' ? { kind: 'website' as const } : {}),
+                    ...(submitKind === 'website' ? { kind: 'website' as const } : {}),
                   });
                   if (createForClassId) {
                     await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
@@ -549,6 +561,7 @@ export function PlaygroundApp({
           prompt={prompt}
           projectId={projectId}
           mode={mode}
+          kind={projectKind}
           onDone={async (f, ft, blocked) => {
             // The AI's first turn (if any) seeds the workspace chat history.
             setFirstTurn(ft);

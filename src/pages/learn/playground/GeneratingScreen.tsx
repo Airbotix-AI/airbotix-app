@@ -51,6 +51,16 @@ const BUILD_TIPS = [
   'Hiding a few little surprises…',
 ] as const;
 
+// Website Studio flavor lines (kind='website') — same rotation mechanics.
+const SITE_BUILD_TIPS = [
+  'Sketching your pages…',
+  'Laying out the home page…',
+  'Picking fun colors and fonts…',
+  'Wiring up the little backend…',
+  'Filling in the starting data…',
+  'Linking the pages together…',
+] as const;
+
 const TIP_MS = 2400;
 // A short celebratory beat on the finished build before we open the studio — long
 // enough to feel like a payoff after a 20–30s wait, short enough to not annoy.
@@ -83,10 +93,13 @@ export function GeneratingScreen({
   name,
   projectId,
   mode = 'lite',
+  kind = 'game',
   onDone,
   onError,
 }: {
   prompt: string;
+  /** Website Studio builds say "website", not "game" (D-WEB-11). */
+  kind?: 'game' | 'website';
   /** The kid's game name (PRD J1) — labels the local scaffold when no backend. */
   name?: string;
   /** When set, the real project files are loaded from the backend (S3-backed). */
@@ -114,6 +127,7 @@ export function GeneratingScreen({
   const [streamed, setStreamed] = useState('');
   // Rotating flavor-tip index.
   const [tip, setTip] = useState(0);
+  const tips = kind === 'website' ? SITE_BUILD_TIPS : BUILD_TIPS;
   // Keep the latest callbacks without re-running the mount effect.
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -322,13 +336,21 @@ export function GeneratingScreen({
       {/* Status block: thinking spinner → live file list → ready reveal. */}
       <div className="flex w-[min(440px,86vw)] flex-col gap-3">
         {status === 'done' ? (
-          <ReadyReveal summary={streamed} />
+          <ReadyReveal summary={streamed} kind={kind} />
         ) : aiBuild || demoBuild ? (
-          <ActivityList built={built} tip={BUILD_TIPS[tip]} status={status} />
+          <ActivityList built={built} tip={tips[tip]} kind={kind} status={status} />
         ) : (
           <SimpleLoading
-            label={projectId ? 'Loading your game…' : 'Building your game…'}
-            tip={BUILD_TIPS[tip]}
+            label={
+              projectId
+                ? kind === 'website'
+                  ? 'Loading your website…'
+                  : 'Loading your game…'
+                : kind === 'website'
+                  ? 'Building your website…'
+                  : 'Building your game…'
+            }
+            tip={tips[tip]}
           />
         )}
       </div>
@@ -340,17 +362,20 @@ export function GeneratingScreen({
 function ActivityList({
   built,
   tip,
+  kind,
   status,
 }: {
   built: string[];
   tip: string;
+  kind: 'game' | 'website';
   status: Status;
 }) {
+  const noun = kind === 'website' ? 'website' : 'game';
   return (
     <>
       <div className="flex items-center gap-2 text-[15px] font-semibold text-pg-text-dim">
         <Wand2 size={16} className="text-brand-bubblegum" />
-        {built.length === 0 ? 'Dreaming up your game…' : 'Building your game'}
+        {built.length === 0 ? `Dreaming up your ${noun}…` : `Building your ${noun}`}
       </div>
 
       {built.length === 0 ? (
@@ -418,12 +443,12 @@ function ProgressBar({ status, count }: { status: Status; count: number }) {
 }
 
 /** The celebratory done state — the AI's moderated reply + a flourish. */
-function ReadyReveal({ summary }: { summary: string }) {
+function ReadyReveal({ summary, kind }: { summary: string; kind: 'game' | 'website' }) {
   return (
     <div className="pg-pop flex flex-col items-center gap-3 text-center">
       <div className="flex items-center gap-2 text-lg font-extrabold text-pg-text">
         <Gamepad2 size={22} className="text-brand-mint" />
-        Your game is ready!
+        {kind === 'website' ? 'Your website is ready!' : 'Your game is ready!'}
       </div>
       {summary && (
         <p data-testid="generating-stream" className="max-w-md text-pg-text-dim">

@@ -120,4 +120,51 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Pong')).toBeInTheDocument();
   });
+
+  // D-WEB-11: the GENERIC landing (Learn-home tile → /learn/playground/new, no
+  // ?kind) infers WEBSITE from a confident prompt signal — this exact prompt used
+  // to create a game and confuse the first build.
+  it('generic landing + a website-shaped idea creates a website (kind inference)', async () => {
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game and we'll build it…");
+    fireEvent.change(box, { target: { value: "I'd like to create a todo list website" } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "I'd like to create a todo list website",
+          kind: 'website',
+        }),
+      ),
+    );
+  });
+
+  it('generic landing + a game idea still creates a game (no kind field sent)', async () => {
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() => expect(createGameProjectMock).toHaveBeenCalled());
+    expect(createGameProjectMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'website' }),
+    );
+  });
+
+  it('an EXPLICIT ?kind=website never falls back to game, even for a game-y prompt', async () => {
+    renderNew('/learn/playground/new?kind=website');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'website' }),
+      ),
+    );
+  });
 });
