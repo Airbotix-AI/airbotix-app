@@ -32,7 +32,10 @@ interface GameRunnerPaneProps {
    * Project kind (creative-code-studio-website-prd): `website` renders the
    * SiteFrame (multi-page site + simulated backend) instead of the GameFrame,
    * and hides the game-only affordances (pause/mute/FPS/physics-debug/screen
-   * preset/run-report) — they don't apply to a site. Defaults to `game`.
+   * preset) — they don't apply to a site. Run reports are NOT game-only:
+   * websites verify through the same `onRunReport` loop (D-WEB-13), the
+   * SiteFrame collecting site evidence instead of frames/canvas. Defaults to
+   * `game`.
    */
   kind?: 'game' | 'website';
   /** Launch / re-run the game (PlaygroundApp flips `running` + bumps runKey). */
@@ -47,8 +50,9 @@ interface GameRunnerPaneProps {
   /** Legacy self-verify (MP3): report captured runtime errors for a raw fix turn.
    *  RETIRED for game projects — verification now rides `onRunReport` (D-PAP-40). */
   onRuntimeErrors?: (errors: string[]) => void;
-  /** Post-apply verification (D-PAP-40): pass-through to GameFrame — emits one
-   *  structured RunReport per run for the loop driver (useVerification). */
+  /** Post-apply verification (D-PAP-40 games / D-WEB-13 websites): pass-through
+   *  to GameFrame or SiteFrame — emits one structured RunReport per run for the
+   *  loop driver (useVerification). */
   onRunReport?: (report: RunReport) => void;
   /** 1-based chain attempt stamped into the emitted RunReport (default 1). */
   reportAttempt?: number;
@@ -258,7 +262,9 @@ export function GameRunnerPane({
   // Website Studio: a site has NO "running" concept — the SiteFrame is ALWAYS
   // mounted and live-rebuilds as the VFS changes (debounced below). The only
   // affordance is Reload (fresh run: db reset, back to index.html, D-WEB-04);
-  // pause/mute/FPS/debug/screen presets/run-reports are game-only and hidden.
+  // pause/mute/FPS/debug/screen presets are game-only and hidden. Run reports
+  // still flow (D-WEB-13): the SiteFrame observes each run (runKey) and emits
+  // the website RunReport for the verification loop.
   const isSite = kind === 'website';
 
   // Live site preview: follow `files` with a debounce so typing in Monaco (the
@@ -469,6 +475,8 @@ export function GameRunnerPane({
               virtualAssets={virtualAssets}
               runKey={runKey}
               onConsole={setLines}
+              onRunReport={onRunReport}
+              reportAttempt={reportAttempt}
             />
           </div>
         ) : running ? (

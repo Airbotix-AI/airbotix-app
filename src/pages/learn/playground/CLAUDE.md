@@ -29,11 +29,17 @@ kind authoritative, nested seeds rejected server-side; persists across page navs
 postMessage, resets per run). A website has **NO run concept**: the site is ALWAYS mounted +
 live-rebuilds from the VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's
 `run_game` — adopts files immediately as a fresh run, db reset per D-WEB-04). No
-play/pause/FPS/debug/run-report chrome anywhere (runner=Reload only; editor ▶ = "Reload site",
+play/pause/FPS/debug chrome anywhere (runner=Reload only; editor ▶ = "Reload site",
 still commit+run; chat CTA = "See my site"; the runner window/tile/taskbar label reads "Website"
-via `windowDisplay`, id 'game' stable); verification is always `'none'`; the 2D⇄3D switch never
+via `windowDisplay`, id 'game' stable). Websites **verify like games** (D-WEB-13): a
+`verification:'pending'` turn's auto-restart gives a fresh runKey, `SiteFrame` observes ~4 s and
+emits an `engine:'website'` RunReport carrying the `buildSitePreview` shim's evidence ledgers
+(`site.pageLoaded` / real-status `/api` call ledger / button wiring + delegation, the listener
+wrap installed LAST so the shim's own nav listener never reads as delegation / `console.log`
+echo) through the SAME `useVerification` loop — fix turns silent, co-debug the one visible
+surface, **screenshots never captured for sites**. The 2D⇄3D switch never
 offers; **Share is hidden until website publish lands (P3)**. Backend contract:
-`website-prompt.ts` (keep in sync).
+`website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 

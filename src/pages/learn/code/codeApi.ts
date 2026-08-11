@@ -228,10 +228,11 @@ export interface AgentTurnResult {
   file_notes?: FileNote[];
   // A short, kid-readable label for the history timeline (null/absent if none).
   history_label?: string | null;
-  // Post-apply verification (D-PAP-40): 'pending' = this applied game turn is
-  // awaiting a run report — the studio runs the game instrumented and POSTs a
-  // RunReport for it (see useVerification). 'none' = never verifiable (no file
-  // changes / not a game). Optional: absent on older backends ⇒ treat as 'none'.
+  // Post-apply verification (D-PAP-40 games / D-WEB-13 websites): 'pending' =
+  // this applied turn is awaiting a run report — the studio runs the project
+  // instrumented and POSTs a RunReport for it (see useVerification). 'none' =
+  // never verifiable (no file changes / not a game or website). Optional:
+  // absent on older backends ⇒ treat as 'none'.
   verification?: 'pending' | 'none';
   // Screenshot-verify hint (D-HARN-21b), riding the verification payload: with
   // `verification: 'pending'`, true asks the studio to attach a composited

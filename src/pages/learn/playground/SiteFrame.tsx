@@ -11,6 +11,13 @@ import {
   SITE_HOME_PAGE,
   type ConsoleLine,
 } from './buildSitePreview';
+import {
+  createRunCollector,
+  isSiteReportMessage,
+  PROBE_REPLY_TIMEOUT_MS,
+  RUN_OBSERVE_MS,
+  type RunReport,
+} from './runReport';
 
 /** How long Home waits for the frame's live-db reply before navigating with
  *  the last-carried db (a crashed/blank page must never wedge the button). */
@@ -34,6 +41,16 @@ interface SiteFrameProps {
   /** Reports the full captured console lines (so a parent pane can render its
    *  own console panel instead of the built-in one). */
   onConsole?: (lines: ConsoleLine[]) => void;
+  /**
+   * Post-apply verification (D-WEB-13, same seam as GameFrame): when set, each
+   * RUN (runKey) is observed for RUN_OBSERVE_MS, the in-frame shim is asked to
+   * report, and the finalized website RunReport (console evidence + the shim's
+   * site ledgers) is emitted EXACTLY ONCE per run — with
+   * `probeError: 'no-response'` if the shim never answers.
+   */
+  onRunReport?: (report: RunReport) => void;
+  /** 1-based chain attempt stamped into the emitted RunReport (default 1). */
+  reportAttempt?: number;
 }
 
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -62,6 +79,8 @@ export function SiteFrame({
   onFixError,
   onConsoleCount,
   onConsole,
+  onRunReport,
+  reportAttempt = 1,
 }: SiteFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [page, setPage] = useState(SITE_HOME_PAGE);
@@ -116,6 +135,55 @@ export function SiteFrame({
     [],
   );
 
+  // ── Run-report collection (D-WEB-13) — mirrors GameFrame's ────────────────
+  // One collector per RUN (runKey) — deliberately NOT per srcDoc: a website
+  // live-rebuilds and page-navigates without a fresh run, and the evidence from
+  // the whole observed window must survive those srcdoc swaps. Latest callback/
+  // attempt in refs so a parent re-render never restarts the observation.
+  const onRunReportRef = useRef(onRunReport);
+  onRunReportRef.current = onRunReport;
+  const reportAttemptRef = useRef(reportAttempt);
+  reportAttemptRef.current = reportAttempt;
+  const collectorRef = useRef<ReturnType<typeof createRunCollector> | null>(null);
+  // Finalize-and-emit for the CURRENT run (null once emitted / between runs).
+  const emitReportRef = useRef<(() => void) | null>(null);
+  const collectReports = !!onRunReport;
+
+  useEffect(() => {
+    if (!collectReports) return undefined;
+    const collector = createRunCollector({
+      engine: 'website',
+      attempt: reportAttemptRef.current,
+      assetManifest: [],
+    });
+    collectorRef.current = collector;
+    const startedAt = Date.now();
+    let emitted = false;
+    const emit = () => {
+      if (emitted) return; // at most once per run
+      emitted = true;
+      emitReportRef.current = null;
+      onRunReportRef.current?.(collector.finalize(Date.now() - startedAt));
+    };
+    emitReportRef.current = emit;
+    // Observe, then ask the in-frame shim for its evidence ledgers; if it never
+    // answers (shim broke / page wedged), finalize as inconclusive.
+    let replyTimer: ReturnType<typeof setTimeout> | undefined;
+    const probeTimer = setTimeout(() => {
+      iframeRef.current?.contentWindow?.postMessage({ __airbotixControl: true, action: 'report' }, '*');
+      replyTimer = setTimeout(() => {
+        collector.setProbeError('no-response');
+        emit();
+      }, PROBE_REPLY_TIMEOUT_MS);
+    }, RUN_OBSERVE_MS);
+    return () => {
+      clearTimeout(probeTimer);
+      clearTimeout(replyTimer);
+      collectorRef.current = null;
+      emitReportRef.current = null;
+    };
+  }, [collectReports, runKey]);
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       // Only THIS frame may feed the console / drive navigation (same
@@ -127,10 +195,20 @@ export function SiteFrame({
         // Map srcdoc-relative locations (syntax errors — sourceURL never
         // applied) back to the kid's file:line; runtime locs pass through.
         const loc = resolveErrorLoc(e.data.loc, scriptRangesRef.current);
+        // The RunReport collector stays STACK-FREE (schema-capped wire shape,
+        // same posture as GameFrame); log/info lines become site.logs — the
+        // model's own console.log instrumentation echoed back (D-WEB-13).
+        collectorRef.current?.feedConsole({ level: e.data.level, text: e.data.text, loc });
         setLines((prev) => [
           ...prev.slice(-49),
           { level: e.data.level, text: e.data.text, loc, stack: e.data.stack },
         ]);
+        return;
+      }
+      if (isSiteReportMessage(e.data)) {
+        // The shim answered the run probe with its evidence ledgers.
+        collectorRef.current?.feedSite(e.data.site);
+        emitReportRef.current?.();
         return;
       }
       if (isSiteNavigateMessage(e.data)) {

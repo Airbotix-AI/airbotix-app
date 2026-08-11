@@ -7,9 +7,10 @@
 
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { VfsFile } from '../code/codeApi';
+import type { RunReport } from './runReport';
 import { SiteFrame } from './SiteFrame';
 
 const text = (path: string, content: string): VfsFile => ({
@@ -159,5 +160,94 @@ describe('SiteFrame', () => {
     expect(onConsole).toHaveBeenLastCalledWith([
       expect.objectContaining({ level: 'info', text: 'ready' }),
     ]);
+  });
+});
+
+// Website run verification (creative-code-studio-website-prd D-WEB-13): when
+// armed (onRunReport), each RUN (runKey) is observed for RUN_OBSERVE_MS, the
+// in-frame shim is asked to report over the game control channel, and ONE
+// finalized website RunReport is emitted — console evidence + the shim's site
+// ledgers, or `probeError: 'no-response'` when the shim never answers.
+describe('SiteFrame — run reports (D-WEB-13)', () => {
+  const SHIM_SITE = {
+    pageLoaded: true,
+    page: 'index.html',
+    apiCalls: [{ method: 'GET', path: '/api/pets', status: 500 }],
+    buttons: [{ selector: '#add-task', wired: false }],
+    delegatedClickHandler: false,
+  };
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('asks the shim to report after the observation window, emits ONCE with site + console evidence', () => {
+    const reports: RunReport[] = [];
+    render(
+      <SiteFrame files={SITE} runKey={1} reportAttempt={2} onRunReport={(r) => reports.push(r)} />,
+    );
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post({ __airbotixConsole: true, level: 'error', text: 'TypeError: boom' });
+    post({ __airbotixConsole: true, level: 'log', text: 'step 1: handler entered' });
+    act(() => vi.advanceTimersByTime(4000)); // RUN_OBSERVE_MS → probe request
+    expect(postSpy).toHaveBeenCalledWith({ __airbotixControl: true, action: 'report' }, '*');
+
+    post({ __airbotixSiteReport: true, site: SHIM_SITE });
+
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({
+      reportVersion: 1,
+      attempt: 2,
+      engine: 'website',
+      booted: true,
+      framesAdvanced: 0,
+      fps: 0,
+      assets: [],
+      canvas: { present: false, nonBlank: null, sampled: 0 },
+      consoleErrors: ['TypeError: boom'],
+      site: { ...SHIM_SITE, logs: ['step 1: handler entered'] },
+    });
+    expect(reports[0].probeError).toBeUndefined();
+
+    // A duplicate reply and the stale no-response timer never re-emit.
+    post({ __airbotixSiteReport: true, site: SHIM_SITE });
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(reports).toHaveLength(1);
+  });
+
+  it('no shim reply → probeError no-response and NO site field (inconclusive, never "broken")', () => {
+    const reports: RunReport[] = [];
+    render(<SiteFrame files={SITE} runKey={1} onRunReport={(r) => reports.push(r)} />);
+    act(() => vi.advanceTimersByTime(4000 + 1500)); // observe + reply timeout
+    expect(reports).toHaveLength(1);
+    expect(reports[0].probeError).toBe('no-response');
+    expect('site' in reports[0]).toBe(false);
+    expect(reports[0].booted).toBe(false);
+  });
+
+  it('a runKey bump (fresh run) starts a fresh collector at the new attempt', () => {
+    const reports: RunReport[] = [];
+    const { rerender } = render(
+      <SiteFrame files={SITE} runKey={1} onRunReport={(r) => reports.push(r)} />,
+    );
+    post({ __airbotixConsole: true, level: 'error', text: 'old-run error' });
+    act(() => vi.advanceTimersByTime(4000 + 1500));
+    expect(reports).toHaveLength(1);
+
+    rerender(
+      <SiteFrame files={SITE} runKey={2} reportAttempt={2} onRunReport={(r) => reports.push(r)} />,
+    );
+    act(() => vi.advanceTimersByTime(4000));
+    post({ __airbotixSiteReport: true, site: SHIM_SITE });
+    expect(reports).toHaveLength(2);
+    expect(reports[1].attempt).toBe(2);
+    expect(reports[1].consoleErrors).toEqual([]); // not carried over from run 1
+  });
+
+  it('collects nothing when onRunReport is not set (no probe request goes out)', () => {
+    render(<SiteFrame files={SITE} runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(postSpy).not.toHaveBeenCalled();
   });
 });

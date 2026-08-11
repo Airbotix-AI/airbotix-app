@@ -188,6 +188,18 @@ describe('GameRunnerPane — kind="website" is an always-live site', () => {
     act(() => latestOnConsole?.([{ level: 'error', text: 'No route answered GET /api/x' }]));
     expect(screen.getByText(/No route answered GET \/api\/x/)).toBeInTheDocument();
   });
+
+  it('forwards the verification report seam to the SiteFrame (D-WEB-13)', () => {
+    // Run reports are NOT game-only chrome: the website verification loop rides
+    // the same onRunReport/reportAttempt pass-through the GameFrame gets.
+    const onRunReport = vi.fn();
+    render(
+      <GameRunnerPane files={F('index.html')} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} onRunReport={onRunReport} reportAttempt={2} />,
+    );
+    const props = siteFrameProps.at(-1) as { onRunReport?: unknown; reportAttempt?: number };
+    expect(props.onRunReport).toBe(onRunReport);
+    expect(props.reportAttempt).toBe(2);
+  });
 });
 
 // D-HARN-03 — "Ask AI to fix" is a send-path button: while an AI turn is busy it

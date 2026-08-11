@@ -379,6 +379,82 @@ describe('useVerification — staleness guard (a fix must never clobber newer lo
   });
 });
 
+// Website turns (creative-code-studio-website-prd D-WEB-13): the loop is the
+// same server-adjudicated report → verdict machinery — SiteFrame emits an
+// `engine: 'website'` report with the site evidence ledgers. The one website
+// divergence lives HERE: screenshots are NEVER captured for site reports, even
+// when the backend requested them.
+describe('useVerification — website turns (D-WEB-13)', () => {
+  function siteReport(attempt: number): RunReport {
+    return {
+      reportVersion: 1,
+      attempt,
+      engine: 'website',
+      site: {
+        pageLoaded: true,
+        page: 'index.html',
+        apiCalls: [{ method: 'POST', path: '/api/tasks', status: 500 }],
+        buttons: [{ selector: '#add-task', wired: false }],
+        delegatedClickHandler: false,
+        logs: ['step 1: handler entered'],
+      },
+      observedMs: 4000,
+      booted: true,
+      framesAdvanced: 0,
+      fps: 0,
+      consoleErrors: [],
+      consoleWarns: [],
+      unhandledRejections: [],
+      windowErrors: [],
+      dropped: { errors: 0, warns: 0, rejections: 0 },
+      assets: [],
+      canvas: { present: false, nonBlank: null, sampled: 0 },
+    };
+  }
+
+  it('posts a website pending turn report; fixing applies + re-arms; co_debug surfaces', async () => {
+    const { result, deps, applyFixTurn, restartGame, pushCoDebugMessage } = setup({
+      verdicts: [
+        { verdict: 'fixing', attempt: 1, turn: FIX_TURN },
+        { verdict: 'co_debug', message: 'That button is not connected — look with me!' },
+      ],
+    });
+    act(() => result.current.beginVerification('t1'));
+    act(() => result.current.onRunReport(siteReport(1)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenCalledWith({
+      projectId: 'p1',
+      turnId: 't1',
+      report: siteReport(1),
+      mode: 'lite',
+    });
+    // The fix applies silently and re-arms — the live rebuild + runKey bump
+    // (restartGame) produce the fix turn's own fresh-run report at attempt 2.
+    expect(applyFixTurn).toHaveBeenCalledWith(FIX_TURN);
+    expect(restartGame).toHaveBeenCalledTimes(1);
+    expect(result.current.reportAttempt).toBe(2);
+    act(() => result.current.onRunReport(siteReport(2)));
+    await flush();
+    expect(deps.postRunReport).toHaveBeenLastCalledWith(
+      expect.objectContaining({ turnId: 'fix-1', report: siteReport(2) }),
+    );
+    expect(pushCoDebugMessage).toHaveBeenCalledWith('That button is not connected — look with me!');
+  });
+
+  it('NEVER captures a screenshot for a website report — even when requested', async () => {
+    const captureScreenshot = vi.fn(async () => SHOT);
+    const { result, deps } = setup({ captureScreenshot });
+    act(() => result.current.beginVerification('t1', true)); // backend asked
+    act(() => result.current.onRunReport(siteReport(1)));
+    await flush();
+    expect(captureScreenshot).not.toHaveBeenCalled();
+    const posted = (deps.postRunReport as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+      report: RunReport;
+    };
+    expect('screenshot' in posted.report).toBe(false);
+  });
+});
+
 describe('useVerification — resume-verify (GET …/code/verify-state)', () => {
   it('arms a pending turn at attempts+1 and restarts the game', async () => {
     const { result, deps, restartGame } = setup({

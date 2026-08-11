@@ -10,6 +10,7 @@ import {
   createRunCollector,
   isAssetMessage,
   isRunReportMessage,
+  isSiteReportMessage,
   MAX_REPORT_ERRORS,
   MAX_REPORT_REJECTIONS,
   MAX_REPORT_WARNS,
@@ -197,5 +198,123 @@ describe('message guards', () => {
     expect(isAssetMessage({ __airbotixAsset: true, url: 'x', len: 1, ok: true })).toBe(true);
     expect(isAssetMessage({ __airbotixStat: true })).toBe(false);
     expect(isAssetMessage('nope')).toBe(false);
+  });
+});
+
+// ── Website collector (creative-code-studio-website-prd D-WEB-13) ────────────
+// Mirror contract: the emitted shape must match the backend's SiteReportSchema
+// exactly — engine 'website', a `site` block with the five ledger fields +
+// logs, and DEGENERATE game fields (booted mirrors pageLoaded, frames/fps 0,
+// canvas absent-shaped, assets empty).
+describe('createRunCollector — engine "website"', () => {
+  const REPLY = {
+    pageLoaded: true,
+    page: 'index.html',
+    apiCalls: [{ method: 'GET', path: '/api/tasks', status: 200 }],
+    buttons: [{ selector: '#add-task', wired: false }],
+    delegatedClickHandler: false,
+  };
+  const site = () => collector({ engine: 'website' });
+
+  it('builds a schema-shaped report: exact field names, degenerate game fields', () => {
+    const c = site();
+    c.feedConsole(line('log', 'step 1: handler entered'));
+    c.feedConsole(line('error', 'TypeError: boom'));
+    c.feedSite(REPLY);
+    const r = c.finalize(4000);
+    expect(r).toMatchObject({
+      reportVersion: RUN_REPORT_VERSION,
+      engine: 'website',
+      booted: true, // mirrors site.pageLoaded
+      framesAdvanced: 0,
+      fps: 0,
+      assets: [],
+      canvas: { present: false, nonBlank: null, sampled: 0 },
+      consoleErrors: ['TypeError: boom'],
+      site: { ...REPLY, logs: ['step 1: handler entered'] },
+    });
+    // The exact wire field names, pinned (backend SiteReportSchema mirror).
+    expect(Object.keys(r.site!).sort()).toEqual([
+      'apiCalls',
+      'buttons',
+      'delegatedClickHandler',
+      'logs',
+      'page',
+      'pageLoaded',
+    ]);
+  });
+
+  it('no shim reply ⇒ NO site field at all, booted false (backend degrades to inconclusive)', () => {
+    const c = site();
+    const r = c.finalize(4000);
+    expect('site' in r).toBe(false);
+    expect(r.booted).toBe(false);
+    expect(r.engine).toBe('website');
+  });
+
+  it('routes log/info lines into site.logs (duplicates KEPT), errors stay error-class, ready skipped', () => {
+    const c = site();
+    c.feedConsole(line('log', 'clicked'));
+    c.feedConsole(line('log', 'clicked')); // instrumentation repeats are signal
+    c.feedConsole(line('info', 'loaded 3 tasks'));
+    c.feedConsole(line('info', 'ready')); // the shim handshake — never evidence
+    c.feedConsole(line('error', 'boom'));
+    c.feedSite(REPLY);
+    const r = c.finalize(0);
+    expect(r.site!.logs).toEqual(['clicked', 'clicked', 'loaded 3 tasks']);
+    expect(r.consoleErrors).toEqual(['boom']);
+  });
+
+  it('caps logs at 10 and clips each to 300 chars', () => {
+    const c = site();
+    for (let i = 0; i < 12; i++) c.feedConsole(line('log', `${i}:${'x'.repeat(400)}`));
+    c.feedSite(REPLY);
+    const logs = c.finalize(0).site!.logs;
+    expect(logs).toHaveLength(10);
+    expect(logs[0]).toHaveLength(300);
+  });
+
+  it('sanitizes the untrusted reply: clamps, clips, caps, and maps unknown methods to OTHER', () => {
+    const c = site();
+    c.feedSite({
+      pageLoaded: 'yes', // not === true → false
+      page: 'p'.repeat(200),
+      apiCalls: [
+        ...Array.from({ length: 31 }, () => ({ method: 'FETCH', path: `/x/${'y'.repeat(200)}`, status: 9999.5 })),
+      ],
+      buttons: [...Array.from({ length: 31 }, () => ({ selector: 's'.repeat(100), wired: 1 }))],
+      delegatedClickHandler: 'true',
+    });
+    const r = c.finalize(0);
+    expect(r.site!.pageLoaded).toBe(false);
+    expect(r.booted).toBe(false);
+    expect(r.site!.page).toHaveLength(120);
+    expect(r.site!.apiCalls).toHaveLength(30);
+    expect(r.site!.apiCalls[0]).toEqual({
+      method: 'OTHER',
+      path: `/x/${'y'.repeat(200)}`.slice(0, 120),
+      status: 599,
+    });
+    expect(r.site!.buttons).toHaveLength(30);
+    expect(r.site!.buttons[0]).toEqual({ selector: 's'.repeat(80), wired: false });
+    expect(r.site!.delegatedClickHandler).toBe(false);
+  });
+
+  it('a garbage reply is ignored (no site field); a game collector ignores feedSite entirely', () => {
+    const c = site();
+    c.feedSite('nonsense');
+    expect('site' in c.finalize(0)).toBe(false);
+    const game = collector();
+    game.feedSite(REPLY);
+    const r = game.finalize(0);
+    expect(r.engine).toBe('phaser');
+    expect('site' in r).toBe(false);
+  });
+
+  it('isSiteReportMessage accepts only the tagged shape', () => {
+    expect(isSiteReportMessage({ __airbotixSiteReport: true, site: REPLY })).toBe(true);
+    expect(isSiteReportMessage({ __airbotixSiteReport: false })).toBe(false);
+    expect(isSiteReportMessage({ __airbotixRunReport: true })).toBe(false);
+    expect(isSiteReportMessage(null)).toBe(false);
   });
 });

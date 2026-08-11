@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-08-11 (feat: website run verification — the studio collects the evidence, D-WEB-13)
+
+### Added
+
+- **Websites verify like games.** The site runtime shim (`buildSitePreview.ts`) now keeps
+  evidence ledgers: every `/api` fetch it served/blocked with the REAL status (200 route /
+  404 no-route / 500 throwing handler / 0 blocked-before-response), which elements kid code
+  wired with click/pointerdown/submit listeners (an `EventTarget.prototype.addEventListener`
+  wrap installed LAST so the shim's own nav listener never reads as delegation — that false
+  positive would suppress the unwired-button evidence for every site), whether document/body
+  got a delegated click handler, and whether the page finished loading. A
+  `{__airbotixControl, action:'report'}` request (the game probe's control channel) replies
+  `{__airbotixSiteReport, site}` with those ledgers plus the visible buttons cross-checked
+  for `wired`.
+- `SiteFrame` accepts the same `onRunReport`/`reportAttempt` seam as `GameFrame`: when armed
+  it observes each run (runKey) for ~4 s, asks the shim to report, folds console evidence +
+  the site reply into ONE `engine:'website'` RunReport per run (`probeError:'no-response'`
+  on a reply timeout), keyed per RUN — not per srcdoc — so live rebuilds/page navs never
+  reset the evidence window. `runReport.ts` mirrors the backend `SiteReportSchema`
+  (`site.{pageLoaded,page,apiCalls,buttons,delegatedClickHandler,logs}`, caps 30/30/10,
+  game fields degenerate: `booted` mirrors `pageLoaded`, frames/fps 0, canvas absent-shaped)
+  and the collector sanitizes the untrusted frame reply; kid `console.log`/`info` lines echo
+  back as `site.logs` (the model's own instrumentation probe).
+
+### Changed
+
+- `GameRunnerPane` forwards the report seam to the `SiteFrame` (run reports are no longer
+  game-only); `useVerification` handles website verdicts exactly like games — fixing applies
+  silently and re-arms at attempt+1 (the auto-restart runKey bump is the fresh-run window),
+  co-debug stays the one visible surface — but **never captures a screenshot for a website
+  report**, even when `screenshot_requested` is true (no canvas; the ledgers are the
+  evidence). Sandbox attributes and harness selectors unchanged.
+
+
 ## 2026-08-11 (fix: website chat copy never says "game")
 
 ### Fixed

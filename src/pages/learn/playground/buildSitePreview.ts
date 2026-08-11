@@ -178,10 +178,22 @@ export function isSiteDbMessage(
  * relative `*.html` link clicks into a postMessage to the studio, a
  * kid-readable reporter for silent CSP violations, and the `read-db` control
  * channel (the studio's Home button reads the LIVE db before rebuilding).
+ *
+ * Run-report instrumentation (D-WEB-13): the shim ALSO keeps evidence ledgers —
+ * every /api fetch it served/blocked (with the real status; 0 = rejected before
+ * any response), which elements kid code attached click/pointerdown/submit
+ * listeners to (via an `EventTarget.prototype.addEventListener` wrap installed
+ * LAST, so the shim's own listeners never count), whether document/body got a
+ * delegated click handler, and whether the page finished loading. A
+ * `{__airbotixControl, action:'report'}` request (the same control channel the
+ * game probe uses) replies `{__airbotixSiteReport, site}` with those ledgers
+ * plus the visible interactive elements cross-checked for `wired`. The parent
+ * collector re-clamps everything — this frame is untrusted.
  */
 function siteRuntime(
   seeds: Array<{ key: string; path: string; text: string }>,
   dbState: Record<string, unknown> | null,
+  page: string,
 ): string {
   const seedsJs = `[${seeds
     .map((s) => `{key:${jsStr(s.key)},path:${jsStr(s.path)},text:${jsStr(s.text)}}`)
@@ -216,6 +228,20 @@ function siteRuntime(
   }
   window.db = db;
 
+  // ── run-report evidence ledgers (D-WEB-13) — read by the 'report' request ──
+  var evidence = { pageLoaded: false, api: [], wired: null, delegated: false };
+  try { evidence.wired = new WeakSet(); } catch (e) { evidence.wired = null; }
+  // Loaded = DOM parsed + kid scripts executed (they're inline, so they've all
+  // run by DOMContentLoaded). The shim lives in <head>, so readyState is
+  // normally 'loading' here; the direct check covers late execution.
+  if (document.readyState !== 'loading') { evidence.pageLoaded = true; }
+  else { document.addEventListener('DOMContentLoaded', function () { evidence.pageLoaded = true; }); }
+  function recordApi(method, path, status) {
+    if (evidence.api.length < 30) {
+      evidence.api.push({ method: method, path: String(path).slice(0, 120), status: status });
+    }
+  }
+
   // ── app: the route table server.js registers into ──────────────────────────
   var routes = { GET: {}, POST: {} };
   window.app = {
@@ -240,11 +266,12 @@ function siteRuntime(
   }
   window.fetch = function (input, init) {
     var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
+    var method = (init && init.method ? String(init.method) : 'GET').toUpperCase();
     if (url.slice(0, 5) !== '/api/') {
+      recordApi(method, url, 0); // 0 = rejected before any response
       console.error('fetch("' + url + '") was blocked — the sandbox blocks the outside internet. Your site can only fetch its own /api/... routes.');
       return Promise.reject(new TypeError('Failed to fetch: ' + url));
     }
-    var method = (init && init.method ? String(init.method) : 'GET').toUpperCase();
     var qi = url.indexOf('?');
     var path = qi === -1 ? url : url.slice(0, qi);
     var query = {};
@@ -266,18 +293,24 @@ function siteRuntime(
     var handler = routes[method] && routes[method][path];
     return new Promise(function (resolve) {
       if (!handler) {
+        recordApi(method, path, 404);
         console.error('No route answered ' + method + ' ' + path + " — add app." + method.toLowerCase() + "('" + path + "', (req, res) => { ... }) in server.js.");
         resolve(toResponse(404, { error: 'No route for ' + method + ' ' + path }));
         return;
       }
       var req = { method: method, path: path, query: query, body: body };
       var status = 200;
+      var recorded = false; // ledger once per call, whichever path answers first
       var res = {
         status: function (code) { status = code; return res; },
-        json: function (data) { resolve(toResponse(status, data)); }
+        json: function (data) {
+          if (!recorded) { recorded = true; recordApi(method, path, status); }
+          resolve(toResponse(status, data));
+        }
       };
       try { handler(req, res); }
       catch (err) {
+        if (!recorded) { recorded = true; recordApi(method, path, 500); }
         console.error('Your ' + method + ' ' + path + ' route crashed: ' + (err && err.message ? err.message : err));
         resolve(toResponse(500, { error: String(err && err.message ? err.message : err) }));
       }
@@ -336,6 +369,60 @@ function siteRuntime(
     try { snapshot = JSON.parse(JSON.stringify(window.db)); } catch (err) { snapshot = null; }
     parent.postMessage({ __airbotixSiteDb: true, db: snapshot }, '*');
   });
+
+  // ── report: the studio's run probe (D-WEB-13) ──────────────────────────────
+  // Replies with the evidence ledgers + the VISIBLE interactive elements
+  // cross-checked against the listener ledger. Selector: #id when the element
+  // has one, else tag.firstClass best-effort. With no ledger (no WeakSet) we
+  // never guess AGAINST the kid: everything reports wired.
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixControl !== true || m.action !== 'report') return;
+    var buttons = [];
+    try {
+      var els = document.querySelectorAll('button, input[type="button"], input[type="submit"], [role="button"]');
+      for (var bi = 0; bi < els.length && buttons.length < 30; bi++) {
+        var el = els[bi];
+        if (!el.getClientRects || el.getClientRects().length === 0) continue; // hidden
+        var sel = el.id
+          ? '#' + el.id
+          : el.tagName.toLowerCase() + (el.classList && el.classList.length > 0 ? '.' + el.classList[0] : '');
+        var isWired = evidence.wired === null || evidence.wired.has(el) ||
+          (el.form != null && evidence.wired.has(el.form)) ||
+          typeof el.onclick === 'function' ||
+          (el.form != null && typeof el.form.onsubmit === 'function');
+        buttons.push({ selector: String(sel).slice(0, 80), wired: isWired });
+      }
+    } catch (err) { buttons = []; }
+    parent.postMessage({ __airbotixSiteReport: true, site: {
+      pageLoaded: evidence.pageLoaded,
+      page: ${jsStr(page)},
+      apiCalls: evidence.api,
+      buttons: buttons,
+      delegatedClickHandler: evidence.delegated
+    } }, '*');
+  });
+
+  // ── listener ledger (D-WEB-13) — installed LAST, deliberately ──────────────
+  // Only registrations made AFTER this point (i.e. by kid scripts) land in the
+  // ledger. The shim's OWN document click (nav) / message listeners above must
+  // never count, or delegatedClickHandler would be true for EVERY site and the
+  // unwired-button evidence — the "Add task does nothing" signature — would be
+  // permanently suppressed.
+  try {
+    var addListener = EventTarget.prototype.addEventListener;
+    EventTarget.prototype.addEventListener = function (type, listener, options) {
+      try {
+        if (type === 'click' || type === 'pointerdown' || type === 'submit') {
+          if (type === 'click' && (this === document || (document.body != null && this === document.body))) {
+            evidence.delegated = true;
+          }
+          if (evidence.wired !== null && this instanceof Element) evidence.wired.add(this);
+        }
+      } catch (err) {}
+      return addListener.call(this, type, listener, options);
+    };
+  } catch (e) {}
 })();
 </script>`;
 }
@@ -463,7 +550,7 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
     `<html${kidHtmlAttrs}><head><meta charset="utf-8">`,
     EXTENSION_NOISE_GUARD,
     CONSOLE_CAPTURE,
-    siteRuntime(seeds, opts.dbState ?? null),
+    siteRuntime(seeds, opts.dbState ?? null, pageFile.path),
     CSP_META,
     // server.js — the FIRST kid script, before anything the page brought along
     // (even an inline script the kid page put in its own head).
