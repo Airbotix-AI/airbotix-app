@@ -1411,7 +1411,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
           summary: result.plan?.plan_text ?? result.summary,
           changes: toChanges(result),
           result,
-          prediction: predictionQuestion(prompt),
+          prediction: predictionQuestion(prompt, kind),
         });
         return;
       }
@@ -1433,7 +1433,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
       clearWatchdog();
       setBusy(false);
     }
-  }, [warnPending, busy, projectId, nextId, deps, mode, applyResult, flushBeforeTurn, beginWatchdog, clearWatchdog, settleAbortedBubble]);
+  }, [warnPending, busy, projectId, nextId, deps, mode, kind, applyResult, flushBeforeTurn, beginWatchdog, clearWatchdog, settleAbortedBubble]);
 
   const dismissWarn = useCallback(() => {
     if (warnPending) {

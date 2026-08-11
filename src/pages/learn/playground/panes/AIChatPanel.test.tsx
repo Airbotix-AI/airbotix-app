@@ -756,3 +756,30 @@ describe('AIChatPanel — the run CTA wording is kind-aware', () => {
     expect(onRunGame).toHaveBeenCalledTimes(1);
   });
 });
+
+// The changed-file fallback note is kind-aware too: a website turn must never
+// describe index.html as "A file in your game." (manual verification 2026-08-11).
+describe('AIChatPanel — changed-file fallback notes are kind-aware', () => {
+  const turn = (id: string): ChatItem[] => [
+    {
+      id,
+      role: 'agent',
+      text: 'Done!',
+      // A changed file WITHOUT a file_note → the fallback description renders.
+      toolsFired: ['index.html'],
+    } as ChatItem,
+  ];
+
+  it('website: index.html falls back to website wording', () => {
+    render(
+      <AIChatPanel chat={turn('w1')} busy={false} error={null} onSend={vi.fn()} kind="website" />,
+    );
+    expect(screen.getByText('The home page of your website.')).toBeTruthy();
+    expect(screen.queryByText(/in your game/i)).toBeNull();
+  });
+
+  it('game: wording unchanged', () => {
+    render(<AIChatPanel chat={turn('g1')} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.queryByText(/your website/i)).toBeNull();
+  });
+});

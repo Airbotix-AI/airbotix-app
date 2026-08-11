@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-11 (fix: website chat copy never says "game")
+
+### Fixed
+
+- Changed-file fallback notes are kind-aware: a website turn's index.html reads
+  "The home page of your website." (server.js/data seeds/pages likewise) — never
+  "A file in your game." The reflect-prediction line is kind-aware too.
+
+
 ## 2026-08-11 (feat: server-routed game-vs-website on the generic landing)
 
 ### Changed

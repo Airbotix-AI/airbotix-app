@@ -127,8 +127,21 @@ function changedLineRange(
  * path. The teacher's `fileNotes` note (contextual to the change) is preferred; this
  * is the role-based fallback keyed off the well-known scaffold layout.
  */
-function describeFile(path: string): string {
+function describeFile(path: string, kind: 'game' | 'website' = 'game'): string {
   const name = path.split('/').pop() ?? path;
+  if (kind === 'website') {
+    if (name === 'index.html') return 'The home page of your website.';
+    if (name === 'server.js') return 'The little backend that answers /api calls.';
+    if (name === 'script.js') return 'Code that makes your pages interactive.';
+    if (name === 'style.css') return 'How your website looks.';
+    if (name.endsWith('.html')) return 'A page of your website.';
+    if (name.endsWith('.css')) return 'Styling for how things look.';
+    if (path.startsWith('data/') && name.endsWith('.json'))
+      return 'The starting data your backend remembers.';
+    if (name.endsWith('.json')) return 'Settings or data for your website.';
+    if (name.endsWith('.js')) return 'Code that makes your website work.';
+    return 'A file in your website.';
+  }
   if (name === 'main.js') return "The game's starting point — it sets everything up.";
   if (name === 'Boot.js') return 'Gets the game ready before it starts.';
   if (name === 'Game.js') return 'Your main game scene — where the action happens.';
@@ -160,7 +173,7 @@ function fileEmoji(path: string): string {
  * teacher's `fileNotes` for descriptions (falling back to a role-based sentence so
  * a row is never just a path), and `toolsFired` only as a path fallback.
  */
-function buildChangedFiles(item: ChatItem): ChangedFile[] {
+function buildChangedFiles(item: ChatItem, kind: 'game' | 'website' = 'game'): ChangedFile[] {
   const noteByPath = new Map((item.fileNotes ?? []).map((n) => [n.path, n.note]));
   const seen = new Set<string>();
   const out: ChangedFile[] = [];
@@ -169,7 +182,7 @@ function buildChangedFiles(item: ChatItem): ChangedFile[] {
     seen.add(path);
     out.push({
       path,
-      note: noteByPath.get(path) ?? describeFile(path),
+      note: noteByPath.get(path) ?? describeFile(path, kind),
       fromLine: range?.from,
       toLine: range?.to,
     });
@@ -1047,7 +1060,7 @@ function ChatRow({
           // Per-file "what changed" rows (§11.4): ONE row per changed file
           // (consolidate multiple edits to the same file), each with the teacher's
           // short note and clickable → opens the editor + highlights the change.
-          const changedFiles = buildChangedFiles(item);
+          const changedFiles = buildChangedFiles(item, kind);
           if (changedFiles.length === 0) return null;
           return (
             <div data-testid="file-changes" className="mt-3 flex flex-col gap-2">
