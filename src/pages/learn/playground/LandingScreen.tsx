@@ -17,11 +17,15 @@ interface StarterChip {
 // pick a starting point by its picture.
 const STARTER_CHIPS: readonly StarterChip[] = [
   { emoji: '🏓', label: 'Pong', prompt: 'a pong game' },
+  // Website ideas sit in the generic set too — the generic landing infers the
+  // kind from the prompt (D-WEB-11), so these chips create real websites.
+  { emoji: '🍪', label: 'Cookie shop site', prompt: 'a cookie shop website' },
   { emoji: '🟩', label: 'Platformer', prompt: 'a platformer where you jump across platforms' },
   { emoji: '🐦', label: 'Flappy', prompt: 'a flappy bird game' },
   { emoji: '🐍', label: 'Snake', prompt: 'a snake game' },
   { emoji: '🌀', label: 'Maze', prompt: 'a maze game where you find the exit' },
   { emoji: '🐱', label: 'Cat', prompt: 'a game with a cute cat hero' },
+  { emoji: '🐶', label: 'My dog site', prompt: 'a website about my dog' },
 ]
 
 // Website Studio starter chips (creative-code-studio-website-prd) — same UDL
@@ -39,10 +43,10 @@ const WEBSITE_STARTER_CHIPS: readonly StarterChip[] = [
 // cross-repo harness journeys target them verbatim; keep them exact).
 const LANDING_COPY = {
   game: {
-    placeholder: "Describe a game and we'll build it…",
-    ariaLabel: 'Describe a game',
-    readAloud: 'Describe a game and we will build it.',
-    submitLabel: 'Build game',
+    placeholder: "Describe a game or website and we'll build it…",
+    ariaLabel: 'Describe a game or website',
+    readAloud: 'Describe a game or website and we will build it.',
+    submitLabel: 'Build it',
     wordmark: 'Airbotix Playground',
     chips: STARTER_CHIPS,
   },

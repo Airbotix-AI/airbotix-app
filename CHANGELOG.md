@@ -2,6 +2,14 @@
 
 ## 2026-08-11 (fix: website ideas on the generic landing create websites)
 
+### Changed
+
+- The single Creative Code Studio entry now SAYS it builds both: the home/create
+  tile copy mentions websites, the generic landing placeholder is "Describe a
+  game or website and we'll build it…" (aria/read-aloud updated, submit label is
+  the kind-neutral "Build it"), and two website starter chips join the generic
+  set. The Website Studio tile also renders on the Learn home grid (asserted).
+
 ### Fixed
 
 - The generic prompt-first landing (`/learn/playground/new`, no `?kind` — the

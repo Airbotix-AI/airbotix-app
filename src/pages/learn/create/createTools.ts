@@ -161,14 +161,14 @@ export const CREATE_TOOLS: CreateTool[] = [
     to: '/learn/playground/new',
     emoji: '💻',
     title: 'Creative Code Studio',
-    desc: 'Vibe-code a 2D game with AI and real JavaScript — then keep adding to it.',
+    desc: 'Vibe-code a 2D game — or a real website — with AI and real JavaScript, then keep adding to it.',
     discoveryLabel: 'Ages 8–14',
     parentDesc:
       'Ideas become interactive creations with AI and real JavaScript to inspect and improve.',
     learnPath: 'Learn home → Creative Code Studio',
     parentGuide: {
       bestFor:
-        'Ages 8–14 with ideas for games or interactive projects, including coding beginners.',
+        'Ages 8–14 with ideas for games, websites or interactive projects, including coding beginners.',
       outcome: 'A playable JavaScript creation they can test, change and keep improving.',
       steps: [
         'Describe an idea in their own words and choose what the first version should do.',

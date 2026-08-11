@@ -116,7 +116,7 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
   it('without ?kind the landing stays the game prompt (no regression)', () => {
     renderNew('/learn/playground/new');
     expect(
-      screen.getByPlaceholderText("Describe a game and we'll build it…"),
+      screen.getByPlaceholderText("Describe a game or website and we'll build it…"),
     ).toBeInTheDocument();
     expect(screen.getByText('Pong')).toBeInTheDocument();
   });
@@ -127,7 +127,7 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
   it('generic landing + a website-shaped idea creates a website (kind inference)', async () => {
     renderNew('/learn/playground/new');
 
-    const box = screen.getByPlaceholderText("Describe a game and we'll build it…");
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
     fireEvent.change(box, { target: { value: "I'd like to create a todo list website" } });
     fireEvent.keyDown(box, { key: 'Enter' });
 
@@ -144,7 +144,7 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
   it('generic landing + a game idea still creates a game (no kind field sent)', async () => {
     renderNew('/learn/playground/new');
 
-    const box = screen.getByPlaceholderText("Describe a game and we'll build it…");
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
     fireEvent.change(box, { target: { value: 'a pong game' } });
     fireEvent.keyDown(box, { key: 'Enter' });
 

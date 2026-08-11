@@ -17,7 +17,7 @@ import { mockBackendAsKid, openStudio, openLanding, STUDIO_PROJECT_ID } from './
 // chat-first) plus the UDL accessibility surface (picture starter chips +
 // read-aloud + voice) and a stable landing screenshot.
 
-const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
+const LANDING_PLACEHOLDER = "Describe a game or website and we'll build it…";
 
 test('J1: Creative Code Studio card creates a real game project and opens the studio on its VFS', async ({ page }) => {
   await mockBackendAsKid(page);
@@ -70,7 +70,7 @@ test('UDL accessibility smoke: picture starter chips + read-aloud + voice on the
 test('voice input: a spoken idea fills the prompt and submits into the create flow (UDL naming)', async ({ page }) => {
   // Voice idea input (OD-6): the mic records → backend STT (`/llm/transcribe`) →
   // the transcript fills the prompt box. Stub that seam so the click is offline +
-  // deterministic, then submit ("Build game") → the mocked create→workspace flow.
+  // deterministic, then submit ("Build it") → the mocked create→workspace flow.
   await mockBackendAsKid(page);
   await page.route('**/llm/transcribe', (route) =>
     route.fulfill({
@@ -109,9 +109,9 @@ test('voice input: a spoken idea fills the prompt and submits into the create fl
   const input = page.getByPlaceholder(LANDING_PLACEHOLDER);
   await expect(input).toHaveValue(/cute cat hero/, { timeout: 10_000 });
 
-  // Submit ("Build game") → the mocked create→workspace flow advances into the
+  // Submit ("Build it") → the mocked create→workspace flow advances into the
   // studio on `game-77`, chat-first.
-  await page.getByRole('button', { name: 'Build game' }).click();
+  await page.getByRole('button', { name: 'Build it' }).click();
   await expect(page).toHaveURL(new RegExp(`/learn/playground/${STUDIO_PROJECT_ID}$`));
   await expect(page.getByTestId('chat-starter')).toBeVisible({ timeout: 15_000 });
 });

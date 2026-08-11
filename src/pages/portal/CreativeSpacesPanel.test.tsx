@@ -39,7 +39,7 @@ describe('CreativeSpacesPanel', () => {
         previewAlt: 'Creative Code Studio showing an AI conversation',
         previewCaption: 'game runs beside the conversation and real code',
         demo: '/try/playground',
-        fit: 'Ages 8–14 with ideas for games or interactive projects',
+        fit: 'Ages 8–14 with ideas for games, websites or interactive projects',
         outcome: 'A playable JavaScript creation',
         step: 'inspect the real JavaScript',
         skill: 'AI judgement',

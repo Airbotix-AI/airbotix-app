@@ -38,7 +38,7 @@ describe('TryPlaygroundPage', () => {
     // The real landing screen is mounted (not a rebuilt lookalike, no backdrop).
     expect(screen.getByTestId('studio-root')).toBeInTheDocument();
     expect(screen.queryByTestId('demo-tour-backdrop')).not.toBeInTheDocument();
-    const input = screen.getByLabelText('Describe a game') as HTMLTextAreaElement;
+    const input = screen.getByLabelText('Describe a game or website') as HTMLTextAreaElement;
     expect(input.value).toBe(PLAYGROUND_DEMO_SCRIPT.lockedPrompt);
     expect(input).toHaveAttribute('readonly');
     // Inputs that could change the locked prompt are hidden in the demo.
@@ -50,10 +50,10 @@ describe('TryPlaygroundPage', () => {
   it('only the tour card creates the game — the landing submit + Enter are inert', () => {
     renderPage();
     // The landing's own send button is disabled in demo mode…
-    expect(screen.getByLabelText('Build game')).toBeDisabled();
+    expect(screen.getByLabelText('Build it')).toBeDisabled();
     // …and Enter in the (read-only) prompt box must not create either: the
     // studio stays on the landing phase.
-    fireEvent.keyDown(screen.getByLabelText('Describe a game'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByLabelText('Describe a game or website'), { key: 'Enter' });
     expect(screen.queryByTestId('generating-screen')).not.toBeInTheDocument();
     expect(screen.getByTestId('tour-next')).toHaveTextContent('Create the game');
   });

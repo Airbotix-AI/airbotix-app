@@ -41,10 +41,10 @@ async function walkToErrorCard(page: Page, layout: WorkspaceLayout = 'window') {
   await expect(page.getByTestId('tour-title')).toHaveText('Every game starts with a sentence');
   await expect(page.getByTestId('tour-card')).toHaveAttribute('data-placement', 'beside-input');
   await expect(page.getByTestId('tour-skip')).toHaveCount(0);
-  const prompt = page.getByLabel('Describe a game');
+  const prompt = page.getByLabel('Describe a game or website');
   await expect(prompt).toHaveValue(/fruit-catcher game/);
   await expect(prompt).toHaveAttribute('readonly', '');
-  await expect(page.getByLabel('Build game')).toBeDisabled(); // tweak: inert real submit
+  await expect(page.getByLabel('Build it')).toBeDisabled(); // tweak: inert real submit
   await page.getByTestId('tour-next').click(); // Create the game
 
   // 1→2 — the REAL generating progress plays: the starter's files reveal

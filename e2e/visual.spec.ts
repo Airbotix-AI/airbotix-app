@@ -17,7 +17,7 @@ import { mockBackendAsKid, openLanding } from './helpers';
 //   npm run test:e2e -- visual.spec.ts --update-snapshots
 // Commit the regenerated PNGs under e2e/__screenshots__/.
 
-const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
+const LANDING_PLACEHOLDER = "Describe a game or website and we'll build it…";
 const VIEWPORT = { width: 1280, height: 800 };
 
 // Sub-pixel anti-aliasing differs across machines; a tiny ratio absorbs it

@@ -32,7 +32,7 @@ test.describe.configure({ timeout: 90_000 });
 // (`agent-msg-streaming` → `agent-msg`) and Stars debit. The chat specs below
 // drive that real flow.
 
-const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
+const LANDING_PLACEHOLDER = "Describe a game or website and we'll build it…";
 
 type WindowName = 'Code Editor' | 'Game Runner' | 'Asset Viewer';
 
