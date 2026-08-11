@@ -72,13 +72,21 @@ export async function createGameProject(args: {
   /** Only set when a specific starter was chosen; omit to let the backend pick
    *  (games: engine inferred from the title; websites: `website_blank`). */
   template?: GameTemplateId | WebsiteTemplateId;
-}): Promise<{ id: string }> {
-  return api<{ id: string }>(`/projects`, {
+  /**
+   * Generic prompt-first landing (D-WEB-11): ask the SERVER to route
+   * game-vs-website from the title with one classify-model call (keyword
+   * fallback, never fails the create). The response's `kind` is the decision —
+   * adopt it. Explicit studio choices omit this.
+   */
+  inferKind?: boolean;
+}): Promise<{ id: string; kind?: 'game' | 'website' }> {
+  return api<{ id: string; kind?: 'game' | 'website' }>(`/projects`, {
     method: 'POST',
     body: {
       title: args.title,
       product_line: 'line_b_coding',
       kind: args.kind ?? GAME_PROJECT_KIND,
+      ...(args.inferKind ? { infer_kind: true } : {}),
       ...(args.template ? { template: args.template } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),

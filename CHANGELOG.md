@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-11 (feat: server-routed game-vs-website on the generic landing)
+
+### Changed
+
+- The generic landing no longer guesses the kind with keywords: it sends
+  `infer_kind` on create and ADOPTS the server's LLM-routed decision (D-WEB-11
+  revised) — "create a todo list" now becomes a website with no web keyword.
+  The local `kindInference.ts` helper is removed (the server owns the fallback);
+  explicit `?kind` paths never send `infer_kind`.
+
+
 ## 2026-08-11 (feat: websites are always live — no run concept)
 
 ### Changed

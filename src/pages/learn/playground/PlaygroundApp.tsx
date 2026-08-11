@@ -9,7 +9,6 @@ import { getProject, readVfs, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject, createPrepGameProject, placeGameProjectForClass } from './panes/playgroundApi';
-import { inferProjectKindFromIdea } from './kindInference';
 import { useHistoryStore } from './historyStore';
 import { LandingScreen } from './LandingScreen';
 import { usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
@@ -500,17 +499,15 @@ export function PlaygroundApp({
           kind={projectKind}
           onSubmit={async (p) => {
             setPrompt(p);
-            // Generic landing (no explicit ?kind, kid path only): infer WEBSITE
-            // from a confident prompt signal (D-WEB-11) — the Learn-home tile
-            // lands here, and "I'd like a todo list website" must not create a
-            // game. An explicit ?kind (the Website card / class sheet) always
-            // wins; teacher prep keeps its explicit tiles (prompt-first prep is
-            // game-only).
-            let submitKind = projectKind;
-            if (isNew && !prepClassId && searchParams.get('kind') === null) {
-              submitKind = inferProjectKindFromIdea(p);
-              if (submitKind !== projectKind) setProjectKind(submitKind);
-            }
+            // Generic landing (no explicit ?kind, kid path only): the SERVER
+            // routes game-vs-website from the idea with one classify-model call
+            // (D-WEB-11, LLM-backed — "create a todo list" is a website even
+            // with no web word). We send infer_kind and adopt the created
+            // project's kind below. An explicit ?kind (the Website card / class
+            // sheet) always wins; teacher prep keeps its explicit tiles.
+            const wantsKindInference =
+              isNew && !prepClassId && searchParams.get('kind') === null;
+            const submitKind = projectKind;
             // For a NEW game/website, create the real backend project now —
             // AFTER the prompt — then load it. The **prompt is the project name**
             // (capped to a sensible length). Falls back to a throwaway local
@@ -537,7 +534,13 @@ export function PlaygroundApp({
                     familyId,
                     title,
                     ...(submitKind === 'website' ? { kind: 'website' as const } : {}),
+                    ...(wantsKindInference ? { inferKind: true } : {}),
                   });
+                  // Adopt the server's routing decision (D-WEB-11) so the
+                  // generating copy + workspace mount the right runtime.
+                  if (wantsKindInference && game.kind === 'website') {
+                    setProjectKind('website');
+                  }
                   if (createForClassId) {
                     await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
                   }

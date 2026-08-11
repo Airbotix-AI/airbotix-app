@@ -39,8 +39,10 @@ vi.mock('./panes/playgroundApi', async (orig) => {
 // The REAL LandingScreen renders (its website copy is under test); only the
 // generating phase is stubbed so no stream/backends run.
 vi.mock('./GeneratingScreen', () => ({
-  GeneratingScreen: ({ projectId }: { projectId?: string }) => (
-    <div data-testid="generating-project">{projectId}</div>
+  GeneratingScreen: ({ projectId, kind }: { projectId?: string; kind?: string }) => (
+    <div data-testid="generating-project" data-kind={kind}>
+      {projectId}
+    </div>
   ),
 }));
 
@@ -121,36 +123,50 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
     expect(screen.getByText('Pong')).toBeInTheDocument();
   });
 
-  // D-WEB-11: the GENERIC landing (Learn-home tile → /learn/playground/new, no
-  // ?kind) infers WEBSITE from a confident prompt signal — this exact prompt used
-  // to create a game and confuse the first build.
-  it('generic landing + a website-shaped idea creates a website (kind inference)', async () => {
+  // D-WEB-11 (LLM-backed): the GENERIC landing (Learn-home tile →
+  // /learn/playground/new, no ?kind) asks the SERVER to route game-vs-website —
+  // "create a todo list" has no web keyword, only the model can catch it. The
+  // client sends infer_kind and ADOPTS the created project's kind.
+  it('generic landing sends infer_kind and adopts the server routing (todo list → website)', async () => {
+    createGameProjectMock.mockResolvedValue({ id: 'site-42', kind: 'website' });
     renderNew('/learn/playground/new');
 
     const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
-    fireEvent.change(box, { target: { value: "I'd like to create a todo list website" } });
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
     fireEvent.keyDown(box, { key: 'Enter' });
 
     await waitFor(() =>
       expect(createGameProjectMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "I'd like to create a todo list website",
-          kind: 'website',
-        }),
+        expect.objectContaining({ title: 'create a todo list', inferKind: true }),
       ),
+    );
+    // No client-side kind guess rides the create — the server decides…
+    expect(createGameProjectMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'website' }),
+    );
+    // …and the decision is adopted: the build screen runs in website mode.
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'website'),
     );
   });
 
-  it('generic landing + a game idea still creates a game (no kind field sent)', async () => {
+  it('generic landing + a game routing stays a game', async () => {
+    createGameProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
+    // The post-create project load must agree — the suite default says website.
+    getProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
     renderNew('/learn/playground/new');
 
     const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
     fireEvent.change(box, { target: { value: 'a pong game' } });
     fireEvent.keyDown(box, { key: 'Enter' });
 
-    await waitFor(() => expect(createGameProjectMock).toHaveBeenCalled());
-    expect(createGameProjectMock).not.toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'website' }),
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ inferKind: true }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'game'),
     );
   });
 
@@ -165,6 +181,10 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
       expect(createGameProjectMock).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'website' }),
       ),
+    );
+    // An explicit choice never asks the server to re-route it.
+    expect(createGameProjectMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ inferKind: true }),
     );
   });
 });
