@@ -26,9 +26,14 @@ CSP blocks every SUBRESOURCE vector + XHR/WS/beacon; it does NOT stop frame SELF
 `server.js` app.get/app.post routes are served by an in-frame fetch shim (/api-only, no real
 network); `db` comes from TOP-LEVEL `data/*.json` TEXT seeds (`isWebsiteDataSeedPath`, backend
 kind authoritative, nested seeds rejected server-side; persists across page navs via nav/read-db
-postMessage, resets per run). No pause/FPS/debug/run-report; verification is always `'none'`; the
-2D⇄3D switch never offers; **Share is hidden until website publish lands (P3)**. Backend
-contract: `website-prompt.ts` (keep in sync).
+postMessage, resets per run). A website has **NO run concept**: the site is ALWAYS mounted +
+live-rebuilds from the VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's
+`run_game` — adopts files immediately as a fresh run, db reset per D-WEB-04). No
+play/pause/FPS/debug/run-report chrome anywhere (runner=Reload only; editor ▶ = "Reload site",
+still commit+run; chat CTA = "See my site"; the runner window/tile/taskbar label reads "Website"
+via `windowDisplay`, id 'game' stable); verification is always `'none'`; the 2D⇄3D switch never
+offers; **Share is hidden until website publish lands (P3)**. Backend contract:
+`website-prompt.ts` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 

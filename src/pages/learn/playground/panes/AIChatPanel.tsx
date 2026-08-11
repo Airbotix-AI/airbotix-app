@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Code2,
   Eye,
+  Globe,
   Hand,
   Heart,
   ImagePlus,
@@ -244,6 +245,10 @@ interface AIChatPanelProps {
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Project kind (creative-code-studio-website-prd): a `website` has no run
+   *  concept — the run CTA reads "See my site" (refresh + focus the live site)
+   *  instead of "Run game". Defaults to `game`. */
+  kind?: 'game' | 'website';
   /** Open a changed file in the editor and highlight the change (§11.4). */
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   /** Open a finished asset (by VFS path) in the Asset Viewer — the chat "done" card tap (§3). */
@@ -303,6 +308,7 @@ export function AIChatPanel({
   onLowerHand,
   onRunGame,
   onSeeCode,
+  kind = 'game',
   onOpenFile,
   onOpenAsset,
   assetSrc,
@@ -573,6 +579,7 @@ export function AIChatPanel({
                 readOnly={readOnly}
                 onRunGame={onRunGame}
                 onSeeCode={onSeeCode}
+                kind={kind}
                 onSend={onSend}
                 onOpenFile={onOpenFile}
                 onOpenAsset={onOpenAsset}
@@ -857,6 +864,7 @@ function ChatRow({
   readOnly,
   onRunGame,
   onSeeCode,
+  kind = 'game',
   onSend,
   onOpenFile,
   onOpenAsset,
@@ -870,6 +878,8 @@ function ChatRow({
   readOnly?: boolean;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** `website` swaps the run CTA wording (a site is always live — "See my site"). */
+  kind?: 'game' | 'website';
   onSend?: (text: string, opts?: SendOptions) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
@@ -1077,7 +1087,16 @@ function ChatRow({
                 onClick={onRunGame}
                 className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-4 py-2 text-[13px] font-extrabold text-ink shadow-brand-mint transition-transform hover:-translate-y-0.5"
               >
-                <Play size={16} /> Run game
+                {/* A website is always live — the CTA refreshes + focuses it. */}
+                {kind === 'website' ? (
+                  <>
+                    <Globe size={16} /> See my site
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} /> Run game
+                  </>
+                )}
               </button>
             )}
             {item.actions?.includes('code') && (

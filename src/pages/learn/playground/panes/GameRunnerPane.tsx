@@ -1,4 +1,4 @@
-import { Bug, Gamepad2, Globe, Pause, Play, RotateCcw, Smartphone, Sparkles, Terminal, Volume2, VolumeX } from 'lucide-react';
+import { Bug, Gamepad2, Pause, Play, RotateCcw, Smartphone, Sparkles, Terminal, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
@@ -126,6 +126,10 @@ export function fixPrompt(lines: ConsoleLine[]): string {
 
 const DEFAULT_PRESET_ID = 'original';
 
+/** How long after the last VFS change the live site preview rebuilds (ms) —
+ *  settles Monaco typing bursts without feeling laggy (D-WEB-04 live model). */
+const SITE_REBUILD_DEBOUNCE_MS = 700;
+
 /** Console line level → text color (VSCode-terminal flavor). */
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
   log: 'text-pg-text-dim',
@@ -251,9 +255,32 @@ export function GameRunnerPane({
   const [debug, setDebug] = useState(false);
   const [fps, setFps] = useState(0);
   const [lines, setLines] = useState<ConsoleLine[]>([]);
-  // Website Studio: the runner hosts the SiteFrame; pause/mute/FPS/debug/screen
-  // presets/run-reports are game-only affordances and are hidden, not disabled.
+  // Website Studio: a site has NO "running" concept — the SiteFrame is ALWAYS
+  // mounted and live-rebuilds as the VFS changes (debounced below). The only
+  // affordance is Reload (fresh run: db reset, back to index.html, D-WEB-04);
+  // pause/mute/FPS/debug/screen presets/run-reports are game-only and hidden.
   const isSite = kind === 'website';
+
+  // Live site preview: follow `files` with a debounce so typing in Monaco (the
+  // idle autosave commits drafts) doesn't thrash the iframe; an AI-turn apply
+  // refreshes promptly anyway (the agent's run_game action bumps runKey, which
+  // adopts the latest files IMMEDIATELY below). Mirrors SAVE_DEBOUNCE_MS-style
+  // settling; a rebuild is a fresh run per D-WEB-04 (db resets — correct).
+  const [siteFiles, setSiteFiles] = useState(files);
+  useEffect(() => {
+    if (!isSite) return undefined;
+    const timer = setTimeout(() => setSiteFiles(files), SITE_REBUILD_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [isSite, files]);
+  // Reload / run_game / AI apply (runKey bump): adopt the latest files NOW —
+  // no debounce lag on an explicit refresh. Guarded setState-during-render
+  // (React's supported "adjust state on prop change" pattern, same family as
+  // the game's runFilesRef snapshot below).
+  const lastSiteRunKey = useRef(runKey);
+  if (isSite && runKey !== lastSiteRunKey.current) {
+    lastSiteRunKey.current = runKey;
+    if (siteFiles !== files) setSiteFiles(files);
+  }
 
   // The running game uses a SNAPSHOT of the VFS taken at launch (keyed to runKey),
   // so editor autosaves — which mutate `files` WITHOUT a Play — don't silently
@@ -346,15 +373,21 @@ export function GameRunnerPane({
     // playground theme — `data-theme="dark"` re-themes its pg-* chrome locally.
     // In Window mode the game Window also forces dark; this covers Split mode.
     <div data-theme="dark" className="flex h-full min-h-0 flex-col bg-pg-bg text-pg-text">
-      {/* Toolbar — websites keep only Play/Restart + Console (no pause/mute/
-          preset/physics-debug: those are game affordances, hidden not dead). */}
+      {/* Toolbar. A website has NO run concept — its ONLY affordance is Reload
+          (fresh run: db reset, back to index.html) + the console toggle; every
+          play/pause/mute/preset/physics-debug control is game-only. */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-surface-2 px-3 py-2">
         {isSite ? (
-          !running && (
-            <ToolButton label="Play" onClick={onRun}>
-              <Play size={18} />
-            </ToolButton>
-          )
+          <button
+            type="button"
+            aria-label="Reload site"
+            title="Reload site"
+            data-testid="site-reload"
+            onClick={onRun}
+            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+          >
+            <RotateCcw size={16} aria-hidden /> Reload
+          </button>
         ) : (
           <ToolButton
             label={!running ? 'Play' : paused ? 'Play' : 'Pause'}
@@ -399,9 +432,11 @@ export function GameRunnerPane({
           </label>
         )}
 
-        <ToolButton label="Restart" onClick={onRun}>
-          <RotateCcw size={18} />
-        </ToolButton>
+        {!isSite && (
+          <ToolButton label="Restart" onClick={onRun}>
+            <RotateCcw size={18} />
+          </ToolButton>
+        )}
 
         {!isSite && (
           <ToolButton
@@ -424,19 +459,19 @@ export function GameRunnerPane({
         ref={stageRef}
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-pg-desktop"
       >
-        {running ? (
-          isSite ? (
-            // Websites fill the stage edge-to-edge (no game screen presets) —
-            // the SiteFrame carries its own slim nav bar (Home + current page).
-            <div className="h-full w-full overflow-hidden">
-              <SiteFrame
-                files={runFiles}
-                virtualAssets={virtualAssets}
-                runKey={runKey}
-                onConsole={setLines}
-              />
-            </div>
-          ) : (
+        {isSite ? (
+          // Websites are ALWAYS live — no launch gate, no placeholder. The frame
+          // fills the stage edge-to-edge (no game screen presets) and rebuilds
+          // from the debounced live VFS; SiteFrame carries its own slim nav bar.
+          <div className="h-full w-full overflow-hidden">
+            <SiteFrame
+              files={siteFiles}
+              virtualAssets={virtualAssets}
+              runKey={runKey}
+              onConsole={setLines}
+            />
+          </div>
+        ) : running ? (
           <div
             className="overflow-hidden rounded-md bg-black shadow-[0_10px_40px_-8px_rgba(0,0,0,0.8)] ring-1 ring-white/20"
             style={box ? { width: box.w, height: box.h } : { width: '100%', height: '100%' }}
@@ -455,19 +490,12 @@ export function GameRunnerPane({
               reportAttempt={reportAttempt}
             />
           </div>
-          )
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-pg-desktop text-center">
-            {isSite ? (
-              <Globe size={44} className="text-pg-text-muted" />
-            ) : (
-              <Gamepad2 size={44} className="text-pg-text-muted" />
-            )}
+            <Gamepad2 size={44} className="text-pg-text-muted" />
             <div className="space-y-0.5">
               <p className="text-sm font-bold text-pg-text-dim">Press ▶ to play</p>
-              <p className="text-xs text-pg-text-muted">
-                {isSite ? 'your website shows up here' : 'your game shows up here'}
-              </p>
+              <p className="text-xs text-pg-text-muted">your game shows up here</p>
             </div>
             <button
               type="button"
@@ -513,9 +541,17 @@ export function GameRunnerPane({
         </div>
       )}
 
-      {/* Status bar */}
+      {/* Status bar. A website is ALWAYS live — no Idle/Running/Paused states,
+          no fps, no screen-preset dims; just the live dot + the log count. */}
       <div className="flex shrink-0 items-center gap-2 border-t border-pg-border bg-pg-surface-2 px-3 py-1.5 text-xs">
-        {!running ? (
+        {isSite ? (
+          <>
+            <span aria-hidden className="h-2 w-2 rounded-full bg-brand-mint" />
+            <span className="font-bold text-pg-text">Live</span>
+            <span className="text-pg-text-muted">·</span>
+            <span className="text-pg-text-dim">{logCount + ' logs'}</span>
+          </>
+        ) : !running ? (
           <>
             <span aria-hidden className="h-2 w-2 rounded-full bg-pg-text-muted" />
             <span className="font-bold text-pg-text">Idle</span>
@@ -524,16 +560,11 @@ export function GameRunnerPane({
           <>
             <span
               aria-hidden
-              className={`h-2 w-2 rounded-full ${paused && !isSite ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
+              className={`h-2 w-2 rounded-full ${paused ? 'bg-brand-sunshine' : 'bg-brand-mint'}`}
             />
-            <span className="font-bold text-pg-text">{paused && !isSite ? 'Paused' : 'Running'}</span>
-            {/* FPS is a game-engine stat — a website has no frame loop to report. */}
-            {!isSite && (
-              <>
-                <span className="text-pg-text-muted">·</span>
-                <span className="text-pg-text-dim">{fps + ' fps'}</span>
-              </>
-            )}
+            <span className="font-bold text-pg-text">{paused ? 'Paused' : 'Running'}</span>
+            <span className="text-pg-text-muted">·</span>
+            <span className="text-pg-text-dim">{fps + ' fps'}</span>
             <span className="text-pg-text-muted">·</span>
             <span className="text-pg-text-dim">{logCount + ' logs'}</span>
           </>

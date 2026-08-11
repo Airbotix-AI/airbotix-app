@@ -33,7 +33,7 @@ import { RaiseHandButton } from '../../liveClass/RaiseHandButton';
 import { useDemoMode } from '@/pages/try/demoMode';
 
 import { MissionStepChip } from './MissionStepChip';
-import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
+import { WINDOW_ACCENT, WINDOW_ORDER, windowDisplay } from './windowMeta';
 
 // Kid-readable save reassurance (PRD J3). 'conflict' is NEVER surfaced — a stale
 // save reads as keeping their newest copy.
@@ -180,7 +180,9 @@ export function Taskbar({
             (id) => windows[id].open && (id !== 'mission' || hasMission),
           ).map((id) => {
             const w = windows[id];
-            const { title, Icon } = WINDOW_META[id];
+            // Kind-aware label: the runner button reads "Website" in Website
+            // Studio (the stable window id stays 'game').
+            const { title, Icon } = windowDisplay(id, kind);
             const accent = WINDOW_ACCENT[id];
             const isActive = id === activeId;
             const isVisible = w.open && !w.minimized;

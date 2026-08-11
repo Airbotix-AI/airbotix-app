@@ -28,7 +28,7 @@ import type { SaveResult } from './projectPersistence';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
-import { WINDOW_META } from './desktop/windowMeta';
+import { WINDOW_META, windowDisplay } from './desktop/windowMeta';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { AssetViewerPane } from './panes/AssetViewerPane';
 import { listClassAssets } from './panes/playgroundApi';
@@ -475,6 +475,9 @@ export function Workspace({
   const chatProps = {
     chat,
     busy,
+    // Website Studio: the chat's run CTA reads "See my site" (a site is always
+    // live; the CTA refreshes + focuses it).
+    kind,
     streaming,
     progress,
     error,
@@ -567,6 +570,10 @@ export function Workspace({
     return () => ro.disconnect();
   }, [fitWindows, layoutMode]);
 
+  // The runner window's display identity — "Website" + globe in Website Studio
+  // (the stable PgWindowId 'game' is unchanged; only the label layer flips).
+  const gameDisplay = windowDisplay('game', kind);
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
@@ -577,7 +584,8 @@ export function Workspace({
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
             <DesktopIcon id="chat" />
             <DesktopIcon id="code" />
-            <DesktopIcon id="game" />
+            {/* Website Studio: the runner tile reads "Website" (id stays 'game'). */}
+            <DesktopIcon id="game" kind={kind} />
             <DesktopIcon id="assets" />
             <DesktopIcon id="help" />
             {hasMission && <DesktopIcon id="mission" />}
@@ -597,6 +605,7 @@ export function Workspace({
               openLocation={locationRequest}
               onExplainSelection={handleExplainCode}
               readOnly={readOnly}
+              kind={kind}
             />
           </Window>
           <Window
@@ -609,8 +618,9 @@ export function Workspace({
           <Window
             id="game"
             variant="game"
-            title={WINDOW_META.game.title}
-            icon={<WINDOW_META.game.Icon size={16} />}
+            // Kind-aware label: "Website" + globe in Website Studio (id stable).
+            title={gameDisplay.title}
+            icon={<gameDisplay.Icon size={16} />}
           >
             <GameRunnerPane
               files={files}
@@ -724,6 +734,7 @@ export function Workspace({
                     openLocation={locationRequest}
                     onExplainSelection={handleExplainCode}
                     readOnly={readOnly}
+                    kind={kind}
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />

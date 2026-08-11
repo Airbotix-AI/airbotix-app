@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-11 (feat: websites are always live — no run concept)
+
+### Changed
+
+- **A website has NO "running" concept** (owner feedback; creative-code-studio-website-prd
+  D-WEB-04): the site preview is ALWAYS mounted from workspace entry (no launch gate, no
+  "Press ▶ to play" placeholder) and live-rebuilds as the VFS changes, debounced ~700 ms so
+  typing in Monaco doesn't thrash the iframe. A runKey bump — the Reload button, the agent's
+  `run_game` action, an AI-turn apply — adopts the latest files immediately as a fresh run
+  (db reset, back to index.html). The teacher read-only live viewer gets the same always-live
+  site.
+- **No game-run chrome leaks into website mode.** The runner's only website affordances are a
+  "Reload" button (`site-reload`, aria "Reload site") + the console toggle; the status bar reads
+  "Live" (never Idle/Running/Paused, no fps, no screen dims). The editor's ▶ button reads
+  "Reload site" (same commit-drafts + refresh gesture); the chat's run CTA reads "See my site";
+  the runner window/desktop tile/taskbar button read "Website" with a globe glyph
+  (`windowDisplay` — the stable `PgWindowId` 'game' is unchanged). Games keep every affordance
+  exactly as before.
+
 ## 2026-08-11 (fix: website ideas on the generic landing create websites)
 
 ### Changed

@@ -1,4 +1,4 @@
-import { BookOpen, Code2, Gamepad2, Images, ListChecks, MessageSquare } from 'lucide-react';
+import { BookOpen, Code2, Gamepad2, Globe, Images, ListChecks, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -12,6 +12,21 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   help: { title: 'Guide', Icon: BookOpen },
   mission: { title: 'Mission', Icon: ListChecks },
 };
+
+/**
+ * Kind-aware display metadata (creative-code-studio-website-prd): in Website
+ * Studio the runner window reads "Website" with a globe glyph everywhere its
+ * label shows (window title bar, desktop tile, taskbar button). The STABLE
+ * `PgWindowId` 'game' is unchanged — only the display layer flips.
+ */
+const WEBSITE_GAME_DISPLAY = { title: 'Website', Icon: Globe } as const;
+export function windowDisplay(
+  id: PgWindowId,
+  kind: 'game' | 'website' = 'game',
+): { title: string; Icon: LucideIcon } {
+  if (id === 'game' && kind === 'website') return WEBSITE_GAME_DISPLAY;
+  return WINDOW_META[id];
+}
 
 /**
  * Per-window brand identity (chat=sky, code=mint, game=coral) — the desktop
