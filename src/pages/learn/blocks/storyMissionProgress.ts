@@ -6,7 +6,12 @@ import { jtwC3RouteComplete } from './jtwC3PersonalRoute';
 import { jtwC3SeaBuildComplete } from './jtwC3SeaBuild';
 import { jtwC3WeatherBuildComplete } from './jtwC3WeatherBuild';
 import { c2p5ProgramMatches } from './story-parts/journeyWestC2Part5Program';
-import { JTW_C4_P4_LESSON_ID, jtwC4DualBuildMatches } from './jtwC4DualBuild';
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  jtwC4DualBuildMatches,
+  jtwC4P5ChoiceMatches,
+} from './jtwC4DualBuild';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -568,6 +573,7 @@ function missionBlockMatches(
 
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
+  if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5ChoiceMatches(project);
   const mission = TINY_STAR_MISSION_CONTRACTS[lessonId];
   if (!mission) return false;
   if (lessonId === 'jtw-s1-c2-p5') return c2p5ProgramMatches(project);

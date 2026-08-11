@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import type { BlocksProject } from './blocksModel'
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides'
 import { isJtwOrderDebugLesson } from './jtwOrderDebug'
-import { JTW_C4_P4_LESSON_ID } from './jtwC4DualBuild'
+import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID } from './jtwC4DualBuild'
 import { sceneId } from './library'
 import {
   storyMissionProgramMatches,
@@ -131,7 +131,8 @@ export function useBlocksMissionDerived({
     (character) => character.id === TINY_STAR_BREAKFAST_CART_ID,
   )
   const isJtwOrderDebug = isJtwOrderDebugLesson(lessonId)
-  const isJtwC4DualBuild = lessonId === JTW_C4_P4_LESSON_ID
+  const isJtwC4DualBuild =
+    lessonId === JTW_C4_P4_LESSON_ID || lessonId === JTW_C4_P5_LESSON_ID
   const selectedHomeGx = tinyStarA2TargetGx(page.background, lessonId)
   const selectedDeliveryDistance = tinyStarDeliveryDistance(page.background)
   const lockedStageTargetGx =

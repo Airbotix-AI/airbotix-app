@@ -1,5 +1,9 @@
 import type { StoryMission } from './types'
-import { JTW_C4_P4_LESSON_ID, JTW_C4_WUKONG_ASSET } from '../jtwC4DualBuild'
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_WUKONG_ASSET,
+} from '../jtwC4DualBuild'
 
 export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
   [JTW_C4_P4_LESSON_ID]: {
@@ -71,5 +75,48 @@ export const JTW_C4_MISSIONS: Record<string, StoryMission> = {
     ],
     completionWhy: '不点悟空时本领没有偷跑，说明两条事件链真的分开了。',
     next: '伙伴记住了名字。下一Part由孩子选择悟空回应邀请的小展示。',
+  },
+  [JTW_C4_P5_LESSON_ID]: {
+    mode: 'complete',
+    lessonId: JTW_C4_P5_LESSON_ID,
+    celebrate: false,
+    hero: { name: '孙悟空', role: '等到邀请再回应的学习者', asset: JTW_C4_WUKONG_ASSET },
+    eyebrow: '西游记 · 第四章 · Expression Choice',
+    title: '本领不是为了抢先',
+    storyPages: [
+      { emoji: '👆🐒', title: '先等观众准备好', body: '名字链保持不变；Tap链由你选择一种温和回应。', scene: 5 },
+      { emoji: '🧩', title: '三种真实版本', body: '跃过叶纹、转身指家或屏风再现。选择会改变动作、顺序和可见结果。', scene: 5 },
+      { emoji: '🚩👆', title: '双测试', body: '先Go确认名字，再请同伴预测并真实Tap悟空。', scene: 5 },
+    ],
+    partnerLine: '同伴先预测，再点舞台上的悟空验证。',
+    mission: '保留名字链，在Tap入口后搭出你选择的完整回应链，再完成Go与真实Tap双测试。',
+    question: '为什么本领链要等Tap？',
+    choices: [],
+    retry: '名字链不能删除；Tap链必须完整匹配一种有效版本并到End。',
+    successTitle: '悟空等到邀请才回应',
+    success: '所选动作只在真实Tap后出现，名字仍由Start控制。',
+    fixTitle: '搭好所选回应链',
+    fixPrompt: '把所选动作、等待或对白按顺序接在On Tap后。',
+    workspaceIntro: '名字链已经保留，Tap链等待你的真实选择。',
+    fixChoices: [],
+    fixRetry: '',
+    coach: {
+      ready: '先选版本并搭好，再做双测试。', watch: 'Go后本领保持安静吗？',
+      sayFirst: '名字先出现。', sayThen: '邀请后才回应。', hopFirst: '动作属于Tap链。',
+      hopThen: '可见目标只在Tap后改变。', retry: '检查版本顺序和End。',
+      fix: '保留名字链，修好Tap链。', test: '先Go，再真实Tap。',
+      saving: '选择与两次轨迹正在保存。', complete: '悟空等到观众准备好才回应。',
+    },
+    logicSteps: [
+      { icon: '🚩', label: '名字', order: '先Go' },
+      { icon: '💭', label: '同伴预测', order: '再说' },
+      { icon: '👆', label: '所选回应', order: '后Tap' },
+    ],
+    logicWhy: '真实选择改变Tap链，但不会改变它等待邀请的条件。',
+    completionTitle: 'Expression Choice完成',
+    completion: '一种有效版本已保存，并通过Go与真实Tap验证。',
+    completionSteps: [{ icon: '🏷️', label: '名字保留', order: '先' }, { icon: '✨', label: '选择回应', order: '后' }],
+    completionWhy: '本领没有自动播放，说明选择和事件条件都真实生效。',
+    next: '一阵风把整段本领链吹到错误入口；下一Part检查第一次偏离。',
   },
 }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-11 (added: Journey West C4-P5 expression choice)
+
+### Added
+
+- Added three exact child-built Tap response versions while preserving the prior Start/name chain.
+- Completion now requires motive evidence, a peer prediction, saved version-matching blocks, a Go
+  run that keeps the response quiet, and a real Tap run before adjacent C4-P6 unlocks.
+
 ## 2026-08-11 (added: Journey West C4-P4 dual-event build)
 
 ### Added

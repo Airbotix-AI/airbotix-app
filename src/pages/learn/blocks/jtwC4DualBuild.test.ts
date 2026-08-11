@@ -9,6 +9,7 @@ import {
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
   jtwC4DualBuildMatches,
+  jtwC4P5Choice,
   jtwC4PlacedBlocks,
 } from './jtwC4DualBuild'
 
@@ -54,5 +55,30 @@ describe('JtW C4-P4 dual-event build contract', () => {
     const wrongHop = project()
     wrongHop.pages[0].characters[0].scripts[1].blocks[1] = { op: 'hop', n: 1 }
     expect(jtwC4DualBuildMatches(wrongHop)).toBe(false)
+  })
+})
+
+describe('JtW C4-P5 expression choice contract', () => {
+  it('accepts all three exact Tap choices while preserving the name chain', () => {
+    const built = project()
+    built.lessonId = 'jtw-s1-c4-p5'
+    built.pages[0].id = 'jtw-c4-p5-page'
+    const skill = built.pages[0].characters[0].scripts[1]
+    skill.blocks = [{ op: 'when_tap' }, { op: 'hop', n: 2 }, { op: 'say', text: '我等到邀请了' }, { op: 'end' }]
+    expect(jtwC4P5Choice(built)).toBe('hop')
+    skill.blocks = [{ op: 'when_tap' }, { op: 'turn_left', n: 2 }, { op: 'wait', n: 1 }, { op: 'say', text: '家在那边' }, { op: 'end' }]
+    expect(jtwC4P5Choice(built)).toBe('turn')
+    skill.blocks = [{ op: 'when_tap' }, { op: 'hide' }, { op: 'wait', n: 1 }, { op: 'show' }, { op: 'say', text: '再看这里' }, { op: 'end' }]
+    expect(jtwC4P5Choice(built)).toBe('reappear')
+  })
+
+  it('rejects a P4 carry-over and a deleted name chain', () => {
+    const built = project()
+    built.lessonId = 'jtw-s1-c4-p5'
+    built.pages[0].id = 'jtw-c4-p5-page'
+    expect(jtwC4P5Choice(built)).toBeNull()
+    built.pages[0].characters[0].scripts[1].blocks = [{ op: 'when_tap' }, { op: 'hop', n: 2 }, { op: 'say', text: '我等到邀请了' }, { op: 'end' }]
+    built.pages[0].characters[0].scripts[0].blocks = [{ op: 'when_flag' }]
+    expect(jtwC4P5Choice(built)).toBeNull()
   })
 })

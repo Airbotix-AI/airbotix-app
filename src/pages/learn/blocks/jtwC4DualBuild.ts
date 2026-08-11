@@ -2,6 +2,8 @@ import type { Block, BlocksProject } from './blocksModel'
 
 export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4'
 export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page'
+export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5'
+export const JTW_C4_P5_PAGE_ID = 'jtw-c4-p5-page'
 export const JTW_C4_WUKONG_ID = 'sun-wukong'
 export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name'
 export const JTW_C4_SKILL_SCRIPT_ID = 'sun-wukong-skill'
@@ -21,6 +23,30 @@ export const JTW_C4_SKILL_TARGET: readonly Block[] = [
   { op: 'say', text: '你邀请了我' },
   { op: 'end' },
 ]
+
+export const JTW_C4_P5_SKILL_TARGETS: Readonly<Record<string, readonly Block[]>> = {
+  hop: [
+    { op: 'when_tap' },
+    { op: 'hop', n: 2 },
+    { op: 'say', text: '我等到邀请了' },
+    { op: 'end' },
+  ],
+  turn: [
+    { op: 'when_tap' },
+    { op: 'turn_left', n: 2 },
+    { op: 'wait', n: 1 },
+    { op: 'say', text: '家在那边' },
+    { op: 'end' },
+  ],
+  reappear: [
+    { op: 'when_tap' },
+    { op: 'hide' },
+    { op: 'wait', n: 1 },
+    { op: 'show' },
+    { op: 'say', text: '再看这里' },
+    { op: 'end' },
+  ],
+}
 
 function blockMatches(actual: Block | undefined, expected: Block): boolean {
   return (
@@ -52,6 +78,27 @@ export function jtwC4DualBuildMatches(project: BlocksProject): boolean {
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
   return exactScript(name, JTW_C4_NAME_TARGET) && exactScript(skill, JTW_C4_SKILL_TARGET)
+}
+
+export function jtwC4P5Choice(project: BlocksProject): string | null {
+  if (project.lessonId !== JTW_C4_P5_LESSON_ID || project.pages.length !== 1) return null
+  const page = project.pages[0]
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (
+    page?.id !== JTW_C4_P5_PAGE_ID ||
+    !actor ||
+    actor.asset !== JTW_C4_WUKONG_ASSET ||
+    actor.scripts.length !== 2
+  ) return null
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
+  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
+  return Object.entries(JTW_C4_P5_SKILL_TARGETS)
+    .find(([, target]) => exactScript(skill, target))?.[0] ?? null
+}
+
+export function jtwC4P5ChoiceMatches(project: BlocksProject): boolean {
+  return jtwC4P5Choice(project) !== null
 }
 
 export function jtwC4PlacedBlocks(project: BlocksProject): string[] {

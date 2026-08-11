@@ -52,6 +52,9 @@ import {
   JTW_C4_NAME_TARGET,
   JTW_C4_P4_LESSON_ID,
   JTW_C4_P4_PAGE_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_P5_PAGE_ID,
+  JTW_C4_P5_SKILL_TARGETS,
   JTW_C4_WUKONG_ASSET,
   JTW_C4_WUKONG_ID,
 } from './jtwC4DualBuild';
@@ -88,6 +91,16 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
     start: { gx: 10, gy: 9, size: 3, rot: 0 },
     allowedSayText: ['我是孙悟空', '你邀请了我'],
     target: [...JTW_C4_NAME_TARGET],
+  },
+  [JTW_C4_P5_LESSON_ID]: {
+    pageId: JTW_C4_P5_PAGE_ID,
+    background: 'jtw-s1-c4-mountain-gate',
+    characterId: JTW_C4_WUKONG_ID,
+    scriptId: JTW_C4_NAME_SCRIPT_ID,
+    asset: JTW_C4_WUKONG_ASSET,
+    start: { gx: 10, gy: 9, size: 3, rot: 0 },
+    allowedSayText: ['我是孙悟空', '我等到邀请了', '家在那边', '再看这里'],
+    target: [...JTW_C4_NAME_TARGET, ...JTW_C4_P5_SKILL_TARGETS.hop.slice(1)],
   },
   // Journey to the West S1/C1-P4 — the chapter's Build 1 (scene-specs
   // JTW-S1-C1-P4). The child selects play_sound(Chime)/show/hop(1)/say from the
