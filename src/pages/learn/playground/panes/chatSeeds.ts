@@ -11,12 +11,26 @@ const STARTER_MESSAGE =
   'box. Take it for a spin now, or open the code whenever you want to start ' +
   'changing things.';
 
-/** The launch hand-off: kid prompt + a generic "starter ready" with Run/See-code. */
-export function buildIntro(prompt: string | undefined): ChatItem[] {
+// Website flavour of the same hand-off (D-WEB-12 wording: nothing to "run").
+const SITE_STARTER_MESSAGE =
+  'Your website starter is ready 🌐\n\n' +
+  'I put together a starter site for your idea — it already works out of the ' +
+  'box. Have a look now, or open the code whenever you want to start changing things.';
+
+/** The launch hand-off: kid prompt + a kind-flavoured "starter ready" with See/Code. */
+export function buildIntro(
+  prompt: string | undefined,
+  kind: 'game' | 'website' = 'game',
+): ChatItem[] {
   const items: ChatItem[] = [];
   const p = prompt?.trim();
   if (p) items.push({ id: 'intro-kid', role: 'kid', text: p });
-  items.push({ id: 'intro-agent', role: 'agent', text: STARTER_MESSAGE, actions: ['run', 'code'] });
+  items.push({
+    id: 'intro-agent',
+    role: 'agent',
+    text: kind === 'website' ? SITE_STARTER_MESSAGE : STARTER_MESSAGE,
+    actions: ['run', 'code'],
+  });
   return items;
 }
 

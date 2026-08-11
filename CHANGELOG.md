@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- The launch hand-off bubble is kind-aware too: a website that opens on its
+  starter says "Your website starter is ready 🌐", never "game starter … ready
+  to play 🎮".
 - Changed-file fallback notes are kind-aware: a website turn's index.html reads
   "The home page of your website." (server.js/data seeds/pages likewise) — never
   "A file in your game." The reflect-prediction line is kind-aware too.

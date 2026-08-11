@@ -347,7 +347,7 @@ export function useGameAgent(opts: UseGameAgentOptions) {
         : blockedSeed
           ? buildBlockedSeed()
           : introPrompt && introPrompt.trim()
-            ? buildIntro(introPrompt)
+            ? buildIntro(introPrompt, kind)
             : [],
   );
   const [busy, setBusy] = useState(false);
