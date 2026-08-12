@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 (fix: recover from the stale-chunk deploy race)
+
+### Fixed
+
+- A tab opened before a deploy crashed with "Failed to fetch dynamically
+  imported module" the moment it lazily loaded a route/component: `aws s3 sync
+  --delete` wipes the old content-hashed chunks on every release. The app now
+  listens for Vite's `vite:preloadError` and reloads ONCE (per-URL loop guard),
+  so the fresh index re-links the new hashes; a repeat failure at the same URL
+  still surfaces the error boundary (offline/real outages are never masked).
+
 ## 2026-08-12 (feat: website builds get their own loading animation)
 
 ### Changed
