@@ -56,7 +56,7 @@ const PETS_ROWS = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useSiteDbStore.setState({ tables: null, updatedAt: null });
+  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
   listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
   resetSiteDbMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
@@ -146,6 +146,42 @@ describe('DbPane — refresh (manual + REST polling while mounted)', () => {
       vi.advanceTimersByTime(DB_POLL_MS * 5);
     });
     expect(listSiteDbTablesMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('a persistently failing FIRST load shows the unreachable state with a working Retry', async () => {
+    listSiteDbTablesMock.mockRejectedValue(new Error('offline'));
+    render(<DbPane projectId="p1" files={FILES} />);
+
+    // Honest dead-end, not an infinite "Peeking…" spinner.
+    expect(await screen.findByText(/Your database didn't answer/)).toBeInTheDocument();
+    expect(screen.queryByText(/Peeking into your database/)).not.toBeInTheDocument();
+
+    // Retry drives the SAME refresh — once the backend answers, tables render.
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
+    fireEvent.click(screen.getByTestId('db-retry'));
+    expect(await screen.findByTestId('db-collection-pets')).toBeInTheDocument();
+  });
+
+  it('pauses the poll while the TAB is hidden and refreshes on return', async () => {
+    vi.useFakeTimers();
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    try {
+      render(<DbPane projectId="p1" files={FILES} />);
+      expect(listSiteDbTablesMock).toHaveBeenCalledTimes(1); // mount request
+
+      await act(async () => {
+        vi.advanceTimersByTime(DB_POLL_MS * 3);
+      });
+      expect(listSiteDbTablesMock).toHaveBeenCalledTimes(1); // hidden: no polls
+
+      hidden.mockReturnValue(false);
+      await act(async () => {
+        fireEvent(document, new Event('visibilitychange'));
+      });
+      expect(listSiteDbTablesMock).toHaveBeenCalledTimes(2); // visible again: refresh now
+    } finally {
+      hidden.mockRestore();
+    }
   });
 
   it('never polls without a projectId (project-less session)', () => {

@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-08-12 (fix: sql-channel review findings — per-document reply token + hardening)
+
+### Fixed
+
+- **SQL reply id collision across srcdoc swaps** (adversarial-review blocker): the shim's
+  query counter restarts at 0 in every new document while a srcdoc swap (live rebuild /
+  page nav) keeps the SAME WindowProxy — so a LATE backend reply, matched on id alone,
+  could resolve the NEW document's same-id query with the wrong rows. The shim now mints a
+  per-document token at init and stamps it into every `action:'sql'` request; SiteFrame
+  echoes it in the reply and the shim drops replies whose token isn't its own (pinned by a
+  matching-id + stale-token test that must NOT settle the promise).
+- **DbPane no longer spins "Peeking…" forever when the first introspection keeps failing**:
+  `siteDbStore` now flags the latest poll's failure (`error`, cleared on the next success /
+  reset, never set by a superseded fetch) and the pane shows an honest "Your database
+  didn't answer" state with a Try again button (`db-retry`) driving the same refresh.
+
+### Changed
+
+- SiteFrame validates sql param ELEMENTS client-side (string/number/boolean/null only) and
+  rejects kid-readably ("db.query params must be words, numbers, true/false or null.")
+  instead of letting an object/Date bounce off the backend schema as jargon; and caps
+  in-flight sql forwards at 8 — an unawaited query loop now fails locally with a
+  kid-readable line instead of spraying authed POSTs.
+- DbPane pauses its ~2 s introspection poll while the browser tab is hidden and refreshes
+  immediately on return (visibilitychange).
+- Comment-only copy: the last "simulated backend" mentions (GameRunnerPane kind prop,
+  Workspace's Database-window gate) now describe the D-WEB-15 server-side db.
+
 ## 2026-08-12 (feat: website db is REAL server-side SQLite — D-WEB-15 frontend)
 
 ### Changed

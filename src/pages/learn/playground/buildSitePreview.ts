@@ -144,12 +144,21 @@ export function isSiteNavigateMessage(
 }
 
 /** The in-frame shim's `db.query` request (frame → studio): SiteFrame proxies
- *  it to `POST /projects/:id/db/query` with the kid's session — the token
- *  never enters the frame — and posts the {@link SiteSqlReply} back. */
+ *  it to `POST /projects/:id/db/query` with the kid's session — the session
+ *  token never enters the frame — and posts the {@link SiteSqlReply} back.
+ *
+ *  `token` is a PER-DOCUMENT nonce (minted at shim init): `id` alone cannot
+ *  key a reply, because a srcdoc swap (live rebuild / page nav) keeps the SAME
+ *  WindowProxy while the new document's counter restarts at 0 — a late reply
+ *  for the OLD document would otherwise resolve the new document's same-id
+ *  query with the wrong rows. The studio echoes the token; the shim ignores
+ *  replies whose token is not its own. `params` is untrusted wire data — the
+ *  studio validates the elements before anything reaches the backend. */
 export interface SiteSqlRequest {
   id: number;
+  token: string;
   sql: string;
-  params: Array<string | number | boolean | null>;
+  params: unknown[];
 }
 
 export function isSiteSqlRequest(
@@ -160,22 +169,26 @@ export function isSiteSqlRequest(
     __airbotixSiteControl?: unknown;
     action?: unknown;
     id?: unknown;
+    token?: unknown;
     sql?: unknown;
   };
   return (
     m.__airbotixSiteControl === true &&
     m.action === 'sql' &&
     typeof m.id === 'number' &&
+    typeof m.token === 'string' &&
     typeof m.sql === 'string'
   );
 }
 
-/** The studio's reply to a {@link SiteSqlRequest} (studio → frame). `result`
- *  is the backend query envelope on success; `error` is the backend's
- *  kid-readable message on failure. */
+/** The studio's reply to a {@link SiteSqlRequest} (studio → frame), echoing
+ *  the request's `id` + per-document `token`. `result` is the backend query
+ *  envelope on success; `error` is the backend's kid-readable message on
+ *  failure. */
 export interface SiteSqlReply {
   __airbotixSiteSql: true;
   id: number;
+  token: string;
   ok: boolean;
   result?: {
     columns: string[];
@@ -225,6 +238,10 @@ function siteRuntime(page: string): string {
   // console.errors it verbatim (feeds the D-WEB-13 logs ledger).
   var sqlSeq = 0;
   var sqlPending = {};
+  // Per-DOCUMENT nonce: a srcdoc swap keeps the same WindowProxy but restarts
+  // sqlSeq, so id alone could match a LATE reply meant for the previous
+  // document (wrong rows for a same-id query). Replies must echo this token.
+  var sqlToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
   window.db = {
     query: function (sql) {
       var params = Array.prototype.slice.call(arguments, 1);
@@ -238,13 +255,14 @@ function siteRuntime(page: string): string {
           reject(new Error(msg));
         }, ${SITE_SQL_TIMEOUT_MS});
         sqlPending[id] = { resolve: resolve, reject: reject, timer: timer };
-        parent.postMessage({ __airbotixSiteControl: true, action: 'sql', id: id, sql: String(sql), params: params }, '*');
+        parent.postMessage({ __airbotixSiteControl: true, action: 'sql', id: id, token: sqlToken, sql: String(sql), params: params }, '*');
       });
     }
   };
   window.addEventListener('message', function (e) {
     var m = e.data;
     if (!m || m.__airbotixSiteSql !== true) return;
+    if (m.token !== sqlToken) return; // a reply for another document — not ours
     var pending = sqlPending[m.id];
     if (!pending) return; // timed out / not ours
     delete sqlPending[m.id];

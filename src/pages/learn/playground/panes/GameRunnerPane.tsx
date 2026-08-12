@@ -33,7 +33,8 @@ interface GameRunnerPaneProps {
   engine?: GameEngine;
   /**
    * Project kind (creative-code-studio-website-prd): `website` renders the
-   * SiteFrame (multi-page site + simulated backend) instead of the GameFrame,
+   * SiteFrame (multi-page site + the project's real server-side db, D-WEB-15)
+   * instead of the GameFrame,
    * and hides the game-only affordances (pause/mute/FPS/physics-debug/screen
    * preset) — they don't apply to a site. Run reports are NOT game-only:
    * websites verify through the same `onRunReport` loop (D-WEB-13), the

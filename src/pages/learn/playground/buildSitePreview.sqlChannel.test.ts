@@ -122,6 +122,8 @@ interface SqlPost {
   __airbotixSiteControl: true;
   action: 'sql';
   id: number;
+  /** The per-DOCUMENT nonce — replies must echo it or the shim drops them. */
+  token: string;
   sql: string;
   params: unknown[];
 }
@@ -167,7 +169,7 @@ describe('site runtime — db.query request wire shape', () => {
   // timers from firing (as console noise) after the test ends.
   beforeEach(() => vi.useFakeTimers());
 
-  it('posts {action:"sql", id, sql, params} with spread params', () => {
+  it('posts {action:"sql", id, token, sql, params} with spread params', () => {
     runShim();
     let posts: unknown[] = [];
     posts = capturePosts(() => {
@@ -178,6 +180,9 @@ describe('site runtime — db.query request wire shape', () => {
     expect(post.sql).toBe('SELECT * FROM pets WHERE id = ?');
     expect(post.params).toEqual([1]);
     expect(typeof post.id).toBe('number');
+    // The per-document nonce rides every request (reply-matching key #2).
+    expect(typeof post.token).toBe('string');
+    expect(post.token.length).toBeGreaterThan(0);
   });
 
   it('accepts a single ARRAY as the params (both kid spellings work)', () => {
@@ -206,8 +211,10 @@ describe('site runtime — db.query reply → the FROZEN return shape', () => {
     const posts = capturePosts(() => {
       promise = db().query('SELECT * FROM pets');
     });
+    const post = sqlPostOf(posts);
     replySql({
-      id: sqlPostOf(posts).id,
+      id: post.id,
+      token: post.token,
       ok: true,
       result: {
         columns: ['id', 'name'],
@@ -226,8 +233,10 @@ describe('site runtime — db.query reply → the FROZEN return shape', () => {
     const posts = capturePosts(() => {
       promise = db().query('INSERT INTO pets (name) VALUES (?)', 'Mochi');
     });
+    const post = sqlPostOf(posts);
     replySql({
-      id: sqlPostOf(posts).id,
+      id: post.id,
+      token: post.token,
       ok: true,
       result: { columns: [], rows: [], row_count: 0, changes: 1, last_insert_rowid: '4' },
     });
@@ -241,10 +250,50 @@ describe('site runtime — db.query reply → the FROZEN return shape', () => {
       promise = db().query('SELEC * FROM pets');
     });
     const backendMessage = 'Your SQL has a problem near "SELEC" — did you mean SELECT?';
-    replySql({ id: sqlPostOf(posts).id, ok: false, error: backendMessage });
+    const post = sqlPostOf(posts);
+    replySql({ id: post.id, token: post.token, ok: false, error: backendMessage });
     await expect(promise).rejects.toThrow(backendMessage);
     // Verbatim into the console — this line feeds the D-WEB-13 logs ledger.
     expect(console.error).toHaveBeenCalledWith(backendMessage);
+  });
+
+  it('a reply with a matching id but a STALE token never settles the promise (srcdoc-swap race)', async () => {
+    // A srcdoc swap keeps the WindowProxy but restarts the id counter — a late
+    // reply for the PREVIOUS document must not resolve this document's query.
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = db().query('SELECT * FROM pets');
+    });
+    const post = sqlPostOf(posts);
+    let settled = false;
+    promise.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+
+    replySql({
+      id: post.id,
+      token: 'a-previous-documents-token',
+      ok: true,
+      result: { columns: ['id'], rows: [{ id: 99 }], row_count: 1, changes: null, last_insert_rowid: null },
+    });
+    await Promise.resolve(); // flush the microtask the settle would ride
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    // The RIGHT token still resolves it — the query wasn't torn down, just guarded.
+    replySql({
+      id: post.id,
+      token: post.token,
+      ok: true,
+      result: { columns: ['id'], rows: [{ id: 1 }], row_count: 1, changes: null, last_insert_rowid: null },
+    });
+    await expect(promise).resolves.toEqual([{ id: 1 }]);
   });
 
   it('no reply within 10s rejects kid-readably (a wedged studio never hangs a route)', async () => {
@@ -270,10 +319,13 @@ describe('site runtime — db.query reply → the FROZEN return shape', () => {
     const expectation = expect(promise).rejects.toThrow(/took too long/);
     vi.advanceTimersByTime(SITE_SQL_TIMEOUT_MS);
     await expectation;
-    // The late reply must not throw or resurrect the settled promise.
+    // A late reply — even with the RIGHT token — must not throw or resurrect
+    // the settled promise.
+    const post = sqlPostOf(posts);
     expect(() =>
       replySql({
-        id: sqlPostOf(posts).id,
+        id: post.id,
+        token: post.token,
         ok: true,
         result: { columns: ['x'], rows: [], row_count: 0, changes: null, last_insert_rowid: null },
       }),

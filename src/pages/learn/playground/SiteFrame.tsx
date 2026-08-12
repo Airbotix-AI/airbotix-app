@@ -68,6 +68,17 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
 const NO_PROJECT_SQL_ERROR =
   'Your database is not ready yet — it wakes up once your project is saved.';
 
+/** How many sql forwards may be in flight at once. An unawaited query loop in
+ *  kid code must fail LOCALLY (kid-readably) instead of spraying authed POSTs
+ *  at the backend. Well above anything a sane page needs. */
+const MAX_PENDING_SQL = 8;
+
+/** A bindable param element — mirrors the backend contract; anything else
+ *  (objects, Dates, …) is rejected client-side with a kid-readable line
+ *  instead of bouncing off the backend's schema as jargon. */
+const isSqlParam = (p: unknown): p is string | number | boolean | null =>
+  p === null || typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean';
+
 /**
  * Renders a kid's WEBSITE inside the strict sandbox (Website Studio,
  * creative-code-studio-website-prd). Same security model as GameFrame:
@@ -164,19 +175,20 @@ export function SiteFrame({
     };
   }, [collectReports, runKey]);
 
+  // Sql forwards currently in flight (the MAX_PENDING_SQL cap) — a ref, not
+  // state: it must mutate synchronously inside the message handler.
+  const pendingSqlRef = useRef(0);
+
   useEffect(() => {
     // Answer one in-frame `db.query` (the sql channel): forward to the backend
-    // with the kid's session, post the reply back by id. The reply targets the
-    // frame window AT REPLY TIME — if a rebuild swapped the srcdoc mid-flight,
-    // the new document simply has no matching pending id (harmless).
-    const answerSql = async (
-      id: number,
-      sql: string,
-      params: Array<string | number | boolean | null>,
-    ) => {
-      const reply = (r: Omit<SiteSqlReply, '__airbotixSiteSql' | 'id'>) => {
+    // with the kid's session, post the reply back echoing the request's id +
+    // per-document token (the shim drops replies whose token isn't its own, so
+    // a reply landing after a srcdoc swap can never resolve the NEW document's
+    // same-id query). The reply targets the frame window AT REPLY TIME.
+    const answerSql = async (id: number, token: string, sql: string, params: unknown[]) => {
+      const reply = (r: Omit<SiteSqlReply, '__airbotixSiteSql' | 'id' | 'token'>) => {
         iframeRef.current?.contentWindow?.postMessage(
-          { __airbotixSiteSql: true, id, ...r } satisfies SiteSqlReply,
+          { __airbotixSiteSql: true, id, token, ...r } satisfies SiteSqlReply,
           '*',
         );
       };
@@ -185,6 +197,25 @@ export function SiteFrame({
         reply({ ok: false, error: NO_PROJECT_SQL_ERROR });
         return;
       }
+      // Untrusted wire data: every param element must be bindable, or the
+      // backend's schema rejection would surface as kid-facing jargon.
+      if (!params.every(isSqlParam)) {
+        reply({
+          ok: false,
+          error: 'db.query params must be words, numbers, true/false or null.',
+        });
+        return;
+      }
+      // Local backpressure: an unawaited query loop fails here, kid-readably,
+      // instead of spraying authed POSTs at the backend.
+      if (pendingSqlRef.current >= MAX_PENDING_SQL) {
+        reply({
+          ok: false,
+          error: `Too many database queries at once (over ${MAX_PENDING_SQL}) — await each db.query before starting the next.`,
+        });
+        return;
+      }
+      pendingSqlRef.current += 1;
       try {
         const result = await querySiteDb(pid, sql, params);
         reply({ ok: true, result });
@@ -196,6 +227,8 @@ export function SiteFrame({
             ? err.message
             : 'Your database could not be reached — try again in a moment.';
         reply({ ok: false, error: message });
+      } finally {
+        pendingSqlRef.current -= 1;
       }
     };
 
@@ -233,7 +266,7 @@ export function SiteFrame({
       }
       if (isSiteSqlRequest(e.data)) {
         const params = Array.isArray(e.data.params) ? e.data.params : [];
-        void answerSql(e.data.id, e.data.sql, params);
+        void answerSql(e.data.id, e.data.token, e.data.sql, params);
       }
     };
     window.addEventListener('message', onMessage);

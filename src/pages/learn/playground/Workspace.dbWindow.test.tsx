@@ -77,7 +77,7 @@ beforeEach(() => {
   // Singleton stores — start every test from a clean slate.
   useProjectStore.getState().setFiles([]);
   useWorkspaceUiStore.getState().restore(null);
-  useSiteDbStore.setState({ tables: null, updatedAt: null });
+  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
   usePlaygroundStore.setState({
     windows: defaultWindows(),
     topZ: 4,

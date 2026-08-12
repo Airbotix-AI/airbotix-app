@@ -140,18 +140,30 @@ interface DbPaneProps {
 export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: DbPaneProps) {
   const tables = useSiteDbStore((s) => s.tables);
   const updatedAt = useSiteDbStore((s) => s.updatedAt);
+  const pollError = useSiteDbStore((s) => s.error);
   const refresh = useSiteDbStore((s) => s.refresh);
   const dropSnapshot = useSiteDbStore((s) => s.reset);
 
   // Poll while mounted — mounted ⇔ visible (closed windows render nothing), so
   // this IS the "never poll while closed" guarantee. The snapshot is dropped
   // first so another project's tables never flash as this project's truth.
+  // A hidden TAB pauses the interval (no point polling a page nobody sees);
+  // coming back refreshes immediately.
   useEffect(() => {
     if (!projectId) return undefined;
     dropSnapshot();
     void refresh(projectId);
-    const timer = setInterval(() => void refresh(projectId), DB_POLL_MS);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => {
+      if (!document.hidden) void refresh(projectId);
+    }, DB_POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) void refresh(projectId);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [projectId, refresh, dropSnapshot]);
 
   // 1s ticker so the "updated Xs ago" hint stays honest when polls start
@@ -269,7 +281,27 @@ export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: D
           )}
         </div>
 
-        {tables === null ? (
+        {tables === null && pollError && projectId ? (
+          // The FIRST introspection keeps failing (offline / backend blip) —
+          // an honest dead-end beats an infinite "Peeking…" spinner.
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <span aria-hidden className="text-4xl">🔌</span>
+            <p className="text-[13px] font-bold text-pg-text-dim">
+              Your database didn't answer…
+            </p>
+            <p className="max-w-[36ch] text-[12px] text-pg-text-muted">
+              Check your internet connection, then try again.
+            </p>
+            <button
+              type="button"
+              data-testid="db-retry"
+              onClick={() => void refresh(projectId)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pg-border px-2.5 py-1 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+            >
+              <RefreshCw size={11} aria-hidden /> Try again
+            </button>
+          </div>
+        ) : tables === null ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <Loader2 size={18} aria-hidden className="animate-spin text-pg-text-muted" />
             <p className="text-[12px] text-pg-text-muted">Peeking into your database…</p>

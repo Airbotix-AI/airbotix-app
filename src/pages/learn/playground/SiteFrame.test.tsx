@@ -54,10 +54,14 @@ const srcdoc = () => frame().getAttribute('srcdoc') ?? '';
  *  which the frame's own-source guard deliberately admits — same as GameFrame). */
 const post = (data: unknown) => fireEvent(window, new MessageEvent('message', { data }));
 
+/** The shim's per-document nonce, echoed by every reply (srcdoc-swap guard). */
+const TOKEN = 'doc-token-a';
+
 const sqlRequest = (id: number, sql = 'SELECT * FROM pets', params: unknown[] = []) => ({
   __airbotixSiteControl: true,
   action: 'sql',
   id,
+  token: TOKEN,
   sql,
   params,
 });
@@ -155,7 +159,7 @@ describe('SiteFrame', () => {
 // the reply is posted back INTO the frame by request id. The frame never sees
 // a token; the studio never trusts a foreign frame.
 describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
-  it('forwards a sql request to querySiteDb and posts the ok reply back by id', async () => {
+  it('forwards a sql request to querySiteDb and posts the ok reply back echoing id + token', async () => {
     querySiteDbMock.mockResolvedValue(QUERY_RESULT);
     render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
     const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
@@ -165,7 +169,7 @@ describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
     expect(querySiteDbMock).toHaveBeenCalledWith('p1', 'SELECT * FROM pets WHERE id = ?', [1]);
     await waitFor(() =>
       expect(postSpy).toHaveBeenCalledWith(
-        { __airbotixSiteSql: true, id: 7, ok: true, result: QUERY_RESULT },
+        { __airbotixSiteSql: true, id: 7, token: TOKEN, ok: true, result: QUERY_RESULT },
         '*',
       ),
     );
@@ -181,7 +185,7 @@ describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
 
     await waitFor(() =>
       expect(postSpy).toHaveBeenCalledWith(
-        { __airbotixSiteSql: true, id: 3, ok: false, error: backendMessage },
+        { __airbotixSiteSql: true, id: 3, token: TOKEN, ok: false, error: backendMessage },
         '*',
       ),
     );
@@ -199,6 +203,7 @@ describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
         {
           __airbotixSiteSql: true,
           id: 4,
+          token: TOKEN,
           ok: false,
           error: 'Your database could not be reached — try again in a moment.',
         },
@@ -232,7 +237,7 @@ describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
     expect(querySiteDbMock).not.toHaveBeenCalled();
   });
 
-  it('non-numeric params clamp to [] (the frame is untrusted)', async () => {
+  it('a non-ARRAY params field clamps to [] (forged wire data, the frame is untrusted)', async () => {
     querySiteDbMock.mockResolvedValue(QUERY_RESULT);
     render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
 
@@ -241,6 +246,51 @@ describe('SiteFrame — the sql proxy (D-WEB-15)', () => {
     await waitFor(() =>
       expect(querySiteDbMock).toHaveBeenCalledWith('p1', 'SELECT * FROM pets', []),
     );
+  });
+
+  it('a non-bindable param ELEMENT (object/Date) is rejected kid-readably, never reaches the backend', async () => {
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post(sqlRequest(8, 'INSERT INTO pets (born) VALUES (?)', [{ when: 'yesterday' }]));
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        {
+          __airbotixSiteSql: true,
+          id: 8,
+          token: TOKEN,
+          ok: false,
+          error: 'db.query params must be words, numbers, true/false or null.',
+        },
+        '*',
+      ),
+    );
+    expect(querySiteDbMock).not.toHaveBeenCalled();
+  });
+
+  it('caps in-flight forwards: past 8 pending, extra queries fail locally (no authed POST spray)', async () => {
+    querySiteDbMock.mockReturnValue(new Promise(() => undefined)); // never settles
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    for (let id = 1; id <= 9; id += 1) post(sqlRequest(id));
+
+    // The 9th is answered immediately with the local backpressure error…
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          __airbotixSiteSql: true,
+          id: 9,
+          token: TOKEN,
+          ok: false,
+          error: expect.stringContaining('Too many database queries at once'),
+        }),
+        '*',
+      ),
+    );
+    // …and only the first 8 ever reached the backend.
+    expect(querySiteDbMock).toHaveBeenCalledTimes(8);
   });
 });
 

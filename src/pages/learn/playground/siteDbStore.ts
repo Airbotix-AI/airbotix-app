@@ -34,6 +34,10 @@ interface SiteDbState {
   tables: SiteDbTableSnapshot[] | null;
   /** When that snapshot arrived (Date.now()); null with no snapshot. */
   updatedAt: number | null;
+  /** The LATEST poll failed (cleared by the next success / reset). With no
+   *  snapshot yet this is the pane's "db unreachable" state — without it a
+   *  persistent failure would spin "Peeking…" forever. */
+  error: boolean;
   /** Fetch a fresh snapshot; superseded/failed fetches never overwrite. */
   refresh: (projectId: string) => Promise<void>;
   /** Drop the snapshot AND invalidate in-flight polls (project switch /
@@ -49,6 +53,7 @@ let refreshSeq = 0;
 export const useSiteDbStore = create<SiteDbState>((set) => ({
   tables: null,
   updatedAt: null,
+  error: false,
   refresh: async (projectId) => {
     const seq = ++refreshSeq;
     try {
@@ -62,14 +67,16 @@ export const useSiteDbStore = create<SiteDbState>((set) => ({
         }),
       );
       if (seq !== refreshSeq) return; // superseded — never overwrite fresher truth
-      set({ tables: snapshot, updatedAt: Date.now() });
+      set({ tables: snapshot, updatedAt: Date.now(), error: false });
     } catch {
-      // A transient poll failure keeps the last snapshot; the freshness hint
-      // ages honestly and the next poll retries.
+      // A poll failure keeps the last snapshot (the freshness hint ages
+      // honestly, the next poll retries) but is FLAGGED — with no snapshot
+      // yet, the pane needs it to show "unreachable" instead of spinning.
+      if (seq === refreshSeq) set({ error: true });
     }
   },
   reset: () => {
     refreshSeq += 1; // in-flight polls started before this must not land
-    set({ tables: null, updatedAt: null });
+    set({ tables: null, updatedAt: null, error: false });
   },
 }));

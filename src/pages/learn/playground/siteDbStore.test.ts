@@ -35,7 +35,7 @@ const PETS_ROWS = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useSiteDbStore.setState({ tables: null, updatedAt: null });
+  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS_TABLE], size_bytes: 4096 });
   listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
 });
@@ -52,15 +52,27 @@ describe('siteDbStore — refresh (REST introspection)', () => {
     expect(useSiteDbStore.getState().updatedAt).not.toBeNull();
   });
 
-  it('a failed poll KEEPS the last snapshot and its updatedAt (freshness ages honestly)', async () => {
+  it('a failed poll KEEPS the last snapshot and its updatedAt (freshness ages honestly) but flags error', async () => {
     await useSiteDbStore.getState().refresh('p1');
     const before = useSiteDbStore.getState();
+    expect(before.error).toBe(false);
 
     listSiteDbTablesMock.mockRejectedValue(new Error('offline'));
     await useSiteDbStore.getState().refresh('p1');
 
     expect(useSiteDbStore.getState().tables).toEqual(before.tables);
     expect(useSiteDbStore.getState().updatedAt).toBe(before.updatedAt);
+    expect(useSiteDbStore.getState().error).toBe(true);
+  });
+
+  it('the next SUCCESSFUL poll clears the error flag (the pane recovers by itself)', async () => {
+    listSiteDbTablesMock.mockRejectedValueOnce(new Error('offline'));
+    await useSiteDbStore.getState().refresh('p1');
+    expect(useSiteDbStore.getState().error).toBe(true);
+
+    await useSiteDbStore.getState().refresh('p1');
+    expect(useSiteDbStore.getState().error).toBe(false);
+    expect(useSiteDbStore.getState().tables).not.toBeNull();
   });
 
   it('reset drops the snapshot AND invalidates an in-flight poll (post-Reset truth wins)', async () => {

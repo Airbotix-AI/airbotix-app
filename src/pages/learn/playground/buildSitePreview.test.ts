@@ -355,14 +355,22 @@ describe('isSiteSqlRequest', () => {
         __airbotixSiteControl: true,
         action: 'sql',
         id: 1,
+        token: 'doc-a',
         sql: 'SELECT * FROM pets',
         params: [],
       }),
     ).toBe(true);
-    // Other control actions, a missing id/sql, and foreign messages all fail.
+    // Other control actions, a missing id/token/sql, and foreign messages all fail.
     expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'report' })).toBe(false);
-    expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', sql: 'SELECT 1' })).toBe(false);
-    expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', id: 1 })).toBe(false);
+    expect(
+      isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', token: 't', sql: 'SELECT 1' }),
+    ).toBe(false);
+    expect(
+      isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', id: 1, sql: 'SELECT 1' }),
+    ).toBe(false);
+    expect(
+      isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', id: 1, token: 't' }),
+    ).toBe(false);
     expect(isSiteSqlRequest({ __airbotixSiteNavigate: true, path: 'a.html' })).toBe(false);
     expect(isSiteSqlRequest(null)).toBe(false);
   });

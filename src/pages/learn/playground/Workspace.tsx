@@ -435,8 +435,8 @@ export function Workspace({
   // than no window; it advertises structure that doesn't exist and invites a kid to open it
   // and find nothing. Missions default to no steps, so this is the COMMON case, not an edge.
   const hasMission = (missionProgress.data?.steps?.length ?? 0) > 0;
-  // The Database tab/window/tile exists ONLY in Website Studio — a game's
-  // simulated-backend db doesn't exist, so the surface must not advertise one.
+  // The Database tab/window/tile exists ONLY in Website Studio — a game project
+  // has no server-side db (D-WEB-15), so the surface must not advertise one.
   const isSite = kind === 'website';
   const splitTabs = useMemo(
     () =>
