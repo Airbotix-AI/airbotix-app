@@ -1,22 +1,17 @@
 import { Home } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import {
   buildSitePreview,
   isConsoleMessage,
   isSiteNavigateMessage,
-  isSiteSourceRequest,
-  isSiteSqlRequest,
-  MAX_SOURCE_INFLIGHT,
   resolveErrorLoc,
   SITE_HOME_PAGE,
   type ConsoleLine,
-  type SiteSourceReply,
-  type SiteSqlReply,
 } from './buildSitePreview';
-import { fetchProjectSource, querySiteDb, type SiteSourceParam } from './panes/playgroundApi';
+import { fetchProjectSource, querySiteDb } from './panes/playgroundApi';
+import { useSiteBackendChannel, type SiteBackendTransport } from './siteBackendChannel';
 import {
   createRunCollector,
   isSiteReportMessage,
@@ -66,33 +61,6 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
   error: 'text-brand-coral',
 };
 
-/** The sql reply when the studio has no project to query against (a
- *  project-less session — the scaffold path). Kid-readable, never a hang. */
-const NO_PROJECT_SQL_ERROR =
-  'Your database is not ready yet — it wakes up once your project is saved.';
-
-/** How many sql forwards may be in flight at once. An unawaited query loop in
- *  kid code must fail LOCALLY (kid-readably) instead of spraying authed POSTs
- *  at the backend. Well above anything a sane page needs. */
-const MAX_PENDING_SQL = 8;
-
-/** A bindable param element — mirrors the backend contract; anything else
- *  (objects, Dates, …) is rejected client-side with a kid-readable line
- *  instead of bouncing off the backend's schema as jargon. */
-const isSqlParam = (p: unknown): p is string | number | boolean | null =>
-  p === null || typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean';
-
-/** The sources.get reply when there is no project yet (a project-less session
- *  — the scaffold path). Kid-readable, never a hang. */
-const NO_PROJECT_SOURCE_ERROR =
-  'Data sources are not ready yet — they wake up once your project is saved.';
-
-/** A sources.get param VALUE — the backend contract is scalars only (no null:
- *  a source param is either present or omitted). Anything else is rejected
- *  client-side with a kid-readable line, like db.query params. */
-const isSourceParam = (v: unknown): v is SiteSourceParam =>
-  typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
-
 /**
  * Renders a kid's WEBSITE inside the strict sandbox (Website Studio,
  * creative-code-studio-website-prd). Same security model as GameFrame:
@@ -139,9 +107,21 @@ export function SiteFrame({
   // Read inside the (stable) message listener without re-subscribing.
   const scriptRangesRef = useRef(scriptRanges);
   scriptRangesRef.current = scriptRanges;
-  const projectIdRef = useRef(projectId);
-  projectIdRef.current = projectId;
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // The studio backend transport: the site's `db.query` / `sources.get` calls
+  // are forwarded to the AUTHED per-project endpoints with the kid's session
+  // (the frame stays token-free). The public play host uses the shareId variant
+  // — everything else about the proxy is shared (siteBackendChannel).
+  const transport = useMemo<SiteBackendTransport>(
+    () => ({
+      ready: !!projectId,
+      query: (sql, params) => querySiteDb(projectId as string, sql, params),
+      getSource: (name, params) => fetchProjectSource(projectId as string, name, params),
+    }),
+    [projectId],
+  );
+  useSiteBackendChannel(iframeRef, transport);
 
   // ── Run-report collection (D-WEB-13) — mirrors GameFrame's ────────────────
   // One collector per RUN (runKey) — deliberately NOT per srcDoc: a website
@@ -192,133 +172,15 @@ export function SiteFrame({
     };
   }, [collectReports, runKey]);
 
-  // Sql forwards currently in flight (the MAX_PENDING_SQL cap) — a ref, not
-  // state: it must mutate synchronously inside the message handler.
-  const pendingSqlRef = useRef(0);
-  // Source forwards in flight (the MAX_SOURCE_INFLIGHT cap, D-WEB-19) — the
-  // shim caps in-frame too, but THIS is the trust fence: forged postMessages
-  // bypass the shim, and each forward is an authed POST (potentially a real
-  // upstream provider fetch), so the studio must cap independently.
-  const pendingSourceRef = useRef(0);
-
   useEffect(() => {
-    // Answer one in-frame `db.query` (the sql channel): forward to the backend
-    // with the kid's session, post the reply back echoing the request's id +
-    // per-document token (the shim drops replies whose token isn't its own, so
-    // a reply landing after a srcdoc swap can never resolve the NEW document's
-    // same-id query). The reply targets the frame window AT REPLY TIME.
-    const answerSql = async (id: number, token: string, sql: string, params: unknown[]) => {
-      const reply = (r: Omit<SiteSqlReply, '__airbotixSiteSql' | 'id' | 'token'>) => {
-        iframeRef.current?.contentWindow?.postMessage(
-          { __airbotixSiteSql: true, id, token, ...r } satisfies SiteSqlReply,
-          '*',
-        );
-      };
-      const pid = projectIdRef.current;
-      if (!pid) {
-        reply({ ok: false, error: NO_PROJECT_SQL_ERROR });
-        return;
-      }
-      // Untrusted wire data: every param element must be bindable, or the
-      // backend's schema rejection would surface as kid-facing jargon.
-      if (!params.every(isSqlParam)) {
-        reply({
-          ok: false,
-          error: 'db.query params must be words, numbers, true/false or null.',
-        });
-        return;
-      }
-      // Local backpressure: an unawaited query loop fails here, kid-readably,
-      // instead of spraying authed POSTs at the backend.
-      if (pendingSqlRef.current >= MAX_PENDING_SQL) {
-        reply({
-          ok: false,
-          error: `Too many database queries at once (over ${MAX_PENDING_SQL}) — await each db.query before starting the next.`,
-        });
-        return;
-      }
-      pendingSqlRef.current += 1;
-      try {
-        const result = await querySiteDb(pid, sql, params);
-        reply({ ok: true, result });
-      } catch (err) {
-        // The backend's DB_QUERY_ERROR message is kid-readable (the real
-        // SQLite error) — surface it verbatim; anything else gets a calm fallback.
-        const message =
-          err instanceof ApiError && err.message
-            ? err.message
-            : 'Your database could not be reached — try again in a moment.';
-        reply({ ok: false, error: message });
-      } finally {
-        pendingSqlRef.current -= 1;
-      }
-    };
-
-    // Answer one in-frame `sources.get` (D-WEB-19): forward to the curated
-    // server proxy with the kid's session, post the reply back echoing id +
-    // per-document token (same guard as the sql channel). The frame's shim
-    // caps polite kid code locally; the cap below is the studio-side fence
-    // the sql channel established (forged messages must not spray POSTs).
-    const answerSource = async (id: number, token: string, name: string, rawParams: unknown) => {
-      const reply = (r: Omit<SiteSourceReply, '__airbotixSiteSource' | 'id' | 'token'>) => {
-        iframeRef.current?.contentWindow?.postMessage(
-          { __airbotixSiteSource: true, id, token, ...r } satisfies SiteSourceReply,
-          '*',
-        );
-      };
-      const pid = projectIdRef.current;
-      if (!pid) {
-        reply({ ok: false, error: NO_PROJECT_SOURCE_ERROR });
-        return;
-      }
-      // Untrusted wire data: params must be a plain object of scalar values,
-      // or the backend's schema rejection would surface as kid-facing jargon.
-      const params =
-        typeof rawParams === 'object' && rawParams !== null && !Array.isArray(rawParams)
-          ? (rawParams as Record<string, unknown>)
-          : {};
-      if (!Object.values(params).every(isSourceParam)) {
-        reply({
-          ok: false,
-          error: 'sources.get params must be words, numbers or true/false.',
-        });
-        return;
-      }
-      // Studio-side backpressure (the trust fence — the frame is untrusted
-      // and its shim cap can be bypassed by forged postMessages): fail
-      // kid-readably instead of spraying authed POSTs at the backend.
-      if (pendingSourceRef.current >= MAX_SOURCE_INFLIGHT) {
-        reply({
-          ok: false,
-          error: `Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get before starting the next.`,
-        });
-        return;
-      }
-      pendingSourceRef.current += 1;
-      try {
-        const { data } = await fetchProjectSource(
-          pid,
-          name,
-          params as Record<string, SiteSourceParam>,
-        );
-        reply({ ok: true, data });
-      } catch (err) {
-        // The backend's SOURCE_* messages are kid-readable — surface them
-        // verbatim; anything else gets a calm fallback.
-        const message =
-          err instanceof ApiError && err.message
-            ? err.message
-            : 'That data source could not be reached — try again in a moment.';
-        reply({ ok: false, error: message });
-      } finally {
-        pendingSourceRef.current -= 1;
-      }
-    };
-
+    // The sql / source proxy lives in useSiteBackendChannel (shared with the
+    // public play host). This listener owns the studio-only concerns: console
+    // capture (+ the run-report collector), the run-report probe reply, and
+    // page navigation.
     const onMessage = (e: MessageEvent) => {
-      // Only THIS frame may feed the console / drive navigation / query the db
-      // (same defence-in-depth as GameFrame — another frame on the page must
-      // not steer the site). A null source (jsdom tests) is not the cross-frame case.
+      // Only THIS frame may feed the console / drive navigation (same
+      // defence-in-depth as GameFrame — another frame on the page must not
+      // steer the site). A null source (jsdom tests) is not the cross-frame case.
       const frameWindow = iframeRef.current?.contentWindow;
       if (e.source != null && frameWindow != null && e.source !== frameWindow) return;
       if (isConsoleMessage(e.data)) {
@@ -345,15 +207,6 @@ export function SiteFrame({
         // A page-link click: just render the target page — the db is
         // server-side, so there is no state to carry (D-WEB-15).
         setPage(e.data.path);
-        return;
-      }
-      if (isSiteSqlRequest(e.data)) {
-        const params = Array.isArray(e.data.params) ? e.data.params : [];
-        void answerSql(e.data.id, e.data.token, e.data.sql, params);
-        return;
-      }
-      if (isSiteSourceRequest(e.data)) {
-        void answerSource(e.data.id, e.data.token, e.data.name, e.data.params);
       }
     };
     window.addEventListener('message', onMessage);

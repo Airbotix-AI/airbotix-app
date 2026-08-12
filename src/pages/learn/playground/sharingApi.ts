@@ -19,7 +19,12 @@
 import { ApiError, api } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
-import { GAME_PROJECT_KIND } from './panes/playgroundApi';
+import {
+  GAME_PROJECT_KIND,
+  type SiteDbParam,
+  type SiteDbQueryResult,
+  type SiteSourceParam,
+} from './panes/playgroundApi';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
@@ -98,6 +103,14 @@ export function setDemoShareAdapter(adapter: DemoShareAdapter | null): void {
 export interface PublicSnapshot {
   files: VfsFile[];
   engine: GameEngine;
+  /**
+   * What the frozen snapshot IS — the public host renders the matching
+   * read-only frame (D-WEB-22): `website` → the read-only `SiteFrame`;
+   * `game` → the bare game/blocks canvas. Captured on the ShareLink at approval
+   * (from `Project.kind`) so the public host classifies with NO project row. A
+   * pre-kind backend / bundled demo snapshot defaults to `game`.
+   */
+  kind: 'game' | 'website';
 }
 
 /** Bundled, offline `/play/:shareId` snapshots for the two demos (D-DEMO-09). */
@@ -203,9 +216,9 @@ export async function readPublicSnapshot(shareId: string): Promise<PublicSnapsho
   // Demo shareIds (D-DEMO-09): a build-time bundled snapshot, ZERO network — so a
   // real new tab to /play/try-demo-* renders this real page offline. Resolved
   // unconditionally (no demo install needed in a fresh tab); the ids never
-  // collide with real capability tokens. Both demos are 2D (phaser).
+  // collide with real capability tokens. Both demos are 2D games (phaser).
   const demoSnapshot = DEMO_SNAPSHOTS[shareId];
-  if (demoSnapshot) return { files: await demoSnapshot(), engine: 'phaser' };
+  if (demoSnapshot) return { files: await demoSnapshot(), engine: 'phaser', kind: 'game' };
 
   let res: Response;
   try {
@@ -215,9 +228,92 @@ export async function readPublicSnapshot(shareId: string): Promise<PublicSnapsho
   }
   if (res.status === 410) throw new ShareGoneError();
   if (!res.ok) throw new Error(`play_${res.status}`);
-  const body = (await res.json()) as { files?: VfsFile[]; engine?: GameEngine };
-  // A pre-fix backend (or a snapshot with no engine) means the 2D Phaser default.
-  return { files: body.files ?? [], engine: body.engine === 'three' ? 'three' : 'phaser' };
+  const body = (await res.json()) as { files?: VfsFile[]; engine?: GameEngine; kind?: string };
+  // A pre-fix backend (or a snapshot with no engine) means the 2D Phaser default;
+  // an absent kind means a game (websites are the newer, explicit kind, D-WEB-22).
+  return {
+    files: body.files ?? [],
+    engine: body.engine === 'three' ? 'three' : 'phaser',
+    kind: body.kind === 'website' ? 'website' : 'game',
+  };
+}
+
+// ── Public per-share website backend (D-WEB-22) ─────────────────────────────
+// A `/play/:shareId` visitor has NO project and NO auth, yet the frozen site's
+// `server.js` still calls `db.query` / `sources.get`. The read-only host proxies
+// those to NO-AUTH endpoints keyed by shareId (bare `fetch`, never the `api`
+// client — no `Authorization` header is ever sent). The db endpoint hands back
+// an opaque per-visitor `session` (an isolated ephemeral clone of the frozen
+// db); the client persists it per visit and echoes it on later calls, so a
+// visitor's writes are THEIRS (reset on reload) and never touch the author's db.
+
+/** Parse a `/play/:shareId` error response into an {@link ApiError} carrying the
+ *  backend's kid-readable message (same envelope as the `api` client) so the
+ *  site frame surfaces it verbatim, exactly like the studio proxy does. */
+async function publicPlayError(res: Response): Promise<ApiError> {
+  let code = `HTTP_${res.status}`;
+  let message = res.statusText;
+  try {
+    const body = (await res.json()) as { error?: { code: string; message: string } };
+    if (body.error) {
+      code = body.error.code;
+      message = body.error.message;
+    }
+  } catch {
+    // body wasn't JSON — keep the status-based defaults
+  }
+  return new ApiError(res.status, code, message);
+}
+
+/** A public site db.query result plus the opaque per-visitor session token the
+ *  caller must persist (per tab/visit) and echo on subsequent calls. */
+export interface PublicSiteDbResult {
+  result: SiteDbQueryResult;
+  session: string;
+}
+
+/**
+ * Run ONE SQL statement against a shared site's ephemeral per-visitor db clone
+ * (D-WEB-22). NO auth. The FIRST call omits `session` and the backend mints one
+ * (returned alongside the query envelope); every later call echoes it so the
+ * visitor keeps the same isolated clone. Backend errors arrive as an
+ * {@link ApiError} whose message is kid-readable — callers show it verbatim.
+ */
+export async function queryPublicSiteDb(
+  shareId: string,
+  sql: string,
+  params: SiteDbParam[] = [],
+  session?: string,
+): Promise<PublicSiteDbResult> {
+  const res = await fetch(`${BASE_URL}/play/${shareId}/db/query`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sql, params, ...(session ? { session } : {}) }),
+  });
+  if (!res.ok) throw await publicPlayError(res);
+  const body = (await res.json()) as SiteDbQueryResult & { session: string };
+  const { session: nextSession, ...result } = body;
+  return { result, session: nextSession };
+}
+
+/**
+ * Fetch one curated data source for a shared site through the public per-share
+ * proxy (D-WEB-22). NO auth; hits the SAME curated catalog as the studio
+ * (read-only, cached, no kid data). Errors arrive as a kid-readable
+ * {@link ApiError}, surfaced verbatim.
+ */
+export async function fetchPublicSource(
+  shareId: string,
+  name: string,
+  params: Record<string, SiteSourceParam>,
+): Promise<{ data: unknown; cached: boolean }> {
+  const res = await fetch(`${BASE_URL}/play/${shareId}/sources/${encodeURIComponent(name)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ params }),
+  });
+  if (!res.ok) throw await publicPlayError(res);
+  return (await res.json()) as { data: unknown; cached: boolean };
 }
 
 // ── Interactive class wall (J7 / D-GAME8) ───────────────────────────────────

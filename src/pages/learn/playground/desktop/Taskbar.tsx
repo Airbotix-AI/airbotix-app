@@ -76,11 +76,10 @@ interface TaskbarProps {
   /** Teacher-prep host (D-PREP-6): the share control mints immediately, no approval. */
   prepShare?: boolean;
   /**
-   * Project kind. `website` HIDES the share control until website publish lands
-   * (P3, creative-code-studio-website-prd §6): the public play host renders a
-   * game (`ReadOnlyGameFrame`) and the ShareLink carries no kind, so a shared
-   * website would mint a DEAD public link. Interim guard — remove it when P3
-   * ships the website publish path. Defaults to `game` (unchanged behaviour).
+   * Project kind. Drives the kind-aware labels (the runner button reads
+   * "Website"), gates the Database window button (website only), and is passed to
+   * the share control so its copy is kind-aware ("see your website" vs "play your
+   * game"). Share now ships for BOTH kinds (D-WEB-22). Defaults to `game`.
    */
   kind?: 'game' | 'website';
   /**
@@ -107,9 +106,10 @@ export function Taskbar({
   // fixed share project id here to surface the REAL Share button (the in-memory
   // share adapter intercepts its calls). `null` (off) everywhere else.
   const demoShareProjectId = useDemoMode()?.shareProjectId;
-  // Websites can't be published yet (P3, creative-code-studio-website-prd §6) —
-  // offering Share would mint a link the public play host can't render.
-  const shareProjectId = kind === 'website' ? undefined : (projectId ?? demoShareProjectId);
+  // Share is offered for BOTH games and websites now (D-WEB-22): the public play
+  // host renders a read-only SiteFrame for a website snapshot and a game frame
+  // for a game. The panel copy is kind-aware.
+  const shareProjectId = projectId ?? demoShareProjectId;
   const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
@@ -227,7 +227,9 @@ export function Taskbar({
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <SaveStatusBadge />
         <RaiseHandButton readOnly={readOnly} />
-        {shareProjectId && <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} />}
+        {shareProjectId && (
+          <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} kind={kind} />
+        )}
       </div>
     </div>
   );

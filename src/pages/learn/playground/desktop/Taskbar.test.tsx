@@ -94,22 +94,21 @@ describe('Taskbar — the current mission step is docked here (§9A)', () => {
   });
 });
 
-// Share is a GAME affordance until website publish lands (P3,
-// creative-code-studio-website-prd §6): the public play host renders a game
-// (ReadOnlyGameFrame) and the ShareLink carries no kind, so sharing a website
-// today would mint a DEAD public link. Interim guard — drop it when P3 ships.
-describe('Taskbar — Share is gated for website projects (interim, pre-P3)', () => {
+// Share now ships for BOTH games and websites (D-WEB-22): the public play host
+// renders a read-only SiteFrame for a website snapshot and a game frame for a
+// game. The Taskbar surfaces the share control for either kind.
+describe('Taskbar — Share is offered for games AND websites (D-WEB-22)', () => {
   it('offers Share for a game project', () => {
     renderTaskbar({ projectId: 'p1' });
     expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
   });
 
-  it('does NOT offer Share for a website project', () => {
+  it('offers Share for a website project too', () => {
     renderTaskbar({ projectId: 'p1', kind: 'website' });
-    expect(screen.queryByTestId('stub-share-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
   });
 
-  it('defaults to the game behaviour when no kind is passed', () => {
+  it('offers Share when no kind is passed (defaults to game)', () => {
     renderTaskbar({ projectId: 'p1', kind: undefined });
     expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
   });

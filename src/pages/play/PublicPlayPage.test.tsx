@@ -59,6 +59,7 @@ describe('PublicPlayPage brand frame', () => {
     readPublicSnapshot.mockResolvedValue({
       files: [text('main.js', 'new Phaser.Game({});')],
       engine: 'phaser',
+      kind: 'game',
     });
     renderPlay();
 
@@ -106,6 +107,32 @@ describe('PublicPlayPage brand frame', () => {
     expect(blocks).toHaveAttribute('data-theme', 'dark');
     expect(screen.getByTestId('play-brand-bar')).toBeInTheDocument();
     expect(screen.getByTestId('play-make-own')).toBeInTheDocument();
+  });
+
+  it('renders the read-only SITE frame for a website snapshot (D-WEB-22), not a game frame', async () => {
+    readPublicSnapshot.mockResolvedValue({
+      files: [
+        text('index.html', '<!doctype html><html><head></head><body><h1>My site</h1></body></html>'),
+        text('server.js', "app.get('/api/x', (req, res) => res.json([]));"),
+      ],
+      engine: 'phaser',
+      kind: 'website',
+    });
+    renderPlay();
+
+    // The public site host — the SAME strict sandbox as the studio SiteFrame
+    // (allow-scripts ONLY, no allow-same-origin) with a deny-by-default CSP.
+    const site = await screen.findByTestId('play-site-iframe');
+    expect(site).toHaveAttribute('sandbox', 'allow-scripts');
+    expect(site).toHaveAttribute('data-site-frame', '');
+    const srcDoc = site.getAttribute('srcdoc') ?? '';
+    expect(srcDoc).toContain('My site');
+    expect(srcDoc).toContain('Content-Security-Policy');
+    expect(srcDoc).toContain("connect-src 'none'");
+
+    // The brand frame still sits above it; the GAME frame never renders.
+    expect(screen.getByTestId('play-brand-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('play-iframe')).not.toBeInTheDocument();
   });
 
   it('keeps the 410 gone state a flat, frame-less dead end', async () => {

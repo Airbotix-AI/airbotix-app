@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-08-13 (feat: website sharing — kid share UI + public site play host — D-WEB-22)
+
+### Added
+
+- **Website sharing ships (D-WEB-22).** The share lifecycle is now offered for
+  `website` projects, IDENTICAL to games (request → grown-up approval → link →
+  revoke; claps/plays) — only the copy differs.
+  - `ShareLinkPanel` takes a `kind` prop: the citizenship note reads "see your
+    website" vs "play your game" (prep variants too) and the engagement-count glyph
+    is a globe vs a gamepad. The request/approve/revoke machinery is unchanged.
+  - `Taskbar` un-hides the share control for websites (the pre-P3 `kind==='website'`
+    gate is removed) and threads `kind` into the panel.
+  - **`ReadOnlySiteFrame`** — the public `/play/:shareId` WEBSITE host, the site
+    counterpart of `ReadOnlyGameFrame`. It renders the frozen site through the SAME
+    `buildSitePreview` runtime (opaque-origin iframe, `sandbox="allow-scripts"`
+    ONLY, deny-by-default CSP, studio-owned DOMParser skeleton, token-scoped
+    sql/source postMessage channels) with NO studio chrome; multi-page nav works via
+    the same nav shim. `PublicPlayPage` branches on the snapshot `kind`: `website` →
+    `ReadOnlySiteFrame`, `game` → the existing game/blocks frame (unchanged).
+  - **Public per-share backend client** (`sharingApi`): `queryPublicSiteDb` (POST
+    `play/:shareId/db/query`) and `fetchPublicSource` (POST `play/:shareId/sources/:name`),
+    both NO-AUTH bare `fetch`. The db call threads the opaque per-visitor `session`
+    token — obtained on the first reply, persisted in the frame, echoed thereafter —
+    so a visitor's writes land on THEIR ephemeral db clone, never the author's.
+    `PublicSnapshot` gains `kind`; `readPublicSnapshot` reads it from
+    `GET play/:shareId/files`.
+
+### Changed
+
+- **The site backend proxy is now ONE shared seam** (`siteBackendChannel.ts`,
+  `useSiteBackendChannel`). The studio `SiteFrame` and the public `ReadOnlySiteFrame`
+  share the entire `db.query` / `sources.get` proxy (own-source guard, per-document
+  token echo, scalar-param validation, in-flight caps); the ONLY difference is a
+  small `SiteBackendTransport` — authed per-project endpoints (studio) vs no-auth
+  per-share endpoints with the visitor session (public host). `SiteFrame` behaviour
+  is unchanged (its 28 tests are green against the refactor).
+
 ## 2026-08-12 (feat: kind-aware Website Guide — D-WEB-21)
 
 ### Added

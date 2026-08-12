@@ -66,7 +66,12 @@ delete, all parameterized through the existing `/db/query`; rows carry `__rowid_
 explorer pins a VIRTUAL `database.sqlite` (`explorer-database-file`, render-layer only — NEVER in
 the VFS/agent file list) whose click opens/focuses this window instead of a text tab.
 The 2D⇄3D switch never
-offers; **Share is hidden until website publish lands (P3)**. Backend contract:
+offers. **Share ships for websites (D-WEB-22)**, same lifecycle as games: `ShareLinkPanel`
+is kind-aware and the public `/play/:shareId` host renders a read-only `SiteFrame`
+(`ReadOnlySiteFrame`) whose `db.query`/`sources.get` proxy hits the NO-AUTH per-share
+endpoints (`play/:shareId/db/query` + `/sources/:name`), threading an opaque per-visitor
+`session` (ephemeral db clone). The studio + public frames share ONE proxy seam
+(`useSiteBackendChannel`, a `SiteBackendTransport` is the only difference). Backend contract:
 `website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
