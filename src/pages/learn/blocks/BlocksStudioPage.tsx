@@ -21,6 +21,13 @@ import { performanceForBlock } from './characterPerformance';
 import type { CharacterPerformance } from './characterPerformance';
 import { type StoryCoachCue } from './curriculumGuides';
 import { jtwOrderBugObserved } from './jtwOrderDebug';
+import {
+  JTW_C4_P4_LESSON_ID,
+  JTW_C4_P5_LESSON_ID,
+  JTW_C4_P6_LESSON_ID,
+  JTW_C4_P7_LESSON_ID,
+  JTW_C4_WUKONG_ID,
+} from './jtwC4DualBuild';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
@@ -143,6 +150,7 @@ export function BlocksStudioPage({
     isA4ParameterBuild, isA4ParameterDebug, isA4PersonalShip, isA5TurnBuild,
     isA5RelayDebug, isA5PersonalShip, isA6OrderDebug, needsBellOrderRun,
     isA6Finale, finaleRinger, duetFirst, duetSecond, deliveryCart, isJtwOrderDebug,
+    isJtwC4DualBuild,
     selectedHomeGx, selectedDeliveryDistance, lockedStageTargetGx, visibleCoachCue,
   } = useBlocksMissionDerived({
     project, pageId, charId, missionAnswer, missionCompleted, missionCorrectRunFinished,
@@ -542,6 +550,7 @@ export function BlocksStudioPage({
         } else if (
           missionTargetFixed &&
           reachedMissionTarget &&
+          !isJtwC4DualBuild &&
           (!(
             isA2DirectionDebug ||
             isA4ParameterDebug ||
@@ -584,6 +593,7 @@ export function BlocksStudioPage({
     isA6Finale,
     needsBellOrderRun,
     isJtwOrderDebug,
+    isJtwC4DualBuild,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -673,10 +683,25 @@ export function BlocksStudioPage({
     (id: string) => {
       const runner = runnerRef.current ?? makeRunner();
       void runner.runTap(id).finally(() => {
-        if (id !== 'dot-dot') return;
         const targetFixedNow = storyMission
           ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
           : false;
+        if (
+          id === JTW_C4_WUKONG_ID &&
+          (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P5_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P6_LESSON_ID ||
+            storyMission?.lessonId === JTW_C4_P7_LESSON_ID) &&
+          missionHasRun &&
+          targetFixedNow
+        ) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
+        if (id !== 'dot-dot') return;
         if (storyMission?.lessonId === 'tsv-s1-a3-h' && missionHasRun) {
           setMissionTapObserved(true);
           setStoryCoachCue('fix');

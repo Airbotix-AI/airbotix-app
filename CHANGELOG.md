@@ -1,5 +1,67 @@
 # Changelog
 
+## 2026-08-12 (added: Journey West C6-P3 through P10 candidate slice)
+
+### Added
+
+- Added C6-P3 through P10: three-page cause planning, Blocks build candidates, bounded rhythm
+  choices, Stop/Again debugging, VFS save/reopen, four-link Retell and server-owned season closure.
+
+## 2026-08-12 (added: Journey West C5 finale and C6 opening candidate slice)
+
+### Added
+
+- Added C5 Reset debugging, a VFS-backed personal size story, P7 reload/Retell and the
+  server-owned 如意印; added C6-P1/P2 story-order and motive-versus-choice evidence.
+
+## 2026-08-12 (added: Journey West C5-P1 through P5 candidate slice)
+
+### Added
+
+- Added five adjacent Dragon Palace Parts: source-grounded motive ordering, pre-run size prediction,
+  two interpreter state sequences, and the initial P4/P5 build flow pending real Studio hardening.
+
+## 2026-08-12 (added: Journey West C4-P8 server-owned Retell evidence)
+
+### Added
+
+- Added C4-P8 `名字跟着他回家`: the child orders the six chapter causes, reopens and runs the
+  real P7 VFS project through separate Go and Wukong-Tap interpreter traces, links story motive,
+  run and P6 debug evidence, and renders the server-owned 得名印 before adjacent C5-P1 continue.
+
+## 2026-08-12 (added: Journey West C4-P7 Personal Ship)
+
+### Added
+
+- Added the `Meet Sun Wukong` child-facing Personal Ship with two trigger-only starter slots,
+  three seven-block-or-more choices, real Go/Tap proof, peer discoverability evidence, exact VFS
+  reopen comparison and adjacent-only continuation to C4-P8.
+
+## 2026-08-12 (added: Journey West C4-P6 wrong-trigger debug)
+
+### Added
+
+- Added the child-facing C4-P6 debug loop with a real buggy Start trace, first-deviation evidence,
+  three carried-forward skill groups, exact trigger-only repair, dual Go/Tap run proof and P7-only
+  continuation.
+
+## 2026-08-11 (added: Journey West C4-P5 expression choice)
+
+### Added
+
+- Added three exact child-built Tap response versions while preserving the prior Start/name chain.
+- Completion now requires motive evidence, a peer prediction, saved version-matching blocks, a Go
+  run that keeps the response quiet, and a real Tap run before adjacent C4-P6 unlocks.
+
+## 2026-08-11 (added: Journey West C4-P4 dual-event build)
+
+### Added
+
+- Added the child-facing C4-P4 story page and a trigger-only Story Blocks workspace where the
+  child places six real blocks across separate Start/name and Tap/skill scripts.
+- Completion requires an exact saved program, a Go run that leaves the skill quiet, and a real
+  tap on Sun Wukong before the adjacent C4-P5 part can unlock.
+
 ## 2026-08-11 (fixed: challenge consent has a real signature pad)
 
 ### Fixed
@@ -375,6 +437,12 @@ skeleton and none of the content below.
   constraint validation reported `rangeUnderflow` and swallowed the submit event, so the
   POST never fired and three tests failed — reddening `ci` on `main` from 2026-08-01
   with no product defect behind it. The preferred time is now derived from `Date.now()`.
+## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
+
+### Added
+
+- Added the child-facing C4-P2 Story Part with a real faulty Start run, a reset-separated Tap run,
+  event-level trace evidence, persistence and adjacent-only continuation to C4-P3.
 
 ## 2026-07-29 (feat: connect Art Studio learning progression and course works)
 
