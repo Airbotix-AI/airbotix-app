@@ -5,7 +5,9 @@
 // two-step row delete — every write a PARAMETERIZED statement through the
 // existing querySiteDb seam, followed by a re-introspection. Tables without a
 // usable rowid stay read-only with a one-line note; readOnly (teacher/parent)
-// viewers get no edit affordances at all.
+// viewers get no edit affordances at all. Since D-WEB-18 the grid is the
+// master–detail RIGHT panel: `db-collection-<name>` wraps the selected table
+// (single-table projects auto-select it — these flows are unchanged).
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -52,7 +54,7 @@ const WRITE_OK = { columns: [], rows: [], row_count: 0, changes: 1, last_insert_
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
+  useSiteDbStore.setState({ tables: null, sizeBytes: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
   listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2, has_rowid: true });
   querySiteDbMock.mockResolvedValue(WRITE_OK);

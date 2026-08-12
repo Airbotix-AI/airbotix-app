@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 // The Database window (Website Studio, creative-code-studio-website-prd
-// D-WEB-15): the project's server-side db rendered kid-friendly — real tables
-// (columns + types from the introspection contract), the `db-collection-<name>`
-// heading with the REAL row count (harness journey contract, with
-// `site-db-pane` + `db-refresh` + `db-reset`), REST polling while mounted, the
-// manual refresh, the two-step Reset database, the data/*.json edit jump, and
-// the empty/waiting states.
+// D-WEB-15/18): the project's server-side db as a master–detail db tool — a
+// `db-table-<name>` sidebar (live row counts, first table auto-selected,
+// selection kept by name across polls, fallback when the selected table
+// vanishes) and the SELECTED table's grid wrapped in `db-collection-<name>`
+// with the REAL row count (harness journey contract, with `site-db-pane` +
+// `db-refresh` + `db-reset`), REST polling while mounted, the manual refresh,
+// the toolbar's two-step Reset database and data/*.json edit jump, and the
+// empty/waiting states.
 
 import '@testing-library/jest-dom/vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -53,10 +55,16 @@ const PETS_ROWS = [
   { __rowid__: '1', id: 1, name: 'Biscuit', adopted: 0 },
   { __rowid__: '2', id: 2, name: 'Mochi', adopted: 1 },
 ];
+// A second table — made by CREATE TABLE, so it has NO data/visits.json seed.
+const VISITS = {
+  name: 'visits',
+  row_count: 5,
+  columns: [{ name: 'id', type: 'INTEGER' }],
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
+  useSiteDbStore.setState({ tables: null, sizeBytes: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
   listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2, has_rowid: true });
   resetSiteDbMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
@@ -68,7 +76,7 @@ afterEach(() => {
 });
 
 describe('DbPane — rendering the server-side tables', () => {
-  it('renders a table per introspected table: `name · N rows` heading, columns with types, cells', async () => {
+  it('renders the SELECTED table: `name · N rows` heading, columns with types, cells', async () => {
     render(<DbPane projectId="p1" files={FILES} />);
 
     expect(await screen.findByTestId('db-collection-pets')).toHaveTextContent('pets · 2 rows');
@@ -204,25 +212,110 @@ describe('DbPane — refresh (manual + REST polling while mounted)', () => {
   });
 });
 
-describe('DbPane — "Edit starting data" (the data/*.json jump)', () => {
-  it('opens data/<name>.json through the open-file seam — only for tables with a seed', async () => {
-    listSiteDbTablesMock.mockResolvedValue({
-      tables: [PETS, { name: 'visits', row_count: 0, columns: [{ name: 'id', type: 'INTEGER' }] }],
-      size_bytes: 1,
-    });
+describe('DbPane — "Edit starting data" (the data/*.json jump, toolbar-scoped)', () => {
+  it('opens data/<name>.json through the open-file seam — only when the SELECTED table has a seed', async () => {
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 1 });
     const onOpenDataFile = vi.fn();
     render(<DbPane projectId="p1" files={FILES} onOpenDataFile={onOpenDataFile} />);
 
     fireEvent.click(await screen.findByTestId('db-edit-pets'));
     expect(onOpenDataFile).toHaveBeenCalledWith('data/pets.json');
-    // visits was made by CREATE TABLE — no seed file, no edit affordance.
+
+    // visits was made by CREATE TABLE — no seed file, no edit affordance once
+    // it becomes the selection (the toolbar button follows the selected table).
+    fireEvent.click(screen.getByTestId('db-table-visits'));
     expect(screen.queryByTestId('db-edit-visits')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('db-edit-pets')).not.toBeInTheDocument();
   });
 
   it('read-only (teacher viewer) hides the edit affordance', async () => {
     render(<DbPane projectId="p1" files={FILES} onOpenDataFile={vi.fn()} readOnly />);
     await screen.findByTestId('db-collection-pets');
     expect(screen.queryByTestId('db-edit-pets')).not.toBeInTheDocument();
+  });
+});
+
+describe('DbPane — master–detail layout (D-WEB-18)', () => {
+  it('the sidebar lists EVERY table with its live row count; the FIRST table auto-selects', async () => {
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 4096 });
+    render(<DbPane projectId="p1" files={FILES} />);
+
+    // Every table is a selectable sidebar row: name + live row count.
+    expect(await screen.findByTestId('db-table-pets')).toHaveTextContent('pets');
+    expect(screen.getByTestId('db-table-pets')).toHaveTextContent('2');
+    expect(screen.getByTestId('db-table-visits')).toHaveTextContent('visits');
+    expect(screen.getByTestId('db-table-visits')).toHaveTextContent('5');
+
+    // First table auto-selected; the right panel shows ONLY its grid.
+    expect(screen.getByTestId('db-table-pets')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('db-table-visits')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('db-collection-pets')).toBeInTheDocument();
+    expect(screen.queryByTestId('db-collection-visits')).not.toBeInTheDocument();
+  });
+
+  it('clicking a sidebar table switches the right panel (db-collection-<name> follows)', async () => {
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 4096 });
+    render(<DbPane projectId="p1" files={FILES} />);
+
+    fireEvent.click(await screen.findByTestId('db-table-visits'));
+    expect(screen.getByTestId('db-table-visits')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('db-table-pets')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('db-collection-visits')).toBeInTheDocument();
+    expect(screen.queryByTestId('db-collection-pets')).not.toBeInTheDocument();
+  });
+
+  it('the selection survives a poll (kept by NAME, never by snapshot identity)', async () => {
+    vi.useFakeTimers();
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 4096 });
+    render(<DbPane projectId="p1" files={FILES} />);
+    await vi.waitFor(() => {
+      expect(screen.getByTestId('db-table-visits')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('db-table-visits'));
+    expect(screen.getByTestId('db-collection-visits')).toBeInTheDocument();
+
+    // A full poll cycle replaces the snapshot — the pick must hold.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(DB_POLL_MS);
+    });
+    expect(screen.getByTestId('db-table-visits')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('db-collection-visits')).toBeInTheDocument();
+  });
+
+  it('a selected table that VANISHED (e.g. Reset removed it) falls back to the first table', async () => {
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 4096 });
+    render(<DbPane projectId="p1" files={FILES} />);
+    fireEvent.click(await screen.findByTestId('db-table-visits'));
+    expect(screen.getByTestId('db-collection-visits')).toBeInTheDocument();
+
+    // The next introspection no longer has `visits` — same store path a poll takes.
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh database' }));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('db-table-visits')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('db-table-pets')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('db-collection-pets')).toBeInTheDocument();
+  });
+
+  it("the sidebar's identity line names database.sqlite with the introspected size", async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
+    expect(await screen.findByTestId('db-file-identity')).toHaveTextContent(
+      'database.sqlite · 4 KB',
+    );
+  });
+
+  it('readOnly (teacher/parent viewer) still NAVIGATES the sidebar — viewing is allowed', async () => {
+    listSiteDbTablesMock.mockResolvedValue({ tables: [PETS, VISITS], size_bytes: 4096 });
+    render(<DbPane projectId="p1" files={FILES} readOnly />);
+
+    fireEvent.click(await screen.findByTestId('db-table-visits'));
+    expect(screen.getByTestId('db-collection-visits')).toBeInTheDocument();
+    // …but no editing affordances anywhere.
+    expect(screen.queryByTestId('db-reset')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('db-edit-visits')).not.toBeInTheDocument();
   });
 });
 

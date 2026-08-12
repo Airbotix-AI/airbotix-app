@@ -36,6 +36,9 @@ export interface SiteDbTableSnapshot extends SiteDbTableInfo {
 interface SiteDbState {
   /** The last introspection snapshot (null = none yet). */
   tables: SiteDbTableSnapshot[] | null;
+  /** The db file's size in bytes, from the same `GET …/db/tables` response —
+   *  the sidebar's `database.sqlite` identity line (D-WEB-18). */
+  sizeBytes: number | null;
   /** When that snapshot arrived (Date.now()); null with no snapshot. */
   updatedAt: number | null;
   /** The LATEST poll failed (cleared by the next success / reset). With no
@@ -56,12 +59,13 @@ let refreshSeq = 0;
 
 export const useSiteDbStore = create<SiteDbState>((set) => ({
   tables: null,
+  sizeBytes: null,
   updatedAt: null,
   error: false,
   refresh: async (projectId) => {
     const seq = ++refreshSeq;
     try {
-      const { tables } = await listSiteDbTables(projectId);
+      const { tables, size_bytes } = await listSiteDbTables(projectId);
       const snapshot = await Promise.all(
         tables.map(async (t): Promise<SiteDbTableSnapshot> => {
           const { rows, has_rowid } = await listSiteDbRows(projectId, t.name, {
@@ -73,7 +77,12 @@ export const useSiteDbStore = create<SiteDbState>((set) => ({
         }),
       );
       if (seq !== refreshSeq) return; // superseded — never overwrite fresher truth
-      set({ tables: snapshot, updatedAt: Date.now(), error: false });
+      set({
+        tables: snapshot,
+        sizeBytes: typeof size_bytes === 'number' ? size_bytes : null,
+        updatedAt: Date.now(),
+        error: false,
+      });
     } catch {
       // A poll failure keeps the last snapshot (the freshness hint ages
       // honestly, the next poll retries) but is FLAGGED — with no snapshot
@@ -83,6 +92,6 @@ export const useSiteDbStore = create<SiteDbState>((set) => ({
   },
   reset: () => {
     refreshSeq += 1; // in-flight polls started before this must not land
-    set({ tables: null, updatedAt: null, error: false });
+    set({ tables: null, sizeBytes: null, updatedAt: null, error: false });
   },
 }));

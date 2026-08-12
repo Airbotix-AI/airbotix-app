@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-08-12 (feat: professional master–detail Database viewer — D-WEB-18)
+
+### Added
+
+- **Master–detail Database window** (`DbSidebar.tsx`): the Website Studio's Database window is
+  now a two-panel db tool — a LEFT sidebar listing every server-side table as a selectable row
+  (table icon + name + live row count, `db-table-<name>`, first table auto-selected; selection is
+  kept by NAME so it survives the ~2 s polls, and a selected table that vanished — e.g. after
+  Reset removed a runtime table — falls back to the first) with a `database.sqlite` identity line
+  (name + introspected file size, `db-file-identity`) pinned to the bottom, and a RIGHT panel
+  showing the SELECTED table as the D-WEB-16 editable grid (cell edit / add row / two-step
+  delete unchanged), wrapped in the existing `db-collection-<name>` testid. `siteDbStore` now
+  keeps `sizeBytes` from the same `GET …/db/tables` introspection response. All data remains
+  sourced exclusively from the REST introspection endpoints (never the JSON seeds).
+
+### Changed
+
+- **DbPane toolbar**: Refresh (`db-refresh`), freshness (`db-freshness`), the selected table's
+  "Edit starting data" seed jump (`db-edit-<name>`, moved out of the per-table heading; still
+  hidden without a `data/<name>.json` seed and for readOnly viewers) and the two-step Reset
+  database (`db-reset`) now live in one compact toolbar across the top; the persistent-db
+  teaching copy became a subtle one-line info strip under it. `DbTable` renders a single
+  selected table filling the right panel, with a sticky column-header row; it no longer owns
+  the seed jump or the `db-collection-<name>` testid. Empty/error/waiting states, readOnly
+  gating, `has_rowid:false` read-only note and hidden-tab polling pause are unchanged.
+
 ## 2026-08-12 (feat: neutral-first loading on the generic landing — D-WEB-17)
 
 ### Added

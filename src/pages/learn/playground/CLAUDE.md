@@ -45,8 +45,11 @@ surface, **screenshots never captured for sites**. The **Database window** (`PgW
 Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows the server-side db:
 `DbPane` polls REST introspection ~2 s while mounted through `siteDbStore`
 (`GET /projects/:id/db/tables` + first rows per table; a superseded/failed poll never overwrites);
-per-table `db-collection-<name>` (real columns + types) + "Edit starting data" jumps to
-`data/*.json` + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
+D-WEB-18 master–detail: a `db-table-<name>` sidebar (live row counts + `database.sqlite` size line,
+first table auto-selected; selection by NAME survives polls, a vanished pick falls back to first) +
+the SELECTED table's grid (real columns + types) wrapped in `db-collection-<name>`; the toolbar
+holds Refresh/freshness, the selected table's "Edit starting data" `data/*.json` jump
+(`db-edit-<name>`) + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
 D-WEB-16: tables are **EDITABLE, rowid-keyed** (`DbTable`: inline cell edit / add row / two-step
 delete, all parameterized through the existing `/db/query`; rows carry `__rowid__`, never displayed;
 `has_rowid:false` → read-only note; readOnly viewers see NO edit affordances) and the code editor's

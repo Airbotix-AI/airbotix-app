@@ -1,15 +1,16 @@
-// One table of the Database window, now EDITABLE (creative-code-studio-website-prd
-// D-WEB-16): `name · N rows` heading, real columns (type shown subtly), the first
-// rows, the `data/<name>.json` seed jump — plus kid-friendly edits keyed by
-// SQLite's rowid (each introspected row carries `__rowid__`; never a display
-// column): click a cell to change it, "+ Add row", and a two-step row delete.
+// The Database window's RIGHT panel: ONE table — the master–detail selection
+// (D-WEB-18) — rendered EDITABLE (creative-code-studio-website-prd D-WEB-16):
+// `name · N rows` heading, real columns (type shown subtly, sticky header row),
+// the first rows, plus kid-friendly edits keyed by SQLite's rowid (each
+// introspected row carries `__rowid__`; never a display column): click a cell
+// to change it, "+ Add row", and a two-step row delete.
 // Every write runs through the SAME `POST /projects/:id/db/query` the site's own
 // server.js uses (parameterized — the backend binds values and enforces access),
 // then re-introspects, so the pane always shows server truth. Tables without a
 // usable rowid render read-only with a one-line note; readOnly (teacher/parent)
 // viewers get NO edit affordances at all (same gate as Reset database).
 
-import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@/lib/api';
@@ -83,16 +84,13 @@ interface DbTableProps {
   projectId?: string;
   /** Teacher/parent read-only viewer — NO edit affordances at all. */
   readOnly: boolean;
-  /** The `data/<name>.json` VFS path when it exists — gates the seed-edit jump. */
-  seedPath?: string;
-  onOpenDataFile?: (path: string) => void;
 }
 
 /**
- * One server-side table: heading + rows, the seed-file edit jump, and — for a
- * kid viewer on a rowid-keyed table — inline cell edit / add row / delete row.
+ * One server-side table (the selected one): heading + rows and — for a kid
+ * viewer on a rowid-keyed table — inline cell edit / add row / delete row.
  */
-export function DbTable({ table, projectId, readOnly, seedPath, onOpenDataFile }: DbTableProps) {
+export function DbTable({ table, projectId, readOnly }: DbTableProps) {
   const { name, row_count: rowCount, columns, rows, hasRowid } = table;
   const refresh = useSiteDbStore((s) => s.refresh);
   const editable = !readOnly && hasRowid && !!projectId;
@@ -231,45 +229,34 @@ export function DbTable({ table, projectId, readOnly, seedPath, onOpenDataFile }
   };
 
   return (
-    <section className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <h3
-          data-testid={`db-collection-${name}`}
-          className="text-[13px] font-extrabold text-pg-text"
-        >
-          {name}
-          <span className="font-semibold text-pg-text-muted">
-            {' '}
-            · {rowCount} {rowCount === 1 ? 'row' : 'rows'}
-          </span>
-        </h3>
-        {seedPath && onOpenDataFile && (
-          <button
-            type="button"
-            data-testid={`db-edit-${name}`}
-            title={`Open ${seedPath} in the code editor`}
-            onClick={() => onOpenDataFile(seedPath)}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
-          >
-            <Pencil size={11} aria-hidden /> Edit starting data
-          </button>
-        )}
-      </div>
+    <section className="flex h-full min-h-0 flex-col gap-1.5">
+      <h3 className="shrink-0 text-[13px] font-extrabold text-pg-text">
+        {name}
+        <span className="font-semibold text-pg-text-muted">
+          {' '}
+          · {rowCount} {rowCount === 1 ? 'row' : 'rows'}
+        </span>
+      </h3>
       {rows.length === 0 ? (
         <p className="text-[12px] text-pg-text-muted">No rows yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-pg-border">
+        // Both scroll axes live HERE so the sticky header row tracks the
+        // grid's own vertical scroll (the pane around it never scrolls).
+        <div className="min-h-0 overflow-auto rounded-lg border border-pg-border">
           <table className="w-full border-collapse text-left">
             <thead>
               <tr>
                 {columns.map((c) => (
-                  <th key={c.name} className={`${CELL} bg-pg-surface-2 font-bold text-pg-text-dim`}>
+                  <th
+                    key={c.name}
+                    className={`${CELL} sticky top-0 z-[1] bg-pg-surface-2 font-bold text-pg-text-dim`}
+                  >
                     {c.name}
                     <span className="ml-1 font-medium lowercase text-pg-text-muted">{c.type}</span>
                   </th>
                 ))}
                 {editable && (
-                  <th className={`${CELL} w-8 bg-pg-surface-2`}>
+                  <th className={`${CELL} sticky top-0 z-[1] w-8 bg-pg-surface-2`}>
                     <span className="sr-only">Row actions</span>
                   </th>
                 )}
@@ -370,23 +357,26 @@ export function DbTable({ table, projectId, readOnly, seedPath, onOpenDataFile }
           type="button"
           data-testid={`db-add-row-${name}`}
           onClick={() => void addRow()}
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+          className="inline-flex shrink-0 items-center gap-1 self-start rounded-md px-1.5 py-0.5 text-[11px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
         >
           <Plus size={11} aria-hidden /> Add row
         </button>
       )}
       {!readOnly && !hasRowid && (
-        <p className="text-[11px] text-pg-text-muted">
+        <p className="shrink-0 text-[11px] text-pg-text-muted">
           View-only: this table has no row ids, so it can't be edited here.
         </p>
       )}
       {editError && (
-        <p data-testid={`db-edit-error-${name}`} className="text-[11px] font-semibold text-brand-coral">
+        <p
+          data-testid={`db-edit-error-${name}`}
+          className="shrink-0 text-[11px] font-semibold text-brand-coral"
+        >
           {editError}
         </p>
       )}
       {rowCount > rows.length && (
-        <p className="text-[11px] text-pg-text-muted">
+        <p className="shrink-0 text-[11px] text-pg-text-muted">
           Showing the first {Math.min(rows.length, DB_ROWS_DISPLAY_LIMIT)} of {rowCount} rows.
         </p>
       )}

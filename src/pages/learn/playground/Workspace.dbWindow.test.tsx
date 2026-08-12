@@ -86,7 +86,7 @@ beforeEach(() => {
   // Singleton stores — start every test from a clean slate.
   useProjectStore.getState().setFiles([]);
   useWorkspaceUiStore.getState().restore(null);
-  useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
+  useSiteDbStore.setState({ tables: null, sizeBytes: null, updatedAt: null, error: false });
   usePlaygroundStore.setState({
     windows: defaultWindows(),
     topZ: 4,
@@ -133,6 +133,36 @@ describe('Workspace — Database tab (split mode)', () => {
     renderWorkspace('website');
     fireEvent.click(screen.getByRole('tab', { name: 'Database' }));
     expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
+  });
+
+  it('website: the split-mode pane is the D-WEB-18 master–detail tool fed by REST introspection', async () => {
+    // Route the introspection endpoints so the pane renders REAL (mock-served)
+    // db truth — sidebar row + selected grid — inside the split tab.
+    apiMock.mockImplementation((path: string) => {
+      if (path === '/projects/p1/db/tables') {
+        return Promise.resolve({
+          tables: [{ name: 'pets', row_count: 1, columns: [{ name: 'name', type: 'TEXT' }] }],
+          size_bytes: 2048,
+        });
+      }
+      if (path.startsWith('/projects/p1/db/tables/pets/rows')) {
+        return Promise.resolve({
+          rows: [{ __rowid__: '1', name: 'Biscuit' }],
+          total: 1,
+          has_rowid: true,
+        });
+      }
+      return Promise.resolve({ stars_balance: 7 });
+    });
+    renderWorkspace('website');
+    fireEvent.click(screen.getByRole('tab', { name: 'Database' }));
+
+    // Left: the table auto-selected in the sidebar; bottom: the db identity.
+    expect(await screen.findByTestId('db-table-pets')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('db-file-identity')).toHaveTextContent('database.sqlite · 2 KB');
+    // Right: the selected table's editable grid (journey selector contract).
+    expect(screen.getByTestId('db-collection-pets')).toHaveTextContent('pets · 1 row');
+    expect(screen.getByTestId('db-cell-pets-0-name')).toHaveTextContent('Biscuit');
   });
 
   it('game: no Database tab; a stale-persisted db tab falls back to Chat', () => {
