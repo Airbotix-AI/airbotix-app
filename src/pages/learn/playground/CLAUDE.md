@@ -59,10 +59,14 @@ offers; **Share is hidden until website publish lands (P3)**. Backend contract:
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 
 - **`LandingScreen`** — prompt box (`.pg-glow` halo) + starter chips → submit.
-- **`GeneratingScreen`** — fires the **streaming** first turn (`streamAgentTurn`, SSE
-  `POST …/code/turn/stream`); thinking → building → done reveal files as they stream; a stream
-  failure falls back to `resolveProjectFiles` (never trapped). Entering the workspace
-  **auto-runs** the game, so the first build plays and gets verified (D-PAP-40).
+- **`GeneratingScreen`** — mounts the SAME tick as the landing submit (the create POST runs
+  behind it); on the GENERIC no-`?kind` landing it opens KIND-NEUTRAL (`build-stage-neutral`,
+  no game/website vocabulary) while the server routes game-vs-website, crossfading to the kind
+  stage on arrival — explicit-kind flows never see it (D-WEB-17). Fires the **streaming** first
+  turn (`streamAgentTurn`, SSE `POST …/code/turn/stream`); thinking → building → done reveal
+  files as they stream; a stream failure falls back to `resolveProjectFiles` (never trapped).
+  Entering the workspace **auto-runs** the game, so the first build plays and gets verified
+  (D-PAP-40).
 - **`Workspace`** — two layout modes (`LayoutToggle`, default **Window**): floating
   `react-rnd` windows (`desktop/`) OR a `react-resizable-panels` split. Panes:
   `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane` /

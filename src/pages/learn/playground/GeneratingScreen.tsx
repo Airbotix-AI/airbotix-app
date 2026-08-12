@@ -18,8 +18,14 @@
 // (no scaffold fallback for a *load*); if the first turn fails we fall back to the
 // seeded template so the kid is never trapped on this screen. A project-less
 // session (no projectId) just loads the local scaffold.
+//
+// D-WEB-17 (neutral-first): on the GENERIC landing this screen mounts the SAME
+// tick as the submit, in `creating` mode with `kind='neutral'` — a kind-agnostic
+// stage + copy while the SERVER is still routing game-vs-website (D-WEB-11). It
+// fires nothing until the create resolves; the neutral stage then crossfades into
+// the kind stage in place. Explicit-kind flows never see the neutral stage.
 
-import { Check, FileCode2, Gamepad2, Globe, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Check, FileCode2, Gamepad2, Globe, Lightbulb, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import { ApiError } from '@/lib/api';
@@ -61,10 +67,25 @@ const SITE_BUILD_TIPS = [
   'Linking the pages together…',
 ] as const;
 
+// Kind-NEUTRAL flavor lines (D-WEB-17) — shown on the GENERIC landing while the
+// SERVER is still routing game-vs-website (D-WEB-11), so no line may say either word.
+const NEUTRAL_TIPS = [
+  'Figuring out the perfect way to build your idea…',
+  'Reading your idea closely…',
+  'Warming up the studio…',
+  'Gathering colors, shapes and sounds…',
+  'Setting up the workbench…',
+  'Sharpening the crayons…',
+] as const;
+
 const TIP_MS = 2400;
 // A short celebratory beat on the finished build before we open the studio — long
 // enough to feel like a payoff after a 20–30s wait, short enough to not annoy.
 const DONE_BEAT_MS = 850;
+// D-WEB-17: how long the outgoing NEUTRAL stage lingers (fading out over the
+// incoming kind stage) when the server's game-vs-website routing arrives. Keep in
+// sync with `.pg-stage-fade` in playground.css (0.4s).
+const STAGE_FADE_MS = 400;
 // gpt-4o-mini's parallel function-calling delivers every file in a burst at the
 // END of generation (it streams its narration first, then all tool calls at once),
 // so there's no safe per-file signal mid-generation. The files ARE real — we just
@@ -94,12 +115,19 @@ export function GeneratingScreen({
   projectId,
   mode = 'lite',
   kind = 'game',
+  creating = false,
   onDone,
   onError,
 }: {
   prompt: string;
-  /** Website Studio builds say "website", not "game" (D-WEB-11). */
-  kind?: 'game' | 'website';
+  /** Website Studio builds say "website", not "game" (D-WEB-11). `neutral`
+   *  (D-WEB-17) = the GENERIC landing while the SERVER is still routing
+   *  game-vs-website — kind-agnostic stage + copy, morphs when the kind lands. */
+  kind?: 'game' | 'website' | 'neutral';
+  /** D-WEB-17: the backend project create (which may spend seconds classifying
+   *  game-vs-website server-side) is still in flight — render the wait UI but
+   *  fire nothing; the effect re-runs with the real `projectId` once it lands. */
+  creating?: boolean;
   /** The kid's game name (PRD J1) — labels the local scaffold when no backend. */
   name?: string;
   /** When set, the real project files are loaded from the backend (S3-backed). */
@@ -127,7 +155,7 @@ export function GeneratingScreen({
   const [streamed, setStreamed] = useState('');
   // Rotating flavor-tip index.
   const [tip, setTip] = useState(0);
-  const tips = kind === 'website' ? SITE_BUILD_TIPS : BUILD_TIPS;
+  const tips = kind === 'website' ? SITE_BUILD_TIPS : kind === 'neutral' ? NEUTRAL_TIPS : BUILD_TIPS;
   // Keep the latest callbacks without re-running the mount effect.
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
@@ -160,11 +188,36 @@ export function GeneratingScreen({
   // A demo build: the bundled starter "streams" through the real progress UI.
   const demoBuild = building && !aiBuild && !!demo;
 
+  // D-WEB-17: when the GENERIC landing's server-side routing lands, the neutral
+  // stage morphs into the kind stage as a CSS crossfade — the outgoing neutral
+  // stage lingers absolutely on top, fading out, so there's no unmount flash.
+  const [neutralGhost, setNeutralGhost] = useState(false);
+  const prevKindRef = useRef(kind);
+  useEffect(() => {
+    const was = prevKindRef.current;
+    prevKindRef.current = kind;
+    if (was !== 'neutral' || kind === 'neutral') return undefined;
+    setNeutralGhost(true);
+    const t = window.setTimeout(() => setNeutralGhost(false), STAGE_FADE_MS);
+    return () => window.clearTimeout(t);
+  }, [kind]);
+
   useEffect(() => {
     let cancelled = false;
     let doneTimer = 0;
     // Rotate the flavor tips for the whole wait (cleared on handoff).
     const tipTimer = window.setInterval(() => setTip((t) => (t + 1) % BUILD_TIPS.length), TIP_MS);
+
+    // D-WEB-17: the backend project is still being CREATED (the server may be
+    // classifying game-vs-website) — there is nothing to stream or load yet.
+    // Keep the tips rotating; the effect re-runs with the real projectId (and
+    // the routed kind) the moment the create resolves.
+    if (creating) {
+      return () => {
+        cancelled = true;
+        window.clearInterval(tipTimer);
+      };
+    }
 
     const finish = (files: VfsFile[], firstTurn?: FirstTurnSeed, blocked?: boolean) => {
       if (cancelled) return;
@@ -318,7 +371,7 @@ export function GeneratingScreen({
       window.clearInterval(tipTimer);
       if (doneTimer) window.clearTimeout(doneTimer);
     };
-  }, [prompt, name, projectId, building, aiBuild, demoBuild, demo]);
+  }, [prompt, name, projectId, building, aiBuild, demoBuild, demo, creating]);
 
   return (
     <div
@@ -330,19 +383,30 @@ export function GeneratingScreen({
         <p className="max-w-2xl text-center text-xl italic text-pg-text-dim">“{prompt}”</p>
       )}
 
-      {/* The playful build stage — loops while waiting, celebrates when done. */}
-      {kind === 'website' ? (
-        <SiteBuildStage done={status === 'done'} />
-      ) : (
-        <BuildStage done={status === 'done'} />
-      )}
+      {/* The playful build stage — loops while waiting, celebrates when done. On
+          the generic landing it opens KIND-NEUTRAL and crossfades into the real
+          stage when the server's game-vs-website routing arrives (D-WEB-17). */}
+      <div className="relative">
+        {kind === 'website' ? (
+          <SiteBuildStage done={status === 'done'} />
+        ) : kind === 'game' ? (
+          <BuildStage done={status === 'done'} />
+        ) : (
+          <NeutralStage />
+        )}
+        {neutralGhost && kind !== 'neutral' && (
+          <div className="pg-stage-fade pointer-events-none absolute inset-0">
+            <NeutralStage ghost />
+          </div>
+        )}
+      </div>
 
       {/* Status block: thinking spinner → live file list → ready reveal. */}
       <div className="flex w-[min(440px,86vw)] flex-col gap-3">
         {status === 'done' ? (
-          <ReadyReveal summary={streamed} kind={kind} />
-        ) : aiBuild || demoBuild ? (
-          <ActivityList built={built} tip={tips[tip]} kind={kind} status={status} />
+          <ReadyReveal summary={streamed} kind={kind === 'website' ? 'website' : 'game'} />
+        ) : aiBuild || demoBuild || creating ? (
+          <ActivityList built={built} tip={tips[tip % tips.length]} kind={kind} status={status} />
         ) : (
           <SimpleLoading
             label={
@@ -352,9 +416,11 @@ export function GeneratingScreen({
                   : 'Loading your game…'
                 : kind === 'website'
                   ? 'Building your website…'
-                  : 'Building your game…'
+                  : kind === 'neutral'
+                    ? 'Warming up the studio…'
+                    : 'Building your game…'
             }
-            tip={tips[tip]}
+            tip={tips[tip % tips.length]}
           />
         )}
       </div>
@@ -371,15 +437,22 @@ function ActivityList({
 }: {
   built: string[];
   tip: string;
-  kind: 'game' | 'website';
+  kind: 'game' | 'website' | 'neutral';
   status: Status;
 }) {
-  const noun = kind === 'website' ? 'website' : 'game';
+  // While the kind is still being decided (D-WEB-17) the heading stays NEUTRAL —
+  // no "game" or "website" until the server's routing arrives.
+  const heading =
+    kind === 'neutral'
+      ? 'Warming up the studio…'
+      : built.length === 0
+        ? `Dreaming up your ${kind}…`
+        : `Building your ${kind}`;
   return (
     <>
       <div className="flex items-center gap-2 text-[15px] font-semibold text-pg-text-dim">
         <Wand2 size={16} className="text-brand-bubblegum" />
-        {built.length === 0 ? `Dreaming up your ${noun}…` : `Building your ${noun}`}
+        {heading}
       </div>
 
       {built.length === 0 ? (
@@ -597,6 +670,64 @@ function SiteBuildStage({ done }: { done: boolean }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── The kind-NEUTRAL stage (D-WEB-17): the generic landing shows this the instant
+// the kid submits, while the SERVER is still routing game-vs-website (D-WEB-11) —
+// so nothing on it may hint at either. A pulsing idea-spark (lightbulb in soft
+// breathing rings) + the shared sparkle motif — same pure-CSS primitives and outer
+// frame as its siblings so the crossfade into them is seamless. Decorative only.
+// The `ghost` render is the fading morph copy: it drops the testid so only ONE
+// live neutral stage is ever addressable.
+function NeutralStage({ ghost = false }: { ghost?: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid={ghost ? undefined : 'build-stage-neutral'}
+      className="relative h-52 w-[min(440px,86vw)] overflow-hidden rounded-[1.75rem] border border-pg-border bg-gradient-to-b from-brand-sky/20 via-brand-bubblegum/5 to-brand-mint/25 shadow-lg"
+    >
+      {/* Sparkles (shared motif). */}
+      <Sparkles size={16} className="pg-twinkle absolute left-10 top-9 text-brand-sunshine" />
+      <Sparkles
+        size={12}
+        className="pg-twinkle absolute right-12 top-16 text-brand-bubblegum"
+        style={{ animationDelay: '0.6s' }}
+      />
+      <Sparkles
+        size={14}
+        className="pg-twinkle absolute right-20 top-7 text-brand-sky"
+        style={{ animationDelay: '1.1s' }}
+      />
+      <Sparkles
+        size={12}
+        className="pg-twinkle absolute bottom-10 left-16 text-brand-mint"
+        style={{ animationDelay: '1.5s' }}
+      />
+
+      {/* The pulsing idea spark: a lightbulb inside soft breathing rings. */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <span className="absolute -inset-6 animate-pulse rounded-full bg-brand-sunshine/10" />
+        <span
+          className="absolute -inset-3 animate-pulse rounded-full bg-brand-sunshine/15"
+          style={{ animationDelay: '0.5s' }}
+        />
+        <div className="pg-bob relative grid h-20 w-20 place-items-center rounded-full bg-brand-sunshine/25 shadow-md">
+          <Lightbulb size={36} className="text-brand-sunshine" />
+        </div>
+      </div>
+
+      {/* Little thought-dots drifting up toward the spark. */}
+      <span className="pg-bob absolute bottom-9 left-[28%] h-2.5 w-2.5 rounded-full bg-brand-sky/60" />
+      <span
+        className="pg-bob absolute bottom-12 left-[64%] h-2 w-2 rounded-full bg-brand-bubblegum/60"
+        style={{ animationDelay: '0.7s' }}
+      />
+      <span
+        className="pg-bob absolute bottom-7 left-[48%] h-1.5 w-1.5 rounded-full bg-brand-mint/70"
+        style={{ animationDelay: '1.2s' }}
+      />
     </div>
   );
 }

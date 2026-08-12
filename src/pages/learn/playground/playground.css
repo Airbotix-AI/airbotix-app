@@ -362,6 +362,20 @@
 .pg-pop {
   animation: pg-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+/* D-WEB-17: neutral → kind build-stage morph. The outgoing neutral stage lingers
+ * absolutely over the incoming one and fades away — a crossfade, never an
+ * unmount flash. Duration mirrors STAGE_FADE_MS in GeneratingScreen.tsx. */
+@keyframes pg-stage-fade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.pg-stage-fade {
+  animation: pg-stage-fade 0.4s ease-out both;
+}
 
 /* Asset Viewer snackbar: slides up + fades in at the bottom of the pane. */
 @keyframes pg-snack-in {
@@ -514,6 +528,7 @@
   .pg-indeterminate,
   .pg-ring-arc,
   .pg-pop,
+  .pg-stage-fade,
   .pg-snack {
     animation: none;
   }

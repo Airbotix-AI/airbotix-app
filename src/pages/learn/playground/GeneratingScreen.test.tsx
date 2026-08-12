@@ -68,6 +68,7 @@ describe('GeneratingScreen — kind-aware build stage', () => {
     );
     screen.getByTestId('build-stage-website');
     expect(screen.queryByTestId('build-stage-game')).toBeNull();
+    expect(screen.queryByTestId('build-stage-neutral')).toBeNull();
     screen.getByText('Dreaming up your website…');
   });
 
@@ -75,6 +76,62 @@ describe('GeneratingScreen — kind-aware build stage', () => {
     render(<GeneratingScreen prompt="a pong game" projectId="g1" mode="lite" onDone={vi.fn()} />);
     screen.getByTestId('build-stage-game');
     expect(screen.queryByTestId('build-stage-website')).toBeNull();
+    expect(screen.queryByTestId('build-stage-neutral')).toBeNull();
+  });
+});
+
+// D-WEB-17 (neutral-first loading): the GENERIC landing mounts this screen the
+// same tick as the submit, in `creating` mode with kind='neutral' — a
+// kind-agnostic stage/copy while the SERVER routes game-vs-website (D-WEB-11).
+// Nothing may fire until the create resolves, and NO on-screen word may say
+// "game" or "website"; the stage then morphs to the kind stage in place.
+describe('GeneratingScreen — neutral-first while the kind is decided (D-WEB-17)', () => {
+  it('creating + kind=neutral: neutral stage + neutral copy, and NOTHING fires', () => {
+    render(
+      <GeneratingScreen prompt="a todo list" creating kind="neutral" mode="lite" onDone={vi.fn()} />,
+    );
+    screen.getByTestId('build-stage-neutral');
+    expect(screen.queryByTestId('build-stage-game')).toBeNull();
+    expect(screen.queryByTestId('build-stage-website')).toBeNull();
+    screen.getByText('Warming up the studio…');
+    // No game/website vocabulary anywhere (the prompt echo is the kid's words).
+    expect(screen.queryByText(/game|website/i)).toBeNull();
+    // No streamed turn and no project/scaffold load while the create is in flight.
+    expect(streamArgs).toBeUndefined();
+    expect(vi.mocked(resolveProjectFiles)).not.toHaveBeenCalled();
+  });
+
+  it('morphs to the WEBSITE stage in place when the routed kind arrives, then streams', () => {
+    const onDone = vi.fn();
+    const { rerender } = render(
+      <GeneratingScreen prompt="a todo list" creating kind="neutral" mode="lite" onDone={onDone} />,
+    );
+    screen.getByTestId('build-stage-neutral');
+    expect(streamArgs).toBeUndefined();
+
+    // The create resolves: same screen, same mount — kind + projectId land.
+    rerender(
+      <GeneratingScreen prompt="a todo list" projectId="site-1" kind="website" mode="lite" onDone={onDone} />,
+    );
+    screen.getByTestId('build-stage-website');
+    expect(screen.queryByTestId('build-stage-neutral')).toBeNull();
+    // The real first turn fires now, on the created project.
+    expect(streamArgs).toMatchObject({ projectId: 'site-1', prompt: 'a todo list' });
+  });
+
+  it('morphs to the GAME stage when the routing says game', () => {
+    const onDone = vi.fn();
+    const { rerender } = render(
+      <GeneratingScreen prompt="a pong game" creating kind="neutral" mode="lite" onDone={onDone} />,
+    );
+    screen.getByTestId('build-stage-neutral');
+
+    rerender(
+      <GeneratingScreen prompt="a pong game" projectId="g1" kind="game" mode="lite" onDone={onDone} />,
+    );
+    screen.getByTestId('build-stage-game');
+    expect(screen.queryByTestId('build-stage-neutral')).toBeNull();
+    expect(streamArgs).toMatchObject({ projectId: 'g1' });
   });
 });
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-12 (feat: neutral-first loading on the generic landing — D-WEB-17)
+
+### Added
+
+- **Kind-NEUTRAL generating stage** (`build-stage-neutral`): the generic prompt-first landing
+  (`/learn/playground/new`, no `?kind`) now mounts the generating screen the SAME tick as the
+  Enter press — the create POST (whose server-side game-vs-website classification can take
+  several seconds, D-WEB-11) runs behind the loading screen instead of before it. While the
+  routing is pending, the screen is fully kind-agnostic: a pulsing idea-spark stage (pure
+  CSS + lucide + K-12 tokens, same primitives/frame as the game/website stages), a
+  "Warming up the studio…" heading, and neutral flavor tips — no "game" or "website"
+  vocabulary anywhere. When the created project's `kind` arrives the stage crossfades in
+  place into the game vignette or the website build stage (`.pg-stage-fade`, CSS-only ghost
+  fade-out; disabled under `prefers-reduced-motion`).
+
+### Changed
+
+- `PlaygroundApp` flips `landing → generating` BEFORE awaiting `createGameProject` (previously
+  the kid pressed Enter into dead air for the whole create+classify round-trip). Explicit-kind
+  flows (`?kind=website`, class sheet, teacher prep, templates) render their kind stage from the
+  first frame and never see the neutral stage; a failed create still lands on the existing
+  load-error screen. `GeneratingScreen` gains `creating` (create in flight — render the wait UI,
+  fire nothing until the real `projectId` lands) and `kind: 'neutral'`.
+
 ## 2026-08-12 (feat: the db is a visible, editable project citizen — D-WEB-16)
 
 ### Added

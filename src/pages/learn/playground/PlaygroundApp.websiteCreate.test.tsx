@@ -7,7 +7,7 @@
 // side). The class flow attaches the created site exactly like a game.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,8 +39,16 @@ vi.mock('./panes/playgroundApi', async (orig) => {
 // The REAL LandingScreen renders (its website copy is under test); only the
 // generating phase is stubbed so no stream/backends run.
 vi.mock('./GeneratingScreen', () => ({
-  GeneratingScreen: ({ projectId, kind }: { projectId?: string; kind?: string }) => (
-    <div data-testid="generating-project" data-kind={kind}>
+  GeneratingScreen: ({
+    projectId,
+    kind,
+    creating,
+  }: {
+    projectId?: string;
+    kind?: string;
+    creating?: boolean;
+  }) => (
+    <div data-testid="generating-project" data-kind={kind} data-creating={creating ? 'true' : 'false'}>
       {projectId}
     </div>
   ),
@@ -168,6 +176,94 @@ describe('PlaygroundApp website create flow (?kind=website)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'game'),
     );
+  });
+
+  // D-WEB-17 (neutral-first loading): loading feedback is SAME-TICK with the
+  // Enter press. The generic landing mounts the generating screen IMMEDIATELY,
+  // in kind-NEUTRAL mode, while the create POST (server-side game-vs-website
+  // classification, ≤6s) is still in flight — then adopts the routed kind.
+  it('generic submit: the NEUTRAL generating screen shows BEFORE the create resolves, then morphs to website', async () => {
+    let resolveCreate: (v: { id: string; kind?: string }) => void = () => {};
+    createGameProjectMock.mockReset().mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveCreate = res;
+        }),
+    );
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    // Same tick as the submit: the generating screen is up, kind unknown → neutral.
+    const gen = screen.getByTestId('generating-project');
+    expect(gen).toHaveAttribute('data-kind', 'neutral');
+    expect(gen).toHaveAttribute('data-creating', 'true');
+
+    await act(async () => {
+      resolveCreate({ id: 'site-42', kind: 'website' });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'website'),
+    );
+    expect(screen.getByTestId('generating-project')).toHaveTextContent('site-42');
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-creating', 'false');
+  });
+
+  it('generic submit + a game routing morphs neutral → game', async () => {
+    let resolveCreate: (v: { id: string; kind?: string }) => void = () => {};
+    createGameProjectMock.mockReset().mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveCreate = res;
+        }),
+    );
+    getProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'neutral');
+
+    await act(async () => {
+      resolveCreate({ id: 'game-7', kind: 'game' });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'game'),
+    );
+  });
+
+  it('an EXPLICIT ?kind=website shows the WEBSITE screen from the first frame — neutral never mounts', () => {
+    // The create is held open: even while it's in flight, the explicit choice
+    // renders its own stage immediately (and same-tick with the submit).
+    createGameProjectMock.mockReset().mockImplementation(() => new Promise(() => {}));
+    renderNew('/learn/playground/new?kind=website');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a cookie shop website' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    const gen = screen.getByTestId('generating-project');
+    expect(gen).toHaveAttribute('data-kind', 'website');
+    expect(gen).toHaveAttribute('data-creating', 'true');
+  });
+
+  it('a FAILED create still lands on the load-error page (the neutral screen never strands the kid)', async () => {
+    createGameProjectMock.mockReset().mockRejectedValue(new Error('backend down'));
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    // Neutral shows first (same-tick feedback)…
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'neutral');
+    // …then the create rejects → the standard load-error screen replaces it.
+    await screen.findByTestId('playground-error-load');
+    expect(screen.queryByTestId('generating-project')).toBeNull();
   });
 
   it('an EXPLICIT ?kind=website never falls back to game, even for a game-y prompt', async () => {

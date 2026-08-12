@@ -144,6 +144,13 @@ export function PlaygroundApp({
   const [projectKind, setProjectKind] = useState<'game' | 'website'>(
     isNew && searchParams.get('kind') === 'website' ? 'website' : 'game',
   );
+  // D-WEB-17 (neutral-first loading): the generic landing's create POST is in
+  // flight — the generating screen renders but fires nothing until it resolves…
+  const [creating, setCreating] = useState(false);
+  // …and while the SERVER is still routing game-vs-website (D-WEB-11) the screen
+  // shows the kind-NEUTRAL stage, morphing when the decision arrives. Explicit
+  // ?kind flows never set this, so their stage is right from the first frame.
+  const [kindPending, setKindPending] = useState(false);
 
   // Live focus presence (D-LIVE-3): report the kid's open game to the teacher.
   // No-op in readOnly (teacher viewer) or outside a live class. Title is omitted
@@ -508,11 +515,19 @@ export function PlaygroundApp({
             const wantsKindInference =
               isNew && !prepClassId && searchParams.get('kind') === null;
             const submitKind = projectKind;
+            // D-WEB-17: loading feedback is SAME-TICK with the Enter press — the
+            // generating screen mounts NOW and the create POST (which may spend
+            // seconds classifying game-vs-website server-side) runs BEHIND it,
+            // never before it. While that routing is pending the screen shows
+            // the kind-NEUTRAL stage (kindPending → kind='neutral').
+            setPhase('generating');
             // For a NEW game/website, create the real backend project now —
             // AFTER the prompt — then load it. The **prompt is the project name**
             // (capped to a sensible length). Falls back to a throwaway local
             // scaffold if the backend isn't ready, so the studio still opens.
             if (isNew && !createdId) {
+              setKindPending(wantsKindInference);
+              setCreating(true);
               try {
                 // The prompt IS the title; the backend infers 2D/3D from it and
                 // seeds the matching blank starter (no hardcoded template — that
@@ -550,12 +565,15 @@ export function PlaygroundApp({
                 setCreatedId(newId);
               } catch {
                 // Can't create the project on the backend → no local fallback;
-                // show the error and send the kid back to project creation.
+                // show the error and send the kid back to project creation (the
+                // loadError screen replaces the generating phase in render).
                 setLoadError('load');
                 return;
+              } finally {
+                setCreating(false);
+                setKindPending(false);
               }
             }
-            setPhase('generating');
           }}
         />
       )}
@@ -563,8 +581,11 @@ export function PlaygroundApp({
         <GeneratingScreen
           prompt={prompt}
           projectId={projectId}
+          creating={creating}
           mode={mode}
-          kind={projectKind}
+          // D-WEB-17: neutral while the server's game-vs-website routing is in
+          // flight on the generic landing; the screen crossfades on arrival.
+          kind={kindPending ? 'neutral' : projectKind}
           onDone={async (f, ft, blocked) => {
             // The AI's first turn (if any) seeds the workspace chat history.
             setFirstTurn(ft);
