@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-08-12 (feat: the db is a visible, editable project citizen — D-WEB-16)
+
+### Added
+
+- **Virtual `database.sqlite` in the code editor's explorer** (Website Studio only, incl. the
+  read-only teacher viewer): a pinned, real-looking db file at the project root
+  (`explorer-database-file`, lucide Database icon + a subtle live dot) that opens/focuses the
+  **Database window** (window mode) or switches to the Database tab (split mode) instead of a
+  text tab — the same seam the dock tile uses. It is injected purely at the tree's RENDER layer:
+  never in the VFS/files array, so it cannot leak into saves, commits, or the agent's file list;
+  no rename/delete/drag affordances. Games show no entry.
+- **The Database window edits the LIVE db** (kid-friendly, rowid-keyed — `panes/DbTable.tsx`):
+  click a cell → inline input, Enter saves via the existing `POST /projects/:id/db/query` with a
+  parameterized `UPDATE "<table>" SET "<col>" = ? WHERE rowid = ?` (identifiers quoted, `"`
+  doubled), Esc cancels; a failed save shows the backend's kid-readable message inline
+  (`db-edit-error-<table>`) and reverts. Per-table `+ Add row` (`db-add-row-<table>`) INSERTs
+  ''/NULL placeholders (an `id INTEGER` column is omitted so SQLite assigns it; id-only tables
+  use `DEFAULT VALUES`) and focuses the new row's first cell; per-row two-step delete
+  (`db-delete-row`, same arm pattern as Reset) runs `DELETE … WHERE rowid = ?`. Every write
+  re-introspects, so the pane always shows server truth. Cells are `db-cell-<table>-<rowIdx>-<col>`.
+- Introspection contract (frozen with the parallel backend work): rows now arrive with
+  `has_rowid` and a per-row `__rowid__` (string) — stripped from display; `has_rowid:false`
+  tables render read-only exactly as before with a one-line note; readOnly (teacher/parent)
+  viewers get no edit affordances at all (same gate as Reset). An older backend without the
+  field degrades to read-only.
+
+### Changed
+
+- Database window teaching copy now says edits change the LIVE database right away (the
+  `data/*.json` seeds remain the starting data; Reset unchanged).
+
 ## 2026-08-12 (fix: sql-channel review findings — per-document reply token + hardening)
 
 ### Fixed

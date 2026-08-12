@@ -6,6 +6,11 @@
 // GAME project must stay byte-identical: no tile, no tab, no pane — even if a
 // stale persisted layout left the db window open. Journey contract: the opener
 // is a role=button with accessible name "Database"; the pane is `site-db-pane`.
+//
+// D-WEB-16: the code editor's explorer shows a VIRTUAL `database.sqlite` entry
+// (`explorer-database-file`, websites only) whose click rides the SAME seam the
+// dock tile uses — open+focus the db window (window mode) / switch to the
+// Database tab (split mode) — never opening a text tab.
 
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,6 +28,10 @@ vi.mock('@/lib/api', async (orig) => {
   const actual = await orig<typeof import('@/lib/api')>();
   return { ...actual, api: apiMock };
 });
+// Opening the Code Editor window mounts the (heavy, lazily-loaded) Monaco
+// chunk — stub it, these tests only exercise the explorer tree.
+vi.mock('./panes/MonacoEditor', () => ({ default: () => null }));
+vi.mock('./panes/HistoryDiff', () => ({ default: () => null }));
 
 import { Workspace } from './Workspace';
 import { defaultWindows, usePlaygroundStore, type PlaygroundSnapshot } from './playgroundStore';
@@ -132,6 +141,38 @@ describe('Workspace — Database tab (split mode)', () => {
     expect(screen.queryByRole('tab', { name: 'Database' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('site-db-pane')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Chat' })).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
+describe('Workspace — the explorer database.sqlite entry (D-WEB-16)', () => {
+  it('window mode: clicking the entry opens AND focuses the db window', () => {
+    renderWorkspace('website');
+    fireEvent.click(screen.getByRole('button', { name: 'Code Editor' })); // open the editor
+    expect(screen.queryByTestId('site-db-pane')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('explorer-database-file'));
+    expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
+    const { windows } = usePlaygroundStore.getState();
+    expect(windows.db.open).toBe(true);
+    // Focused = raised above the editor it was opened from.
+    expect(windows.db.zIndex).toBeGreaterThan(windows.code.zIndex);
+  });
+
+  it('split mode: clicking the entry switches to the Database tab', () => {
+    usePlaygroundStore.getState().setLayoutMode('split');
+    renderWorkspace('website');
+    fireEvent.click(screen.getByRole('tab', { name: 'Code' }));
+    expect(screen.queryByTestId('site-db-pane')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('explorer-database-file'));
+    expect(screen.getByRole('tab', { name: 'Database' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
+  });
+
+  it('game: the explorer shows NO database.sqlite entry', () => {
+    renderWorkspace('game');
+    fireEvent.click(screen.getByRole('button', { name: 'Code Editor' }));
+    expect(screen.queryByTestId('explorer-database-file')).not.toBeInTheDocument();
   });
 });
 

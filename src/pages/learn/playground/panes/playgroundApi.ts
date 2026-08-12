@@ -289,17 +289,24 @@ export async function listSiteDbTables(projectId: string): Promise<SiteDbTables>
   return api<SiteDbTables>(`/projects/${projectId}/db/tables`);
 }
 
-/** Page through one table's rows (backend default 100, max 500 per page). */
+/** The key carrying each introspected row's stable SQLite rowid (D-WEB-16) —
+ *  the Database window's edit/delete WHERE key. Present on every row when the
+ *  table reports `has_rowid: true`; NEVER a display column. */
+export const SITE_DB_ROWID_KEY = '__rowid__';
+
+/** Page through one table's rows (backend default 100, max 500 per page).
+ *  `has_rowid` reports whether the table has a usable rowid (D-WEB-16) — when
+ *  true each row carries its rowid (string) under {@link SITE_DB_ROWID_KEY}. */
 export async function listSiteDbRows(
   projectId: string,
   table: string,
   opts: { limit?: number; offset?: number } = {},
-): Promise<{ rows: Record<string, unknown>[]; total: number }> {
+): Promise<{ rows: Record<string, unknown>[]; total: number; has_rowid: boolean }> {
   const params = new URLSearchParams();
   if (opts.limit !== undefined) params.set('limit', String(opts.limit));
   if (opts.offset !== undefined) params.set('offset', String(opts.offset));
   const qs = params.toString();
-  return api<{ rows: Record<string, unknown>[]; total: number }>(
+  return api<{ rows: Record<string, unknown>[]; total: number; has_rowid: boolean }>(
     `/projects/${projectId}/db/tables/${encodeURIComponent(table)}/rows${qs ? `?${qs}` : ''}`,
   );
 }

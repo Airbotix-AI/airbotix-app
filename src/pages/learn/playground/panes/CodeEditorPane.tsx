@@ -93,6 +93,12 @@ interface CodeEditorPaneProps {
    * just makes it immediate). Defaults to `game` (unchanged behaviour).
    */
   kind?: 'game' | 'website';
+  /**
+   * Website Studio only (D-WEB-16): forwarded to the FileTree so its virtual
+   * `database.sqlite` entry can open/focus the Database window. Absent on
+   * games — the entry then doesn't render.
+   */
+  onOpenDatabase?: () => void;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -120,7 +126,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLocation, onExplainSelection, readOnly, kind = 'game' }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLocation, onExplainSelection, readOnly, kind = 'game', onOpenDatabase }: CodeEditorPaneProps) {
   // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
   // filtered to files that still exist; the `[files]` effect fills their drafts on
   // mount. Read once (useRef) so it's stable across renders.
@@ -553,7 +559,7 @@ export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLoca
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {sidebarView === 'files' ? (
-                <FileTree files={files} activePath={activeTab} onSelect={openTab} readOnly={readOnly} />
+                <FileTree files={files} activePath={activeTab} onSelect={openTab} readOnly={readOnly} onOpenDatabase={onOpenDatabase} />
               ) : sidebarView === 'history' ? (
                 <HistoryPanel
                   onRevert={revertTo}

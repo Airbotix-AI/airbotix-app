@@ -50,15 +50,15 @@ const PETS = {
   ],
 };
 const PETS_ROWS = [
-  { id: 1, name: 'Biscuit', adopted: 0 },
-  { id: 2, name: 'Mochi', adopted: 1 },
+  { __rowid__: '1', id: 1, name: 'Biscuit', adopted: 0 },
+  { __rowid__: '2', id: 2, name: 'Mochi', adopted: 1 },
 ];
 
 beforeEach(() => {
   vi.clearAllMocks();
   useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
-  listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
+  listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2, has_rowid: true });
   resetSiteDbMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
 });
 

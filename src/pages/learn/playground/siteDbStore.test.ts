@@ -29,27 +29,35 @@ const PETS_TABLE = {
   ],
 };
 const PETS_ROWS = [
-  { id: 1, name: 'Biscuit' },
-  { id: 2, name: 'Mochi' },
+  { __rowid__: '1', id: 1, name: 'Biscuit' },
+  { __rowid__: '2', id: 2, name: 'Mochi' },
 ];
 
 beforeEach(() => {
   vi.clearAllMocks();
   useSiteDbStore.setState({ tables: null, updatedAt: null, error: false });
   listSiteDbTablesMock.mockResolvedValue({ tables: [PETS_TABLE], size_bytes: 4096 });
-  listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
+  listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2, has_rowid: true });
 });
 
 describe('siteDbStore — refresh (REST introspection)', () => {
-  it('fetches the schema + the first rows per table and stamps updatedAt', async () => {
+  it('fetches the schema + the first rows per table (incl. hasRowid, D-WEB-16) and stamps updatedAt', async () => {
     await useSiteDbStore.getState().refresh('p1');
 
     expect(listSiteDbTablesMock).toHaveBeenCalledWith('p1');
     expect(listSiteDbRowsMock).toHaveBeenCalledWith('p1', 'pets', {
       limit: DB_ROWS_DISPLAY_LIMIT,
     });
-    expect(useSiteDbStore.getState().tables).toEqual([{ ...PETS_TABLE, rows: PETS_ROWS }]);
+    expect(useSiteDbStore.getState().tables).toEqual([
+      { ...PETS_TABLE, rows: PETS_ROWS, hasRowid: true },
+    ]);
     expect(useSiteDbStore.getState().updatedAt).not.toBeNull();
+  });
+
+  it('an older backend with no has_rowid field degrades to hasRowid:false (read-only, never broken)', async () => {
+    listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
+    await useSiteDbStore.getState().refresh('p1');
+    expect(useSiteDbStore.getState().tables?.[0].hasRowid).toBe(false);
   });
 
   it('a failed poll KEEPS the last snapshot and its updatedAt (freshness ages honestly) but flags error', async () => {

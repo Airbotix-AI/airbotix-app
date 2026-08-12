@@ -47,6 +47,11 @@ Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows th
 (`GET /projects/:id/db/tables` + first rows per table; a superseded/failed poll never overwrites);
 per-table `db-collection-<name>` (real columns + types) + "Edit starting data" jumps to
 `data/*.json` + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
+D-WEB-16: tables are **EDITABLE, rowid-keyed** (`DbTable`: inline cell edit / add row / two-step
+delete, all parameterized through the existing `/db/query`; rows carry `__rowid__`, never displayed;
+`has_rowid:false` → read-only note; readOnly viewers see NO edit affordances) and the code editor's
+explorer pins a VIRTUAL `database.sqlite` (`explorer-database-file`, render-layer only — NEVER in
+the VFS/agent file list) whose click opens/focuses this window instead of a text tab.
 The 2D⇄3D switch never
 offers; **Share is hidden until website publish lands (P3)**. Backend contract:
 `website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).

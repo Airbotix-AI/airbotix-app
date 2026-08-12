@@ -241,7 +241,7 @@ export function Workspace({
   // from the render closure: the demo tour (and deferred client actions) hold
   // this handler across renders, and a Windows↔Split flip in between must route
   // through the layout that is actually on screen.
-  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => {
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help' | 'db') => {
     if (usePlaygroundStore.getState().layoutMode === 'window') {
       usePlaygroundStore.getState().openOrFocus(target);
     } else if (target !== 'game') {
@@ -585,6 +585,12 @@ export function Workspace({
   // (the stable PgWindowId 'game' is unchanged; only the label layer flips).
   const gameDisplay = windowDisplay('game', kind);
 
+  // The explorer's virtual `database.sqlite` entry (D-WEB-16, Website Studio
+  // only — incl. the read-only teacher viewer): opens/focuses the Database
+  // window (window mode) or switches to the Database tab (split mode) — the
+  // same seam the dock tile uses. Never a text tab.
+  const openDatabase = isSite ? () => focusPanel('db') : undefined;
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
@@ -619,6 +625,7 @@ export function Workspace({
               onExplainSelection={handleExplainCode}
               readOnly={readOnly}
               kind={kind}
+              onOpenDatabase={openDatabase}
             />
           </Window>
           <Window
@@ -763,6 +770,7 @@ export function Workspace({
                     onExplainSelection={handleExplainCode}
                     readOnly={readOnly}
                     kind={kind}
+                    onOpenDatabase={openDatabase}
                   />
                 ) : splitTab === 'help' ? (
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />

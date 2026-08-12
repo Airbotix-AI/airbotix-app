@@ -27,6 +27,10 @@ export const DB_ROWS_DISPLAY_LIMIT = 50;
 /** One table's schema + the first rows fetched for display. */
 export interface SiteDbTableSnapshot extends SiteDbTableInfo {
   rows: Record<string, unknown>[];
+  /** The table has a usable SQLite rowid (D-WEB-16): each row then carries its
+   *  rowid under `__rowid__` and the pane may edit/delete by it; false renders
+   *  the table read-only (WITHOUT ROWID / no stable key). */
+  hasRowid: boolean;
 }
 
 interface SiteDbState {
@@ -60,10 +64,12 @@ export const useSiteDbStore = create<SiteDbState>((set) => ({
       const { tables } = await listSiteDbTables(projectId);
       const snapshot = await Promise.all(
         tables.map(async (t): Promise<SiteDbTableSnapshot> => {
-          const { rows } = await listSiteDbRows(projectId, t.name, {
+          const { rows, has_rowid } = await listSiteDbRows(projectId, t.name, {
             limit: DB_ROWS_DISPLAY_LIMIT,
           });
-          return { ...t, rows };
+          // `=== true` is deliberate: an older backend (no D-WEB-16 field yet)
+          // must degrade to read-only, never to broken edit affordances.
+          return { ...t, rows, hasRowid: has_rowid === true };
         }),
       );
       if (seq !== refreshSeq) return; // superseded — never overwrite fresher truth

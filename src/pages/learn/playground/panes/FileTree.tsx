@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Database,
   File,
   FileAudio,
   FileCode2,
@@ -31,7 +32,19 @@ interface FileTreeProps {
    *  file/folder, rename, delete, and drag-to-move. Selecting a file to VIEW it
    *  stays enabled. */
   readOnly?: boolean;
+  /**
+   * Website Studio only (creative-code-studio-website-prd D-WEB-16): when set,
+   * the tree shows a VIRTUAL `database.sqlite` entry pinned with the root files
+   * and clicking it fires this (open/focus the Database window) instead of
+   * opening a text tab. The entry is injected purely at the RENDER layer — it
+   * is never in `files`, so it can never leak into the VFS, saves, or the
+   * agent's file list — and has no rename/delete/drag affordances.
+   */
+  onOpenDatabase?: () => void;
 }
+
+/** The virtual db entry's display name — looks like a real root file. */
+const VIRTUAL_DB_NAME = 'database.sqlite';
 
 const FILE_ICON: Record<string, LucideIcon> = {
   js: FileCode2,
@@ -376,7 +389,7 @@ function TreeRow(props: RowProps) {
   );
 }
 
-export function FileTree({ files, activePath, onSelect, readOnly = false }: FileTreeProps) {
+export function FileTree({ files, activePath, onSelect, readOnly = false, onOpenDatabase }: FileTreeProps) {
   const folders = useProjectStore((s) => s.folders);
   const createFile = useProjectStore((s) => s.createFile);
   const createFolder = useProjectStore((s) => s.createFolder);
@@ -513,6 +526,39 @@ export function FileTree({ files, activePath, onSelect, readOnly = false }: File
     },
   };
 
+  // The virtual `database.sqlite` entry (D-WEB-16) — injected at the RENDER
+  // layer only (never into `files`/`folders`, so no VFS op, save, or agent file
+  // list can ever see it), pinned as the first root FILE (right after the
+  // folders). Clicking opens the Database window, never a text tab; there are
+  // no rename/delete/drag affordances. Skipped defensively if a real file
+  // somehow shadows the name (the backend rejects `*.sqlite` VFS writes).
+  const dbEntry =
+    onOpenDatabase && !files.some((f) => f.path === VIRTUAL_DB_NAME) ? (
+      <li key={`virtual:${VIRTUAL_DB_NAME}`}>
+        <div
+          className="group flex items-center rounded-lg pr-2 transition-colors hover:bg-pg-text/5"
+          style={{ paddingLeft: '4px' }}
+        >
+          <button
+            type="button"
+            data-testid="explorer-database-file"
+            title="Your site's live database — opens the Database window"
+            onClick={onOpenDatabase}
+            className="flex min-w-0 flex-1 items-center gap-1.5 py-1.5 text-left text-[13px] font-semibold text-pg-text-dim hover:text-pg-text"
+          >
+            <span className="w-3.5 shrink-0" aria-hidden />
+            <Database size={14} className="shrink-0 text-brand-sky" aria-hidden />
+            <span className="truncate">{VIRTUAL_DB_NAME}</span>
+            <span
+              aria-hidden
+              title="live"
+              className="ml-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-mint"
+            />
+          </button>
+        </div>
+      </li>
+    ) : null;
+
   const rowProps = {
     ...dnd,
     readOnly,
@@ -621,12 +667,22 @@ export function FileTree({ files, activePath, onSelect, readOnly = false }: File
               />
             </li>
           )}
-          {tree.length === 0 && !creating ? (
+          {tree.length === 0 && !creating && !dbEntry ? (
             <li className="px-2 py-2 text-[12px] font-semibold text-pg-text-muted">
               No files yet.
             </li>
           ) : (
-            tree.map((node) => <TreeRow key={node.path} {...rowProps} node={node} depth={0} />)
+            (() => {
+              const rows = tree.map((node) => (
+                <TreeRow key={node.path} {...rowProps} node={node} depth={0} />
+              ));
+              if (dbEntry) {
+                // Pinned with the root files: right after the folders.
+                const firstFileIdx = tree.findIndex((n) => !n.isFolder);
+                rows.splice(firstFileIdx === -1 ? rows.length : firstFileIdx, 0, dbEntry);
+              }
+              return rows;
+            })()
           )}
         </ul>
       </div>
