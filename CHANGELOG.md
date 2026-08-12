@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-12 (fix: kind-neutral studio error copy)
+
+### Fixed
+
+- **Playground load/service error screen no longer says "game".** `LoadErrorScreen`
+  (`PlaygroundApp.tsx`) is shown before the project kind is even known (e.g. a create
+  that fails), so its copy is now kind-neutral: "We couldn't start the studio just now…"
+  and "We couldn't open this project" — correct for both Creative Code Studio games and
+  Website Studio sites (a website create failure previously read "we couldn't start your
+  game / our game studio").
+
 ## 2026-08-12 (feat: external data sources — sources.get runtime + discovery UI — D-WEB-19)
 
 ### Added

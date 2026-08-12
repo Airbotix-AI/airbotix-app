@@ -759,11 +759,11 @@ function LoadErrorScreen({
       ? {
           title: 'Something went wrong',
           body:
-            "We couldn't start your game just now — our game studio is having a moment. " +
+            "We couldn't start the studio just now — it's having a moment. " +
             'Please try again in a little while.',
         }
       : {
-          title: "We couldn't open this game",
+          title: "We couldn't open this project",
           body:
             'It may have been removed, or there was a problem loading it. ' +
             "Let's head back so you can make or pick another one.",
