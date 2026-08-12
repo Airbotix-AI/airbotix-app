@@ -139,7 +139,8 @@ describe('tour spotlights across both Workspace layouts', () => {
       ['chat', 'Chat'],
       ['code', 'Code'],
       ['assets', 'Assets'],
-      ['help', 'Guide'],
+      // Kind-aware Guide label (D-WEB-21): a game project's tab reads "Game Guide".
+      ['help', 'Game Guide'],
     ] as const) {
       act(() => screen.getByRole('tab', { name: label }).click());
       const el = document.querySelector(panelSpotlight(id));

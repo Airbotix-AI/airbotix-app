@@ -18,7 +18,7 @@ import { BookOpen, Loader2, Search } from 'lucide-react';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import { getDoc, loadHelpCorpus, searchDocs } from './help/helpApi';
 import { HelpDiagram } from './help/helpDiagrams';
-import type { HelpBlock, HelpDoc, HelpResult, Tier } from './help/helpTypes';
+import type { HelpBlock, HelpDoc, HelpKind, HelpResult, Tier } from './help/helpTypes';
 
 /**
  * Order a branch's docs by `order` and group consecutive docs by `section` (the
@@ -38,6 +38,13 @@ function groupBySection(docs: HelpDoc[]): { section?: string; docs: HelpDoc[] }[
 interface HelpPaneProps {
   /** The kid's studio mode → the default reading tier (Lite 8–11 / Pro 12–17). */
   mode: 'lite' | 'pro';
+  /**
+   * The project kind (creative-code-studio-website-prd D-WEB-21) — selects the
+   * corpus: `game` → the Game Guide, `website` → the Website Guide. Passed to
+   * `loadHelpCorpus` so the backend returns the matching pillars/docs; also names
+   * the reader's fallback header. Defaults to `game` (unchanged behaviour).
+   */
+  kind?: HelpKind;
   /**
    * An external request to open a doc (+ optional anchor) — the agent's `open_help`
    * client action (MH2). The monotonic `nonce` lets a repeat jump to the same place
@@ -60,7 +67,7 @@ const DEFAULT_DOC = 'start/what-is-a-game';
  *  and users can resize it arbitrarily, so this must look good at any width. */
 const NARROW_PANE_PX = 480;
 
-export function HelpPane({ mode, request }: HelpPaneProps) {
+export function HelpPane({ mode, kind = 'game', request }: HelpPaneProps) {
   const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC, tier: mode });
   const [tier, setTier] = useState<Tier>(saved.tier);
   const [docId, setDocId] = useState<string>(saved.docId);
@@ -79,8 +86,14 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
   }, []);
 
   // The corpus is the backend's single source — fetched once via GET /help/docs
-  // and rendered/searched client-side (the kid's query never leaves the device).
-  const corpus = useQuery({ queryKey: ['help-corpus'], queryFn: loadHelpCorpus, staleTime: Infinity });
+  // (kind-filtered: game → Game Guide, website → Website Guide, D-WEB-21) and
+  // rendered/searched client-side (the kid's query never leaves the device). The
+  // kind is part of the cache key so a website project never reads a game corpus.
+  const corpus = useQuery({
+    queryKey: ['help-corpus', kind],
+    queryFn: () => loadHelpCorpus(kind),
+    staleTime: Infinity,
+  });
   const docs = useMemo(() => corpus.data?.docs ?? [], [corpus.data]);
   const pillars = corpus.data?.pillars ?? [];
   const doc = getDoc(docs, docId);
@@ -221,7 +234,9 @@ export function HelpPane({ mode, request }: HelpPaneProps) {
             <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-brand-sunshine text-ink">
               <BookOpen size={14} />
             </span>
-            <span className="truncate text-[14px] font-extrabold">{doc?.title ?? 'Game Guide'}</span>
+            <span className="truncate text-[14px] font-extrabold">
+              {doc?.title ?? (kind === 'website' ? 'Website Guide' : 'Game Guide')}
+            </span>
           </div>
           <TierToggle tier={tier} onChange={setTier} />
         </header>

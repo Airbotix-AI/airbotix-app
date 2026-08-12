@@ -442,8 +442,10 @@ export function Workspace({
     () =>
       SPLIT_TABS.filter(
         (t) => (t.id !== 'mission' || hasMission) && (t.id !== 'db' || isSite),
-      ),
-    [hasMission, isSite],
+        // Kind-aware Guide tab label ("Website Guide" / "Game Guide", D-WEB-21) —
+        // reads through the same windowDisplay seam as the window/tile/taskbar.
+      ).map((t) => (t.id === 'help' ? { ...t, label: windowDisplay('help', kind).title } : t)),
+    [hasMission, isSite, kind],
   );
 
   // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
@@ -584,6 +586,9 @@ export function Workspace({
   // The runner window's display identity — "Website" + globe in Website Studio
   // (the stable PgWindowId 'game' is unchanged; only the label layer flips).
   const gameDisplay = windowDisplay('game', kind);
+  // The Guide window's display identity — "Website Guide" vs "Game Guide"
+  // (D-WEB-21; same BookOpen icon, only the label flips with the corpus).
+  const helpDisplay = windowDisplay('help', kind);
 
   // The explorer's virtual `database.sqlite` entry (D-WEB-16, Website Studio
   // only — incl. the read-only teacher viewer): opens/focuses the Database
@@ -606,7 +611,8 @@ export function Workspace({
             {/* Website Studio only: the project's server-side Database, live. */}
             {isSite && <DesktopIcon id="db" />}
             <DesktopIcon id="assets" />
-            <DesktopIcon id="help" />
+            {/* Website Studio: the Guide tile reads "Website Guide" (id stays 'help'). */}
+            <DesktopIcon id="help" kind={kind} />
             {hasMission && <DesktopIcon id="mission" />}
           </div>
 
@@ -668,10 +674,11 @@ export function Workspace({
           </Window>
           <Window
             id="help"
-            title={WINDOW_META.help.title}
-            icon={<WINDOW_META.help.Icon size={16} />}
+            // Kind-aware label: "Website Guide" / "Game Guide" (id stays 'help').
+            title={helpDisplay.title}
+            icon={<helpDisplay.Icon size={16} />}
           >
-            <HelpPane mode={mode} request={helpRequest ?? undefined} />
+            <HelpPane mode={mode} kind={kind} request={helpRequest ?? undefined} />
           </Window>
           {hasMission && (
             <Window
@@ -773,7 +780,7 @@ export function Workspace({
                     onOpenDatabase={openDatabase}
                   />
                 ) : splitTab === 'help' ? (
-                  <HelpPane mode={mode} request={helpRequest ?? undefined} />
+                  <HelpPane mode={mode} kind={kind} request={helpRequest ?? undefined} />
                 ) : splitTab === 'mission' ? (
                   <MissionPane projectId={projectId} readOnly={readOnly} />
                 ) : splitTab === 'db' && isSite ? (

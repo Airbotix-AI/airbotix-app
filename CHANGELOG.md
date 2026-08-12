@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-12 (feat: kind-aware Website Guide — D-WEB-21)
+
+### Added
+
+- **The Guide is kind-aware** (`HelpPane` / `helpApi` / `windowMeta`): a website
+  project now loads the **Website Guide** corpus (frontend / backend / database /
+  data-sources / communication) via `GET /help/docs?kind=website`, while a game
+  project is unchanged (`?kind=game`). `HelpPane` takes a `kind` prop, threads it
+  into `loadHelpCorpus(kind)` (kind in the query cache key), and the window / tile /
+  taskbar / split-tab label reads **"Website Guide"** vs **"Game Guide"** through the
+  same `windowDisplay` seam the runner already uses for "Website" / "Game" (icon
+  unchanged). Diagram artwork for the new website keys is delegated to Codex — the
+  pane already falls back to the diagram's `alt` caption, so the Guide ships readable.
+
+### Changed
+
+- **The Guide launches wider** (`playgroundStore.ts` `guideRectClearOf`): a new
+  `GUIDE_MIN_W` (760px) floor opens the Guide wide enough to show BOTH the pillar
+  sidebar AND the content column from the first open (game and website projects) —
+  the old clear-of-chat fallback could open below the pane's single-column collapse.
+  Placement still never buries the chat: a tall column left of the chat when a
+  two-pane-wide one fits, otherwise a wide top strip (clamped on-screen) that leaves
+  the chat's input + newest replies clear below it.
+
 ## 2026-08-12 (fix: wider default Database window)
 
 ### Fixed

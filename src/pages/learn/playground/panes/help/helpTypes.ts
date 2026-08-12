@@ -3,10 +3,19 @@
 // is fetched via `GET /help/docs`; this file is the shared SHAPE the pane renders.
 
 export type Tier = 'lite' | 'pro';
+
+/** Which studio a doc/pillar belongs to (creative-code-studio-website-prd D-WEB-21).
+ *  The backend filters `GET /help/docs?kind=` by this; the pane passes the project
+ *  kind. No param → `game` (back-compat). */
+export type HelpKind = 'game' | 'website';
+
 // Concept BRANCHES (the KB is concept-first + engine-agnostic — learn-game-studio-help-prd
 // §3 / D-HELP-08): each doc teaches an idea for BOTH 2D and 3D and only refers to Phaser 4 /
 // three.js for implementation details. NOT engine pillars.
-export type Pillar = 'start' | 'world' | 'motion' | 'rules' | 'polish';
+export type GamePillar = 'start' | 'world' | 'motion' | 'rules' | 'polish';
+// Website Studio branches (D-WEB-21): the pieces of a site + how they talk to each other.
+export type WebsitePillar = 'frontend' | 'backend' | 'database' | 'data-sources' | 'communication';
+export type Pillar = GamePillar | WebsitePillar;
 
 export type HelpBlock =
   | { kind: 'heading'; text: string; anchor: string; tier?: Tier }
@@ -20,6 +29,10 @@ export type HelpBlock =
 
 export interface HelpDoc {
   id: string;
+  /** The studio this doc belongs to (D-WEB-21). Optional: the server already
+   *  filters by `?kind=`, so the pane never re-filters — this is a shape mirror
+   *  of the backend content (the game corpus predates the field). */
+  kind?: HelpKind;
   pillar: Pillar;
   /** Optional sub-group within a branch (3-level tree: branch → section → doc). */
   section?: string;
@@ -32,6 +45,9 @@ export interface HelpDoc {
 
 export interface PillarMeta {
   id: Pillar;
+  /** The studio this pillar belongs to (D-WEB-21) — see `HelpDoc.kind`. Optional
+   *  for the same back-compat reason. */
+  kind?: HelpKind;
   title: string;
   blurb: string;
   /** Order of the branch in the nav / learning path. */

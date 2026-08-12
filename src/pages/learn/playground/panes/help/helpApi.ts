@@ -8,9 +8,9 @@
 
 import { api } from '@/lib/api';
 
-import type { HelpBlock, HelpCorpus, HelpDoc, HelpResult, Tier } from './helpTypes';
+import type { HelpBlock, HelpCorpus, HelpDoc, HelpKind, HelpResult, Tier } from './helpTypes';
 
-export type { HelpBlock, HelpCorpus, HelpDoc, HelpResult, Tier } from './helpTypes';
+export type { HelpBlock, HelpCorpus, HelpDoc, HelpKind, HelpResult, Tier } from './helpTypes';
 
 // ── Try-demo seam (try-demo-mode-prd §3 step 10) ──────────────────────────────
 // The public `/try/playground` demo serves a small bundled corpus through this
@@ -21,10 +21,15 @@ export function setDemoHelpCorpus(corpus: HelpCorpus | null): void {
   demoHelpCorpus = corpus;
 }
 
-/** Fetch the whole Game Guide corpus (pillars + docs) from the backend. */
-export async function loadHelpCorpus(): Promise<HelpCorpus> {
+/**
+ * Fetch the whole Guide corpus (pillars + docs) for a studio kind (D-WEB-21):
+ * `game` → the Game Guide, `website` → the Website Guide. The BACKEND filters by
+ * `?kind=` (no param → game, back-compat), so the pane never re-filters. The demo
+ * seam serves its bundled (game) corpus regardless — the public demo is game-only.
+ */
+export async function loadHelpCorpus(kind: HelpKind = 'game'): Promise<HelpCorpus> {
   if (demoHelpCorpus) return demoHelpCorpus;
-  return api<HelpCorpus>('/help/docs');
+  return api<HelpCorpus>(`/help/docs?kind=${kind}`);
 }
 
 /** Find a doc by id in a loaded corpus. */

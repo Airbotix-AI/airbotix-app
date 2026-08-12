@@ -16,10 +16,15 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
 };
 
 /**
- * Kind-aware display metadata (creative-code-studio-website-prd): in Website
- * Studio the runner window reads "Website" with a globe glyph everywhere its
- * label shows (window title bar, desktop tile, taskbar button). The STABLE
- * `PgWindowId` 'game' is unchanged — only the display layer flips.
+ * Kind-aware display metadata (creative-code-studio-website-prd): the display
+ * layer flips per project kind while the STABLE `PgWindowId` is unchanged. Two
+ * windows switch:
+ *   - the RUNNER ('game') reads "Website" + globe in Website Studio (else the
+ *     Game Runner metadata);
+ *   - the GUIDE ('help') reads "Website Guide" vs "Game Guide" (D-WEB-21) — same
+ *     BookOpen icon, only the label changes with the corpus the pane loads.
+ * Everywhere a label shows (window title bar, desktop tile, taskbar button,
+ * split-tab) reads through here so the two never drift.
  */
 const WEBSITE_GAME_DISPLAY = { title: 'Website', Icon: Globe } as const;
 export function windowDisplay(
@@ -27,6 +32,9 @@ export function windowDisplay(
   kind: 'game' | 'website' = 'game',
 ): { title: string; Icon: LucideIcon } {
   if (id === 'game' && kind === 'website') return WEBSITE_GAME_DISPLAY;
+  if (id === 'help') {
+    return { title: kind === 'website' ? 'Website Guide' : 'Game Guide', Icon: WINDOW_META.help.Icon };
+  }
   return WINDOW_META[id];
 }
 
