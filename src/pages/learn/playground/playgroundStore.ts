@@ -171,6 +171,12 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
   // SHORT top strip that still leaves the chat's input + newest replies clear.
   const chatRect = r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82);
   const helpRect = (): WinRect => guideRectClearOf(chatRect, W, H);
+  // Database (Website Studio) launches ~2× wider than the old 560px cap — it's a
+  // master–detail db tool (table sidebar + a multi-column editable grid), so the
+  // narrow default clipped columns. Fill up to 1040px (or the space beside the
+  // icon column) and centre it so the wider window still fits on screen.
+  const dbW = Math.round(Math.min(1040, W - ICON_COL_PX - 24));
+  const dbX = Math.max(ICON_COL_PX + 8, Math.round((W - dbW) / 2));
   return {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
@@ -192,7 +198,7 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
     // the tile/window/taskbar button render ONLY for kind='website' (Workspace/
     // Taskbar gate on kind), but the WinState always exists so store consumers
     // never crash on a game project.
-    db: closed('db', 1, r(W * 0.55, H * 0.12, Math.min(560, W * 0.36), H * 0.72)),
+    db: closed('db', 1, r(dbX, H * 0.12, dbW, H * 0.72)),
     // Open + focused + centered as the sole launch window.
     chat: base('chat', 4, chatRect),
   };

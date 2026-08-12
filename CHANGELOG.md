@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-12 (fix: wider default Database window)
+
+### Fixed
+
+- **Database window launches ~2× wider** (`playgroundStore.ts`): the master–detail
+  viewer (table sidebar + multi-column editable grid) was capped at 560px and clipped
+  columns; it now fills up to 1040px (or the space beside the icon column) and centres.
+
 ## 2026-08-12 (fix: kind-neutral studio error copy)
 
 ### Fixed
