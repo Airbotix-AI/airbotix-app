@@ -1,5 +1,59 @@
 # Changelog
 
+## 2026-08-12 (feat: website db is REAL server-side SQLite — D-WEB-15 frontend)
+
+### Changed
+
+- **`buildSitePreview` runtime shim: the in-frame `db` object is now `db.query(sql, ...params)`
+  against the project's REAL server-side SQLite db** (creative-code-studio-website-prd
+  D-WEB-15, supersedes D-WEB-04's in-memory reset-per-run model). Each query posts
+  `{__airbotixSiteControl, action:'sql', id, sql, params}` to the parent studio and awaits a
+  `{__airbotixSiteSql, id, ok, result?, error?}` reply — the frame stays token-free; params
+  accepted spread OR as one array. **Return shape (the Web Critter prompt teaches exactly
+  this):** a reader statement (reply carries columns, e.g. SELECT) resolves with the ROWS
+  ARRAY; a write (no columns) resolves with `{changes, lastInsertRowid}`. An SQL error
+  rejects with the backend's kid-readable message AND `console.error`s it VERBATIM (feeds the
+  D-WEB-13 logs ledger); no reply for 10 s rejects kid-readably. The seed hydration, the
+  `dbState` navigation carry, and the `read-db`/`__airbotixSiteDb` control channel are all
+  REMOVED — `data/*.json` content never enters the frame anymore. CSP, sandbox and the
+  studio-owned document skeleton are unchanged.
+- `server.js` route handlers may now be **async**: the fetch shim awaits a returned promise —
+  `res.json` after an `await db.query(...)` still answers the call, the D-WEB-13 api ledger
+  records the FINAL status after the await, and a rejected handler answers 500 with the same
+  kid-readable crash line as a sync throw.
+- **`SiteFrame` is the frame's sql proxy**: it forwards each `action:'sql'` request (own-frame
+  source guard, params clamped) to `POST /projects/:id/db/query` via the new `querySiteDb` and
+  posts the reply back by id; without a project it answers kid-readably instead of hanging.
+  The Home button / page navigation no longer round-trips or carries db state — the db is
+  server-side, so Home just renders `index.html`; a runKey bump (Reload) is a fresh page load
+  (console cleared, back to home) and the data persists.
+- **Database window rewired to REST introspection** (D-WEB-14 → D-WEB-15): `siteDbStore` now
+  polls `GET /projects/:id/db/tables` + the first 50 rows per table (superseded/failed polls
+  never overwrite fresher truth) instead of the retired `read-db` postMessage; `DbPane` renders
+  REAL tables — contract columns with their SQLite types shown subtly, `db-collection-<name>`
+  headings with the real `row_count`, a "showing first N of M rows" hint — same testids
+  (`site-db-pane`, `db-refresh`, `db-freshness`, `db-edit-<name>`). Teaching copy + empty state
+  now tell the persistent-db story (server-side, keeps data; `data/*.json` = starting data;
+  no tables yet → add a seed file or CREATE TABLE from server code).
+
+### Added
+
+- `panes/playgroundApi.ts`: the frozen D-WEB-15 REST surface — `querySiteDb` (POST
+  `/projects/:id/db/query`), `listSiteDbTables`, `listSiteDbRows` (paged), `resetSiteDb`.
+- **Reset database** button in the Database window (`db-reset`, aria "Reset database"):
+  two-step inline confirmation (arm → confirm; self-disarms after 5 s, no browser
+  `confirm()`), calls `POST /projects/:id/db/reset` (rebuild from `data/*.json` seeds, the
+  ONLY reset path), drops the snapshot so stale in-flight polls never resurrect pre-reset
+  rows, then re-introspects; failures surface the backend's kid-readable message. Hidden in
+  the teacher read-only viewer.
+- `projectId` threaded Workspace → GameRunnerPane → SiteFrame and Workspace → DbPane (the sql
+  proxy + introspection need the kid's session against the project endpoints).
+- Tests: `buildSitePreview.sqlChannel.test.ts` executes the injected shim end-to-end (request
+  wire shape, reader/write return shapes, verbatim error surfacing, 10 s timeout, retired
+  read-db channel, async-handler await + final-status ledger); SiteFrame sql-proxy specs
+  (forwarding, error envelope, no-project reply, own-source guard, param clamping);
+  siteDbStore REST/supersession specs; DbPane REST-polling/reset/readOnly/columns+types specs.
+
 ## 2026-08-12 (feat: Database window — kids see what their site's backend remembers)
 
 ### Added

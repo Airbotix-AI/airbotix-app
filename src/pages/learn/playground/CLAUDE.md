@@ -24,11 +24,15 @@ locate `<head>` by regex in untrusted markup — that displacement disarms BOTH 
 CSP blocks every SUBRESOURCE vector + XHR/WS/beacon; it does NOT stop frame SELF-navigation
 (known residual, documented in-file); violations surface as kid-readable console lines.
 `server.js` app.get/app.post routes are served by an in-frame fetch shim (/api-only, no real
-network); `db` comes from TOP-LEVEL `data/*.json` TEXT seeds (`isWebsiteDataSeedPath`, backend
-kind authoritative, nested seeds rejected server-side; persists across page navs via nav/read-db
-postMessage, resets per run). A website has **NO run concept**: the site is ALWAYS mounted +
-live-rebuilds from the VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's
-`run_game` — adopts files immediately as a fresh run, db reset per D-WEB-04). No
+network; async handlers awaited); the db is **REAL server-side SQLite per project** (D-WEB-15):
+in-frame `await db.query(sql, params)` rides the sql postMessage channel to `SiteFrame`, which
+proxies it to `POST /projects/:id/db/query` with the kid's session (frame token-free; reader
+replies resolve to the ROWS array, writes to `{changes, lastInsertRowid}`; SQL errors
+console.error the backend's kid-readable message verbatim). Data PERSISTS across navs/reloads/
+sessions; TOP-LEVEL `data/*.json` are the SEEDS the backend rebuilds from on the explicit
+Reset. A website has **NO run concept**: the site is ALWAYS mounted + live-rebuilds from the
+VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's `run_game` — adopts
+files immediately as a fresh page load; the db keeps its data). No
 play/pause/FPS/debug chrome anywhere (runner=Reload only; editor ▶ = "Reload site",
 still commit+run; chat CTA = "See my site"; the runner window/tile/taskbar label reads "Website"
 via `windowDisplay`, id 'game' stable). Websites **verify like games** (D-WEB-13): a
@@ -38,10 +42,11 @@ emits an `engine:'website'` RunReport carrying the `buildSitePreview` shim's evi
 wrap installed LAST so the shim's own nav listener never reads as delegation / `console.log`
 echo) through the SAME `useVerification` loop — fix turns silent, co-debug the one visible
 surface, **screenshots never captured for sites**. The **Database window** (`PgWindowId 'db'`,
-Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows the live in-frame
-`db` read-only: `DbPane` polls ~2 s while mounted through `siteDbStore`, whose trigger SiteFrame
-owns (the existing `read-db` channel; every reply feeds the store; runKey reset drops the
-snapshot); per-collection `db-collection-<name>` + "Edit starting data" jumps to `data/*.json`.
+Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows the server-side db:
+`DbPane` polls REST introspection ~2 s while mounted through `siteDbStore`
+(`GET /projects/:id/db/tables` + first rows per table; a superseded/failed poll never overwrites);
+per-table `db-collection-<name>` (real columns + types) + "Edit starting data" jumps to
+`data/*.json` + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
 The 2D⇄3D switch never
 offers; **Share is hidden until website publish lands (P3)**. Backend contract:
 `website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).

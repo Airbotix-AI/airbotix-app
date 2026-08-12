@@ -187,7 +187,7 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
     // mission with unfinished steps, so it never steals focus from the chat. A
     // narrow left column, clear of the chat, at the BACK of the z-order.
     mission: closed('mission', 1, missionRectClearOf(chatRect, W, H)),
-    // Database (Website Studio only) — what the site's simulated backend
+    // Database (Website Studio only) — what the project's server-side db
     // remembers right now. Closed by default (the kid opens it from the dock);
     // the tile/window/taskbar button render ONLY for kind='website' (Workspace/
     // Taskbar gate on kind), but the WinState always exists so store consumers

@@ -1,16 +1,19 @@
 import { Home } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import {
   buildSitePreview,
   isConsoleMessage,
-  isSiteDbMessage,
   isSiteNavigateMessage,
+  isSiteSqlRequest,
   resolveErrorLoc,
   SITE_HOME_PAGE,
   type ConsoleLine,
+  type SiteSqlReply,
 } from './buildSitePreview';
+import { querySiteDb } from './panes/playgroundApi';
 import {
   createRunCollector,
   isSiteReportMessage,
@@ -18,20 +21,19 @@ import {
   RUN_OBSERVE_MS,
   type RunReport,
 } from './runReport';
-import { useSiteDbStore } from './siteDbStore';
-
-/** How long Home waits for the frame's live-db reply before navigating with
- *  the last-carried db (a crashed/blank page must never wedge the button). */
-const HOME_DB_REPLY_TIMEOUT_MS = 300;
 
 interface SiteFrameProps {
   files: VfsFile[];
+  /** The backend project whose server-side db answers the frame's `db.query`
+   *  sql requests (D-WEB-15). Absent only in a project-less session, where
+   *  queries fail kid-readably instead of silently hanging. */
+  projectId?: string;
   /** Class shared assets resolved to ready `data:` URLs — inlined like VFS
    *  assets (same seam as GameFrame's virtualAssets). */
   virtualAssets?: VfsFile[];
-  /** Bump to force a fresh run. A fresh run RESETS the db to its data/*.json
-   *  seeds and returns to index.html (product decision: db resets per run,
-   *  persists only across page navigations). */
+  /** Bump to force a fresh page load: back to index.html, console cleared.
+   *  The db is server-side (D-WEB-15) and simply PERSISTS across reloads —
+   *  only the explicit Reset database affordance rebuilds it. */
   runKey: number;
   /** Show the captured console panel under the site (same as GameFrame). */
   showConsole?: boolean;
@@ -61,19 +63,28 @@ const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
   error: 'text-brand-coral',
 };
 
+/** The sql reply when the studio has no project to query against (a
+ *  project-less session — the scaffold path). Kid-readable, never a hang. */
+const NO_PROJECT_SQL_ERROR =
+  'Your database is not ready yet — it wakes up once your project is saved.';
+
 /**
  * Renders a kid's WEBSITE inside the strict sandbox (Website Studio,
  * creative-code-studio-website-prd). Same security model as GameFrame:
  * opaque-origin iframe, `allow-scripts` ONLY, NO allow-same-origin; the only
- * channel back to the app is postMessage (console capture + the nav shim).
+ * channel back to the app is postMessage (console capture + the nav shim +
+ * the sql channel).
  *
- * Owns the site's cross-page state: `currentPage` + the carried `dbState` the
- * in-frame nav shim posts on a page-link click — so `db` changes survive
- * navigation and reset only on a fresh run (runKey). The slim top bar carries
- * Home (`site-nav-home`, PRESERVES db) and the current page (`site-nav-page`).
+ * The db is REAL and server-side (D-WEB-15): this component is the frame's
+ * token-holding proxy — each in-frame `db.query` arrives as an
+ * `action:'sql'` postMessage, is forwarded to `POST /projects/:id/db/query`
+ * with the kid's session, and the reply is posted back by request id. Page
+ * navigation carries nothing (state lives on the server); the slim top bar
+ * is Home (`site-nav-home`) + the current page (`site-nav-page`).
  */
 export function SiteFrame({
   files,
+  projectId,
   virtualAssets,
   runKey,
   showConsole = false,
@@ -85,78 +96,24 @@ export function SiteFrame({
 }: SiteFrameProps) {
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   const [page, setPage] = useState(SITE_HOME_PAGE);
-  const [dbState, setDbState] = useState<Record<string, unknown> | null>(null);
 
-  // A restart (runKey bump) resets the whole site: back to the home page, db
-  // re-hydrated from the data/*.json seeds, console cleared — and the Database
-  // window's snapshot dropped (D-WEB-04: the frame db is back to its seeds, so
-  // a stale snapshot must not read as truth; the pane's next poll repopulates).
+  // A reload (runKey bump) is a fresh page load: back to the home page,
+  // console cleared. The server-side db persists — nothing else resets.
   useEffect(() => {
     setPage(SITE_HOME_PAGE);
-    setDbState(null);
     setLines([]);
-    useSiteDbStore.getState().reset();
   }, [runKey]);
 
   const { srcDoc, scriptRanges, currentPage } = useMemo(
-    () => buildSitePreview(files, { page, dbState, virtualAssets }),
-    [files, page, dbState, virtualAssets],
+    () => buildSitePreview(files, { page, virtualAssets }),
+    [files, page, virtualAssets],
   );
   // Read inside the (stable) message listener without re-subscribing.
   const scriptRangesRef = useRef(scriptRanges);
   scriptRangesRef.current = scriptRanges;
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Database window seam (siteDbStore): this component is the ONLY thing that
-  // talks to the frame, so it owns the store's refresh trigger — the DbPane's
-  // polling lands here as the same `read-db` control request Home uses. The
-  // frame's reply feeds the store in the message listener below. Fresh mount =
-  // fresh frame = seeds; drop any previous project's snapshot.
-  useEffect(() => {
-    const store = useSiteDbStore.getState();
-    store.reset();
-    store.registerRefresh(() => {
-      iframeRef.current?.contentWindow?.postMessage(
-        { __airbotixSiteControl: true, action: 'read-db' },
-        '*',
-      );
-    });
-    return () => {
-      useSiteDbStore.getState().registerRefresh(null);
-    };
-  }, []);
-
-  // Home reads the LIVE db from the frame first (`read-db` control message +
-  // `__airbotixSiteDb` reply), so db mutations made since the last link click
-  // aren't lost. The timer doubles as the "a Home request is pending" flag; if
-  // the frame never answers (crashed/blank page) the timeout navigates with
-  // the last-carried db instead — Home must never wedge.
-  const homeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const goHomeRef = useRef((db?: Record<string, unknown> | null) => {
-    if (homeTimerRef.current) {
-      clearTimeout(homeTimerRef.current);
-      homeTimerRef.current = null;
-    }
-    // A null/absent reply (uncloneable live db / timeout) keeps the last-carried db.
-    if (db != null) setDbState(db);
-    setPage(SITE_HOME_PAGE);
-  });
-  const requestHome = () => {
-    const frameWindow = iframeRef.current?.contentWindow;
-    if (homeTimerRef.current) return; // a Home request is already in flight
-    if (!frameWindow) {
-      goHomeRef.current();
-      return;
-    }
-    frameWindow.postMessage({ __airbotixSiteControl: true, action: 'read-db' }, '*');
-    homeTimerRef.current = setTimeout(() => goHomeRef.current(), HOME_DB_REPLY_TIMEOUT_MS);
-  };
-  useEffect(
-    () => () => {
-      if (homeTimerRef.current) clearTimeout(homeTimerRef.current);
-    },
-    [],
-  );
 
   // ── Run-report collection (D-WEB-13) — mirrors GameFrame's ────────────────
   // One collector per RUN (runKey) — deliberately NOT per srcDoc: a website
@@ -208,10 +165,44 @@ export function SiteFrame({
   }, [collectReports, runKey]);
 
   useEffect(() => {
+    // Answer one in-frame `db.query` (the sql channel): forward to the backend
+    // with the kid's session, post the reply back by id. The reply targets the
+    // frame window AT REPLY TIME — if a rebuild swapped the srcdoc mid-flight,
+    // the new document simply has no matching pending id (harmless).
+    const answerSql = async (
+      id: number,
+      sql: string,
+      params: Array<string | number | boolean | null>,
+    ) => {
+      const reply = (r: Omit<SiteSqlReply, '__airbotixSiteSql' | 'id'>) => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { __airbotixSiteSql: true, id, ...r } satisfies SiteSqlReply,
+          '*',
+        );
+      };
+      const pid = projectIdRef.current;
+      if (!pid) {
+        reply({ ok: false, error: NO_PROJECT_SQL_ERROR });
+        return;
+      }
+      try {
+        const result = await querySiteDb(pid, sql, params);
+        reply({ ok: true, result });
+      } catch (err) {
+        // The backend's DB_QUERY_ERROR message is kid-readable (the real
+        // SQLite error) — surface it verbatim; anything else gets a calm fallback.
+        const message =
+          err instanceof ApiError && err.message
+            ? err.message
+            : 'Your database could not be reached — try again in a moment.';
+        reply({ ok: false, error: message });
+      }
+    };
+
     const onMessage = (e: MessageEvent) => {
-      // Only THIS frame may feed the console / drive navigation (same
-      // defence-in-depth as GameFrame — another frame on the page must not
-      // steer the site). A null source (jsdom tests) is not the cross-frame case.
+      // Only THIS frame may feed the console / drive navigation / query the db
+      // (same defence-in-depth as GameFrame — another frame on the page must
+      // not steer the site). A null source (jsdom tests) is not the cross-frame case.
       const frameWindow = iframeRef.current?.contentWindow;
       if (e.source != null && frameWindow != null && e.source !== frameWindow) return;
       if (isConsoleMessage(e.data)) {
@@ -235,22 +226,14 @@ export function SiteFrame({
         return;
       }
       if (isSiteNavigateMessage(e.data)) {
-        // A page-link click: carry the live db across the navigation so the
-        // site "remembers" while the kid browses (it resets on restart).
-        setDbState((e.data.db ?? null) as Record<string, unknown> | null);
+        // A page-link click: just render the target page — the db is
+        // server-side, so there is no state to carry (D-WEB-15).
         setPage(e.data.path);
         return;
       }
-      if (isSiteDbMessage(e.data)) {
-        // The frame answered a read-db request with its LIVE db. Every reply —
-        // whether a Home read or a Database-window poll asked — is the same
-        // live snapshot, so it always feeds the Database store; it navigates
-        // Home ONLY when a Home request is actually pending.
-        const db = (e.data.db ?? null) as Record<string, unknown> | null;
-        useSiteDbStore.getState().setDb(db);
-        if (homeTimerRef.current) {
-          goHomeRef.current(db);
-        }
+      if (isSiteSqlRequest(e.data)) {
+        const params = Array.isArray(e.data.params) ? e.data.params : [];
+        void answerSql(e.data.id, e.data.sql, params);
       }
     };
     window.addEventListener('message', onMessage);
@@ -267,13 +250,13 @@ export function SiteFrame({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Slim site nav bar: Home (preserves db) + the page on screen. */}
+      {/* Slim site nav bar: Home + the page on screen. */}
       <div className="flex shrink-0 items-center gap-2 border-b border-pg-border bg-pg-surface-2 px-3 py-1.5">
         <button
           type="button"
           data-testid="site-nav-home"
           aria-label="Home page"
-          onClick={requestHome}
+          onClick={() => setPage(SITE_HOME_PAGE)}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
         >
           <Home size={13} aria-hidden /> Home

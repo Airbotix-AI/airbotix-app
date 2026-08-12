@@ -1,48 +1,75 @@
-// Live site-database snapshots for the Website Studio's Database window
-// (creative-code-studio-website-prd). The site's simulated backend keeps its
-// `db` INSIDE the sandboxed frame; SiteFrame is the only thing talking to that
-// frame, so this store is the seam between them and the DbPane:
+// Server-side database snapshots for the Website Studio's Database window
+// (creative-code-studio-website-prd D-WEB-15). The site's db is REAL SQLite
+// hosted by platform-backend, so this store introspects it over REST — no
+// frame involvement:
 //
-//   - SiteFrame REGISTERS a refresh trigger (posting the existing `read-db`
-//     control request into the frame) and WRITES every `__airbotixSiteDb` reply
-//     it receives (Home reads and Database polls share the reply — both carry
-//     the same live db, so every reply is a valid snapshot).
-//   - DbPane renders purely from `{db, updatedAt}` and drives the polling: it
-//     calls `requestRefresh()` on an interval WHILE MOUNTED — and the pane is
-//     mounted exactly when its window/tab is visible, so a closed Database
-//     window polls nothing.
+//   - DbPane drives the polling: it calls `refresh(projectId)` on mount and
+//     every DB_POLL_MS WHILE MOUNTED (mounted ⇔ the window/tab is visible, so
+//     a closed Database window polls nothing).
+//   - `refresh` fetches the schema (`GET /projects/:id/db/tables`) plus the
+//     first rows of each table for display, and adopts the snapshot only if
+//     no newer refresh/reset superseded it (a stale in-flight poll must never
+//     overwrite fresher truth — e.g. right after a Reset).
+//   - A failed poll KEEPS the last snapshot and leaves `updatedAt` alone, so
+//     the pane's freshness hint ages honestly instead of lying "live".
 //
-// `db: null` = no snapshot yet for the current run (fresh mount / runKey
-// reset — D-WEB-04 resets the frame db to its seeds, so stale snapshots are
-// dropped rather than shown as truth). Pure state — no React/JSX.
+// `tables: null` = no snapshot yet (fresh mount / project switch / just
+// reset). Pure state — no React/JSX.
 
 import { create } from 'zustand';
 
-interface SiteDbState {
-  /** The last live-db snapshot from the frame (null = none yet this run). */
-  db: Record<string, unknown> | null;
-  /** When that snapshot arrived (Date.now()); null with no snapshot. */
-  updatedAt: number | null;
-  /** SiteFrame's registered "post read-db into the frame" trigger. */
-  refreshTrigger: (() => void) | null;
-  /** Record a snapshot (every `__airbotixSiteDb` reply lands here). */
-  setDb: (db: Record<string, unknown> | null, at?: number) => void;
-  /** Drop the snapshot (fresh run / fresh frame — the db reset to its seeds). */
-  reset: () => void;
-  /** SiteFrame registers (mount) / unregisters (unmount, pass null) here. */
-  registerRefresh: (trigger: (() => void) | null) => void;
-  /** Ask the live frame for its db now — no-op when no frame is registered. */
-  requestRefresh: () => void;
+import { listSiteDbRows, listSiteDbTables, type SiteDbTableInfo } from './panes/playgroundApi';
+
+/** How many rows per table the Database window displays (the heading still
+ *  shows the REAL total from `row_count`). */
+export const DB_ROWS_DISPLAY_LIMIT = 50;
+
+/** One table's schema + the first rows fetched for display. */
+export interface SiteDbTableSnapshot extends SiteDbTableInfo {
+  rows: Record<string, unknown>[];
 }
 
-export const useSiteDbStore = create<SiteDbState>((set, get) => ({
-  db: null,
+interface SiteDbState {
+  /** The last introspection snapshot (null = none yet). */
+  tables: SiteDbTableSnapshot[] | null;
+  /** When that snapshot arrived (Date.now()); null with no snapshot. */
+  updatedAt: number | null;
+  /** Fetch a fresh snapshot; superseded/failed fetches never overwrite. */
+  refresh: (projectId: string) => Promise<void>;
+  /** Drop the snapshot AND invalidate in-flight polls (project switch /
+   *  right after a Reset database call). */
+  reset: () => void;
+}
+
+// Supersession counter: each refresh tags itself, `reset()` bumps it, and a
+// completed fetch adopts only if it is still the newest — module-level (not
+// state) because it must be read/written synchronously across awaits.
+let refreshSeq = 0;
+
+export const useSiteDbStore = create<SiteDbState>((set) => ({
+  tables: null,
   updatedAt: null,
-  refreshTrigger: null,
-  setDb: (db, at = Date.now()) => set({ db, updatedAt: at }),
-  reset: () => set({ db: null, updatedAt: null }),
-  registerRefresh: (trigger) => set({ refreshTrigger: trigger }),
-  requestRefresh: () => {
-    get().refreshTrigger?.();
+  refresh: async (projectId) => {
+    const seq = ++refreshSeq;
+    try {
+      const { tables } = await listSiteDbTables(projectId);
+      const snapshot = await Promise.all(
+        tables.map(async (t): Promise<SiteDbTableSnapshot> => {
+          const { rows } = await listSiteDbRows(projectId, t.name, {
+            limit: DB_ROWS_DISPLAY_LIMIT,
+          });
+          return { ...t, rows };
+        }),
+      );
+      if (seq !== refreshSeq) return; // superseded — never overwrite fresher truth
+      set({ tables: snapshot, updatedAt: Date.now() });
+    } catch {
+      // A transient poll failure keeps the last snapshot; the freshness hint
+      // ages honestly and the next poll retries.
+    }
+  },
+  reset: () => {
+    refreshSeq += 1; // in-flight polls started before this must not land
+    set({ tables: null, updatedAt: null });
   },
 }));

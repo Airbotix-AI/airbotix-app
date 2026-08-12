@@ -137,7 +137,7 @@ function describeFile(path: string, kind: 'game' | 'website' = 'game'): string {
     if (name.endsWith('.html')) return 'A page of your website.';
     if (name.endsWith('.css')) return 'Styling for how things look.';
     if (path.startsWith('data/') && name.endsWith('.json'))
-      return 'The starting data your backend remembers.';
+      return 'The starting data your database is built from.';
     if (name.endsWith('.json')) return 'Settings or data for your website.';
     if (name.endsWith('.js')) return 'Code that makes your website work.';
     return 'A file in your website.';

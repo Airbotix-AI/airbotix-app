@@ -1,18 +1,35 @@
 // @vitest-environment jsdom
-// The Database window (Website Studio, creative-code-studio-website-prd): the
-// live in-frame db rendered kid-friendly — collections by shape (table / list /
-// fields / value), the `db-collection-<name>` heading with a row count (harness
-// journey contract, with `site-db-pane` + `db-refresh`), live polling while
-// mounted, the manual refresh, the data/*.json edit jump, and the empty state.
+// The Database window (Website Studio, creative-code-studio-website-prd
+// D-WEB-15): the project's server-side db rendered kid-friendly — real tables
+// (columns + types from the introspection contract), the `db-collection-<name>`
+// heading with the REAL row count (harness journey contract, with
+// `site-db-pane` + `db-refresh` + `db-reset`), REST polling while mounted, the
+// manual refresh, the two-step Reset database, the data/*.json edit jump, and
+// the empty/waiting states.
 
 import '@testing-library/jest-dom/vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../../code/codeApi';
-import { usePlaygroundStore } from '../playgroundStore';
 import { useSiteDbStore } from '../siteDbStore';
 import { DB_POLL_MS, DbPane } from './DbPane';
+
+const { listSiteDbTablesMock, listSiteDbRowsMock, resetSiteDbMock } = vi.hoisted(() => ({
+  listSiteDbTablesMock: vi.fn(),
+  listSiteDbRowsMock: vi.fn(),
+  resetSiteDbMock: vi.fn(),
+}));
+vi.mock('./playgroundApi', async (orig) => {
+  const actual = await orig<typeof import('./playgroundApi')>();
+  return {
+    ...actual,
+    listSiteDbTables: listSiteDbTablesMock,
+    listSiteDbRows: listSiteDbRowsMock,
+    resetSiteDb: resetSiteDbMock,
+  };
+});
 
 const text = (path: string, content: string): VfsFile => ({
   path,
@@ -23,119 +40,204 @@ const text = (path: string, content: string): VfsFile => ({
 
 const FILES: VfsFile[] = [text('index.html', '<h1>Hi</h1>'), text('data/pets.json', '[]')];
 
+const PETS = {
+  name: 'pets',
+  row_count: 2,
+  columns: [
+    { name: 'id', type: 'INTEGER' },
+    { name: 'name', type: 'TEXT' },
+    { name: 'adopted', type: 'INTEGER' },
+  ],
+};
+const PETS_ROWS = [
+  { id: 1, name: 'Biscuit', adopted: 0 },
+  { id: 2, name: 'Mochi', adopted: 1 },
+];
+
 beforeEach(() => {
-  useSiteDbStore.setState({ db: null, updatedAt: null, refreshTrigger: null });
-  usePlaygroundStore.getState().setLayoutMode('split'); // ensureGameRunnerVisible no-ops
+  vi.clearAllMocks();
+  useSiteDbStore.setState({ tables: null, updatedAt: null });
+  listSiteDbTablesMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
+  listSiteDbRowsMock.mockResolvedValue({ rows: PETS_ROWS, total: 2 });
+  resetSiteDbMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
 });
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  vi.clearAllMocks();
 });
 
-const setDb = (db: Record<string, unknown>) => act(() => useSiteDbStore.getState().setDb(db));
+describe('DbPane — rendering the server-side tables', () => {
+  it('renders a table per introspected table: `name · N rows` heading, columns with types, cells', async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
 
-describe('DbPane — rendering by shape', () => {
-  it('renders an array of objects as a table under a `name · N rows` heading', () => {
-    render(<DbPane files={FILES} />);
-    setDb({
-      pets: [
-        { id: 1, name: 'Biscuit', adopted: false },
-        { id: 2, name: 'Mochi' }, // missing key → union column, empty cell
-      ],
-    });
-
+    expect(await screen.findByTestId('db-collection-pets')).toHaveTextContent('pets · 2 rows');
     expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
-    expect(screen.getByTestId('db-collection-pets')).toHaveTextContent('pets · 2 rows');
-    // Union columns + values.
-    expect(screen.getByRole('columnheader', { name: 'adopted' })).toBeInTheDocument();
+    // Contract columns (with the SQLite type shown subtly) + row values.
+    expect(screen.getByRole('columnheader', { name: /name\s*text/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /adopted\s*integer/i })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Biscuit' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: 'false' })).toBeInTheDocument();
   });
 
-  it('renders primitives as a list, plain objects as fields, and clips long values', () => {
-    render(<DbPane files={FILES} />);
-    setDb({
-      colors: ['red', 'blue'],
-      settings: { title: 'Pet Shop', open: true },
-      motto: 'x'.repeat(300),
+  it('clips long cell values and hints when more rows exist server-side', async () => {
+    listSiteDbTablesMock.mockResolvedValue({
+      tables: [{ name: 'notes', row_count: 80, columns: [{ name: 'body', type: 'TEXT' }] }],
+      size_bytes: 1,
     });
+    listSiteDbRowsMock.mockResolvedValue({
+      rows: [{ body: 'x'.repeat(300) }],
+      total: 80,
+    });
+    render(<DbPane projectId="p1" files={FILES} />);
 
-    expect(screen.getByTestId('db-collection-colors')).toHaveTextContent('colors · 2 rows');
-    expect(screen.getByText('red')).toBeInTheDocument();
-    expect(screen.getByTestId('db-collection-settings')).toHaveTextContent('settings · 2 fields');
-    expect(screen.getByText('Pet Shop')).toBeInTheDocument();
-    // A single primitive collection has no count suffix; its value is clipped.
-    expect(screen.getByTestId('db-collection-motto')).toHaveTextContent(/^motto$/);
+    expect(await screen.findByTestId('db-collection-notes')).toHaveTextContent('notes · 80 rows');
     expect(screen.getByText(`${'x'.repeat(120)}…`)).toBeInTheDocument();
+    expect(screen.getByText(/Showing the first 1 of 80 rows/)).toBeInTheDocument();
   });
 
-  it('an EMPTY db shows the friendly empty state; no snapshot yet shows the waiting state', () => {
-    render(<DbPane files={FILES} />);
-    // db === null (no snapshot yet this run).
-    expect(screen.getByText(/Peeking into your site's memory/)).toBeInTheDocument();
+  it('shows the waiting state before the first snapshot and the empty state with no tables', async () => {
+    listSiteDbTablesMock.mockReturnValue(new Promise(() => undefined)); // never answers
+    const { unmount } = render(<DbPane projectId="p1" files={FILES} />);
+    expect(screen.getByText(/Peeking into your database/)).toBeInTheDocument();
+    unmount();
 
-    setDb({});
-    expect(screen.getByText(/isn't remembering anything yet/)).toBeInTheDocument();
+    listSiteDbTablesMock.mockResolvedValue({ tables: [], size_bytes: 0 });
+    render(<DbPane projectId="p1" files={FILES} />);
+    expect(await screen.findByText(/No tables yet/)).toBeInTheDocument();
+    // The empty state teaches BOTH creation paths: a seed file or CREATE TABLE.
+    expect(screen.getByText(/starting file, or CREATE TABLE/)).toBeInTheDocument();
+  });
+
+  it('teaches the persistent-db story: server-side, keeps data, seeds are the starting data', async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
+    expect(
+      await screen.findByText(/lives on Airbotix servers and KEEPS its data/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/rebuilds every table from them and wipes your changes/)).toBeInTheDocument();
   });
 });
 
-describe('DbPane — refresh (manual + live polling while mounted)', () => {
-  it('the Refresh button (aria "Refresh database") triggers the store refresh', () => {
-    const trigger = vi.fn();
-    useSiteDbStore.getState().registerRefresh(trigger);
-    render(<DbPane files={FILES} />);
-    trigger.mockClear(); // the mount request is asserted separately below
+describe('DbPane — refresh (manual + REST polling while mounted)', () => {
+  it('the Refresh button (aria "Refresh database") re-introspects now', async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
+    await screen.findByTestId('db-collection-pets');
+    listSiteDbTablesMock.mockClear();
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh database' }));
     expect(screen.getByTestId('db-refresh')).toBeInTheDocument();
-    expect(trigger).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(listSiteDbTablesMock).toHaveBeenCalledTimes(1));
+    expect(listSiteDbTablesMock).toHaveBeenCalledWith('p1');
   });
 
-  it('requests on mount and every ~2s while mounted; unmount stops the polling', () => {
+  it('polls on mount and every ~2s while mounted; unmount stops the polling', async () => {
     vi.useFakeTimers();
-    const trigger = vi.fn();
-    useSiteDbStore.getState().registerRefresh(trigger);
-    const { unmount } = render(<DbPane files={FILES} />);
-    expect(trigger).toHaveBeenCalledTimes(1); // mount request
+    const { unmount } = render(<DbPane projectId="p1" files={FILES} />);
+    expect(listSiteDbTablesMock).toHaveBeenCalledTimes(1); // mount request
 
-    act(() => vi.advanceTimersByTime(DB_POLL_MS * 2));
-    expect(trigger).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      vi.advanceTimersByTime(DB_POLL_MS * 2);
+    });
+    expect(listSiteDbTablesMock).toHaveBeenCalledTimes(3);
 
     // Closed window = unmounted pane = no polling (the "never poll while
     // closed" guarantee lives in mount, not in open-state plumbing).
     unmount();
-    act(() => vi.advanceTimersByTime(DB_POLL_MS * 5));
-    expect(trigger).toHaveBeenCalledTimes(3);
+    await act(async () => {
+      vi.advanceTimersByTime(DB_POLL_MS * 5);
+    });
+    expect(listSiteDbTablesMock).toHaveBeenCalledTimes(3);
   });
 
-  it('shows "live" for a fresh snapshot and "updated Ns ago" for a stale one', () => {
+  it('never polls without a projectId (project-less session)', () => {
+    vi.useFakeTimers();
     render(<DbPane files={FILES} />);
-    setDb({ pets: [] });
+    act(() => vi.advanceTimersByTime(DB_POLL_MS * 3));
+    expect(listSiteDbTablesMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/Peeking into your database/)).toBeInTheDocument();
+  });
+
+  it('shows "live" for a fresh snapshot and "updated Ns ago" for a stale one', async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
+    await screen.findByTestId('db-collection-pets');
     expect(screen.getByTestId('db-freshness')).toHaveTextContent('live');
 
-    act(() => useSiteDbStore.getState().setDb({ pets: [] }, Date.now() - 30_000));
-    expect(screen.getByTestId('db-freshness')).toHaveTextContent(/updated \d+s ago/);
+    act(() => useSiteDbStore.setState({ updatedAt: Date.now() - 30_000 }));
+    await waitFor(() =>
+      expect(screen.getByTestId('db-freshness')).toHaveTextContent(/updated \d+s ago/),
+    );
   });
 });
 
 describe('DbPane — "Edit starting data" (the data/*.json jump)', () => {
-  it('opens data/<name>.json through the open-file seam — only for collections with a seed', () => {
+  it('opens data/<name>.json through the open-file seam — only for tables with a seed', async () => {
+    listSiteDbTablesMock.mockResolvedValue({
+      tables: [PETS, { name: 'visits', row_count: 0, columns: [{ name: 'id', type: 'INTEGER' }] }],
+      size_bytes: 1,
+    });
     const onOpenDataFile = vi.fn();
-    render(<DbPane files={FILES} onOpenDataFile={onOpenDataFile} />);
-    setDb({ pets: [], visits: 3 }); // visits is runtime-only (no seed file)
+    render(<DbPane projectId="p1" files={FILES} onOpenDataFile={onOpenDataFile} />);
 
-    fireEvent.click(screen.getByTestId('db-edit-pets'));
+    fireEvent.click(await screen.findByTestId('db-edit-pets'));
     expect(onOpenDataFile).toHaveBeenCalledWith('data/pets.json');
+    // visits was made by CREATE TABLE — no seed file, no edit affordance.
     expect(screen.queryByTestId('db-edit-visits')).not.toBeInTheDocument();
-    // The teaching line: runtime memory resets, permanent data lives in files.
-    expect(screen.getByText(/reload starts fresh/i)).toBeInTheDocument();
   });
 
-  it('read-only (teacher viewer) hides the edit affordance', () => {
-    render(<DbPane files={FILES} onOpenDataFile={vi.fn()} readOnly />);
-    setDb({ pets: [] });
+  it('read-only (teacher viewer) hides the edit affordance', async () => {
+    render(<DbPane projectId="p1" files={FILES} onOpenDataFile={vi.fn()} readOnly />);
+    await screen.findByTestId('db-collection-pets');
     expect(screen.queryByTestId('db-edit-pets')).not.toBeInTheDocument();
+  });
+});
+
+describe('DbPane — Reset database (two-step inline confirmation)', () => {
+  it('the first click only ARMS the button; the second fires the reset and refreshes', async () => {
+    render(<DbPane projectId="p1" files={FILES} />);
+    await screen.findByTestId('db-collection-pets');
+    listSiteDbTablesMock.mockClear();
+
+    const reset = screen.getByTestId('db-reset');
+    expect(reset).toHaveAccessibleName('Reset database');
+    fireEvent.click(reset);
+    expect(resetSiteDbMock).not.toHaveBeenCalled(); // armed, not fired
+    expect(reset).toHaveTextContent(/Really reset\?/);
+
+    fireEvent.click(reset);
+    await waitFor(() => expect(resetSiteDbMock).toHaveBeenCalledWith('p1'));
+    // After the reset the pane re-introspects (fresh post-reset truth).
+    await waitFor(() => expect(listSiteDbTablesMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId('db-reset')).toHaveTextContent('Reset database'));
+  });
+
+  it('an armed Reset disarms by itself when the second click never comes', async () => {
+    vi.useFakeTimers();
+    render(<DbPane projectId="p1" files={FILES} />);
+
+    fireEvent.click(screen.getByTestId('db-reset'));
+    expect(screen.getByTestId('db-reset')).toHaveTextContent(/Really reset\?/);
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000); // > RESET_CONFIRM_MS
+    });
+    expect(screen.getByTestId('db-reset')).toHaveTextContent('Reset database');
+    expect(resetSiteDbMock).not.toHaveBeenCalled();
+  });
+
+  it('a failed reset shows the kid-readable error and returns to idle', async () => {
+    resetSiteDbMock.mockRejectedValue(new ApiError(500, 'HTTP_500', 'The database is busy right now.'));
+    render(<DbPane projectId="p1" files={FILES} />);
+    await screen.findByTestId('db-collection-pets');
+
+    fireEvent.click(screen.getByTestId('db-reset'));
+    fireEvent.click(screen.getByTestId('db-reset'));
+
+    expect(await screen.findByText('The database is busy right now.')).toBeInTheDocument();
+    expect(screen.getByTestId('db-reset')).toHaveTextContent('Reset database');
+  });
+
+  it('read-only (teacher viewer) hides Reset database entirely', async () => {
+    render(<DbPane projectId="p1" files={FILES} readOnly />);
+    await screen.findByTestId('db-collection-pets');
+    expect(screen.queryByTestId('db-reset')).not.toBeInTheDocument();
   });
 });

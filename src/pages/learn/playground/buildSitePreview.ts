@@ -20,11 +20,11 @@
 //      shims (that bypass would disarm the fetch shim AND the CSP, the two
 //      fences the backend's fetch( allowance for websites rests on, D-WEB-03).
 //   3. SHIM ORDER inside the skeleton head: extension-noise guard, console
-//      capture, the SITE RUNTIME shim (`db` from top-level data/*.json +
-//      `app.get/app.post` + the /api-only fetch shim + the page-link nav shim
-//      + the read-db control channel), the deny-by-default CSP meta, then
-//      server.js — ALWAYS the first kid script, whether or not the page
-//      references it (it defines the routes).
+//      capture, the SITE RUNTIME shim (the `db.query` sql postMessage channel
+//      to the project's REAL server-side SQLite db + `app.get/app.post` + the
+//      /api-only fetch shim + the page-link nav shim), the deny-by-default CSP
+//      meta, then server.js — ALWAYS the first kid script, whether or not the
+//      page references it (it defines the routes).
 //   4. REFERENCE INLINING — `<link rel="stylesheet" href>` / `<script src>`
 //      tags are replaced with the referenced VFS file inlined (scripts carry
 //      `//# sourceURL=<path>`; a literal `</script>`/`</style>` in kid text is
@@ -40,7 +40,6 @@
 // deny-by-default CSP below as the second fence.
 
 import type { VfsFile } from '../code/codeApi';
-import { isWebsiteDataSeedPath } from '../code/codeApi';
 import { CONSOLE_CAPTURE, EXTENSION_NOISE_GUARD } from '../code/buildPreview';
 import { inlineAssetRefs, type ScriptLineRange } from './buildGamePreview';
 
@@ -94,9 +93,9 @@ const escapeStyleText = (s: string): string => s.replace(/<\/style/gi, '<\\/styl
 /** Strip a leading `./` from a relative reference (`./about.html` → `about.html`). */
 const normalizeRef = (ref: string): string => (ref.startsWith('./') ? ref.slice(2) : ref);
 
-/** db key for a seed file: filename without the `.json` extension. */
-const dbKeyOf = (path: string): string =>
-  (path.split('/').pop() ?? path).replace(/\.json$/i, '');
+/** How long the in-frame `db.query` waits for the studio's sql reply before
+ *  rejecting kid-readably (a wedged studio must never hang a kid's route). */
+export const SITE_SQL_TIMEOUT_MS = 10_000;
 
 /** Serialize one DOM attribute for the studio skeleton. `&` is escaped BEFORE
  *  `"` so entity-like text survives the parse→serialize round trip unchanged
@@ -112,12 +111,6 @@ const serializeAttrs = (el: Element): string =>
 export interface BuildSiteOptions {
   /** Which VFS `.html` page is the document (default {@link SITE_HOME_PAGE}). */
   page?: string;
-  /**
-   * Carried db state (from a page navigation). When present it REPLACES the
-   * initial `data/**.json` hydration — db changes persist across page navs and
-   * reset only on a fresh run (runKey bump).
-   */
-  dbState?: Record<string, unknown> | null;
   /** Extra assets to inline that are NOT in the project VFS (class shared
    *  assets resolved to ready `data:` URLs) — same seam as the game builder. */
   virtualAssets?: VfsFile[];
@@ -131,11 +124,11 @@ export interface SitePreview {
   currentPage: string;
 }
 
-/** The in-frame nav shim's message: the kid clicked a link to another page. */
+/** The in-frame nav shim's message: the kid clicked a link to another page.
+ *  Nothing else travels — the db is server-side (D-WEB-15), so navigation has
+ *  no state to carry. */
 export interface SiteNavigateMessage {
   path: string;
-  /** JSON-safe clone of the live `db` at click time (null if uncloneable). */
-  db: Record<string, unknown> | null;
 }
 
 export function isSiteNavigateMessage(
@@ -150,34 +143,61 @@ export function isSiteNavigateMessage(
   );
 }
 
-/** The runtime shim's reply to the studio's `read-db` control request — the
- *  LIVE `db` at reply time (so Home never loses mutations made since the last
- *  page navigation). `db` is null when the live db wasn't JSON-safe-cloneable. */
-export interface SiteDbMessage {
-  db: Record<string, unknown> | null;
+/** The in-frame shim's `db.query` request (frame → studio): SiteFrame proxies
+ *  it to `POST /projects/:id/db/query` with the kid's session — the token
+ *  never enters the frame — and posts the {@link SiteSqlReply} back. */
+export interface SiteSqlRequest {
+  id: number;
+  sql: string;
+  params: Array<string | number | boolean | null>;
 }
 
-export function isSiteDbMessage(
+export function isSiteSqlRequest(
   data: unknown,
-): data is { __airbotixSiteDb: true } & SiteDbMessage {
+): data is { __airbotixSiteControl: true; action: 'sql' } & SiteSqlRequest {
+  if (typeof data !== 'object' || data === null) return false;
+  const m = data as {
+    __airbotixSiteControl?: unknown;
+    action?: unknown;
+    id?: unknown;
+    sql?: unknown;
+  };
   return (
-    typeof data === 'object' &&
-    data !== null &&
-    '__airbotixSiteDb' in data &&
-    (data as { __airbotixSiteDb: unknown }).__airbotixSiteDb === true
+    m.__airbotixSiteControl === true &&
+    m.action === 'sql' &&
+    typeof m.id === 'number' &&
+    typeof m.sql === 'string'
   );
+}
+
+/** The studio's reply to a {@link SiteSqlRequest} (studio → frame). `result`
+ *  is the backend query envelope on success; `error` is the backend's
+ *  kid-readable message on failure. */
+export interface SiteSqlReply {
+  __airbotixSiteSql: true;
+  id: number;
+  ok: boolean;
+  result?: {
+    columns: string[];
+    rows: Record<string, unknown>[];
+    row_count: number;
+    changes: number | null;
+    last_insert_rowid: string | null;
+  };
+  error?: string;
 }
 
 /**
  * The site runtime shim (contract items the backend agent teaches verbatim):
- * `db` hydrated from the bundled TOP-LEVEL data/*.json seeds (a parse failure
- * console.errors and skips that file; `dbState` replaces the seeds wholesale),
- * `app.get/app.post` route registration, the /api-only fetch shim (query/body
- * parsing, chainable `res.status().json()`, kid-friendly 404/500 console
- * errors, everything else blocked), the capture-phase nav shim that turns
- * relative `*.html` link clicks into a postMessage to the studio, a
- * kid-readable reporter for silent CSP violations, and the `read-db` control
- * channel (the studio's Home button reads the LIVE db before rebuilding).
+ * `db.query(sql, ...params)` — REAL SQL on the project's server-side SQLite db
+ * (D-WEB-15), each query posted to the parent studio over the sql postMessage
+ * channel (the frame stays token-free; the studio calls the backend with the
+ * kid's session) — `app.get/app.post` route registration, the /api-only fetch
+ * shim (query/body parsing, chainable `res.status().json()`, ASYNC handlers
+ * awaited, kid-friendly 404/500 console errors, everything else blocked), the
+ * capture-phase nav shim that posts relative `*.html` link clicks to the
+ * studio (no state rides along — the db is server-side and simply persists),
+ * and a kid-readable reporter for silent CSP violations.
  *
  * Run-report instrumentation (D-WEB-13): the shim ALSO keeps evidence ledgers —
  * every /api fetch it served/blocked (with the real status; 0 = rejected before
@@ -190,43 +210,55 @@ export function isSiteDbMessage(
  * plus the visible interactive elements cross-checked for `wired`. The parent
  * collector re-clamps everything — this frame is untrusted.
  */
-function siteRuntime(
-  seeds: Array<{ key: string; path: string; text: string }>,
-  dbState: Record<string, unknown> | null,
-  page: string,
-): string {
-  const seedsJs = `[${seeds
-    .map((s) => `{key:${jsStr(s.key)},path:${jsStr(s.path)},text:${jsStr(s.text)}}`)
-    .join(',')}]`;
-  // Boundary guard: the carried db comes from an in-frame postMessage, so kid
-  // code can hand us values that survive structured clone but not JSON (BigInt,
-  // …). A throw here would white-screen the studio mid-render — degrade to the
-  // seeds instead (no db content is ever logged).
-  let stateJs = 'null';
-  if (dbState !== null) {
-    try {
-      stateJs = JSON.stringify(dbState).replace(/</g, '\\u003c');
-    } catch {
-      console.error(
-        'Could not carry the site db across pages (not JSON-safe) — restarting it from the data/*.json seeds.',
-      );
-    }
-  }
+function siteRuntime(page: string): string {
   return `<script>
 (function () {
-  // ── db: the site's in-memory database, hydrated from top-level data/*.json ─
-  var seeds = ${seedsJs};
-  var carried = ${stateJs};
-  var db = {};
-  if (carried !== null) {
-    db = carried; // carried across a page navigation — replaces the seeds
-  } else {
-    for (var i = 0; i < seeds.length; i++) {
-      try { db[seeds[i].key] = JSON.parse(seeds[i].text); }
-      catch (e) { console.error('Could not read ' + seeds[i].path + ' — it is not valid JSON: ' + (e && e.message ? e.message : e)); }
+  // ── db.query: REAL SQL on the project's server-side database (D-WEB-15) ────
+  // Params: db.query(sql, a, b) and db.query(sql, [a, b]) both work.
+  //
+  // RETURN SHAPE (the Web Critter prompt teaches EXACTLY this — keep in sync):
+  //   - a READER statement (the reply carries columns, e.g. SELECT) resolves
+  //     with the ROWS ARRAY:      var pets = await db.query('SELECT * FROM pets');
+  //   - a WRITE statement (no columns: INSERT/UPDATE/DELETE/CREATE …) resolves
+  //     with { changes, lastInsertRowid }.
+  // An SQL error rejects with the server's kid-readable message AND
+  // console.errors it verbatim (feeds the D-WEB-13 logs ledger).
+  var sqlSeq = 0;
+  var sqlPending = {};
+  window.db = {
+    query: function (sql) {
+      var params = Array.prototype.slice.call(arguments, 1);
+      if (params.length === 1 && Array.isArray(params[0])) params = params[0];
+      return new Promise(function (resolve, reject) {
+        var id = ++sqlSeq;
+        var timer = setTimeout(function () {
+          delete sqlPending[id];
+          var msg = 'Your database took too long to answer (10 seconds) — try again, or reload your site.';
+          console.error(msg);
+          reject(new Error(msg));
+        }, ${SITE_SQL_TIMEOUT_MS});
+        sqlPending[id] = { resolve: resolve, reject: reject, timer: timer };
+        parent.postMessage({ __airbotixSiteControl: true, action: 'sql', id: id, sql: String(sql), params: params }, '*');
+      });
     }
-  }
-  window.db = db;
+  };
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixSiteSql !== true) return;
+    var pending = sqlPending[m.id];
+    if (!pending) return; // timed out / not ours
+    delete sqlPending[m.id];
+    clearTimeout(pending.timer);
+    if (m.ok) {
+      var r = m.result || {};
+      if (r.columns && r.columns.length > 0) pending.resolve(r.rows || []);
+      else pending.resolve({ changes: r.changes == null ? 0 : r.changes, lastInsertRowid: r.last_insert_rowid == null ? null : r.last_insert_rowid });
+    } else {
+      var msg = typeof m.error === 'string' && m.error !== '' ? m.error : 'Your SQL could not run.';
+      console.error(msg);
+      pending.reject(new Error(msg));
+    }
+  });
 
   // ── run-report evidence ledgers (D-WEB-13) — read by the 'report' request ──
   var evidence = { pageLoaded: false, api: [], wired: null, delegated: false };
@@ -308,12 +340,19 @@ function siteRuntime(
           resolve(toResponse(status, data));
         }
       };
-      try { handler(req, res); }
-      catch (err) {
+      var crash = function (err) {
         if (!recorded) { recorded = true; recordApi(method, path, 500); }
         console.error('Your ' + method + ' ' + path + ' route crashed: ' + (err && err.message ? err.message : err));
         resolve(toResponse(500, { error: String(err && err.message ? err.message : err) }));
+      };
+      // Handlers may be ASYNC (they await db.query) — the fetch settles only
+      // when res.json fires (possibly after awaits), and a rejected handler
+      // promise answers 500 with the real ledger status, same as a sync throw.
+      try {
+        var out = handler(req, res);
+        if (out && typeof out.then === 'function') { out.then(null, crash); }
       }
+      catch (err) { crash(err); }
     });
   };
 
@@ -334,9 +373,7 @@ function siteRuntime(
       return;
     }
     e.preventDefault();
-    var snapshot = null;
-    try { snapshot = JSON.parse(JSON.stringify(window.db)); } catch (err) { snapshot = null; }
-    parent.postMessage({ __airbotixSiteNavigate: true, path: clean, db: snapshot }, '*');
+    parent.postMessage({ __airbotixSiteNavigate: true, path: clean }, '*');
   }, true);
 
   // ── CSP violations → a kid-readable console line ───────────────────────────
@@ -359,15 +396,6 @@ function siteRuntime(
       var directive = String((e && (e.effectiveDirective || e.violatedDirective)) || 'default-src').split(' ')[0];
       console.error(CSP_HINTS[directive] || CSP_HINTS['default-src']);
     } catch (err) {}
-  });
-
-  // ── read-db: the studio asks for the LIVE db (Home button) ─────────────────
-  window.addEventListener('message', function (e) {
-    var m = e.data;
-    if (!m || m.__airbotixSiteControl !== true || m.action !== 'read-db') return;
-    var snapshot = null;
-    try { snapshot = JSON.parse(JSON.stringify(window.db)); } catch (err) { snapshot = null; }
-    parent.postMessage({ __airbotixSiteDb: true, db: snapshot }, '*');
   });
 
   // ── report: the studio's run probe (D-WEB-13) ──────────────────────────────
@@ -509,15 +537,9 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
     return `<style>${escapeStyleText(inlineAssetRefs(file.content, assets))}</style>`;
   });
 
-  // db seeds: TOP-LEVEL data/*.json TEXT files only (PRD §3.4 — the backend
-  // kind is authoritative, and top-level-only means keys can never collide).
-  // No nested-seed handling is needed here: the backend REJECTS a nested
-  // `data/**/*.json` write in a website project up front (`VFS_WEBSITE_SEED_PATH`,
-  // D-WEB-05), on both the tool-write and manual-save paths — so one cannot
-  // exist in a real project to warn about.
-  const seeds = files
-    .filter((f) => f.kind === 'text' && isWebsiteDataSeedPath(f.path))
-    .map((f) => ({ key: dbKeyOf(f.path), path: f.path, text: f.content }));
+  // NOTE (D-WEB-15): `data/*.json` files never enter the frame — they are the
+  // SEEDS the backend rebuilds the server-side db from (`POST …/db/reset`).
+  // The shim's `db.query` reaches that db over the sql postMessage channel.
 
   // ── STUDIO-OWNED SKELETON (security-load-bearing — never locate the
   // injection point by matching markup in the UNTRUSTED page). The kid page is
@@ -550,7 +572,7 @@ export function buildSitePreview(files: VfsFile[], opts: BuildSiteOptions = {}):
     `<html${kidHtmlAttrs}><head><meta charset="utf-8">`,
     EXTENSION_NOISE_GUARD,
     CONSOLE_CAPTURE,
-    siteRuntime(seeds, opts.dbState ?? null, pageFile.path),
+    siteRuntime(pageFile.path),
     CSP_META,
     // server.js — the FIRST kid script, before anything the page brought along
     // (even an inline script the kid page put in its own head).

@@ -65,8 +65,8 @@ interface WorkspaceProps {
    *  global + control shim (learn-game-studio-3d-prd.md D-3D-01). Defaults to phaser. */
   engine?: GameEngine;
   /** Project kind (creative-code-studio-website-prd): `website` makes the runner
-   *  pane host the SiteFrame (multi-page site + simulated backend) instead of the
-   *  GameFrame, and disables the game-only 2D⇄3D engine-switch offer. */
+   *  pane host the SiteFrame (multi-page site + a real server-side db) instead of
+   *  the GameFrame, and disables the game-only 2D⇄3D engine-switch offer. */
   kind?: 'game' | 'website';
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
@@ -597,7 +597,7 @@ export function Workspace({
             <DesktopIcon id="code" />
             {/* Website Studio: the runner tile reads "Website" (id stays 'game'). */}
             <DesktopIcon id="game" kind={kind} />
-            {/* Website Studio only: the simulated backend's live Database. */}
+            {/* Website Studio only: the project's server-side Database, live. */}
             {isSite && <DesktopIcon id="db" />}
             <DesktopIcon id="assets" />
             <DesktopIcon id="help" />
@@ -637,6 +637,7 @@ export function Workspace({
           >
             <GameRunnerPane
               files={files}
+              projectId={projectId}
               virtualAssets={virtualClassAssets}
               runKey={runKey}
               running={running}
@@ -681,6 +682,7 @@ export function Workspace({
               icon={<WINDOW_META.db.Icon size={16} />}
             >
               <DbPane
+                projectId={projectId}
                 files={files}
                 readOnly={readOnly}
                 onOpenDataFile={(path) => handleOpenLocation(path, 1)}
@@ -768,6 +770,7 @@ export function Workspace({
                   <MissionPane projectId={projectId} readOnly={readOnly} />
                 ) : splitTab === 'db' && isSite ? (
                   <DbPane
+                    projectId={projectId}
                     files={files}
                     readOnly={readOnly}
                     onOpenDataFile={(path) => handleOpenLocation(path, 1)}
@@ -786,6 +789,7 @@ export function Workspace({
             <div data-pane="game" className="h-full min-h-0">
               <GameRunnerPane
                 files={files}
+                projectId={projectId}
                 virtualAssets={virtualClassAssets}
                 runKey={runKey}
                 running={running}

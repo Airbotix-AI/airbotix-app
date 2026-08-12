@@ -1,31 +1,33 @@
-// The Database window (Website Studio only, creative-code-studio-website-prd):
-// what the site's simulated backend remembers RIGHT NOW — the live in-frame
-// `db` — rendered kid-friendly. READ-ONLY v1: looking inside the machine, not
-// editing it (permanent starting data lives in data/*.json, one click away).
+// The Database window (Website Studio only, creative-code-studio-website-prd
+// D-WEB-15): the project's REAL server-side SQLite database, rendered
+// kid-friendly. The db lives on Airbotix servers and KEEPS its data across
+// reloads and sessions; `data/*.json` files are the STARTING data, and the
+// explicit Reset database button here is the ONLY reset path (rebuilds every
+// table from those seeds and wipes changes).
 //
-// Data flow: this pane renders purely from `siteDbStore` and DRIVES the
-// polling — it requests a refresh on mount and every DB_POLL_MS while mounted
-// (mounted ⇔ the window/tab is visible, so a closed Database window costs
-// nothing); SiteFrame answers by posting the existing `read-db` control request
-// into the sandboxed frame and writing the reply back to the store. A reload
-// (runKey bump) resets the store — the pane then shows the fresh seeds again,
-// which is exactly the D-WEB-04 semantics.
+// Data flow: this pane renders purely from `siteDbStore` (REST introspection —
+// GET /projects/:id/db/tables + first rows per table) and DRIVES the polling:
+// it refreshes on mount and every DB_POLL_MS while mounted (mounted ⇔ the
+// window/tab is visible, so a closed Database window costs nothing).
 
-import { Database, Loader2, Pencil, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Database, Loader2, Pencil, RefreshCw, RotateCcw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
+import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../../code/codeApi';
-import { ensureGameRunnerVisible } from '../playgroundStore';
-import { useSiteDbStore } from '../siteDbStore';
+import { DB_ROWS_DISPLAY_LIMIT, useSiteDbStore, type SiteDbTableSnapshot } from '../siteDbStore';
+import { resetSiteDb } from './playgroundApi';
 
-/** How often the pane asks the live frame for its db while open (ms). */
+/** How often the pane re-introspects the server db while open (ms). */
 export const DB_POLL_MS = 2000;
 /** A snapshot younger than this reads as "live" (two polls + slack). */
 const LIVE_WINDOW_MS = DB_POLL_MS * 2 + 500;
-/** Longest rendered cell/value — the pane is a window, not a data dump. */
+/** Longest rendered cell value — the pane is a window, not a data dump. */
 const VALUE_CLIP_CHARS = 120;
+/** An armed Reset disarms itself after this long without the second click. */
+const RESET_CONFIRM_MS = 5000;
 
-/** Kid-readable stringification of one db value, clipped. */
+/** Kid-readable stringification of one db cell, clipped. */
 function renderValue(v: unknown): string {
   let s: string;
   if (typeof v === 'string') s = v;
@@ -39,69 +41,21 @@ function renderValue(v: unknown): string {
   return s.length > VALUE_CLIP_CHARS ? `${s.slice(0, VALUE_CLIP_CHARS)}…` : s;
 }
 
-const isPlainObject = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
-
-/** The heading suffix: arrays count rows, objects count fields, primitives none. */
-function countLabel(value: unknown): string | null {
-  if (Array.isArray(value)) return `${value.length} ${value.length === 1 ? 'row' : 'rows'}`;
-  if (isPlainObject(value)) {
-    const n = Object.keys(value).length;
-    return `${n} ${n === 1 ? 'field' : 'fields'}`;
-  }
-  return null;
-}
-
 const CELL = 'border-b border-pg-border px-2 py-1 align-top font-mono text-[12px]';
 
-/** An array of objects → a table (columns = the union of item keys). */
-function RowsTable({ rows }: { rows: Array<Record<string, unknown>> }) {
-  const columns: string[] = [];
-  for (const row of rows) {
-    for (const key of Object.keys(row)) if (!columns.includes(key)) columns.push(key);
-  }
-  return (
-    <div className="overflow-x-auto rounded-lg border border-pg-border">
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr>
-            {columns.map((c) => (
-              <th key={c} className={`${CELL} bg-pg-surface-2 font-bold text-pg-text-dim`}>
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i}>
-              {columns.map((c) => (
-                <td key={c} className={`${CELL} text-pg-text`}>
-                  {c in row ? renderValue(row[c]) : ''}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/** One db key ("collection") rendered by shape: table / list / fields / value. */
-function Collection({
-  name,
-  value,
+/** One table: `name · N rows` heading, real columns (type shown subtly), the
+ *  first rows, and the seed-file edit jump when `data/<name>.json` exists. */
+function TableSection({
+  table,
   seedPath,
   onOpenDataFile,
 }: {
-  name: string;
-  value: unknown;
+  table: SiteDbTableSnapshot;
   /** The `data/<name>.json` VFS path when it exists — gates the edit affordance. */
   seedPath?: string;
   onOpenDataFile?: (path: string) => void;
 }) {
-  const count = countLabel(value);
+  const { name, row_count: rowCount, columns, rows } = table;
   return (
     <section className="space-y-1.5">
       <div className="flex items-center gap-2">
@@ -110,7 +64,10 @@ function Collection({
           className="text-[13px] font-extrabold text-pg-text"
         >
           {name}
-          {count && <span className="font-semibold text-pg-text-muted"> · {count}</span>}
+          <span className="font-semibold text-pg-text-muted">
+            {' '}
+            · {rowCount} {rowCount === 1 ? 'row' : 'rows'}
+          </span>
         </h3>
         {seedPath && onOpenDataFile && (
           <button
@@ -124,34 +81,38 @@ function Collection({
           </button>
         )}
       </div>
-      {Array.isArray(value) ? (
-        value.length === 0 ? (
-          <p className="text-[12px] text-pg-text-muted">No rows yet.</p>
-        ) : value.every(isPlainObject) ? (
-          <RowsTable rows={value as Array<Record<string, unknown>>} />
-        ) : (
-          <ul className="space-y-0.5 rounded-lg border border-pg-border px-3 py-2">
-            {value.map((item, i) => (
-              <li key={i} className="font-mono text-[12px] text-pg-text">
-                {renderValue(item)}
-              </li>
-            ))}
-          </ul>
-        )
-      ) : isPlainObject(value) ? (
-        <div className="rounded-lg border border-pg-border">
-          {Object.entries(value).map(([k, v]) => (
-            <div key={k} className="flex gap-2 border-b border-pg-border px-2 py-1 last:border-b-0">
-              <span className="shrink-0 font-mono text-[12px] font-bold text-pg-text-dim">{k}</span>
-              <span className="min-w-0 break-words font-mono text-[12px] text-pg-text">
-                {renderValue(v)}
-              </span>
-            </div>
-          ))}
-        </div>
+      {rows.length === 0 ? (
+        <p className="text-[12px] text-pg-text-muted">No rows yet.</p>
       ) : (
-        <p className="rounded-lg border border-pg-border px-3 py-2 font-mono text-[12px] text-pg-text">
-          {renderValue(value)}
+        <div className="overflow-x-auto rounded-lg border border-pg-border">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th key={c.name} className={`${CELL} bg-pg-surface-2 font-bold text-pg-text-dim`}>
+                    {c.name}
+                    <span className="ml-1 font-medium lowercase text-pg-text-muted">{c.type}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  {columns.map((c) => (
+                    <td key={c.name} className={`${CELL} text-pg-text`}>
+                      {c.name in row ? renderValue(row[c.name]) : ''}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {rowCount > rows.length && (
+        <p className="text-[11px] text-pg-text-muted">
+          Showing the first {Math.min(rows.length, DB_ROWS_DISPLAY_LIMIT)} of {rowCount} rows.
         </p>
       )}
     </section>
@@ -159,48 +120,85 @@ function Collection({
 }
 
 interface DbPaneProps {
-  /** The project VFS — locates each collection's `data/<name>.json` seed. */
+  /** The backend project whose db this window introspects (D-WEB-15). */
+  projectId?: string;
+  /** The project VFS — locates each table's `data/<name>.json` seed. */
   files: VfsFile[];
   /** Open a seed file in the code editor (the same seam the agent's
    *  `open_file` client action uses). */
   onOpenDataFile?: (path: string) => void;
   /** Teacher live viewer — the editor is read-only there, so "Edit starting
-   *  data" would be a dead promise; hide it. */
+   *  data" and "Reset database" would be dead/destructive promises; hide both. */
   readOnly?: boolean;
 }
 
 /**
- * Website Studio's Database window: one section per db key ("collection"),
- * refreshed live (~2 s) while open + a manual Refresh, with a per-collection
- * jump to the `data/*.json` seed. Read-only.
+ * Website Studio's Database window: one section per server-side table,
+ * refreshed live (~2 s) while open + a manual Refresh, a per-table jump to the
+ * `data/*.json` seed, and the explicit two-step Reset database affordance.
  */
-export function DbPane({ files, onOpenDataFile, readOnly = false }: DbPaneProps) {
-  const db = useSiteDbStore((s) => s.db);
+export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: DbPaneProps) {
+  const tables = useSiteDbStore((s) => s.tables);
   const updatedAt = useSiteDbStore((s) => s.updatedAt);
-  const requestRefresh = useSiteDbStore((s) => s.requestRefresh);
+  const refresh = useSiteDbStore((s) => s.refresh);
+  const dropSnapshot = useSiteDbStore((s) => s.reset);
 
   // Poll while mounted — mounted ⇔ visible (closed windows render nothing), so
-  // this IS the "never poll while closed" guarantee. The db lives in the site
-  // frame, which only exists while the Website window is on screen (window
-  // mode) — open it silently (no raise; no-op in split mode / already open) so
-  // the pane has a live frame to ask.
+  // this IS the "never poll while closed" guarantee. The snapshot is dropped
+  // first so another project's tables never flash as this project's truth.
   useEffect(() => {
-    ensureGameRunnerVisible();
-    requestRefresh();
-    const timer = setInterval(requestRefresh, DB_POLL_MS);
+    if (!projectId) return undefined;
+    dropSnapshot();
+    void refresh(projectId);
+    const timer = setInterval(() => void refresh(projectId), DB_POLL_MS);
     return () => clearInterval(timer);
-  }, [requestRefresh]);
+  }, [projectId, refresh, dropSnapshot]);
 
-  // 1s ticker so the "updated Xs ago" hint stays honest when the live frame
-  // stops answering (e.g. the Website window was closed mid-session).
+  // 1s ticker so the "updated Xs ago" hint stays honest when polls start
+  // failing (offline / backend blip) — the snapshot ages visibly.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  // Reset database — two-step inline confirmation (no browser confirm()):
+  // the first click ARMS the button, the second fires; arming times out.
+  const [resetState, setResetState] = useState<'idle' | 'armed' | 'busy'>('idle');
+  const [resetError, setResetError] = useState<string | null>(null);
+  const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    },
+    [],
+  );
+  const onResetClick = async () => {
+    if (!projectId || resetState === 'busy') return;
+    if (resetState === 'idle') {
+      setResetState('armed');
+      setResetError(null);
+      disarmTimer.current = setTimeout(() => setResetState('idle'), RESET_CONFIRM_MS);
+      return;
+    }
+    if (disarmTimer.current) clearTimeout(disarmTimer.current);
+    setResetState('busy');
+    try {
+      await resetSiteDb(projectId);
+      dropSnapshot(); // in-flight polls from before the reset must not land
+      await refresh(projectId);
+    } catch (err) {
+      setResetError(
+        err instanceof ApiError && err.message
+          ? err.message
+          : 'The reset did not go through — try again in a moment.',
+      );
+    } finally {
+      setResetState('idle');
+    }
+  };
+
   const ageMs = updatedAt === null ? null : Math.max(0, now - updatedAt);
-  const collections = db === null ? [] : Object.entries(db);
   const seedPathOf = (name: string): string | undefined =>
     files.find((f) => f.kind === 'text' && f.path === `data/${name}.json`)?.path;
 
@@ -228,7 +226,9 @@ export function DbPane({ files, onOpenDataFile, readOnly = false }: DbPaneProps)
           aria-label="Refresh database"
           data-testid="db-refresh"
           title="Refresh database"
-          onClick={requestRefresh}
+          onClick={() => {
+            if (projectId) void refresh(projectId);
+          }}
           className="flex h-7 w-7 items-center justify-center rounded-md text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
         >
           <RefreshCw size={14} aria-hidden />
@@ -236,35 +236,59 @@ export function DbPane({ files, onOpenDataFile, readOnly = false }: DbPaneProps)
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-3">
-        {/* The one teaching line: runtime memory vs permanent starting data. */}
-        <p className="text-[11px] leading-relaxed text-pg-text-muted">
-          Your site remembers changes only while it runs — a reload starts fresh. Permanent
-          starting data lives in your <span className="font-mono">data/*.json</span> files.
-        </p>
+        {/* The teaching lines: a real persistent db vs the data/*.json seeds. */}
+        <div className="space-y-2">
+          <p className="text-[11px] leading-relaxed text-pg-text-muted">
+            Your database lives on Airbotix servers and KEEPS its data — even after a reload.
+            Your <span className="font-mono">data/*.json</span> files are the starting data:
+            Reset database rebuilds every table from them and wipes your changes.
+          </p>
+          {!readOnly && (
+            <button
+              type="button"
+              data-testid="db-reset"
+              aria-label="Reset database"
+              disabled={resetState === 'busy' || !projectId}
+              onClick={() => void onResetClick()}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-60 ${
+                resetState === 'armed'
+                  ? 'border-brand-coral bg-wash-coral text-ink hover:bg-brand-coral hover:text-white'
+                  : 'border-pg-border text-pg-text-dim hover:bg-pg-text/10 hover:text-pg-text'
+              }`}
+            >
+              <RotateCcw size={11} aria-hidden />
+              {resetState === 'busy'
+                ? 'Resetting…'
+                : resetState === 'armed'
+                  ? 'Really reset? This wipes your changes'
+                  : 'Reset database'}
+            </button>
+          )}
+          {resetError && (
+            <p className="text-[11px] font-semibold text-brand-coral">{resetError}</p>
+          )}
+        </div>
 
-        {db === null ? (
+        {tables === null ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <Loader2 size={18} aria-hidden className="animate-spin text-pg-text-muted" />
-            <p className="text-[12px] text-pg-text-muted">Peeking into your site's memory…</p>
+            <p className="text-[12px] text-pg-text-muted">Peeking into your database…</p>
           </div>
-        ) : collections.length === 0 ? (
+        ) : tables.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <span aria-hidden className="text-4xl">🗃️</span>
-            <p className="text-[13px] font-bold text-pg-text-dim">
-              Your backend isn't remembering anything yet…
-            </p>
+            <p className="text-[13px] font-bold text-pg-text-dim">No tables yet…</p>
             <p className="max-w-[36ch] text-[12px] text-pg-text-muted">
-              Add a <span className="font-mono">data/*.json</span> file, or ask your AI helper to
-              make a route that saves something!
+              Add a <span className="font-mono">data/&lt;name&gt;.json</span> starting file, or
+              CREATE TABLE from your <span className="font-mono">server.js</span> code!
             </p>
           </div>
         ) : (
-          collections.map(([name, value]) => (
-            <Collection
-              key={name}
-              name={name}
-              value={value}
-              seedPath={readOnly ? undefined : seedPathOf(name)}
+          tables.map((table) => (
+            <TableSection
+              key={table.name}
+              table={table}
+              seedPath={readOnly ? undefined : seedPathOf(table.name)}
               onOpenDataFile={onOpenDataFile}
             />
           ))

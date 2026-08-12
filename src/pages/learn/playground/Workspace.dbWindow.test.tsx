@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-// The Database window (Website Studio, creative-code-studio-website-prd): a 7th
+// The Database window (Website Studio, creative-code-studio-website-prd — the
+// project's server-side db, D-WEB-15): a 7th
 // playground window (id 'db') that exists ONLY for kind='website' — desktop
 // tile + floating window (window mode) and a "Database" tab (split mode). A
 // GAME project must stay byte-identical: no tile, no tab, no pane — even if a
@@ -76,7 +77,7 @@ beforeEach(() => {
   // Singleton stores — start every test from a clean slate.
   useProjectStore.getState().setFiles([]);
   useWorkspaceUiStore.getState().restore(null);
-  useSiteDbStore.setState({ db: null, updatedAt: null, refreshTrigger: null });
+  useSiteDbStore.setState({ tables: null, updatedAt: null });
   usePlaygroundStore.setState({
     windows: defaultWindows(),
     topZ: 4,
@@ -99,8 +100,6 @@ describe('Workspace — Database window (window mode)', () => {
 
     fireEvent.click(tile);
     expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
-    // Opening the pane ensures a LIVE site frame to poll (no raise).
-    expect(document.querySelector('iframe[data-site-frame]')).not.toBeNull();
   });
 
   it('game: NO Database tile, window, or taskbar button — even with a stale-open db window', () => {

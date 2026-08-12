@@ -14,6 +14,9 @@ import { extractRuntimeErrors } from '../verifyRoundtrip';
 interface GameRunnerPaneProps {
   /** The lifted VFS — owned by PlaygroundApp. */
   files: VfsFile[];
+  /** The backend project id — SiteFrame needs it to proxy the site's
+   *  `db.query` sql requests to the server-side db (D-WEB-15). */
+  projectId?: string;
   /**
    * Class shared assets the game references at `assets/class/<name>`, resolved to
    * `data:` URLs (class-shared-assets-prd, Model A). Passed LIVE (not through the
@@ -131,7 +134,7 @@ export function fixPrompt(lines: ConsoleLine[]): string {
 const DEFAULT_PRESET_ID = 'original';
 
 /** How long after the last VFS change the live site preview rebuilds (ms) —
- *  settles Monaco typing bursts without feeling laggy (D-WEB-04 live model). */
+ *  settles Monaco typing bursts without feeling laggy (live site model). */
 const SITE_REBUILD_DEBOUNCE_MS = 700;
 
 /** Console line level → text color (VSCode-terminal flavor). */
@@ -231,6 +234,7 @@ function ToolButton({
  */
 export function GameRunnerPane({
   files,
+  projectId,
   virtualAssets,
   runKey,
   running,
@@ -261,17 +265,18 @@ export function GameRunnerPane({
   const [lines, setLines] = useState<ConsoleLine[]>([]);
   // Website Studio: a site has NO "running" concept — the SiteFrame is ALWAYS
   // mounted and live-rebuilds as the VFS changes (debounced below). The only
-  // affordance is Reload (fresh run: db reset, back to index.html, D-WEB-04);
-  // pause/mute/FPS/debug/screen presets are game-only and hidden. Run reports
-  // still flow (D-WEB-13): the SiteFrame observes each run (runKey) and emits
-  // the website RunReport for the verification loop.
+  // affordance is Reload (a fresh page load: back to index.html; the db is
+  // server-side and persists, D-WEB-15); pause/mute/FPS/debug/screen presets
+  // are game-only and hidden. Run reports still flow (D-WEB-13): the SiteFrame
+  // observes each run (runKey) and emits the website RunReport for the
+  // verification loop.
   const isSite = kind === 'website';
 
   // Live site preview: follow `files` with a debounce so typing in Monaco (the
   // idle autosave commits drafts) doesn't thrash the iframe; an AI-turn apply
   // refreshes promptly anyway (the agent's run_game action bumps runKey, which
   // adopts the latest files IMMEDIATELY below). Mirrors SAVE_DEBOUNCE_MS-style
-  // settling; a rebuild is a fresh run per D-WEB-04 (db resets — correct).
+  // settling; a rebuild is just a fresh page load (the db persists, D-WEB-15).
   const [siteFiles, setSiteFiles] = useState(files);
   useEffect(() => {
     if (!isSite) return undefined;
@@ -380,8 +385,9 @@ export function GameRunnerPane({
     // In Window mode the game Window also forces dark; this covers Split mode.
     <div data-theme="dark" className="flex h-full min-h-0 flex-col bg-pg-bg text-pg-text">
       {/* Toolbar. A website has NO run concept — its ONLY affordance is Reload
-          (fresh run: db reset, back to index.html) + the console toggle; every
-          play/pause/mute/preset/physics-debug control is game-only. */}
+          (a fresh page load: back to index.html; the server-side db keeps its
+          data) + the console toggle; every play/pause/mute/preset/physics-debug
+          control is game-only. */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-surface-2 px-3 py-2">
         {isSite ? (
           <button
@@ -472,6 +478,7 @@ export function GameRunnerPane({
           <div className="h-full w-full overflow-hidden">
             <SiteFrame
               files={siteFiles}
+              projectId={projectId}
               virtualAssets={virtualAssets}
               runKey={runKey}
               onConsole={setLines}

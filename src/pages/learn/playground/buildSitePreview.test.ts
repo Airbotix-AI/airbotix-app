@@ -2,20 +2,22 @@
 // Website Studio srcdoc builder (creative-code-studio-website-prd). Asserts the
 // runtime contract the backend's Web Critter prompt teaches: page selection +
 // fallbacks, css/js reference inlining with sourceURL + line mapping, server.js
-// injected FIRST among kid scripts, db hydration from top-level data/*.json
-// (+ dbState override), the fetch/app/nav/read-db shims + the deny-by-default
-// CSP second fence, asset inlining — and the STUDIO-OWNED SKELETON security
-// invariant: the shims + CSP precede every kid byte no matter what markup the
-// page contains (a `<head>` hidden in a comment/string must not displace them,
-// or the backend's website fetch( allowance loses both its fences, D-WEB-03).
-// jsdom env: the builder parses the kid page with DOMParser.
+// injected FIRST among kid scripts, the db.query sql postMessage channel to the
+// server-side db (D-WEB-15 — behaviour executed in
+// buildSitePreview.sqlChannel.test.ts), the fetch/app/nav shims + the
+// deny-by-default CSP second fence, asset inlining — and the STUDIO-OWNED
+// SKELETON security invariant: the shims + CSP precede every kid byte no matter
+// what markup the page contains (a `<head>` hidden in a comment/string must not
+// displace them, or the backend's website fetch( allowance loses both its
+// fences, D-WEB-03). jsdom env: the builder parses the kid page with DOMParser.
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { VfsFile } from '../code/codeApi';
 import {
   buildSitePreview,
   isSiteNavigateMessage,
+  isSiteSqlRequest,
   resolveErrorLoc,
   SITE_HOME_PAGE,
 } from './buildSitePreview';
@@ -130,28 +132,24 @@ describe('buildSitePreview — server.js is FIRST among kid scripts', () => {
 });
 
 describe('buildSitePreview — the site runtime shim + CSP fence', () => {
-  it('embeds the db seeds from data/**.json keyed by filename', () => {
+  // D-WEB-15: the db is server-side — data/*.json seed CONTENT never enters
+  // the frame (it is the backend's reset source, not a bundle). The shim only
+  // carries the sql channel that reaches that db.
+  it('never embeds data/*.json seed content into the srcdoc', () => {
     const { srcDoc } = buildSitePreview(SITE);
-    expect(srcDoc).toContain('"pets"');
-    expect(srcDoc).toContain('data/pets.json');
-    expect(srcDoc).toContain('[{\\"id\\":1,\\"name\\":\\"Biscuit\\"}]');
-    // Hydration is runtime-tolerant: a bad seed console.errors and is skipped.
-    expect(srcDoc).toContain('it is not valid JSON');
+    expect(srcDoc).not.toContain('Biscuit');
+    expect(srcDoc).not.toContain('data/pets.json');
   });
 
-  // Nested `data/**/*.json` writes are REJECTED server-side for websites
-  // (VFS_WEBSITE_SEED_PATH, D-WEB-05), so one can't exist in a real project —
-  // no nested-seed handling here. This pins the top-level-only rule that makes
-  // db keys collision-free by construction.
-  it('hydrates ONLY top-level data/*.json — a nested path is never a seed', () => {
-    const files = [
-      text('index.html', page('')),
-      text('data/pets.json', '[1]'),
-      text('data/shop/pets.json', '[2]'),
-    ];
-    const { srcDoc } = buildSitePreview(files);
-    expect(srcDoc).toContain('{key:"pets",path:"data/pets.json"');
-    expect(srcDoc).not.toContain('data/shop/pets.json');
+  it('ships db.query as the sql postMessage channel (no in-memory db object)', () => {
+    const { srcDoc } = buildSitePreview(SITE);
+    expect(srcDoc).toContain('window.db = {');
+    expect(srcDoc).toContain("action: 'sql'");
+    expect(srcDoc).toContain('__airbotixSiteSql');
+    // The old in-frame hydration / read-db channel is gone.
+    expect(srcDoc).not.toContain('read-db');
+    expect(srcDoc).not.toContain('__airbotixSiteDb');
+    expect(srcDoc).not.toContain('var carried');
   });
 
   it('emits a kid-friendly console.error for a CSP violation (blocked pictures are otherwise silent)', () => {
@@ -163,42 +161,13 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).not.toContain('e.blockedURI');
   });
 
-  it('a seed containing </script> cannot break out of the shim tag', () => {
-    const files = [
-      text('index.html', page('')),
-      text('data/evil.json', '["</script><script>alert(1)</script>"]'),
-    ];
-    const { srcDoc } = buildSitePreview(files);
-    expect(srcDoc).not.toContain('<script>alert(1)');
-    expect(srcDoc).toContain('\\u003c/script>');
-  });
-
-  it('opts.dbState REPLACES the initial db (carried across page navigations)', () => {
-    const { srcDoc } = buildSitePreview(SITE, { dbState: { pets: [{ id: 9 }] } });
-    expect(srcDoc).toContain('var carried = {"pets":[{"id":9}]}');
-  });
-
-  it('without dbState the carried db is null (seeds hydrate)', () => {
-    const { srcDoc } = buildSitePreview(SITE);
-    expect(srcDoc).toContain('var carried = null');
-  });
-
-  it('a non-JSON-safe dbState (BigInt from kid postMessage) degrades to the seeds — never throws', () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const dbState = { n: BigInt(1) } as unknown as Record<string, unknown>;
-    const { srcDoc } = buildSitePreview(SITE, { dbState });
-    expect(srcDoc).toContain('var carried = null');
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('not JSON-safe'));
-    errorSpy.mockRestore();
-  });
-
-  it('ships the app/fetch/nav/read-db shims before any kid script', () => {
+  it('ships the app/fetch/nav/sql shims before any kid script', () => {
     const { srcDoc } = buildSitePreview(SITE);
     const shimAt = srcDoc.indexOf('window.app = {');
     expect(shimAt).toBeGreaterThan(-1);
     expect(srcDoc).toContain('window.fetch = function');
     expect(srcDoc).toContain('__airbotixSiteNavigate');
-    expect(srcDoc).toContain('__airbotixSiteDb'); // Home's live-db read channel
+    expect(srcDoc).toContain('__airbotixSiteSql'); // db.query's sql channel
     expect(srcDoc).toContain('the sandbox blocks the outside internet');
     expect(shimAt).toBeLessThan(srcDoc.indexOf("app.get('/api/pets'"));
   });
@@ -372,9 +341,29 @@ describe('buildSitePreview — scriptRanges map syntax errors back to kid files'
 
 describe('isSiteNavigateMessage', () => {
   it('accepts the nav shim message and rejects other shapes', () => {
-    expect(isSiteNavigateMessage({ __airbotixSiteNavigate: true, path: 'about.html', db: null })).toBe(true);
+    expect(isSiteNavigateMessage({ __airbotixSiteNavigate: true, path: 'about.html' })).toBe(true);
     expect(isSiteNavigateMessage({ __airbotixSiteNavigate: true })).toBe(false);
     expect(isSiteNavigateMessage({ __airbotixConsole: true })).toBe(false);
     expect(isSiteNavigateMessage(null)).toBe(false);
+  });
+});
+
+describe('isSiteSqlRequest', () => {
+  it('accepts the shim sql request and rejects other shapes', () => {
+    expect(
+      isSiteSqlRequest({
+        __airbotixSiteControl: true,
+        action: 'sql',
+        id: 1,
+        sql: 'SELECT * FROM pets',
+        params: [],
+      }),
+    ).toBe(true);
+    // Other control actions, a missing id/sql, and foreign messages all fail.
+    expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'report' })).toBe(false);
+    expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', sql: 'SELECT 1' })).toBe(false);
+    expect(isSiteSqlRequest({ __airbotixSiteControl: true, action: 'sql', id: 1 })).toBe(false);
+    expect(isSiteSqlRequest({ __airbotixSiteNavigate: true, path: 'a.html' })).toBe(false);
+    expect(isSiteSqlRequest(null)).toBe(false);
   });
 });

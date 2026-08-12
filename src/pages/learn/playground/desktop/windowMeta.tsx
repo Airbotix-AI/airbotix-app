@@ -11,7 +11,7 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   assets: { title: 'Asset Viewer', Icon: Images },
   help: { title: 'Guide', Icon: BookOpen },
   mission: { title: 'Mission', Icon: ListChecks },
-  // Website Studio only — the site's simulated backend database, live.
+  // Website Studio only — the project's real server-side database, live.
   db: { title: 'Database', Icon: Database },
 };
 

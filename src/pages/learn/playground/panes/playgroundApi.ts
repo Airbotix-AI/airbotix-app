@@ -234,6 +234,82 @@ export async function fetchClassAssetDataUrl(
   return blobToDataUrl(blob);
 }
 
+// ── Website project database (creative-code-studio-website-prd D-WEB-15) ─────
+// Each website project owns ONE server-side SQLite database on platform-backend,
+// torn down with the project. The sandboxed site frame stays token-free: its
+// `db.query(...)` calls travel over postMessage to SiteFrame, which calls these
+// endpoints with the kid's session. The Database window introspects the same db
+// over REST (tables/rows) and owns the ONLY reset path (rebuild from the
+// project's top-level `data/*.json` seed files).
+
+/** A bindable SQL parameter (the backend binds them — never string-splice). */
+export type SiteDbParam = string | number | boolean | null;
+
+/** `POST /projects/:id/db/query` result — one statement, rows capped server-side. */
+export interface SiteDbQueryResult {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  row_count: number;
+  changes: number | null;
+  last_insert_rowid: string | null;
+}
+
+/** Run ONE SQL statement (params bound server-side) on the project's db. SQL
+ *  errors surface as a 400 `DB_QUERY_ERROR` ApiError whose message is
+ *  kid-readable — callers show it verbatim. */
+export async function querySiteDb(
+  projectId: string,
+  sql: string,
+  params: SiteDbParam[] = [],
+): Promise<SiteDbQueryResult> {
+  return api<SiteDbQueryResult>(`/projects/${projectId}/db/query`, {
+    method: 'POST',
+    body: { sql, params },
+  });
+}
+
+export interface SiteDbColumn {
+  name: string;
+  type: string;
+}
+
+export interface SiteDbTableInfo {
+  name: string;
+  row_count: number;
+  columns: SiteDbColumn[];
+}
+
+/** `GET /projects/:id/db/tables` — the schema snapshot the Database window renders. */
+export interface SiteDbTables {
+  tables: SiteDbTableInfo[];
+  size_bytes: number;
+}
+
+export async function listSiteDbTables(projectId: string): Promise<SiteDbTables> {
+  return api<SiteDbTables>(`/projects/${projectId}/db/tables`);
+}
+
+/** Page through one table's rows (backend default 100, max 500 per page). */
+export async function listSiteDbRows(
+  projectId: string,
+  table: string,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<{ rows: Record<string, unknown>[]; total: number }> {
+  const params = new URLSearchParams();
+  if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+  if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+  const qs = params.toString();
+  return api<{ rows: Record<string, unknown>[]; total: number }>(
+    `/projects/${projectId}/db/tables/${encodeURIComponent(table)}/rows${qs ? `?${qs}` : ''}`,
+  );
+}
+
+/** Rebuild EVERY table from the project's `data/*.json` seeds (wipes changes) —
+ *  the explicit Reset database affordance, the only reset path. */
+export async function resetSiteDb(projectId: string): Promise<SiteDbTables> {
+  return api<SiteDbTables>(`/projects/${projectId}/db/reset`, { method: 'POST' });
+}
+
 export interface ResolveFilesOptions {
   /** When present, load the real project files from the backend (S3-backed). */
   projectId?: string;
