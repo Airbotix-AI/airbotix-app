@@ -17,11 +17,24 @@
 //   - ASYNC route handlers are awaited: res.json after an await still answers
 //     the fetch and the /api ledger records the FINAL status; a rejected
 //     handler answers 500 exactly like a sync throw.
+//
+// It ALSO covers the SOURCES CHANNEL (D-WEB-19) — the sibling `sources.get`
+// that reaches curated external data through the same parent proxy: the
+// `action:'source'` wire shape rides the SAME per-document token as sql, an
+// ok reply resolves with the data, an error reply console.errors the server's
+// kid-readable message verbatim and rejects, stale-token replies are ignored,
+// no reply times out kid-readably in 10s, and the in-FRAME in-flight cap (8)
+// rejects locally without a single postMessage leaving the sandbox.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { VfsFile } from '../code/codeApi';
-import { buildSitePreview, SITE_SQL_TIMEOUT_MS } from './buildSitePreview';
+import {
+  buildSitePreview,
+  MAX_SOURCE_INFLIGHT,
+  SITE_SOURCE_TIMEOUT_MS,
+  SITE_SQL_TIMEOUT_MS,
+} from './buildSitePreview';
 
 const text = (path: string, content: string): VfsFile => ({
   path,
@@ -97,6 +110,7 @@ function runShim(files: VfsFile[] = SITE): void {
     else delete (window as unknown as { fetch?: unknown }).fetch;
     delete (window as unknown as { app?: unknown }).app;
     delete (window as unknown as { db?: unknown }).db;
+    delete (window as unknown as { sources?: unknown }).sources;
   });
   new Function(siteRuntimeSource(files))();
 }
@@ -105,6 +119,11 @@ interface SiteDb {
   query: (sql: string, ...params: unknown[]) => Promise<unknown>;
 }
 const db = (): SiteDb => (window as unknown as { db: SiteDb }).db;
+
+interface SiteSources {
+  get: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
+}
+const sources = (): SiteSources => (window as unknown as { sources: SiteSources }).sources;
 
 type Res = { status: (c: number) => Res; json: (d: unknown) => void };
 interface SiteApp {
@@ -150,6 +169,29 @@ const sqlPostOf = (posts: unknown[]): SqlPost => {
 
 const replySql = (data: Record<string, unknown>) =>
   window.dispatchEvent(new MessageEvent('message', { data: { __airbotixSiteSql: true, ...data } }));
+
+interface SourcePost {
+  __airbotixSiteControl: true;
+  action: 'source';
+  id: number;
+  /** The SAME per-document nonce the sql channel mints (one scheme). */
+  token: string;
+  name: string;
+  params: Record<string, unknown>;
+}
+
+const sourcePostOf = (posts: unknown[]): SourcePost => {
+  const post = posts.find(
+    (p) => typeof p === 'object' && p !== null && (p as { action?: unknown }).action === 'source',
+  ) as SourcePost | undefined;
+  expect(post).toBeDefined();
+  return post!;
+};
+
+const replySource = (data: Record<string, unknown>) =>
+  window.dispatchEvent(
+    new MessageEvent('message', { data: { __airbotixSiteSource: true, ...data } }),
+  );
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -344,6 +386,163 @@ describe('site runtime — the read-db channel is RETIRED (D-WEB-15)', () => {
     expect(
       posts.some((p) => typeof p === 'object' && p !== null && '__airbotixSiteDb' in p),
     ).toBe(false);
+  });
+});
+
+describe('site runtime — sources.get request wire shape (D-WEB-19)', () => {
+  // These requests never get a reply — fake timers keep their 10s timeout
+  // timers from firing (as console noise) after the test ends.
+  beforeEach(() => vi.useFakeTimers());
+
+  it('posts {action:"source", id, token, name, params} — params default to {}', () => {
+    runShim();
+    const posts = capturePosts(() => {
+      void sources().get('weather', { city: 'Sydney' }).catch(() => undefined);
+      void sources().get('weather').catch(() => undefined);
+    });
+    const post = sourcePostOf(posts);
+    expect(post.__airbotixSiteControl).toBe(true);
+    expect(post.name).toBe('weather');
+    expect(post.params).toEqual({ city: 'Sydney' });
+    expect(typeof post.id).toBe('number');
+    expect(typeof post.token).toBe('string');
+    const bare = posts.filter(
+      (p) => (p as SourcePost).action === 'source',
+    )[1] as SourcePost;
+    expect(bare.params).toEqual({});
+  });
+
+  it('rides the SAME per-document token as the sql channel (one scheme, no second mint)', () => {
+    runShim();
+    const posts = capturePosts(() => {
+      void db().query('SELECT 1').catch(() => undefined);
+      void sources().get('weather', { city: 'Sydney' }).catch(() => undefined);
+    });
+    expect(sourcePostOf(posts).token).toBe(sqlPostOf(posts).token);
+  });
+});
+
+describe('site runtime — sources.get replies (D-WEB-19)', () => {
+  it('an ok reply resolves with the source DATA', async () => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().get('weather', { city: 'Sydney' });
+    });
+    const post = sourcePostOf(posts);
+    const data = { city: 'Sydney', temperature_c: 21, condition: 'sunny' };
+    replySource({ id: post.id, token: post.token, ok: true, data });
+    await expect(promise).resolves.toEqual(data);
+  });
+
+  it('an error reply rejects with the server message AND console.errors it VERBATIM', async () => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().get('weather', { city: 'Atlantis' });
+    });
+    const backendMessage = "I couldn't find a city called \"Atlantis\" — check the spelling!";
+    const post = sourcePostOf(posts);
+    replySource({ id: post.id, token: post.token, ok: false, error: backendMessage });
+    await expect(promise).rejects.toThrow(backendMessage);
+    // Verbatim into the console — this line feeds the D-WEB-13 logs ledger.
+    expect(console.error).toHaveBeenCalledWith(backendMessage);
+  });
+
+  it('a reply with a matching id but a STALE token never settles the promise (srcdoc-swap race)', async () => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().get('weather', { city: 'Sydney' });
+    });
+    const post = sourcePostOf(posts);
+    let settled = false;
+    promise.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+
+    replySource({ id: post.id, token: 'a-previous-documents-token', ok: true, data: { wrong: true } });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    // The RIGHT token still resolves it — the request wasn't torn down, just guarded.
+    replySource({ id: post.id, token: post.token, ok: true, data: { right: true } });
+    await expect(promise).resolves.toEqual({ right: true });
+  });
+
+  it('no reply within 10s rejects kid-readably (a wedged studio never hangs a route)', async () => {
+    vi.useFakeTimers();
+    runShim();
+    // Fill EVERY in-flight slot so the timeout's capacity release is proven too.
+    let promise: Promise<unknown> = Promise.resolve();
+    capturePosts(() => {
+      promise = sources().get('weather', { city: 'Sydney' });
+      for (let i = 1; i < MAX_SOURCE_INFLIGHT; i += 1) {
+        void sources().get('weather', { city: `filler-${i}` }).catch(() => undefined);
+      }
+    });
+    const expectation = expect(promise).rejects.toThrow(/took too long/);
+    vi.advanceTimersByTime(SITE_SOURCE_TIMEOUT_MS);
+    await expectation;
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('took too long'));
+
+    // Every timed-out request released its slot — a fresh get posts again
+    // instead of tripping the in-flight cap.
+    const nextPosts = capturePosts(() => {
+      void sources().get('weather', { city: 'after-timeout' }).catch(() => undefined);
+    });
+    expect(sourcePostOf(nextPosts).params).toEqual({ city: 'after-timeout' });
+  });
+
+  it('a reply for an unknown/settled id is ignored (timeout already answered)', async () => {
+    vi.useFakeTimers();
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().get('weather', { city: 'Sydney' });
+    });
+    const expectation = expect(promise).rejects.toThrow(/took too long/);
+    vi.advanceTimersByTime(SITE_SOURCE_TIMEOUT_MS);
+    await expectation;
+    const post = sourcePostOf(posts);
+    expect(() =>
+      replySource({ id: post.id, token: post.token, ok: true, data: {} }),
+    ).not.toThrow();
+  });
+
+  it(`caps in-flight requests IN THE FRAME: past ${MAX_SOURCE_INFLIGHT}, extras fail locally without posting`, async () => {
+    vi.useFakeTimers();
+    runShim();
+    let extra: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      for (let i = 0; i < MAX_SOURCE_INFLIGHT; i += 1) {
+        void sources().get('weather', { city: `city-${i}` }).catch(() => undefined);
+      }
+      extra = sources().get('weather', { city: 'one-too-many' });
+    });
+    // The extra request rejected locally, kid-readably…
+    await expect(extra).rejects.toThrow(/Too many data-source requests/);
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Too many data-source requests'),
+    );
+    // …and never left the sandbox: only the first 8 were posted.
+    expect(posts.filter((p) => (p as SourcePost).action === 'source')).toHaveLength(
+      MAX_SOURCE_INFLIGHT,
+    );
+
+    // A settled slot frees capacity: answer one, the next get posts again.
+    const first = sourcePostOf(posts);
+    replySource({ id: first.id, token: first.token, ok: true, data: {} });
+    const nextPosts = capturePosts(() => {
+      void sources().get('weather', { city: 'now-fits' }).catch(() => undefined);
+    });
+    expect(sourcePostOf(nextPosts).params).toEqual({ city: 'now-fits' });
   });
 });
 

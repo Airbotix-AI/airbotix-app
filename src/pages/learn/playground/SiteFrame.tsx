@@ -7,13 +7,16 @@ import {
   buildSitePreview,
   isConsoleMessage,
   isSiteNavigateMessage,
+  isSiteSourceRequest,
   isSiteSqlRequest,
+  MAX_SOURCE_INFLIGHT,
   resolveErrorLoc,
   SITE_HOME_PAGE,
   type ConsoleLine,
+  type SiteSourceReply,
   type SiteSqlReply,
 } from './buildSitePreview';
-import { querySiteDb } from './panes/playgroundApi';
+import { fetchProjectSource, querySiteDb, type SiteSourceParam } from './panes/playgroundApi';
 import {
   createRunCollector,
   isSiteReportMessage,
@@ -79,6 +82,17 @@ const MAX_PENDING_SQL = 8;
 const isSqlParam = (p: unknown): p is string | number | boolean | null =>
   p === null || typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean';
 
+/** The sources.get reply when there is no project yet (a project-less session
+ *  — the scaffold path). Kid-readable, never a hang. */
+const NO_PROJECT_SOURCE_ERROR =
+  'Data sources are not ready yet — they wake up once your project is saved.';
+
+/** A sources.get param VALUE — the backend contract is scalars only (no null:
+ *  a source param is either present or omitted). Anything else is rejected
+ *  client-side with a kid-readable line, like db.query params. */
+const isSourceParam = (v: unknown): v is SiteSourceParam =>
+  typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean';
+
 /**
  * Renders a kid's WEBSITE inside the strict sandbox (Website Studio,
  * creative-code-studio-website-prd). Same security model as GameFrame:
@@ -89,7 +103,10 @@ const isSqlParam = (p: unknown): p is string | number | boolean | null =>
  * The db is REAL and server-side (D-WEB-15): this component is the frame's
  * token-holding proxy — each in-frame `db.query` arrives as an
  * `action:'sql'` postMessage, is forwarded to `POST /projects/:id/db/query`
- * with the kid's session, and the reply is posted back by request id. Page
+ * with the kid's session, and the reply is posted back by request id. The
+ * same proxy answers `action:'source'` (D-WEB-19): `sources.get` forwards to
+ * `POST /projects/:id/sources/:name` so curated EXTERNAL data reaches the
+ * site while the sandbox keeps zero egress. Page
  * navigation carries nothing (state lives on the server); the slim top bar
  * is Home (`site-nav-home`) + the current page (`site-nav-page`).
  */
@@ -178,6 +195,11 @@ export function SiteFrame({
   // Sql forwards currently in flight (the MAX_PENDING_SQL cap) — a ref, not
   // state: it must mutate synchronously inside the message handler.
   const pendingSqlRef = useRef(0);
+  // Source forwards in flight (the MAX_SOURCE_INFLIGHT cap, D-WEB-19) — the
+  // shim caps in-frame too, but THIS is the trust fence: forged postMessages
+  // bypass the shim, and each forward is an authed POST (potentially a real
+  // upstream provider fetch), so the studio must cap independently.
+  const pendingSourceRef = useRef(0);
 
   useEffect(() => {
     // Answer one in-frame `db.query` (the sql channel): forward to the backend
@@ -232,6 +254,67 @@ export function SiteFrame({
       }
     };
 
+    // Answer one in-frame `sources.get` (D-WEB-19): forward to the curated
+    // server proxy with the kid's session, post the reply back echoing id +
+    // per-document token (same guard as the sql channel). The frame's shim
+    // caps polite kid code locally; the cap below is the studio-side fence
+    // the sql channel established (forged messages must not spray POSTs).
+    const answerSource = async (id: number, token: string, name: string, rawParams: unknown) => {
+      const reply = (r: Omit<SiteSourceReply, '__airbotixSiteSource' | 'id' | 'token'>) => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { __airbotixSiteSource: true, id, token, ...r } satisfies SiteSourceReply,
+          '*',
+        );
+      };
+      const pid = projectIdRef.current;
+      if (!pid) {
+        reply({ ok: false, error: NO_PROJECT_SOURCE_ERROR });
+        return;
+      }
+      // Untrusted wire data: params must be a plain object of scalar values,
+      // or the backend's schema rejection would surface as kid-facing jargon.
+      const params =
+        typeof rawParams === 'object' && rawParams !== null && !Array.isArray(rawParams)
+          ? (rawParams as Record<string, unknown>)
+          : {};
+      if (!Object.values(params).every(isSourceParam)) {
+        reply({
+          ok: false,
+          error: 'sources.get params must be words, numbers or true/false.',
+        });
+        return;
+      }
+      // Studio-side backpressure (the trust fence — the frame is untrusted
+      // and its shim cap can be bypassed by forged postMessages): fail
+      // kid-readably instead of spraying authed POSTs at the backend.
+      if (pendingSourceRef.current >= MAX_SOURCE_INFLIGHT) {
+        reply({
+          ok: false,
+          error: `Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get before starting the next.`,
+        });
+        return;
+      }
+      pendingSourceRef.current += 1;
+      try {
+        const { data } = await fetchProjectSource(
+          pid,
+          name,
+          params as Record<string, SiteSourceParam>,
+        );
+        reply({ ok: true, data });
+      } catch (err) {
+        // The backend's SOURCE_* messages are kid-readable — surface them
+        // verbatim; anything else gets a calm fallback.
+        const message =
+          err instanceof ApiError && err.message
+            ? err.message
+            : 'That data source could not be reached — try again in a moment.';
+        reply({ ok: false, error: message });
+      } finally {
+        pendingSourceRef.current -= 1;
+      }
+    };
+
     const onMessage = (e: MessageEvent) => {
       // Only THIS frame may feed the console / drive navigation / query the db
       // (same defence-in-depth as GameFrame — another frame on the page must
@@ -267,6 +350,10 @@ export function SiteFrame({
       if (isSiteSqlRequest(e.data)) {
         const params = Array.isArray(e.data.params) ? e.data.params : [];
         void answerSql(e.data.id, e.data.token, e.data.sql, params);
+        return;
+      }
+      if (isSiteSourceRequest(e.data)) {
+        void answerSource(e.data.id, e.data.token, e.data.name, e.data.params);
       }
     };
     window.addEventListener('message', onMessage);

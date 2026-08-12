@@ -28,7 +28,13 @@ network; async handlers awaited); the db is **REAL server-side SQLite per projec
 in-frame `await db.query(sql, params)` rides the sql postMessage channel to `SiteFrame`, which
 proxies it to `POST /projects/:id/db/query` with the kid's session (frame token-free; reader
 replies resolve to the ROWS array, writes to `{changes, lastInsertRowid}`; SQL errors
-console.error the backend's kid-readable message verbatim). Data PERSISTS across navs/reloads/
+console.error the backend's kid-readable message verbatim). D-WEB-19: `await sources.get(name,
+params)` reaches curated EXTERNAL data the SAME way (`action:'source'`, same per-document token;
+in-flight cap 8 enforced in the shim AND studio-side in `SiteFrame` — the studio cap is the trust
+fence, forged postMessages bypass the shim) — `SiteFrame` forwards to
+`POST /projects/:id/sources/:name` and the BACKEND fetches the provider (sandbox keeps zero
+egress; scalar params validated studio-side; SOURCE_* / SOURCE_BUSY errors — any ApiError
+message — surface verbatim). Data PERSISTS across navs/reloads/
 sessions; TOP-LEVEL `data/*.json` are the SEEDS the backend rebuilds from on the explicit
 Reset. A website has **NO run concept**: the site is ALWAYS mounted + live-rebuilds from the
 VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's `run_game` — adopts
@@ -50,6 +56,10 @@ first table auto-selected; selection by NAME survives polls, a vanished pick fal
 the SELECTED table's grid (real columns + types) wrapped in `db-collection-<name>`; the toolbar
 holds Refresh/freshness, the selected table's "Edit starting data" `data/*.json` jump
 (`db-edit-<name>`) + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
+D-WEB-19 discovery: the sidebar's **"Data sources"** group (`db-source-<name>`, absent when the
+catalog is empty; fetched on mount + manual Refresh only, never the 2s poll) swaps the right panel
+to `DbSourceDetail` (`db-source-detail`: description/params/copyable example + a `db-source-try`
+Try-it that hits the real proxy — allowed readOnly, it's a read); picking a table restores the grid.
 D-WEB-16: tables are **EDITABLE, rowid-keyed** (`DbTable`: inline cell edit / add row / two-step
 delete, all parameterized through the existing `/db/query`; rows carry `__rowid__`, never displayed;
 `has_rowid:false` → read-only note; readOnly viewers see NO edit affordances) and the code editor's

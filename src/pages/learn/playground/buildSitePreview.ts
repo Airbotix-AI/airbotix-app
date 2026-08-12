@@ -97,6 +97,18 @@ const normalizeRef = (ref: string): string => (ref.startsWith('./') ? ref.slice(
  *  rejecting kid-readably (a wedged studio must never hang a kid's route). */
 export const SITE_SQL_TIMEOUT_MS = 10_000;
 
+/** How long the in-frame `sources.get` waits for the studio's reply (D-WEB-19)
+ *  — same posture as the sql timeout: reject kid-readably, never hang. */
+export const SITE_SOURCE_TIMEOUT_MS = 10_000;
+
+/** How many `sources.get` calls may be in flight at once — parallel to the sql
+ *  channel's MAX_PENDING_SQL (8). Enforced TWICE: in the frame's shim (an
+ *  unawaited source loop in polite kid code fails locally, before a single
+ *  postMessage leaves the sandbox) AND studio-side in SiteFrame (the trust
+ *  fence — forged postMessages bypass the shim, and each forward is an authed
+ *  POST that may hit a real upstream provider). */
+export const MAX_SOURCE_INFLIGHT = 8;
+
 /** Serialize one DOM attribute for the studio skeleton. `&` is escaped BEFORE
  *  `"` so entity-like text survives the parse→serialize round trip unchanged
  *  (`&quot;` in the source must not come back as a literal quote). */
@@ -200,12 +212,61 @@ export interface SiteSqlReply {
   error?: string;
 }
 
+/** The in-frame shim's `sources.get` request (frame → studio, D-WEB-19):
+ *  SiteFrame proxies it to `POST /projects/:id/sources/:name` with the kid's
+ *  session — the frame stays token-free and the sandbox keeps ZERO egress; the
+ *  BACKEND fetches the curated external provider. Rides the SAME per-document
+ *  token the sql channel mints (one scheme, one srcdoc-swap guard). `params`
+ *  is untrusted wire data — the studio validates the values (scalars only)
+ *  before anything reaches the backend. */
+export interface SiteSourceRequest {
+  id: number;
+  token: string;
+  name: string;
+  params: Record<string, unknown>;
+}
+
+export function isSiteSourceRequest(
+  data: unknown,
+): data is { __airbotixSiteControl: true; action: 'source' } & SiteSourceRequest {
+  if (typeof data !== 'object' || data === null) return false;
+  const m = data as {
+    __airbotixSiteControl?: unknown;
+    action?: unknown;
+    id?: unknown;
+    token?: unknown;
+    name?: unknown;
+  };
+  return (
+    m.__airbotixSiteControl === true &&
+    m.action === 'source' &&
+    typeof m.id === 'number' &&
+    typeof m.token === 'string' &&
+    typeof m.name === 'string'
+  );
+}
+
+/** The studio's reply to a {@link SiteSourceRequest} (studio → frame), echoing
+ *  `id` + the per-document `token`. `data` is the source's JSON on success;
+ *  `error` is the kid-readable message (the backend's SOURCE_* messages are
+ *  surfaced verbatim) on failure. */
+export interface SiteSourceReply {
+  __airbotixSiteSource: true;
+  id: number;
+  token: string;
+  ok: boolean;
+  data?: unknown;
+  error?: string;
+}
+
 /**
  * The site runtime shim (contract items the backend agent teaches verbatim):
  * `db.query(sql, ...params)` — REAL SQL on the project's server-side SQLite db
  * (D-WEB-15), each query posted to the parent studio over the sql postMessage
  * channel (the frame stays token-free; the studio calls the backend with the
- * kid's session) — `app.get/app.post` route registration, the /api-only fetch
+ * kid's session) — `sources.get(name, params)`, curated EXTERNAL data via the
+ * server proxy (D-WEB-19; same token machinery, `action:'source'`, in-frame
+ * in-flight cap) — `app.get/app.post` route registration, the /api-only fetch
  * shim (query/body parsing, chainable `res.status().json()`, ASYNC handlers
  * awaited, kid-friendly 404/500 console errors, everything else blocked), the
  * capture-phase nav shim that posts relative `*.html` link clicks to the
@@ -238,10 +299,11 @@ function siteRuntime(page: string): string {
   // console.errors it verbatim (feeds the D-WEB-13 logs ledger).
   var sqlSeq = 0;
   var sqlPending = {};
-  // Per-DOCUMENT nonce: a srcdoc swap keeps the same WindowProxy but restarts
-  // sqlSeq, so id alone could match a LATE reply meant for the previous
-  // document (wrong rows for a same-id query). Replies must echo this token.
-  var sqlToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  // Per-DOCUMENT nonce (shared by the sql AND sources channels — one scheme):
+  // a srcdoc swap keeps the same WindowProxy but restarts the id counters, so
+  // id alone could match a LATE reply meant for the previous document (wrong
+  // rows for a same-id query). Replies must echo this token.
+  var docToken = Math.random().toString(36).slice(2) + Date.now().toString(36);
   window.db = {
     query: function (sql) {
       var params = Array.prototype.slice.call(arguments, 1);
@@ -255,14 +317,14 @@ function siteRuntime(page: string): string {
           reject(new Error(msg));
         }, ${SITE_SQL_TIMEOUT_MS});
         sqlPending[id] = { resolve: resolve, reject: reject, timer: timer };
-        parent.postMessage({ __airbotixSiteControl: true, action: 'sql', id: id, token: sqlToken, sql: String(sql), params: params }, '*');
+        parent.postMessage({ __airbotixSiteControl: true, action: 'sql', id: id, token: docToken, sql: String(sql), params: params }, '*');
       });
     }
   };
   window.addEventListener('message', function (e) {
     var m = e.data;
     if (!m || m.__airbotixSiteSql !== true) return;
-    if (m.token !== sqlToken) return; // a reply for another document — not ours
+    if (m.token !== docToken) return; // a reply for another document — not ours
     var pending = sqlPending[m.id];
     if (!pending) return; // timed out / not ours
     delete sqlPending[m.id];
@@ -273,6 +335,59 @@ function siteRuntime(page: string): string {
       else pending.resolve({ changes: r.changes == null ? 0 : r.changes, lastInsertRowid: r.last_insert_rowid == null ? null : r.last_insert_rowid });
     } else {
       var msg = typeof m.error === 'string' && m.error !== '' ? m.error : 'Your SQL could not run.';
+      console.error(msg);
+      pending.reject(new Error(msg));
+    }
+  });
+
+  // ── sources.get: curated EXTERNAL data, server-proxied (D-WEB-19) ──────────
+  // await sources.get('weather', { city: 'Sydney' }) → the parent studio calls
+  // POST /projects/:id/sources/:name with the kid's session and the BACKEND
+  // fetches the real provider — the sandbox itself still has ZERO egress.
+  // Resolves with the source's JSON data; an error rejects with the server's
+  // kid-readable message AND console.errors it verbatim (D-WEB-13 logs ledger).
+  // Same per-document token as db.query (one reply-matching scheme).
+  var srcSeq = 0;
+  var srcPending = {};
+  var srcInflight = 0;
+  window.sources = {
+    get: function (name, params) {
+      return new Promise(function (resolve, reject) {
+        // Local backpressure: an unawaited sources.get loop fails HERE,
+        // kid-readably, before a single request leaves the frame.
+        if (srcInflight >= ${MAX_SOURCE_INFLIGHT}) {
+          var busy = 'Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get before starting the next.';
+          console.error(busy);
+          reject(new Error(busy));
+          return;
+        }
+        var id = ++srcSeq;
+        srcInflight += 1;
+        var timer = setTimeout(function () {
+          delete srcPending[id];
+          srcInflight -= 1;
+          var msg = 'That data source took too long to answer (10 seconds) — try again in a moment.';
+          console.error(msg);
+          reject(new Error(msg));
+        }, ${SITE_SOURCE_TIMEOUT_MS});
+        srcPending[id] = { resolve: resolve, reject: reject, timer: timer };
+        parent.postMessage({ __airbotixSiteControl: true, action: 'source', id: id, token: docToken, name: String(name), params: params || {} }, '*');
+      });
+    }
+  };
+  window.addEventListener('message', function (e) {
+    var m = e.data;
+    if (!m || m.__airbotixSiteSource !== true) return;
+    if (m.token !== docToken) return; // a reply for another document — not ours
+    var pending = srcPending[m.id];
+    if (!pending) return; // timed out / not ours
+    delete srcPending[m.id];
+    srcInflight -= 1;
+    clearTimeout(pending.timer);
+    if (m.ok) {
+      pending.resolve(m.data);
+    } else {
+      var msg = typeof m.error === 'string' && m.error !== '' ? m.error : 'That data source could not answer.';
       console.error(msg);
       pending.reject(new Error(msg));
     }
@@ -319,7 +434,7 @@ function siteRuntime(page: string): string {
     var method = (init && init.method ? String(init.method) : 'GET').toUpperCase();
     if (url.slice(0, 5) !== '/api/') {
       recordApi(method, url, 0); // 0 = rejected before any response
-      console.error('fetch("' + url + '") was blocked — the sandbox blocks the outside internet. Your site can only fetch its own /api/... routes.');
+      console.error('fetch("' + url + '") was blocked — the sandbox blocks the outside internet. Your site can only fetch its own /api/... routes, but it CAN use the studio data sources — try await sources.get(...).');
       return Promise.reject(new TypeError('Failed to fetch: ' + url));
     }
     var qi = url.indexOf('?');
@@ -405,7 +520,7 @@ function siteRuntime(page: string): string {
     'font-src': 'Fonts from the internet are blocked — use a normal system font in your CSS instead.',
     'script-src': 'Loading code from the internet is blocked — put your code in a .js file in your project instead.',
     'style-src': 'Loading styles from the internet is blocked — put your styles in style.css instead.',
-    'connect-src': 'Your site can only talk to its OWN backend with fetch("/api/..."). The outside internet is blocked.',
+    'connect-src': 'Your site can only talk to its OWN backend with fetch("/api/...") and the studio data sources via sources.get(...). The outside internet is blocked.',
     'frame-src': 'Putting another website inside your page is blocked.',
     'default-src': 'That came from the internet, which is blocked here — keep everything inside your project.'
   };

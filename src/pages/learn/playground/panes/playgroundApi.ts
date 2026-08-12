@@ -317,6 +317,59 @@ export async function resetSiteDb(projectId: string): Promise<SiteDbTables> {
   return api<SiteDbTables>(`/projects/${projectId}/db/reset`, { method: 'POST' });
 }
 
+// ── External data sources (creative-code-studio-website-prd D-WEB-19) ────────
+// Admin-curated external providers the site can use WITHOUT any sandbox egress:
+// the in-frame `sources.get(name, params)` rides postMessage to SiteFrame, which
+// calls these endpoints with the kid's session, and the BACKEND fetches the real
+// provider (param-schema validated, cached, size/time capped — never a free-form
+// URL). The Database window's "Data sources" group renders the same catalog.
+
+/** One parameter a data source accepts (kid-readable catalog entry). */
+export interface ProjectSourceParamInfo {
+  name: string;
+  description: string;
+  required: boolean;
+  example: string;
+}
+
+/** One enabled data source from the project's catalog. */
+export interface ProjectSourceInfo {
+  name: string;
+  description: string;
+  params: ProjectSourceParamInfo[];
+  /** A ready-to-copy `await sources.get(...)` example line. */
+  example_code: string;
+}
+
+/** `GET /projects/:id/sources` — the ENABLED data-source catalog. A backend
+ *  without the endpoint's shape yet degrades to an EMPTY catalog (the sidebar
+ *  group simply doesn't render), never a crash. */
+export async function listProjectSources(projectId: string): Promise<ProjectSourceInfo[]> {
+  const { sources } = await api<{ sources?: ProjectSourceInfo[] }>(
+    `/projects/${projectId}/sources`,
+  );
+  return Array.isArray(sources) ? sources : [];
+}
+
+/** A data-source parameter value — scalars only, per the backend contract. */
+export type SiteSourceParam = string | number | boolean;
+
+/** `POST /projects/:id/sources/:name` — fetch one source through the server
+ *  proxy. Failures arrive as 400 `SOURCE_UNKNOWN` / `SOURCE_PARAMS` /
+ *  `SOURCE_UPSTREAM` or 429 `SOURCE_BUSY` (server-side per-project cap)
+ *  ApiErrors whose messages are kid-readable — callers surface them
+ *  verbatim. */
+export async function fetchProjectSource(
+  projectId: string,
+  name: string,
+  params: Record<string, SiteSourceParam>,
+): Promise<{ data: unknown; cached: boolean }> {
+  return api<{ data: unknown; cached: boolean }>(
+    `/projects/${projectId}/sources/${encodeURIComponent(name)}`,
+    { method: 'POST', body: { params } },
+  );
+}
+
 export interface ResolveFilesOptions {
   /** When present, load the real project files from the backend (S3-backed). */
   projectId?: string;

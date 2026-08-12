@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-08-12 (feat: external data sources — sources.get runtime + discovery UI — D-WEB-19)
+
+### Added
+
+- **`sources.get(name, params)` in-frame runtime** (`buildSitePreview.ts`, website builds only):
+  a new `sources` global beside `db`/`app` — `await sources.get('weather', { city: 'Sydney' })`
+  reaches admin-CURATED external data through the proven db.query trust shape: postMessage
+  `action:'source'` riding the SAME per-document token the sql channel mints (one scheme; stale
+  replies for a previous document are ignored), proxied by `SiteFrame` to the new backend
+  `POST /projects/:id/sources/:name` with the kid's session — the BACKEND fetches the provider,
+  so the sandbox keeps ZERO egress. Errors reject AND `console.error` the server's kid-readable
+  message verbatim (`SOURCE_*` incl. the 429 `SOURCE_BUSY` — feeds the D-WEB-13 logs ledger); no
+  reply in 10 s rejects kid-readably; the in-flight cap (8, parallel to the sql channel's) is
+  enforced TWICE — in the frame's shim (an unawaited loop fails locally before a single
+  postMessage leaves the sandbox) and studio-side in `SiteFrame` (the trust fence: forged
+  postMessages bypass the shim, and each forward is an authed POST). `SiteFrame` also validates
+  params studio-side (plain object, scalar values only — kid-readable rejection, mirroring
+  db.query), answers a project-less session kid-readably, and keeps the own-frame source guard.
+- **"Data sources" discovery in the Database window** (`DbSidebar.tsx` + new
+  `DbSourceDetail.tsx`): the sidebar gains a second group under the tables listing every enabled
+  source (lucide Globe row, `db-source-<name>`; an EMPTY catalog renders no group), fed by the
+  new `listProjectSources` (`GET /projects/:id/sources`) once on pane mount + on the manual
+  `db-refresh` — never on the 2 s poll. Selecting a source swaps the right panel to an info card
+  (`db-source-detail`): kid-readable description, params table (name / description / required /
+  example), the `example_code` line in a copyable chip, and a **Try it** button
+  (`db-source-try`) that runs the example params through the real proxy and pretty-prints the
+  JSON (capped-height, scrollable) or the kid-readable error — available to readOnly viewers
+  too (a read). Table selection behaviour is untouched (first table still auto-selects;
+  picking a source deselects the table view and vice versa; all existing `db-*` testids hold).
+
+### Changed
+
+- **Blocked-fetch copy now teaches the sanctioned path**: the site shim's `fetch()` block
+  console error and the `connect-src` CSP hint mention that the site CAN use the studio's data
+  sources via `await sources.get(...)` (the internet itself stays blocked).
+
 ## 2026-08-12 (feat: professional master–detail Database viewer — D-WEB-18)
 
 ### Added

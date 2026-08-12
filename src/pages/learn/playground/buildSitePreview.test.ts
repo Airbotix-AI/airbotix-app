@@ -161,14 +161,18 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).not.toContain('e.blockedURI');
   });
 
-  it('ships the app/fetch/nav/sql shims before any kid script', () => {
+  it('ships the app/fetch/nav/sql/sources shims before any kid script', () => {
     const { srcDoc } = buildSitePreview(SITE);
     const shimAt = srcDoc.indexOf('window.app = {');
     expect(shimAt).toBeGreaterThan(-1);
     expect(srcDoc).toContain('window.fetch = function');
     expect(srcDoc).toContain('__airbotixSiteNavigate');
     expect(srcDoc).toContain('__airbotixSiteSql'); // db.query's sql channel
+    expect(srcDoc).toContain('window.sources = {'); // sources.get (D-WEB-19)
+    expect(srcDoc).toContain('__airbotixSiteSource');
     expect(srcDoc).toContain('the sandbox blocks the outside internet');
+    // The blocked-fetch teaching line now points at the sanctioned path too.
+    expect(srcDoc).toContain('try await sources.get(...)');
     expect(shimAt).toBeLessThan(srcDoc.indexOf("app.get('/api/pets'"));
   });
 
