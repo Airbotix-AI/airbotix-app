@@ -19,7 +19,7 @@
 // seeded template so the kid is never trapped on this screen. A project-less
 // session (no projectId) just loads the local scaffold.
 
-import { Check, FileCode2, Gamepad2, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Check, FileCode2, Gamepad2, Globe, Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import './playground.css';
 import { ApiError } from '@/lib/api';
@@ -331,7 +331,11 @@ export function GeneratingScreen({
       )}
 
       {/* The playful build stage — loops while waiting, celebrates when done. */}
-      <BuildStage done={status === 'done'} />
+      {kind === 'website' ? (
+        <SiteBuildStage done={status === 'done'} />
+      ) : (
+        <BuildStage done={status === 'done'} />
+      )}
 
       {/* Status block: thinking spinner → live file list → ready reveal. */}
       <div className="flex w-[min(440px,86vw)] flex-col gap-3">
@@ -466,6 +470,7 @@ function BuildStage({ done }: { done: boolean }) {
   return (
     <div
       aria-hidden="true"
+      data-testid="build-stage-game"
       className="relative h-52 w-[min(440px,86vw)] overflow-hidden rounded-[1.75rem] border border-pg-border bg-gradient-to-b from-brand-sky/20 via-brand-bubblegum/5 to-brand-mint/25 shadow-lg"
     >
       {/* Clouds */}
@@ -517,6 +522,78 @@ function BuildStage({ done }: { done: boolean }) {
         <div className="absolute inset-0 grid place-items-center bg-pg-bg/70 backdrop-blur-[1px]">
           <div className="pg-pop grid h-20 w-20 place-items-center rounded-full bg-brand-sky/20">
             <Gamepad2 size={40} className="text-brand-sky" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── The website "build stage" sibling (D-WEB-11/12 — same pure-CSS primitives):
+// a little browser window assembles itself — chrome bar, then a heading, text
+// lines and two content cards pulse in while sparkles twinkle. On `done` it
+// dims and a globe celebration pops in. Decorative only.
+function SiteBuildStage({ done }: { done: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      data-testid="build-stage-website"
+      className="relative h-52 w-[min(440px,86vw)] overflow-hidden rounded-[1.75rem] border border-pg-border bg-gradient-to-b from-brand-sky/20 via-brand-bubblegum/5 to-brand-mint/25 shadow-lg"
+    >
+      {/* Sparkles (shared motif). */}
+      <Sparkles size={16} className="pg-twinkle absolute left-8 top-8 text-brand-sunshine" />
+      <Sparkles
+        size={12}
+        className="pg-twinkle absolute right-10 top-16 text-brand-bubblegum"
+        style={{ animationDelay: '0.6s' }}
+      />
+      <Sparkles
+        size={14}
+        className="pg-twinkle absolute right-16 top-6 text-brand-sky"
+        style={{ animationDelay: '1.1s' }}
+      />
+
+      {/* The little browser window being assembled. */}
+      <div className="pg-bob absolute left-1/2 top-1/2 h-36 w-[68%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-pg-border bg-white/85 shadow-md">
+        {/* Chrome bar: window dots + an address pill with a tiny globe. */}
+        <div className="flex items-center gap-1.5 border-b border-pg-border/60 bg-pg-desktop/60 px-3 py-2">
+          <span className="h-2 w-2 rounded-full bg-brand-coral/80" />
+          <span className="h-2 w-2 rounded-full bg-brand-sunshine/80" />
+          <span className="h-2 w-2 rounded-full bg-brand-mint/80" />
+          <span className="ml-2 flex h-4 flex-1 items-center gap-1 rounded-full bg-white/80 px-2">
+            <Globe size={9} className="shrink-0 text-brand-sky" />
+            <span className="h-1 w-16 rounded-full bg-brand-sky/30" />
+          </span>
+        </div>
+        {/* Page skeleton assembling: heading → text lines → two cards, pulsing in. */}
+        <div className="space-y-2 p-3">
+          <span className="block h-3 w-1/2 animate-pulse rounded-full bg-brand-sky/50" />
+          <span
+            className="block h-2 w-4/5 animate-pulse rounded-full bg-pg-border"
+            style={{ animationDelay: '0.3s' }}
+          />
+          <span
+            className="block h-2 w-2/3 animate-pulse rounded-full bg-pg-border"
+            style={{ animationDelay: '0.6s' }}
+          />
+          <div className="flex gap-2 pt-1">
+            <span
+              className="h-10 flex-1 animate-pulse rounded-xl bg-brand-mint/40"
+              style={{ animationDelay: '0.9s' }}
+            />
+            <span
+              className="h-10 flex-1 animate-pulse rounded-xl bg-brand-bubblegum/30"
+              style={{ animationDelay: '1.2s' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Done celebration overlay. */}
+      {done && (
+        <div className="absolute inset-0 grid place-items-center bg-pg-bg/70 backdrop-blur-[1px]">
+          <div className="pg-pop grid h-20 w-20 place-items-center rounded-full bg-brand-mint/20">
+            <Globe size={40} className="text-brand-mint" />
           </div>
         </div>
       )}

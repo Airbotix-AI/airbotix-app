@@ -58,6 +58,26 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// D-WEB kind-aware chrome: the decorative build stage matches the project kind —
+// the platformer vignette for games, the assembling-browser-window for websites
+// (owner feedback 2026-08-12: a website build showed the game animation).
+describe('GeneratingScreen — kind-aware build stage', () => {
+  it('a website build shows the website stage (and website copy), never the game vignette', () => {
+    render(
+      <GeneratingScreen prompt="a todo site" projectId="w1" mode="lite" kind="website" onDone={vi.fn()} />,
+    );
+    screen.getByTestId('build-stage-website');
+    expect(screen.queryByTestId('build-stage-game')).toBeNull();
+    screen.getByText('Dreaming up your website…');
+  });
+
+  it('a game build keeps the platformer vignette', () => {
+    render(<GeneratingScreen prompt="a pong game" projectId="g1" mode="lite" onDone={vi.fn()} />);
+    screen.getByTestId('build-stage-game');
+    expect(screen.queryByTestId('build-stage-website')).toBeNull();
+  });
+});
+
 describe('GeneratingScreen (real streamed progress)', () => {
   it('thinking → builds files as they stream → ready reveal → handoff', async () => {
     const onDone = vi.fn();

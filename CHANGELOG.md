@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-12 (feat: website builds get their own loading animation)
+
+### Changed
+
+- The generating screen's decorative build stage is kind-aware: website builds
+  show an assembling browser window (chrome bar, address pill, skeleton page
+  pulsing in, globe celebration) instead of the platformer vignette — same
+  pure-CSS/token primitives, games unchanged.
+
+
 ## 2026-08-11 (feat: website run verification — the studio collects the evidence, D-WEB-13)
 
 ### Added
