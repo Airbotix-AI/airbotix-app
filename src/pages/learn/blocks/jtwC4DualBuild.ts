@@ -28,7 +28,7 @@ export const JTW_C4_SKILL_TARGET: readonly Block[] = [
   { op: 'end' },
 ]
 
-export const JTW_C4_P5_SKILL_TARGETS: Readonly<Record<string, readonly Block[]>> = {
+export const JTW_C4_P5_SKILL_TARGETS = {
   hop: [
     { op: 'when_tap' },
     { op: 'hop', n: 2 },
@@ -50,7 +50,7 @@ export const JTW_C4_P5_SKILL_TARGETS: Readonly<Record<string, readonly Block[]>>
     { op: 'say', text: '再看这里' },
     { op: 'end' },
   ],
-}
+} as const satisfies Readonly<Record<string, readonly Block[]>>
 export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
 
 export const JTW_C4_P7_SKILL_TARGETS = {

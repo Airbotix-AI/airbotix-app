@@ -152,7 +152,13 @@ export type BlocksTemplateId =
   | 'blocks_jtw_c4_p6_reappear'
   | 'blocks_jtw_c4_p7_hop'
   | 'blocks_jtw_c4_p7_turn'
-  | 'blocks_jtw_c4_p7_reappear';
+  | 'blocks_jtw_c4_p7_reappear'
+  | 'blocks_jtw_c5_p4'
+  | 'blocks_jtw_c5_p5'
+  | 'blocks_jtw_c5_p7'
+  | 'blocks_jtw_c6_p4'
+  | 'blocks_jtw_c6_p5'
+  | 'blocks_jtw_c6_p8';
 
 export interface BlocksProjectMeta {
   id: string;

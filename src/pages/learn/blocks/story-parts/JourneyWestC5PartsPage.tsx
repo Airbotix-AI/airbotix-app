@@ -2,12 +2,15 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 
-import type { Block, BlockOp } from '../blocksModel'
+import { useMe } from '@/auth/useAuth'
+import type { Block } from '../blocksModel'
 import { BlocksRunner } from '../interpreter'
+import { createBlocksProject, listBlocksProjects, loadBlocksProject } from '../blocksApi'
+import { jtwC5C6BuildMatches } from '../jtwC5C6Builds'
 import { Choice, EvidenceGroup, OrderCards } from './partUi'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi'
-import { C5_NEXT, C5_REVERSED_DEMO, C5_ROUTE_ORDER, C5_STATE_DEMO, c5BuildValid, c5Page, c5Portable, type C5EarlyPartId } from './journeyWestC5Program'
+import { C5_NEXT, C5_REVERSED_DEMO, C5_ROUTE_ORDER, C5_STATE_DEMO, c5Page, type C5EarlyPartId } from './journeyWestC5Program'
 
 const MAP = '/learn/story/journey-west'
 const STORY: Record<C5EarlyPartId, string[]> = {
@@ -26,14 +29,25 @@ const MOTIVES = [
 ]
 const STATE_OPTIONS = [{ id: 'small', label: '最后是小，因为最后状态块是 Shrink', correct: true }, { id: 'large', label: '最后一定是最大' }]
 const RESET_OPTIONS = [{ id: 'restore', label: 'Reset 恢复初始大小，不是什么也没做', correct: true }, { id: 'rewind', label: 'Reset 会倒带整个故事' }]
-const PALETTE: Array<{ op: BlockOp; label: string }> = [
-  { op: 'grow', label: '🔼 Grow 2' }, { op: 'wait', label: '⏱ Wait 5' }, { op: 'reset_size', label: '🔄 Reset' }, { op: 'shrink', label: '🔽 Shrink 2' }, { op: 'turn_right', label: '↪️ Turn（干扰）' },
-]
-
 export function JourneyWestC5PartsPage({ partId, previewSleep = async () => undefined }: { partId: C5EarlyPartId; previewSleep?: (ms: number) => Promise<void> }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const me = useMe()
+  const kidId = me.data?.kind === 'kid' ? me.data.sub : null
   const progress = useQuery({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID], queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID) })
+  const studioBuild = useQuery({
+    queryKey: ['jtw-c5-studio-build', partId, kidId],
+    enabled: Boolean(kidId) && (partId.endsWith('p4') || partId.endsWith('p5')),
+    queryFn: async () => {
+      for (const meta of (await listBlocksProjects(kidId!)).slice(0, 12)) {
+        const loaded = await loadBlocksProject(meta.id)
+        if (jtwC5C6BuildMatches(loaded.project, partId) && loaded.storyProgress?.completed?.[partId]) {
+          return { projectId: meta.id, blocks: loaded.project.pages[0].characters[0].scripts[0].blocks }
+        }
+      }
+      return null
+    },
+  })
   const saved = progress.data?.completed.find((entry) => entry.part_id === partId)
   const priorP4 = progress.data?.completed.find((entry) => entry.part_id === 'jtw-s1-c5-p4')
   const unlocked = progress.data?.unlocked_part_ids.includes(partId) ?? false
@@ -41,12 +55,10 @@ export function JourneyWestC5PartsPage({ partId, previewSleep = async () => unde
   const [evidence, setEvidence] = useState<string[]>([])
   const [prediction, setPrediction] = useState<string | null>(null)
   const [reset, setReset] = useState<string | null>(null)
-  const [ops, setOps] = useState<BlockOp[]>([])
   const [trace, setTrace] = useState<string[]>([])
   const [secondTrace, setSecondTrace] = useState<string[]>([])
   const [uses, setUses] = useState<string[]>([])
   const [restored, setRestored] = useState(false)
-  const [priorLoaded, setPriorLoaded] = useState(false)
   const runningTrace = useRef<'first' | 'second'>('first')
 
   if (saved && !restored) {
@@ -55,17 +67,11 @@ export function JourneyWestC5PartsPage({ partId, previewSleep = async () => unde
     setEvidence(selections.motive_evidence ?? selections.environment_evidence ?? [])
     setPrediction((saved.evidence as StoryPartEvidence).prediction ?? null)
     setReset(selections.reset_explanation?.[0] ?? null)
-    setOps((selections.build_ops ?? selections.choice_ops ?? []) as BlockOp[])
     setTrace(selections.run_trace ?? [])
     setSecondTrace(selections.second_run_trace ?? [])
     setUses(selections.use_labels ?? [])
     setRestored(true)
   }
-  if (partId === 'jtw-s1-c5-p5' && priorP4 && !saved && !priorLoaded) {
-    setOps(((priorP4.evidence as StoryPartEvidence).selections.build_ops ?? []) as BlockOp[])
-    setPriorLoaded(true)
-  }
-
   const run = async (blocks: Block[], destination: 'first' | 'second' = 'first') => {
     runningTrace.current = destination
     const values: string[] = []
@@ -79,25 +85,17 @@ export function JourneyWestC5PartsPage({ partId, previewSleep = async () => unde
     if (destination === 'first') setTrace(result); else setSecondTrace(result)
   }
 
-  const addOp = (op: BlockOp) => setOps((current) => [...current, op])
-  const removeOp = (index: number) => setOps((current) => current.filter((_, itemIndex) => itemIndex !== index))
-  const blocksFromOps = (selected: BlockOp[], includeSay = false): Block[] => [
-    { op: 'when_flag' }, ...selected.map((op) => op === 'grow' || op === 'shrink' ? { op, n: 2 } : op === 'wait' ? { op, n: 5 } : { op }),
-    ...(includeSay ? [{ op: 'say' as const, text: '合适才是目标' }] : []), { op: 'end' },
-  ]
-
   const p1Done = route.join('|') === C5_ROUTE_ORDER.join('|') && evidence.includes('wood-bent') && evidence.includes('hammer-awkward') && prediction === 'fit-not-biggest'
   const p2Done = prediction === 'small' && reset === 'restore' && trace.includes('shrink') && trace.some((item) => item.startsWith('final:'))
   const p3Done = reset === 'restore' && trace.at(-1) === 'final:1.8' && secondTrace.at(-1) === 'final:2.2'
-  const p4Done = c5BuildValid(ops) && trace.at(-1) === 'final:1.8'
-  const priorOps = (priorP4?.evidence as StoryPartEvidence | undefined)?.selections.build_ops ?? []
-  const p5Done = evidence.length >= 2 && uses.length === 3 && c5Portable(ops) && ops.join('|') !== priorOps.join('|') && trace.at(-1) === 'final:1.8'
+  const p4Done = Boolean(studioBuild.data)
+  const p5Done = evidence.length >= 2 && uses.length === 3 && Boolean(studioBuild.data)
   const done = ({ 'jtw-s1-c5-p1': p1Done, 'jtw-s1-c5-p2': p2Done, 'jtw-s1-c5-p3': p3Done, 'jtw-s1-c5-p4': p4Done, 'jtw-s1-c5-p5': p5Done })[partId]
 
   const complete = useMutation({
     mutationFn: () => completeStoryPart(JTW_S1_STORY_LINE_ID, partId, { schema_version: 1, prediction: prediction ?? undefined, selections: {
       route_order: route, motive_evidence: partId === 'jtw-s1-c5-p1' ? evidence : [], environment_evidence: partId === 'jtw-s1-c5-p5' ? evidence : [],
-      reset_explanation: reset ? [reset] : [], build_ops: partId === 'jtw-s1-c5-p4' ? ops : [], choice_ops: partId === 'jtw-s1-c5-p5' ? ops : [], run_trace: trace, second_run_trace: secondTrace, use_labels: uses,
+      reset_explanation: reset ? [reset] : [], build_ops: partId === 'jtw-s1-c5-p4' ? studioBuild.data?.blocks.map((block) => block.op) ?? [] : [], choice_ops: partId === 'jtw-s1-c5-p5' ? studioBuild.data?.blocks.map((block) => block.op) ?? [] : [], build_project: studioBuild.data ? [studioBuild.data.projectId] : [], run_trace: trace, second_run_trace: secondTrace, use_labels: uses,
     } }),
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID] }); navigate(MAP, { state: { unlocked: C5_NEXT[partId] } }) },
   })
@@ -111,8 +109,8 @@ export function JourneyWestC5PartsPage({ partId, previewSleep = async () => unde
     {partId === 'jtw-s1-c5-p1' && <><OrderCards title="排列三张故事卡" options={ROUTE_CARDS} order={route} onChange={setRoute} done={route.join('|') === C5_ROUTE_ORDER.join('|')} testId="jtw-c5p1-route" /><EvidenceGroup title="选两项工具不合适的证据" options={MOTIVES} selected={evidence} onToggle={(id) => setEvidence((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} done={evidence.includes('wood-bent') && evidence.includes('hammer-awkward')} testId="jtw-c5p1-evidence" /><Choice option={{ id: 'fit-not-biggest', label: '合适的线索最重要，不是越大越好', correct: true }} active={prediction === 'fit-not-biggest'} onPick={() => setPrediction('fit-not-biggest')} /></>}
     {partId === 'jtw-s1-c5-p2' && <><ChoiceList title="先预测最后大小" options={STATE_OPTIONS} selected={prediction} onSelect={setPrediction} /><button className="btn-pill-primary" disabled={!prediction} data-testid="jtw-c5p2-run" onClick={() => void run(C5_STATE_DEMO)}>Go：运行真实大小轨迹</button><Trace value={trace} /><ChoiceList title="Reset 是什么" options={RESET_OPTIONS} selected={reset} onSelect={setReset} /></>}
     {partId === 'jtw-s1-c5-p3' && <><ChoiceList title="说明 Reset" options={RESET_OPTIONS} selected={reset} onSelect={setReset} /><div className="flex gap-3"><button className="btn-pill-primary" data-testid="jtw-c5p3-first" onClick={() => void run(C5_STATE_DEMO, 'first')}>运行 大→原→小</button><button className="btn-pill-secondary" data-testid="jtw-c5p3-second" onClick={() => void run(C5_REVERSED_DEMO, 'second')}>运行 小→原→大</button></div><Trace value={trace} /><Trace value={secondTrace} /></>}
-    {partId === 'jtw-s1-c5-p4' && <BuildEditor ops={ops} addOp={addOp} removeOp={removeOp} onRun={() => void run(blocksFromOps(ops))} />}
-    {partId === 'jtw-s1-c5-p5' && <><p data-testid="jtw-c5p5-prior">P4 保存链：{(priorP4?.evidence as StoryPartEvidence | undefined)?.selections.build_ops?.join(' → ') ?? '等待 P4'}</p><EvidenceGroup title="找出两项环境限制" options={[{ id: 'narrow-door', label: '窄门', correct: true }, { id: 'curved-waterway', label: '弯曲水道', correct: true }, { id: 'water-curtain', label: '回程水帘', correct: true }]} selected={evidence} onToggle={(id) => setEvidence((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} done={evidence.length >= 2} testId="jtw-c5p5-environment" /><BuildEditor ops={ops} addOp={addOp} removeOp={removeOp} onRun={() => void run(blocksFromOps(ops, true))} /><EvidenceGroup title="为三段状态选择用途" options={[{ id: 'show-origin', label: '看见原貌', correct: true }, { id: 'compare-start', label: '比较初始', correct: true }, { id: 'carry-home', label: '准备携带', correct: true }]} selected={uses} onToggle={(id) => setUses((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} done={uses.length === 3} testId="jtw-c5p5-uses" /></>}
+    {partId === 'jtw-s1-c5-p4' && <StudioBuild partId={partId} projectId={studioBuild.data?.projectId} navigate={navigate} />}
+    {partId === 'jtw-s1-c5-p5' && <><p data-testid="jtw-c5p5-prior">P4 保存链：{(priorP4?.evidence as StoryPartEvidence | undefined)?.selections.build_ops?.join(' → ') ?? '等待 P4'}</p><EvidenceGroup title="找出两项环境限制" options={[{ id: 'narrow-door', label: '窄门', correct: true }, { id: 'curved-waterway', label: '弯曲水道', correct: true }, { id: 'water-curtain', label: '回程水帘', correct: true }]} selected={evidence} onToggle={(id) => setEvidence((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} done={evidence.length >= 2} testId="jtw-c5p5-environment" /><StudioBuild partId={partId} projectId={studioBuild.data?.projectId} navigate={navigate} /><EvidenceGroup title="为三段状态选择用途" options={[{ id: 'show-origin', label: '看见原貌', correct: true }, { id: 'compare-start', label: '比较初始', correct: true }, { id: 'carry-home', label: '准备携带', correct: true }]} selected={uses} onToggle={(id) => setUses((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} done={uses.length === 3} testId="jtw-c5p5-uses" /></>}
     <Trace value={partId === 'jtw-s1-c5-p4' || partId === 'jtw-s1-c5-p5' ? trace : []} />
     {(done || saved) && <section className="rounded-2xl bg-wash-mint p-5" data-testid="jtw-c5-resolved"><strong>世界变化：</strong>{partId === 'jtw-s1-c5-p5' ? '窄门安全线出现；悟空知道合适才是目标。下一次要检查藏在末尾的 Reset。' : '柱影按证据改变，下一段故事已经显现。'}</section>}
     <button className="btn-pill-primary w-full" data-testid="jtw-c5-complete" disabled={(!done && !saved) || complete.isPending} onClick={() => complete.mutate()}>继续到下一 Part</button>
@@ -123,8 +121,14 @@ function ChoiceList({ title, options, selected, onSelect }: { title: string; opt
   return <section><h2 className="mb-2 font-bold">{title}</h2><div className="flex flex-col gap-2">{options.map((option) => <Choice key={option.id} option={option} active={selected === option.id} onPick={() => onSelect(option.id)} />)}</div></section>
 }
 
-function BuildEditor({ ops, addOp, removeOp, onRun }: { ops: BlockOp[]; addOp: (op: BlockOp) => void; removeOp: (index: number) => void; onRun: () => void }) {
-  return <section className="space-y-3" data-testid="jtw-c5-editor"><div className="flex flex-wrap gap-2">{PALETTE.map((item) => <button className="btn-pill-secondary" key={item.op} onClick={() => addOp(item.op)}>{item.label}</button>)}</div><div className="flex flex-wrap gap-2"><span>🚩 Start</span>{ops.map((op, index) => <button key={`${op}-${index}`} onClick={() => removeOp(index)} className="rounded-xl bg-wash-sky px-3 py-2">{op} ×</button>)}<span>🏁 End</span></div><button className="btn-pill-primary" disabled={!c5BuildValid(ops)} data-testid="jtw-c5-run-build" onClick={onRun}>Go：运行孩子搭出的链</button></section>
+function StudioBuild({ partId, projectId, navigate }: { partId: C5EarlyPartId; projectId?: string; navigate: ReturnType<typeof useNavigate> }) {
+  const open = async () => {
+    if (projectId) return navigate(`/learn/blocks/${projectId}`)
+    const p4 = partId.endsWith('p4')
+    const created = await createBlocksProject({ title: p4 ? 'Ruyi Staff State Build' : 'Ruyi Staff Portable Build', template: p4 ? 'blocks_jtw_c5_p4' : 'blocks_jtw_c5_p5' })
+    navigate(`/learn/blocks/${created.id}`)
+  }
+  return <section className="space-y-3" data-testid="jtw-c5-editor"><p>{projectId ? '✓ Blocks Studio项目与真实Go运行已保存' : '在Blocks Studio中亲手搭建并运行；页面按钮不代搭。'}</p><button className="btn-pill-primary" onClick={() => void open()}>{projectId ? '重开真实项目' : '打开Blocks Studio'}</button></section>
 }
 
 function Trace({ value }: { value: string[] }) { return value.length ? <p className="rounded-xl bg-wash-sky p-3" data-testid="jtw-c5-trace">{value.join(' → ')}</p> : null }

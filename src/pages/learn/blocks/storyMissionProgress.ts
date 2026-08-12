@@ -16,6 +16,7 @@ import {
   jtwC4P6BuildMatches,
   jtwC4P7BuildMatches,
 } from './jtwC4DualBuild';
+import { JTW_C5_C6_SAY_CHOICES, JTW_C5_P4_ID, JTW_C5_P5_ID, JTW_C5_P7_ID, JTW_C6_P4_ID, JTW_C6_P5_ID, JTW_C6_P8_ID, jtwC5C6BuildMatches } from './jtwC5C6Builds';
 import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
@@ -576,6 +577,9 @@ function missionBlockMatches(
 }
 
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
+  if ([JTW_C5_P4_ID, JTW_C5_P5_ID, JTW_C5_P7_ID, JTW_C6_P4_ID, JTW_C6_P5_ID, JTW_C6_P8_ID].includes(lessonId)) {
+    return jtwC5C6BuildMatches(project, lessonId);
+  }
   if (lessonId === JTW_C4_P4_LESSON_ID) return jtwC4DualBuildMatches(project);
   if (lessonId === JTW_C4_P5_LESSON_ID) return jtwC4P5ChoiceMatches(project);
   if (lessonId === JTW_C4_P6_LESSON_ID) return jtwC4P6BuildMatches(project);
@@ -921,7 +925,7 @@ export function storyMissionProgramMatches(project: BlocksProject, lessonId: str
 /** Preset dialogue choices the Say editor offers for a mission, if any. */
 export function storyMissionSayChoices(lessonId: string | undefined): readonly string[] | null {
   if (!lessonId) return null;
-  return TINY_STAR_MISSION_CONTRACTS[lessonId]?.allowedSayText ?? null;
+  return JTW_C5_C6_SAY_CHOICES[lessonId] ?? TINY_STAR_MISSION_CONTRACTS[lessonId]?.allowedSayText ?? null;
 }
 
 export function storyMissionScriptId(lessonId: string): string | undefined {

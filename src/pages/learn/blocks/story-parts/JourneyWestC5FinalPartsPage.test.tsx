@@ -9,9 +9,11 @@ import * as blocksApi from '../blocksApi'
 import * as storyApi from './storyPartsApi'
 import { JourneyWestC5FinalPartsPage } from './JourneyWestC5FinalPartsPage'
 import { c5PersonalProject } from './journeyWestC5Program'
+import { C5_P7_TARGETS } from '../jtwC5C6Builds'
 
-vi.mock('../blocksApi', async (original) => ({ ...(await original<typeof blocksApi>()), createBlocksProject: vi.fn(), loadBlocksProject: vi.fn(), saveBlocksProject: vi.fn() }))
+vi.mock('../blocksApi', async (original) => ({ ...(await original<typeof blocksApi>()), createBlocksProject: vi.fn(), listBlocksProjects: vi.fn(), loadBlocksProject: vi.fn() }))
 vi.mock('./storyPartsApi', async (original) => ({ ...(await original<typeof storyApi>()), fetchStoryLineProgress: vi.fn(), completeStoryPart: vi.fn() }))
+vi.mock('@/auth/useAuth', () => ({ useMe: () => ({ data: { kind: 'kid', sub: 'kid-c5' } }) }))
 
 const personal = c5PersonalProject(['grow', 'wait', 'reset_size', 'shrink', 'wait'], 3)
 function renderPart(partId: 'jtw-s1-c5-p6' | 'jtw-s1-c5-p7' | 'jtw-s1-c5-p8') {
@@ -24,7 +26,7 @@ beforeEach(() => {
   vi.mocked(storyApi.completeStoryPart).mockResolvedValue({ part_id: 'done', completed_at: '2026-08-09T00:00:00Z' })
   vi.mocked(blocksApi.createBlocksProject).mockResolvedValue({ id: 'ruyi-vfs' })
   vi.mocked(blocksApi.loadBlocksProject).mockResolvedValue({ project: personal, version: 1, history: { past: [], future: [] }, otherFiles: [] })
-  vi.mocked(blocksApi.saveBlocksProject).mockResolvedValue({ status: 'saved', version: 2 })
+  vi.mocked(blocksApi.listBlocksProjects).mockResolvedValue([])
 })
 afterEach(cleanup)
 
@@ -39,14 +41,16 @@ describe('JourneyWestC5FinalPartsPage', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-c5-final-complete')).toBeEnabled())
   })
 
-  it('saves and reopens the same P7 VFS project before peer evidence', async () => {
-    renderPart('jtw-s1-c5-p7'); await screen.findByText(/真正的 VFS 作品/)
-    fireEvent.click(screen.getByRole('button', { name: /三个停点/ })); fireEvent.click(screen.getByTestId('jtw-c5p7-run'))
-    await waitFor(() => expect(screen.getByTestId('jtw-c5p7-save')).toBeEnabled()); fireEvent.click(screen.getByTestId('jtw-c5p7-save'))
-    await screen.findByText(/VFS 2/); fireEvent.click(screen.getByTestId('jtw-c5p7-reopen'))
+  it('requires the same saved Studio P7 project before peer evidence', async () => {
+    const studioProject = { version: 1 as const, name: 'Ruyi Staff Size Story', lessonId: 'jtw-s1-c5-p7', pages: [{ id: 'jtw-c5-p7-page', background: 'stage', characters: [{ id: 'ruyi-staff', name: 'Staff', emoji: '🦯', start: { gx: 5, gy: 9, size: 2, rot: 0 }, scripts: [{ id: 'story', blocks: C5_P7_TARGETS[0].map((block) => ({ ...block })) }] }] }] }
+    vi.mocked(blocksApi.listBlocksProjects).mockResolvedValue([{ id: 'ruyi-vfs', title: 'Ruyi', kind: 'blocks', status: 'active' }])
+    vi.mocked(blocksApi.loadBlocksProject).mockResolvedValue({ project: studioProject, version: 2, history: { past: [], future: [] }, otherFiles: [], storyProgress: { schemaVersion: 1, completed: { 'jtw-s1-c5-p7': { completedAt: 'now' } } } })
+    renderPart('jtw-s1-c5-p7'); await screen.findByText(/Blocks Studio亲手搭建/)
+    fireEvent.click(screen.getByRole('button', { name: /三个停点/ }))
+    await screen.findByText(/VFS 2/); fireEvent.click(screen.getByRole('button', { name: /运行保存的个人故事/ }))
+    await waitFor(() => expect(screen.getByTestId('jtw-c5p7-reopen')).toBeEnabled()); fireEvent.click(screen.getByTestId('jtw-c5p7-reopen'))
     await screen.findByRole('button', { name: /同伴从真实运行/ }); fireEvent.click(screen.getByRole('button', { name: /同伴从真实运行/ }))
     expect(screen.getByTestId('jtw-c5-final-complete')).toBeEnabled()
-    expect(blocksApi.saveBlocksProject).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'ruyi-vfs', project: expect.objectContaining({ name: 'Ruyi Staff Size Story' }) }))
   })
 
   it('reloads P7 for P8 Retell and leaves chapter completion to the server seal', async () => {
