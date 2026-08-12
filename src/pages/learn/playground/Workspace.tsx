@@ -38,6 +38,7 @@ import { CodeEditorPane } from './panes/CodeEditorPane';
 import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import type { GameEngine } from './buildGamePreview';
+import { DbPane } from './panes/DbPane';
 import { HelpPane } from './panes/HelpPane';
 import { MissionCelebration } from './panes/MissionCelebration';
 import { MissionPane } from './panes/MissionPane';
@@ -124,14 +125,15 @@ interface Wallet {
   stars_balance: number;
 }
 
-type SplitTab = 'chat' | 'code' | 'assets' | 'help' | 'mission';
+type SplitTab = 'chat' | 'code' | 'assets' | 'help' | 'mission' | 'db';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2 / Images / BookOpen / ListChecks), not
-// an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images / BookOpen / ListChecks /
+// Database), not an emoji glyph. `db` is Website Studio only (filtered below).
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
+  { id: 'db', label: 'Database' },
   { id: 'assets', label: 'Assets' },
   { id: 'help', label: 'Guide' },
   { id: 'mission', label: 'Mission' },
@@ -159,9 +161,12 @@ export function Workspace({
   prepShare = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
-  const [splitTab, setSplitTab] = useState<SplitTab>(
-    () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
-  );
+  const [splitTab, setSplitTab] = useState<SplitTab>(() => {
+    const { tab } = readWorkspaceSlice('split', { tab: 'chat' as SplitTab });
+    // The Database tab exists only in Website Studio — a persisted 'db' tab on
+    // a game project (defensive; kinds don't switch) falls back to Chat.
+    return tab === 'db' && kind !== 'website' ? 'chat' : tab;
+  });
   // A request to open a specific asset in the Asset Viewer (from a chat card).
   const [openAsset, setOpenAsset] = useState<{ path: string; nonce: number } | null>(null);
   const openAssetNonce = useRef(0);
@@ -430,9 +435,15 @@ export function Workspace({
   // than no window; it advertises structure that doesn't exist and invites a kid to open it
   // and find nothing. Missions default to no steps, so this is the COMMON case, not an edge.
   const hasMission = (missionProgress.data?.steps?.length ?? 0) > 0;
+  // The Database tab/window/tile exists ONLY in Website Studio — a game's
+  // simulated-backend db doesn't exist, so the surface must not advertise one.
+  const isSite = kind === 'website';
   const splitTabs = useMemo(
-    () => (hasMission ? SPLIT_TABS : SPLIT_TABS.filter((t) => t.id !== 'mission')),
-    [hasMission],
+    () =>
+      SPLIT_TABS.filter(
+        (t) => (t.id !== 'mission' || hasMission) && (t.id !== 'db' || isSite),
+      ),
+    [hasMission, isSite],
   );
 
   // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
@@ -586,6 +597,8 @@ export function Workspace({
             <DesktopIcon id="code" />
             {/* Website Studio: the runner tile reads "Website" (id stays 'game'). */}
             <DesktopIcon id="game" kind={kind} />
+            {/* Website Studio only: the simulated backend's live Database. */}
+            {isSite && <DesktopIcon id="db" />}
             <DesktopIcon id="assets" />
             <DesktopIcon id="help" />
             {hasMission && <DesktopIcon id="mission" />}
@@ -659,6 +672,19 @@ export function Workspace({
               icon={<WINDOW_META.mission.Icon size={16} />}
             >
               <MissionPane projectId={projectId} readOnly={readOnly} />
+            </Window>
+          )}
+          {isSite && (
+            <Window
+              id="db"
+              title={WINDOW_META.db.title}
+              icon={<WINDOW_META.db.Icon size={16} />}
+            >
+              <DbPane
+                files={files}
+                readOnly={readOnly}
+                onOpenDataFile={(path) => handleOpenLocation(path, 1)}
+              />
             </Window>
           )}
         </div>
@@ -740,6 +766,12 @@ export function Workspace({
                   <HelpPane mode={mode} request={helpRequest ?? undefined} />
                 ) : splitTab === 'mission' ? (
                   <MissionPane projectId={projectId} readOnly={readOnly} />
+                ) : splitTab === 'db' && isSite ? (
+                  <DbPane
+                    files={files}
+                    readOnly={readOnly}
+                    onOpenDataFile={(path) => handleOpenLocation(path, 1)}
+                  />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onSaveNow={onSaveNow} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
                 )}

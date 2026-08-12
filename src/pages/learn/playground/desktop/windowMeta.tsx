@@ -1,4 +1,4 @@
-import { BookOpen, Code2, Gamepad2, Globe, Images, ListChecks, MessageSquare } from 'lucide-react';
+import { BookOpen, Code2, Database, Gamepad2, Globe, Images, ListChecks, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -11,6 +11,8 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   assets: { title: 'Asset Viewer', Icon: Images },
   help: { title: 'Guide', Icon: BookOpen },
   mission: { title: 'Mission', Icon: ListChecks },
+  // Website Studio only — the site's simulated backend database, live.
+  db: { title: 'Database', Icon: Database },
 };
 
 /**
@@ -62,7 +64,17 @@ export const WINDOW_ACCENT: Record<PgWindowId, { border: string; icon: string; w
     icon: 'text-brand-mint',
     wash: 'bg-brand-mint/15',
   },
+  // db=sky (shared with Chat — five brand colours, seven windows). Sky is the
+  // "information" read, and the two never sit confusably side by side: the db
+  // tile shows only in Website Studio, right next to the coral Website window,
+  // with the Database glyph keeping it unmistakable next to MessageSquare.
+  db: {
+    border: 'border-brand-sky/50',
+    icon: 'text-brand-sky',
+    wash: 'bg-brand-sky/15',
+  },
 };
 
-/** Display order for the windows in the Taskbar and Desktop. */
-export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets', 'help', 'mission'];
+/** Display order for the windows in the Taskbar and Desktop. `db` sits right
+ *  after the runner it belongs to (Website Studio only — gated by kind). */
+export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'db', 'assets', 'help', 'mission'];

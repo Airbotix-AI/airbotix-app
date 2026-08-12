@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help' | 'mission';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help' | 'mission' | 'db';
 
 export interface WinRect {
   x: number;
@@ -187,6 +187,12 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
     // mission with unfinished steps, so it never steals focus from the chat. A
     // narrow left column, clear of the chat, at the BACK of the z-order.
     mission: closed('mission', 1, missionRectClearOf(chatRect, W, H)),
+    // Database (Website Studio only) — what the site's simulated backend
+    // remembers right now. Closed by default (the kid opens it from the dock);
+    // the tile/window/taskbar button render ONLY for kind='website' (Workspace/
+    // Taskbar gate on kind), but the WinState always exists so store consumers
+    // never crash on a game project.
+    db: closed('db', 1, r(W * 0.55, H * 0.12, Math.min(560, W * 0.36), H * 0.72)),
     // Open + focused + centered as the sole launch window.
     chat: base('chat', 4, chatRect),
   };

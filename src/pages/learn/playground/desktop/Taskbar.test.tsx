@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 import { Taskbar } from './Taskbar';
+import { defaultWindows, usePlaygroundStore } from '../playgroundStore';
 import type { MissionProgress } from '../panes/missionApi';
 
 afterEach(cleanup);
@@ -111,5 +112,29 @@ describe('Taskbar — Share is gated for website projects (interim, pre-P3)', ()
   it('defaults to the game behaviour when no kind is passed', () => {
     renderTaskbar({ projectId: 'p1', kind: undefined });
     expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
+  });
+});
+
+// The Database window button (creative-code-studio-website-prd): Website Studio
+// only — a game must never show it, even when a stale persisted layout carries
+// windows.db.open=true.
+describe('Taskbar — the Database window button is Website Studio only', () => {
+  beforeEach(() => {
+    usePlaygroundStore.setState({
+      windows: defaultWindows(),
+      topZ: 4,
+      layoutMode: 'window',
+    });
+    usePlaygroundStore.getState().openOrFocus('db');
+  });
+
+  it('shows the Database button for an open db window on a WEBSITE', () => {
+    renderTaskbar({ projectId: 'p1', kind: 'website' });
+    expect(screen.getByRole('button', { name: /Database/ })).toBeInTheDocument();
+  });
+
+  it('never shows it on a game — even with the db window stale-open', () => {
+    renderTaskbar({ projectId: 'p1' });
+    expect(screen.queryByRole('button', { name: /Database/ })).not.toBeInTheDocument();
   });
 });

@@ -177,7 +177,12 @@ export function Taskbar({
       {layoutMode === 'window' && (
         <div data-testid="pg-window-buttons" className="flex items-center gap-2 pl-2">
           {WINDOW_ORDER.filter(
-            (id) => windows[id].open && (id !== 'mission' || hasMission),
+            (id) =>
+              windows[id].open &&
+              (id !== 'mission' || hasMission) &&
+              // Database is Website Studio only — never a button on a game,
+              // even if a stale persisted layout left its window open.
+              (id !== 'db' || kind === 'website'),
           ).map((id) => {
             const w = windows[id];
             // Kind-aware label: the runner button reads "Website" in Website

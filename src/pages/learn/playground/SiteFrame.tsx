@@ -18,6 +18,7 @@ import {
   RUN_OBSERVE_MS,
   type RunReport,
 } from './runReport';
+import { useSiteDbStore } from './siteDbStore';
 
 /** How long Home waits for the frame's live-db reply before navigating with
  *  the last-carried db (a crashed/blank page must never wedge the button). */
@@ -87,11 +88,14 @@ export function SiteFrame({
   const [dbState, setDbState] = useState<Record<string, unknown> | null>(null);
 
   // A restart (runKey bump) resets the whole site: back to the home page, db
-  // re-hydrated from the data/*.json seeds, console cleared.
+  // re-hydrated from the data/*.json seeds, console cleared — and the Database
+  // window's snapshot dropped (D-WEB-04: the frame db is back to its seeds, so
+  // a stale snapshot must not read as truth; the pane's next poll repopulates).
   useEffect(() => {
     setPage(SITE_HOME_PAGE);
     setDbState(null);
     setLines([]);
+    useSiteDbStore.getState().reset();
   }, [runKey]);
 
   const { srcDoc, scriptRanges, currentPage } = useMemo(
@@ -102,6 +106,25 @@ export function SiteFrame({
   const scriptRangesRef = useRef(scriptRanges);
   scriptRangesRef.current = scriptRanges;
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Database window seam (siteDbStore): this component is the ONLY thing that
+  // talks to the frame, so it owns the store's refresh trigger — the DbPane's
+  // polling lands here as the same `read-db` control request Home uses. The
+  // frame's reply feeds the store in the message listener below. Fresh mount =
+  // fresh frame = seeds; drop any previous project's snapshot.
+  useEffect(() => {
+    const store = useSiteDbStore.getState();
+    store.reset();
+    store.registerRefresh(() => {
+      iframeRef.current?.contentWindow?.postMessage(
+        { __airbotixSiteControl: true, action: 'read-db' },
+        '*',
+      );
+    });
+    return () => {
+      useSiteDbStore.getState().registerRefresh(null);
+    };
+  }, []);
 
   // Home reads the LIVE db from the frame first (`read-db` control message +
   // `__airbotixSiteDb` reply), so db mutations made since the last link click
@@ -219,10 +242,14 @@ export function SiteFrame({
         return;
       }
       if (isSiteDbMessage(e.data)) {
-        // The frame answered our Home read-db request with its LIVE db.
-        // Unsolicited replies (no pending Home) are ignored.
+        // The frame answered a read-db request with its LIVE db. Every reply —
+        // whether a Home read or a Database-window poll asked — is the same
+        // live snapshot, so it always feeds the Database store; it navigates
+        // Home ONLY when a Home request is actually pending.
+        const db = (e.data.db ?? null) as Record<string, unknown> | null;
+        useSiteDbStore.getState().setDb(db);
         if (homeTimerRef.current) {
-          goHomeRef.current((e.data.db ?? null) as Record<string, unknown> | null);
+          goHomeRef.current(db);
         }
       }
     };

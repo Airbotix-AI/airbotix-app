@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-08-12 (feat: Database window — kids see what their site's backend remembers)
+
+### Added
+
+- **A 7th playground window, `db` ("Database", lucide `Database` glyph, sky accent), for
+  Website Studio ONLY** — desktop tile, floating window, taskbar button and split-mode tab
+  all gate on `kind === 'website'`; a game project stays byte-identical (pinned by
+  regression tests, including a stale-persisted open db window / db split tab). Closed by
+  default; the dock tile (accessible name "Database") opens it.
+- `DbPane` (`site-db-pane`) renders the LIVE in-frame `db` kid-friendly, read-only: one
+  section per collection (`db-collection-<name>` heading with a row/field count), arrays of
+  objects as a union-column table, primitive arrays as a list, objects as key/value rows,
+  values clipped at 120 chars; a friendly empty state; a "live / updated Xs ago" freshness
+  hint; a manual Refresh (`db-refresh`, aria "Refresh database"); and a per-collection
+  "Edit starting data" jump that opens `data/<name>.json` in the code editor (the same
+  open-file seam the agent's `open_file` action uses) plus one teaching line: runtime
+  changes reset on reload, permanent data lives in `data/*.json`.
+- `siteDbStore`: the seam between the pane and the sandboxed frame. SiteFrame (the only
+  thing talking to the iframe) registers the refresh trigger — the existing `read-db`
+  control channel — and writes EVERY `__airbotixSiteDb` reply (Home reads and Database
+  polls carry the same live db); the pane drives polling (~2 s) only while MOUNTED, so a
+  closed Database window polls nothing. Opening the pane ensures a live site frame
+  (`ensureGameRunnerVisible`, no raise). A reload (runKey) drops the snapshot — the pane
+  then shows the fresh seeds, matching D-WEB-04.
+
 ## 2026-08-12 (fix: recover from the stale-chunk deploy race)
 
 ### Fixed

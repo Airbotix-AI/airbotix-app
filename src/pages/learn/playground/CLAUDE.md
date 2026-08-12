@@ -37,7 +37,12 @@ emits an `engine:'website'` RunReport carrying the `buildSitePreview` shim's evi
 (`site.pageLoaded` / real-status `/api` call ledger / button wiring + delegation, the listener
 wrap installed LAST so the shim's own nav listener never reads as delegation / `console.log`
 echo) through the SAME `useVerification` loop — fix turns silent, co-debug the one visible
-surface, **screenshots never captured for sites**. The 2D⇄3D switch never
+surface, **screenshots never captured for sites**. The **Database window** (`PgWindowId 'db'`,
+Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows the live in-frame
+`db` read-only: `DbPane` polls ~2 s while mounted through `siteDbStore`, whose trigger SiteFrame
+owns (the existing `read-db` channel; every reply feeds the store; runKey reset drops the
+snapshot); per-collection `db-collection-<name>` + "Edit starting data" jumps to `data/*.json`.
+The 2D⇄3D switch never
 offers; **Share is hidden until website publish lands (P3)**. Backend contract:
 `website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).
 
@@ -51,7 +56,7 @@ offers; **Share is hidden until website publish lands (P3)**. Backend contract:
 - **`Workspace`** — two layout modes (`LayoutToggle`, default **Window**): floating
   `react-rnd` windows (`desktop/`) OR a `react-resizable-panels` split. Panes:
   `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane` /
-  `MissionPane`.
+  `MissionPane` / `DbPane` (website-only Database).
   Windows = `PgWindowId`+`WINDOW_ORDER`/`WINDOW_META`/`WINDOW_ACCENT` (add an id + pane →
   flows through desktop/taskbar/split; also `DesktopIcon`'s `TILE_SHADOW` + the two
   hardcoded render sites in `Workspace`). `HelpPane` = the **Game Guide** (`panes/help/`:

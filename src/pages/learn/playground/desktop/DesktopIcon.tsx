@@ -16,6 +16,8 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
   // mission shares the mint glow with the Code Editor (six windows, five brand
   // colours — see WINDOW_ACCENT).
   mission: 'shadow-[0_10px_22px_-8px_rgba(61,217,169,0.55)]',
+  // db shares the sky glow with Chat (see WINDOW_ACCENT's db note).
+  db: 'shadow-[0_10px_22px_-8px_rgba(93,174,255,0.55)]',
 };
 
 /**

@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VfsFile } from '../code/codeApi';
 import type { RunReport } from './runReport';
 import { SiteFrame } from './SiteFrame';
+import { useSiteDbStore } from './siteDbStore';
 
 const text = (path: string, content: string): VfsFile => ({
   path,
@@ -160,6 +161,59 @@ describe('SiteFrame', () => {
     expect(onConsole).toHaveBeenLastCalledWith([
       expect.objectContaining({ level: 'info', text: 'ready' }),
     ]);
+  });
+});
+
+// Database window seam (creative-code-studio-website-prd): SiteFrame owns the
+// store's refresh trigger (it is the only thing talking to the frame) and
+// feeds EVERY read-db reply into siteDbStore; a fresh run (runKey) drops the
+// snapshot (D-WEB-04 — the frame db is back to its seeds).
+describe('SiteFrame — the Database window store (siteDbStore)', () => {
+  beforeEach(() => {
+    useSiteDbStore.setState({ db: null, updatedAt: null, refreshTrigger: null });
+  });
+
+  it('registers a refresh trigger that posts read-db into the frame; unmount unregisters', () => {
+    const { unmount } = render(<SiteFrame files={SITE} runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    useSiteDbStore.getState().requestRefresh();
+    expect(postSpy).toHaveBeenCalledWith({ __airbotixSiteControl: true, action: 'read-db' }, '*');
+
+    unmount();
+    expect(useSiteDbStore.getState().refreshTrigger).toBeNull();
+  });
+
+  it('a __airbotixSiteDb reply feeds the store (Home reads and polls alike)', () => {
+    render(<SiteFrame files={SITE} runKey={1} />);
+    post({ __airbotixSiteDb: true, db: { pets: [{ id: 1, adopted: true }] } });
+    expect(useSiteDbStore.getState().db).toEqual({ pets: [{ id: 1, adopted: true }] });
+    expect(useSiteDbStore.getState().updatedAt).not.toBeNull();
+    // …and with no Home request pending the page stays put (poll ≠ navigation).
+    expect(screen.getByTestId('site-nav-page')).toHaveTextContent('index.html');
+  });
+
+  it('a reply from ANOTHER frame is rejected (own-source guard covers the store too)', () => {
+    render(<SiteFrame files={SITE} runKey={1} />);
+    // A real cross-frame message carries a source window ≠ this frame's.
+    fireEvent(
+      window,
+      new MessageEvent('message', {
+        data: { __airbotixSiteDb: true, db: { forged: true } },
+        source: window,
+      }),
+    );
+    expect(useSiteDbStore.getState().db).toBeNull();
+  });
+
+  it('a runKey bump (fresh run) drops the snapshot — the pane repolls the fresh seeds', () => {
+    const { rerender } = render(<SiteFrame files={SITE} runKey={1} />);
+    post({ __airbotixSiteDb: true, db: { pets: [1] } });
+    expect(useSiteDbStore.getState().db).toEqual({ pets: [1] });
+
+    rerender(<SiteFrame files={SITE} runKey={2} />);
+    expect(useSiteDbStore.getState().db).toBeNull();
+    expect(useSiteDbStore.getState().updatedAt).toBeNull();
   });
 });
 
