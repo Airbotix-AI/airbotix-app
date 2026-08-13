@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { ReadOnlyGameFrame } from '../learn/playground/ReadOnlyGameFrame';
+import { ReadOnlySiteFrame } from '../learn/playground/ReadOnlySiteFrame';
 import { ShareGoneError, readPublicSnapshot, type PublicSnapshot } from '../learn/playground/sharingApi';
 import { ReadOnlyBlocksPlayer } from '../learn/blocks/ReadOnlyBlocksPlayer';
 import { BLOCKS_PROJECT_FILE, parseProject } from '../learn/blocks/blocksModel';
@@ -73,9 +74,12 @@ export function PublicPlayPage() {
     );
   }
 
-  // A blocks project carries project.blocks.json; render the read-only blocks
-  // player. Otherwise it's a game → the sandboxed game frame (Phaser or three.js).
+  // The snapshot classifies itself (D-WEB-22): a `website` renders the read-only
+  // SiteFrame; otherwise it's a `game` — a blocks project (carrying
+  // project.blocks.json) renders the read-only blocks player, everything else the
+  // sandboxed game frame (Phaser or three.js).
   const files = snapshot.data?.files;
+  const kind = snapshot.data?.kind;
   const blocksFile = files?.find((f) => f.path === BLOCKS_PROJECT_FILE);
 
   // dvh where supported (mobile Safari/Chrome URL bars overlap 100vh, hiding
@@ -94,6 +98,11 @@ export function PublicPlayPage() {
           <div className="flex h-full w-full items-center justify-center text-white opacity-70">
             Loading…
           </div>
+        ) : kind === 'website' && files && files.length > 0 ? (
+          // The frozen kid website — the read-only site host (D-WEB-22): the same
+          // sandboxed runtime as the studio, its backend proxied to the public
+          // per-share endpoints. `shareId` is defined here (the query ran on it).
+          <ReadOnlySiteFrame files={files} shareId={shareId!} testId="play-site-iframe" />
         ) : blocksFile ? (
           <ReadOnlyBlocksPlayer project={parseProject(blocksFile.content)} />
         ) : files && files.length > 0 ? (

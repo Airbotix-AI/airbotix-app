@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Code2,
   Eye,
+  Globe,
   Hand,
   Heart,
   ImagePlus,
@@ -126,8 +127,21 @@ function changedLineRange(
  * path. The teacher's `fileNotes` note (contextual to the change) is preferred; this
  * is the role-based fallback keyed off the well-known scaffold layout.
  */
-function describeFile(path: string): string {
+function describeFile(path: string, kind: 'game' | 'website' = 'game'): string {
   const name = path.split('/').pop() ?? path;
+  if (kind === 'website') {
+    if (name === 'index.html') return 'The home page of your website.';
+    if (name === 'server.js') return 'The little backend that answers /api calls.';
+    if (name === 'script.js') return 'Code that makes your pages interactive.';
+    if (name === 'style.css') return 'How your website looks.';
+    if (name.endsWith('.html')) return 'A page of your website.';
+    if (name.endsWith('.css')) return 'Styling for how things look.';
+    if (path.startsWith('data/') && name.endsWith('.json'))
+      return 'The starting data your database is built from.';
+    if (name.endsWith('.json')) return 'Settings or data for your website.';
+    if (name.endsWith('.js')) return 'Code that makes your website work.';
+    return 'A file in your website.';
+  }
   if (name === 'main.js') return "The game's starting point — it sets everything up.";
   if (name === 'Boot.js') return 'Gets the game ready before it starts.';
   if (name === 'Game.js') return 'Your main game scene — where the action happens.';
@@ -159,7 +173,7 @@ function fileEmoji(path: string): string {
  * teacher's `fileNotes` for descriptions (falling back to a role-based sentence so
  * a row is never just a path), and `toolsFired` only as a path fallback.
  */
-function buildChangedFiles(item: ChatItem): ChangedFile[] {
+function buildChangedFiles(item: ChatItem, kind: 'game' | 'website' = 'game'): ChangedFile[] {
   const noteByPath = new Map((item.fileNotes ?? []).map((n) => [n.path, n.note]));
   const seen = new Set<string>();
   const out: ChangedFile[] = [];
@@ -168,7 +182,7 @@ function buildChangedFiles(item: ChatItem): ChangedFile[] {
     seen.add(path);
     out.push({
       path,
-      note: noteByPath.get(path) ?? describeFile(path),
+      note: noteByPath.get(path) ?? describeFile(path, kind),
       fromLine: range?.from,
       toLine: range?.to,
     });
@@ -244,6 +258,10 @@ interface AIChatPanelProps {
   /** In-chat CTA handlers (the launch hand-off message renders Run / See code). */
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Project kind (creative-code-studio-website-prd): a `website` has no run
+   *  concept — the run CTA reads "See my site" (refresh + focus the live site)
+   *  instead of "Run game". Defaults to `game`. */
+  kind?: 'game' | 'website';
   /** Open a changed file in the editor and highlight the change (§11.4). */
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   /** Open a finished asset (by VFS path) in the Asset Viewer — the chat "done" card tap (§3). */
@@ -303,6 +321,7 @@ export function AIChatPanel({
   onLowerHand,
   onRunGame,
   onSeeCode,
+  kind = 'game',
   onOpenFile,
   onOpenAsset,
   assetSrc,
@@ -573,6 +592,7 @@ export function AIChatPanel({
                 readOnly={readOnly}
                 onRunGame={onRunGame}
                 onSeeCode={onSeeCode}
+                kind={kind}
                 onSend={onSend}
                 onOpenFile={onOpenFile}
                 onOpenAsset={onOpenAsset}
@@ -857,6 +877,7 @@ function ChatRow({
   readOnly,
   onRunGame,
   onSeeCode,
+  kind = 'game',
   onSend,
   onOpenFile,
   onOpenAsset,
@@ -870,6 +891,8 @@ function ChatRow({
   readOnly?: boolean;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** `website` swaps the run CTA wording (a site is always live — "See my site"). */
+  kind?: 'game' | 'website';
   onSend?: (text: string, opts?: SendOptions) => void;
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
@@ -1037,7 +1060,7 @@ function ChatRow({
           // Per-file "what changed" rows (§11.4): ONE row per changed file
           // (consolidate multiple edits to the same file), each with the teacher's
           // short note and clickable → opens the editor + highlights the change.
-          const changedFiles = buildChangedFiles(item);
+          const changedFiles = buildChangedFiles(item, kind);
           if (changedFiles.length === 0) return null;
           return (
             <div data-testid="file-changes" className="mt-3 flex flex-col gap-2">
@@ -1077,7 +1100,16 @@ function ChatRow({
                 onClick={onRunGame}
                 className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-4 py-2 text-[13px] font-extrabold text-ink shadow-brand-mint transition-transform hover:-translate-y-0.5"
               >
-                <Play size={16} /> Run game
+                {/* A website is always live — the CTA refreshes + focuses it. */}
+                {kind === 'website' ? (
+                  <>
+                    <Globe size={16} /> See my site
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} /> Run game
+                  </>
+                )}
               </button>
             )}
             {item.actions?.includes('code') && (

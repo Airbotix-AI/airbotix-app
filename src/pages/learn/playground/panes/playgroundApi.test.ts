@@ -15,6 +15,8 @@ vi.mock('../../code/codeApi', () => ({ readVfs: vi.fn() }));
 import {
   createGameProject,
   fetchClassAssetDataUrl,
+  fetchProjectSource,
+  fetchProjectSourceUrl,
   listClassAssets,
   placeGameProjectForClass,
   transcribeVoice,
@@ -160,6 +162,32 @@ describe('transcribeVoice (UDL / OD-6 — backend STT, never a direct LLM)', () 
     expect(apiMock).toHaveBeenCalledWith('/llm/transcribe', {
       method: 'POST',
       body: { audio: 'data:audio/webm;base64,AAA' },
+    });
+  });
+});
+
+describe('external data sources (creative-code-studio-website-prd D-WEB-19)', () => {
+  beforeEach(() => apiMock.mockReset());
+
+  it('fetchProjectSource POSTs { params } to the URI-encoded source path (frozen wire contract)', async () => {
+    apiMock.mockResolvedValue({ data: { temperature_c: 21 }, cached: true });
+    await expect(
+      fetchProjectSource('p1', 'weather forecast', { city: 'Sydney', days: 3 }),
+    ).resolves.toEqual({ data: { temperature_c: 21 }, cached: true });
+    expect(apiMock).toHaveBeenCalledWith('/projects/p1/sources/weather%20forecast', {
+      method: 'POST',
+      body: { params: { city: 'Sydney', days: 3 } },
+    });
+  });
+
+  it('fetchProjectSourceUrl POSTs { url } to the open fetch path (frozen wire contract, D-WEB-23)', async () => {
+    apiMock.mockResolvedValue({ data: { setup: 'Knock knock' }, cached: false });
+    await expect(
+      fetchProjectSourceUrl('p1', 'https://api.chucknorris.io/jokes/random'),
+    ).resolves.toEqual({ data: { setup: 'Knock knock' }, cached: false });
+    expect(apiMock).toHaveBeenCalledWith('/projects/p1/sources/fetch', {
+      method: 'POST',
+      body: { url: 'https://api.chucknorris.io/jokes/random' },
     });
   });
 });

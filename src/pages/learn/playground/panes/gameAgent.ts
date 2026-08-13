@@ -172,7 +172,7 @@ export async function streamTurn(
 }
 
 /** A plain-English, typing-free prediction question for the agency/predict beat. */
-export function predictionQuestion(prompt: string): string {
+export function predictionQuestion(prompt: string, kind: 'game' | 'website' = 'game'): string {
   const p = prompt.toLowerCase();
   if (/(faster|speed up|quicker)/.test(p)) return 'Will this make it faster or slower?';
   if (/(slower|slow down)/.test(p)) return 'Will this make it slower or faster?';
@@ -180,7 +180,9 @@ export function predictionQuestion(prompt: string): string {
   if (/(smaller|shrink|tiny)/.test(p)) return 'Will this make it smaller or bigger?';
   if (/(colou?r|background|paint)/.test(p)) return 'What colour do you think it will become?';
   if (/(add|new|more)/.test(p)) return 'What new thing do you think will appear?';
-  return 'What do you think will change in your game?';
+  return kind === 'website'
+    ? 'What do you think will change on your website?'
+    : 'What do you think will change in your game?';
 }
 
 /** True when the page is offline (used for the J2 "internet hiccup" banner). */

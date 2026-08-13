@@ -45,6 +45,10 @@ type ToolCfg = {
 const TOOL_CONFIG: Record<string, ToolCfg> = {
   '/learn/create/blocks': { title: 'My Blocks', line: 'line_b_coding', kind: 'blocks', template: 'blocks_blank', open: (id) => `/learn/blocks/${id}` },
   '/learn/create/code': { title: 'My Project', line: 'line_b_coding', kind: 'code', template: 'blank', open: (id) => `/learn/code/${id}` },
+  // Website Studio is prompt-first like the game: the class id travels in the URL
+  // (make() appends `&class=` — the path already carries `?kind=website`) and the
+  // playground creates + attaches the kind='website' project on prompt submit.
+  '/learn/playground/new?kind=website': { title: 'My Website', line: 'line_b_coding', kind: 'website', noProject: true, open: () => '/learn/playground/new?kind=website' },
   // Art Studio is currently `noClassSheet` (missions are its class path); if the
   // flag ever flips, it opens like the Stage — never the retired project page.
   '/learn/create/image': { title: 'My Picture', line: 'line_a_creative', noProject: true, open: () => '/learn/create/image' },
@@ -128,7 +132,7 @@ export function CreateForClassSheet({
   // When set, the sheet shows the chosen tool's second-level menu (its sub-types)
   // instead of the tool list. `null` = the top-level tool list.
   const [subMenu, setSubMenu] = useState<(typeof CREATE_TOOLS)[number] | null>(null);
-  const allowedSet = new Set<ProjectKind>(allowedKinds?.length ? allowedKinds : ['creative', 'code', 'game', 'blocks']);
+  const allowedSet = new Set<ProjectKind>(allowedKinds?.length ? allowedKinds : ['creative', 'code', 'game', 'blocks', 'website']);
   const allowedTools = CREATE_TOOLS.filter((tool) => {
     // Paused studios never offered for class work; `noClassSheet` tools are live
     // but class work reaches them another way (Art Studio → mission templates).

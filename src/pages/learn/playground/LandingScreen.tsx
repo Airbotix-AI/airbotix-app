@@ -12,10 +12,21 @@ interface StarterChip {
   prompt: string
 }
 
+/** A labelled group of starter chips — the label tells the kid what KIND of
+ *  thing the ideas in the row make (game vs website), so the generic landing's
+ *  mixed hints read as two clear families instead of one ambiguous pile. */
+interface StarterChipGroup {
+  id: 'game' | 'website'
+  /** Row label, e.g. "Games" — hidden when a landing has only one group. */
+  label: string
+  emoji: string
+  chips: readonly StarterChip[]
+}
+
 // Picture/icon themed starter chips (UDL / OD-6): a big emoji icon makes each
 // idea readable to a non-reader, so a kid who can't read the label can still
 // pick a starting point by its picture.
-const STARTER_CHIPS: readonly StarterChip[] = [
+const GAME_CHIPS: readonly StarterChip[] = [
   { emoji: '🏓', label: 'Pong', prompt: 'a pong game' },
   { emoji: '🟩', label: 'Platformer', prompt: 'a platformer where you jump across platforms' },
   { emoji: '🐦', label: 'Flappy', prompt: 'a flappy bird game' },
@@ -23,6 +34,61 @@ const STARTER_CHIPS: readonly StarterChip[] = [
   { emoji: '🌀', label: 'Maze', prompt: 'a maze game where you find the exit' },
   { emoji: '🐱', label: 'Cat', prompt: 'a game with a cute cat hero' },
 ]
+
+// Website Studio starter chips (creative-code-studio-website-prd) — same UDL
+// picture-first shape, site-flavoured ideas.
+const WEBSITE_STARTER_CHIPS: readonly StarterChip[] = [
+  { emoji: '🐶', label: 'My dog', prompt: 'a website about my dog' },
+  { emoji: '🚀', label: 'Space fans', prompt: 'a fan site for space' },
+  { emoji: '🍪', label: 'Cookie shop', prompt: 'a cookie shop website' },
+  { emoji: '🐾', label: 'Pet adoption', prompt: 'a pet adoption website' },
+  { emoji: '📖', label: 'My blog', prompt: 'a blog where I write posts' },
+  { emoji: '🎉', label: 'Club page', prompt: 'a page for my club' },
+]
+
+// The GENERIC landing offers both families in clearly-labelled rows (owner
+// feedback 2026-08-13: the flat mixed row made game vs website hints unclear).
+// The prompts carry the kind words, so D-WEB-11's server-side inference still
+// routes each chip to the right studio.
+const GENERIC_CHIP_GROUPS: readonly StarterChipGroup[] = [
+  { id: 'game', label: 'Games', emoji: '🎮', chips: GAME_CHIPS },
+  {
+    id: 'website',
+    label: 'Websites',
+    emoji: '🌐',
+    chips: [
+      { emoji: '🍪', label: 'Cookie shop', prompt: 'a cookie shop website' },
+      { emoji: '🐶', label: 'My dog', prompt: 'a website about my dog' },
+      { emoji: '🐾', label: 'Pet adoption', prompt: 'a pet adoption website' },
+      { emoji: '📖', label: 'My blog', prompt: 'a blog where I write posts' },
+    ],
+  },
+]
+
+const WEBSITE_CHIP_GROUPS: readonly StarterChipGroup[] = [
+  { id: 'website', label: 'Websites', emoji: '🌐', chips: WEBSITE_STARTER_CHIPS },
+]
+
+// Kind-flavoured landing copy — the placeholder strings are LOAD-BEARING (the
+// cross-repo harness journeys target them verbatim; keep them exact).
+const LANDING_COPY = {
+  game: {
+    placeholder: "Describe a game or website and we'll build it…",
+    ariaLabel: 'Describe a game or website',
+    readAloud: 'Describe a game or website and we will build it.',
+    submitLabel: 'Build it',
+    wordmark: 'Airbotix Playground',
+    chipGroups: GENERIC_CHIP_GROUPS,
+  },
+  website: {
+    placeholder: "Describe a website and we'll build it…",
+    ariaLabel: 'Describe a website',
+    readAloud: 'Describe a website and we will build it.',
+    submitLabel: 'Build website',
+    wordmark: 'Airbotix Website Studio',
+    chipGroups: WEBSITE_CHIP_GROUPS,
+  },
+} as const
 
 /** Read text aloud via the browser's speech synthesis (no LLM, on-device). */
 function speak(text: string) {
@@ -49,7 +115,15 @@ function blobToDataUrl(blob: Blob): Promise<string> {
  * direct LLM). A `ThemeToggle` sits top-right. Submits the trimmed prompt via
  * Enter (no Shift) or the send button, carrying the kid's game name.
  */
-export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void }) {
+export function LandingScreen({
+  onSubmit,
+  kind = 'game',
+}: {
+  onSubmit: (prompt: string) => void
+  /** Project kind — swaps the copy/starter chips between game and website. */
+  kind?: 'game' | 'website'
+}) {
+  const copy = LANDING_COPY[kind]
   // Try-demo seam (try-demo-mode-prd §3 step 1): in the public demo the prompt is
   // pre-filled + locked (read-only textarea; chips/mic hidden so nothing can change
   // it), and the real `submit` is registered so the tour's "Create the game" drives
@@ -122,7 +196,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
 
       {/* Wordmark */}
       <p className="mb-10 text-xl font-extrabold text-pg-text-dim">
-        <span className="text-brand-sky">✦</span> Airbotix Playground
+        <span className="text-brand-sky">✦</span> {copy.wordmark}
       </p>
 
 
@@ -135,8 +209,8 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             onKeyDown={handleKeyDown}
             rows={4}
             readOnly={locked}
-            placeholder="Describe a game and we'll build it…"
-            aria-label="Describe a game"
+            placeholder={copy.placeholder}
+            aria-label={copy.ariaLabel}
             className="w-full resize-none bg-transparent text-lg text-pg-text placeholder:text-pg-text-muted focus:outline-none"
           />
 
@@ -144,7 +218,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
             {/* Read-aloud (UDL): speaks the prompt help for non-readers. */}
             <button
               type="button"
-              onClick={() => speak(prompt.trim() || 'Describe a game and we will build it.')}
+              onClick={() => speak(prompt.trim() || copy.readAloud)}
               aria-label="Read aloud"
               data-testid="read-aloud"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-pg-border bg-pg-surface text-pg-text-dim transition-colors hover:border-brand-sky"
@@ -177,7 +251,7 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
               type="button"
               onClick={submit}
               disabled={locked || !prompt.trim()}
-              aria-label="Build game"
+              aria-label={copy.submitLabel}
               className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sky text-xl text-canvas-pure transition-opacity disabled:opacity-40"
             >
               →
@@ -186,19 +260,38 @@ export function LandingScreen({ onSubmit }: { onSubmit: (prompt: string) => void
         </div>
       </div>
 
-      {/* Starter chips — hidden when the demo locks the prompt (they'd change it). */}
+      {/* Starter chips — one clearly-labelled row per kind (Games / Websites) so
+          the mixed generic landing reads as two families, not one ambiguous pile.
+          The label is dropped when a landing offers a single group (e.g. the
+          explicit Website Studio landing). Hidden when the demo locks the prompt. */}
       {!locked && (
-      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        {STARTER_CHIPS.map((chip) => (
-          <button
-            key={chip.label}
-            type="button"
-            data-testid="starter-chip"
-            onClick={() => setPrompt(chip.prompt)}
-            className="rounded-full border border-pg-border bg-pg-surface px-4 py-2 text-sm font-bold text-pg-text transition-colors hover:border-brand-sky"
+      <div className="mt-7 flex flex-col items-center gap-3">
+        {copy.chipGroups.map((group) => (
+          <div
+            key={group.id}
+            data-testid={`starter-group-${group.id}`}
+            className="flex flex-wrap items-center justify-center gap-3"
           >
-            <span aria-hidden="true">{chip.emoji}</span> {chip.label}
-          </button>
+            {copy.chipGroups.length > 1 && (
+              <span
+                data-testid={`starter-group-label-${group.id}`}
+                className="select-none rounded-full bg-pg-surface-2 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-pg-text-dim"
+              >
+                <span aria-hidden="true">{group.emoji}</span> {group.label}
+              </span>
+            )}
+            {group.chips.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                data-testid="starter-chip"
+                onClick={() => setPrompt(chip.prompt)}
+                className="rounded-full border border-pg-border bg-pg-surface px-4 py-2 text-sm font-bold text-pg-text transition-colors hover:border-brand-sky"
+              >
+                <span aria-hidden="true">{chip.emoji}</span> {chip.label}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
       )}

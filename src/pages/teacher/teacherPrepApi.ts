@@ -6,13 +6,15 @@ import { api } from '@/lib/api';
 // teacher-console + app share one localhost refresh cookie across ports; a create fired
 // from teacher-console can race the app tab's refresh rotation and 401.)
 
-export type PrepProjectKind = 'blocks' | 'code';
+export type PrepProjectKind = 'blocks' | 'code' | 'website';
 
-// Sensible default titles/templates for the create-then-open kinds (Blocks / Web Code).
-// Mirrors the kid defaults ("My Blocks" / "My Project" → blocks_blank / blank).
+// Sensible default titles/templates for the create-then-open kinds (Blocks /
+// Web Code / Website Studio). Mirrors the kid defaults ("My Blocks" / "My
+// Project" → blocks_blank / blank); a website prep seeds the blank site.
 const PREP_DEFAULTS: Record<PrepProjectKind, { title: string; template: string }> = {
   blocks: { title: 'Blocks prep project', template: 'blocks_blank' },
   code: { title: 'Web Code prep project', template: 'blank' },
+  website: { title: 'Website prep project', template: 'website_blank' },
 };
 
 /**

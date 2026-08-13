@@ -37,6 +37,8 @@ interface ChatPaneProps {
   onLowerHand?: () => void;
   onRunGame?: () => void;
   onSeeCode?: () => void;
+  /** Project kind — `website` swaps the run CTA wording ("See my site"). */
+  kind?: 'game' | 'website';
   onOpenFile?: (path: string, fromLine?: number, toLine?: number) => void;
   onOpenAsset?: (path: string) => void;
   assetSrc?: (path: string) => string | undefined;

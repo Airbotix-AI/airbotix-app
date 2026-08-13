@@ -730,3 +730,56 @@ describe('AIChatPanel — lifted composer draft survives a remount', () => {
     expect((screen.getByTestId('chat-input') as HTMLTextAreaElement).value).toBe('');
   });
 });
+
+// Website Studio (creative-code-studio-website-prd): a website has NO run
+// concept — the launch hand-off's run CTA reads "See my site" (refresh + focus
+// the always-live site) instead of "Run game". Games are unchanged.
+describe('AIChatPanel — the run CTA wording is kind-aware', () => {
+  const seed: ChatItem[] = [
+    { id: 's1', role: 'agent', text: 'Here it is!', actions: ['run', 'code'] },
+  ];
+
+  it('a game bubble offers "Run game"', () => {
+    const onRunGame = vi.fn();
+    render(<AIChatPanel chat={seed} busy={false} error={null} onSend={vi.fn()} onRunGame={onRunGame} />);
+    fireEvent.click(screen.getByRole('button', { name: /run game/i }));
+    expect(onRunGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('a website bubble offers "See my site" (never "Run game")', () => {
+    const onRunGame = vi.fn();
+    render(
+      <AIChatPanel chat={seed} busy={false} error={null} onSend={vi.fn()} onRunGame={onRunGame} kind="website" />,
+    );
+    expect(screen.queryByRole('button', { name: /run game/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /see my site/i }));
+    expect(onRunGame).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The changed-file fallback note is kind-aware too: a website turn must never
+// describe index.html as "A file in your game." (manual verification 2026-08-11).
+describe('AIChatPanel — changed-file fallback notes are kind-aware', () => {
+  const turn = (id: string): ChatItem[] => [
+    {
+      id,
+      role: 'agent',
+      text: 'Done!',
+      // A changed file WITHOUT a file_note → the fallback description renders.
+      toolsFired: ['index.html'],
+    } as ChatItem,
+  ];
+
+  it('website: index.html falls back to website wording', () => {
+    render(
+      <AIChatPanel chat={turn('w1')} busy={false} error={null} onSend={vi.fn()} kind="website" />,
+    );
+    expect(screen.getByText('The home page of your website.')).toBeTruthy();
+    expect(screen.queryByText(/in your game/i)).toBeNull();
+  });
+
+  it('game: wording unchanged', () => {
+    render(<AIChatPanel chat={turn('g1')} busy={false} error={null} onSend={vi.fn()} />);
+    expect(screen.queryByText(/your website/i)).toBeNull();
+  });
+});

@@ -15,18 +15,83 @@
 Kids vibe-code 2D **Phaser** games that run **locally, sandboxed**. A specialization
 of the code studio (`../code/`) — same AI loop + iframe model, runtime hosts Phaser +
 a game canvas. Under the kid Learn surface (`/learn/*`, `<ProtectedRoute kind="kid">`).
+The SAME studio also hosts **Website Studio** (`Project.kind='website'`,
+`/learn/playground/new?kind=website`): the runner mounts `SiteFrame` (`buildSitePreview.ts`,
+`sandbox="allow-scripts"` ONLY, `iframe[data-site-frame]`) instead of `GameFrame` — VFS-owned
+real `.html` pages (incl. their `<html>`/`<body>` attrs) lifted via DOMParser into a
+**studio-owned skeleton** so the shims + the deny-by-default CSP precede every kid byte (never
+locate `<head>` by regex in untrusted markup — that displacement disarms BOTH fetch fences). The
+CSP blocks every SUBRESOURCE vector + XHR/WS/beacon; it does NOT stop frame SELF-navigation
+(known residual, documented in-file); violations surface as kid-readable console lines.
+`server.js` app.get/app.post routes are served by an in-frame fetch shim (/api-only, no real
+network; async handlers awaited); the db is **REAL server-side SQLite per project** (D-WEB-15):
+in-frame `await db.query(sql, params)` rides the sql postMessage channel to `SiteFrame`, which
+proxies it to `POST /projects/:id/db/query` with the kid's session (frame token-free; reader
+replies resolve to the ROWS array, writes to `{changes, lastInsertRowid}`; SQL errors
+console.error the backend's kid-readable message verbatim). D-WEB-19: `await sources.get(name,
+params)` reaches curated EXTERNAL data the SAME way (`action:'source'`, same per-document token;
+in-flight cap 8 enforced in the shim AND studio-side in `SiteFrame` — the studio cap is the trust
+fence, forged postMessages bypass the shim) — `SiteFrame` forwards to
+`POST /projects/:id/sources/:name` and the BACKEND fetches the provider (sandbox keeps zero
+egress; scalar params validated studio-side; SOURCE_* / SOURCE_BUSY errors — any ApiError
+message — surface verbatim). D-WEB-23: `await sources.fetch(url)` is the OPEN door — ANY public
+https JSON API via `action:'source-fetch'` (same token + reply envelope, SHARED in-flight cap,
+absolute-https URL checked in the shim AND studio-side) → `POST /projects/:id/sources/fetch`
+(share host: `POST /play/:shareId/sources/fetch`, stateless); the backend's SSRF fence + the
+super-admin domain blocklist gate it server-side. Data PERSISTS across navs/reloads/
+sessions; TOP-LEVEL `data/*.json` are the SEEDS the backend rebuilds from on the explicit
+Reset. A website has **NO run concept**: the site is ALWAYS mounted + live-rebuilds from the
+VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's `run_game` — adopts
+files immediately as a fresh page load; the db keeps its data). No
+play/pause/FPS/debug chrome anywhere (runner=Reload only; editor ▶ = "Reload site",
+still commit+run; chat CTA = "See my site"; the runner window/tile/taskbar label reads "Website"
+via `windowDisplay`, id 'game' stable). Websites **verify like games** (D-WEB-13): a
+`verification:'pending'` turn's auto-restart gives a fresh runKey, `SiteFrame` observes ~4 s and
+emits an `engine:'website'` RunReport carrying the `buildSitePreview` shim's evidence ledgers
+(`site.pageLoaded` / real-status `/api` call ledger / button wiring + delegation, the listener
+wrap installed LAST so the shim's own nav listener never reads as delegation / `console.log`
+echo) through the SAME `useVerification` loop — fix turns silent, co-debug the one visible
+surface, **screenshots never captured for sites**. The **Database window** (`PgWindowId 'db'`,
+Website Studio ONLY — tile/window/taskbar/split-tab all gate on kind) shows the server-side db:
+`DbPane` polls REST introspection ~2 s while mounted through `siteDbStore`
+(`GET /projects/:id/db/tables` + first rows per table; a superseded/failed poll never overwrites);
+D-WEB-18 master–detail: a `db-table-<name>` sidebar (live row counts + `database.sqlite` size line,
+first table auto-selected; selection by NAME survives polls, a vanished pick falls back to first) +
+the SELECTED table's grid (real columns + types) wrapped in `db-collection-<name>`; the toolbar
+holds Refresh/freshness, the selected table's "Edit starting data" `data/*.json` jump
+(`db-edit-<name>`) + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
+(The D-WEB-19 "Data sources" discovery group was REMOVED 2026-08-13 — with the open
+`sources.fetch(url)` door the curated listing earned no sidebar space; the AI + Website Guide
+teach sources. The catalog itself, `sources.get`, and the super-admin page are unchanged.)
+D-WEB-16: tables are **EDITABLE, rowid-keyed** (`DbTable`: inline cell edit / add row / two-step
+delete, all parameterized through the existing `/db/query`; rows carry `__rowid__`, never displayed;
+`has_rowid:false` → read-only note; readOnly viewers see NO edit affordances) and the code editor's
+explorer pins a VIRTUAL `database.sqlite` (`explorer-database-file`, render-layer only — NEVER in
+the VFS/agent file list) whose click opens/focuses this window instead of a text tab.
+The 2D⇄3D switch never
+offers. **Share ships for websites (D-WEB-22)**, same lifecycle as games: `ShareLinkPanel`
+is kind-aware and the public `/play/:shareId` host renders a read-only `SiteFrame`
+(`ReadOnlySiteFrame`) whose `db.query`/`sources.get` proxy hits the NO-AUTH per-share
+endpoints (`play/:shareId/db/query` + `/sources/:name`), threading an opaque per-visitor
+`session` (ephemeral db clone). The studio + public frames share ONE proxy seam
+(`useSiteBackendChannel`, a `SiteBackendTransport` is the only difference). Backend contract:
+`website-prompt.ts` + `run-report.ts` `SiteReportSchema` (keep in sync).
 
 ## 3-phase flow (`PlaygroundApp.tsx`: `landing → generating → workspace`)
 
 - **`LandingScreen`** — prompt box (`.pg-glow` halo) + starter chips → submit.
-- **`GeneratingScreen`** — fires the **streaming** first turn (`streamAgentTurn`, SSE
-  `POST …/code/turn/stream`); thinking → building → done reveal files as they stream; a stream
-  failure falls back to `resolveProjectFiles` (never trapped). Entering the workspace
-  **auto-runs** the game, so the first build plays and gets verified (D-PAP-40).
+- **`GeneratingScreen`** — mounts the SAME tick as the landing submit (the create POST runs
+  behind it); on the GENERIC no-`?kind` landing it opens KIND-NEUTRAL (`build-stage-neutral`,
+  no game/website vocabulary) while the server routes game-vs-website, crossfading to the kind
+  stage on arrival — explicit-kind flows never see it (D-WEB-17). Fires the **streaming** first
+  turn (`streamAgentTurn`, SSE `POST …/code/turn/stream`); thinking → building → done reveal
+  files as they stream; a stream failure falls back to `resolveProjectFiles` (never trapped).
+  Entering the workspace **auto-runs** the game, so the first build plays and gets verified
+  (D-PAP-40).
 - **`Workspace`** — two layout modes (`LayoutToggle`, default **Window**): floating
   `react-rnd` windows (`desktop/`) OR a `react-resizable-panels` split. Panes:
   `ChatPane` / `CodeEditorPane` / `GameRunnerPane` / `AssetViewerPane` / `HelpPane` /
-  `MissionPane`.
+  `MissionPane` / `DbPane` (website-only Database).
   Windows = `PgWindowId`+`WINDOW_ORDER`/`WINDOW_META`/`WINDOW_ACCENT` (add an id + pane →
   flows through desktop/taskbar/split; also `DesktopIcon`'s `TILE_SHADOW` + the two
   hardcoded render sites in `Workspace`). `HelpPane` = the **Game Guide** (`panes/help/`:

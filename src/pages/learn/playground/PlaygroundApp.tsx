@@ -137,6 +137,20 @@ export function PlaygroundApp({
   // kid still sees the initial prompt. After the prompt creates the real game, we
   // attach it to this class via the placement endpoint before entering the studio.
   const createForClassId = isNew ? searchParams.get('class') : null;
+  // Website Studio (creative-code-studio-website-prd): `/learn/playground/new
+  // ?kind=website` arms the SAME prompt-first flow to create a `kind='website'`
+  // project (site runtime instead of a game). Existing projects load their kind
+  // from the backend below; the default stays `game`.
+  const [projectKind, setProjectKind] = useState<'game' | 'website'>(
+    isNew && searchParams.get('kind') === 'website' ? 'website' : 'game',
+  );
+  // D-WEB-17 (neutral-first loading): the generic landing's create POST is in
+  // flight — the generating screen renders but fires nothing until it resolves…
+  const [creating, setCreating] = useState(false);
+  // …and while the SERVER is still routing game-vs-website (D-WEB-11) the screen
+  // shows the kind-NEUTRAL stage, morphing when the decision arrives. Explicit
+  // ?kind flows never set this, so their stage is right from the first frame.
+  const [kindPending, setKindPending] = useState(false);
 
   // Live focus presence (D-LIVE-3): report the kid's open game to the teacher.
   // No-op in readOnly (teacher viewer) or outside a live class. Title is omitted
@@ -266,6 +280,10 @@ export function PlaygroundApp({
       .then((p) => {
         if (!alive) return;
         if (p.engine === 'three' || p.engine === 'phaser') setEngine(p.engine);
+        // Website Studio (creative-code-studio-website-prd): a `website` project
+        // renders the SiteFrame runtime. `CodeProject.kind` is typed for the code
+        // studio, so read the raw wire kind.
+        if ((p as { kind?: string }).kind === 'website') setProjectKind('website');
         // Workshop-free-AI waiver (D-WFA-01) — free-workshop window is live for this
         // project → the chat drops the star cost and shows "Free during workshop".
         setAiFreeNow(p.ai_free_now ?? false);
@@ -485,18 +503,38 @@ export function PlaygroundApp({
         <>
       {phase === 'landing' && (
         <LandingScreen
+          kind={projectKind}
           onSubmit={async (p) => {
             setPrompt(p);
-            // For a NEW game, create the real backend `kind='game'` project now —
+            // Generic landing (no explicit ?kind, kid path only): the SERVER
+            // routes game-vs-website from the idea with one classify-model call
+            // (D-WEB-11, LLM-backed — "create a todo list" is a website even
+            // with no web word). We send infer_kind and adopt the created
+            // project's kind below. An explicit ?kind (the Website card / class
+            // sheet) always wins; teacher prep keeps its explicit tiles.
+            const wantsKindInference =
+              isNew && !prepClassId && searchParams.get('kind') === null;
+            const submitKind = projectKind;
+            // D-WEB-17: loading feedback is SAME-TICK with the Enter press — the
+            // generating screen mounts NOW and the create POST (which may spend
+            // seconds classifying game-vs-website server-side) runs BEHIND it,
+            // never before it. While that routing is pending the screen shows
+            // the kind-NEUTRAL stage (kindPending → kind='neutral').
+            setPhase('generating');
+            // For a NEW game/website, create the real backend project now —
             // AFTER the prompt — then load it. The **prompt is the project name**
             // (capped to a sensible length). Falls back to a throwaway local
             // scaffold if the backend isn't ready, so the studio still opens.
             if (isNew && !createdId) {
+              setKindPending(wantsKindInference);
+              setCreating(true);
               try {
                 // The prompt IS the title; the backend infers 2D/3D from it and
                 // seeds the matching blank starter (no hardcoded template — that
                 // forced every game, incl. "make a 3D …", into Phaser/2D).
-                const title = p.trim().slice(0, 80) || 'My game';
+                // A website seeds `website_blank` (backend default for the kind).
+                const title =
+                  p.trim().slice(0, 80) || (submitKind === 'website' ? 'My website' : 'My game');
                 let newId: string;
                 if (prepClassId) {
                   // TEACHER prep: create a teacher-owned prep game (0 Stars, class-
@@ -506,7 +544,18 @@ export function PlaygroundApp({
                   newId = game.id;
                   window.history.replaceState(null, '', `/teacher/prep/${newId}`);
                 } else {
-                  const game = await createGameProject({ kidId, familyId, title });
+                  const game = await createGameProject({
+                    kidId,
+                    familyId,
+                    title,
+                    ...(submitKind === 'website' ? { kind: 'website' as const } : {}),
+                    ...(wantsKindInference ? { inferKind: true } : {}),
+                  });
+                  // Adopt the server's routing decision (D-WEB-11) so the
+                  // generating copy + workspace mount the right runtime.
+                  if (wantsKindInference && game.kind === 'website') {
+                    setProjectKind('website');
+                  }
                   if (createForClassId) {
                     await placeGameProjectForClass({ projectId: game.id, classId: createForClassId });
                   }
@@ -516,12 +565,15 @@ export function PlaygroundApp({
                 setCreatedId(newId);
               } catch {
                 // Can't create the project on the backend → no local fallback;
-                // show the error and send the kid back to project creation.
+                // show the error and send the kid back to project creation (the
+                // loadError screen replaces the generating phase in render).
                 setLoadError('load');
                 return;
+              } finally {
+                setCreating(false);
+                setKindPending(false);
               }
             }
-            setPhase('generating');
           }}
         />
       )}
@@ -529,7 +581,11 @@ export function PlaygroundApp({
         <GeneratingScreen
           prompt={prompt}
           projectId={projectId}
+          creating={creating}
           mode={mode}
+          // D-WEB-17: neutral while the server's game-vs-website routing is in
+          // flight on the generic landing; the screen crossfades on arrival.
+          kind={kindPending ? 'neutral' : projectKind}
           onDone={async (f, ft, blocked) => {
             // The AI's first turn (if any) seeds the workspace chat history.
             setFirstTurn(ft);
@@ -612,6 +668,7 @@ export function PlaygroundApp({
           runKey={runKey}
           running={running}
           engine={engine}
+          kind={projectKind}
           onEngineChange={setEngine}
           aiFreeNow={aiFreeNow}
           onApplyFiles={applyTurnFiles}
@@ -702,11 +759,11 @@ function LoadErrorScreen({
       ? {
           title: 'Something went wrong',
           body:
-            "We couldn't start your game just now — our game studio is having a moment. " +
+            "We couldn't start the studio just now — it's having a moment. " +
             'Please try again in a little while.',
         }
       : {
-          title: "We couldn't open this game",
+          title: "We couldn't open this project",
           body:
             'It may have been removed, or there was a problem loading it. ' +
             "Let's head back so you can make or pick another one.",

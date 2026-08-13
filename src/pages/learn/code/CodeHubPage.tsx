@@ -15,6 +15,20 @@ import {
   type CodeTemplate,
 } from './codeApi';
 
+// Website Studio starting point (creative-code-studio-website-prd): opens the
+// playground's prompt-first landing with the website kind armed — the real
+// `kind='website'` project (default template `website_blank`) is created when
+// the kid submits the first prompt, exactly like the game card's flow. Emoji
+// glyph only (no image assets); testid `hub-template-website` is a harness
+// journey contract.
+const WEBSITE_TEMPLATE = {
+  id: 'website',
+  emoji: '🌐',
+  title: 'Website Studio',
+  desc: 'Build a real website with pages AND its own little backend.',
+  color: 'sky',
+} as const;
+
 /** Creative Code Studio hub — `/learn/create/code` (learn-code-studio-prd.md §2.1). */
 export function CodeHubPage() {
   const me = useMe();
@@ -118,6 +132,25 @@ export function CodeHubPage() {
             </div>
           </button>
         ))}
+        {/* Website Studio — prompt-first like the game card: the landing screen
+            creates the kind='website' project on prompt submit, not here. */}
+        <button
+          type="button"
+          data-testid="hub-template-website"
+          disabled={busy !== null}
+          onClick={() => nav('/learn/playground/new?kind=website')}
+          className={`pack-card ${WEBSITE_TEMPLATE.color} text-left`}
+        >
+          <span className="pack-blob" />
+          <div className="relative">
+            <div className="text-[36px]">{WEBSITE_TEMPLATE.emoji}</div>
+            <h3 className="mt-2 text-[22px] font-bold leading-tight">{WEBSITE_TEMPLATE.title}</h3>
+            <p className="mt-1.5 text-[13px] opacity-90">{WEBSITE_TEMPLATE.desc}</p>
+            <div className="mt-6 rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5 inline-block text-[11px] font-bold uppercase tracking-[0.10em]">
+              {TEMPLATE_SEED_COST}★ start
+            </div>
+          </div>
+        </button>
       </div>
 
       {error && (

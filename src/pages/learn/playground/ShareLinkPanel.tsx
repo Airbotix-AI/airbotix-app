@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { Check, Copy, Gamepad2, Hourglass, Link2, Share2 } from 'lucide-react';
+import { Check, Copy, Gamepad2, Globe, Hourglass, Link2, Share2 } from 'lucide-react';
 
 import {
   approveShareLink,
@@ -24,6 +24,13 @@ interface ShareLinkPanelProps {
    * drops the kid "ask a grown-up" framing and there is no pending/waiting beat.
    */
   prepMode?: boolean;
+  /**
+   * The project kind (creative-code-studio-website-prd D-WEB-22). The share
+   * lifecycle is IDENTICAL for games and websites — only the copy differs
+   * ("see your website" vs "play your game") and the count glyph (a globe vs a
+   * gamepad). Defaults to `game` (unchanged behaviour for every game caller).
+   */
+  kind?: 'game' | 'website';
 }
 
 /**
@@ -42,7 +49,14 @@ interface ShareLinkPanelProps {
  * This component owns NO play surface; it just produces/manages the link. The
  * public play page (`/play/:shareId`) is the only place a snapshot actually plays.
  */
-export function ShareLinkPanel({ projectId, prepMode = false }: ShareLinkPanelProps) {
+export function ShareLinkPanel({ projectId, prepMode = false, kind = 'game' }: ShareLinkPanelProps) {
+  const isSite = kind === 'website';
+  // Kind-aware copy — the ONLY difference between a game share and a website
+  // share (the request/approve/revoke/claps flow is identical, D-WEB-22).
+  const noun = isSite ? 'website' : 'game';
+  const verb = isSite ? 'see' : 'play';
+  // The engagement-count glyph: a globe for a website, a gamepad for a game.
+  const CountIcon = isSite ? Globe : Gamepad2;
   const qc = useQueryClient();
   // Try-demo (D-DEMO-09): `null` (off) outside a /try/* page. The tour drives this
   // real panel through `bindShareControls` and owns its open/close lifecycle.
@@ -203,7 +217,7 @@ export function ShareLinkPanel({ projectId, prepMode = false }: ShareLinkPanelPr
           <span className="inline-flex items-center gap-2">
             Link live
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-mint/20 px-2 py-0.5 text-[12px] font-bold text-pg-text">
-              <Gamepad2 size={12} aria-hidden /> {plays}
+              <CountIcon size={12} aria-hidden /> {plays}
             </span>
           </span>
         ) : status === 'pending' ? (
@@ -231,8 +245,8 @@ export function ShareLinkPanel({ projectId, prepMode = false }: ShareLinkPanelPr
             {status !== 'active' && (
               <p className="text-[12px] text-pg-text-dim mb-3" data-testid="citizenship-note">
                 {prepMode
-                  ? 'Anyone with this link can play this game — no sign-in needed.'
-                  : 'Anyone with this link can play your game. Don’t put your real name or photo in it.'}
+                  ? `Anyone with this link can ${verb} this ${noun} — no sign-in needed.`
+                  : `Anyone with this link can ${verb} your ${noun}. Don’t put your real name or photo in it.`}
               </p>
             )}
 
@@ -298,9 +312,9 @@ export function ShareLinkPanel({ projectId, prepMode = false }: ShareLinkPanelPr
                   </div>
                 </div>
 
-                {/* How many times the game was played (J8). */}
+                {/* How many times the game/website was opened (J8 / D-WEB-22). */}
                 <div data-testid="share-stats" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-pg-text-dim">
-                  <Gamepad2 size={14} aria-hidden className="text-brand-mint" />
+                  <CountIcon size={14} aria-hidden className="text-brand-mint" />
                   {plays} {plays === 1 ? 'play' : 'plays'}
                 </div>
 

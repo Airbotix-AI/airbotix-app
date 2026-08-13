@@ -1,7 +1,9 @@
-// Post-apply verification loop driver (D-PAP-40/44, FE-2). After an applied
-// game turn (`verification: 'pending'`), the studio runs the game instrumented;
-// GameFrame emits a RunReport which this hook POSTs for the armed turn. The
-// backend adjudicates:
+// Post-apply verification loop driver (D-PAP-40/44, FE-2; websites D-WEB-13).
+// After an applied turn (`verification: 'pending'`), the studio runs the
+// project instrumented; GameFrame (games) or SiteFrame (websites — the
+// always-live model still gets a deterministic fresh-run window, because every
+// changed turn / resume-verify bumps runKey) emits a RunReport which this hook
+// POSTs for the armed turn. The backend adjudicates:
 //   - `fixing`   → apply the fix turn's files SILENTLY (adopt version), restart,
 //                  re-arm for the fix turn at attempt+1. NO chat message — the
 //                  kid sees nothing (product decision: silent on auto-fix).
@@ -139,8 +141,11 @@ export function useVerification(opts: UseVerificationOptions): Verification {
       // Screenshot evidence (D-HARN-21b): attached ONLY when the backend asked
       // for it, and ANY capture failure (timeout / decode / oversize / a throwing
       // dep) omits the field — the report must still post.
+      // Websites never capture (D-WEB-13): there is no game canvas to composite
+      // and the backend adjudicates sites on the report ledgers alone — even
+      // when `screenshot_requested` is true, skip and post without the field.
       const withEvidence = async (): Promise<RunReport> => {
-        if (!armed.screenshot) return report;
+        if (!armed.screenshot || report.engine === 'website') return report;
         try {
           const screenshot = await deps.captureScreenshot();
           return screenshot ? { ...report, screenshot } : report;

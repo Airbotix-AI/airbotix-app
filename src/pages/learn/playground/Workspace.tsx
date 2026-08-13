@@ -28,7 +28,7 @@ import type { SaveResult } from './projectPersistence';
 import { DesktopIcon } from './desktop/DesktopIcon';
 import { Taskbar } from './desktop/Taskbar';
 import { Window } from './desktop/Window';
-import { WINDOW_META } from './desktop/windowMeta';
+import { WINDOW_META, windowDisplay } from './desktop/windowMeta';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { AssetViewerPane } from './panes/AssetViewerPane';
 import { listClassAssets } from './panes/playgroundApi';
@@ -38,6 +38,7 @@ import { CodeEditorPane } from './panes/CodeEditorPane';
 import { buildExplainPrompt } from './panes/explainPrompt';
 import { GameRunnerPane } from './panes/GameRunnerPane';
 import type { GameEngine } from './buildGamePreview';
+import { DbPane } from './panes/DbPane';
 import { HelpPane } from './panes/HelpPane';
 import { MissionCelebration } from './panes/MissionCelebration';
 import { MissionPane } from './panes/MissionPane';
@@ -63,6 +64,10 @@ interface WorkspaceProps {
   /** The project's game engine (2D phaser / 3D three) — picks the runner's vendored
    *  global + control shim (learn-game-studio-3d-prd.md D-3D-01). Defaults to phaser. */
   engine?: GameEngine;
+  /** Project kind (creative-code-studio-website-prd): `website` makes the runner
+   *  pane host the SiteFrame (multi-page site + a real server-side db) instead of
+   *  the GameFrame, and disables the game-only 2D⇄3D engine-switch offer. */
+  kind?: 'game' | 'website';
   /** Called when an in-studio 2D⇄3D switch changes the engine (D-3D-08). */
   onEngineChange?: (engine: GameEngine) => void;
   /** Workshop-free-AI waiver (workshop-free-ai-prd.md D-WFA-01): AI turns are free
@@ -120,14 +125,15 @@ interface Wallet {
   stars_balance: number;
 }
 
-type SplitTab = 'chat' | 'code' | 'assets' | 'help' | 'mission';
+type SplitTab = 'chat' | 'code' | 'assets' | 'help' | 'mission' | 'db';
 
 // Tab id → short label; the icon comes from WINDOW_META so it matches the rest
-// of the UI (lucide MessageSquare / Code2 / Images / BookOpen / ListChecks), not
-// an emoji glyph.
+// of the UI (lucide MessageSquare / Code2 / Images / BookOpen / ListChecks /
+// Database), not an emoji glyph. `db` is Website Studio only (filtered below).
 const SPLIT_TABS: ReadonlyArray<{ id: SplitTab; label: string }> = [
   { id: 'chat', label: 'Chat' },
   { id: 'code', label: 'Code' },
+  { id: 'db', label: 'Database' },
   { id: 'assets', label: 'Assets' },
   { id: 'help', label: 'Guide' },
   { id: 'mission', label: 'Mission' },
@@ -138,6 +144,7 @@ export function Workspace({
   runKey,
   running,
   engine = 'phaser',
+  kind = 'game',
   onEngineChange,
   aiFreeNow = false,
   onApplyFiles,
@@ -154,9 +161,12 @@ export function Workspace({
   prepShare = false,
 }: WorkspaceProps) {
   const layoutMode = usePlaygroundStore((s) => s.layoutMode);
-  const [splitTab, setSplitTab] = useState<SplitTab>(
-    () => readWorkspaceSlice('split', { tab: 'chat' as SplitTab }).tab,
-  );
+  const [splitTab, setSplitTab] = useState<SplitTab>(() => {
+    const { tab } = readWorkspaceSlice('split', { tab: 'chat' as SplitTab });
+    // The Database tab exists only in Website Studio — a persisted 'db' tab on
+    // a game project (defensive; kinds don't switch) falls back to Chat.
+    return tab === 'db' && kind !== 'website' ? 'chat' : tab;
+  });
   // A request to open a specific asset in the Asset Viewer (from a chat card).
   const [openAsset, setOpenAsset] = useState<{ path: string; nonce: number } | null>(null);
   const openAssetNonce = useRef(0);
@@ -231,7 +241,7 @@ export function Workspace({
   // from the render closure: the demo tour (and deferred client actions) hold
   // this handler across renders, and a Windows↔Split flip in between must route
   // through the layout that is actually on screen.
-  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help') => {
+  const focusPanel = (target: 'chat' | 'code' | 'game' | 'assets' | 'help' | 'db') => {
     if (usePlaygroundStore.getState().layoutMode === 'window') {
       usePlaygroundStore.getState().openOrFocus(target);
     } else if (target !== 'game') {
@@ -327,6 +337,7 @@ export function Workspace({
       projectId,
       mode,
       engine,
+      kind,
       onEngineChange,
       firstTurn,
       initialChat,
@@ -424,9 +435,27 @@ export function Workspace({
   // than no window; it advertises structure that doesn't exist and invites a kid to open it
   // and find nothing. Missions default to no steps, so this is the COMMON case, not an edge.
   const hasMission = (missionProgress.data?.steps?.length ?? 0) > 0;
+  // The Database tab/window/tile exists ONLY in Website Studio — a game project
+  // has no server-side db (D-WEB-15), so the surface must not advertise one.
+  const isSite = kind === 'website';
+
+  // D-WEB-12: a website has NO run concept — the site is supposed to be VISIBLE
+  // and live from the moment the studio opens. The chat-first launch leaves the
+  // runner window CLOSED, which is right for games (the kid presses Run) but
+  // left a directly-opened website project with no website on screen. Open the
+  // Website window once on mount (no focus steal — ensureGameRunnerVisible
+  // no-ops when it's already showing; the kid can still close it afterwards).
+  useEffect(() => {
+    if (isSite) ensureGameRunnerVisible();
+  }, [isSite]);
   const splitTabs = useMemo(
-    () => (hasMission ? SPLIT_TABS : SPLIT_TABS.filter((t) => t.id !== 'mission')),
-    [hasMission],
+    () =>
+      SPLIT_TABS.filter(
+        (t) => (t.id !== 'mission' || hasMission) && (t.id !== 'db' || isSite),
+        // Kind-aware Guide tab label ("Website Guide" / "Game Guide", D-WEB-21) —
+        // reads through the same windowDisplay seam as the window/tile/taskbar.
+      ).map((t) => (t.id === 'help' ? { ...t, label: windowDisplay('help', kind).title } : t)),
+    [hasMission, isSite, kind],
   );
 
   // Try-demo seam (try-demo-mode-prd D-DEMO-04/05): in the public demo the tour
@@ -469,6 +498,9 @@ export function Workspace({
   const chatProps = {
     chat,
     busy,
+    // Website Studio: the chat's run CTA reads "See my site" (a site is always
+    // live; the CTA refreshes + focuses it).
+    kind,
     streaming,
     progress,
     error,
@@ -561,6 +593,19 @@ export function Workspace({
     return () => ro.disconnect();
   }, [fitWindows, layoutMode]);
 
+  // The runner window's display identity — "Website" + globe in Website Studio
+  // (the stable PgWindowId 'game' is unchanged; only the label layer flips).
+  const gameDisplay = windowDisplay('game', kind);
+  // The Guide window's display identity — "Website Guide" vs "Game Guide"
+  // (D-WEB-21; same BookOpen icon, only the label flips with the corpus).
+  const helpDisplay = windowDisplay('help', kind);
+
+  // The explorer's virtual `database.sqlite` entry (D-WEB-16, Website Studio
+  // only — incl. the read-only teacher viewer): opens/focuses the Database
+  // window (window mode) or switches to the Database tab (split mode) — the
+  // same seam the dock tile uses. Never a text tab.
+  const openDatabase = isSite ? () => focusPanel('db') : undefined;
+
   if (layoutMode === 'window') {
     return (
       <div className="flex h-full w-full flex-col bg-pg-bg text-pg-text">
@@ -571,9 +616,13 @@ export function Workspace({
           <div className="absolute left-4 top-4 z-0 flex flex-col gap-3">
             <DesktopIcon id="chat" />
             <DesktopIcon id="code" />
-            <DesktopIcon id="game" />
+            {/* Website Studio: the runner tile reads "Website" (id stays 'game'). */}
+            <DesktopIcon id="game" kind={kind} />
+            {/* Website Studio only: the project's server-side Database, live. */}
+            {isSite && <DesktopIcon id="db" />}
             <DesktopIcon id="assets" />
-            <DesktopIcon id="help" />
+            {/* Website Studio: the Guide tile reads "Website Guide" (id stays 'help'). */}
+            <DesktopIcon id="help" kind={kind} />
             {hasMission && <DesktopIcon id="mission" />}
           </div>
 
@@ -591,6 +640,8 @@ export function Workspace({
               openLocation={locationRequest}
               onExplainSelection={handleExplainCode}
               readOnly={readOnly}
+              kind={kind}
+              onOpenDatabase={openDatabase}
             />
           </Window>
           <Window
@@ -603,15 +654,18 @@ export function Workspace({
           <Window
             id="game"
             variant="game"
-            title={WINDOW_META.game.title}
-            icon={<WINDOW_META.game.Icon size={16} />}
+            // Kind-aware label: "Website" + globe in Website Studio (id stable).
+            title={gameDisplay.title}
+            icon={<gameDisplay.Icon size={16} />}
           >
             <GameRunnerPane
               files={files}
+              projectId={projectId}
               virtualAssets={virtualClassAssets}
               runKey={runKey}
               running={running}
               engine={engine}
+              kind={kind}
               onRun={onRun}
               onOpenLocation={handleOpenLocation}
               onAskFix={handleAskFix}
@@ -630,10 +684,11 @@ export function Workspace({
           </Window>
           <Window
             id="help"
-            title={WINDOW_META.help.title}
-            icon={<WINDOW_META.help.Icon size={16} />}
+            // Kind-aware label: "Website Guide" / "Game Guide" (id stays 'help').
+            title={helpDisplay.title}
+            icon={<helpDisplay.Icon size={16} />}
           >
-            <HelpPane mode={mode} request={helpRequest ?? undefined} />
+            <HelpPane mode={mode} kind={kind} request={helpRequest ?? undefined} />
           </Window>
           {hasMission && (
             <Window
@@ -642,6 +697,20 @@ export function Workspace({
               icon={<WINDOW_META.mission.Icon size={16} />}
             >
               <MissionPane projectId={projectId} readOnly={readOnly} />
+            </Window>
+          )}
+          {isSite && (
+            <Window
+              id="db"
+              title={WINDOW_META.db.title}
+              icon={<WINDOW_META.db.Icon size={16} />}
+            >
+              <DbPane
+                projectId={projectId}
+                files={files}
+                readOnly={readOnly}
+                onOpenDataFile={(path) => handleOpenLocation(path, 1)}
+              />
             </Window>
           )}
         </div>
@@ -653,6 +722,7 @@ export function Workspace({
           hasMission={hasMission}
           readOnly={readOnly}
           prepShare={prepShare}
+          kind={kind}
         />
         {/* Milestone celebration lives HERE, not in MissionPane: a step ticked
             from the taskbar chip must celebrate with the Mission window closed. */}
@@ -716,11 +786,20 @@ export function Workspace({
                     openLocation={locationRequest}
                     onExplainSelection={handleExplainCode}
                     readOnly={readOnly}
+                    kind={kind}
+                    onOpenDatabase={openDatabase}
                   />
                 ) : splitTab === 'help' ? (
-                  <HelpPane mode={mode} request={helpRequest ?? undefined} />
+                  <HelpPane mode={mode} kind={kind} request={helpRequest ?? undefined} />
                 ) : splitTab === 'mission' ? (
                   <MissionPane projectId={projectId} readOnly={readOnly} />
+                ) : splitTab === 'db' && isSite ? (
+                  <DbPane
+                    projectId={projectId}
+                    files={files}
+                    readOnly={readOnly}
+                    onOpenDataFile={(path) => handleOpenLocation(path, 1)}
+                  />
                 ) : (
                   <AssetViewerPane files={files} projectId={projectId} onApplyFiles={onApplyFiles} onSaveNow={onSaveNow} onRequestAssetGen={requestAssetGenFromViewer} openAsset={openAsset} readOnly={readOnly} classAssets={classAssets} />
                 )}
@@ -735,10 +814,12 @@ export function Workspace({
             <div data-pane="game" className="h-full min-h-0">
               <GameRunnerPane
                 files={files}
+                projectId={projectId}
                 virtualAssets={virtualClassAssets}
                 runKey={runKey}
                 running={running}
                 engine={engine}
+                kind={kind}
                 onRun={onRun}
                 onOpenLocation={handleOpenLocation}
                 onAskFix={handleAskFix}
@@ -753,7 +834,13 @@ export function Workspace({
       </div>
 
       {/* Docked taskbar (brand + LayoutToggle + share link); per-window buttons hidden in split mode */}
-      <Taskbar projectId={projectId} missionId={missionId} readOnly={readOnly} prepShare={prepShare} />
+      <Taskbar
+        projectId={projectId}
+        missionId={missionId}
+        readOnly={readOnly}
+        prepShare={prepShare}
+        kind={kind}
+      />
       {/* Same hoisted milestone celebration as window mode (§9A.6). */}
       <MissionCelebration />
     </div>

@@ -1,5 +1,523 @@
 # Changelog
 
+## 2026-08-13 (fix: website projects open with the Website window visible)
+
+### Fixed
+
+- **A directly-opened website project showed no website** (`Workspace.tsx`): the
+  chat-first launch leaves the runner window closed — right for games (the kid
+  presses Run) but a D-WEB-12 violation for websites (no run concept; the site is
+  supposed to be visible and live). Website projects now auto-open the Website
+  window on workspace mount (no focus steal; the kid can still close it). Caught
+  by the first real execution of the kid-website-share journey at the pre-deploy
+  harness gate.
+
+## 2026-08-13 (removed: the Database window's Data-sources discovery group)
+
+### Removed
+
+- **The "Data sources" sidebar group + source info/Try-it card** in the Database
+  window (owner feedback: redundant once `sources.fetch(url)` opened external APIs
+  beyond the curated catalog — D-WEB-23). The Database window is back to purely the
+  project's own tables. The catalog itself, `sources.get`/`sources.fetch`, Web
+  Critter's teaching, the Website Guide and the super-admin page are all unchanged.
+
+## 2026-08-13 (fix: ready screen no longer repeats the AI's full reply)
+
+### Changed
+
+- **The "Your website/game is ready!" beat no longer shows the AI's whole first
+  reply** (`GeneratingScreen.tsx` `ReadyReveal`): on the real model the reply runs
+  several sentences and read as a wall of text under the headline. The reply still
+  lands as the AI's first message in the chat window (its real home) — the ready
+  beat is now just the celebratory headline.
+
+## 2026-08-13 (feat: open external API fetch — `sources.fetch(url)` — D-WEB-23)
+
+### Added
+
+- **Kid websites can call ANY public https JSON API** via a new in-frame
+  `await sources.fetch(url)` (`buildSitePreview.ts`) — the open door beside the
+  curated `sources.get` shelf (creative-code-studio-website-prd D-WEB-23). It rides
+  the SAME postMessage machinery as `sources.get`: a sibling `action:'source-fetch'`
+  request `{id, token, url}` sharing the per-document token, the id sequence, the
+  10 s timeout, ONE combined in-flight budget (cap 8, enforced in the shim AND
+  studio-side), and the same `__airbotixSiteSource` reply envelope. A non-`https://`
+  / non-absolute URL fails locally, kid-readably, without a single postMessage —
+  and the studio channel re-checks the untrusted wire before any backend call.
+- **Transport seam** (`siteBackendChannel.ts`): `SiteBackendTransport` gains
+  `openFetch(url)` — studio (`SiteFrame`) → authed `POST /projects/:id/sources/fetch`
+  (`fetchProjectSourceUrl`), public share host (`ReadOnlySiteFrame`) → no-auth,
+  stateless `POST /play/:shareId/sources/fetch` (`fetchPublicSourceUrl`). Backend
+  `SOURCE_URL` / `SOURCE_BLOCKED` / `SOURCE_UPSTREAM` / `SOURCE_BUSY` messages are
+  kid-readable and surface verbatim.
+- **Discovery copy** (`DbSourceDetail.tsx`): the Data-sources detail card teaches the
+  open door — "You can also fetch any public API, not just these sources:" with a
+  copyable `await sources.fetch('https://api.example.com/data')` chip
+  (`db-source-fetch-hint` / `db-source-fetch-example`), sharing the `example_code`
+  chip component.
+
+### Changed
+
+- The sandbox's blocked-`fetch` console error and the `connect-src` CSP hint now
+  point at BOTH sanctioned paths (`sources.fetch('https://…')` for any public API,
+  `sources.get(...)` for the curated shelf); the shared too-many-requests message
+  mentions both calls.
+
+## 2026-08-13 (fix: empty db cells are editable again)
+
+### Fixed
+
+- **An empty cell in the Database grid couldn't be clicked/edited** (`DbTable.tsx`):
+  an empty-string value (exactly what "+ Add row" seeds text columns with) rendered a
+  zero-height button — no visible body, nothing to click. Empty cells ('' or NULL) now
+  render a dim italic "empty" placeholder and the edit button carries a min-height, so
+  every cell always has a visible click target. Editing starts from an empty draft.
+
+## 2026-08-13 (fix: Website Guide opens reading its first article)
+
+### Fixed
+
+- **The Website Guide no longer opens on an empty reader** (`HelpPane.tsx`): the
+  default article id was hardcoded to the GAME doc (`start/what-is-a-game`), which
+  doesn't exist in the website corpus. The default is now kind-aware
+  (`web-start/what-is-a-website` for websites) and the pane self-heals: any doc id
+  that doesn't resolve in the loaded corpus (stale persisted slice from the other
+  kind, renamed doc) snaps to the kind's landing article, or the corpus's first doc.
+  `WebsitePillar` type also gains the shipped `web-start`/`web-polish` pillars.
+
+## 2026-08-13 (fix: labelled Games/Websites starter-chip rows)
+
+### Changed
+
+- **Generic landing starter chips are now two clearly-labelled rows** — "🎮 Games"
+  (Pong, Platformer, Flappy, Snake, Maze, Cat) and "🌐 Websites" (Cookie shop, My dog,
+  Pet adoption, My blog) — instead of one mixed pile where a kid couldn't tell which
+  hint made which kind of project (`LandingScreen.tsx`). Single-kind landings (the
+  explicit Website Studio entry) keep a flat unlabelled row. Chip prompts unchanged,
+  so D-WEB-11 server-side kind routing behaves exactly as before.
+
+## 2026-08-13 (feat: website sharing — kid share UI + public site play host — D-WEB-22)
+
+### Added
+
+- **Website sharing ships (D-WEB-22).** The share lifecycle is now offered for
+  `website` projects, IDENTICAL to games (request → grown-up approval → link →
+  revoke; claps/plays) — only the copy differs.
+  - `ShareLinkPanel` takes a `kind` prop: the citizenship note reads "see your
+    website" vs "play your game" (prep variants too) and the engagement-count glyph
+    is a globe vs a gamepad. The request/approve/revoke machinery is unchanged.
+  - `Taskbar` un-hides the share control for websites (the pre-P3 `kind==='website'`
+    gate is removed) and threads `kind` into the panel.
+  - **`ReadOnlySiteFrame`** — the public `/play/:shareId` WEBSITE host, the site
+    counterpart of `ReadOnlyGameFrame`. It renders the frozen site through the SAME
+    `buildSitePreview` runtime (opaque-origin iframe, `sandbox="allow-scripts"`
+    ONLY, deny-by-default CSP, studio-owned DOMParser skeleton, token-scoped
+    sql/source postMessage channels) with NO studio chrome; multi-page nav works via
+    the same nav shim. `PublicPlayPage` branches on the snapshot `kind`: `website` →
+    `ReadOnlySiteFrame`, `game` → the existing game/blocks frame (unchanged).
+  - **Public per-share backend client** (`sharingApi`): `queryPublicSiteDb` (POST
+    `play/:shareId/db/query`) and `fetchPublicSource` (POST `play/:shareId/sources/:name`),
+    both NO-AUTH bare `fetch`. The db call threads the opaque per-visitor `session`
+    token — obtained on the first reply, persisted in the frame, echoed thereafter —
+    so a visitor's writes land on THEIR ephemeral db clone, never the author's.
+    `PublicSnapshot` gains `kind`; `readPublicSnapshot` reads it from
+    `GET play/:shareId/files`.
+
+### Changed
+
+- **The site backend proxy is now ONE shared seam** (`siteBackendChannel.ts`,
+  `useSiteBackendChannel`). The studio `SiteFrame` and the public `ReadOnlySiteFrame`
+  share the entire `db.query` / `sources.get` proxy (own-source guard, per-document
+  token echo, scalar-param validation, in-flight caps); the ONLY difference is a
+  small `SiteBackendTransport` — authed per-project endpoints (studio) vs no-auth
+  per-share endpoints with the visitor session (public host). `SiteFrame` behaviour
+  is unchanged (its 28 tests are green against the refactor).
+
+## 2026-08-12 (feat: kind-aware Website Guide — D-WEB-21)
+
+### Added
+
+- **The Guide is kind-aware** (`HelpPane` / `helpApi` / `windowMeta`): a website
+  project now loads the **Website Guide** corpus (frontend / backend / database /
+  data-sources / communication) via `GET /help/docs?kind=website`, while a game
+  project is unchanged (`?kind=game`). `HelpPane` takes a `kind` prop, threads it
+  into `loadHelpCorpus(kind)` (kind in the query cache key), and the window / tile /
+  taskbar / split-tab label reads **"Website Guide"** vs **"Game Guide"** through the
+  same `windowDisplay` seam the runner already uses for "Website" / "Game" (icon
+  unchanged). Diagram artwork for the new website keys is delegated to Codex — the
+  pane already falls back to the diagram's `alt` caption, so the Guide ships readable.
+
+### Changed
+
+- **The Guide launches wider** (`playgroundStore.ts` `guideRectClearOf`): a new
+  `GUIDE_MIN_W` (760px) floor opens the Guide wide enough to show BOTH the pillar
+  sidebar AND the content column from the first open (game and website projects) —
+  the old clear-of-chat fallback could open below the pane's single-column collapse.
+  Placement still never buries the chat: a tall column left of the chat when a
+  two-pane-wide one fits, otherwise a wide top strip (clamped on-screen) that leaves
+  the chat's input + newest replies clear below it.
+
+## 2026-08-12 (fix: wider default Database window)
+
+### Fixed
+
+- **Database window launches ~2× wider** (`playgroundStore.ts`): the master–detail
+  viewer (table sidebar + multi-column editable grid) was capped at 560px and clipped
+  columns; it now fills up to 1040px (or the space beside the icon column) and centres.
+
+## 2026-08-12 (fix: kind-neutral studio error copy)
+
+### Fixed
+
+- **Playground load/service error screen no longer says "game".** `LoadErrorScreen`
+  (`PlaygroundApp.tsx`) is shown before the project kind is even known (e.g. a create
+  that fails), so its copy is now kind-neutral: "We couldn't start the studio just now…"
+  and "We couldn't open this project" — correct for both Creative Code Studio games and
+  Website Studio sites (a website create failure previously read "we couldn't start your
+  game / our game studio").
+
+## 2026-08-12 (feat: external data sources — sources.get runtime + discovery UI — D-WEB-19)
+
+### Added
+
+- **`sources.get(name, params)` in-frame runtime** (`buildSitePreview.ts`, website builds only):
+  a new `sources` global beside `db`/`app` — `await sources.get('weather', { city: 'Sydney' })`
+  reaches admin-CURATED external data through the proven db.query trust shape: postMessage
+  `action:'source'` riding the SAME per-document token the sql channel mints (one scheme; stale
+  replies for a previous document are ignored), proxied by `SiteFrame` to the new backend
+  `POST /projects/:id/sources/:name` with the kid's session — the BACKEND fetches the provider,
+  so the sandbox keeps ZERO egress. Errors reject AND `console.error` the server's kid-readable
+  message verbatim (`SOURCE_*` incl. the 429 `SOURCE_BUSY` — feeds the D-WEB-13 logs ledger); no
+  reply in 10 s rejects kid-readably; the in-flight cap (8, parallel to the sql channel's) is
+  enforced TWICE — in the frame's shim (an unawaited loop fails locally before a single
+  postMessage leaves the sandbox) and studio-side in `SiteFrame` (the trust fence: forged
+  postMessages bypass the shim, and each forward is an authed POST). `SiteFrame` also validates
+  params studio-side (plain object, scalar values only — kid-readable rejection, mirroring
+  db.query), answers a project-less session kid-readably, and keeps the own-frame source guard.
+- **"Data sources" discovery in the Database window** (`DbSidebar.tsx` + new
+  `DbSourceDetail.tsx`): the sidebar gains a second group under the tables listing every enabled
+  source (lucide Globe row, `db-source-<name>`; an EMPTY catalog renders no group), fed by the
+  new `listProjectSources` (`GET /projects/:id/sources`) once on pane mount + on the manual
+  `db-refresh` — never on the 2 s poll. Selecting a source swaps the right panel to an info card
+  (`db-source-detail`): kid-readable description, params table (name / description / required /
+  example), the `example_code` line in a copyable chip, and a **Try it** button
+  (`db-source-try`) that runs the example params through the real proxy and pretty-prints the
+  JSON (capped-height, scrollable) or the kid-readable error — available to readOnly viewers
+  too (a read). Table selection behaviour is untouched (first table still auto-selects;
+  picking a source deselects the table view and vice versa; all existing `db-*` testids hold).
+
+### Changed
+
+- **Blocked-fetch copy now teaches the sanctioned path**: the site shim's `fetch()` block
+  console error and the `connect-src` CSP hint mention that the site CAN use the studio's data
+  sources via `await sources.get(...)` (the internet itself stays blocked).
+
+## 2026-08-12 (feat: professional master–detail Database viewer — D-WEB-18)
+
+### Added
+
+- **Master–detail Database window** (`DbSidebar.tsx`): the Website Studio's Database window is
+  now a two-panel db tool — a LEFT sidebar listing every server-side table as a selectable row
+  (table icon + name + live row count, `db-table-<name>`, first table auto-selected; selection is
+  kept by NAME so it survives the ~2 s polls, and a selected table that vanished — e.g. after
+  Reset removed a runtime table — falls back to the first) with a `database.sqlite` identity line
+  (name + introspected file size, `db-file-identity`) pinned to the bottom, and a RIGHT panel
+  showing the SELECTED table as the D-WEB-16 editable grid (cell edit / add row / two-step
+  delete unchanged), wrapped in the existing `db-collection-<name>` testid. `siteDbStore` now
+  keeps `sizeBytes` from the same `GET …/db/tables` introspection response. All data remains
+  sourced exclusively from the REST introspection endpoints (never the JSON seeds).
+
+### Changed
+
+- **DbPane toolbar**: Refresh (`db-refresh`), freshness (`db-freshness`), the selected table's
+  "Edit starting data" seed jump (`db-edit-<name>`, moved out of the per-table heading; still
+  hidden without a `data/<name>.json` seed and for readOnly viewers) and the two-step Reset
+  database (`db-reset`) now live in one compact toolbar across the top; the persistent-db
+  teaching copy became a subtle one-line info strip under it. `DbTable` renders a single
+  selected table filling the right panel, with a sticky column-header row; it no longer owns
+  the seed jump or the `db-collection-<name>` testid. Empty/error/waiting states, readOnly
+  gating, `has_rowid:false` read-only note and hidden-tab polling pause are unchanged.
+
+## 2026-08-12 (feat: neutral-first loading on the generic landing — D-WEB-17)
+
+### Added
+
+- **Kind-NEUTRAL generating stage** (`build-stage-neutral`): the generic prompt-first landing
+  (`/learn/playground/new`, no `?kind`) now mounts the generating screen the SAME tick as the
+  Enter press — the create POST (whose server-side game-vs-website classification can take
+  several seconds, D-WEB-11) runs behind the loading screen instead of before it. While the
+  routing is pending, the screen is fully kind-agnostic: a pulsing idea-spark stage (pure
+  CSS + lucide + K-12 tokens, same primitives/frame as the game/website stages), a
+  "Warming up the studio…" heading, and neutral flavor tips — no "game" or "website"
+  vocabulary anywhere. When the created project's `kind` arrives the stage crossfades in
+  place into the game vignette or the website build stage (`.pg-stage-fade`, CSS-only ghost
+  fade-out; disabled under `prefers-reduced-motion`).
+
+### Changed
+
+- `PlaygroundApp` flips `landing → generating` BEFORE awaiting `createGameProject` (previously
+  the kid pressed Enter into dead air for the whole create+classify round-trip). Explicit-kind
+  flows (`?kind=website`, class sheet, teacher prep, templates) render their kind stage from the
+  first frame and never see the neutral stage; a failed create still lands on the existing
+  load-error screen. `GeneratingScreen` gains `creating` (create in flight — render the wait UI,
+  fire nothing until the real `projectId` lands) and `kind: 'neutral'`.
+
+## 2026-08-12 (feat: the db is a visible, editable project citizen — D-WEB-16)
+
+### Added
+
+- **Virtual `database.sqlite` in the code editor's explorer** (Website Studio only, incl. the
+  read-only teacher viewer): a pinned, real-looking db file at the project root
+  (`explorer-database-file`, lucide Database icon + a subtle live dot) that opens/focuses the
+  **Database window** (window mode) or switches to the Database tab (split mode) instead of a
+  text tab — the same seam the dock tile uses. It is injected purely at the tree's RENDER layer:
+  never in the VFS/files array, so it cannot leak into saves, commits, or the agent's file list;
+  no rename/delete/drag affordances. Games show no entry.
+- **The Database window edits the LIVE db** (kid-friendly, rowid-keyed — `panes/DbTable.tsx`):
+  click a cell → inline input, Enter saves via the existing `POST /projects/:id/db/query` with a
+  parameterized `UPDATE "<table>" SET "<col>" = ? WHERE rowid = ?` (identifiers quoted, `"`
+  doubled), Esc cancels; a failed save shows the backend's kid-readable message inline
+  (`db-edit-error-<table>`) and reverts. Per-table `+ Add row` (`db-add-row-<table>`) INSERTs
+  ''/NULL placeholders (an `id INTEGER` column is omitted so SQLite assigns it; id-only tables
+  use `DEFAULT VALUES`) and focuses the new row's first cell; per-row two-step delete
+  (`db-delete-row`, same arm pattern as Reset) runs `DELETE … WHERE rowid = ?`. Every write
+  re-introspects, so the pane always shows server truth. Cells are `db-cell-<table>-<rowIdx>-<col>`.
+- Introspection contract (frozen with the parallel backend work): rows now arrive with
+  `has_rowid` and a per-row `__rowid__` (string) — stripped from display; `has_rowid:false`
+  tables render read-only exactly as before with a one-line note; readOnly (teacher/parent)
+  viewers get no edit affordances at all (same gate as Reset). An older backend without the
+  field degrades to read-only.
+
+### Changed
+
+- Database window teaching copy now says edits change the LIVE database right away (the
+  `data/*.json` seeds remain the starting data; Reset unchanged).
+
+## 2026-08-12 (fix: sql-channel review findings — per-document reply token + hardening)
+
+### Fixed
+
+- **SQL reply id collision across srcdoc swaps** (adversarial-review blocker): the shim's
+  query counter restarts at 0 in every new document while a srcdoc swap (live rebuild /
+  page nav) keeps the SAME WindowProxy — so a LATE backend reply, matched on id alone,
+  could resolve the NEW document's same-id query with the wrong rows. The shim now mints a
+  per-document token at init and stamps it into every `action:'sql'` request; SiteFrame
+  echoes it in the reply and the shim drops replies whose token isn't its own (pinned by a
+  matching-id + stale-token test that must NOT settle the promise).
+- **DbPane no longer spins "Peeking…" forever when the first introspection keeps failing**:
+  `siteDbStore` now flags the latest poll's failure (`error`, cleared on the next success /
+  reset, never set by a superseded fetch) and the pane shows an honest "Your database
+  didn't answer" state with a Try again button (`db-retry`) driving the same refresh.
+
+### Changed
+
+- SiteFrame validates sql param ELEMENTS client-side (string/number/boolean/null only) and
+  rejects kid-readably ("db.query params must be words, numbers, true/false or null.")
+  instead of letting an object/Date bounce off the backend schema as jargon; and caps
+  in-flight sql forwards at 8 — an unawaited query loop now fails locally with a
+  kid-readable line instead of spraying authed POSTs.
+- DbPane pauses its ~2 s introspection poll while the browser tab is hidden and refreshes
+  immediately on return (visibilitychange).
+- Comment-only copy: the last "simulated backend" mentions (GameRunnerPane kind prop,
+  Workspace's Database-window gate) now describe the D-WEB-15 server-side db.
+
+## 2026-08-12 (feat: website db is REAL server-side SQLite — D-WEB-15 frontend)
+
+### Changed
+
+- **`buildSitePreview` runtime shim: the in-frame `db` object is now `db.query(sql, ...params)`
+  against the project's REAL server-side SQLite db** (creative-code-studio-website-prd
+  D-WEB-15, supersedes D-WEB-04's in-memory reset-per-run model). Each query posts
+  `{__airbotixSiteControl, action:'sql', id, sql, params}` to the parent studio and awaits a
+  `{__airbotixSiteSql, id, ok, result?, error?}` reply — the frame stays token-free; params
+  accepted spread OR as one array. **Return shape (the Web Critter prompt teaches exactly
+  this):** a reader statement (reply carries columns, e.g. SELECT) resolves with the ROWS
+  ARRAY; a write (no columns) resolves with `{changes, lastInsertRowid}`. An SQL error
+  rejects with the backend's kid-readable message AND `console.error`s it VERBATIM (feeds the
+  D-WEB-13 logs ledger); no reply for 10 s rejects kid-readably. The seed hydration, the
+  `dbState` navigation carry, and the `read-db`/`__airbotixSiteDb` control channel are all
+  REMOVED — `data/*.json` content never enters the frame anymore. CSP, sandbox and the
+  studio-owned document skeleton are unchanged.
+- `server.js` route handlers may now be **async**: the fetch shim awaits a returned promise —
+  `res.json` after an `await db.query(...)` still answers the call, the D-WEB-13 api ledger
+  records the FINAL status after the await, and a rejected handler answers 500 with the same
+  kid-readable crash line as a sync throw.
+- **`SiteFrame` is the frame's sql proxy**: it forwards each `action:'sql'` request (own-frame
+  source guard, params clamped) to `POST /projects/:id/db/query` via the new `querySiteDb` and
+  posts the reply back by id; without a project it answers kid-readably instead of hanging.
+  The Home button / page navigation no longer round-trips or carries db state — the db is
+  server-side, so Home just renders `index.html`; a runKey bump (Reload) is a fresh page load
+  (console cleared, back to home) and the data persists.
+- **Database window rewired to REST introspection** (D-WEB-14 → D-WEB-15): `siteDbStore` now
+  polls `GET /projects/:id/db/tables` + the first 50 rows per table (superseded/failed polls
+  never overwrite fresher truth) instead of the retired `read-db` postMessage; `DbPane` renders
+  REAL tables — contract columns with their SQLite types shown subtly, `db-collection-<name>`
+  headings with the real `row_count`, a "showing first N of M rows" hint — same testids
+  (`site-db-pane`, `db-refresh`, `db-freshness`, `db-edit-<name>`). Teaching copy + empty state
+  now tell the persistent-db story (server-side, keeps data; `data/*.json` = starting data;
+  no tables yet → add a seed file or CREATE TABLE from server code).
+
+### Added
+
+- `panes/playgroundApi.ts`: the frozen D-WEB-15 REST surface — `querySiteDb` (POST
+  `/projects/:id/db/query`), `listSiteDbTables`, `listSiteDbRows` (paged), `resetSiteDb`.
+- **Reset database** button in the Database window (`db-reset`, aria "Reset database"):
+  two-step inline confirmation (arm → confirm; self-disarms after 5 s, no browser
+  `confirm()`), calls `POST /projects/:id/db/reset` (rebuild from `data/*.json` seeds, the
+  ONLY reset path), drops the snapshot so stale in-flight polls never resurrect pre-reset
+  rows, then re-introspects; failures surface the backend's kid-readable message. Hidden in
+  the teacher read-only viewer.
+- `projectId` threaded Workspace → GameRunnerPane → SiteFrame and Workspace → DbPane (the sql
+  proxy + introspection need the kid's session against the project endpoints).
+- Tests: `buildSitePreview.sqlChannel.test.ts` executes the injected shim end-to-end (request
+  wire shape, reader/write return shapes, verbatim error surfacing, 10 s timeout, retired
+  read-db channel, async-handler await + final-status ledger); SiteFrame sql-proxy specs
+  (forwarding, error envelope, no-project reply, own-source guard, param clamping);
+  siteDbStore REST/supersession specs; DbPane REST-polling/reset/readOnly/columns+types specs.
+
+## 2026-08-12 (feat: Database window — kids see what their site's backend remembers)
+
+### Added
+
+- **A 7th playground window, `db` ("Database", lucide `Database` glyph, sky accent), for
+  Website Studio ONLY** — desktop tile, floating window, taskbar button and split-mode tab
+  all gate on `kind === 'website'`; a game project stays byte-identical (pinned by
+  regression tests, including a stale-persisted open db window / db split tab). Closed by
+  default; the dock tile (accessible name "Database") opens it.
+- `DbPane` (`site-db-pane`) renders the LIVE in-frame `db` kid-friendly, read-only: one
+  section per collection (`db-collection-<name>` heading with a row/field count), arrays of
+  objects as a union-column table, primitive arrays as a list, objects as key/value rows,
+  values clipped at 120 chars; a friendly empty state; a "live / updated Xs ago" freshness
+  hint; a manual Refresh (`db-refresh`, aria "Refresh database"); and a per-collection
+  "Edit starting data" jump that opens `data/<name>.json` in the code editor (the same
+  open-file seam the agent's `open_file` action uses) plus one teaching line: runtime
+  changes reset on reload, permanent data lives in `data/*.json`.
+- `siteDbStore`: the seam between the pane and the sandboxed frame. SiteFrame (the only
+  thing talking to the iframe) registers the refresh trigger — the existing `read-db`
+  control channel — and writes EVERY `__airbotixSiteDb` reply (Home reads and Database
+  polls carry the same live db); the pane drives polling (~2 s) only while MOUNTED, so a
+  closed Database window polls nothing. Opening the pane ensures a live site frame
+  (`ensureGameRunnerVisible`, no raise). A reload (runKey) drops the snapshot — the pane
+  then shows the fresh seeds, matching D-WEB-04.
+
+## 2026-08-12 (fix: recover from the stale-chunk deploy race)
+
+### Fixed
+
+- A tab opened before a deploy crashed with "Failed to fetch dynamically
+  imported module" the moment it lazily loaded a route/component: `aws s3 sync
+  --delete` wipes the old content-hashed chunks on every release. The app now
+  listens for Vite's `vite:preloadError` and reloads ONCE (per-URL loop guard),
+  so the fresh index re-links the new hashes; a repeat failure at the same URL
+  still surfaces the error boundary (offline/real outages are never masked).
+
+## 2026-08-12 (feat: website builds get their own loading animation)
+
+### Changed
+
+- The generating screen's decorative build stage is kind-aware: website builds
+  show an assembling browser window (chrome bar, address pill, skeleton page
+  pulsing in, globe celebration) instead of the platformer vignette — same
+  pure-CSS/token primitives, games unchanged.
+
+
+## 2026-08-11 (feat: website run verification — the studio collects the evidence, D-WEB-13)
+
+### Added
+
+- **Websites verify like games.** The site runtime shim (`buildSitePreview.ts`) now keeps
+  evidence ledgers: every `/api` fetch it served/blocked with the REAL status (200 route /
+  404 no-route / 500 throwing handler / 0 blocked-before-response), which elements kid code
+  wired with click/pointerdown/submit listeners (an `EventTarget.prototype.addEventListener`
+  wrap installed LAST so the shim's own nav listener never reads as delegation — that false
+  positive would suppress the unwired-button evidence for every site), whether document/body
+  got a delegated click handler, and whether the page finished loading. A
+  `{__airbotixControl, action:'report'}` request (the game probe's control channel) replies
+  `{__airbotixSiteReport, site}` with those ledgers plus the visible buttons cross-checked
+  for `wired`.
+- `SiteFrame` accepts the same `onRunReport`/`reportAttempt` seam as `GameFrame`: when armed
+  it observes each run (runKey) for ~4 s, asks the shim to report, folds console evidence +
+  the site reply into ONE `engine:'website'` RunReport per run (`probeError:'no-response'`
+  on a reply timeout), keyed per RUN — not per srcdoc — so live rebuilds/page navs never
+  reset the evidence window. `runReport.ts` mirrors the backend `SiteReportSchema`
+  (`site.{pageLoaded,page,apiCalls,buttons,delegatedClickHandler,logs}`, caps 30/30/10,
+  game fields degenerate: `booted` mirrors `pageLoaded`, frames/fps 0, canvas absent-shaped)
+  and the collector sanitizes the untrusted frame reply; kid `console.log`/`info` lines echo
+  back as `site.logs` (the model's own instrumentation probe).
+
+### Changed
+
+- `GameRunnerPane` forwards the report seam to the `SiteFrame` (run reports are no longer
+  game-only); `useVerification` handles website verdicts exactly like games — fixing applies
+  silently and re-arms at attempt+1 (the auto-restart runKey bump is the fresh-run window),
+  co-debug stays the one visible surface — but **never captures a screenshot for a website
+  report**, even when `screenshot_requested` is true (no canvas; the ledgers are the
+  evidence). Sandbox attributes and harness selectors unchanged.
+
+
+## 2026-08-11 (fix: website chat copy never says "game")
+
+### Fixed
+
+- The launch hand-off bubble is kind-aware too: a website that opens on its
+  starter says "Your website starter is ready 🌐", never "game starter … ready
+  to play 🎮".
+- Changed-file fallback notes are kind-aware: a website turn's index.html reads
+  "The home page of your website." (server.js/data seeds/pages likewise) — never
+  "A file in your game." The reflect-prediction line is kind-aware too.
+
+
+## 2026-08-11 (feat: server-routed game-vs-website on the generic landing)
+
+### Changed
+
+- The generic landing no longer guesses the kind with keywords: it sends
+  `infer_kind` on create and ADOPTS the server's LLM-routed decision (D-WEB-11
+  revised) — "create a todo list" now becomes a website with no web keyword.
+  The local `kindInference.ts` helper is removed (the server owns the fallback);
+  explicit `?kind` paths never send `infer_kind`.
+
+
+## 2026-08-11 (feat: websites are always live — no run concept)
+
+### Changed
+
+- **A website has NO "running" concept** (owner feedback; creative-code-studio-website-prd
+  D-WEB-04): the site preview is ALWAYS mounted from workspace entry (no launch gate, no
+  "Press ▶ to play" placeholder) and live-rebuilds as the VFS changes, debounced ~700 ms so
+  typing in Monaco doesn't thrash the iframe. A runKey bump — the Reload button, the agent's
+  `run_game` action, an AI-turn apply — adopts the latest files immediately as a fresh run
+  (db reset, back to index.html). The teacher read-only live viewer gets the same always-live
+  site.
+- **No game-run chrome leaks into website mode.** The runner's only website affordances are a
+  "Reload" button (`site-reload`, aria "Reload site") + the console toggle; the status bar reads
+  "Live" (never Idle/Running/Paused, no fps, no screen dims). The editor's ▶ button reads
+  "Reload site" (same commit-drafts + refresh gesture); the chat's run CTA reads "See my site";
+  the runner window/desktop tile/taskbar button read "Website" with a globe glyph
+  (`windowDisplay` — the stable `PgWindowId` 'game' is unchanged). Games keep every affordance
+  exactly as before.
+
+## 2026-08-11 (fix: website ideas on the generic landing create websites)
+
+### Changed
+
+- The single Creative Code Studio entry now SAYS it builds both: the home/create
+  tile copy mentions websites, the generic landing placeholder is "Describe a
+  game or website and we'll build it…" (aria/read-aloud updated, submit label is
+  the kind-neutral "Build it"), and two website starter chips join the generic
+  set. The Website Studio tile also renders on the Learn home grid (asserted).
+
+### Fixed
+
+- The generic prompt-first landing (`/learn/playground/new`, no `?kind` — the
+  Learn-home tile) now infers `kind:'website'` from a confident prompt signal
+  (D-WEB-11, `kindInference.ts`) — "I'd like to create a todo list website" used
+  to create a GAME project. Explicit `?kind` always wins; game stays the default;
+  teacher-prep prompt-first stays game-only.
+- The generating screen says "Building your website…" (title, flavor lines,
+  ready reveal) for website builds instead of game copy.
+
 ## 2026-08-12 (added: Journey West C6-P3 through P10 candidate slice)
 
 ### Added
@@ -107,6 +625,84 @@
   line and made the active item unusually tall.
 
 ## 2026-08-10 (added: Parent/Guardian Details on both challenge consent steps)
+## 2026-08-04 (feat: Website Studio — the playground's website project kind)
+
+### Added
+
+- **Website Studio** (creative-code-studio-website-prd): the Creative Code Studio playground now
+  hosts `Project.kind='website'` projects — real multi-page HTML sites with a simulated in-project
+  backend. `buildSitePreview.ts` builds the sandboxed srcdoc from the VFS pages themselves: shims
+  injected before any kid script (extension-noise guard, console capture, the site runtime, a
+  deny-by-default CSP second fence), `server.js` always the FIRST kid script, stylesheet/script
+  references inlined with `//# sourceURL` + scriptRanges (syntax errors map back to kid files),
+  missing/external references degrade to a `console.error`, and quoted asset paths inline as
+  `data:` URLs. The site runtime ships `db` (hydrated from top-level `data/*.json` seeds; parse failures
+  console.error and skip), `app.get`/`app.post`, an `/api/*`-only fetch shim (query/body parsing,
+  chainable `res.status().json()`, kid-friendly 404/500s, the outside internet blocked), and a
+  capture-phase nav shim that turns relative `*.html` link clicks into a studio postMessage.
+- `SiteFrame.tsx` — the site host (`iframe[data-site-frame]`, `sandbox="allow-scripts"` ONLY): owns
+  `currentPage` + the carried `db` (persists across page navigations, resets on restart), a slim
+  nav bar (`site-nav-home` preserves db, `site-nav-page` shows the page), and the same console
+  panel/fix-error wiring as GameFrame. `GameRunnerPane` mounts it for websites and hides the
+  game-only pause/mute/FPS/physics-debug/screen-preset affordances.
+- Create flows: `/learn/playground/new?kind=website` arms the prompt-first landing with website
+  copy (placeholder "Describe a website and we'll build it…", site starter chips) and creates a
+  `kind:'website'` project on submit; the hub gains a Website Studio card (`hub-template-website`);
+  the Create tab + class "Create for this class" sheet gain a Website Studio entry gated by
+  `allowed_kinds` ('website'), carrying the class like the game entry; My Works resumes websites
+  into the playground.
+- Teacher surfaces: the read-only LIVE viewer (`/teacher/projects/:id/live`) and the prep studio
+  (`/teacher/prep/*`, create-then-open with template `website_blank`) now support `website`
+  projects via the same playground kind threading.
+
+### Changed
+
+- Website db seed paths mirror the backend rule exactly (`isWebsiteDataSeedPath` in `codeApi.ts`):
+  TOP-LEVEL `data/<name>.json` only, and the backend `kind` on each VfsFile stays authoritative —
+  a game's imported `data/level.json` (kind `asset`) keeps its binary data-URL wrapping, a
+  website's seed (kind `text`) is never wrapped. Nested `data/**.json` files never hydrate `db`, so
+  keys can't collide — and the backend now rejects such a write outright (`VFS_WEBSITE_SEED_PATH`,
+  D-WEB-05), so no client-side warn is needed.
+- A `website` project never offers the game-only 2D⇄3D engine-switch confirm ("make it 3D" is a
+  normal site edit for Web Critter).
+- SiteFrame's Home button now reads the LIVE `db` from the frame (a `read-db` control message +
+  `__airbotixSiteDb` reply, with a timeout fallback to the last-carried db) — db mutations made
+  since the most recent link click survive Home.
+
+### Fixed
+
+- **Security (adversarial-review blocking):** the website srcdoc is now assembled into a
+  STUDIO-OWNED document skeleton — the kid page is parsed with DOMParser and its head/body are
+  lifted in AFTER the shims — instead of locating `<head>` by regex in untrusted markup. A
+  `<head>` hidden in a comment / script string literal could previously swallow the whole shim
+  block (fetch shim AND CSP) into inert markup, re-arming real `window.fetch` — the exact fences
+  the backend's website `fetch(` allowance rests on (D-WEB-03). The CSP second fence is also now
+  deny-by-default (`default-src 'none'` + inline script/style + `data:`/`blob:` media only),
+  closing every SUBRESOURCE-load vector: external `<script src>`/`<img>`/`<link>`/font/`<iframe>`
+  (a nested frame is the classic route to a fresh un-shimmed `window.fetch`) plus
+  XHR/WebSocket/EventSource/sendBeacon via `connect-src 'none'`. It does NOT stop the frame
+  navigating ITSELF (`location.href`, `<meta http-equiv="refresh">`) — CSP has no directive for
+  document self-navigation (`navigate-to` never shipped) and `sandbox="allow-scripts"` permits it;
+  that residual one-shot GET leak is documented as a known limitation in `buildSitePreview.ts`,
+  not claimed as closed.
+- Blocked-by-CSP subresources are no longer silent to the kid: a `securitypolicyviolation`
+  listener emits a kid-readable console line per directive (e.g. "Pictures from the internet are
+  blocked — import the picture into your project instead, then use its file name"), content-free
+  (the blocked directive only, never the URL).
+- The kid page's `<html>` attributes (`lang`, `class`, …) are carried into the studio skeleton —
+  every backend template ships `<html lang="en">`, and an AI-written `<html class="dark">` paired
+  with `html.dark {…}` CSS previously rendered differently in the preview than the editor showed.
+  `&` is now escaped before `"` when serializing `<html>`/`<body>` attributes, so entity-like text
+  survives the parse→serialize round trip.
+- Share is hidden for `website` projects until website publish lands (P3,
+  creative-code-studio-website-prd §6): the public play host renders a game (`ReadOnlyGameFrame`)
+  and the ShareLink carries no kind, so a shared website would have minted a dead public link.
+- A literal `</script>` (or `</style>`) inside an inlined kid file can no longer truncate the
+  studio's tag and corrupt every scriptRange after it (escaped without changing line counts).
+- A non-JSON-safe carried db (e.g. a BigInt a kid posts in a forged nav message) no longer throws
+  mid-render — it degrades to the `data/*.json` seeds with a console.error.
+
+## 2026-08-03 (feat: implement Journey West C4-P2 event observation)
 
 ### Added
 

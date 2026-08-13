@@ -228,10 +228,11 @@ export interface AgentTurnResult {
   file_notes?: FileNote[];
   // A short, kid-readable label for the history timeline (null/absent if none).
   history_label?: string | null;
-  // Post-apply verification (D-PAP-40): 'pending' = this applied game turn is
-  // awaiting a run report — the studio runs the game instrumented and POSTs a
-  // RunReport for it (see useVerification). 'none' = never verifiable (no file
-  // changes / not a game). Optional: absent on older backends ⇒ treat as 'none'.
+  // Post-apply verification (D-PAP-40 games / D-WEB-13 websites): 'pending' =
+  // this applied turn is awaiting a run report — the studio runs the project
+  // instrumented and POSTs a RunReport for it (see useVerification). 'none' =
+  // never verifiable (no file changes / not a game or website). Optional:
+  // absent on older backends ⇒ treat as 'none'.
   verification?: 'pending' | 'none';
   // Screenshot-verify hint (D-HARN-21b), riding the verification payload: with
   // `verification: 'pending'`, true asks the studio to attach a composited
@@ -368,6 +369,21 @@ const BINARY_ASSET_MIME: Record<string, string> = {
   // 3D model (binary glTF, D-3D-09) — round-trips like any other binary asset.
   glb: 'model/gltf-binary',
 };
+/**
+ * Website db seed path (creative-code-studio-website-prd §3.4): exactly ONE
+ * segment under data/ — `data/<name>.json`, top-level only. Mirrors the
+ * backend's `isWebsiteDataSeedPath` (platform-backend `src/tools/vfs-path.ts`),
+ * where the TEXT classification is KIND-SCOPED to `website` projects. On this
+ * side the backend `kind` on each VfsFile is AUTHORITATIVE — a game's imported
+ * `data/level.json` arrives `kind:'asset'` (raw base64) and keeps its binary
+ * data-URL wrapping; a website's seed arrives `kind:'text'` and is never
+ * wrapped. This helper only qualifies PATHS (the site runtime's db hydration
+ * filter, which additionally requires `kind === 'text'`); it must never
+ * override `kind` in the asset/text conversion below.
+ */
+export function isWebsiteDataSeedPath(path: string): boolean {
+  return /^data\/[^/]+\.json$/.test(path);
+}
 function binaryAssetMime(path: string): string | undefined {
   return BINARY_ASSET_MIME[path.split('.').pop()?.toLowerCase() ?? ''];
 }

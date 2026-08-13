@@ -6,13 +6,10 @@ import {
   createRunCollector,
   isAssetMessage,
   isRunReportMessage,
+  PROBE_REPLY_TIMEOUT_MS,
+  RUN_OBSERVE_MS,
   type RunReport,
 } from './runReport';
-
-/** How long a run is observed before the probe is asked for its report (ms). */
-const RUN_OBSERVE_MS = 4000;
-/** How long to wait for the probe's reply before finalizing without it (ms). */
-const PROBE_REPLY_TIMEOUT_MS = 1500;
 
 interface GameFrameProps {
   files: VfsFile[];

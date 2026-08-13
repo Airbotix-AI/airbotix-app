@@ -42,6 +42,14 @@ export type GameTemplateId =
   | 'three_collect'
   | 'three_blank';
 
+/** Project kind for websites (creative-code-studio-website-prd) — the Website
+ *  Studio runs in the SAME playground with a site runtime instead of a game. */
+export const WEBSITE_PROJECT_KIND = 'website' as const;
+
+/** The website starter templates the backend seeds (`website_blank` is the
+ *  default when none is passed; `website_pet_shop` is the worked example). */
+export type WebsiteTemplateId = 'website_blank' | 'website_pet_shop';
+
 /**
  * Create a REAL `kind='game'` backend project (PRD J1 / §4.2). The backend seeds
  * the starter template into the S3-backed VFS and returns the project id; the
@@ -58,15 +66,27 @@ export async function createGameProject(args: {
   familyId: string | null;
   /** The kid's prompt / chosen game name — the backend infers the engine from it. */
   title: string;
-  /** Only set when a specific starter chip was chosen; omit to let the backend infer. */
-  template?: GameTemplateId;
-}): Promise<{ id: string }> {
-  return api<{ id: string }>(`/projects`, {
+  /** `game` (default) or `website` (Website Studio) — same playground, different
+   *  runtime + templates (creative-code-studio-website-prd). */
+  kind?: typeof GAME_PROJECT_KIND | typeof WEBSITE_PROJECT_KIND;
+  /** Only set when a specific starter was chosen; omit to let the backend pick
+   *  (games: engine inferred from the title; websites: `website_blank`). */
+  template?: GameTemplateId | WebsiteTemplateId;
+  /**
+   * Generic prompt-first landing (D-WEB-11): ask the SERVER to route
+   * game-vs-website from the title with one classify-model call (keyword
+   * fallback, never fails the create). The response's `kind` is the decision —
+   * adopt it. Explicit studio choices omit this.
+   */
+  inferKind?: boolean;
+}): Promise<{ id: string; kind?: 'game' | 'website' }> {
+  return api<{ id: string; kind?: 'game' | 'website' }>(`/projects`, {
     method: 'POST',
     body: {
       title: args.title,
       product_line: 'line_b_coding',
-      kind: GAME_PROJECT_KIND,
+      kind: args.kind ?? GAME_PROJECT_KIND,
+      ...(args.inferKind ? { infer_kind: true } : {}),
       ...(args.template ? { template: args.template } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),
@@ -212,6 +232,133 @@ export async function fetchClassAssetDataUrl(
 ): Promise<string> {
   const blob = await apiBlob(`/projects/${projectId}/class-assets/${assetId}/bytes`);
   return blobToDataUrl(blob);
+}
+
+// ── Website project database (creative-code-studio-website-prd D-WEB-15) ─────
+// Each website project owns ONE server-side SQLite database on platform-backend,
+// torn down with the project. The sandboxed site frame stays token-free: its
+// `db.query(...)` calls travel over postMessage to SiteFrame, which calls these
+// endpoints with the kid's session. The Database window introspects the same db
+// over REST (tables/rows) and owns the ONLY reset path (rebuild from the
+// project's top-level `data/*.json` seed files).
+
+/** A bindable SQL parameter (the backend binds them — never string-splice). */
+export type SiteDbParam = string | number | boolean | null;
+
+/** `POST /projects/:id/db/query` result — one statement, rows capped server-side. */
+export interface SiteDbQueryResult {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  row_count: number;
+  changes: number | null;
+  last_insert_rowid: string | null;
+}
+
+/** Run ONE SQL statement (params bound server-side) on the project's db. SQL
+ *  errors surface as a 400 `DB_QUERY_ERROR` ApiError whose message is
+ *  kid-readable — callers show it verbatim. */
+export async function querySiteDb(
+  projectId: string,
+  sql: string,
+  params: SiteDbParam[] = [],
+): Promise<SiteDbQueryResult> {
+  return api<SiteDbQueryResult>(`/projects/${projectId}/db/query`, {
+    method: 'POST',
+    body: { sql, params },
+  });
+}
+
+export interface SiteDbColumn {
+  name: string;
+  type: string;
+}
+
+export interface SiteDbTableInfo {
+  name: string;
+  row_count: number;
+  columns: SiteDbColumn[];
+}
+
+/** `GET /projects/:id/db/tables` — the schema snapshot the Database window renders. */
+export interface SiteDbTables {
+  tables: SiteDbTableInfo[];
+  size_bytes: number;
+}
+
+export async function listSiteDbTables(projectId: string): Promise<SiteDbTables> {
+  return api<SiteDbTables>(`/projects/${projectId}/db/tables`);
+}
+
+/** The key carrying each introspected row's stable SQLite rowid (D-WEB-16) —
+ *  the Database window's edit/delete WHERE key. Present on every row when the
+ *  table reports `has_rowid: true`; NEVER a display column. */
+export const SITE_DB_ROWID_KEY = '__rowid__';
+
+/** Page through one table's rows (backend default 100, max 500 per page).
+ *  `has_rowid` reports whether the table has a usable rowid (D-WEB-16) — when
+ *  true each row carries its rowid (string) under {@link SITE_DB_ROWID_KEY}. */
+export async function listSiteDbRows(
+  projectId: string,
+  table: string,
+  opts: { limit?: number; offset?: number } = {},
+): Promise<{ rows: Record<string, unknown>[]; total: number; has_rowid: boolean }> {
+  const params = new URLSearchParams();
+  if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+  if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+  const qs = params.toString();
+  return api<{ rows: Record<string, unknown>[]; total: number; has_rowid: boolean }>(
+    `/projects/${projectId}/db/tables/${encodeURIComponent(table)}/rows${qs ? `?${qs}` : ''}`,
+  );
+}
+
+/** Rebuild EVERY table from the project's `data/*.json` seeds (wipes changes) —
+ *  the explicit Reset database affordance, the only reset path. */
+export async function resetSiteDb(projectId: string): Promise<SiteDbTables> {
+  return api<SiteDbTables>(`/projects/${projectId}/db/reset`, { method: 'POST' });
+}
+
+// ── External data sources (creative-code-studio-website-prd D-WEB-19/23) ─────
+// External data the site can use WITHOUT any sandbox egress: the in-frame
+// `sources.get(name, params)` (admin-curated catalog) and `sources.fetch(url)`
+// (ANY public https JSON API, D-WEB-23) ride postMessage to SiteFrame, which
+// calls these endpoints with the kid's session, and the BACKEND fetches the
+// real provider (validated, cached, size/time capped; open fetches pass the
+// server's SSRF fence + the admin domain blocklist). The Database window's
+// "Data sources" group renders the curated catalog.
+
+
+/** A data-source parameter value — scalars only, per the backend contract. */
+export type SiteSourceParam = string | number | boolean;
+
+/** `POST /projects/:id/sources/:name` — fetch one source through the server
+ *  proxy. Failures arrive as 400 `SOURCE_UNKNOWN` / `SOURCE_PARAMS` /
+ *  `SOURCE_UPSTREAM` or 429 `SOURCE_BUSY` (server-side per-project cap)
+ *  ApiErrors whose messages are kid-readable — callers surface them
+ *  verbatim. */
+export async function fetchProjectSource(
+  projectId: string,
+  name: string,
+  params: Record<string, SiteSourceParam>,
+): Promise<{ data: unknown; cached: boolean }> {
+  return api<{ data: unknown; cached: boolean }>(
+    `/projects/${projectId}/sources/${encodeURIComponent(name)}`,
+    { method: 'POST', body: { params } },
+  );
+}
+
+/** `POST /projects/:id/sources/fetch` — the OPEN fetch door (D-WEB-23): any
+ *  public https JSON API through the server proxy (SSRF fence + admin domain
+ *  blocklist enforced server-side). Failures arrive as 400 `SOURCE_URL` /
+ *  `SOURCE_BLOCKED` / `SOURCE_UPSTREAM` or 429 `SOURCE_BUSY` ApiErrors whose
+ *  messages are kid-readable — callers surface them verbatim. */
+export async function fetchProjectSourceUrl(
+  projectId: string,
+  url: string,
+): Promise<{ data: unknown; cached: boolean }> {
+  return api<{ data: unknown; cached: boolean }>(`/projects/${projectId}/sources/fetch`, {
+    method: 'POST',
+    body: { url },
+  });
 }
 
 export interface ResolveFilesOptions {

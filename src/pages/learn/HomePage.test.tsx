@@ -46,6 +46,14 @@ describe('Learn home', () => {
       'href',
       '/learn/playground/new',
     );
+    // Its card says it builds websites too (D-WEB-11 — one entry, two kinds).
+    expect(screen.getByTestId('home-creative-code')).toHaveTextContent(/website/i);
+
+    // Website Studio has its OWN home tile as well, arming the explicit kind.
+    expect(screen.getByTestId('home-website-studio')).toHaveAttribute(
+      'href',
+      '/learn/playground/new?kind=website',
+    );
 
     // The Guided-courses card follows the Lessons-catalog switch (features.ts):
     // hidden while the catalog is off, back with the same href when it's on.

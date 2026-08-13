@@ -2,7 +2,7 @@ import clsx from 'clsx';
 
 import { usePlaygroundStore } from '../playgroundStore';
 import type { PgWindowId } from '../playgroundStore';
-import { WINDOW_ACCENT, WINDOW_META } from './windowMeta';
+import { WINDOW_ACCENT, windowDisplay } from './windowMeta';
 
 // Per-window brand-tinted glow under the tile (DESIGN.md "card carries its own
 // colour shadow"). Tighter than the card token so it reads as a lift, not a
@@ -16,6 +16,8 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
   // mission shares the mint glow with the Code Editor (six windows, five brand
   // colours — see WINDOW_ACCENT).
   mission: 'shadow-[0_10px_22px_-8px_rgba(61,217,169,0.55)]',
+  // db shares the sky glow with Chat (see WINDOW_ACCENT's db note).
+  db: 'shadow-[0_10px_22px_-8px_rgba(93,174,255,0.55)]',
 };
 
 /**
@@ -24,8 +26,15 @@ const TILE_SHADOW: Record<PgWindowId, string> = {
  * brand-tinted glow, with the (brand-coloured) lucide glyph sitting in a soft
  * brand-wash chip. Lifts on hover. Icons themselves are unchanged.
  */
-export function DesktopIcon({ id }: { id: PgWindowId }) {
-  const { title, Icon } = WINDOW_META[id];
+export function DesktopIcon({
+  id,
+  kind = 'game',
+}: {
+  id: PgWindowId;
+  /** Project kind — Website Studio relabels the runner tile "Website" (id stable). */
+  kind?: 'game' | 'website';
+}) {
+  const { title, Icon } = windowDisplay(id, kind);
   const accent = WINDOW_ACCENT[id];
   const openOrFocus = usePlaygroundStore((s) => s.openOrFocus);
 

@@ -8,6 +8,11 @@ import { useBootstrap } from '@/auth/useBootstrap';
 import { startPageTracking } from '@/lib/analytics';
 import './styles/index.css';
 
+import { installStaleChunkRecovery } from '@/lib/staleChunkRecovery';
+
+// Recover from the stale-chunk deploy race BEFORE anything can lazy-import.
+installStaleChunkRecovery();
+
 // GA4 page_view reporting for the PARENT PORTAL ONLY — every hit is gated on
 // isPortalSurface(), so kid routes (/learn, /try, /play) never load gtag.js and
 // never send anything. Also inert without parent consent, outside production,

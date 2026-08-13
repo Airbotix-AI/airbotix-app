@@ -22,7 +22,7 @@ vi.mock('./sharingApi', () => ({
   revokeShareLink: vi.fn(),
 }));
 
-function renderPanel(props: { prepMode?: boolean } = {}) {
+function renderPanel(props: { prepMode?: boolean; kind?: 'game' | 'website' } = {}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -104,6 +104,59 @@ describe('ShareLinkPanel — teacher-prep immediate share (D-PREP-6)', () => {
     const url = (await screen.findByTestId('share-url')) as HTMLInputElement;
     expect(url.value).toContain('/play/ps1');
     expect(screen.queryByTestId('share-approval-pending')).toBeNull();
+    expect(requestShareLink).toHaveBeenCalledWith('p1');
+  });
+});
+
+// Website sharing (creative-code-studio-website-prd D-WEB-22): the share
+// lifecycle is IDENTICAL to a game — only the copy is kind-aware. A website
+// says "see your website"; a game keeps "play your game". The request/approve
+// machinery is untouched (same requestShareLink call).
+describe('ShareLinkPanel — kind-aware copy (D-WEB-22)', () => {
+  it('renders for a WEBSITE project with website citizenship copy', async () => {
+    renderPanel({ kind: 'website' });
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+
+    await screen.findByRole('dialog', { name: 'Share link' });
+    const note = screen.getByTestId('citizenship-note').textContent ?? '';
+    expect(note).toContain('see your website');
+    expect(note).not.toContain('play your game');
+    // The share affordance (request flow) is present, unchanged.
+    expect(screen.getByText('Ask my grown-up to share')).toBeTruthy();
+  });
+
+  it('keeps the GAME copy unchanged (default kind)', async () => {
+    renderPanel();
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+
+    await screen.findByRole('dialog', { name: 'Share link' });
+    const note = screen.getByTestId('citizenship-note').textContent ?? '';
+    expect(note).toContain('play your game');
+    expect(note).not.toContain('website');
+  });
+
+  it('a website prep host gets the adult website copy ("see this website")', async () => {
+    renderPanel({ kind: 'website', prepMode: true });
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+
+    await screen.findByRole('dialog', { name: 'Share link' });
+    expect(screen.getByTestId('citizenship-note').textContent).toContain(
+      'see this website — no sign-in needed',
+    );
+  });
+
+  it('the request/approve flow still works for a website (same machinery)', async () => {
+    vi.mocked(requestShareLink).mockResolvedValue({ status: 'pending', shareId: 'ws1', plays: 0 });
+    vi.mocked(getShareLink).mockResolvedValue({ status: 'none' });
+
+    renderPanel({ kind: 'website' });
+    fireEvent.click(screen.getByTestId('share-link-btn'));
+    await screen.findByRole('dialog', { name: 'Share link' });
+
+    fireEvent.click(screen.getByText('Ask my grown-up to share'));
+
+    // The pending "waiting for a grown-up" beat appears — identical to a game.
+    await screen.findByTestId('share-approval-pending');
     expect(requestShareLink).toHaveBeenCalledWith('p1');
   });
 });

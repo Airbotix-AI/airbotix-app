@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { VfsFile } from '../../code/codeApi';
 import { GameFrame } from '../GameFrame';
+import { SiteFrame } from '../SiteFrame';
 import { readWorkspaceSlice, writeWorkspaceSlice } from '../workspaceUiStore';
 import type { ConsoleLine, GameEngine } from '../buildGamePreview';
 import type { RunReport } from '../runReport';
@@ -13,6 +14,9 @@ import { extractRuntimeErrors } from '../verifyRoundtrip';
 interface GameRunnerPaneProps {
   /** The lifted VFS — owned by PlaygroundApp. */
   files: VfsFile[];
+  /** The backend project id — SiteFrame needs it to proxy the site's
+   *  `db.query` sql requests to the server-side db (D-WEB-15). */
+  projectId?: string;
   /**
    * Class shared assets the game references at `assets/class/<name>`, resolved to
    * `data:` URLs (class-shared-assets-prd, Model A). Passed LIVE (not through the
@@ -25,8 +29,19 @@ interface GameRunnerPaneProps {
   /** Whether the game is currently running. Owned by PlaygroundApp; ▶ → onRun(). */
   running: boolean;
   /** Which engine global + control shim the runner injects (2D phaser / 3D three).
-   *  learn-game-studio-3d-prd.md D-3D-01. Defaults to phaser. */
+   *  learn-game-studio-3d-prd.md D-3D-01. Defaults to phaser. Ignored for websites. */
   engine?: GameEngine;
+  /**
+   * Project kind (creative-code-studio-website-prd): `website` renders the
+   * SiteFrame (multi-page site + the project's real server-side db, D-WEB-15)
+   * instead of the GameFrame,
+   * and hides the game-only affordances (pause/mute/FPS/physics-debug/screen
+   * preset) — they don't apply to a site. Run reports are NOT game-only:
+   * websites verify through the same `onRunReport` loop (D-WEB-13), the
+   * SiteFrame collecting site evidence instead of frames/canvas. Defaults to
+   * `game`.
+   */
+  kind?: 'game' | 'website';
   /** Launch / re-run the game (PlaygroundApp flips `running` + bumps runKey). */
   onRun: () => void;
   /** Open a console error's source location in the editor (jump to file+line). */
@@ -39,8 +54,9 @@ interface GameRunnerPaneProps {
   /** Legacy self-verify (MP3): report captured runtime errors for a raw fix turn.
    *  RETIRED for game projects — verification now rides `onRunReport` (D-PAP-40). */
   onRuntimeErrors?: (errors: string[]) => void;
-  /** Post-apply verification (D-PAP-40): pass-through to GameFrame — emits one
-   *  structured RunReport per run for the loop driver (useVerification). */
+  /** Post-apply verification (D-PAP-40 games / D-WEB-13 websites): pass-through
+   *  to GameFrame or SiteFrame — emits one structured RunReport per run for the
+   *  loop driver (useVerification). */
   onRunReport?: (report: RunReport) => void;
   /** 1-based chain attempt stamped into the emitted RunReport (default 1). */
   reportAttempt?: number;
@@ -117,6 +133,10 @@ export function fixPrompt(lines: ConsoleLine[]): string {
 }
 
 const DEFAULT_PRESET_ID = 'original';
+
+/** How long after the last VFS change the live site preview rebuilds (ms) —
+ *  settles Monaco typing bursts without feeling laggy (live site model). */
+const SITE_REBUILD_DEBOUNCE_MS = 700;
 
 /** Console line level → text color (VSCode-terminal flavor). */
 const LEVEL_COLOR: Record<ConsoleLine['level'], string> = {
@@ -215,10 +235,12 @@ function ToolButton({
  */
 export function GameRunnerPane({
   files,
+  projectId,
   virtualAssets,
   runKey,
   running,
   engine = 'phaser',
+  kind = 'game',
   onRun,
   onOpenLocation,
   onAskFix,
@@ -242,6 +264,35 @@ export function GameRunnerPane({
   const [debug, setDebug] = useState(false);
   const [fps, setFps] = useState(0);
   const [lines, setLines] = useState<ConsoleLine[]>([]);
+  // Website Studio: a site has NO "running" concept — the SiteFrame is ALWAYS
+  // mounted and live-rebuilds as the VFS changes (debounced below). The only
+  // affordance is Reload (a fresh page load: back to index.html; the db is
+  // server-side and persists, D-WEB-15); pause/mute/FPS/debug/screen presets
+  // are game-only and hidden. Run reports still flow (D-WEB-13): the SiteFrame
+  // observes each run (runKey) and emits the website RunReport for the
+  // verification loop.
+  const isSite = kind === 'website';
+
+  // Live site preview: follow `files` with a debounce so typing in Monaco (the
+  // idle autosave commits drafts) doesn't thrash the iframe; an AI-turn apply
+  // refreshes promptly anyway (the agent's run_game action bumps runKey, which
+  // adopts the latest files IMMEDIATELY below). Mirrors SAVE_DEBOUNCE_MS-style
+  // settling; a rebuild is just a fresh page load (the db persists, D-WEB-15).
+  const [siteFiles, setSiteFiles] = useState(files);
+  useEffect(() => {
+    if (!isSite) return undefined;
+    const timer = setTimeout(() => setSiteFiles(files), SITE_REBUILD_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [isSite, files]);
+  // Reload / run_game / AI apply (runKey bump): adopt the latest files NOW —
+  // no debounce lag on an explicit refresh. Guarded setState-during-render
+  // (React's supported "adjust state on prop change" pattern, same family as
+  // the game's runFilesRef snapshot below).
+  const lastSiteRunKey = useRef(runKey);
+  if (isSite && runKey !== lastSiteRunKey.current) {
+    lastSiteRunKey.current = runKey;
+    if (siteFiles !== files) setSiteFiles(files);
+  }
 
   // The running game uses a SNAPSHOT of the VFS taken at launch (keyed to runKey),
   // so editor autosaves — which mutate `files` WITHOUT a Play — don't silently
@@ -334,57 +385,81 @@ export function GameRunnerPane({
     // playground theme — `data-theme="dark"` re-themes its pg-* chrome locally.
     // In Window mode the game Window also forces dark; this covers Split mode.
     <div data-theme="dark" className="flex h-full min-h-0 flex-col bg-pg-bg text-pg-text">
-      {/* Toolbar */}
+      {/* Toolbar. A website has NO run concept — its ONLY affordance is Reload
+          (a fresh page load: back to index.html; the server-side db keeps its
+          data) + the console toggle; every play/pause/mute/preset/physics-debug
+          control is game-only. */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-pg-border bg-pg-surface-2 px-3 py-2">
-        <ToolButton
-          label={!running ? 'Play' : paused ? 'Play' : 'Pause'}
-          active={running && !paused}
-          onClick={() => {
-            if (!running) {
-              onRun();
-              return;
-            }
-            setPaused((p) => !p);
-          }}
-        >
-          {!running || paused ? <Play size={18} /> : <Pause size={18} />}
-        </ToolButton>
-
-        <ToolButton
-          label={muted ? 'Unmute' : 'Mute'}
-          active={!muted}
-          onClick={() => setMuted((m) => !m)}
-        >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </ToolButton>
-
-        <label className="flex items-center gap-1.5">
-          <Smartphone aria-hidden size={18} className="text-pg-text-dim" />
-          <select
-            aria-label="Screen size"
-            value={presetId}
-            onChange={(e) => setPresetId(e.target.value)}
-            className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1 text-xs font-medium text-pg-text focus:outline-none focus:ring-2 focus:ring-brand-sky"
+        {isSite ? (
+          <button
+            type="button"
+            aria-label="Reload site"
+            title="Reload site"
+            data-testid="site-reload"
+            onClick={onRun}
+            className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-bold text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
           >
-            {SCREEN_PRESETS.map((p) => (
-              <option key={p.id} value={p.id} className="text-pg-text">
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <RotateCcw size={16} aria-hidden /> Reload
+          </button>
+        ) : (
+          <ToolButton
+            label={!running ? 'Play' : paused ? 'Play' : 'Pause'}
+            active={running && !paused}
+            onClick={() => {
+              if (!running) {
+                onRun();
+                return;
+              }
+              setPaused((p) => !p);
+            }}
+          >
+            {!running || paused ? <Play size={18} /> : <Pause size={18} />}
+          </ToolButton>
+        )}
 
-        <ToolButton label="Restart" onClick={onRun}>
-          <RotateCcw size={18} />
-        </ToolButton>
+        {!isSite && (
+          <ToolButton
+            label={muted ? 'Unmute' : 'Mute'}
+            active={!muted}
+            onClick={() => setMuted((m) => !m)}
+          >
+            {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          </ToolButton>
+        )}
 
-        <ToolButton
-          label={debug ? 'Hide physics debug' : 'Show physics debug'}
-          active={debug}
-          onClick={() => setDebug((d) => !d)}
-        >
-          <Bug size={18} />
-        </ToolButton>
+        {!isSite && (
+          <label className="flex items-center gap-1.5">
+            <Smartphone aria-hidden size={18} className="text-pg-text-dim" />
+            <select
+              aria-label="Screen size"
+              value={presetId}
+              onChange={(e) => setPresetId(e.target.value)}
+              className="rounded-lg border border-pg-border bg-pg-surface-2 px-2 py-1 text-xs font-medium text-pg-text focus:outline-none focus:ring-2 focus:ring-brand-sky"
+            >
+              {SCREEN_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} className="text-pg-text">
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {!isSite && (
+          <ToolButton label="Restart" onClick={onRun}>
+            <RotateCcw size={18} />
+          </ToolButton>
+        )}
+
+        {!isSite && (
+          <ToolButton
+            label={debug ? 'Hide physics debug' : 'Show physics debug'}
+            active={debug}
+            onClick={() => setDebug((d) => !d)}
+          >
+            <Bug size={18} />
+          </ToolButton>
+        )}
 
         <ToolButton label="Toggle console" active={showConsole} onClick={() => setShowConsole((s) => !s)}>
           <Terminal size={18} />
@@ -397,7 +472,22 @@ export function GameRunnerPane({
         ref={stageRef}
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-pg-desktop"
       >
-        {running ? (
+        {isSite ? (
+          // Websites are ALWAYS live — no launch gate, no placeholder. The frame
+          // fills the stage edge-to-edge (no game screen presets) and rebuilds
+          // from the debounced live VFS; SiteFrame carries its own slim nav bar.
+          <div className="h-full w-full overflow-hidden">
+            <SiteFrame
+              files={siteFiles}
+              projectId={projectId}
+              virtualAssets={virtualAssets}
+              runKey={runKey}
+              onConsole={setLines}
+              onRunReport={onRunReport}
+              reportAttempt={reportAttempt}
+            />
+          </div>
+        ) : running ? (
           <div
             className="overflow-hidden rounded-md bg-black shadow-[0_10px_40px_-8px_rgba(0,0,0,0.8)] ring-1 ring-white/20"
             style={box ? { width: box.w, height: box.h } : { width: '100%', height: '100%' }}
@@ -467,9 +557,17 @@ export function GameRunnerPane({
         </div>
       )}
 
-      {/* Status bar */}
+      {/* Status bar. A website is ALWAYS live — no Idle/Running/Paused states,
+          no fps, no screen-preset dims; just the live dot + the log count. */}
       <div className="flex shrink-0 items-center gap-2 border-t border-pg-border bg-pg-surface-2 px-3 py-1.5 text-xs">
-        {!running ? (
+        {isSite ? (
+          <>
+            <span aria-hidden className="h-2 w-2 rounded-full bg-brand-mint" />
+            <span className="font-bold text-pg-text">Live</span>
+            <span className="text-pg-text-muted">·</span>
+            <span className="text-pg-text-dim">{logCount + ' logs'}</span>
+          </>
+        ) : !running ? (
           <>
             <span aria-hidden className="h-2 w-2 rounded-full bg-pg-text-muted" />
             <span className="font-bold text-pg-text">Idle</span>
@@ -487,9 +585,11 @@ export function GameRunnerPane({
             <span className="text-pg-text-dim">{logCount + ' logs'}</span>
           </>
         )}
-        <span className="ml-auto text-pg-text-dim">
-          {preset.w} × {preset.h}
-        </span>
+        {!isSite && (
+          <span className="ml-auto text-pg-text-dim">
+            {preset.w} × {preset.h}
+          </span>
+        )}
       </div>
     </div>
   );

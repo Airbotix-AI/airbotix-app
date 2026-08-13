@@ -15,6 +15,16 @@ vi.mock('../GameFrame', () => ({
     return null;
   },
 }));
+// The website runner host (creative-code-studio-website-prd) — stubbed like
+// GameFrame; records its props so the kind switch can be asserted.
+const siteFrameProps: unknown[] = [];
+vi.mock('../SiteFrame', () => ({
+  SiteFrame: (props: { files: unknown; onConsole?: (lines: ConsoleLine[]) => void }) => {
+    siteFrameProps.push(props);
+    latestOnConsole = props.onConsole;
+    return <div data-testid="stub-site-frame" />;
+  },
+}));
 
 import type { ConsoleLine } from '../buildGamePreview';
 import { fixPrompt, GameRunnerPane } from './GameRunnerPane';
@@ -68,6 +78,127 @@ describe('GameRunnerPane — the running game uses a launch snapshot of the VFS'
       <GameRunnerPane files={threeD} runKey={1} running engine="three" onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
     );
     expect(seen.at(-1)).toBe(threeD);
+  });
+});
+
+// Website Studio (creative-code-studio-website-prd, D-WEB-04 live model): a
+// website has NO "running" concept — the SiteFrame is ALWAYS mounted, follows
+// the VFS live (debounced), and the ONLY affordance is Reload (fresh run).
+describe('GameRunnerPane — kind="website" is an always-live site', () => {
+  beforeEach(() => {
+    cleanup();
+    siteFrameProps.length = 0;
+  });
+  afterEach(cleanup);
+
+  it('the SiteFrame mounts WITHOUT running (no launch gate); GameFrame never does', () => {
+    const files = F('index.html', 'server.js');
+    render(
+      <GameRunnerPane files={files} kind="website" runKey={0} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    expect(screen.getByTestId('stub-site-frame')).toBeInTheDocument();
+    expect((siteFrameProps.at(-1) as { files: unknown }).files).toBe(files);
+    expect(seen.length).toBe(0); // no GameFrame
+    // No launch placeholder either — the site is simply live.
+    expect(screen.queryByText(/Press ▶ to play/)).not.toBeInTheDocument();
+  });
+
+  it('live-rebuilds from a files change after the debounce (never mid-keystroke)', () => {
+    vi.useFakeTimers();
+    try {
+      const a = F('index.html');
+      const { rerender } = render(
+        <GameRunnerPane files={a} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+      );
+      expect((siteFrameProps.at(-1) as { files: unknown }).files).toBe(a);
+
+      // An edit lands (no runKey bump) — the frame holds until the dust settles…
+      const b = F('index.html', 'style.css');
+      rerender(
+        <GameRunnerPane files={b} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+      );
+      expect((siteFrameProps.at(-1) as { files: unknown }).files).toBe(a);
+
+      // …then rebuilds with the latest files.
+      act(() => vi.advanceTimersByTime(800));
+      expect((siteFrameProps.at(-1) as { files: unknown }).files).toBe(b);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a runKey bump (Reload / run_game / AI apply) adopts the latest files IMMEDIATELY', () => {
+    vi.useFakeTimers();
+    try {
+      const a = F('index.html');
+      const { rerender } = render(
+        <GameRunnerPane files={a} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+      );
+      const b = F('index.html', 'about.html');
+      rerender(
+        <GameRunnerPane files={b} kind="website" runKey={2} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+      );
+      // No debounce lag on an explicit refresh.
+      expect((siteFrameProps.at(-1) as { files: unknown }).files).toBe(b);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the ONLY affordance is Reload — no play/pause/restart/preset/debug/fps/Idle', () => {
+    const onRun = vi.fn();
+    render(
+      <GameRunnerPane files={F('index.html')} kind="website" runKey={1} running={false} onRun={onRun} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    const reload = screen.getByTestId('site-reload');
+    expect(reload).toHaveAttribute('aria-label', 'Reload site');
+    fireEvent.click(reload);
+    expect(onRun).toHaveBeenCalledTimes(1);
+
+    expect(screen.queryByRole('button', { name: 'Play' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pause' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Restart' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /mute/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /physics debug/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Screen size')).not.toBeInTheDocument();
+    expect(screen.queryByText(/fps/)).not.toBeInTheDocument();
+    // Status: always live — never Idle/Running/Paused.
+    expect(screen.getByText('Live')).toBeInTheDocument();
+    expect(screen.queryByText('Idle')).not.toBeInTheDocument();
+    // The console toggle stays (shared debugging affordance).
+    expect(screen.getByRole('button', { name: 'Toggle console' })).toBeInTheDocument();
+  });
+
+  it('a game keeps its affordances (no regression from the kind seam)', () => {
+    render(
+      <GameRunnerPane files={F('main.js')} runKey={1} running onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restart' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Screen size')).toBeInTheDocument();
+    expect(screen.queryByTestId('stub-site-frame')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('site-reload')).not.toBeInTheDocument();
+  });
+
+  it("website console lines flow through the pane's console panel", () => {
+    render(
+      <GameRunnerPane files={F('index.html')} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle console' }));
+    act(() => latestOnConsole?.([{ level: 'error', text: 'No route answered GET /api/x' }]));
+    expect(screen.getByText(/No route answered GET \/api\/x/)).toBeInTheDocument();
+  });
+
+  it('forwards the verification report seam to the SiteFrame (D-WEB-13)', () => {
+    // Run reports are NOT game-only chrome: the website verification loop rides
+    // the same onRunReport/reportAttempt pass-through the GameFrame gets.
+    const onRunReport = vi.fn();
+    render(
+      <GameRunnerPane files={F('index.html')} kind="website" runKey={1} running={false} onRun={noop} onOpenLocation={noop} onAskFix={noop} onRunReport={onRunReport} reportAttempt={2} />,
+    );
+    const props = siteFrameProps.at(-1) as { onRunReport?: unknown; reportAttempt?: number };
+    expect(props.onRunReport).toBe(onRunReport);
+    expect(props.reportAttempt).toBe(2);
   });
 });
 

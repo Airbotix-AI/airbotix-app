@@ -1,4 +1,4 @@
-import { BookOpen, Code2, Gamepad2, Images, ListChecks, MessageSquare } from 'lucide-react';
+import { BookOpen, Code2, Database, Gamepad2, Globe, Images, ListChecks, MessageSquare } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import type { PgWindowId } from '../playgroundStore';
@@ -11,7 +11,32 @@ export const WINDOW_META: Record<PgWindowId, { title: string; Icon: LucideIcon }
   assets: { title: 'Asset Viewer', Icon: Images },
   help: { title: 'Guide', Icon: BookOpen },
   mission: { title: 'Mission', Icon: ListChecks },
+  // Website Studio only — the project's real server-side database, live.
+  db: { title: 'Database', Icon: Database },
 };
+
+/**
+ * Kind-aware display metadata (creative-code-studio-website-prd): the display
+ * layer flips per project kind while the STABLE `PgWindowId` is unchanged. Two
+ * windows switch:
+ *   - the RUNNER ('game') reads "Website" + globe in Website Studio (else the
+ *     Game Runner metadata);
+ *   - the GUIDE ('help') reads "Website Guide" vs "Game Guide" (D-WEB-21) — same
+ *     BookOpen icon, only the label changes with the corpus the pane loads.
+ * Everywhere a label shows (window title bar, desktop tile, taskbar button,
+ * split-tab) reads through here so the two never drift.
+ */
+const WEBSITE_GAME_DISPLAY = { title: 'Website', Icon: Globe } as const;
+export function windowDisplay(
+  id: PgWindowId,
+  kind: 'game' | 'website' = 'game',
+): { title: string; Icon: LucideIcon } {
+  if (id === 'game' && kind === 'website') return WEBSITE_GAME_DISPLAY;
+  if (id === 'help') {
+    return { title: kind === 'website' ? 'Website Guide' : 'Game Guide', Icon: WINDOW_META.help.Icon };
+  }
+  return WINDOW_META[id];
+}
 
 /**
  * Per-window brand identity (chat=sky, code=mint, game=coral) — the desktop
@@ -47,7 +72,17 @@ export const WINDOW_ACCENT: Record<PgWindowId, { border: string; icon: string; w
     icon: 'text-brand-mint',
     wash: 'bg-brand-mint/15',
   },
+  // db=sky (shared with Chat — five brand colours, seven windows). Sky is the
+  // "information" read, and the two never sit confusably side by side: the db
+  // tile shows only in Website Studio, right next to the coral Website window,
+  // with the Database glyph keeping it unmistakable next to MessageSquare.
+  db: {
+    border: 'border-brand-sky/50',
+    icon: 'text-brand-sky',
+    wash: 'bg-brand-sky/15',
+  },
 };
 
-/** Display order for the windows in the Taskbar and Desktop. */
-export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'assets', 'help', 'mission'];
+/** Display order for the windows in the Taskbar and Desktop. `db` sits right
+ *  after the runner it belongs to (Website Studio only — gated by kind). */
+export const WINDOW_ORDER: PgWindowId[] = ['chat', 'code', 'game', 'db', 'assets', 'help', 'mission'];

@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
-// Guide window spawn placement: it must never bury the conversation's latest
-// messages — beside the chat when a readable column fits, otherwise a shorter
-// top-anchored column that leaves the chat's input + newest replies visible.
+// Guide window spawn placement (D-WEB-21): it launches wide enough that BOTH the
+// pillar sidebar AND the content column show from the first open (game AND website
+// projects), while still never burying the conversation's latest messages —
+// beside the chat when a two-pane-wide column fits there, otherwise a wide top
+// strip that leaves the chat's input + newest replies visible below it.
 
 import { describe, expect, it } from 'vitest';
 
-import { defaultWindows, usePlaygroundStore } from './playgroundStore';
+import { GUIDE_MIN_W, defaultWindows, usePlaygroundStore } from './playgroundStore';
 
 function rectsAt(width: number, height: number) {
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
@@ -14,23 +16,44 @@ function rectsAt(width: number, height: number) {
   return { help: windows.help.rect, chat: windows.chat.rect };
 }
 
-describe('Guide window spawn vs the chat (top-left, never on the conversation)', () => {
-  it('desktop + laptop: opens TOP-LEFT, fully clear of the chat column', () => {
+/** The "never bury the chat" contract: fully beside the chat, OR a top strip that
+ *  leaves the chat's bottom third (its input + latest replies) clear. */
+function clearOfConversation(help: { x: number; y: number; w: number; h: number }, chat: { x: number; y: number; w: number; h: number }): boolean {
+  const beside = help.x + help.w <= chat.x;
+  const clearOfLatest = help.y + help.h <= chat.y + (chat.h * 2) / 3;
+  return beside || clearOfLatest;
+}
+
+describe('Guide window spawn: sidebar + content both visible, never on the conversation', () => {
+  it('typical viewports: opens at least two-pane wide, on screen, clear of the chat', () => {
     for (const [w, h] of [
       [2200, 1000],
       [1380, 860],
       [1280, 800],
     ]) {
       const { help, chat } = rectsAt(w, h);
-      expect(help.x + help.w, `${w}px wide`).toBeLessThanOrEqual(chat.x);
-      expect(help.w, `${w}px wide`).toBeGreaterThanOrEqual(250);
+      // Wide enough to show the pillar sidebar AND the content column.
+      expect(help.w, `${w}px: two-pane floor`).toBeGreaterThanOrEqual(GUIDE_MIN_W);
+      // Fully on screen.
+      expect(help.x, `${w}px: on-screen left`).toBeGreaterThanOrEqual(0);
+      expect(help.x + help.w, `${w}px: on-screen right`).toBeLessThanOrEqual(w);
+      // Never buries the conversation's latest messages.
+      expect(clearOfConversation(help, chat), `${w}px: clear of chat`).toBe(true);
     }
   });
 
-  it('tiny screens: falls back to a SHORT strip clear of the chat bottom third', () => {
-    const { help, chat } = rectsAt(1000, 700);
-    const chatBottomThird = chat.y + chat.h * (2 / 3);
-    expect(help.y + help.h).toBeLessThanOrEqual(chatBottomThird);
+  it('very wide screens: a two-pane column fits fully LEFT of the chat', () => {
+    const { help, chat } = rectsAt(3200, 1200);
+    expect(help.w).toBeGreaterThanOrEqual(GUIDE_MIN_W);
+    expect(help.x + help.w).toBeLessThanOrEqual(chat.x); // beside, not overlapping
+  });
+
+  it('narrow viewports: clamps the strip to the screen (still fully visible)', () => {
+    const { help, chat } = rectsAt(900, 700);
+    expect(help.x).toBeGreaterThanOrEqual(0);
+    expect(help.x + help.w).toBeLessThanOrEqual(900);
+    // Even clamped, it stays clear of the chat's newest messages.
+    expect(clearOfConversation(help, chat)).toBe(true);
   });
 });
 

@@ -89,6 +89,9 @@ describe('PlaygroundApp class create flow', () => {
         kidId: 'kid-1',
         familyId: 'fam-1',
         title: 'make a 3D maze',
+        // The class game entry is a GENERIC landing (no ?kind), so the server
+        // routes game-vs-website here too (D-WEB-11).
+        inferKind: true,
       }),
     );
     expect(placeGameProjectForClassMock).toHaveBeenCalledWith({

@@ -131,6 +131,19 @@ describe('TeacherProjectLivePage', () => {
     expect(stub).toHaveAttribute('data-pid', 'proj_1');
   });
 
+  it('renders the playground in read-only for a WEBSITE project (Website Studio live view)', async () => {
+    apiMock.mockResolvedValue({ id: 'proj_1', title: 'Pet shop site', kind: 'website', kid_nickname: 'Mia' });
+
+    renderViewer();
+
+    // Websites reuse the playground read-only — the studio loads the project's
+    // kind itself and mounts the SiteFrame runner (page nav works, no editing).
+    const stub = await screen.findByTestId('stub-game');
+    expect(stub).toHaveAttribute('data-readonly', 'true');
+    expect(stub).toHaveAttribute('data-pid', 'proj_1');
+    expect(screen.queryByTestId('teacher-live-unsupported')).not.toBeInTheDocument();
+  });
+
   it('renders the BLOCKS studio in read-only for a blocks project', async () => {
     apiMock.mockResolvedValue({ id: 'proj_1', title: 'My blocks', kind: 'blocks', kid_nickname: 'Leo' });
 

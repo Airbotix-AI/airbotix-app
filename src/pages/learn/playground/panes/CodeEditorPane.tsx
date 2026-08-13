@@ -15,6 +15,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Play,
+  RotateCcw,
   Search,
   X,
 } from 'lucide-react';
@@ -84,6 +85,20 @@ interface CodeEditorPaneProps {
    *  still RUN the game (it can't commit drafts since none can form). The backend
    *  write-guard is the data backstop; this is the UX + defence-in-depth layer. */
   readOnly?: boolean;
+  /**
+   * Project kind (creative-code-studio-website-prd). `website` has NO run
+   * concept — the site preview is always live — so the ▶ button becomes an
+   * explicit "commit + reload now" reading "Reload site" (the commit gesture is
+   * unchanged; the debounced live rebuild would pick the drafts up anyway, this
+   * just makes it immediate). Defaults to `game` (unchanged behaviour).
+   */
+  kind?: 'game' | 'website';
+  /**
+   * Website Studio only (D-WEB-16): forwarded to the FileTree so its virtual
+   * `database.sqlite` entry can open/focus the Database window. Absent on
+   * games — the entry then doesn't render.
+   */
+  onOpenDatabase?: () => void;
 }
 
 /** The entry file to open first: `main.js` if present, else first text file. */
@@ -111,7 +126,7 @@ function languageLabel(path: string): string {
   return languageFor(path).toUpperCase();
 }
 
-export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLocation, onExplainSelection, readOnly }: CodeEditorPaneProps) {
+export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLocation, onExplainSelection, readOnly, kind = 'game', onOpenDatabase }: CodeEditorPaneProps) {
   // Restore the editor UI from the persisted workspace slice (J9). Open tabs are
   // filtered to files that still exist; the `[files]` effect fills their drafts on
   // mount. Read once (useRef) so it's stable across renders.
@@ -544,7 +559,7 @@ export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLoca
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {sidebarView === 'files' ? (
-                <FileTree files={files} activePath={activeTab} onSelect={openTab} readOnly={readOnly} />
+                <FileTree files={files} activePath={activeTab} onSelect={openTab} readOnly={readOnly} onOpenDatabase={onOpenDatabase} />
               ) : sidebarView === 'history' ? (
                 <HistoryPanel
                   onRevert={revertTo}
@@ -645,11 +660,21 @@ export function CodeEditorPane({ files, onApplyFiles, onSaveNow, onRun, openLoca
 
             <button
               type="button"
-              aria-label="Run game"
+              // Website: the site is always live (no run concept) — the same
+              // gesture still COMMITS drafts, then reloads the site immediately.
+              aria-label={kind === 'website' ? 'Reload site' : 'Run game'}
               onClick={handlePlay}
               className="ml-auto mr-2 flex shrink-0 items-center gap-1.5 rounded-full bg-grad-mint px-4 py-1.5 text-[13px] font-extrabold text-white shadow-brand-mint transition-transform hover:-translate-y-0.5"
             >
-              <Play size={14} aria-hidden /> Play
+              {kind === 'website' ? (
+                <>
+                  <RotateCcw size={14} aria-hidden /> Reload
+                </>
+              ) : (
+                <>
+                  <Play size={14} aria-hidden /> Play
+                </>
+              )}
             </button>
           </div>
 

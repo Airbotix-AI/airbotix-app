@@ -1,0 +1,286 @@
+// @vitest-environment jsdom
+// Website Studio create flow (creative-code-studio-website-prd):
+// `/learn/playground/new?kind=website` arms the SAME prompt-first landing with
+// website copy — the EXACT placeholder "Describe a website and we'll build it…"
+// is a harness journey contract — and the submitted prompt creates a
+// `kind:'website'` backend project (default template `website_blank` server-
+// side). The class flow attaches the created site exactly like a game.
+
+import '@testing-library/jest-dom/vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { RouterProvider, createMemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const {
+  createGameProjectMock,
+  placeGameProjectForClassMock,
+  getProjectMock,
+  useMeMock,
+} = vi.hoisted(() => ({
+  createGameProjectMock: vi.fn(),
+  placeGameProjectForClassMock: vi.fn(),
+  getProjectMock: vi.fn(),
+  useMeMock: vi.fn(),
+}));
+
+vi.mock('@/auth/useAuth', () => ({ useMe: useMeMock }));
+vi.mock('../code/codeApi', async (orig) => {
+  const actual = await orig<typeof import('../code/codeApi')>();
+  return { ...actual, getProject: getProjectMock };
+});
+vi.mock('./panes/playgroundApi', async (orig) => {
+  const actual = await orig<typeof import('./panes/playgroundApi')>();
+  return {
+    ...actual,
+    createGameProject: createGameProjectMock,
+    placeGameProjectForClass: placeGameProjectForClassMock,
+  };
+});
+// The REAL LandingScreen renders (its website copy is under test); only the
+// generating phase is stubbed so no stream/backends run.
+vi.mock('./GeneratingScreen', () => ({
+  GeneratingScreen: ({
+    projectId,
+    kind,
+    creating,
+  }: {
+    projectId?: string;
+    kind?: string;
+    creating?: boolean;
+  }) => (
+    <div data-testid="generating-project" data-kind={kind} data-creating={creating ? 'true' : 'false'}>
+      {projectId}
+    </div>
+  ),
+}));
+
+import { PlaygroundApp } from './PlaygroundApp';
+
+function renderNew(entry: string) {
+  const router = createMemoryRouter(
+    [{ path: '/learn/playground/:projectId', element: <PlaygroundApp projectId="new" /> }],
+    { initialEntries: [entry] },
+  );
+  return render(<RouterProvider router={router} />);
+}
+
+describe('PlaygroundApp website create flow (?kind=website)', () => {
+  beforeEach(() => {
+    createGameProjectMock.mockReset().mockResolvedValue({ id: 'site-42' });
+    placeGameProjectForClassMock.mockReset().mockResolvedValue(undefined);
+    getProjectMock.mockReset().mockResolvedValue({ id: 'site-42', kind: 'website' });
+    useMeMock.mockReturnValue({ data: { kind: 'kid', sub: 'kid-1', family_id: 'fam-1', age: 10 } });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("lands on the website prompt — EXACT placeholder + site starter chips (harness contract)", () => {
+    renderNew('/learn/playground/new?kind=website');
+    // ⚠️ Load-bearing: the harness journey targets this placeholder verbatim.
+    expect(
+      screen.getByPlaceholderText("Describe a website and we'll build it…"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Cookie shop/)).toBeInTheDocument();
+    expect(screen.queryByText('Pong')).not.toBeInTheDocument();
+  });
+
+  it("creates a kind:'website' project from the prompt and moves to generating", async () => {
+    renderNew('/learn/playground/new?kind=website');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a cookie shop website' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith({
+        kidId: 'kid-1',
+        familyId: 'fam-1',
+        title: 'a cookie shop website',
+        kind: 'website',
+      }),
+    );
+    await expect(screen.findByTestId('generating-project')).resolves.toHaveTextContent('site-42');
+  });
+
+  it('the class create flow attaches the created website to the source class', async () => {
+    renderNew('/learn/playground/new?kind=website&class=class-9');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pet adoption website' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(placeGameProjectForClassMock).toHaveBeenCalledWith({
+        projectId: 'site-42',
+        classId: 'class-9',
+      }),
+    );
+    expect(createGameProjectMock).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'website' }),
+    );
+  });
+
+  it('without ?kind the landing stays the game prompt (no regression)', () => {
+    renderNew('/learn/playground/new');
+    expect(
+      screen.getByPlaceholderText("Describe a game or website and we'll build it…"),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Pong')).toBeInTheDocument();
+  });
+
+  // D-WEB-11 (LLM-backed): the GENERIC landing (Learn-home tile →
+  // /learn/playground/new, no ?kind) asks the SERVER to route game-vs-website —
+  // "create a todo list" has no web keyword, only the model can catch it. The
+  // client sends infer_kind and ADOPTS the created project's kind.
+  it('generic landing sends infer_kind and adopts the server routing (todo list → website)', async () => {
+    createGameProjectMock.mockResolvedValue({ id: 'site-42', kind: 'website' });
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'create a todo list', inferKind: true }),
+      ),
+    );
+    // No client-side kind guess rides the create — the server decides…
+    expect(createGameProjectMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'website' }),
+    );
+    // …and the decision is adopted: the build screen runs in website mode.
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'website'),
+    );
+  });
+
+  it('generic landing + a game routing stays a game', async () => {
+    createGameProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
+    // The post-create project load must agree — the suite default says website.
+    getProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ inferKind: true }),
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'game'),
+    );
+  });
+
+  // D-WEB-17 (neutral-first loading): loading feedback is SAME-TICK with the
+  // Enter press. The generic landing mounts the generating screen IMMEDIATELY,
+  // in kind-NEUTRAL mode, while the create POST (server-side game-vs-website
+  // classification, ≤6s) is still in flight — then adopts the routed kind.
+  it('generic submit: the NEUTRAL generating screen shows BEFORE the create resolves, then morphs to website', async () => {
+    let resolveCreate: (v: { id: string; kind?: string }) => void = () => {};
+    createGameProjectMock.mockReset().mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveCreate = res;
+        }),
+    );
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    // Same tick as the submit: the generating screen is up, kind unknown → neutral.
+    const gen = screen.getByTestId('generating-project');
+    expect(gen).toHaveAttribute('data-kind', 'neutral');
+    expect(gen).toHaveAttribute('data-creating', 'true');
+
+    await act(async () => {
+      resolveCreate({ id: 'site-42', kind: 'website' });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'website'),
+    );
+    expect(screen.getByTestId('generating-project')).toHaveTextContent('site-42');
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-creating', 'false');
+  });
+
+  it('generic submit + a game routing morphs neutral → game', async () => {
+    let resolveCreate: (v: { id: string; kind?: string }) => void = () => {};
+    createGameProjectMock.mockReset().mockImplementation(
+      () =>
+        new Promise((res) => {
+          resolveCreate = res;
+        }),
+    );
+    getProjectMock.mockResolvedValue({ id: 'game-7', kind: 'game' });
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'neutral');
+
+    await act(async () => {
+      resolveCreate({ id: 'game-7', kind: 'game' });
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'game'),
+    );
+  });
+
+  it('an EXPLICIT ?kind=website shows the WEBSITE screen from the first frame — neutral never mounts', () => {
+    // The create is held open: even while it's in flight, the explicit choice
+    // renders its own stage immediately (and same-tick with the submit).
+    createGameProjectMock.mockReset().mockImplementation(() => new Promise(() => {}));
+    renderNew('/learn/playground/new?kind=website');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a cookie shop website' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    const gen = screen.getByTestId('generating-project');
+    expect(gen).toHaveAttribute('data-kind', 'website');
+    expect(gen).toHaveAttribute('data-creating', 'true');
+  });
+
+  it('a FAILED create still lands on the load-error page (the neutral screen never strands the kid)', async () => {
+    createGameProjectMock.mockReset().mockRejectedValue(new Error('backend down'));
+    renderNew('/learn/playground/new');
+
+    const box = screen.getByPlaceholderText("Describe a game or website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'create a todo list' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    // Neutral shows first (same-tick feedback)…
+    expect(screen.getByTestId('generating-project')).toHaveAttribute('data-kind', 'neutral');
+    // …then the create rejects → the standard load-error screen replaces it.
+    await screen.findByTestId('playground-error-load');
+    expect(screen.queryByTestId('generating-project')).toBeNull();
+  });
+
+  it('an EXPLICIT ?kind=website never falls back to game, even for a game-y prompt', async () => {
+    renderNew('/learn/playground/new?kind=website');
+
+    const box = screen.getByPlaceholderText("Describe a website and we'll build it…");
+    fireEvent.change(box, { target: { value: 'a pong game' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+
+    await waitFor(() =>
+      expect(createGameProjectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'website' }),
+      ),
+    );
+    // An explicit choice never asks the server to re-route it.
+    expect(createGameProjectMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ inferKind: true }),
+    );
+  });
+});

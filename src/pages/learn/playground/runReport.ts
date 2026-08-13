@@ -19,6 +19,12 @@ import { isFailureWarn } from './verifyRoundtrip';
 
 export const RUN_REPORT_VERSION = 1;
 
+/** How long a run is observed before the probe is asked for its report (ms).
+ *  Shared by GameFrame and SiteFrame — one observation policy for both. */
+export const RUN_OBSERVE_MS = 4000;
+/** How long to wait for the probe's reply before finalizing without it (ms). */
+export const PROBE_REPLY_TIMEOUT_MS = 1500;
+
 // Caps (mirror the backend schema). Overflow is TRANSPARENT — `dropped` counts
 // what didn't fit, never silent truncation.
 export const MAX_REPORT_ERRORS = 6;
@@ -43,6 +49,48 @@ const MAX_CANVAS_SAMPLED = 4096;
 
 /** How the console shim prefixes an unhandled promise rejection (buildPreview). */
 const REJECTION_PREFIX = 'Unhandled promise:';
+
+// ── Website run evidence (creative-code-studio-website-prd D-WEB-13) ─────────
+// The site-specific half of a website RunReport — mirror the backend's
+// `SiteReportSchema`. A website's observable truth is: did the page load, which
+// /api routes were ACTUALLY called (and with what status), which buttons are
+// actually WIRED, and what the kid/AI's own console.log instrumentation said.
+export const MAX_SITE_API_CALLS = 30;
+export const MAX_SITE_BUTTONS = 30;
+export const MAX_SITE_LOGS = 10;
+const MAX_SITE_PATH_CHARS = 120;
+const MAX_SITE_PAGE_CHARS = 120;
+const MAX_SITE_SELECTOR_CHARS = 80;
+const MAX_SITE_STATUS = 599;
+
+export type SiteApiMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OTHER';
+const SITE_API_METHODS: readonly string[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+export interface SiteApiCall {
+  method: SiteApiMethod;
+  path: string;
+  /** 0 = the fetch rejected before any response (blocked URL). */
+  status: number;
+}
+
+export interface SiteReport {
+  /** DOM parsed + kid scripts executed (the site runtime's loaded signal). */
+  pageLoaded: boolean;
+  /** Which page was showing during the observed window. */
+  page: string;
+  apiCalls: SiteApiCall[];
+  /** Interactive elements on the page + whether a click/submit listener is
+   *  attached to them (the "Add task does nothing" evidence). */
+  buttons: Array<{ selector: string; wired: boolean }>;
+  /** True when a click listener exists on document/body — delegation makes the
+   *  per-button ledger inconclusive (the backend then skips the unwired check). */
+  delegatedClickHandler: boolean;
+  /** console.log/info lines — the model's own instrumentation echoed back. */
+  logs: string[];
+}
+
+/** The engines a RunReport can carry — the game engines plus `website`. */
+export type RunReportEngine = GameEngine | 'website';
 
 /** Per-asset load outcome. `missing-ref` = a raw path the inliner never rewrote
  *  (not in the VFS — the silent broken-GLB signature); `failed` = present but
@@ -71,7 +119,11 @@ export interface RunReport {
   reportVersion: typeof RUN_REPORT_VERSION;
   /** 1-based verify attempt for this chain (run after the turn = 1; after fix #1 = 2…). */
   attempt: number;
-  engine: GameEngine;
+  engine: RunReportEngine;
+  /** Present EXACTLY when engine === 'website'. Website reports keep the
+   *  game-shaped fields degenerate: `booted` mirrors `site.pageLoaded`,
+   *  framesAdvanced/fps are 0, canvas is absent-shaped, assets empty. */
+  site?: SiteReport;
   /** How long the game was observed before the report was cut (ms). */
   observedMs: number;
   /** Engine frames advanced at least once. */
@@ -133,14 +185,27 @@ export function isAssetMessage(data: unknown): data is { __airbotixAsset: true }
   );
 }
 
+/** The site runtime shim's reply to the `report` control request (D-WEB-13).
+ *  `site` stays `unknown` — the frame is untrusted; `feedSite` sanitizes. */
+export function isSiteReportMessage(
+  data: unknown,
+): data is { __airbotixSiteReport: true; site: unknown } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    '__airbotixSiteReport' in data &&
+    (data as { __airbotixSiteReport: unknown }).__airbotixSiteReport === true
+  );
+}
+
 // ── The collector ────────────────────────────────────────────────────────────
 
 export interface RunCollectorOptions {
-  engine: GameEngine;
+  engine: RunReportEngine;
   /** 1-based chain attempt this run reports as. */
   attempt: number;
   /** Inlined-asset identities from buildGamePreview — maps a reported data: URL
-   *  back to the kid's path (prefix + length match). */
+   *  back to the kid's path (prefix + length match). Empty for websites. */
   assetManifest: AssetManifestEntry[];
 }
 
@@ -153,6 +218,9 @@ export interface RunCollector {
   feedAsset(msg: AssetLoadMessage): void;
   /** Feed the run probe's canvas sample. */
   feedProbe(canvas: RunProbeCanvas): void;
+  /** Feed the site runtime's report reply (engine 'website' only, D-WEB-13).
+   *  The payload comes from the untrusted frame — sanitized/clamped here. */
+  feedSite(site: unknown): void;
   /** Record that the probe itself failed (first reason wins). */
   setProbeError(reason: string): void;
   /** Cut the report. The caller owns emit-once semantics. */
@@ -161,6 +229,46 @@ export interface RunCollector {
 
 const clampInt = (n: number, min: number, max: number): number =>
   Math.min(Math.max(Math.floor(Number.isFinite(n) ? n : 0), min), max);
+
+/** Sanitize the untrusted site-report reply into the wire-legal SiteReport
+ *  (logs are collected parent-side and merged at finalize). Null when the
+ *  payload isn't even object-shaped — the report then ships without `site`
+ *  (the backend treats that as not-loaded/inconclusive, never as broken). */
+function sanitizeSiteReply(raw: unknown): Omit<SiteReport, 'logs'> | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const apiCalls: SiteApiCall[] = [];
+  if (Array.isArray(r.apiCalls)) {
+    for (const entry of r.apiCalls.slice(0, MAX_SITE_API_CALLS)) {
+      if (typeof entry !== 'object' || entry === null) continue;
+      const c = entry as Record<string, unknown>;
+      const method = String(c.method ?? '');
+      apiCalls.push({
+        method: SITE_API_METHODS.includes(method) ? (method as SiteApiMethod) : 'OTHER',
+        path: String(c.path ?? '').slice(0, MAX_SITE_PATH_CHARS),
+        status: clampInt(Number(c.status), 0, MAX_SITE_STATUS),
+      });
+    }
+  }
+  const buttons: SiteReport['buttons'] = [];
+  if (Array.isArray(r.buttons)) {
+    for (const entry of r.buttons.slice(0, MAX_SITE_BUTTONS)) {
+      if (typeof entry !== 'object' || entry === null) continue;
+      const b = entry as Record<string, unknown>;
+      buttons.push({
+        selector: String(b.selector ?? '').slice(0, MAX_SITE_SELECTOR_CHARS),
+        wired: b.wired === true,
+      });
+    }
+  }
+  return {
+    pageLoaded: r.pageLoaded === true,
+    page: String(r.page ?? '').slice(0, MAX_SITE_PAGE_CHARS),
+    apiCalls,
+    buttons,
+    delegatedClickHandler: r.delegatedClickHandler === true,
+  };
+}
 
 /**
  * Build a collector for one game run. Pure state-folding: classification,
@@ -180,6 +288,10 @@ export function createRunCollector(opts: RunCollectorOptions): RunCollector {
   let fps = 0;
   let canvas: RunProbeCanvas = { present: false, nonBlank: null, sampled: 0 };
   let probeError: string | undefined;
+  // Website evidence (D-WEB-13): the shim's sanitized reply + the log/info
+  // console lines collected parent-side (the model's own instrumentation).
+  let site: Omit<SiteReport, 'logs'> | null = null;
+  const siteLogs: string[] = [];
 
   /** Clip → de-dupe (repeats merge, they're not "dropped") → cap (overflow counts). */
   const addLine = (bucket: string[], cap: number, key: string, text: string, onDrop: () => void) => {
@@ -198,6 +310,13 @@ export function createRunCollector(opts: RunCollectorOptions): RunCollector {
     feedConsole(line) {
       const text = (line.text ?? '').trim();
       if (!text || text === 'ready') return; // the shim's handshake, never a bug
+      // Website reports echo the kid/AI's own console.log/info instrumentation
+      // back (site.logs, D-WEB-13) — the model's test probe. Duplicates are
+      // KEPT ("clicked" three times is signal); the cap simply cuts.
+      if (opts.engine === 'website' && (line.level === 'log' || line.level === 'info')) {
+        if (siteLogs.length < MAX_SITE_LOGS) siteLogs.push(text.slice(0, MAX_REPORT_LINE_CHARS));
+        return;
+      }
       if (line.level === 'error') {
         if (text.startsWith(REJECTION_PREFIX)) {
           addLine(unhandledRejections, MAX_REPORT_REJECTIONS, 'rej', text, () => {
@@ -282,11 +401,40 @@ export function createRunCollector(opts: RunCollectorOptions): RunCollector {
       };
     },
 
+    feedSite(raw) {
+      if (opts.engine !== 'website') return;
+      site = sanitizeSiteReply(raw) ?? site;
+    },
+
     setProbeError(reason) {
       if (probeError === undefined) probeError = reason.slice(0, MAX_REPORT_LINE_CHARS);
     },
 
     finalize(observedMs) {
+      if (opts.engine === 'website') {
+        // Game-shaped fields go degenerate (backend contract): booted mirrors
+        // site.pageLoaded, frames/fps 0, canvas absent-shaped, assets empty.
+        // No shim reply ⇒ no `site` at all — the backend degrades that to
+        // not-loaded/inconclusive, never to "broken".
+        return {
+          reportVersion: RUN_REPORT_VERSION,
+          attempt: clampInt(opts.attempt, 1, MAX_ATTEMPT),
+          engine: 'website',
+          ...(site !== null ? { site: { ...site, logs: [...siteLogs] } } : {}),
+          observedMs: clampInt(observedMs, 0, MAX_OBSERVED_MS),
+          booted: site?.pageLoaded === true,
+          framesAdvanced: 0,
+          fps: 0,
+          consoleErrors: [...consoleErrors],
+          consoleWarns: [...consoleWarns],
+          unhandledRejections: [...unhandledRejections],
+          windowErrors: [...windowErrors],
+          dropped: { ...dropped },
+          assets: [],
+          canvas: { present: false, nonBlank: null, sampled: 0 },
+          ...(probeError !== undefined ? { probeError } : {}),
+        };
+      }
       return {
         reportVersion: RUN_REPORT_VERSION,
         attempt: clampInt(opts.attempt, 1, MAX_ATTEMPT),

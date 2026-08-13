@@ -604,7 +604,8 @@ const ENGINE_PROFILES: Record<GameEngine, EngineProfile> = {
   },
 };
 
-function toDataUrl(asset: VfsFile): string {
+/** A VFS asset's content as a ready `data:` URL (exported for the website builder). */
+export function toDataUrl(asset: VfsFile): string {
   if (asset.content.startsWith('data:')) return asset.content;
   const ext = asset.path.split('.').pop()?.toLowerCase() ?? '';
   return `data:${ASSET_MIME[ext] ?? 'application/octet-stream'};base64,${asset.content}`;
@@ -613,9 +614,10 @@ function toDataUrl(asset: VfsFile): string {
 /**
  * Rewrite quoted VFS asset paths to inlined data: URLs. Covers both Phaser
  * loader literals in JS (`this.load.image('hero', 'sprites/hero.png')`) and any
- * `src=`/`href=` attributes — anything wrapped in matching quotes.
+ * `src=`/`href=` attributes — anything wrapped in matching quotes. Exported so
+ * `buildSitePreview` (the website runtime) inlines assets the exact same way.
  */
-function inlineAssetRefs(text: string, assets: VfsFile[]): string {
+export function inlineAssetRefs(text: string, assets: VfsFile[]): string {
   if (assets.length === 0) return text;
   let out = text;
   for (const a of assets) {

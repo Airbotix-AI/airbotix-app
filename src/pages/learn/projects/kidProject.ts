@@ -7,7 +7,7 @@ import type { ProjectVisibility } from '../classroom/classroomApi';
 export interface KidProject {
   id: string;
   title: string;
-  kind?: 'creative' | 'code' | 'game' | 'blocks';
+  kind?: 'creative' | 'code' | 'game' | 'blocks' | 'website';
   product_line: 'line_a_creative' | 'line_b_coding';
   /** Four-state placement (my-classes-prd §3.2). */
   visibility: ProjectVisibility;
@@ -63,7 +63,8 @@ export const THUMB_ICON: Record<string, string> = {
 
 /** Resume opens a game/blocks in its studio; other kinds open the studio too. */
 export function resumeHref(p: KidProject): string {
-  if (p.kind === 'game') return `/learn/playground/${p.id}`;
+  // Websites live in the same playground studio as games (Website Studio).
+  if (p.kind === 'game' || p.kind === 'website') return `/learn/playground/${p.id}`;
   if (p.kind === 'blocks') return `/learn/blocks/${p.id}`;
   if (p.kind === 'code') return `/learn/code/${p.id}`;
   return `/learn/projects/${p.id}`;

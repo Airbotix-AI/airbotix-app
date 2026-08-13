@@ -11,7 +11,7 @@ export type LayoutMode = 'window' | 'split';
 /** Visual theme for the whole playground (all phases share it). Light = default. */
 export type Theme = 'light' | 'dark';
 
-export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help' | 'mission';
+export type PgWindowId = 'chat' | 'code' | 'game' | 'assets' | 'help' | 'mission' | 'db';
 
 export interface WinRect {
   x: number;
@@ -90,18 +90,42 @@ export function rectsOverlap(a: WinRect, b: WinRect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-/** The Guide's no-overlap spawn, relative to where the chat ACTUALLY is (it may
- *  have been dragged): a top-left column left of the chat when ≥250px fits,
- *  else a short top strip that leaves the chat's input + newest replies clear. */
+/**
+ * Guide launch floor (D-WEB-21): the pane collapses to a single column below
+ * ~480px, so a comfortable two-pane read (the pillar sidebar `w-48` ≈ 192px PLUS
+ * a readable content column) needs a good deal more. Open the Guide at least this
+ * wide so BOTH the sidebar and the content show from the first launch — for game
+ * AND website projects. Clamped to the on-screen width when the viewport is tighter.
+ */
+export const GUIDE_MIN_W = 760;
+
+/** The Guide's spawn, relative to where the chat ACTUALLY is (it may have been
+ *  dragged), never burying the conversation's latest messages:
+ *   - a TALL column fully left of the chat when a two-pane-wide one (≥ GUIDE_MIN_W)
+ *     fits there (only very wide screens have that much room left of the chat), else
+ *   - a WIDE TOP STRIP at least GUIDE_MIN_W wide (clamped to the screen) — sized so
+ *     the sidebar + content both show — anchored to the top so the chat's input and
+ *     newest replies stay clear below it. */
 export function guideRectClearOf(chat: WinRect, W: number, H: number): WinRect {
-  const leftW = Math.min(620, chat.x - ICON_COL_PX - 16);
-  if (leftW >= 250) {
-    return { x: ICON_COL_PX + 8, y: Math.round(H * 0.04), w: Math.round(leftW), h: Math.round(H * 0.86) };
+  // Widest an on-screen Guide can be (leaves the icon column + a right margin clear).
+  const avail = W - ICON_COL_PX - 24;
+  const leftW = chat.x - ICON_COL_PX - 16;
+  if (leftW >= GUIDE_MIN_W) {
+    return {
+      x: ICON_COL_PX + 8,
+      y: Math.round(H * 0.04),
+      w: Math.round(Math.min(leftW, avail)),
+      h: Math.round(H * 0.86),
+    };
   }
+  // Not enough room beside the chat for two panes → a wide top strip. At least
+  // GUIDE_MIN_W (so both columns show), never wider than the screen, and no wider
+  // than needed on very large monitors.
+  const stripW = Math.min(avail, Math.max(GUIDE_MIN_W, Math.round(avail * 0.55)));
   return {
-    x: ICON_COL_PX + 40,
+    x: ICON_COL_PX + 8,
     y: Math.round(H * 0.04),
-    w: Math.round(Math.min(620, (W - ICON_COL_PX - 24) * 0.55)),
+    w: Math.round(stripW),
     h: Math.round(H * 0.5),
   };
 }
@@ -171,22 +195,35 @@ export function defaultWindows(): Record<PgWindowId, WinState> {
   // SHORT top strip that still leaves the chat's input + newest replies clear.
   const chatRect = r(W * CHAT_X_FRAC, H * 0.06, W * 0.42, H * 0.82);
   const helpRect = (): WinRect => guideRectClearOf(chatRect, W, H);
+  // Database (Website Studio) launches ~2× wider than the old 560px cap — it's a
+  // master–detail db tool (table sidebar + a multi-column editable grid), so the
+  // narrow default clipped columns. Fill up to 1040px (or the space beside the
+  // icon column) and centre it so the wider window still fits on screen.
+  const dbW = Math.round(Math.min(1040, W - ICON_COL_PX - 24));
+  const dbX = Math.max(ICON_COL_PX + 8, Math.round((W - dbW) / 2));
   return {
     assets: closed('assets', 1, r(ICON_COL_PX, H * 0.04, (W - ICON_COL_PX - 24) * 0.75, H * 0.9)),
     code: closed('code', 2, r(ICON_COL_PX, H * 0.3, codeW, H * 0.62)),
     game: closed('game', 3, r(W * 0.685, H * 0.1, W * 0.3, H * 0.74)),
-    // The Game Guide (help) — a comfortable reading column, closed by default
-    // (opened from its desktop tile / the Split "Guide" tab, or — MH2 — when the
-    // agent emits `open_help`). It must NEVER bury the conversation's latest
-    // messages: beside the chat when a readable column fits to its right,
-    // otherwise a SHORTER top-anchored column that leaves the chat's input +
-    // newest replies visible below it.
+    // The Guide (help; "Game Guide" / "Website Guide" per kind, D-WEB-21) — closed
+    // by default (opened from its desktop tile / the Split "Guide" tab, or — MH2 —
+    // when the agent emits `open_help`). It launches wide enough to show BOTH the
+    // pillar sidebar and the content (GUIDE_MIN_W), and NEVER buries the
+    // conversation's latest messages: a tall column left of the chat when a
+    // two-pane-wide one fits there, otherwise a wide top strip that leaves the
+    // chat's input + newest replies visible below it.
     help: closed('help', 1, helpRect()),
     // Mission Mode (D-GAME14) — the authored step checklist. Closed by default;
     // `ensureMissionVisible()` opens it (WITHOUT raising) when the project has a
     // mission with unfinished steps, so it never steals focus from the chat. A
     // narrow left column, clear of the chat, at the BACK of the z-order.
     mission: closed('mission', 1, missionRectClearOf(chatRect, W, H)),
+    // Database (Website Studio only) — what the project's server-side db
+    // remembers right now. Closed by default (the kid opens it from the dock);
+    // the tile/window/taskbar button render ONLY for kind='website' (Workspace/
+    // Taskbar gate on kind), but the WinState always exists so store consumers
+    // never crash on a game project.
+    db: closed('db', 1, r(dbX, H * 0.12, dbW, H * 0.72)),
     // Open + focused + centered as the sole launch window.
     chat: base('chat', 4, chatRect),
   };

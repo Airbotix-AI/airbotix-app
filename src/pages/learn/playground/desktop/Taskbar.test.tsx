@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api } from '@/lib/api';
 import { Taskbar } from './Taskbar';
+import { defaultWindows, usePlaygroundStore } from '../playgroundStore';
 import type { MissionProgress } from '../panes/missionApi';
 
 afterEach(cleanup);
@@ -17,7 +18,11 @@ vi.mock('../../projects/useProjectBackTo', () => ({
   useProjectBackTo: () => '/learn/classroom/class-1?tab=mywork',
 }));
 // Heavy/irrelevant children — stub so the Taskbar renders in isolation.
-vi.mock('../ShareLinkPanel', () => ({ ShareLinkPanel: () => null }));
+// Stubbed with a marker so tests can assert WHETHER Share is offered (the
+// website gate below) without pulling in the real panel's queries.
+vi.mock('../ShareLinkPanel', () => ({
+  ShareLinkPanel: () => <div data-testid="stub-share-panel" />,
+}));
 vi.mock('@/pages/try/demoMode', () => ({ useDemoMode: () => null }));
 // The dock's MissionStepChip reads the mission checklist through the API client.
 vi.mock('@/lib/api', () => ({ api: vi.fn() }));
@@ -36,7 +41,12 @@ beforeEach(() => {
   apiMock.mockReset().mockResolvedValue(MISSION as never);
 });
 
-function renderTaskbar(props: { projectId?: string; missionId?: string | null; readOnly?: boolean }) {
+function renderTaskbar(props: {
+  projectId?: string;
+  missionId?: string | null;
+  readOnly?: boolean;
+  kind?: 'game' | 'website';
+}) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
@@ -81,5 +91,49 @@ describe('Taskbar — the current mission step is docked here (§9A)', () => {
     renderTaskbar({ projectId: 'p1' });
     expect(screen.queryByTestId('mission-taskbar-chip')).not.toBeInTheDocument();
     expect(apiMock).not.toHaveBeenCalled();
+  });
+});
+
+// Share now ships for BOTH games and websites (D-WEB-22): the public play host
+// renders a read-only SiteFrame for a website snapshot and a game frame for a
+// game. The Taskbar surfaces the share control for either kind.
+describe('Taskbar — Share is offered for games AND websites (D-WEB-22)', () => {
+  it('offers Share for a game project', () => {
+    renderTaskbar({ projectId: 'p1' });
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
+  });
+
+  it('offers Share for a website project too', () => {
+    renderTaskbar({ projectId: 'p1', kind: 'website' });
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
+  });
+
+  it('offers Share when no kind is passed (defaults to game)', () => {
+    renderTaskbar({ projectId: 'p1', kind: undefined });
+    expect(screen.getByTestId('stub-share-panel')).toBeInTheDocument();
+  });
+});
+
+// The Database window button (creative-code-studio-website-prd): Website Studio
+// only — a game must never show it, even when a stale persisted layout carries
+// windows.db.open=true.
+describe('Taskbar — the Database window button is Website Studio only', () => {
+  beforeEach(() => {
+    usePlaygroundStore.setState({
+      windows: defaultWindows(),
+      topZ: 4,
+      layoutMode: 'window',
+    });
+    usePlaygroundStore.getState().openOrFocus('db');
+  });
+
+  it('shows the Database button for an open db window on a WEBSITE', () => {
+    renderTaskbar({ projectId: 'p1', kind: 'website' });
+    expect(screen.getByRole('button', { name: /Database/ })).toBeInTheDocument();
+  });
+
+  it('never shows it on a game — even with the db window stale-open', () => {
+    renderTaskbar({ projectId: 'p1' });
+    expect(screen.queryByRole('button', { name: /Database/ })).not.toBeInTheDocument();
   });
 });

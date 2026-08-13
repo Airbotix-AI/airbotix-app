@@ -26,8 +26,10 @@ import { BlocksStudioPage } from '../learn/blocks/BlocksStudioPage';
 
 // The kinds the live viewer renders as the kid's editor. `creative` is the
 // artifact gallery (follow-up, D-LV-4); any unknown kind is handled the same
-// honest way.
-type LiveKind = 'game' | 'code' | 'blocks';
+// honest way. `website` (Website Studio) reuses the playground read-only —
+// the runner renders the SiteFrame, so page navigation still works while every
+// mutation entry point stays gated.
+type LiveKind = 'game' | 'code' | 'blocks' | 'website';
 
 interface LiveProjectMeta {
   id: string;
@@ -46,7 +48,7 @@ interface VfsChangedEvent {
   version?: number;
 }
 
-const SUPPORTED_KINDS: readonly LiveKind[] = ['game', 'code', 'blocks'];
+const SUPPORTED_KINDS: readonly LiveKind[] = ['game', 'code', 'blocks', 'website'];
 
 function isLiveKind(kind: string): kind is LiveKind {
   return (SUPPORTED_KINDS as readonly string[]).includes(kind);
@@ -134,7 +136,8 @@ function LiveStudio({ kind, projectId }: { kind: LiveKind; projectId: string }) 
   if (kind === 'code') {
     return <CodeStudioPage projectId={projectId} readOnly />;
   }
-  // game
+  // game + website: both live in the playground (the website project loads its
+  // kind from GET /projects/:id, so the runner renders the read-only SiteFrame).
   return <PlaygroundApp projectId={projectId} readOnly />;
 }
 

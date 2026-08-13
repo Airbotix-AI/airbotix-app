@@ -126,7 +126,7 @@ async function openStudio(page: Page) {
   await page.getByTestId('hub-template-pong').click();
   // The Pong card routes PROMPT-FIRST to the landing screen; submitting creates
   // the real (mocked) project and advances into the studio on game-77.
-  const input = page.getByPlaceholder("Describe a game and we'll build it…");
+  const input = page.getByPlaceholder("Describe a game or website and we'll build it…");
   await expect(input).toBeVisible({ timeout: 10_000 });
   await input.fill('a pong game');
   await input.press('Enter');

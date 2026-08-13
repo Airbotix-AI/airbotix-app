@@ -30,7 +30,7 @@ export const STUDIO_PROJECT_ID = 'game-77';
 /** The seeded VFS = the app's real starter scaffold (kept in sync via import). */
 export const SEEDED_PROJECT: VfsFile[] = STARTER_PROJECT;
 
-const LANDING_PLACEHOLDER = "Describe a game and we'll build it…";
+const LANDING_PLACEHOLDER = "Describe a game or website and we'll build it…";
 
 // ── A runnable single-file Phaser turn result (the J2 colour-swap edit) ───────
 // Used by the agent-turn mock so a turn produces a real, runnable diff. Mirrors

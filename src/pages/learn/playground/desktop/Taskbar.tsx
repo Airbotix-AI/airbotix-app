@@ -33,7 +33,7 @@ import { RaiseHandButton } from '../../liveClass/RaiseHandButton';
 import { useDemoMode } from '@/pages/try/demoMode';
 
 import { MissionStepChip } from './MissionStepChip';
-import { WINDOW_ACCENT, WINDOW_META, WINDOW_ORDER } from './windowMeta';
+import { WINDOW_ACCENT, WINDOW_ORDER, windowDisplay } from './windowMeta';
 
 // Kid-readable save reassurance (PRD J3). 'conflict' is NEVER surfaced — a stale
 // save reads as keeping their newest copy.
@@ -76,6 +76,13 @@ interface TaskbarProps {
   /** Teacher-prep host (D-PREP-6): the share control mints immediately, no approval. */
   prepShare?: boolean;
   /**
+   * Project kind. Drives the kind-aware labels (the runner button reads
+   * "Website"), gates the Database window button (website only), and is passed to
+   * the share control so its copy is kind-aware ("see your website" vs "play your
+   * game"). Share now ships for BOTH kinds (D-WEB-22). Defaults to `game`.
+   */
+  kind?: 'game' | 'website';
+  /**
    * Whether Mission Mode exists for this project at all (D-GAME14h) — i.e. the mission
    * authors steps AND its course pack is published. False hides the Mission window button
    * entirely: an empty checklist window advertises structure that isn't there.
@@ -89,6 +96,7 @@ export function Taskbar({
   hasMission = false,
   readOnly = false,
   prepShare = false,
+  kind = 'game',
 }: TaskbarProps) {
   // Home/back: a game has no other way out of the immersive desktop. For a class
   // project this returns to the class's "My work" tab; otherwise to My Works
@@ -98,6 +106,9 @@ export function Taskbar({
   // fixed share project id here to surface the REAL Share button (the in-memory
   // share adapter intercepts its calls). `null` (off) everywhere else.
   const demoShareProjectId = useDemoMode()?.shareProjectId;
+  // Share is offered for BOTH games and websites now (D-WEB-22): the public play
+  // host renders a read-only SiteFrame for a website snapshot and a game frame
+  // for a game. The panel copy is kind-aware.
   const shareProjectId = projectId ?? demoShareProjectId;
   const theme = usePlaygroundStore((s) => s.theme);
   const windows = usePlaygroundStore((s) => s.windows);
@@ -166,10 +177,17 @@ export function Taskbar({
       {layoutMode === 'window' && (
         <div data-testid="pg-window-buttons" className="flex items-center gap-2 pl-2">
           {WINDOW_ORDER.filter(
-            (id) => windows[id].open && (id !== 'mission' || hasMission),
+            (id) =>
+              windows[id].open &&
+              (id !== 'mission' || hasMission) &&
+              // Database is Website Studio only — never a button on a game,
+              // even if a stale persisted layout left its window open.
+              (id !== 'db' || kind === 'website'),
           ).map((id) => {
             const w = windows[id];
-            const { title, Icon } = WINDOW_META[id];
+            // Kind-aware label: the runner button reads "Website" in Website
+            // Studio (the stable window id stays 'game').
+            const { title, Icon } = windowDisplay(id, kind);
             const accent = WINDOW_ACCENT[id];
             const isActive = id === activeId;
             const isVisible = w.open && !w.minimized;
@@ -209,7 +227,9 @@ export function Taskbar({
       <div className="ml-auto flex shrink-0 items-center gap-3">
         <SaveStatusBadge />
         <RaiseHandButton readOnly={readOnly} />
-        {shareProjectId && <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} />}
+        {shareProjectId && (
+          <ShareLinkPanel projectId={shareProjectId} prepMode={prepShare} kind={kind} />
+        )}
       </div>
     </div>
   );
