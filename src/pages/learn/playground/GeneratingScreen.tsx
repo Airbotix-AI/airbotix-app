@@ -152,7 +152,6 @@ export function GeneratingScreen({
   // Live activity from the stream — the files the AI is writing, in order.
   const [built, setBuilt] = useState<string[]>([]);
   // The AI's (moderated) reply — arrives at the end of generation.
-  const [streamed, setStreamed] = useState('');
   // Rotating flavor-tip index.
   const [tip, setTip] = useState(0);
   const tips = kind === 'website' ? SITE_BUILD_TIPS : kind === 'neutral' ? NEUTRAL_TIPS : BUILD_TIPS;
@@ -279,7 +278,6 @@ export function GeneratingScreen({
               queueRef.current.push(label);
             }
             const summary = demo?.firstTurnReply ?? '';
-            setStreamed(summary);
             resultRef.current = {
               files,
               summary,
@@ -306,7 +304,6 @@ export function GeneratingScreen({
               seenRef.current.add(label);
               queueRef.current.push(label);
             } else if (e.type === 'summary') {
-              setStreamed(e.text);
             }
           },
         );
@@ -314,7 +311,6 @@ export function GeneratingScreen({
       turnRef.current
         .then((result) => {
           if (cancelled) return;
-          setStreamed(result.summary);
           // Hand to the reveal interval — it shows the done beat once files drain.
           resultRef.current = result;
         })
@@ -404,7 +400,7 @@ export function GeneratingScreen({
       {/* Status block: thinking spinner → live file list → ready reveal. */}
       <div className="flex w-[min(440px,86vw)] flex-col gap-3">
         {status === 'done' ? (
-          <ReadyReveal summary={streamed} kind={kind === 'website' ? 'website' : 'game'} />
+          <ReadyReveal kind={kind === 'website' ? 'website' : 'game'} />
         ) : aiBuild || demoBuild || creating ? (
           <ActivityList built={built} tip={tips[tip % tips.length]} kind={kind} status={status} />
         ) : (
@@ -519,19 +515,17 @@ function ProgressBar({ status, count }: { status: Status; count: number }) {
   );
 }
 
-/** The celebratory done state — the AI's moderated reply + a flourish. */
-function ReadyReveal({ summary, kind }: { summary: string; kind: 'game' | 'website' }) {
+/** The celebratory done state — just the flourish. The AI's full reply is NOT
+ *  repeated here (owner feedback 2026-08-13: a long model reply read as a wall
+ *  of text under the headline) — it lands as the AI's first message in the chat
+ *  window, its real home, a moment later. */
+function ReadyReveal({ kind }: { kind: 'game' | 'website' }) {
   return (
     <div className="pg-pop flex flex-col items-center gap-3 text-center">
       <div className="flex items-center gap-2 text-lg font-extrabold text-pg-text">
         <Gamepad2 size={22} className="text-brand-mint" />
         {kind === 'website' ? 'Your website is ready!' : 'Your game is ready!'}
       </div>
-      {summary && (
-        <p data-testid="generating-stream" className="max-w-md text-pg-text-dim">
-          {summary}
-        </p>
-      )}
     </div>
   );
 }

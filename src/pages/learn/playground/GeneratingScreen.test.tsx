@@ -163,7 +163,9 @@ describe('GeneratingScreen (real streamed progress)', () => {
       resolveTurn?.(RESULT);
     });
     await screen.findByText('Your game is ready!', undefined, { timeout: 2000 });
-    expect(screen.getByTestId('generating-stream').textContent).toMatch(/jump across the platforms/);
+    // The AI's reply is NOT repeated on the ready beat (it seeds the chat instead
+    // — owner feedback 2026-08-13: a long model reply read as a wall of text).
+    expect(screen.queryByTestId('generating-stream')).toBeNull();
 
     // After the short done beat, hands off the finished VFS + the first-turn seed.
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
@@ -248,7 +250,7 @@ describe('GeneratingScreen (real streamed progress)', () => {
 
     // …then the canned reply plays the done beat and seeds the first turn.
     await screen.findByText('Your game is ready!', undefined, { timeout: 3000 });
-    expect(screen.getByTestId('generating-stream').textContent).toMatch(/catcher is ready/);
+    expect(screen.queryByTestId('generating-stream')).toBeNull();
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1), { timeout: 3000 });
     expect(onDone).toHaveBeenCalledWith(
       DEMO_FILES,

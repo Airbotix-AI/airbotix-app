@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 (fix: ready screen no longer repeats the AI's full reply)
+
+### Changed
+
+- **The "Your website/game is ready!" beat no longer shows the AI's whole first
+  reply** (`GeneratingScreen.tsx` `ReadyReveal`): on the real model the reply runs
+  several sentences and read as a wall of text under the headline. The reply still
+  lands as the AI's first message in the chat window (its real home) — the ready
+  beat is now just the celebratory headline.
+
 ## 2026-08-13 (feat: open external API fetch — `sources.fetch(url)` — D-WEB-23)
 
 ### Added
