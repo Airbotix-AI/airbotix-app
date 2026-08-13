@@ -12,20 +12,27 @@ interface StarterChip {
   prompt: string
 }
 
+/** A labelled group of starter chips — the label tells the kid what KIND of
+ *  thing the ideas in the row make (game vs website), so the generic landing's
+ *  mixed hints read as two clear families instead of one ambiguous pile. */
+interface StarterChipGroup {
+  id: 'game' | 'website'
+  /** Row label, e.g. "Games" — hidden when a landing has only one group. */
+  label: string
+  emoji: string
+  chips: readonly StarterChip[]
+}
+
 // Picture/icon themed starter chips (UDL / OD-6): a big emoji icon makes each
 // idea readable to a non-reader, so a kid who can't read the label can still
 // pick a starting point by its picture.
-const STARTER_CHIPS: readonly StarterChip[] = [
+const GAME_CHIPS: readonly StarterChip[] = [
   { emoji: '🏓', label: 'Pong', prompt: 'a pong game' },
-  // Website ideas sit in the generic set too — the generic landing infers the
-  // kind from the prompt (D-WEB-11), so these chips create real websites.
-  { emoji: '🍪', label: 'Cookie shop site', prompt: 'a cookie shop website' },
   { emoji: '🟩', label: 'Platformer', prompt: 'a platformer where you jump across platforms' },
   { emoji: '🐦', label: 'Flappy', prompt: 'a flappy bird game' },
   { emoji: '🐍', label: 'Snake', prompt: 'a snake game' },
   { emoji: '🌀', label: 'Maze', prompt: 'a maze game where you find the exit' },
   { emoji: '🐱', label: 'Cat', prompt: 'a game with a cute cat hero' },
-  { emoji: '🐶', label: 'My dog site', prompt: 'a website about my dog' },
 ]
 
 // Website Studio starter chips (creative-code-studio-website-prd) — same UDL
@@ -39,6 +46,29 @@ const WEBSITE_STARTER_CHIPS: readonly StarterChip[] = [
   { emoji: '🎉', label: 'Club page', prompt: 'a page for my club' },
 ]
 
+// The GENERIC landing offers both families in clearly-labelled rows (owner
+// feedback 2026-08-13: the flat mixed row made game vs website hints unclear).
+// The prompts carry the kind words, so D-WEB-11's server-side inference still
+// routes each chip to the right studio.
+const GENERIC_CHIP_GROUPS: readonly StarterChipGroup[] = [
+  { id: 'game', label: 'Games', emoji: '🎮', chips: GAME_CHIPS },
+  {
+    id: 'website',
+    label: 'Websites',
+    emoji: '🌐',
+    chips: [
+      { emoji: '🍪', label: 'Cookie shop', prompt: 'a cookie shop website' },
+      { emoji: '🐶', label: 'My dog', prompt: 'a website about my dog' },
+      { emoji: '🐾', label: 'Pet adoption', prompt: 'a pet adoption website' },
+      { emoji: '📖', label: 'My blog', prompt: 'a blog where I write posts' },
+    ],
+  },
+]
+
+const WEBSITE_CHIP_GROUPS: readonly StarterChipGroup[] = [
+  { id: 'website', label: 'Websites', emoji: '🌐', chips: WEBSITE_STARTER_CHIPS },
+]
+
 // Kind-flavoured landing copy — the placeholder strings are LOAD-BEARING (the
 // cross-repo harness journeys target them verbatim; keep them exact).
 const LANDING_COPY = {
@@ -48,7 +78,7 @@ const LANDING_COPY = {
     readAloud: 'Describe a game or website and we will build it.',
     submitLabel: 'Build it',
     wordmark: 'Airbotix Playground',
-    chips: STARTER_CHIPS,
+    chipGroups: GENERIC_CHIP_GROUPS,
   },
   website: {
     placeholder: "Describe a website and we'll build it…",
@@ -56,7 +86,7 @@ const LANDING_COPY = {
     readAloud: 'Describe a website and we will build it.',
     submitLabel: 'Build website',
     wordmark: 'Airbotix Website Studio',
-    chips: WEBSITE_STARTER_CHIPS,
+    chipGroups: WEBSITE_CHIP_GROUPS,
   },
 } as const
 
@@ -230,19 +260,38 @@ export function LandingScreen({
         </div>
       </div>
 
-      {/* Starter chips — hidden when the demo locks the prompt (they'd change it). */}
+      {/* Starter chips — one clearly-labelled row per kind (Games / Websites) so
+          the mixed generic landing reads as two families, not one ambiguous pile.
+          The label is dropped when a landing offers a single group (e.g. the
+          explicit Website Studio landing). Hidden when the demo locks the prompt. */}
       {!locked && (
-      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        {copy.chips.map((chip) => (
-          <button
-            key={chip.label}
-            type="button"
-            data-testid="starter-chip"
-            onClick={() => setPrompt(chip.prompt)}
-            className="rounded-full border border-pg-border bg-pg-surface px-4 py-2 text-sm font-bold text-pg-text transition-colors hover:border-brand-sky"
+      <div className="mt-7 flex flex-col items-center gap-3">
+        {copy.chipGroups.map((group) => (
+          <div
+            key={group.id}
+            data-testid={`starter-group-${group.id}`}
+            className="flex flex-wrap items-center justify-center gap-3"
           >
-            <span aria-hidden="true">{chip.emoji}</span> {chip.label}
-          </button>
+            {copy.chipGroups.length > 1 && (
+              <span
+                data-testid={`starter-group-label-${group.id}`}
+                className="select-none rounded-full bg-pg-surface-2 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-pg-text-dim"
+              >
+                <span aria-hidden="true">{group.emoji}</span> {group.label}
+              </span>
+            )}
+            {group.chips.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                data-testid="starter-chip"
+                onClick={() => setPrompt(chip.prompt)}
+                className="rounded-full border border-pg-border bg-pg-surface px-4 py-2 text-sm font-bold text-pg-text transition-colors hover:border-brand-sky"
+              >
+                <span aria-hidden="true">{chip.emoji}</span> {chip.label}
+              </button>
+            ))}
+          </div>
         ))}
       </div>
       )}

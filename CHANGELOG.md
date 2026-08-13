@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-13 (fix: labelled Games/Websites starter-chip rows)
+
+### Changed
+
+- **Generic landing starter chips are now two clearly-labelled rows** — "🎮 Games"
+  (Pong, Platformer, Flappy, Snake, Maze, Cat) and "🌐 Websites" (Cookie shop, My dog,
+  Pet adoption, My blog) — instead of one mixed pile where a kid couldn't tell which
+  hint made which kind of project (`LandingScreen.tsx`). Single-kind landings (the
+  explicit Website Studio entry) keep a flat unlabelled row. Chip prompts unchanged,
+  so D-WEB-11 server-side kind routing behaves exactly as before.
+
 ## 2026-08-13 (feat: website sharing — kid share UI + public site play host — D-WEB-22)
 
 ### Added
