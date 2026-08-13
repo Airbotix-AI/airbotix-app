@@ -303,8 +303,10 @@ export function GeneratingScreen({
               if (seenRef.current.has(label)) return;
               seenRef.current.add(label);
               queueRef.current.push(label);
-            } else if (e.type === 'summary') {
             }
+            // The AI's reply is taken from the resolved `result.summary` (it
+            // seeds the first chat message); the streamed `summary` event needs
+            // no handling here.
           },
         );
       }
