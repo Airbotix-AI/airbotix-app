@@ -326,32 +326,6 @@ export async function resetSiteDb(projectId: string): Promise<SiteDbTables> {
 // server's SSRF fence + the admin domain blocklist). The Database window's
 // "Data sources" group renders the curated catalog.
 
-/** One parameter a data source accepts (kid-readable catalog entry). */
-export interface ProjectSourceParamInfo {
-  name: string;
-  description: string;
-  required: boolean;
-  example: string;
-}
-
-/** One enabled data source from the project's catalog. */
-export interface ProjectSourceInfo {
-  name: string;
-  description: string;
-  params: ProjectSourceParamInfo[];
-  /** A ready-to-copy `await sources.get(...)` example line. */
-  example_code: string;
-}
-
-/** `GET /projects/:id/sources` — the ENABLED data-source catalog. A backend
- *  without the endpoint's shape yet degrades to an EMPTY catalog (the sidebar
- *  group simply doesn't render), never a crash. */
-export async function listProjectSources(projectId: string): Promise<ProjectSourceInfo[]> {
-  const { sources } = await api<{ sources?: ProjectSourceInfo[] }>(
-    `/projects/${projectId}/sources`,
-  );
-  return Array.isArray(sources) ? sources : [];
-}
 
 /** A data-source parameter value — scalars only, per the backend contract. */
 export type SiteSourceParam = string | number | boolean;

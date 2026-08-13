@@ -1,16 +1,15 @@
 // The Database window (Website Studio only, creative-code-studio-website-prd
-// D-WEB-15/16/18/19): the project's REAL server-side SQLite database as a
+// D-WEB-15/16/18): the project's REAL server-side SQLite database as a
 // professional master–detail db tool — a LEFT sidebar listing every table
-// (live row counts, `db-table-<name>`, first table auto-selected) plus the
-// curated external DATA SOURCES (`db-source-<name>`, D-WEB-19; catalog fetched
-// on mount + manual Refresh only, an empty catalog renders no group), and a
+// (live row counts, `db-table-<name>`, first table auto-selected) and a
 // RIGHT panel showing the SELECTED table as the D-WEB-16 editable grid
 // (`DbTable`: inline cell edit / add row / two-step delete, keyed by rowid,
-// wrapped in `db-collection-<name>`) — or, when a source is picked, its
-// info + Try-it card (`DbSourceDetail`). The toolbar carries Refresh +
-// freshness + the selected table's `data/*.json` seed jump + the explicit
-// two-step Reset database (the ONLY reset path — rebuilds every table from
-// the seeds).
+// wrapped in `db-collection-<name>`). The toolbar carries Refresh + freshness
+// + the selected table's `data/*.json` seed jump + the explicit two-step
+// Reset database (the ONLY reset path — rebuilds every table from the seeds).
+// The D-WEB-19 "Data sources" discovery group was REMOVED (owner feedback
+// 2026-08-13): with the open `sources.fetch(url)` door (D-WEB-23) the curated
+// listing earned no space here — the AI + Website Guide teach sources now.
 //
 // Data flow: this pane renders purely from `siteDbStore` (REST introspection —
 // GET /projects/:id/db/tables + first rows per table; NEVER the JSON seeds)
@@ -21,15 +20,14 @@
 // back to the first table.
 
 import { Database, Loader2, Pencil, RefreshCw, RotateCcw } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../../code/codeApi';
 import { useSiteDbStore } from '../siteDbStore';
 import { DbSidebar } from './DbSidebar';
-import { DbSourceDetail } from './DbSourceDetail';
 import { DbTable } from './DbTable';
-import { listProjectSources, resetSiteDb, type ProjectSourceInfo } from './playgroundApi';
+import { resetSiteDb } from './playgroundApi';
 
 /** How often the pane re-introspects the server db while open (ms). */
 export const DB_POLL_MS = 2000;
@@ -70,31 +68,6 @@ export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: D
   // The kid's table pick, by NAME — poll refreshes replace the snapshot but
   // never this, so selection survives them. null = "the first table".
   const [selectedName, setSelectedName] = useState<string | null>(null);
-
-  // The external data-source catalog (D-WEB-19): fetched once per project on
-  // mount and on the manual Refresh — NEVER on the 2s poll (the catalog is
-  // admin-curated and changes rarely). A failed fetch keeps the last catalog;
-  // an empty one simply hides the sidebar group. `selectedSource` (by NAME)
-  // swaps the right panel to the source's info card; picking a table clears it.
-  const [sources, setSources] = useState<ProjectSourceInfo[]>([]);
-  const [selectedSource, setSelectedSource] = useState<string | null>(null);
-  // The project whose catalog may land in state — bumped by the mount effect
-  // on every project switch, so an in-flight fetch for a PREVIOUS project
-  // (mount OR manual Refresh) can never overwrite the new project's catalog.
-  const catalogProjectRef = useRef<string | undefined>(undefined);
-  const loadSources = useCallback((pid: string) => {
-    void listProjectSources(pid)
-      .then((catalog) => {
-        if (catalogProjectRef.current === pid) setSources(catalog);
-      })
-      .catch(() => undefined); // a failed fetch keeps the last catalog
-  }, []);
-  useEffect(() => {
-    setSources([]);
-    setSelectedSource(null);
-    catalogProjectRef.current = projectId;
-    if (projectId) loadSources(projectId);
-  }, [projectId, loadSources]);
 
   // Poll while mounted — mounted ⇔ visible (closed windows render nothing), so
   // this IS the "never poll while closed" guarantee. The snapshot (and the
@@ -172,10 +145,6 @@ export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: D
     selected === null
       ? undefined
       : files.find((f) => f.kind === 'text' && f.path === `data/${selected.name}.json`)?.path;
-  // The EFFECTIVELY selected data source — a picked source that vanished from
-  // the catalog falls back to the table view (never a dead right panel).
-  const activeSource =
-    selectedSource === null ? null : (sources.find((s) => s.name === selectedSource) ?? null);
 
   return (
     <div data-testid="site-db-pane" className="flex h-full min-h-0 flex-col bg-pg-surface">
@@ -203,15 +172,12 @@ export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: D
             onClick={() => {
               if (!projectId) return;
               void refresh(projectId);
-              // The manual Refresh is also the catalog's refetch moment (the
-              // 2s poll never touches it). Stale-guarded like the mount fetch.
-              loadSources(projectId);
             }}
             className="flex h-7 w-7 items-center justify-center rounded-md text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
           >
             <RefreshCw size={14} aria-hidden />
           </button>
-          {!readOnly && !activeSource && selected && seedPath && onOpenDataFile && (
+          {!readOnly && selected && seedPath && onOpenDataFile && (
             <button
               type="button"
               data-testid={`db-edit-${selected.name}`}
@@ -295,33 +261,21 @@ export function DbPane({ projectId, files, onOpenDataFile, readOnly = false }: D
           </p>
         </div>
       ) : (
-        // Master–detail (D-WEB-18/19): tables + data sources left, the
-        // selected table's grid — or the selected source's info card — right.
+        // Master–detail (D-WEB-18): tables left, the selected table's grid right.
         // The sidebar keeps a sane min width; a narrow pane scrolls the grid.
         <div className="flex min-h-0 flex-1">
           <DbSidebar
             tables={tables}
-            selectedName={activeSource ? null : selected.name}
-            onSelect={(name) => {
-              setSelectedName(name);
-              setSelectedSource(null); // picking a table leaves the source view
-            }}
+            selectedName={selected.name}
+            onSelect={setSelectedName}
             sizeBytes={sizeBytes}
-            sources={sources}
-            selectedSourceName={activeSource?.name ?? null}
-            onSelectSource={setSelectedSource}
           />
-          {activeSource ? (
-            // keyed so switching sources starts from a clean idle Try-it state
-            <DbSourceDetail key={activeSource.name} source={activeSource} projectId={projectId} />
-          ) : (
-            <div
-              data-testid={`db-collection-${selected.name}`}
-              className="flex min-h-0 min-w-0 flex-1 flex-col p-3"
-            >
-              <DbTable table={selected} projectId={projectId} readOnly={readOnly} />
-            </div>
-          )}
+          <div
+            data-testid={`db-collection-${selected.name}`}
+            className="flex min-h-0 min-w-0 flex-1 flex-col p-3"
+          >
+            <DbTable table={selected} projectId={projectId} readOnly={readOnly} />
+          </div>
         </div>
       )}
     </div>

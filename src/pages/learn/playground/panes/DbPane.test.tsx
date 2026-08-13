@@ -18,12 +18,11 @@ import type { VfsFile } from '../../code/codeApi';
 import { useSiteDbStore } from '../siteDbStore';
 import { DB_POLL_MS, DbPane } from './DbPane';
 
-const { listSiteDbTablesMock, listSiteDbRowsMock, resetSiteDbMock, listProjectSourcesMock } =
+const { listSiteDbTablesMock, listSiteDbRowsMock, resetSiteDbMock } =
   vi.hoisted(() => ({
     listSiteDbTablesMock: vi.fn(),
     listSiteDbRowsMock: vi.fn(),
     resetSiteDbMock: vi.fn(),
-    listProjectSourcesMock: vi.fn(),
   }));
 vi.mock('./playgroundApi', async (orig) => {
   const actual = await orig<typeof import('./playgroundApi')>();
@@ -32,7 +31,6 @@ vi.mock('./playgroundApi', async (orig) => {
     listSiteDbTables: listSiteDbTablesMock,
     listSiteDbRows: listSiteDbRowsMock,
     resetSiteDb: resetSiteDbMock,
-    listProjectSources: listProjectSourcesMock,
   };
 });
 
@@ -73,7 +71,6 @@ beforeEach(() => {
   resetSiteDbMock.mockResolvedValue({ tables: [PETS], size_bytes: 4096 });
   // No data sources by default — the sidebar group stays absent (D-WEB-19;
   // the catalog cases live in DbPane.sources.test.tsx).
-  listProjectSourcesMock.mockResolvedValue([]);
 });
 
 afterEach(() => {

@@ -60,10 +60,9 @@ first table auto-selected; selection by NAME survives polls, a vanished pick fal
 the SELECTED table's grid (real columns + types) wrapped in `db-collection-<name>`; the toolbar
 holds Refresh/freshness, the selected table's "Edit starting data" `data/*.json` jump
 (`db-edit-<name>`) + the two-step **Reset database** (`db-reset`, the ONLY reset path, hidden readOnly).
-D-WEB-19 discovery: the sidebar's **"Data sources"** group (`db-source-<name>`, absent when the
-catalog is empty; fetched on mount + manual Refresh only, never the 2s poll) swaps the right panel
-to `DbSourceDetail` (`db-source-detail`: description/params/copyable example + a `db-source-try`
-Try-it that hits the real proxy — allowed readOnly, it's a read); picking a table restores the grid.
+(The D-WEB-19 "Data sources" discovery group was REMOVED 2026-08-13 — with the open
+`sources.fetch(url)` door the curated listing earned no sidebar space; the AI + Website Guide
+teach sources. The catalog itself, `sources.get`, and the super-admin page are unchanged.)
 D-WEB-16: tables are **EDITABLE, rowid-keyed** (`DbTable`: inline cell edit / add row / two-step
 delete, all parameterized through the existing `/db/query`; rows carry `__rowid__`, never displayed;
 `has_rowid:false` → read-only note; readOnly viewers see NO edit affordances) and the code editor's

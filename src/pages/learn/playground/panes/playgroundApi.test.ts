@@ -18,7 +18,6 @@ import {
   fetchProjectSource,
   fetchProjectSourceUrl,
   listClassAssets,
-  listProjectSources,
   placeGameProjectForClass,
   transcribeVoice,
 } from './playgroundApi';
@@ -169,27 +168,6 @@ describe('transcribeVoice (UDL / OD-6 — backend STT, never a direct LLM)', () 
 
 describe('external data sources (creative-code-studio-website-prd D-WEB-19)', () => {
   beforeEach(() => apiMock.mockReset());
-
-  it('listProjectSources GETs the catalog and unwraps { sources }', async () => {
-    const weather = {
-      name: 'weather',
-      description: 'Real weather for any city.',
-      params: [{ name: 'city', description: 'Which city', required: true, example: 'Sydney' }],
-      example_code: "await sources.get('weather', { city: 'Sydney' })",
-    };
-    apiMock.mockResolvedValue({ sources: [weather] });
-    await expect(listProjectSources('p1')).resolves.toEqual([weather]);
-    expect(apiMock).toHaveBeenCalledWith('/projects/p1/sources');
-  });
-
-  it('listProjectSources degrades a shape mismatch (no sources array) to an EMPTY catalog', async () => {
-    // An older backend / generic mock: the sidebar group must simply not
-    // render — never a crash on sources.length downstream.
-    apiMock.mockResolvedValue({ tables: [] });
-    await expect(listProjectSources('p1')).resolves.toEqual([]);
-    apiMock.mockResolvedValue(undefined as never);
-    await expect(listProjectSources('p1')).rejects.toThrow(); // a hard null still surfaces
-  });
 
   it('fetchProjectSource POSTs { params } to the URI-encoded source path (frozen wire contract)', async () => {
     apiMock.mockResolvedValue({ data: { temperature_c: 21 }, cached: true });

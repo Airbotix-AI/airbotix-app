@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 (removed: the Database window's Data-sources discovery group)
+
+### Removed
+
+- **The "Data sources" sidebar group + source info/Try-it card** in the Database
+  window (owner feedback: redundant once `sources.fetch(url)` opened external APIs
+  beyond the curated catalog — D-WEB-23). The Database window is back to purely the
+  project's own tables. The catalog itself, `sources.get`/`sources.fetch`, Web
+  Critter's teaching, the Website Guide and the super-admin page are all unchanged.
+
 ## 2026-08-13 (fix: ready screen no longer repeats the AI's full reply)
 
 ### Changed
