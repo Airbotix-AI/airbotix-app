@@ -111,6 +111,16 @@ describe('Workspace — Database window (window mode)', () => {
     expect(screen.getByTestId('site-db-pane')).toBeInTheDocument();
   });
 
+  it('website: the Website window AUTO-OPENS on mount (D-WEB-12 — no run concept, site visible)', () => {
+    renderWorkspace('website');
+    expect(usePlaygroundStore.getState().windows.game.open).toBe(true);
+  });
+
+  it('game: the runner stays CLOSED on mount (chat-first launch, kid presses Run)', () => {
+    renderWorkspace('game');
+    expect(usePlaygroundStore.getState().windows.game.open).toBe(false);
+  });
+
   it('game: NO Database tile, window, or taskbar button — even with a stale-open db window', () => {
     // A stale persisted layout could carry windows.db.open=true into a game.
     usePlaygroundStore.setState((s) => ({

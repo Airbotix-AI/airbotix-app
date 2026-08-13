@@ -438,6 +438,16 @@ export function Workspace({
   // The Database tab/window/tile exists ONLY in Website Studio — a game project
   // has no server-side db (D-WEB-15), so the surface must not advertise one.
   const isSite = kind === 'website';
+
+  // D-WEB-12: a website has NO run concept — the site is supposed to be VISIBLE
+  // and live from the moment the studio opens. The chat-first launch leaves the
+  // runner window CLOSED, which is right for games (the kid presses Run) but
+  // left a directly-opened website project with no website on screen. Open the
+  // Website window once on mount (no focus steal — ensureGameRunnerVisible
+  // no-ops when it's already showing; the kid can still close it afterwards).
+  useEffect(() => {
+    if (isSite) ensureGameRunnerVisible();
+  }, [isSite]);
   const splitTabs = useMemo(
     () =>
       SPLIT_TABS.filter(

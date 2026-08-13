@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 (fix: website projects open with the Website window visible)
+
+### Fixed
+
+- **A directly-opened website project showed no website** (`Workspace.tsx`): the
+  chat-first launch leaves the runner window closed — right for games (the kid
+  presses Run) but a D-WEB-12 violation for websites (no run concept; the site is
+  supposed to be visible and live). Website projects now auto-open the Website
+  window on workspace mount (no focus steal; the kid can still close it). Caught
+  by the first real execution of the kid-website-share journey at the pre-deploy
+  harness gate.
+
 ## 2026-08-13 (removed: the Database window's Data-sources discovery group)
 
 ### Removed
