@@ -317,12 +317,14 @@ export async function resetSiteDb(projectId: string): Promise<SiteDbTables> {
   return api<SiteDbTables>(`/projects/${projectId}/db/reset`, { method: 'POST' });
 }
 
-// ── External data sources (creative-code-studio-website-prd D-WEB-19) ────────
-// Admin-curated external providers the site can use WITHOUT any sandbox egress:
-// the in-frame `sources.get(name, params)` rides postMessage to SiteFrame, which
-// calls these endpoints with the kid's session, and the BACKEND fetches the real
-// provider (param-schema validated, cached, size/time capped — never a free-form
-// URL). The Database window's "Data sources" group renders the same catalog.
+// ── External data sources (creative-code-studio-website-prd D-WEB-19/23) ─────
+// External data the site can use WITHOUT any sandbox egress: the in-frame
+// `sources.get(name, params)` (admin-curated catalog) and `sources.fetch(url)`
+// (ANY public https JSON API, D-WEB-23) ride postMessage to SiteFrame, which
+// calls these endpoints with the kid's session, and the BACKEND fetches the
+// real provider (validated, cached, size/time capped; open fetches pass the
+// server's SSRF fence + the admin domain blocklist). The Database window's
+// "Data sources" group renders the curated catalog.
 
 /** One parameter a data source accepts (kid-readable catalog entry). */
 export interface ProjectSourceParamInfo {
@@ -368,6 +370,21 @@ export async function fetchProjectSource(
     `/projects/${projectId}/sources/${encodeURIComponent(name)}`,
     { method: 'POST', body: { params } },
   );
+}
+
+/** `POST /projects/:id/sources/fetch` — the OPEN fetch door (D-WEB-23): any
+ *  public https JSON API through the server proxy (SSRF fence + admin domain
+ *  blocklist enforced server-side). Failures arrive as 400 `SOURCE_URL` /
+ *  `SOURCE_BLOCKED` / `SOURCE_UPSTREAM` or 429 `SOURCE_BUSY` ApiErrors whose
+ *  messages are kid-readable — callers surface them verbatim. */
+export async function fetchProjectSourceUrl(
+  projectId: string,
+  url: string,
+): Promise<{ data: unknown; cached: boolean }> {
+  return api<{ data: unknown; cached: boolean }>(`/projects/${projectId}/sources/fetch`, {
+    method: 'POST',
+    body: { url },
+  });
 }
 
 export interface ResolveFilesOptions {

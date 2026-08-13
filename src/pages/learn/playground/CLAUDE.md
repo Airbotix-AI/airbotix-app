@@ -34,7 +34,11 @@ in-flight cap 8 enforced in the shim AND studio-side in `SiteFrame` — the stud
 fence, forged postMessages bypass the shim) — `SiteFrame` forwards to
 `POST /projects/:id/sources/:name` and the BACKEND fetches the provider (sandbox keeps zero
 egress; scalar params validated studio-side; SOURCE_* / SOURCE_BUSY errors — any ApiError
-message — surface verbatim). Data PERSISTS across navs/reloads/
+message — surface verbatim). D-WEB-23: `await sources.fetch(url)` is the OPEN door — ANY public
+https JSON API via `action:'source-fetch'` (same token + reply envelope, SHARED in-flight cap,
+absolute-https URL checked in the shim AND studio-side) → `POST /projects/:id/sources/fetch`
+(share host: `POST /play/:shareId/sources/fetch`, stateless); the backend's SSRF fence + the
+super-admin domain blocklist gate it server-side. Data PERSISTS across navs/reloads/
 sessions; TOP-LEVEL `data/*.json` are the SEEDS the backend rebuilds from on the explicit
 Reset. A website has **NO run concept**: the site is ALWAYS mounted + live-rebuilds from the
 VFS (debounced ~700 ms; a runKey bump — Reload `site-reload` / the agent's `run_game` — adopts

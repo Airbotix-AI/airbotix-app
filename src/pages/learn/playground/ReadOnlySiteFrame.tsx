@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { VfsFile } from '../code/codeApi';
 import { buildSitePreview, isSiteNavigateMessage, SITE_HOME_PAGE } from './buildSitePreview';
-import { fetchPublicSource, queryPublicSiteDb } from './sharingApi';
+import { fetchPublicSource, fetchPublicSourceUrl, queryPublicSiteDb } from './sharingApi';
 import { useSiteBackendChannel, type SiteBackendTransport } from './siteBackendChannel';
 
 interface ReadOnlySiteFrameProps {
@@ -59,6 +59,8 @@ export function ReadOnlySiteFrame({ files, shareId, title = 'Website', testId }:
         return result;
       },
       getSource: (name, params) => fetchPublicSource(shareId, name, params),
+      // The open fetch door (D-WEB-23) is stateless — no session rides along.
+      openFetch: (url) => fetchPublicSourceUrl(shareId, url),
     }),
     [shareId],
   );

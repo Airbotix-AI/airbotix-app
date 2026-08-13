@@ -1,25 +1,29 @@
 // The site runtime's PARENT-SIDE backend proxy — the ONE place a website's
-// in-frame `db.query` / `sources.get` postMessages are answered (creative-code-
-// studio-website-prd D-WEB-15 / D-WEB-19 / D-WEB-22).
+// in-frame `db.query` / `sources.get` / `sources.fetch` postMessages are
+// answered (creative-code-studio-website-prd D-WEB-15 / D-WEB-19 / D-WEB-22 /
+// D-WEB-23).
 //
 // The in-frame shim (`buildSitePreview`) is byte-identical for the studio and
-// the public play host — it posts `action:'sql'` / `action:'source'` to its
-// parent and never holds a token. What DIFFERS is where the parent forwards
-// those calls: the studio hits the AUTHED per-project endpoints
-// (`/projects/:id/db/query`, `/projects/:id/sources/:name`), while the public
-// `/play/:shareId` host hits the NO-AUTH per-share endpoints keyed by shareId
-// with an opaque per-visitor session (D-WEB-22). That single difference is the
-// `SiteBackendTransport` seam below — everything else (own-source guard,
-// per-document token echo, param validation, in-flight caps) is shared, so the
-// two frames keep ONE site runtime instead of duplicating the proxy.
+// the public play host — it posts `action:'sql'` / `action:'source'` /
+// `action:'source-fetch'` to its parent and never holds a token. What DIFFERS
+// is where the parent forwards those calls: the studio hits the AUTHED
+// per-project endpoints (`/projects/:id/db/query`, `/projects/:id/sources/*`),
+// while the public `/play/:shareId` host hits the NO-AUTH per-share endpoints
+// keyed by shareId with an opaque per-visitor session (D-WEB-22). That single
+// difference is the `SiteBackendTransport` seam below — everything else
+// (own-source guard, per-document token echo, param/url validation, in-flight
+// caps) is shared, so the two frames keep ONE site runtime instead of
+// duplicating the proxy.
 
 import { useEffect, useRef, type RefObject } from 'react';
 
 import { ApiError } from '@/lib/api';
 import {
+  isSiteSourceFetchRequest,
   isSiteSourceRequest,
   isSiteSqlRequest,
   MAX_SOURCE_INFLIGHT,
+  SOURCE_FETCH_URL_ERROR,
   type SiteSourceReply,
   type SiteSqlReply,
 } from './buildSitePreview';
@@ -52,19 +56,23 @@ const isSourceParam = (v: unknown): v is SiteSourceParam =>
 
 /**
  * The seam that varies between the studio and the public play host: WHERE the
- * site's `db.query` / `sources.get` calls are forwarded. Implementations wrap
- * either the authed per-project endpoints (studio) or the no-auth per-share
- * endpoints with the opaque per-visitor session (public host, D-WEB-22).
+ * site's `db.query` / `sources.get` / `sources.fetch` calls are forwarded.
+ * Implementations wrap either the authed per-project endpoints (studio) or the
+ * no-auth per-share endpoints with the opaque per-visitor session (public
+ * host, D-WEB-22).
  *
- * `query` / `getSource` reject with an {@link ApiError} carrying the backend's
- * kid-readable message on failure (surfaced verbatim). `ready` is false only
- * for a backend that hasn't materialized yet (a project-less studio session);
- * the public host is always ready once the share resolved.
+ * `query` / `getSource` / `openFetch` reject with an {@link ApiError} carrying
+ * the backend's kid-readable message on failure (surfaced verbatim). `ready`
+ * is false only for a backend that hasn't materialized yet (a project-less
+ * studio session); the public host is always ready once the share resolved.
  */
 export interface SiteBackendTransport {
   ready: boolean;
   query(sql: string, params: SiteDbParam[]): Promise<SiteDbQueryResult>;
   getSource(name: string, params: Record<string, SiteSourceParam>): Promise<{ data: unknown }>;
+  /** The OPEN fetch door (D-WEB-23): any public https JSON API, proxied by the
+   *  backend (SSRF fence + admin domain blocklist server-side). */
+  openFetch(url: string): Promise<{ data: unknown }>;
 }
 
 /**
@@ -197,6 +205,53 @@ export function useSiteBackendChannel(
       }
     };
 
+    // One in-frame `sources.fetch` (D-WEB-23): the OPEN door. Same reply
+    // envelope + token guard as `sources.get`, the SAME in-flight budget
+    // (pendingSourceRef — one fence for everything that becomes an upstream
+    // fetch), plus the studio-side URL re-check (the frame is untrusted; its
+    // shim validation can be bypassed by forged postMessages).
+    const answerSourceFetch = async (id: number, token: string, url: string) => {
+      const reply = (r: Omit<SiteSourceReply, '__airbotixSiteSource' | 'id' | 'token'>) => {
+        iframeRef.current?.contentWindow?.postMessage(
+          { __airbotixSiteSource: true, id, token, ...r } satisfies SiteSourceReply,
+          '*',
+        );
+      };
+      if (!transportRef.current.ready) {
+        reply({ ok: false, error: NO_BACKEND_SOURCE_ERROR });
+        return;
+      }
+      // Untrusted wire data: only an absolute https:// URL may be forwarded,
+      // or the backend's schema rejection would surface as kid-facing jargon.
+      if (!url.startsWith('https://') || url.length <= 'https://'.length) {
+        reply({ ok: false, error: SOURCE_FETCH_URL_ERROR });
+        return;
+      }
+      if (pendingSourceRef.current >= MAX_SOURCE_INFLIGHT) {
+        reply({
+          ok: false,
+          error: `Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get or sources.fetch before starting the next.`,
+        });
+        return;
+      }
+      pendingSourceRef.current += 1;
+      try {
+        const { data } = await transportRef.current.openFetch(url);
+        reply({ ok: true, data });
+      } catch (err) {
+        // The backend's SOURCE_URL / SOURCE_BLOCKED / SOURCE_UPSTREAM /
+        // SOURCE_BUSY messages are kid-readable — surface them verbatim;
+        // anything else gets a calm fallback.
+        const message =
+          err instanceof ApiError && err.message
+            ? err.message
+            : 'That API could not be reached — try again in a moment.';
+        reply({ ok: false, error: message });
+      } finally {
+        pendingSourceRef.current -= 1;
+      }
+    };
+
     const onMessage = (e: MessageEvent) => {
       // Only THIS frame may query the db / a source (defence-in-depth: another
       // frame on the page must not steer the site). A null source (jsdom tests)
@@ -210,6 +265,10 @@ export function useSiteBackendChannel(
       }
       if (isSiteSourceRequest(e.data)) {
         void answerSource(e.data.id, e.data.token, e.data.name, e.data.params);
+        return;
+      }
+      if (isSiteSourceFetchRequest(e.data)) {
+        void answerSourceFetch(e.data.id, e.data.token, e.data.url);
       }
     };
     window.addEventListener('message', onMessage);

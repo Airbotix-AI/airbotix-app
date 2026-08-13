@@ -16,6 +16,7 @@ import {
   createGameProject,
   fetchClassAssetDataUrl,
   fetchProjectSource,
+  fetchProjectSourceUrl,
   listClassAssets,
   listProjectSources,
   placeGameProjectForClass,
@@ -198,6 +199,17 @@ describe('external data sources (creative-code-studio-website-prd D-WEB-19)', ()
     expect(apiMock).toHaveBeenCalledWith('/projects/p1/sources/weather%20forecast', {
       method: 'POST',
       body: { params: { city: 'Sydney', days: 3 } },
+    });
+  });
+
+  it('fetchProjectSourceUrl POSTs { url } to the open fetch path (frozen wire contract, D-WEB-23)', async () => {
+    apiMock.mockResolvedValue({ data: { setup: 'Knock knock' }, cached: false });
+    await expect(
+      fetchProjectSourceUrl('p1', 'https://api.chucknorris.io/jokes/random'),
+    ).resolves.toEqual({ data: { setup: 'Knock knock' }, cached: false });
+    expect(apiMock).toHaveBeenCalledWith('/projects/p1/sources/fetch', {
+      method: 'POST',
+      body: { url: 'https://api.chucknorris.io/jokes/random' },
     });
   });
 });

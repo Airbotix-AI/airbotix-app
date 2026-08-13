@@ -168,11 +168,13 @@ describe('buildSitePreview — the site runtime shim + CSP fence', () => {
     expect(srcDoc).toContain('window.fetch = function');
     expect(srcDoc).toContain('__airbotixSiteNavigate');
     expect(srcDoc).toContain('__airbotixSiteSql'); // db.query's sql channel
-    expect(srcDoc).toContain('window.sources = {'); // sources.get (D-WEB-19)
+    expect(srcDoc).toContain('window.sources = {'); // sources.get/fetch (D-WEB-19/23)
     expect(srcDoc).toContain('__airbotixSiteSource');
     expect(srcDoc).toContain('the sandbox blocks the outside internet');
-    // The blocked-fetch teaching line now points at the sanctioned path too.
-    expect(srcDoc).toContain('try await sources.get(...)');
+    // The blocked-fetch teaching line points at BOTH sanctioned paths: the
+    // open sources.fetch door (D-WEB-23) and the curated sources.get shelf.
+    expect(srcDoc).toContain("await sources.fetch(\\'https://…\\')");
+    expect(srcDoc).toContain('await sources.get(...)');
     expect(shimAt).toBeLessThan(srcDoc.indexOf("app.get('/api/pets'"));
   });
 

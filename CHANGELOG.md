@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-08-13 (feat: open external API fetch — `sources.fetch(url)` — D-WEB-23)
+
+### Added
+
+- **Kid websites can call ANY public https JSON API** via a new in-frame
+  `await sources.fetch(url)` (`buildSitePreview.ts`) — the open door beside the
+  curated `sources.get` shelf (creative-code-studio-website-prd D-WEB-23). It rides
+  the SAME postMessage machinery as `sources.get`: a sibling `action:'source-fetch'`
+  request `{id, token, url}` sharing the per-document token, the id sequence, the
+  10 s timeout, ONE combined in-flight budget (cap 8, enforced in the shim AND
+  studio-side), and the same `__airbotixSiteSource` reply envelope. A non-`https://`
+  / non-absolute URL fails locally, kid-readably, without a single postMessage —
+  and the studio channel re-checks the untrusted wire before any backend call.
+- **Transport seam** (`siteBackendChannel.ts`): `SiteBackendTransport` gains
+  `openFetch(url)` — studio (`SiteFrame`) → authed `POST /projects/:id/sources/fetch`
+  (`fetchProjectSourceUrl`), public share host (`ReadOnlySiteFrame`) → no-auth,
+  stateless `POST /play/:shareId/sources/fetch` (`fetchPublicSourceUrl`). Backend
+  `SOURCE_URL` / `SOURCE_BLOCKED` / `SOURCE_UPSTREAM` / `SOURCE_BUSY` messages are
+  kid-readable and surface verbatim.
+- **Discovery copy** (`DbSourceDetail.tsx`): the Data-sources detail card teaches the
+  open door — "You can also fetch any public API, not just these sources:" with a
+  copyable `await sources.fetch('https://api.example.com/data')` chip
+  (`db-source-fetch-hint` / `db-source-fetch-example`), sharing the `example_code`
+  chip component.
+
+### Changed
+
+- The sandbox's blocked-`fetch` console error and the `connect-src` CSP hint now
+  point at BOTH sanctioned paths (`sources.fetch('https://…')` for any public API,
+  `sources.get(...)` for the curated shelf); the shared too-many-requests message
+  mentions both calls.
+
 ## 2026-08-13 (fix: empty db cells are editable again)
 
 ### Fixed

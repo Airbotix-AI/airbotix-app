@@ -5,7 +5,9 @@
 // that runs the example params through the REAL server proxy and pretty-prints
 // the JSON result (or the backend's kid-readable error) right there. Trying a
 // source is a READ, so readOnly viewers (teacher/parent) may use it too —
-// DbPane never gates this card.
+// DbPane never gates this card. It also teaches the OPEN door (D-WEB-23): a
+// copyable `await sources.fetch('https://…')` line — any public API, not just
+// the curated shelf.
 
 import { Check, Copy, Globe, Loader2, Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -20,11 +22,57 @@ import {
 /** How long the "Copied!" tick shows before the chip returns to Copy. */
 const COPIED_RESET_MS = 1500;
 
+/** The open-door teaching line (D-WEB-23): the catalog is the convenience
+ *  shelf — `sources.fetch` reaches ANY public https JSON API through the same
+ *  server proxy. Ready to copy, exactly like each source's `example_code`. */
+export const OPEN_FETCH_EXAMPLE = "await sources.fetch('https://api.example.com/data')";
+
 interface DbSourceDetailProps {
   source: ProjectSourceInfo;
   /** The backend project whose source proxy answers "Try it" (D-WEB-19).
    *  Absent in a project-less session — the button stays disabled. */
   projectId?: string;
+}
+
+/** A copyable one-line code chip (the `example_code` pattern) — used for the
+ *  source's own example AND the open `sources.fetch` teaching line. */
+function CopyableCode({ code, testId, label }: { code: string; testId: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
+
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
+    } catch {
+      /* clipboard blocked (headless) — the line is still visible + selectable */
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 rounded-md border border-pg-border bg-pg-surface-2 px-2 py-1.5">
+      <code data-testid={testId} className="min-w-0 flex-1 truncate font-mono text-[11px] text-pg-text">
+        {code}
+      </code>
+      <button
+        type="button"
+        aria-label={label}
+        title={label}
+        onClick={() => void onCopy()}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
+      >
+        {copied ? <Check size={12} aria-hidden className="text-brand-mint" /> : <Copy size={12} aria-hidden />}
+      </button>
+    </div>
+  );
 }
 
 /** The example params for "Try it": every catalog param's example value (the
@@ -44,25 +92,6 @@ export function DbSourceDetail({ source, projectId }: DbSourceDetailProps) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (copiedTimer.current) clearTimeout(copiedTimer.current);
-    },
-    [],
-  );
-
-  const onCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(source.example_code);
-      setCopied(true);
-      if (copiedTimer.current) clearTimeout(copiedTimer.current);
-      copiedTimer.current = setTimeout(() => setCopied(false), COPIED_RESET_MS);
-    } catch {
-      /* clipboard blocked (headless) — the line is still visible + selectable */
-    }
-  };
 
   const onTry = async () => {
     if (!projectId || busy) return;
@@ -119,19 +148,19 @@ export function DbSourceDetail({ source, projectId }: DbSourceDetailProps) {
       )}
 
       {/* The ready-to-copy call — exactly what kid code (or the AI) writes. */}
-      <div className="flex items-center gap-1.5 rounded-md border border-pg-border bg-pg-surface-2 px-2 py-1.5">
-        <code data-testid="db-source-example" className="min-w-0 flex-1 truncate font-mono text-[11px] text-pg-text">
-          {source.example_code}
-        </code>
-        <button
-          type="button"
-          aria-label="Copy example code"
-          title="Copy example code"
-          onClick={() => void onCopy()}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-pg-text-dim transition-colors hover:bg-pg-text/10 hover:text-pg-text"
-        >
-          {copied ? <Check size={12} aria-hidden className="text-brand-mint" /> : <Copy size={12} aria-hidden />}
-        </button>
+      <CopyableCode code={source.example_code} testId="db-source-example" label="Copy example code" />
+
+      {/* The open door (D-WEB-23): the catalog is only the convenience shelf. */}
+      <div>
+        <p data-testid="db-source-fetch-hint" className="mb-1.5 text-[11px] leading-snug text-pg-text-dim">
+          You can also fetch <span className="font-semibold">any public API</span>, not just these
+          sources:
+        </p>
+        <CopyableCode
+          code={OPEN_FETCH_EXAMPLE}
+          testId="db-source-fetch-example"
+          label="Copy sources.fetch example"
+        />
       </div>
 
       <div>

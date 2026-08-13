@@ -16,13 +16,19 @@ import type { VfsFile } from '../code/codeApi';
 import type { RunReport } from './runReport';
 import { SiteFrame } from './SiteFrame';
 
-const { querySiteDbMock, fetchProjectSourceMock } = vi.hoisted(() => ({
+const { querySiteDbMock, fetchProjectSourceMock, fetchProjectSourceUrlMock } = vi.hoisted(() => ({
   querySiteDbMock: vi.fn(),
   fetchProjectSourceMock: vi.fn(),
+  fetchProjectSourceUrlMock: vi.fn(),
 }));
 vi.mock('./panes/playgroundApi', async (orig) => {
   const actual = await orig<typeof import('./panes/playgroundApi')>();
-  return { ...actual, querySiteDb: querySiteDbMock, fetchProjectSource: fetchProjectSourceMock };
+  return {
+    ...actual,
+    querySiteDb: querySiteDbMock,
+    fetchProjectSource: fetchProjectSourceMock,
+    fetchProjectSourceUrl: fetchProjectSourceUrlMock,
+  };
 });
 
 const text = (path: string, content: string): VfsFile => ({
@@ -465,6 +471,124 @@ describe('SiteFrame — the source proxy (D-WEB-19)', () => {
     );
     // …and only the first 8 ever reached the backend.
     expect(fetchProjectSourceMock).toHaveBeenCalledTimes(8);
+  });
+});
+
+// The OPEN fetch proxy (creative-code-studio-website-prd D-WEB-23): the same
+// token-holding proxy answers `action:'source-fetch'` — each in-frame
+// sources.fetch(url) is forwarded to POST /projects/:id/sources/fetch with the
+// kid's session (the BACKEND fetches the public API behind its SSRF fence +
+// the admin domain blocklist) and the reply rides the SAME source envelope.
+describe('SiteFrame — the open sources.fetch proxy (D-WEB-23)', () => {
+  const fetchRequest = (id: number, url: unknown = 'https://api.example.com/joke') => ({
+    __airbotixSiteControl: true,
+    action: 'source-fetch',
+    id,
+    token: TOKEN,
+    url,
+  });
+  const JOKE = { setup: 'Knock knock', punchline: 'Interrupting cow' };
+
+  it('forwards a source-fetch request to fetchProjectSourceUrl and posts the ok DATA reply echoing id + token', async () => {
+    fetchProjectSourceUrlMock.mockResolvedValue({ data: JOKE, cached: false });
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post(fetchRequest(31));
+
+    expect(fetchProjectSourceUrlMock).toHaveBeenCalledWith('p1', 'https://api.example.com/joke');
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        { __airbotixSiteSource: true, id: 31, token: TOKEN, ok: true, data: JOKE },
+        '*',
+      ),
+    );
+  });
+
+  it('a backend SOURCE_BLOCKED error (400) replies ok:false with the kid-readable message VERBATIM', async () => {
+    const backendMessage = 'That website is not available here — try a different API.';
+    fetchProjectSourceUrlMock.mockRejectedValue(new ApiError(400, 'SOURCE_BLOCKED', backendMessage));
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post(fetchRequest(32, 'https://blocked.example.com/data'));
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        { __airbotixSiteSource: true, id: 32, token: TOKEN, ok: false, error: backendMessage },
+        '*',
+      ),
+    );
+  });
+
+  it('a non-https URL (forged wire data) is rejected kid-readably, never reaches the backend', async () => {
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post(fetchRequest(33, 'http://api.example.com/data'));
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          __airbotixSiteSource: true,
+          id: 33,
+          token: TOKEN,
+          ok: false,
+          error: expect.stringContaining('https://'),
+        }),
+        '*',
+      ),
+    );
+    expect(fetchProjectSourceUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('without a projectId (project-less session) it replies kid-readably, never calls the backend', async () => {
+    render(<SiteFrame files={SITE} runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post(fetchRequest(34));
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ __airbotixSiteSource: true, id: 34, ok: false }),
+        '*',
+      ),
+    );
+    expect(fetchProjectSourceUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('SHARES the studio-side in-flight cap with sources.get (one budget for every upstream forward)', async () => {
+    // 8 pending curated gets exhaust the shared budget — a forged source-fetch
+    // must fail busy without an authed POST, exactly like a 9th get would.
+    fetchProjectSourceMock.mockReturnValue(new Promise(() => undefined)); // never settles
+    render(<SiteFrame files={SITE} projectId="p1" runKey={1} />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    for (let id = 41; id <= 48; id += 1) {
+      post({
+        __airbotixSiteControl: true,
+        action: 'source',
+        id,
+        token: TOKEN,
+        name: 'weather',
+        params: { city: `c${id}` },
+      });
+    }
+    post(fetchRequest(49));
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          __airbotixSiteSource: true,
+          id: 49,
+          token: TOKEN,
+          ok: false,
+          error: expect.stringContaining('Too many data-source requests at once'),
+        }),
+        '*',
+      ),
+    );
+    expect(fetchProjectSourceUrlMock).not.toHaveBeenCalled();
   });
 });
 

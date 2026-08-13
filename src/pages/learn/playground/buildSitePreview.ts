@@ -97,17 +97,25 @@ const normalizeRef = (ref: string): string => (ref.startsWith('./') ? ref.slice(
  *  rejecting kid-readably (a wedged studio must never hang a kid's route). */
 export const SITE_SQL_TIMEOUT_MS = 10_000;
 
-/** How long the in-frame `sources.get` waits for the studio's reply (D-WEB-19)
- *  — same posture as the sql timeout: reject kid-readably, never hang. */
+/** How long the in-frame `sources.get` / `sources.fetch` waits for the studio's
+ *  reply (D-WEB-19/23) — same posture as the sql timeout: reject kid-readably,
+ *  never hang. */
 export const SITE_SOURCE_TIMEOUT_MS = 10_000;
 
-/** How many `sources.get` calls may be in flight at once — parallel to the sql
- *  channel's MAX_PENDING_SQL (8). Enforced TWICE: in the frame's shim (an
- *  unawaited source loop in polite kid code fails locally, before a single
- *  postMessage leaves the sandbox) AND studio-side in SiteFrame (the trust
- *  fence — forged postMessages bypass the shim, and each forward is an authed
- *  POST that may hit a real upstream provider). */
+/** How many source calls (`sources.get` + `sources.fetch` COMBINED — one shared
+ *  budget, D-WEB-23) may be in flight at once — parallel to the sql channel's
+ *  MAX_PENDING_SQL (8). Enforced TWICE: in the frame's shim (an unawaited
+ *  source loop in polite kid code fails locally, before a single postMessage
+ *  leaves the sandbox) AND studio-side in SiteFrame (the trust fence — forged
+ *  postMessages bypass the shim, and each forward is an authed POST that may
+ *  hit a real upstream provider). */
 export const MAX_SOURCE_INFLIGHT = 8;
+
+/** The kid-readable rejection for a `sources.fetch` URL that is not an absolute
+ *  `https://` address — used by BOTH fences (the in-frame shim rejects locally
+ *  before any postMessage; the studio channel re-checks the untrusted wire). */
+export const SOURCE_FETCH_URL_ERROR =
+  "sources.fetch needs a full https:// web address — like sources.fetch('https://api.example.com/data').";
 
 /** Serialize one DOM attribute for the studio skeleton. `&` is escaped BEFORE
  *  `"` so entity-like text survives the parse→serialize round trip unchanged
@@ -246,10 +254,45 @@ export function isSiteSourceRequest(
   );
 }
 
-/** The studio's reply to a {@link SiteSourceRequest} (studio → frame), echoing
- *  `id` + the per-document `token`. `data` is the source's JSON on success;
- *  `error` is the kid-readable message (the backend's SOURCE_* messages are
- *  surfaced verbatim) on failure. */
+/** The in-frame shim's `sources.fetch` request (frame → studio, D-WEB-23):
+ *  the OPEN door — any public `https://` JSON API, no catalog entry needed.
+ *  A sibling action to `'source'` riding the SAME per-document token, id
+ *  sequence, shared in-flight cap and {@link SiteSourceReply} envelope; the
+ *  studio forwards it to `POST /projects/:id/sources/fetch` (or the per-share
+ *  variant) and the BACKEND fetches the URL — the sandbox keeps ZERO egress.
+ *  `url` is untrusted wire data — the studio re-validates it (absolute
+ *  https:// string) before anything reaches the backend. */
+export interface SiteSourceFetchRequest {
+  id: number;
+  token: string;
+  url: string;
+}
+
+export function isSiteSourceFetchRequest(
+  data: unknown,
+): data is { __airbotixSiteControl: true; action: 'source-fetch' } & SiteSourceFetchRequest {
+  if (typeof data !== 'object' || data === null) return false;
+  const m = data as {
+    __airbotixSiteControl?: unknown;
+    action?: unknown;
+    id?: unknown;
+    token?: unknown;
+    url?: unknown;
+  };
+  return (
+    m.__airbotixSiteControl === true &&
+    m.action === 'source-fetch' &&
+    typeof m.id === 'number' &&
+    typeof m.token === 'string' &&
+    typeof m.url === 'string'
+  );
+}
+
+/** The studio's reply to a {@link SiteSourceRequest} OR a
+ *  {@link SiteSourceFetchRequest} (studio → frame), echoing `id` + the
+ *  per-document `token`. `data` is the source's JSON on success; `error` is
+ *  the kid-readable message (the backend's SOURCE_* messages are surfaced
+ *  verbatim) on failure. */
 export interface SiteSourceReply {
   __airbotixSiteSource: true;
   id: number;
@@ -266,7 +309,9 @@ export interface SiteSourceReply {
  * channel (the frame stays token-free; the studio calls the backend with the
  * kid's session) — `sources.get(name, params)`, curated EXTERNAL data via the
  * server proxy (D-WEB-19; same token machinery, `action:'source'`, in-frame
- * in-flight cap) — `app.get/app.post` route registration, the /api-only fetch
+ * in-flight cap) — `sources.fetch(url)`, ANY public https JSON API via the
+ * same proxy (D-WEB-23; `action:'source-fetch'`, SHARED in-flight cap, local
+ * https-URL check) — `app.get/app.post` route registration, the /api-only fetch
  * shim (query/body parsing, chainable `res.status().json()`, ASYNC handlers
  * awaited, kid-friendly 404/500 console errors, everything else blocked), the
  * capture-phase nav shim that posts relative `*.html` link clicks to the
@@ -340,39 +385,57 @@ function siteRuntime(page: string): string {
     }
   });
 
-  // ── sources.get: curated EXTERNAL data, server-proxied (D-WEB-19) ──────────
+  // ── sources: EXTERNAL data, server-proxied — get (curated catalog, D-WEB-19)
+  // + fetch (ANY public https JSON API, D-WEB-23) ─────────────────────────────
   // await sources.get('weather', { city: 'Sydney' }) → the parent studio calls
-  // POST /projects/:id/sources/:name with the kid's session and the BACKEND
-  // fetches the real provider — the sandbox itself still has ZERO egress.
-  // Resolves with the source's JSON data; an error rejects with the server's
-  // kid-readable message AND console.errors it verbatim (D-WEB-13 logs ledger).
-  // Same per-document token as db.query (one reply-matching scheme).
+  // POST /projects/:id/sources/:name; await sources.fetch('https://…') → the
+  // parent calls POST /projects/:id/sources/fetch — either way the BACKEND
+  // fetches the real provider with the kid's session and the sandbox itself
+  // keeps ZERO egress. Both resolve with the JSON data; an error rejects with
+  // the server's kid-readable message AND console.errors it verbatim (D-WEB-13
+  // logs ledger). Same per-document token as db.query (one reply-matching
+  // scheme); ONE shared in-flight budget across get + fetch.
   var srcSeq = 0;
   var srcPending = {};
   var srcInflight = 0;
+  function srcCall(fields) {
+    return new Promise(function (resolve, reject) {
+      // Local backpressure: an unawaited source loop fails HERE, kid-readably,
+      // before a single request leaves the frame.
+      if (srcInflight >= ${MAX_SOURCE_INFLIGHT}) {
+        var busy = 'Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get or sources.fetch before starting the next.';
+        console.error(busy);
+        reject(new Error(busy));
+        return;
+      }
+      var id = ++srcSeq;
+      srcInflight += 1;
+      var timer = setTimeout(function () {
+        delete srcPending[id];
+        srcInflight -= 1;
+        var msg = 'That data source took too long to answer (10 seconds) — try again in a moment.';
+        console.error(msg);
+        reject(new Error(msg));
+      }, ${SITE_SOURCE_TIMEOUT_MS});
+      srcPending[id] = { resolve: resolve, reject: reject, timer: timer };
+      var post = { __airbotixSiteControl: true, id: id, token: docToken };
+      for (var k in fields) post[k] = fields[k];
+      parent.postMessage(post, '*');
+    });
+  }
   window.sources = {
     get: function (name, params) {
-      return new Promise(function (resolve, reject) {
-        // Local backpressure: an unawaited sources.get loop fails HERE,
-        // kid-readably, before a single request leaves the frame.
-        if (srcInflight >= ${MAX_SOURCE_INFLIGHT}) {
-          var busy = 'Too many data-source requests at once (over ${MAX_SOURCE_INFLIGHT}) — await each sources.get before starting the next.';
-          console.error(busy);
-          reject(new Error(busy));
-          return;
-        }
-        var id = ++srcSeq;
-        srcInflight += 1;
-        var timer = setTimeout(function () {
-          delete srcPending[id];
-          srcInflight -= 1;
-          var msg = 'That data source took too long to answer (10 seconds) — try again in a moment.';
-          console.error(msg);
-          reject(new Error(msg));
-        }, ${SITE_SOURCE_TIMEOUT_MS});
-        srcPending[id] = { resolve: resolve, reject: reject, timer: timer };
-        parent.postMessage({ __airbotixSiteControl: true, action: 'source', id: id, token: docToken, name: String(name), params: params || {} }, '*');
-      });
+      return srcCall({ action: 'source', name: String(name), params: params || {} });
+    },
+    fetch: function (url) {
+      // Absolute https:// URLs only — anything else fails locally, kid-readably,
+      // without touching the backend (the studio re-checks; this is UX).
+      if (typeof url !== 'string' || url.slice(0, 8) !== 'https://' || url.length <= 8) {
+        var bad = ${jsStr(SOURCE_FETCH_URL_ERROR)};
+        console.error(bad);
+        return Promise.reject(new Error(bad));
+      }
+      return srcCall({ action: 'source-fetch', url: url });
     }
   };
   window.addEventListener('message', function (e) {
@@ -434,7 +497,7 @@ function siteRuntime(page: string): string {
     var method = (init && init.method ? String(init.method) : 'GET').toUpperCase();
     if (url.slice(0, 5) !== '/api/') {
       recordApi(method, url, 0); // 0 = rejected before any response
-      console.error('fetch("' + url + '") was blocked — the sandbox blocks the outside internet. Your site can only fetch its own /api/... routes, but it CAN use the studio data sources — try await sources.get(...).');
+      console.error('fetch("' + url + '") was blocked — the sandbox blocks the outside internet. Your site can only fetch its own /api/... routes, but it CAN reach outside through the studio — try await sources.fetch(\\'https://…\\') for any public API, or await sources.get(...) for the studio data sources.');
       return Promise.reject(new TypeError('Failed to fetch: ' + url));
     }
     var qi = url.indexOf('?');
@@ -520,7 +583,7 @@ function siteRuntime(page: string): string {
     'font-src': 'Fonts from the internet are blocked — use a normal system font in your CSS instead.',
     'script-src': 'Loading code from the internet is blocked — put your code in a .js file in your project instead.',
     'style-src': 'Loading styles from the internet is blocked — put your styles in style.css instead.',
-    'connect-src': 'Your site can only talk to its OWN backend with fetch("/api/...") and the studio data sources via sources.get(...). The outside internet is blocked.',
+    'connect-src': 'Your site can only talk to its OWN backend with fetch("/api/...") and the outside internet through the studio — sources.fetch("https://…") or sources.get(...). Direct connections are blocked.',
     'frame-src': 'Putting another website inside your page is blocked.',
     'default-src': 'That came from the internet, which is blocked here — keep everything inside your project.'
   };

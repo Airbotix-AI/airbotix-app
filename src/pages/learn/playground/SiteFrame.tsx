@@ -10,7 +10,7 @@ import {
   SITE_HOME_PAGE,
   type ConsoleLine,
 } from './buildSitePreview';
-import { fetchProjectSource, querySiteDb } from './panes/playgroundApi';
+import { fetchProjectSource, fetchProjectSourceUrl, querySiteDb } from './panes/playgroundApi';
 import { useSiteBackendChannel, type SiteBackendTransport } from './siteBackendChannel';
 import {
   createRunCollector,
@@ -109,15 +109,17 @@ export function SiteFrame({
   scriptRangesRef.current = scriptRanges;
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // The studio backend transport: the site's `db.query` / `sources.get` calls
-  // are forwarded to the AUTHED per-project endpoints with the kid's session
-  // (the frame stays token-free). The public play host uses the shareId variant
-  // — everything else about the proxy is shared (siteBackendChannel).
+  // The studio backend transport: the site's `db.query` / `sources.get` /
+  // `sources.fetch` calls are forwarded to the AUTHED per-project endpoints
+  // with the kid's session (the frame stays token-free). The public play host
+  // uses the shareId variant — everything else about the proxy is shared
+  // (siteBackendChannel).
   const transport = useMemo<SiteBackendTransport>(
     () => ({
       ready: !!projectId,
       query: (sql, params) => querySiteDb(projectId as string, sql, params),
       getSource: (name, params) => fetchProjectSource(projectId as string, name, params),
+      openFetch: (url) => fetchProjectSourceUrl(projectId as string, url),
     }),
     [projectId],
   );

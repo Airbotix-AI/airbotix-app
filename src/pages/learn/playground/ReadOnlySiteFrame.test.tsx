@@ -15,16 +15,20 @@ import { ApiError } from '@/lib/api';
 import type { VfsFile } from '../code/codeApi';
 import { ReadOnlySiteFrame } from './ReadOnlySiteFrame';
 
-const { queryPublicSiteDbMock, fetchPublicSourceMock } = vi.hoisted(() => ({
-  queryPublicSiteDbMock: vi.fn(),
-  fetchPublicSourceMock: vi.fn(),
-}));
+const { queryPublicSiteDbMock, fetchPublicSourceMock, fetchPublicSourceUrlMock } = vi.hoisted(
+  () => ({
+    queryPublicSiteDbMock: vi.fn(),
+    fetchPublicSourceMock: vi.fn(),
+    fetchPublicSourceUrlMock: vi.fn(),
+  }),
+);
 vi.mock('./sharingApi', async (orig) => {
   const actual = await orig<typeof import('./sharingApi')>();
   return {
     ...actual,
     queryPublicSiteDb: queryPublicSiteDbMock,
     fetchPublicSource: fetchPublicSourceMock,
+    fetchPublicSourceUrl: fetchPublicSourceUrlMock,
   };
 });
 
@@ -174,6 +178,52 @@ describe('ReadOnlySiteFrame — public per-share db proxy + session threading (D
     await waitFor(() =>
       expect(postSpy).toHaveBeenCalledWith(
         { __airbotixSiteSource: true, id: 4, token: TOKEN, ok: true, data: { temperature_c: 21 } },
+        '*',
+      ),
+    );
+  });
+
+  it('an open sources.fetch request hits the public per-share fetch proxy (stateless, D-WEB-23)', async () => {
+    fetchPublicSourceUrlMock.mockResolvedValue({ data: { setup: 'Knock knock' }, cached: true });
+    render(<ReadOnlySiteFrame files={SITE} shareId="s1" testId="play-site-iframe" />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post({
+      __airbotixSiteControl: true,
+      action: 'source-fetch',
+      id: 5,
+      token: TOKEN,
+      url: 'https://api.example.com/joke',
+    });
+
+    await waitFor(() =>
+      expect(fetchPublicSourceUrlMock).toHaveBeenCalledWith('s1', 'https://api.example.com/joke'),
+    );
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        { __airbotixSiteSource: true, id: 5, token: TOKEN, ok: true, data: { setup: 'Knock knock' } },
+        '*',
+      ),
+    );
+  });
+
+  it('a backend SOURCE_BLOCKED on the open fetch surfaces its kid-readable message verbatim', async () => {
+    const backendMessage = 'That website is not available here — try a different API.';
+    fetchPublicSourceUrlMock.mockRejectedValue(new ApiError(400, 'SOURCE_BLOCKED', backendMessage));
+    render(<ReadOnlySiteFrame files={SITE} shareId="s1" testId="play-site-iframe" />);
+    const postSpy = vi.spyOn(frame().contentWindow!, 'postMessage');
+
+    post({
+      __airbotixSiteControl: true,
+      action: 'source-fetch',
+      id: 6,
+      token: TOKEN,
+      url: 'https://blocked.example.com/data',
+    });
+
+    await waitFor(() =>
+      expect(postSpy).toHaveBeenCalledWith(
+        { __airbotixSiteSource: true, id: 6, token: TOKEN, ok: false, error: backendMessage },
         '*',
       ),
     );

@@ -265,4 +265,24 @@ describe('DbPane — the source detail card + Try it (D-WEB-19)', () => {
       expect(writeText).toHaveBeenCalledWith("await sources.get('weather', { city: 'Sydney' })"),
     );
   });
+
+  it('teaches the OPEN sources.fetch door with its own copyable chip (D-WEB-23)', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<DbPane projectId="p1" files={FILES} />);
+    fireEvent.click(await screen.findByTestId('db-source-weather'));
+
+    // The teaching line: the catalog is only the convenience shelf.
+    expect(screen.getByTestId('db-source-fetch-hint')).toHaveTextContent(
+      /fetch any public API, not just these sources/,
+    );
+    expect(screen.getByTestId('db-source-fetch-example')).toHaveTextContent(
+      "await sources.fetch('https://api.example.com/data')",
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy sources.fetch example' }));
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("await sources.fetch('https://api.example.com/data')"),
+    );
+  });
 });

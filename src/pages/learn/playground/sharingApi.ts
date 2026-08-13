@@ -316,6 +316,27 @@ export async function fetchPublicSource(
   return (await res.json()) as { data: unknown; cached: boolean };
 }
 
+/**
+ * The OPEN fetch door for a shared site (D-WEB-23): any public https JSON API
+ * through the NO-AUTH per-share proxy (`POST /play/:shareId/sources/fetch` —
+ * stateless, no session; the server's SSRF fence + admin domain blocklist
+ * apply exactly as in the studio). Errors arrive as a kid-readable
+ * {@link ApiError} (`SOURCE_URL` / `SOURCE_BLOCKED` / `SOURCE_UPSTREAM` /
+ * `SOURCE_BUSY`), surfaced verbatim.
+ */
+export async function fetchPublicSourceUrl(
+  shareId: string,
+  url: string,
+): Promise<{ data: unknown; cached: boolean }> {
+  const res = await fetch(`${BASE_URL}/play/${shareId}/sources/fetch`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw await publicPlayError(res);
+  return (await res.json()) as { data: unknown; cached: boolean };
+}
+
 // ── Interactive class wall (J7 / D-GAME8) ───────────────────────────────────
 
 /**

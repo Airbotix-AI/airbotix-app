@@ -34,6 +34,7 @@ import {
   MAX_SOURCE_INFLIGHT,
   SITE_SOURCE_TIMEOUT_MS,
   SITE_SQL_TIMEOUT_MS,
+  SOURCE_FETCH_URL_ERROR,
 } from './buildSitePreview';
 
 const text = (path: string, content: string): VfsFile => ({
@@ -122,6 +123,7 @@ const db = (): SiteDb => (window as unknown as { db: SiteDb }).db;
 
 interface SiteSources {
   get: (name: string, params?: Record<string, unknown>) => Promise<unknown>;
+  fetch: (url: unknown) => Promise<unknown>;
 }
 const sources = (): SiteSources => (window as unknown as { sources: SiteSources }).sources;
 
@@ -192,6 +194,24 @@ const replySource = (data: Record<string, unknown>) =>
   window.dispatchEvent(
     new MessageEvent('message', { data: { __airbotixSiteSource: true, ...data } }),
   );
+
+interface SourceFetchPost {
+  __airbotixSiteControl: true;
+  action: 'source-fetch';
+  id: number;
+  /** The SAME per-document nonce as sql/get (one scheme, D-WEB-23). */
+  token: string;
+  url: string;
+}
+
+const sourceFetchPostOf = (posts: unknown[]): SourceFetchPost => {
+  const post = posts.find(
+    (p) =>
+      typeof p === 'object' && p !== null && (p as { action?: unknown }).action === 'source-fetch',
+  ) as SourceFetchPost | undefined;
+  expect(post).toBeDefined();
+  return post!;
+};
 
 beforeEach(() => {
   document.body.innerHTML = '';
@@ -543,6 +563,120 @@ describe('site runtime — sources.get replies (D-WEB-19)', () => {
       void sources().get('weather', { city: 'now-fits' }).catch(() => undefined);
     });
     expect(sourcePostOf(nextPosts).params).toEqual({ city: 'now-fits' });
+  });
+});
+
+describe('site runtime — sources.fetch request wire shape (D-WEB-23)', () => {
+  // These requests never get a reply — fake timers keep their 10s timeout
+  // timers from firing (as console noise) after the test ends.
+  beforeEach(() => vi.useFakeTimers());
+
+  it("posts {action:'source-fetch', id, token, url} for an absolute https URL", () => {
+    runShim();
+    const posts = capturePosts(() => {
+      void sources().fetch('https://api.chucknorris.io/jokes/random').catch(() => undefined);
+    });
+    const post = sourceFetchPostOf(posts);
+    expect(post.__airbotixSiteControl).toBe(true);
+    expect(post.url).toBe('https://api.chucknorris.io/jokes/random');
+    expect(typeof post.id).toBe('number');
+    expect(typeof post.token).toBe('string');
+  });
+
+  it('rides the SAME per-document token as sql and sources.get (one scheme)', () => {
+    runShim();
+    const posts = capturePosts(() => {
+      void db().query('SELECT 1').catch(() => undefined);
+      void sources().fetch('https://api.example.com/data').catch(() => undefined);
+    });
+    expect(sourceFetchPostOf(posts).token).toBe(sqlPostOf(posts).token);
+  });
+
+  it.each([
+    ['an http:// URL', 'http://api.example.com/data'],
+    ['a relative path', '/api/data'],
+    ['a bare https:// with nothing after it', 'https://'],
+    ['a non-string', { url: 'https://api.example.com' }],
+  ])('rejects %s LOCALLY, kid-readably, without a single postMessage', async (_label, url) => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().fetch(url);
+    });
+    await expect(promise).rejects.toThrow(SOURCE_FETCH_URL_ERROR);
+    expect(console.error).toHaveBeenCalledWith(SOURCE_FETCH_URL_ERROR);
+    // Nothing left the sandbox — the backend is never bothered by a bad URL.
+    expect(posts.filter((p) => (p as SourceFetchPost).action === 'source-fetch')).toHaveLength(0);
+  });
+});
+
+describe('site runtime — sources.fetch replies (D-WEB-23)', () => {
+  it('an ok reply resolves with the fetched DATA', async () => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().fetch('https://api.example.com/joke');
+    });
+    const post = sourceFetchPostOf(posts);
+    const data = { setup: 'Knock knock', punchline: 'Interrupting cow' };
+    replySource({ id: post.id, token: post.token, ok: true, data });
+    await expect(promise).resolves.toEqual(data);
+  });
+
+  it('an error reply (SOURCE_BLOCKED et al.) rejects with the server message AND console.errors it VERBATIM', async () => {
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      promise = sources().fetch('https://blocked.example.com/data');
+    });
+    const backendMessage = 'That website is not available here — try a different API.';
+    const post = sourceFetchPostOf(posts);
+    replySource({ id: post.id, token: post.token, ok: false, error: backendMessage });
+    await expect(promise).rejects.toThrow(backendMessage);
+    expect(console.error).toHaveBeenCalledWith(backendMessage);
+  });
+
+  it('no reply within 10s rejects kid-readably and releases the in-flight slot', async () => {
+    vi.useFakeTimers();
+    runShim();
+    let promise: Promise<unknown> = Promise.resolve();
+    capturePosts(() => {
+      promise = sources().fetch('https://api.example.com/slow');
+    });
+    const expectation = expect(promise).rejects.toThrow(/took too long/);
+    vi.advanceTimersByTime(SITE_SOURCE_TIMEOUT_MS);
+    await expectation;
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('took too long'));
+
+    // The slot was released: a fresh fetch posts again.
+    const nextPosts = capturePosts(() => {
+      void sources().fetch('https://api.example.com/after-timeout').catch(() => undefined);
+    });
+    expect(sourceFetchPostOf(nextPosts).url).toBe('https://api.example.com/after-timeout');
+  });
+
+  it(`SHARES the in-flight cap with sources.get: ${MAX_SOURCE_INFLIGHT} pending gets make a fetch fail locally`, async () => {
+    vi.useFakeTimers();
+    runShim();
+    let extra: Promise<unknown> = Promise.resolve();
+    const posts = capturePosts(() => {
+      for (let i = 0; i < MAX_SOURCE_INFLIGHT; i += 1) {
+        void sources().get('weather', { city: `city-${i}` }).catch(() => undefined);
+      }
+      extra = sources().fetch('https://api.example.com/one-too-many');
+    });
+    // The fetch rejected locally, kid-readably…
+    await expect(extra).rejects.toThrow(/Too many data-source requests/);
+    // …and never left the sandbox: no source-fetch post at all.
+    expect(posts.filter((p) => (p as SourceFetchPost).action === 'source-fetch')).toHaveLength(0);
+
+    // A settled get frees SHARED capacity: the next fetch posts again.
+    const first = sourcePostOf(posts);
+    replySource({ id: first.id, token: first.token, ok: true, data: {} });
+    const nextPosts = capturePosts(() => {
+      void sources().fetch('https://api.example.com/now-fits').catch(() => undefined);
+    });
+    expect(sourceFetchPostOf(nextPosts).url).toBe('https://api.example.com/now-fits');
   });
 });
 
