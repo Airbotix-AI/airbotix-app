@@ -191,6 +191,35 @@ describe('DbTable — inline cell edit (rowid-keyed)', () => {
     expect(screen.getByTestId('db-cell-pets-0-name')).toHaveTextContent('Biscuit');
   });
 
+  it('an EMPTY cell (\'\' or NULL — a fresh Add-row row) still shows a clickable target', async () => {
+    // The reported bug: an empty-string cell rendered a zero-height button —
+    // nothing visible, nothing clickable. It must render an "empty" placeholder
+    // and open the editor with an empty draft.
+    listSiteDbRowsMock.mockResolvedValue({
+      rows: [{ __rowid__: '9', id: 9, name: '', adopted: null }],
+      total: 1,
+      has_rowid: true,
+    });
+    render(<DbPane projectId="p1" files={FILES} />);
+
+    const nameCell = await screen.findByTestId('db-cell-pets-0-name');
+    expect(within(nameCell).getByText('empty')).toBeInTheDocument();
+    const adoptedCell = screen.getByTestId('db-cell-pets-0-adopted');
+    expect(within(adoptedCell).getByText('empty')).toBeInTheDocument();
+
+    const input = await openCellEditor('db-cell-pets-0-name');
+    expect(input).toHaveValue('');
+    fireEvent.change(input, { target: { value: 'Biscuit' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(querySiteDbMock).toHaveBeenCalledWith(
+        'p1',
+        'UPDATE "pets" SET "name" = ? WHERE rowid = ?',
+        ['Biscuit', '9'],
+      ),
+    );
+  });
+
   it('never renders __rowid__ as a display column', async () => {
     render(<DbPane projectId="p1" files={FILES} />);
     await screen.findByTestId('db-collection-pets');

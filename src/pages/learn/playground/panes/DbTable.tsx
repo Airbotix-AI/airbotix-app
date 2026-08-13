@@ -65,6 +65,17 @@ function isAutoId(c: SiteDbColumn): boolean {
   return c.name.toLowerCase() === 'id' && /int/i.test(c.type);
 }
 
+/** One cell's display: a real value renders clipped; an EMPTY value (NULL or
+ *  '' — exactly what "+ Add row" seeds) renders a dim italic "empty" placeholder
+ *  instead of nothing, so the cell always has a visible, clickable body (an
+ *  empty block button collapses to zero height — the kid couldn't click it). */
+function CellValue({ value, present }: { value: unknown; present: boolean }) {
+  if (!present || value === null || value === undefined || value === '') {
+    return <span className="select-none italic text-pg-text-muted/80">empty</span>;
+  }
+  return <>{renderValue(value)}</>;
+}
+
 /** Add-row placeholder value: empty string for text-affinity columns, NULL
  *  otherwise (numbers get typed in afterwards; NULL never fails affinity). */
 function emptyValueFor(c: SiteDbColumn): SiteDbParam {
@@ -301,14 +312,12 @@ export function DbTable({ table, projectId, readOnly }: DbTableProps) {
                               type="button"
                               title="Click to edit"
                               onClick={() => startEdit(rowid, c.name, row[c.name])}
-                              className="block w-full cursor-text rounded text-left transition-colors hover:bg-pg-text/5"
+                              className="block min-h-[1.375rem] w-full cursor-text rounded text-left transition-colors hover:bg-pg-text/5"
                             >
-                              {c.name in row ? renderValue(row[c.name]) : ''}
+                              <CellValue value={row[c.name]} present={c.name in row} />
                             </button>
-                          ) : c.name in row ? (
-                            renderValue(row[c.name])
                           ) : (
-                            ''
+                            <CellValue value={row[c.name]} present={c.name in row} />
                           )}
                         </td>
                       );

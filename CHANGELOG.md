@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-13 (fix: empty db cells are editable again)
+
+### Fixed
+
+- **An empty cell in the Database grid couldn't be clicked/edited** (`DbTable.tsx`):
+  an empty-string value (exactly what "+ Add row" seeds text columns with) rendered a
+  zero-height button — no visible body, nothing to click. Empty cells ('' or NULL) now
+  render a dim italic "empty" placeholder and the edit button carries a min-height, so
+  every cell always has a visible click target. Editing starts from an empty draft.
+
 ## 2026-08-13 (fix: Website Guide opens reading its first article)
 
 ### Fixed
