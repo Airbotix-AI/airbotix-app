@@ -13,8 +13,17 @@ export type HelpKind = 'game' | 'website';
 // §3 / D-HELP-08): each doc teaches an idea for BOTH 2D and 3D and only refers to Phaser 4 /
 // three.js for implementation details. NOT engine pillars.
 export type GamePillar = 'start' | 'world' | 'motion' | 'rules' | 'polish';
-// Website Studio branches (D-WEB-21): the pieces of a site + how they talk to each other.
-export type WebsitePillar = 'frontend' | 'backend' | 'database' | 'data-sources' | 'communication';
+// Website Studio branches (D-WEB-21): the pieces of a site + how they talk to
+// each other, plus the web-prefixed framing pillars ('start'/'polish' ids were
+// already taken by the game corpus and doc ids are globally unique).
+export type WebsitePillar =
+  | 'web-start'
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'data-sources'
+  | 'communication'
+  | 'web-polish';
 export type Pillar = GamePillar | WebsitePillar;
 
 export type HelpBlock =

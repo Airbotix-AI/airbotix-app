@@ -59,7 +59,12 @@ interface HelpSlice {
   tier: Tier;
 }
 
-const DEFAULT_DOC = 'start/what-is-a-game';
+// Kind-aware landing article — the Guide opens READING, not empty. The website
+// corpus has no game doc ids (D-WEB-21), so the game default must never leak in.
+const DEFAULT_DOC: Record<'game' | 'website', string> = {
+  game: 'start/what-is-a-game',
+  website: 'web-start/what-is-a-website',
+};
 
 /** Below this pane width the two-column layout reads badly — collapse to a
  *  single column: the reader full-width, with a "Topics" toggle in the header
@@ -68,7 +73,7 @@ const DEFAULT_DOC = 'start/what-is-a-game';
 const NARROW_PANE_PX = 480;
 
 export function HelpPane({ mode, kind = 'game', request }: HelpPaneProps) {
-  const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC, tier: mode });
+  const saved = readWorkspaceSlice<HelpSlice>('help', { docId: DEFAULT_DOC[kind], tier: mode });
   const [tier, setTier] = useState<Tier>(saved.tier);
   const [docId, setDocId] = useState<string>(saved.docId);
   const [query, setQuery] = useState('');
@@ -97,6 +102,15 @@ export function HelpPane({ mode, kind = 'game', request }: HelpPaneProps) {
   const docs = useMemo(() => corpus.data?.docs ?? [], [corpus.data]);
   const pillars = corpus.data?.pillars ?? [];
   const doc = getDoc(docs, docId);
+
+  // The Guide always opens READING an article: if the current doc id doesn't
+  // exist in the loaded corpus (kind default missing, a stale persisted slice
+  // from the other kind, or a renamed doc), snap to the kind's landing article —
+  // or the corpus's first doc as the last resort.
+  useEffect(() => {
+    if (docs.length === 0 || getDoc(docs, docId)) return;
+    setDocId(getDoc(docs, DEFAULT_DOC[kind]) ? DEFAULT_DOC[kind] : docs[0].id);
+  }, [docs, docId, kind]);
   const results = useMemo(() => searchDocs(docs, query, tier), [docs, query, tier]);
   const searching = query.trim().length > 0;
 

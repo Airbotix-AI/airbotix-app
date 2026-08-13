@@ -96,8 +96,11 @@ describe('HelpPane kind-aware corpus (D-WEB-21)', () => {
     expect(screen.getByTestId('help-nav-doc-frontend/what-is-a-website')).toBeInTheDocument();
     // Fetched with the website kind — the pane trusts the server filter.
     expect(loadHelpCorpusMock).toHaveBeenCalledWith('website');
-    // The reader's fallback header reads "Website Guide" (no game doc selected).
-    expect(screen.getByText('Website Guide')).toBeInTheDocument();
+    // The Guide opens READING the first article — never an empty reader (the old
+    // behaviour left a game default doc id that doesn't exist in this corpus).
+    expect(
+      await screen.findByText('A website is pages made of HTML, CSS and JS.'),
+    ).toBeInTheDocument();
   });
 
   it('a game project fetches the GAME corpus (unchanged) and renders game pillars', async () => {
@@ -119,5 +122,38 @@ describe('HelpPane kind-aware corpus (D-WEB-21)', () => {
     );
     await screen.findByTestId('help-nav-start');
     expect(loadHelpCorpusMock).toHaveBeenCalledWith('game');
+  });
+
+  it("website Guide prefers the kind's landing article when the corpus has it", async () => {
+    loadHelpCorpusMock.mockResolvedValue({
+      pillars: [
+        { id: 'web-start', kind: 'website', title: 'Start here', blurb: '', order: 1 },
+        ...WEBSITE_CORPUS.pillars.map((p, i) => ({ ...p, order: i + 2 })),
+      ],
+      docs: [
+        {
+          id: 'web-start/what-is-a-website',
+          kind: 'website',
+          pillar: 'web-start',
+          order: 1,
+          title: 'What a website is (landing)',
+          tags: ['website'],
+          blocks: [{ kind: 'para', text: 'Pages you see + a backend that remembers.' }],
+        },
+        ...WEBSITE_CORPUS.docs,
+      ],
+    } satisfies HelpCorpus);
+    renderPane('website');
+
+    // The designated landing article wins over plain first-in-list.
+    expect(
+      await screen.findByText('Pages you see + a backend that remembers.'),
+    ).toBeInTheDocument();
+  });
+
+  it('the game default article still opens for game projects (unchanged)', async () => {
+    loadHelpCorpusMock.mockResolvedValue(GAME_CORPUS);
+    renderPane('game');
+    expect(await screen.findByText('A game is a loop.')).toBeInTheDocument();
   });
 });

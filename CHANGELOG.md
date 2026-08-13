@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 (fix: Website Guide opens reading its first article)
+
+### Fixed
+
+- **The Website Guide no longer opens on an empty reader** (`HelpPane.tsx`): the
+  default article id was hardcoded to the GAME doc (`start/what-is-a-game`), which
+  doesn't exist in the website corpus. The default is now kind-aware
+  (`web-start/what-is-a-website` for websites) and the pane self-heals: any doc id
+  that doesn't resolve in the loaded corpus (stale persisted slice from the other
+  kind, renamed doc) snaps to the kind's landing article, or the corpus's first doc.
+  `WebsitePillar` type also gains the shipped `web-start`/`web-polish` pillars.
+
 ## 2026-08-13 (fix: labelled Games/Websites starter-chip rows)
 
 ### Changed
