@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-import type { BlocksProject } from './blocksModel'
+import type { Block, BlocksProject } from './blocksModel'
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides'
 import { isJtwOrderDebugLesson } from './jtwOrderDebug'
 import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_P6_LESSON_ID, JTW_C4_P7_LESSON_ID } from './jtwC4DualBuild'
@@ -40,6 +40,17 @@ interface UseBlocksMissionDerivedOptions {
   missionFixApplied: boolean
   running: boolean
   storyCoachCue: StoryCoachCue
+}
+
+export function isEventTriggerDebugLesson(lessonId: string | undefined): boolean {
+  return lessonId === 'tsv-s1-a3-d' || lessonId === JTW_C4_P6_LESSON_ID
+}
+
+export function eventTriggerWrongRunObserved(
+  lessonId: string | undefined,
+  blocks: readonly Block[] | undefined,
+): boolean {
+  return lessonId === JTW_C4_P6_LESSON_ID && blocks?.[0]?.op === 'when_flag'
 }
 
 export function useBlocksMissionDerived({
@@ -105,7 +116,7 @@ export function useBlocksMissionDerived({
     : false
   const lessonId = storyMission?.lessonId
   const isA2DirectionDebug = lessonId === 'tsv-s1-a2-d'
-  const isA3EventDebug = lessonId === 'tsv-s1-a3-d'
+  const isA3EventDebug = isEventTriggerDebugLesson(lessonId)
   const isA2PersonalShip = lessonId === 'tsv-s1-a2-s'
   const isA3PersonalShip = lessonId === 'tsv-s1-a3-s'
   const isA4ParameterBuild = lessonId === 'tsv-s1-a4-b'

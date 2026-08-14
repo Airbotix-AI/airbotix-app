@@ -9,13 +9,13 @@ import { Choice, OrderCards } from './partUi'
 import { completeStoryPart, fetchStoryLineProgress, type StoryPartEvidence } from './storyPartsApi'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
 import { C6_EVENT_ORDER, PAGE_ONE, PAGE_THREE_BUG, PAGE_TWO, PAGE_TWO_BUG, c6Project, runC6 } from './journeyWestC6Program'
+import { boundedC6EvidenceTrace, nonEmptyC6Selections } from './journeyWestC6Evidence'
 
 type PartId = `jtw-s1-c6-p${3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`
 const MAP = '/learn/story/journey-west'
 const NEXT: Record<PartId, string> = { 'jtw-s1-c6-p3': 'jtw-s1-c6-p4', 'jtw-s1-c6-p4': 'jtw-s1-c6-p5', 'jtw-s1-c6-p5': 'jtw-s1-c6-p6', 'jtw-s1-c6-p6': 'jtw-s1-c6-p7', 'jtw-s1-c6-p7': 'jtw-s1-c6-p8', 'jtw-s1-c6-p8': 'jtw-s1-c6-p9', 'jtw-s1-c6-p9': 'jtw-s1-c6-p10', 'jtw-s1-c6-p10': 'jtw-s2-c1-p1' }
 const TITLES: Record<PartId, string> = { 'jtw-s1-c6-p3': '六件事不能同时发生', 'jtw-s1-c6-p4': '第一页把身份冲突讲清楚', 'jtw-s1-c6-p5': '第二页让行动与回应分开', 'jtw-s1-c6-p6': '我的前传节奏', 'jtw-s1-c6-p7': '到了五行山却没有结束', 'jtw-s1-c6-p8': '我的三页美猴王前传', 'jtw-s1-c6-p9': '六枚印与四个因为', 'jtw-s1-c6-p10': '第一程完整结束' }
 const EVENT_CARDS = C6_EVENT_ORDER.map((id, index) => ({ id, label: ['任职不满', '离开', '自立称号', '再次入天宫', '风波升级', '五行山结果'][index], correct: true }))
-
 export function JourneyWestC6FinalPartsPage({ partId, previewSleep = async () => undefined }: { partId: PartId; previewSleep?: (ms: number) => Promise<void> }) {
   const navigate = useNavigate(); const queryClient = useQueryClient()
   const me = useMe(); const kidId = me.data?.kind === 'kid' ? me.data.sub : null
@@ -44,13 +44,13 @@ export function JourneyWestC6FinalPartsPage({ partId, previewSleep = async () =>
   const run = async () => setTrace(await runC6(c6Project(), previewSleep))
   const openStudio = async () => { if (studioBuild.data) return navigate(`/learn/blocks/${studioBuild.data.projectId}`); const template = number === 4 ? 'blocks_jtw_c6_p4' : number === 5 ? 'blocks_jtw_c6_p5' : 'blocks_jtw_c6_p8'; const created = await createBlocksProject({ title: TITLES[partId], template }); navigate(`/learn/blocks/${created.id}`) }
   const reopen = async () => { if (!studioBuild.data) return; const loaded = await loadBlocksProject(studioBuild.data.projectId); setReopened(JSON.stringify(loaded.project) === studioBuild.data.snapshot && jtwC5C6BuildMatches(loaded.project)) }
-  const complete = useMutation({ mutationFn: () => completeStoryPart(JTW_S1_STORY_LINE_ID, partId, { schema_version: 1, prediction: prediction ?? undefined, selections: {
-    event_order: cards, page_groups: exactOrder ? ['p1:job-leave-title', 'p2:return-response', 'p3:mountain'] : [], wait_reasons: reasons, preview_trace: trace,
-    build_ast: studioBuild.data ? ['saved-studio-ast'] : [], cause_links: reasons, run_trace: trace, before_ast: number === 5 ? PAGE_TWO_BUG.map((item) => item.op) : [], after_ast: number === 5 ? PAGE_TWO.map((item) => item.op) : [], peer_order: peer ? ['confirmed'] : [], personal_choices: reasons,
-    bug_trace: bugTrace, first_break: fixed ? ['forever'] : [], debug_diff: fixed ? ['remove-stop-forever-add-end'] : [], repaired_trace: trace, repeat_trace: repeatTrace,
-    build_project: studioBuild.data ? [studioBuild.data.projectId] : p8ProjectId ? [p8ProjectId] : [], saved_version: studioBuild.data ? [String(studioBuild.data.version)] : [], reopen_json_match: reopened ? ['true'] : [], peer_retell: peer ? ['same-version'] : [], three_page_trace: trace,
+  const complete = useMutation({ mutationFn: () => completeStoryPart(JTW_S1_STORY_LINE_ID, partId, { schema_version: 1, prediction: prediction ?? undefined, selections: nonEmptyC6Selections({
+    event_order: cards, page_groups: exactOrder ? ['p1:job-leave-title', 'p2:return-response', 'p3:mountain'] : [], wait_reasons: reasons, preview_trace: boundedC6EvidenceTrace(trace),
+    build_ast: studioBuild.data ? ['saved-studio-ast'] : [], cause_links: reasons, run_trace: boundedC6EvidenceTrace(trace), before_ast: number === 5 ? PAGE_TWO_BUG.map((item) => item.op) : [], after_ast: number === 5 ? PAGE_TWO.map((item) => item.op) : [], peer_order: peer ? ['confirmed'] : [], personal_choices: reasons,
+    bug_trace: boundedC6EvidenceTrace(bugTrace), first_break: fixed ? ['forever'] : [], debug_diff: fixed ? ['remove-stop-forever-add-end'] : [], repaired_trace: boundedC6EvidenceTrace(trace), repeat_trace: boundedC6EvidenceTrace(repeatTrace),
+    build_project: studioBuild.data ? [studioBuild.data.projectId] : p8ProjectId ? [p8ProjectId] : [], saved_version: studioBuild.data ? [String(studioBuild.data.version)] : [], reopen_json_match: reopened ? ['true'] : [], peer_retell: peer ? ['same-version'] : [], three_page_trace: boundedC6EvidenceTrace(trace),
     retell_links: retell, visual_evidence: retell, aggregate_readback: number === 10 ? ['ten-parts', 'read-why-code-run-debug-retell-save'] : [], rights_celebration: reasons,
-  } }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID] }); navigate(MAP, { state: { unlocked: NEXT[partId] } }) } })
+  }) }), onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['story-parts', JTW_S1_STORY_LINE_ID] }); navigate(MAP, { state: { unlocked: NEXT[partId] } }) } })
 
   if (progress.isLoading) return <p className="p-8 text-center">正在读取第一程证据…</p>
   if (!(progress.data?.unlocked_part_ids.includes(partId) || saved)) return <div className="p-8 text-center"><Link to={MAP}>先完成上一 Part</Link></div>

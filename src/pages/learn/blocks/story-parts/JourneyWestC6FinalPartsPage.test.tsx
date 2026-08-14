@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as storyApi from './storyPartsApi'
 import { JourneyWestC6FinalPartsPage } from './JourneyWestC6FinalPartsPage'
+import { boundedC6EvidenceTrace, nonEmptyC6Selections } from './journeyWestC6Evidence'
 
 vi.mock('./storyPartsApi', async (original) => ({ ...(await original<typeof import('./storyPartsApi')>()), fetchStoryLineProgress: vi.fn(), completeStoryPart: vi.fn() }))
 
@@ -16,6 +17,25 @@ beforeEach(() => { vi.mocked(storyApi.fetchStoryLineProgress).mockResolvedValue(
 afterEach(() => cleanup())
 
 describe('JourneyWestC6FinalPartsPage', () => {
+  it('bounds persisted runtime evidence without losing the first event or stable ending', () => {
+    const trace = Array.from({ length: 30 }, (_, index) =>
+      index === 18 ? 'page-3:planned:forever' : `page-${index}:step`,
+    )
+    trace[29] = 'page-3:end'
+    const bounded = boundedC6EvidenceTrace(trace)
+    expect(bounded).toHaveLength(12)
+    expect(bounded[0]).toBe('page-0:step')
+    expect(bounded).toContain('page-3:planned:forever')
+    expect(bounded.at(-1)).toBe('page-3:end')
+  })
+
+  it('omits empty evidence groups so each Part stays within the backend schema bound', () => {
+    expect(nonEmptyC6Selections({ event_order: ['one'], build_ast: [], run_trace: ['end'] })).toEqual({
+      event_order: ['one'],
+      run_trace: ['end'],
+    })
+  })
+
   it('ships child-visible contracts for every remaining Part', async () => {
     for (const [part, title] of [['jtw-s1-c6-p3', '六件事不能同时发生'], ['jtw-s1-c6-p4', '第一页把身份冲突讲清楚'], ['jtw-s1-c6-p5', '第二页让行动与回应分开'], ['jtw-s1-c6-p6', '我的前传节奏'], ['jtw-s1-c6-p7', '到了五行山却没有结束'], ['jtw-s1-c6-p8', '我的三页美猴王前传'], ['jtw-s1-c6-p9', '六枚印与四个因为'], ['jtw-s1-c6-p10', '第一程完整结束']] as const) { const view = render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><JourneyWestC6FinalPartsPage partId={part} /></MemoryRouter></QueryClientProvider>); expect(await screen.findByRole('heading', { name: title })).toBeTruthy(); view.unmount() }
   })
