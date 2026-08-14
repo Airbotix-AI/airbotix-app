@@ -36,6 +36,12 @@ export function speakStory(text: string): boolean {
   const synth = window.speechSynthesis;
   synth.cancel();
   const utterance = new SpeechSynthesisUtterance(clean(text));
+  const containsChinese = /[\u3400-\u9fff]/u.test(text);
+  utterance.lang = containsChinese ? 'zh-CN' : 'en-AU';
+  const matchingVoice = synth
+    .getVoices?.()
+    .find((voice) => voice.lang.toLowerCase().startsWith(containsChinese ? 'zh' : 'en'));
+  if (matchingVoice) utterance.voice = matchingVoice;
   utterance.rate = 0.92;
   utterance.pitch = 1.08;
   utterance.volume = 0.95;

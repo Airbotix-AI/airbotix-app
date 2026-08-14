@@ -18,6 +18,14 @@ import { useBlocksStore } from './blocksStore'
 import type { StoryCoachCue, StoryMission } from './curriculumGuides'
 import { sfx } from './sounds'
 
+export function canRepairEventTrigger(
+  lessonId: string | undefined,
+  wrongRunObserved: boolean,
+  tapObserved: boolean,
+): boolean {
+  return lessonId === 'jtw-s1-c4-p6' ? wrongRunObserved : tapObserved
+}
+
 interface UseBlockEditorOptions {
   readOnly: boolean
   blockDidDrag: RefObject<boolean>
@@ -120,7 +128,7 @@ export function useBlockEditor({
       return
     }
     if (isA3EventDebug && (op === 'when_flag' || op === 'when_tap')) {
-      if (!missionTapObserved) {
+      if (!canRepairEventTrigger(storyMission?.lessonId, missionWrongRunObserved, missionTapObserved)) {
         setStoryCoachCue('retry')
         openMission()
         return

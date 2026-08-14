@@ -62,6 +62,7 @@ import { JourneyWestC5PartsPage } from './JourneyWestC5PartsPage';
 import { JourneyWestC5FinalPartsPage } from './JourneyWestC5FinalPartsPage';
 import { JourneyWestC6IntroPartsPage } from './JourneyWestC6IntroPartsPage';
 import { JourneyWestC6FinalPartsPage } from './JourneyWestC6FinalPartsPage';
+import { JourneyWestPartExperience } from './JourneyWestPartExperience';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -70,6 +71,15 @@ const NEXT_PART_ID = 'jtw-s1-c1-p2';
 /** Route dispatcher: parts without a shipped build bounce back to the map. */
 export function JourneyWestPartRoute() {
   const { partId } = useParams();
+  if (!partId) return <Navigate to="/learn/story/journey-west" replace />;
+  return (
+    <JourneyWestPartExperience partId={partId}>
+      <JourneyWestPartContent partId={partId} />
+    </JourneyWestPartExperience>
+  );
+}
+
+function JourneyWestPartContent({ partId }: { partId: string }) {
   if (partId === PART_ID) return <JourneyWestPartPage />;
   if (partId === NEXT_PART_ID) return <JourneyWestPart2Page />;
   if (partId === 'jtw-s1-c1-p3') return <JourneyWestPart3Page />;

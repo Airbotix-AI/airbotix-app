@@ -74,7 +74,11 @@ import { usePaletteDrag } from './usePaletteDrag';
 import { useBlockEditor } from './useBlockEditor';
 import { useBlocksProjectPersistence } from './useBlocksProjectPersistence';
 import { useTinyStarBellVisual } from './useTinyStarBellVisual';
-import { useBlocksMissionDerived } from './useBlocksMissionDerived';
+import {
+  eventTriggerWrongRunObserved,
+  isEventTriggerDebugLesson,
+  useBlocksMissionDerived,
+} from './useBlocksMissionDerived';
 export function BlocksStudioPage({
   projectId: projectIdProp,
   readOnly = false,
@@ -512,6 +516,10 @@ export function BlocksStudioPage({
         const observedEarlyBell =
           isA6OrderDebug && tinyStarBellRangBeforeHop(bellPlayedOpsRef.current);
         const observedOrderBug = jtwOrderBugObserved(storyMission.lessonId, missionScript?.blocks);
+        const observedWrongEventTrigger = eventTriggerWrongRunObserved(
+          storyMission.lessonId,
+          missionScript?.blocks,
+        );
         if (
           storyMission.lessonId === 'tsv-s1-a6-h' &&
           tinyStarBellRangWithoutHop(bellPlayedOpsRef.current) &&
@@ -524,6 +532,7 @@ export function BlocksStudioPage({
         if (observedWrongDirection) setMissionWrongRunObserved(true);
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
+        if (observedWrongEventTrigger) setMissionWrongRunObserved(true);
         if (observedLateBounce) setMissionWrongRunObserved(true);
         if (observedEarlyBell) setMissionWrongRunObserved(true);
         if (storyMission.mode === 'observe-only') {
@@ -716,7 +725,7 @@ export function BlocksStudioPage({
           setStoryCoachCue('saving');
           setMissionOpen(false);
         }
-        if (storyMission?.lessonId === 'tsv-s1-a3-d') {
+        if (isEventTriggerDebugLesson(storyMission?.lessonId)) {
           if (!missionTapObserved) {
             setMissionHasRun(true);
             setMissionTapObserved(true);

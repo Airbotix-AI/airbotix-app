@@ -37,7 +37,7 @@ describe('JourneyWestC4Part7Page', () => {
     fireEvent.click(screen.getByTestId('jtw-c4p7-reopen'));
     await waitFor(() => expect(screen.getByTestId('jtw-c4p7-continue')).toBeEnabled());
     fireEvent.click(screen.getByTestId('jtw-c4p7-continue'));
-    await waitFor(() => expect(storyApi.completeStoryPart).toHaveBeenCalledWith('journey-to-the-west-s1', 'jtw-s1-c4-p7', expect.objectContaining({ selections: expect.objectContaining({ reopen_json_match: ['true'], peer_discovery: ['found-wukong-by-gentle-cue'] }) })));
+    await waitFor(() => expect(storyApi.completeStoryPart).toHaveBeenCalledWith('journey-to-the-west-s1', 'jtw-s1-c4-p7', expect.objectContaining({ selections: expect.objectContaining({ saved_version: ['2'], reopen_json_match: ['true'], peer_discovery: ['found-wukong-by-gentle-cue'] }) })));
   });
 
   it('rejects a reopened project whose saved JSON changed', async () => {

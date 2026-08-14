@@ -188,6 +188,22 @@ describe('blocksStore', () => {
     expect(char().scripts[1].blocks.map((b) => b.op)).toEqual(['when_tap']);
   });
 
+  it('keeps End last when palette blocks are inserted at explicit top-level slots', () => {
+    store().addBlock('when_flag');
+    store().addBlock('say');
+    const id = store().project.pages[0].characters[0].scripts[0].id;
+
+    store().insertBlock('end', id, 1);
+    store().insertBlockAtPath('show', id, [99]);
+
+    expect(store().project.pages[0].characters[0].scripts[0].blocks.map((block) => block.op)).toEqual([
+      'when_flag',
+      'say',
+      'show',
+      'end',
+    ]);
+  });
+
   it('moveBlockAcross moves a body block into a different track at a slot', () => {
     store().addBlock('when_flag'); // track A
     store().addBlock('move_right');

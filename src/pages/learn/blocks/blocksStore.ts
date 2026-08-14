@@ -493,7 +493,13 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
           scripts: c.scripts.map((sc) => {
             if (sc.id !== scriptId) return sc;
             const arr = [...sc.blocks];
-            const at = Math.min(Math.max(1, index), arr.length);
+            const endIndex = arr.findIndex((candidate) => candidate.op === 'end');
+            const requested = Math.min(Math.max(1, index), arr.length);
+            const at = op === 'end'
+              ? arr.length
+              : endIndex >= 1
+                ? Math.min(requested, endIndex)
+                : requested;
             arr.splice(at, 0, ...structuralBlocks(block));
             return { ...sc, blocks: arr };
           }),
@@ -630,7 +636,23 @@ export const useBlocksStore = create<BlocksStore>((set, get) => ({
         scripts: c.scripts.map((sc) =>
           sc.id !== scriptId
             ? sc
-            : { ...sc, blocks: insertAtPath(sc.blocks, path, newStructuralBlock(op, chosenN)) },
+            : {
+                ...sc,
+                blocks: insertAtPath(
+                  sc.blocks,
+                  path.length === 1
+                    ? [op === 'end'
+                        ? sc.blocks.length
+                        : Math.min(
+                            path[0],
+                            sc.blocks.findIndex((candidate) => candidate.op === 'end') >= 1
+                              ? sc.blocks.findIndex((candidate) => candidate.op === 'end')
+                              : sc.blocks.length,
+                          )]
+                    : path,
+                  newStructuralBlock(op, chosenN),
+                ),
+              },
         ),
       })),
     }));

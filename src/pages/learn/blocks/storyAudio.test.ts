@@ -22,6 +22,7 @@ function stubSpeech() {
   const cancel = vi.fn();
   class FakeSpeechSynthesisUtterance {
     text: string;
+    lang = '';
     rate = 1;
     pitch = 1;
     volume = 1;
@@ -68,7 +69,16 @@ describe('storyAudio', () => {
       rate: 0.92,
       pitch: 1.08,
       volume: 0.95,
+      lang: 'en-AU',
     });
+  });
+
+  it('selects Chinese on-device narration for Story Blocks Chinese copy', () => {
+    const speech = stubSpeech();
+
+    expect(speakStory('悟空先观察，再运行程序。')).toBe(true);
+
+    expect(speech.speak.mock.calls[0][0]).toMatchObject({ lang: 'zh-CN' });
   });
 
   it('stores the child-facing background music preference locally', () => {
