@@ -79,6 +79,14 @@ export async function createGameProject(args: {
    * adopt it. Explicit studio choices omit this.
    */
   inferKind?: boolean;
+  /**
+   * Creative Code Challenge entrant onboarding (entrant-onboarding-prd §8.3):
+   * the edition slug this project is being built for. The backend resolves it to
+   * `Project.challenge_edition_id` and stores it, which is the ONLY thing that
+   * survives — the studio `replaceState`s straight after creation and discards
+   * every query param, exactly as it does for `?class=`.
+   */
+  challengeSlug?: string;
 }): Promise<{ id: string; kind?: 'game' | 'website' }> {
   return api<{ id: string; kind?: 'game' | 'website' }>(`/projects`, {
     method: 'POST',
@@ -87,6 +95,7 @@ export async function createGameProject(args: {
       product_line: 'line_b_coding',
       kind: args.kind ?? GAME_PROJECT_KIND,
       ...(args.inferKind ? { infer_kind: true } : {}),
+      ...(args.challengeSlug ? { challenge_slug: args.challengeSlug } : {}),
       ...(args.template ? { template: args.template } : {}),
       ...(args.kidId ? { kid_id: args.kidId } : {}),
       ...(args.familyId ? { family_id: args.familyId } : {}),

@@ -7,6 +7,8 @@ import { useDemoMode } from '@/pages/try/demoMode';
 
 import { getProject, readVfs, type VfsFile } from '../code/codeApi';
 import type { GameEngine } from './buildGamePreview';
+import { ChallengeStrip } from './ChallengeStrip';
+import { challengeStripApplies } from './useChallengeContext';
 import { GeneratingScreen } from './GeneratingScreen';
 import { createGameProject, createPrepGameProject, placeGameProjectForClass } from './panes/playgroundApi';
 import { useHistoryStore } from './historyStore';
@@ -137,6 +139,14 @@ export function PlaygroundApp({
   // kid still sees the initial prompt. After the prompt creates the real game, we
   // attach it to this class via the placement endpoint before entering the studio.
   const createForClassId = isNew ? searchParams.get('class') : null;
+  // Creative Code Challenge (entrant-onboarding-prd §8.3): the challenge page
+  // opens `/learn/playground/new?kind=website&challenge=<slug>`. Read exactly
+  // like `class` above — and, exactly like `class`, the PARAM IS NOT WHAT
+  // SURVIVES: `replaceState` below discards it, so the slug rides the create
+  // call and the backend stores `Project.challenge_edition_id`, which a resumed
+  // session reads back into `challengeEditionId`.
+  const challengeSlug = isNew ? searchParams.get('challenge') : null;
+  const [challengeEditionId, setChallengeEditionId] = useState<string | null>(null);
   // Website Studio (creative-code-studio-website-prd): `/learn/playground/new
   // ?kind=website` arms the SAME prompt-first flow to create a `kind='website'`
   // project (site runtime instead of a game). Existing projects load their kind
@@ -284,6 +294,11 @@ export function PlaygroundApp({
         // renders the SiteFrame runtime. `CodeProject.kind` is typed for the code
         // studio, so read the raw wire kind.
         if ((p as { kind?: string }).kind === 'website') setProjectKind('website');
+        // Creative Code Challenge context, persisted at create time — this is
+        // what a RESUMED session has instead of the discarded `?challenge=`.
+        setChallengeEditionId(
+          (p as { challenge_edition_id?: string | null }).challenge_edition_id ?? null,
+        );
         // Workshop-free-AI waiver (D-WFA-01) — free-workshop window is live for this
         // project → the chat drops the star cost and shows "Free during workshop".
         setAiFreeNow(p.ai_free_now ?? false);
@@ -492,8 +507,30 @@ export function PlaygroundApp({
     blocker.proceed?.();
   }, [projectId, blocker, flushSave, flushChat]);
 
+  // The whole exclusion set (§8.3) lives in one predicate, not in branches here.
+  const showChallengeStrip = challengeStripApplies({
+    readOnly,
+    prepHost: prepMode || Boolean(prepClassId),
+    demoMode: demo != null,
+    classCreate: createForClassId != null,
+    isKid: kidId != null,
+    slug: challengeSlug,
+    editionId: challengeEditionId,
+  });
+
   return (
-    <div data-theme={theme} className="h-full min-h-0 w-full overflow-hidden bg-pg-bg">
+    <div
+      data-theme={theme}
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-pg-bg"
+    >
+      {showChallengeStrip && (
+        <ChallengeStrip
+          projectId={ownedProjectId}
+          slug={challengeSlug}
+          editionId={challengeEditionId}
+        />
+      )}
+      <div className="min-h-0 flex-1">
       {loadError ? (
         <LoadErrorScreen
           variant={loadError}
@@ -550,6 +587,12 @@ export function PlaygroundApp({
                     title,
                     ...(submitKind === 'website' ? { kind: 'website' as const } : {}),
                     ...(wantsKindInference ? { inferKind: true } : {}),
+                    // Challenge context is PERSISTED, not carried in the URL —
+                    // `replaceState` below throws the param away. Class work is
+                    // never a challenge entry, so the two never ride together.
+                    ...(challengeSlug && !createForClassId
+                      ? { challengeSlug }
+                      : {}),
                   });
                   // Adopt the server's routing decision (D-WEB-11) so the
                   // generating copy + workspace mount the right runtime.
@@ -736,6 +779,7 @@ export function PlaygroundApp({
       )}
         </>
       )}
+      </div>
     </div>
   );
 }

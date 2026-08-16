@@ -5,9 +5,9 @@
 //      is the thing ("the video didn't save"), never the child ("you uploaded a
 //      bad file"). A rejected entry is something to change, not a verdict.
 //   2. **No error codes, no jargon, no backend wording.** The backend's own
-//      messages are written for an API consumer ("A challenge entry must be a
-//      Code, Game or Blocks Studio project"), so they are translated here rather
-//      than shown. An UNRECOGNISED failure still reads as a failure — never as
+//      messages are written for an API consumer (e.g. its refusal names the
+//      eligible `ProjectKind`s), so they are translated here rather than
+//      shown. An UNRECOGNISED failure still reads as a failure — never as
 //      success — because the single most damaging bug on this screen is a child
 //      believing they entered when they did not.
 //   3. **Every state says what happens next.** A sentence that only reports a
@@ -27,9 +27,12 @@ const ERRORS: Record<string, string> = {
     'The deadline has passed, so this cannot change any more. What you sent in is safe.',
   PROJECT_NOT_OWNED:
     'We could not find that project. Pick one from your own list and try again.',
+  // Names every eligible kind (entrant-onboarding-prd §8.1, D-CCE-1) — a child
+  // told to "pick a game" while holding a website they were sold on has been
+  // refused twice: once by the server and once by this sentence.
   PROJECT_NOT_PLAYABLE:
-    'Pick a project that someone can play — a Creative Code Studio game, a code project or a ' +
-    'Story Blocks one.',
+    'Pick a project someone can open and use — a Creative Code Studio game, a website you ' +
+    'built, a code project or a Story Blocks one.',
   PITCH_ARTIFACT_NOT_OWNED:
     'Your video did not save properly. Choose it again and press send once more.',
   PITCH_ARTIFACT_NOT_VIDEO: 'That file is not a video. Pick your pitch video and try again.',
